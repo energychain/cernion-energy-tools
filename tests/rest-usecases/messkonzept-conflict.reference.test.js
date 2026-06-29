@@ -122,7 +122,6 @@ describeRest(`${scenario.scenarioId}: ${scenario.title}`, () => {
 });
 
 if (RUN_REST_USECASES && !serverAvailable) {
-  // eslint-disable-next-line no-console
   console.warn(
     `[REST usecases] Skipping ${scenario.scenarioId}: no server reachable at ${BASE_URL}.`
   );

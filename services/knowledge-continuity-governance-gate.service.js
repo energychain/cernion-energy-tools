@@ -60,7 +60,8 @@ function buildPositiveFollowUps(missingDataPoints) {
     retentionPolicy: 'adds retention-policy evidence',
     deletionDeadline: 'adds deletion-risk evidence',
     itApprovalStatus: 'adds IT acceptance status and residual blocker classification',
-    source_action_references: 'adds traceability to reused VDMI/Evidence/HITL/Presentation capabilities',
+    source_action_references:
+      'adds traceability to reused VDMI/Evidence/HITL/Presentation capabilities',
   };
   return missingDataPoints.map((missingDataPoint) => ({
     missingDataPoint,
@@ -138,7 +139,9 @@ module.exports = {
     await this.db.createIndex({ index: { fields: ['criticalProcessId'] } });
     await this.db.createIndex({ index: { fields: ['evidenceStatus'] } });
     await this.db.createIndex({ index: { fields: ['createdAt'] } });
-    this.logger.info(`Knowledge Continuity Governance Gate DB initialized at ${this.settings.dbPath}`);
+    this.logger.info(
+      `Knowledge Continuity Governance Gate DB initialized at ${this.settings.dbPath}`
+    );
   },
 
   async stopped() {
@@ -258,7 +261,11 @@ module.exports = {
 
         const governanceGateId = `${GOVERNANCE_GATE_PREFIX}${crypto.randomUUID()}`;
         const uniqueMissingDataPoints = [...new Set(missingDataPoints)];
-        const readinessScore = Math.max(0, (requiredStringFields.length - uniqueMissingDataPoints.length) / requiredStringFields.length);
+        const readinessScore = Math.max(
+          0,
+          (requiredStringFields.length - uniqueMissingDataPoints.length) /
+            requiredStringFields.length
+        );
         const doc = {
           _id: governanceGateId,
           docType: 'knowledge-continuity-governance-gate',
@@ -333,12 +340,20 @@ module.exports = {
         try {
           const model = await this.db.get(ctx.params.governanceGateId);
           if (model.tenantId !== tenantId) {
-            throw new MoleculerClientError('Governance gate not found', 404, 'GOVERNANCE_GATE_NOT_FOUND');
+            throw new MoleculerClientError(
+              'Governance gate not found',
+              404,
+              'GOVERNANCE_GATE_NOT_FOUND'
+            );
           }
           return model;
         } catch (err) {
           if (err.status === 404) {
-            throw new MoleculerClientError('Governance gate not found', 404, 'GOVERNANCE_GATE_NOT_FOUND');
+            throw new MoleculerClientError(
+              'Governance gate not found',
+              404,
+              'GOVERNANCE_GATE_NOT_FOUND'
+            );
           }
           throw err;
         }
@@ -363,8 +378,15 @@ module.exports = {
           let model;
           if (ctx.params.governanceGateId) {
             model = await this.db.get(ctx.params.governanceGateId);
-            if (model.tenantId !== tenantId || (requestedProcessId && model.criticalProcessId !== requestedProcessId)) {
-              throw new MoleculerClientError('Governance gate status not found', 404, 'GOVERNANCE_GATE_STATUS_NOT_FOUND');
+            if (
+              model.tenantId !== tenantId ||
+              (requestedProcessId && model.criticalProcessId !== requestedProcessId)
+            ) {
+              throw new MoleculerClientError(
+                'Governance gate status not found',
+                404,
+                'GOVERNANCE_GATE_STATUS_NOT_FOUND'
+              );
             }
           } else {
             const result = await this.db.find({
@@ -375,8 +397,15 @@ module.exports = {
               },
               limit: 50,
             });
-            model = result.docs.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))[0];
-            if (!model) throw new MoleculerClientError('Governance gate status not found', 404, 'GOVERNANCE_GATE_STATUS_NOT_FOUND');
+            model = result.docs.sort((a, b) =>
+              String(b.createdAt).localeCompare(String(a.createdAt))
+            )[0];
+            if (!model)
+              throw new MoleculerClientError(
+                'Governance gate status not found',
+                404,
+                'GOVERNANCE_GATE_STATUS_NOT_FOUND'
+              );
           }
           return buildStatusFromModel(model);
         } catch (err) {
@@ -384,7 +413,8 @@ module.exports = {
             return {
               found: false,
               criticalProcessId: requestedProcessId,
-              message: 'No knowledge-continuity governance evidence is available for this tenant yet',
+              message:
+                'No knowledge-continuity governance evidence is available for this tenant yet',
             };
           }
           throw err;

@@ -187,7 +187,9 @@ describe('Assets Service — VNB guard (VNB_NOT_FOUND)', () => {
     });
     broker._installationsMock.mockResolvedValueOnce([]);
 
-    await expect(broker.call('assets.solar', { vnbName: 'STROMDAO Netze GmbH' })).resolves.toBeDefined();
+    await expect(
+      broker.call('assets.solar', { vnbName: 'STROMDAO Netze GmbH' })
+    ).resolves.toBeDefined();
 
     // Must pass clean SNB ID — NOT the annotated string
     expect(broker._installationsMock.mock.calls[0][0].params.gridOperatorId).toBe(

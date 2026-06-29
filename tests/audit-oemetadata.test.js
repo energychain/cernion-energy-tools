@@ -14,7 +14,10 @@ const { ServiceBroker } = require('moleculer');
 const TEST_DB_PATH = path.join(os.tmpdir(), `cernion-audit-mq-test-${Date.now()}`);
 process.env.MASTR_QUALITY_DB_PATH = TEST_DB_PATH;
 
-const { buildOemetadataForAudit, validateAgainstSchema } = require('../src/audit-oemetadata-builder');
+const {
+  buildOemetadataForAudit,
+  validateAgainstSchema,
+} = require('../src/audit-oemetadata-builder');
 const { getRule, getStaticRules } = require('../src/dossier-hydration-registry');
 const CapabilityBrokerService = require('../services/capability-broker.service');
 
@@ -32,7 +35,12 @@ function makeAuditDoc(overrides = {}) {
     },
     findings: [
       { step: 4, findingCode: 'MQ_ZERO_CAPACITY', severity: 'error', message: 'Zero capacity' },
-      { step: 6, findingCode: 'MQ_PROBABLE_DUPLICATE', severity: 'warning', message: 'Possible duplicate' }
+      {
+        step: 6,
+        findingCode: 'MQ_PROBABLE_DUPLICATE',
+        severity: 'warning',
+        message: 'Possible duplicate',
+      },
     ],
     provenanceHash: 'hash1234567890abcdef1234567890abcdef1234567890abc',
     qualityDimensions: {
@@ -40,9 +48,9 @@ function makeAuditDoc(overrides = {}) {
       capacity: 90,
       connectionPoints: 100,
       duplicates: 90,
-      geo: 100
+      geo: 100,
     },
-    ...overrides
+    ...overrides,
   };
 }
 
@@ -55,7 +63,9 @@ describe('Audit OEMetadata Builder', () => {
       expect(typeof meta).toBe('object');
       expect(meta).not.toBeNull();
       expect(meta['@id']).toBe('urn:cernion:audit:mq:test-id');
-      expect(meta['@context']).toBe('https://raw.githubusercontent.com/OpenEnergyPlatform/oemetadata/v2.0.0/metadata/v200/context.json');
+      expect(meta['@context']).toBe(
+        'https://raw.githubusercontent.com/OpenEnergyPlatform/oemetadata/v2.0.0/metadata/v200/context.json'
+      );
       expect(meta.name).toBe('audit-mastr-quality-test-id');
       expect(meta.title).toContain('STROMDAO Netze GmbH');
       expect(meta.id).toBe('urn:cernion:audit:mq:test-id');
@@ -64,10 +74,12 @@ describe('Audit OEMetadata Builder', () => {
       // Check subjects
       expect(Array.isArray(meta.subject)).toBe(true);
       expect(meta.subject[0].name).toBe('data analysis procedure');
-      expect(meta.subject[0].path).toBe('https://openenergyplatform.org/ontology/oeo/DataAnalysisProcedure');
+      expect(meta.subject[0].path).toBe(
+        'https://openenergyplatform.org/ontology/oeo/DataAnalysisProcedure'
+      );
 
       // Check finding mappings are appended as subjects
-      const subjectNames = meta.subject.map(s => s.name);
+      const subjectNames = meta.subject.map((s) => s.name);
       expect(subjectNames).toContain('finding: MQ_ZERO_CAPACITY');
       expect(subjectNames).toContain('finding: MQ_PROBABLE_DUPLICATE');
 
@@ -83,7 +95,9 @@ describe('Audit OEMetadata Builder', () => {
       // _cernion extension
       expect(meta._cernion).toBeDefined();
       expect(meta._cernion.qualityScore).toBe(92);
-      expect(meta._cernion.provenance.hash).toBe('hash1234567890abcdef1234567890abcdef1234567890abc');
+      expect(meta._cernion.provenance.hash).toBe(
+        'hash1234567890abcdef1234567890abcdef1234567890abc'
+      );
     });
 
     it('validates against the schema without throwing', () => {
@@ -109,7 +123,7 @@ describe('mastr-quality.oemetadata action', () => {
     try {
       await mqService.db.put({
         _id: 'mq:test-id',
-        ...makeAuditDoc()
+        ...makeAuditDoc(),
       });
     } catch (err) {
       if (err.name !== 'conflict') throw err;
@@ -148,9 +162,9 @@ describe('Answer Dossier Hydration Registry', () => {
     expect(rule).not.toBeNull();
     expect(rule.id).toBe('mastr-quality.oemetadata');
     expect(rule.action).toBe('mastr-quality.oemetadata');
-    
+
     // Check capability field on static rule
-    const staticRule = getStaticRules().find(r => r.id === 'mastr-quality.oemetadata');
+    const staticRule = getStaticRules().find((r) => r.id === 'mastr-quality.oemetadata');
     expect(staticRule.capability).toBe('mastr_quality_oemetadata');
     expect(staticRule.safety.classification).toBe('read_only');
 

@@ -43,9 +43,7 @@ function hasVdmiRoleFields(task) {
 }
 
 function hasVdmiShape(domainResult = {}) {
-  const matrixTasks = Array.isArray(domainResult?.matrix?.tasks)
-    ? domainResult.matrix.tasks
-    : null;
+  const matrixTasks = Array.isArray(domainResult?.matrix?.tasks) ? domainResult.matrix.tasks : null;
   if (matrixTasks && matrixTasks.length > 0) return true;
   return Array.isArray(domainResult?.tasks) && domainResult.tasks.some(hasVdmiRoleFields);
 }
@@ -66,7 +64,10 @@ function hasKpiShape(domainResult = {}) {
 }
 
 function hasDecisionShape(domainResult = {}) {
-  if (Array.isArray(domainResult.forbiddenAssumptions) && domainResult.forbiddenAssumptions.length) {
+  if (
+    Array.isArray(domainResult.forbiddenAssumptions) &&
+    domainResult.forbiddenAssumptions.length
+  ) {
     return true;
   }
   if (domainResult.decisionStatus || domainResult.expectedStatus) return true;

@@ -165,11 +165,7 @@ function validateVdmiMatrixRow(row, options = {}) {
 
 function validateVdmiMatrix(matrix, options = {}) {
   const taskPath = options.path || 'matrix.tasks';
-  const tasks = Array.isArray(matrix?.tasks)
-    ? matrix.tasks
-    : Array.isArray(matrix)
-      ? matrix
-      : [];
+  const tasks = Array.isArray(matrix?.tasks) ? matrix.tasks : Array.isArray(matrix) ? matrix : [];
   const errors = [];
 
   if (!Array.isArray(matrix?.tasks) && !Array.isArray(matrix)) {

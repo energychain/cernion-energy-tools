@@ -25,22 +25,22 @@ const { sectorFractionsForProfile } = require('./municipal-load-estimator');
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-const PV_FLH       = 1000;   // PV full-load hours (h/a)
-const BIOMASS_FLH  = 7000;   // Biomass full-load hours (h/a)
-const WIND_FLH     = 1800;   // Wind full-load hours (h/a)
+const PV_FLH = 1000; // PV full-load hours (h/a)
+const BIOMASS_FLH = 7000; // Biomass full-load hours (h/a)
+const WIND_FLH = 1800; // Wind full-load hours (h/a)
 
-const CONSUMPTION_PER_CAPITA_MIN = 1200;  // kWh/EW/Jahr — Gesamtverbrauch lower bound
-const CONSUMPTION_PER_CAPITA_MAX = 2600;  // kWh/EW/Jahr — Gesamtverbrauch upper bound
+const CONSUMPTION_PER_CAPITA_MIN = 1200; // kWh/EW/Jahr — Gesamtverbrauch lower bound
+const CONSUMPTION_PER_CAPITA_MAX = 2600; // kWh/EW/Jahr — Gesamtverbrauch upper bound
 
-const MIN_PEER_COUNT  = 5;
-const PEER_BAND       = 0.25;   // ±25 % for narrow pass
-const PEER_BAND_WIDE  = 0.35;   // ±35 % extended fallback
+const MIN_PEER_COUNT = 5;
+const PEER_BAND = 0.25; // ±25 % for narrow pass
+const PEER_BAND_WIDE = 0.35; // ±35 % extended fallback
 const TARGET_OUTLIER_FACTOR = 1.5; // values beyond this need method validation, not praise
 
 // BSW-Solar/DBFZ proxy: ewz × factor (same formula as municipality-resolver estimateEnergyFromPopulation)
-const PV_KW_PER_EW      = 0.55;
-const BIO_KW_PER_EW_SM  = 0.09;  // < 10 000 EW
-const BIO_KW_PER_EW_LG  = 0.04;  // ≥ 10 000 EW
+const PV_KW_PER_EW = 0.55;
+const BIO_KW_PER_EW_SM = 0.09; // < 10 000 EW
+const BIO_KW_PER_EW_LG = 0.04; // ≥ 10 000 EW
 
 const AVG_HOUSEHOLDS_PER_EW = 0.46;
 const AVG_HOUSEHOLD_KWH = 2300;
@@ -89,7 +89,7 @@ function _densityAdjustedBioKwPerEw(ewz, areaSqKm) {
 function _estimatePeerGenKwh(peer) {
   const ewz = peer.ewz || 0;
   const areaSqKm = peer.kfl || 0;
-  const pvKw  = Math.round(ewz * _densityAdjustedPvKwPerEw(ewz, areaSqKm));
+  const pvKw = Math.round(ewz * _densityAdjustedPvKwPerEw(ewz, areaSqKm));
   const bioKw = Math.round(ewz * _densityAdjustedBioKwPerEw(ewz, areaSqKm));
   return pvKw * PV_FLH + bioKw * BIOMASS_FLH;
 }
@@ -120,7 +120,7 @@ function findPeerCandidates({ ags, state, population, areaSqKm }) {
   }
 
   const densityClass = settlementDensityClass(population, areaSqKm);
-  const bandLow  = Math.round(population * (1 - PEER_BAND));
+  const bandLow = Math.round(population * (1 - PEER_BAND));
   const bandHigh = Math.round(population * (1 + PEER_BAND));
 
   const narrow = gemeindenData.filter(
@@ -147,7 +147,7 @@ function findPeerCandidates({ ags, state, population, areaSqKm }) {
   }
 
   // Fallback: wider band, drop density class filter
-  const wideLow  = Math.round(population * (1 - PEER_BAND_WIDE));
+  const wideLow = Math.round(population * (1 - PEER_BAND_WIDE));
   const wideHigh = Math.round(population * (1 + PEER_BAND_WIDE));
   const wide = gemeindenData.filter(
     (g) =>
@@ -173,13 +173,10 @@ function findPeerCandidates({ ags, state, population, areaSqKm }) {
   }
 
   if (population >= 500000) {
-    const metro = gemeindenData.filter(
-      (g) =>
-        g.ags !== ags &&
-        (g.ewz || 0) >= 500000 &&
-        g.kfl > 0
+    const metro = gemeindenData.filter((g) => g.ags !== ags && (g.ewz || 0) >= 500000 && g.kfl > 0);
+    const metroSameDensity = metro.filter(
+      (g) => settlementDensityClass(g.ewz, g.kfl) === densityClass
     );
-    const metroSameDensity = metro.filter((g) => settlementDensityClass(g.ewz, g.kfl) === densityClass);
     const selected = metroSameDensity.length >= MIN_PEER_COUNT ? metroSameDensity : metro;
     return {
       peers: selected,
@@ -212,14 +209,20 @@ function _percentiles(values) {
   if (!values.length) return { min: null, median: null, max: null };
   const sorted = [...values].sort((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
-  const median =
-    sorted.length % 2 === 0
-      ? (sorted[mid - 1] + sorted[mid]) / 2
-      : sorted[mid];
+  const median = sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
   return { min: sorted[0], median, max: sorted[sorted.length - 1] };
 }
 
-function _positionFraming(targetValue, minValue, maxValue, unit, municipality, highText, lowText, inBandText) {
+function _positionFraming(
+  targetValue,
+  minValue,
+  maxValue,
+  unit,
+  municipality,
+  highText,
+  lowText,
+  inBandText
+) {
   if (targetValue > maxValue) {
     return `${municipality} liegt bei ${targetValue} ${unit} und damit oberhalb dieses Korridors; ${highText}.`;
   }
@@ -230,15 +233,17 @@ function _positionFraming(targetValue, minValue, maxValue, unit, municipality, h
 }
 
 function _findMethodOutlier(rows) {
-  return rows.find((row) => {
-    const target = Number(row.targetValue);
-    const min = Number(row.minValue);
-    const max = Number(row.maxValue);
-    if (!Number.isFinite(target) || !Number.isFinite(min) || !Number.isFinite(max)) return false;
-    if (max > 0 && target > max * TARGET_OUTLIER_FACTOR) return true;
-    if (min > 0 && target < min / TARGET_OUTLIER_FACTOR) return true;
-    return false;
-  }) || null;
+  return (
+    rows.find((row) => {
+      const target = Number(row.targetValue);
+      const min = Number(row.minValue);
+      const max = Number(row.maxValue);
+      if (!Number.isFinite(target) || !Number.isFinite(min) || !Number.isFinite(max)) return false;
+      if (max > 0 && target > max * TARGET_OUTLIER_FACTOR) return true;
+      if (min > 0 && target < min / TARGET_OUTLIER_FACTOR) return true;
+      return false;
+    }) || null
+  );
 }
 
 // ── Main builder ─────────────────────────────────────────────────────────────
@@ -288,9 +293,9 @@ function buildIntermunicipalComparison({
     );
   }
 
-  const pop      = profile.population;
+  const pop = profile.population;
   const guardrailRows = [];
-  let overallBlocked  = false;
+  let overallBlocked = false;
 
   guardrailRows.push({
     guardrailKey: 'ags_resolution',
@@ -299,9 +304,9 @@ function buildIntermunicipalComparison({
   });
 
   // ── Guardrail 2: Household / population plausibility ──────────────────
-  const hsPerEw          = profile.avgHouseholdsPerEinwohner || 0.44;
+  const hsPerEw = profile.avgHouseholdsPerEinwohner || 0.44;
   const actualHouseholds = annualLoad ? annualLoad.households : Math.round(pop * hsPerEw);
-  const hhLow  = Math.round(pop * 0.28);
+  const hhLow = Math.round(pop * 0.28);
   const hhHigh = Math.round(pop * 0.68);
   if (actualHouseholds >= hhLow && actualHouseholds <= hhHigh) {
     guardrailRows.push({
@@ -366,7 +371,8 @@ function buildIntermunicipalComparison({
       blockedFallback: {
         headline: 'Interkommunaler Vergleich derzeit nicht verfügbar',
         text: 'Für einen belastbaren Vergleich werden plausible Verbrauchsdaten zur Zielkommune benötigt.',
-        nextGateLabel: 'Datengrundlage der Zielkommune prüfen und Einwohnerzahl / Verbrauchsableitung sicherstellen.',
+        nextGateLabel:
+          'Datengrundlage der Zielkommune prüfen und Einwohnerzahl / Verbrauchsableitung sicherstellen.',
       },
     };
   }
@@ -420,53 +426,50 @@ function buildIntermunicipalComparison({
   // ── Compute target metrics (proxy — same method as peers) ─────────────
   const mktPrice = marketPriceEurPerMwh || 70;
   const targetGenKwh =
-    (profile.pvCapacityKw      || 0) * PV_FLH +
+    (profile.pvCapacityKw || 0) * PV_FLH +
     (profile.biomassCapacityKw || 0) * BIOMASS_FLH +
-    (profile.windCapacityKw    || 0) * WIND_FLH;
-  const targetLoadKwh             = totalKwh || _estimatePeerLoadKwh({ ewz: pop, kfl: profile.areaSqKm });
-  const targetLocalCoverageShare  = targetLoadKwh > 0
-    ? Math.min(1.0, targetGenKwh / targetLoadKwh)
-    : 0;
-  const targetGenerationValueEurPerCapita = pop > 0
-    ? Math.round(totalGrossMarketValueEur / pop)
-    : 0;
+    (profile.windCapacityKw || 0) * WIND_FLH;
+  const targetLoadKwh = totalKwh || _estimatePeerLoadKwh({ ewz: pop, kfl: profile.areaSqKm });
+  const targetLocalCoverageShare =
+    targetLoadKwh > 0 ? Math.min(1.0, targetGenKwh / targetLoadKwh) : 0;
+  const targetGenerationValueEurPerCapita =
+    pop > 0 ? Math.round(totalGrossMarketValueEur / pop) : 0;
 
   // ── Compute peer metrics (same proxy) ────────────────────────────────
-  const peerCoverageValues   = [];
+  const peerCoverageValues = [];
   const peerGenValuePerEwArr = [];
 
   for (const peer of peers) {
     const ewz = peer.ewz || 0;
     if (!ewz) continue;
-    const genKwh     = _estimatePeerGenKwh(peer);
-    const grossEur   = Math.round((genKwh / 1000) * mktPrice);
-    const loadKwh    = _estimatePeerLoadKwh(peer);
+    const genKwh = _estimatePeerGenKwh(peer);
+    const grossEur = Math.round((genKwh / 1000) * mktPrice);
+    const loadKwh = _estimatePeerLoadKwh(peer);
     peerCoverageValues.push(loadKwh > 0 ? Math.min(1.0, genKwh / loadKwh) : 0);
     peerGenValuePerEwArr.push(ewz > 0 ? Math.round(grossEur / ewz) : 0);
   }
 
-  const toPct = (v) => Math.round(v * 1000) / 10;  // 0.1234 → 12.3 (one decimal)
+  const toPct = (v) => Math.round(v * 1000) / 10; // 0.1234 → 12.3 (one decimal)
   const peerScopeLabel = scopeState || profile.state;
 
   const coveragePctValues = peerCoverageValues.map(toPct);
-  const coverageP         = _percentiles(coveragePctValues);
-  const genValueP         = _percentiles(peerGenValuePerEwArr);
+  const coverageP = _percentiles(coveragePctValues);
+  const genValueP = _percentiles(peerGenValuePerEwArr);
 
   const targetCoveragePct = toPct(targetLocalCoverageShare);
 
   // ── Corridor rows ─────────────────────────────────────────────────────
   const corridorRows = [
     {
-      metricKey:    'local_coverage_share',
-      metricLabel:  'Lokale Deckungsquote',
-      unit:         '%',
-      targetValue:  targetCoveragePct,
-      minValue:     coverageP.min,
-      medianValue:  coverageP.median !== null ? Math.round(coverageP.median * 10) / 10 : null,
-      maxValue:     coverageP.max,
-      roundedRangeLabel: coverageP.min !== null
-        ? `${coverageP.min}–${coverageP.max} %`
-        : 'keine Daten',
+      metricKey: 'local_coverage_share',
+      metricLabel: 'Lokale Deckungsquote',
+      unit: '%',
+      targetValue: targetCoveragePct,
+      minValue: coverageP.min,
+      medianValue: coverageP.median !== null ? Math.round(coverageP.median * 10) / 10 : null,
+      maxValue: coverageP.max,
+      roundedRangeLabel:
+        coverageP.min !== null ? `${coverageP.min}–${coverageP.max} %` : 'keine Daten',
       framingText:
         `Vergleichbare Kommunen in ${peerScopeLabel} binden lokal zwischen ` +
         `${coverageP.min} und ${coverageP.max} % bezogen auf den abgeleiteten Verbrauch. ` +
@@ -483,16 +486,15 @@ function buildIntermunicipalComparison({
       evidenceStatus: 'scenario-based',
     },
     {
-      metricKey:    'generation_value_eur_per_capita',
-      metricLabel:  'Erzeugungswert je Einwohner',
-      unit:         'EUR/EW/Jahr',
-      targetValue:  targetGenerationValueEurPerCapita,
-      minValue:     genValueP.min,
-      medianValue:  genValueP.median !== null ? Math.round(genValueP.median) : null,
-      maxValue:     genValueP.max,
-      roundedRangeLabel: genValueP.min !== null
-        ? `${genValueP.min}–${genValueP.max} EUR/EW/Jahr`
-        : 'keine Daten',
+      metricKey: 'generation_value_eur_per_capita',
+      metricLabel: 'Erzeugungswert je Einwohner',
+      unit: 'EUR/EW/Jahr',
+      targetValue: targetGenerationValueEurPerCapita,
+      minValue: genValueP.min,
+      medianValue: genValueP.median !== null ? Math.round(genValueP.median) : null,
+      maxValue: genValueP.max,
+      roundedRangeLabel:
+        genValueP.min !== null ? `${genValueP.min}–${genValueP.max} EUR/EW/Jahr` : 'keine Daten',
       framingText:
         `Vergleichbare Kommunen erwirtschaften zwischen ` +
         `${genValueP.min} und ${genValueP.max} EUR/EW/Jahr aus lokaler Erzeugung. ` +
@@ -522,7 +524,8 @@ function buildIntermunicipalComparison({
     });
     return {
       status: 'blocked',
-      statusReason: 'Zielwert liegt deutlich außerhalb des Peer-Korridors; Methodenkonsistenz braucht Prüfung.',
+      statusReason:
+        'Zielwert liegt deutlich außerhalb des Peer-Korridors; Methodenkonsistenz braucht Prüfung.',
       dataStatus: 'blocked-by-integrity-check',
       target: null,
       peerGroup: {
@@ -540,7 +543,8 @@ function buildIntermunicipalComparison({
         text:
           `${methodOutlier.metricLabel} liegt deutlich außerhalb des vorläufigen Vergleichskorridors. ` +
           'Cernion zeigt deshalb keinen Peer-Vergleich, bis Zielkommune und Vergleichsgruppe mit derselben lokalen Evidenzlogik gegengeprüft sind.',
-        nextGateLabel: 'MaStR-Anlagenbestand, OSM-/Sektorlogik und Peer-Ableitung gemeinsam verifizieren.',
+        nextGateLabel:
+          'MaStR-Anlagenbestand, OSM-/Sektorlogik und Peer-Ableitung gemeinsam verifizieren.',
       },
     };
   }
@@ -556,26 +560,26 @@ function buildIntermunicipalComparison({
     statusReason: `${peers.length} valide Peers; alle Guardrails bestanden`,
     dataStatus: 'scenario-based',
     target: {
-      municipality:         profile.name,
-      ags:                  profile.ags,
-      postalCode:           profile.postalCode || null,
-      state:                profile.state,
-      population:           pop,
+      municipality: profile.name,
+      ags: profile.ags,
+      postalCode: profile.postalCode || null,
+      state: profile.state,
+      population: pop,
       settlementDensityClass: densityClass,
-      basisYear:            year,
+      basisYear: year,
       scenario,
       metrics: {
-        localCoverageShare:              Math.round(targetLocalCoverageShare * 1000) / 1000,
-        generationValueEurPerCapita:     targetGenerationValueEurPerCapita,
-        profileFitIndicator:             extended ? 'extended-band' : 'narrow-band',
+        localCoverageShare: Math.round(targetLocalCoverageShare * 1000) / 1000,
+        generationValueEurPerCapita: targetGenerationValueEurPerCapita,
+        profileFitIndicator: extended ? 'extended-band' : 'narrow-band',
       },
     },
     peerGroup: {
-      state:                     scopeState || profile.state,
+      state: scopeState || profile.state,
       populationBandLabel,
       settlementStructureCriterion: densityClass,
-      validPeerCount:            peers.length,
-      anonymized:                true,
+      validPeerCount: peers.length,
+      anonymized: true,
       criteriaLabel,
     },
     corridorRows,

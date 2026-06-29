@@ -264,9 +264,7 @@ describe('Capability Broker Service', () => {
       },
     });
 
-    expect(result.recommendedCapabilities[0].capability).toBe(
-      'regulatory_risk_revenue_scenario'
-    );
+    expect(result.recommendedCapabilities[0].capability).toBe('regulatory_risk_revenue_scenario');
     expect(result.intent).toBe('cookbook.regulatoryRiskRevenueScenarioBriefing');
 
     const actionNames = result.recommendedPlan.map((step) => step.action);
@@ -505,10 +503,16 @@ describe('Capability Broker Service', () => {
       task: 'Ich bin im Kundenservice eines Stadtwerks in Heidelberg. Ein Kunde meldet seinen Auszug zum Monatsende, aber der plausibilisierte Schlusszaehlerstand liegt noch nicht vor. Bitte erstelle ein Cernion Answer Dossier: Welche Evidence brauchen Kundenservice, EDM und Abrechnung, was duerfen wir dem Kunden heute sagen, was darf erst nach EDM-Plausibilisierung und Abrechnungsfreigabe passieren? Bitte trenne bekannte Angaben, fehlende Evidence, Rollenverantwortung und Folgefragen.',
     });
 
-    expect(result.recommendedCapabilities[0].capability).toBe('edm_customer_moveout_billing_evidence');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'edm_customer_moveout_billing_evidence'
+    );
     expect(result.capability).toBe('edm_customer_moveout_billing_evidence');
-    expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_asset_validation_governance');
-    expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_grid_connection_decision_governance');
+    expect(result.recommendedCapabilities[0].capability).not.toBe(
+      'vdmi_asset_validation_governance'
+    );
+    expect(result.recommendedCapabilities[0].capability).not.toBe(
+      'vdmi_grid_connection_decision_governance'
+    );
     expect(result.recommendedPlan[0].action).toBe('interface-placeholder.markGap');
   });
 
@@ -519,8 +523,12 @@ describe('Capability Broker Service', () => {
 
     expect(result.recommendedCapabilities[0].capability).toBe('energy_sharing_prosumer_advisory');
     expect(result.capability).toBe('energy_sharing_prosumer_advisory');
-    expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_asset_validation_governance');
-    expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_grid_connection_decision_governance');
+    expect(result.recommendedCapabilities[0].capability).not.toBe(
+      'vdmi_asset_validation_governance'
+    );
+    expect(result.recommendedCapabilities[0].capability).not.toBe(
+      'vdmi_grid_connection_decision_governance'
+    );
     expect(result.recommendedPlan[0].action).toBe('interface-placeholder.markGap');
   });
 
@@ -529,10 +537,16 @@ describe('Capability Broker Service', () => {
       task: 'Ich bin in der Redispatch-Koordination eines Verteilnetzbetreibers. Bitte erstelle ein Cernion Answer Dossier fuer folgenden Sonderfall: Eine steuerbare Erzeugungsanlage wurde wegen lokaler Netzengpasslage abgeregelt, aber die Stammdatenlage ist unsicher und es ist unklar, ob der Fall in den normalen Redispatch-2.0-Prozess, einen RCS-Sonderfall oder eine Expost-/Settlement-Nachklaerung gehoert. Bitte trenne operative Massnahme, Datenqualitaet, Expost-Nachweis, Settlement-Risiko und Reporting-Governance. Nenne, welche Evidence aus Redispatch-Assetregister, Data Governance, Special-Case-Gate, RCS-Regelkatalog, Simulation und Settlement-Sandbox erforderlich waere. Keine Verguetungszusage ohne Expost-Evidence.',
     });
 
-    expect(result.recommendedCapabilities[0].capability).toBe('redispatch_rcs_special_case_governance');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'redispatch_rcs_special_case_governance'
+    );
     expect(result.capability).toBe('redispatch_rcs_special_case_governance');
-    expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_asset_validation_governance');
-    expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_grid_connection_decision_governance');
+    expect(result.recommendedCapabilities[0].capability).not.toBe(
+      'vdmi_asset_validation_governance'
+    );
+    expect(result.recommendedCapabilities[0].capability).not.toBe(
+      'vdmi_grid_connection_decision_governance'
+    );
     expect(result.recommendedPlan[0].action).toBe('interface-placeholder.markGap');
   });
 
@@ -541,10 +555,16 @@ describe('Capability Broker Service', () => {
       task: 'Ich bin im Datenmanagement eines Stadtwerks. Wir wollen einen neuen Datenquellenbestand fuer Lastgaenge, MSCONS-Importe und Netzplanungsdaten in Cernion aufnehmen. Bitte erstelle ein Answer Dossier: Welche Evidence brauchen wir fuer Datasource Registry, Klassifikation, Cache-Status, Watcher/Monitoring und Data-Governance, bevor die Datenquelle fuer Netzplanung oder Abrechnung genutzt werden darf? Bitte trenne bekannte Angaben, Missing Evidence, technische Pruefschritte und Freigabepunkte. Keine produktive Ingest- oder Schreibaktion ausloesen.',
     });
 
-    expect(result.recommendedCapabilities[0].capability).toBe('datasource_registry_classification_governance');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'datasource_registry_classification_governance'
+    );
     expect(result.capability).toBe('datasource_registry_classification_governance');
-    expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_asset_validation_governance');
-    expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_grid_connection_decision_governance');
+    expect(result.recommendedCapabilities[0].capability).not.toBe(
+      'vdmi_asset_validation_governance'
+    );
+    expect(result.recommendedCapabilities[0].capability).not.toBe(
+      'vdmi_grid_connection_decision_governance'
+    );
     expect(result.recommendedPlan[0].action).toBe('interface-placeholder.markGap');
   });
 
@@ -555,8 +575,12 @@ describe('Capability Broker Service', () => {
 
     expect(result.recommendedCapabilities[0].capability).toBe('hitl_role_based_evidence_request');
     expect(result.capability).toBe('hitl_role_based_evidence_request');
-    expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_asset_validation_governance');
-    expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_grid_connection_decision_governance');
+    expect(result.recommendedCapabilities[0].capability).not.toBe(
+      'vdmi_asset_validation_governance'
+    );
+    expect(result.recommendedCapabilities[0].capability).not.toBe(
+      'vdmi_grid_connection_decision_governance'
+    );
     expect(result.recommendedPlan[0].action).toBe('interface-placeholder.markGap');
   });
 
@@ -569,8 +593,12 @@ describe('Capability Broker Service', () => {
 
     expect(result.capability).toBe('residual_load_forecast_for_dso');
     expect(result.recommendedCapabilities[0].capability).toBe('residual_load_forecast_for_dso');
-    expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_asset_validation_governance');
-    expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_grid_connection_decision_governance');
+    expect(result.recommendedCapabilities[0].capability).not.toBe(
+      'vdmi_asset_validation_governance'
+    );
+    expect(result.recommendedCapabilities[0].capability).not.toBe(
+      'vdmi_grid_connection_decision_governance'
+    );
   });
 
   it('routes Turn 2 Beschaffungsplanung Residuallast/CO2 dossier to residual_load_forecast_for_dso, not VDMI', async () => {
@@ -580,8 +608,12 @@ describe('Capability Broker Service', () => {
 
     expect(result.capability).toBe('residual_load_forecast_for_dso');
     expect(result.recommendedCapabilities[0].capability).toBe('residual_load_forecast_for_dso');
-    expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_asset_validation_governance');
-    expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_grid_connection_decision_governance');
+    expect(result.recommendedCapabilities[0].capability).not.toBe(
+      'vdmi_asset_validation_governance'
+    );
+    expect(result.recommendedCapabilities[0].capability).not.toBe(
+      'vdmi_grid_connection_decision_governance'
+    );
   });
 
   it('routes Turn 3 English DSO residual load forecast dossier to residual_load_forecast_for_dso, not VDMI', async () => {
@@ -591,8 +623,12 @@ describe('Capability Broker Service', () => {
 
     expect(result.capability).toBe('residual_load_forecast_for_dso');
     expect(result.recommendedCapabilities[0].capability).toBe('residual_load_forecast_for_dso');
-    expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_asset_validation_governance');
-    expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_grid_connection_decision_governance');
+    expect(result.recommendedCapabilities[0].capability).not.toBe(
+      'vdmi_asset_validation_governance'
+    );
+    expect(result.recommendedCapabilities[0].capability).not.toBe(
+      'vdmi_grid_connection_decision_governance'
+    );
   });
 
   it('routes Turn 4 VNB Flexibilitaetsfenster (no postal code, not grid-connection) to residual_load_forecast_for_dso, not VDMI', async () => {
@@ -602,8 +638,12 @@ describe('Capability Broker Service', () => {
 
     expect(result.capability).toBe('residual_load_forecast_for_dso');
     expect(result.recommendedCapabilities[0].capability).toBe('residual_load_forecast_for_dso');
-    expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_asset_validation_governance');
-    expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_grid_connection_decision_governance');
+    expect(result.recommendedCapabilities[0].capability).not.toBe(
+      'vdmi_asset_validation_governance'
+    );
+    expect(result.recommendedCapabilities[0].capability).not.toBe(
+      'vdmi_grid_connection_decision_governance'
+    );
   });
 
   // ── Regression: Existing VDMI prompts must still route correctly after domain fixes ──
@@ -613,7 +653,9 @@ describe('Capability Broker Service', () => {
       task: 'Kann der Netzbetreiber ohne formales §17 EnWG Netzanschlussbegehren eine belastbare Anschlusszusage oder Kapazitaetszusage geben?',
     });
 
-    expect(result.recommendedCapabilities[0].capability).toBe('vdmi_grid_connection_decision_governance');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'vdmi_grid_connection_decision_governance'
+    );
   });
 
   it('still routes asset-evidence validation prompt to VDMI asset-validation after non-VDMI fixes', async () => {
@@ -651,7 +693,9 @@ describe('Capability Broker Service', () => {
 
     expect(result.capability).toBe('edm_metering_concept_evidence');
     expect(result.recommendedCapabilities[0].capability).toBe('edm_metering_concept_evidence');
-    expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_asset_validation_governance');
+    expect(result.recommendedCapabilities[0].capability).not.toBe(
+      'vdmi_asset_validation_governance'
+    );
     expect(result.recommendedPlan[0].action).toBe('edm-messkonzept.list');
   });
 
@@ -661,8 +705,12 @@ describe('Capability Broker Service', () => {
     });
 
     expect(result.capability).toBe('flex_forecast_bess_grid_operations_advisory');
-    expect(result.recommendedCapabilities[0].capability).toBe('flex_forecast_bess_grid_operations_advisory');
-    expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_asset_validation_governance');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'flex_forecast_bess_grid_operations_advisory'
+    );
+    expect(result.recommendedCapabilities[0].capability).not.toBe(
+      'vdmi_asset_validation_governance'
+    );
     expect(result.recommendedPlan[0].action).toBe('interface-placeholder.markGap');
   });
 
@@ -672,8 +720,12 @@ describe('Capability Broker Service', () => {
     });
 
     expect(result.capability).toBe('finance_nkp_capex_reinvest_governance');
-    expect(result.recommendedCapabilities[0].capability).toBe('finance_nkp_capex_reinvest_governance');
-    expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_asset_validation_governance');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'finance_nkp_capex_reinvest_governance'
+    );
+    expect(result.recommendedCapabilities[0].capability).not.toBe(
+      'vdmi_asset_validation_governance'
+    );
     expect(result.recommendedPlan[0].action).toBe('interface-placeholder.markGap');
   });
 
@@ -684,7 +736,9 @@ describe('Capability Broker Service', () => {
 
     expect(result.capability).toBe('bilanzkreis_slp_edm_operations');
     expect(result.recommendedCapabilities[0].capability).toBe('bilanzkreis_slp_edm_operations');
-    expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_asset_validation_governance');
+    expect(result.recommendedCapabilities[0].capability).not.toBe(
+      'vdmi_asset_validation_governance'
+    );
     expect(result.recommendedPlan[0].action).toBe('bilanzkreis.list');
   });
 
@@ -694,8 +748,12 @@ describe('Capability Broker Service', () => {
     });
 
     expect(result.capability).toBe('connection_rejection_fnav_14a_evidence');
-    expect(result.recommendedCapabilities[0].capability).toBe('connection_rejection_fnav_14a_evidence');
-    expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_asset_validation_governance');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'connection_rejection_fnav_14a_evidence'
+    );
+    expect(result.recommendedCapabilities[0].capability).not.toBe(
+      'vdmi_asset_validation_governance'
+    );
     expect(result.recommendedPlan[0].action).toBe('interface-placeholder.markGap');
   });
 
@@ -706,7 +764,9 @@ describe('Capability Broker Service', () => {
 
     expect(result.capability).toBe('gasnetz_waermeplanung_assessment');
     expect(result.recommendedCapabilities[0].capability).toBe('gasnetz_waermeplanung_assessment');
-    expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_asset_validation_governance');
+    expect(result.recommendedCapabilities[0].capability).not.toBe(
+      'vdmi_asset_validation_governance'
+    );
     expect(result.recommendedPlan[0].action).toBe('interface-placeholder.markGap');
   });
 
@@ -717,7 +777,9 @@ describe('Capability Broker Service', () => {
 
     expect(result.capability).toBe('eeg_clawback_ewk_monitoring');
     expect(result.recommendedCapabilities[0].capability).toBe('eeg_clawback_ewk_monitoring');
-    expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_asset_validation_governance');
+    expect(result.recommendedCapabilities[0].capability).not.toBe(
+      'vdmi_asset_validation_governance'
+    );
     expect(result.recommendedPlan[0].action).toBe('ewk-monitoring.benchmarkVnb');
   });
 
@@ -773,9 +835,7 @@ describe('Capability Broker Service', () => {
     });
 
     expect(result.capability).toBe('redispatch_call_data_quality_gate');
-    expect(result.recommendedCapabilities[0].capability).toBe(
-      'redispatch_call_data_quality_gate'
-    );
+    expect(result.recommendedCapabilities[0].capability).toBe('redispatch_call_data_quality_gate');
     const actionNames = result.recommendedPlan.map((step) => step.action);
     expect(actionNames).toContain('dashboard-api.redispatchCallQualityGate');
     expect(actionNames).toContain('redispatch-expost.list');
@@ -851,9 +911,7 @@ describe('Capability Broker Service', () => {
     });
 
     expect(result.capability).toBe('controllability_asset_handover');
-    expect(result.recommendedCapabilities[0].capability).toBe(
-      'controllability_asset_handover'
-    );
+    expect(result.recommendedCapabilities[0].capability).toBe('controllability_asset_handover');
     const actionNames = result.recommendedPlan.map((step) => step.action);
     expect(actionNames).toContain('dashboard-api.controllabilityAssetHandoverStatus');
     expect(actionNames).not.toContain('hitl.create');
@@ -867,9 +925,7 @@ describe('Capability Broker Service', () => {
     });
 
     expect(result.capability).toBe('steering_artifact_acceptance_gate');
-    expect(result.recommendedCapabilities[0].capability).toBe(
-      'steering_artifact_acceptance_gate'
-    );
+    expect(result.recommendedCapabilities[0].capability).toBe('steering_artifact_acceptance_gate');
     const actionNames = result.recommendedPlan.map((step) => step.action);
     expect(actionNames).toContain('dashboard-api.steeringArtifactAcceptanceGateStatus');
     expect(actionNames).not.toContain('budibase.table.write');
@@ -883,9 +939,7 @@ describe('Capability Broker Service', () => {
     });
 
     expect(result.capability).toBe('communication_break_process_risk');
-    expect(result.recommendedCapabilities[0].capability).toBe(
-      'communication_break_process_risk'
-    );
+    expect(result.recommendedCapabilities[0].capability).toBe('communication_break_process_risk');
     const actionNames = result.recommendedPlan.map((step) => step.action);
     expect(actionNames).toContain('dashboard-api.communicationBreakProcessRiskStatus');
     expect(actionNames).not.toContain('email.ingest');
@@ -899,9 +953,7 @@ describe('Capability Broker Service', () => {
     });
 
     expect(result.capability).toBe('no_regret_measure_proof_gate');
-    expect(result.recommendedCapabilities[0].capability).toBe(
-      'no_regret_measure_proof_gate'
-    );
+    expect(result.recommendedCapabilities[0].capability).toBe('no_regret_measure_proof_gate');
     const actionNames = result.recommendedPlan.map((step) => step.action);
     expect(actionNames).toContain('dashboard-api.noRegretMeasureProofGateStatus');
     expect(actionNames).not.toContain('budget.reserve');
@@ -915,9 +967,7 @@ describe('Capability Broker Service', () => {
     });
 
     expect(result.capability).toBe('anschlusskapazitaet_evidence_queue');
-    expect(result.recommendedCapabilities[0].capability).toBe(
-      'anschlusskapazitaet_evidence_queue'
-    );
+    expect(result.recommendedCapabilities[0].capability).toBe('anschlusskapazitaet_evidence_queue');
     const actionNames = result.recommendedPlan.map((step) => step.action);
     expect(actionNames).toContain('dashboard-api.anschlusskapazitaetEvidenceQueueStatus');
     expect(actionNames).not.toContain('grid-connection.reserveCapacity');
@@ -933,9 +983,7 @@ describe('Capability Broker Service', () => {
     });
 
     expect(result.capability).toBe('layer0_audit_drilldown_note');
-    expect(result.recommendedCapabilities[0].capability).toBe(
-      'layer0_audit_drilldown_note'
-    );
+    expect(result.recommendedCapabilities[0].capability).toBe('layer0_audit_drilldown_note');
     const actionNames = result.recommendedPlan.map((step) => step.action);
     expect(actionNames).toContain('dashboard-api.layer0AuditDrilldownNoteStatus');
     expect(actionNames).not.toContain('audit-queue.create');
@@ -951,9 +999,7 @@ describe('Capability Broker Service', () => {
     });
 
     expect(result.capability).toBe('stadtwerk_mauer_sandbox_runtime');
-    expect(result.recommendedCapabilities[0].capability).toBe(
-      'stadtwerk_mauer_sandbox_runtime'
-    );
+    expect(result.recommendedCapabilities[0].capability).toBe('stadtwerk_mauer_sandbox_runtime');
     const actionNames = result.recommendedPlan.map((step) => step.action);
     expect(actionNames).toContain('dashboard-api.stadtwerkMauerSandboxRuntimeStatus');
     expect(actionNames).not.toContain('stadtwerk-mauer-sandbox-runtime.ingestEvent');
@@ -984,9 +1030,7 @@ describe('Capability Broker Service', () => {
     });
 
     expect(result.capability).toBe('stadtwerk_mauer_e2e_process_demo');
-    expect(result.recommendedCapabilities[0].capability).toBe(
-      'stadtwerk_mauer_e2e_process_demo'
-    );
+    expect(result.recommendedCapabilities[0].capability).toBe('stadtwerk_mauer_e2e_process_demo');
     const actionNames = result.recommendedPlan.map((step) => step.action);
     expect(actionNames).toContain('dashboard-api.stadtwerkMauerE2eProcessDemoStatus');
     expect(actionNames).not.toContain('stadtwerk-mauer-e2e-process-demo.runDemo');
@@ -1002,9 +1046,7 @@ describe('Capability Broker Service', () => {
     });
 
     expect(result.capability).toBe('stadtwerk_mauer_mastr_data_overlay');
-    expect(result.recommendedCapabilities[0].capability).toBe(
-      'stadtwerk_mauer_mastr_data_overlay'
-    );
+    expect(result.recommendedCapabilities[0].capability).toBe('stadtwerk_mauer_mastr_data_overlay');
     const actionNames = result.recommendedPlan.map((step) => step.action);
     expect(actionNames).toContain('dashboard-api.stadtwerkMauerMastrDataOverlayStatus');
     expect(actionNames).not.toContain('stadtwerk-mauer-e2e-process-demo.runDemo');
@@ -1053,9 +1095,7 @@ describe('Capability Broker Service', () => {
     });
 
     expect(result.capability).toBe('dr_readiness_evidence_gate');
-    expect(result.recommendedCapabilities[0].capability).toBe(
-      'dr_readiness_evidence_gate'
-    );
+    expect(result.recommendedCapabilities[0].capability).toBe('dr_readiness_evidence_gate');
     const actionNames = result.recommendedPlan.map((step) => step.action);
     expect(actionNames).toContain('dashboard-api.drReadinessEvidenceStatus');
     expect(actionNames).not.toContain('backup.restore');
@@ -1069,9 +1109,7 @@ describe('Capability Broker Service', () => {
     });
 
     expect(result.capability).toBe('fnav_fast_track_contract_gate');
-    expect(result.recommendedCapabilities[0].capability).toBe(
-      'fnav_fast_track_contract_gate'
-    );
+    expect(result.recommendedCapabilities[0].capability).toBe('fnav_fast_track_contract_gate');
     const actionNames = result.recommendedPlan.map((step) => step.action);
     expect(actionNames).toContain('dashboard-api.fnavFastTrackContractGateStatus');
     expect(actionNames).not.toContain('hitl.create');
@@ -1085,9 +1123,7 @@ describe('Capability Broker Service', () => {
     });
 
     expect(result.capability).toBe('cross_channel_vnb_signal_queue');
-    expect(result.recommendedCapabilities[0].capability).toBe(
-      'cross_channel_vnb_signal_queue'
-    );
+    expect(result.recommendedCapabilities[0].capability).toBe('cross_channel_vnb_signal_queue');
     const actionNames = result.recommendedPlan.map((step) => step.action);
     expect(actionNames).toContain('dashboard-api.crossChannelVnbSignalQueueStatus');
     expect(actionNames).not.toContain('mail.connector.ingest');
@@ -1103,9 +1139,7 @@ describe('Capability Broker Service', () => {
     });
 
     expect(result.capability).toBe('vnb_delta_signal_classifier');
-    expect(result.recommendedCapabilities[0].capability).toBe(
-      'vnb_delta_signal_classifier'
-    );
+    expect(result.recommendedCapabilities[0].capability).toBe('vnb_delta_signal_classifier');
     const actionNames = result.recommendedPlan.map((step) => step.action);
     expect(actionNames).toContain('dashboard-api.vnbDeltaSignalClassifierStatus');
     expect(actionNames).not.toContain('mail.connector.ingest');
@@ -1163,9 +1197,7 @@ describe('Capability Broker Service', () => {
     });
 
     expect(result.capability).toBe('gas_capacity_booking_review_gate');
-    expect(result.recommendedCapabilities[0].capability).toBe(
-      'gas_capacity_booking_review_gate'
-    );
+    expect(result.recommendedCapabilities[0].capability).toBe('gas_capacity_booking_review_gate');
     const actionNames = result.recommendedPlan.map((step) => step.action);
     expect(actionNames).toContain('dashboard-api.gasCapacityBookingReviewGateStatus');
     expect(actionNames).not.toContain('gas-capacity-booking.submit');
@@ -1182,9 +1214,7 @@ describe('Capability Broker Service', () => {
     });
 
     expect(result.capability).toBe('gas_network_decision_chain');
-    expect(result.recommendedCapabilities[0].capability).toBe(
-      'gas_network_decision_chain'
-    );
+    expect(result.recommendedCapabilities[0].capability).toBe('gas_network_decision_chain');
     const actionNames = result.recommendedPlan.map((step) => step.action);
     expect(actionNames).toContain('dashboard-api.gasNetworkDecisionChainStatus');
     expect(actionNames).not.toContain('gas-capacity-booking.submit');
@@ -1309,9 +1339,7 @@ describe('Capability Broker Service', () => {
     });
 
     expect(result.capability).toBe('no_regret_measure_definition_gate');
-    expect(result.recommendedCapabilities[0].capability).toBe(
-      'no_regret_measure_definition_gate'
-    );
+    expect(result.recommendedCapabilities[0].capability).toBe('no_regret_measure_definition_gate');
     const actionNames = result.recommendedPlan.map((step) => step.action);
     expect(actionNames).toContain('dashboard-api.noRegretMeasureDefinitionGateStatus');
     expect(actionNames).not.toContain('measure.approve');
@@ -1378,9 +1406,7 @@ describe('Capability Broker Service', () => {
     });
 
     expect(result.capability).toBe('live_update_stream_contract_status');
-    expect(result.recommendedCapabilities[0].capability).toBe(
-      'live_update_stream_contract_status'
-    );
+    expect(result.recommendedCapabilities[0].capability).toBe('live_update_stream_contract_status');
     const actionNames = result.recommendedPlan.map((step) => step.action);
     expect(actionNames).toContain('dashboard-api.liveUpdateStreamContractStatus');
     expect(actionNames).not.toContain('sse.openConnection');
@@ -1399,9 +1425,7 @@ describe('Capability Broker Service', () => {
     });
 
     expect(result.capability).toBe('smgw_connector_readiness_status');
-    expect(result.recommendedCapabilities[0].capability).toBe(
-      'smgw_connector_readiness_status'
-    );
+    expect(result.recommendedCapabilities[0].capability).toBe('smgw_connector_readiness_status');
     const actionNames = result.recommendedPlan.map((step) => step.action);
     expect(actionNames).toContain('dashboard-api.smgwConnectorReadinessStatus');
     expect(actionNames).not.toContain('smgw.register');
@@ -1430,9 +1454,7 @@ describe('Capability Broker Service', () => {
     });
 
     expect(result.capability).toBe('special_grid_usage_impact_map');
-    expect(result.recommendedCapabilities[0].capability).toBe(
-      'special_grid_usage_impact_map'
-    );
+    expect(result.recommendedCapabilities[0].capability).toBe('special_grid_usage_impact_map');
     const actionNames = result.recommendedPlan.map((step) => step.action);
     expect(actionNames).toContain('dashboard-api.specialGridUsageImpactMapStatus');
     expect(actionNames).not.toContain('settlement.prepareBilling');
@@ -1464,9 +1486,7 @@ describe('Capability Broker Service', () => {
     });
 
     expect(result.capability).toBe('energy_sharing_simulation_gate');
-    expect(result.recommendedCapabilities[0].capability).toBe(
-      'energy_sharing_simulation_gate'
-    );
+    expect(result.recommendedCapabilities[0].capability).toBe('energy_sharing_simulation_gate');
     const actionNames = result.recommendedPlan.map((step) => step.action);
     expect(actionNames).toContain('dashboard-api.energySharingSimulationGateStatus');
     expect(actionNames).not.toContain('energy-sharing-allocation.allocate');
@@ -1503,9 +1523,7 @@ describe('Capability Broker Service', () => {
     });
 
     expect(result.capability).toBe('evu_api_migration_diagnostics');
-    expect(result.recommendedCapabilities[0].capability).toBe(
-      'evu_api_migration_diagnostics'
-    );
+    expect(result.recommendedCapabilities[0].capability).toBe('evu_api_migration_diagnostics');
     const actionNames = result.recommendedPlan.map((step) => step.action);
     expect(actionNames).toContain('dashboard-api.evuApiMigrationDiagnosticsStatus');
     expect(actionNames).not.toContain('external.connector.call');
@@ -1523,9 +1541,7 @@ describe('Capability Broker Service', () => {
     });
 
     expect(result.capability).toBe('nova_decision_lifecycle_readiness');
-    expect(result.recommendedCapabilities[0].capability).toBe(
-      'nova_decision_lifecycle_readiness'
-    );
+    expect(result.recommendedCapabilities[0].capability).toBe('nova_decision_lifecycle_readiness');
     const actionNames = result.recommendedPlan.map((step) => step.action);
     expect(actionNames).toContain('dashboard-api.novaDecisionLifecycleReadinessStatus');
     expect(actionNames).not.toContain('nova.decisions.create');
@@ -1544,9 +1560,7 @@ describe('Capability Broker Service', () => {
     });
 
     expect(result.capability).toBe('investment_two_track_control');
-    expect(result.recommendedCapabilities[0].capability).toBe(
-      'investment_two_track_control'
-    );
+    expect(result.recommendedCapabilities[0].capability).toBe('investment_two_track_control');
     const actionNames = result.recommendedPlan.map((step) => step.action);
     expect(actionNames).toContain('dashboard-api.investmentTwoTrackControlStatus');
     expect(actionNames).not.toContain('settlement.prepareBilling');
@@ -1560,9 +1574,7 @@ describe('Capability Broker Service', () => {
     });
 
     expect(result.capability).toBe('sap_budget_psp_gate');
-    expect(result.recommendedCapabilities[0].capability).toBe(
-      'sap_budget_psp_gate'
-    );
+    expect(result.recommendedCapabilities[0].capability).toBe('sap_budget_psp_gate');
     const actionNames = result.recommendedPlan.map((step) => step.action);
     expect(actionNames).toContain('dashboard-api.sapBudgetPspGateStatus');
     expect(actionNames).not.toContain('sap.psp.write');
@@ -1577,9 +1589,7 @@ describe('Capability Broker Service', () => {
     });
 
     expect(result.capability).toBe('energy_tax_information_package');
-    expect(result.recommendedCapabilities[0].capability).toBe(
-      'energy_tax_information_package'
-    );
+    expect(result.recommendedCapabilities[0].capability).toBe('energy_tax_information_package');
     const actionNames = result.recommendedPlan.map((step) => step.action);
     expect(actionNames).toContain('dashboard-api.energyTaxInformationPackageStatus');
     expect(actionNames).not.toContain('tax.calculate');
@@ -1594,9 +1604,7 @@ describe('Capability Broker Service', () => {
     });
 
     expect(result.capability).toBe('investment_risk_translation_status');
-    expect(result.recommendedCapabilities[0].capability).toBe(
-      'investment_risk_translation_status'
-    );
+    expect(result.recommendedCapabilities[0].capability).toBe('investment_risk_translation_status');
     const actionNames = result.recommendedPlan.map((step) => step.action);
     expect(actionNames).toContain('dashboard-api.investmentRiskTranslationStatus');
     expect(actionNames).not.toContain('vdmi.create');
@@ -1612,9 +1620,7 @@ describe('Capability Broker Service', () => {
     });
 
     expect(result.capability).toBe('budget_waterfall_governance');
-    expect(result.recommendedCapabilities[0].capability).toBe(
-      'budget_waterfall_governance'
-    );
+    expect(result.recommendedCapabilities[0].capability).toBe('budget_waterfall_governance');
     const actionNames = result.recommendedPlan.map((step) => step.action);
     expect(actionNames).toContain('dashboard-api.budgetWaterfallGovernanceStatus');
     expect(actionNames).not.toContain('finance-agent.mutate');
@@ -1630,9 +1636,7 @@ describe('Capability Broker Service', () => {
     });
 
     expect(result.capability).toBe('gas_decommissioning_roadmap_status');
-    expect(result.recommendedCapabilities[0].capability).toBe(
-      'gas_decommissioning_roadmap_status'
-    );
+    expect(result.recommendedCapabilities[0].capability).toBe('gas_decommissioning_roadmap_status');
     const actionNames = result.recommendedPlan.map((step) => step.action);
     expect(actionNames).toContain('dashboard-api.gasDecommissioningRoadmapStatus');
     expect(actionNames).not.toContain('gas-transformation.executeDecommissioning');
@@ -1648,9 +1652,7 @@ describe('Capability Broker Service', () => {
     });
 
     expect(result.capability).toBe('jour_fixe_decision_closure_tracker');
-    expect(result.recommendedCapabilities[0].capability).toBe(
-      'jour_fixe_decision_closure_tracker'
-    );
+    expect(result.recommendedCapabilities[0].capability).toBe('jour_fixe_decision_closure_tracker');
     const actionNames = result.recommendedPlan.map((step) => step.action);
     expect(actionNames).toContain('dashboard-api.jourFixeDecisionClosureStatus');
     expect(actionNames).not.toContain('meeting-transcription.ingest');
@@ -1666,9 +1668,7 @@ describe('Capability Broker Service', () => {
     });
 
     expect(result.capability).toBe('off_balancing_metering_pruefmatrix');
-    expect(result.recommendedCapabilities[0].capability).toBe(
-      'off_balancing_metering_pruefmatrix'
-    );
+    expect(result.recommendedCapabilities[0].capability).toBe('off_balancing_metering_pruefmatrix');
     const actionNames = result.recommendedPlan.map((step) => step.action);
     expect(actionNames).toContain('dashboard-api.offBalancingMeteringPruefmatrixStatus');
     expect(actionNames).not.toContain('finance-agent.mutate');
@@ -1783,9 +1783,7 @@ describe('Capability Broker Service', () => {
     });
 
     expect(result.capability).toBe('controllability_submission_cockpit');
-    expect(result.recommendedCapabilities[0].capability).toBe(
-      'controllability_submission_cockpit'
-    );
+    expect(result.recommendedCapabilities[0].capability).toBe('controllability_submission_cockpit');
     const actionNames = result.recommendedPlan.map((step) => step.action);
     expect(actionNames).toContain('dashboard-api.controllabilitySubmissionCockpitStatus');
     expect(actionNames).not.toContain('hitl.create');
@@ -1819,7 +1817,9 @@ describe('Capability Broker Service', () => {
     });
 
     expect(result.capability).toBe('investment_committee_steering_cards');
-    expect(result.recommendedCapabilities[0].capability).toBe('investment_committee_steering_cards');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'investment_committee_steering_cards'
+    );
     const actionNames = result.recommendedPlan.map((step) => step.action);
     expect(actionNames).toContain('dashboard-api.investmentCommitteeSteeringCardsStatus');
     expect(actionNames).not.toContain('hitl.create');
@@ -1907,7 +1907,9 @@ describe('Capability Broker Service', () => {
     });
 
     expect(result.capability).toBe('heat_transformation_line_asset_model');
-    expect(result.recommendedCapabilities[0].capability).toBe('heat_transformation_line_asset_model');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'heat_transformation_line_asset_model'
+    );
     const actionNames = result.recommendedPlan.map((step) => step.action);
     expect(actionNames).toContain('dashboard-api.heatTransformationLineAssetModelStatus');
     expect(actionNames).not.toContain('znp.createProject');
@@ -2035,9 +2037,7 @@ describe('Capability Broker Service', () => {
     });
 
     expect(result.capability).toBe('gas_capacity_order_revision_gate');
-    expect(result.recommendedCapabilities[0].capability).toBe(
-      'gas_capacity_order_revision_gate'
-    );
+    expect(result.recommendedCapabilities[0].capability).toBe('gas_capacity_order_revision_gate');
     const actionNames = result.recommendedPlan.map((step) => step.action);
     expect(actionNames).toContain('gas-capacity-order-revision-gate.getStatus');
     expect(actionNames).toContain('gas-capacity-order-revision-gate.evaluate');
@@ -2050,7 +2050,9 @@ describe('Capability Broker Service', () => {
     });
 
     expect(result.capability).toBe('schedule_management_governance_roadmap');
-    expect(result.recommendedCapabilities[0].capability).toBe('schedule_management_governance_roadmap');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'schedule_management_governance_roadmap'
+    );
     const actionNames = result.recommendedPlan.map((step) => step.action);
     expect(actionNames).toContain('dashboard-api.scheduleManagementGovernanceRoadmapStatus');
     expect(actionNames).not.toContain('hitl.create');
@@ -2085,7 +2087,9 @@ describe('Capability Broker Service', () => {
     });
 
     expect(result.capability).toBe('grid_connection_transformation_gate');
-    expect(result.recommendedCapabilities[0].capability).toBe('grid_connection_transformation_gate');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'grid_connection_transformation_gate'
+    );
     const actionNames = result.recommendedPlan.map((step) => step.action);
     expect(actionNames).toContain('dashboard-api.gridConnectionTransformationGateStatus');
     expect(actionNames).not.toContain('hitl.create');
@@ -2121,7 +2125,9 @@ describe('Capability Broker Service', () => {
     });
 
     expect(result.capability).toBe('zaehlpark_finanzierung_szenario_cockpit');
-    expect(result.recommendedCapabilities[0].capability).toBe('zaehlpark_finanzierung_szenario_cockpit');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'zaehlpark_finanzierung_szenario_cockpit'
+    );
     const actionNames = result.recommendedPlan.map((step) => step.action);
     expect(actionNames).toContain('dashboard-api.zaehlparkFinanzierungSzenarioCockpitStatus');
     expect(actionNames).not.toContain('hitl.create');
@@ -2139,7 +2145,9 @@ describe('Capability Broker Service', () => {
     });
 
     expect(result.capability).toBe('process_sensitization_readiness_map');
-    expect(result.recommendedCapabilities[0].capability).toBe('process_sensitization_readiness_map');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'process_sensitization_readiness_map'
+    );
     const actionNames = result.recommendedPlan.map((step) => step.action);
     expect(actionNames).toContain('dashboard-api.processSensitizationReadinessMapStatus');
     expect(actionNames).not.toContain('hitl.create');
@@ -2170,7 +2178,9 @@ describe('Capability Broker Service', () => {
     });
 
     expect(result.capability).toBe('grossspeicher_anschluss_readiness_gate');
-    expect(result.recommendedCapabilities[0].capability).toBe('grossspeicher_anschluss_readiness_gate');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'grossspeicher_anschluss_readiness_gate'
+    );
     const actionNames = result.recommendedPlan.map((step) => step.action);
     expect(actionNames).toContain('dashboard-api.grossspeicherAnschlussReadinessGateStatus');
     expect(actionNames).not.toContain('hitl.create');
@@ -2195,7 +2205,9 @@ describe('Capability Broker Service', () => {
     });
 
     expect(result.capability).toBe('role_permission_access_readiness_gate');
-    expect(result.recommendedCapabilities[0].capability).toBe('role_permission_access_readiness_gate');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'role_permission_access_readiness_gate'
+    );
     const actionNames = result.recommendedPlan.map((step) => step.action);
     expect(actionNames).toContain('dashboard-api.rolePermissionAccessReadinessGateStatus');
     expect(actionNames).not.toContain('access-manager.call');
@@ -2277,7 +2289,9 @@ describe('Capability Broker Service', () => {
     });
 
     expect(result.capability).toBe('redispatch_project_controlling_kpi_cockpit');
-    expect(result.recommendedCapabilities[0].capability).toBe('redispatch_project_controlling_kpi_cockpit');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'redispatch_project_controlling_kpi_cockpit'
+    );
     const actionNames = result.recommendedPlan.map((step) => step.action);
     expect(actionNames).toContain('dashboard-api.redispatchProjectControllingKpiCockpitStatus');
     expect(actionNames).not.toContain('redispatch.execute');
@@ -2329,7 +2343,9 @@ describe('Capability Broker Service', () => {
     });
 
     expect(result.capability).toBe('stadtwerk_mauer_capability_projection');
-    expect(result.recommendedCapabilities[0].capability).toBe('stadtwerk_mauer_capability_projection');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'stadtwerk_mauer_capability_projection'
+    );
     const actionNames = result.recommendedPlan.map((step) => step.action);
     expect(actionNames).toContain('dashboard-api.stadtwerkMauerCapabilityProjectionStatus');
     expect(actionNames).not.toContain('eve.runtime.execute');
@@ -2355,7 +2371,9 @@ describe('Capability Broker Service', () => {
     });
 
     expect(result.capability).toBe('stadtwerk_mauer_event_replay_preview');
-    expect(result.recommendedCapabilities[0].capability).toBe('stadtwerk_mauer_event_replay_preview');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'stadtwerk_mauer_event_replay_preview'
+    );
     const actionNames = result.recommendedPlan.map((step) => step.action);
     expect(actionNames).toContain('dashboard-api.stadtwerkMauerEventReplayPreviewStatus');
     expect(actionNames).not.toContain('scheduler.create');

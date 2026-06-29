@@ -333,7 +333,9 @@ module.exports = {
         if (ctx.params.processId) selector.processId = ctx.params.processId;
         const result = await this.db.find({ selector, limit: ctx.params.limit });
         return {
-          models: result.docs.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt))),
+          models: result.docs.sort((a, b) =>
+            String(b.createdAt).localeCompare(String(a.createdAt))
+          ),
         };
       },
     },
@@ -379,7 +381,11 @@ module.exports = {
           if (ctx.params.roleModelId) {
             model = await this.db.get(ctx.params.roleModelId);
             if (model.tenantId !== tenantId || model.processId !== ctx.params.processId) {
-              throw new MoleculerClientError('Role model status not found', 404, 'ROLE_MODEL_STATUS_NOT_FOUND');
+              throw new MoleculerClientError(
+                'Role model status not found',
+                404,
+                'ROLE_MODEL_STATUS_NOT_FOUND'
+              );
             }
           } else {
             const result = await this.db.find({
@@ -390,8 +396,15 @@ module.exports = {
               },
               limit: 50,
             });
-            model = result.docs.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))[0];
-            if (!model) throw new MoleculerClientError('Role model status not found', 404, 'ROLE_MODEL_STATUS_NOT_FOUND');
+            model = result.docs.sort((a, b) =>
+              String(b.createdAt).localeCompare(String(a.createdAt))
+            )[0];
+            if (!model)
+              throw new MoleculerClientError(
+                'Role model status not found',
+                404,
+                'ROLE_MODEL_STATUS_NOT_FOUND'
+              );
           }
           return buildStatusFromModel(model);
         } catch (err) {
@@ -399,7 +412,8 @@ module.exports = {
             return {
               found: false,
               processId: ctx.params.processId,
-              message: 'No flexibility conductor role-model evidence is available for this tenant yet',
+              message:
+                'No flexibility conductor role-model evidence is available for this tenant yet',
             };
           }
           throw err;

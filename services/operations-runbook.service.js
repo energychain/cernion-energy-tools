@@ -48,7 +48,11 @@ function isProductionLike() {
     process.env.APP_ENV,
     process.env.NODE_ENV,
   ]
-    .map((value) => String(value || '').trim().toLowerCase())
+    .map((value) =>
+      String(value || '')
+        .trim()
+        .toLowerCase()
+    )
     .filter(Boolean);
   return markers.some((value) => ['prod', 'production'].includes(value));
 }
@@ -180,7 +184,8 @@ module.exports = {
             }, {}),
           },
           data: { groups },
-          nextActions: total > 0 ? ['Acknowledge alarms after inspection', 'Resolve HITL items'] : [],
+          nextActions:
+            total > 0 ? ['Acknowledge alarms after inspection', 'Resolve HITL items'] : [],
         });
       },
     },
@@ -510,7 +515,10 @@ module.exports = {
             postReset,
             finalStatus,
           },
-          warnings: finalReset && Number(finalStatus.traceCount || 0) !== 0 ? ['final_reset_left_traces'] : [],
+          warnings:
+            finalReset && Number(finalStatus.traceCount || 0) !== 0
+              ? ['final_reset_left_traces']
+              : [],
         });
       },
     },
@@ -796,7 +804,9 @@ module.exports = {
           state: item.missingState || 'evidence_gap',
           enablesDossierAddition: item.enablesDossierAddition || null,
         }));
-      const budibaseHint = commandHints.find((hint) => String(hint.id || '').startsWith('budibase:'));
+      const budibaseHint = commandHints.find((hint) =>
+        String(hint.id || '').startsWith('budibase:')
+      );
       const runbookHint = commandHints.find((hint) => String(hint.id || '').startsWith('rundeck:'));
       const publicContextLayer = {
         present: Boolean(dataClasses.publicContextLayer),
@@ -867,7 +877,8 @@ module.exports = {
         },
         brokerDossierHydration: {
           exposed: false,
-          reason: 'Runbook-only verify slice; Capability Broker and Hydration Registry exposure is intentionally deferred.',
+          reason:
+            'Runbook-only verify slice; Capability Broker and Hydration Registry exposure is intentionally deferred.',
         },
       };
       return {
@@ -909,7 +920,9 @@ module.exports = {
     },
 
     async resolveOptions(ctx, name) {
-      const normalized = String(name || '').trim().toLowerCase();
+      const normalized = String(name || '')
+        .trim()
+        .toLowerCase();
       if (normalized === 'runbooks') {
         return this.getManifest().runbooks.map((runbook) => ({
           name: runbook.id,

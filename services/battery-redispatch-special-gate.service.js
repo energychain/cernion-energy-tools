@@ -155,7 +155,12 @@ module.exports = {
         controllabilityDirection: { type: 'string', optional: true },
         testCallLimitKw: { type: 'number', optional: true, convert: true },
         testCallProofRef: { type: 'string', optional: true },
-        productionProofConfirmed: { type: 'boolean', optional: true, default: false, convert: true },
+        productionProofConfirmed: {
+          type: 'boolean',
+          optional: true,
+          default: false,
+          convert: true,
+        },
         settlementReadiness: { type: 'string', optional: true },
         clearingDecision: { type: 'string', optional: true },
         billingDecision: { type: 'string', optional: true },
@@ -185,14 +190,21 @@ module.exports = {
         if (!injectionDirection) missingDataPoints.push('injectionDirection');
         if (!withdrawalDirection) missingDataPoints.push('withdrawalDirection');
 
-        const controllabilityDirection = normalizeEnum(p.controllabilityDirection, VALID_DIRECTIONS);
+        const controllabilityDirection = normalizeEnum(
+          p.controllabilityDirection,
+          VALID_DIRECTIONS
+        );
         if (!controllabilityDirection) missingDataPoints.push('controllabilityDirection');
 
         const testCallProofRef = normalizeString(p.testCallProofRef);
         if (!testCallProofRef) missingDataPoints.push('testCallProofRef');
         if (!p.productionProofConfirmed) missingDataPoints.push('productionProofConfirmed');
 
-        const settlementReadiness = normalizeEnum(p.settlementReadiness, VALID_READINESS, 'pending');
+        const settlementReadiness = normalizeEnum(
+          p.settlementReadiness,
+          VALID_READINESS,
+          'pending'
+        );
         const clearingDecision = normalizeEnum(p.clearingDecision, VALID_DECISIONS, 'pending');
         const billingDecision = normalizeEnum(p.billingDecision, VALID_DECISIONS, 'pending');
         if (settlementReadiness !== 'ready') missingDataPoints.push('settlementReadiness');
@@ -203,7 +215,8 @@ module.exports = {
           findings.push({
             finding: BRS_MALO_DIRECTION_MISSING,
             severity: 'error',
-            message: 'Battery storage MaLo/MeLo role or injection/withdrawal direction is incomplete',
+            message:
+              'Battery storage MaLo/MeLo role or injection/withdrawal direction is incomplete',
           });
         }
         if (!meteringConceptId || meloRefs.length === 0) {
@@ -366,7 +379,8 @@ module.exports = {
           if (err.status === 404) {
             return {
               found: false,
-              message: 'No battery Redispatch special gate evidence is available for this tenant yet',
+              message:
+                'No battery Redispatch special gate evidence is available for this tenant yet',
             };
           }
           throw err;

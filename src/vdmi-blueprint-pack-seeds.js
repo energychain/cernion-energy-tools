@@ -16,10 +16,7 @@ const REQUIRED_DATA_CLASSES = Object.freeze([
   'sandboxRuntimeArtifact',
 ]);
 
-const REQUIRED_ROLE_IDS = Object.freeze([
-  'ROLE_NETZPLANUNG',
-  'ROLE_GRID_OPERATOR',
-]);
+const REQUIRED_ROLE_IDS = Object.freeze(['ROLE_NETZPLANUNG', 'ROLE_GRID_OPERATOR']);
 
 const SEEDS = Object.freeze([stadtwerkMauerPvMissingNap]);
 

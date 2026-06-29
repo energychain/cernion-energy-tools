@@ -199,7 +199,9 @@ function findBestCapability(taskText, options = {}) {
   const hasCrossCommoditySupplyCombo =
     /(gasspeicher|agsi|gie)/i.test(haystack) &&
     /(entso-e|entsoe|lastprognose|windprognose|day-ahead)/i.test(haystack) &&
-    /(lagebild|versorgungssicherheit|beschaffung|voralarm|beobachtungsmodus|fernwaerme|fernwärme|kwk)/i.test(haystack);
+    /(lagebild|versorgungssicherheit|beschaffung|voralarm|beobachtungsmodus|fernwaerme|fernwärme|kwk)/i.test(
+      haystack
+    );
 
   const hasVdmiBoundaryCombo =
     /(rollen|rolle|schnittstellen)/i.test(haystack) &&
@@ -219,11 +221,17 @@ function findBestCapability(taskText, options = {}) {
     /(settlement|reconciliation|reconcile|abgleich|bilanzierungsabweichung)/i.test(haystack);
 
   const hasEnergySharing42cCutoverSignal =
-    /(§42c|42c|cutover|energieteilen cutover|energy sharing 42c|energy-sharing 42c)/i.test(haystack) &&
-    /(cutover|readiness|a96 defaults|spec freeze|pilot tenant|settlement readiness|allokations|allocation load|runbook|compliance sign-off|rollback)/i.test(haystack);
+    /(§42c|42c|cutover|energieteilen cutover|energy sharing 42c|energy-sharing 42c)/i.test(
+      haystack
+    ) &&
+    /(cutover|readiness|a96 defaults|spec freeze|pilot tenant|settlement readiness|allokations|allocation load|runbook|compliance sign-off|rollback)/i.test(
+      haystack
+    );
 
   if (hasEnergySharing42cCutoverSignal) {
-    const energySharing42cCutoverCapability = findCapabilityByName('energy_sharing_42c_cutover_readiness');
+    const energySharing42cCutoverCapability = findCapabilityByName(
+      'energy_sharing_42c_cutover_readiness'
+    );
     if (energySharing42cCutoverCapability) {
       return { capability: energySharing42cCutoverCapability, score: 134, usedFallback: false };
     }
@@ -231,8 +239,12 @@ function findBestCapability(taskText, options = {}) {
 
   const hasNovaDecisionLifecycleReadinessSignal =
     /\bnova\b/i.test(haystack) &&
-    /(decision lifecycle|decision-lifecycle|entscheidungslifecycle|entscheidungslebenszyklus|decision source catalogue|source catalogue|hitl bridge|replay audit|tenant.?isolated sse|trl.?7.*decision|decision.*trl.?7|production readiness.*decision|decision.*production readiness)/i.test(haystack) &&
-    !/(nova apply|nova anwenden|entscheidung ausfuehren|entscheidung ausführen|apply endpoint|approve endpoint|reject endpoint|replay endpoint|state machine runtime|sse protocol change|webhook emit|asset override ausfuehren|asset override ausführen)/i.test(haystack);
+    /(decision lifecycle|decision-lifecycle|entscheidungslifecycle|entscheidungslebenszyklus|decision source catalogue|source catalogue|hitl bridge|replay audit|tenant.?isolated sse|trl.?7.*decision|decision.*trl.?7|production readiness.*decision|decision.*production readiness)/i.test(
+      haystack
+    ) &&
+    !/(nova apply|nova anwenden|entscheidung ausfuehren|entscheidung ausführen|apply endpoint|approve endpoint|reject endpoint|replay endpoint|state machine runtime|sse protocol change|webhook emit|asset override ausfuehren|asset override ausführen)/i.test(
+      haystack
+    );
 
   if (hasNovaDecisionLifecycleReadinessSignal) {
     const novaReadinessCapability = findCapabilityByName('nova_decision_lifecycle_readiness');
@@ -263,8 +275,12 @@ function findBestCapability(taskText, options = {}) {
 
   const hasDrReadinessEvidenceSpecificSignal =
     /(disaster recovery|\\bdr\\b|backup|restore|wiederherstellung|notfall)/i.test(haystack) &&
-    /(readiness|evidence|evidenz|nachweis|drill|rto|rpo|snapshot|manifest|multi.?tenant|tenant.?restore|cutover)/i.test(haystack) &&
-    !/(restore ausfuehren|restore ausführen|backup starten|backup ausfuehren|backup ausführen|tenant restore ausfuehren|tenant restore ausführen|scheduler starten|replication start)/i.test(haystack);
+    /(readiness|evidence|evidenz|nachweis|drill|rto|rpo|snapshot|manifest|multi.?tenant|tenant.?restore|cutover)/i.test(
+      haystack
+    ) &&
+    !/(restore ausfuehren|restore ausführen|backup starten|backup ausfuehren|backup ausführen|tenant restore ausfuehren|tenant restore ausführen|scheduler starten|replication start)/i.test(
+      haystack
+    );
 
   if (hasDrReadinessEvidenceSpecificSignal) {
     const drCapability = findCapabilityByName('dr_readiness_evidence_gate');
@@ -275,8 +291,12 @@ function findBestCapability(taskText, options = {}) {
 
   const hasControllabilitySubmissionCockpitSpecificSignal =
     /(steuerbarkeitscheck|steuerbarkeitsnachweis|controllability)/i.test(haystack) &&
-    /(abgabe.?cockpit|abgabeprojekt|submission cockpit|submission|quellenliste|datenabgleich|begruendungskatalog|begründungskatalog|assetgruppenstatus|naechster zyklus|nächster zyklus|abgabefrist)/i.test(haystack) &&
-    !/(rundsteuertechnik|gruppensignal|legacy control|cls compliance|digital.?twin|billing|settlement|abrechnung|mako|steuerung ausfuehren|steuerung ausführen|device-control|smgw switch)/i.test(haystack);
+    /(abgabe.?cockpit|abgabeprojekt|submission cockpit|submission|quellenliste|datenabgleich|begruendungskatalog|begründungskatalog|assetgruppenstatus|naechster zyklus|nächster zyklus|abgabefrist)/i.test(
+      haystack
+    ) &&
+    !/(rundsteuertechnik|gruppensignal|legacy control|cls compliance|digital.?twin|billing|settlement|abrechnung|mako|steuerung ausfuehren|steuerung ausführen|device-control|smgw switch)/i.test(
+      haystack
+    );
 
   if (hasControllabilitySubmissionCockpitSpecificSignal) {
     const submissionCapability = findCapabilityByName('controllability_submission_cockpit');
@@ -286,9 +306,15 @@ function findBestCapability(taskText, options = {}) {
   }
 
   const hasSmgwConnectorReadinessSpecificSignal =
-    /(smgw|smart.?meter.?gateway|bsi tr-03109|tr-03109|gateway.?adapter|connector readiness|connector.?readiness|eebus|openmuc|voltaris)/i.test(haystack) &&
-    /(readiness|reife|evidenz|evidence|status|go.?no.?go|integration.?scope|integrationsreife|adapter.?class|gateway.?class|auth.?boundary|audit.?prerequisite|compliance.?prerequisite|non.?execution|nicht.?ausfuehrung|nicht.?ausführung)/i.test(haystack) &&
-    !/(re4de|variable netzentgelte|tariff sheet|tarifberechnung|module 3|modul 3|steuerbefehl senden|steuerung senden|steuerung ausfuehren|steuerung ausführen|control command|dispatch taf|taf-?7 dispatch|pair gateway|gateway pair|geraet registrieren|gerät registrieren|smgw register|smgw control|smgw switch|mqtt publish|eebus bridge ausfuehren|eebus bridge ausführen|billing import|abrechnung import|hitl create|secret read|external connector call)/i.test(haystack);
+    /(smgw|smart.?meter.?gateway|bsi tr-03109|tr-03109|gateway.?adapter|connector readiness|connector.?readiness|eebus|openmuc|voltaris)/i.test(
+      haystack
+    ) &&
+    /(readiness|reife|evidenz|evidence|status|go.?no.?go|integration.?scope|integrationsreife|adapter.?class|gateway.?class|auth.?boundary|audit.?prerequisite|compliance.?prerequisite|non.?execution|nicht.?ausfuehrung|nicht.?ausführung)/i.test(
+      haystack
+    ) &&
+    !/(re4de|variable netzentgelte|tariff sheet|tarifberechnung|module 3|modul 3|steuerbefehl senden|steuerung senden|steuerung ausfuehren|steuerung ausführen|control command|dispatch taf|taf-?7 dispatch|pair gateway|gateway pair|geraet registrieren|gerät registrieren|smgw register|smgw control|smgw switch|mqtt publish|eebus bridge ausfuehren|eebus bridge ausführen|billing import|abrechnung import|hitl create|secret read|external connector call)/i.test(
+      haystack
+    );
 
   if (hasSmgwConnectorReadinessSpecificSignal) {
     const smgwReadinessCapability = findCapabilityByName('smgw_connector_readiness_status');
@@ -298,9 +324,15 @@ function findBestCapability(taskText, options = {}) {
   }
 
   const hasFlexStrategicDemandIntakeSpecificSignal =
-    /(flexibilisierung|fahrplanmanagement|flex strategic|flex.?bedarf|bedarfsmeldung flex|strategische bedarfsanmeldung)/i.test(haystack) &&
-    /(bedarf|intake|bedarfsmeldung|risk|risiko|nicht.?handeln|kaufmaennische|kaufmännische|commercial|ressource|resource|stop.?doing|owner|next decision gate|entscheidungsgate|blockierte folgeentscheidung)/i.test(haystack) &&
-    !/(tarif|billing|settlement|abrechnung|device-control|smgw|cls|steuerung ausfuehren|steuerung ausführen|nova apply|hitl create)/i.test(haystack);
+    /(flexibilisierung|fahrplanmanagement|flex strategic|flex.?bedarf|bedarfsmeldung flex|strategische bedarfsanmeldung)/i.test(
+      haystack
+    ) &&
+    /(bedarf|intake|bedarfsmeldung|risk|risiko|nicht.?handeln|kaufmaennische|kaufmännische|commercial|ressource|resource|stop.?doing|owner|next decision gate|entscheidungsgate|blockierte folgeentscheidung)/i.test(
+      haystack
+    ) &&
+    !/(tarif|billing|settlement|abrechnung|device-control|smgw|cls|steuerung ausfuehren|steuerung ausführen|nova apply|hitl create)/i.test(
+      haystack
+    );
 
   if (hasFlexStrategicDemandIntakeSpecificSignal) {
     const flexIntakeCapability = findCapabilityByName('flex_strategic_demand_intake');
@@ -310,9 +342,15 @@ function findBestCapability(taskText, options = {}) {
   }
 
   const hasGasInfrastructureRiskGovernanceSpecificSignal =
-    /(gas.?infrastruktur|gas infrastructure|gasnetz|hochdruckleitung|netzkopplung|gas.?risiko|gas risk)/i.test(haystack) &&
-    /(risikoregister|risk register|risikoaufnahme|formal risk|formale risikoaufnahme|nicht.?aufnahme|not aufgenommen|monitoring|massnahme|maßnahme|schwellenwert|threshold|eintrittswahrscheinlichkeit|probability|criticality|kritikalitaet|kritikalität|existing mitigation|absicherung|owner|decision window|entscheidungsfenster)/i.test(haystack) &&
-    !/(stilllegung|decommissioning|roadmap|transformationsfahrplan|ausfuehrungsuebergabe|ausführungsübergabe|kapazitaetsbestellung|kapazitätsbestellung|capacity order|billing|settlement|abrechnung|tarif|payment|device-control|smgw|cls|execute|ausfuehren|ausführen|hitl create|vdmi create)/i.test(haystack);
+    /(gas.?infrastruktur|gas infrastructure|gasnetz|hochdruckleitung|netzkopplung|gas.?risiko|gas risk)/i.test(
+      haystack
+    ) &&
+    /(risikoregister|risk register|risikoaufnahme|formal risk|formale risikoaufnahme|nicht.?aufnahme|not aufgenommen|monitoring|massnahme|maßnahme|schwellenwert|threshold|eintrittswahrscheinlichkeit|probability|criticality|kritikalitaet|kritikalität|existing mitigation|absicherung|owner|decision window|entscheidungsfenster)/i.test(
+      haystack
+    ) &&
+    !/(stilllegung|decommissioning|roadmap|transformationsfahrplan|ausfuehrungsuebergabe|ausführungsübergabe|kapazitaetsbestellung|kapazitätsbestellung|capacity order|billing|settlement|abrechnung|tarif|payment|device-control|smgw|cls|execute|ausfuehren|ausführen|hitl create|vdmi create)/i.test(
+      haystack
+    );
 
   if (hasGasInfrastructureRiskGovernanceSpecificSignal) {
     const gasRiskCapability = findCapabilityByName('gas_infrastructure_risk_governance');
@@ -322,21 +360,35 @@ function findBestCapability(taskText, options = {}) {
   }
 
   const hasHeatTransformationLineAssetModelSpecificSignal =
-    /(waermetransformation|wärmetransformation|linienasset|leitungsabschnitt|leitungsraum|fernwaermeausbau|fernwärmeausbau|stilllegungshistorie|lastflussbezug|h2.?option|gas.?waerme.?transformation|gas.?wärme.?transformation)/i.test(haystack) &&
-    /(geometry.?ref|connectedPointAssetIds|networkCalculationRef|dataQualityStatus|transformationStatus|futureOption|investmentNeed|owner|nextDecision|gaps|follow.?up|readiness)/i.test(haystack) &&
-    !/(edm timeseries|lastgang|zeitreihe|import|datasource refresh|refresh ausfuehren|refresh ausführen|billing|settlement|abrechnung|tarif|device-control|smgw|cls|hitl create|edm import|gas.?risiko|gas.?risk|risikoregister|risk.?register|krisenmodus|krisenroutine|crisis|controllability|governance)/i.test(haystack);
+    /(waermetransformation|wärmetransformation|linienasset|leitungsabschnitt|leitungsraum|fernwaermeausbau|fernwärmeausbau|stilllegungshistorie|lastflussbezug|h2.?option|gas.?waerme.?transformation|gas.?wärme.?transformation)/i.test(
+      haystack
+    ) &&
+    /(geometry.?ref|connectedPointAssetIds|networkCalculationRef|dataQualityStatus|transformationStatus|futureOption|investmentNeed|owner|nextDecision|gaps|follow.?up|readiness)/i.test(
+      haystack
+    ) &&
+    !/(edm timeseries|lastgang|zeitreihe|import|datasource refresh|refresh ausfuehren|refresh ausführen|billing|settlement|abrechnung|tarif|device-control|smgw|cls|hitl create|edm import|gas.?risiko|gas.?risk|risikoregister|risk.?register|krisenmodus|krisenroutine|crisis|controllability|governance)/i.test(
+      haystack
+    );
 
   if (hasHeatTransformationLineAssetModelSpecificSignal) {
-    const heatTransformationCapability = findCapabilityByName('heat_transformation_line_asset_model');
+    const heatTransformationCapability = findCapabilityByName(
+      'heat_transformation_line_asset_model'
+    );
     if (heatTransformationCapability) {
       return { capability: heatTransformationCapability, score: 138, usedFallback: false };
     }
   }
 
   const hasHeatAssetTariffSteeringSpecificSignal =
-    /(fernwaerme|fernwärme|wärmenetz|waermenetz|pflichttarif|tarifwirkung|post-2030|anerkennungsrisiko)/i.test(haystack) &&
-    /(heatPortfolioId|division|technicalMeasures|tariffImpactStatus|regulatoryUncertainty|fundingStatus|customerImpact|investmentPriority|owner|nextDecisionGate|blockedFollowUpAction|gaps|follow.?up|readiness)/i.test(haystack) &&
-    !/(edm timeseries|lastgang|zeitreihe|import|datasource refresh|refresh ausfuehren|refresh ausführen|billing|settlement|abrechnung|tarif|device-control|smgw|cls|hitl create|edm import|gas.?risiko|gas.?risk|risikoregister|risk.?register|krisenmodus|krisenroutine|crisis|controllability|governance)/i.test(haystack);
+    /(fernwaerme|fernwärme|wärmenetz|waermenetz|pflichttarif|tarifwirkung|post-2030|anerkennungsrisiko)/i.test(
+      haystack
+    ) &&
+    /(heatPortfolioId|division|technicalMeasures|tariffImpactStatus|regulatoryUncertainty|fundingStatus|customerImpact|investmentPriority|owner|nextDecisionGate|blockedFollowUpAction|gaps|follow.?up|readiness)/i.test(
+      haystack
+    ) &&
+    !/(edm timeseries|lastgang|zeitreihe|import|datasource refresh|refresh ausfuehren|refresh ausführen|billing|settlement|abrechnung|tarif|device-control|smgw|cls|hitl create|edm import|gas.?risiko|gas.?risk|risikoregister|risk.?register|krisenmodus|krisenroutine|crisis|controllability|governance)/i.test(
+      haystack
+    );
 
   if (hasHeatAssetTariffSteeringSpecificSignal) {
     const heatSteeringCapability = findCapabilityByName('heat_asset_tariff_steering');
@@ -346,9 +398,15 @@ function findBestCapability(taskText, options = {}) {
   }
 
   const hasFnavFastTrackContractGateSpecificSignal =
-    /(fnav_fast_track_contract_gate|fnav fast track|fast.?track vertragsgate|fnav vertragsgate|fnav contract gate)/i.test(haystack) &&
-    /(netzsignal|fahrplanpflicht|messdaten|steuerdaten|steuernachweis|vermarktungsgrenze|abbruchkriterium|eskalationslogik|vertragsstatus|rechtsstatus|rechenzentrum|grosslast|großlast|speicheranschluss)/i.test(haystack) &&
-    !/(device.?control|steuerbefehl|execute|ausfuehren|ausführen|billing|settlement|abrechnung|tarif.?mutation|smgw|cls|mako.?dispatch|external connector|hitl create)/i.test(haystack);
+    /(fnav_fast_track_contract_gate|fnav fast track|fast.?track vertragsgate|fnav vertragsgate|fnav contract gate)/i.test(
+      haystack
+    ) &&
+    /(netzsignal|fahrplanpflicht|messdaten|steuerdaten|steuernachweis|vermarktungsgrenze|abbruchkriterium|eskalationslogik|vertragsstatus|rechtsstatus|rechenzentrum|grosslast|großlast|speicheranschluss)/i.test(
+      haystack
+    ) &&
+    !/(device.?control|steuerbefehl|execute|ausfuehren|ausführen|billing|settlement|abrechnung|tarif.?mutation|smgw|cls|mako.?dispatch|external connector|hitl create)/i.test(
+      haystack
+    );
 
   if (hasFnavFastTrackContractGateSpecificSignal) {
     const fnavFastTrackCapability = findCapabilityByName('fnav_fast_track_contract_gate');
@@ -358,9 +416,15 @@ function findBestCapability(taskText, options = {}) {
   }
 
   const hasTechCommercialOfferCockpitSpecificSignal =
-    /(angebots cockpit|technisch kaufmaennisch|technisch kaufmännisch|indikatives angebot|anschlussangebot|pooling option|vertragsstatus|zielnetzbezug|commercial offer|offer cockpit)/i.test(haystack) &&
-    /(connectionRequestId|gridOperatorId|znpAlignment|gridNode|technicalRestriction|requestedCapacityKW|technicalStatus|capacityUtilization|fnavContractLogic|commercialAssumptions|legalAgreementStatus|legalBoundaries|gaps|follow.?up|readiness|request id|netzbetreiber id|zielnetzbezug|grid node|technische restriktion|anfrageleistung|technischer status|auslastung|vertragslage|annahmen|rechtsstatus|boundaries)/i.test(haystack) &&
-    !/(edm timeseries|lastgang|zeitreihe|import|datasource refresh|refresh ausfuehren|refresh ausführen|billing|settlement|abrechnung|tarif|device-control|smgw|cls|hitl create|edm import|gas.?risiko|gas.?risk|risikoregister|risk.?register|krisenmodus|krisenroutine|crisis|controllability|governance)/i.test(haystack);
+    /(angebots cockpit|technisch kaufmaennisch|technisch kaufmännisch|indikatives angebot|anschlussangebot|pooling option|vertragsstatus|zielnetzbezug|commercial offer|offer cockpit)/i.test(
+      haystack
+    ) &&
+    /(connectionRequestId|gridOperatorId|znpAlignment|gridNode|technicalRestriction|requestedCapacityKW|technicalStatus|capacityUtilization|fnavContractLogic|commercialAssumptions|legalAgreementStatus|legalBoundaries|gaps|follow.?up|readiness|request id|netzbetreiber id|zielnetzbezug|grid node|technische restriktion|anfrageleistung|technischer status|auslastung|vertragslage|annahmen|rechtsstatus|boundaries)/i.test(
+      haystack
+    ) &&
+    !/(edm timeseries|lastgang|zeitreihe|import|datasource refresh|refresh ausfuehren|refresh ausführen|billing|settlement|abrechnung|tarif|device-control|smgw|cls|hitl create|edm import|gas.?risiko|gas.?risk|risikoregister|risk.?register|krisenmodus|krisenroutine|crisis|controllability|governance)/i.test(
+      haystack
+    );
 
   if (hasTechCommercialOfferCockpitSpecificSignal) {
     const techCommercialCapability = findCapabilityByName('tech_commercial_offer_cockpit');
@@ -370,9 +434,15 @@ function findBestCapability(taskText, options = {}) {
   }
 
   const hasGrossspeicherReadinessSpecificSignal =
-    /(grossspeicher|großspeicher|bess|batteriespeicher|speicher anschluss|speicheranschluss|flexibler netzanschluss speicher|fnav speicher)/i.test(haystack) &&
-    /(anschluss readiness|anschluss.?gate|readiness gate|nap|mastr|fnav|vertrag|contract boundary|speicherfahrplan|fahrplan|netzsignal|steuerbarkeit|control.?room|leitwarte|handover|anschlussentscheidung)/i.test(haystack) &&
-    !/(redispatch|sondergate|malo|melo|testabruf|clearing|wallet|key material|schluessel|schlüssel|crypto|backup|disaster recovery|streaming|websocket|billing|settlement|abrechnung|tarif|smgw|cls|device.?control|steuerbefehl|execute|ausfuehren|ausführen|dispatch.?optimierung|optimierung|legal opinion|rechtsgutachten)/i.test(haystack);
+    /(grossspeicher|großspeicher|bess|batteriespeicher|speicher anschluss|speicheranschluss|flexibler netzanschluss speicher|fnav speicher)/i.test(
+      haystack
+    ) &&
+    /(anschluss readiness|anschluss.?gate|readiness gate|nap|mastr|fnav|vertrag|contract boundary|speicherfahrplan|fahrplan|netzsignal|steuerbarkeit|control.?room|leitwarte|handover|anschlussentscheidung)/i.test(
+      haystack
+    ) &&
+    !/(redispatch|sondergate|malo|melo|testabruf|clearing|wallet|key material|schluessel|schlüssel|crypto|backup|disaster recovery|streaming|websocket|billing|settlement|abrechnung|tarif|smgw|cls|device.?control|steuerbefehl|execute|ausfuehren|ausführen|dispatch.?optimierung|optimierung|legal opinion|rechtsgutachten)/i.test(
+      haystack
+    );
 
   if (hasGrossspeicherReadinessSpecificSignal) {
     const grossspeicherCapability = findCapabilityByName('grossspeicher_anschluss_readiness_gate');
@@ -382,9 +452,15 @@ function findBestCapability(taskText, options = {}) {
   }
 
   const hasRolePermissionAccessReadinessSpecificSignal =
-    /(role permission readiness|rollenberechtigung|rollen.?permission|accessmanager|access manager|reapproval)/i.test(haystack) &&
-    /(readiness|gate|reapproval|portalzugang|sftp|rollenfreigabe|rollenberechtigung|accessmanager|it.?sicherheitsfreigabe|fachschulungsnachweis)/i.test(haystack) &&
-    !/(portable energy wallet|wallet|key material|schluessel|schlüssel|crypto|token mint|support token|backup|disaster recovery|streaming|websocket|smgw|cls|device.?control|steuerbefehl|execute|ausfuehren|ausführen|legal opinion|rechtsgutachten|external connector|iam provision|iam rollen|provisioniere|user create|erstelle user|tenant create|erstelle tenant|credential|credentials|sync aus)/i.test(haystack);
+    /(role permission readiness|rollenberechtigung|rollen.?permission|accessmanager|access manager|reapproval)/i.test(
+      haystack
+    ) &&
+    /(readiness|gate|reapproval|portalzugang|sftp|rollenfreigabe|rollenberechtigung|accessmanager|it.?sicherheitsfreigabe|fachschulungsnachweis)/i.test(
+      haystack
+    ) &&
+    !/(portable energy wallet|wallet|key material|schluessel|schlüssel|crypto|token mint|support token|backup|disaster recovery|streaming|websocket|smgw|cls|device.?control|steuerbefehl|execute|ausfuehren|ausführen|legal opinion|rechtsgutachten|external connector|iam provision|iam rollen|provisioniere|user create|erstelle user|tenant create|erstelle tenant|credential|credentials|sync aus)/i.test(
+      haystack
+    );
 
   if (hasRolePermissionAccessReadinessSpecificSignal) {
     const rolePermissionCapability = findCapabilityByName('role_permission_access_readiness_gate');
@@ -394,9 +470,15 @@ function findBestCapability(taskText, options = {}) {
   }
 
   const hasEvidenceFreshnessGuardSpecificSignal =
-    /(evidence.?freshness.?guard|evidence_freshness_guard|freshness.?guard|vnb.?signal.?freshness|source timestamp|quellzeitpunkt|stale context|kontextanker|known anchor|snapshot.?alter|snapshot hash|known snapshot|current snapshot|new delta|neues delta|non.?escalation|nicht.?eskalation)/i.test(haystack) &&
-    /(freshness|fresh|stale|delta|snapshot|source|quelle|timestamp|anchor|anker|eskalation|escalation|blocked decision|blockierte entscheidung)/i.test(haystack) &&
-    !/(mail.?ingest|mail.?scrap|outlook read|teams read|calendar read|task read|monitoring connector|connector ausfuehren|connector ausführen|external connector|scraping|ingestion|workflow execute|workflow ausfuehren|workflow ausführen|notification dispatch|benachrichtigung senden|ticket create|hitl create|task create|aufgabe erstellen|acf card create|personal-agent execute|persistiere rohinhalt|raw private content)/i.test(haystack);
+    /(evidence.?freshness.?guard|evidence_freshness_guard|freshness.?guard|vnb.?signal.?freshness|source timestamp|quellzeitpunkt|stale context|kontextanker|known anchor|snapshot.?alter|snapshot hash|known snapshot|current snapshot|new delta|neues delta|non.?escalation|nicht.?eskalation)/i.test(
+      haystack
+    ) &&
+    /(freshness|fresh|stale|delta|snapshot|source|quelle|timestamp|anchor|anker|eskalation|escalation|blocked decision|blockierte entscheidung)/i.test(
+      haystack
+    ) &&
+    !/(mail.?ingest|mail.?scrap|outlook read|teams read|calendar read|task read|monitoring connector|connector ausfuehren|connector ausführen|external connector|scraping|ingestion|workflow execute|workflow ausfuehren|workflow ausführen|notification dispatch|benachrichtigung senden|ticket create|hitl create|task create|aufgabe erstellen|acf card create|personal-agent execute|persistiere rohinhalt|raw private content)/i.test(
+      haystack
+    );
 
   if (hasEvidenceFreshnessGuardSpecificSignal) {
     const evidenceFreshnessCapability = findCapabilityByName('evidence_freshness_guard');
@@ -406,9 +488,15 @@ function findBestCapability(taskText, options = {}) {
   }
 
   const hasVnbDeltaSignalClassifierSpecificSignal =
-    /(vnb.?delta.?signal|delta.?signal.?classifier|delta.?klassifikation|evu.?fuehrungssignal|evu.?führungssignal|entscheidungssignal|entscheidungsqueue|vnb_delta_signal_classifier)/i.test(haystack) &&
-    /(owner|frist|deadline|anschluss|kapazitaet|kapazität|regulierung|messstellen|flexibilitaet|flexibilität|assetthemen|blockierte entscheidung|naechster evidenzpunkt|nächster evidenzpunkt)/i.test(haystack) &&
-    !/(mail.?ingest|mail.?scrap|outlook read|teams read|calendar read|task read|connector ausfuehren|connector ausführen|external connector|scraping|ingestion|workflow execute|workflow ausfuehren|workflow ausführen|notification dispatch|benachrichtigung senden|ticket create|hitl create|task create|aufgabe erstellen|personal-agent execute|persistiere rohinhalt|raw private content)/i.test(haystack);
+    /(vnb.?delta.?signal|delta.?signal.?classifier|delta.?klassifikation|evu.?fuehrungssignal|evu.?führungssignal|entscheidungssignal|entscheidungsqueue|vnb_delta_signal_classifier)/i.test(
+      haystack
+    ) &&
+    /(owner|frist|deadline|anschluss|kapazitaet|kapazität|regulierung|messstellen|flexibilitaet|flexibilität|assetthemen|blockierte entscheidung|naechster evidenzpunkt|nächster evidenzpunkt)/i.test(
+      haystack
+    ) &&
+    !/(mail.?ingest|mail.?scrap|outlook read|teams read|calendar read|task read|connector ausfuehren|connector ausführen|external connector|scraping|ingestion|workflow execute|workflow ausfuehren|workflow ausführen|notification dispatch|benachrichtigung senden|ticket create|hitl create|task create|aufgabe erstellen|personal-agent execute|persistiere rohinhalt|raw private content)/i.test(
+      haystack
+    );
 
   if (hasVnbDeltaSignalClassifierSpecificSignal) {
     const vnbDeltaClassifierCapability = findCapabilityByName('vnb_delta_signal_classifier');
@@ -418,9 +506,15 @@ function findBestCapability(taskText, options = {}) {
   }
 
   const hasCrossChannelVnbSignalQueueSpecificSignal =
-    /(cross.?channel|cross_channel_vnb_signal_queue|signal queue|signal.?queue|mail hinweis|chat hinweis|portal hinweis|fachsystem signal)/i.test(haystack) &&
-    /(owner.?frist|owner|frist|deadline|evidenzstatus|evidence status|netzanschluss blocker|redispatch hinweis|zielnetzplanung signal|it freigabe|berechtigung|schulung|vertragsklaerung|vertragsklärung|naechster datenpunkt|nächster datenpunkt)/i.test(haystack) &&
-    !/(mail.?ingest|mail.?scrap|teams ingest|external connector|connector ausfuehren|connector ausführen|scraping|ingestion|workflow execute|workflow ausfuehren|workflow ausführen|notification dispatch|benachrichtigung senden|hitl create|task create|aufgabe erstellen|queue persist|persistiere queue|vdmi mutate|vdmi task mutate|personal-agent execute)/i.test(haystack);
+    /(cross.?channel|cross_channel_vnb_signal_queue|signal queue|signal.?queue|mail hinweis|chat hinweis|portal hinweis|fachsystem signal)/i.test(
+      haystack
+    ) &&
+    /(owner.?frist|owner|frist|deadline|evidenzstatus|evidence status|netzanschluss blocker|redispatch hinweis|zielnetzplanung signal|it freigabe|berechtigung|schulung|vertragsklaerung|vertragsklärung|naechster datenpunkt|nächster datenpunkt)/i.test(
+      haystack
+    ) &&
+    !/(mail.?ingest|mail.?scrap|teams ingest|external connector|connector ausfuehren|connector ausführen|scraping|ingestion|workflow execute|workflow ausfuehren|workflow ausführen|notification dispatch|benachrichtigung senden|hitl create|task create|aufgabe erstellen|queue persist|persistiere queue|vdmi mutate|vdmi task mutate|personal-agent execute)/i.test(
+      haystack
+    );
 
   if (hasCrossChannelVnbSignalQueueSpecificSignal) {
     const crossChannelQueueCapability = findCapabilityByName('cross_channel_vnb_signal_queue');
@@ -430,9 +524,15 @@ function findBestCapability(taskText, options = {}) {
   }
 
   const hasOwnerDeadlineEvidenceSpecificSignal =
-    /(owner.?frist.?evidenz|owner deadline evidence|vnb.?signal|signal.?nachhaltung|frist.?nachhaltung|evidenz.?cockpit|management.?nachhaltung|blockierte folgeentscheidung)/i.test(haystack) &&
-    /(owner|frist|deadline|evidenz|evidence|quelle|source|blocked decision|blockierte folgeentscheidung|linked entity|verknuepfte entitaet|verknüpfte entität|risiko|risk)/i.test(haystack) &&
-    !/(mail.?ingest|mail.?scrap|teams|loop|external connector|connector|scraping|ingestion|workflow execute|workflow ausfuehren|workflow ausführen|notification|benachrichtigung|eskalation|deadline mutate|frist setzen|frist aendern|frist ändern|task create|aufgabe erstellen|legal opinion|rechtsgutachten|portable energy wallet|wallet|key material|schluessel|schlüssel|crypto|backup|disaster recovery|streaming|websocket|smgw|cls|device.?control|steuerbefehl|accessmanager|access manager|iam provision|rollenberechtigung|grossspeicher|großspeicher|netzprozess readiness|prozessreife|redispatch sondergate|krisenroutine|krisenmodus|crisis|investment data|investment review|datenreview|review queue|investitionsdaten|investdaten|pruefqueue|prüfqueue|capex|assetmanagement)/i.test(haystack);
+    /(owner.?frist.?evidenz|owner deadline evidence|vnb.?signal|signal.?nachhaltung|frist.?nachhaltung|evidenz.?cockpit|management.?nachhaltung|blockierte folgeentscheidung)/i.test(
+      haystack
+    ) &&
+    /(owner|frist|deadline|evidenz|evidence|quelle|source|blocked decision|blockierte folgeentscheidung|linked entity|verknuepfte entitaet|verknüpfte entität|risiko|risk)/i.test(
+      haystack
+    ) &&
+    !/(mail.?ingest|mail.?scrap|teams|loop|external connector|connector|scraping|ingestion|workflow execute|workflow ausfuehren|workflow ausführen|notification|benachrichtigung|eskalation|deadline mutate|frist setzen|frist aendern|frist ändern|task create|aufgabe erstellen|legal opinion|rechtsgutachten|portable energy wallet|wallet|key material|schluessel|schlüssel|crypto|backup|disaster recovery|streaming|websocket|smgw|cls|device.?control|steuerbefehl|accessmanager|access manager|iam provision|rollenberechtigung|grossspeicher|großspeicher|netzprozess readiness|prozessreife|redispatch sondergate|krisenroutine|krisenmodus|crisis|investment data|investment review|datenreview|review queue|investitionsdaten|investdaten|pruefqueue|prüfqueue|capex|assetmanagement)/i.test(
+      haystack
+    );
 
   if (hasOwnerDeadlineEvidenceSpecificSignal) {
     const ownerDeadlineCapability = findCapabilityByName('owner_deadline_evidence_gate');
@@ -442,28 +542,44 @@ function findBestCapability(taskText, options = {}) {
   }
 
   const hasAutomationRequirementsDecisionValueSpecificSignal =
-    /(automation_requirements_decision_value|automation requirements decision value|requirements card|powerbi dashboard wunsch|bewegungsdatenfluss|entscheidungswert|folgeprozess|rollback criterion)/i.test(haystack) &&
-    !/(rpa.?fehlerfolgen|automation risk gate|bot.?stopfbarkeit|sonderfallkatalog|edge case catalog|massenlauf risiko|automatisierungsfreigabe)/i.test(haystack);
+    /(automation_requirements_decision_value|automation requirements decision value|requirements card|powerbi dashboard wunsch|bewegungsdatenfluss|entscheidungswert|folgeprozess|rollback criterion)/i.test(
+      haystack
+    ) &&
+    !/(rpa.?fehlerfolgen|automation risk gate|bot.?stopfbarkeit|sonderfallkatalog|edge case catalog|massenlauf risiko|automatisierungsfreigabe)/i.test(
+      haystack
+    );
 
   if (hasAutomationRequirementsDecisionValueSpecificSignal) {
-    const automationRequirementsCapability = findCapabilityByName('automation_requirements_decision_value');
+    const automationRequirementsCapability = findCapabilityByName(
+      'automation_requirements_decision_value'
+    );
     if (automationRequirementsCapability) {
       return { capability: automationRequirementsCapability, score: 144, usedFallback: false };
     }
   }
 
   const hasAutomationExecutionIntent =
-    /(bot.?run|rpa.?execute|automation ausfuehren|automation ausführen|workflow execute|workflow ausfuehren|workflow ausführen|sende marktkommunikation|market.?communication send|external connector)/i.test(haystack) &&
-    /(rpa.?fehlerfolgen|automation risk gate|automatisierungs.?risiko|prozessautomatisierung risiko|massenlauf risiko|automatisierungsfreigabe)/i.test(haystack);
+    /(bot.?run|rpa.?execute|automation ausfuehren|automation ausführen|workflow execute|workflow ausfuehren|workflow ausführen|sende marktkommunikation|market.?communication send|external connector)/i.test(
+      haystack
+    ) &&
+    /(rpa.?fehlerfolgen|automation risk gate|automatisierungs.?risiko|prozessautomatisierung risiko|massenlauf risiko|automatisierungsfreigabe)/i.test(
+      haystack
+    );
 
   if (hasAutomationExecutionIntent) {
     return { capability: INTERFACE_PLACEHOLDER_CAPABILITY, score: 10, usedFallback: true };
   }
 
   const hasAutomationRiskGateSpecificSignal =
-    /(rpa.?fehlerfolgen|automation risk gate|automatisierungs.?risiko|prozessautomatisierung risiko|bot.?stopfbarkeit|rueckrollpfad|rückrollpfad|rollback|sonderfallkatalog|edge case catalog|massenlauf risiko|automatisierungsfreigabe)/i.test(haystack) &&
-    /(test.?coverage|testabdeckung|testfall|edge case|sonderfall|stop.?kriterien|stopfbarkeit|rollback|rueckrollpfad|rückrollpfad|monitoring|owner|process owner|massenlauf|mass.?run|risk|risiko|freigabe)/i.test(haystack) &&
-    !/(mail.?ingest|mail.?scrap|teams|loop|external connector|connector|scraping|ingestion|workflow execute|workflow ausfuehren|workflow ausführen|bot.?run|rpa.?execute|automation ausfuehren|automation ausführen|notification|benachrichtigung|eskalation|billing|settlement|abrechnung|tarif|marktkommunikation senden|mako mutation|legal opinion|rechtsgutachten|portable energy wallet|wallet|key material|schluessel|schlüssel|crypto|backup|disaster recovery|streaming|websocket|smgw|cls|device.?control|steuerbefehl|accessmanager|access manager|iam provision|rollenberechtigung|grossspeicher|großspeicher|owner.?frist|owner deadline|netzprozess readiness|prozessreife|krisenroutine|krisenmodus|crisis|automation_requirements_decision_value|requirements card|powerbi dashboard wunsch|bewegungsdatenfluss|entscheidungswert)/i.test(haystack);
+    /(rpa.?fehlerfolgen|automation risk gate|automatisierungs.?risiko|prozessautomatisierung risiko|bot.?stopfbarkeit|rueckrollpfad|rückrollpfad|rollback|sonderfallkatalog|edge case catalog|massenlauf risiko|automatisierungsfreigabe)/i.test(
+      haystack
+    ) &&
+    /(test.?coverage|testabdeckung|testfall|edge case|sonderfall|stop.?kriterien|stopfbarkeit|rollback|rueckrollpfad|rückrollpfad|monitoring|owner|process owner|massenlauf|mass.?run|risk|risiko|freigabe)/i.test(
+      haystack
+    ) &&
+    !/(mail.?ingest|mail.?scrap|teams|loop|external connector|connector|scraping|ingestion|workflow execute|workflow ausfuehren|workflow ausführen|bot.?run|rpa.?execute|automation ausfuehren|automation ausführen|notification|benachrichtigung|eskalation|billing|settlement|abrechnung|tarif|marktkommunikation senden|mako mutation|legal opinion|rechtsgutachten|portable energy wallet|wallet|key material|schluessel|schlüssel|crypto|backup|disaster recovery|streaming|websocket|smgw|cls|device.?control|steuerbefehl|accessmanager|access manager|iam provision|rollenberechtigung|grossspeicher|großspeicher|owner.?frist|owner deadline|netzprozess readiness|prozessreife|krisenroutine|krisenmodus|crisis|automation_requirements_decision_value|requirements card|powerbi dashboard wunsch|bewegungsdatenfluss|entscheidungswert)/i.test(
+      haystack
+    );
 
   if (hasAutomationRiskGateSpecificSignal) {
     const automationRiskCapability = findCapabilityByName('automation_risk_gate');
@@ -473,22 +589,38 @@ function findBestCapability(taskText, options = {}) {
   }
 
   const hasRedispatchProjectControllingExecutionIntent =
-    /(settlement execute|settlement ausfuehren|settlement ausführen|billing|abrechnung|a96 export|redispatch order|redispatch.?auftrag|device.?control|steuerbefehl|workflow execute|workflow ausfuehren|workflow ausführen|task create|hitl create|vdmi mutate|external connector|datasource ingest|mastr import|asset override|tariff mutate)/i.test(haystack) &&
-    /(redispatch projektcontrolling|redispatch kpi cockpit|redispatch e2e controlling|lastgang evidenz|mastr evidenz|entscheidungsblocker redispatch)/i.test(haystack);
+    /(settlement execute|settlement ausfuehren|settlement ausführen|billing|abrechnung|a96 export|redispatch order|redispatch.?auftrag|device.?control|steuerbefehl|workflow execute|workflow ausfuehren|workflow ausführen|task create|hitl create|vdmi mutate|external connector|datasource ingest|mastr import|asset override|tariff mutate)/i.test(
+      haystack
+    ) &&
+    /(redispatch projektcontrolling|redispatch kpi cockpit|redispatch e2e controlling|lastgang evidenz|mastr evidenz|entscheidungsblocker redispatch)/i.test(
+      haystack
+    );
 
   if (hasRedispatchProjectControllingExecutionIntent) {
     return { capability: INTERFACE_PLACEHOLDER_CAPABILITY, score: 10, usedFallback: true };
   }
 
   const hasRedispatchProjectControllingSpecificSignal =
-    /(redispatch projektcontrolling|redispatch kpi cockpit|redispatch e2e controlling|redispatch aufgabenliste kpi|lastgang evidenz|mastr evidenz|datenquelle belastbar|entscheidungsblocker redispatch|owner faelligkeit redispatch|owner fälligkeit redispatch|redispatch_project_controlling_kpi_cockpit)/i.test(haystack) &&
-    /(redispatch|kpi|cockpit|projektcontrolling|lastgang|mastr|datenquelle|owner|faelligkeit|fälligkeit|entscheidungsblocker|e2e|evidenz|evidence)/i.test(haystack) &&
-    !/(settlement execute|settlement ausfuehren|settlement ausführen|billing|abrechnung ausfuehren|abrechnung ausführen|a96 export|redispatch order|redispatch.?auftrag|device.?control|steuerbefehl|workflow execute|workflow ausfuehren|workflow ausführen|task create|hitl create|vdmi mutate|notification|external connector|datasource ingest|mastr import|asset override|tariff mutate|streaming|websocket|backup|disaster recovery|security token|support token|admin token|legal opinion|rechtsgutachten|stadtwerk mauer|gas capacity|gasnetz|water pricing|wasserpreis|finance gate|investment review|owner.?frist|automation risk gate|rpa.?fehlerfolgen|accessmanager|smgw|cls|wallet|key material|schluessel|schlüssel)/i.test(haystack);
+    /(redispatch projektcontrolling|redispatch kpi cockpit|redispatch e2e controlling|redispatch aufgabenliste kpi|lastgang evidenz|mastr evidenz|datenquelle belastbar|entscheidungsblocker redispatch|owner faelligkeit redispatch|owner fälligkeit redispatch|redispatch_project_controlling_kpi_cockpit)/i.test(
+      haystack
+    ) &&
+    /(redispatch|kpi|cockpit|projektcontrolling|lastgang|mastr|datenquelle|owner|faelligkeit|fälligkeit|entscheidungsblocker|e2e|evidenz|evidence)/i.test(
+      haystack
+    ) &&
+    !/(settlement execute|settlement ausfuehren|settlement ausführen|billing|abrechnung ausfuehren|abrechnung ausführen|a96 export|redispatch order|redispatch.?auftrag|device.?control|steuerbefehl|workflow execute|workflow ausfuehren|workflow ausführen|task create|hitl create|vdmi mutate|notification|external connector|datasource ingest|mastr import|asset override|tariff mutate|streaming|websocket|backup|disaster recovery|security token|support token|admin token|legal opinion|rechtsgutachten|stadtwerk mauer|gas capacity|gasnetz|water pricing|wasserpreis|finance gate|investment review|owner.?frist|automation risk gate|rpa.?fehlerfolgen|accessmanager|smgw|cls|wallet|key material|schluessel|schlüssel)/i.test(
+      haystack
+    );
 
   if (hasRedispatchProjectControllingSpecificSignal) {
-    const redispatchProjectControllingCapability = findCapabilityByName('redispatch_project_controlling_kpi_cockpit');
+    const redispatchProjectControllingCapability = findCapabilityByName(
+      'redispatch_project_controlling_kpi_cockpit'
+    );
     if (redispatchProjectControllingCapability) {
-      return { capability: redispatchProjectControllingCapability, score: 144, usedFallback: false };
+      return {
+        capability: redispatchProjectControllingCapability,
+        score: 144,
+        usedFallback: false,
+      };
     }
   }
 
@@ -506,16 +638,24 @@ function findBestCapability(taskText, options = {}) {
 
   const hasStadtwerkMauerEventReplayRuntimeIntent =
     !hasRealAssetLookupIntent &&
-    /(scheduler|cron starten|event injizieren|event injection|event persist|persistieren|queue|stream|eve runtime|agent execute|agent ausfuehren|agent ausführen|mako senden|marktkommunikation senden|kunde kontaktieren|customer communication|steuerbefehl|billing ausfuehren|billing ausführen|settlement ausfuehren|settlement ausführen|workflow anlegen|workflow execute|task create|notification|external connector)/i.test(haystack) &&
-    /(stadtwerk mauer|69256 mauer|virtuelles stadtwerk|event simulation|event.?simulation|event replay|ereigniskatalog|synthetic event|synthetische events)/i.test(haystack) &&
-    !/(preview|vorschau|read.?only|read only|nur lesen|katalog anzeigen|catalog|replay preview)/i.test(haystack);
+    /(scheduler|cron starten|event injizieren|event injection|event persist|persistieren|queue|stream|eve runtime|agent execute|agent ausfuehren|agent ausführen|mako senden|marktkommunikation senden|kunde kontaktieren|customer communication|steuerbefehl|billing ausfuehren|billing ausführen|settlement ausfuehren|settlement ausführen|workflow anlegen|workflow execute|task create|notification|external connector)/i.test(
+      haystack
+    ) &&
+    /(stadtwerk mauer|69256 mauer|virtuelles stadtwerk|event simulation|event.?simulation|event replay|ereigniskatalog|synthetic event|synthetische events)/i.test(
+      haystack
+    ) &&
+    !/(preview|vorschau|read.?only|read only|nur lesen|katalog anzeigen|catalog|replay preview)/i.test(
+      haystack
+    );
 
   if (hasStadtwerkMauerEventReplayRuntimeIntent) {
     return { capability: INTERFACE_PLACEHOLDER_CAPABILITY, score: 10, usedFallback: true };
   }
 
   const hasStadtwerkMauerMastrOverlayMutationIntent =
-    /(mastr write|mastr schreiben|mastr import|mastr update|mastr aktualisieren|netzbetreiber im mastr aendern|netzbetreiber im mastr ändern|syna ersetzen|source records mutate|asset override|external connector|mako senden|steuerbefehl|device.?control|workflow execute|workflow ausfuehren|workflow ausführen|tenant delete production)/i.test(haystack) &&
+    /(mastr write|mastr schreiben|mastr import|mastr update|mastr aktualisieren|netzbetreiber im mastr aendern|netzbetreiber im mastr ändern|syna ersetzen|source records mutate|asset override|external connector|mako senden|steuerbefehl|device.?control|workflow execute|workflow ausfuehren|workflow ausführen|tenant delete production)/i.test(
+      haystack
+    ) &&
     /(stadtwerk mauer|69256 mauer|virtuelles stadtwerk|blended|mastr overlay|syna)/i.test(haystack);
 
   if (hasStadtwerkMauerMastrOverlayMutationIntent) {
@@ -524,12 +664,20 @@ function findBestCapability(taskText, options = {}) {
 
   const hasStadtwerkMauerMastrOverlaySpecificSignal =
     !hasRealAssetLookupIntent &&
-    /(stadtwerk mauer|69256 mauer|virtuelles stadtwerk|stadtwerk_mauer_mastr_data_overlay)/i.test(haystack) &&
-    /(blended|real.?data|reale mastr|mastr daten|mastr baseline|mastr overlay|operator overlay|netzbetreiber overlay|syna|1.?1|eins zu eins|virtual operator|virtueller netzbetreiber)/i.test(haystack) &&
-    !/(mastr write|mastr schreiben|mastr import|mastr update|mastr aktualisieren|netzbetreiber im mastr aendern|netzbetreiber im mastr ändern|syna ersetzen|source records mutate|asset override|external connector|mako senden|steuerbefehl|device.?control|workflow execute|workflow ausfuehren|workflow ausführen|tenant delete production|hitl create|personal-agent execute)/i.test(haystack);
+    /(stadtwerk mauer|69256 mauer|virtuelles stadtwerk|stadtwerk_mauer_mastr_data_overlay)/i.test(
+      haystack
+    ) &&
+    /(blended|real.?data|reale mastr|mastr daten|mastr baseline|mastr overlay|operator overlay|netzbetreiber overlay|syna|1.?1|eins zu eins|virtual operator|virtueller netzbetreiber)/i.test(
+      haystack
+    ) &&
+    !/(mastr write|mastr schreiben|mastr import|mastr update|mastr aktualisieren|netzbetreiber im mastr aendern|netzbetreiber im mastr ändern|syna ersetzen|source records mutate|asset override|external connector|mako senden|steuerbefehl|device.?control|workflow execute|workflow ausfuehren|workflow ausführen|tenant delete production|hitl create|personal-agent execute)/i.test(
+      haystack
+    );
 
   if (hasStadtwerkMauerMastrOverlaySpecificSignal) {
-    const stadtwerkMauerMastrOverlayCapability = findCapabilityByName('stadtwerk_mauer_mastr_data_overlay');
+    const stadtwerkMauerMastrOverlayCapability = findCapabilityByName(
+      'stadtwerk_mauer_mastr_data_overlay'
+    );
     if (stadtwerkMauerMastrOverlayCapability) {
       return { capability: stadtwerkMauerMastrOverlayCapability, score: 146, usedFallback: false };
     }
@@ -537,13 +685,23 @@ function findBestCapability(taskText, options = {}) {
 
   const hasStadtwerkMauerEventReplayPreviewSpecificSignal =
     !hasRealAssetLookupIntent &&
-    /(stadtwerk mauer|69256 mauer|virtuelles stadtwerk|stadtwerk_mauer_event_replay_preview)/i.test(haystack) &&
-    /(event replay preview|event.?simulation preview|ereigniskatalog|synthetic events|synthetische events|pv elektriker event|lieferantenwechsel simulation|zaehlerablesung demo|zählerablesung demo|kundenservice fall|bilanzkreis ereignis|event template|event envelope|ereignis envelope)/i.test(haystack) &&
-    /(preview|vorschau|read.?only|read only|nur lesen|katalog|catalog|replay|seed|deterministic|deterministisch|template|event template|event envelope|ereignis envelope|taxonomy|taxonomie)/i.test(haystack) &&
-    !/(scheduler|cron starten|event injizieren|event injection|event persist|persistieren|queue|stream|eve runtime ausfuehren|eve runtime ausführen|agent execute|agent ausfuehren|agent ausführen|mako senden|marktkommunikation senden|kunde kontaktieren|customer communication|steuerbefehl|billing ausfuehren|billing ausführen|settlement ausfuehren|settlement ausführen|workflow anlegen|workflow execute|task create|notification|external connector|device.?control|switching execute)/i.test(haystack);
+    /(stadtwerk mauer|69256 mauer|virtuelles stadtwerk|stadtwerk_mauer_event_replay_preview)/i.test(
+      haystack
+    ) &&
+    /(event replay preview|event.?simulation preview|ereigniskatalog|synthetic events|synthetische events|pv elektriker event|lieferantenwechsel simulation|zaehlerablesung demo|zählerablesung demo|kundenservice fall|bilanzkreis ereignis|event template|event envelope|ereignis envelope)/i.test(
+      haystack
+    ) &&
+    /(preview|vorschau|read.?only|read only|nur lesen|katalog|catalog|replay|seed|deterministic|deterministisch|template|event template|event envelope|ereignis envelope|taxonomy|taxonomie)/i.test(
+      haystack
+    ) &&
+    !/(scheduler|cron starten|event injizieren|event injection|event persist|persistieren|queue|stream|eve runtime ausfuehren|eve runtime ausführen|agent execute|agent ausfuehren|agent ausführen|mako senden|marktkommunikation senden|kunde kontaktieren|customer communication|steuerbefehl|billing ausfuehren|billing ausführen|settlement ausfuehren|settlement ausführen|workflow anlegen|workflow execute|task create|notification|external connector|device.?control|switching execute)/i.test(
+      haystack
+    );
 
   if (hasStadtwerkMauerEventReplayPreviewSpecificSignal) {
-    const stadtwerkMauerEventReplayCapability = findCapabilityByName('stadtwerk_mauer_event_replay_preview');
+    const stadtwerkMauerEventReplayCapability = findCapabilityByName(
+      'stadtwerk_mauer_event_replay_preview'
+    );
     if (stadtwerkMauerEventReplayCapability) {
       return { capability: stadtwerkMauerEventReplayCapability, score: 145, usedFallback: false };
     }
@@ -551,8 +709,12 @@ function findBestCapability(taskText, options = {}) {
 
   const hasStadtwerkMauerCapabilityProjectionMutationIntent =
     !hasRealAssetLookupIntent &&
-    /(tenant create|erstelle tenant|user create|erstelle user|token create|support token|provision|provisioniere|eve runtime|scheduler|channel|approval|agent directory write|agentenverzeichnis schreiben|agent file|agenten.?datei|artifact placement|artefakt|workflow execute|workflow ausfuehren|workflow ausführen|task create|aufgabe erstellen|notification|benachrichtigung|hitl create|nova mutate|vdmi mutate|event simulation|event.?simulation|event injection|external connector|security hardening|key policy|schluessel|schlüssel|wallet)/i.test(haystack) &&
-    /(stadtwerk mauer|69256 mauer|eve stadtwerk|agentic stadtwerk|virtuelles stadtwerk|capability projection|capability.?projektion|rollenfaehigkeit|rollenfähigkeit)/i.test(haystack);
+    /(tenant create|erstelle tenant|user create|erstelle user|token create|support token|provision|provisioniere|eve runtime|scheduler|channel|approval|agent directory write|agentenverzeichnis schreiben|agent file|agenten.?datei|artifact placement|artefakt|workflow execute|workflow ausfuehren|workflow ausführen|task create|aufgabe erstellen|notification|benachrichtigung|hitl create|nova mutate|vdmi mutate|event simulation|event.?simulation|event injection|external connector|security hardening|key policy|schluessel|schlüssel|wallet)/i.test(
+      haystack
+    ) &&
+    /(stadtwerk mauer|69256 mauer|eve stadtwerk|agentic stadtwerk|virtuelles stadtwerk|capability projection|capability.?projektion|rollenfaehigkeit|rollenfähigkeit)/i.test(
+      haystack
+    );
 
   if (hasStadtwerkMauerCapabilityProjectionMutationIntent) {
     return { capability: INTERFACE_PLACEHOLDER_CAPABILITY, score: 10, usedFallback: true };
@@ -560,12 +722,20 @@ function findBestCapability(taskText, options = {}) {
 
   const hasStadtwerkMauerCapabilityProjectionSpecificSignal =
     !hasRealAssetLookupIntent &&
-    /(stadtwerk mauer|69256 mauer|eve stadtwerk|agentic stadtwerk|virtuelles stadtwerk|stadtwerk_mauer_capability_projection)/i.test(haystack) &&
-    /(capability projection|capability.?projektion|faehigkeiten|fähigkeiten|rollenfaehigkeit|rollenfähigkeit|role capability|rollen capability|management|grid.?planning|netzplanung|asset.?management|regulatory|regulierung|read.?only|advisory|consequential|folge.?up|handoff)/i.test(haystack) &&
-    !/(tenant create|erstelle tenant|user create|erstelle user|token create|support token|provision|provisioniere|eve runtime|scheduler|channel|approval|agent directory write|agentenverzeichnis schreiben|agent file|agenten.?datei|artifact placement|artefakt|workflow execute|workflow ausfuehren|workflow ausführen|task create|aufgabe erstellen|notification|benachrichtigung|hitl create|nova mutate|vdmi mutate|event simulation|event.?simulation|event injection|external connector|connector|security hardening|key policy|wallet|key material|schluessel|schlüssel|smgw|cls|device.?control|steuerbefehl)/i.test(haystack);
+    /(stadtwerk mauer|69256 mauer|eve stadtwerk|agentic stadtwerk|virtuelles stadtwerk|stadtwerk_mauer_capability_projection)/i.test(
+      haystack
+    ) &&
+    /(capability projection|capability.?projektion|faehigkeiten|fähigkeiten|rollenfaehigkeit|rollenfähigkeit|role capability|rollen capability|management|grid.?planning|netzplanung|asset.?management|regulatory|regulierung|read.?only|advisory|consequential|folge.?up|handoff)/i.test(
+      haystack
+    ) &&
+    !/(tenant create|erstelle tenant|user create|erstelle user|token create|support token|provision|provisioniere|eve runtime|scheduler|channel|approval|agent directory write|agentenverzeichnis schreiben|agent file|agenten.?datei|artifact placement|artefakt|workflow execute|workflow ausfuehren|workflow ausführen|task create|aufgabe erstellen|notification|benachrichtigung|hitl create|nova mutate|vdmi mutate|event simulation|event.?simulation|event injection|external connector|connector|security hardening|key policy|wallet|key material|schluessel|schlüssel|smgw|cls|device.?control|steuerbefehl)/i.test(
+      haystack
+    );
 
   if (hasStadtwerkMauerCapabilityProjectionSpecificSignal) {
-    const stadtwerkMauerProjectionCapability = findCapabilityByName('stadtwerk_mauer_capability_projection');
+    const stadtwerkMauerProjectionCapability = findCapabilityByName(
+      'stadtwerk_mauer_capability_projection'
+    );
     if (stadtwerkMauerProjectionCapability) {
       return { capability: stadtwerkMauerProjectionCapability, score: 144, usedFallback: false };
     }
@@ -573,9 +743,15 @@ function findBestCapability(taskText, options = {}) {
 
   const hasStadtwerkMauerVdmiProfileSpecificSignal =
     !hasRealAssetLookupIntent &&
-    /(stadtwerk mauer|69256 mauer|eve stadtwerk|agentic stadtwerk|virtuelles stadtwerk|stadtwerk_mauer_vdmi_profile)/i.test(haystack) &&
-    /(vdmi|profile|profil|sparten|strom|gas|wasser|waerme|wärme|rolle|rollen|market role|marktrolle|evidenz|evidence|demo.?frage|transformation|netzrisiko)/i.test(haystack) &&
-    !/(tenant create|erstelle tenant|user create|erstelle user|token create|support token|provision|provisioniere|eve runtime|scheduler|channel|approval|agent directory write|agentenverzeichnis schreiben|workflow execute|workflow ausfuehren|workflow ausführen|task create|aufgabe erstellen|notification|benachrichtigung|hitl create|nova mutate|vdmi mutate|external connector|connector|legal opinion|rechtsgutachten|wallet|key material|schluessel|schlüssel|backup|disaster recovery|streaming|websocket|smgw|cls|device.?control|steuerbefehl|rpa|bot run|automation ausfuehren|automation ausführen|gas capacity booking|wasser pricing|water pricing|capacity booking)/i.test(haystack);
+    /(stadtwerk mauer|69256 mauer|eve stadtwerk|agentic stadtwerk|virtuelles stadtwerk|stadtwerk_mauer_vdmi_profile)/i.test(
+      haystack
+    ) &&
+    /(vdmi|profile|profil|sparten|strom|gas|wasser|waerme|wärme|rolle|rollen|market role|marktrolle|evidenz|evidence|demo.?frage|transformation|netzrisiko)/i.test(
+      haystack
+    ) &&
+    !/(tenant create|erstelle tenant|user create|erstelle user|token create|support token|provision|provisioniere|eve runtime|scheduler|channel|approval|agent directory write|agentenverzeichnis schreiben|workflow execute|workflow ausfuehren|workflow ausführen|task create|aufgabe erstellen|notification|benachrichtigung|hitl create|nova mutate|vdmi mutate|external connector|connector|legal opinion|rechtsgutachten|wallet|key material|schluessel|schlüssel|backup|disaster recovery|streaming|websocket|smgw|cls|device.?control|steuerbefehl|rpa|bot run|automation ausfuehren|automation ausführen|gas capacity booking|wasser pricing|water pricing|capacity booking)/i.test(
+      haystack
+    );
 
   if (hasStadtwerkMauerVdmiProfileSpecificSignal) {
     const stadtwerkMauerCapability = findCapabilityByName('stadtwerk_mauer_vdmi_profile');
@@ -585,29 +761,47 @@ function findBestCapability(taskText, options = {}) {
   }
 
   const hasZnpProductionReadinessMutationIntent =
-    /(overpass|pdf|import|extraktion|extract|async.?job|job create|nova apply|nova anwenden|entscheidung ausfuehren|entscheidung ausführen|project update|projekt aktualisieren|graph mutate|graph mutation|trl update|stub entfernen)/i.test(haystack) &&
-    /(znp|zielnetzplanung|production readiness|produktionsreife|layer 1|layer 2|g.?factor|nova|hoeheinoed|höheinöd)/i.test(haystack);
+    /(overpass|pdf|import|extraktion|extract|async.?job|job create|nova apply|nova anwenden|entscheidung ausfuehren|entscheidung ausführen|project update|projekt aktualisieren|graph mutate|graph mutation|trl update|stub entfernen)/i.test(
+      haystack
+    ) &&
+    /(znp|zielnetzplanung|production readiness|produktionsreife|layer 1|layer 2|g.?factor|nova|hoeheinoed|höheinöd)/i.test(
+      haystack
+    );
 
   if (hasZnpProductionReadinessMutationIntent) {
     return { capability: INTERFACE_PLACEHOLDER_CAPABILITY, score: 10, usedFallback: true };
   }
 
   const hasZnpProductionReadinessSpecificSignal =
-    /(znp production readiness|znp produktionsreife|znp readiness evidence gate|znp_production_readiness_evidence_gate|layer 1 layer 2 g.?factor|g.?factor validierung|hoeheinoed acceptance|höheinöd acceptance|nova handoff readiness)/i.test(haystack) &&
-    /(evidence|evidenz|readiness|produktionsreife|gate|status|review|layer 1|layer 2|g.?factor|acceptance|nova handoff)/i.test(haystack) &&
-    !/(overpass|pdf import|pdf extraktion|pdf extraction|async.?job|job create|nova apply|nova anwenden|entscheidung ausfuehren|entscheidung ausführen|project update|projekt aktualisieren|graph mutate|graph mutation|trl update|stub entfernen|tenant create|token create|support token|wallet|key material|schluessel|schlüssel|external connector|device.?control|smgw|cls|personal-agent execute)/i.test(haystack);
+    /(znp production readiness|znp produktionsreife|znp readiness evidence gate|znp_production_readiness_evidence_gate|layer 1 layer 2 g.?factor|g.?factor validierung|hoeheinoed acceptance|höheinöd acceptance|nova handoff readiness)/i.test(
+      haystack
+    ) &&
+    /(evidence|evidenz|readiness|produktionsreife|gate|status|review|layer 1|layer 2|g.?factor|acceptance|nova handoff)/i.test(
+      haystack
+    ) &&
+    !/(overpass|pdf import|pdf extraktion|pdf extraction|async.?job|job create|nova apply|nova anwenden|entscheidung ausfuehren|entscheidung ausführen|project update|projekt aktualisieren|graph mutate|graph mutation|trl update|stub entfernen|tenant create|token create|support token|wallet|key material|schluessel|schlüssel|external connector|device.?control|smgw|cls|personal-agent execute)/i.test(
+      haystack
+    );
 
   if (hasZnpProductionReadinessSpecificSignal) {
-    const znpProductionReadinessCapability = findCapabilityByName('znp_production_readiness_evidence_gate');
+    const znpProductionReadinessCapability = findCapabilityByName(
+      'znp_production_readiness_evidence_gate'
+    );
     if (znpProductionReadinessCapability) {
       return { capability: znpProductionReadinessCapability, score: 143, usedFallback: false };
     }
   }
 
   const hasNetzprozessReadinessGateSpecificSignal =
-    /(netzprozess.?readiness|process readiness gate|prozessreife|portalzugang|sftp|rollenfreigabe|it.?security update|it.?sicherheitsupdate|fachschulung|datenpfad|blockierte folgeentscheidung)/i.test(haystack) &&
-    /(portalzugang|sftp|rollenfreigabe|it.?security update|it.?sicherheitsupdate|fachschulung|datenpfad)/i.test(haystack) &&
-    !/(billing|settlement|abrechnung|tarif|device-control|smgw|cls|hitl create|vdmi create|legal opinion|rechtsgutachten|portable energy wallet|wallet|key material|schluessel|schlüssel|crypto|backup|disaster recovery|streaming|websocket|crisis|krisenroutine|krisenmodus|investment data|investment review|datenreview|review queue)/i.test(haystack);
+    /(netzprozess.?readiness|process readiness gate|prozessreife|portalzugang|sftp|rollenfreigabe|it.?security update|it.?sicherheitsupdate|fachschulung|datenpfad|blockierte folgeentscheidung)/i.test(
+      haystack
+    ) &&
+    /(portalzugang|sftp|rollenfreigabe|it.?security update|it.?sicherheitsupdate|fachschulung|datenpfad)/i.test(
+      haystack
+    ) &&
+    !/(billing|settlement|abrechnung|tarif|device-control|smgw|cls|hitl create|vdmi create|legal opinion|rechtsgutachten|portable energy wallet|wallet|key material|schluessel|schlüssel|crypto|backup|disaster recovery|streaming|websocket|crisis|krisenroutine|krisenmodus|investment data|investment review|datenreview|review queue)/i.test(
+      haystack
+    );
 
   if (hasNetzprozessReadinessGateSpecificSignal) {
     const netzprozessCapability = findCapabilityByName('netzprozess_readiness_gate');
@@ -617,21 +811,35 @@ function findBestCapability(taskText, options = {}) {
   }
 
   const hasProcessSensitizationReadinessSpecificSignal =
-    /(prozess.?sensibilisierung|sensibilisierung|schulung|workshop|readiness map|prozess.?readiness)/i.test(haystack) &&
-    /(rollenentscheidung|role decision|rote linie|red.?line|systembruch|medienbruch|evidenz fehlt|missing evidence|datenqualitaet|datenqualität|data quality|readiness|vor schulung|before training)/i.test(haystack) &&
-    !/(billing|settlement|abrechnung|tarif|device-control|smgw|cls|hitl create|vdmi create|legal opinion|rechtsgutachten|portable energy wallet|wallet|key material|schluessel|schlüssel|crypto)/i.test(haystack);
+    /(prozess.?sensibilisierung|sensibilisierung|schulung|workshop|readiness map|prozess.?readiness)/i.test(
+      haystack
+    ) &&
+    /(rollenentscheidung|role decision|rote linie|red.?line|systembruch|medienbruch|evidenz fehlt|missing evidence|datenqualitaet|datenqualität|data quality|readiness|vor schulung|before training)/i.test(
+      haystack
+    ) &&
+    !/(billing|settlement|abrechnung|tarif|device-control|smgw|cls|hitl create|vdmi create|legal opinion|rechtsgutachten|portable energy wallet|wallet|key material|schluessel|schlüssel|crypto)/i.test(
+      haystack
+    );
 
   if (hasProcessSensitizationReadinessSpecificSignal) {
-    const processSensitizationCapability = findCapabilityByName('process_sensitization_readiness_map');
+    const processSensitizationCapability = findCapabilityByName(
+      'process_sensitization_readiness_map'
+    );
     if (processSensitizationCapability) {
       return { capability: processSensitizationCapability, score: 138, usedFallback: false };
     }
   }
 
   const hasKiFloorwalkerGovernanceSpecificSignal =
-    /(ki[- ]floorwalker|floorwalker|ki[- ]governance|ai[- ]governance|prompt[- ]standards|datenr[äa]ume|use[- ]case[- ]priorisierung)/i.test(haystack) &&
-    /(use[- ]case[- ]priority|allowed[- ]dataspace|prompt[- ]standard|process[- ]boundar|roles[- ]and[- ]responsibilit|guided[- ]application|risk[- ]and[- ]approval|proof[- ]of[- ]benefit|gaps|follow[- ]up|readiness)/i.test(haystack) &&
-    !/(openai\.call|hitl\.create|vdmi\.mutate|personal-agent\.execute|openai.call|hitl.create|vdmi.mutate|personal-agent.execute)/i.test(haystack);
+    /(ki[- ]floorwalker|floorwalker|ki[- ]governance|ai[- ]governance|prompt[- ]standards|datenr[äa]ume|use[- ]case[- ]priorisierung)/i.test(
+      haystack
+    ) &&
+    /(use[- ]case[- ]priority|allowed[- ]dataspace|prompt[- ]standard|process[- ]boundar|roles[- ]and[- ]responsibilit|guided[- ]application|risk[- ]and[- ]approval|proof[- ]of[- ]benefit|gaps|follow[- ]up|readiness)/i.test(
+      haystack
+    ) &&
+    !/(openai\.call|hitl\.create|vdmi\.mutate|personal-agent\.execute|openai.call|hitl.create|vdmi.mutate|personal-agent.execute)/i.test(
+      haystack
+    );
 
   if (hasKiFloorwalkerGovernanceSpecificSignal) {
     const kiFloorwalkerCapability = findCapabilityByName('ki_floorwalker_governance');
@@ -641,9 +849,13 @@ function findBestCapability(taskText, options = {}) {
   }
 
   const hasMastrQualityOemetadataSpecificSignal =
-    /(mastr quality oemetadata|mastr fair-export|mastr quality fair-export|audit oemetadata|mastr oemetadata|fair-export f[üu]r audit-reports)/i.test(haystack) &&
+    /(mastr quality oemetadata|mastr fair-export|mastr quality fair-export|audit oemetadata|mastr oemetadata|fair-export f[üu]r audit-reports)/i.test(
+      haystack
+    ) &&
     /(id|auditId|mq:id|gridOperatorId|oemetadata|fair-export|dossier|readiness)/i.test(haystack) &&
-    !/(mint-doi|mint_doi|doi|consequential|sap|billing|settlement|mutation|write|delete)/i.test(haystack);
+    !/(mint-doi|mint_doi|doi|consequential|sap|billing|settlement|mutation|write|delete)/i.test(
+      haystack
+    );
 
   if (hasMastrQualityOemetadataSpecificSignal) {
     const mastrQualityOemetadataCapability = findCapabilityByName('mastr_quality_oemetadata');
@@ -653,9 +865,15 @@ function findBestCapability(taskText, options = {}) {
   }
 
   const hasMeteringRolloutProcessIndicatorSpecificSignal =
-    /(zaehlwechsel|zählwechsel|zaehlkennzahl|zählkennzahl|rolloutkennzahl|rollout kennzahl|metering rollout|messstellenbetrieb|msb|spartenuebergreifend|spartenübergreifend)/i.test(haystack) &&
-    /(soll.?ist|target.?actual|rueckstand|rückstand|backlog|datenqualitaet|datenqualität|data quality|dienstleisterlast|contractor load|capex|opex|prozessindikator|process indicator|next control step|steuerungsschritt)/i.test(haystack) &&
-    !/(edm timeseries|lastgang|zeitreihe|import|datasource refresh|refresh ausfuehren|refresh ausführen|billing|settlement|abrechnung|tarif|device-control|smgw|cls|hitl create|edm import)/i.test(haystack);
+    /(zaehlwechsel|zählwechsel|zaehlkennzahl|zählkennzahl|rolloutkennzahl|rollout kennzahl|metering rollout|messstellenbetrieb|msb|spartenuebergreifend|spartenübergreifend)/i.test(
+      haystack
+    ) &&
+    /(soll.?ist|target.?actual|rueckstand|rückstand|backlog|datenqualitaet|datenqualität|data quality|dienstleisterlast|contractor load|capex|opex|prozessindikator|process indicator|next control step|steuerungsschritt)/i.test(
+      haystack
+    ) &&
+    !/(edm timeseries|lastgang|zeitreihe|import|datasource refresh|refresh ausfuehren|refresh ausführen|billing|settlement|abrechnung|tarif|device-control|smgw|cls|hitl create|edm import)/i.test(
+      haystack
+    );
 
   if (hasMeteringRolloutProcessIndicatorSpecificSignal) {
     const meteringCapability = findCapabilityByName('metering_rollout_process_indicator');
@@ -665,9 +883,15 @@ function findBestCapability(taskText, options = {}) {
   }
 
   const hasCrisisDecisionRoutineSpecificSignal =
-    /(krisenmodus|krisenroutine|ad.?hoc.?krise|crisis mode|crisis decision routine|entscheidungsroutine)/i.test(haystack) &&
-    /(managemententscheidung|servicegruppenwirkung|bevoelkerungsgruppenwirkung|bevölkerungsgruppenwirkung|finanzwirkung|wissensstand|trainingsbedarf|owner|next decision gate|entscheidungsgate|blockierte folgeentscheidung)/i.test(haystack) &&
-    !/(steuerbarkeitscheck|redispatch|mako|marktkommunikation|settlement|billing|abrechnung|device-control|smgw|cls)/i.test(haystack);
+    /(krisenmodus|krisenroutine|ad.?hoc.?krise|crisis mode|crisis decision routine|entscheidungsroutine)/i.test(
+      haystack
+    ) &&
+    /(managemententscheidung|servicegruppenwirkung|bevoelkerungsgruppenwirkung|bevölkerungsgruppenwirkung|finanzwirkung|wissensstand|trainingsbedarf|owner|next decision gate|entscheidungsgate|blockierte folgeentscheidung)/i.test(
+      haystack
+    ) &&
+    !/(steuerbarkeitscheck|redispatch|mako|marktkommunikation|settlement|billing|abrechnung|device-control|smgw|cls)/i.test(
+      haystack
+    );
 
   if (hasCrisisDecisionRoutineSpecificSignal) {
     const crisisCapability = findCapabilityByName('crisis_decision_routine');
@@ -677,9 +901,15 @@ function findBestCapability(taskText, options = {}) {
   }
 
   const hasInvestmentDataReviewQueueSpecificSignal =
-    /(investdaten|investment data|datenpaket|assetmanagement|asset-abstimmung|capex priorisierung|capex-priorisierung|pruefqueue|prüfqueue)/i.test(haystack) &&
-    /(pruefqueue|prüfqueue|review queue|datenqualitaet|datenqualität|quality status|gremienfenster|committee window|blockierte folgeentscheidung|blocked decision|bottleneck|engpass|owner)/i.test(haystack) &&
-    !/(zwei spuren|two.?track|budgetabgabe|investitionsabgabe|abgabesicherheit|iso 55001|freigabelogik|vorstandsformat|wallet|key material|schluessel|schlüssel|crypto|billing|settlement|abrechnung|tarif|payment|device-control|smgw switch|hitl create|budget release)/i.test(haystack);
+    /(investdaten|investment data|datenpaket|assetmanagement|asset-abstimmung|capex priorisierung|capex-priorisierung|pruefqueue|prüfqueue)/i.test(
+      haystack
+    ) &&
+    /(pruefqueue|prüfqueue|review queue|datenqualitaet|datenqualität|quality status|gremienfenster|committee window|blockierte folgeentscheidung|blocked decision|bottleneck|engpass|owner)/i.test(
+      haystack
+    ) &&
+    !/(zwei spuren|two.?track|budgetabgabe|investitionsabgabe|abgabesicherheit|iso 55001|freigabelogik|vorstandsformat|wallet|key material|schluessel|schlüssel|crypto|billing|settlement|abrechnung|tarif|payment|device-control|smgw switch|hitl create|budget release)/i.test(
+      haystack
+    );
 
   if (hasInvestmentDataReviewQueueSpecificSignal) {
     const investmentDataQueueCapability = findCapabilityByName('investment_data_review_queue');
@@ -689,12 +919,20 @@ function findBestCapability(taskText, options = {}) {
   }
 
   const hasGridConnectionTransformationGateSpecificSignal =
-    /(netzanschlusspunkt|transformations-gate|umbaupfad|anschluss transformation|netzanschluss|geografisch erfasst)/i.test(haystack) &&
-    /(meteringPointId|division|transformationOption|dataQualityStatus|investmentPath|decommissionPath|owner|nextAction|gaps|follow.?up|readiness|melo-144)/i.test(haystack) &&
-    !/(portable energy wallet|wallet|key material|schluessel|schlüssel|crypto|settlement|billing|abrechnung|tarif|payment|device-control|smgw switch|hitl\.create|vdmi\.mutate|investment-planning\.createPlan|finance-agent\.mutate|budget\.release|settlement\.prepareBilling|external\.connector\.call|personal-agent\.execute|gas-risk-register\.create|assets\.mutate|datapoint\.mutate)/i.test(haystack);
+    /(netzanschlusspunkt|transformations-gate|umbaupfad|anschluss transformation|netzanschluss|geografisch erfasst)/i.test(
+      haystack
+    ) &&
+    /(meteringPointId|division|transformationOption|dataQualityStatus|investmentPath|decommissionPath|owner|nextAction|gaps|follow.?up|readiness|melo-144)/i.test(
+      haystack
+    ) &&
+    !/(portable energy wallet|wallet|key material|schluessel|schlüssel|crypto|settlement|billing|abrechnung|tarif|payment|device-control|smgw switch|hitl\.create|vdmi\.mutate|investment-planning\.createPlan|finance-agent\.mutate|budget\.release|settlement\.prepareBilling|external\.connector\.call|personal-agent\.execute|gas-risk-register\.create|assets\.mutate|datapoint\.mutate)/i.test(
+      haystack
+    );
 
   if (hasGridConnectionTransformationGateSpecificSignal) {
-    const gridConnectionGateCapability = findCapabilityByName('grid_connection_transformation_gate');
+    const gridConnectionGateCapability = findCapabilityByName(
+      'grid_connection_transformation_gate'
+    );
     if (gridConnectionGateCapability) {
       return { capability: gridConnectionGateCapability, score: 138, usedFallback: false };
     }
@@ -702,8 +940,12 @@ function findBestCapability(taskText, options = {}) {
 
   const hasNoRegretDefinitionGateSpecificSignal =
     /(no-regret|no regret|no_regret_measure_definition_gate|definitionsgate)/i.test(haystack) &&
-    /(szenariowirkung|transformationseffekt|budgetwirkung|regulatorische anschlussfaehigkeit|regulatorische anschlussfähigkeit|priorisierungsrecht|nominierungsrecht|datenqualitaet|datenqualität|kommunikationsregel|review gate|pruefgate|prüfgate)/i.test(haystack) &&
-    !/(measure\.approve|budget\.release|finance\.createBooking|accounting\.postJournal|treasury\.executeTransfer|hitl\.create|vdmi\.mutate|settlement\.exportA96|billing\.release|tariff\.mutate|mako\.dispatch|device-control\.execute|external\.connector\.call|personal-agent\.execute|wallet|key material|schluessel|schlüssel|crypto)/i.test(haystack);
+    /(szenariowirkung|transformationseffekt|budgetwirkung|regulatorische anschlussfaehigkeit|regulatorische anschlussfähigkeit|priorisierungsrecht|nominierungsrecht|datenqualitaet|datenqualität|kommunikationsregel|review gate|pruefgate|prüfgate)/i.test(
+      haystack
+    ) &&
+    !/(measure\.approve|budget\.release|finance\.createBooking|accounting\.postJournal|treasury\.executeTransfer|hitl\.create|vdmi\.mutate|settlement\.exportA96|billing\.release|tariff\.mutate|mako\.dispatch|device-control\.execute|external\.connector\.call|personal-agent\.execute|wallet|key material|schluessel|schlüssel|crypto)/i.test(
+      haystack
+    );
 
   if (hasNoRegretDefinitionGateSpecificSignal) {
     const noRegretDefinitionCapability = findCapabilityByName('no_regret_measure_definition_gate');
@@ -713,33 +955,55 @@ function findBestCapability(taskText, options = {}) {
   }
 
   const hasInvestmentOwnerDeadlineBudgetGateSpecificSignal =
-    /(investitionsprozess|investment process|investment_owner_deadline_budget_gate|owner.?frist.?budget|owner deadline budget|massnahmenfreigabe|maßnahmenfreigabe|budgetwirkung|strategy-to-execution)/i.test(haystack) &&
-    /(owner|frist|deadline|budget|budgetwirkung|freigabestatus|approval status|blockierte folgeentscheidung|blocked follow.?up decision|eskalationsstufe|escalation step)/i.test(haystack) &&
-    !/(zwei spuren|two.?track|budgetabgabe|investitionsabgabe|abgabesicherheit|iso 55001|vorstandsformat|investment\.approve|budget\.release|finance\.createBooking|accounting\.postJournal|treasury\.executeTransfer|hitl\.create|vdmi\.mutate|settlement\.exportA96|billing\.release|tariff\.mutate|mako\.dispatch|external\.connector\.call|personal-agent\.execute|wallet|key material|schluessel|schlüssel|crypto)/i.test(haystack);
+    /(investitionsprozess|investment process|investment_owner_deadline_budget_gate|owner.?frist.?budget|owner deadline budget|massnahmenfreigabe|maßnahmenfreigabe|budgetwirkung|strategy-to-execution)/i.test(
+      haystack
+    ) &&
+    /(owner|frist|deadline|budget|budgetwirkung|freigabestatus|approval status|blockierte folgeentscheidung|blocked follow.?up decision|eskalationsstufe|escalation step)/i.test(
+      haystack
+    ) &&
+    !/(zwei spuren|two.?track|budgetabgabe|investitionsabgabe|abgabesicherheit|iso 55001|vorstandsformat|investment\.approve|budget\.release|finance\.createBooking|accounting\.postJournal|treasury\.executeTransfer|hitl\.create|vdmi\.mutate|settlement\.exportA96|billing\.release|tariff\.mutate|mako\.dispatch|external\.connector\.call|personal-agent\.execute|wallet|key material|schluessel|schlüssel|crypto)/i.test(
+      haystack
+    );
 
   if (hasInvestmentOwnerDeadlineBudgetGateSpecificSignal) {
-    const investmentOwnerBudgetCapability = findCapabilityByName('investment_owner_deadline_budget_gate');
+    const investmentOwnerBudgetCapability = findCapabilityByName(
+      'investment_owner_deadline_budget_gate'
+    );
     if (investmentOwnerBudgetCapability) {
       return { capability: investmentOwnerBudgetCapability, score: 149, usedFallback: false };
     }
   }
 
   const hasTransformationFinancingScenarioViewSpecificSignal =
-    /(transformationsfinanzierung|transformation financing|transformation_financing_scenario_view|finanzierbarkeit transformation|kapitalumschichtung|kommunale entnahmen|gesellschafterlasten|oepnv lasten|öpnv lasten)/i.test(haystack) &&
-    /(szenario.?sicht|scenario view|szenariosteuerung|gasnetzabwertung|rueckbaukosten|rückbaukosten|waermenetzausbau|wärmenetzausbau|h2.?option|liquiditaet|liquidität|stressszenario|stressschwelle|entscheidungsschwelle|gremienreife)/i.test(haystack) &&
-    !/(finance\.createBooking|treasury\.executeTransfer|accounting\.postJournal|gas-assets\.applyDecommissioning|investment\.approve|settlement\.exportA96|billing\.prepareInvoice|tariff\.mutate|mako\.dispatch|hitl\.create|vdmi\.taskMutate|external\.connector\.call|personal-agent\.execute|wallet|key material|schluessel|schlüssel|crypto)/i.test(haystack);
+    /(transformationsfinanzierung|transformation financing|transformation_financing_scenario_view|finanzierbarkeit transformation|kapitalumschichtung|kommunale entnahmen|gesellschafterlasten|oepnv lasten|öpnv lasten)/i.test(
+      haystack
+    ) &&
+    /(szenario.?sicht|scenario view|szenariosteuerung|gasnetzabwertung|rueckbaukosten|rückbaukosten|waermenetzausbau|wärmenetzausbau|h2.?option|liquiditaet|liquidität|stressszenario|stressschwelle|entscheidungsschwelle|gremienreife)/i.test(
+      haystack
+    ) &&
+    !/(finance\.createBooking|treasury\.executeTransfer|accounting\.postJournal|gas-assets\.applyDecommissioning|investment\.approve|settlement\.exportA96|billing\.prepareInvoice|tariff\.mutate|mako\.dispatch|hitl\.create|vdmi\.taskMutate|external\.connector\.call|personal-agent\.execute|wallet|key material|schluessel|schlüssel|crypto)/i.test(
+      haystack
+    );
 
   if (hasTransformationFinancingScenarioViewSpecificSignal) {
-    const transformationFinancingCapability = findCapabilityByName('transformation_financing_scenario_view');
+    const transformationFinancingCapability = findCapabilityByName(
+      'transformation_financing_scenario_view'
+    );
     if (transformationFinancingCapability) {
       return { capability: transformationFinancingCapability, score: 148, usedFallback: false };
     }
   }
 
   const hasGasNetworkDecisionChainSpecificSignal =
-    /(gasnetz.?entscheidungskette|gas network decision chain|gas_network_decision_chain|fotojahr|kanu.?eog|eog.?kanu|blockierte folgeentscheidung|blocked follow.?up decision)/i.test(haystack) &&
-    /(kapazitaetsannahme|kapazitätsannahme|capacity assumption|stilllegungspfad|decommissioning path|buchwert|book.?value|asset|owner|evidenzschritt|next evidence|folgeentscheidung|entscheidungskette)/i.test(haystack) &&
-    !/(gas.?kapazitaetsbestellung|gas.?kapazitätsbestellung|capacity booking review|kaltjahr|rlm.?rebound|engpasshistorie|vdmi.?abnahme|submit booking|buchung senden|jahresbestellung|gas_capacity_order_revision_gate|gasfluss simulation|thermo simulation|execute decommissioning|stilllegung ausfuehren|stilllegung ausführen|hitl create|external connector|personal-agent execute)/i.test(haystack);
+    /(gasnetz.?entscheidungskette|gas network decision chain|gas_network_decision_chain|fotojahr|kanu.?eog|eog.?kanu|blockierte folgeentscheidung|blocked follow.?up decision)/i.test(
+      haystack
+    ) &&
+    /(kapazitaetsannahme|kapazitätsannahme|capacity assumption|stilllegungspfad|decommissioning path|buchwert|book.?value|asset|owner|evidenzschritt|next evidence|folgeentscheidung|entscheidungskette)/i.test(
+      haystack
+    ) &&
+    !/(gas.?kapazitaetsbestellung|gas.?kapazitätsbestellung|capacity booking review|kaltjahr|rlm.?rebound|engpasshistorie|vdmi.?abnahme|submit booking|buchung senden|jahresbestellung|gas_capacity_order_revision_gate|gasfluss simulation|thermo simulation|execute decommissioning|stilllegung ausfuehren|stilllegung ausführen|hitl create|external connector|personal-agent execute)/i.test(
+      haystack
+    );
 
   if (hasGasNetworkDecisionChainSpecificSignal) {
     const gasNetworkDecisionChainCapability = findCapabilityByName('gas_network_decision_chain');
@@ -749,9 +1013,15 @@ function findBestCapability(taskText, options = {}) {
   }
 
   const hasArealNetworkIntegrationOfferGateSpecificSignal =
-    /(areal.?netzeinbindung|areal network integration|standortentwicklung|angebotsgate|offer gate|areal_network_integration_offer_gate)/i.test(haystack) &&
-    /(anschlusskapazitaet|anschlusskapazität|connection capacity|netzkapazitaet|netzkapazität|grid capacity|zielnetzpfad|target.?grid|investitionsbedarf|capex|regulatorische wirkung|regulatory impact|angebotsannahmen|offer assumption|entscheidungstermin|decision date)/i.test(haystack) &&
-    !/(offer\.calculate|binding offer|verbindliches angebot|contract accept|vertrag annehmen|grid-capacity\.reserve|kapazitaet reservieren|kapazität reservieren|target-grid\.optimize|investment\.approve|assets\.applyOverride|hitl create|external connector|personal-agent execute|billing|settlement|abrechnung|tarif|mako|device-control)/i.test(haystack);
+    /(areal.?netzeinbindung|areal network integration|standortentwicklung|angebotsgate|offer gate|areal_network_integration_offer_gate)/i.test(
+      haystack
+    ) &&
+    /(anschlusskapazitaet|anschlusskapazität|connection capacity|netzkapazitaet|netzkapazität|grid capacity|zielnetzpfad|target.?grid|investitionsbedarf|capex|regulatorische wirkung|regulatory impact|angebotsannahmen|offer assumption|entscheidungstermin|decision date)/i.test(
+      haystack
+    ) &&
+    !/(offer\.calculate|binding offer|verbindliches angebot|contract accept|vertrag annehmen|grid-capacity\.reserve|kapazitaet reservieren|kapazität reservieren|target-grid\.optimize|investment\.approve|assets\.applyOverride|hitl create|external connector|personal-agent execute|billing|settlement|abrechnung|tarif|mako|device-control)/i.test(
+      haystack
+    );
 
   if (hasArealNetworkIntegrationOfferGateSpecificSignal) {
     const arealOfferCapability = findCapabilityByName('areal_network_integration_offer_gate');
@@ -761,9 +1031,15 @@ function findBestCapability(taskText, options = {}) {
   }
 
   const hasAssetValuationTransformationGateSpecificSignal =
-    /(asset valuation|asset.?bewertung|assetbewertung|restwert|buchwert|assetzustand|asset valuation transformation gate|transformation gate|transformationsgate)/i.test(haystack) &&
-    /(book.?value|buchwert|restwert|assetzustand|condition|zustand|stilllegung|umwidmung|h2 option|h2.?option|waermebezug|wärmebezug|vertragsrisiko|regulatorische unsicherheit|datenqualitaet|datenqualität|decision owner|next decision|management gate)/i.test(haystack) &&
-    !/(valuation record create|accounting posting|asset.?mutation|assets\.applyOverride|investment approve|investment\.approve|stilllegung ausfuehren|stilllegung ausführen|umwidmung ausfuehren|umwidmung ausführen|hitl create|billing|settlement|abrechnung|tarif|mako|device-control|external connector|personal-agent execute)/i.test(haystack);
+    /(asset valuation|asset.?bewertung|assetbewertung|restwert|buchwert|assetzustand|asset valuation transformation gate|transformation gate|transformationsgate)/i.test(
+      haystack
+    ) &&
+    /(book.?value|buchwert|restwert|assetzustand|condition|zustand|stilllegung|umwidmung|h2 option|h2.?option|waermebezug|wärmebezug|vertragsrisiko|regulatorische unsicherheit|datenqualitaet|datenqualität|decision owner|next decision|management gate)/i.test(
+      haystack
+    ) &&
+    !/(valuation record create|accounting posting|asset.?mutation|assets\.applyOverride|investment approve|investment\.approve|stilllegung ausfuehren|stilllegung ausführen|umwidmung ausfuehren|umwidmung ausführen|hitl create|billing|settlement|abrechnung|tarif|mako|device-control|external connector|personal-agent execute)/i.test(
+      haystack
+    );
 
   if (hasAssetValuationTransformationGateSpecificSignal) {
     const assetValuationCapability = findCapabilityByName('asset_valuation_transformation_gate');
@@ -773,9 +1049,15 @@ function findBestCapability(taskText, options = {}) {
   }
 
   const hasGasCapacityBookingReviewGateSpecificSignal =
-    /(gas capacity booking|annual gas capacity booking|gas.?kapazitaetsbestellung|gas.?kapazitätsbestellung|kapazitaetsreview|kapazitätsreview|capacity booking review|gas_capacity_booking_review_gate)/i.test(haystack) &&
-    /(kaltjahr|rlm.?rebound|engpasshistorie|vdmi.?abnahme|vdmi owner|commercial signoff|kaufmaennisch|kaufmännisch|decision frame|capacity assumption|kapazitaetsannahme|kapazitätsannahme|review gate)/i.test(haystack) &&
-    !/(jahresbestellung|bestellbeschluss|netzkopplungspunkt|nkp|sicherheitsaufschlag|druckflexibilitaet|druckflexibilität|wartungsfenster|industrie.?rebound|reversible rlm|order revision|gas_capacity_order_revision_gate|booking submit|submit booking|buchung senden|buchung einreichen|upstream connector|external connector|vdmi mutate|vdmi task mutate|hitl create|notification dispatch|persistence create|billing|settlement|abrechnung|tarif|mako|contract release|device-control|personal-agent execute|gasfluss simulation|thermo simulation)/i.test(haystack);
+    /(gas capacity booking|annual gas capacity booking|gas.?kapazitaetsbestellung|gas.?kapazitätsbestellung|kapazitaetsreview|kapazitätsreview|capacity booking review|gas_capacity_booking_review_gate)/i.test(
+      haystack
+    ) &&
+    /(kaltjahr|rlm.?rebound|engpasshistorie|vdmi.?abnahme|vdmi owner|commercial signoff|kaufmaennisch|kaufmännisch|decision frame|capacity assumption|kapazitaetsannahme|kapazitätsannahme|review gate)/i.test(
+      haystack
+    ) &&
+    !/(jahresbestellung|bestellbeschluss|netzkopplungspunkt|nkp|sicherheitsaufschlag|druckflexibilitaet|druckflexibilität|wartungsfenster|industrie.?rebound|reversible rlm|order revision|gas_capacity_order_revision_gate|booking submit|submit booking|buchung senden|buchung einreichen|upstream connector|external connector|vdmi mutate|vdmi task mutate|hitl create|notification dispatch|persistence create|billing|settlement|abrechnung|tarif|mako|contract release|device-control|personal-agent execute|gasfluss simulation|thermo simulation)/i.test(
+      haystack
+    );
 
   if (hasGasCapacityBookingReviewGateSpecificSignal) {
     const gasCapacityBookingCapability = findCapabilityByName('gas_capacity_booking_review_gate');
@@ -785,9 +1067,15 @@ function findBestCapability(taskText, options = {}) {
   }
 
   const hasLeadershipDeltaCockpitSpecificSignal =
-    /(leadership_delta_cockpit|fuehrungscockpit|führungscockpit|delta steuerung|delta-steuerung|sonderthemen|managementsteuerung)/i.test(haystack) &&
-    /(owner|frist|deadline|evidenzstatus|evidence status|blockierte entscheidung|blocked decision|entscheidungsreif|eskalation|escalation|next lever|naechster hebel|nächster hebel|delta|source signal|quellensignal)/i.test(haystack) &&
-    !/(gasnetztransformation|portable energy wallet|wallet|key material|schluessel|schlüssel|crypto|settlement|billing|abrechnung|tarif|payment|device-control|smgw switch|hitl\.create|hitl\.escalate|nova\.apply|nova\.approveDecision|vdmi\.mutate|external\.connector\.call|personal-agent\.execute|ms365\.sync)/i.test(haystack);
+    /(leadership_delta_cockpit|fuehrungscockpit|führungscockpit|delta steuerung|delta-steuerung|sonderthemen|managementsteuerung)/i.test(
+      haystack
+    ) &&
+    /(owner|frist|deadline|evidenzstatus|evidence status|blockierte entscheidung|blocked decision|entscheidungsreif|eskalation|escalation|next lever|naechster hebel|nächster hebel|delta|source signal|quellensignal)/i.test(
+      haystack
+    ) &&
+    !/(gasnetztransformation|portable energy wallet|wallet|key material|schluessel|schlüssel|crypto|settlement|billing|abrechnung|tarif|payment|device-control|smgw switch|hitl\.create|hitl\.escalate|nova\.apply|nova\.approveDecision|vdmi\.mutate|external\.connector\.call|personal-agent\.execute|ms365\.sync)/i.test(
+      haystack
+    );
 
   if (hasLeadershipDeltaCockpitSpecificSignal) {
     const leadershipDeltaCapability = findCapabilityByName('leadership_delta_cockpit');
@@ -797,9 +1085,15 @@ function findBestCapability(taskText, options = {}) {
   }
 
   const hasGasGridTransformationAssetCockpitSpecificSignal =
-    /(gasnetztransformation|gas zielnetz|gaszielnetz|h2 weiterverwendung|wasserstoff weiterverwendung|gasnetz stilllegung|rueckbaukosten|rückbaukosten|gas asset cockpit|vdmi asset cockpit|gas_grid_transformation_asset_cockpit)/i.test(haystack) &&
-    /(asset.?cockpit|arbeitspaket|work.?package|asset.?segment|target.?option|zieloption|technical.?reuse|technische wiederverwendung|cashflow|totex|regulatory recognition|regulatorisch|waermenetz|wärmenetz|stromnetz|kundenuebergang|kundenübergang|decision.?gate|gremiengate|owner|readiness|gaps|follow.?up)/i.test(haystack) &&
-    !/(abhaengigkeitslandkarte|abhängigkeitslandkarte|dependency.?map|transformationsknoten|dependencies|datenqualitaets.?luecken|datenqualitäts.?lücken|investitionspfade|kundengruppen|portable energy wallet|wallet|key material|schluessel|schlüssel|crypto|settlement|billing|abrechnung|tarif|payment|device-control|smgw switch|hitl\.create|vdmi\.mutate|finance-agent\.mutate|budget\.release|settlement\.prepareBilling|external\.connector\.call|personal-agent\.execute|gas-assets\.applyDecommissioning|gas-grid\.optimizeTargetNetwork|h2-feasibility\.execute|assets\.mutate|datapoint\.mutate)/i.test(haystack);
+    /(gasnetztransformation|gas zielnetz|gaszielnetz|h2 weiterverwendung|wasserstoff weiterverwendung|gasnetz stilllegung|rueckbaukosten|rückbaukosten|gas asset cockpit|vdmi asset cockpit|gas_grid_transformation_asset_cockpit)/i.test(
+      haystack
+    ) &&
+    /(asset.?cockpit|arbeitspaket|work.?package|asset.?segment|target.?option|zieloption|technical.?reuse|technische wiederverwendung|cashflow|totex|regulatory recognition|regulatorisch|waermenetz|wärmenetz|stromnetz|kundenuebergang|kundenübergang|decision.?gate|gremiengate|owner|readiness|gaps|follow.?up)/i.test(
+      haystack
+    ) &&
+    !/(abhaengigkeitslandkarte|abhängigkeitslandkarte|dependency.?map|transformationsknoten|dependencies|datenqualitaets.?luecken|datenqualitäts.?lücken|investitionspfade|kundengruppen|portable energy wallet|wallet|key material|schluessel|schlüssel|crypto|settlement|billing|abrechnung|tarif|payment|device-control|smgw switch|hitl\.create|vdmi\.mutate|finance-agent\.mutate|budget\.release|settlement\.prepareBilling|external\.connector\.call|personal-agent\.execute|gas-assets\.applyDecommissioning|gas-grid\.optimizeTargetNetwork|h2-feasibility\.execute|assets\.mutate|datapoint\.mutate)/i.test(
+      haystack
+    );
 
   if (hasGasGridTransformationAssetCockpitSpecificSignal) {
     const gasAssetCockpitCapability = findCapabilityByName('gas_grid_transformation_asset_cockpit');
@@ -809,9 +1103,15 @@ function findBestCapability(taskText, options = {}) {
   }
 
   const hasGasTransformationDependencyMapSpecificSignal =
-    /(gasnetztransformation|gasnetz 2045|h2 readiness|wasserstoff|stilllegungspfad|umwidmung|waermenetzausbau|geothermie|abhaengigkeitslandkarte|transformationsoption)/i.test(haystack) &&
-    /(projectId|division|nodes|dependencies|dataQualityGaps|investmentPaths|decommissionRepurposePaths|customerGroups|owner|nextAction|gaps|follow.?up|readiness|projekt-id|sparte|abhaengigkeit|datenqualitaet|investitionspfad|stilllegung|umwidmungspfad|kundengruppe|melo-155)/i.test(haystack) &&
-    !/(portable energy wallet|wallet|key material|schluessel|schlüssel|crypto|settlement|billing|abrechnung|tarif|payment|device-control|smgw switch|hitl\.create|vdmi\.mutate|investment-planning\.createPlan|finance-agent\.mutate|budget\.release|settlement\.prepareBilling|external\.connector\.call|personal-agent\.execute|gas-risk-register\.create|assets\.mutate|datapoint\.mutate)/i.test(haystack);
+    /(gasnetztransformation|gasnetz 2045|h2 readiness|wasserstoff|stilllegungspfad|umwidmung|waermenetzausbau|geothermie|abhaengigkeitslandkarte|transformationsoption)/i.test(
+      haystack
+    ) &&
+    /(projectId|division|nodes|dependencies|dataQualityGaps|investmentPaths|decommissionRepurposePaths|customerGroups|owner|nextAction|gaps|follow.?up|readiness|projekt-id|sparte|abhaengigkeit|datenqualitaet|investitionspfad|stilllegung|umwidmungspfad|kundengruppe|melo-155)/i.test(
+      haystack
+    ) &&
+    !/(portable energy wallet|wallet|key material|schluessel|schlüssel|crypto|settlement|billing|abrechnung|tarif|payment|device-control|smgw switch|hitl\.create|vdmi\.mutate|investment-planning\.createPlan|finance-agent\.mutate|budget\.release|settlement\.prepareBilling|external\.connector\.call|personal-agent\.execute|gas-risk-register\.create|assets\.mutate|datapoint\.mutate)/i.test(
+      haystack
+    );
 
   if (hasGasTransformationDependencyMapSpecificSignal) {
     const gasTransformationCapability = findCapabilityByName('gas_transformation_dependency_map');
@@ -821,21 +1121,35 @@ function findBestCapability(taskText, options = {}) {
   }
 
   const hasScheduleManagementGovernanceRoadmapSpecificSignal =
-    /(fahrplanmanagement|netzfahrplan governance|fnav roadmap|kapazitaetsbewirtschaftung|engpasssteuerung|speicher fahrplan|edm integration|redispatch abgrenzung|governance roadmap|zielbild fahrplan)/i.test(haystack) &&
-    /(targetState|capabilityMaturity|dataObjects|systemIntegrations|roleOwnership|redispatchBoundary|fnavReadiness|capacityManagementGaps|roadmapItems|decisionMeetings|owner|nextAction|gaps|follow.?up|readiness|ziel-zustand|reifegrad|datenobjekt|systemintegration|verantwortlichkeit|gremien|melo-153)/i.test(haystack) &&
-    !/(portable energy wallet|wallet|key material|schluessel|schlüssel|crypto|settlement|billing|abrechnung|tarif|payment|device-control|smgw switch|hitl\.create|vdmi\.mutate|investment-planning\.createPlan|finance-agent\.mutate|budget\.release|settlement\.prepareBilling|external\.connector\.call|personal-agent\.execute|stilllegung|decommissioning|flexibilit[aä]tsdirigent)/i.test(haystack);
+    /(fahrplanmanagement|netzfahrplan governance|fnav roadmap|kapazitaetsbewirtschaftung|engpasssteuerung|speicher fahrplan|edm integration|redispatch abgrenzung|governance roadmap|zielbild fahrplan)/i.test(
+      haystack
+    ) &&
+    /(targetState|capabilityMaturity|dataObjects|systemIntegrations|roleOwnership|redispatchBoundary|fnavReadiness|capacityManagementGaps|roadmapItems|decisionMeetings|owner|nextAction|gaps|follow.?up|readiness|ziel-zustand|reifegrad|datenobjekt|systemintegration|verantwortlichkeit|gremien|melo-153)/i.test(
+      haystack
+    ) &&
+    !/(portable energy wallet|wallet|key material|schluessel|schlüssel|crypto|settlement|billing|abrechnung|tarif|payment|device-control|smgw switch|hitl\.create|vdmi\.mutate|investment-planning\.createPlan|finance-agent\.mutate|budget\.release|settlement\.prepareBilling|external\.connector\.call|personal-agent\.execute|stilllegung|decommissioning|flexibilit[aä]tsdirigent)/i.test(
+      haystack
+    );
 
   if (hasScheduleManagementGovernanceRoadmapSpecificSignal) {
-    const scheduleRoadmapCapability = findCapabilityByName('schedule_management_governance_roadmap');
+    const scheduleRoadmapCapability = findCapabilityByName(
+      'schedule_management_governance_roadmap'
+    );
     if (scheduleRoadmapCapability) {
       return { capability: scheduleRoadmapCapability, score: 138, usedFallback: false };
     }
   }
 
   const hasInvestmentWaterfallGovernanceSpecificSignal =
-    /(investmittel[- ]wasserfall|wasserfall[- ]gremien|investment[- ]waterfall|gremienlogik|gremienkalender|mittelbindung|investitionssteuerung|budget[- ]engpass|entscheidungsfenster|nachweisreife|strategy[- ]to[- ]execution)/i.test(haystack) &&
-    /(investmentItemId|budgetAmount|bottleneckRef|targetProcess|committeeWindow|evidenceReadiness|owner|nextAction|mandateStatus|riskIfDelayed|gaps|follow.?up|readiness)/i.test(haystack) &&
-    !/(portable energy wallet|wallet|key material|schluessel|schlüssel|crypto|settlement|billing|abrechnung|tarif|payment|device-control|smgw switch|pmo-budget\.create|pmo-budget\.allocate|pmo-budget\.mutate|hitl\.create|vdmi\.mutate|investment-planning\.createPlan|finance-agent\.mutate|budget\.release|settlement\.prepareBilling|external\.connector\.call|personal-agent\.execute)/i.test(haystack);
+    /(investmittel[- ]wasserfall|wasserfall[- ]gremien|investment[- ]waterfall|gremienlogik|gremienkalender|mittelbindung|investitionssteuerung|budget[- ]engpass|entscheidungsfenster|nachweisreife|strategy[- ]to[- ]execution)/i.test(
+      haystack
+    ) &&
+    /(investmentItemId|budgetAmount|bottleneckRef|targetProcess|committeeWindow|evidenceReadiness|owner|nextAction|mandateStatus|riskIfDelayed|gaps|follow.?up|readiness)/i.test(
+      haystack
+    ) &&
+    !/(portable energy wallet|wallet|key material|schluessel|schlüssel|crypto|settlement|billing|abrechnung|tarif|payment|device-control|smgw switch|pmo-budget\.create|pmo-budget\.allocate|pmo-budget\.mutate|hitl\.create|vdmi\.mutate|investment-planning\.createPlan|finance-agent\.mutate|budget\.release|settlement\.prepareBilling|external\.connector\.call|personal-agent\.execute)/i.test(
+      haystack
+    );
 
   if (hasInvestmentWaterfallGovernanceSpecificSignal) {
     const investmentWaterfallCapability = findCapabilityByName('investment_waterfall_governance');
@@ -846,8 +1160,12 @@ function findBestCapability(taskText, options = {}) {
 
   const hasInvestmentCommitteeSteeringCardsSpecificSignal =
     /(investmittel|investitionskarte|investment item|capex|committee|gremien)/i.test(haystack) &&
-    /(gremiensteuerung|gremienkarte|steering card|committee card|committee window|gremienfenster|pruefstatus|prüfstatus|review status|evidenzstatus|blocked follow.?up|blockierte folgeaktion)/i.test(haystack) &&
-    !/(portable energy wallet|wallet|key material|schluessel|schlüssel|crypto|settlement|billing|abrechnung|tarif|payment|device-control|smgw switch|wasserfall|waterfall|gremienlogik|mittelbindung|investitionssteuerung|strategy.?to.?execution)/i.test(haystack);
+    /(gremiensteuerung|gremienkarte|steering card|committee card|committee window|gremienfenster|pruefstatus|prüfstatus|review status|evidenzstatus|blocked follow.?up|blockierte folgeaktion)/i.test(
+      haystack
+    ) &&
+    !/(portable energy wallet|wallet|key material|schluessel|schlüssel|crypto|settlement|billing|abrechnung|tarif|payment|device-control|smgw switch|wasserfall|waterfall|gremienlogik|mittelbindung|investitionssteuerung|strategy.?to.?execution)/i.test(
+      haystack
+    );
 
   if (hasInvestmentCommitteeSteeringCardsSpecificSignal) {
     const investmentCardsCapability = findCapabilityByName('investment_committee_steering_cards');
@@ -857,8 +1175,12 @@ function findBestCapability(taskText, options = {}) {
   }
 
   const hasLegacyControlTechnologyTransitionSpecificSignal =
-    /(rundsteuertechnik|rundsteuerempfaenger|rundsteuerempfänger|gruppensignal|legacy control|bestandsanlage|steuerbox uebergang|steuerbox übergang|cls uebergang|cls übergang)/i.test(haystack) &&
-    /(rueckmeldefaehigkeit|rückmeldefähigkeit|testbarkeit|nichtdurchfuehrungsbegruendung|nichtdurchführungsbegründung|steuerbarkeitsnachweis|migration|roadmap|uebergang|übergang)/i.test(haystack);
+    /(rundsteuertechnik|rundsteuerempfaenger|rundsteuerempfänger|gruppensignal|legacy control|bestandsanlage|steuerbox uebergang|steuerbox übergang|cls uebergang|cls übergang)/i.test(
+      haystack
+    ) &&
+    /(rueckmeldefaehigkeit|rückmeldefähigkeit|testbarkeit|nichtdurchfuehrungsbegruendung|nichtdurchführungsbegründung|steuerbarkeitsnachweis|migration|roadmap|uebergang|übergang)/i.test(
+      haystack
+    );
 
   if (hasLegacyControlTechnologyTransitionSpecificSignal) {
     const legacyControlCapability = findCapabilityByName('legacy_control_technology_transition');
@@ -869,7 +1191,9 @@ function findBestCapability(taskText, options = {}) {
 
   const hasControllabilityAssetHandoverSpecificSignal =
     /(steuerbarkeitscheck|steuerbarkeit|steuerbare anlagen)/i.test(haystack) &&
-    /(linienuebergabe|linienübergabe|asset handover|meldezyklus|nichtdurchfuehrungsbegruendung|nichtdurchführungsbegründung|rueckmeldefaehigkeit|rückmeldefähigkeit|fernsteuerbarkeit|asset evidenzkatalog)/i.test(haystack);
+    /(linienuebergabe|linienübergabe|asset handover|meldezyklus|nichtdurchfuehrungsbegruendung|nichtdurchführungsbegründung|rueckmeldefaehigkeit|rückmeldefähigkeit|fernsteuerbarkeit|asset evidenzkatalog)/i.test(
+      haystack
+    );
 
   if (hasControllabilityAssetHandoverSpecificSignal) {
     const assetHandoverCapability = findCapabilityByName('controllability_asset_handover');
@@ -951,10 +1275,19 @@ function findBestCapability(taskText, options = {}) {
   // 'vergütungszusage' + 'netzbetreiber' combo would otherwise trigger VDMI grid-connection
   // decision governance (score 130). RCS/Expost signals narrow the domain unambiguously.
   const redispatchRcsSpecificSignals = [
-    'expost-nachweis', 'expost nachweis', 'expost-evidence', 'expost evidence',
-    'rcs-sonderfall', 'rcs sonderfall', 'rcs-regelkatalog', 'rcs regelkatalog',
-    'redispatch-koordination', 'redispatch-assetregister', 'redispatch assetregister',
-    'settlement-risiko', 'settlement risiko',
+    'expost-nachweis',
+    'expost nachweis',
+    'expost-evidence',
+    'expost evidence',
+    'rcs-sonderfall',
+    'rcs sonderfall',
+    'rcs-regelkatalog',
+    'rcs regelkatalog',
+    'redispatch-koordination',
+    'redispatch-assetregister',
+    'redispatch assetregister',
+    'settlement-risiko',
+    'settlement risiko',
   ];
   const hasRedispatchRcsSignal =
     redispatchRcsSpecificSignals.some((s) => haystack.includes(s)) ||
@@ -993,14 +1326,19 @@ function findBestCapability(taskText, options = {}) {
     'szenariocockpit',
   ];
   const hasOffBalancingMeteringSignal =
-    /(off.?balancing|purpose.?lock|zweckbindung|scheinspielraum|kostenanerkennung|eog)/i.test(haystack);
+    /(off.?balancing|purpose.?lock|zweckbindung|scheinspielraum|kostenanerkennung|eog)/i.test(
+      haystack
+    );
   const hasZaehlparkFinancingCombo =
     !hasOffBalancingMeteringSignal &&
     /(zaehlpark|zählpark|imsys|smart.?meter|gateway|mme|metering|messpunkt)/i.test(haystack) &&
-    /(finanzierung|finance|szenario|scenario|rollout|totex|capex|opex|leasing|kredit|contracting)/i.test(haystack);
+    /(finanzierung|finance|szenario|scenario|rollout|totex|capex|opex|leasing|kredit|contracting)/i.test(
+      haystack
+    );
 
   if (
-    (!hasOffBalancingMeteringSignal && zaehlparkFinancingSignals.some((signal) => haystack.includes(signal))) ||
+    (!hasOffBalancingMeteringSignal &&
+      zaehlparkFinancingSignals.some((signal) => haystack.includes(signal))) ||
     hasZaehlparkFinancingCombo
   ) {
     const zaehlparkCapability = findCapabilityByName('zaehlpark_finanzierung_szenario_cockpit');
@@ -1016,9 +1354,7 @@ function findBestCapability(taskText, options = {}) {
     );
 
   if (hasSmartMeterPurposeLockSignal) {
-    const purposeLockCapability = findCapabilityByName(
-      'smart_meter_off_balancing_purpose_lock'
-    );
+    const purposeLockCapability = findCapabilityByName('smart_meter_off_balancing_purpose_lock');
     if (purposeLockCapability) {
       return {
         capability: purposeLockCapability,
@@ -1072,8 +1408,12 @@ function findBestCapability(taskText, options = {}) {
   // ── EDM / Customer Service / Billing — Move-Out evidence dossier
   // 'evidence' in the prompt matches vdmiAssetValidationSignals — intercept before VDMI.
   const edmMoveoutSpecificSignals = [
-    'schlusszählerstand', 'schlusszaehlerstand', 'abrechnungsfreigabe', 'edm-plausibilisierung',
-    'plausibilisierter schlusszählerstand', 'plausibilisierter schlusszaehlerstand',
+    'schlusszählerstand',
+    'schlusszaehlerstand',
+    'abrechnungsfreigabe',
+    'edm-plausibilisierung',
+    'plausibilisierter schlusszählerstand',
+    'plausibilisierter schlusszaehlerstand',
   ];
   const hasEdmMoveoutCombo =
     /(auszug|einzug)/i.test(haystack) &&
@@ -1108,7 +1448,9 @@ function findBestCapability(taskText, options = {}) {
   ];
   const hasEnergySharingSimulationCombo =
     /(energy sharing|energy-sharing|energieteilen)/i.test(haystack) &&
-    /(simulation|gate|lernpilot|learning pilot|abrechnungsnah|billing readiness|a96|imsys|malo status|bilanzkreislogik)/i.test(haystack);
+    /(simulation|gate|lernpilot|learning pilot|abrechnungsnah|billing readiness|a96|imsys|malo status|bilanzkreislogik)/i.test(
+      haystack
+    );
 
   if (
     hasEnergySharingSimulationCombo ||
@@ -1123,9 +1465,15 @@ function findBestCapability(taskText, options = {}) {
   // ── Energy Sharing / Prosumer Advisory
   // 'evidence' in the prompt matches vdmiAssetValidationSignals — intercept before VDMI.
   const energySharingSpecificSignals = [
-    'prosumer', 'energy sharing', 'mieterstrom', 'nachbarschaftsverkauf',
-    'nap-wallet', '§42c enwg', '42c enwg',
-    'gemeinschaftliche gebäudeversorgung', 'gemeinschaftliche gebaeudeversorgung',
+    'prosumer',
+    'energy sharing',
+    'mieterstrom',
+    'nachbarschaftsverkauf',
+    'nap-wallet',
+    '§42c enwg',
+    '42c enwg',
+    'gemeinschaftliche gebäudeversorgung',
+    'gemeinschaftliche gebaeudeversorgung',
   ];
 
   if (energySharingSpecificSignals.some((s) => haystack.includes(s))) {
@@ -1138,8 +1486,12 @@ function findBestCapability(taskText, options = {}) {
   // ── Datasource Registry / Classification Governance
   // 'evidence' in the prompt matches vdmiAssetValidationSignals — intercept before VDMI.
   const datasourceRegistrySpecificSignals = [
-    'datasource registry', 'datasource-registry', 'datenquellenbestand',
-    'datasource-classifier', 'datasource-watcher', 'datasource-discovery',
+    'datasource registry',
+    'datasource-registry',
+    'datenquellenbestand',
+    'datasource-classifier',
+    'datasource-watcher',
+    'datasource-discovery',
   ];
   const hasDatasourceRegistryCombo =
     /datasource/i.test(haystack) &&
@@ -1158,9 +1510,16 @@ function findBestCapability(taskText, options = {}) {
   // ── HITL / Notification / Persona Inbox Evidence Request
   // 'asset' + 'evidence' combo matches vdmiAssetValidationCombo — intercept before VDMI.
   const hitlSpecificSignals = [
-    'human-in-the-loop', 'human in the loop', 'ursprungssession',
-    'persona-inbox', 'persona inbox', 'webhook-ausloesung', 'webhook-auslosung',
-    'hitl-nachforderung', 'hitl nachforderung', 'hitl-nachforderungen',
+    'human-in-the-loop',
+    'human in the loop',
+    'ursprungssession',
+    'persona-inbox',
+    'persona inbox',
+    'webhook-ausloesung',
+    'webhook-auslosung',
+    'hitl-nachforderung',
+    'hitl nachforderung',
+    'hitl-nachforderungen',
   ];
 
   if (hitlSpecificSignals.some((s) => haystack.includes(s))) {
@@ -1174,11 +1533,11 @@ function findBestCapability(taskText, options = {}) {
   // 'evidence' in the prompt matches vdmiAssetValidationSignals — intercept before VDMI.
   // Also catches prompts using the hyphenated 'residual-load' form not covered by catalog keywords.
   const residualLoadDsoSpecificSignals = [
-    'residual-load',           // hyphenated form (Turn 1, 2, 3)
-    'residuallast',            // compound form (Turn 2, 4)
-    'residual load',           // space form, English (Turn 3)
-    'netresidualload',         // service action name form
-    'flexibility window',      // English equivalent (Turn 3)
+    'residual-load', // hyphenated form (Turn 1, 2, 3)
+    'residuallast', // compound form (Turn 2, 4)
+    'residual load', // space form, English (Turn 3)
+    'netresidualload', // service action name form
+    'flexibility window', // English equivalent (Turn 3)
     'flexibilitaetsmanagement', // very specific (Turn 4)
   ];
   const hasResidualLoadDsoCombo =
@@ -1189,10 +1548,7 @@ function findBestCapability(taskText, options = {}) {
     (/(flexibilitaetsfenster|flexibilitätsfenster|flexibility.?window)/i.test(haystack) &&
       /(dso|vnb|netzbetrieb|stadtwerk|lastverschieb|residual|forecast|co2)/i.test(haystack));
 
-  if (
-    residualLoadDsoSpecificSignals.some((s) => haystack.includes(s)) ||
-    hasResidualLoadDsoCombo
-  ) {
+  if (residualLoadDsoSpecificSignals.some((s) => haystack.includes(s)) || hasResidualLoadDsoCombo) {
     const residualLoadCap = findCapabilityByName('residual_load_forecast_for_dso');
     if (residualLoadCap) {
       return { capability: residualLoadCap, score: 122, usedFallback: false };
@@ -1475,7 +1831,9 @@ function findBestCapability(taskText, options = {}) {
   // Each entry fires when any trigger phrase matches OR any combo (all-AND regex group) matches.
   // negativeTriggers (optional) prevent the route from firing when present.
   for (const route of listCompiledDomainRoutes()) {
-    const negativeMatch = (route.negativeTriggers || []).some((t) => haystack.includes(t.toLowerCase()));
+    const negativeMatch = (route.negativeTriggers || []).some((t) =>
+      haystack.includes(t.toLowerCase())
+    );
     if (negativeMatch) continue;
     const triggerMatch = (route.triggers || []).some((t) => haystack.includes(t));
     const comboMatch = route._compiledCombos.some((combo) =>
@@ -1505,23 +1863,43 @@ function findBestCapability(taskText, options = {}) {
   }
 
   const hasAnschlusskapazitaetEvidenceQueueSpecificSignal =
-    /(anschlusskapazitaet|anschlusskapazität|connection capacity|netzkapazitaet|netzkapazität|netzverknuepfungspunkt|netzverknüpfungspunkt|kapazitaetsannahme|kapazitätsannahme)/i.test(haystack) &&
-    /(evidenzqueue|evidence queue|fnav.?evidenz|fnav evidence|netzrestriktion|anschlussentscheidung readiness|management.?review)/i.test(haystack) &&
-    !/(reserve|reservieren|approve|genehmigen|freigeben|ablehnen|reject|verbindliche zusage|kapazitaetszusage|kapazitätszusage|§17|17 enwg|formales netzanschlussbegehren|grid-connection\.reserveCapacity|grid-connection\.approve|grid-connection\.reject|hitl\.create|settlement|billing|tariff|mako|external connector|personal-agent execute)/i.test(haystack);
+    /(anschlusskapazitaet|anschlusskapazität|connection capacity|netzkapazitaet|netzkapazität|netzverknuepfungspunkt|netzverknüpfungspunkt|kapazitaetsannahme|kapazitätsannahme)/i.test(
+      haystack
+    ) &&
+    /(evidenzqueue|evidence queue|fnav.?evidenz|fnav evidence|netzrestriktion|anschlussentscheidung readiness|management.?review)/i.test(
+      haystack
+    ) &&
+    !/(reserve|reservieren|approve|genehmigen|freigeben|ablehnen|reject|verbindliche zusage|kapazitaetszusage|kapazitätszusage|§17|17 enwg|formales netzanschlussbegehren|grid-connection\.reserveCapacity|grid-connection\.approve|grid-connection\.reject|hitl\.create|settlement|billing|tariff|mako|external connector|personal-agent execute)/i.test(
+      haystack
+    );
 
-  if (hasAnschlusskapazitaetEvidenceQueueSpecificSignal || haystack.includes('anschlusskapazitaet_evidence_queue')) {
-    const anschlusskapazitaetCapability = findCapabilityByName('anschlusskapazitaet_evidence_queue');
+  if (
+    hasAnschlusskapazitaetEvidenceQueueSpecificSignal ||
+    haystack.includes('anschlusskapazitaet_evidence_queue')
+  ) {
+    const anschlusskapazitaetCapability = findCapabilityByName(
+      'anschlusskapazitaet_evidence_queue'
+    );
     if (anschlusskapazitaetCapability) {
       return { capability: anschlusskapazitaetCapability, score: 123, usedFallback: false };
     }
   }
 
   const hasSteeringArtifactAcceptanceGateSignal =
-    /(akzeptanz.?gate|pflege.?gate|steering artifact acceptance|maintenance gate|steuerungsartefakt)/i.test(haystack) &&
-    /(rollout|nutzungsnachweis|nutzenbeweis|pflegeowner|pflege.?owner|stellvertretung|eskalationskriterium|abbruchkriterium|retirement|pflegeaufwand)/i.test(haystack) &&
-    !/(budibase table write|workflow execute|hitl\.create|external connector|billing|settlement|mako|device-control|produktion)/i.test(haystack);
+    /(akzeptanz.?gate|pflege.?gate|steering artifact acceptance|maintenance gate|steuerungsartefakt)/i.test(
+      haystack
+    ) &&
+    /(rollout|nutzungsnachweis|nutzenbeweis|pflegeowner|pflege.?owner|stellvertretung|eskalationskriterium|abbruchkriterium|retirement|pflegeaufwand)/i.test(
+      haystack
+    ) &&
+    !/(budibase table write|workflow execute|hitl\.create|external connector|billing|settlement|mako|device-control|produktion)/i.test(
+      haystack
+    );
 
-  if (hasSteeringArtifactAcceptanceGateSignal || haystack.includes('steering_artifact_acceptance_gate')) {
+  if (
+    hasSteeringArtifactAcceptanceGateSignal ||
+    haystack.includes('steering_artifact_acceptance_gate')
+  ) {
     const steeringArtifactCapability = findCapabilityByName('steering_artifact_acceptance_gate');
     if (steeringArtifactCapability) {
       return { capability: steeringArtifactCapability, score: 123, usedFallback: false };
@@ -1529,11 +1907,20 @@ function findBestCapability(taskText, options = {}) {
   }
 
   const hasCommunicationBreakProcessRiskSignal =
-    /(kommunikationsbruch|kommunikationsbrueche|kommunikationsbrüche|communication.?break|process.?risk|prozessrisiko|rueckfragefenster|rückfragefenster)/i.test(haystack) &&
-    /(informationspflicht|fachliche begleitung|protokollstandard|protokoll.?status|blockierte entscheidung|blocked decision|naechster evidenzpunkt|nächster evidenzpunkt|question.?response.?window|information duty)/i.test(haystack) &&
-    !/(hr.?score|person.?score|sentiment|email ingest|calendar ingest|chat ingest|budibase table write|workflow execute|hitl\.create|external connector|billing|settlement|mako|device-control|produktion)/i.test(haystack);
+    /(kommunikationsbruch|kommunikationsbrueche|kommunikationsbrüche|communication.?break|process.?risk|prozessrisiko|rueckfragefenster|rückfragefenster)/i.test(
+      haystack
+    ) &&
+    /(informationspflicht|fachliche begleitung|protokollstandard|protokoll.?status|blockierte entscheidung|blocked decision|naechster evidenzpunkt|nächster evidenzpunkt|question.?response.?window|information duty)/i.test(
+      haystack
+    ) &&
+    !/(hr.?score|person.?score|sentiment|email ingest|calendar ingest|chat ingest|budibase table write|workflow execute|hitl\.create|external connector|billing|settlement|mako|device-control|produktion)/i.test(
+      haystack
+    );
 
-  if (hasCommunicationBreakProcessRiskSignal || haystack.includes('communication_break_process_risk')) {
+  if (
+    hasCommunicationBreakProcessRiskSignal ||
+    haystack.includes('communication_break_process_risk')
+  ) {
     const communicationBreakCapability = findCapabilityByName('communication_break_process_risk');
     if (communicationBreakCapability) {
       return { capability: communicationBreakCapability, score: 124, usedFallback: false };
@@ -1541,9 +1928,15 @@ function findBestCapability(taskText, options = {}) {
   }
 
   const hasNoRegretMeasureProofGateSignal =
-    /(no.?regret|no regret|szenario.?beweis|budgetanker|einspruchsfenster|objection.?window|transformationsmassnahme|transformationsmaßnahme)/i.test(haystack) &&
-    /(budget|szenario|scenario|regulatorische anschlussfaehigkeit|regulatorische anschlussfähigkeit|management.?gate|priorisierung|prioritization|decision owner|entscheidungsrechte)/i.test(haystack) &&
-    !/(budget\.reserve|investment\.approve|investition freigeben|budget reservieren|finance\.book|workflow execute|hitl\.create|external connector|billing|settlement|tariff|device-control|produktion)/i.test(haystack);
+    /(no.?regret|no regret|szenario.?beweis|budgetanker|einspruchsfenster|objection.?window|transformationsmassnahme|transformationsmaßnahme)/i.test(
+      haystack
+    ) &&
+    /(budget|szenario|scenario|regulatorische anschlussfaehigkeit|regulatorische anschlussfähigkeit|management.?gate|priorisierung|prioritization|decision owner|entscheidungsrechte)/i.test(
+      haystack
+    ) &&
+    !/(budget\.reserve|investment\.approve|investition freigeben|budget reservieren|finance\.book|workflow execute|hitl\.create|external connector|billing|settlement|tariff|device-control|produktion)/i.test(
+      haystack
+    );
 
   if (hasNoRegretMeasureProofGateSignal || haystack.includes('no_regret_measure_proof_gate')) {
     const noRegretCapability = findCapabilityByName('no_regret_measure_proof_gate');
@@ -1589,9 +1982,15 @@ function findBestCapability(taskText, options = {}) {
   }
 
   const hasLayer0AuditDrilldownSignal =
-    /(layer.?0|layer-0|layer0|audit drilldown|audit-drilldown|validierungsnotiz|kpi auffaelligkeit|kpi auffälligkeit|peer.?abweichung|90.?tage)/i.test(haystack) &&
-    /(audit|drilldown|validierungsnotiz|kpi|benchmark|peer.?abweichung|management.?validation|90.?tage)/i.test(haystack) &&
-    !/(audit.?queue create|queue worker|report\.pdf|pdf generieren|powerpoint|deck generieren|external connector|hitl\.create|legal opinion|rechtsgutachten|billing|settlement|tariff|mako|device.?control|personal-agent execute)/i.test(haystack);
+    /(layer.?0|layer-0|layer0|audit drilldown|audit-drilldown|validierungsnotiz|kpi auffaelligkeit|kpi auffälligkeit|peer.?abweichung|90.?tage)/i.test(
+      haystack
+    ) &&
+    /(audit|drilldown|validierungsnotiz|kpi|benchmark|peer.?abweichung|management.?validation|90.?tage)/i.test(
+      haystack
+    ) &&
+    !/(audit.?queue create|queue worker|report\.pdf|pdf generieren|powerpoint|deck generieren|external connector|hitl\.create|legal opinion|rechtsgutachten|billing|settlement|tariff|mako|device.?control|personal-agent execute)/i.test(
+      haystack
+    );
 
   if (hasLayer0AuditDrilldownSignal || haystack.includes('layer0_audit_drilldown_note')) {
     const layer0AuditCapability = findCapabilityByName('layer0_audit_drilldown_note');
@@ -1813,7 +2212,9 @@ function findBestCapability(taskText, options = {}) {
   ];
   const hasNoRegretDefinitionIntent =
     noRegretDefinitionSignals.some((signal) => haystack.includes(signal)) &&
-    /(szenariowirkung|budgetwirkung|priorisierungsrecht|nominierungsrecht|datenqualitaet|datenqualität|kommunikationsregel|review gate|pruefgate|prüfgate)/i.test(haystack);
+    /(szenariowirkung|budgetwirkung|priorisierungsrecht|nominierungsrecht|datenqualitaet|datenqualität|kommunikationsregel|review gate|pruefgate|prüfgate)/i.test(
+      haystack
+    );
   if (hasNoRegretDefinitionIntent) {
     const noRegretCapability = findCapabilityByName('no_regret_measure_definition_gate');
     if (noRegretCapability) {

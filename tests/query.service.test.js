@@ -343,7 +343,10 @@ describe('Query Service', () => {
         expect(item).toHaveProperty('type', 'validation');
         expect(item).toHaveProperty('status', 'GO_CONDITIONAL');
         expect(item.url).toBe('/api/grid-connection/validations/gc-report-1');
-        expect(item.metadata).toMatchObject({ gridOperatorName: 'STROMDAO Netze', findingsCount: 3 });
+        expect(item.metadata).toMatchObject({
+          gridOperatorName: 'STROMDAO Netze',
+          findingsCount: 3,
+        });
       } finally {
         await fakeBroker.stop();
       }

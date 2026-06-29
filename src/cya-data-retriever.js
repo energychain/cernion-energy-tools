@@ -395,7 +395,7 @@ async function retrieveContextData(ctx, input) {
     const query = buildFocusQuery(focusArea, context, actorRole, targetAudience);
     // Sequential by design: avoids bursty MCP usage for high-cardinality focus lists.
     // Can be parallelized later with bounded concurrency if needed.
-    // eslint-disable-next-line no-await-in-loop
+
     const result = await runSingleFocusQuery(ctx, focusArea, query);
     items.push(result);
   }

@@ -102,11 +102,7 @@ const {
 const {
   buildGroundedReceiptReply: buildGroundedReceiptReplyAdapter,
 } = require('../src/ev-co2-synthesis');
-const {
-  GRID_CONCEPTS,
-  ENERGY_CONCEPTS,
-  UNITS,
-} = require('../src/oeo-mappings');
+const { GRID_CONCEPTS, ENERGY_CONCEPTS, UNITS } = require('../src/oeo-mappings');
 const {
   extractBlueprintPolicy,
   checkStickinessRetain,
@@ -200,7 +196,13 @@ const DEFAULT_SYSTEM_PROMPT =
   'Du bist der Cernion Personal Agent. Arbeite deterministisch, knapp und fachlich korrekt.';
 
 function uniqueStrings(values = []) {
-  return [...new Set((Array.isArray(values) ? values : []).filter((v) => typeof v === 'string' && v.trim()).map((v) => v.trim()))];
+  return [
+    ...new Set(
+      (Array.isArray(values) ? values : [])
+        .filter((v) => typeof v === 'string' && v.trim())
+        .map((v) => v.trim())
+    ),
+  ];
 }
 
 function normalizeBrokerCapabilityNames(recommendedCapabilities = []) {
@@ -222,7 +224,11 @@ function buildDossierPlanningFollowUps(missingInputs = []) {
   }));
 }
 
-function buildDossierSafePlanningView({ capabilityRouting = null, userProvidedFacts = [], dossierTask = '' } = {}) {
+function buildDossierSafePlanningView({
+  capabilityRouting = null,
+  userProvidedFacts = [],
+  dossierTask = '',
+} = {}) {
   if (capabilityRouting?.status !== 'success' || !capabilityRouting.result) {
     return {
       status: capabilityRouting?.status || 'unavailable',
@@ -271,27 +277,31 @@ function buildDossierSafePlanningView({ capabilityRouting = null, userProvidedFa
     : [];
 
   const actionsByName = new Map();
-  [...planActions, ...capabilityActions, ...preferredActions, ...fallbackActions].forEach((entry) => {
-    if (typeof entry.action !== 'string' || !entry.action.trim()) return;
-    const action = entry.action.trim();
-    const existing = actionsByName.get(action) || {
-      action,
-      sources: [],
-      step: entry.step || null,
-      purpose: entry.purpose || null,
-      capability: entry.capability || null,
-    };
-    if (!existing.sources.includes(entry.source)) existing.sources.push(entry.source);
-    if (!existing.step && entry.step) existing.step = entry.step;
-    if (!existing.purpose && entry.purpose) existing.purpose = entry.purpose;
-    if (!existing.capability && entry.capability) existing.capability = entry.capability;
-    actionsByName.set(action, existing);
-  });
+  [...planActions, ...capabilityActions, ...preferredActions, ...fallbackActions].forEach(
+    (entry) => {
+      if (typeof entry.action !== 'string' || !entry.action.trim()) return;
+      const action = entry.action.trim();
+      const existing = actionsByName.get(action) || {
+        action,
+        sources: [],
+        step: entry.step || null,
+        purpose: entry.purpose || null,
+        capability: entry.capability || null,
+      };
+      if (!existing.sources.includes(entry.source)) existing.sources.push(entry.source);
+      if (!existing.step && entry.step) existing.step = entry.step;
+      if (!existing.purpose && entry.purpose) existing.purpose = entry.purpose;
+      if (!existing.capability && entry.capability) existing.capability = entry.capability;
+      actionsByName.set(action, existing);
+    }
+  );
 
   const actions = Array.from(actionsByName.values()).map((entry) => {
     const hydrationRule = getDossierHydrationRule(entry.action);
     const unsafe = isDossierRuleSafetyRejected(entry.action);
-    const params = hydrationRule ? hydrationRule.extractParams(userProvidedFacts, dossierTask) : null;
+    const params = hydrationRule
+      ? hydrationRule.extractParams(userProvidedFacts, dossierTask)
+      : null;
     return {
       ...entry,
       safety: hydrationRule
@@ -309,7 +319,13 @@ function buildDossierSafePlanningView({ capabilityRouting = null, userProvidedFa
           },
       hydration: {
         allowed: Boolean(hydrationRule),
-        status: hydrationRule ? (params ? 'ready' : 'missing_params') : unsafe ? 'unsafe' : 'no_rule',
+        status: hydrationRule
+          ? params
+            ? 'ready'
+            : 'missing_params'
+          : unsafe
+            ? 'unsafe'
+            : 'no_rule',
         ruleId: hydrationRule?.id || null,
         evidenceQuality: hydrationRule?.evidenceQuality || null,
         paramsReady: Boolean(params),
@@ -505,16 +521,8 @@ function formatEntsoeEvidence(result, label) {
     stats.avgForecastMW ??
     stats.avgPriceEURperMWh ??
     stats.averagePriceEURperMWh;
-  const max =
-    stats.max ??
-    stats.maxLoadMW ??
-    stats.maxForecastMW ??
-    stats.maxPriceEURperMWh;
-  const min =
-    stats.min ??
-    stats.minLoadMW ??
-    stats.minForecastMW ??
-    stats.minPriceEURperMWh;
+  const max = stats.max ?? stats.maxLoadMW ?? stats.maxForecastMW ?? stats.maxPriceEURperMWh;
+  const min = stats.min ?? stats.minLoadMW ?? stats.minForecastMW ?? stats.minPriceEURperMWh;
   const firstValue =
     first?.value ??
     first?.load ??
@@ -1039,10 +1047,13 @@ function extractCopilotAnalysisSignals(question) {
 
   const perspectives = [];
   if (postalCode) perspectives.push('Standort-/PLZ-Auflösung');
-  if (assetClass === 'data_center' || power) perspectives.push('Netzanschluss und Anschlussleistung');
+  if (assetClass === 'data_center' || power)
+    perspectives.push('Netzanschluss und Anschlussleistung');
   if (assetClass) perspectives.push('Asset-spezifische Genehmigungs- und Prozesssicht');
   if (assetClass === 'data_center') {
-    perspectives.push('VNB-Zuständigkeit, Netzkapazität, Lastprofil und ggf. Abwärme/Planungsrecht');
+    perspectives.push(
+      'VNB-Zuständigkeit, Netzkapazität, Lastprofil und ggf. Abwärme/Planungsrecht'
+    );
   }
 
   return {
@@ -1057,7 +1068,11 @@ function extractCopilotAnalysisSignals(question) {
 function extractCopilotLocationLabelFromText(value, postalCode) {
   const text = compactString(value, 260);
   if (!text || !postalCode || !text.includes(postalCode)) return null;
-  const afterPostal = text.match(new RegExp(`\\b${postalCode}\\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]+(?:\\s+[A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]+){0,2})`));
+  const afterPostal = text.match(
+    new RegExp(
+      `\\b${postalCode}\\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]+(?:\\s+[A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]+){0,2})`
+    )
+  );
   if (afterPostal) return `${postalCode} ${afterPostal[1].trim()}`;
   return null;
 }
@@ -1185,7 +1200,8 @@ function copilotKnowledgeHitIsAllowedForQuery(hit = {}, query = '') {
   const normalizedQuery = String(query || '').toLowerCase();
 
   const containsStromdaoContext = /\bstromdao\b|stromdao\s+netze/.test(haystack);
-  if (containsStromdaoContext && !/\bstromdao\b|stromdao\s+netze/.test(normalizedQuery)) return false;
+  if (containsStromdaoContext && !/\bstromdao\b|stromdao\s+netze/.test(normalizedQuery))
+    return false;
 
   const containsLocalCapacityAnchor = /\b81\s*mva\b/.test(haystack);
   if (containsLocalCapacityAnchor && !/\b81\s*mva\b/.test(normalizedQuery)) return false;
@@ -1287,7 +1303,10 @@ function copilotDossierEvidenceHasStrictQueryRelevance(entry = {}, query = '') {
       .filter(Boolean)
       .join(' ')
   );
-  if (/anonymisierte\s+ableitung/.test(evidenceText) && /llm\s+generator|steuerimpuls/.test(evidenceText)) {
+  if (
+    /anonymisierte\s+ableitung/.test(evidenceText) &&
+    /llm\s+generator|steuerimpuls/.test(evidenceText)
+  ) {
     return false;
   }
   if (String(entry?.metadata?.kind || '').startsWith('user_provided_')) {
@@ -1319,18 +1338,28 @@ function buildDossierLowEvidenceKey(fact = {}) {
 
 function detectDossierPreliminaryAnswerRequest(question = '') {
   const text = normalizeCopilotSearchableText(question);
-  return /(?:trotz|auch wenn|obwohl).{0,80}(?:low evidence|niedriger evidence|geringer evidence|fehlender evidence|unvalidiert|nicht validiert)/.test(text) ||
-    /(?:vorlaeufige|vorlaeufigen|vorläufige|vorläufigen|indikative|indikativ|hypothetische|hypothetisch).{0,80}(?:aussage|einschaetzung|einschätzung|bewertung|einordnung)/.test(text) ||
-    /(?:arbeite|bewerte|schaetze|schätze).{0,80}(?:mit|auf basis).{0,80}(?:low evidence|nutzerangaben|annahmen|arbeitshypothese)/.test(text);
+  return (
+    /(?:trotz|auch wenn|obwohl).{0,80}(?:low evidence|niedriger evidence|geringer evidence|fehlender evidence|unvalidiert|nicht validiert)/.test(
+      text
+    ) ||
+    /(?:vorlaeufige|vorlaeufigen|vorläufige|vorläufigen|indikative|indikativ|hypothetische|hypothetisch).{0,80}(?:aussage|einschaetzung|einschätzung|bewertung|einordnung)/.test(
+      text
+    ) ||
+    /(?:arbeite|bewerte|schaetze|schätze).{0,80}(?:mit|auf basis).{0,80}(?:low evidence|nutzerangaben|annahmen|arbeitshypothese)/.test(
+      text
+    )
+  );
 }
 
 function detectDossierFinalAnswerRequest(question = '') {
   const text = normalizeCopilotSearchableText(question);
-  return /finale[ns]?\s+dossier/.test(text) ||
+  return (
+    /finale[ns]?\s+dossier/.test(text) ||
     /abschliessende[n]?\s+fassung/.test(text) ||
     /ohne\s+rueckfragen?/.test(text) ||
     /bestmoeglich\w*\s+finale[n]?\s+(?:einschaetzung|bewertung|antwort)/.test(text) ||
-    /formuliere\s+final\b.{0,80}vorhandenen\s+informationen/.test(text);
+    /formuliere\s+final\b.{0,80}vorhandenen\s+informationen/.test(text)
+  );
 }
 
 function buildDossierTurnSummary({
@@ -1347,7 +1376,9 @@ function buildDossierTurnSummary({
     dossierContext.processStage,
     dossierContext.answerMode,
     dossierContext.confidence ? `confidence=${dossierContext.confidence}` : null,
-  ].filter(Boolean).join(' / ');
+  ]
+    .filter(Boolean)
+    .join(' / ');
   if (state) parts.push(`State: ${state}.`);
   if (reasoningSummary) parts.push(`Reasoning: ${compactString(reasoningSummary, 320)}.`);
 
@@ -1367,7 +1398,8 @@ function buildDossierTurnSummary({
     parts.push(`Missing evidence / Rueckfragebedarf: ${missingPreview.join(' | ')}.`);
   }
 
-  const brokerIntent = capabilityRouting?.result?.intent || capabilityRouting?.result?.capability || null;
+  const brokerIntent =
+    capabilityRouting?.result?.intent || capabilityRouting?.result?.capability || null;
   if (capabilityRouting?.status === 'success' && brokerIntent) {
     parts.push(`Broker: ${brokerIntent}.`);
   }
@@ -1394,18 +1426,25 @@ function buildDossierPriorConversationContext(priorTurns = [], priorDossierState
 
   const knownEvidence = Array.isArray(priorDossierState?.knownEvidence)
     ? priorDossierState.knownEvidence
-        .map((entry) => compactString([entry?.source, entry?.value].filter(Boolean).join(': '), 300))
+        .map((entry) =>
+          compactString([entry?.source, entry?.value].filter(Boolean).join(': '), 300)
+        )
         .filter(Boolean)
         .slice(0, 5)
     : [];
   const missingEvidence = Array.isArray(priorDossierState?.missingEvidence)
-    ? priorDossierState.missingEvidence.map((entry) => compactString(entry, 260)).filter(Boolean).slice(0, 5)
+    ? priorDossierState.missingEvidence
+        .map((entry) => compactString(entry, 260))
+        .filter(Boolean)
+        .slice(0, 5)
     : [];
   const latestTurn = turns[turns.length - 1] || null;
   const summaryParts = [];
   if (latestTurn?.question) summaryParts.push(`Letzte Nutzerfrage: ${latestTurn.question}.`);
-  if (latestTurn?.dossierSummary) summaryParts.push(`Letzter Dossier-Kontext: ${latestTurn.dossierSummary}.`);
-  if (missingEvidence.length > 0) summaryParts.push(`Offene Rueckfragen/Evidence: ${missingEvidence.join(' | ')}.`);
+  if (latestTurn?.dossierSummary)
+    summaryParts.push(`Letzter Dossier-Kontext: ${latestTurn.dossierSummary}.`);
+  if (missingEvidence.length > 0)
+    summaryParts.push(`Offene Rueckfragen/Evidence: ${missingEvidence.join(' | ')}.`);
 
   return {
     summary: compactString(summaryParts.join(' '), 1000),
@@ -1427,8 +1466,10 @@ function detectDossierEvCo2ChargingRequest(text = '') {
 }
 
 function parseDossierRequestedChargingHours(text = '') {
-  const match = String(text || '').match(/\b(?:beste[nr]?|optimal(?:e|en)?)\s+(\d{1,2})\s*(?:h|std\.?|stunden?)\b/i) ||
-    String(text || '').match(/\b(\d{1,2})\s*(?:h|std\.?|stunden?)\b/i);
+  const match =
+    String(text || '').match(
+      /\b(?:beste[nr]?|optimal(?:e|en)?)\s+(\d{1,2})\s*(?:h|std\.?|stunden?)\b/i
+    ) || String(text || '').match(/\b(\d{1,2})\s*(?:h|std\.?|stunden?)\b/i);
   const hours = Number(match?.[1] || 0);
   if (Number.isFinite(hours) && hours >= 1 && hours <= 12) return hours;
   return 3;
@@ -1475,7 +1516,8 @@ function extractDossierCo2ForecastPoints(result = {}) {
         item && typeof item === 'object'
           ? item.timestamp || item.time || item.validFrom || item.from || item.start || null
           : null;
-      const start = parseDate(timestamp) ||
+      const start =
+        parseDate(timestamp) ||
         (baseDate ? new Date(baseDate.getTime() + index * 60 * 60 * 1000) : null);
       if (!start) return;
       points.push({ start, value });
@@ -1523,14 +1565,22 @@ function formatDossierBerlinDateKey(date) {
   return `${parts.year}-${parts.month}-${parts.day}`;
 }
 
-function filterDossierChargingPointsByRequestedDay(points = [], rawResult = {}, text = '', hours = 3) {
+function filterDossierChargingPointsByRequestedDay(
+  points = [],
+  rawResult = {},
+  text = '',
+  hours = 3
+) {
   const normalized = normalizeCopilotSearchableText(text);
   const dayOffset = /\bmorgen\b/.test(normalized) ? 1 : /\bheute\b/.test(normalized) ? 0 : null;
   if (dayOffset == null) return points;
-  const referenceValue = rawResult?.data?.timestamp || rawResult?.timestamp || rawResult?.generatedAt || null;
+  const referenceValue =
+    rawResult?.data?.timestamp || rawResult?.timestamp || rawResult?.generatedAt || null;
   const referenceDate = referenceValue ? new Date(referenceValue) : new Date();
   if (Number.isNaN(referenceDate.getTime())) return points;
-  const targetKey = formatDossierBerlinDateKey(new Date(referenceDate.getTime() + dayOffset * 24 * 60 * 60 * 1000));
+  const targetKey = formatDossierBerlinDateKey(
+    new Date(referenceDate.getTime() + dayOffset * 24 * 60 * 60 * 1000)
+  );
   const filtered = points.filter((point) => formatDossierBerlinDateKey(point.start) === targetKey);
   return filtered.length >= hours ? filtered : points;
 }
@@ -1550,7 +1600,11 @@ function buildDossierCo2ChargingWindowEvidence(rawResult = {}, text = '') {
     const window = points.slice(index, index + hours);
     const avg = window.reduce((sum, point) => sum + point.value, 0) / hours;
     if (!best || avg < best.avg) {
-      best = { start: window[0].start, end: new Date(window[hours - 1].start.getTime() + 60 * 60 * 1000), avg };
+      best = {
+        start: window[0].start,
+        end: new Date(window[hours - 1].start.getTime() + 60 * 60 * 1000),
+        avg,
+      };
     }
   }
   if (!best) return null;
@@ -1564,10 +1618,18 @@ function buildDossierCo2ChargingWindowEvidence(rawResult = {}, text = '') {
 function detectOpenEvidenceRequirementsQuery(text = '') {
   const normalized = normalizeCopilotSearchableText(text);
   const isQuery =
-    /was\s+(?:braucht|ben[öo]tigt|erwartet|fehlt).{0,40}(?:von mir|von uns|euch|sie)/i.test(normalized) ||
-    /welche\s+(?:offenen|ausstehenden|fehlenden)\s+(?:entscheidungen|anforderungen|informationen|daten|unterlagen)/i.test(normalized) ||
-    /(?:offene|ausstehende|fehlende)\s+(?:evidence|anforderungen|entscheidungen)\s+(?:f[üu]r|meiner\s+rolle)/i.test(normalized) ||
-    /was\s+muss\s+(?:ich|meine\s+abteilung)\s+(?:liefern|beibringen|einreichen|kl[äa]ren)/i.test(normalized);
+    /was\s+(?:braucht|ben[öo]tigt|erwartet|fehlt).{0,40}(?:von mir|von uns|euch|sie)/i.test(
+      normalized
+    ) ||
+    /welche\s+(?:offenen|ausstehenden|fehlenden)\s+(?:entscheidungen|anforderungen|informationen|daten|unterlagen)/i.test(
+      normalized
+    ) ||
+    /(?:offene|ausstehende|fehlende)\s+(?:evidence|anforderungen|entscheidungen)\s+(?:f[üu]r|meiner\s+rolle)/i.test(
+      normalized
+    ) ||
+    /was\s+muss\s+(?:ich|meine\s+abteilung)\s+(?:liefern|beibringen|einreichen|kl[äa]ren)/i.test(
+      normalized
+    );
 
   if (!isQuery) return { isQuery: false };
 
@@ -1601,11 +1663,13 @@ function dossierLowEvidenceMatchesProjectScope(entry = {}, query = '') {
   }
 
   const factType = entry?.metadata?.factType || null;
-  const haystack = normalizeCopilotSearchableText([entry.value, entry.retrievalHint].filter(Boolean).join(' '));
+  const haystack = normalizeCopilotSearchableText(
+    [entry.value, entry.retrievalHint].filter(Boolean).join(' ')
+  );
   if (factType === 'location') {
     return Boolean(
       (queryScope.normalizedLocation && haystack.includes(queryScope.normalizedLocation)) ||
-        (queryScope.postalCode && haystack.includes(queryScope.postalCode))
+      (queryScope.postalCode && haystack.includes(queryScope.postalCode))
     );
   }
   if (factType === 'requested_power') {
@@ -1758,7 +1822,9 @@ function extractDossierProjectScope(text = '') {
   const safeText = compactString(stripDossierCandidateListSections(text), 1200);
   const signals = extractCopilotAnalysisSignals(safeText);
   const projectPower = extractDossierProjectPowerSignal(safeText, signals.power);
-  const locationMatch = safeText.match(/\b(\d{5})\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]{2,}(?:\s+[A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]{2,}){0,2})/);
+  const locationMatch = safeText.match(
+    /\b(\d{5})\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]{2,}(?:\s+[A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]{2,}){0,2})/
+  );
   const citySignal = locationMatch ? null : extractDossierCitySignal(safeText);
   const location = locationMatch ? `${locationMatch[1]} ${locationMatch[2].trim()}` : citySignal;
   const postalCode = locationMatch?.[1] || signals.postalCode || null;
@@ -1776,7 +1842,10 @@ function extractDossierProjectScope(text = '') {
   };
 }
 
-function buildDossierProjectFactEntries(question = '', { sessionId = null, now = new Date().toISOString() } = {}) {
+function buildDossierProjectFactEntries(
+  question = '',
+  { sessionId = null, now = new Date().toISOString() } = {}
+) {
   const text = compactString(stripDossierCandidateListSections(question), 1200);
   const signals = extractCopilotAnalysisSignals(text);
   const projectPower = extractDossierProjectPowerSignal(text, signals.power);
@@ -1807,16 +1876,25 @@ function buildDossierProjectFactEntries(question = '', { sessionId = null, now =
     });
   };
 
-  const locationMatch = text.match(/\b(\d{5})\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]{2,}(?:\s+[A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]{2,}){0,2})/);
-  if (locationMatch) addFact('location', 'Standort', `${locationMatch[1]} ${locationMatch[2].trim()}`);
+  const locationMatch = text.match(
+    /\b(\d{5})\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]{2,}(?:\s+[A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]{2,}){0,2})/
+  );
+  if (locationMatch)
+    addFact('location', 'Standort', `${locationMatch[1]} ${locationMatch[2].trim()}`);
   else if (signals.postalCode) addFact('postal_code', 'Postleitzahl', signals.postalCode);
   else {
     const citySignal = extractDossierCitySignal(text);
     if (citySignal) addFact('city', 'Standort', citySignal);
   }
 
-  if (projectPower) addFact('requested_power', 'Geplante Anschlussleistung', `${projectPower.value} ${projectPower.unit}`);
-  if (signals.assetClass === 'data_center') addFact('asset_class', 'Nutzung/Asset', 'Rechenzentrum');
+  if (projectPower)
+    addFact(
+      'requested_power',
+      'Geplante Anschlussleistung',
+      `${projectPower.value} ${projectPower.unit}`
+    );
+  if (signals.assetClass === 'data_center')
+    addFact('asset_class', 'Nutzung/Asset', 'Rechenzentrum');
   const meteringConcepts = text.match(/\bMK\s*(?:10|40)\b/gi) || [];
   for (const concept of meteringConcepts) {
     addFact('metering_concept', 'Messkonzept', concept.replace(/\s+/g, '').toUpperCase());
@@ -1825,11 +1903,15 @@ function buildDossierProjectFactEntries(question = '', { sessionId = null, now =
   if (storageMatch) {
     addFact('asset_component', 'Speicher', `${storageMatch[1].replace(',', '.')} kW`);
   }
-  const heatPumpMatch = text.match(/(?:w[äa]rmepumpe|waermepumpe|heat\s*pump)\D{0,30}(\d+(?:[,.]\d+)?)\s*kW\b/i);
+  const heatPumpMatch = text.match(
+    /(?:w[äa]rmepumpe|waermepumpe|heat\s*pump)\D{0,30}(\d+(?:[,.]\d+)?)\s*kW\b/i
+  );
   if (heatPumpMatch) {
     addFact('asset_component', 'Wärmepumpe', `${heatPumpMatch[1].replace(',', '.')} kW`);
   }
-  const newPvMatch = text.match(/(?:neue|neuer|geplante|geplanter|zus[aä]tzliche|zusaetzliche)\s+pv(?:[-\s]?anlage)?\D{0,40}(\d+(?:[,.]\d+)?)\s*kWp\b/i);
+  const newPvMatch = text.match(
+    /(?:neue|neuer|geplante|geplanter|zus[aä]tzliche|zusaetzliche)\s+pv(?:[-\s]?anlage)?\D{0,40}(\d+(?:[,.]\d+)?)\s*kWp\b/i
+  );
   if (newPvMatch) {
     addFact('asset_component', 'Neue PV-Anlage', `${newPvMatch[1].replace(',', '.')} kWp`);
   }
@@ -1837,10 +1919,16 @@ function buildDossierProjectFactEntries(question = '', { sessionId = null, now =
     addFact('asset_status', 'PV-Altanlage', 'demontiert');
   }
   if (/24\s*\/\s*7|kontinuierlich|dauerlast|lastgang/i.test(text)) {
-    addFact('load_profile', 'Lastprofil', /24\s*\/\s*7/.test(text) ? 'kontinuierlicher Lastgang 24/7' : 'kontinuierlicher Lastgang');
+    addFact(
+      'load_profile',
+      'Lastprofil',
+      /24\s*\/\s*7/.test(text) ? 'kontinuierlicher Lastgang 24/7' : 'kontinuierlicher Lastgang'
+    );
   }
 
-  const commissioningMatch = text.match(/\b(?:inbetriebnahme|go[-\s]?live|betrieb(?:s)?start)\D{0,30}((?:20)\d{2})\b/i);
+  const commissioningMatch = text.match(
+    /\b(?:inbetriebnahme|go[-\s]?live|betrieb(?:s)?start)\D{0,30}((?:20)\d{2})\b/i
+  );
   if (commissioningMatch) {
     addFact('project_timeline', 'Geplante Inbetriebnahme', commissioningMatch[1]);
   }
@@ -1848,25 +1936,42 @@ function buildDossierProjectFactEntries(question = '', { sessionId = null, now =
   const availableDocuments = [
     ['Lageplan', /lageplan/i],
     ['vorläufiges Single-Line-Diagramm', /single[-\s]?line[-\s]?diagramm|einlinienschaltbild/i],
-    ['Lastprofil als Viertelstundenzeitreihe', /viertelstunden(?:zeitreihe|werte|lastprofil)|lastprofil.*viertelstunden|viertelstunden.*lastprofil/i],
+    [
+      'Lastprofil als Viertelstundenzeitreihe',
+      /viertelstunden(?:zeitreihe|werte|lastprofil)|lastprofil.*viertelstunden|viertelstunden.*lastprofil/i,
+    ],
     ['Netzanschlussdokumente', /netzanschluss(?:anfrage|begehren|dokument|unterlage|daten)/i],
     ['technisches Gutachten', /gutachten|machbarkeitsstudie|netzstudie/i],
   ];
   for (const [label, pattern] of availableDocuments) {
-    if (pattern.test(text) && /(?:vorhanden|liegt vor|kann.*nachreich|nachreichen|verf[üu]gbar|liefere|unterlage)/i.test(text)) {
+    if (
+      pattern.test(text) &&
+      /(?:vorhanden|liegt vor|kann.*nachreich|nachreichen|verf[üu]gbar|liefere|unterlage)/i.test(
+        text
+      )
+    ) {
       addFact('available_document', 'Verfügbare Unterlage', label);
     }
   }
 
   const missingRequirements = [
-    ['zuständiger Netzbetreiber', /zust[äa]ndiger\s+netzbetreiber|netzbetreiber\s+(?:unbekannt|fehlt|offen)/i],
+    [
+      'zuständiger Netzbetreiber',
+      /zust[äa]ndiger\s+netzbetreiber|netzbetreiber\s+(?:unbekannt|fehlt|offen)/i,
+    ],
     ['verfügbarer Netzverknüpfungspunkt', /netzverkn[üu]pfungspunkt|anschlusspunkt/i],
-    ['Reserven im Umspannwerk', /(?:reserven|reserve|kapazit[äa]t).{0,40}umspannwerk|umspannwerk.{0,40}(?:reserven|reserve|kapazit[äa]t)/i],
+    [
+      'Reserven im Umspannwerk',
+      /(?:reserven|reserve|kapazit[äa]t).{0,40}umspannwerk|umspannwerk.{0,40}(?:reserven|reserve|kapazit[äa]t)/i,
+    ],
     ['verbindliche TAB', /\btab\b|technische anschlussbedingungen/i],
     ['validierte Netzkapazität', /netzkapazit[äa]t|verf[üu]gbare anschlussleistung/i],
     ['Spannungsebene', /spannungsebene|netzebene/i],
   ];
-  const missingContext = /(?:unbekannt|offen|fehlt|fehlen|benötigt|benoetigt|noch zu kl[äa]ren|nicht bekannt|keine angaben)/i.test(text);
+  const missingContext =
+    /(?:unbekannt|offen|fehlt|fehlen|benötigt|benoetigt|noch zu kl[äa]ren|nicht bekannt|keine angaben)/i.test(
+      text
+    );
   for (const [label, pattern] of missingRequirements) {
     if (pattern.test(text) && missingContext) {
       addFact('missing_evidence_requirement', 'Fehlende Evidence-Anforderung', label);
@@ -1898,7 +2003,10 @@ function mapDossierLowEvidenceToEntry(fact = {}) {
   if (!value) return null;
   const factType = fact.factType || null;
   const oeoLabels = Array.isArray(fact.oeoClasses)
-    ? fact.oeoClasses.map((entry) => entry.label || entry.id).filter(Boolean).slice(0, 4)
+    ? fact.oeoClasses
+        .map((entry) => entry.label || entry.id)
+        .filter(Boolean)
+        .slice(0, 4)
     : [];
   const kind =
     factType === 'available_document'
@@ -1921,8 +2029,12 @@ function mapDossierLowEvidenceToEntry(fact = {}) {
       fact.normalizedValue,
       fact.factType,
       ...(Array.isArray(fact.semanticTags) ? fact.semanticTags : []),
-      ...(Array.isArray(fact.oeoClasses) ? fact.oeoClasses.map((entry) => entry.label).filter(Boolean) : []),
-    ].filter(Boolean).join(' '),
+      ...(Array.isArray(fact.oeoClasses)
+        ? fact.oeoClasses.map((entry) => entry.label).filter(Boolean)
+        : []),
+    ]
+      .filter(Boolean)
+      .join(' '),
     metadata: {
       kind,
       evidenceQuality: 'low',
@@ -2222,7 +2334,14 @@ module.exports = {
                     additionalProperties: true,
                     description:
                       'Optional canonical structured input values (e.g. assetType, location, minCapacity, maxCapacity, commissioningYear, limit) for Blueprint read-only REST-plan compilation. Separate from `context`.',
-                    example: { assetType: 'solar', location: '69168', minCapacity: 10, maxCapacity: 13, commissioningYear: 2025, limit: 100 },
+                    example: {
+                      assetType: 'solar',
+                      location: '69168',
+                      minCapacity: 10,
+                      maxCapacity: 13,
+                      commissioningYear: 2025,
+                      limit: 100,
+                    },
                   },
                   domain: {
                     type: 'string',
@@ -2391,7 +2510,8 @@ module.exports = {
                     execution: {
                       type: 'object',
                       nullable: true,
-                      description: 'Alias of recommendedEndpoints[0] for backward compatibility with #271 consumers that only read a single plan, or null when none is available.',
+                      description:
+                        'Alias of recommendedEndpoints[0] for backward compatibility with #271 consumers that only read a single plan, or null when none is available.',
                       properties: {
                         mode: { type: 'string', example: 'read_only_rest_plan' },
                         method: { type: 'string', example: 'GET' },
@@ -2410,7 +2530,8 @@ module.exports = {
                     },
                     noPlanReason: {
                       type: 'string',
-                      description: 'Present when resolved.kind is "none" — explains why no executable read-only plan was available.',
+                      description:
+                        'Present when resolved.kind is "none" — explains why no executable read-only plan was available.',
                     },
                   },
                 },
@@ -2457,18 +2578,23 @@ module.exports = {
           maxItems: maxEvidence,
         });
 
-        const [searchResult, knowledgeEvidence, datapointEvidence, objectEvidence, planningEvidence] =
-          await Promise.all([
-            this.searchCopilotEntities(ctx, { searchTerm, searchDomain, maxEvidence }),
-            this.collectCopilotKnowledgeEvidence(ctx, {
-              question: ctx.params.question,
-              searchTerm,
-              maxEvidence,
-            }),
-            this.collectCopilotDatapointEvidence(ctx, { queryTerms, maxEvidence }),
-            this.collectCopilotObjectEvidence(ctx, { context, queryTerms, maxEvidence }),
-            this.collectCopilotPlanningEvidence(ctx, { analysisSignals, maxEvidence }),
-          ]);
+        const [
+          searchResult,
+          knowledgeEvidence,
+          datapointEvidence,
+          objectEvidence,
+          planningEvidence,
+        ] = await Promise.all([
+          this.searchCopilotEntities(ctx, { searchTerm, searchDomain, maxEvidence }),
+          this.collectCopilotKnowledgeEvidence(ctx, {
+            question: ctx.params.question,
+            searchTerm,
+            maxEvidence,
+          }),
+          this.collectCopilotDatapointEvidence(ctx, { queryTerms, maxEvidence }),
+          this.collectCopilotObjectEvidence(ctx, { context, queryTerms, maxEvidence }),
+          this.collectCopilotPlanningEvidence(ctx, { analysisSignals, maxEvidence }),
+        ]);
 
         const baseAnswer = this.buildCopilotSearchAnswer({
           question: ctx.params.question,
@@ -2512,7 +2638,17 @@ module.exports = {
         domain: {
           type: 'enum',
           optional: true,
-          values: ['auto', 'vnb', 'vdmi', 'znp', 'grid-connection', 'edm', 'finance', 'process', 'redispatch'],
+          values: [
+            'auto',
+            'vnb',
+            'vdmi',
+            'znp',
+            'grid-connection',
+            'edm',
+            'finance',
+            'process',
+            'redispatch',
+          ],
           default: 'auto',
         },
         mode: {
@@ -2562,23 +2698,57 @@ module.exports = {
                 type: 'object',
                 required: ['question'],
                 properties: {
-                  question: { type: 'string', minLength: 1, maxLength: 8000, description: 'User question or prompt.' },
-                  sessionId: { type: 'string', description: 'Stable session identifier for multi-turn continuity. Generated and returned if omitted.' },
+                  question: {
+                    type: 'string',
+                    minLength: 1,
+                    maxLength: 8000,
+                    description: 'User question or prompt.',
+                  },
+                  sessionId: {
+                    type: 'string',
+                    description:
+                      'Stable session identifier for multi-turn continuity. Generated and returned if omitted.',
+                  },
                   domain: {
                     type: 'string',
-                    enum: ['auto', 'vnb', 'vdmi', 'znp', 'grid-connection', 'edm', 'finance', 'process', 'redispatch'],
+                    enum: [
+                      'auto',
+                      'vnb',
+                      'vdmi',
+                      'znp',
+                      'grid-connection',
+                      'edm',
+                      'finance',
+                      'process',
+                      'redispatch',
+                    ],
                     default: 'auto',
                   },
                   mode: {
                     type: 'string',
                     enum: ['answer_dossier', 'answer_dossier_followup'],
                     default: 'answer_dossier',
-                    description: 'answer_dossier_followup continues an existing session; include parentDossierId.',
+                    description:
+                      'answer_dossier_followup continues an existing session; include parentDossierId.',
                   },
                   maxEvidence: { type: 'integer', minimum: 1, maximum: 12, default: 5 },
-                  timeBudgetMs: { type: 'integer', minimum: 5000, maximum: 60000, default: 30000, description: 'Total time budget in milliseconds for dossier generation.' },
-                  parentDossierId: { type: 'string', description: 'For follow-up mode: dossierId of the previous dossier in this session.' },
-                  context: { type: 'object', additionalProperties: true, description: 'Optional channel, surface, tenant, or user context.' },
+                  timeBudgetMs: {
+                    type: 'integer',
+                    minimum: 5000,
+                    maximum: 60000,
+                    default: 30000,
+                    description: 'Total time budget in milliseconds for dossier generation.',
+                  },
+                  parentDossierId: {
+                    type: 'string',
+                    description:
+                      'For follow-up mode: dossierId of the previous dossier in this session.',
+                  },
+                  context: {
+                    type: 'object',
+                    additionalProperties: true,
+                    description: 'Optional channel, surface, tenant, or user context.',
+                  },
                   dossierContract: {
                     type: 'string',
                     enum: ['rich', 'slim'],
@@ -2598,21 +2768,80 @@ module.exports = {
               'application/json': {
                 schema: {
                   type: 'object',
-                  required: ['success', 'sessionId', 'dossierId', 'mode', 'answerMode', 'userContext', 'processStage', 'confidence', 'completionState', 'dossierMarkdown', 'rendererSystemHint', 'clarificationQuestions', 'finalDossierRequested', 'answerQuality'],
+                  required: [
+                    'success',
+                    'sessionId',
+                    'dossierId',
+                    'mode',
+                    'answerMode',
+                    'userContext',
+                    'processStage',
+                    'confidence',
+                    'completionState',
+                    'dossierMarkdown',
+                    'rendererSystemHint',
+                    'clarificationQuestions',
+                    'finalDossierRequested',
+                    'answerQuality',
+                  ],
                   properties: {
                     success: { type: 'boolean' },
                     sessionId: { type: 'string' },
                     dossierId: { type: 'string' },
                     mode: { type: 'string', enum: ['answer_dossier', 'answer_dossier_followup'] },
-                    answerMode: { type: 'string', enum: ['clarification_needed', 'management_brief', 'evidence_collection', 'process_check', 'prepare_intent', 'partial_async', 'final_answer'] },
-                    userContext: { type: 'string', enum: ['unknown', 'mayor', 'management', 'target_grid_planning', 'regulatory', 'technical_operator', 'process_action'] },
-                    processStage: { type: 'string', enum: ['initial', 'context_clarification', 'evidence_collection', 'synthesis', 'async_pending', 'intent_prepared', 'action_requested', 'completed'] },
+                    answerMode: {
+                      type: 'string',
+                      enum: [
+                        'clarification_needed',
+                        'management_brief',
+                        'evidence_collection',
+                        'process_check',
+                        'prepare_intent',
+                        'partial_async',
+                        'final_answer',
+                      ],
+                    },
+                    userContext: {
+                      type: 'string',
+                      enum: [
+                        'unknown',
+                        'mayor',
+                        'management',
+                        'target_grid_planning',
+                        'regulatory',
+                        'technical_operator',
+                        'process_action',
+                      ],
+                    },
+                    processStage: {
+                      type: 'string',
+                      enum: [
+                        'initial',
+                        'context_clarification',
+                        'evidence_collection',
+                        'synthesis',
+                        'async_pending',
+                        'intent_prepared',
+                        'action_requested',
+                        'completed',
+                      ],
+                    },
                     confidence: { type: 'string', enum: ['low', 'medium', 'high'] },
-                    completionState: { type: 'string', enum: ['completed', 'partial', 'async_pending'] },
-                    dossierVersion: { type: 'integer', description: 'Turn index within this session, starting at 1.' },
+                    completionState: {
+                      type: 'string',
+                      enum: ['completed', 'partial', 'async_pending'],
+                    },
+                    dossierVersion: {
+                      type: 'integer',
+                      description: 'Turn index within this session, starting at 1.',
+                    },
                     parentDossierId: { type: 'string', nullable: true },
                     latestDossierId: { type: 'string' },
-                    followUp: { type: 'object', nullable: true, description: 'Follow-up instructions for partial/async dossiers.' },
+                    followUp: {
+                      type: 'object',
+                      nullable: true,
+                      description: 'Follow-up instructions for partial/async dossiers.',
+                    },
                     priorConversationContext: {
                       type: 'object',
                       description:
@@ -2629,24 +2858,40 @@ module.exports = {
                     clarificationQuestions: {
                       type: 'array',
                       items: { type: 'string' },
-                      description: 'Focused clarification questions derived from the same evidence-gap signals as dossierMarkdown\'s Missing Evidence section. Empty when no clarification is needed or when finalDossierRequested is true.',
+                      description:
+                        "Focused clarification questions derived from the same evidence-gap signals as dossierMarkdown's Missing Evidence section. Empty when no clarification is needed or when finalDossierRequested is true.",
                     },
                     finalDossierRequested: {
                       type: 'boolean',
-                      description: 'Deterministic detection of whether the user asked for a final answer instead of another clarification turn.',
+                      description:
+                        'Deterministic detection of whether the user asked for a final answer instead of another clarification turn.',
                     },
                     finalDossierMarkdown: {
                       type: 'string',
                       nullable: true,
-                      description: 'Renderer package variant that suppresses clarification-question instructions while still surfacing evidence gaps as caveats. Null unless finalDossierRequested is true.',
+                      description:
+                        'Renderer package variant that suppresses clarification-question instructions while still surfacing evidence gaps as caveats. Null unless finalDossierRequested is true.',
                     },
                     answerQuality: {
                       type: 'object',
-                      description: 'Evidence-first policy signals (#238) describing what the dossier instructions require, not a verified property of any rendered prose answer.',
+                      description:
+                        'Evidence-first policy signals (#238) describing what the dossier instructions require, not a verified property of any rendered prose answer.',
                       properties: {
-                        usedRetrievedEvidence: { type: 'boolean', description: 'Whether relevant tool/MCP evidence was retrieved for this turn.' },
-                        substantiveAnswerInstructed: { type: 'boolean', description: 'Whether the dossier instructs an answer-first response (evidence-derived, final-mode, or flagged preliminary) rather than a defensive non-answer.' },
-                        defensiveNonAnswer: { type: 'boolean', description: 'Complement of substantiveAnswerInstructed — true when the dossier falls back to asking for more before answering.' },
+                        usedRetrievedEvidence: {
+                          type: 'boolean',
+                          description:
+                            'Whether relevant tool/MCP evidence was retrieved for this turn.',
+                        },
+                        substantiveAnswerInstructed: {
+                          type: 'boolean',
+                          description:
+                            'Whether the dossier instructs an answer-first response (evidence-derived, final-mode, or flagged preliminary) rather than a defensive non-answer.',
+                        },
+                        defensiveNonAnswer: {
+                          type: 'boolean',
+                          description:
+                            'Complement of substantiveAnswerInstructed — true when the dossier falls back to asking for more before answering.',
+                        },
                       },
                     },
                     dossierPlanning: {
@@ -2847,10 +3092,7 @@ module.exports = {
                 { meta: { ...ctx.meta, $gateway: false } }
               ),
               new Promise((_, reject) =>
-                setTimeout(
-                  () => reject(new Error('broker_timeout')),
-                  _brokerBudgetMs
-                )
+                setTimeout(() => reject(new Error('broker_timeout')), _brokerBudgetMs)
               ),
             ]);
             return {
@@ -2863,7 +3105,13 @@ module.exports = {
           } catch (_brokerErr) {
             const elapsedMs = Date.now() - _brokerStartMs;
             if (_brokerErr.message === 'broker_timeout') {
-              return { status: 'timeout', result: null, elapsedMs, timedOut: true, source: 'capability-broker' };
+              return {
+                status: 'timeout',
+                result: null,
+                elapsedMs,
+                timedOut: true,
+                source: 'capability-broker',
+              };
             }
             return {
               status: isActionUnavailable(_brokerErr) ? 'unavailable' : 'failed',
@@ -2885,7 +3133,9 @@ module.exports = {
           tenantLowEvidence = (Array.isArray(lowEvidenceResult?.docs) ? lowEvidenceResult.docs : [])
             .map((doc) => mapDossierLowEvidenceToEntry(doc?.payload || {}))
             .filter(Boolean)
-            .filter((entry) => copilotDossierEvidenceHasStrictQueryRelevance(entry, evidenceQuestion))
+            .filter((entry) =>
+              copilotDossierEvidenceHasStrictQueryRelevance(entry, evidenceQuestion)
+            )
             .slice(0, maxTenantLowEvidence);
         } catch (_err) {
           tenantLowEvidence = [];
@@ -2911,7 +3161,8 @@ module.exports = {
           Array.isArray(capabilityRouting.result?.recommendedPlan) &&
           capabilityRouting.result.recommendedPlan.length > 0 &&
           capabilityRouting.result.recommendedPlan.every(
-            (step) => typeof step?.action === 'string' && step.action.startsWith('interface-placeholder.')
+            (step) =>
+              typeof step?.action === 'string' && step.action.startsWith('interface-placeholder.')
           );
 
         if (_isAdvisoryPlaceholderCapability) {
@@ -2964,19 +3215,34 @@ module.exports = {
               })(),
             ]);
 
-            const knowledgeEvidence = knowledgeResult.status === 'fulfilled' ? knowledgeResult.value : { status: 'unavailable', hits: [] };
-            const searchEvidence = searchResult.status === 'fulfilled' ? searchResult.value : { results: [] };
+            const knowledgeEvidence =
+              knowledgeResult.status === 'fulfilled'
+                ? knowledgeResult.value
+                : { status: 'unavailable', hits: [] };
+            const searchEvidence =
+              searchResult.status === 'fulfilled' ? searchResult.value : { results: [] };
 
-            const knowledgeHits = Array.isArray(knowledgeEvidence?.hits) ? knowledgeEvidence.hits : [];
-            const searchResults = Array.isArray(searchEvidence?.results) ? searchEvidence.results : [];
+            const knowledgeHits = Array.isArray(knowledgeEvidence?.hits)
+              ? knowledgeEvidence.hits
+              : [];
+            const searchResults = Array.isArray(searchEvidence?.results)
+              ? searchEvidence.results
+              : [];
 
             const searchMapped = searchResults.slice(0, maxEvidence).map((r) => ({
               source: r.domain || r.type || 'cernion',
               value: compactString([r.title, r.excerpt].filter(Boolean).join(' · '), 400),
             }));
 
-            evidence = dedupeDossierEvidence([...userProvidedEvidence, ...tenantLowEvidence, ...knowledgeHits, ...searchMapped])
-              .filter((entry) => copilotDossierEvidenceHasStrictQueryRelevance(entry, evidenceQuestion))
+            evidence = dedupeDossierEvidence([
+              ...userProvidedEvidence,
+              ...tenantLowEvidence,
+              ...knowledgeHits,
+              ...searchMapped,
+            ])
+              .filter((entry) =>
+                copilotDossierEvidenceHasStrictQueryRelevance(entry, evidenceQuestion)
+              )
               .slice(0, maxDossierEvidence);
 
             if (knowledgeEvidence?.status === 'timeout') {
@@ -2990,18 +3256,28 @@ module.exports = {
           evidence = dedupeDossierEvidence([
             ...userProvidedEvidence,
             ...tenantLowEvidence,
-            ...(Array.isArray(priorDossierState?.knownEvidence) ? priorDossierState.knownEvidence : []),
+            ...(Array.isArray(priorDossierState?.knownEvidence)
+              ? priorDossierState.knownEvidence
+              : []),
           ]);
         }
         // Read-only capability evidence hydration — fail-open, allowlist-gated, time-budgeted.
         // Multi-source MCP hydration is concurrency-limited to avoid upstream session spikes.
-        const hydrationBudgetMs = timeBudget.thinkingMs > 3000
-          ? Math.min(20000, Math.floor(timeBudget.thinkingMs * 0.8))
-          : 0;
+        const hydrationBudgetMs =
+          timeBudget.thinkingMs > 3000
+            ? Math.min(20000, Math.floor(timeBudget.thinkingMs * 0.8))
+            : 0;
         const _hydrationResult = {
-          attempted: [], succeeded: [], failed: [], failedDetails: [],
-          timedOut: [], nullFormatted: [], evidenceAdded: 0,
-          skippedNoRule: [], skippedMissingParams: [], skippedUnsafe: [],
+          attempted: [],
+          succeeded: [],
+          failed: [],
+          failedDetails: [],
+          timedOut: [],
+          nullFormatted: [],
+          evidenceAdded: 0,
+          skippedNoRule: [],
+          skippedMissingParams: [],
+          skippedUnsafe: [],
         };
 
         if (
@@ -3012,14 +3288,20 @@ module.exports = {
           const brokerPlanActions = Array.isArray(capabilityRouting.result.recommendedPlan)
             ? capabilityRouting.result.recommendedPlan.map((step) => step?.action).filter(Boolean)
             : [];
-          const brokerCapabilityActions = Array.isArray(capabilityRouting.result.recommendedCapabilities)
+          const brokerCapabilityActions = Array.isArray(
+            capabilityRouting.result.recommendedCapabilities
+          )
             ? capabilityRouting.result.recommendedCapabilities.flatMap((capability) =>
                 Array.isArray(capability?.actions) ? capability.actions : []
               )
             : [];
           const brokerCandidateActions = [
-            ...(Array.isArray(capabilityRouting.result.preferredActions) ? capabilityRouting.result.preferredActions : []),
-            ...(Array.isArray(capabilityRouting.result.fallbackActions) ? capabilityRouting.result.fallbackActions : []),
+            ...(Array.isArray(capabilityRouting.result.preferredActions)
+              ? capabilityRouting.result.preferredActions
+              : []),
+            ...(Array.isArray(capabilityRouting.result.fallbackActions)
+              ? capabilityRouting.result.fallbackActions
+              : []),
             ...brokerPlanActions,
             ...brokerCapabilityActions,
           ].filter((a, i, arr) => arr.indexOf(a) === i);
@@ -3041,70 +3323,71 @@ module.exports = {
                 _hydrationResult.timedOut.push(actionName);
                 return null;
               }
-                const actionDef = getDossierHydrationRule(actionName);
-                if (!actionDef) {
-                  if (isDossierRuleSafetyRejected(actionName)) {
-                    _hydrationResult.skippedUnsafe.push(actionName);
-                  } else {
-                    _hydrationResult.skippedNoRule.push(actionName);
-                  }
-                  return null;
+              const actionDef = getDossierHydrationRule(actionName);
+              if (!actionDef) {
+                if (isDossierRuleSafetyRejected(actionName)) {
+                  _hydrationResult.skippedUnsafe.push(actionName);
+                } else {
+                  _hydrationResult.skippedNoRule.push(actionName);
                 }
-                const params = actionDef.extractParams(userProvidedFacts, dossierTask);
-                if (!params) {
-                  _hydrationResult.skippedMissingParams.push(actionName);
-                  return null;
+                return null;
+              }
+              const params = actionDef.extractParams(userProvidedFacts, dossierTask);
+              if (!params) {
+                _hydrationResult.skippedMissingParams.push(actionName);
+                return null;
+              }
+              _hydrationResult.attempted.push(actionName);
+              const _hydrationCallStart = Date.now();
+              try {
+                const perActionMs = Math.min(actionDef.timeoutMs || 7000, remainingMs);
+                const rawResult = await Promise.race([
+                  ctx.call(actionName, params, { meta: { ...ctx.meta, $gateway: false } }),
+                  new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('hydration_timeout')), perActionMs)
+                  ),
+                ]);
+                if (rawResult?.success === false) {
+                  const _err = new Error(rawResult.error?.message || 'hydration_action_failed');
+                  _err.code = rawResult.error?.code || rawResult.code || null;
+                  throw _err;
                 }
-                _hydrationResult.attempted.push(actionName);
-                const _hydrationCallStart = Date.now();
-                try {
-                  const perActionMs = Math.min(actionDef.timeoutMs || 7000, remainingMs);
-                  const rawResult = await Promise.race([
-                    ctx.call(actionName, params, { meta: { ...ctx.meta, $gateway: false } }),
-                    new Promise((_, reject) =>
-                      setTimeout(() => reject(new Error('hydration_timeout')), perActionMs)
-                    ),
-                  ]);
-                  if (rawResult?.success === false) {
-                    const _err = new Error(rawResult.error?.message || 'hydration_action_failed');
-                    _err.code = rawResult.error?.code || rawResult.code || null;
-                    throw _err;
-                  }
-                  const windowEvidence = actionName === 'energy-market.co2Intensity'
+                const windowEvidence =
+                  actionName === 'energy-market.co2Intensity'
                     ? buildDossierCo2ChargingWindowEvidence(rawResult, dossierTask)
                     : null;
-                  const formattedValue = [actionDef.formatEvidence(rawResult), windowEvidence]
-                    .filter(Boolean)
-                    .join(' · ');
-                  if (!formattedValue) {
-                    _hydrationResult.nullFormatted.push(actionName);
-                    return null;
-                  }
-                  _hydrationResult.succeeded.push(actionName);
-                  return {
-                    source: actionName,
-                    value: `${actionDef.label}: ${formattedValue}`,
-                    metadata: {
-                      evidenceQuality: actionDef.evidenceQuality,
-                      hydratedBy: actionName,
-                      hydratedElapsedMs: Date.now() - _hydrationCallStart,
-                      ruleId: actionDef.id,
-                      ruleVersion: actionDef.version || null,
-                    },
-                  };
-                } catch (_hydrationErr) {
-                  if (_hydrationErr.message === 'hydration_timeout') {
-                    _hydrationResult.timedOut.push(actionName);
-                  } else {
-                    _hydrationResult.failed.push(actionName);
-                    _hydrationResult.failedDetails.push({
-                      action: actionName,
-                      message: _hydrationErr.message || 'unknown',
-                      code: _hydrationErr.code || null,
-                    });
-                  }
+                const formattedValue = [actionDef.formatEvidence(rawResult), windowEvidence]
+                  .filter(Boolean)
+                  .join(' · ');
+                if (!formattedValue) {
+                  _hydrationResult.nullFormatted.push(actionName);
                   return null;
                 }
+                _hydrationResult.succeeded.push(actionName);
+                return {
+                  source: actionName,
+                  value: `${actionDef.label}: ${formattedValue}`,
+                  metadata: {
+                    evidenceQuality: actionDef.evidenceQuality,
+                    hydratedBy: actionName,
+                    hydratedElapsedMs: Date.now() - _hydrationCallStart,
+                    ruleId: actionDef.id,
+                    ruleVersion: actionDef.version || null,
+                  },
+                };
+              } catch (_hydrationErr) {
+                if (_hydrationErr.message === 'hydration_timeout') {
+                  _hydrationResult.timedOut.push(actionName);
+                } else {
+                  _hydrationResult.failed.push(actionName);
+                  _hydrationResult.failedDetails.push({
+                    action: actionName,
+                    message: _hydrationErr.message || 'unknown',
+                    code: _hydrationErr.code || null,
+                  });
+                }
+                return null;
+              }
             };
 
             const hydrationSettled = await Promise.allSettled(
@@ -3131,7 +3414,9 @@ module.exports = {
           }
         }
 
-        const confidenceEvidenceCount = evidence.filter((entry) => entry?.metadata?.evidenceQuality !== 'low').length;
+        const confidenceEvidenceCount = evidence.filter(
+          (entry) => entry?.metadata?.evidenceQuality !== 'low'
+        ).length;
         const classificationQuestion = compactString(
           [priorQuestionContext, question].filter(Boolean).join(' '),
           1200
@@ -3152,16 +3437,22 @@ module.exports = {
         const evidenceGaps = [];
         if (confidenceEvidenceCount === 0) {
           evidenceGaps.push({
-            statement: 'Validierte Cernion-Evidence: Keine belastbaren Treffer gefunden — Suchbegriff präzisieren, Domäne angeben oder Evidence nachreichen.',
-            question: 'Welche zusätzliche Evidence oder Quellenangabe können Sie zu dieser Frage liefern?',
-            enablesDossierAddition: 'Mit zusätzlicher Evidence oder einer präziseren Quellenangabe kann das Dossier eine belastbare statt vorläufige Antwort liefern.',
+            statement:
+              'Validierte Cernion-Evidence: Keine belastbaren Treffer gefunden — Suchbegriff präzisieren, Domäne angeben oder Evidence nachreichen.',
+            question:
+              'Welche zusätzliche Evidence oder Quellenangabe können Sie zu dieser Frage liefern?',
+            enablesDossierAddition:
+              'Mit zusätzlicher Evidence oder einer präziseren Quellenangabe kann das Dossier eine belastbare statt vorläufige Antwort liefern.',
           });
         }
         if (dossierContext.userContext === DOSSIER_USER_CONTEXT.UNKNOWN) {
           evidenceGaps.push({
-            statement: 'Nutzerkontext: Unklar wer fragt und mit welchem Ziel (Planung, Management, Prozessaktion).',
-            question: 'Für wen erstellen wir dieses Dossier und mit welchem Ziel (z. B. Planung, Management, Prozessaktion)?',
-            enablesDossierAddition: 'Mit Angabe des Nutzerkontexts kann das Dossier eine zielgruppengerechtere Antwort liefern.',
+            statement:
+              'Nutzerkontext: Unklar wer fragt und mit welchem Ziel (Planung, Management, Prozessaktion).',
+            question:
+              'Für wen erstellen wir dieses Dossier und mit welchem Ziel (z. B. Planung, Management, Prozessaktion)?',
+            enablesDossierAddition:
+              'Mit Angabe des Nutzerkontexts kann das Dossier eine zielgruppengerechtere Antwort liefern.',
           });
         }
         const evCo2ForecastEvidenceSufficient =
@@ -3173,15 +3464,19 @@ module.exports = {
           !evCo2ForecastEvidenceSufficient
         ) {
           evidenceGaps.push({
-            statement: 'Evidence-Basis: Für eine belastbare Planungsaussage sind weitere Datenpunkte erforderlich.',
-            question: 'Welche weiteren Datenpunkte oder Belege liegen vor, um die Planungsaussage zu stützen?',
-            enablesDossierAddition: 'Mit weiteren Datenpunkten kann das Dossier die Planungsaussage breiter absichern.',
+            statement:
+              'Evidence-Basis: Für eine belastbare Planungsaussage sind weitere Datenpunkte erforderlich.',
+            question:
+              'Welche weiteren Datenpunkte oder Belege liegen vor, um die Planungsaussage zu stützen?',
+            enablesDossierAddition:
+              'Mit weiteren Datenpunkten kann das Dossier die Planungsaussage breiter absichern.',
           });
         }
         if (preliminaryAnswerRequested && confidenceEvidenceCount === 0 && evidence.length > 0) {
           // Disclosure, not a gap to ask the user about — no corresponding clarification question.
           evidenceGaps.push({
-            statement: 'Vorläufige Aussage: Vom Nutzer ausdrücklich gewünscht, aber nur als nicht belastbare Arbeitshypothese auf Basis der Low-Evidence zulässig.',
+            statement:
+              'Vorläufige Aussage: Vom Nutzer ausdrücklich gewünscht, aber nur als nicht belastbare Arbeitshypothese auf Basis der Low-Evidence zulässig.',
             question: null,
           });
         }
@@ -3196,7 +3491,10 @@ module.exports = {
           : [
               ...evidenceGaps
                 .filter((gap) => gap.question && gap.enablesDossierAddition)
-                .map((gap) => ({ question: gap.question, enablesDossierAddition: gap.enablesDossierAddition })),
+                .map((gap) => ({
+                  question: gap.question,
+                  enablesDossierAddition: gap.enablesDossierAddition,
+                })),
               ...dossierPlanning.followUps.map((followUp) => ({
                 question: followUp.question,
                 enablesDossierAddition: followUp.enablesDossierAddition,
@@ -3258,16 +3556,17 @@ module.exports = {
           capabilityRouting,
           priorConversationContext,
         };
-        const dossierMarkdown = resolvedDossierContract.contract === 'slim'
-          ? buildSlimDossierMarkdown({
-              question,
-              dossierState: dossierContext,
-              evidence,
-              reasoningSummary,
-              domain,
-              possibleFollowUp,
-            })
-          : buildDossierMarkdown({ ...dossierMarkdownArgs, reasoningSummary });
+        const dossierMarkdown =
+          resolvedDossierContract.contract === 'slim'
+            ? buildSlimDossierMarkdown({
+                question,
+                dossierState: dossierContext,
+                evidence,
+                reasoningSummary,
+                domain,
+                possibleFollowUp,
+              })
+            : buildDossierMarkdown({ ...dossierMarkdownArgs, reasoningSummary });
 
         const finalDossierMarkdown = finalDossierRequested
           ? buildDossierMarkdown({
@@ -3772,7 +4071,10 @@ module.exports = {
                             stepId: 1,
                             action: 'finance-agent.analyze',
                             label: 'NPV Analysis',
-                            params: { gridOperator: 'STROMDAO Netze', investmentType: 'transformer' },
+                            params: {
+                              gridOperator: 'STROMDAO Netze',
+                              investmentType: 'transformer',
+                            },
                             dependencies: [],
                           },
                           {
@@ -4591,7 +4893,13 @@ module.exports = {
                 executionMode,
                 chatMode: 'consultation',
                 reply: _evReqReply,
-                execution: { status: 'completed', completedSteps: 0, steps: [], stopPoint: null, meta: null },
+                execution: {
+                  status: 'completed',
+                  completedSteps: 0,
+                  steps: [],
+                  stopPoint: null,
+                  meta: null,
+                },
                 plan: { steps: [], onboardingHints: [] },
                 routing: {
                   source: 'evidence-requirement',
@@ -4604,7 +4912,11 @@ module.exports = {
                 layer4Purged: true,
                 l3Compressed: false,
                 historyCount: Array.isArray(session.l3?.history) ? session.l3.history.length : 0,
-                contextUsage: { totalTokens: 0, estimatedPromptTokens: 0, estimatedCompletionTokens: 0 },
+                contextUsage: {
+                  totalTokens: 0,
+                  estimatedPromptTokens: 0,
+                  estimatedCompletionTokens: 0,
+                },
                 fileProcessing,
               };
             }
@@ -8139,7 +8451,8 @@ module.exports = {
 
       return {
         source: 'knowledge-rag',
-        status: result.status === 'available' && filteredHits.length === 0 ? 'missing' : result.status,
+        status:
+          result.status === 'available' && filteredHits.length === 0 ? 'missing' : result.status,
         query: result.query,
         hits: toCopilotList(
           filteredHits,
@@ -8425,7 +8738,9 @@ module.exports = {
                   entry.nettoleistung || entry.nettoNennleistung || entry.capacityKW
                     ? `Leistung: ${entry.nettoleistung || entry.nettoNennleistung || entry.capacityKW}`
                     : null,
-                  entry.netzbetreiberMastrNummer || entry.gridOperatorMastrId || entry.gridOperatorName,
+                  entry.netzbetreiberMastrNummer ||
+                    entry.gridOperatorMastrId ||
+                    entry.gridOperatorName,
                 ]
                   .filter(Boolean)
                   .join(' · '),
@@ -9182,7 +9497,8 @@ module.exports = {
           return `Für die Rolle **${role || 'netzplanung'}** liegen derzeit keine offenen Evidence-Anforderungen vor.`;
         }
         const lines = items.map(
-          (item) => `- **${item.label}** (ID: \`${item.requirementId}\`, seit ${item.createdAt?.slice(0, 10) || 'unbekannt'})`
+          (item) =>
+            `- **${item.label}** (ID: \`${item.requirementId}\`, seit ${item.createdAt?.slice(0, 10) || 'unbekannt'})`
         );
         return [
           `Offene Evidence-Anforderungen für Rolle **${role || 'netzplanung'}** (${items.length}):`,
@@ -16702,11 +17018,7 @@ module.exports = {
       const namespace = tenantNamespace(SESSION_NAMESPACE, tenantId);
       let doc;
       try {
-        doc = await ctx.call(
-          'object-store.get',
-          { namespace, key: sessionId },
-          { meta: ctx.meta }
-        );
+        doc = await ctx.call('object-store.get', { namespace, key: sessionId }, { meta: ctx.meta });
       } catch (error) {
         if (isNotFound(error) && options.allowMissing) {
           return false;

@@ -24,11 +24,12 @@
 
 const { FINDING_CODE_METADATA } = require('../src/validation-findings');
 const { resolveMunicipalityProfile } = require('../src/municipality-resolver');
-const { estimateMunicipalAnnualLoad, deriveTechnologyCorrelation } = require('../src/municipal-load-estimator');
-const { buildIntermunicipalComparison } = require('../src/intermunicipal-comparison');
 const {
-  evaluatePresentationGrounding,
-} = require('../src/receipt-grounded-presentation-contract');
+  estimateMunicipalAnnualLoad,
+  deriveTechnologyCorrelation,
+} = require('../src/municipal-load-estimator');
+const { buildIntermunicipalComparison } = require('../src/intermunicipal-comparison');
+const { evaluatePresentationGrounding } = require('../src/receipt-grounded-presentation-contract');
 const {
   buildWorkbenchClarificationItems,
   getVdmiBlueprintPackSeed,
@@ -1045,50 +1046,51 @@ module.exports = {
             const errors = [];
             const hasTimeseriesContext = !!(meloId && from && to);
 
-            const [rdRes, datapointRes, validationRes, forecastRes, vdmiRes] =
-              await Promise.all([
-                this.safeCall(
-                  ctx,
-                  ACTION_RD_LIST,
-                  { gridOperatorId, limit: 10 },
-                  null,
-                  errors,
-                  ACTION_RD_LIST
-                ),
-                this.safeCall(ctx, 'datapoint.health', {}, null, errors, 'datapoint.health'),
-                hasTimeseriesContext
-                  ? this.safeCall(
-                      ctx,
-                      'edm-validation.validate',
-                      { meloId, obis, from, to, autoFix: false },
-                      null,
-                      errors,
-                      'edm-validation.validate'
-                    )
-                  : null,
-                hasTimeseriesContext
-                  ? this.safeCall(
-                      ctx,
-                      'forecast-engine.evaluateQuality',
-                      { meloId, obis, from, to, profileId, annualConsumptionKwh },
-                      null,
-                      errors,
-                      'forecast-engine.evaluateQuality'
-                    )
-                  : null,
-                this.safeCall(
-                  ctx,
-                  ACTION_VDMI_FINDINGS,
-                  { status: 'open', limit: 500 },
-                  null,
-                  errors,
-                  ACTION_VDMI_FINDINGS
-                ),
-              ]);
+            const [rdRes, datapointRes, validationRes, forecastRes, vdmiRes] = await Promise.all([
+              this.safeCall(
+                ctx,
+                ACTION_RD_LIST,
+                { gridOperatorId, limit: 10 },
+                null,
+                errors,
+                ACTION_RD_LIST
+              ),
+              this.safeCall(ctx, 'datapoint.health', {}, null, errors, 'datapoint.health'),
+              hasTimeseriesContext
+                ? this.safeCall(
+                    ctx,
+                    'edm-validation.validate',
+                    { meloId, obis, from, to, autoFix: false },
+                    null,
+                    errors,
+                    'edm-validation.validate'
+                  )
+                : null,
+              hasTimeseriesContext
+                ? this.safeCall(
+                    ctx,
+                    'forecast-engine.evaluateQuality',
+                    { meloId, obis, from, to, profileId, annualConsumptionKwh },
+                    null,
+                    errors,
+                    'forecast-engine.evaluateQuality'
+                  )
+                : null,
+              this.safeCall(
+                ctx,
+                ACTION_VDMI_FINDINGS,
+                { status: 'open', limit: 500 },
+                null,
+                errors,
+                ACTION_VDMI_FINDINGS
+              ),
+            ]);
 
             const audits = Array.isArray(rdRes?.audits) ? rdRes.audits : [];
             const rdLatest =
-              (auditId && audits.find((a) => String(a?.id) === String(auditId))) || audits[0] || null;
+              (auditId && audits.find((a) => String(a?.id) === String(auditId))) ||
+              audits[0] ||
+              null;
             const validationFindings = Array.isArray(validationRes?.findings)
               ? validationRes.findings
               : [];
@@ -1155,7 +1157,12 @@ module.exports = {
         datasourceId: { type: 'string', optional: true, min: 1 },
         datapointId: { type: 'string', optional: true, min: 1 },
         query: { type: 'string', optional: true, min: 1 },
-        networkOperatorConfirmed: { type: 'boolean', optional: true, convert: true, default: false },
+        networkOperatorConfirmed: {
+          type: 'boolean',
+          optional: true,
+          convert: true,
+          default: false,
+        },
       },
       openapi: {
         tags: [OPENAPI_TAG],
@@ -1439,9 +1446,19 @@ module.exports = {
           { name: 'portalHint', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'providerView', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'customerStatement', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'utilmdMasterdataPath', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'utilmdMasterdataPath',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
           { name: 'meterValueBatchId', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'consumptionRetrievalStatus', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'consumptionRetrievalStatus',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
           { name: 'dataQualityStatus', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'nextBillingStep', in: 'query', required: false, schema: { type: 'string' } },
         ],
@@ -1520,9 +1537,24 @@ module.exports = {
           { name: 'caseId', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'connectionIntake', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'meteringConcept', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'assetControlCapability', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'gridOperationsDecision', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'marketCommunicationHandover', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'assetControlCapability',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'gridOperationsDecision',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'marketCommunicationHandover',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
           { name: 'billingImpactCheck', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'owner', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'deadline', in: 'query', required: false, schema: { type: 'string' } },
@@ -1593,7 +1625,14 @@ module.exports = {
         controllabilityScope: { type: 'string', optional: true, min: 1 },
         technicalStatus: { type: 'string', optional: true, min: 1 },
         feedbackCapability: { type: 'string', optional: true, min: 1 },
-        dataSourceRefs: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        dataSourceRefs: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
         sourceSnapshotId: { type: 'string', optional: true, min: 1 },
         checkStatus: { type: 'string', optional: true, min: 1 },
         nonExecutionReason: { type: 'string', optional: true, min: 1 },
@@ -1619,10 +1658,20 @@ module.exports = {
           { name: 'meloId', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'technologyType', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'capacityKW', in: 'query', required: false, schema: { type: 'number' } },
-          { name: 'controllabilityScope', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'controllabilityScope',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
           { name: 'technicalStatus', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'feedbackCapability', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'dataSourceRefs', in: 'query', required: false, schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] } },
+          {
+            name: 'dataSourceRefs',
+            in: 'query',
+            required: false,
+            schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] },
+          },
           { name: 'sourceSnapshotId', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'checkStatus', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'nonExecutionReason', in: 'query', required: false, schema: { type: 'string' } },
@@ -1716,7 +1765,12 @@ module.exports = {
           { name: 'targetRole', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'useCase', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'itemCount', in: 'query', required: false, schema: { type: 'number' } },
-          { name: 'maintenanceMinutesPerWeek', in: 'query', required: false, schema: { type: 'number' } },
+          {
+            name: 'maintenanceMinutesPerWeek',
+            in: 'query',
+            required: false,
+            schema: { type: 'number' },
+          },
           { name: 'updateCadence', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'owner', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'deputyOwner', in: 'query', required: false, schema: { type: 'string' } },
@@ -1809,7 +1863,12 @@ module.exports = {
           { name: 'affectedDecision', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'presentationStatus', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'protocolStatus', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'questionResponseWindow', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'questionResponseWindow',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
           { name: 'informationDuty', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'fachlicheBegleitung', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'owner', in: 'query', required: false, schema: { type: 'string' } },
@@ -1907,7 +1966,12 @@ module.exports = {
           { name: 'scenarioCoverage', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'budgetAnchor', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'costRange', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'expectedBenefitRange', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'expectedBenefitRange',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
           { name: 'regulatoryFit', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'decisionOwner', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'objectionWindow', in: 'query', required: false, schema: { type: 'string' } },
@@ -1991,8 +2055,18 @@ module.exports = {
           'create HITL tasks, or mutate billing, tariff, MaKo, settlement or external connector state.',
         parameters: [
           { name: 'connectionRequestId', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'netzverknuepfungspunktHint', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'capacityAssumptionKw', in: 'query', required: false, schema: { type: 'number' } },
+          {
+            name: 'netzverknuepfungspunktHint',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'capacityAssumptionKw',
+            in: 'query',
+            required: false,
+            schema: { type: 'number' },
+          },
           { name: 'gridRestrictionHint', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'futureDemandContext', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'legalQuestionMarker', in: 'query', required: false, schema: { type: 'string' } },
@@ -2152,10 +2226,38 @@ module.exports = {
         contractStatus: { type: 'string', optional: true, min: 1 },
         owner: { type: 'string', optional: true, min: 1 },
         ownerContact: { type: 'string', optional: true, min: 1 },
-        noRegretDataNeeds: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
-        availableEvidence: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
-        scenarioOptions: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
-        redLines: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        noRegretDataNeeds: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+        availableEvidence: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+        scenarioOptions: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+        redLines: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
         implementationStatus: { type: 'string', optional: true, min: 1 },
         decisionReadiness: { type: 'string', optional: true, min: 1 },
       },
@@ -2173,11 +2275,36 @@ module.exports = {
           { name: 'contractStatus', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'owner', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'ownerContact', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'noRegretDataNeeds', in: 'query', required: false, schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] } },
-          { name: 'availableEvidence', in: 'query', required: false, schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] } },
-          { name: 'scenarioOptions', in: 'query', required: false, schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] } },
-          { name: 'redLines', in: 'query', required: false, schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] } },
-          { name: 'implementationStatus', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'noRegretDataNeeds',
+            in: 'query',
+            required: false,
+            schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] },
+          },
+          {
+            name: 'availableEvidence',
+            in: 'query',
+            required: false,
+            schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] },
+          },
+          {
+            name: 'scenarioOptions',
+            in: 'query',
+            required: false,
+            schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] },
+          },
+          {
+            name: 'redLines',
+            in: 'query',
+            required: false,
+            schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] },
+          },
+          {
+            name: 'implementationStatus',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
           { name: 'decisionReadiness', in: 'query', required: false, schema: { type: 'string' } },
         ],
         responses: {
@@ -2253,15 +2380,30 @@ module.exports = {
           'The endpoint is read-only and does not execute backup, restore, scheduler, replication, external connector, webhook, key handling, tenant-data mutation or Personal Agent actions.',
         parameters: [
           { name: 'tenantScope', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'storeInventoryStatus', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'snapshotManifestStatus', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'storeInventoryStatus',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'snapshotManifestStatus',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
           { name: 'restoreDrillStatus', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'rtoTarget', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'rpoTarget', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'owner', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'lastDrillDate', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'nextDrillDue', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'perTenantRestoreStatus', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'perTenantRestoreStatus',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
           { name: 'notes', in: 'query', required: false, schema: { type: 'string' } },
         ],
         responses: {
@@ -2333,7 +2475,14 @@ module.exports = {
         communicationStatus: { type: 'string', optional: true, min: 1 },
         ownerRole: { type: 'string', optional: true, min: 1 },
         regulatoryUncertainty: { type: 'string', optional: true, min: 1 },
-        sourceDatapoints: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        sourceDatapoints: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
       },
       openapi: {
         tags: [OPENAPI_TAG],
@@ -2355,7 +2504,12 @@ module.exports = {
           { name: 'tariffImpact', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'communicationStatus', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'ownerRole', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'regulatoryUncertainty', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'regulatoryUncertainty',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
           { name: 'sourceDatapoints', in: 'query', required: false, schema: { type: 'string' } },
         ],
         responses: {
@@ -2415,23 +2569,93 @@ module.exports = {
         planningRunId: { type: 'string', optional: true, min: 1 },
         planningHorizon: { type: 'string', optional: true, min: 1 },
         sourceRegister: { type: 'string', optional: true, min: 1 },
-        sapAccountSources: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
-        controllingSourceIds: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
-        loanTmsSourceIds: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        sapAccountSources: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+        controllingSourceIds: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+        loanTmsSourceIds: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
         vatLogicRef: { type: 'string', optional: true, min: 1 },
         cashPoolSettlementRef: { type: 'string', optional: true, min: 1 },
         dictionaryVersion: { type: 'string', optional: true, min: 1 },
-        scenarioAssumptions: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
-        validationRules: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
-        plausibilityChecks: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        scenarioAssumptions: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+        validationRules: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+        plausibilityChecks: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
         sourceHealth: { type: 'string', optional: true, min: 1 },
         ownerRaci: { type: 'string', optional: true, min: 1 },
         correctionWorkflow: { type: 'string', optional: true, min: 1 },
         approvalStatus: { type: 'string', optional: true, min: 1 },
-        liquidityRiskFlags: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
-        interestRiskFlags: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
-        investmentLinkRefs: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
-        sourceDatapoints: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        liquidityRiskFlags: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+        interestRiskFlags: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+        investmentLinkRefs: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+        sourceDatapoints: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
       },
       openapi: {
         tags: [OPENAPI_TAG],
@@ -2445,7 +2669,12 @@ module.exports = {
           { name: 'sourceRegister', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'dictionaryVersion', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'vatLogicRef', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'cashPoolSettlementRef', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'cashPoolSettlementRef',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
           { name: 'ownerRaci', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'correctionWorkflow', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'approvalStatus', in: 'query', required: false, schema: { type: 'string' } },
@@ -2508,7 +2737,11 @@ module.exports = {
       params: {
         communityId: { type: 'string', optional: true, min: 1 },
         gridOperatorId: { type: 'string', optional: true, min: 1 },
-        participantCount: { type: 'multi', optional: true, rules: [{ type: 'number' }, { type: 'string', min: 1 }] },
+        participantCount: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'number' }, { type: 'string', min: 1 }],
+        },
         participantEvidenceRef: { type: 'string', optional: true, min: 1 },
         maloStatus: { type: 'string', optional: true, min: 1 },
         meteringReadiness: { type: 'string', optional: true, min: 1 },
@@ -2520,7 +2753,14 @@ module.exports = {
         economicsAssumptionRef: { type: 'string', optional: true, min: 1 },
         owner: { type: 'string', optional: true, min: 1 },
         escalationContact: { type: 'string', optional: true, min: 1 },
-        sourceArtifacts: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        sourceArtifacts: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
       },
       openapi: {
         tags: [OPENAPI_TAG],
@@ -2532,15 +2772,30 @@ module.exports = {
           { name: 'communityId', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'gridOperatorId', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'participantCount', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'participantEvidenceRef', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'participantEvidenceRef',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
           { name: 'maloStatus', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'meteringReadiness', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'marketRoleReadiness', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'dataBasis', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'a96EvidenceRef', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'settlementEvidenceRef', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'settlementEvidenceRef',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
           { name: 'contractEvidenceRef', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'economicsAssumptionRef', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'economicsAssumptionRef',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
           { name: 'owner', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'escalationContact', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'sourceArtifacts', in: 'query', required: false, schema: { type: 'string' } },
@@ -2610,7 +2865,14 @@ module.exports = {
         rollbackPlanStatus: { type: 'string', optional: true, min: 1 },
         owner: { type: 'string', optional: true, min: 1 },
         targetDate: { type: 'string', optional: true, min: 1 },
-        evidenceRefs: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        evidenceRefs: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
       },
       openapi: {
         tags: [OPENAPI_TAG],
@@ -2625,14 +2887,34 @@ module.exports = {
           { name: 'a96DefaultsStatus', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'specFreezeStatus', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'pilotTenantStatus', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'settlementHardeningStatus', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'allocationLoadTestStatus', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'settlementHardeningStatus',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'allocationLoadTestStatus',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
           { name: 'runbookStatus', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'complianceSignoffStatus', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'complianceSignoffStatus',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
           { name: 'rollbackPlanStatus', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'owner', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'targetDate', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'evidenceRefs', in: 'query', required: false, schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] } },
+          {
+            name: 'evidenceRefs',
+            in: 'query',
+            required: false,
+            schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] },
+          },
         ],
         responses: {
           200: {
@@ -2788,7 +3070,14 @@ module.exports = {
         owner: { type: 'string', optional: true, min: 1 },
         deadline: { type: 'string', optional: true, min: 1 },
         openMeasure: { type: 'string', optional: true, min: 1 },
-        evidenceRefs: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        evidenceRefs: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
       },
       openapi: {
         tags: [OPENAPI_TAG],
@@ -2802,14 +3091,24 @@ module.exports = {
           { name: 'lifecycleModel', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'sourceCatalogue', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'auditTrail', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'tenantIsolationEvidence', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'tenantIsolationEvidence',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
           { name: 'hitlPolicyEvidence', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'replayEvidence', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'expiryEvidence', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'owner', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'deadline', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'openMeasure', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'evidenceRefs', in: 'query', required: false, schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] } },
+          {
+            name: 'evidenceRefs',
+            in: 'query',
+            required: false,
+            schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] },
+          },
         ],
         responses: {
           200: {
@@ -2866,13 +3165,34 @@ module.exports = {
         changeId: { type: 'string', optional: true, min: 1 },
         effectiveDate: { type: 'string', optional: true, min: 1 },
         mechanismType: { type: 'string', optional: true, min: 1 },
-        affectedSystems: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        affectedSystems: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
         dictionaryVersion: { type: 'string', optional: true, min: 1 },
-        sourceDatapoints: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        sourceDatapoints: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
         intervalCoverage: { type: 'string', optional: true, min: 1 },
         masterDataStatus: { type: 'string', optional: true, min: 1 },
         substituteValuePolicy: { type: 'string', optional: true, min: 1 },
-        makoCases: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        makoCases: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
         operatorDeclarationStatus: { type: 'string', optional: true, min: 1 },
         billingRuleReference: { type: 'string', optional: true, min: 1 },
         auditTrailStatus: { type: 'string', optional: true, min: 1 },
@@ -2890,15 +3210,45 @@ module.exports = {
           { name: 'changeId', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'effectiveDate', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'mechanismType', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'affectedSystems', in: 'query', required: false, schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] } },
+          {
+            name: 'affectedSystems',
+            in: 'query',
+            required: false,
+            schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] },
+          },
           { name: 'dictionaryVersion', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'sourceDatapoints', in: 'query', required: false, schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] } },
+          {
+            name: 'sourceDatapoints',
+            in: 'query',
+            required: false,
+            schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] },
+          },
           { name: 'intervalCoverage', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'masterDataStatus', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'substituteValuePolicy', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'makoCases', in: 'query', required: false, schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] } },
-          { name: 'operatorDeclarationStatus', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'billingRuleReference', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'substituteValuePolicy',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'makoCases',
+            in: 'query',
+            required: false,
+            schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] },
+          },
+          {
+            name: 'operatorDeclarationStatus',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'billingRuleReference',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
           { name: 'auditTrailStatus', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'testCasePackStatus', in: 'query', required: false, schema: { type: 'string' } },
         ],
@@ -2970,8 +3320,22 @@ module.exports = {
         handoverStatus: { type: 'string', optional: true, min: 1 },
         budgetEnvelopeEur: { type: 'number', optional: true, convert: true },
         measureCount: { type: 'number', optional: true, integer: true, convert: true, min: 0 },
-        sourceDatapoints: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
-        blockedDecisions: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        sourceDatapoints: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+        blockedDecisions: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
       },
       openapi: {
         tags: [OPENAPI_TAG],
@@ -2994,9 +3358,24 @@ module.exports = {
           { name: 'approvalModel', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'handoverStatus', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'budgetEnvelopeEur', in: 'query', required: false, schema: { type: 'number' } },
-          { name: 'measureCount', in: 'query', required: false, schema: { type: 'integer', minimum: 0 } },
-          { name: 'sourceDatapoints', in: 'query', required: false, schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] } },
-          { name: 'blockedDecisions', in: 'query', required: false, schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] } },
+          {
+            name: 'measureCount',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', minimum: 0 },
+          },
+          {
+            name: 'sourceDatapoints',
+            in: 'query',
+            required: false,
+            schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] },
+          },
+          {
+            name: 'blockedDecisions',
+            in: 'query',
+            required: false,
+            schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] },
+          },
         ],
         responses: {
           200: {
@@ -3071,7 +3450,14 @@ module.exports = {
         pspCarryOverEur: { type: 'number', optional: true, convert: true },
         budgetOverhangEur: { type: 'number', optional: true, convert: true },
         priorityScore: { type: 'number', optional: true, convert: true },
-        blockedDecisions: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        blockedDecisions: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
       },
       openapi: {
         tags: [OPENAPI_TAG],
@@ -3086,7 +3472,12 @@ module.exports = {
           { name: 'migrationWave', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'sapSystemRef', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'pspElementId', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'legacyInternalOrderId', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'legacyInternalOrderId',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
           { name: 'assetBenefit', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'ownerRole', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'approvalStatus', in: 'query', required: false, schema: { type: 'string' } },
@@ -3099,7 +3490,12 @@ module.exports = {
           { name: 'pspCarryOverEur', in: 'query', required: false, schema: { type: 'number' } },
           { name: 'budgetOverhangEur', in: 'query', required: false, schema: { type: 'number' } },
           { name: 'priorityScore', in: 'query', required: false, schema: { type: 'number' } },
-          { name: 'blockedDecisions', in: 'query', required: false, schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] } },
+          {
+            name: 'blockedDecisions',
+            in: 'query',
+            required: false,
+            schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] },
+          },
         ],
         responses: {
           200: {
@@ -3173,7 +3569,14 @@ module.exports = {
         handoverDecision: { type: 'string', optional: true, min: 1 },
         evidenceStatus: { type: 'string', optional: true, min: 1 },
         dataQualityStatus: { type: 'string', optional: true, min: 1 },
-        sourceRefs: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        sourceRefs: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
       },
       openapi: {
         tags: [OPENAPI_TAG],
@@ -3198,7 +3601,12 @@ module.exports = {
           { name: 'handoverDecision', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'evidenceStatus', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'dataQualityStatus', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'sourceRefs', in: 'query', required: false, schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] } },
+          {
+            name: 'sourceRefs',
+            in: 'query',
+            required: false,
+            schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] },
+          },
         ],
         responses: {
           200: {
@@ -3260,15 +3668,33 @@ module.exports = {
         period: { type: 'string', optional: true, min: 1 },
         division: { type: 'string', optional: true, min: 1 },
         classification: { type: 'string', optional: true, min: 1 },
-        financialImpact: { type: 'multi', optional: true, rules: [{ type: 'number' }, { type: 'string', min: 1 }] },
+        financialImpact: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'number' }, { type: 'string', min: 1 }],
+        },
         assetImpact: { type: 'string', optional: true, min: 1 },
         ownerRole: { type: 'string', optional: true, min: 1 },
         decisionReadiness: { type: 'string', optional: true, min: 1 },
         blockedDecisionId: { type: 'string', optional: true, min: 1 },
         nextAction: { type: 'string', optional: true, min: 1 },
         sourceSnapshot: { type: 'string', optional: true, min: 1 },
-        evidenceRefs: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
-        forbiddenAssumptions: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        evidenceRefs: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+        forbiddenAssumptions: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
         budgetRef: { type: 'string', optional: true, min: 1 },
         riskRef: { type: 'string', optional: true, min: 1 },
       },
@@ -3284,14 +3710,24 @@ module.exports = {
           { name: 'period', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'division', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'classification', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'financialImpact', in: 'query', required: false, schema: { oneOf: [{ type: 'number' }, { type: 'string' }] } },
+          {
+            name: 'financialImpact',
+            in: 'query',
+            required: false,
+            schema: { oneOf: [{ type: 'number' }, { type: 'string' }] },
+          },
           { name: 'assetImpact', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'ownerRole', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'decisionReadiness', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'blockedDecisionId', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'nextAction', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'sourceSnapshot', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'evidenceRefs', in: 'query', required: false, schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] } },
+          {
+            name: 'evidenceRefs',
+            in: 'query',
+            required: false,
+            schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] },
+          },
         ],
         responses: {
           200: {
@@ -3360,7 +3796,14 @@ module.exports = {
         approvalStatus: { type: 'string', optional: true, min: 1 },
         followUpDecision: { type: 'string', optional: true, min: 1 },
         sourceSnapshotRef: { type: 'string', optional: true, min: 1 },
-        evidenceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        evidenceRef: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
       },
       openapi: {
         tags: [OPENAPI_TAG],
@@ -3381,7 +3824,12 @@ module.exports = {
           { name: 'approvalStatus', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'followUpDecision', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'sourceSnapshotRef', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'evidenceRef', in: 'query', required: false, schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] } },
+          {
+            name: 'evidenceRef',
+            in: 'query',
+            required: false,
+            schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] },
+          },
         ],
         responses: {
           200: {
@@ -3447,9 +3895,23 @@ module.exports = {
         committeeGateDate: { type: 'string', optional: true, min: 1 },
         executionHandoverOwner: { type: 'string', optional: true, min: 1 },
         nextDecisionGate: { type: 'string', optional: true, min: 1 },
-        blocker: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        blocker: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
         sourceSnapshotRef: { type: 'string', optional: true, min: 1 },
-        evidenceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        evidenceRef: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
       },
       openapi: {
         tags: [OPENAPI_TAG],
@@ -3465,11 +3927,26 @@ module.exports = {
           { name: 'dependencyMap', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'investmentImpactRef', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'committeeGateDate', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'executionHandoverOwner', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'executionHandoverOwner',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
           { name: 'nextDecisionGate', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'blocker', in: 'query', required: false, schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] } },
+          {
+            name: 'blocker',
+            in: 'query',
+            required: false,
+            schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] },
+          },
           { name: 'sourceSnapshotRef', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'evidenceRef', in: 'query', required: false, schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] } },
+          {
+            name: 'evidenceRef',
+            in: 'query',
+            required: false,
+            schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] },
+          },
         ],
         responses: {
           200: {
@@ -3538,7 +4015,14 @@ module.exports = {
         closureProof: { type: 'string', optional: true, min: 1 },
         blockedFollowUpAction: { type: 'string', optional: true, min: 1 },
         sourceSnapshotRef: { type: 'string', optional: true, min: 1 },
-        evidenceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        evidenceRef: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
       },
       openapi: {
         tags: [OPENAPI_TAG],
@@ -3556,9 +4040,19 @@ module.exports = {
           { name: 'nextGate', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'closureStatus', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'closureProof', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'blockedFollowUpAction', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'blockedFollowUpAction',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
           { name: 'sourceSnapshotRef', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'evidenceRef', in: 'query', required: false, schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] } },
+          {
+            name: 'evidenceRef',
+            in: 'query',
+            required: false,
+            schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] },
+          },
         ],
         responses: {
           200: {
@@ -3629,7 +4123,14 @@ module.exports = {
         interfaceRiskStatus: { type: 'string', optional: true, min: 1 },
         gridInvestmentSpaceProof: { type: 'string', optional: true, min: 1 },
         sourceSnapshotRef: { type: 'string', optional: true, min: 1 },
-        evidenceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        evidenceRef: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
       },
       openapi: {
         tags: [OPENAPI_TAG],
@@ -3645,14 +4146,34 @@ module.exports = {
           { name: 'committeeGate', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'capexOpexBaseline', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'eogEffectEvidence', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'regulatoryEffectEvidence', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'costRecognitionAssumption', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'regulatoryEffectEvidence',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'costRecognitionAssumption',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
           { name: 'financierConditions', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'dataQualityStatus', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'interfaceRiskStatus', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'gridInvestmentSpaceProof', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'gridInvestmentSpaceProof',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
           { name: 'sourceSnapshotRef', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'evidenceRef', in: 'query', required: false, schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] } },
+          {
+            name: 'evidenceRef',
+            in: 'query',
+            required: false,
+            schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] },
+          },
         ],
         responses: {
           200: {
@@ -3725,7 +4246,14 @@ module.exports = {
         dataQuality: { type: 'string', optional: true, min: 1 },
         rollbackOrStopCriterion: { type: 'string', optional: true, min: 1 },
         sourceSnapshotRef: { type: 'string', optional: true, min: 1 },
-        evidenceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        evidenceRef: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
       },
       openapi: {
         tags: [OPENAPI_TAG],
@@ -3747,9 +4275,19 @@ module.exports = {
           { name: 'decisionValue', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'followUpProcess', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'dataQuality', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'rollbackOrStopCriterion', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'rollbackOrStopCriterion',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
           { name: 'sourceSnapshotRef', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'evidenceRef', in: 'query', required: false, schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] } },
+          {
+            name: 'evidenceRef',
+            in: 'query',
+            required: false,
+            schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] },
+          },
         ],
         responses: {
           200: {
@@ -3810,19 +4348,66 @@ module.exports = {
         gridOperatorId: { type: 'string', optional: true, min: 1 },
         assetScope: { type: 'string', optional: true, min: 1 },
         financingModel: { type: 'string', optional: true, min: 1 },
-        offBalanceVolumeEur: { type: 'multi', optional: true, rules: [{ type: 'number' }, { type: 'string', min: 1 }] },
-        freedLiquidityEur: { type: 'multi', optional: true, rules: [{ type: 'number' }, { type: 'string', min: 1 }] },
-        financierCostEur: { type: 'multi', optional: true, rules: [{ type: 'number' }, { type: 'string', min: 1 }] },
+        offBalanceVolumeEur: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'number' }, { type: 'string', min: 1 }],
+        },
+        freedLiquidityEur: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'number' }, { type: 'string', min: 1 }],
+        },
+        financierCostEur: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'number' }, { type: 'string', min: 1 }],
+        },
         capexOpexTotexEffect: { type: 'string', optional: true, min: 1 },
         regulatoryRecognitionStatus: { type: 'string', optional: true, min: 1 },
-        purposeLockedMeasures: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
-        controlRoomInvestments: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
-        processInvestments: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
-        gridInfrastructureInvestments: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        purposeLockedMeasures: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+        controlRoomInvestments: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+        processInvestments: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+        gridInfrastructureInvestments: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
         budgetDilutionRisk: { type: 'string', optional: true, min: 1 },
         financeReviewStatus: { type: 'string', optional: true, min: 1 },
         sourceSnapshotRef: { type: 'string', optional: true, min: 1 },
-        evidenceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        evidenceRef: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
       },
       openapi: {
         tags: [OPENAPI_TAG],
@@ -3867,19 +4452,40 @@ module.exports = {
         caseId: { type: 'string', optional: true, min: 1 },
         gridOperatorId: { type: 'string', optional: true, min: 1 },
         meteringScope: { type: 'string', optional: true, min: 1 },
-        sourceDatapoints: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        sourceDatapoints: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
         dataQualityStatus: { type: 'string', optional: true, min: 1 },
         forecastWindow: { type: 'string', optional: true, min: 1 },
         congestionSignal: { type: 'string', optional: true, min: 1 },
         assetScope: { type: 'string', optional: true, min: 1 },
         controllabilityStatus: { type: 'string', optional: true, min: 1 },
-        flexibilityOptions: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        flexibilityOptions: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
         netzfahrplanAssessmentRef: { type: 'string', optional: true, min: 1 },
         operationalDecision: { type: 'string', optional: true, min: 1 },
         controlReadiness: { type: 'string', optional: true, min: 1 },
         lineOwnerRole: { type: 'string', optional: true, min: 1 },
         sourceSnapshotRef: { type: 'string', optional: true, min: 1 },
-        evidenceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        evidenceRef: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
       },
       openapi: {
         tags: [OPENAPI_TAG],
@@ -3927,18 +4533,53 @@ module.exports = {
         digitalTwinScope: { type: 'string', optional: true, min: 1 },
         clsInterfaceScope: { type: 'string', optional: true, min: 1 },
         dataFlowMap: { type: 'string', optional: true, min: 1 },
-        personalDataCategories: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
-        rolesAccessRights: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
-        rbacRefs: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        personalDataCategories: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+        rolesAccessRights: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+        rbacRefs: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
         avvStatus: { type: 'string', optional: true, min: 1 },
         ndaStatus: { type: 'string', optional: true, min: 1 },
         worksCouncilStatus: { type: 'string', optional: true, min: 1 },
         dsfaStatus: { type: 'string', optional: true, min: 1 },
         billingModuleImpact: { type: 'string', optional: true, min: 1 },
         regulatoryEvidenceStatus: { type: 'string', optional: true, min: 1 },
-        securityEvidenceRefs: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        securityEvidenceRefs: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
         approvalStatus: { type: 'string', optional: true, min: 1 },
-        sourceEvidenceRefs: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        sourceEvidenceRefs: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
         sourceSnapshot: { type: 'string', optional: true, min: 1 },
       },
       openapi: {
@@ -3995,7 +4636,14 @@ module.exports = {
         migrationRoadmap: { type: 'string', optional: true, min: 1 },
         owner: { type: 'string', optional: true, min: 1 },
         nextAction: { type: 'string', optional: true, min: 1 },
-        sourceEvidenceRefs: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        sourceEvidenceRefs: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
         sourceSnapshot: { type: 'string', optional: true, min: 1 },
       },
       openapi: {
@@ -4041,16 +4689,65 @@ module.exports = {
         submissionId: { type: 'string', optional: true, min: 1 },
         submissionDeadline: { type: 'string', optional: true, min: 1 },
         coordinator: { type: 'string', optional: true, min: 1 },
-        sourceList: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        sourceList: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
         dataReconciliationStatus: { type: 'string', optional: true, min: 1 },
-        reasonCatalog: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
-        assetGroupStatuses: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
-        openMeasures: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        reasonCatalog: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+        assetGroupStatuses: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+        openMeasures: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
         handoverDecision: { type: 'string', optional: true, min: 1 },
         handoverOwner: { type: 'string', optional: true, min: 1 },
-        nextCycleTasks: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
-        deadlineRisks: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
-        sourceEvidenceRefs: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        nextCycleTasks: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+        deadlineRisks: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+        sourceEvidenceRefs: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
         sourceSnapshot: { type: 'string', optional: true, min: 1 },
       },
       openapi: {
@@ -4097,16 +4794,37 @@ module.exports = {
         topic: { type: 'string', optional: true, min: 1 },
         serviceImpact: { type: 'string', optional: true, min: 1 },
         populationImpact: { type: 'string', optional: true, min: 1 },
-        requiredMeasures: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        requiredMeasures: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
         financeImpact: { type: 'string', optional: true, min: 1 },
         knowledgeState: { type: 'string', optional: true, min: 1 },
         trainingNeed: { type: 'string', optional: true, min: 1 },
         operatingModelNeed: { type: 'string', optional: true, min: 1 },
         owner: { type: 'string', optional: true, min: 1 },
         nextGate: { type: 'string', optional: true, min: 1 },
-        blockedFollowUp: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        blockedFollowUp: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
         decisionDeadline: { type: 'string', optional: true, min: 1 },
-        sourceEvidenceRefs: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        sourceEvidenceRefs: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
         sourceSnapshot: { type: 'string', optional: true, min: 1 },
       },
       openapi: {
@@ -4157,9 +4875,20 @@ module.exports = {
         committeeWindow: { type: 'string', optional: true, min: 1 },
         owner: { type: 'string', optional: true, min: 1 },
         blockedFollowUpAction: { type: 'string', optional: true, min: 1 },
-        capexEur: { type: 'multi', optional: true, rules: [{ type: 'number' }, { type: 'string', min: 1 }] },
+        capexEur: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'number' }, { type: 'string', min: 1 }],
+        },
         riskFlag: { type: 'string', optional: true, min: 1 },
-        sourceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        sourceRef: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
       },
       openapi: {
         tags: [OPENAPI_TAG],
@@ -4211,7 +4940,14 @@ module.exports = {
         committeeWindow: { type: 'string', optional: true, min: 1 },
         blockedDecision: { type: 'string', optional: true, min: 1 },
         reviewStatus: { type: 'string', optional: true, min: 1 },
-        sourceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        sourceRef: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
       },
       openapi: {
         tags: [OPENAPI_TAG],
@@ -4266,7 +5002,14 @@ module.exports = {
         owner: { type: 'string', optional: true, min: 1 },
         nextDecisionGate: { type: 'string', optional: true, min: 1 },
         blockedFollowUp: { type: 'string', optional: true, min: 1 },
-        sourceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        sourceRef: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
         flexContext: { type: 'string', optional: true, min: 1 },
         znpContext: { type: 'string', optional: true, min: 1 },
         novaContext: { type: 'string', optional: true, min: 1 },
@@ -4325,7 +5068,14 @@ module.exports = {
         owner: { type: 'string', optional: true, min: 1 },
         nextDecisionWindow: { type: 'string', optional: true, min: 1 },
         blockedFollowUp: { type: 'string', optional: true, min: 1 },
-        sourceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        sourceRef: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
         vdmiContext: { type: 'string', optional: true, min: 1 },
         hitlContext: { type: 'string', optional: true, min: 1 },
         interfacePlaceholderContext: { type: 'string', optional: true, min: 1 },
@@ -4374,17 +5124,44 @@ module.exports = {
         indicatorId: { type: 'string', optional: true, min: 1 },
         division: { type: 'string', optional: true, min: 1 },
         sourceType: { type: 'string', optional: true, min: 1 },
-        targetCount: { type: 'multi', optional: true, rules: [{ type: 'number' }, { type: 'string', min: 1 }] },
-        actualCount: { type: 'multi', optional: true, rules: [{ type: 'number' }, { type: 'string', min: 1 }] },
-        backlogCount: { type: 'multi', optional: true, rules: [{ type: 'number' }, { type: 'string', min: 1 }] },
+        targetCount: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'number' }, { type: 'string', min: 1 }],
+        },
+        actualCount: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'number' }, { type: 'string', min: 1 }],
+        },
+        backlogCount: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'number' }, { type: 'string', min: 1 }],
+        },
         dataQualityStatus: { type: 'string', optional: true, min: 1 },
         contractorLoad: { type: 'string', optional: true, min: 1 },
-        capexImpactEur: { type: 'multi', optional: true, rules: [{ type: 'number' }, { type: 'string', min: 1 }] },
-        opexImpactEur: { type: 'multi', optional: true, rules: [{ type: 'number' }, { type: 'string', min: 1 }] },
+        capexImpactEur: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'number' }, { type: 'string', min: 1 }],
+        },
+        opexImpactEur: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'number' }, { type: 'string', min: 1 }],
+        },
         owner: { type: 'string', optional: true, min: 1 },
         nextControlStep: { type: 'string', optional: true, min: 1 },
         blockedFollowUp: { type: 'string', optional: true, min: 1 },
-        sourceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        sourceRef: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
       },
       openapi: {
         tags: [OPENAPI_TAG],
@@ -4428,16 +5205,34 @@ module.exports = {
       params: {
         lineAssetId: { type: 'string', optional: true, min: 1 },
         geometryRef: { type: 'string', optional: true, min: 1 },
-        connectedPointAssetIds: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        connectedPointAssetIds: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
         division: { type: 'string', optional: true, min: 1 },
         networkCalculationRef: { type: 'string', optional: true, min: 1 },
         dataQualityStatus: { type: 'string', optional: true, min: 1 },
         transformationStatus: { type: 'string', optional: true, min: 1 },
         futureOption: { type: 'string', optional: true, min: 1 },
-        investmentNeed: { type: 'multi', optional: true, rules: [{ type: 'number' }, { type: 'string', min: 1 }] },
+        investmentNeed: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'number' }, { type: 'string', min: 1 }],
+        },
         owner: { type: 'string', optional: true, min: 1 },
         nextDecision: { type: 'string', optional: true, min: 1 },
-        sourceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        sourceRef: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
       },
       openapi: {
         tags: [OPENAPI_TAG],
@@ -4482,14 +5277,28 @@ module.exports = {
         useCaseId: { type: 'string', optional: true, min: 1 },
         processOwner: { type: 'string', optional: true, min: 1 },
         useCasePriority: { type: 'string', optional: true, min: 1 },
-        allowedDataspaces: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        allowedDataspaces: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
         promptStandards: { type: 'string', optional: true, min: 1 },
         processBoundaries: { type: 'string', optional: true, min: 1 },
         rolesAndResponsibilities: { type: 'string', optional: true, min: 1 },
         guidedApplication: { type: 'string', optional: true, min: 1 },
         riskAndApprovalStatus: { type: 'string', optional: true, min: 1 },
         proofOfBenefit: { type: 'string', optional: true, min: 1 },
-        sourceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        sourceRef: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
       },
       openapi: {
         tags: [OPENAPI_TAG],
@@ -4540,7 +5349,14 @@ module.exports = {
         nextAction: { type: 'string', optional: true, min: 1 },
         mandateStatus: { type: 'string', optional: true, min: 1 },
         riskIfDelayed: { type: 'string', optional: true, min: 1 },
-        sourceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        sourceRef: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
       },
       openapi: {
         tags: [OPENAPI_TAG],
@@ -4597,7 +5413,14 @@ module.exports = {
         nextAction: { type: 'string', optional: true, min: 1 },
         forecast: { type: 'boolean', optional: true },
         date: { type: 'string', optional: true, min: 1 },
-        sourceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        sourceRef: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
       },
       openapi: {
         tags: [OPENAPI_TAG],
@@ -4649,7 +5472,14 @@ module.exports = {
         nextAction: { type: 'string', optional: true, min: 1 },
         forecast: { type: 'boolean', optional: true },
         date: { type: 'string', optional: true, min: 1 },
-        sourceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        sourceRef: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
       },
       openapi: {
         tags: [OPENAPI_TAG],
@@ -4693,19 +5523,68 @@ module.exports = {
         meteringPointId: { type: 'string', optional: true, min: 1 },
         targetState: { type: 'string', optional: true, min: 1 },
         capabilityMaturity: { type: 'string', optional: true, min: 1 },
-        dataObjects: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
-        systemIntegrations: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
-        roleOwnership: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        dataObjects: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+        systemIntegrations: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+        roleOwnership: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
         redispatchBoundary: { type: 'string', optional: true, min: 1 },
         fnavReadiness: { type: 'string', optional: true, min: 1 },
-        capacityManagementGaps: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
-        roadmapItems: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
-        decisionMeetings: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        capacityManagementGaps: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+        roadmapItems: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+        decisionMeetings: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
         owner: { type: 'string', optional: true, min: 1 },
         nextAction: { type: 'string', optional: true, min: 1 },
         forecast: { type: 'boolean', optional: true },
         date: { type: 'string', optional: true, min: 1 },
-        sourceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        sourceRef: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
       },
       openapi: {
         tags: [OPENAPI_TAG],
@@ -4748,21 +5627,71 @@ module.exports = {
       params: {
         projectId: { type: 'string', optional: true, min: 1 },
         division: { type: 'string', optional: true, min: 1 },
-        nodes: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
-        dependencies: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
-        dataQualityGaps: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
-        investmentPaths: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
-        decommissionRepurposePaths: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
-        customerGroups: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        nodes: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+        dependencies: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+        dataQualityGaps: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+        investmentPaths: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+        decommissionRepurposePaths: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+        customerGroups: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
         owner: { type: 'string', optional: true, min: 1 },
         nextAction: { type: 'string', optional: true, min: 1 },
         forecast: { type: 'boolean', optional: true },
         date: { type: 'string', optional: true, min: 1 },
-        sourceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        sourceRef: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
       },
       openapi: {
         tags: [OPENAPI_TAG],
-        summary: 'Gas- und Waermetransformation Abhaengigkeitslandkarte — read-only dossier-safe status',
+        summary:
+          'Gas- und Waermetransformation Abhaengigkeitslandkarte — read-only dossier-safe status',
         description:
           'Builds deterministic dependency map and status from supplied facts. ' +
           'The endpoint is read-only and does not run writes to ZNP, assets, HITL, or VDMI.',
@@ -4807,7 +5736,14 @@ module.exports = {
         decommissionPath: { type: 'string', optional: true, min: 1 },
         owner: { type: 'string', optional: true, min: 1 },
         nextAction: { type: 'string', optional: true, min: 1 },
-        sourceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        sourceRef: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
       },
       openapi: {
         tags: [OPENAPI_TAG],
@@ -4859,7 +5795,14 @@ module.exports = {
         owner: { type: 'string', optional: true, min: 1 },
         nextDecisionGate: { type: 'string', optional: true, min: 1 },
         blockedFollowUpAction: { type: 'string', optional: true, min: 1 },
-        sourceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        sourceRef: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
       },
       openapi: {
         tags: [OPENAPI_TAG],
@@ -4905,14 +5848,25 @@ module.exports = {
         znpAlignment: { type: 'string', optional: true, min: 1 },
         gridNode: { type: 'string', optional: true, min: 1 },
         technicalRestriction: { type: 'string', optional: true, min: 1 },
-        requestedCapacityKW: { type: 'multi', optional: true, rules: [{ type: 'number' }, { type: 'string' }] },
+        requestedCapacityKW: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'number' }, { type: 'string' }],
+        },
         technicalStatus: { type: 'string', optional: true, min: 1 },
         capacityUtilization: { type: 'string', optional: true, min: 1 },
         fnavContractLogic: { type: 'string', optional: true, min: 1 },
         commercialAssumptions: { type: 'string', optional: true, min: 1 },
         legalAgreementStatus: { type: 'string', optional: true, min: 1 },
         legalBoundaries: { type: 'string', optional: true, min: 1 },
-        sourceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        sourceRef: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
       },
       openapi: {
         tags: [OPENAPI_TAG],
@@ -4958,12 +5912,31 @@ module.exports = {
         assetScope: { type: 'string', optional: true, min: 1 },
         meteringScope: { type: 'string', optional: true, min: 1 },
         period: { type: 'string', optional: true, min: 1 },
-        investmentVolume: { type: 'multi', optional: true, rules: [{ type: 'number' }, { type: 'string' }] },
-        imsysCount: { type: 'multi', optional: true, rules: [{ type: 'number' }, { type: 'string' }] },
+        investmentVolume: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'number' }, { type: 'string' }],
+        },
+        imsysCount: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'number' }, { type: 'string' }],
+        },
         financingModel: { type: 'string', optional: true, min: 1 },
-        opexAnnual: { type: 'multi', optional: true, rules: [{ type: 'number' }, { type: 'string' }] },
+        opexAnnual: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'number' }, { type: 'string' }],
+        },
         regulatoryRelevance: { type: 'string', optional: true, min: 1 },
-        sourceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        sourceRef: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
       },
       openapi: {
         tags: [OPENAPI_TAG],
@@ -5012,18 +5985,60 @@ module.exports = {
         dataQualityStatus: { type: 'string', optional: true, min: 1 },
         systemBreakStatus: { type: 'string', optional: true, min: 1 },
         redLineStatus: { type: 'string', optional: true, min: 1 },
-        missingEvidence: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
-        roleDecisionGaps: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
-        dataQualityGaps: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
-        systemBreaks: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
-        nonNegotiableConstraints: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        missingEvidence: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+        roleDecisionGaps: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+        dataQualityGaps: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+        systemBreaks: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+        nonNegotiableConstraints: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
         owner: { type: 'string', optional: true, min: 1 },
         dueDate: { type: 'string', optional: true, min: 1 },
         gridOperatorId: { type: 'string', optional: true, min: 1 },
         taskId: { type: 'string', optional: true, min: 1 },
         matrixId: { type: 'string', optional: true, min: 1 },
         assetId: { type: 'string', optional: true, min: 1 },
-        sourceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        sourceRef: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
       },
       openapi: {
         tags: [OPENAPI_TAG],
@@ -5078,9 +6093,27 @@ module.exports = {
         owner: { type: 'string', optional: true, min: 1 },
         dueAt: { type: 'string', optional: true, min: 1 },
         nextDecision: { type: 'string', optional: true, min: 1 },
-        missingEvidence: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
-        customSignals: { type: 'multi', optional: true, rules: [{ type: 'array' }, { type: 'string', min: 1 }] },
-        sourceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        missingEvidence: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+        customSignals: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'array' }, { type: 'string', min: 1 }],
+        },
+        sourceRef: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
       },
       openapi: {
         tags: [OPENAPI_TAG],
@@ -5125,8 +6158,16 @@ module.exports = {
         projectId: { type: 'string', optional: true, min: 1 },
         storageAssetId: { type: 'string', optional: true, min: 1 },
         location: { type: 'string', optional: true, min: 1 },
-        requestedCapacityKW: { type: 'multi', optional: true, rules: [{ type: 'number' }, { type: 'string', min: 1 }] },
-        storageCapacityKWh: { type: 'multi', optional: true, rules: [{ type: 'number' }, { type: 'string', min: 1 }] },
+        requestedCapacityKW: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'number' }, { type: 'string', min: 1 }],
+        },
+        storageCapacityKWh: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'number' }, { type: 'string', min: 1 }],
+        },
         voltageLevel: { type: 'string', optional: true, min: 1 },
         assetContextStatus: { type: 'string', optional: true, min: 1 },
         napMastrNummer: { type: 'string', optional: true, min: 1 },
@@ -5145,9 +6186,30 @@ module.exports = {
         owner: { type: 'string', optional: true, min: 1 },
         nextDecision: { type: 'string', optional: true, min: 1 },
         source: { type: 'string', optional: true, min: 1 },
-        missingEvidence: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
-        evidenceGaps: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
-        sourceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        missingEvidence: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+        evidenceGaps: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+        sourceRef: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
       },
       openapi: {
         tags: [OPENAPI_TAG],
@@ -5205,9 +6267,30 @@ module.exports = {
         blockedAccess: { type: 'string', optional: true, min: 1 },
         caseId: { type: 'string', optional: true, min: 1 },
         source: { type: 'string', optional: true, min: 1 },
-        missingEvidence: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
-        evidenceGaps: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
-        sourceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        missingEvidence: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+        evidenceGaps: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+        sourceRef: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
       },
       openapi: {
         tags: [OPENAPI_TAG],
@@ -5249,7 +6332,14 @@ module.exports = {
       params: {
         signalId: { type: 'string', optional: true, min: 1 },
         sourceType: { type: 'string', optional: true, min: 1 },
-        sourceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        sourceRef: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
         processType: { type: 'string', optional: true, min: 1 },
         riskLevel: { type: 'string', optional: true, min: 1 },
         ownerRole: { type: 'string', optional: true, min: 1 },
@@ -5259,11 +6349,33 @@ module.exports = {
         evidenceStatus: { type: 'string', optional: true, min: 1 },
         blockedDecision: { type: 'string', optional: true, min: 1 },
         linkedEntity: { type: 'string', optional: true, min: 1 },
-        blockedByMissingEvidence: { type: 'multi', optional: true, rules: [{ type: 'boolean' }, { type: 'string', min: 1 }] },
-        overdue: { type: 'multi', optional: true, rules: [{ type: 'boolean' }, { type: 'string', min: 1 }] },
+        blockedByMissingEvidence: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'boolean' }, { type: 'string', min: 1 }],
+        },
+        overdue: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'boolean' }, { type: 'string', min: 1 }],
+        },
         signalContextStatus: { type: 'string', optional: true, min: 1 },
-        missingEvidence: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
-        evidenceGaps: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        missingEvidence: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+        evidenceGaps: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
         caseId: { type: 'string', optional: true, min: 1 },
       },
       openapi: {
@@ -5308,8 +6420,19 @@ module.exports = {
         processName: { type: 'string', optional: true, min: 1 },
         processClass: { type: 'string', optional: true, min: 1 },
         runFrequency: { type: 'string', optional: true, min: 1 },
-        massRunVolume: { type: 'multi', optional: true, rules: [{ type: 'number' }, { type: 'string', min: 1 }] },
-        affectedDomains: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        massRunVolume: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'number' }, { type: 'string', min: 1 }],
+        },
+        affectedDomains: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
         customerCommunicationImpact: { type: 'string', optional: true, min: 1 },
         billingImpact: { type: 'string', optional: true, min: 1 },
         marketCommunicationImpact: { type: 'string', optional: true, min: 1 },
@@ -5323,10 +6446,24 @@ module.exports = {
         processOwner: { type: 'string', optional: true, min: 1 },
         operationsOwner: { type: 'string', optional: true, min: 1 },
         blockedDecision: { type: 'string', optional: true, min: 1 },
-        missingEvidence: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        missingEvidence: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
         riskLevel: { type: 'string', optional: true, min: 1 },
         source: { type: 'string', optional: true, min: 1 },
-        sourceRef: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        sourceRef: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
       },
       openapi: {
         tags: [OPENAPI_TAG],
@@ -5379,21 +6516,78 @@ module.exports = {
         dueDate: { type: 'string', optional: true, min: 1 },
         blockedDecision: { type: 'string', optional: true, min: 1 },
         decisionBlocker: { type: 'string', optional: true, min: 1 },
-        hasRedispatchAudit: { type: 'multi', optional: true, rules: [{ type: 'boolean' }, { type: 'string', min: 1 }] },
-        hasAssetEvidence: { type: 'multi', optional: true, rules: [{ type: 'boolean' }, { type: 'string', min: 1 }] },
-        hasMastrEvidence: { type: 'multi', optional: true, rules: [{ type: 'boolean' }, { type: 'string', min: 1 }] },
-        hasLoadProfileEvidence: { type: 'multi', optional: true, rules: [{ type: 'boolean' }, { type: 'string', min: 1 }] },
-        hasSettlementReadiness: { type: 'multi', optional: true, rules: [{ type: 'boolean' }, { type: 'string', min: 1 }] },
-        hasKpiReference: { type: 'multi', optional: true, rules: [{ type: 'boolean' }, { type: 'string', min: 1 }] },
+        hasRedispatchAudit: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'boolean' }, { type: 'string', min: 1 }],
+        },
+        hasAssetEvidence: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'boolean' }, { type: 'string', min: 1 }],
+        },
+        hasMastrEvidence: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'boolean' }, { type: 'string', min: 1 }],
+        },
+        hasLoadProfileEvidence: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'boolean' }, { type: 'string', min: 1 }],
+        },
+        hasSettlementReadiness: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'boolean' }, { type: 'string', min: 1 }],
+        },
+        hasKpiReference: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'boolean' }, { type: 'string', min: 1 }],
+        },
         datasourceHealth: { type: 'string', optional: true, min: 1 },
         sourceFreshness: { type: 'string', optional: true, min: 1 },
         qualityStatus: { type: 'string', optional: true, min: 1 },
-        staleSources: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
-        tasks: { type: 'multi', optional: true, rules: [{ type: 'array' }, { type: 'string', min: 1 }] },
-        kpiSignals: { type: 'multi', optional: true, rules: [{ type: 'array' }, { type: 'string', min: 1 }] },
-        sourceHealth: { type: 'multi', optional: true, rules: [{ type: 'array' }, { type: 'string', min: 1 }] },
-        affectedAssets: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
-        missingEvidence: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        staleSources: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+        tasks: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'array' }, { type: 'string', min: 1 }],
+        },
+        kpiSignals: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'array' }, { type: 'string', min: 1 }],
+        },
+        sourceHealth: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'array' }, { type: 'string', min: 1 }],
+        },
+        affectedAssets: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+        missingEvidence: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
       },
       openapi: {
         tags: [OPENAPI_TAG],
@@ -5435,8 +6629,16 @@ module.exports = {
       rest: 'GET /stadtwerk-mauer-vdmi-profile',
       params: {
         tenantId: { type: 'string', optional: true, min: 1 },
-        includeRoles: { type: 'multi', optional: true, rules: [{ type: 'boolean' }, { type: 'string', min: 1 }] },
-        includeEvidenceGaps: { type: 'multi', optional: true, rules: [{ type: 'boolean' }, { type: 'string', min: 1 }] },
+        includeRoles: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'boolean' }, { type: 'string', min: 1 }],
+        },
+        includeEvidenceGaps: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'boolean' }, { type: 'string', min: 1 }],
+        },
         demoQuestion: { type: 'string', optional: true, min: 1 },
         focusSparte: { type: 'string', optional: true, min: 1 },
       },
@@ -5481,8 +6683,16 @@ module.exports = {
       params: {
         tenantId: { type: 'string', optional: true, min: 1 },
         roles: { type: 'string', optional: true, min: 1 },
-        includeConsequential: { type: 'multi', optional: true, rules: [{ type: 'boolean' }, { type: 'string', min: 1 }] },
-        includeDescriptorSources: { type: 'multi', optional: true, rules: [{ type: 'boolean' }, { type: 'string', min: 1 }] },
+        includeConsequential: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'boolean' }, { type: 'string', min: 1 }],
+        },
+        includeDescriptorSources: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'boolean' }, { type: 'string', min: 1 }],
+        },
       },
       openapi: {
         tags: [OPENAPI_TAG],
@@ -5524,7 +6734,11 @@ module.exports = {
       params: {
         tenantId: { type: 'string', optional: true, min: 1 },
         seed: { type: 'string', optional: true, min: 1 },
-        count: { type: 'multi', optional: true, rules: [{ type: 'number' }, { type: 'string', min: 1 }] },
+        count: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'number' }, { type: 'string', min: 1 }],
+        },
         eventType: { type: 'string', optional: true, min: 1 },
         sparte: { type: 'string', optional: true, min: 1 },
         marketRole: { type: 'string', optional: true, min: 1 },
@@ -5876,16 +7090,20 @@ module.exports = {
         const revalidationRows = this.buildStadtwerkMauerMastrRevalidationRows(status, params);
         return {
           ...status,
-          publicContextRows: status.publicContextRows || this.buildStadtwerkMauerMastrPublicContextRows(status),
-          overlayAssetRows: status.overlayAssetRows || this.buildStadtwerkMauerMastrOverlayAssetRows(status),
+          publicContextRows:
+            status.publicContextRows || this.buildStadtwerkMauerMastrPublicContextRows(status),
+          overlayAssetRows:
+            status.overlayAssetRows || this.buildStadtwerkMauerMastrOverlayAssetRows(status),
           revalidationRows: status.revalidationRows || revalidationRows,
           affectedCaseRows:
             status.affectedCaseRows ||
             this.buildStadtwerkMauerMastrAffectedCaseRows(status, params, revalidationRows),
           nextGateRows:
-            status.nextGateRows || this.buildStadtwerkMauerMastrNextGateRows(status, revalidationRows),
+            status.nextGateRows ||
+            this.buildStadtwerkMauerMastrNextGateRows(status, revalidationRows),
           safeActionRows:
-            status.safeActionRows || this.buildStadtwerkMauerMastrSafeActionRows(status, params, revalidationRows),
+            status.safeActionRows ||
+            this.buildStadtwerkMauerMastrSafeActionRows(status, params, revalidationRows),
           boundaryRows: status.boundaryRows || this.buildStadtwerkMauerMastrBoundaryRows(status),
           timestamp: new Date().toISOString(),
           _errors: errors,
@@ -6353,7 +7571,12 @@ module.exports = {
           { name: 'caseId', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'categoryId', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'itemId', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'limit', in: 'query', required: false, schema: { type: 'integer', minimum: 1, maximum: 50 } },
+          {
+            name: 'limit',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', minimum: 1, maximum: 50 },
+          },
         ],
         responses: {
           200: {
@@ -6438,15 +7661,16 @@ module.exports = {
               mastrStatus,
               caseDetailStatus,
             });
-            const administratorInventoryStatus = this.buildStadtwerkMauerAdministratorInventoryStatus({
-              tenantId,
-              caseId,
-              includeRuntime: true,
-              e2eStatus,
-              mastrStatus,
-              caseDetailStatus,
-              hubStatus,
-            });
+            const administratorInventoryStatus =
+              this.buildStadtwerkMauerAdministratorInventoryStatus({
+                tenantId,
+                caseId,
+                includeRuntime: true,
+                e2eStatus,
+                mastrStatus,
+                caseDetailStatus,
+                hubStatus,
+              });
 
             return {
               ...this.buildStadtwerkMauerTenantDatabrowserStatus({
@@ -6639,15 +7863,16 @@ module.exports = {
               mastrStatus,
               caseDetailStatus,
             });
-            const administratorInventoryStatus = this.buildStadtwerkMauerAdministratorInventoryStatus({
-              tenantId,
-              caseId,
-              includeRuntime: true,
-              e2eStatus,
-              mastrStatus,
-              caseDetailStatus,
-              hubStatus,
-            });
+            const administratorInventoryStatus =
+              this.buildStadtwerkMauerAdministratorInventoryStatus({
+                tenantId,
+                caseId,
+                includeRuntime: true,
+                e2eStatus,
+                mastrStatus,
+                caseDetailStatus,
+                hubStatus,
+              });
             const caseActionsStatus = this.buildStadtwerkMauerCaseActionsStatus({
               tenantId,
               caseId,
@@ -6755,15 +7980,16 @@ module.exports = {
               mastrStatus,
               caseDetailStatus,
             });
-            const administratorInventoryStatus = this.buildStadtwerkMauerAdministratorInventoryStatus({
-              tenantId,
-              caseId,
-              includeRuntime: true,
-              e2eStatus,
-              mastrStatus,
-              caseDetailStatus,
-              hubStatus,
-            });
+            const administratorInventoryStatus =
+              this.buildStadtwerkMauerAdministratorInventoryStatus({
+                tenantId,
+                caseId,
+                includeRuntime: true,
+                e2eStatus,
+                mastrStatus,
+                caseDetailStatus,
+                hubStatus,
+              });
             const caseActionsStatus = this.buildStadtwerkMauerCaseActionsStatus({
               tenantId,
               caseId,
@@ -6809,7 +8035,8 @@ module.exports = {
       },
       openapi: {
         tags: [OPENAPI_TAG],
-        summary: 'Stadtwerk Mauer grid-planning selected item detail -- read-only next-gate context',
+        summary:
+          'Stadtwerk Mauer grid-planning selected item detail -- read-only next-gate context',
         description:
           'Returns scalar Budibase-renderable detail, context, evidence gap, next-gate and safe ' +
           'follow-up rows for one generated Zielnetzplanung role-queue item. The endpoint is ' +
@@ -6837,10 +8064,13 @@ module.exports = {
           cacheKey,
           this.settings.cacheTtlMs.stadtwerkMauerGridPlanningSelectedItemDetailStatus,
           async () => {
-            const queueStatus = await ctx.call('dashboard-api.stadtwerkMauerGridPlanningRoleQueueStatus', {
-              tenantId,
-              caseId,
-            });
+            const queueStatus = await ctx.call(
+              'dashboard-api.stadtwerkMauerGridPlanningRoleQueueStatus',
+              {
+                tenantId,
+                caseId,
+              }
+            );
 
             return {
               ...this.buildStadtwerkMauerGridPlanningSelectedItemDetailStatus({
@@ -6884,7 +8114,12 @@ module.exports = {
           { name: 'tenantId', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'caseId', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'audience', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'limit', in: 'query', required: false, schema: { type: 'integer', minimum: 1, maximum: 25 } },
+          {
+            name: 'limit',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', minimum: 1, maximum: 25 },
+          },
         ],
         responses: {
           200: {
@@ -6950,15 +8185,16 @@ module.exports = {
               mastrStatus,
               caseDetailStatus,
             });
-            const administratorInventoryStatus = this.buildStadtwerkMauerAdministratorInventoryStatus({
-              tenantId,
-              caseId,
-              includeRuntime: true,
-              e2eStatus,
-              mastrStatus,
-              caseDetailStatus,
-              hubStatus,
-            });
+            const administratorInventoryStatus =
+              this.buildStadtwerkMauerAdministratorInventoryStatus({
+                tenantId,
+                caseId,
+                includeRuntime: true,
+                e2eStatus,
+                mastrStatus,
+                caseDetailStatus,
+                hubStatus,
+              });
             const caseActionsStatus = this.buildStadtwerkMauerCaseActionsStatus({
               tenantId,
               caseId,
@@ -6971,12 +8207,14 @@ module.exports = {
               administratorInventoryStatus,
               caseActionsStatus,
             });
-            const gridPlanningRoleQueueStatus = this.buildStadtwerkMauerGridPlanningRoleQueueStatus({
-              tenantId,
-              caseId,
-              caseDetailStatus,
-              roleCatalogStatus,
-            });
+            const gridPlanningRoleQueueStatus = this.buildStadtwerkMauerGridPlanningRoleQueueStatus(
+              {
+                tenantId,
+                caseId,
+                caseDetailStatus,
+                roleCatalogStatus,
+              }
+            );
             const tenantDatabrowserStatus = this.buildStadtwerkMauerTenantDatabrowserStatus({
               tenantId,
               caseId,
@@ -7099,15 +8337,16 @@ module.exports = {
               mastrStatus,
               caseDetailStatus,
             });
-            const administratorInventoryStatus = this.buildStadtwerkMauerAdministratorInventoryStatus({
-              tenantId,
-              caseId,
-              includeRuntime: true,
-              e2eStatus,
-              mastrStatus,
-              caseDetailStatus,
-              hubStatus,
-            });
+            const administratorInventoryStatus =
+              this.buildStadtwerkMauerAdministratorInventoryStatus({
+                tenantId,
+                caseId,
+                includeRuntime: true,
+                e2eStatus,
+                mastrStatus,
+                caseDetailStatus,
+                hubStatus,
+              });
             const caseActionsStatus = this.buildStadtwerkMauerCaseActionsStatus({
               tenantId,
               caseId,
@@ -7120,12 +8359,14 @@ module.exports = {
               administratorInventoryStatus,
               caseActionsStatus,
             });
-            const gridPlanningRoleQueueStatus = this.buildStadtwerkMauerGridPlanningRoleQueueStatus({
-              tenantId,
-              caseId,
-              caseDetailStatus,
-              roleCatalogStatus,
-            });
+            const gridPlanningRoleQueueStatus = this.buildStadtwerkMauerGridPlanningRoleQueueStatus(
+              {
+                tenantId,
+                caseId,
+                caseDetailStatus,
+                roleCatalogStatus,
+              }
+            );
 
             return {
               ...this.buildStadtwerkMauerWorkbenchLandingStatus({
@@ -7238,15 +8479,16 @@ module.exports = {
               mastrStatus,
               caseDetailStatus,
             });
-            const administratorInventoryStatus = this.buildStadtwerkMauerAdministratorInventoryStatus({
-              tenantId,
-              caseId,
-              includeRuntime: true,
-              e2eStatus,
-              mastrStatus,
-              caseDetailStatus,
-              hubStatus,
-            });
+            const administratorInventoryStatus =
+              this.buildStadtwerkMauerAdministratorInventoryStatus({
+                tenantId,
+                caseId,
+                includeRuntime: true,
+                e2eStatus,
+                mastrStatus,
+                caseDetailStatus,
+                hubStatus,
+              });
             const caseActionsStatus = this.buildStadtwerkMauerCaseActionsStatus({
               tenantId,
               caseId,
@@ -7259,12 +8501,14 @@ module.exports = {
               administratorInventoryStatus,
               caseActionsStatus,
             });
-            const gridPlanningRoleQueueStatus = this.buildStadtwerkMauerGridPlanningRoleQueueStatus({
-              tenantId,
-              caseId,
-              caseDetailStatus,
-              roleCatalogStatus,
-            });
+            const gridPlanningRoleQueueStatus = this.buildStadtwerkMauerGridPlanningRoleQueueStatus(
+              {
+                tenantId,
+                caseId,
+                caseDetailStatus,
+                roleCatalogStatus,
+              }
+            );
             const landingStatus = this.buildStadtwerkMauerWorkbenchLandingStatus({
               tenantId,
               caseId,
@@ -7327,7 +8571,11 @@ module.exports = {
         escalationOwner: { type: 'string', optional: true, min: 1 },
         ownerContact: { type: 'string', optional: true, min: 1 },
         vdmiProcessId: { type: 'string', optional: true, min: 1 },
-        sourceRef: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
+        sourceRef: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'string' }, { type: 'array' }],
+        },
       },
       openapi: {
         tags: [OPENAPI_TAG],
@@ -7340,7 +8588,12 @@ module.exports = {
           { name: 'gridOperatorId', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'requestType', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'assetOrLoadType', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'netzsignalPriorityPolicy', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'netzsignalPriorityPolicy',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
           { name: 'controlEvidenceRef', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'contractStatus', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'legalStatus', in: 'query', required: false, schema: { type: 'string' } },
@@ -7406,7 +8659,11 @@ module.exports = {
         signalId: { type: 'string', optional: true, min: 1 },
         channel: { type: 'string', optional: true, min: 1 },
         sourceSystem: { type: 'string', optional: true, min: 1 },
-        sourceRef: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
+        sourceRef: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'string' }, { type: 'array' }],
+        },
         receivedAt: { type: 'string', optional: true, min: 1 },
         affectedProcess: { type: 'string', optional: true, min: 1 },
         processType: { type: 'string', optional: true, min: 1 },
@@ -7416,7 +8673,11 @@ module.exports = {
         ownerPersonaId: { type: 'string', optional: true, min: 1 },
         dueAt: { type: 'string', optional: true, min: 1 },
         evidenceStatus: { type: 'string', optional: true, min: 1 },
-        evidenceRefs: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
+        evidenceRefs: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'string' }, { type: 'array' }],
+        },
         nextDatapoint: { type: 'string', optional: true, min: 1 },
         dedupeKey: { type: 'string', optional: true, min: 1 },
         status: { type: 'string', optional: true, min: 1 },
@@ -7511,8 +8772,16 @@ module.exports = {
         dataQualityStatus: { type: 'string', optional: true, min: 1 },
         decisionOwner: { type: 'string', optional: true, min: 1 },
         nextDecision: { type: 'string', optional: true, min: 1 },
-        sourceDatapoints: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
-        sourceRefs: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
+        sourceDatapoints: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'string' }, { type: 'array' }],
+        },
+        sourceRefs: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'string' }, { type: 'array' }],
+        },
       },
       openapi: {
         tags: [OPENAPI_TAG],
@@ -7526,10 +8795,25 @@ module.exports = {
           { name: 'assetType', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'gridOperatorId', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'bookValueStatus', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'assetConditionStatus', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'transformationOption', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'assetConditionStatus',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'transformationOption',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
           { name: 'contractRisk', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'regulatoryUncertainty', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'regulatoryUncertainty',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
           { name: 'dataQualityStatus', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'decisionOwner', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'nextDecision', in: 'query', required: false, schema: { type: 'string' } },
@@ -7591,7 +8875,11 @@ module.exports = {
       rest: 'GET /gas-capacity-booking-review-gate',
       params: {
         reviewId: { type: 'string', optional: true, min: 1 },
-        bookingYear: { type: 'multi', optional: true, rules: [{ type: 'number' }, { type: 'string' }] },
+        bookingYear: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'number' }, { type: 'string' }],
+        },
         networkArea: { type: 'string', optional: true, min: 1 },
         capacityAssumption: { type: 'string', optional: true, min: 1 },
         capacityAssumptionSource: { type: 'string', optional: true, min: 1 },
@@ -7601,8 +8889,16 @@ module.exports = {
         vdmiOwner: { type: 'string', optional: true, min: 1 },
         decisionFrameRef: { type: 'string', optional: true, min: 1 },
         commercialSignoff: { type: 'string', optional: true, min: 1 },
-        riskScenarios: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
-        sourceRefs: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
+        riskScenarios: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'string' }, { type: 'array' }],
+        },
+        sourceRefs: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'string' }, { type: 'array' }],
+        },
       },
       openapi: {
         tags: [OPENAPI_TAG],
@@ -7617,7 +8913,12 @@ module.exports = {
           { name: 'capacityAssumption', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'coldYearEvidence', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'rlmReboundEvidence', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'congestionHistoryEvidence', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'congestionHistoryEvidence',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
           { name: 'vdmiOwner', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'decisionFrameRef', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'commercialSignoff', in: 'query', required: false, schema: { type: 'string' } },
@@ -7692,14 +8993,22 @@ module.exports = {
         kanuRef: { type: 'string', optional: true, min: 1 },
         assetRef: { type: 'string', optional: true, min: 1 },
         bookValueRef: { type: 'string', optional: true, min: 1 },
-        photoYear: { type: 'multi', optional: true, rules: [{ type: 'number' }, { type: 'string' }] },
+        photoYear: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'number' }, { type: 'string' }],
+        },
         decisionDeadline: { type: 'string', optional: true, min: 1 },
         ownerRole: { type: 'string', optional: true, min: 1 },
         owner: { type: 'string', optional: true, min: 1 },
         gateStatus: { type: 'string', optional: true, min: 1 },
         blockedFollowUpDecision: { type: 'string', optional: true, min: 1 },
         nextEvidenceStep: { type: 'string', optional: true, min: 1 },
-        sourceRefs: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
+        sourceRefs: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'string' }, { type: 'array' }],
+        },
       },
       openapi: {
         tags: [OPENAPI_TAG],
@@ -7720,7 +9029,12 @@ module.exports = {
           { name: 'photoYear', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'decisionDeadline', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'owner', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'blockedFollowUpDecision', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'blockedFollowUpDecision',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
           { name: 'nextEvidenceStep', in: 'query', required: false, schema: { type: 'string' } },
         ],
         responses: {
@@ -7800,7 +9114,11 @@ module.exports = {
         reviewPeriod: { type: 'string', optional: true, min: 1 },
         targetCommitteeDate: { type: 'string', optional: true, min: 1 },
         alignmentDecision: { type: 'string', optional: true, min: 1 },
-        sourceRefs: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
+        sourceRefs: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'string' }, { type: 'array' }],
+        },
       },
       openapi: {
         tags: [OPENAPI_TAG],
@@ -7812,11 +9130,31 @@ module.exports = {
           { name: 'caseId', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'projectId', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'waterPriceReference', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'calculationReference', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'netInvestmentReference', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'assetAccountingReference', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'calculationReference',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'netInvestmentReference',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'assetAccountingReference',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
           { name: 'pachtnetzReference', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'regulatoryImpactReference', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'regulatoryImpactReference',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
           { name: 'governanceOwner', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'reviewPeriod', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'targetCommitteeDate', in: 'query', required: false, schema: { type: 'string' } },
@@ -7887,7 +9225,11 @@ module.exports = {
         siteReference: { type: 'string', optional: true, min: 1 },
         areaReference: { type: 'string', optional: true, min: 1 },
         requestedConnectionCapacity: { type: 'string', optional: true, min: 1 },
-        requestedCapacityKw: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'number' }] },
+        requestedCapacityKw: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'string' }, { type: 'number' }],
+        },
         gridCapacityEvidence: { type: 'string', optional: true, min: 1 },
         capacityEvidenceReference: { type: 'string', optional: true, min: 1 },
         targetGridPath: { type: 'string', optional: true, min: 1 },
@@ -7902,7 +9244,11 @@ module.exports = {
         gateOwner: { type: 'string', optional: true, min: 1 },
         nextDecisionDate: { type: 'string', optional: true, min: 1 },
         offerDecisionStatus: { type: 'string', optional: true, min: 1 },
-        sourceRefs: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
+        sourceRefs: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'string' }, { type: 'array' }],
+        },
       },
       openapi: {
         tags: [OPENAPI_TAG],
@@ -7915,13 +9261,33 @@ module.exports = {
           { name: 'projectId', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'siteReference', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'areaReference', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'requestedConnectionCapacity', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'requestedConnectionCapacity',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
           { name: 'requestedCapacityKw', in: 'query', required: false, schema: { type: 'number' } },
-          { name: 'gridCapacityEvidence', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'gridCapacityEvidence',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
           { name: 'targetGridPath', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'investmentReference', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'regulatoryImpactBoundary', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'commercialOfferAssumptions', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'regulatoryImpactBoundary',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'commercialOfferAssumptions',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
           { name: 'owner', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'nextDecisionDate', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'offerDecisionStatus', in: 'query', required: false, schema: { type: 'string' } },
@@ -8007,8 +9373,16 @@ module.exports = {
         committeeDecisionGate: { type: 'string', optional: true, min: 1 },
         vdmiProcessId: { type: 'string', optional: true, min: 1 },
         owner: { type: 'string', optional: true, min: 1 },
-        sourceDatapoints: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
-        sourceActions: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
+        sourceDatapoints: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'string' }, { type: 'array' }],
+        },
+        sourceActions: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'string' }, { type: 'array' }],
+        },
       },
       openapi: {
         tags: [OPENAPI_TAG],
@@ -8023,11 +9397,21 @@ module.exports = {
           { name: 'scenarioType', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'cashflowSource', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'rollbackCostBasis', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'municipalBurdenAssumption', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'municipalBurdenAssumption',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
           { name: 'eogImpact', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'liquidityImpact', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'stressThreshold', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'committeeDecisionGate', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'committeeDecisionGate',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
           { name: 'sourceDatapoints', in: 'query', required: false, schema: { type: 'string' } },
         ],
         responses: {
@@ -8089,12 +9473,33 @@ module.exports = {
         owner: { type: 'string', optional: true, min: 1 },
         deadline: { type: 'string', optional: true, min: 1 },
         budgetEffect: { type: 'string', optional: true, min: 1 },
-        requiredEvidence: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        requiredEvidence: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
         approvalStatus: { type: 'string', optional: true, min: 1 },
         blockedFollowUpDecision: { type: 'string', optional: true, min: 1 },
         nextEscalationStep: { type: 'string', optional: true, min: 1 },
-        sourceDatapoints: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
-        sourceActions: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        sourceDatapoints: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+        sourceActions: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
       },
       openapi: {
         tags: [OPENAPI_TAG],
@@ -8152,8 +9557,22 @@ module.exports = {
         nextReviewGate: { type: 'string', optional: true, min: 1 },
         dueDate: { type: 'string', optional: true, min: 1 },
         owner: { type: 'string', optional: true, min: 1 },
-        sourceDatapoints: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
-        sourceActions: { type: 'multi', optional: true, rules: [{ type: 'array', items: 'string' }, { type: 'string', min: 1 }] },
+        sourceDatapoints: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+        sourceActions: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
       },
       openapi: {
         tags: [OPENAPI_TAG],
@@ -8200,7 +9619,11 @@ module.exports = {
         assetSegmentRef: { type: 'string', optional: true, min: 1 },
         targetOption: { type: 'string', optional: true, min: 1 },
         technicalReuseStatus: { type: 'string', optional: true, min: 1 },
-        decommissioningCostEur: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'number' }] },
+        decommissioningCostEur: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'string' }, { type: 'number' }],
+        },
         rollbackOrRemovalRisk: { type: 'string', optional: true, min: 1 },
         cashflowImpact: { type: 'string', optional: true, min: 1 },
         totexImpact: { type: 'string', optional: true, min: 1 },
@@ -8213,8 +9636,16 @@ module.exports = {
         vdmiProcessId: { type: 'string', optional: true, min: 1 },
         investmentPlanId: { type: 'string', optional: true, min: 1 },
         financeAnalysisId: { type: 'string', optional: true, min: 1 },
-        sourceDatapoints: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
-        sourceActions: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
+        sourceDatapoints: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'string' }, { type: 'array' }],
+        },
+        sourceActions: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'string' }, { type: 'array' }],
+        },
       },
       openapi: {
         tags: [OPENAPI_TAG],
@@ -8223,19 +9654,54 @@ module.exports = {
           'Returns a deterministic dossier-safe view over gas transformation program/work-package identity, asset segment, H2/decommissioning/repurpose option, technical reuse, rollback/removal cost, financial and dependency evidence, decision gate, owner role, missing evidence and explicit non-actions. The endpoint is read-only and never mutates gas assets, approves finance/investment decisions, creates HITL/VDMI tasks, runs MaKo/billing/settlement/tariff flows, or calls external connectors.',
         parameters: [
           { name: 'gridOperatorId', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'transformationProgramId', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'transformationProgramId',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
           { name: 'workPackageId', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'assetSegmentRef', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'targetOption', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'technicalReuseStatus', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'decommissioningCostEur', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'rollbackOrRemovalRisk', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'technicalReuseStatus',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'decommissioningCostEur',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'rollbackOrRemovalRisk',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
           { name: 'cashflowImpact', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'totexImpact', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'regulatoryRecognitionStatus', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'heatNetworkDependency', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'regulatoryRecognitionStatus',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'heatNetworkDependency',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
           { name: 'powerGridDependency', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'customerTransitionDependency', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'customerTransitionDependency',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
           { name: 'decisionGate', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'ownerRole', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'sourceDatapoints', in: 'query', required: false, schema: { type: 'string' } },
@@ -8390,7 +9856,11 @@ module.exports = {
         ownerRole: { type: 'string', optional: true, min: 1 },
         fallbackReason: { type: 'string', optional: true, min: 1 },
         blocker: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
-        evidenceHints: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
+        evidenceHints: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'string' }, { type: 'array' }],
+        },
       },
       openapi: {
         tags: [OPENAPI_TAG],
@@ -8479,9 +9949,21 @@ module.exports = {
         escalationState: { type: 'string', optional: true, min: 1 },
         nextLever: { type: 'string', optional: true, min: 1 },
         knownBaseline: { type: 'string', optional: true, min: 1 },
-        newSignals: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
-        linkedEntities: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
-        sourceSignals: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
+        newSignals: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'string' }, { type: 'array' }],
+        },
+        linkedEntities: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'string' }, { type: 'array' }],
+        },
+        sourceSignals: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'string' }, { type: 'array' }],
+        },
         includeDegradedSample: { type: 'boolean', optional: true, convert: true },
         limit: { type: 'number', optional: true, convert: true, min: 1, max: 50 },
       },
@@ -8561,7 +10043,11 @@ module.exports = {
         receivedAt: { type: 'string', optional: true, min: 1 },
         subject: { type: 'string', optional: true, min: 1, max: 500 },
         bodyExcerpt: { type: 'string', optional: true, min: 1, max: 4000 },
-        knownContextAnchors: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
+        knownContextAnchors: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'string' }, { type: 'array' }],
+        },
         processHint: { type: 'string', optional: true, min: 1 },
         ownerHint: { type: 'string', optional: true, min: 1 },
         dueDateHint: { type: 'string', optional: true, min: 1 },
@@ -8645,7 +10131,13 @@ module.exports = {
         currentSnapshotHash: { type: 'string', optional: true, min: 1 },
         severityHint: { type: 'string', optional: true, min: 1 },
         blockedDecision: { type: 'string', optional: true, min: 1 },
-        escalationThresholdDays: { type: 'number', optional: true, convert: true, min: 0, max: 365 },
+        escalationThresholdDays: {
+          type: 'number',
+          optional: true,
+          convert: true,
+          min: 0,
+          max: 365,
+        },
       },
       openapi: {
         tags: [OPENAPI_TAG],
@@ -8667,7 +10159,12 @@ module.exports = {
           { name: 'currentSnapshotHash', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'severityHint', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'blockedDecision', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'escalationThresholdDays', in: 'query', required: false, schema: { type: 'number' } },
+          {
+            name: 'escalationThresholdDays',
+            in: 'query',
+            required: false,
+            schema: { type: 'number' },
+          },
         ],
         responses: {
           200: {
@@ -8789,7 +10286,12 @@ module.exports = {
           cacheKey,
           this.settings.cacheTtlMs.municipalEnergyValueAnalysisStatus,
           async () => {
-            const base = this.buildMunicipalEnergyValueAnalysisStatus({ municipality: municipalityRaw, ags, year, scenario });
+            const base = this.buildMunicipalEnergyValueAnalysisStatus({
+              municipality: municipalityRaw,
+              ags,
+              year,
+              scenario,
+            });
             const operator = await this.resolveMunicipalVnbdigitalOperator(ctx, base);
             return {
               ...this.attachMunicipalGridOperator(base, operator),
@@ -10392,10 +11894,27 @@ module.exports = {
       };
     },
 
-    buildEvidenceGroundingConfidenceAudit({ params, routingRes, datapointRes, vdmiRes, ragRes, errors }) {
+    buildEvidenceGroundingConfidenceAudit({
+      params,
+      routingRes,
+      datapointRes,
+      vdmiRes,
+      ragRes,
+      errors,
+    }) {
       const now = new Date().toISOString();
-      const hasScope = !!(params.scopeId || params.gridOperatorId || params.datasourceId || params.datapointId);
-      const hasDomainContext = !!(params.domain || params.capabilityId || params.sourceAction || params.query);
+      const hasScope = !!(
+        params.scopeId ||
+        params.gridOperatorId ||
+        params.datasourceId ||
+        params.datapointId
+      );
+      const hasDomainContext = !!(
+        params.domain ||
+        params.capabilityId ||
+        params.sourceAction ||
+        params.query
+      );
       const toolFailures = (errors || []).map((action) => ({
         action,
         impact: 'evidence_confidence_degraded',
@@ -10490,8 +12009,7 @@ module.exports = {
         routingConfidence: {
           score: routingScore,
           capability: routingRes?.capability || params.capabilityId || null,
-          preferredAction:
-            routingRes?.recommendedPlan?.[0]?.action || params.sourceAction || null,
+          preferredAction: routingRes?.recommendedPlan?.[0]?.action || params.sourceAction || null,
         },
         evidenceConfidence,
         sourceClassBreakdown,
@@ -10500,7 +12018,13 @@ module.exports = {
       };
 
       return {
-        auditId: params.requestId ? `egca:${params.requestId}` : `egca:${Buffer.from(`${params.domain || 'unknown'}:${params.query || params.sourceAction || now}`).toString('base64url').slice(0, 24)}`,
+        auditId: params.requestId
+          ? `egca:${params.requestId}`
+          : `egca:${Buffer.from(
+              `${params.domain || 'unknown'}:${params.query || params.sourceAction || now}`
+            )
+              .toString('base64url')
+              .slice(0, 24)}`,
         tenantId: params.tenantId || null,
         requestContext,
         routingConfidence: dossierEvidence.routingConfidence,
@@ -10584,7 +12108,8 @@ module.exports = {
           label: 'Next billing step',
           value: params.nextBillingStep,
           sourceClass: 'settlement_context',
-          enablesDossierAddition: 'add next settlement or billing action context without releasing billing',
+          enablesDossierAddition:
+            'add next settlement or billing action context without releasing billing',
         },
       ];
       const officialEvidence = officialSpecs
@@ -10605,9 +12130,17 @@ module.exports = {
           enablesDossierAddition: spec.enablesDossierAddition,
         }));
       const hintSpecs = [
-        { id: 'portal_screenshot', label: 'Portal screenshot or portal view', value: params.portalHint },
+        {
+          id: 'portal_screenshot',
+          label: 'Portal screenshot or portal view',
+          value: params.portalHint,
+        },
         { id: 'provider_view', label: 'Service-provider view', value: params.providerView },
-        { id: 'customer_statement', label: 'Customer or supplier statement', value: params.customerStatement },
+        {
+          id: 'customer_statement',
+          label: 'Customer or supplier statement',
+          value: params.customerStatement,
+        },
       ];
       const hintsOnly = (params.includeHints ? hintSpecs : [])
         .filter((spec) => spec.value != null && spec.value !== '')
@@ -10641,7 +12174,11 @@ module.exports = {
       }));
 
       return {
-        chainId: `mako-ec:${Buffer.from(`${params.caseId || ''}:${params.maloId || ''}:${params.meloId || ''}:${params.contractAccountId || ''}`).toString('base64url').slice(0, 24)}`,
+        chainId: `mako-ec:${Buffer.from(
+          `${params.caseId || ''}:${params.maloId || ''}:${params.meloId || ''}:${params.contractAccountId || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 24)}`,
         safety: 'read_only',
         requestContext: {
           maloId: params.maloId || null,
@@ -10682,7 +12219,8 @@ module.exports = {
           label: 'Netzanschluss-/Asset-Identifikation',
           value: params.connectionIntake,
           role: 'Netzanschluss',
-          decisionBoundary: 'Asset identity and connection context are known before controllability assumptions are used.',
+          decisionBoundary:
+            'Asset identity and connection context are known before controllability assumptions are used.',
           enablesDossierAddition: 'add Netzanschluss and asset identity context',
         },
         {
@@ -10690,7 +12228,8 @@ module.exports = {
           label: 'Mess-/TAF-/EDM-Konzept',
           value: params.meteringConcept,
           role: 'Metering',
-          decisionBoundary: 'Metering and TAF readiness are explicit before data-quality or control readiness is claimed.',
+          decisionBoundary:
+            'Metering and TAF readiness are explicit before data-quality or control readiness is claimed.',
           enablesDossierAddition: 'add TAF and Messkonzept readiness',
         },
         {
@@ -10698,7 +12237,8 @@ module.exports = {
           label: 'Asset-Steuerbarkeitsnachweis',
           value: params.assetControlCapability,
           role: 'Asset Management',
-          decisionBoundary: 'Asset controllability remains an evidence requirement, not an inferred property.',
+          decisionBoundary:
+            'Asset controllability remains an evidence requirement, not an inferred property.',
           enablesDossierAddition: 'add asset-control assumption boundary',
         },
         {
@@ -10706,7 +12246,8 @@ module.exports = {
           label: 'Netzbetrieb/Redispatch-/§14a-Entscheidung',
           value: params.gridOperationsDecision,
           role: 'Netzbetrieb',
-          decisionBoundary: 'Operational readiness is separated from technical switching or dispatch execution.',
+          decisionBoundary:
+            'Operational readiness is separated from technical switching or dispatch execution.',
           enablesDossierAddition: 'add Redispatch or §14a operations readiness',
         },
         {
@@ -10714,7 +12255,8 @@ module.exports = {
           label: 'Marktkommunikations-Abgabe',
           value: params.marketCommunicationHandover,
           role: 'Marktkommunikation',
-          decisionBoundary: 'MaKo handover evidence is required before downstream settlement context is treated as traceable.',
+          decisionBoundary:
+            'MaKo handover evidence is required before downstream settlement context is treated as traceable.',
           enablesDossierAddition: 'add MaKo handover traceability',
         },
         {
@@ -10722,7 +12264,8 @@ module.exports = {
           label: 'Abrechnungs-/Settlement-Grenze',
           value: params.billingImpactCheck,
           role: 'Abrechnung',
-          decisionBoundary: 'Billing impact is a boundary note only; no billing or settlement release is performed.',
+          decisionBoundary:
+            'Billing impact is a boundary note only; no billing or settlement release is performed.',
           enablesDossierAddition: 'add Abrechnung boundary clarity',
         },
       ];
@@ -10805,7 +12348,11 @@ module.exports = {
       if (params.owner) dossierFacts.push(`Owner: ${params.owner}`);
 
       return {
-        governanceId: `e2e-ccg:${Buffer.from(`${params.caseId || ''}:${params.owner || ''}:${params.deadline || ''}`).toString('base64url').slice(0, 24)}`,
+        governanceId: `e2e-ccg:${Buffer.from(
+          `${params.caseId || ''}:${params.owner || ''}:${params.deadline || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 24)}`,
         capabilityKey: 'e2e_controllability_check_governance',
         safety: 'read_only',
         requestContext: {
@@ -10867,7 +12414,10 @@ module.exports = {
       const dataSourceRefs = Array.isArray(params.dataSourceRefs)
         ? params.dataSourceRefs.filter(Boolean)
         : params.dataSourceRefs
-          ? String(params.dataSourceRefs).split(',').map((item) => item.trim()).filter(Boolean)
+          ? String(params.dataSourceRefs)
+              .split(',')
+              .map((item) => item.trim())
+              .filter(Boolean)
           : [];
       const evidenceSpecs = [
         {
@@ -10908,7 +12458,9 @@ module.exports = {
         {
           id: 'data_source_snapshot',
           label: 'Source snapshot',
-          value: params.sourceSnapshotId || (dataSourceRefs.length > 0 ? dataSourceRefs.join(',') : null),
+          value:
+            params.sourceSnapshotId ||
+            (dataSourceRefs.length > 0 ? dataSourceRefs.join(',') : null),
           sourceClass: 'source_snapshot',
           enablesDossierAddition: 'add source and freshness proof',
         },
@@ -10996,12 +12548,16 @@ module.exports = {
       }));
       const blockingFindings = missingEvidence.map((item) => ({
         code: `CAH_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
-        severity: ['line_owner', 'handover_decision', 'technical_status'].includes(item.missingDataPoint)
+        severity: ['line_owner', 'handover_decision', 'technical_status'].includes(
+          item.missingDataPoint
+        )
           ? 'high'
           : 'medium',
         message: item.enablesDossierAddition,
       }));
-      const providedRequiredEvidence = evidenceItems.filter((item) => item.id !== 'non_execution_reason');
+      const providedRequiredEvidence = evidenceItems.filter(
+        (item) => item.id !== 'non_execution_reason'
+      );
       const dossierFacts = [
         `Status: ${status}`,
         `Provided handover evidence: ${providedRequiredEvidence.length}/${evidenceSpecs.length}`,
@@ -11012,7 +12568,11 @@ module.exports = {
       if (params.handoverDecision) dossierFacts.push(`Decision: ${params.handoverDecision}`);
 
       return {
-        handoverId: `cah:${Buffer.from(`${params.caseId || ''}:${params.assetId || ''}:${params.mastrId || ''}:${params.lineOwnerRole || ''}`).toString('base64url').slice(0, 24)}`,
+        handoverId: `cah:${Buffer.from(
+          `${params.caseId || ''}:${params.assetId || ''}:${params.mastrId || ''}:${params.lineOwnerRole || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 24)}`,
         capabilityKey: 'controllability_asset_handover',
         safety: 'read_only',
         requestContext: {
@@ -11067,7 +12627,8 @@ module.exports = {
     },
 
     buildSteeringArtifactAcceptanceGateStatus(params = {}) {
-      const isProvided = (value) => value !== undefined && value !== null && String(value).trim() !== '';
+      const isProvided = (value) =>
+        value !== undefined && value !== null && String(value).trim() !== '';
       const numberOrNull = (value) => {
         if (value === undefined || value === null || value === '') return null;
         const n = Number(value);
@@ -11187,13 +12748,19 @@ module.exports = {
         });
       }
       const rolloutDecision = String(params.rolloutDecision || '').toLowerCase();
-      const retireOrRework = /(retire|retirement|abbruch|abschalten|stilllegen|rework|ueberarbeiten|überarbeiten|stop|nicht)/.test(rolloutDecision);
-      const hasCoreEvidence = ['artifact_identity', 'target_role', 'use_case'].every((id) =>
-        scalarRows.find((row) => row.id === id)?.evidenceStatus === 'provided'
+      const retireOrRework =
+        /(retire|retirement|abbruch|abschalten|stilllegen|rework|ueberarbeiten|überarbeiten|stop|nicht)/.test(
+          rolloutDecision
+        );
+      const hasCoreEvidence = ['artifact_identity', 'target_role', 'use_case'].every(
+        (id) => scalarRows.find((row) => row.id === id)?.evidenceStatus === 'provided'
       );
-      const hasMaintenanceEvidence = ['maintenance_effort', 'update_cadence', 'owner', 'deputy_owner'].every((id) =>
-        scalarRows.find((row) => row.id === id)?.evidenceStatus === 'provided'
-      );
+      const hasMaintenanceEvidence = [
+        'maintenance_effort',
+        'update_cadence',
+        'owner',
+        'deputy_owner',
+      ].every((id) => scalarRows.find((row) => row.id === id)?.evidenceStatus === 'provided');
       let status = 'missing_acceptance_evidence';
       if (retireOrRework || operationalRisks.length > 0) status = 'should_retire_or_rework';
       else if (hasCoreEvidence && !params.owner) status = 'needs_maintenance_owner';
@@ -11237,7 +12804,9 @@ module.exports = {
       const validationFindings = [
         ...missingEvidence.map((item) => ({
           code: `SAAG_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
-          severity: ['owner', 'deputy_owner', 'usage_evidence', 'escalation_criterion'].includes(item.missingDataPoint)
+          severity: ['owner', 'deputy_owner', 'usage_evidence', 'escalation_criterion'].includes(
+            item.missingDataPoint
+          )
             ? 'high'
             : 'medium',
           message: item.enablesDossierAddition,
@@ -11253,13 +12822,18 @@ module.exports = {
         `Provided gate evidence: ${scalarRows.filter((row) => row.evidenceStatus === 'provided').length}/${scalarRows.length}`,
         `Open gaps: ${missingEvidence.length}`,
       ];
-      if (params.artifactName || params.artifactType) dossierFacts.push(`Artifact: ${params.artifactName || params.artifactType}`);
+      if (params.artifactName || params.artifactType)
+        dossierFacts.push(`Artifact: ${params.artifactName || params.artifactType}`);
       if (params.targetRole) dossierFacts.push(`Target Role: ${params.targetRole}`);
       if (params.owner) dossierFacts.push(`Owner: ${params.owner}`);
       if (params.rolloutDecision) dossierFacts.push(`Rollout Decision: ${params.rolloutDecision}`);
 
       return {
-        gateId: `saag:${Buffer.from(`${params.artifactType || ''}:${params.artifactName || ''}:${params.targetRole || ''}:${params.owner || ''}`).toString('base64url').slice(0, 24)}`,
+        gateId: `saag:${Buffer.from(
+          `${params.artifactType || ''}:${params.artifactName || ''}:${params.targetRole || ''}:${params.owner || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 24)}`,
         capabilityKey: 'steering_artifact_acceptance_gate',
         safety: 'read_only',
         status,
@@ -11303,7 +12877,8 @@ module.exports = {
     },
 
     buildCommunicationBreakProcessRiskStatus(params = {}) {
-      const isProvided = (value) => value !== undefined && value !== null && String(value).trim() !== '';
+      const isProvided = (value) =>
+        value !== undefined && value !== null && String(value).trim() !== '';
       const evidenceSpecs = [
         {
           id: 'process_domain',
@@ -11442,7 +13017,11 @@ module.exports = {
       } else if (missingIds.has('blocked_decision') || missingIds.has('next_evidence_point')) {
         status = 'blocked_decision_needs_evidence';
         riskLevel = 'high';
-      } else if (missingIds.has('owner') || missingIds.has('due_date') || missingIds.has('escalation_criterion')) {
+      } else if (
+        missingIds.has('owner') ||
+        missingIds.has('due_date') ||
+        missingIds.has('escalation_criterion')
+      ) {
         status = 'needs_owner_due_date';
         riskLevel = 'medium';
       } else if (criticalMissingCount > 0 || missingEvidence.length > 0) {
@@ -11495,12 +13074,17 @@ module.exports = {
         `Open gaps: ${missingEvidence.length}`,
       ];
       if (params.processDomain) dossierFacts.push(`Process Domain: ${params.processDomain}`);
-      if (params.affectedDecision) dossierFacts.push(`Affected Decision: ${params.affectedDecision}`);
+      if (params.affectedDecision)
+        dossierFacts.push(`Affected Decision: ${params.affectedDecision}`);
       if (params.blockedDecision) dossierFacts.push(`Blocked Decision: ${params.blockedDecision}`);
       if (params.owner) dossierFacts.push(`Owner: ${params.owner}`);
 
       return {
-        gateId: `cbpr:${Buffer.from(`${params.processDomain || ''}:${params.affectedDecision || ''}:${params.owner || ''}:${params.dueDate || ''}`).toString('base64url').slice(0, 24)}`,
+        gateId: `cbpr:${Buffer.from(
+          `${params.processDomain || ''}:${params.affectedDecision || ''}:${params.owner || ''}:${params.dueDate || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 24)}`,
         capabilityKey: 'communication_break_process_risk',
         safety: 'read_only',
         status,
@@ -11553,7 +13137,8 @@ module.exports = {
     },
 
     buildNoRegretMeasureProofGateStatus(params = {}) {
-      const isProvided = (value) => value !== undefined && value !== null && String(value).trim() !== '';
+      const isProvided = (value) =>
+        value !== undefined && value !== null && String(value).trim() !== '';
       const evidenceSpecs = [
         {
           id: 'measure_identity',
@@ -11692,7 +13277,11 @@ module.exports = {
       } else if (missingIds.has('regulatory_fit') || missingIds.has('decision_owner')) {
         status = 'needs_regulatory_or_decision_rights_evidence';
         riskLevel = 'medium';
-      } else if (missingIds.has('objection_window') || missingIds.has('next_management_gate') || missingIds.has('due_date')) {
+      } else if (
+        missingIds.has('objection_window') ||
+        missingIds.has('next_management_gate') ||
+        missingIds.has('due_date')
+      ) {
         status = 'needs_management_gate_evidence';
         riskLevel = 'medium';
       } else if (criticalMissingCount > 0 || missingEvidence.length > 0) {
@@ -11743,14 +13332,20 @@ module.exports = {
         `Provided proof evidence: ${scalarRows.filter((row) => row.evidenceStatus === 'provided').length}/${scalarRows.length}`,
         `Open gaps: ${missingEvidence.length}`,
       ];
-      if (params.measureName || params.measureType) dossierFacts.push(`Measure: ${params.measureName || params.measureType}`);
+      if (params.measureName || params.measureType)
+        dossierFacts.push(`Measure: ${params.measureName || params.measureType}`);
       if (params.targetDomain) dossierFacts.push(`Target Domain: ${params.targetDomain}`);
       if (params.budgetAnchor) dossierFacts.push(`Budget Anchor: ${params.budgetAnchor}`);
-      if (params.nextManagementGate) dossierFacts.push(`Next Management Gate: ${params.nextManagementGate}`);
+      if (params.nextManagementGate)
+        dossierFacts.push(`Next Management Gate: ${params.nextManagementGate}`);
       if (params.decisionOwner) dossierFacts.push(`Decision Owner: ${params.decisionOwner}`);
 
       return {
-        gateId: `nrmpg:${Buffer.from(`${params.measureName || params.measureType || ''}:${params.targetDomain || ''}:${params.decisionOwner || ''}:${params.nextManagementGate || ''}`).toString('base64url').slice(0, 24)}`,
+        gateId: `nrmpg:${Buffer.from(
+          `${params.measureName || params.measureType || ''}:${params.targetDomain || ''}:${params.decisionOwner || ''}:${params.nextManagementGate || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 24)}`,
         capabilityKey: 'no_regret_measure_proof_gate',
         safety: 'read_only',
         status,
@@ -11803,14 +13398,16 @@ module.exports = {
     },
 
     buildAnschlusskapazitaetEvidenceQueueStatus(params = {}) {
-      const isProvided = (value) => value !== undefined && value !== null && String(value).trim() !== '';
+      const isProvided = (value) =>
+        value !== undefined && value !== null && String(value).trim() !== '';
       const gapMap = {
         connection_request_id: 'add the connection request id for case traceability',
         netzverknuepfungspunkt_hint: 'add the NVP hint for grid-connection location assessment',
         capacity_assumption: 'add requested or assumed capacity for management review',
         grid_restriction_hint: 'add grid restriction evidence or the explicit no-restriction basis',
         future_demand_context: 'add derived future-demand context for capacity plausibility',
-        legal_question_marker: 'route the open legal question without automated legal qualification',
+        legal_question_marker:
+          'route the open legal question without automated legal qualification',
         fnav_option_marker: 'state whether fNAV is an option, blocker or not applicable',
         evidence_status: 'add current evidence status before the next gate',
         owner_due_date: 'assign owner and due date for queue governance',
@@ -11839,11 +13436,19 @@ module.exports = {
       let status = 'ready_for_review';
       if (missingEvidence.some((gap) => gap.missingDataPoint === 'connection_request_id')) {
         status = 'needs_connection_request';
-      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'netzverknuepfungspunkt_hint')) {
+      } else if (
+        missingEvidence.some((gap) => gap.missingDataPoint === 'netzverknuepfungspunkt_hint')
+      ) {
         status = 'needs_nvp_evidence';
       } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'capacity_assumption')) {
         status = 'needs_capacity_assumption';
-      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'legal_question_marker' || gap.missingDataPoint === 'fnav_option_marker')) {
+      } else if (
+        missingEvidence.some(
+          (gap) =>
+            gap.missingDataPoint === 'legal_question_marker' ||
+            gap.missingDataPoint === 'fnav_option_marker'
+        )
+      ) {
         status = 'needs_legal_review';
       } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'owner_due_date')) {
         status = 'needs_owner_due_date';
@@ -11852,7 +13457,9 @@ module.exports = {
       }
 
       const requiredCount = Object.keys(gapMap).length;
-      const readinessScore = Number(((requiredCount - missingEvidence.length) / requiredCount).toFixed(2));
+      const readinessScore = Number(
+        ((requiredCount - missingEvidence.length) / requiredCount).toFixed(2)
+      );
       const positiveFollowUps = missingEvidence.map((gap) => ({
         ...gap,
         category: 'anschlusskapazitaet_evidence_queue',
@@ -11899,7 +13506,12 @@ module.exports = {
         legalConclusionAutomated: false,
       };
       const evidenceItems = Object.entries(evidenceQueue)
-        .filter(([key, value]) => !['capacityReserved', 'connectionDecisionApplied', 'legalConclusionAutomated'].includes(key) && isProvided(value))
+        .filter(
+          ([key, value]) =>
+            !['capacityReserved', 'connectionDecisionApplied', 'legalConclusionAutomated'].includes(
+              key
+            ) && isProvided(value)
+        )
         .map(([key, value]) => ({ id: key, value, status: 'provided' }));
       const dossierFacts = [
         `Status: ${status}`,
@@ -11913,7 +13525,11 @@ module.exports = {
       ];
 
       return {
-        queueId: `aceq:${Buffer.from(`${params.connectionRequestId || ''}:${params.netzverknuepfungspunktHint || ''}:${params.owner || ''}`).toString('base64url').slice(0, 28)}`,
+        queueId: `aceq:${Buffer.from(
+          `${params.connectionRequestId || ''}:${params.netzverknuepfungspunktHint || ''}:${params.owner || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 28)}`,
         capabilityKey: 'anschlusskapazitaet_evidence_queue',
         safety: 'read_only',
         status,
@@ -11926,7 +13542,12 @@ module.exports = {
         sourceActions,
         validationFindings: missingEvidence.map((gap) => ({
           code: `ACEQ_${String(gap.missingDataPoint).toUpperCase()}_MISSING`,
-          severity: ['connection_request_id', 'capacity_assumption', 'legal_question_marker', 'fnav_option_marker'].includes(gap.missingDataPoint)
+          severity: [
+            'connection_request_id',
+            'capacity_assumption',
+            'legal_question_marker',
+            'fnav_option_marker',
+          ].includes(gap.missingDataPoint)
             ? 'high'
             : 'medium',
           message: gap.enablesDossierAddition,
@@ -11947,7 +13568,8 @@ module.exports = {
     },
 
     buildLayer0AuditDrilldownNoteStatus(params = {}) {
-      const isProvided = (value) => value !== undefined && value !== null && String(value).trim() !== '';
+      const isProvided = (value) =>
+        value !== undefined && value !== null && String(value).trim() !== '';
       const anomalyScope = params.kpiId || params.topic || null;
       const gapMap = {
         anomaly_scope: 'add the concrete Layer-0 KPI or anomaly topic',
@@ -11984,22 +13606,84 @@ module.exports = {
         status = 'missing_evidence';
       }
 
-      const validationScore = Number(((Object.keys(gapMap).length - missingEvidence.length) / Object.keys(gapMap).length).toFixed(2));
+      const validationScore = Number(
+        (
+          (Object.keys(gapMap).length - missingEvidence.length) /
+          Object.keys(gapMap).length
+        ).toFixed(2)
+      );
       const hypothesis = isProvided(params.peerDeviation)
         ? `The Layer-0 signal ${anomalyScope || 'without a named KPI'} deviates from the peer basis (${params.peerDeviation}) and should be validated before management interpretation.`
         : `The Layer-0 signal ${anomalyScope || 'without a named KPI'} requires a peer deviation before management interpretation.`;
-      const possibleMisinterpretation = 'The benchmark signal is a validation lead, not a final legal, regulatory or operational finding.';
+      const possibleMisinterpretation =
+        'The benchmark signal is a validation lead, not a final legal, regulatory or operational finding.';
       const checkFields = [
-        { id: 'source_lineage', label: 'Data source lineage', value: params.dataSource || null, status: isProvided(params.dataSource) ? 'provided' : 'missing' },
-        { id: 'kpi_definition', label: 'KPI definition', value: anomalyScope, status: isProvided(anomalyScope) ? 'provided' : 'missing' },
-        { id: 'peer_group', label: 'Peer group', value: params.benchmarkPeerGroup || null, status: isProvided(params.benchmarkPeerGroup) ? 'provided' : 'open' },
-        { id: 'peer_deviation', label: 'Peer deviation', value: params.peerDeviation || null, status: isProvided(params.peerDeviation) ? 'provided' : 'missing' },
-        { id: 'process_context', label: 'Process context', value: params.processHint || null, status: isProvided(params.processHint) ? 'provided' : 'open' },
-        { id: 'period_context', label: 'Period context', value: params.periodHint || null, status: isProvided(params.periodHint) ? 'provided' : 'open' },
-        { id: 'observed_expected_value', label: 'Observed vs expected value', value: isProvided(params.observedValue) || isProvided(params.expectedValue) ? `${params.observedValue || 'n/a'} / ${params.expectedValue || 'n/a'} ${params.unit || ''}`.trim() : null, status: isProvided(params.observedValue) || isProvided(params.expectedValue) ? 'provided' : 'open' },
-        { id: 'misinterpretation_risk', label: 'Misinterpretation risk', value: possibleMisinterpretation, status: 'provided' },
-        { id: 'owner', label: 'Owner', value: params.owner || null, status: isProvided(params.owner) ? 'provided' : 'missing' },
-        { id: 'next_90_day_step', label: 'Next 90-day step', value: params.next90DayFocus || null, status: isProvided(params.next90DayFocus) ? 'provided' : 'missing' },
+        {
+          id: 'source_lineage',
+          label: 'Data source lineage',
+          value: params.dataSource || null,
+          status: isProvided(params.dataSource) ? 'provided' : 'missing',
+        },
+        {
+          id: 'kpi_definition',
+          label: 'KPI definition',
+          value: anomalyScope,
+          status: isProvided(anomalyScope) ? 'provided' : 'missing',
+        },
+        {
+          id: 'peer_group',
+          label: 'Peer group',
+          value: params.benchmarkPeerGroup || null,
+          status: isProvided(params.benchmarkPeerGroup) ? 'provided' : 'open',
+        },
+        {
+          id: 'peer_deviation',
+          label: 'Peer deviation',
+          value: params.peerDeviation || null,
+          status: isProvided(params.peerDeviation) ? 'provided' : 'missing',
+        },
+        {
+          id: 'process_context',
+          label: 'Process context',
+          value: params.processHint || null,
+          status: isProvided(params.processHint) ? 'provided' : 'open',
+        },
+        {
+          id: 'period_context',
+          label: 'Period context',
+          value: params.periodHint || null,
+          status: isProvided(params.periodHint) ? 'provided' : 'open',
+        },
+        {
+          id: 'observed_expected_value',
+          label: 'Observed vs expected value',
+          value:
+            isProvided(params.observedValue) || isProvided(params.expectedValue)
+              ? `${params.observedValue || 'n/a'} / ${params.expectedValue || 'n/a'} ${params.unit || ''}`.trim()
+              : null,
+          status:
+            isProvided(params.observedValue) || isProvided(params.expectedValue)
+              ? 'provided'
+              : 'open',
+        },
+        {
+          id: 'misinterpretation_risk',
+          label: 'Misinterpretation risk',
+          value: possibleMisinterpretation,
+          status: 'provided',
+        },
+        {
+          id: 'owner',
+          label: 'Owner',
+          value: params.owner || null,
+          status: isProvided(params.owner) ? 'provided' : 'missing',
+        },
+        {
+          id: 'next_90_day_step',
+          label: 'Next 90-day step',
+          value: params.next90DayFocus || null,
+          status: isProvided(params.next90DayFocus) ? 'provided' : 'missing',
+        },
       ];
       const positiveFollowUps = missingEvidence.map((gap) => ({
         ...gap,
@@ -12033,7 +13717,11 @@ module.exports = {
         ],
       };
       const auditNote = {
-        noteId: `l0ad:${Buffer.from(`${anomalyScope || ''}:${params.dataSource || ''}:${params.owner || ''}`).toString('base64url').slice(0, 28)}`,
+        noteId: `l0ad:${Buffer.from(
+          `${anomalyScope || ''}:${params.dataSource || ''}:${params.owner || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 28)}`,
         kpiId: params.kpiId || null,
         topic: params.topic || null,
         dataSource: params.dataSource || null,
@@ -12048,7 +13736,8 @@ module.exports = {
         possibleMisinterpretation,
         owner: params.owner || null,
         next90DayStep: params.next90DayFocus || null,
-        evidenceStatus: params.evidenceStatus || (missingEvidence.length ? 'incomplete' : 'complete'),
+        evidenceStatus:
+          params.evidenceStatus || (missingEvidence.length ? 'incomplete' : 'complete'),
         persistentQueueCreated: false,
         reportGenerated: false,
         finalJudgmentApplied: false,
@@ -12080,7 +13769,11 @@ module.exports = {
         sourceActions,
         validationFindings: missingEvidence.map((gap) => ({
           code: `L0AD_${String(gap.missingDataPoint).toUpperCase()}_MISSING`,
-          severity: ['anomaly_scope', 'data_source', 'peer_deviation'].includes(gap.missingDataPoint) ? 'high' : 'medium',
+          severity: ['anomaly_scope', 'data_source', 'peer_deviation'].includes(
+            gap.missingDataPoint
+          )
+            ? 'high'
+            : 'medium',
           message: gap.enablesDossierAddition,
         })),
         dossierEvidence: {
@@ -12101,17 +13794,27 @@ module.exports = {
     },
 
     buildLegalClarificationOperatingModelStatus(params = {}) {
-      const toList = (value) => Array.isArray(value)
-        ? value.filter(Boolean)
-        : value
-          ? String(value).split(',').map((item) => item.trim()).filter(Boolean)
-          : [];
+      const toList = (value) =>
+        Array.isArray(value)
+          ? value.filter(Boolean)
+          : value
+            ? String(value)
+                .split(',')
+                .map((item) => item.trim())
+                .filter(Boolean)
+            : [];
       const noRegretDataNeeds = toList(params.noRegretDataNeeds);
       const availableEvidence = toList(params.availableEvidence);
       const scenarioOptions = toList(params.scenarioOptions);
       const redLines = toList(params.redLines);
       const normalizedLegalStatus = String(params.legalStatus || 'pending').toLowerCase();
-      const legalIsApproved = ['approved', 'cleared', 'geklaert', 'geklärt', 'freigegeben'].includes(normalizedLegalStatus);
+      const legalIsApproved = [
+        'approved',
+        'cleared',
+        'geklaert',
+        'geklärt',
+        'freigegeben',
+      ].includes(normalizedLegalStatus);
 
       const evidenceSpecs = [
         {
@@ -12154,7 +13857,8 @@ module.exports = {
           label: 'No-regret data needs',
           value: noRegretDataNeeds.length > 0 ? noRegretDataNeeds.join(', ') : null,
           sourceClass: 'no_regret_preparation',
-          enablesDossierAddition: 'replace generic preparation gaps with concrete no-regret data needs',
+          enablesDossierAddition:
+            'replace generic preparation gaps with concrete no-regret data needs',
         },
         {
           id: 'available_evidence',
@@ -12202,23 +13906,22 @@ module.exports = {
           sourceClass: spec.sourceClass,
           enablesDossierAddition: spec.enablesDossierAddition,
         }));
-      const decisionReadiness = params.decisionReadiness || (
-        legalIsApproved && missingEvidence.length === 0
+      const decisionReadiness =
+        params.decisionReadiness ||
+        (legalIsApproved && missingEvidence.length === 0
           ? 'ready_after_legal_clearance'
           : legalIsApproved
             ? 'needs_preparation_evidence'
-            : 'blocked_by_pending_legal_clarification'
-      );
-      const status =
-        !params.clarificationPoint
-          ? 'needs_clarification_point'
-          : !params.affectedDecision
-            ? 'needs_affected_decision'
-            : !legalIsApproved
-              ? 'pending_legal_clarification'
-              : missingEvidence.length === 0
-                ? 'ready_after_legal_clearance'
-                : 'needs_preparation_evidence';
+            : 'blocked_by_pending_legal_clarification');
+      const status = !params.clarificationPoint
+        ? 'needs_clarification_point'
+        : !params.affectedDecision
+          ? 'needs_affected_decision'
+          : !legalIsApproved
+            ? 'pending_legal_clarification'
+            : missingEvidence.length === 0
+              ? 'ready_after_legal_clearance'
+              : 'needs_preparation_evidence';
       const positiveFollowUps = missingEvidence.map((item) => ({
         missingDataPoint: item.missingDataPoint,
         enablesDossierAddition: item.enablesDossierAddition,
@@ -12226,7 +13929,9 @@ module.exports = {
       }));
       const blockingFindings = missingEvidence.map((item) => ({
         code: `LCOM_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
-        severity: ['clarification_point', 'affected_decision', 'legal_status'].includes(item.missingDataPoint)
+        severity: ['clarification_point', 'affected_decision', 'legal_status'].includes(
+          item.missingDataPoint
+        )
           ? 'high'
           : 'medium',
         message: item.enablesDossierAddition,
@@ -12261,7 +13966,11 @@ module.exports = {
       if (params.affectedDecision) dossierFacts.push(`Decision: ${params.affectedDecision}`);
 
       return {
-        operatingModelId: `lcom:${Buffer.from(`${params.caseId || ''}:${params.clarificationPoint || ''}:${params.affectedDecision || ''}:${params.owner || ''}`).toString('base64url').slice(0, 24)}`,
+        operatingModelId: `lcom:${Buffer.from(
+          `${params.caseId || ''}:${params.clarificationPoint || ''}:${params.affectedDecision || ''}:${params.owner || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 24)}`,
         capabilityKey: 'legal_clarification_operating_model',
         safety: 'read_only',
         requestContext: {
@@ -12319,12 +14028,27 @@ module.exports = {
 
     buildDrReadinessEvidenceStatus(params = {}) {
       const normalizeStatus = (value) => {
-        const text = String(value || '').trim().toLowerCase();
+        const text = String(value || '')
+          .trim()
+          .toLowerCase();
         if (!text) return 'missing';
-        if (/^(ready|ok|green|gruen|grün|complete|completed|valid|validiert|confirmed|bestaetigt|bestätigt|approved|freigegeben|present|vorhanden|tested|passed)$/.test(text)) return 'ready';
-        if (/^(partial|partly|pending|open|offen|in_progress|in-progress|review|review_required|scheduled|planned|unknown|unklar)$/.test(text)) return 'partial';
+        if (
+          /^(ready|ok|green|gruen|grün|complete|completed|valid|validiert|confirmed|bestaetigt|bestätigt|approved|freigegeben|present|vorhanden|tested|passed)$/.test(
+            text
+          )
+        )
+          return 'ready';
+        if (
+          /^(partial|partly|pending|open|offen|in_progress|in-progress|review|review_required|scheduled|planned|unknown|unklar)$/.test(
+            text
+          )
+        )
+          return 'partial';
         if (/^(missing|fehlt|absent|not_available|not-available)$/.test(text)) return 'missing';
-        if (/^(blocked|blockiert|red|rot|failed|fail|rejected|not_ready|not-ready|stop)$/.test(text)) return 'blocked';
+        if (
+          /^(blocked|blockiert|red|rot|failed|fail|rejected|not_ready|not-ready|stop)$/.test(text)
+        )
+          return 'blocked';
         if (/(block|fail|fehl|kritisch|red|rot|reject)/.test(text)) return 'blocked';
         return 'ready';
       };
@@ -12429,25 +14153,36 @@ module.exports = {
           statusWhenMissing: signal.statusWhenMissing,
         }));
       const riskFlags = missingEvidence
-        .filter((item) => ['store_inventory', 'snapshot_manifest', 'restore_drill', 'rto_target', 'rpo_target'].includes(item.missingDataPoint) || item.status === 'blocked')
+        .filter(
+          (item) =>
+            [
+              'store_inventory',
+              'snapshot_manifest',
+              'restore_drill',
+              'rto_target',
+              'rpo_target',
+            ].includes(item.missingDataPoint) || item.status === 'blocked'
+        )
         .map((item) => ({
           code: `DR_${String(item.missingDataPoint).toUpperCase()}_${item.status === 'blocked' ? 'BLOCKED' : 'MISSING'}`,
           severity: item.status === 'blocked' ? 'high' : 'medium',
           message: item.enablesDossierAddition,
         }));
       const firstGap = missingEvidence[0];
-      const status = missingEvidence.length === 0
-        ? 'ready_for_dr_evidence'
-        : missingEvidence.some((item) => item.status === 'blocked')
-          ? 'blocked_by_dr_evidence'
-          : firstGap?.statusWhenMissing || 'needs_dr_evidence';
-      const readinessLevel = missingEvidence.length === 0
-        ? 'ready'
-        : riskFlags.some((flag) => flag.severity === 'high')
-          ? 'blocked'
-          : evidenceItems.length >= 4
-            ? 'partial'
-            : 'needs_evidence';
+      const status =
+        missingEvidence.length === 0
+          ? 'ready_for_dr_evidence'
+          : missingEvidence.some((item) => item.status === 'blocked')
+            ? 'blocked_by_dr_evidence'
+            : firstGap?.statusWhenMissing || 'needs_dr_evidence';
+      const readinessLevel =
+        missingEvidence.length === 0
+          ? 'ready'
+          : riskFlags.some((flag) => flag.severity === 'high')
+            ? 'blocked'
+            : evidenceItems.length >= 4
+              ? 'partial'
+              : 'needs_evidence';
       const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
       const positiveFollowUps = missingEvidence.map((item) => ({
         missingDataPoint: item.missingDataPoint,
@@ -12493,7 +14228,11 @@ module.exports = {
       if (params.rpoTarget) dossierFacts.push(`RPO: ${params.rpoTarget}`);
 
       return {
-        drReadinessEvidenceId: `drreg:${Buffer.from(`${tenantScope}:${params.snapshotManifestStatus || ''}:${params.restoreDrillStatus || ''}:${params.owner || ''}`).toString('base64url').slice(0, 28)}`,
+        drReadinessEvidenceId: `drreg:${Buffer.from(
+          `${tenantScope}:${params.snapshotManifestStatus || ''}:${params.restoreDrillStatus || ''}:${params.owner || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 28)}`,
         capabilityKey: 'dr_readiness_evidence_gate',
         safety: 'read_only',
         requestContext: {
@@ -12531,24 +14270,66 @@ module.exports = {
     },
 
     buildSpecialGridUsageImpactMapStatus(params = {}) {
-      const toList = (value) => Array.isArray(value)
-        ? value.filter(Boolean)
-        : value
-          ? String(value).split(',').map((item) => item.trim()).filter(Boolean)
-          : [];
+      const toList = (value) =>
+        Array.isArray(value)
+          ? value.filter(Boolean)
+          : value
+            ? String(value)
+                .split(',')
+                .map((item) => item.trim())
+                .filter(Boolean)
+            : [];
       const normalizeStatus = (value) => {
         if (value === true) return 'ready';
         if (value === false || value == null || value === '') return 'missing';
         const normalized = String(value).trim().toLowerCase();
-        if (['ready', 'complete', 'completed', 'available', 'provided', 'confirmed', 'ok', 'valid', 'mapped', 'reviewed', 'approved', 'sent'].includes(normalized)) return 'ready';
-        if (['risk', 'risky', 'overdue', 'late', 'expired', 'critical', 'deadline_risk'].includes(normalized)) return 'risk';
-        if (['blocked', 'unclear', 'pending_legal', 'regulatory_uncertainty', 'legal_uncertainty', 'pending'].includes(normalized)) return 'blocked';
-        if (['missing', 'open', 'needed', 'required', 'unknown', 'none', 'no'].includes(normalized)) return 'missing';
+        if (
+          [
+            'ready',
+            'complete',
+            'completed',
+            'available',
+            'provided',
+            'confirmed',
+            'ok',
+            'valid',
+            'mapped',
+            'reviewed',
+            'approved',
+            'sent',
+          ].includes(normalized)
+        )
+          return 'ready';
+        if (
+          ['risk', 'risky', 'overdue', 'late', 'expired', 'critical', 'deadline_risk'].includes(
+            normalized
+          )
+        )
+          return 'risk';
+        if (
+          [
+            'blocked',
+            'unclear',
+            'pending_legal',
+            'regulatory_uncertainty',
+            'legal_uncertainty',
+            'pending',
+          ].includes(normalized)
+        )
+          return 'blocked';
+        if (['missing', 'open', 'needed', 'required', 'unknown', 'none', 'no'].includes(normalized))
+          return 'missing';
         return 'ready';
       };
       const sourceDatapoints = toList(params.sourceDatapoints);
       const caseType = params.caseType || 'specialGridUsage';
-      const caseId = params.caseId || `special-grid-usage:${Buffer.from(`${caseType}:${params.customerId || ''}:${params.ownerRole || ''}`).toString('base64url').slice(0, 24)}`;
+      const caseId =
+        params.caseId ||
+        `special-grid-usage:${Buffer.from(
+          `${caseType}:${params.customerId || ''}:${params.ownerRole || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 24)}`;
       const evidenceSpecs = [
         {
           id: 'application_status',
@@ -12619,7 +14400,8 @@ module.exports = {
           label: 'Customer communication readiness',
           value: params.communicationStatus,
           sourceClass: 'communication_reference',
-          enablesDossierAddition: 'add customer communication readiness without sending communication',
+          enablesDossierAddition:
+            'add customer communication readiness without sending communication',
           statusWhenMissing: 'needs_communication_status',
         },
         {
@@ -12671,27 +14453,32 @@ module.exports = {
           status: 'blocked',
           value: params.regulatoryUncertainty,
           sourceClass: 'regulatory_review',
-          enablesDossierAddition: 'add clarified regulatory/legal basis before process readiness is claimed',
+          enablesDossierAddition:
+            'add clarified regulatory/legal basis before process readiness is claimed',
           statusWhenMissing: 'blocked_by_regulatory_uncertainty',
         });
       }
       const firstGap = missingEvidence[0];
-      const status = missingEvidence.length === 0
-        ? 'ready_for_processing'
-        : missingEvidence.some((item) => item.missingDataPoint === 'regulatory_uncertainty')
-          ? 'blocked_by_regulatory_uncertainty'
-          : missingEvidence.some((item) => item.missingDataPoint === 'deadline_status' && item.status === 'risk')
-            ? 'deadline_risk'
-            : firstGap?.statusWhenMissing || 'needs_special_grid_usage_evidence';
-      const readinessLevel = missingEvidence.length === 0
-        ? 'ready'
-        : status === 'blocked_by_regulatory_uncertainty'
-          ? 'blocked'
-          : status === 'deadline_risk'
-            ? 'risk'
-            : evidenceItems.length >= 5
-              ? 'partial'
-              : 'needs_evidence';
+      const status =
+        missingEvidence.length === 0
+          ? 'ready_for_processing'
+          : missingEvidence.some((item) => item.missingDataPoint === 'regulatory_uncertainty')
+            ? 'blocked_by_regulatory_uncertainty'
+            : missingEvidence.some(
+                  (item) => item.missingDataPoint === 'deadline_status' && item.status === 'risk'
+                )
+              ? 'deadline_risk'
+              : firstGap?.statusWhenMissing || 'needs_special_grid_usage_evidence';
+      const readinessLevel =
+        missingEvidence.length === 0
+          ? 'ready'
+          : status === 'blocked_by_regulatory_uncertainty'
+            ? 'blocked'
+            : status === 'deadline_risk'
+              ? 'risk'
+              : evidenceItems.length >= 5
+                ? 'partial'
+                : 'needs_evidence';
       const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
       const positiveFollowUps = missingEvidence.map((item) => ({
         missingDataPoint: item.missingDataPoint,
@@ -12797,19 +14584,45 @@ module.exports = {
     },
 
     buildLiquidityPlanningGovernanceStatus(params = {}) {
-      const toList = (value) => Array.isArray(value)
-        ? value.filter(Boolean)
-        : value
-          ? String(value).split(',').map((item) => item.trim()).filter(Boolean)
-          : [];
+      const toList = (value) =>
+        Array.isArray(value)
+          ? value.filter(Boolean)
+          : value
+            ? String(value)
+                .split(',')
+                .map((item) => item.trim())
+                .filter(Boolean)
+            : [];
       const normalizeStatus = (value) => {
         if (value === true) return 'ready';
         if (value === false || value == null || value === '') return 'missing';
         const normalized = String(value).trim().toLowerCase();
-        if (['ready', 'complete', 'completed', 'available', 'provided', 'confirmed', 'ok', 'valid', 'mapped', 'reviewed', 'approved'].includes(normalized)) return 'ready';
-        if (['risk', 'risky', 'stale', 'outdated', 'late', 'overdue'].includes(normalized)) return 'risk';
-        if (['blocked', 'unclear', 'unvalidated', 'invalid', 'pending', 'rejected'].includes(normalized)) return 'blocked';
-        if (['missing', 'open', 'needed', 'required', 'unknown', 'none', 'no'].includes(normalized)) return 'missing';
+        if (
+          [
+            'ready',
+            'complete',
+            'completed',
+            'available',
+            'provided',
+            'confirmed',
+            'ok',
+            'valid',
+            'mapped',
+            'reviewed',
+            'approved',
+          ].includes(normalized)
+        )
+          return 'ready';
+        if (['risk', 'risky', 'stale', 'outdated', 'late', 'overdue'].includes(normalized))
+          return 'risk';
+        if (
+          ['blocked', 'unclear', 'unvalidated', 'invalid', 'pending', 'rejected'].includes(
+            normalized
+          )
+        )
+          return 'blocked';
+        if (['missing', 'open', 'needed', 'required', 'unknown', 'none', 'no'].includes(normalized))
+          return 'missing';
         return 'ready';
       };
       const sapAccountSources = toList(params.sapAccountSources);
@@ -12822,7 +14635,13 @@ module.exports = {
       const liquidityRiskFlags = toList(params.liquidityRiskFlags);
       const interestRiskFlags = toList(params.interestRiskFlags);
       const investmentLinkRefs = toList(params.investmentLinkRefs);
-      const planningRunId = params.planningRunId || `liquidity-governance:${Buffer.from(`${params.planningHorizon || ''}:${params.ownerRaci || ''}:${params.sourceRegister || ''}`).toString('base64url').slice(0, 24)}`;
+      const planningRunId =
+        params.planningRunId ||
+        `liquidity-governance:${Buffer.from(
+          `${params.planningHorizon || ''}:${params.ownerRaci || ''}:${params.sourceRegister || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 24)}`;
       const evidenceSpecs = [
         {
           id: 'source_register',
@@ -12951,24 +14770,40 @@ module.exports = {
           statusWhenMissing: signal.statusWhenMissing,
         }));
       const firstGap = missingEvidence[0];
-      const status = missingEvidence.length === 0
-        ? 'ready_for_treasury_review'
-        : missingEvidence.some((item) => item.missingDataPoint === 'cash_pool_settlement_reference')
-          ? 'blocked_by_unvalidated_cash_pool_logic'
-          : firstGap?.statusWhenMissing || 'needs_liquidity_governance_evidence';
-      const readinessLevel = missingEvidence.length === 0
-        ? 'ready'
-        : status === 'blocked_by_unvalidated_cash_pool_logic'
-          ? 'blocked'
-          : evidenceItems.length >= 6
-            ? 'partial'
-            : 'needs_evidence';
+      const status =
+        missingEvidence.length === 0
+          ? 'ready_for_treasury_review'
+          : missingEvidence.some(
+                (item) => item.missingDataPoint === 'cash_pool_settlement_reference'
+              )
+            ? 'blocked_by_unvalidated_cash_pool_logic'
+            : firstGap?.statusWhenMissing || 'needs_liquidity_governance_evidence';
+      const readinessLevel =
+        missingEvidence.length === 0
+          ? 'ready'
+          : status === 'blocked_by_unvalidated_cash_pool_logic'
+            ? 'blocked'
+            : evidenceItems.length >= 6
+              ? 'partial'
+              : 'needs_evidence';
       const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
       const riskFlags = [
-        ...liquidityRiskFlags.map((flag) => ({ type: 'liquidity', severity: 'medium', message: flag })),
-        ...interestRiskFlags.map((flag) => ({ type: 'interest', severity: 'medium', message: flag })),
+        ...liquidityRiskFlags.map((flag) => ({
+          type: 'liquidity',
+          severity: 'medium',
+          message: flag,
+        })),
+        ...interestRiskFlags.map((flag) => ({
+          type: 'interest',
+          severity: 'medium',
+          message: flag,
+        })),
         ...missingEvidence
-          .filter((item) => item.status === 'blocked' || item.missingDataPoint === 'cash_pool_settlement_reference')
+          .filter(
+            (item) =>
+              item.status === 'blocked' ||
+              item.missingDataPoint === 'cash_pool_settlement_reference'
+          )
           .map((item) => ({
             type: item.missingDataPoint,
             severity: item.status === 'blocked' ? 'high' : 'medium',
@@ -13078,16 +14913,34 @@ module.exports = {
     },
 
     buildEnergySharingSimulationGateStatus(params = {}) {
-      const toList = (value) => Array.isArray(value)
-        ? value.filter(Boolean)
-        : value
-          ? String(value).split(',').map((item) => item.trim()).filter(Boolean)
-          : [];
+      const toList = (value) =>
+        Array.isArray(value)
+          ? value.filter(Boolean)
+          : value
+            ? String(value)
+                .split(',')
+                .map((item) => item.trim())
+                .filter(Boolean)
+            : [];
       const normalizeStatus = (value) => {
         if (value === true) return 'ready';
         if (value === false || value == null || value === '') return 'missing';
         const text = String(value).trim().toLowerCase();
-        if (['ready', 'ok', 'complete', 'completed', 'provided', 'valid', 'validated', 'available', 'confirmed', 'approved'].includes(text)) return 'ready';
+        if (
+          [
+            'ready',
+            'ok',
+            'complete',
+            'completed',
+            'provided',
+            'valid',
+            'validated',
+            'available',
+            'confirmed',
+            'approved',
+          ].includes(text)
+        )
+          return 'ready';
         if (['blocked', 'invalid', 'failed', 'rejected'].includes(text)) return 'blocked';
         if (['partial', 'in_progress', 'draft', 'pending'].includes(text)) return 'partial';
         return 'ready';
@@ -13097,7 +14950,8 @@ module.exports = {
       const sourceArtifacts = toList(params.sourceArtifacts);
       const dataBasis = String(params.dataBasis || '').toLowerCase();
       const isBillingDataBasis = /inhouse|imsys|mscons|billing|abrechnung/.test(dataBasis);
-      const isForecastBasis = /forecast|synthetic|synthetisch|learning|lernpilot/.test(dataBasis) || !dataBasis;
+      const isForecastBasis =
+        /forecast|synthetic|synthetisch|learning|lernpilot/.test(dataBasis) || !dataBasis;
       const communityId = params.communityId || 'energy-sharing-candidate';
 
       const evidenceSpecs = [
@@ -13108,17 +14962,22 @@ module.exports = {
           displayValue: [params.communityId, params.gridOperatorId].filter(Boolean).join(' / '),
           readinessBlock: 'project',
           sourceClass: 'identity',
-          enablesDossierAddition: 'add community id and grid operator id to identify the simulation scope',
+          enablesDossierAddition:
+            'add community id and grid operator id to identify the simulation scope',
           statusWhenMissing: 'blocked_by_evidence',
         },
         {
           id: 'participant_dataset',
           label: 'Participant list and participant evidence',
           value: participantCount > 0 && params.participantEvidenceRef,
-          displayValue: participantCount > 0 ? `${participantCount} participants / ${params.participantEvidenceRef || 'no evidence ref'}` : null,
+          displayValue:
+            participantCount > 0
+              ? `${participantCount} participants / ${params.participantEvidenceRef || 'no evidence ref'}`
+              : null,
           readinessBlock: 'participants',
           sourceClass: 'participant_evidence',
-          enablesDossierAddition: 'add participant list and consent/evidence reference to assess participant readiness',
+          enablesDossierAddition:
+            'add participant list and consent/evidence reference to assess participant readiness',
           statusWhenMissing: 'blocked_by_evidence',
         },
         {
@@ -13128,7 +14987,8 @@ module.exports = {
           displayValue: [params.maloStatus, params.meteringReadiness].filter(Boolean).join(' / '),
           readinessBlock: 'metering',
           sourceClass: 'metering_evidence',
-          enablesDossierAddition: 'add MaLo status and iMSys/MSCONS metering evidence to lift the gate beyond learning-pilot readiness',
+          enablesDossierAddition:
+            'add MaLo status and iMSys/MSCONS metering evidence to lift the gate beyond learning-pilot readiness',
           statusWhenMissing: 'blocked_by_metering',
         },
         {
@@ -13138,7 +14998,8 @@ module.exports = {
           displayValue: params.marketRoleReadiness,
           readinessBlock: 'marketRole',
           sourceClass: 'market_role_evidence',
-          enablesDossierAddition: 'add market-role and balancing-group readiness evidence to avoid false operational approval',
+          enablesDossierAddition:
+            'add market-role and balancing-group readiness evidence to avoid false operational approval',
           statusWhenMissing: 'blocked_by_market_role',
         },
         {
@@ -13148,17 +15009,21 @@ module.exports = {
           displayValue: params.dataBasis,
           readinessBlock: 'metering',
           sourceClass: 'data_basis',
-          enablesDossierAddition: 'add the simulation data basis; forecast enables learning-pilot assessment, inhouse/iMSys evidence enables billing-near assessment',
+          enablesDossierAddition:
+            'add the simulation data basis; forecast enables learning-pilot assessment, inhouse/iMSys evidence enables billing-near assessment',
           statusWhenMissing: 'learning_pilot',
         },
         {
           id: 'settlement_a96_evidence',
           label: 'Settlement and A96 evidence',
           value: params.a96EvidenceRef && params.settlementEvidenceRef && isBillingDataBasis,
-          displayValue: [params.a96EvidenceRef, params.settlementEvidenceRef].filter(Boolean).join(' / '),
+          displayValue: [params.a96EvidenceRef, params.settlementEvidenceRef]
+            .filter(Boolean)
+            .join(' / '),
           readinessBlock: 'settlement',
           sourceClass: 'settlement_evidence',
-          enablesDossierAddition: 'add A96 and settlement evidence before classifying the candidate as billing-near-ready',
+          enablesDossierAddition:
+            'add A96 and settlement evidence before classifying the candidate as billing-near-ready',
           statusWhenMissing: isBillingDataBasis ? 'blocked_by_settlement' : 'simulation_ready',
         },
         {
@@ -13168,7 +15033,8 @@ module.exports = {
           displayValue: params.contractEvidenceRef,
           readinessBlock: 'contract',
           sourceClass: 'contract_evidence',
-          enablesDossierAddition: 'add contract readiness evidence to separate pilot learning from operational rollout',
+          enablesDossierAddition:
+            'add contract readiness evidence to separate pilot learning from operational rollout',
           statusWhenMissing: 'blocked_by_evidence',
         },
         {
@@ -13178,7 +15044,8 @@ module.exports = {
           displayValue: params.economicsAssumptionRef,
           readinessBlock: 'economics',
           sourceClass: 'commercial_evidence',
-          enablesDossierAddition: 'add economics assumptions for commercial readiness without triggering billing or tariff mutation',
+          enablesDossierAddition:
+            'add economics assumptions for commercial readiness without triggering billing or tariff mutation',
           statusWhenMissing: 'blocked_by_evidence',
         },
         {
@@ -13188,7 +15055,8 @@ module.exports = {
           displayValue: [params.owner, params.escalationContact].filter(Boolean).join(' / '),
           readinessBlock: 'governance',
           sourceClass: 'owner_evidence',
-          enablesDossierAddition: 'add owner and escalation contact so open evidence can be routed as follow-up',
+          enablesDossierAddition:
+            'add owner and escalation contact so open evidence can be routed as follow-up',
           statusWhenMissing: 'blocked_by_evidence',
         },
       ];
@@ -13197,13 +15065,17 @@ module.exports = {
         participantReadiness: {
           participantCount,
           participantEvidenceRef: params.participantEvidenceRef || null,
-          status: participantCount > 0 && params.participantEvidenceRef ? 'ready' : 'missing_evidence',
+          status:
+            participantCount > 0 && params.participantEvidenceRef ? 'ready' : 'missing_evidence',
         },
         meteringReadiness: {
           maloStatus: params.maloStatus || null,
           meteringReadiness: params.meteringReadiness || null,
           dataBasis: params.dataBasis || null,
-          status: isReady(params.maloStatus) && isReady(params.meteringReadiness) ? 'ready' : 'missing_evidence',
+          status:
+            isReady(params.maloStatus) && isReady(params.meteringReadiness)
+              ? 'ready'
+              : 'missing_evidence',
         },
         marketRoleReadiness: {
           marketRoleReadiness: params.marketRoleReadiness || null,
@@ -13212,12 +15084,18 @@ module.exports = {
         settlementReadiness: {
           a96EvidenceRef: params.a96EvidenceRef || null,
           settlementEvidenceRef: params.settlementEvidenceRef || null,
-          status: params.a96EvidenceRef && params.settlementEvidenceRef && isBillingDataBasis ? 'ready' : 'missing_or_not_billing_basis',
+          status:
+            params.a96EvidenceRef && params.settlementEvidenceRef && isBillingDataBasis
+              ? 'ready'
+              : 'missing_or_not_billing_basis',
         },
         economicsReadiness: {
           contractEvidenceRef: params.contractEvidenceRef || null,
           economicsAssumptionRef: params.economicsAssumptionRef || null,
-          status: params.contractEvidenceRef && params.economicsAssumptionRef ? 'ready' : 'missing_evidence',
+          status:
+            params.contractEvidenceRef && params.economicsAssumptionRef
+              ? 'ready'
+              : 'missing_evidence',
         },
       };
 
@@ -13244,26 +15122,28 @@ module.exports = {
           statusWhenMissing: spec.statusWhenMissing,
         }));
       const missingIds = new Set(missingEvidence.map((item) => item.missingDataPoint));
-      const gateStatus = missingIds.size === 0
-        ? 'billing_near_ready'
-        : isForecastBasis
-          ? 'learning_pilot'
-          : missingIds.has('market_role_readiness')
-            ? 'blocked_by_market_role'
-            : missingIds.has('malo_metering_readiness')
-              ? 'blocked_by_metering'
-              : missingIds.has('settlement_a96_evidence') && isBillingDataBasis
-                ? 'blocked_by_settlement'
-                : missingIds.has('settlement_a96_evidence')
-                  ? 'simulation_ready'
-                  : 'blocked_by_evidence';
-      const simulationStage = gateStatus === 'billing_near_ready'
-        ? 'billing_near_ready'
-        : gateStatus === 'simulation_ready'
-          ? 'simulation_ready'
-          : gateStatus === 'learning_pilot'
+      const gateStatus =
+        missingIds.size === 0
+          ? 'billing_near_ready'
+          : isForecastBasis
             ? 'learning_pilot'
-            : 'blocked_before_operational_rollout';
+            : missingIds.has('market_role_readiness')
+              ? 'blocked_by_market_role'
+              : missingIds.has('malo_metering_readiness')
+                ? 'blocked_by_metering'
+                : missingIds.has('settlement_a96_evidence') && isBillingDataBasis
+                  ? 'blocked_by_settlement'
+                  : missingIds.has('settlement_a96_evidence')
+                    ? 'simulation_ready'
+                    : 'blocked_by_evidence';
+      const simulationStage =
+        gateStatus === 'billing_near_ready'
+          ? 'billing_near_ready'
+          : gateStatus === 'simulation_ready'
+            ? 'simulation_ready'
+            : gateStatus === 'learning_pilot'
+              ? 'learning_pilot'
+              : 'blocked_before_operational_rollout';
       const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
       const classificationRationale = [
         gateStatus === 'billing_near_ready'
@@ -13320,7 +15200,11 @@ module.exports = {
       if (params.gridOperatorId) dossierFacts.push(`Grid Operator: ${params.gridOperatorId}`);
 
       return {
-        energySharingSimulationGateId: `esgate:${Buffer.from(`${communityId}:${params.gridOperatorId || ''}:${params.dataBasis || ''}:${params.owner || ''}`).toString('base64url').slice(0, 28)}`,
+        energySharingSimulationGateId: `esgate:${Buffer.from(
+          `${communityId}:${params.gridOperatorId || ''}:${params.dataBasis || ''}:${params.owner || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 28)}`,
         capabilityKey: 'energy_sharing_simulation_gate',
         safety: 'read_only',
         gateStatus,
@@ -13358,19 +15242,52 @@ module.exports = {
     },
 
     buildEnergySharing42cCutoverReadinessStatus(params = {}) {
-      const toList = (value) => Array.isArray(value)
-        ? value.filter(Boolean)
-        : value
-          ? String(value).split(',').map((item) => item.trim()).filter(Boolean)
-          : [];
+      const toList = (value) =>
+        Array.isArray(value)
+          ? value.filter(Boolean)
+          : value
+            ? String(value)
+                .split(',')
+                .map((item) => item.trim())
+                .filter(Boolean)
+            : [];
       const normalizeStatus = (value) => {
         if (value === true) return 'ready';
         if (value === false || value == null || value === '') return 'missing';
         const text = String(value).trim().toLowerCase();
-        if (['ready', 'ok', 'complete', 'completed', 'provided', 'valid', 'validated', 'available', 'confirmed', 'approved', 'done', 'passed'].includes(text)) return 'ready';
-        if (['blocked', 'invalid', 'failed', 'rejected', 'red', 'critical'].includes(text)) return 'blocked';
-        if (['risk', 'risky', 'warning', 'late', 'overdue', 'pending_legal', 'pending-regulatory'].includes(text)) return 'risk';
-        if (['partial', 'in_progress', 'in-progress', 'draft', 'pending', 'review'].includes(text)) return 'partial';
+        if (
+          [
+            'ready',
+            'ok',
+            'complete',
+            'completed',
+            'provided',
+            'valid',
+            'validated',
+            'available',
+            'confirmed',
+            'approved',
+            'done',
+            'passed',
+          ].includes(text)
+        )
+          return 'ready';
+        if (['blocked', 'invalid', 'failed', 'rejected', 'red', 'critical'].includes(text))
+          return 'blocked';
+        if (
+          [
+            'risk',
+            'risky',
+            'warning',
+            'late',
+            'overdue',
+            'pending_legal',
+            'pending-regulatory',
+          ].includes(text)
+        )
+          return 'risk';
+        if (['partial', 'in_progress', 'in-progress', 'draft', 'pending', 'review'].includes(text))
+          return 'partial';
         return 'ready';
       };
       const evidenceRefs = toList(params.evidenceRefs);
@@ -13381,18 +15298,24 @@ module.exports = {
           subTrack: 'A',
           label: 'A96 defaults and spec-freeze evidence',
           value: params.a96DefaultsStatus && params.specFreezeStatus,
-          displayValue: [params.a96DefaultsStatus, params.specFreezeStatus].filter(Boolean).join(' / '),
+          displayValue: [params.a96DefaultsStatus, params.specFreezeStatus]
+            .filter(Boolean)
+            .join(' / '),
           riskWhenMissing: 'high',
-          enablesDossierAddition: 'add A96 defaults and spec-freeze evidence before any export release is considered',
+          enablesDossierAddition:
+            'add A96 defaults and spec-freeze evidence before any export release is considered',
         },
         {
           id: 'pilot_tenant_balance_group',
           subTrack: 'B',
           label: 'Pilot tenant and balance-group readiness',
           value: params.pilotTenantStatus && params.pilotTenantId && params.balanceGroupId,
-          displayValue: [params.pilotTenantId, params.balanceGroupId, params.pilotTenantStatus].filter(Boolean).join(' / '),
+          displayValue: [params.pilotTenantId, params.balanceGroupId, params.pilotTenantStatus]
+            .filter(Boolean)
+            .join(' / '),
           riskWhenMissing: 'high',
-          enablesDossierAddition: 'add pilot-tenant and virtual balance-group readiness evidence without provisioning production tenants',
+          enablesDossierAddition:
+            'add pilot-tenant and virtual balance-group readiness evidence without provisioning production tenants',
         },
         {
           id: 'settlement_readiness_hardening',
@@ -13401,7 +15324,8 @@ module.exports = {
           value: params.settlementHardeningStatus,
           displayValue: params.settlementHardeningStatus,
           riskWhenMissing: 'high',
-          enablesDossierAddition: 'add settlement-readiness hardening and data-quality evidence before billing-adjacent decisions',
+          enablesDossierAddition:
+            'add settlement-readiness hardening and data-quality evidence before billing-adjacent decisions',
         },
         {
           id: 'allocation_load_test',
@@ -13410,7 +15334,8 @@ module.exports = {
           value: params.allocationLoadTestStatus,
           displayValue: params.allocationLoadTestStatus,
           riskWhenMissing: 'medium',
-          enablesDossierAddition: 'add allocation load-test and deterministic export evidence without executing allocation',
+          enablesDossierAddition:
+            'add allocation load-test and deterministic export evidence without executing allocation',
         },
         {
           id: 'incident_runbook',
@@ -13419,7 +15344,8 @@ module.exports = {
           value: params.runbookStatus,
           displayValue: params.runbookStatus,
           riskWhenMissing: 'medium',
-          enablesDossierAddition: 'add incident runbook and escalation evidence without creating HITL or pager tasks',
+          enablesDossierAddition:
+            'add incident runbook and escalation evidence without creating HITL or pager tasks',
         },
         {
           id: 'compliance_signoff_evidence',
@@ -13428,7 +15354,8 @@ module.exports = {
           value: params.complianceSignoffStatus,
           displayValue: params.complianceSignoffStatus,
           riskWhenMissing: 'high',
-          enablesDossierAddition: 'add compliance and sign-off evidence without automating legal/regulatory interpretation',
+          enablesDossierAddition:
+            'add compliance and sign-off evidence without automating legal/regulatory interpretation',
         },
         {
           id: 'rollback_dr_readiness',
@@ -13437,7 +15364,8 @@ module.exports = {
           value: params.rollbackPlanStatus,
           displayValue: params.rollbackPlanStatus,
           riskWhenMissing: 'medium',
-          enablesDossierAddition: 'add rollback and DR readiness evidence without running restore or rollback actions',
+          enablesDossierAddition:
+            'add rollback and DR readiness evidence without running restore or rollback actions',
         },
       ];
 
@@ -13468,12 +15396,10 @@ module.exports = {
         }));
       const hasHighRiskGap = missingEvidence.some((item) => item.risk === 'high');
       const hasMediumRiskGap = missingEvidence.some((item) => item.risk === 'medium');
-      const status = missingEvidence.length === 0
-        ? 'ready'
-        : hasHighRiskGap
-          ? 'blocked'
-          : 'partial';
-      const riskLevel = status === 'ready' ? 'low' : hasHighRiskGap ? 'high' : hasMediumRiskGap ? 'medium' : 'low';
+      const status =
+        missingEvidence.length === 0 ? 'ready' : hasHighRiskGap ? 'blocked' : 'partial';
+      const riskLevel =
+        status === 'ready' ? 'low' : hasHighRiskGap ? 'high' : hasMediumRiskGap ? 'medium' : 'low';
       const readinessScore = Number((evidenceItems.length / subTrackSpecs.length).toFixed(2));
       const positiveFollowUps = missingEvidence.map((item) => ({
         missingDataPoint: item.missingDataPoint,
@@ -13523,7 +15449,11 @@ module.exports = {
       if (params.targetDate) dossierFacts.push(`Target Date: ${params.targetDate}`);
 
       return {
-        energySharing42cCutoverReadinessId: `es42c:${Buffer.from(`${cutoverId}:${params.pilotTenantId || ''}:${params.balanceGroupId || ''}:${params.owner || ''}`).toString('base64url').slice(0, 28)}`,
+        energySharing42cCutoverReadinessId: `es42c:${Buffer.from(
+          `${cutoverId}:${params.pilotTenantId || ''}:${params.balanceGroupId || ''}:${params.owner || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 28)}`,
         capabilityKey: 'energy_sharing_42c_cutover_readiness',
         safety: 'read_only',
         status,
@@ -13611,7 +15541,8 @@ module.exports = {
           value: params.validationError && params.responseCode,
           displayValue: [params.responseCode, params.validationError].filter(Boolean).join(' / '),
           riskWhenMissing: 'medium',
-          enablesDossierAddition: 'add concrete failure class evidence from validation error and response code',
+          enablesDossierAddition:
+            'add concrete failure class evidence from validation error and response code',
         },
         {
           id: 'completion_criterion',
@@ -13648,11 +15579,12 @@ module.exports = {
           category: 'evu_api_migration_diagnostics',
         }));
       const hasHighRiskGap = missingEvidence.some((item) => item.risk === 'high');
-      const status = missingEvidence.length === 0
-        ? 'diagnostics_complete'
-        : hasHighRiskGap
-          ? 'needs_migration_context'
-          : 'partial_diagnostics';
+      const status =
+        missingEvidence.length === 0
+          ? 'diagnostics_complete'
+          : hasHighRiskGap
+            ? 'needs_migration_context'
+            : 'partial_diagnostics';
       const evidenceCompleteness = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
       const riskHints = [];
       if (!params.authScope) riskHints.push('auth_scope_missing');
@@ -13676,7 +15608,9 @@ module.exports = {
           id: 'api_failure_signal',
           status: 'observed',
           severity: responseCode >= 500 ? 'high' : 'medium',
-          message: [responseCodeText, normalizeText(params.validationError)].filter(Boolean).join(' / '),
+          message: [responseCodeText, normalizeText(params.validationError)]
+            .filter(Boolean)
+            .join(' / '),
         });
       }
       const positiveFollowUps = missingEvidence.map((item) => ({
@@ -13685,7 +15619,9 @@ module.exports = {
         enablesDossierAddition: item.enablesDossierAddition,
         category: 'evu_api_migration_diagnostics',
       }));
-      const next90DayStep = normalizeText(params.nextStep) || 'Collect missing API migration evidence before migration execution';
+      const next90DayStep =
+        normalizeText(params.nextStep) ||
+        'Collect missing API migration evidence before migration execution';
       const sourceActions = {
         inspected: ['dashboard-api.evuApiMigrationDiagnosticsStatus'],
         referenced: ['vdmi.dossier', 'interface-placeholder.requestEvidence'],
@@ -13713,15 +15649,21 @@ module.exports = {
         `Open gaps: ${missingEvidence.length}`,
       ];
       if (params.businessProcess) dossierFacts.push(`Business Process: ${params.businessProcess}`);
-      if (params.endpoint || method) dossierFacts.push(`Endpoint: ${[method, params.endpoint].filter(Boolean).join(' ')}`);
+      if (params.endpoint || method)
+        dossierFacts.push(`Endpoint: ${[method, params.endpoint].filter(Boolean).join(' ')}`);
       if (params.authScope) dossierFacts.push(`Auth Scope: ${params.authScope}`);
       if (params.dataContext) dossierFacts.push(`Data Context: ${params.dataContext}`);
-      if (params.completionCriterion) dossierFacts.push(`Completion Criterion: ${params.completionCriterion}`);
+      if (params.completionCriterion)
+        dossierFacts.push(`Completion Criterion: ${params.completionCriterion}`);
       if (params.owner) dossierFacts.push(`Owner: ${params.owner}`);
       if (next90DayStep) dossierFacts.push(`Next Step: ${next90DayStep}`);
 
       return {
-        evuApiMigrationDiagnosticsId: `evu-api:${Buffer.from(`${params.businessProcess || ''}:${params.endpoint || ''}:${method || ''}:${params.systemRef || ''}:${params.ticketRef || ''}`).toString('base64url').slice(0, 28)}`,
+        evuApiMigrationDiagnosticsId: `evu-api:${Buffer.from(
+          `${params.businessProcess || ''}:${params.endpoint || ''}:${method || ''}:${params.systemRef || ''}:${params.ticketRef || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 28)}`,
         capabilityKey: 'evu_api_migration_diagnostics',
         safety: 'read_only_diagnostics',
         status,
@@ -13775,19 +15717,52 @@ module.exports = {
     },
 
     buildNovaDecisionLifecycleReadinessStatus(params = {}) {
-      const toList = (value) => Array.isArray(value)
-        ? value.filter(Boolean)
-        : value
-          ? String(value).split(',').map((item) => item.trim()).filter(Boolean)
-          : [];
+      const toList = (value) =>
+        Array.isArray(value)
+          ? value.filter(Boolean)
+          : value
+            ? String(value)
+                .split(',')
+                .map((item) => item.trim())
+                .filter(Boolean)
+            : [];
       const normalizeStatus = (value) => {
         if (value === true) return 'ready';
         if (value === false || value == null || value === '') return 'missing';
         const text = String(value).trim().toLowerCase();
-        if (['ready', 'ok', 'complete', 'completed', 'provided', 'valid', 'validated', 'available', 'confirmed', 'approved', 'done', 'passed'].includes(text)) return 'ready';
-        if (['blocked', 'invalid', 'failed', 'rejected', 'red', 'critical'].includes(text)) return 'blocked';
-        if (['risk', 'risky', 'warning', 'late', 'overdue', 'pending_legal', 'pending-regulatory'].includes(text)) return 'risk';
-        if (['partial', 'in_progress', 'in-progress', 'draft', 'pending', 'review'].includes(text)) return 'partial';
+        if (
+          [
+            'ready',
+            'ok',
+            'complete',
+            'completed',
+            'provided',
+            'valid',
+            'validated',
+            'available',
+            'confirmed',
+            'approved',
+            'done',
+            'passed',
+          ].includes(text)
+        )
+          return 'ready';
+        if (['blocked', 'invalid', 'failed', 'rejected', 'red', 'critical'].includes(text))
+          return 'blocked';
+        if (
+          [
+            'risk',
+            'risky',
+            'warning',
+            'late',
+            'overdue',
+            'pending_legal',
+            'pending-regulatory',
+          ].includes(text)
+        )
+          return 'risk';
+        if (['partial', 'in_progress', 'in-progress', 'draft', 'pending', 'review'].includes(text))
+          return 'partial';
         return 'ready';
       };
       const evidenceRefs = toList(params.evidenceRefs);
@@ -13798,18 +15773,35 @@ module.exports = {
           label: 'Decision lifecycle model evidence',
           value: params.lifecycleModel,
           stage: 'lifecycle',
-          expectedStates: ['proposed', 'triaged', 'pending_approval', 'approved', 'rejected', 'expired', 'applied'],
+          expectedStates: [
+            'proposed',
+            'triaged',
+            'pending_approval',
+            'approved',
+            'rejected',
+            'expired',
+            'applied',
+          ],
           riskWhenMissing: 'high',
-          enablesDossierAddition: 'add a documented NOVA lifecycle model from proposed to applied/rejected/expired',
+          enablesDossierAddition:
+            'add a documented NOVA lifecycle model from proposed to applied/rejected/expired',
         },
         {
           id: 'decision_source_catalogue',
           label: 'Decision source catalogue evidence',
           value: params.sourceCatalogue,
           stage: 'sources',
-          expectedSources: ['mastr-quality.audit', 'redispatch-expost.audit', 'vnb-monitor', 'cya.a2a.consensus.failed', 'mastr-monitor.delta.detected', 'assets.override'],
+          expectedSources: [
+            'mastr-quality.audit',
+            'redispatch-expost.audit',
+            'vnb-monitor',
+            'cya.a2a.consensus.failed',
+            'mastr-monitor.delta.detected',
+            'assets.override',
+          ],
           riskWhenMissing: 'high',
-          enablesDossierAddition: 'add NOVA decision-source coverage for MaStR, Redispatch, VNB monitor, CYA/A2A, MaStR monitor and asset override triggers',
+          enablesDossierAddition:
+            'add NOVA decision-source coverage for MaStR, Redispatch, VNB monitor, CYA/A2A, MaStR monitor and asset override triggers',
         },
         {
           id: 'transition_audit_history',
@@ -13817,7 +15809,8 @@ module.exports = {
           value: params.auditTrail,
           stage: 'audit',
           riskWhenMissing: 'high',
-          enablesDossierAddition: 'add lifecycle transition auditability evidence without writing NOVA decisions',
+          enablesDossierAddition:
+            'add lifecycle transition auditability evidence without writing NOVA decisions',
         },
         {
           id: 'tenant_isolated_sse_evidence',
@@ -13825,7 +15818,8 @@ module.exports = {
           value: params.tenantIsolationEvidence,
           stage: 'sse',
           riskWhenMissing: 'medium',
-          enablesDossierAddition: 'add tenant-channel readiness evidence without changing SSE runtime behavior',
+          enablesDossierAddition:
+            'add tenant-channel readiness evidence without changing SSE runtime behavior',
         },
         {
           id: 'hitl_bridge_policy',
@@ -13833,7 +15827,8 @@ module.exports = {
           value: params.hitlPolicyEvidence,
           stage: 'hitl_policy',
           riskWhenMissing: 'medium',
-          enablesDossierAddition: 'add approval/escalation policy evidence without creating HITL items',
+          enablesDossierAddition:
+            'add approval/escalation policy evidence without creating HITL items',
         },
         {
           id: 'replay_testability',
@@ -13841,7 +15836,8 @@ module.exports = {
           value: params.replayEvidence,
           stage: 'replay',
           riskWhenMissing: 'medium',
-          enablesDossierAddition: 'add replay and audit testability evidence without adding a replay endpoint',
+          enablesDossierAddition:
+            'add replay and audit testability evidence without adding a replay endpoint',
         },
         {
           id: 'expiry_non_execution',
@@ -13849,7 +15845,8 @@ module.exports = {
           value: params.expiryEvidence,
           stage: 'non_execution',
           riskWhenMissing: 'medium',
-          enablesDossierAddition: 'add expiry and non-execution evidence before production lifecycle execution is considered',
+          enablesDossierAddition:
+            'add expiry and non-execution evidence before production lifecycle execution is considered',
         },
       ];
 
@@ -13882,12 +15879,20 @@ module.exports = {
         }));
       const hasHighRiskGap = missingEvidence.some((item) => item.risk === 'high');
       const hasMediumRiskGap = missingEvidence.some((item) => item.risk === 'medium');
-      const status = missingEvidence.length === 0
-        ? 'ready_for_trl7_review'
-        : hasHighRiskGap
-          ? 'blocked'
-          : 'partial_readiness';
-      const riskLevel = status === 'ready_for_trl7_review' ? 'low' : hasHighRiskGap ? 'high' : hasMediumRiskGap ? 'medium' : 'low';
+      const status =
+        missingEvidence.length === 0
+          ? 'ready_for_trl7_review'
+          : hasHighRiskGap
+            ? 'blocked'
+            : 'partial_readiness';
+      const riskLevel =
+        status === 'ready_for_trl7_review'
+          ? 'low'
+          : hasHighRiskGap
+            ? 'high'
+            : hasMediumRiskGap
+              ? 'medium'
+              : 'low';
       const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
       const positiveFollowUps = missingEvidence.map((item) => ({
         missingDataPoint: item.missingDataPoint,
@@ -13940,7 +15945,11 @@ module.exports = {
       if (params.deadline) dossierFacts.push(`Deadline: ${params.deadline}`);
 
       return {
-        novaDecisionLifecycleReadinessId: `nova-readiness:${Buffer.from(`${caseId}:${params.decisionKind || ''}:${params.owner || ''}`).toString('base64url').slice(0, 28)}`,
+        novaDecisionLifecycleReadinessId: `nova-readiness:${Buffer.from(
+          `${caseId}:${params.decisionKind || ''}:${params.owner || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 28)}`,
         capabilityKey: 'nova_decision_lifecycle_readiness',
         safety: 'read_only',
         status,
@@ -13952,20 +15961,46 @@ module.exports = {
         deadline: params.deadline || null,
         openMeasure: params.openMeasure || null,
         decisionLifecycle: {
-          expectedStates: ['proposed', 'triaged', 'pending_approval', 'approved', 'rejected', 'expired', 'applied'],
-          evidenceStatus: readinessItems.find((item) => item.id === 'decision_lifecycle_model')?.status || 'missing',
+          expectedStates: [
+            'proposed',
+            'triaged',
+            'pending_approval',
+            'approved',
+            'rejected',
+            'expired',
+            'applied',
+          ],
+          evidenceStatus:
+            readinessItems.find((item) => item.id === 'decision_lifecycle_model')?.status ||
+            'missing',
         },
         sourceCatalogue: {
-          expectedSources: ['mastr-quality.audit', 'redispatch-expost.audit', 'vnb-monitor', 'cya.a2a.consensus.failed', 'mastr-monitor.delta.detected', 'assets.override'],
-          evidenceStatus: readinessItems.find((item) => item.id === 'decision_source_catalogue')?.status || 'missing',
+          expectedSources: [
+            'mastr-quality.audit',
+            'redispatch-expost.audit',
+            'vnb-monitor',
+            'cya.a2a.consensus.failed',
+            'mastr-monitor.delta.detected',
+            'assets.override',
+          ],
+          evidenceStatus:
+            readinessItems.find((item) => item.id === 'decision_source_catalogue')?.status ||
+            'missing',
         },
         auditAndReplayReadiness: {
-          auditTrailStatus: readinessItems.find((item) => item.id === 'transition_audit_history')?.status || 'missing',
-          replayEvidenceStatus: readinessItems.find((item) => item.id === 'replay_testability')?.status || 'missing',
+          auditTrailStatus:
+            readinessItems.find((item) => item.id === 'transition_audit_history')?.status ||
+            'missing',
+          replayEvidenceStatus:
+            readinessItems.find((item) => item.id === 'replay_testability')?.status || 'missing',
         },
-        sseTenantIsolationReadiness: readinessItems.find((item) => item.id === 'tenant_isolated_sse_evidence')?.status || 'missing',
-        hitlPolicyReadiness: readinessItems.find((item) => item.id === 'hitl_bridge_policy')?.status || 'missing',
-        nonExecutionEvidence: readinessItems.find((item) => item.id === 'expiry_non_execution')?.status || 'missing',
+        sseTenantIsolationReadiness:
+          readinessItems.find((item) => item.id === 'tenant_isolated_sse_evidence')?.status ||
+          'missing',
+        hitlPolicyReadiness:
+          readinessItems.find((item) => item.id === 'hitl_bridge_policy')?.status || 'missing',
+        nonExecutionEvidence:
+          readinessItems.find((item) => item.id === 'expiry_non_execution')?.status || 'missing',
         readinessItems,
         evidenceItems,
         missingEvidence,
@@ -13995,11 +16030,15 @@ module.exports = {
     },
 
     buildRegulatoryChangeReadinessStatus(params = {}) {
-      const toList = (value) => Array.isArray(value)
-        ? value.filter(Boolean)
-        : value
-          ? String(value).split(',').map((item) => item.trim()).filter(Boolean)
-          : [];
+      const toList = (value) =>
+        Array.isArray(value)
+          ? value.filter(Boolean)
+          : value
+            ? String(value)
+                .split(',')
+                .map((item) => item.trim())
+                .filter(Boolean)
+            : [];
       const affectedSystems = toList(params.affectedSystems);
       const sourceDatapoints = toList(params.sourceDatapoints);
       const makoCases = toList(params.makoCases);
@@ -14008,7 +16047,9 @@ module.exports = {
           id: 'data_contract',
           label: 'Regulatory change data contract',
           value: params.changeId && params.effectiveDate && params.mechanismType,
-          displayValue: [params.changeId, params.effectiveDate, params.mechanismType].filter(Boolean).join(' / '),
+          displayValue: [params.changeId, params.effectiveDate, params.mechanismType]
+            .filter(Boolean)
+            .join(' / '),
           sourceClass: 'regulatory_change_contract',
           enablesDossierAddition: 'add change id, effective date and mechanism type',
         },
@@ -14104,26 +16145,28 @@ module.exports = {
         }));
       const lowerMasterData = String(params.masterDataStatus || '').toLowerCase();
       const blockedByDataQuality = /block|fail|invalid|kritisch|unbrauchbar/.test(lowerMasterData);
-      const status =
-        blockedByDataQuality
-          ? 'blocked_by_data_quality'
-          : missingEvidence.length === 0
-            ? 'ready_for_simulation'
-            : !params.changeId || !params.effectiveDate || !params.mechanismType || !params.dictionaryVersion
-              ? 'needs_data_contract'
-              : !params.intervalCoverage
-                ? 'needs_interval_profile'
-                : !params.masterDataStatus
-                  ? 'needs_masterdata'
-                  : !params.substituteValuePolicy
-                    ? 'needs_substitute_value_policy'
-                    : makoCases.length === 0
-                      ? 'needs_mako_cases'
-                      : !params.operatorDeclarationStatus
-                        ? 'needs_operator_declaration'
-                        : !params.auditTrailStatus
-                          ? 'needs_audit_evidence'
-                          : 'needs_test_data';
+      const status = blockedByDataQuality
+        ? 'blocked_by_data_quality'
+        : missingEvidence.length === 0
+          ? 'ready_for_simulation'
+          : !params.changeId ||
+              !params.effectiveDate ||
+              !params.mechanismType ||
+              !params.dictionaryVersion
+            ? 'needs_data_contract'
+            : !params.intervalCoverage
+              ? 'needs_interval_profile'
+              : !params.masterDataStatus
+                ? 'needs_masterdata'
+                : !params.substituteValuePolicy
+                  ? 'needs_substitute_value_policy'
+                  : makoCases.length === 0
+                    ? 'needs_mako_cases'
+                    : !params.operatorDeclarationStatus
+                      ? 'needs_operator_declaration'
+                      : !params.auditTrailStatus
+                        ? 'needs_audit_evidence'
+                        : 'needs_test_data';
       const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
       const positiveFollowUps = missingEvidence.map((item) => ({
         missingDataPoint: item.missingDataPoint,
@@ -14131,14 +16174,16 @@ module.exports = {
         category: 'regulatory_change_readiness',
       }));
       const generatedTestCaseRequirements = missingEvidence
-        .filter((item) => [
-          'interval_profile_coverage',
-          'master_data_quality',
-          'substitute_value_policy',
-          'market_communication_cases',
-          'billing_rule_reference',
-          'audit_trail',
-        ].includes(item.missingDataPoint))
+        .filter((item) =>
+          [
+            'interval_profile_coverage',
+            'master_data_quality',
+            'substitute_value_policy',
+            'market_communication_cases',
+            'billing_rule_reference',
+            'audit_trail',
+          ].includes(item.missingDataPoint)
+        )
         .map((item) => ({
           id: `test_${item.missingDataPoint}`,
           requiredEvidence: item.missingDataPoint,
@@ -14146,7 +16191,12 @@ module.exports = {
         }));
       const blockingFindings = missingEvidence.map((item) => ({
         code: `RCR_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
-        severity: ['data_contract', 'dictionary_version', 'master_data_quality', 'audit_trail'].includes(item.missingDataPoint)
+        severity: [
+          'data_contract',
+          'dictionary_version',
+          'master_data_quality',
+          'audit_trail',
+        ].includes(item.missingDataPoint)
           ? 'high'
           : 'medium',
         message: item.enablesDossierAddition,
@@ -14168,7 +16218,11 @@ module.exports = {
       if (params.mechanismType) dossierFacts.push(`Mechanism: ${params.mechanismType}`);
 
       return {
-        readinessId: `rcr:${Buffer.from(`${params.changeId || ''}:${params.effectiveDate || ''}:${params.mechanismType || ''}`).toString('base64url').slice(0, 24)}`,
+        readinessId: `rcr:${Buffer.from(
+          `${params.changeId || ''}:${params.effectiveDate || ''}:${params.mechanismType || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 24)}`,
         capabilityKey: 'regulatory_change_simulator_readiness',
         safety: 'read_only',
         requestContext: {
@@ -14234,11 +16288,15 @@ module.exports = {
     },
 
     buildInvestmentTwoTrackControlStatus(params = {}) {
-      const toList = (value) => Array.isArray(value)
-        ? value.filter(Boolean)
-        : value
-          ? String(value).split(',').map((item) => item.trim()).filter(Boolean)
-          : [];
+      const toList = (value) =>
+        Array.isArray(value)
+          ? value.filter(Boolean)
+          : value
+            ? String(value)
+                .split(',')
+                .map((item) => item.trim())
+                .filter(Boolean)
+            : [];
       const sourceDatapoints = toList(params.sourceDatapoints);
       const explicitBlockedDecisions = toList(params.blockedDecisions);
       const evidenceSpecs = [
@@ -14247,7 +16305,9 @@ module.exports = {
           track: 'tactical',
           label: 'Tactical submission contract',
           value: params.submissionId && params.deadline && params.submissionFormat,
-          displayValue: [params.submissionId, params.deadline, params.submissionFormat].filter(Boolean).join(' / '),
+          displayValue: [params.submissionId, params.deadline, params.submissionFormat]
+            .filter(Boolean)
+            .join(' / '),
           sourceClass: 'investment_submission_contract',
           enablesDossierAddition: 'add submission id, deadline and required submission format',
         },
@@ -14347,24 +16407,30 @@ module.exports = {
         }));
       const lowerApproval = String(params.approvalModel || '').toLowerCase();
       const lowerDataQuality = String(params.dataQualityStatus || '').toLowerCase();
-      const blockedByApproval = /block|missing|none|unklar|offen|rejected|abgelehnt/.test(lowerApproval);
-      const blockedByDataQuality = /block|fail|critical|kritisch|unbrauchbar/.test(lowerDataQuality);
-      const status =
-        blockedByApproval
-          ? 'blocked_by_approval'
-          : blockedByDataQuality
-            ? 'needs_data_quality'
-            : !params.tacticalOwner
-              ? 'needs_tactical_owner'
-              : !params.financeReviewStatus
-                ? 'needs_finance_review'
-                : !params.boardReadiness
-                  ? 'needs_board_format'
-                  : !params.dataQualityStatus || !params.targetOwner || !params.approvalModel || !params.handoverStatus
-                    ? 'target_process_pending'
-                    : missingEvidence.length === 0
-                      ? 'ready_for_submission'
-                      : 'needs_data_quality';
+      const blockedByApproval = /block|missing|none|unklar|offen|rejected|abgelehnt/.test(
+        lowerApproval
+      );
+      const blockedByDataQuality = /block|fail|critical|kritisch|unbrauchbar/.test(
+        lowerDataQuality
+      );
+      const status = blockedByApproval
+        ? 'blocked_by_approval'
+        : blockedByDataQuality
+          ? 'needs_data_quality'
+          : !params.tacticalOwner
+            ? 'needs_tactical_owner'
+            : !params.financeReviewStatus
+              ? 'needs_finance_review'
+              : !params.boardReadiness
+                ? 'needs_board_format'
+                : !params.dataQualityStatus ||
+                    !params.targetOwner ||
+                    !params.approvalModel ||
+                    !params.handoverStatus
+                  ? 'target_process_pending'
+                  : missingEvidence.length === 0
+                    ? 'ready_for_submission'
+                    : 'needs_data_quality';
       const tacticalEvidence = evidenceItems.filter((item) => item.track === 'tactical').length;
       const tacticalTotal = evidenceSpecs.filter((item) => item.track === 'tactical').length;
       const targetEvidence = evidenceItems.filter((item) => item.track === 'target').length;
@@ -14377,12 +16443,25 @@ module.exports = {
         track: item.track,
       }));
       const derivedBlockedDecisions = missingEvidence
-        .filter((item) => ['tactical_owner', 'finance_review', 'board_format', 'data_quality_plan', 'approval_model', 'handover_status'].includes(item.missingDataPoint))
+        .filter((item) =>
+          [
+            'tactical_owner',
+            'finance_review',
+            'board_format',
+            'data_quality_plan',
+            'approval_model',
+            'handover_status',
+          ].includes(item.missingDataPoint)
+        )
         .map((item) => item.label);
-      const blockedDecisions = Array.from(new Set([...explicitBlockedDecisions, ...derivedBlockedDecisions]));
+      const blockedDecisions = Array.from(
+        new Set([...explicitBlockedDecisions, ...derivedBlockedDecisions])
+      );
       const blockingFindings = missingEvidence.map((item) => ({
         code: `ITC_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
-        severity: ['tactical_owner', 'finance_review', 'approval_model'].includes(item.missingDataPoint)
+        severity: ['tactical_owner', 'finance_review', 'approval_model'].includes(
+          item.missingDataPoint
+        )
           ? 'high'
           : 'medium',
         message: item.enablesDossierAddition,
@@ -14423,7 +16502,11 @@ module.exports = {
       if (params.targetOwner) dossierFacts.push(`Target Owner: ${params.targetOwner}`);
 
       return {
-        controlId: `itc:${Buffer.from(`${params.submissionId || ''}:${params.gridOperatorId || ''}:${params.deadline || ''}:${params.tacticalOwner || ''}`).toString('base64url').slice(0, 24)}`,
+        controlId: `itc:${Buffer.from(
+          `${params.submissionId || ''}:${params.gridOperatorId || ''}:${params.deadline || ''}:${params.tacticalOwner || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 24)}`,
         capabilityKey: 'investment_two_track_control',
         safety: 'read_only',
         requestContext: {
@@ -14493,31 +16576,46 @@ module.exports = {
     },
 
     buildSapBudgetPspGateStatus(params = {}) {
-      const toList = (value) => Array.isArray(value)
-        ? value.filter(Boolean)
-        : value
-          ? String(value).split(',').map((item) => item.trim()).filter(Boolean)
-          : [];
+      const toList = (value) =>
+        Array.isArray(value)
+          ? value.filter(Boolean)
+          : value
+            ? String(value)
+                .split(',')
+                .map((item) => item.trim())
+                .filter(Boolean)
+            : [];
       const explicitBlockedDecisions = toList(params.blockedDecisions);
       const hasNumber = (value) => Number.isFinite(Number(value));
-      const availableBudget = hasNumber(params.availableBudgetEur) ? Number(params.availableBudgetEur) : null;
-      const plannedValue = hasNumber(params.plannedValueEur) ? Number(params.plannedValueEur) : null;
-      const committedValue = hasNumber(params.committedValueEur) ? Number(params.committedValueEur) : null;
-      const pspCarryOver = hasNumber(params.pspCarryOverEur) ? Number(params.pspCarryOverEur) : null;
+      const availableBudget = hasNumber(params.availableBudgetEur)
+        ? Number(params.availableBudgetEur)
+        : null;
+      const plannedValue = hasNumber(params.plannedValueEur)
+        ? Number(params.plannedValueEur)
+        : null;
+      const committedValue = hasNumber(params.committedValueEur)
+        ? Number(params.committedValueEur)
+        : null;
+      const pspCarryOver = hasNumber(params.pspCarryOverEur)
+        ? Number(params.pspCarryOverEur)
+        : null;
       const budgetOverhang = hasNumber(params.budgetOverhangEur)
         ? Number(params.budgetOverhangEur)
         : availableBudget != null && plannedValue != null && committedValue != null
           ? Number((availableBudget - plannedValue - committedValue).toFixed(2))
           : null;
-      const effectiveBudgetGap = availableBudget != null && plannedValue != null && committedValue != null
-        ? Number((plannedValue + committedValue - availableBudget).toFixed(2))
-        : null;
+      const effectiveBudgetGap =
+        availableBudget != null && plannedValue != null && committedValue != null
+          ? Number((plannedValue + committedValue - availableBudget).toFixed(2))
+          : null;
       const evidenceSpecs = [
         {
           id: 'measure_context',
           label: 'Measure and migration context',
           value: params.measureId && params.measureName && params.migrationWave,
-          displayValue: [params.measureId, params.measureName, params.migrationWave].filter(Boolean).join(' / '),
+          displayValue: [params.measureId, params.measureName, params.migrationWave]
+            .filter(Boolean)
+            .join(' / '),
           sourceClass: 'investment_measure_context',
           enablesDossierAddition: 'add measure identity, name and SAP migration wave',
         },
@@ -14525,7 +16623,9 @@ module.exports = {
           id: 'sap_mapping',
           label: 'SAP system and legacy internal order mapping',
           value: params.sapSystemRef && params.legacyInternalOrderId,
-          displayValue: [params.sapSystemRef, params.legacyInternalOrderId].filter(Boolean).join(' / '),
+          displayValue: [params.sapSystemRef, params.legacyInternalOrderId]
+            .filter(Boolean)
+            .join(' / '),
           sourceClass: 'sap_target_process_mapping',
           enablesDossierAddition: 'add SAP target-process and legacy internal-order evidence',
         },
@@ -14533,7 +16633,9 @@ module.exports = {
           id: 'psp_snapshot',
           label: 'PSP element and carry-over snapshot',
           value: params.pspElementId && pspCarryOver != null && params.sourceSnapshotId,
-          displayValue: [params.pspElementId, pspCarryOver, params.sourceSnapshotId].filter(Boolean).join(' / '),
+          displayValue: [params.pspElementId, pspCarryOver, params.sourceSnapshotId]
+            .filter(Boolean)
+            .join(' / '),
           sourceClass: 'psp_carry_over_snapshot',
           enablesDossierAddition: 'add PSP carry-over and source snapshot evidence',
         },
@@ -14543,7 +16645,8 @@ module.exports = {
           value: availableBudget != null && plannedValue != null && committedValue != null,
           displayValue: `${availableBudget ?? 'no'} available / ${plannedValue ?? 'no'} planned / ${committedValue ?? 'no'} committed`,
           sourceClass: 'budget_value_snapshot',
-          enablesDossierAddition: 'add available budget, planned value and committed value evidence',
+          enablesDossierAddition:
+            'add available budget, planned value and committed value evidence',
         },
         {
           id: 'budget_owner',
@@ -14556,7 +16659,9 @@ module.exports = {
           id: 'asset_benefit',
           label: 'Asset benefit and priority rationale',
           value: params.assetBenefit && hasNumber(params.priorityScore),
-          displayValue: [params.assetBenefit, params.priorityScore].filter((v) => v != null && v !== '').join(' / '),
+          displayValue: [params.assetBenefit, params.priorityScore]
+            .filter((v) => v != null && v !== '')
+            .join(' / '),
           sourceClass: 'asset_benefit_prioritization',
           enablesDossierAddition: 'add asset-benefit and prioritisation rationale for the measure',
         },
@@ -14601,26 +16706,29 @@ module.exports = {
         }));
       const lowerApproval = String(params.approvalStatus || '').toLowerCase();
       const lowerDataQuality = String(params.dataQualityStatus || '').toLowerCase();
-      const blockedByApproval = /block|blocked|rejected|abgelehnt|stop|gesperrt/.test(lowerApproval);
-      const blockedByDataQuality = /block|fail|critical|kritisch|unbrauchbar|rejected/.test(lowerDataQuality);
-      const status =
-        blockedByApproval
-          ? 'blocked_by_approval'
-          : blockedByDataQuality
-            ? 'blocked_by_data_quality'
-            : !params.pspElementId || pspCarryOver == null || !params.sourceSnapshotId
-              ? 'needs_psp_snapshot'
-              : !params.ownerRole
-                ? 'needs_budget_owner'
-                : !params.assetBenefit || !hasNumber(params.priorityScore)
-                  ? 'needs_asset_benefit'
-                  : !params.sapSystemRef || !params.legacyInternalOrderId
-                    ? 'needs_sap_mapping'
-                    : !params.financeGate || !params.approvalStatus
-                      ? 'needs_finance_gate'
-                      : missingEvidence.length === 0
-                        ? 'ready_for_finance_gate'
-                        : 'needs_budget_evidence';
+      const blockedByApproval = /block|blocked|rejected|abgelehnt|stop|gesperrt/.test(
+        lowerApproval
+      );
+      const blockedByDataQuality = /block|fail|critical|kritisch|unbrauchbar|rejected/.test(
+        lowerDataQuality
+      );
+      const status = blockedByApproval
+        ? 'blocked_by_approval'
+        : blockedByDataQuality
+          ? 'blocked_by_data_quality'
+          : !params.pspElementId || pspCarryOver == null || !params.sourceSnapshotId
+            ? 'needs_psp_snapshot'
+            : !params.ownerRole
+              ? 'needs_budget_owner'
+              : !params.assetBenefit || !hasNumber(params.priorityScore)
+                ? 'needs_asset_benefit'
+                : !params.sapSystemRef || !params.legacyInternalOrderId
+                  ? 'needs_sap_mapping'
+                  : !params.financeGate || !params.approvalStatus
+                    ? 'needs_finance_gate'
+                    : missingEvidence.length === 0
+                      ? 'ready_for_finance_gate'
+                      : 'needs_budget_evidence';
       const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
       const positiveFollowUps = missingEvidence.map((item) => ({
         missingDataPoint: item.missingDataPoint,
@@ -14628,12 +16736,25 @@ module.exports = {
         category: 'sap_budget_psp_gate',
       }));
       const derivedBlockedDecisions = missingEvidence
-        .filter((item) => ['psp_snapshot', 'budget_owner', 'asset_benefit', 'finance_gate', 'approval_status', 'data_quality'].includes(item.missingDataPoint))
+        .filter((item) =>
+          [
+            'psp_snapshot',
+            'budget_owner',
+            'asset_benefit',
+            'finance_gate',
+            'approval_status',
+            'data_quality',
+          ].includes(item.missingDataPoint)
+        )
         .map((item) => item.label);
-      const blockedDecisions = Array.from(new Set([...explicitBlockedDecisions, ...derivedBlockedDecisions]));
+      const blockedDecisions = Array.from(
+        new Set([...explicitBlockedDecisions, ...derivedBlockedDecisions])
+      );
       const blockingFindings = missingEvidence.map((item) => ({
         code: `SBP_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
-        severity: ['psp_snapshot', 'budget_owner', 'finance_gate', 'approval_status'].includes(item.missingDataPoint)
+        severity: ['psp_snapshot', 'budget_owner', 'finance_gate', 'approval_status'].includes(
+          item.missingDataPoint
+        )
           ? 'high'
           : 'medium',
         message: item.enablesDossierAddition,
@@ -14688,7 +16809,11 @@ module.exports = {
       if (effectiveBudgetGap != null) dossierFacts.push(`Budget gap EUR: ${effectiveBudgetGap}`);
 
       return {
-        gateId: `sbp:${Buffer.from(`${params.measureId || ''}:${params.migrationWave || ''}:${params.pspElementId || ''}:${params.sourceSnapshotId || ''}`).toString('base64url').slice(0, 24)}`,
+        gateId: `sbp:${Buffer.from(
+          `${params.measureId || ''}:${params.migrationWave || ''}:${params.pspElementId || ''}:${params.sourceSnapshotId || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 24)}`,
         capabilityKey: 'sap_budget_psp_gate',
         safety: 'read_only',
         requestContext: {
@@ -14755,12 +16880,17 @@ module.exports = {
     },
 
     buildEnergyTaxInformationPackageStatus(params = {}) {
-      const toList = (value) => Array.isArray(value)
-        ? value.filter(Boolean)
-        : value
-          ? String(value).split(',').map((item) => item.trim()).filter(Boolean)
-          : [];
-      const period = params.period || [params.periodStart, params.periodEnd].filter(Boolean).join('/');
+      const toList = (value) =>
+        Array.isArray(value)
+          ? value.filter(Boolean)
+          : value
+            ? String(value)
+                .split(',')
+                .map((item) => item.trim())
+                .filter(Boolean)
+            : [];
+      const period =
+        params.period || [params.periodStart, params.periodEnd].filter(Boolean).join('/');
       const sourceRefs = toList(params.sourceRefs);
       const evidenceSpecs = [
         {
@@ -14769,7 +16899,8 @@ module.exports = {
           value: params.packageId && params.dataSourceId,
           displayValue: [params.packageId, params.dataSourceId].filter(Boolean).join(' / '),
           sourceClass: 'information_package_identity',
-          enablesDossierAddition: 'add the package id and source data reference to the tax/finance handover',
+          enablesDossierAddition:
+            'add the package id and source data reference to the tax/finance handover',
         },
         {
           id: 'data_dictionary',
@@ -14854,30 +16985,32 @@ module.exports = {
         }));
       const lowerValidation = String(params.validationStatus || '').toLowerCase();
       const lowerDecision = String(params.handoverDecision || '').toLowerCase();
-      const blockedByValidation = /block|fail|critical|kritisch|invalid|ungueltig|ungültig|rejected/.test(lowerValidation);
-      const blockedByDecision = /block|blocked|rejected|abgelehnt|stop|gesperrt/.test(lowerDecision);
-      const status =
-        blockedByValidation
-          ? 'blocked_by_validation'
-          : blockedByDecision
-            ? 'blocked_by_handover_decision'
-            : !params.dictionaryVersion
-              ? 'needs_dictionary'
-              : !period
-                ? 'needs_period'
-                : !params.aggregationLogic
-                  ? 'needs_aggregation_logic'
-                  : !params.validationStatus
-                    ? 'needs_validation'
-                    : !params.responsibleOwner || !params.contactRole || !params.sla
-                      ? 'needs_owner_sla'
-                      : !params.auditReference
-                        ? 'needs_audit_reference'
-                        : !params.handoverDecision
-                          ? 'needs_handover_decision'
-                          : missingEvidence.length === 0
-                            ? 'ready_for_handover'
-                            : 'needs_package_evidence';
+      const blockedByValidation =
+        /block|fail|critical|kritisch|invalid|ungueltig|ungültig|rejected/.test(lowerValidation);
+      const blockedByDecision = /block|blocked|rejected|abgelehnt|stop|gesperrt/.test(
+        lowerDecision
+      );
+      const status = blockedByValidation
+        ? 'blocked_by_validation'
+        : blockedByDecision
+          ? 'blocked_by_handover_decision'
+          : !params.dictionaryVersion
+            ? 'needs_dictionary'
+            : !period
+              ? 'needs_period'
+              : !params.aggregationLogic
+                ? 'needs_aggregation_logic'
+                : !params.validationStatus
+                  ? 'needs_validation'
+                  : !params.responsibleOwner || !params.contactRole || !params.sla
+                    ? 'needs_owner_sla'
+                    : !params.auditReference
+                      ? 'needs_audit_reference'
+                      : !params.handoverDecision
+                        ? 'needs_handover_decision'
+                        : missingEvidence.length === 0
+                          ? 'ready_for_handover'
+                          : 'needs_package_evidence';
       const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
       const positiveFollowUps = missingEvidence.map((item) => ({
         missingDataPoint: item.missingDataPoint,
@@ -14886,7 +17019,13 @@ module.exports = {
       }));
       const blockingFindings = missingEvidence.map((item) => ({
         code: `ETIP_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
-        severity: ['data_dictionary', 'period_definition', 'aggregation_logic', 'validation_status', 'handover_decision'].includes(item.missingDataPoint)
+        severity: [
+          'data_dictionary',
+          'period_definition',
+          'aggregation_logic',
+          'validation_status',
+          'handover_decision',
+        ].includes(item.missingDataPoint)
           ? 'high'
           : 'medium',
         message: item.enablesDossierAddition,
@@ -14933,7 +17072,11 @@ module.exports = {
       if (period) dossierFacts.push(`Period: ${period}`);
 
       return {
-        packageReadinessId: `etip:${Buffer.from(`${params.packageId || ''}:${params.dataSourceId || ''}:${params.dictionaryVersion || ''}:${period || ''}`).toString('base64url').slice(0, 24)}`,
+        packageReadinessId: `etip:${Buffer.from(
+          `${params.packageId || ''}:${params.dataSourceId || ''}:${params.dictionaryVersion || ''}:${period || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 24)}`,
         capabilityKey: 'energy_tax_information_package',
         safety: 'read_only',
         requestContext: {
@@ -14999,11 +17142,15 @@ module.exports = {
     },
 
     buildInvestmentRiskTranslationStatus(params = {}) {
-      const toList = (value) => Array.isArray(value)
-        ? value.filter(Boolean)
-        : value
-          ? String(value).split(',').map((item) => item.trim()).filter(Boolean)
-          : [];
+      const toList = (value) =>
+        Array.isArray(value)
+          ? value.filter(Boolean)
+          : value
+            ? String(value)
+                .split(',')
+                .map((item) => item.trim())
+                .filter(Boolean)
+            : [];
       const evidenceRefs = toList(params.evidenceRefs);
       const forbiddenAssumptions = toList(params.forbiddenAssumptions);
       const evidenceSpecs = [
@@ -15028,13 +17175,21 @@ module.exports = {
           label: 'Translation classification',
           value: params.classification,
           sourceClass: 'classification',
-          enablesDossierAddition: 'add whether the source is report, decision basis, evidence, risk, measure or follow-up task',
+          enablesDossierAddition:
+            'add whether the source is report, decision basis, evidence, risk, measure or follow-up task',
         },
         {
           id: 'impact_context',
           label: 'Financial and asset impact',
           value: params.financialImpact || params.assetImpact || params.budgetRef || params.riskRef,
-          displayValue: [params.financialImpact, params.assetImpact, params.budgetRef, params.riskRef].filter(Boolean).join(' / '),
+          displayValue: [
+            params.financialImpact,
+            params.assetImpact,
+            params.budgetRef,
+            params.riskRef,
+          ]
+            .filter(Boolean)
+            .join(' / '),
           sourceClass: 'impact_context',
           enablesDossierAddition: 'add investment, asset and risk consequence wording',
         },
@@ -15100,29 +17255,31 @@ module.exports = {
           enablesDossierAddition: spec.enablesDossierAddition,
         }));
       const readinessText = String(params.decisionReadiness || '').toLowerCase();
-      const blockedByDecision = /block|blocked|gesperrt|offen|not.ready|not_ready|unready|unklar|unclear/.test(readinessText);
-      const status =
-        blockedByDecision
-          ? 'blocked_for_decision'
-          : !params.sourceRef || !params.sourceType
-            ? 'needs_source_identity'
-            : !params.classification
-              ? 'needs_classification'
-              : !params.financialImpact && !params.assetImpact && !params.budgetRef && !params.riskRef
-                ? 'needs_impact_context'
-                : !params.ownerRole
-                  ? 'needs_owner_role'
-                  : !params.decisionReadiness
-                    ? 'needs_decision_readiness'
-                    : !params.blockedDecisionId
-                      ? 'needs_blocked_decision'
-                      : !params.nextAction
-                        ? 'needs_next_action'
-                        : !params.sourceSnapshot || evidenceRefs.length === 0
-                          ? 'needs_source_evidence'
-                          : missingEvidence.length === 0
-                            ? 'ready_for_handover'
-                            : 'needs_translation_evidence';
+      const blockedByDecision =
+        /block|blocked|gesperrt|offen|not.ready|not_ready|unready|unklar|unclear/.test(
+          readinessText
+        );
+      const status = blockedByDecision
+        ? 'blocked_for_decision'
+        : !params.sourceRef || !params.sourceType
+          ? 'needs_source_identity'
+          : !params.classification
+            ? 'needs_classification'
+            : !params.financialImpact && !params.assetImpact && !params.budgetRef && !params.riskRef
+              ? 'needs_impact_context'
+              : !params.ownerRole
+                ? 'needs_owner_role'
+                : !params.decisionReadiness
+                  ? 'needs_decision_readiness'
+                  : !params.blockedDecisionId
+                    ? 'needs_blocked_decision'
+                    : !params.nextAction
+                      ? 'needs_next_action'
+                      : !params.sourceSnapshot || evidenceRefs.length === 0
+                        ? 'needs_source_evidence'
+                        : missingEvidence.length === 0
+                          ? 'ready_for_handover'
+                          : 'needs_translation_evidence';
       const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
       const positiveFollowUps = missingEvidence.map((item) => ({
         missingDataPoint: item.missingDataPoint,
@@ -15131,7 +17288,12 @@ module.exports = {
       }));
       const blockingFindings = missingEvidence.map((item) => ({
         code: `IRTS_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
-        severity: ['source_identity', 'classification', 'decision_readiness', 'blocked_decision'].includes(item.missingDataPoint)
+        severity: [
+          'source_identity',
+          'classification',
+          'decision_readiness',
+          'blocked_decision',
+        ].includes(item.missingDataPoint)
           ? 'high'
           : 'medium',
         message: item.enablesDossierAddition,
@@ -15168,10 +17330,15 @@ module.exports = {
       if (params.sourceRef) dossierFacts.push(`Source: ${params.sourceRef}`);
       if (params.classification) dossierFacts.push(`Classification: ${params.classification}`);
       if (params.ownerRole) dossierFacts.push(`Owner: ${params.ownerRole}`);
-      if (params.blockedDecisionId) dossierFacts.push(`Blocked decision: ${params.blockedDecisionId}`);
+      if (params.blockedDecisionId)
+        dossierFacts.push(`Blocked decision: ${params.blockedDecisionId}`);
 
       return {
-        translationStatusId: `irts:${Buffer.from(`${params.sourceRef || ''}:${params.sourceType || ''}:${params.period || ''}:${params.classification || ''}`).toString('base64url').slice(0, 24)}`,
+        translationStatusId: `irts:${Buffer.from(
+          `${params.sourceRef || ''}:${params.sourceType || ''}:${params.period || ''}:${params.classification || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 24)}`,
         capabilityKey: 'investment_risk_translation_status',
         safety: 'read_only',
         requestContext: {
@@ -15244,11 +17411,15 @@ module.exports = {
     },
 
     buildBudgetWaterfallGovernanceStatus(params = {}) {
-      const toList = (value) => Array.isArray(value)
-        ? value.filter(Boolean)
-        : value
-          ? String(value).split(',').map((item) => item.trim()).filter(Boolean)
-          : [];
+      const toList = (value) =>
+        Array.isArray(value)
+          ? value.filter(Boolean)
+          : value
+            ? String(value)
+                .split(',')
+                .map((item) => item.trim())
+                .filter(Boolean)
+            : [];
       const evidenceRefs = toList(params.evidenceRef);
       const evidenceSpecs = [
         {
@@ -15279,7 +17450,8 @@ module.exports = {
           label: 'Forecast cutoff',
           value: params.forecastCutoff,
           sourceClass: 'forecast_cutoff',
-          enablesDossierAddition: 'state the forecast end date used for committee-ready budget wording',
+          enablesDossierAddition:
+            'state the forecast end date used for committee-ready budget wording',
         },
         {
           id: 'carryover_logic',
@@ -15293,7 +17465,8 @@ module.exports = {
           label: 'Sign convention',
           value: params.signConvention,
           sourceClass: 'sign_convention',
-          enablesDossierAddition: 'explain whether the visible waterfall movement increases or reduces budget headroom',
+          enablesDossierAddition:
+            'explain whether the visible waterfall movement increases or reduces budget headroom',
         },
         {
           id: 'owner_role',
@@ -15314,7 +17487,8 @@ module.exports = {
           label: 'Follow-up decision',
           value: params.followUpDecision,
           sourceClass: 'follow_up_decision',
-          enablesDossierAddition: 'name the next management or committee decision enabled by the waterfall',
+          enablesDossierAddition:
+            'name the next management or committee decision enabled by the waterfall',
         },
         {
           id: 'source_snapshot_ref',
@@ -15350,33 +17524,35 @@ module.exports = {
           enablesDossierAddition: spec.enablesDossierAddition,
         }));
       const approvalText = String(params.approvalStatus || '').toLowerCase();
-      const approvalBlocking = /block|blocked|rejected|abgelehnt|gesperrt|not.approved|not_approved|unklar|unclear/.test(approvalText);
-      const status =
-        approvalBlocking
-          ? 'blocked_by_approval_status'
-          : !params.waterfallId && !params.sourceId
-            ? 'needs_source_identity'
-            : !params.period || !params.division
-              ? 'needs_period_division'
-              : !params.baselineRef
-                ? 'needs_baseline'
-                : !params.signConvention
-                  ? 'needs_sign_convention'
-                  : !params.forecastCutoff
-                    ? 'needs_forecast_cutoff'
-                    : !params.carryoverLogic
-                      ? 'needs_carryover_logic'
-                      : !params.ownerRole
-                        ? 'needs_owner_role'
-                        : !params.approvalStatus
-                          ? 'needs_approval'
-                          : !params.followUpDecision
-                            ? 'needs_follow_up_decision'
-                            : !params.sourceSnapshotRef || evidenceRefs.length === 0
-                              ? 'needs_source_evidence'
-                              : missingEvidence.length === 0
-                                ? 'ready_for_committee_review'
-                                : 'needs_governance_evidence';
+      const approvalBlocking =
+        /block|blocked|rejected|abgelehnt|gesperrt|not.approved|not_approved|unklar|unclear/.test(
+          approvalText
+        );
+      const status = approvalBlocking
+        ? 'blocked_by_approval_status'
+        : !params.waterfallId && !params.sourceId
+          ? 'needs_source_identity'
+          : !params.period || !params.division
+            ? 'needs_period_division'
+            : !params.baselineRef
+              ? 'needs_baseline'
+              : !params.signConvention
+                ? 'needs_sign_convention'
+                : !params.forecastCutoff
+                  ? 'needs_forecast_cutoff'
+                  : !params.carryoverLogic
+                    ? 'needs_carryover_logic'
+                    : !params.ownerRole
+                      ? 'needs_owner_role'
+                      : !params.approvalStatus
+                        ? 'needs_approval'
+                        : !params.followUpDecision
+                          ? 'needs_follow_up_decision'
+                          : !params.sourceSnapshotRef || evidenceRefs.length === 0
+                            ? 'needs_source_evidence'
+                            : missingEvidence.length === 0
+                              ? 'ready_for_committee_review'
+                              : 'needs_governance_evidence';
       const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
       const positiveFollowUps = missingEvidence.map((item) => ({
         missingDataPoint: item.missingDataPoint,
@@ -15385,7 +17561,12 @@ module.exports = {
       }));
       const blockingFindings = missingEvidence.map((item) => ({
         code: `BWG_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
-        severity: ['baseline_reference', 'sign_convention', 'forecast_cutoff', 'approval_status'].includes(item.missingDataPoint)
+        severity: [
+          'baseline_reference',
+          'sign_convention',
+          'forecast_cutoff',
+          'approval_status',
+        ].includes(item.missingDataPoint)
           ? 'high'
           : 'medium',
         message: item.enablesDossierAddition,
@@ -15418,13 +17599,18 @@ module.exports = {
         `Provided waterfall governance evidence: ${evidenceItems.length}/${evidenceSpecs.length}`,
         `Open gaps: ${missingEvidence.length}`,
       ];
-      if (params.waterfallId || params.sourceId) dossierFacts.push(`Waterfall: ${params.waterfallId || params.sourceId}`);
+      if (params.waterfallId || params.sourceId)
+        dossierFacts.push(`Waterfall: ${params.waterfallId || params.sourceId}`);
       if (params.baselineRef) dossierFacts.push(`Baseline: ${params.baselineRef}`);
       if (params.signConvention) dossierFacts.push(`Sign convention: ${params.signConvention}`);
       if (params.approvalStatus) dossierFacts.push(`Approval: ${params.approvalStatus}`);
 
       return {
-        governanceStatusId: `bwg:${Buffer.from(`${params.waterfallId || params.sourceId || ''}:${params.period || ''}:${params.division || ''}:${params.baselineRef || ''}`).toString('base64url').slice(0, 24)}`,
+        governanceStatusId: `bwg:${Buffer.from(
+          `${params.waterfallId || params.sourceId || ''}:${params.period || ''}:${params.division || ''}:${params.baselineRef || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 24)}`,
         capabilityKey: 'budget_waterfall_governance',
         safety: 'read_only',
         requestContext: {
@@ -15492,11 +17678,15 @@ module.exports = {
     },
 
     buildGasDecommissioningRoadmapStatus(params = {}) {
-      const toList = (value) => Array.isArray(value)
-        ? value.filter(Boolean)
-        : value
-          ? String(value).split(',').map((item) => item.trim()).filter(Boolean)
-          : [];
+      const toList = (value) =>
+        Array.isArray(value)
+          ? value.filter(Boolean)
+          : value
+            ? String(value)
+                .split(',')
+                .map((item) => item.trim())
+                .filter(Boolean)
+            : [];
       const blockers = toList(params.blocker);
       const evidenceRefs = toList(params.evidenceRef);
       const evidenceSpecs = [
@@ -15666,11 +17856,31 @@ module.exports = {
         blockers,
       };
       const phases = [
-        { id: 'intake', label: 'Intake', evidenceStatus: params.roadmapId && params.owner ? 'provided' : 'missing' },
-        { id: 'risk-assessment', label: 'Risk assessment', evidenceStatus: params.assetRiskEvidence ? 'provided' : 'missing' },
-        { id: 'investment-impact', label: 'Investment impact', evidenceStatus: params.investmentImpactRef ? 'provided' : 'missing' },
-        { id: 'committee-gate', label: 'Committee gate', evidenceStatus: params.committeeGateDate ? 'provided' : 'missing' },
-        { id: 'execution-handover', label: 'Execution handover', evidenceStatus: params.executionHandoverOwner ? 'provided' : 'missing' },
+        {
+          id: 'intake',
+          label: 'Intake',
+          evidenceStatus: params.roadmapId && params.owner ? 'provided' : 'missing',
+        },
+        {
+          id: 'risk-assessment',
+          label: 'Risk assessment',
+          evidenceStatus: params.assetRiskEvidence ? 'provided' : 'missing',
+        },
+        {
+          id: 'investment-impact',
+          label: 'Investment impact',
+          evidenceStatus: params.investmentImpactRef ? 'provided' : 'missing',
+        },
+        {
+          id: 'committee-gate',
+          label: 'Committee gate',
+          evidenceStatus: params.committeeGateDate ? 'provided' : 'missing',
+        },
+        {
+          id: 'execution-handover',
+          label: 'Execution handover',
+          evidenceStatus: params.executionHandoverOwner ? 'provided' : 'missing',
+        },
       ];
       const dossierFacts = [
         `Status: ${status}`,
@@ -15683,7 +17893,11 @@ module.exports = {
       if (params.nextDecisionGate) dossierFacts.push(`Next gate: ${params.nextDecisionGate}`);
 
       return {
-        roadmapStatusId: `gdr:${Buffer.from(`${params.roadmapId || ''}:${params.currentPhase || ''}:${params.owner || ''}:${params.committeeGateDate || ''}`).toString('base64url').slice(0, 24)}`,
+        roadmapStatusId: `gdr:${Buffer.from(
+          `${params.roadmapId || ''}:${params.currentPhase || ''}:${params.owner || ''}:${params.committeeGateDate || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 24)}`,
         capabilityKey: 'gas_decommissioning_roadmap_status',
         safety: 'read_only',
         requestContext: {
@@ -15763,16 +17977,30 @@ module.exports = {
     },
 
     buildJourFixeDecisionClosureStatus(params = {}) {
-      const toList = (value) => Array.isArray(value)
-        ? value.filter(Boolean)
-        : value
-          ? String(value).split(',').map((item) => item.trim()).filter(Boolean)
-          : [];
+      const toList = (value) =>
+        Array.isArray(value)
+          ? value.filter(Boolean)
+          : value
+            ? String(value)
+                .split(',')
+                .map((item) => item.trim())
+                .filter(Boolean)
+            : [];
       const evidenceRefs = toList(params.evidenceRef);
-      const closureStatus = String(params.closureStatus || '').toLowerCase().replace(/\s+/g, '_');
-      const isClosedStatus = ['done', 'decided', 'closed', 'erledigt', 'entschieden'].includes(closureStatus);
+      const closureStatus = String(params.closureStatus || '')
+        .toLowerCase()
+        .replace(/\s+/g, '_');
+      const isClosedStatus = ['done', 'decided', 'closed', 'erledigt', 'entschieden'].includes(
+        closureStatus
+      );
       const isEscalated = ['escalated', 'eskaliert'].includes(closureStatus);
-      const isCarriedOver = ['carried_over', 'carried-over', 'uebertragen', 'übertragen', 'weitergetragen'].includes(closureStatus);
+      const isCarriedOver = [
+        'carried_over',
+        'carried-over',
+        'uebertragen',
+        'übertragen',
+        'weitergetragen',
+      ].includes(closureStatus);
       const evidenceSpecs = [
         {
           id: 'topic_identity',
@@ -15888,7 +18116,9 @@ module.exports = {
                     : isCarriedOver
                       ? 'carried_over'
                       : isClosedStatus && params.closureProof
-                        ? (closureStatus === 'decided' || closureStatus === 'entschieden' ? 'decided' : 'done')
+                        ? closureStatus === 'decided' || closureStatus === 'entschieden'
+                          ? 'decided'
+                          : 'done'
                         : isClosedStatus && !params.closureProof
                           ? 'needs_closure_proof'
                           : params.blockedFollowUpAction
@@ -15901,7 +18131,9 @@ module.exports = {
         const spec = evidenceSpecs.find((candidate) => candidate.id === item.id);
         return !spec?.optional;
       });
-      const readinessScore = Number((requiredEvidenceItems.length / requiredEvidenceSpecs.length).toFixed(2));
+      const readinessScore = Number(
+        (requiredEvidenceItems.length / requiredEvidenceSpecs.length).toFixed(2)
+      );
       const positiveFollowUps = missingEvidence.map((item) => ({
         missingDataPoint: item.missingDataPoint,
         enablesDossierAddition: item.enablesDossierAddition,
@@ -15909,7 +18141,14 @@ module.exports = {
       }));
       const blockingFindings = missingEvidence.map((item) => ({
         code: `JFD_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
-        severity: ['topic_owner', 'kpi', 'decision_criterion', 'next_gate', 'closure_status', 'closure_proof'].includes(item.missingDataPoint)
+        severity: [
+          'topic_owner',
+          'kpi',
+          'decision_criterion',
+          'next_gate',
+          'closure_status',
+          'closure_proof',
+        ].includes(item.missingDataPoint)
           ? 'high'
           : 'medium',
         message: item.enablesDossierAddition,
@@ -15937,24 +18176,49 @@ module.exports = {
         sourceSnapshotRef: params.sourceSnapshotRef || null,
       };
       const closureSteps = [
-        { id: 'topic-intake', label: 'Topic intake', evidenceStatus: params.topicId || params.topicTitle ? 'provided' : 'missing' },
-        { id: 'owner-kpi-check', label: 'Owner and KPI check', evidenceStatus: params.owner && params.kpi ? 'provided' : 'missing' },
-        { id: 'decision-criterion-gate', label: 'Decision criterion gate', evidenceStatus: params.decisionCriterion ? 'provided' : 'missing' },
-        { id: 'closure-or-escalation', label: 'Closure or escalation', evidenceStatus: params.closureStatus ? 'provided' : 'missing' },
-        { id: 'next-jf-handover', label: 'Next Jour-fixe handover', evidenceStatus: params.nextGate ? 'provided' : 'missing' },
+        {
+          id: 'topic-intake',
+          label: 'Topic intake',
+          evidenceStatus: params.topicId || params.topicTitle ? 'provided' : 'missing',
+        },
+        {
+          id: 'owner-kpi-check',
+          label: 'Owner and KPI check',
+          evidenceStatus: params.owner && params.kpi ? 'provided' : 'missing',
+        },
+        {
+          id: 'decision-criterion-gate',
+          label: 'Decision criterion gate',
+          evidenceStatus: params.decisionCriterion ? 'provided' : 'missing',
+        },
+        {
+          id: 'closure-or-escalation',
+          label: 'Closure or escalation',
+          evidenceStatus: params.closureStatus ? 'provided' : 'missing',
+        },
+        {
+          id: 'next-jf-handover',
+          label: 'Next Jour-fixe handover',
+          evidenceStatus: params.nextGate ? 'provided' : 'missing',
+        },
       ];
       const dossierFacts = [
         `Status: ${status}`,
         `Provided Jour-fixe closure evidence: ${requiredEvidenceItems.length}/${requiredEvidenceSpecs.length}`,
         `Open gaps: ${missingEvidence.length}`,
       ];
-      if (params.topicId || params.topicTitle) dossierFacts.push(`Topic: ${params.topicId || params.topicTitle}`);
+      if (params.topicId || params.topicTitle)
+        dossierFacts.push(`Topic: ${params.topicId || params.topicTitle}`);
       if (params.owner) dossierFacts.push(`Owner: ${params.owner}`);
       if (params.kpi) dossierFacts.push(`KPI: ${params.kpi}`);
       if (params.nextGate) dossierFacts.push(`Next gate: ${params.nextGate}`);
 
       return {
-        closureStatusId: `jfd:${Buffer.from(`${params.topicId || params.topicTitle || ''}:${params.jourFixeId || ''}:${params.owner || ''}:${params.nextGate || ''}`).toString('base64url').slice(0, 24)}`,
+        closureStatusId: `jfd:${Buffer.from(
+          `${params.topicId || params.topicTitle || ''}:${params.jourFixeId || ''}:${params.owner || ''}:${params.nextGate || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 24)}`,
         capabilityKey: 'jour_fixe_decision_closure_tracker',
         safety: 'read_only',
         requestContext: {
@@ -16021,11 +18285,15 @@ module.exports = {
     },
 
     buildOffBalancingMeteringPruefmatrixStatus(params = {}) {
-      const toList = (value) => Array.isArray(value)
-        ? value.filter(Boolean)
-        : value
-          ? String(value).split(',').map((item) => item.trim()).filter(Boolean)
-          : [];
+      const toList = (value) =>
+        Array.isArray(value)
+          ? value.filter(Boolean)
+          : value
+            ? String(value)
+                .split(',')
+                .map((item) => item.trim())
+                .filter(Boolean)
+            : [];
       const evidenceRefs = toList(params.evidenceRef);
       const regulatoryEffectEvidence = params.regulatoryEffectEvidence || params.eogEffectEvidence;
       const evidenceSpecs = [
@@ -16076,14 +18344,16 @@ module.exports = {
           label: 'Cost-recognition assumption',
           value: params.costRecognitionAssumption,
           sourceClass: 'cost_recognition',
-          enablesDossierAddition: 'add a recognition-bound decision guard without claiming legal authority',
+          enablesDossierAddition:
+            'add a recognition-bound decision guard without claiming legal authority',
         },
         {
           id: 'financier_conditions',
           label: 'Financier conditions',
           value: params.financierConditions,
           sourceClass: 'financier_terms',
-          enablesDossierAddition: 'add financier-bound risk, covenant and exit-condition assessment',
+          enablesDossierAddition:
+            'add financier-bound risk, covenant and exit-condition assessment',
         },
         {
           id: 'data_quality_status',
@@ -16097,14 +18367,16 @@ module.exports = {
           label: 'Interface-risk status',
           value: params.interfaceRiskStatus,
           sourceClass: 'interface_risk',
-          enablesDossierAddition: 'add integration-risk guard for billing, MaKo and data interfaces',
+          enablesDossierAddition:
+            'add integration-risk guard for billing, MaKo and data interfaces',
         },
         {
           id: 'grid_investment_space_proof',
           label: 'Usable grid-investment headroom proof',
           value: params.gridInvestmentSpaceProof,
           sourceClass: 'grid_investment_space',
-          enablesDossierAddition: 'add the verdict whether budget relief creates usable electricity-grid investment headroom',
+          enablesDossierAddition:
+            'add the verdict whether budget relief creates usable electricity-grid investment headroom',
         },
         {
           id: 'source_snapshot_ref',
@@ -16140,41 +18412,40 @@ module.exports = {
           enablesDossierAddition: spec.enablesDossierAddition,
         }));
       const gridProofText = String(params.gridInvestmentSpaceProof || '').toLowerCase();
-      const apparentReliefUnproven =
-        !!params.financingModel &&
-        !params.gridInvestmentSpaceProof;
+      const apparentReliefUnproven = !!params.financingModel && !params.gridInvestmentSpaceProof;
       const gridProofBlocking =
-        /not usable|not_usable|kein nutzbarer|scheininvest|scheinspielraum|unproven|ungeklaert|unklar|blocked/.test(gridProofText);
-      const status =
-        !params.meteringScope
-          ? 'needs_metering_scope'
-          : !params.financingModel
-            ? 'needs_financing_model'
-            : !params.financierConditions
-              ? 'needs_financier_terms'
-              : !regulatoryEffectEvidence
-                ? 'needs_regulatory_effect'
-                : !params.costRecognitionAssumption
-                  ? 'needs_cost_recognition'
-                  : !params.capexOpexBaseline
-                    ? 'needs_capex_opex_baseline'
-                    : !params.dataQualityStatus
-                      ? 'needs_data_quality'
-                      : !params.interfaceRiskStatus
-                        ? 'needs_interface_risk'
-                        : !params.gridInvestmentSpaceProof
-                          ? 'needs_grid_investment_proof'
-                          : gridProofBlocking
-                            ? 'apparent_relief_not_decision_ready'
-                            : !params.decisionOwner
-                              ? 'needs_decision_owner'
-                              : !params.committeeGate
-                                ? 'needs_committee_gate'
-                                : !params.sourceSnapshotRef || evidenceRefs.length === 0
-                                  ? 'needs_source_evidence'
-                                  : missingEvidence.length === 0
-                                    ? 'ready_for_committee_review'
-                                    : 'needs_pruefmatrix_evidence';
+        /not usable|not_usable|kein nutzbarer|scheininvest|scheinspielraum|unproven|ungeklaert|unklar|blocked/.test(
+          gridProofText
+        );
+      const status = !params.meteringScope
+        ? 'needs_metering_scope'
+        : !params.financingModel
+          ? 'needs_financing_model'
+          : !params.financierConditions
+            ? 'needs_financier_terms'
+            : !regulatoryEffectEvidence
+              ? 'needs_regulatory_effect'
+              : !params.costRecognitionAssumption
+                ? 'needs_cost_recognition'
+                : !params.capexOpexBaseline
+                  ? 'needs_capex_opex_baseline'
+                  : !params.dataQualityStatus
+                    ? 'needs_data_quality'
+                    : !params.interfaceRiskStatus
+                      ? 'needs_interface_risk'
+                      : !params.gridInvestmentSpaceProof
+                        ? 'needs_grid_investment_proof'
+                        : gridProofBlocking
+                          ? 'apparent_relief_not_decision_ready'
+                          : !params.decisionOwner
+                            ? 'needs_decision_owner'
+                            : !params.committeeGate
+                              ? 'needs_committee_gate'
+                              : !params.sourceSnapshotRef || evidenceRefs.length === 0
+                                ? 'needs_source_evidence'
+                                : missingEvidence.length === 0
+                                  ? 'ready_for_committee_review'
+                                  : 'needs_pruefmatrix_evidence';
       const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
       const positiveFollowUps = missingEvidence.map((item) => ({
         missingDataPoint: item.missingDataPoint,
@@ -16198,14 +18469,16 @@ module.exports = {
         blockingFindings.push({
           code: 'OBM_APPARENT_RELIEF_UNPROVEN',
           severity: 'high',
-          message: 'claimed budget relief is not decision-ready until usable grid-investment headroom is proven',
+          message:
+            'claimed budget relief is not decision-ready until usable grid-investment headroom is proven',
         });
       }
       if (gridProofBlocking) {
         blockingFindings.push({
           code: 'OBM_GRID_INVESTMENT_SPACE_BLOCKING',
           severity: 'high',
-          message: 'provided grid-investment-space evidence marks the option as not usable or unresolved',
+          message:
+            'provided grid-investment-space evidence marks the option as not usable or unresolved',
         });
       }
       const matrixContext = {
@@ -16233,11 +18506,38 @@ module.exports = {
         apparentReliefUnproven,
       };
       const matrixSteps = [
-        { id: 'scope-and-model', label: 'Scope and model', evidenceStatus: params.meteringScope && params.financingModel ? 'provided' : 'missing' },
-        { id: 'finance-regulation', label: 'Finance and regulation', evidenceStatus: params.capexOpexBaseline && regulatoryEffectEvidence && params.costRecognitionAssumption && params.financierConditions ? 'provided' : 'missing' },
-        { id: 'data-interface-risk', label: 'Data and interface risk', evidenceStatus: params.dataQualityStatus && params.interfaceRiskStatus ? 'provided' : 'missing' },
-        { id: 'grid-headroom-verdict', label: 'Grid headroom verdict', evidenceStatus: params.gridInvestmentSpaceProof ? 'provided' : 'missing' },
-        { id: 'committee-readiness', label: 'Committee readiness', evidenceStatus: params.decisionOwner && params.committeeGate ? 'provided' : 'missing' },
+        {
+          id: 'scope-and-model',
+          label: 'Scope and model',
+          evidenceStatus: params.meteringScope && params.financingModel ? 'provided' : 'missing',
+        },
+        {
+          id: 'finance-regulation',
+          label: 'Finance and regulation',
+          evidenceStatus:
+            params.capexOpexBaseline &&
+            regulatoryEffectEvidence &&
+            params.costRecognitionAssumption &&
+            params.financierConditions
+              ? 'provided'
+              : 'missing',
+        },
+        {
+          id: 'data-interface-risk',
+          label: 'Data and interface risk',
+          evidenceStatus:
+            params.dataQualityStatus && params.interfaceRiskStatus ? 'provided' : 'missing',
+        },
+        {
+          id: 'grid-headroom-verdict',
+          label: 'Grid headroom verdict',
+          evidenceStatus: params.gridInvestmentSpaceProof ? 'provided' : 'missing',
+        },
+        {
+          id: 'committee-readiness',
+          label: 'Committee readiness',
+          evidenceStatus: params.decisionOwner && params.committeeGate ? 'provided' : 'missing',
+        },
       ];
       const dossierFacts = [
         `Status: ${status}`,
@@ -16247,10 +18547,15 @@ module.exports = {
       if (params.matrixId) dossierFacts.push(`Matrix: ${params.matrixId}`);
       if (params.meteringScope) dossierFacts.push(`Metering scope: ${params.meteringScope}`);
       if (params.financingModel) dossierFacts.push(`Financing model: ${params.financingModel}`);
-      if (params.gridInvestmentSpaceProof) dossierFacts.push(`Grid headroom proof: ${params.gridInvestmentSpaceProof}`);
+      if (params.gridInvestmentSpaceProof)
+        dossierFacts.push(`Grid headroom proof: ${params.gridInvestmentSpaceProof}`);
 
       return {
-        pruefmatrixStatusId: `obm:${Buffer.from(`${params.matrixId || ''}:${params.meteringScope || ''}:${params.financingModel || ''}:${params.gridInvestmentSpaceProof || ''}`).toString('base64url').slice(0, 24)}`,
+        pruefmatrixStatusId: `obm:${Buffer.from(
+          `${params.matrixId || ''}:${params.meteringScope || ''}:${params.financingModel || ''}:${params.gridInvestmentSpaceProof || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 24)}`,
         capabilityKey: 'off_balancing_metering_pruefmatrix',
         safety: 'read_only',
         requestContext: {
@@ -16326,9 +18631,16 @@ module.exports = {
     },
 
     buildAutomationRequirementsDecisionValueStatus(params = {}) {
-      const toList = (value) => Array.isArray(value)
-        ? value.flatMap((item) => String(item || '').split(',')).map((item) => item.trim()).filter(Boolean)
-        : String(value || '').split(',').map((item) => item.trim()).filter(Boolean);
+      const toList = (value) =>
+        Array.isArray(value)
+          ? value
+              .flatMap((item) => String(item || '').split(','))
+              .map((item) => item.trim())
+              .filter(Boolean)
+          : String(value || '')
+              .split(',')
+              .map((item) => item.trim())
+              .filter(Boolean);
       const evidenceRefs = toList(params.evidenceRef);
       const evidenceSpecs = [
         {
@@ -16336,117 +18648,139 @@ module.exports = {
           label: 'Requirement identity',
           value: params.requirementId || params.requestTitle,
           missingDataPoint: 'request_identity',
-          enablesDossierAddition: 'Anforderungstitel und Karten-ID koennen als pruefbares Steuerungsobjekt referenziert werden',
+          enablesDossierAddition:
+            'Anforderungstitel und Karten-ID koennen als pruefbares Steuerungsobjekt referenziert werden',
         },
         {
           key: 'request_type',
           label: 'Request type',
           value: params.requestType,
           missingDataPoint: 'request_type',
-          enablesDossierAddition: 'Der Toolwunsch kann als Dashboard-, Workflow-, Report- oder Automatisierungsanforderung klassifiziert werden',
+          enablesDossierAddition:
+            'Der Toolwunsch kann als Dashboard-, Workflow-, Report- oder Automatisierungsanforderung klassifiziert werden',
         },
         {
           key: 'process_area',
           label: 'Process area',
           value: params.processArea,
           missingDataPoint: 'process_area',
-          enablesDossierAddition: 'Der betroffene VNB-/EVU-Prozess kann im Dossier eingegrenzt werden',
+          enablesDossierAddition:
+            'Der betroffene VNB-/EVU-Prozess kann im Dossier eingegrenzt werden',
         },
         {
           key: 'decision_owner',
           label: 'Decision owner',
           value: params.decisionOwner,
           missingDataPoint: 'decision_owner',
-          enablesDossierAddition: 'Der fachliche Owner fuer Wertentscheidung und Nachhaltung kann benannt werden',
+          enablesDossierAddition:
+            'Der fachliche Owner fuer Wertentscheidung und Nachhaltung kann benannt werden',
         },
         {
           key: 'target_gate',
           label: 'Target gate',
           value: params.targetGate,
           missingDataPoint: 'target_gate',
-          enablesDossierAddition: 'Das naechste Entscheidungs- oder Review-Gate kann im Dossier sichtbar werden',
+          enablesDossierAddition:
+            'Das naechste Entscheidungs- oder Review-Gate kann im Dossier sichtbar werden',
         },
         {
           key: 'source_system',
           label: 'Source system',
           value: params.sourceSystem,
           missingDataPoint: 'source_system',
-          enablesDossierAddition: 'Quellsystem-Provenienz und Datenverantwortung koennen belegt werden',
+          enablesDossierAddition:
+            'Quellsystem-Provenienz und Datenverantwortung koennen belegt werden',
         },
         {
           key: 'moving_data_flow',
           label: 'Moving data flow',
           value: params.movingDataFlow,
           missingDataPoint: 'moving_data_flow',
-          enablesDossierAddition: 'Betroffener Datenfluss und Schnittstellenwirkung koennen beschrieben werden',
+          enablesDossierAddition:
+            'Betroffener Datenfluss und Schnittstellenwirkung koennen beschrieben werden',
         },
         {
           key: 'manual_effort',
           label: 'Manual effort',
           value: params.manualEffort,
           missingDataPoint: 'manual_effort',
-          enablesDossierAddition: 'Manueller Aufwand kann als Baseline fuer Nutzenbewertung ergaenzt werden',
+          enablesDossierAddition:
+            'Manueller Aufwand kann als Baseline fuer Nutzenbewertung ergaenzt werden',
         },
         {
           key: 'control_point',
           label: 'Control point',
           value: params.controlPoint,
           missingDataPoint: 'control_point',
-          enablesDossierAddition: 'Der verbesserte operative Kontrollpunkt kann entscheidungsfaehig benannt werden',
+          enablesDossierAddition:
+            'Der verbesserte operative Kontrollpunkt kann entscheidungsfaehig benannt werden',
         },
         {
           key: 'decision_value',
           label: 'Decision value',
           value: params.decisionValue,
           missingDataPoint: 'decision_value',
-          enablesDossierAddition: 'Die durch Automation besser moegliche Fachentscheidung kann im Dossier ausgewiesen werden',
+          enablesDossierAddition:
+            'Die durch Automation besser moegliche Fachentscheidung kann im Dossier ausgewiesen werden',
         },
         {
           key: 'follow_up_process',
           label: 'Follow-up process',
           value: params.followUpProcess,
           missingDataPoint: 'follow_up_process',
-          enablesDossierAddition: 'Der nachgelagerte Prozess oder Handover kann als Wirkung der Anforderung ergaenzt werden',
+          enablesDossierAddition:
+            'Der nachgelagerte Prozess oder Handover kann als Wirkung der Anforderung ergaenzt werden',
         },
         {
           key: 'data_quality',
           label: 'Data quality',
           value: params.dataQuality,
           missingDataPoint: 'data_quality',
-          enablesDossierAddition: 'Datenqualitaet, Confidence und bekannte Grenzen koennen bewertet werden',
+          enablesDossierAddition:
+            'Datenqualitaet, Confidence und bekannte Grenzen koennen bewertet werden',
         },
         {
           key: 'rollback_or_stop_criterion',
           label: 'Rollback or stop criterion',
           value: params.rollbackOrStopCriterion,
           missingDataPoint: 'rollback_or_stop_criterion',
-          enablesDossierAddition: 'Ein Stop-/Rollback-Kriterium kann nicht hilfreiche Automation begrenzen',
+          enablesDossierAddition:
+            'Ein Stop-/Rollback-Kriterium kann nicht hilfreiche Automation begrenzen',
         },
         {
           key: 'source_snapshot_ref',
           label: 'Source snapshot',
           value: params.sourceSnapshotRef,
           missingDataPoint: 'source_snapshot_ref',
-          enablesDossierAddition: 'Ein zitierbarer Snapshot kann als Grundlage der Requirements Card referenziert werden',
+          enablesDossierAddition:
+            'Ein zitierbarer Snapshot kann als Grundlage der Requirements Card referenziert werden',
         },
         {
           key: 'evidence_ref',
           label: 'Evidence references',
           value: evidenceRefs.length > 0 ? evidenceRefs.join(', ') : null,
           missingDataPoint: 'evidence_ref',
-          enablesDossierAddition: 'Evidenzreferenzen koennen die Requirements Card auditierbar machen',
+          enablesDossierAddition:
+            'Evidenzreferenzen koennen die Requirements Card auditierbar machen',
         },
       ];
       const evidenceItems = evidenceSpecs
         .filter((spec) => spec.value)
-        .map((spec) => ({ id: spec.key, label: spec.label, value: spec.value, evidenceStatus: 'provided' }));
+        .map((spec) => ({
+          id: spec.key,
+          label: spec.label,
+          value: spec.value,
+          evidenceStatus: 'provided',
+        }));
       const missingEvidence = evidenceSpecs
         .filter((spec) => !spec.value)
         .map((spec) => ({
           missingDataPoint: spec.missingDataPoint,
           enablesDossierAddition: spec.enablesDossierAddition,
           category: 'automation_requirements_decision_value',
-          severity: ['decision_value', 'follow_up_process', 'control_point'].includes(spec.key) ? 'high' : 'medium',
+          severity: ['decision_value', 'follow_up_process', 'control_point'].includes(spec.key)
+            ? 'high'
+            : 'medium',
         }));
       const positiveFollowUps = missingEvidence.map((item) => ({
         category: item.category,
@@ -16464,14 +18798,17 @@ module.exports = {
       const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
       const toolWishWithoutDecisionValue =
         !!params.requestType &&
-        /powerbi|power bi|power-?automate|dashboard|workflow|office|report|automation/i.test(params.requestType) &&
+        /powerbi|power bi|power-?automate|dashboard|workflow|office|report|automation/i.test(
+          params.requestType
+        ) &&
         (!params.decisionValue || !params.followUpProcess);
       const blockingFindings = [];
       if (toolWishWithoutDecisionValue) {
         blockingFindings.push({
           code: 'ARDV_TOOL_WISH_WITHOUT_DECISION_VALUE',
           severity: 'high',
-          message: 'automation or dashboard wish is not decision-ready without decision value and follow-up process',
+          message:
+            'automation or dashboard wish is not decision-ready without decision value and follow-up process',
         });
       }
       const requirementContext = {
@@ -16493,11 +18830,35 @@ module.exports = {
         rollbackOrStopCriterion: params.rollbackOrStopCriterion || null,
       };
       const decisionSteps = [
-        { id: 'identity-and-owner', label: 'Identity and owner', evidenceStatus: (params.requirementId || params.requestTitle) && params.decisionOwner ? 'provided' : 'missing' },
-        { id: 'data-flow', label: 'Source system and moving data flow', evidenceStatus: params.sourceSystem && params.movingDataFlow ? 'provided' : 'missing' },
-        { id: 'value-control', label: 'Decision value and control point', evidenceStatus: params.decisionValue && params.controlPoint ? 'provided' : 'missing' },
-        { id: 'process-handover', label: 'Follow-up and target gate', evidenceStatus: params.followUpProcess && params.targetGate ? 'provided' : 'missing' },
-        { id: 'quality-and-stop', label: 'Data quality and rollback guard', evidenceStatus: params.dataQuality && params.rollbackOrStopCriterion ? 'provided' : 'missing' },
+        {
+          id: 'identity-and-owner',
+          label: 'Identity and owner',
+          evidenceStatus:
+            (params.requirementId || params.requestTitle) && params.decisionOwner
+              ? 'provided'
+              : 'missing',
+        },
+        {
+          id: 'data-flow',
+          label: 'Source system and moving data flow',
+          evidenceStatus: params.sourceSystem && params.movingDataFlow ? 'provided' : 'missing',
+        },
+        {
+          id: 'value-control',
+          label: 'Decision value and control point',
+          evidenceStatus: params.decisionValue && params.controlPoint ? 'provided' : 'missing',
+        },
+        {
+          id: 'process-handover',
+          label: 'Follow-up and target gate',
+          evidenceStatus: params.followUpProcess && params.targetGate ? 'provided' : 'missing',
+        },
+        {
+          id: 'quality-and-stop',
+          label: 'Data quality and rollback guard',
+          evidenceStatus:
+            params.dataQuality && params.rollbackOrStopCriterion ? 'provided' : 'missing',
+        },
       ];
       const dossierFacts = [
         `Status: ${status}`,
@@ -16510,7 +18871,11 @@ module.exports = {
       if (params.followUpProcess) dossierFacts.push(`Follow-up process: ${params.followUpProcess}`);
 
       return {
-        decisionValueStatusId: `ardv:${Buffer.from(`${params.requirementId || ''}:${params.requestTitle || ''}:${params.decisionValue || ''}:${params.followUpProcess || ''}`).toString('base64url').slice(0, 24)}`,
+        decisionValueStatusId: `ardv:${Buffer.from(
+          `${params.requirementId || ''}:${params.requestTitle || ''}:${params.decisionValue || ''}:${params.followUpProcess || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 24)}`,
         capabilityKey: 'automation_requirements_decision_value',
         safety: 'read_only',
         requestContext: {
@@ -16578,9 +18943,16 @@ module.exports = {
     },
 
     buildSmartMeterOffBalancingPurposeLockStatus(params = {}) {
-      const toList = (value) => Array.isArray(value)
-        ? value.flatMap((item) => String(item || '').split(',')).map((item) => item.trim()).filter(Boolean)
-        : String(value || '').split(',').map((item) => item.trim()).filter(Boolean);
+      const toList = (value) =>
+        Array.isArray(value)
+          ? value
+              .flatMap((item) => String(item || '').split(','))
+              .map((item) => item.trim())
+              .filter(Boolean)
+          : String(value || '')
+              .split(',')
+              .map((item) => item.trim())
+              .filter(Boolean);
       const toAmount = (value) => {
         if (value == null || value === '') return null;
         const normalized = Number(String(value).replace(/[^\d.-]/g, ''));
@@ -16595,42 +18967,49 @@ module.exports = {
       const freedLiquidityEur = toAmount(params.freedLiquidityEur);
       const financierCostEur = toAmount(params.financierCostEur);
       const investmentEffectEvidence =
-        controlRoomInvestments.length + processInvestments.length + gridInfrastructureInvestments.length;
+        controlRoomInvestments.length +
+        processInvestments.length +
+        gridInfrastructureInvestments.length;
       const evidenceSpecs = [
         {
           key: 'asset_scope',
           label: 'Asset scope',
           value: params.assetScope,
           missingDataPoint: 'asset_scope',
-          enablesDossierAddition: 'Smart-Meter-Assetumfang und betroffene Netz-/Messlokationen koennen abgegrenzt werden',
+          enablesDossierAddition:
+            'Smart-Meter-Assetumfang und betroffene Netz-/Messlokationen koennen abgegrenzt werden',
         },
         {
           key: 'financing_model',
           label: 'Financing model',
           value: params.financingModel,
           missingDataPoint: 'financing_model',
-          enablesDossierAddition: 'Das Off-Balancing-/Finanzierungsmodell kann als Entscheidungsgrundlage sichtbar werden',
+          enablesDossierAddition:
+            'Das Off-Balancing-/Finanzierungsmodell kann als Entscheidungsgrundlage sichtbar werden',
         },
         {
           key: 'off_balance_volume_eur',
           label: 'Off-balance volume',
           value: offBalanceVolumeEur,
           missingDataPoint: 'off_balance_volume_eur',
-          enablesDossierAddition: 'Das auszulagernde Smart-Meter-Assetvolumen kann beziffert werden',
+          enablesDossierAddition:
+            'Das auszulagernde Smart-Meter-Assetvolumen kann beziffert werden',
         },
         {
           key: 'freed_liquidity_eur',
           label: 'Freed liquidity',
           value: freedLiquidityEur,
           missingDataPoint: 'freed_liquidity_eur',
-          enablesDossierAddition: 'Freiwerdende Liquiditaet kann von reiner Bilanzoptik getrennt werden',
+          enablesDossierAddition:
+            'Freiwerdende Liquiditaet kann von reiner Bilanzoptik getrennt werden',
         },
         {
           key: 'financier_cost_eur',
           label: 'Financier cost',
           value: financierCostEur,
           missingDataPoint: 'financier_cost_eur',
-          enablesDossierAddition: 'Finanzierer-Kosten koennen gegen den operativen Netzsteuerungsnutzen gestellt werden',
+          enablesDossierAddition:
+            'Finanzierer-Kosten koennen gegen den operativen Netzsteuerungsnutzen gestellt werden',
         },
         {
           key: 'capex_opex_totex_effect',
@@ -16644,42 +19023,48 @@ module.exports = {
           label: 'Regulatory recognition',
           value: params.regulatoryRecognitionStatus,
           missingDataPoint: 'regulatory_recognition_status',
-          enablesDossierAddition: 'Regulatorische Anerkennung oder Unsicherheit kann ohne Authority-Claim markiert werden',
+          enablesDossierAddition:
+            'Regulatorische Anerkennung oder Unsicherheit kann ohne Authority-Claim markiert werden',
         },
         {
           key: 'purpose_locked_measures',
           label: 'Purpose-locked measures',
           value: purposeLockedMeasures.length > 0 ? purposeLockedMeasures.join(', ') : null,
           missingDataPoint: 'purpose_lock_measures_missing',
-          enablesDossierAddition: 'Zweckgebundene Steuerbarkeits-, Leitwarten-, Prozess- oder Infrastrukturmassnahmen koennen belegt werden',
+          enablesDossierAddition:
+            'Zweckgebundene Steuerbarkeits-, Leitwarten-, Prozess- oder Infrastrukturmassnahmen koennen belegt werden',
         },
         {
           key: 'investment_effect',
           label: 'Operational investment effect',
           value: investmentEffectEvidence > 0,
           missingDataPoint: 'investment_effect_missing',
-          enablesDossierAddition: 'Der nutzbare operative Investitionseffekt kann mit Leitwarte, Prozess und Infrastruktur verknuepft werden',
+          enablesDossierAddition:
+            'Der nutzbare operative Investitionseffekt kann mit Leitwarte, Prozess und Infrastruktur verknuepft werden',
         },
         {
           key: 'budget_dilution_risk',
           label: 'Budget dilution risk',
           value: params.budgetDilutionRisk,
           missingDataPoint: 'budget_dilution_risk_open',
-          enablesDossierAddition: 'Risiko einer Budgetverwaesserung kann als Guard gegen Scheinnutzen ausgewiesen werden',
+          enablesDossierAddition:
+            'Risiko einer Budgetverwaesserung kann als Guard gegen Scheinnutzen ausgewiesen werden',
         },
         {
           key: 'finance_review_status',
           label: 'Finance review status',
           value: params.financeReviewStatus,
           missingDataPoint: 'finance_review_missing',
-          enablesDossierAddition: 'Gremien- oder Finance-Review-Status kann committee-ready sichtbar werden',
+          enablesDossierAddition:
+            'Gremien- oder Finance-Review-Status kann committee-ready sichtbar werden',
         },
         {
           key: 'source_snapshot_ref',
           label: 'Source snapshot',
           value: params.sourceSnapshotRef,
           missingDataPoint: 'source_snapshot_ref',
-          enablesDossierAddition: 'Ein zitierbarer Snapshot kann die Purpose-Lock-Bewertung auditierbar machen',
+          enablesDossierAddition:
+            'Ein zitierbarer Snapshot kann die Purpose-Lock-Bewertung auditierbar machen',
         },
         {
           key: 'evidence_ref',
@@ -16691,17 +19076,30 @@ module.exports = {
       ];
       const evidenceItems = evidenceSpecs
         .filter((spec) => spec.value)
-        .map((spec) => ({ id: spec.key, label: spec.label, value: spec.value, evidenceStatus: 'provided' }));
+        .map((spec) => ({
+          id: spec.key,
+          label: spec.label,
+          value: spec.value,
+          evidenceStatus: 'provided',
+        }));
       const missingEvidence = evidenceSpecs
         .filter((spec) => !spec.value)
         .map((spec) => ({
           missingDataPoint: spec.missingDataPoint,
           enablesDossierAddition: spec.enablesDossierAddition,
           category: 'smart_meter_off_balancing_purpose_lock',
-          severity: ['purpose_lock_measures_missing', 'investment_effect_missing', 'budget_dilution_risk_open', 'finance_review_missing'].includes(spec.missingDataPoint) ? 'high' : 'medium',
+          severity: [
+            'purpose_lock_measures_missing',
+            'investment_effect_missing',
+            'budget_dilution_risk_open',
+            'finance_review_missing',
+          ].includes(spec.missingDataPoint)
+            ? 'high'
+            : 'medium',
         }));
       const dilutionText = String(params.budgetDilutionRisk || '').toLowerCase();
-      const dilutionBlocking = /high|hoch|open|offen|unresolved|ungeloest|budgetverwaesser|dilution/.test(dilutionText) &&
+      const dilutionBlocking =
+        /high|hoch|open|offen|unresolved|ungeloest|budgetverwaesser|dilution/.test(dilutionText) &&
         !/low|niedrig|resolved|geschlossen|protected|locked|none|kein/.test(dilutionText);
       let status = 'ready_for_committee_review';
       if (!params.assetScope) status = 'needs_asset_scope';
@@ -16712,8 +19110,10 @@ module.exports = {
       else if (!params.financeReviewStatus) status = 'needs_finance_review';
       else if (dilutionBlocking) status = 'budget_dilution_risk';
       else if (investmentEffectEvidence === 0) status = 'needs_investment_effect';
-      else if (!params.capexOpexTotexEffect || !financierCostEur) status = 'needs_finance_effect_evidence';
-      else if (!params.sourceSnapshotRef || evidenceRefs.length === 0) status = 'needs_source_evidence';
+      else if (!params.capexOpexTotexEffect || !financierCostEur)
+        status = 'needs_finance_effect_evidence';
+      else if (!params.sourceSnapshotRef || evidenceRefs.length === 0)
+        status = 'needs_source_evidence';
       const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
       const positiveFollowUps = missingEvidence.map((item) => ({
         category: item.category,
@@ -16761,12 +19161,40 @@ module.exports = {
         usableOperationalInvestmentEffect: investmentEffectEvidence > 0,
       };
       const purposeLockSteps = [
-        { id: 'scope-and-model', label: 'Asset scope and financing model', evidenceStatus: params.assetScope && params.financingModel ? 'provided' : 'missing' },
-        { id: 'liquidity-and-cost', label: 'Freed liquidity and financier cost', evidenceStatus: offBalanceVolumeEur && freedLiquidityEur && financierCostEur ? 'provided' : 'missing' },
-        { id: 'purpose-lock', label: 'Purpose-locked measures', evidenceStatus: purposeLockedMeasures.length > 0 ? 'provided' : 'missing' },
-        { id: 'investment-effect', label: 'Operational investment effect', evidenceStatus: investmentEffectEvidence > 0 ? 'provided' : 'missing' },
-        { id: 'regulatory-finance-review', label: 'Regulatory and finance review', evidenceStatus: params.regulatoryRecognitionStatus && params.financeReviewStatus ? 'provided' : 'missing' },
-        { id: 'anti-dilution', label: 'Budget dilution guard', evidenceStatus: params.budgetDilutionRisk && !dilutionBlocking ? 'provided' : 'missing' },
+        {
+          id: 'scope-and-model',
+          label: 'Asset scope and financing model',
+          evidenceStatus: params.assetScope && params.financingModel ? 'provided' : 'missing',
+        },
+        {
+          id: 'liquidity-and-cost',
+          label: 'Freed liquidity and financier cost',
+          evidenceStatus:
+            offBalanceVolumeEur && freedLiquidityEur && financierCostEur ? 'provided' : 'missing',
+        },
+        {
+          id: 'purpose-lock',
+          label: 'Purpose-locked measures',
+          evidenceStatus: purposeLockedMeasures.length > 0 ? 'provided' : 'missing',
+        },
+        {
+          id: 'investment-effect',
+          label: 'Operational investment effect',
+          evidenceStatus: investmentEffectEvidence > 0 ? 'provided' : 'missing',
+        },
+        {
+          id: 'regulatory-finance-review',
+          label: 'Regulatory and finance review',
+          evidenceStatus:
+            params.regulatoryRecognitionStatus && params.financeReviewStatus
+              ? 'provided'
+              : 'missing',
+        },
+        {
+          id: 'anti-dilution',
+          label: 'Budget dilution guard',
+          evidenceStatus: params.budgetDilutionRisk && !dilutionBlocking ? 'provided' : 'missing',
+        },
       ];
       const dossierFacts = [
         `Status: ${status}`,
@@ -16776,10 +19204,15 @@ module.exports = {
       if (params.caseId) dossierFacts.push(`Case: ${params.caseId}`);
       if (params.assetScope) dossierFacts.push(`Asset scope: ${params.assetScope}`);
       if (params.financingModel) dossierFacts.push(`Financing model: ${params.financingModel}`);
-      if (purposeLockedMeasures.length > 0) dossierFacts.push(`Purpose-locked measures: ${purposeLockedMeasures.length}`);
+      if (purposeLockedMeasures.length > 0)
+        dossierFacts.push(`Purpose-locked measures: ${purposeLockedMeasures.length}`);
 
       return {
-        purposeLockStatusId: `smopl:${Buffer.from(`${params.caseId || ''}:${params.assetScope || ''}:${params.financingModel || ''}:${params.financeReviewStatus || ''}`).toString('base64url').slice(0, 24)}`,
+        purposeLockStatusId: `smopl:${Buffer.from(
+          `${params.caseId || ''}:${params.assetScope || ''}:${params.financingModel || ''}:${params.financeReviewStatus || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 24)}`,
         capabilityKey: 'smart_meter_off_balancing_purpose_lock',
         safety: 'read_only',
         requestContext: purposeLockContext,
@@ -16858,11 +19291,15 @@ module.exports = {
     },
 
     buildImsysScheduleValueChainReadinessStatus(params = {}) {
-      const toList = (value) => Array.isArray(value)
-        ? value.filter(Boolean)
-        : value
-          ? String(value).split(',').map((item) => item.trim()).filter(Boolean)
-          : [];
+      const toList = (value) =>
+        Array.isArray(value)
+          ? value.filter(Boolean)
+          : value
+            ? String(value)
+                .split(',')
+                .map((item) => item.trim())
+                .filter(Boolean)
+            : [];
       const sourceDatapoints = toList(params.sourceDatapoints);
       const flexibilityOptions = toList(params.flexibilityOptions);
       const evidenceRefs = toList(params.evidenceRef);
@@ -16872,110 +19309,137 @@ module.exports = {
           label: 'Metering scope',
           value: params.meteringScope,
           missingDataPoint: 'metering_scope',
-          enablesDossierAddition: 'iMSys-/CLS-Messbereich und betroffene Markt-/Netzlokation koennen abgegrenzt werden',
+          enablesDossierAddition:
+            'iMSys-/CLS-Messbereich und betroffene Markt-/Netzlokation koennen abgegrenzt werden',
         },
         {
           key: 'source_datapoints',
           label: 'Source datapoints',
           value: sourceDatapoints.length > 0 ? sourceDatapoints.join(', ') : null,
           missingDataPoint: 'source_datapoints',
-          enablesDossierAddition: 'Messdatenquellen, Datenalter und Verfuegbarkeit koennen im Dossier belegt werden',
+          enablesDossierAddition:
+            'Messdatenquellen, Datenalter und Verfuegbarkeit koennen im Dossier belegt werden',
         },
         {
           key: 'data_quality_status',
           label: 'Data quality status',
           value: params.dataQualityStatus,
           missingDataPoint: 'data_quality_status',
-          enablesDossierAddition: 'Datenqualitaet und Confidence der iMSys-/CLS-Daten koennen bewertet werden',
+          enablesDossierAddition:
+            'Datenqualitaet und Confidence der iMSys-/CLS-Daten koennen bewertet werden',
         },
         {
           key: 'forecast_window',
           label: 'Forecast window',
           value: params.forecastWindow,
           missingDataPoint: 'forecast_window',
-          enablesDossierAddition: 'Prognosefenster und Fahrplanhorizont koennen in die Bewertung aufgenommen werden',
+          enablesDossierAddition:
+            'Prognosefenster und Fahrplanhorizont koennen in die Bewertung aufgenommen werden',
         },
         {
           key: 'congestion_signal',
           label: 'Congestion signal',
           value: params.congestionSignal,
           missingDataPoint: 'congestion_signal',
-          enablesDossierAddition: 'Engpasslogik und Netzbedarf koennen als Ausloeser der Value Chain erklaert werden',
+          enablesDossierAddition:
+            'Engpasslogik und Netzbedarf koennen als Ausloeser der Value Chain erklaert werden',
         },
         {
           key: 'asset_scope',
           label: 'Asset scope',
           value: params.assetScope,
           missingDataPoint: 'asset_scope',
-          enablesDossierAddition: 'Betroffene Anlagen, NAP/MeLo oder Flex-Assets koennen der Fahrplankette zugeordnet werden',
+          enablesDossierAddition:
+            'Betroffene Anlagen, NAP/MeLo oder Flex-Assets koennen der Fahrplankette zugeordnet werden',
         },
         {
           key: 'controllability_status',
           label: 'Controllability status',
           value: params.controllabilityStatus,
           missingDataPoint: 'controllability_status',
-          enablesDossierAddition: 'Fernsteuerbarkeit, Rueckmeldefaehigkeit und Flex-Status koennen ausgewiesen werden',
+          enablesDossierAddition:
+            'Fernsteuerbarkeit, Rueckmeldefaehigkeit und Flex-Status koennen ausgewiesen werden',
         },
         {
           key: 'flexibility_options',
           label: 'Flexibility options',
           value: flexibilityOptions.length > 0 ? flexibilityOptions.join(', ') : null,
           missingDataPoint: 'flexibility_options',
-          enablesDossierAddition: 'Konkrete Flexibilitaetsoptionen koennen als operative Auswahl sichtbar werden',
+          enablesDossierAddition:
+            'Konkrete Flexibilitaetsoptionen koennen als operative Auswahl sichtbar werden',
         },
         {
           key: 'netzfahrplan_assessment_ref',
           label: 'Netzfahrplan assessment',
           value: params.netzfahrplanAssessmentRef,
           missingDataPoint: 'netzfahrplan_assessment_ref',
-          enablesDossierAddition: 'fNAV-/Netzfahrplan-Bewertung und Kapazitaetsentscheidung koennen referenziert werden',
+          enablesDossierAddition:
+            'fNAV-/Netzfahrplan-Bewertung und Kapazitaetsentscheidung koennen referenziert werden',
         },
         {
           key: 'operational_decision',
           label: 'Operational decision',
           value: params.operationalDecision,
           missingDataPoint: 'operational_decision',
-          enablesDossierAddition: 'Die naechste Netzbetriebsentscheidung kann als Review-Grenze beschrieben werden',
+          enablesDossierAddition:
+            'Die naechste Netzbetriebsentscheidung kann als Review-Grenze beschrieben werden',
         },
         {
           key: 'control_readiness',
           label: 'Control readiness',
           value: params.controlReadiness,
           missingDataPoint: 'control_readiness',
-          enablesDossierAddition: 'Leitwarten-/CLS-Uebergabefaehigkeit kann ohne Ausfuehrung bewertet werden',
+          enablesDossierAddition:
+            'Leitwarten-/CLS-Uebergabefaehigkeit kann ohne Ausfuehrung bewertet werden',
         },
         {
           key: 'line_owner_role',
           label: 'Line owner role',
           value: params.lineOwnerRole,
           missingDataPoint: 'line_owner_role',
-          enablesDossierAddition: 'Die fachliche Linienverantwortung fuer die Uebergabe kann benannt werden',
+          enablesDossierAddition:
+            'Die fachliche Linienverantwortung fuer die Uebergabe kann benannt werden',
         },
         {
           key: 'source_snapshot_ref',
           label: 'Source snapshot',
           value: params.sourceSnapshotRef,
           missingDataPoint: 'source_snapshot_ref',
-          enablesDossierAddition: 'Ein zitierbarer Snapshot kann die Value-Chain-Bewertung auditierbar machen',
+          enablesDossierAddition:
+            'Ein zitierbarer Snapshot kann die Value-Chain-Bewertung auditierbar machen',
         },
         {
           key: 'evidence_ref',
           label: 'Evidence references',
           value: evidenceRefs.length > 0 ? evidenceRefs.join(', ') : null,
           missingDataPoint: 'evidence_ref',
-          enablesDossierAddition: 'Evidenzreferenzen koennen die operative Review-Faehigkeit absichern',
+          enablesDossierAddition:
+            'Evidenzreferenzen koennen die operative Review-Faehigkeit absichern',
         },
       ];
       const evidenceItems = evidenceSpecs
         .filter((spec) => spec.value)
-        .map((spec) => ({ id: spec.key, label: spec.label, value: spec.value, evidenceStatus: 'provided' }));
+        .map((spec) => ({
+          id: spec.key,
+          label: spec.label,
+          value: spec.value,
+          evidenceStatus: 'provided',
+        }));
       const missingEvidence = evidenceSpecs
         .filter((spec) => !spec.value)
         .map((spec) => ({
           missingDataPoint: spec.missingDataPoint,
           enablesDossierAddition: spec.enablesDossierAddition,
           category: 'imsys_schedule_value_chain_readiness',
-          severity: ['metering_scope', 'source_datapoints', 'forecast_window', 'controllability_status', 'control_readiness'].includes(spec.key) ? 'high' : 'medium',
+          severity: [
+            'metering_scope',
+            'source_datapoints',
+            'forecast_window',
+            'controllability_status',
+            'control_readiness',
+          ].includes(spec.key)
+            ? 'high'
+            : 'medium',
         }));
       const positiveFollowUps = missingEvidence.map((item) => ({
         category: item.category,
@@ -16983,12 +19447,23 @@ module.exports = {
         enablesDossierAddition: item.enablesDossierAddition,
       }));
       let status = 'ready_for_operation_review';
-      if (!params.meteringScope || sourceDatapoints.length === 0 || !params.dataQualityStatus) status = 'needs_metering_evidence';
+      if (!params.meteringScope || sourceDatapoints.length === 0 || !params.dataQualityStatus)
+        status = 'needs_metering_evidence';
       else if (!params.forecastWindow) status = 'needs_forecast_context';
       else if (!params.congestionSignal) status = 'needs_congestion_signal';
-      else if (!params.assetScope || !params.controllabilityStatus || flexibilityOptions.length === 0) status = 'needs_flex_mapping';
-      else if (!params.netzfahrplanAssessmentRef || !params.operationalDecision) status = 'needs_governance_decision';
-      else if (!params.controlReadiness || /blocked|not[-_ ]?ready|missing|unready|nein|no/i.test(params.controlReadiness)) status = 'blocked_by_control_readiness';
+      else if (
+        !params.assetScope ||
+        !params.controllabilityStatus ||
+        flexibilityOptions.length === 0
+      )
+        status = 'needs_flex_mapping';
+      else if (!params.netzfahrplanAssessmentRef || !params.operationalDecision)
+        status = 'needs_governance_decision';
+      else if (
+        !params.controlReadiness ||
+        /blocked|not[-_ ]?ready|missing|unready|nein|no/i.test(params.controlReadiness)
+      )
+        status = 'blocked_by_control_readiness';
       else if (!params.lineOwnerRole) status = 'needs_line_owner';
       const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
       const blockingFindings = [];
@@ -16996,7 +19471,8 @@ module.exports = {
         blockingFindings.push({
           code: 'IMSYS_CONTROL_READINESS_BLOCKED',
           severity: 'high',
-          message: 'iMSys/CLS value-chain review is blocked until control-room handover readiness is evidenced',
+          message:
+            'iMSys/CLS value-chain review is blocked until control-room handover readiness is evidenced',
         });
       }
       const valueChainContext = {
@@ -17018,11 +19494,38 @@ module.exports = {
         lineOwnerRole: params.lineOwnerRole || null,
       };
       const valueChainSteps = [
-        { id: 'metering-data', label: 'Metering and datapoint evidence', evidenceStatus: params.meteringScope && sourceDatapoints.length > 0 && params.dataQualityStatus ? 'provided' : 'missing' },
-        { id: 'forecast-congestion', label: 'Forecast and congestion context', evidenceStatus: params.forecastWindow && params.congestionSignal ? 'provided' : 'missing' },
-        { id: 'asset-flex', label: 'Asset controllability and flex mapping', evidenceStatus: params.assetScope && params.controllabilityStatus && flexibilityOptions.length > 0 ? 'provided' : 'missing' },
-        { id: 'fnav-decision', label: 'Netzfahrplan and operational decision', evidenceStatus: params.netzfahrplanAssessmentRef && params.operationalDecision ? 'provided' : 'missing' },
-        { id: 'line-handover', label: 'Control-room readiness and line owner', evidenceStatus: params.controlReadiness && params.lineOwnerRole ? 'provided' : 'missing' },
+        {
+          id: 'metering-data',
+          label: 'Metering and datapoint evidence',
+          evidenceStatus:
+            params.meteringScope && sourceDatapoints.length > 0 && params.dataQualityStatus
+              ? 'provided'
+              : 'missing',
+        },
+        {
+          id: 'forecast-congestion',
+          label: 'Forecast and congestion context',
+          evidenceStatus: params.forecastWindow && params.congestionSignal ? 'provided' : 'missing',
+        },
+        {
+          id: 'asset-flex',
+          label: 'Asset controllability and flex mapping',
+          evidenceStatus:
+            params.assetScope && params.controllabilityStatus && flexibilityOptions.length > 0
+              ? 'provided'
+              : 'missing',
+        },
+        {
+          id: 'fnav-decision',
+          label: 'Netzfahrplan and operational decision',
+          evidenceStatus:
+            params.netzfahrplanAssessmentRef && params.operationalDecision ? 'provided' : 'missing',
+        },
+        {
+          id: 'line-handover',
+          label: 'Control-room readiness and line owner',
+          evidenceStatus: params.controlReadiness && params.lineOwnerRole ? 'provided' : 'missing',
+        },
       ];
       const dossierFacts = [
         `Status: ${status}`,
@@ -17031,11 +19534,17 @@ module.exports = {
       ];
       if (params.caseId) dossierFacts.push(`Case: ${params.caseId}`);
       if (params.meteringScope) dossierFacts.push(`Metering scope: ${params.meteringScope}`);
-      if (params.operationalDecision) dossierFacts.push(`Operational decision: ${params.operationalDecision}`);
-      if (params.controlReadiness) dossierFacts.push(`Control readiness: ${params.controlReadiness}`);
+      if (params.operationalDecision)
+        dossierFacts.push(`Operational decision: ${params.operationalDecision}`);
+      if (params.controlReadiness)
+        dossierFacts.push(`Control readiness: ${params.controlReadiness}`);
 
       return {
-        valueChainReadinessId: `isvc:${Buffer.from(`${params.caseId || ''}:${params.meteringScope || ''}:${params.forecastWindow || ''}:${params.assetScope || ''}`).toString('base64url').slice(0, 24)}`,
+        valueChainReadinessId: `isvc:${Buffer.from(
+          `${params.caseId || ''}:${params.meteringScope || ''}:${params.forecastWindow || ''}:${params.assetScope || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 24)}`,
         capabilityKey: 'imsys_schedule_value_chain_readiness',
         safety: 'read_only',
         requestContext: valueChainContext,
@@ -17103,30 +19612,112 @@ module.exports = {
     },
 
     buildClsDigitalTwinComplianceGateStatus(params = {}) {
-      const toList = (value) => Array.isArray(value)
-        ? value.flatMap((item) => String(item || '').split(',')).map((item) => item.trim()).filter(Boolean)
-        : String(value || '').split(',').map((item) => item.trim()).filter(Boolean);
+      const toList = (value) =>
+        Array.isArray(value)
+          ? value
+              .flatMap((item) => String(item || '').split(','))
+              .map((item) => item.trim())
+              .filter(Boolean)
+          : String(value || '')
+              .split(',')
+              .map((item) => item.trim())
+              .filter(Boolean);
       const personalDataCategories = toList(params.personalDataCategories);
       const rolesAccessRights = toList(params.rolesAccessRights);
       const rbacRefs = toList(params.rbacRefs);
       const securityEvidenceRefs = toList(params.securityEvidenceRefs);
       const sourceEvidenceRefs = toList(params.sourceEvidenceRefs);
       const evidenceSpecs = [
-        ['system_purpose', 'System purpose', params.systemPurpose, 'Systemzweck und Beschaffungsgrenze koennen im Gate-Brief benannt werden'],
-        ['digital_twin_scope', 'Digital-twin scope', params.digitalTwinScope, 'Digital-Twin-Scope und betroffene Asset-/Datenobjekte koennen abgegrenzt werden'],
-        ['cls_interface_scope', 'CLS interface scope', params.clsInterfaceScope, 'CLS-Schnittstellenumfang kann ohne Steuerungsfreigabe dokumentiert werden'],
-        ['data_flow_map', 'Data-flow map', params.dataFlowMap, 'Datenflussrisiken und Systemgrenzen koennen bewertet werden'],
-        ['personal_data_categories', 'Personal-data categories', personalDataCategories.length ? personalDataCategories.join(', ') : null, 'Personenbezogene Datenarten koennen fuer Datenschutz-/DSFA-Bewertung sichtbar werden'],
-        ['roles_access_rights', 'Roles and access rights', rolesAccessRights.length ? rolesAccessRights.join(', ') : null, 'Rollenrechte und Zugriffspfad koennen als Entscheidungsmatrix aufgenommen werden'],
-        ['rbac_refs', 'RBAC refs', rbacRefs.length ? rbacRefs.join(', ') : null, 'RBAC-Nachweise koennen den Rollenrechte-Entscheid belegen'],
-        ['avv_status', 'AVV status', params.avvStatus, 'AVV-Status kann als Vertragsnachweis ergaenzt werden'],
-        ['nda_status', 'NDA status', params.ndaStatus, 'NDA-/Vertraulichkeitsstatus kann als Vertragsnachweis ergaenzt werden'],
-        ['works_council_status', 'Works-council status', params.worksCouncilStatus, 'Betriebsvereinbarungs- oder BR-Bedarf kann als Governance-Grenze sichtbar werden'],
-        ['dsfa_status', 'DSFA status', params.dsfaStatus, 'DSFA-Status kann ohne Rechtsfreigabe als Evidenzluecke oder Nachweis erscheinen'],
-        ['billing_module_impact', 'Billing/module impact', params.billingModuleImpact, 'Abrechnungs- oder Modulwirkung kann als Review-Grenze dokumentiert werden'],
-        ['regulatory_evidence_status', 'Regulatory evidence', params.regulatoryEvidenceStatus, 'BNetzA-/Regulierungsnachweise koennen ohne Authority-Claim referenziert werden'],
-        ['security_evidence_refs', 'Security evidence refs', securityEvidenceRefs.length ? securityEvidenceRefs.join(', ') : null, 'IT-Sicherheitsnachweise koennen die CLS-/Digital-Twin-Beschaffung absichern'],
-        ['source_evidence_refs', 'Source evidence refs', sourceEvidenceRefs.length ? sourceEvidenceRefs.join(', ') : null, 'Quellenreferenzen koennen den Gate-Status auditierbar machen'],
+        [
+          'system_purpose',
+          'System purpose',
+          params.systemPurpose,
+          'Systemzweck und Beschaffungsgrenze koennen im Gate-Brief benannt werden',
+        ],
+        [
+          'digital_twin_scope',
+          'Digital-twin scope',
+          params.digitalTwinScope,
+          'Digital-Twin-Scope und betroffene Asset-/Datenobjekte koennen abgegrenzt werden',
+        ],
+        [
+          'cls_interface_scope',
+          'CLS interface scope',
+          params.clsInterfaceScope,
+          'CLS-Schnittstellenumfang kann ohne Steuerungsfreigabe dokumentiert werden',
+        ],
+        [
+          'data_flow_map',
+          'Data-flow map',
+          params.dataFlowMap,
+          'Datenflussrisiken und Systemgrenzen koennen bewertet werden',
+        ],
+        [
+          'personal_data_categories',
+          'Personal-data categories',
+          personalDataCategories.length ? personalDataCategories.join(', ') : null,
+          'Personenbezogene Datenarten koennen fuer Datenschutz-/DSFA-Bewertung sichtbar werden',
+        ],
+        [
+          'roles_access_rights',
+          'Roles and access rights',
+          rolesAccessRights.length ? rolesAccessRights.join(', ') : null,
+          'Rollenrechte und Zugriffspfad koennen als Entscheidungsmatrix aufgenommen werden',
+        ],
+        [
+          'rbac_refs',
+          'RBAC refs',
+          rbacRefs.length ? rbacRefs.join(', ') : null,
+          'RBAC-Nachweise koennen den Rollenrechte-Entscheid belegen',
+        ],
+        [
+          'avv_status',
+          'AVV status',
+          params.avvStatus,
+          'AVV-Status kann als Vertragsnachweis ergaenzt werden',
+        ],
+        [
+          'nda_status',
+          'NDA status',
+          params.ndaStatus,
+          'NDA-/Vertraulichkeitsstatus kann als Vertragsnachweis ergaenzt werden',
+        ],
+        [
+          'works_council_status',
+          'Works-council status',
+          params.worksCouncilStatus,
+          'Betriebsvereinbarungs- oder BR-Bedarf kann als Governance-Grenze sichtbar werden',
+        ],
+        [
+          'dsfa_status',
+          'DSFA status',
+          params.dsfaStatus,
+          'DSFA-Status kann ohne Rechtsfreigabe als Evidenzluecke oder Nachweis erscheinen',
+        ],
+        [
+          'billing_module_impact',
+          'Billing/module impact',
+          params.billingModuleImpact,
+          'Abrechnungs- oder Modulwirkung kann als Review-Grenze dokumentiert werden',
+        ],
+        [
+          'regulatory_evidence_status',
+          'Regulatory evidence',
+          params.regulatoryEvidenceStatus,
+          'BNetzA-/Regulierungsnachweise koennen ohne Authority-Claim referenziert werden',
+        ],
+        [
+          'security_evidence_refs',
+          'Security evidence refs',
+          securityEvidenceRefs.length ? securityEvidenceRefs.join(', ') : null,
+          'IT-Sicherheitsnachweise koennen die CLS-/Digital-Twin-Beschaffung absichern',
+        ],
+        [
+          'source_evidence_refs',
+          'Source evidence refs',
+          sourceEvidenceRefs.length ? sourceEvidenceRefs.join(', ') : null,
+          'Quellenreferenzen koennen den Gate-Status auditierbar machen',
+        ],
       ].map(([key, label, value, enablesDossierAddition]) => ({
         key,
         label,
@@ -17136,8 +19727,22 @@ module.exports = {
       }));
       const evidenceItems = evidenceSpecs
         .filter((spec) => spec.value)
-        .map((spec) => ({ id: spec.key, label: spec.label, value: spec.value, evidenceStatus: 'provided' }));
-      const highGaps = new Set(['system_purpose', 'data_flow_map', 'roles_access_rights', 'rbac_refs', 'avv_status', 'dsfa_status', 'regulatory_evidence_status', 'security_evidence_refs']);
+        .map((spec) => ({
+          id: spec.key,
+          label: spec.label,
+          value: spec.value,
+          evidenceStatus: 'provided',
+        }));
+      const highGaps = new Set([
+        'system_purpose',
+        'data_flow_map',
+        'roles_access_rights',
+        'rbac_refs',
+        'avv_status',
+        'dsfa_status',
+        'regulatory_evidence_status',
+        'security_evidence_refs',
+      ]);
       const missingEvidence = evidenceSpecs
         .filter((spec) => !spec.value)
         .map((spec) => ({
@@ -17153,12 +19758,14 @@ module.exports = {
       else if (!params.avvStatus || !params.ndaStatus) status = 'needs_contractual_evidence';
       else if (!params.worksCouncilStatus || !params.dsfaStatus) status = 'needs_dsfa';
       else if (!params.billingModuleImpact) status = 'needs_billing_review';
-      else if (!params.regulatoryEvidenceStatus || !securityEvidenceRefs.length) status = 'needs_regulatory_security_evidence';
+      else if (!params.regulatoryEvidenceStatus || !securityEvidenceRefs.length)
+        status = 'needs_regulatory_security_evidence';
       else if (!sourceEvidenceRefs.length) status = 'needs_source_evidence';
       const approvalText = String(params.approvalStatus || '').toLowerCase();
       const blockedByCompliance =
-        /blocked|gesperrt|reject|abgelehnt|stop|red|rot|nicht freigegeben|not approved/.test(approvalText) &&
-        !/not blocked|unblocked|freigegeben|approved|green|gruen|grün/.test(approvalText);
+        /blocked|gesperrt|reject|abgelehnt|stop|red|rot|nicht freigegeben|not approved/.test(
+          approvalText
+        ) && !/not blocked|unblocked|freigegeben|approved|green|gruen|grün/.test(approvalText);
       if (blockedByCompliance) status = 'blocked_by_compliance';
       const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
       const positiveFollowUps = missingEvidence.map((item) => ({
@@ -17178,9 +19785,15 @@ module.exports = {
           message: 'procurement review remains blocked by the supplied compliance approval status',
         });
       }
-      const blockedDecisions = missingEvidence.length || blockedByCompliance
-        ? ['vendor_procurement_approval', 'pilot_start', 'cls_interface_activation', 'digital_twin_runtime_use']
-        : [];
+      const blockedDecisions =
+        missingEvidence.length || blockedByCompliance
+          ? [
+              'vendor_procurement_approval',
+              'pilot_start',
+              'cls_interface_activation',
+              'digital_twin_runtime_use',
+            ]
+          : [];
       const gateContext = {
         procurementId: params.procurementId || null,
         vendorId: params.vendorId || null,
@@ -17203,12 +19816,44 @@ module.exports = {
         approvalStatus: params.approvalStatus || null,
       };
       const decisionSteps = [
-        { id: 'purpose-and-scope', label: 'System purpose and scope', evidenceStatus: params.systemPurpose && params.digitalTwinScope && params.clsInterfaceScope ? 'provided' : 'missing' },
-        { id: 'data-flow-map', label: 'Data-flow map', evidenceStatus: params.dataFlowMap ? 'provided' : 'missing' },
-        { id: 'roles-rbac', label: 'Roles and RBAC', evidenceStatus: rolesAccessRights.length && rbacRefs.length ? 'provided' : 'missing' },
-        { id: 'contractual-evidence', label: 'AVV/NDA evidence', evidenceStatus: params.avvStatus && params.ndaStatus ? 'provided' : 'missing' },
-        { id: 'privacy-governance', label: 'Works council and DSFA', evidenceStatus: params.worksCouncilStatus && params.dsfaStatus ? 'provided' : 'missing' },
-        { id: 'billing-regulatory-security', label: 'Billing, regulatory and security evidence', evidenceStatus: params.billingModuleImpact && params.regulatoryEvidenceStatus && securityEvidenceRefs.length ? 'provided' : 'missing' },
+        {
+          id: 'purpose-and-scope',
+          label: 'System purpose and scope',
+          evidenceStatus:
+            params.systemPurpose && params.digitalTwinScope && params.clsInterfaceScope
+              ? 'provided'
+              : 'missing',
+        },
+        {
+          id: 'data-flow-map',
+          label: 'Data-flow map',
+          evidenceStatus: params.dataFlowMap ? 'provided' : 'missing',
+        },
+        {
+          id: 'roles-rbac',
+          label: 'Roles and RBAC',
+          evidenceStatus: rolesAccessRights.length && rbacRefs.length ? 'provided' : 'missing',
+        },
+        {
+          id: 'contractual-evidence',
+          label: 'AVV/NDA evidence',
+          evidenceStatus: params.avvStatus && params.ndaStatus ? 'provided' : 'missing',
+        },
+        {
+          id: 'privacy-governance',
+          label: 'Works council and DSFA',
+          evidenceStatus: params.worksCouncilStatus && params.dsfaStatus ? 'provided' : 'missing',
+        },
+        {
+          id: 'billing-regulatory-security',
+          label: 'Billing, regulatory and security evidence',
+          evidenceStatus:
+            params.billingModuleImpact &&
+            params.regulatoryEvidenceStatus &&
+            securityEvidenceRefs.length
+              ? 'provided'
+              : 'missing',
+        },
       ];
       const dossierFacts = [
         `Status: ${status}`,
@@ -17220,7 +19865,11 @@ module.exports = {
       if (params.systemPurpose) dossierFacts.push(`System purpose: ${params.systemPurpose}`);
 
       return {
-        complianceGateStatusId: `clsdt:${Buffer.from(`${params.procurementId || ''}:${params.vendorId || ''}:${params.systemPurpose || ''}:${params.approvalStatus || ''}`).toString('base64url').slice(0, 24)}`,
+        complianceGateStatusId: `clsdt:${Buffer.from(
+          `${params.procurementId || ''}:${params.vendorId || ''}:${params.systemPurpose || ''}:${params.approvalStatus || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 24)}`,
         capabilityKey: 'cls_digital_twin_compliance_gate',
         safety: 'read_only',
         requestContext: gateContext,
@@ -17242,8 +19891,30 @@ module.exports = {
         },
         sourceActions: {
           inspected: ['dashboard-api.clsDigitalTwinComplianceGateStatus'],
-          referenced: ['datasource-registry.get', 'datapoint.health', 'vdmi.dossier', 'interface-placeholder.requestEvidence', 'finance-agent.analyze', 'presentation.generate'],
-          notCalled: ['procurement.approve', 'legal.approve', 'dsfa.create', 'rbac.grant', 'hitl.create', 'billing.release', 'settlement.prepareBilling', 'settlement.exportA96', 'mako.dispatch', 'cls.executeControl', 'smgw.switch', 'device-control.execute', 'external.connector.call', 'personal-agent.execute'],
+          referenced: [
+            'datasource-registry.get',
+            'datapoint.health',
+            'vdmi.dossier',
+            'interface-placeholder.requestEvidence',
+            'finance-agent.analyze',
+            'presentation.generate',
+          ],
+          notCalled: [
+            'procurement.approve',
+            'legal.approve',
+            'dsfa.create',
+            'rbac.grant',
+            'hitl.create',
+            'billing.release',
+            'settlement.prepareBilling',
+            'settlement.exportA96',
+            'mako.dispatch',
+            'cls.executeControl',
+            'smgw.switch',
+            'device-control.execute',
+            'external.connector.call',
+            'personal-agent.execute',
+          ],
         },
         validationFindings: blockingFindings,
         dossierEvidence: {
@@ -17265,23 +19936,90 @@ module.exports = {
     },
 
     buildLegacyControlTechnologyTransitionStatus(params = {}) {
-      const toList = (value) => Array.isArray(value)
-        ? value.flatMap((item) => String(item || '').split(',')).map((item) => item.trim()).filter(Boolean)
-        : String(value || '').split(',').map((item) => item.trim()).filter(Boolean);
+      const toList = (value) =>
+        Array.isArray(value)
+          ? value
+              .flatMap((item) => String(item || '').split(','))
+              .map((item) => item.trim())
+              .filter(Boolean)
+          : String(value || '')
+              .split(',')
+              .map((item) => item.trim())
+              .filter(Boolean);
       const sourceEvidenceRefs = toList(params.sourceEvidenceRefs);
       const evidenceSpecs = [
-        ['asset_group_or_asset', 'Asset group or asset', params.assetGroupId || params.assetId, 'Assetgruppe oder Einzelasset kann dem Uebergangsraster eindeutig zugeordnet werden'],
-        ['power_class', 'Power class', params.powerClass, 'Leistungsklasse kann getrennt von der Steuertechnik bewertet werden'],
-        ['control_technology', 'Control technology', params.controlTechnology, 'Bestands-Steuertechnik wie Rundsteuertechnik, Gruppensignal oder Steuerbox-Pfad kann benannt werden'],
-        ['feedback_capability', 'Feedback capability', params.feedbackCapability, 'Rueckmeldefaehigkeit kann proven control von legacy no-feedback operation trennen'],
-        ['switching_risk', 'Switching risk', params.switchingRisk, 'Schaltrisiko kann vor Tests oder Roadmap-Entscheiden sichtbar werden'],
-        ['test_feasibility', 'Test feasibility', params.testFeasibility, 'Testbarkeit kann dokumentiert werden, ohne eine Schalthandlung auszufuehren'],
-        ['test_status', 'Test status', params.testStatus, 'Teststatus kann eine belegte Steuerbarkeitsaussage oder Luecke begrenzen'],
-        ['non_execution_reason', 'Non-execution reason', params.nonExecutionReason, 'Nichtdurchfuehrungsbegruendung kann auditierbar werden, wenn Tests nicht zumutbar sind'],
-        ['target_technology', 'Target technology', params.targetTechnology, 'Zieltechnologie fuer Steuerbox, CLS oder Zielprozess kann als Roadmap-Ziel erscheinen'],
-        ['migration_roadmap', 'Migration roadmap', params.migrationRoadmap, 'Migrationsfahrplan kann Bestandsbetrieb von Zielprozess trennen'],
-        ['owner_next_action', 'Owner and next action', params.owner && params.nextAction ? `${params.owner}: ${params.nextAction}` : null, 'Owner und naechster Schritt koennen als Steuerungsobjekt ergaenzt werden'],
-        ['source_evidence_refs', 'Source evidence refs', sourceEvidenceRefs.length ? sourceEvidenceRefs.join(', ') : null, 'Quellenreferenzen koennen den Uebergangsstatus auditierbar machen'],
+        [
+          'asset_group_or_asset',
+          'Asset group or asset',
+          params.assetGroupId || params.assetId,
+          'Assetgruppe oder Einzelasset kann dem Uebergangsraster eindeutig zugeordnet werden',
+        ],
+        [
+          'power_class',
+          'Power class',
+          params.powerClass,
+          'Leistungsklasse kann getrennt von der Steuertechnik bewertet werden',
+        ],
+        [
+          'control_technology',
+          'Control technology',
+          params.controlTechnology,
+          'Bestands-Steuertechnik wie Rundsteuertechnik, Gruppensignal oder Steuerbox-Pfad kann benannt werden',
+        ],
+        [
+          'feedback_capability',
+          'Feedback capability',
+          params.feedbackCapability,
+          'Rueckmeldefaehigkeit kann proven control von legacy no-feedback operation trennen',
+        ],
+        [
+          'switching_risk',
+          'Switching risk',
+          params.switchingRisk,
+          'Schaltrisiko kann vor Tests oder Roadmap-Entscheiden sichtbar werden',
+        ],
+        [
+          'test_feasibility',
+          'Test feasibility',
+          params.testFeasibility,
+          'Testbarkeit kann dokumentiert werden, ohne eine Schalthandlung auszufuehren',
+        ],
+        [
+          'test_status',
+          'Test status',
+          params.testStatus,
+          'Teststatus kann eine belegte Steuerbarkeitsaussage oder Luecke begrenzen',
+        ],
+        [
+          'non_execution_reason',
+          'Non-execution reason',
+          params.nonExecutionReason,
+          'Nichtdurchfuehrungsbegruendung kann auditierbar werden, wenn Tests nicht zumutbar sind',
+        ],
+        [
+          'target_technology',
+          'Target technology',
+          params.targetTechnology,
+          'Zieltechnologie fuer Steuerbox, CLS oder Zielprozess kann als Roadmap-Ziel erscheinen',
+        ],
+        [
+          'migration_roadmap',
+          'Migration roadmap',
+          params.migrationRoadmap,
+          'Migrationsfahrplan kann Bestandsbetrieb von Zielprozess trennen',
+        ],
+        [
+          'owner_next_action',
+          'Owner and next action',
+          params.owner && params.nextAction ? `${params.owner}: ${params.nextAction}` : null,
+          'Owner und naechster Schritt koennen als Steuerungsobjekt ergaenzt werden',
+        ],
+        [
+          'source_evidence_refs',
+          'Source evidence refs',
+          sourceEvidenceRefs.length ? sourceEvidenceRefs.join(', ') : null,
+          'Quellenreferenzen koennen den Uebergangsstatus auditierbar machen',
+        ],
       ].map(([key, label, value, enablesDossierAddition]) => ({
         key,
         label,
@@ -17291,8 +20029,21 @@ module.exports = {
       }));
       const evidenceItems = evidenceSpecs
         .filter((spec) => spec.value)
-        .map((spec) => ({ id: spec.key, label: spec.label, value: spec.value, evidenceStatus: 'provided' }));
-      const highGaps = new Set(['asset_group_or_asset', 'control_technology', 'feedback_capability', 'test_feasibility', 'test_status', 'non_execution_reason', 'migration_roadmap']);
+        .map((spec) => ({
+          id: spec.key,
+          label: spec.label,
+          value: spec.value,
+          evidenceStatus: 'provided',
+        }));
+      const highGaps = new Set([
+        'asset_group_or_asset',
+        'control_technology',
+        'feedback_capability',
+        'test_feasibility',
+        'test_status',
+        'non_execution_reason',
+        'migration_roadmap',
+      ]);
       const missingEvidence = evidenceSpecs
         .filter((spec) => !spec.value)
         .map((spec) => ({
@@ -17306,19 +20057,32 @@ module.exports = {
       const testFeasibilityText = text(params.testFeasibility);
       const testStatusText = text(params.testStatus);
       const roadmapText = text(params.migrationRoadmap);
-      const hasFeedback = params.feedbackCapability && !/none|keine|no feedback|nicht rueckmelde|nicht rückmelde|unknown|unbekannt/.test(feedbackText);
-      const notTestable = /not.?test|nicht test|unzumutbar|blocked|gesperrt|no test/.test(testFeasibilityText);
-      const tested = /done|tested|geprueft|geprüft|complete|ok|passed|nachweis/.test(testStatusText);
-      const roadmapReady = params.migrationRoadmap && !/unknown|unbekannt|none|offen/.test(roadmapText);
+      const hasFeedback =
+        params.feedbackCapability &&
+        !/none|keine|no feedback|nicht rueckmelde|nicht rückmelde|unknown|unbekannt/.test(
+          feedbackText
+        );
+      const notTestable = /not.?test|nicht test|unzumutbar|blocked|gesperrt|no test/.test(
+        testFeasibilityText
+      );
+      const tested = /done|tested|geprueft|geprüft|complete|ok|passed|nachweis/.test(
+        testStatusText
+      );
+      const roadmapReady =
+        params.migrationRoadmap && !/unknown|unbekannt|none|offen/.test(roadmapText);
       let controlReadiness = 'needs_evidence';
-      if (!params.controlTechnology || !params.feedbackCapability) controlReadiness = 'needs_evidence';
-      else if (!hasFeedback) controlReadiness = roadmapReady ? 'roadmap_only' : 'not_feedback_capable';
-      else if (notTestable) controlReadiness = params.nonExecutionReason ? 'not_testable' : 'needs_evidence';
+      if (!params.controlTechnology || !params.feedbackCapability)
+        controlReadiness = 'needs_evidence';
+      else if (!hasFeedback)
+        controlReadiness = roadmapReady ? 'roadmap_only' : 'not_feedback_capable';
+      else if (notTestable)
+        controlReadiness = params.nonExecutionReason ? 'not_testable' : 'needs_evidence';
       else if (tested) controlReadiness = 'proven';
       else controlReadiness = 'limited';
       let transitionStatus = 'unknown';
       if (controlReadiness === 'proven' && roadmapReady) transitionStatus = 'target_process_ready';
-      else if (roadmapReady && params.owner && params.nextAction) transitionStatus = 'migration_planned';
+      else if (roadmapReady && params.owner && params.nextAction)
+        transitionStatus = 'migration_planned';
       else if (params.nonExecutionReason && !roadmapReady) transitionStatus = 'migration_blocked';
       else if (params.controlTechnology) transitionStatus = 'legacy_operational';
       let status = 'ready_for_transition_review';
@@ -17340,7 +20104,12 @@ module.exports = {
         message: item.enablesDossierAddition,
       }));
       const blockedDecisions = missingEvidence.length
-        ? ['steuerbarkeitsnachweis', 'test_execution_decision', 'legacy_to_target_transition', 'control_claim']
+        ? [
+            'steuerbarkeitsnachweis',
+            'test_execution_decision',
+            'legacy_to_target_transition',
+            'control_claim',
+          ]
         : [];
       const transitionContext = {
         assetGroupId: params.assetGroupId || null,
@@ -17361,13 +20130,43 @@ module.exports = {
         nextAction: params.nextAction || null,
       };
       const transitionSteps = [
-        { id: 'asset-scope', label: 'Asset group / power class', evidenceStatus: (params.assetGroupId || params.assetId) && params.powerClass ? 'provided' : 'missing' },
-        { id: 'legacy-control-technology', label: 'Legacy control technology', evidenceStatus: params.controlTechnology ? 'provided' : 'missing' },
-        { id: 'feedback-capability', label: 'Feedback capability', evidenceStatus: params.feedbackCapability ? 'provided' : 'missing' },
-        { id: 'testability', label: 'Testability and test status', evidenceStatus: params.testFeasibility && params.testStatus ? 'provided' : 'missing' },
-        { id: 'non-execution', label: 'Non-execution reason', evidenceStatus: params.nonExecutionReason ? 'provided' : 'missing' },
-        { id: 'migration-roadmap', label: 'Target technology and roadmap', evidenceStatus: params.targetTechnology && params.migrationRoadmap ? 'provided' : 'missing' },
-        { id: 'owner-next-action', label: 'Owner and next action', evidenceStatus: params.owner && params.nextAction ? 'provided' : 'missing' },
+        {
+          id: 'asset-scope',
+          label: 'Asset group / power class',
+          evidenceStatus:
+            (params.assetGroupId || params.assetId) && params.powerClass ? 'provided' : 'missing',
+        },
+        {
+          id: 'legacy-control-technology',
+          label: 'Legacy control technology',
+          evidenceStatus: params.controlTechnology ? 'provided' : 'missing',
+        },
+        {
+          id: 'feedback-capability',
+          label: 'Feedback capability',
+          evidenceStatus: params.feedbackCapability ? 'provided' : 'missing',
+        },
+        {
+          id: 'testability',
+          label: 'Testability and test status',
+          evidenceStatus: params.testFeasibility && params.testStatus ? 'provided' : 'missing',
+        },
+        {
+          id: 'non-execution',
+          label: 'Non-execution reason',
+          evidenceStatus: params.nonExecutionReason ? 'provided' : 'missing',
+        },
+        {
+          id: 'migration-roadmap',
+          label: 'Target technology and roadmap',
+          evidenceStatus:
+            params.targetTechnology && params.migrationRoadmap ? 'provided' : 'missing',
+        },
+        {
+          id: 'owner-next-action',
+          label: 'Owner and next action',
+          evidenceStatus: params.owner && params.nextAction ? 'provided' : 'missing',
+        },
       ];
       const dossierFacts = [
         `Status: ${status}`,
@@ -17377,11 +20176,16 @@ module.exports = {
         `Open gaps: ${missingEvidence.length}`,
       ];
       if (params.assetGroupId) dossierFacts.push(`Asset group: ${params.assetGroupId}`);
-      if (params.controlTechnology) dossierFacts.push(`Control technology: ${params.controlTechnology}`);
+      if (params.controlTechnology)
+        dossierFacts.push(`Control technology: ${params.controlTechnology}`);
       if (params.migrationRoadmap) dossierFacts.push(`Roadmap: ${params.migrationRoadmap}`);
 
       return {
-        transitionStatusId: `lctt:${Buffer.from(`${params.assetGroupId || ''}:${params.assetId || ''}:${params.controlTechnology || ''}:${params.feedbackCapability || ''}`).toString('base64url').slice(0, 24)}`,
+        transitionStatusId: `lctt:${Buffer.from(
+          `${params.assetGroupId || ''}:${params.assetId || ''}:${params.controlTechnology || ''}:${params.feedbackCapability || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 24)}`,
         capabilityKey: 'legacy_control_technology_transition',
         safety: 'read_only',
         requestContext: transitionContext,
@@ -17405,8 +20209,28 @@ module.exports = {
         },
         sourceActions: {
           inspected: ['dashboard-api.legacyControlTechnologyTransitionStatus'],
-          referenced: ['assets.effective', 'grid-operations.controlMeasures', 'edm-messkonzept.evaluate', 'datapoint.health', 'vdmi.dossier', 'interface-placeholder.requestEvidence', 'presentation.generate'],
-          notCalled: ['grid-operations.executeControl', 'cls.executeControl', 'smgw.switch', 'device-control.execute', 'hitl.create', 'settlement.prepareBilling', 'settlement.exportA96', 'mako.dispatch', 'billing.release', 'external.connector.call', 'personal-agent.execute'],
+          referenced: [
+            'assets.effective',
+            'grid-operations.controlMeasures',
+            'edm-messkonzept.evaluate',
+            'datapoint.health',
+            'vdmi.dossier',
+            'interface-placeholder.requestEvidence',
+            'presentation.generate',
+          ],
+          notCalled: [
+            'grid-operations.executeControl',
+            'cls.executeControl',
+            'smgw.switch',
+            'device-control.execute',
+            'hitl.create',
+            'settlement.prepareBilling',
+            'settlement.exportA96',
+            'mako.dispatch',
+            'billing.release',
+            'external.connector.call',
+            'personal-agent.execute',
+          ],
         },
         validationFindings: blockingFindings,
         dossierEvidence: {
@@ -17430,9 +20254,16 @@ module.exports = {
     },
 
     buildControllabilitySubmissionCockpitStatus(params = {}) {
-      const toList = (value) => Array.isArray(value)
-        ? value.flatMap((item) => String(item || '').split(',')).map((item) => item.trim()).filter(Boolean)
-        : String(value || '').split(',').map((item) => item.trim()).filter(Boolean);
+      const toList = (value) =>
+        Array.isArray(value)
+          ? value
+              .flatMap((item) => String(item || '').split(','))
+              .map((item) => item.trim())
+              .filter(Boolean)
+          : String(value || '')
+              .split(',')
+              .map((item) => item.trim())
+              .filter(Boolean);
       const sourceList = toList(params.sourceList);
       const reasonCatalog = toList(params.reasonCatalog);
       const assetGroupStatuses = toList(params.assetGroupStatuses);
@@ -17441,18 +20272,78 @@ module.exports = {
       const deadlineRisks = toList(params.deadlineRisks);
       const sourceEvidenceRefs = toList(params.sourceEvidenceRefs);
       const evidenceSpecs = [
-        ['submission_identity', 'Submission identity', params.submissionId, 'Abgabeprojekt kann eindeutig im Dossier referenziert werden'],
-        ['submission_deadline', 'Submission deadline', params.submissionDeadline, 'Abgabefrist kann als Steuerungs- und Eskalationsdatum erscheinen'],
-        ['coordinator', 'Coordinator', params.coordinator, 'Verantwortlicher Koordinator kann als accountable owner ergaenzt werden'],
-        ['source_list', 'Source list', sourceList.length ? sourceList.join(', ') : null, 'Quellenabdeckung und Provenienz koennen in das Dossier aufgenommen werden'],
-        ['data_reconciliation_status', 'Data reconciliation status', params.dataReconciliationStatus, 'Abgeglichener Steuerbarkeitscheck-Evidenzstand kann ergaenzt werden'],
-        ['reason_catalog', 'Reason catalog', reasonCatalog.length ? reasonCatalog.join(', ') : null, 'Formale Begruendung fuer Nichtdurchfuehrung oder Carry-over kann ergaenzt werden'],
-        ['asset_group_statuses', 'Asset group statuses', assetGroupStatuses.length ? assetGroupStatuses.join(', ') : null, 'Assetgruppenbezogene Readiness und Ausnahmen koennen sichtbar werden'],
-        ['open_measures', 'Open measures', openMeasures.length ? openMeasures.join(', ') : null, 'Offene Massnahmen, naechste Schritte und Blocker koennen ergaenzt werden'],
-        ['handover_decision', 'Handover decision', params.handoverDecision, 'Zyklusabschluss, Carry-over oder Eskalation kann als Entscheidung erscheinen'],
-        ['handover_owner', 'Handover owner', params.handoverOwner, 'Owner fuer naechsten Zyklus oder Uebergabe kann ergaenzt werden'],
-        ['next_cycle_tasks', 'Next-cycle tasks', nextCycleTasks.length ? nextCycleTasks.join(', ') : null, 'Naechste Zyklusaufgaben koennen als Follow-up-Fakten erscheinen'],
-        ['source_evidence_refs', 'Source evidence refs', sourceEvidenceRefs.length ? sourceEvidenceRefs.join(', ') : null, 'Quellenreferenzen koennen die Abgabe revisionsfaehig machen'],
+        [
+          'submission_identity',
+          'Submission identity',
+          params.submissionId,
+          'Abgabeprojekt kann eindeutig im Dossier referenziert werden',
+        ],
+        [
+          'submission_deadline',
+          'Submission deadline',
+          params.submissionDeadline,
+          'Abgabefrist kann als Steuerungs- und Eskalationsdatum erscheinen',
+        ],
+        [
+          'coordinator',
+          'Coordinator',
+          params.coordinator,
+          'Verantwortlicher Koordinator kann als accountable owner ergaenzt werden',
+        ],
+        [
+          'source_list',
+          'Source list',
+          sourceList.length ? sourceList.join(', ') : null,
+          'Quellenabdeckung und Provenienz koennen in das Dossier aufgenommen werden',
+        ],
+        [
+          'data_reconciliation_status',
+          'Data reconciliation status',
+          params.dataReconciliationStatus,
+          'Abgeglichener Steuerbarkeitscheck-Evidenzstand kann ergaenzt werden',
+        ],
+        [
+          'reason_catalog',
+          'Reason catalog',
+          reasonCatalog.length ? reasonCatalog.join(', ') : null,
+          'Formale Begruendung fuer Nichtdurchfuehrung oder Carry-over kann ergaenzt werden',
+        ],
+        [
+          'asset_group_statuses',
+          'Asset group statuses',
+          assetGroupStatuses.length ? assetGroupStatuses.join(', ') : null,
+          'Assetgruppenbezogene Readiness und Ausnahmen koennen sichtbar werden',
+        ],
+        [
+          'open_measures',
+          'Open measures',
+          openMeasures.length ? openMeasures.join(', ') : null,
+          'Offene Massnahmen, naechste Schritte und Blocker koennen ergaenzt werden',
+        ],
+        [
+          'handover_decision',
+          'Handover decision',
+          params.handoverDecision,
+          'Zyklusabschluss, Carry-over oder Eskalation kann als Entscheidung erscheinen',
+        ],
+        [
+          'handover_owner',
+          'Handover owner',
+          params.handoverOwner,
+          'Owner fuer naechsten Zyklus oder Uebergabe kann ergaenzt werden',
+        ],
+        [
+          'next_cycle_tasks',
+          'Next-cycle tasks',
+          nextCycleTasks.length ? nextCycleTasks.join(', ') : null,
+          'Naechste Zyklusaufgaben koennen als Follow-up-Fakten erscheinen',
+        ],
+        [
+          'source_evidence_refs',
+          'Source evidence refs',
+          sourceEvidenceRefs.length ? sourceEvidenceRefs.join(', ') : null,
+          'Quellenreferenzen koennen die Abgabe revisionsfaehig machen',
+        ],
       ].map(([key, label, value, enablesDossierAddition]) => ({
         key,
         label,
@@ -17462,8 +20353,21 @@ module.exports = {
       }));
       const evidenceItems = evidenceSpecs
         .filter((spec) => spec.value)
-        .map((spec) => ({ id: spec.key, label: spec.label, value: spec.value, evidenceStatus: 'provided' }));
-      const highGaps = new Set(['coordinator', 'source_list', 'data_reconciliation_status', 'reason_catalog', 'asset_group_statuses', 'handover_decision', 'handover_owner']);
+        .map((spec) => ({
+          id: spec.key,
+          label: spec.label,
+          value: spec.value,
+          evidenceStatus: 'provided',
+        }));
+      const highGaps = new Set([
+        'coordinator',
+        'source_list',
+        'data_reconciliation_status',
+        'reason_catalog',
+        'asset_group_statuses',
+        'handover_decision',
+        'handover_owner',
+      ]);
       const missingEvidence = evidenceSpecs
         .filter((spec) => !spec.value)
         .map((spec) => ({
@@ -17475,17 +20379,29 @@ module.exports = {
       const lower = (value) => String(value || '').toLowerCase();
       const reconciliationText = lower(params.dataReconciliationStatus);
       const handoverText = lower(params.handoverDecision);
-      const blockedByDeadline = deadlineRisks.some((risk) => /blocked|critical|kritisch|overdue|verzug|frist/.test(lower(risk)));
+      const blockedByDeadline = deadlineRisks.some((risk) =>
+        /blocked|critical|kritisch|overdue|verzug|frist/.test(lower(risk))
+      );
       let submissionReadiness = 'ready';
       if (!params.coordinator) submissionReadiness = 'needs_owner';
       else if (!sourceList.length) submissionReadiness = 'needs_sources';
-      else if (!params.dataReconciliationStatus || /open|missing|unabgeglichen|unknown|unbekannt/.test(reconciliationText)) submissionReadiness = 'needs_data_reconciliation';
+      else if (
+        !params.dataReconciliationStatus ||
+        /open|missing|unabgeglichen|unknown|unbekannt/.test(reconciliationText)
+      )
+        submissionReadiness = 'needs_data_reconciliation';
       else if (!reasonCatalog.length) submissionReadiness = 'needs_reasoning';
       else if (!assetGroupStatuses.length) submissionReadiness = 'needs_asset_group_status';
-      else if (openMeasures.length && !/close|done|submitted|abgabe|carry|handover|approved/.test(handoverText)) submissionReadiness = 'needs_open_measure_closure';
-      else if (!params.handoverDecision || !params.handoverOwner) submissionReadiness = 'needs_handover_decision';
+      else if (
+        openMeasures.length &&
+        !/close|done|submitted|abgabe|carry|handover|approved/.test(handoverText)
+      )
+        submissionReadiness = 'needs_open_measure_closure';
+      else if (!params.handoverDecision || !params.handoverOwner)
+        submissionReadiness = 'needs_handover_decision';
       else if (blockedByDeadline) submissionReadiness = 'blocked_by_deadline_risk';
-      else if (/submitted|eingereicht|done|closed|abgeschlossen/.test(handoverText)) submissionReadiness = 'submitted';
+      else if (/submitted|eingereicht|done|closed|abgeschlossen/.test(handoverText))
+        submissionReadiness = 'submitted';
       const handoverStatus = params.handoverDecision || null;
       const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
       const positiveFollowUps = missingEvidence.map((item) => ({
@@ -17505,9 +20421,15 @@ module.exports = {
           message: 'Abgabefrist oder Deadline-Risiko blockiert die sichere Zyklusuebergabe',
         });
       }
-      const blockedDecisions = missingEvidence.length || blockedByDeadline
-        ? ['submission_release', 'cycle_closure', 'handover_to_next_cycle', 'technical_readiness_claim']
-        : [];
+      const blockedDecisions =
+        missingEvidence.length || blockedByDeadline
+          ? [
+              'submission_release',
+              'cycle_closure',
+              'handover_to_next_cycle',
+              'technical_readiness_claim',
+            ]
+          : [];
       const submissionContext = {
         submissionId: params.submissionId || null,
         submissionDeadline: params.submissionDeadline || null,
@@ -17525,13 +20447,41 @@ module.exports = {
         deadlineRisks,
       };
       const submissionSteps = [
-        { id: 'coordinator', label: 'Coordinator', evidenceStatus: params.coordinator ? 'provided' : 'missing' },
-        { id: 'source-list', label: 'Source list', evidenceStatus: sourceList.length ? 'provided' : 'missing' },
-        { id: 'data-reconciliation', label: 'Data reconciliation', evidenceStatus: params.dataReconciliationStatus ? 'provided' : 'missing' },
-        { id: 'reason-catalog', label: 'Reason catalog', evidenceStatus: reasonCatalog.length ? 'provided' : 'missing' },
-        { id: 'asset-group-status', label: 'Asset group status', evidenceStatus: assetGroupStatuses.length ? 'provided' : 'missing' },
-        { id: 'open-measures', label: 'Open measures', evidenceStatus: openMeasures.length ? 'provided' : 'missing' },
-        { id: 'handover', label: 'Handover decision and owner', evidenceStatus: params.handoverDecision && params.handoverOwner ? 'provided' : 'missing' },
+        {
+          id: 'coordinator',
+          label: 'Coordinator',
+          evidenceStatus: params.coordinator ? 'provided' : 'missing',
+        },
+        {
+          id: 'source-list',
+          label: 'Source list',
+          evidenceStatus: sourceList.length ? 'provided' : 'missing',
+        },
+        {
+          id: 'data-reconciliation',
+          label: 'Data reconciliation',
+          evidenceStatus: params.dataReconciliationStatus ? 'provided' : 'missing',
+        },
+        {
+          id: 'reason-catalog',
+          label: 'Reason catalog',
+          evidenceStatus: reasonCatalog.length ? 'provided' : 'missing',
+        },
+        {
+          id: 'asset-group-status',
+          label: 'Asset group status',
+          evidenceStatus: assetGroupStatuses.length ? 'provided' : 'missing',
+        },
+        {
+          id: 'open-measures',
+          label: 'Open measures',
+          evidenceStatus: openMeasures.length ? 'provided' : 'missing',
+        },
+        {
+          id: 'handover',
+          label: 'Handover decision and owner',
+          evidenceStatus: params.handoverDecision && params.handoverOwner ? 'provided' : 'missing',
+        },
       ];
       const dossierFacts = [
         `Status: ${submissionReadiness}`,
@@ -17543,7 +20493,11 @@ module.exports = {
       if (params.handoverDecision) dossierFacts.push(`Handover: ${params.handoverDecision}`);
 
       return {
-        submissionStatusId: `csc:${Buffer.from(`${params.submissionId || ''}:${params.coordinator || ''}:${params.handoverDecision || ''}`).toString('base64url').slice(0, 24)}`,
+        submissionStatusId: `csc:${Buffer.from(
+          `${params.submissionId || ''}:${params.coordinator || ''}:${params.handoverDecision || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 24)}`,
         capabilityKey: 'controllability_submission_cockpit',
         safety: 'read_only',
         requestContext: submissionContext,
@@ -17567,8 +20521,29 @@ module.exports = {
         },
         sourceActions: {
           inspected: ['dashboard-api.controllabilitySubmissionCockpitStatus'],
-          referenced: ['vdmi.dossier', 'vdmi.findings', 'hitl.summary', 'interface-placeholder.requestEvidence', 'grid-operations.controlMeasures', 'edm-validation.validate', 'datapoint.health', 'presentation.generate'],
-          notCalled: ['hitl.create', 'grid-operations.executeControl', 'cls.executeControl', 'smgw.switch', 'device-control.execute', 'mako.dispatch', 'billing.release', 'settlement.prepareBilling', 'settlement.exportA96', 'external.connector.call', 'personal-agent.execute'],
+          referenced: [
+            'vdmi.dossier',
+            'vdmi.findings',
+            'hitl.summary',
+            'interface-placeholder.requestEvidence',
+            'grid-operations.controlMeasures',
+            'edm-validation.validate',
+            'datapoint.health',
+            'presentation.generate',
+          ],
+          notCalled: [
+            'hitl.create',
+            'grid-operations.executeControl',
+            'cls.executeControl',
+            'smgw.switch',
+            'device-control.execute',
+            'mako.dispatch',
+            'billing.release',
+            'settlement.prepareBilling',
+            'settlement.exportA96',
+            'external.connector.call',
+            'personal-agent.execute',
+          ],
         },
         validationFindings: blockingFindings,
         dossierEvidence: {
@@ -17592,25 +20567,81 @@ module.exports = {
     },
 
     buildCrisisDecisionRoutineStatus(params = {}) {
-      const toList = (value) => Array.isArray(value)
-        ? value.flatMap((item) => String(item || '').split(',')).map((item) => item.trim()).filter(Boolean)
-        : String(value || '').split(',').map((item) => item.trim()).filter(Boolean);
+      const toList = (value) =>
+        Array.isArray(value)
+          ? value
+              .flatMap((item) => String(item || '').split(','))
+              .map((item) => item.trim())
+              .filter(Boolean)
+          : String(value || '')
+              .split(',')
+              .map((item) => item.trim())
+              .filter(Boolean);
       const requiredMeasures = toList(params.requiredMeasures);
       const blockedFollowUp = toList(params.blockedFollowUp);
       const sourceEvidenceRefs = toList(params.sourceEvidenceRefs);
-      const trainingOrOperatingModel = [params.trainingNeed, params.operatingModelNeed].filter(Boolean).join(' / ');
-      const serviceOrPopulationImpact = [params.serviceImpact, params.populationImpact].filter(Boolean).join(' / ');
+      const trainingOrOperatingModel = [params.trainingNeed, params.operatingModelNeed]
+        .filter(Boolean)
+        .join(' / ');
+      const serviceOrPopulationImpact = [params.serviceImpact, params.populationImpact]
+        .filter(Boolean)
+        .join(' / ');
       const evidenceSpecs = [
-        ['topic', 'Crisis topic', params.topic || params.caseId, 'name the crisis/ad-hoc topic as a stable management object'],
-        ['service_population_impact', 'Service or population impact', serviceOrPopulationImpact, 'add service or population-group impact to the management dossier'],
-        ['required_measures', 'Required measures', requiredMeasures.length ? requiredMeasures.join(', ') : null, 'add required measures without executing them'],
-        ['finance_impact', 'Finance impact', params.financeImpact, 'quantify or qualify finance exposure for prioritisation'],
-        ['knowledge_state', 'Knowledge state', params.knowledgeState, 'document known facts, uncertainty and evidence limits'],
-        ['training_operating_model_need', 'Training or operating-model need', trainingOrOperatingModel, 'add training or operating-model follow-up need'],
+        [
+          'topic',
+          'Crisis topic',
+          params.topic || params.caseId,
+          'name the crisis/ad-hoc topic as a stable management object',
+        ],
+        [
+          'service_population_impact',
+          'Service or population impact',
+          serviceOrPopulationImpact,
+          'add service or population-group impact to the management dossier',
+        ],
+        [
+          'required_measures',
+          'Required measures',
+          requiredMeasures.length ? requiredMeasures.join(', ') : null,
+          'add required measures without executing them',
+        ],
+        [
+          'finance_impact',
+          'Finance impact',
+          params.financeImpact,
+          'quantify or qualify finance exposure for prioritisation',
+        ],
+        [
+          'knowledge_state',
+          'Knowledge state',
+          params.knowledgeState,
+          'document known facts, uncertainty and evidence limits',
+        ],
+        [
+          'training_operating_model_need',
+          'Training or operating-model need',
+          trainingOrOperatingModel,
+          'add training or operating-model follow-up need',
+        ],
         ['owner', 'Owner', params.owner, 'assign an accountable owner for the routine'],
-        ['next_gate', 'Next decision gate', params.nextGate, 'state the next decision gate or date'],
-        ['blocked_follow_up', 'Blocked follow-up', blockedFollowUp.length ? blockedFollowUp.join(', ') : null, 'record blocked follow-up decisions without closing them'],
-        ['source_evidence_refs', 'Source evidence references', sourceEvidenceRefs.length ? sourceEvidenceRefs.join(', ') : null, 'add citable source references for the routine'],
+        [
+          'next_gate',
+          'Next decision gate',
+          params.nextGate,
+          'state the next decision gate or date',
+        ],
+        [
+          'blocked_follow_up',
+          'Blocked follow-up',
+          blockedFollowUp.length ? blockedFollowUp.join(', ') : null,
+          'record blocked follow-up decisions without closing them',
+        ],
+        [
+          'source_evidence_refs',
+          'Source evidence references',
+          sourceEvidenceRefs.length ? sourceEvidenceRefs.join(', ') : null,
+          'add citable source references for the routine',
+        ],
       ].map(([key, label, value, enablesDossierAddition]) => ({
         key,
         label,
@@ -17620,8 +20651,19 @@ module.exports = {
       }));
       const evidenceItems = evidenceSpecs
         .filter((spec) => spec.value)
-        .map((spec) => ({ id: spec.key, label: spec.label, value: spec.value, evidenceStatus: 'provided' }));
-      const highGaps = new Set(['service_population_impact', 'finance_impact', 'knowledge_state', 'owner', 'next_gate']);
+        .map((spec) => ({
+          id: spec.key,
+          label: spec.label,
+          value: spec.value,
+          evidenceStatus: 'provided',
+        }));
+      const highGaps = new Set([
+        'service_population_impact',
+        'finance_impact',
+        'knowledge_state',
+        'owner',
+        'next_gate',
+      ]);
       const missingEvidence = evidenceSpecs
         .filter((spec) => !spec.value)
         .map((spec) => ({
@@ -17633,14 +20675,20 @@ module.exports = {
       const lower = (value) => String(value || '').toLowerCase();
       const knowledgeText = lower(params.knowledgeState);
       const financeText = lower(params.financeImpact);
-      const blockedByKnowledge = /unknown|unklar|missing|offen|unbelegt|insufficient|unsicher/.test(knowledgeText);
-      const blockedByFinance = /unknown|unklar|missing|offen|unquantified|nicht quantifiziert/.test(financeText);
+      const blockedByKnowledge = /unknown|unklar|missing|offen|unbelegt|insufficient|unsicher/.test(
+        knowledgeText
+      );
+      const blockedByFinance = /unknown|unklar|missing|offen|unquantified|nicht quantifiziert/.test(
+        financeText
+      );
       let decisionReadiness = 'decision_ready';
       if (!params.owner) decisionReadiness = 'needs_owner';
       else if (!serviceOrPopulationImpact) decisionReadiness = 'needs_impact';
       else if (!requiredMeasures.length) decisionReadiness = 'needs_measures';
-      else if (!params.financeImpact || blockedByFinance) decisionReadiness = 'needs_finance_impact';
-      else if (!params.knowledgeState || blockedByKnowledge) decisionReadiness = 'needs_knowledge_state';
+      else if (!params.financeImpact || blockedByFinance)
+        decisionReadiness = 'needs_finance_impact';
+      else if (!params.knowledgeState || blockedByKnowledge)
+        decisionReadiness = 'needs_knowledge_state';
       else if (!trainingOrOperatingModel) decisionReadiness = 'needs_training_or_operating_model';
       else if (!params.nextGate) decisionReadiness = 'needs_next_gate';
       else if (!blockedFollowUp.length) decisionReadiness = 'needs_blocked_follow_up';
@@ -17669,9 +20717,15 @@ module.exports = {
           message: 'finance impact is explicitly uncertain and blocks prioritisation wording',
         });
       }
-      const blockedDecisions = missingEvidence.length || blockedByKnowledge || blockedByFinance
-        ? ['management_decision', 'operational_prioritisation', 'finance_commitment', 'training_follow_up']
-        : [];
+      const blockedDecisions =
+        missingEvidence.length || blockedByKnowledge || blockedByFinance
+          ? [
+              'management_decision',
+              'operational_prioritisation',
+              'finance_commitment',
+              'training_follow_up',
+            ]
+          : [];
       const routineContext = {
         caseId: params.caseId || null,
         topic: params.topic || null,
@@ -17692,13 +20746,37 @@ module.exports = {
         sourceSnapshot: params.sourceSnapshot || null,
       };
       const routineSteps = [
-        { id: 'impact', label: 'Impact statement', evidenceStatus: serviceOrPopulationImpact ? 'provided' : 'missing' },
-        { id: 'measures', label: 'Required measures', evidenceStatus: requiredMeasures.length ? 'provided' : 'missing' },
-        { id: 'finance', label: 'Finance impact', evidenceStatus: params.financeImpact && !blockedByFinance ? 'provided' : 'missing' },
-        { id: 'knowledge', label: 'Knowledge state', evidenceStatus: params.knowledgeState && !blockedByKnowledge ? 'provided' : 'missing' },
-        { id: 'training-operating-model', label: 'Training or operating model', evidenceStatus: trainingOrOperatingModel ? 'provided' : 'missing' },
+        {
+          id: 'impact',
+          label: 'Impact statement',
+          evidenceStatus: serviceOrPopulationImpact ? 'provided' : 'missing',
+        },
+        {
+          id: 'measures',
+          label: 'Required measures',
+          evidenceStatus: requiredMeasures.length ? 'provided' : 'missing',
+        },
+        {
+          id: 'finance',
+          label: 'Finance impact',
+          evidenceStatus: params.financeImpact && !blockedByFinance ? 'provided' : 'missing',
+        },
+        {
+          id: 'knowledge',
+          label: 'Knowledge state',
+          evidenceStatus: params.knowledgeState && !blockedByKnowledge ? 'provided' : 'missing',
+        },
+        {
+          id: 'training-operating-model',
+          label: 'Training or operating model',
+          evidenceStatus: trainingOrOperatingModel ? 'provided' : 'missing',
+        },
         { id: 'owner', label: 'Owner', evidenceStatus: params.owner ? 'provided' : 'missing' },
-        { id: 'next-gate', label: 'Next decision gate', evidenceStatus: params.nextGate ? 'provided' : 'missing' },
+        {
+          id: 'next-gate',
+          label: 'Next decision gate',
+          evidenceStatus: params.nextGate ? 'provided' : 'missing',
+        },
       ];
       const dossierFacts = [
         `Status: ${decisionReadiness}`,
@@ -17710,7 +20788,11 @@ module.exports = {
       if (params.nextGate) dossierFacts.push(`Next gate: ${params.nextGate}`);
 
       return {
-        routineStatusId: `cdr:${Buffer.from(`${params.caseId || ''}:${params.topic || ''}:${params.owner || ''}:${params.nextGate || ''}`).toString('base64url').slice(0, 24)}`,
+        routineStatusId: `cdr:${Buffer.from(
+          `${params.caseId || ''}:${params.topic || ''}:${params.owner || ''}:${params.nextGate || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 24)}`,
         capabilityKey: 'crisis_decision_routine',
         safety: 'read_only',
         requestContext: routineContext,
@@ -17728,8 +20810,26 @@ module.exports = {
         sourceEvidence: routineEvidence,
         sourceActions: {
           inspected: ['dashboard-api.crisisDecisionRoutineStatus'],
-          referenced: ['vdmi.dossier', 'nova.pendingDecisions', 'hitl.summary', 'finance-agent.analyze', 'evidence-registry.lookup', 'presentation.generate'],
-          notCalled: ['hitl.create', 'nova.apply', 'nova.propose', 'vdmi.create', 'vdmi.mutate', 'finance-agent.mutate', 'grid-operations.executeControl', 'operational-dispatch.execute', 'external.connector.call', 'personal-agent.execute'],
+          referenced: [
+            'vdmi.dossier',
+            'nova.pendingDecisions',
+            'hitl.summary',
+            'finance-agent.analyze',
+            'evidence-registry.lookup',
+            'presentation.generate',
+          ],
+          notCalled: [
+            'hitl.create',
+            'nova.apply',
+            'nova.propose',
+            'vdmi.create',
+            'vdmi.mutate',
+            'finance-agent.mutate',
+            'grid-operations.executeControl',
+            'operational-dispatch.execute',
+            'external.connector.call',
+            'personal-agent.execute',
+          ],
         },
         validationFindings: blockingFindings,
         dossierEvidence: {
@@ -17751,11 +20851,15 @@ module.exports = {
     },
 
     buildInvestmentCommitteeSteeringCardsStatus(params = {}) {
-      const toList = (value) => Array.isArray(value)
-        ? value.filter(Boolean)
-        : value
-          ? String(value).split(',').map((item) => item.trim()).filter(Boolean)
-          : [];
+      const toList = (value) =>
+        Array.isArray(value)
+          ? value.filter(Boolean)
+          : value
+            ? String(value)
+                .split(',')
+                .map((item) => item.trim())
+                .filter(Boolean)
+            : [];
       const sourceRefs = toList(params.sourceRef);
       const assetOrProjectRef = params.assetId || params.projectId;
       const evidenceSpecs = [
@@ -17807,7 +20911,8 @@ module.exports = {
           label: 'Blocked follow-up action',
           value: params.blockedFollowUpAction,
           sourceClass: 'blocked_follow_up',
-          enablesDossierAddition: 'add the operational follow-up action blocked until committee review',
+          enablesDossierAddition:
+            'add the operational follow-up action blocked until committee review',
         },
         {
           id: 'source_refs',
@@ -17815,7 +20920,8 @@ module.exports = {
           value: sourceRefs.length > 0,
           displayValue: sourceRefs.join(', '),
           sourceClass: 'source_grounding',
-          enablesDossierAddition: 'add citable SharePoint, Excel, VDMI or investment-plan source references',
+          enablesDossierAddition:
+            'add citable SharePoint, Excel, VDMI or investment-plan source references',
         },
       ];
       const evidenceItems = evidenceSpecs
@@ -17837,47 +20943,61 @@ module.exports = {
         }));
       const reviewText = String(params.reviewStatus || '').toLowerCase();
       const evidenceText = String(params.evidenceStatus || '').toLowerCase();
-      const blockedByReview = /block|blocked|gesperrt|rejected|abgelehnt|kritisch|critical/.test(reviewText);
-      const blockedByEvidence = /missing|fehlt|unvollstaendig|unvollständig|critical|kritisch|blocked/.test(evidenceText);
-      const status =
-        blockedByReview
-          ? 'blocked_by_review'
-          : blockedByEvidence
-            ? 'needs_evidence'
-            : !params.investmentItemId
-              ? 'needs_investment_item'
-              : !assetOrProjectRef
-                ? 'needs_asset_project_reference'
-                : !params.reviewStatus
-                  ? 'needs_review_status'
-                  : !params.evidenceStatus
-                    ? 'needs_evidence_status'
-                    : !params.owner
-                      ? 'needs_owner'
-                      : !params.committeeWindow
-                        ? 'needs_committee_window'
-                        : !params.blockedFollowUpAction
-                          ? 'needs_blocked_follow_up'
-                          : sourceRefs.length === 0
-                            ? 'needs_source_refs'
-                            : missingEvidence.length === 0
-                              ? 'ready_for_committee'
-                              : 'needs_card_evidence';
+      const blockedByReview = /block|blocked|gesperrt|rejected|abgelehnt|kritisch|critical/.test(
+        reviewText
+      );
+      const blockedByEvidence =
+        /missing|fehlt|unvollstaendig|unvollständig|critical|kritisch|blocked/.test(evidenceText);
+      const status = blockedByReview
+        ? 'blocked_by_review'
+        : blockedByEvidence
+          ? 'needs_evidence'
+          : !params.investmentItemId
+            ? 'needs_investment_item'
+            : !assetOrProjectRef
+              ? 'needs_asset_project_reference'
+              : !params.reviewStatus
+                ? 'needs_review_status'
+                : !params.evidenceStatus
+                  ? 'needs_evidence_status'
+                  : !params.owner
+                    ? 'needs_owner'
+                    : !params.committeeWindow
+                      ? 'needs_committee_window'
+                      : !params.blockedFollowUpAction
+                        ? 'needs_blocked_follow_up'
+                        : sourceRefs.length === 0
+                          ? 'needs_source_refs'
+                          : missingEvidence.length === 0
+                            ? 'ready_for_committee'
+                            : 'needs_card_evidence';
       const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
       const positiveFollowUps = missingEvidence.map((item) => ({
         missingDataPoint: item.missingDataPoint,
         enablesDossierAddition: item.enablesDossierAddition,
         category: 'investment_committee_steering_cards',
       }));
-      const blockedDecisions = Array.from(new Set([
-        ...missingEvidence
-          .filter((item) => ['review_status', 'evidence_status', 'committee_window', 'owner', 'blocked_follow_up_action'].includes(item.missingDataPoint))
-          .map((item) => item.label),
-        ...(params.blockedFollowUpAction ? [params.blockedFollowUpAction] : []),
-      ]));
+      const blockedDecisions = Array.from(
+        new Set([
+          ...missingEvidence
+            .filter((item) =>
+              [
+                'review_status',
+                'evidence_status',
+                'committee_window',
+                'owner',
+                'blocked_follow_up_action',
+              ].includes(item.missingDataPoint)
+            )
+            .map((item) => item.label),
+          ...(params.blockedFollowUpAction ? [params.blockedFollowUpAction] : []),
+        ])
+      );
       const blockingFindings = missingEvidence.map((item) => ({
         code: `ICSC_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
-        severity: ['review_status', 'evidence_status', 'committee_window', 'owner'].includes(item.missingDataPoint)
+        severity: ['review_status', 'evidence_status', 'committee_window', 'owner'].includes(
+          item.missingDataPoint
+        )
           ? 'high'
           : 'medium',
         message: item.enablesDossierAddition,
@@ -17915,7 +21035,11 @@ module.exports = {
       if (params.committeeWindow) dossierFacts.push(`Committee Window: ${params.committeeWindow}`);
 
       return {
-        cardStatusId: `icsc:${Buffer.from(`${params.investmentItemId || ''}:${params.projectId || ''}:${params.assetId || ''}:${params.committeeWindow || ''}:${params.owner || ''}`).toString('base64url').slice(0, 24)}`,
+        cardStatusId: `icsc:${Buffer.from(
+          `${params.investmentItemId || ''}:${params.projectId || ''}:${params.assetId || ''}:${params.committeeWindow || ''}:${params.owner || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 24)}`,
         capabilityKey: 'investment_committee_steering_cards',
         safety: 'read_only',
         requestContext: {
@@ -17942,8 +21066,29 @@ module.exports = {
         sourceRefs,
         sourceActions: {
           inspected: ['dashboard-api.investmentCommitteeSteeringCardsStatus'],
-          referenced: ['investment-planning.createPlan', 'vdmi.dossier', 'hitl.summary', 'finance-agent.analyze', 'evidence-registry.lookup', 'presentation.generate'],
-          notCalled: ['hitl.create', 'vdmi.create', 'vdmi.mutate', 'investment-planning.createPlan', 'investment-planning.mutate', 'finance-agent.mutate', 'budget.release', 'billing.release', 'settlement.prepareBilling', 'tariff.mutate', 'payment.execute', 'external.connector.call', 'personal-agent.execute'],
+          referenced: [
+            'investment-planning.createPlan',
+            'vdmi.dossier',
+            'hitl.summary',
+            'finance-agent.analyze',
+            'evidence-registry.lookup',
+            'presentation.generate',
+          ],
+          notCalled: [
+            'hitl.create',
+            'vdmi.create',
+            'vdmi.mutate',
+            'investment-planning.createPlan',
+            'investment-planning.mutate',
+            'finance-agent.mutate',
+            'budget.release',
+            'billing.release',
+            'settlement.prepareBilling',
+            'tariff.mutate',
+            'payment.execute',
+            'external.connector.call',
+            'personal-agent.execute',
+          ],
         },
         validationFindings: blockingFindings,
         dossierEvidence: {
@@ -17963,11 +21108,15 @@ module.exports = {
     },
 
     buildInvestmentDataReviewQueueStatus(params = {}) {
-      const toList = (value) => Array.isArray(value)
-        ? value.filter(Boolean)
-        : value
-          ? String(value).split(',').map((item) => item.trim()).filter(Boolean)
-          : [];
+      const toList = (value) =>
+        Array.isArray(value)
+          ? value.filter(Boolean)
+          : value
+            ? String(value)
+                .split(',')
+                .map((item) => item.trim())
+                .filter(Boolean)
+            : [];
       const sourceRefs = toList(params.sourceRef);
       const sourceOrPackage = params.sourceId || params.dataPackageId;
       const assetOrProjectRef = params.assetRef || params.projectRef;
@@ -17977,7 +21126,8 @@ module.exports = {
           label: 'Source/data package',
           value: sourceOrPackage,
           sourceClass: 'source_provenance',
-          enablesDossierAddition: 'add source provenance and auditability for the investment data package',
+          enablesDossierAddition:
+            'add source provenance and auditability for the investment data package',
         },
         {
           id: 'asset_project_reference',
@@ -18026,7 +21176,8 @@ module.exports = {
           label: 'Blocked decision',
           value: params.blockedDecision,
           sourceClass: 'blocked_follow_up_decision',
-          enablesDossierAddition: 'add the blocked follow-up decision that can be prepared once evidence is complete',
+          enablesDossierAddition:
+            'add the blocked follow-up decision that can be prepared once evidence is complete',
         },
         {
           id: 'review_status',
@@ -18041,7 +21192,8 @@ module.exports = {
           value: sourceRefs.length > 0,
           displayValue: sourceRefs.join(', '),
           sourceClass: 'source_grounding',
-          enablesDossierAddition: 'add citable Datasource, Investment Planning, HITL or VDMI references',
+          enablesDossierAddition:
+            'add citable Datasource, Investment Planning, HITL or VDMI references',
         },
       ];
       const evidenceItems = evidenceSpecs
@@ -18063,51 +21215,71 @@ module.exports = {
         }));
       const qualityText = String(params.qualityStatus || '').toLowerCase();
       const reviewText = String(params.reviewStatus || '').toLowerCase();
-      const blockedByQuality = /blocked|blockiert|kritisch|critical|unvollstaendig|unvollständig|missing|fehlt/.test(qualityText);
-      const blockedByReview = /blocked|blockiert|rejected|abgelehnt|kritisch|critical/.test(reviewText);
-      const status =
-        blockedByQuality
-          ? 'blocked_by_quality'
-          : blockedByReview
-            ? 'blocked_by_review'
-            : !sourceOrPackage
-              ? 'needs_source_data_package'
-              : !assetOrProjectRef
-                ? 'needs_asset_project_reference'
-                : !params.qualityStatus
-                  ? 'needs_quality_status'
-                  : !params.division
-                    ? 'needs_division'
-                    : !params.bottleneckRef
-                      ? 'needs_bottleneck_reference'
-                      : !params.owner
-                        ? 'needs_owner'
-                        : !params.committeeWindow
-                          ? 'needs_committee_window'
-                          : !params.blockedDecision
-                            ? 'needs_blocked_decision'
-                            : !params.reviewStatus
-                              ? 'needs_review_status'
-                              : sourceRefs.length === 0
-                                ? 'needs_source_refs'
-                                : missingEvidence.length === 0
-                                  ? 'review_ready'
-                                  : 'needs_review_evidence';
+      const blockedByQuality =
+        /blocked|blockiert|kritisch|critical|unvollstaendig|unvollständig|missing|fehlt/.test(
+          qualityText
+        );
+      const blockedByReview = /blocked|blockiert|rejected|abgelehnt|kritisch|critical/.test(
+        reviewText
+      );
+      const status = blockedByQuality
+        ? 'blocked_by_quality'
+        : blockedByReview
+          ? 'blocked_by_review'
+          : !sourceOrPackage
+            ? 'needs_source_data_package'
+            : !assetOrProjectRef
+              ? 'needs_asset_project_reference'
+              : !params.qualityStatus
+                ? 'needs_quality_status'
+                : !params.division
+                  ? 'needs_division'
+                  : !params.bottleneckRef
+                    ? 'needs_bottleneck_reference'
+                    : !params.owner
+                      ? 'needs_owner'
+                      : !params.committeeWindow
+                        ? 'needs_committee_window'
+                        : !params.blockedDecision
+                          ? 'needs_blocked_decision'
+                          : !params.reviewStatus
+                            ? 'needs_review_status'
+                            : sourceRefs.length === 0
+                              ? 'needs_source_refs'
+                              : missingEvidence.length === 0
+                                ? 'review_ready'
+                                : 'needs_review_evidence';
       const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
       const positiveFollowUps = missingEvidence.map((item) => ({
         missingDataPoint: item.missingDataPoint,
         enablesDossierAddition: item.enablesDossierAddition,
         category: 'investment_data_review_queue',
       }));
-      const blockedDecisions = Array.from(new Set([
-        ...missingEvidence
-          .filter((item) => ['quality_status', 'owner', 'committee_window', 'blocked_decision', 'review_status'].includes(item.missingDataPoint))
-          .map((item) => item.label),
-        ...(params.blockedDecision ? [params.blockedDecision] : []),
-      ]));
+      const blockedDecisions = Array.from(
+        new Set([
+          ...missingEvidence
+            .filter((item) =>
+              [
+                'quality_status',
+                'owner',
+                'committee_window',
+                'blocked_decision',
+                'review_status',
+              ].includes(item.missingDataPoint)
+            )
+            .map((item) => item.label),
+          ...(params.blockedDecision ? [params.blockedDecision] : []),
+        ])
+      );
       const blockingFindings = missingEvidence.map((item) => ({
         code: `IDRQ_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
-        severity: ['quality_status', 'owner', 'committee_window', 'blocked_decision', 'review_status'].includes(item.missingDataPoint)
+        severity: [
+          'quality_status',
+          'owner',
+          'committee_window',
+          'blocked_decision',
+          'review_status',
+        ].includes(item.missingDataPoint)
           ? 'high'
           : 'medium',
         message: item.enablesDossierAddition,
@@ -18143,7 +21315,11 @@ module.exports = {
       if (params.committeeWindow) dossierFacts.push(`Committee Window: ${params.committeeWindow}`);
 
       return {
-        reviewQueueStatusId: `idrq:${Buffer.from(`${sourceOrPackage || ''}:${assetOrProjectRef || ''}:${params.owner || ''}:${params.committeeWindow || ''}`).toString('base64url').slice(0, 24)}`,
+        reviewQueueStatusId: `idrq:${Buffer.from(
+          `${sourceOrPackage || ''}:${assetOrProjectRef || ''}:${params.owner || ''}:${params.committeeWindow || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 24)}`,
         capabilityKey: 'investment_data_review_queue',
         safety: 'read_only',
         requestContext: {
@@ -18168,8 +21344,30 @@ module.exports = {
         sourceRefs,
         sourceActions: {
           inspected: ['dashboard-api.investmentDataReviewQueueStatus'],
-          referenced: ['datasource-registry.list', 'datasource-cache.query', 'investment-planning.createPlan', 'hitl.summary', 'vdmi.dossier', 'evidence-registry.lookup', 'presentation.generate'],
-          notCalled: ['hitl.create', 'vdmi.create', 'vdmi.mutate', 'investment-planning.createPlan', 'investment-planning.mutate', 'finance-agent.mutate', 'budget.release', 'billing.release', 'settlement.prepareBilling', 'tariff.mutate', 'payment.execute', 'external.connector.call', 'personal-agent.execute'],
+          referenced: [
+            'datasource-registry.list',
+            'datasource-cache.query',
+            'investment-planning.createPlan',
+            'hitl.summary',
+            'vdmi.dossier',
+            'evidence-registry.lookup',
+            'presentation.generate',
+          ],
+          notCalled: [
+            'hitl.create',
+            'vdmi.create',
+            'vdmi.mutate',
+            'investment-planning.createPlan',
+            'investment-planning.mutate',
+            'finance-agent.mutate',
+            'budget.release',
+            'billing.release',
+            'settlement.prepareBilling',
+            'tariff.mutate',
+            'payment.execute',
+            'external.connector.call',
+            'personal-agent.execute',
+          ],
         },
         validationFindings: blockingFindings,
         dossierEvidence: {
@@ -18188,11 +21386,15 @@ module.exports = {
     },
 
     buildFlexStrategicDemandIntakeStatus(params = {}) {
-      const toList = (value) => Array.isArray(value)
-        ? value.filter(Boolean)
-        : value
-          ? String(value).split(',').map((item) => item.trim()).filter(Boolean)
-          : [];
+      const toList = (value) =>
+        Array.isArray(value)
+          ? value.filter(Boolean)
+          : value
+            ? String(value)
+                .split(',')
+                .map((item) => item.trim())
+                .filter(Boolean)
+            : [];
       const sourceRefs = toList(params.sourceRef);
       const demandTopic = params.demandTopic || params.topic;
       const demandRef = params.demandId || params.caseId;
@@ -18289,50 +21491,62 @@ module.exports = {
       const riskText = String(params.riskOfInaction || '').toLowerCase();
       const conflictText = String(params.resourceConflict || '').toLowerCase();
       const blockedByRisk = /blocked|blockiert|kritisch|critical|untragbar|stop/.test(riskText);
-      const blockedByResource = /blocked|blockiert|keine ressourcen|no resource|critical|kritisch/.test(conflictText);
-      const status =
-        blockedByRisk
-          ? 'risk_blocks_intake'
-          : blockedByResource
-            ? 'resource_conflict_blocks_intake'
-            : !demandTopic
-              ? 'needs_demand_topic'
-              : !params.affectedProcess
-                ? 'needs_affected_process'
-                : !params.riskOfInaction
-                  ? 'needs_risk_of_inaction'
-                  : !params.commercialQuestion
-                    ? 'needs_commercial_question'
-                    : !params.resourceConflict
-                      ? 'needs_resource_conflict'
-                      : !params.stopDoingOption
-                        ? 'needs_stop_doing_option'
-                        : !params.owner
-                          ? 'needs_owner'
-                          : !params.nextDecisionGate
-                            ? 'needs_next_decision_gate'
-                            : !params.blockedFollowUp
-                              ? 'needs_blocked_follow_up'
-                              : sourceRefs.length === 0
-                                ? 'needs_source_refs'
-                                : missingEvidence.length === 0
-                                  ? 'ready_for_intake'
-                                  : 'needs_intake_evidence';
+      const blockedByResource =
+        /blocked|blockiert|keine ressourcen|no resource|critical|kritisch/.test(conflictText);
+      const status = blockedByRisk
+        ? 'risk_blocks_intake'
+        : blockedByResource
+          ? 'resource_conflict_blocks_intake'
+          : !demandTopic
+            ? 'needs_demand_topic'
+            : !params.affectedProcess
+              ? 'needs_affected_process'
+              : !params.riskOfInaction
+                ? 'needs_risk_of_inaction'
+                : !params.commercialQuestion
+                  ? 'needs_commercial_question'
+                  : !params.resourceConflict
+                    ? 'needs_resource_conflict'
+                    : !params.stopDoingOption
+                      ? 'needs_stop_doing_option'
+                      : !params.owner
+                        ? 'needs_owner'
+                        : !params.nextDecisionGate
+                          ? 'needs_next_decision_gate'
+                          : !params.blockedFollowUp
+                            ? 'needs_blocked_follow_up'
+                            : sourceRefs.length === 0
+                              ? 'needs_source_refs'
+                              : missingEvidence.length === 0
+                                ? 'ready_for_intake'
+                                : 'needs_intake_evidence';
       const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
       const positiveFollowUps = missingEvidence.map((item) => ({
         missingDataPoint: item.missingDataPoint,
         enablesDossierAddition: item.enablesDossierAddition,
         category: 'flex_strategic_demand_intake',
       }));
-      const blockedDecisions = Array.from(new Set([
-        ...missingEvidence
-          .filter((item) => ['owner', 'next_decision_gate', 'blocked_follow_up', 'commercial_question', 'resource_conflict'].includes(item.missingDataPoint))
-          .map((item) => item.label),
-        ...(params.blockedFollowUp ? [params.blockedFollowUp] : []),
-      ]));
+      const blockedDecisions = Array.from(
+        new Set([
+          ...missingEvidence
+            .filter((item) =>
+              [
+                'owner',
+                'next_decision_gate',
+                'blocked_follow_up',
+                'commercial_question',
+                'resource_conflict',
+              ].includes(item.missingDataPoint)
+            )
+            .map((item) => item.label),
+          ...(params.blockedFollowUp ? [params.blockedFollowUp] : []),
+        ])
+      );
       const blockingFindings = missingEvidence.map((item) => ({
         code: `FSDI_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
-        severity: ['owner', 'next_decision_gate', 'blocked_follow_up', 'risk_of_inaction'].includes(item.missingDataPoint)
+        severity: ['owner', 'next_decision_gate', 'blocked_follow_up', 'risk_of_inaction'].includes(
+          item.missingDataPoint
+        )
           ? 'high'
           : 'medium',
         message: item.enablesDossierAddition,
@@ -18376,7 +21590,11 @@ module.exports = {
       if (params.nextDecisionGate) dossierFacts.push(`Next Gate: ${params.nextDecisionGate}`);
 
       return {
-        intakeStatusId: `fsdi:${Buffer.from(`${demandRef || ''}:${demandTopic || ''}:${params.owner || ''}:${params.nextDecisionGate || ''}`).toString('base64url').slice(0, 24)}`,
+        intakeStatusId: `fsdi:${Buffer.from(
+          `${demandRef || ''}:${demandTopic || ''}:${params.owner || ''}:${params.nextDecisionGate || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 24)}`,
         capabilityKey: 'flex_strategic_demand_intake',
         safety: 'read_only',
         requestContext: intakeContext,
@@ -18397,8 +21615,30 @@ module.exports = {
         contextRefs,
         sourceActions: {
           inspected: ['dashboard-api.flexStrategicDemandIntakeStatus'],
-          referenced: ['flex.status', 'znp.projects', 'nova.pendingDecisions', 'vdmi.dossier', 'finance-agent.analyze', 'evidence-registry.lookup', 'presentation.generate'],
-          notCalled: ['hitl.create', 'nova.createDecision', 'nova.apply', 'vdmi.create', 'vdmi.mutate', 'finance-agent.mutate', 'tariff.mutate', 'billing.release', 'settlement.prepareBilling', 'grid-operations.executeControl', 'device-control.execute', 'external.connector.call', 'personal-agent.execute'],
+          referenced: [
+            'flex.status',
+            'znp.projects',
+            'nova.pendingDecisions',
+            'vdmi.dossier',
+            'finance-agent.analyze',
+            'evidence-registry.lookup',
+            'presentation.generate',
+          ],
+          notCalled: [
+            'hitl.create',
+            'nova.createDecision',
+            'nova.apply',
+            'vdmi.create',
+            'vdmi.mutate',
+            'finance-agent.mutate',
+            'tariff.mutate',
+            'billing.release',
+            'settlement.prepareBilling',
+            'grid-operations.executeControl',
+            'device-control.execute',
+            'external.connector.call',
+            'personal-agent.execute',
+          ],
         },
         validationFindings: blockingFindings,
         dossierEvidence: {
@@ -18419,11 +21659,15 @@ module.exports = {
     },
 
     buildGasInfrastructureRiskGovernanceStatus(params = {}) {
-      const toList = (value) => Array.isArray(value)
-        ? value.filter(Boolean)
-        : value
-          ? String(value).split(',').map((item) => item.trim()).filter(Boolean)
-          : [];
+      const toList = (value) =>
+        Array.isArray(value)
+          ? value.filter(Boolean)
+          : value
+            ? String(value)
+                .split(',')
+                .map((item) => item.trim())
+                .filter(Boolean)
+            : [];
       const sourceRefs = toList(params.sourceRef);
       const evidenceSpecs = [
         {
@@ -18438,7 +21682,8 @@ module.exports = {
           label: 'Impact area',
           value: params.impactArea,
           sourceClass: 'asset_network_impact_scope',
-          enablesDossierAddition: 'add the affected asset, network coupling point or transformation area',
+          enablesDossierAddition:
+            'add the affected asset, network coupling point or transformation area',
         },
         {
           id: 'probability',
@@ -18473,7 +21718,8 @@ module.exports = {
           label: 'Risk-register decision',
           value: params.riskRegisterDecision,
           sourceClass: 'governance_decision_path',
-          enablesDossierAddition: 'add whether the case is not aufgenommen, monitoring, Massnahme, or formal risk register',
+          enablesDossierAddition:
+            'add whether the case is not aufgenommen, monitoring, Massnahme, or formal risk register',
         },
         {
           id: 'owner',
@@ -18502,7 +21748,8 @@ module.exports = {
           value: sourceRefs.length > 0,
           displayValue: sourceRefs.join(', '),
           sourceClass: 'source_grounding',
-          enablesDossierAddition: 'add citable technical, VDMI, HITL or interface-placeholder references',
+          enablesDossierAddition:
+            'add citable technical, VDMI, HITL or interface-placeholder references',
         },
       ];
       const evidenceItems = evidenceSpecs
@@ -18531,34 +21778,33 @@ module.exports = {
       const isMonitoring =
         /(monitoring|beobachtung|watch|ueberwachung|überwachung)/i.test(decisionText) ||
         /(hoch|high|kritisch|critical|rot|red)/i.test(`${probabilityText} ${criticalityText}`);
-      const status =
-        !params.technicalFact
-          ? 'needs_technical_fact'
-          : !params.impactArea
-            ? 'needs_impact_area'
-            : !params.probability
-              ? 'needs_probability'
-              : !params.criticality
-                ? 'needs_criticality'
-                : !params.existingMitigation
-                  ? 'needs_mitigation_evidence'
-                  : !params.threshold
-                    ? 'needs_threshold'
-                    : !params.riskRegisterDecision
-                      ? 'needs_risk_register_decision'
-                      : !params.owner
-                        ? 'needs_owner'
-                        : !params.nextDecisionWindow
-                          ? 'needs_decision_window'
-                          : !params.blockedFollowUp
-                            ? 'needs_blocked_follow_up'
-                            : sourceRefs.length === 0
-                              ? 'needs_source_refs'
-                              : isFormalRisk
-                                ? 'ready_for_risk_decision'
-                                : isMonitoring
-                                  ? 'monitoring_needed'
-                                  : 'ready_for_non_inclusion_decision';
+      const status = !params.technicalFact
+        ? 'needs_technical_fact'
+        : !params.impactArea
+          ? 'needs_impact_area'
+          : !params.probability
+            ? 'needs_probability'
+            : !params.criticality
+              ? 'needs_criticality'
+              : !params.existingMitigation
+                ? 'needs_mitigation_evidence'
+                : !params.threshold
+                  ? 'needs_threshold'
+                  : !params.riskRegisterDecision
+                    ? 'needs_risk_register_decision'
+                    : !params.owner
+                      ? 'needs_owner'
+                      : !params.nextDecisionWindow
+                        ? 'needs_decision_window'
+                        : !params.blockedFollowUp
+                          ? 'needs_blocked_follow_up'
+                          : sourceRefs.length === 0
+                            ? 'needs_source_refs'
+                            : isFormalRisk
+                              ? 'ready_for_risk_decision'
+                              : isMonitoring
+                                ? 'monitoring_needed'
+                                : 'ready_for_non_inclusion_decision';
       const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
       const positiveFollowUps = missingEvidence.map((item) => ({
         missingDataPoint: item.missingDataPoint,
@@ -18567,13 +21813,24 @@ module.exports = {
       }));
       const decisionBoundary = {
         readOnly: true,
-        allowedDecisionStates: ['not_aufgenommen', 'monitoring', 'massnahme', 'formal_risk_register'],
+        allowedDecisionStates: [
+          'not_aufgenommen',
+          'monitoring',
+          'massnahme',
+          'formal_risk_register',
+        ],
         suppliedDecision: params.riskRegisterDecision || null,
         note: 'Status evidence only; formal gas risk-register, monitoring and mitigation decisions remain downstream governance actions.',
       };
       const blockingFindings = missingEvidence.map((item) => ({
         code: `GIRG_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
-        severity: ['technical_fact', 'impact_area', 'threshold', 'risk_register_decision', 'owner'].includes(item.missingDataPoint)
+        severity: [
+          'technical_fact',
+          'impact_area',
+          'threshold',
+          'risk_register_decision',
+          'owner',
+        ].includes(item.missingDataPoint)
           ? 'high'
           : 'medium',
         message: item.enablesDossierAddition,
@@ -18606,11 +21863,16 @@ module.exports = {
       ];
       if (params.technicalFact) dossierFacts.push(`Technical Fact: ${params.technicalFact}`);
       if (params.impactArea) dossierFacts.push(`Impact Area: ${params.impactArea}`);
-      if (params.riskRegisterDecision) dossierFacts.push(`Risk Decision: ${params.riskRegisterDecision}`);
+      if (params.riskRegisterDecision)
+        dossierFacts.push(`Risk Decision: ${params.riskRegisterDecision}`);
       if (params.owner) dossierFacts.push(`Owner: ${params.owner}`);
 
       return {
-        gasRiskGovernanceStatusId: `girg:${Buffer.from(`${params.caseId || ''}:${params.technicalFact || ''}:${params.owner || ''}:${params.nextDecisionWindow || ''}`).toString('base64url').slice(0, 24)}`,
+        gasRiskGovernanceStatusId: `girg:${Buffer.from(
+          `${params.caseId || ''}:${params.technicalFact || ''}:${params.owner || ''}:${params.nextDecisionWindow || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 24)}`,
         capabilityKey: 'gas_infrastructure_risk_governance',
         safety: 'read_only',
         requestContext: riskContext,
@@ -18631,8 +21893,30 @@ module.exports = {
         contextRefs,
         sourceActions: {
           inspected: ['dashboard-api.gasInfrastructureRiskGovernanceStatus'],
-          referenced: ['vdmi.dossier', 'hitl.summary', 'interface-placeholder.requestEvidence', 'assets.effective', 'grid-operations.summary', 'evidence-registry.lookup', 'presentation.generate'],
-          notCalled: ['gas-risk-register.create', 'gas-risk-register.mutate', 'hitl.create', 'vdmi.create', 'vdmi.mutate', 'assets.mutate', 'asset-mdm.mutate', 'grid-operations.executeControl', 'operational-dispatch.execute', 'monitoring.createDecision', 'mitigation.execute', 'external.connector.call', 'personal-agent.execute'],
+          referenced: [
+            'vdmi.dossier',
+            'hitl.summary',
+            'interface-placeholder.requestEvidence',
+            'assets.effective',
+            'grid-operations.summary',
+            'evidence-registry.lookup',
+            'presentation.generate',
+          ],
+          notCalled: [
+            'gas-risk-register.create',
+            'gas-risk-register.mutate',
+            'hitl.create',
+            'vdmi.create',
+            'vdmi.mutate',
+            'assets.mutate',
+            'asset-mdm.mutate',
+            'grid-operations.executeControl',
+            'operational-dispatch.execute',
+            'monitoring.createDecision',
+            'mitigation.execute',
+            'external.connector.call',
+            'personal-agent.execute',
+          ],
         },
         validationFindings: blockingFindings,
         dossierEvidence: {
@@ -18653,11 +21937,15 @@ module.exports = {
     },
 
     buildMeteringRolloutProcessIndicatorStatus(params = {}) {
-      const toList = (value) => Array.isArray(value)
-        ? value.filter(Boolean)
-        : value
-          ? String(value).split(',').map((item) => item.trim()).filter(Boolean)
-          : [];
+      const toList = (value) =>
+        Array.isArray(value)
+          ? value.filter(Boolean)
+          : value
+            ? String(value)
+                .split(',')
+                .map((item) => item.trim())
+                .filter(Boolean)
+            : [];
       const toNumber = (value) => {
         if (value === undefined || value === null || value === '') return null;
         const n = Number(value);
@@ -18667,14 +21955,15 @@ module.exports = {
       const targetCount = toNumber(params.targetCount);
       const actualCount = toNumber(params.actualCount);
       const suppliedBacklog = toNumber(params.backlogCount);
-      const backlogCount = suppliedBacklog ?? (
-        targetCount !== null && actualCount !== null
+      const backlogCount =
+        suppliedBacklog ??
+        (targetCount !== null && actualCount !== null
           ? Math.max(0, targetCount - actualCount)
-          : null
-      );
-      const backlogRate = targetCount && targetCount > 0 && backlogCount !== null
-        ? Number((backlogCount / targetCount).toFixed(4))
-        : null;
+          : null);
+      const backlogRate =
+        targetCount && targetCount > 0 && backlogCount !== null
+          ? Number((backlogCount / targetCount).toFixed(4))
+          : null;
       const capexImpactEur = toNumber(params.capexImpactEur);
       const opexImpactEur = toNumber(params.opexImpactEur);
       const evidenceSpecs = [
@@ -18690,7 +21979,8 @@ module.exports = {
           label: 'Source type',
           value: params.sourceType,
           sourceClass: 'source_classification',
-          enablesDossierAddition: 'add whether evidence comes from administrative rollout statistics, EDM summary or datasource cache',
+          enablesDossierAddition:
+            'add whether evidence comes from administrative rollout statistics, EDM summary or datasource cache',
         },
         {
           id: 'target_count',
@@ -18773,7 +22063,8 @@ module.exports = {
           value: sourceRefs.length > 0,
           displayValue: sourceRefs.join(', '),
           sourceClass: 'source_grounding',
-          enablesDossierAddition: 'add citable datasource, EDM, VDMI or monthly-statistic references',
+          enablesDossierAddition:
+            'add citable datasource, EDM, VDMI or monthly-statistic references',
         },
       ];
       const evidenceItems = evidenceSpecs
@@ -18795,43 +22086,46 @@ module.exports = {
         }));
       const qualityText = String(params.dataQualityStatus || '').toLowerCase();
       const contractorText = String(params.contractorLoad || '').toLowerCase();
-      const qualityBlocks = /blocked|blockiert|kritisch|critical|missing|fehlt|unvollstaendig|unvollständig/.test(qualityText);
-      const contractorBlocks = /blocked|blockiert|ueberlast|überlast|overload|kritisch|critical/.test(contractorText);
+      const qualityBlocks =
+        /blocked|blockiert|kritisch|critical|missing|fehlt|unvollstaendig|unvollständig/.test(
+          qualityText
+        );
+      const contractorBlocks =
+        /blocked|blockiert|ueberlast|überlast|overload|kritisch|critical/.test(contractorText);
       const highBacklog = backlogRate !== null && backlogRate >= 0.2;
-      const status =
-        qualityBlocks
-          ? 'blocked_by_data_quality'
-          : contractorBlocks
-            ? 'blocked_by_contractor_capacity'
-            : !params.division
-              ? 'needs_division'
-              : !params.sourceType
-                ? 'needs_source_type'
-                : targetCount === null
-                  ? 'needs_target_count'
-                  : actualCount === null
-                    ? 'needs_actual_count'
-                    : backlogCount === null
-                      ? 'needs_backlog_count'
-                      : !params.dataQualityStatus
-                        ? 'needs_data_quality_status'
-                        : !params.contractorLoad
-                          ? 'needs_contractor_load'
-                          : capexImpactEur === null
-                            ? 'needs_capex_impact'
-                            : opexImpactEur === null
-                              ? 'needs_opex_impact'
-                              : !params.owner
-                                ? 'needs_owner'
-                                : !params.nextControlStep
-                                  ? 'needs_next_control_step'
-                                  : !params.blockedFollowUp
-                                    ? 'needs_blocked_follow_up'
-                                    : sourceRefs.length === 0
-                                      ? 'needs_source_refs'
-                                      : highBacklog
-                                        ? 'backlog_requires_steering'
-                                        : 'process_indicator_ready';
+      const status = qualityBlocks
+        ? 'blocked_by_data_quality'
+        : contractorBlocks
+          ? 'blocked_by_contractor_capacity'
+          : !params.division
+            ? 'needs_division'
+            : !params.sourceType
+              ? 'needs_source_type'
+              : targetCount === null
+                ? 'needs_target_count'
+                : actualCount === null
+                  ? 'needs_actual_count'
+                  : backlogCount === null
+                    ? 'needs_backlog_count'
+                    : !params.dataQualityStatus
+                      ? 'needs_data_quality_status'
+                      : !params.contractorLoad
+                        ? 'needs_contractor_load'
+                        : capexImpactEur === null
+                          ? 'needs_capex_impact'
+                          : opexImpactEur === null
+                            ? 'needs_opex_impact'
+                            : !params.owner
+                              ? 'needs_owner'
+                              : !params.nextControlStep
+                                ? 'needs_next_control_step'
+                                : !params.blockedFollowUp
+                                  ? 'needs_blocked_follow_up'
+                                  : sourceRefs.length === 0
+                                    ? 'needs_source_refs'
+                                    : highBacklog
+                                      ? 'backlog_requires_steering'
+                                      : 'process_indicator_ready';
       const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
       const positiveFollowUps = missingEvidence.map((item) => ({
         missingDataPoint: item.missingDataPoint,
@@ -18840,7 +22134,14 @@ module.exports = {
       }));
       const blockingFindings = missingEvidence.map((item) => ({
         code: `MRPI_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
-        severity: ['division', 'target_count', 'actual_count', 'data_quality_status', 'owner', 'next_control_step'].includes(item.missingDataPoint)
+        severity: [
+          'division',
+          'target_count',
+          'actual_count',
+          'data_quality_status',
+          'owner',
+          'next_control_step',
+        ].includes(item.missingDataPoint)
           ? 'high'
           : 'medium',
         message: item.enablesDossierAddition,
@@ -18853,7 +22154,8 @@ module.exports = {
               ? 'MRPI_CONTRACTOR_CAPACITY_BLOCKING'
               : 'MRPI_BACKLOG_THRESHOLD_REACHED',
           severity: 'high',
-          message: 'metering rollout evidence indicates a steering-relevant data-quality, contractor-capacity or backlog condition',
+          message:
+            'metering rollout evidence indicates a steering-relevant data-quality, contractor-capacity or backlog condition',
         });
       }
       const indicatorContext = {
@@ -18885,7 +22187,11 @@ module.exports = {
       if (params.owner) dossierFacts.push(`Owner: ${params.owner}`);
 
       return {
-        processIndicatorStatusId: `mrpi:${Buffer.from(`${params.indicatorId || ''}:${params.division || ''}:${params.sourceType || ''}:${params.owner || ''}`).toString('base64url').slice(0, 24)}`,
+        processIndicatorStatusId: `mrpi:${Buffer.from(
+          `${params.indicatorId || ''}:${params.division || ''}:${params.sourceType || ''}:${params.owner || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 24)}`,
         capabilityKey: 'metering_rollout_process_indicator',
         safety: 'read_only',
         requestContext: indicatorContext,
@@ -18903,8 +22209,35 @@ module.exports = {
         sourceRefs,
         sourceActions: {
           inspected: ['dashboard-api.meteringRolloutProcessIndicatorStatus'],
-          referenced: ['datasource-registry.list', 'datasource-cache.query', 'edm.getTimeseriesSummary', 'in-memory-join.join', 'vdmi.dossier', 'hitl.summary', 'evidence-registry.lookup', 'presentation.generate'],
-          notCalled: ['datasource-registry.refresh', 'datasource-cache.refresh', 'datasource-cache.query', 'edm.importTimeseries', 'edm.mutate', 'in-memory-join.execute', 'hitl.create', 'vdmi.create', 'vdmi.mutate', 'finance-agent.mutate', 'capex.decision', 'billing.release', 'settlement.prepareBilling', 'tariff.mutate', 'device-control.execute', 'external.connector.call', 'personal-agent.execute'],
+          referenced: [
+            'datasource-registry.list',
+            'datasource-cache.query',
+            'edm.getTimeseriesSummary',
+            'in-memory-join.join',
+            'vdmi.dossier',
+            'hitl.summary',
+            'evidence-registry.lookup',
+            'presentation.generate',
+          ],
+          notCalled: [
+            'datasource-registry.refresh',
+            'datasource-cache.refresh',
+            'datasource-cache.query',
+            'edm.importTimeseries',
+            'edm.mutate',
+            'in-memory-join.execute',
+            'hitl.create',
+            'vdmi.create',
+            'vdmi.mutate',
+            'finance-agent.mutate',
+            'capex.decision',
+            'billing.release',
+            'settlement.prepareBilling',
+            'tariff.mutate',
+            'device-control.execute',
+            'external.connector.call',
+            'personal-agent.execute',
+          ],
         },
         validationFindings: blockingFindings,
         dossierEvidence: {
@@ -18923,11 +22256,15 @@ module.exports = {
     },
 
     buildHeatTransformationLineAssetModelStatus(params = {}) {
-      const toList = (value) => Array.isArray(value)
-        ? value.filter(Boolean)
-        : value
-          ? String(value).split(',').map((item) => item.trim()).filter(Boolean)
-          : [];
+      const toList = (value) =>
+        Array.isArray(value)
+          ? value.filter(Boolean)
+          : value
+            ? String(value)
+                .split(',')
+                .map((item) => item.trim())
+                .filter(Boolean)
+            : [];
       const toNumber = (value) => {
         if (value === undefined || value === null || value === '') return null;
         const n = Number(value);
@@ -18957,7 +22294,8 @@ module.exports = {
           label: 'Geometry reference',
           value: params.geometryRef,
           sourceClass: 'gis_geometry_reference',
-          enablesDossierAddition: 'add the geographic line coordinate boundary or GIS path reference',
+          enablesDossierAddition:
+            'add the geographic line coordinate boundary or GIS path reference',
         },
         {
           id: 'connected_point_asset_ids',
@@ -18965,14 +22303,16 @@ module.exports = {
           value: connectedPointAssetIds.length > 0,
           displayValue: connectedPointAssetIds.join(', '),
           sourceClass: 'topological_point_assets',
-          enablesDossierAddition: 'add the topological point-asset connections (e.g. transformers or heating plants)',
+          enablesDossierAddition:
+            'add the topological point-asset connections (e.g. transformers or heating plants)',
         },
         {
           id: 'network_calculation_ref',
           label: 'Network calculation reference',
           value: params.networkCalculationRef,
           sourceClass: 'network_calculation_reference',
-          enablesDossierAddition: 'add the hydraulic or thermodynamic network calculation reference',
+          enablesDossierAddition:
+            'add the hydraulic or thermodynamic network calculation reference',
         },
         {
           id: 'data_quality_status',
@@ -18993,7 +22333,8 @@ module.exports = {
           label: 'Future option',
           value: params.futureOption,
           sourceClass: 'future_technology_option',
-          enablesDossierAddition: 'add the specific future technology option (H2-ready vs district-heating network)',
+          enablesDossierAddition:
+            'add the specific future technology option (H2-ready vs district-heating network)',
         },
         {
           id: 'investment_need',
@@ -19047,36 +22388,38 @@ module.exports = {
         }));
 
       const qualityText = String(params.dataQualityStatus || '').toLowerCase();
-      const qualityBlocks = /blocked|blockiert|kritisch|critical|missing|fehlt|unvollstaendig|unvollständig/.test(qualityText);
+      const qualityBlocks =
+        /blocked|blockiert|kritisch|critical|missing|fehlt|unvollstaendig|unvollständig/.test(
+          qualityText
+        );
 
-      const status =
-        qualityBlocks
-          ? 'blocked_by_data_quality'
-          : !params.division
-            ? 'needs_division'
-            : !params.lineAssetId
-              ? 'needs_line_asset_id'
-              : !params.geometryRef
-                ? 'needs_geometry_ref'
-                : connectedPointAssetIds.length === 0
-                  ? 'needs_connected_point_asset_ids'
-                  : !params.networkCalculationRef
-                    ? 'needs_network_calculation_ref'
-                    : !params.dataQualityStatus
-                      ? 'needs_data_quality_status'
-                      : !params.transformationStatus
-                        ? 'needs_transformation_status'
-                        : !params.futureOption
-                          ? 'needs_future_option'
-                          : investmentNeed === null
-                            ? 'needs_investment_need'
-                            : !params.owner
-                              ? 'needs_owner'
-                              : !params.nextDecision
-                                ? 'needs_next_decision'
-                                : sourceRefs.length === 0
-                                  ? 'needs_source_refs'
-                                  : 'ready_for_transformation_decision';
+      const status = qualityBlocks
+        ? 'blocked_by_data_quality'
+        : !params.division
+          ? 'needs_division'
+          : !params.lineAssetId
+            ? 'needs_line_asset_id'
+            : !params.geometryRef
+              ? 'needs_geometry_ref'
+              : connectedPointAssetIds.length === 0
+                ? 'needs_connected_point_asset_ids'
+                : !params.networkCalculationRef
+                  ? 'needs_network_calculation_ref'
+                  : !params.dataQualityStatus
+                    ? 'needs_data_quality_status'
+                    : !params.transformationStatus
+                      ? 'needs_transformation_status'
+                      : !params.futureOption
+                        ? 'needs_future_option'
+                        : investmentNeed === null
+                          ? 'needs_investment_need'
+                          : !params.owner
+                            ? 'needs_owner'
+                            : !params.nextDecision
+                              ? 'needs_next_decision'
+                              : sourceRefs.length === 0
+                                ? 'needs_source_refs'
+                                : 'ready_for_transformation_decision';
 
       const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
 
@@ -19088,7 +22431,14 @@ module.exports = {
 
       const blockingFindings = missingEvidence.map((item) => ({
         code: `HTLAM_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
-        severity: ['division', 'line_asset_id', 'geometry_ref', 'data_quality_status', 'owner', 'next_decision'].includes(item.missingDataPoint)
+        severity: [
+          'division',
+          'line_asset_id',
+          'geometry_ref',
+          'data_quality_status',
+          'owner',
+          'next_decision',
+        ].includes(item.missingDataPoint)
           ? 'high'
           : 'medium',
         message: item.enablesDossierAddition,
@@ -19098,7 +22448,8 @@ module.exports = {
         blockingFindings.push({
           code: 'HTLAM_DATA_QUALITY_BLOCKING',
           severity: 'high',
-          message: 'heat transformation line-asset evidence indicates a steering-relevant data-quality condition',
+          message:
+            'heat transformation line-asset evidence indicates a steering-relevant data-quality condition',
         });
       }
 
@@ -19129,7 +22480,11 @@ module.exports = {
       if (params.owner) dossierFacts.push(`Owner: ${params.owner}`);
 
       return {
-        lineAssetModelStatusId: `htlam:${Buffer.from(`${params.lineAssetId || ''}:${params.division || ''}:${params.owner || ''}`).toString('base64url').slice(0, 24)}`,
+        lineAssetModelStatusId: `htlam:${Buffer.from(
+          `${params.lineAssetId || ''}:${params.division || ''}:${params.owner || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 24)}`,
         capabilityKey: 'heat_transformation_line_asset_model',
         safety: 'read_only',
         requestContext: modelContext,
@@ -19147,8 +22502,35 @@ module.exports = {
         sourceRefs,
         sourceActions: {
           inspected: ['dashboard-api.heatTransformationLineAssetModelStatus'],
-          referenced: ['znp.listProjects', 'znp.getProjectAssets', 'assets.effective', 'datapoint.health', 'finance-agent.analyze', 'investment-planning.createPlan', 'vdmi.dossier', 'evidence-registry.lookup', 'presentation.generate'],
-          notCalled: ['znp.createProject', 'znp.addLayer0', 'znp.addAssumption', 'assets.mutate', 'datapoint.mutate', 'hitl.create', 'vdmi.create', 'vdmi.mutate', 'finance-agent.mutate', 'investment-planning.createPlan', 'billing.release', 'settlement.prepareBilling', 'tariff.mutate', 'device-control.execute', 'external.connector.call', 'personal-agent.execute'],
+          referenced: [
+            'znp.listProjects',
+            'znp.getProjectAssets',
+            'assets.effective',
+            'datapoint.health',
+            'finance-agent.analyze',
+            'investment-planning.createPlan',
+            'vdmi.dossier',
+            'evidence-registry.lookup',
+            'presentation.generate',
+          ],
+          notCalled: [
+            'znp.createProject',
+            'znp.addLayer0',
+            'znp.addAssumption',
+            'assets.mutate',
+            'datapoint.mutate',
+            'hitl.create',
+            'vdmi.create',
+            'vdmi.mutate',
+            'finance-agent.mutate',
+            'investment-planning.createPlan',
+            'billing.release',
+            'settlement.prepareBilling',
+            'tariff.mutate',
+            'device-control.execute',
+            'external.connector.call',
+            'personal-agent.execute',
+          ],
         },
         validationFindings: blockingFindings,
         dossierEvidence: {
@@ -19167,11 +22549,15 @@ module.exports = {
     },
 
     buildKiFloorwalkerGovernanceStatus(params = {}) {
-      const toList = (value) => Array.isArray(value)
-        ? value.filter(Boolean)
-        : value
-          ? String(value).split(',').map((item) => item.trim()).filter(Boolean)
-          : [];
+      const toList = (value) =>
+        Array.isArray(value)
+          ? value.filter(Boolean)
+          : value
+            ? String(value)
+                .split(',')
+                .map((item) => item.trim())
+                .filter(Boolean)
+            : [];
       const sourceRefs = toList(params.sourceRef);
       const allowedDataspaces = toList(params.allowedDataspaces);
 
@@ -19210,28 +22596,32 @@ module.exports = {
           label: 'Roles & responsibilities',
           value: params.rolesAndResponsibilities,
           sourceClass: 'roles_and_responsibilities',
-          enablesDossierAddition: 'add the accountable owners, governance coordinators, or release authorities',
+          enablesDossierAddition:
+            'add the accountable owners, governance coordinators, or release authorities',
         },
         {
           id: 'guided_application',
           label: 'Guided application',
           value: params.guidedApplication,
           sourceClass: 'guided_application',
-          enablesDossierAddition: 'add the structured user enablement, training, or operating-model guidance',
+          enablesDossierAddition:
+            'add the structured user enablement, training, or operating-model guidance',
         },
         {
           id: 'risk_and_approval_status',
           label: 'Risk & approval status',
           value: params.riskAndApprovalStatus,
           sourceClass: 'risk_and_approval_status',
-          enablesDossierAddition: 'add the regulatory risk classification (e.g. EU AI Act conformity) and approval status',
+          enablesDossierAddition:
+            'add the regulatory risk classification (e.g. EU AI Act conformity) and approval status',
         },
         {
           id: 'proof_of_benefit',
           label: 'Proof of benefit',
           value: params.proofOfBenefit,
           sourceClass: 'proof_of_benefit',
-          enablesDossierAddition: 'add the strategic benefit metrics, KPIs, or productivity gains proof',
+          enablesDossierAddition:
+            'add the strategic benefit metrics, KPIs, or productivity gains proof',
         },
         {
           id: 'source_refs',
@@ -19262,30 +22652,29 @@ module.exports = {
           enablesDossierAddition: spec.enablesDossierAddition,
         }));
 
-      const status =
-        !params.useCaseId
-          ? 'needs_use_case_id'
-          : !params.processOwner
-            ? 'needs_process_owner'
-            : !params.useCasePriority
-              ? 'needs_use_case_priority'
-              : allowedDataspaces.length === 0
-                ? 'needs_allowed_dataspaces'
-                : !params.promptStandards
-                  ? 'needs_prompt_standards'
-                  : !params.processBoundaries
-                    ? 'needs_process_boundaries'
-                    : !params.rolesAndResponsibilities
-                      ? 'needs_roles_and_responsibilities'
-                      : !params.guidedApplication
-                        ? 'needs_guided_application'
-                        : !params.riskAndApprovalStatus
-                          ? 'needs_risk_and_approval_status'
-                          : !params.proofOfBenefit
-                            ? 'needs_proof_of_benefit'
-                            : sourceRefs.length === 0
-                              ? 'needs_source_refs'
-                              : 'ready_for_floorwalker_application';
+      const status = !params.useCaseId
+        ? 'needs_use_case_id'
+        : !params.processOwner
+          ? 'needs_process_owner'
+          : !params.useCasePriority
+            ? 'needs_use_case_priority'
+            : allowedDataspaces.length === 0
+              ? 'needs_allowed_dataspaces'
+              : !params.promptStandards
+                ? 'needs_prompt_standards'
+                : !params.processBoundaries
+                  ? 'needs_process_boundaries'
+                  : !params.rolesAndResponsibilities
+                    ? 'needs_roles_and_responsibilities'
+                    : !params.guidedApplication
+                      ? 'needs_guided_application'
+                      : !params.riskAndApprovalStatus
+                        ? 'needs_risk_and_approval_status'
+                        : !params.proofOfBenefit
+                          ? 'needs_proof_of_benefit'
+                          : sourceRefs.length === 0
+                            ? 'needs_source_refs'
+                            : 'ready_for_floorwalker_application';
 
       const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
 
@@ -19297,7 +22686,12 @@ module.exports = {
 
       const blockingFindings = missingEvidence.map((item) => ({
         code: `KIFG_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
-        severity: ['use_case_priority', 'allowed_dataspaces', 'roles_and_responsibilities', 'risk_and_approval_status'].includes(item.missingDataPoint)
+        severity: [
+          'use_case_priority',
+          'allowed_dataspaces',
+          'roles_and_responsibilities',
+          'risk_and_approval_status',
+        ].includes(item.missingDataPoint)
           ? 'high'
           : 'medium',
         message: item.enablesDossierAddition,
@@ -19328,7 +22722,11 @@ module.exports = {
       if (params.processOwner) dossierFacts.push(`Process Owner: ${params.processOwner}`);
 
       return {
-        kiFloorwalkerGovernanceStatusId: `kifg:${Buffer.from(`${params.useCaseId || ''}:${params.processOwner || ''}`).toString('base64url').slice(0, 24)}`,
+        kiFloorwalkerGovernanceStatusId: `kifg:${Buffer.from(
+          `${params.useCaseId || ''}:${params.processOwner || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 24)}`,
         capabilityKey: 'ki_floorwalker_governance',
         safety: 'read_only',
         requestContext: governanceContext,
@@ -19346,7 +22744,14 @@ module.exports = {
         sourceRefs,
         sourceActions: {
           inspected: ['dashboard-api.kiFloorwalkerGovernanceStatus'],
-          referenced: ['personal-agent.chat', 'cya.generate', 'vdmi.dossier', 'datapoint.oemetadata', 'evidence-registry.lookup', 'presentation.generate'],
+          referenced: [
+            'personal-agent.chat',
+            'cya.generate',
+            'vdmi.dossier',
+            'datapoint.oemetadata',
+            'evidence-registry.lookup',
+            'presentation.generate',
+          ],
           notCalled: ['openai.call', 'hitl.create', 'vdmi.mutate', 'personal-agent.execute'],
         },
         validationFindings: blockingFindings,
@@ -19366,11 +22771,15 @@ module.exports = {
     },
 
     buildInvestmentWaterfallGovernanceStatus(params = {}) {
-      const toList = (value) => Array.isArray(value)
-        ? value.filter(Boolean)
-        : value
-          ? String(value).split(',').map((item) => item.trim()).filter(Boolean)
-          : [];
+      const toList = (value) =>
+        Array.isArray(value)
+          ? value.filter(Boolean)
+          : value
+            ? String(value)
+                .split(',')
+                .map((item) => item.trim())
+                .filter(Boolean)
+            : [];
       const sourceRefs = toList(params.sourceRef);
 
       const evidenceSpecs = [
@@ -19379,14 +22788,16 @@ module.exports = {
           label: 'Strategic budget allocation',
           value: params.budgetAmount,
           sourceClass: 'budget_allocation',
-          enablesDossierAddition: 'add the strategic budget allocation and multi-year investment volume',
+          enablesDossierAddition:
+            'add the strategic budget allocation and multi-year investment volume',
         },
         {
           id: 'bottleneck_ref',
           label: 'Bottleneck relation',
           value: params.bottleneckRef,
           sourceClass: 'bottleneck_relation',
-          enablesDossierAddition: 'add the related grid bottleneck reference or infrastructure risk',
+          enablesDossierAddition:
+            'add the related grid bottleneck reference or infrastructure risk',
         },
         {
           id: 'committee_window',
@@ -19459,28 +22870,27 @@ module.exports = {
           enablesDossierAddition: spec.enablesDossierAddition,
         }));
 
-      const status =
-        !params.investmentItemId
-          ? 'needs_investment_item_id'
-          : !params.budgetAmount
-            ? 'needs_budget_amount'
-            : !params.bottleneckRef
-              ? 'needs_bottleneck_ref'
-              : !params.committeeWindow
-                ? 'needs_committee_window'
-                : !params.evidenceReadiness
-                  ? 'needs_evidence_readiness'
-                  : !params.owner
-                    ? 'needs_owner'
-                    : !params.nextAction
-                      ? 'needs_next_action'
-                      : !params.mandateStatus
-                        ? 'needs_mandate_status'
-                        : !params.riskIfDelayed
-                          ? 'needs_risk_if_delayed'
-                          : sourceRefs.length === 0
-                            ? 'needs_source_refs'
-                            : 'ready_for_committee_decision';
+      const status = !params.investmentItemId
+        ? 'needs_investment_item_id'
+        : !params.budgetAmount
+          ? 'needs_budget_amount'
+          : !params.bottleneckRef
+            ? 'needs_bottleneck_ref'
+            : !params.committeeWindow
+              ? 'needs_committee_window'
+              : !params.evidenceReadiness
+                ? 'needs_evidence_readiness'
+                : !params.owner
+                  ? 'needs_owner'
+                  : !params.nextAction
+                    ? 'needs_next_action'
+                    : !params.mandateStatus
+                      ? 'needs_mandate_status'
+                      : !params.riskIfDelayed
+                        ? 'needs_risk_if_delayed'
+                        : sourceRefs.length === 0
+                          ? 'needs_source_refs'
+                          : 'ready_for_committee_decision';
 
       const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
 
@@ -19492,7 +22902,9 @@ module.exports = {
 
       const blockingFindings = missingEvidence.map((item) => ({
         code: `IWG_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
-        severity: ['budget_amount', 'committee_window', 'owner', 'mandate_status'].includes(item.missingDataPoint)
+        severity: ['budget_amount', 'committee_window', 'owner', 'mandate_status'].includes(
+          item.missingDataPoint
+        )
           ? 'high'
           : 'medium',
         message: item.enablesDossierAddition,
@@ -19519,11 +22931,16 @@ module.exports = {
         `Provided investment waterfall governance evidence: ${evidenceItems.length}/${evidenceSpecs.length}`,
         `Open gaps: ${missingEvidence.length}`,
       ];
-      if (params.investmentItemId) dossierFacts.push(`Investment Item ID: ${params.investmentItemId}`);
+      if (params.investmentItemId)
+        dossierFacts.push(`Investment Item ID: ${params.investmentItemId}`);
       if (params.targetProcess) dossierFacts.push(`Target Process: ${params.targetProcess}`);
 
       return {
-        investmentWaterfallGovernanceStatusId: `iwg:${Buffer.from(`${params.investmentItemId || ''}:${params.targetProcess || ''}`).toString('base64url').slice(0, 24)}`,
+        investmentWaterfallGovernanceStatusId: `iwg:${Buffer.from(
+          `${params.investmentItemId || ''}:${params.targetProcess || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 24)}`,
         capabilityKey: 'investment_waterfall_governance',
         safety: 'read_only',
         requestContext: governanceContext,
@@ -19541,7 +22958,14 @@ module.exports = {
         sourceRefs,
         sourceActions: {
           inspected: ['dashboard-api.investmentWaterfallGovernanceStatus'],
-          referenced: ['personal-agent.chat', 'cya.generate', 'vdmi.dossier', 'datapoint.oemetadata', 'evidence-registry.lookup', 'presentation.generate'],
+          referenced: [
+            'personal-agent.chat',
+            'cya.generate',
+            'vdmi.dossier',
+            'datapoint.oemetadata',
+            'evidence-registry.lookup',
+            'presentation.generate',
+          ],
           notCalled: [
             'pmo-budget.create',
             'pmo-budget.allocate',
@@ -19553,7 +22977,7 @@ module.exports = {
             'budget.release',
             'settlement.prepareBilling',
             'external.connector.call',
-            'personal-agent.execute'
+            'personal-agent.execute',
           ],
         },
         validationFindings: blockingFindings,
@@ -19573,18 +22997,29 @@ module.exports = {
     },
 
     buildCapacityContractRiskAssetCockpitStatus(params = {}) {
-      const toList = (value) => Array.isArray(value)
-        ? value.filter(Boolean)
-        : value
-          ? String(value).split(',').map((item) => item.trim()).filter(Boolean)
-          : [];
+      const toList = (value) =>
+        Array.isArray(value)
+          ? value.filter(Boolean)
+          : value
+            ? String(value)
+                .split(',')
+                .map((item) => item.trim())
+                .filter(Boolean)
+            : [];
       const sourceRefs = toList(params.sourceRef);
 
       const evidenceSpecs = [
         {
           id: 'utilization',
           label: 'Netzauslastung',
-          value: typeof params.utilization === 'number' ? params.utilization : params.utilization !== undefined && params.utilization !== null && params.utilization !== '' ? Number(params.utilization) : null,
+          value:
+            typeof params.utilization === 'number'
+              ? params.utilization
+              : params.utilization !== undefined &&
+                  params.utilization !== null &&
+                  params.utilization !== ''
+                ? Number(params.utilization)
+                : null,
           sourceClass: 'capacity_utilization_check',
           enablesDossierAddition: 'verify the technical capacity utilization or load profile',
         },
@@ -19612,14 +23047,24 @@ module.exports = {
         {
           id: 'capex',
           label: 'CAPEX Investitionsoption',
-          value: typeof params.capex === 'number' ? params.capex : params.capex !== undefined && params.capex !== null && params.capex !== '' ? Number(params.capex) : null,
+          value:
+            typeof params.capex === 'number'
+              ? params.capex
+              : params.capex !== undefined && params.capex !== null && params.capex !== ''
+                ? Number(params.capex)
+                : null,
           sourceClass: 'financial_capex_specification',
           enablesDossierAddition: 'specify capex requirements or project budget',
         },
         {
           id: 'opex',
           label: 'OPEX Betriebskosten',
-          value: typeof params.opex === 'number' ? params.opex : params.opex !== undefined && params.opex !== null && params.opex !== '' ? Number(params.opex) : null,
+          value:
+            typeof params.opex === 'number'
+              ? params.opex
+              : params.opex !== undefined && params.opex !== null && params.opex !== ''
+                ? Number(params.opex)
+                : null,
           sourceClass: 'financial_opex_estimation',
           enablesDossierAddition: 'specify opex or recurring network charges',
         },
@@ -19648,7 +23093,13 @@ module.exports = {
       ];
 
       const evidenceItems = evidenceSpecs
-        .filter((spec) => spec.value !== undefined && spec.value !== null && spec.value !== false && spec.value !== '')
+        .filter(
+          (spec) =>
+            spec.value !== undefined &&
+            spec.value !== null &&
+            spec.value !== false &&
+            spec.value !== ''
+        )
         .map((spec) => ({
           id: spec.id,
           label: spec.label,
@@ -19658,7 +23109,13 @@ module.exports = {
         }));
 
       const missingEvidence = evidenceSpecs
-        .filter((spec) => spec.value === undefined || spec.value === null || spec.value === false || spec.value === '')
+        .filter(
+          (spec) =>
+            spec.value === undefined ||
+            spec.value === null ||
+            spec.value === false ||
+            spec.value === ''
+        )
         .map((spec) => ({
           missingDataPoint: spec.id,
           label: spec.label,
@@ -19670,11 +23127,23 @@ module.exports = {
       let riskLevel = 'low';
       let decisionStatus = 'approve';
 
-      const ut = typeof params.utilization === 'number' ? params.utilization : params.utilization !== undefined && params.utilization !== null && params.utilization !== '' ? Number(params.utilization) : null;
+      const ut =
+        typeof params.utilization === 'number'
+          ? params.utilization
+          : params.utilization !== undefined &&
+              params.utilization !== null &&
+              params.utilization !== ''
+            ? Number(params.utilization)
+            : null;
       const bn = params.bottleneck;
       const cs = params.contractStatus;
       const ls = params.legalStatus;
-      const cx = typeof params.capex === 'number' ? params.capex : params.capex !== undefined && params.capex !== null && params.capex !== '' ? Number(params.capex) : null;
+      const cx =
+        typeof params.capex === 'number'
+          ? params.capex
+          : params.capex !== undefined && params.capex !== null && params.capex !== ''
+            ? Number(params.capex)
+            : null;
 
       if (ut !== null) {
         if (ut > 1.2) {
@@ -19712,30 +23181,30 @@ module.exports = {
         riskLevel = 'medium';
       }
 
-      const status =
-        !params.gridOperatorId
-          ? 'needs_grid_operator_id'
-          : ut === null
-            ? 'needs_utilization'
-            : !bn
-              ? 'needs_bottleneck'
-              : !cs
-                ? 'needs_contract_status'
-                : !ls
-                  ? 'needs_legal_status'
-                  : cx === null
-                    ? 'needs_capex'
-                    : typeof params.opex !== 'number' && (params.opex === undefined || params.opex === null || params.opex === '')
-                      ? 'needs_opex'
-                      : !params.owner
-                        ? 'needs_owner'
-                        : !params.nextAction
-                          ? 'needs_next_action'
-                          : sourceRefs.length === 0
-                            ? 'needs_source_refs'
-                            : decisionStatus === 'approve'
-                              ? 'ready_with_no_risk'
-                              : 'ready_with_risk_findings';
+      const status = !params.gridOperatorId
+        ? 'needs_grid_operator_id'
+        : ut === null
+          ? 'needs_utilization'
+          : !bn
+            ? 'needs_bottleneck'
+            : !cs
+              ? 'needs_contract_status'
+              : !ls
+                ? 'needs_legal_status'
+                : cx === null
+                  ? 'needs_capex'
+                  : typeof params.opex !== 'number' &&
+                      (params.opex === undefined || params.opex === null || params.opex === '')
+                    ? 'needs_opex'
+                    : !params.owner
+                      ? 'needs_owner'
+                      : !params.nextAction
+                        ? 'needs_next_action'
+                        : sourceRefs.length === 0
+                          ? 'needs_source_refs'
+                          : decisionStatus === 'approve'
+                            ? 'ready_with_no_risk'
+                            : 'ready_with_risk_findings';
 
       // If there are missing fields, the overall decisionStatus might be forced to "needs_evidence"
       const finalDecisionStatus = missingEvidence.length > 0 ? 'needs_evidence' : decisionStatus;
@@ -19751,7 +23220,9 @@ module.exports = {
 
       const blockingFindings = missingEvidence.map((item) => ({
         code: `CCRC_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
-        severity: ['utilization', 'bottleneck', 'contract_status', 'legal_status'].includes(item.missingDataPoint)
+        severity: ['utilization', 'bottleneck', 'contract_status', 'legal_status'].includes(
+          item.missingDataPoint
+        )
           ? 'high'
           : 'medium',
         message: item.enablesDossierAddition,
@@ -19764,13 +23235,29 @@ module.exports = {
       const complianceEvidence = {
         utilization: ut,
         bottleneck: bn || null,
-        firmCapacityKW: typeof params.firmCapacityKW === 'number' ? params.firmCapacityKW : params.firmCapacityKW ? Number(params.firmCapacityKW) : null,
-        flexibleCapacityKW: typeof params.flexibleCapacityKW === 'number' ? params.flexibleCapacityKW : params.flexibleCapacityKW ? Number(params.flexibleCapacityKW) : null,
+        firmCapacityKW:
+          typeof params.firmCapacityKW === 'number'
+            ? params.firmCapacityKW
+            : params.firmCapacityKW
+              ? Number(params.firmCapacityKW)
+              : null,
+        flexibleCapacityKW:
+          typeof params.flexibleCapacityKW === 'number'
+            ? params.flexibleCapacityKW
+            : params.flexibleCapacityKW
+              ? Number(params.flexibleCapacityKW)
+              : null,
         contractStatus: cs || null,
         legalStatus: ls || null,
-        altvereinbarung: typeof params.altvereinbarung === 'boolean' ? params.altvereinbarung : params.altvereinbarung ? String(params.altvereinbarung) === 'true' : null,
+        altvereinbarung:
+          typeof params.altvereinbarung === 'boolean'
+            ? params.altvereinbarung
+            : params.altvereinbarung
+              ? String(params.altvereinbarung) === 'true'
+              : null,
         capex: cx,
-        opex: typeof params.opex === 'number' ? params.opex : params.opex ? Number(params.opex) : null,
+        opex:
+          typeof params.opex === 'number' ? params.opex : params.opex ? Number(params.opex) : null,
         owner: params.owner || null,
         nextAction: params.nextAction || null,
       };
@@ -19801,7 +23288,9 @@ module.exports = {
       ];
 
       return {
-        capacityContractRiskId: `ccrc:${Buffer.from(`${params.gridOperatorId || ''}`).toString('base64url').slice(0, 24)}`,
+        capacityContractRiskId: `ccrc:${Buffer.from(`${params.gridOperatorId || ''}`)
+          .toString('base64url')
+          .slice(0, 24)}`,
         capabilityKey: 'capacity_contract_risk_asset_cockpit',
         safety: 'read_only',
         requestContext: complianceContext,
@@ -19872,18 +23361,27 @@ module.exports = {
     },
 
     buildImsysTaf2ComplianceStatus(params = {}) {
-      const toList = (value) => Array.isArray(value)
-        ? value.filter(Boolean)
-        : value
-          ? String(value).split(',').map((item) => item.trim()).filter(Boolean)
-          : [];
+      const toList = (value) =>
+        Array.isArray(value)
+          ? value.filter(Boolean)
+          : value
+            ? String(value)
+                .split(',')
+                .map((item) => item.trim())
+                .filter(Boolean)
+            : [];
       const sourceRefs = toList(params.sourceRef);
 
       const evidenceSpecs = [
         {
           id: 'taf2_obligation',
           label: 'TAF2 Obligation',
-          value: typeof params.taf2Obligation === 'boolean' ? params.taf2Obligation : params.taf2Obligation ? String(params.taf2Obligation) === 'true' : null,
+          value:
+            typeof params.taf2Obligation === 'boolean'
+              ? params.taf2Obligation
+              : params.taf2Obligation
+                ? String(params.taf2Obligation) === 'true'
+                : null,
           sourceClass: 'taf2_obligation_verification',
           enablesDossierAddition: 'verify the TAF-2 legal requirement or rollout obligation',
         },
@@ -19913,7 +23411,8 @@ module.exports = {
           label: 'Measured Value Access',
           value: params.measuredValueAccess,
           sourceClass: 'taf2_access_verification',
-          enablesDossierAddition: 'verify the secure measured value access or data communication route',
+          enablesDossierAddition:
+            'verify the secure measured value access or data communication route',
         },
         {
           id: 'owner',
@@ -19958,26 +23457,25 @@ module.exports = {
           enablesDossierAddition: spec.enablesDossierAddition,
         }));
 
-      const status =
-        !params.meteringPointId
-          ? 'needs_metering_point_id'
-          : (params.taf2Obligation === undefined || params.taf2Obligation === null)
-            ? 'needs_taf2_obligation'
-            : !params.targetDeadline
-              ? 'needs_target_deadline'
-              : !params.tariffModel
-                ? 'needs_tariff_model'
-                : !params.implementationStatus
-                  ? 'needs_implementation_status'
-                  : !params.measuredValueAccess
-                    ? 'needs_measured_value_access'
-                    : !params.owner
-                      ? 'needs_owner'
-                      : !params.nextAction
-                        ? 'needs_next_action'
-                        : sourceRefs.length === 0
-                          ? 'needs_source_refs'
-                          : 'ready_for_compliance_decision';
+      const status = !params.meteringPointId
+        ? 'needs_metering_point_id'
+        : params.taf2Obligation === undefined || params.taf2Obligation === null
+          ? 'needs_taf2_obligation'
+          : !params.targetDeadline
+            ? 'needs_target_deadline'
+            : !params.tariffModel
+              ? 'needs_tariff_model'
+              : !params.implementationStatus
+                ? 'needs_implementation_status'
+                : !params.measuredValueAccess
+                  ? 'needs_measured_value_access'
+                  : !params.owner
+                    ? 'needs_owner'
+                    : !params.nextAction
+                      ? 'needs_next_action'
+                      : sourceRefs.length === 0
+                        ? 'needs_source_refs'
+                        : 'ready_for_compliance_decision';
 
       const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
       const complianceScore = readinessScore;
@@ -19990,7 +23488,12 @@ module.exports = {
 
       const blockingFindings = missingEvidence.map((item) => ({
         code: `ITCS_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
-        severity: ['taf2_obligation', 'target_deadline', 'tariff_model', 'measured_value_access'].includes(item.missingDataPoint)
+        severity: [
+          'taf2_obligation',
+          'target_deadline',
+          'tariff_model',
+          'measured_value_access',
+        ].includes(item.missingDataPoint)
           ? 'high'
           : 'medium',
         message: item.enablesDossierAddition,
@@ -20001,7 +23504,12 @@ module.exports = {
       };
 
       const complianceEvidence = {
-        taf2Obligation: typeof params.taf2Obligation === 'boolean' ? params.taf2Obligation : params.taf2Obligation ? String(params.taf2Obligation) === 'true' : null,
+        taf2Obligation:
+          typeof params.taf2Obligation === 'boolean'
+            ? params.taf2Obligation
+            : params.taf2Obligation
+              ? String(params.taf2Obligation) === 'true'
+              : null,
         targetDeadline: params.targetDeadline || null,
         tariffModel: params.tariffModel || null,
         implementationStatus: params.implementationStatus || null,
@@ -20018,7 +23526,9 @@ module.exports = {
       if (params.meteringPointId) dossierFacts.push(`Metering Point ID: ${params.meteringPointId}`);
 
       return {
-        imsysTaf2ComplianceStatusId: `itcs:${Buffer.from(`${params.meteringPointId || ''}`).toString('base64url').slice(0, 24)}`,
+        imsysTaf2ComplianceStatusId: `itcs:${Buffer.from(`${params.meteringPointId || ''}`)
+          .toString('base64url')
+          .slice(0, 24)}`,
         capabilityKey: 'imsys_taf2_compliance_status',
         safety: 'read_only',
         requestContext: complianceContext,
@@ -20044,7 +23554,7 @@ module.exports = {
             'vdmi.dossier',
             'interface-placeholder.requestEvidence',
             'finance-agent.analyze',
-            'hitl.create'
+            'hitl.create',
           ],
           notCalled: [
             'hitl.create',
@@ -20053,7 +23563,7 @@ module.exports = {
             'settlement.prepareBilling',
             'grid-operations.executeControl',
             'external.connector.call',
-            'personal-agent.execute'
+            'personal-agent.execute',
           ],
         },
         validationFindings: blockingFindings,
@@ -20077,7 +23587,10 @@ module.exports = {
       const toList = (value) => {
         if (Array.isArray(value)) return value.filter(Boolean);
         if (value && typeof value === 'string') {
-          return value.split(',').map((item) => item.trim()).filter(Boolean);
+          return value
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean);
         }
         return [];
       };
@@ -20103,7 +23616,8 @@ module.exports = {
           label: 'Faehigkeits-Reifegrad',
           value: params.capabilityMaturity,
           sourceClass: 'roadmap_maturity_assessment',
-          enablesDossierAddition: 'assess the capability maturity level (concept, pilot_ready, operational)',
+          enablesDossierAddition:
+            'assess the capability maturity level (concept, pilot_ready, operational)',
         },
         {
           id: 'data_objects',
@@ -20111,7 +23625,8 @@ module.exports = {
           value: dataObjects.length > 0,
           displayValue: dataObjects.join(', '),
           sourceClass: 'data_object_mapping',
-          enablesDossierAddition: 'map required data objects (Anschlussbegehren, Netzfahrplan, Messdaten, etc.)',
+          enablesDossierAddition:
+            'map required data objects (Anschlussbegehren, Netzfahrplan, Messdaten, etc.)',
         },
         {
           id: 'system_integrations',
@@ -20119,7 +23634,8 @@ module.exports = {
           value: systemIntegrations.length > 0,
           displayValue: systemIntegrations.join(', '),
           sourceClass: 'system_integration_definition',
-          enablesDossierAddition: 'define connected core systems (EDM, Redispatch, Grid Operations)',
+          enablesDossierAddition:
+            'define connected core systems (EDM, Redispatch, Grid Operations)',
         },
         {
           id: 'role_ownership',
@@ -20127,21 +23643,24 @@ module.exports = {
           value: roleOwnership.length > 0,
           displayValue: roleOwnership.join(', '),
           sourceClass: 'role_ownership_matrix',
-          enablesDossierAddition: 'assign roles and process sponsorship (Assetmanagement, Netzbetrieb, Legal, PMO)',
+          enablesDossierAddition:
+            'assign roles and process sponsorship (Assetmanagement, Netzbetrieb, Legal, PMO)',
         },
         {
           id: 'redispatch_boundary',
           label: 'Redispatch-Grenzbereich',
           value: params.redispatchBoundary,
           sourceClass: 'redispatch_boundary_clarification',
-          enablesDossierAddition: 'clarify the Redispatch 2.0 system boundaries and data exchange interfaces',
+          enablesDossierAddition:
+            'clarify the Redispatch 2.0 system boundaries and data exchange interfaces',
         },
         {
           id: 'fnav_readiness',
           label: 'fNAV-Bereitschaft',
           value: params.fnavReadiness,
           sourceClass: 'fnav_readiness_validation',
-          enablesDossierAddition: 'validate fNAV/netzfahrplan legal or contract status ready for operational integration',
+          enablesDossierAddition:
+            'validate fNAV/netzfahrplan legal or contract status ready for operational integration',
         },
         {
           id: 'capacity_management_gaps',
@@ -20149,7 +23668,8 @@ module.exports = {
           value: capacityManagementGaps.length > 0,
           displayValue: capacityManagementGaps.join(', '),
           sourceClass: 'capacity_gap_identification',
-          enablesDossierAddition: 'identify capacity bottlenecks, flexibility constraints or tariff gaps',
+          enablesDossierAddition:
+            'identify capacity bottlenecks, flexibility constraints or tariff gaps',
         },
         {
           id: 'roadmap_items',
@@ -20210,34 +23730,33 @@ module.exports = {
           enablesDossierAddition: spec.enablesDossierAddition,
         }));
 
-      const status =
-        !params.targetState
-          ? 'needs_target_state'
-          : !params.capabilityMaturity
-            ? 'needs_capability_maturity'
-            : dataObjects.length === 0
-              ? 'needs_data_objects'
-              : systemIntegrations.length === 0
-                ? 'needs_system_integrations'
-                : roleOwnership.length === 0
-                  ? 'needs_role_ownership'
-                  : !params.redispatchBoundary
-                    ? 'needs_redispatch_boundary'
-                    : !params.fnavReadiness
-                      ? 'needs_fnav_readiness'
-                      : capacityManagementGaps.length === 0
-                        ? 'needs_capacity_management_gaps'
-                        : roadmapItems.length === 0
-                          ? 'needs_roadmap_items'
-                          : decisionMeetings.length === 0
-                            ? 'needs_decision_meetings'
-                            : !params.owner
-                              ? 'needs_owner'
-                              : !params.nextAction
-                                ? 'needs_next_action'
-                                : sourceRefs.length === 0
-                                  ? 'needs_source_refs'
-                                  : 'operational';
+      const status = !params.targetState
+        ? 'needs_target_state'
+        : !params.capabilityMaturity
+          ? 'needs_capability_maturity'
+          : dataObjects.length === 0
+            ? 'needs_data_objects'
+            : systemIntegrations.length === 0
+              ? 'needs_system_integrations'
+              : roleOwnership.length === 0
+                ? 'needs_role_ownership'
+                : !params.redispatchBoundary
+                  ? 'needs_redispatch_boundary'
+                  : !params.fnavReadiness
+                    ? 'needs_fnav_readiness'
+                    : capacityManagementGaps.length === 0
+                      ? 'needs_capacity_management_gaps'
+                      : roadmapItems.length === 0
+                        ? 'needs_roadmap_items'
+                        : decisionMeetings.length === 0
+                          ? 'needs_decision_meetings'
+                          : !params.owner
+                            ? 'needs_owner'
+                            : !params.nextAction
+                              ? 'needs_next_action'
+                              : sourceRefs.length === 0
+                                ? 'needs_source_refs'
+                                : 'operational';
 
       const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
       const complianceScore = readinessScore;
@@ -20250,7 +23769,9 @@ module.exports = {
 
       const blockingFindings = missingEvidence.map((item) => ({
         code: `SMGR_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
-        severity: ['target_state', 'capability_maturity', 'owner', 'next_action'].includes(item.missingDataPoint)
+        severity: ['target_state', 'capability_maturity', 'owner', 'next_action'].includes(
+          item.missingDataPoint
+        )
           ? 'high'
           : 'medium',
         message: item.enablesDossierAddition,
@@ -20283,7 +23804,11 @@ module.exports = {
       if (params.meteringPointId) dossierFacts.push(`Metering Point ID: ${params.meteringPointId}`);
 
       return {
-        scheduleManagementGovernanceRoadmapStatusId: `smgr:${Buffer.from(`${params.meteringPointId || ''}`).toString('base64url').slice(0, 24)}`,
+        scheduleManagementGovernanceRoadmapStatusId: `smgr:${Buffer.from(
+          `${params.meteringPointId || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 24)}`,
         capabilityKey: 'schedule_management_governance_roadmap',
         safety: 'read_only',
         requestContext: complianceContext,
@@ -20309,7 +23834,7 @@ module.exports = {
             'edm-validation.validate',
             'datapoint.health',
             'vdmi.dossier',
-            'interface-placeholder.requestEvidence'
+            'interface-placeholder.requestEvidence',
           ],
           notCalled: [
             'hitl.create',
@@ -20317,7 +23842,7 @@ module.exports = {
             'external.connector.call',
             'personal-agent.execute',
             'finance-agent.mutate',
-            'settlement.prepareBilling'
+            'settlement.prepareBilling',
           ],
         },
         validationFindings: blockingFindings,
@@ -20341,7 +23866,10 @@ module.exports = {
       const toList = (value) => {
         if (Array.isArray(value)) return value.filter(Boolean);
         if (value && typeof value === 'string') {
-          return value.split(',').map((item) => item.trim()).filter(Boolean);
+          return value
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean);
         }
         return [];
       };
@@ -20368,7 +23896,8 @@ module.exports = {
           value: nodes.length > 0,
           displayValue: nodes.join(', '),
           sourceClass: 'transformation_nodes_specification',
-          enablesDossierAddition: 'specify the transformation nodes or options (e.g. h2_ready, heat_network, decommission, repurpose)',
+          enablesDossierAddition:
+            'specify the transformation nodes or options (e.g. h2_ready, heat_network, decommission, repurpose)',
         },
         {
           id: 'dependencies',
@@ -20376,7 +23905,8 @@ module.exports = {
           value: dependencies.length > 0,
           displayValue: dependencies.join(', '),
           sourceClass: 'transformation_dependencies_specification',
-          enablesDossierAddition: 'define the dependencies or blockages between transformation options',
+          enablesDossierAddition:
+            'define the dependencies or blockages between transformation options',
         },
         {
           id: 'data_quality_gaps',
@@ -20453,28 +23983,27 @@ module.exports = {
           enablesDossierAddition: spec.enablesDossierAddition,
         }));
 
-      const status =
-        !params.division
-          ? 'needs_division'
-          : nodes.length === 0
-            ? 'needs_nodes'
-            : dependencies.length === 0
-              ? 'needs_dependencies'
-              : dataQualityGaps.length === 0
-                ? 'needs_data_quality_gaps'
-                : investmentPaths.length === 0
-                  ? 'needs_investment_paths'
-                  : decommissionRepurposePaths.length === 0
-                    ? 'needs_decommission_repurpose_paths'
-                    : customerGroups.length === 0
-                      ? 'needs_customer_groups'
-                      : !params.owner
-                        ? 'needs_owner'
-                        : !params.nextAction
-                          ? 'needs_next_action'
-                          : sourceRefs.length === 0
-                            ? 'needs_source_refs'
-                            : 'ready_for_transformation_decision';
+      const status = !params.division
+        ? 'needs_division'
+        : nodes.length === 0
+          ? 'needs_nodes'
+          : dependencies.length === 0
+            ? 'needs_dependencies'
+            : dataQualityGaps.length === 0
+              ? 'needs_data_quality_gaps'
+              : investmentPaths.length === 0
+                ? 'needs_investment_paths'
+                : decommissionRepurposePaths.length === 0
+                  ? 'needs_decommission_repurpose_paths'
+                  : customerGroups.length === 0
+                    ? 'needs_customer_groups'
+                    : !params.owner
+                      ? 'needs_owner'
+                      : !params.nextAction
+                        ? 'needs_next_action'
+                        : sourceRefs.length === 0
+                          ? 'needs_source_refs'
+                          : 'ready_for_transformation_decision';
 
       const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
       const complianceScore = readinessScore;
@@ -20517,7 +24046,9 @@ module.exports = {
       if (params.projectId) dossierFacts.push(`Project ID: ${params.projectId}`);
 
       return {
-        gasTransformationDependencyMapStatusId: `gtdm:${Buffer.from(`${params.projectId || ''}`).toString('base64url').slice(0, 24)}`,
+        gasTransformationDependencyMapStatusId: `gtdm:${Buffer.from(`${params.projectId || ''}`)
+          .toString('base64url')
+          .slice(0, 24)}`,
         capabilityKey: 'gas_transformation_dependency_map',
         safety: 'read_only',
         requestContext: complianceContext,
@@ -20542,7 +24073,7 @@ module.exports = {
             'assets.effective',
             'datapoint.health',
             'vdmi.dossier',
-            'interface-placeholder.requestEvidence'
+            'interface-placeholder.requestEvidence',
           ],
           notCalled: [
             'hitl.create',
@@ -20553,7 +24084,7 @@ module.exports = {
             'investment-planning.createPlan',
             'vdmi.mutate',
             'personal-agent.execute',
-            'external.connector.call'
+            'external.connector.call',
           ],
         },
         validationFindings: blockingFindings,
@@ -20577,7 +24108,10 @@ module.exports = {
       const toList = (value) => {
         if (Array.isArray(value)) return value.filter(Boolean);
         if (value && typeof value === 'string') {
-          return value.split(',').map((item) => item.trim()).filter(Boolean);
+          return value
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean);
         }
         return [];
       };
@@ -20590,42 +24124,48 @@ module.exports = {
           label: 'Sparte',
           value: params.division,
           sourceClass: 'division_specification',
-          enablesDossierAddition: 'define the division or sector context (e.g. Gas, Electricity, Heat)',
+          enablesDossierAddition:
+            'define the division or sector context (e.g. Gas, Electricity, Heat)',
         },
         {
           id: 'transformation_option',
           label: 'Transformationsoption',
           value: params.transformationOption,
           sourceClass: 'transformation_option_specification',
-          enablesDossierAddition: 'specify the transformation option or scenario (e.g. h2_ready, electrification, hybrid, decommission)',
+          enablesDossierAddition:
+            'specify the transformation option or scenario (e.g. h2_ready, electrification, hybrid, decommission)',
         },
         {
           id: 'data_quality_status',
           label: 'Datenqualitaetsstatus',
           value: params.dataQualityStatus,
           sourceClass: 'data_quality_evaluation',
-          enablesDossierAddition: 'verify data quality status for grid connection transformation (e.g. verified, incomplete, missing)',
+          enablesDossierAddition:
+            'verify data quality status for grid connection transformation (e.g. verified, incomplete, missing)',
         },
         {
           id: 'investment_path',
           label: 'Investitionspfad',
           value: params.investmentPath,
           sourceClass: 'investment_path_identification',
-          enablesDossierAddition: 'identify required investment path (e.g. capex_approved, budget_needed)',
+          enablesDossierAddition:
+            'identify required investment path (e.g. capex_approved, budget_needed)',
         },
         {
           id: 'decommission_path',
           label: 'Stilllegungspfad',
           value: params.decommissionPath,
           sourceClass: 'decommission_path_specification',
-          enablesDossierAddition: 'define decommission or repurpose path (e.g. 2035_shut_down, repurpose)',
+          enablesDossierAddition:
+            'define decommission or repurpose path (e.g. 2035_shut_down, repurpose)',
         },
         {
           id: 'owner',
           label: 'Owner',
           value: params.owner,
           sourceClass: 'responsibility_assignment',
-          enablesDossierAddition: 'assign an accountable owner role or process sponsor (e.g. Netznutzung, Assetmanagement)',
+          enablesDossierAddition:
+            'assign an accountable owner role or process sponsor (e.g. Netznutzung, Assetmanagement)',
         },
         {
           id: 'next_action',
@@ -20663,24 +24203,23 @@ module.exports = {
           enablesDossierAddition: spec.enablesDossierAddition,
         }));
 
-      const status =
-        !params.division
-          ? 'needs_division'
-          : !params.transformationOption
-            ? 'needs_transformation_option'
-            : !params.dataQualityStatus
-              ? 'needs_data_quality_status'
-              : !params.investmentPath
-                ? 'needs_investment_path'
-                : !params.decommissionPath
-                  ? 'needs_decommission_path'
-                  : !params.owner
-                    ? 'needs_owner'
-                    : !params.nextAction
-                      ? 'needs_next_action'
-                      : sourceRefs.length === 0
-                        ? 'needs_source_refs'
-                        : 'ready_for_transformation_decision';
+      const status = !params.division
+        ? 'needs_division'
+        : !params.transformationOption
+          ? 'needs_transformation_option'
+          : !params.dataQualityStatus
+            ? 'needs_data_quality_status'
+            : !params.investmentPath
+              ? 'needs_investment_path'
+              : !params.decommissionPath
+                ? 'needs_decommission_path'
+                : !params.owner
+                  ? 'needs_owner'
+                  : !params.nextAction
+                    ? 'needs_next_action'
+                    : sourceRefs.length === 0
+                      ? 'needs_source_refs'
+                      : 'ready_for_transformation_decision';
 
       const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
       const complianceScore = readinessScore;
@@ -20690,13 +24229,29 @@ module.exports = {
       if (status === 'ready_for_transformation_decision') {
         const option = String(params.transformationOption).toLowerCase();
         const next = String(params.nextAction).toLowerCase();
-        if (option.includes('decommission') || option.includes('stilllegung') || option.includes('shut_down')) {
+        if (
+          option.includes('decommission') ||
+          option.includes('stilllegung') ||
+          option.includes('shut_down')
+        ) {
           gateStatus = 'decommission';
-        } else if (option.includes('repurpose') || option.includes('umwidmung') || option.includes('h2_ready')) {
+        } else if (
+          option.includes('repurpose') ||
+          option.includes('umwidmung') ||
+          option.includes('h2_ready')
+        ) {
           gateStatus = 'repurpose';
-        } else if (option.includes('invest') || option.includes('electrification') || option.includes('ausbau')) {
+        } else if (
+          option.includes('invest') ||
+          option.includes('electrification') ||
+          option.includes('ausbau')
+        ) {
           gateStatus = 'invest';
-        } else if (next.includes('governance') || next.includes('freigabe') || next.includes('entscheidung')) {
+        } else if (
+          next.includes('governance') ||
+          next.includes('freigabe') ||
+          next.includes('entscheidung')
+        ) {
           gateStatus = 'needs_governance';
         } else {
           gateStatus = 'monitor';
@@ -20714,7 +24269,9 @@ module.exports = {
 
       const blockingFindings = missingEvidence.map((item) => ({
         code: `GCTG_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
-        severity: ['division', 'transformation_option', 'owner', 'next_action'].includes(item.missingDataPoint)
+        severity: ['division', 'transformation_option', 'owner', 'next_action'].includes(
+          item.missingDataPoint
+        )
           ? 'high'
           : 'medium',
         message: item.enablesDossierAddition,
@@ -20743,7 +24300,11 @@ module.exports = {
       if (params.meteringPointId) dossierFacts.push(`Metering Point ID: ${params.meteringPointId}`);
 
       return {
-        gridConnectionTransformationGateStatusId: `gctg:${Buffer.from(`${params.meteringPointId || ''}`).toString('base64url').slice(0, 24)}`,
+        gridConnectionTransformationGateStatusId: `gctg:${Buffer.from(
+          `${params.meteringPointId || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 24)}`,
         capabilityKey: 'grid_connection_transformation_gate',
         safety: 'read_only',
         requestContext: complianceContext,
@@ -20770,7 +24331,7 @@ module.exports = {
             'znp.assessPortfolio',
             'assets.effective',
             'vdmi.dossier',
-            'interface-placeholder.requestEvidence'
+            'interface-placeholder.requestEvidence',
           ],
           notCalled: [
             'hitl.create',
@@ -20780,7 +24341,7 @@ module.exports = {
             'investment-planning.createPlan',
             'vdmi.mutate',
             'personal-agent.execute',
-            'external.connector.call'
+            'external.connector.call',
           ],
         },
         validationFindings: blockingFindings,
@@ -20805,7 +24366,10 @@ module.exports = {
       const toList = (value) => {
         if (Array.isArray(value)) return value.filter(Boolean);
         if (value && typeof value === 'string') {
-          return value.split(',').map((item) => item.trim()).filter(Boolean);
+          return value
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean);
         }
         return [];
       };
@@ -20818,70 +24382,80 @@ module.exports = {
           label: 'Sparte',
           value: params.division,
           sourceClass: 'division_specification',
-          enablesDossierAddition: 'define the division or sector context (e.g. Gas, Electricity, Heat)',
+          enablesDossierAddition:
+            'define the division or sector context (e.g. Gas, Electricity, Heat)',
         },
         {
           id: 'technical_measures',
           label: 'Technische Massnahmen',
           value: params.technicalMeasures,
           sourceClass: 'technical_measures_evaluation',
-          enablesDossierAddition: 'verify technical measures status for district heating (e.g. planned, in_progress, completed)',
+          enablesDossierAddition:
+            'verify technical measures status for district heating (e.g. planned, in_progress, completed)',
         },
         {
           id: 'tariff_impact_status',
           label: 'Tarifwirkung',
           value: params.tariffImpactStatus,
           sourceClass: 'tariff_impact_evaluation',
-          enablesDossierAddition: 'verify tariff and pricing impact status (e.g. calculated, pending, high_risk)',
+          enablesDossierAddition:
+            'verify tariff and pricing impact status (e.g. calculated, pending, high_risk)',
         },
         {
           id: 'regulatory_uncertainty',
           label: 'Regulatorische Unsicherheit',
           value: params.regulatoryUncertainty,
           sourceClass: 'regulatory_uncertainty_evaluation',
-          enablesDossierAddition: 'verify Totex/regulatory or recognition risk status (e.g. low_risk, transient, high_risk)',
+          enablesDossierAddition:
+            'verify Totex/regulatory or recognition risk status (e.g. low_risk, transient, high_risk)',
         },
         {
           id: 'funding_status',
           label: 'Foerderstatus',
           value: params.fundingStatus,
           sourceClass: 'funding_evaluation',
-          enablesDossierAddition: 'verify subsidies and funding status (e.g. requested, approved, none)',
+          enablesDossierAddition:
+            'verify subsidies and funding status (e.g. requested, approved, none)',
         },
         {
           id: 'customer_impact',
           label: 'Kundenauswirkung',
           value: params.customerImpact,
           sourceClass: 'customer_impact_evaluation',
-          enablesDossierAddition: 'verify customer connection obligation and cost impact (e.g. positive, neutral, negative)',
+          enablesDossierAddition:
+            'verify customer connection obligation and cost impact (e.g. positive, neutral, negative)',
         },
         {
           id: 'investment_priority',
           label: 'Investment Priority',
           value: params.investmentPriority,
           sourceClass: 'investment_priority_evaluation',
-          enablesDossierAddition: 'verify investment priority and readiness score (e.g. high, medium, low)',
+          enablesDossierAddition:
+            'verify investment priority and readiness score (e.g. high, medium, low)',
         },
         {
           id: 'owner',
           label: 'Owner',
           value: params.owner,
           sourceClass: 'responsibility_assignment',
-          enablesDossierAddition: 'assign an accountable owner role or process sponsor (e.g. Assetmanagement Fernwärme)',
+          enablesDossierAddition:
+            'assign an accountable owner role or process sponsor (e.g. Assetmanagement Fernwärme)',
         },
         {
           id: 'next_decision_gate',
           label: 'Next Decision Gate',
           value: params.nextDecisionGate,
           sourceClass: 'next_decision_action',
-          enablesDossierAddition: 'define immediate next decision gate (e.g. Investment Committee Window Q3)',
+          enablesDossierAddition:
+            'define immediate next decision gate (e.g. Investment Committee Window Q3)',
         },
         {
           id: 'blocked_follow_up_action',
           label: 'Blocked Follow-Up Action',
           value: params.blockedFollowUpAction,
           sourceClass: 'blocked_follow_up_action',
-          enablesDossierAddition: 'identify any blocked follow-up action (e.g. investment-planning.createPlan)',
+          enablesDossierAddition:
+            'identify any blocked follow-up action (e.g. investment-planning.createPlan)',
         },
         {
           id: 'source_refs',
@@ -20912,30 +24486,29 @@ module.exports = {
           enablesDossierAddition: spec.enablesDossierAddition,
         }));
 
-      const status =
-        !params.division
-          ? 'needs_division'
-          : !params.technicalMeasures
-            ? 'needs_technical_measures'
-            : !params.tariffImpactStatus
-              ? 'needs_tariff_impact_status'
-              : !params.regulatoryUncertainty
-                ? 'needs_regulatory_uncertainty'
-                : !params.fundingStatus
-                  ? 'needs_funding_status'
-                  : !params.customerImpact
-                    ? 'needs_customer_impact'
-                    : !params.investmentPriority
-                      ? 'needs_investment_priority'
-                      : !params.owner
-                        ? 'needs_owner'
-                        : !params.nextDecisionGate
-                          ? 'needs_next_decision_gate'
-                          : !params.blockedFollowUpAction
-                            ? 'needs_blocked_follow_up_action'
-                            : sourceRefs.length === 0
-                              ? 'needs_source_refs'
-                              : 'ready_for_steering_decision';
+      const status = !params.division
+        ? 'needs_division'
+        : !params.technicalMeasures
+          ? 'needs_technical_measures'
+          : !params.tariffImpactStatus
+            ? 'needs_tariff_impact_status'
+            : !params.regulatoryUncertainty
+              ? 'needs_regulatory_uncertainty'
+              : !params.fundingStatus
+                ? 'needs_funding_status'
+                : !params.customerImpact
+                  ? 'needs_customer_impact'
+                  : !params.investmentPriority
+                    ? 'needs_investment_priority'
+                    : !params.owner
+                      ? 'needs_owner'
+                      : !params.nextDecisionGate
+                        ? 'needs_next_decision_gate'
+                        : !params.blockedFollowUpAction
+                          ? 'needs_blocked_follow_up_action'
+                          : sourceRefs.length === 0
+                            ? 'needs_source_refs'
+                            : 'ready_for_steering_decision';
 
       const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
       const complianceScore = readinessScore;
@@ -20962,7 +24535,9 @@ module.exports = {
 
       const blockingFindings = missingEvidence.map((item) => ({
         code: `HATS_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
-        severity: ['division', 'technical_measures', 'owner', 'next_decision_gate'].includes(item.missingDataPoint)
+        severity: ['division', 'technical_measures', 'owner', 'next_decision_gate'].includes(
+          item.missingDataPoint
+        )
           ? 'high'
           : 'medium',
         message: item.enablesDossierAddition,
@@ -20994,7 +24569,9 @@ module.exports = {
       if (params.heatPortfolioId) dossierFacts.push(`Heat Portfolio ID: ${params.heatPortfolioId}`);
 
       return {
-        heatAssetTariffSteeringStatusId: `hats:${Buffer.from(`${params.heatPortfolioId || ''}`).toString('base64url').slice(0, 24)}`,
+        heatAssetTariffSteeringStatusId: `hats:${Buffer.from(`${params.heatPortfolioId || ''}`)
+          .toString('base64url')
+          .slice(0, 24)}`,
         capabilityKey: 'heat_asset_tariff_steering',
         safety: 'read_only',
         requestContext: complianceContext,
@@ -21022,7 +24599,7 @@ module.exports = {
             'investment-planning.createPlan',
             'vdmi.dossier',
             'interface-placeholder.requestEvidence',
-            'hitl.create'
+            'hitl.create',
           ],
           notCalled: [
             'hitl.create',
@@ -21032,7 +24609,7 @@ module.exports = {
             'budget.release',
             'settlement.prepareBilling',
             'external.connector.call',
-            'personal-agent.execute'
+            'personal-agent.execute',
           ],
         },
         validationFindings: blockingFindings,
@@ -21055,13 +24632,18 @@ module.exports = {
 
     buildProcessSensitizationReadinessMapStatus(params = {}) {
       const toList = (value) => {
-        if (Array.isArray(value)) return value.map((item) => String(item || '').trim()).filter(Boolean);
+        if (Array.isArray(value))
+          return value.map((item) => String(item || '').trim()).filter(Boolean);
         if (value && typeof value === 'string') {
-          return value.split(',').map((item) => item.trim()).filter(Boolean);
+          return value
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean);
         }
         return [];
       };
-      const statusText = (...values) => values.map((value) => String(value || '').toLowerCase()).join(' ');
+      const statusText = (...values) =>
+        values.map((value) => String(value || '').toLowerCase()).join(' ');
       const includesAny = (text, terms) => terms.some((term) => text.includes(term));
 
       const processTopic = params.processType || params.topic || 'unspecified_process';
@@ -21080,17 +24662,58 @@ module.exports = {
 
       const hasRedLineBlocker =
         nonNegotiableConstraints.length > 0 ||
-        includesAny(redLineText, ['blocked', 'blockiert', 'red-line', 'red line', 'rote linie', 'netzsicherheit', 'nicht verhandelbar']);
+        includesAny(redLineText, [
+          'blocked',
+          'blockiert',
+          'red-line',
+          'red line',
+          'rote linie',
+          'netzsicherheit',
+          'nicht verhandelbar',
+        ]);
       const hasRoleDecisionGap =
         roleDecisionGaps.length > 0 ||
-        includesAny(roleDecisionText, ['missing', 'fehlt', 'open', 'offen', 'unclear', 'unklar', 'pending', 'decision needed']);
+        includesAny(roleDecisionText, [
+          'missing',
+          'fehlt',
+          'open',
+          'offen',
+          'unclear',
+          'unklar',
+          'pending',
+          'decision needed',
+        ]);
       const hasEvidenceGap =
         missingEvidence.length > 0 ||
         dataQualityGaps.length > 0 ||
         systemBreaks.length > 0 ||
-        includesAny(evidenceText, ['missing', 'fehlt', 'open', 'offen', 'incomplete', 'unvollstaendig', 'unvollständig']) ||
-        includesAny(dataQualityText, ['gap', 'missing', 'fehlt', 'poor', 'insufficient', 'bruch', 'offen']) ||
-        includesAny(systemBreakText, ['break', 'bruch', 'medienbruch', 'blocked', 'blockiert', 'open', 'offen']);
+        includesAny(evidenceText, [
+          'missing',
+          'fehlt',
+          'open',
+          'offen',
+          'incomplete',
+          'unvollstaendig',
+          'unvollständig',
+        ]) ||
+        includesAny(dataQualityText, [
+          'gap',
+          'missing',
+          'fehlt',
+          'poor',
+          'insufficient',
+          'bruch',
+          'offen',
+        ]) ||
+        includesAny(systemBreakText, [
+          'break',
+          'bruch',
+          'medienbruch',
+          'blocked',
+          'blockiert',
+          'open',
+          'offen',
+        ]);
 
       let readinessStatus = 'ready_for_sensitization';
       if (hasRedLineBlocker) readinessStatus = 'blocked_by_red_line';
@@ -21138,20 +24761,22 @@ module.exports = {
         message: item.enablesDossierAddition,
       }));
 
-      const trainingTopics = readinessStatus === 'ready_for_sensitization'
-        ? [
-            `${processTopic}: Rollen- und Evidenzlage`,
-            `${processTopic}: Prozesskommunikation und Automatisierungsgrenzen`,
-          ]
-        : [];
+      const trainingTopics =
+        readinessStatus === 'ready_for_sensitization'
+          ? [
+              `${processTopic}: Rollen- und Evidenzlage`,
+              `${processTopic}: Prozesskommunikation und Automatisierungsgrenzen`,
+            ]
+          : [];
 
-      const readinessScore = readinessStatus === 'ready_for_sensitization'
-        ? 1
-        : readinessStatus === 'needs_evidence'
-          ? 0.55
-          : readinessStatus === 'needs_process_decision'
-            ? 0.35
-            : 0.1;
+      const readinessScore =
+        readinessStatus === 'ready_for_sensitization'
+          ? 1
+          : readinessStatus === 'needs_evidence'
+            ? 0.55
+            : readinessStatus === 'needs_process_decision'
+              ? 0.35
+              : 0.1;
 
       const context = {
         processType: params.processType || null,
@@ -21171,7 +24796,11 @@ module.exports = {
       if (params.owner) dossierFacts.push(`Owner: ${params.owner}`);
 
       return {
-        processSensitizationReadinessMapStatusId: `psrm:${Buffer.from(`${processTopic}:${params.gridOperatorId || ''}:${params.taskId || params.matrixId || params.assetId || ''}`).toString('base64url').slice(0, 28)}`,
+        processSensitizationReadinessMapStatusId: `psrm:${Buffer.from(
+          `${processTopic}:${params.gridOperatorId || ''}:${params.taskId || params.matrixId || params.assetId || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 28)}`,
         capabilityKey: 'process_sensitization_readiness_map',
         safety: 'read_only',
         requestContext: context,
@@ -21248,24 +24877,38 @@ module.exports = {
 
     buildNetzprozessReadinessGateStatus(params = {}) {
       const toList = (value) => {
-        if (Array.isArray(value)) return value.map((item) => String(item || '').trim()).filter(Boolean);
+        if (Array.isArray(value))
+          return value.map((item) => String(item || '').trim()).filter(Boolean);
         if (value && typeof value === 'string') {
-          return value.split(',').map((item) => item.trim()).filter(Boolean);
+          return value
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean);
         }
         return [];
       };
       const normalizeStatus = (value) => {
-        const text = String(value || '').trim().toLowerCase();
+        const text = String(value || '')
+          .trim()
+          .toLowerCase();
         if (!text) return 'missing';
-        if (/^(ready|ok|green|gruen|grün|verfuegbar|verfügbar|freigegeben)$/.test(text)) return 'ready';
-        if (/^(partial|partly|teilweise|pending|in_progress|in-progress|offen)$/.test(text)) return 'partial';
-        if (/^(blocked|blockiert|red|rot|failed|fehlt|missing|not_ready|not-ready|unready)$/.test(text)) return text.includes('fehlt') || text.includes('missing') ? 'missing' : 'blocked';
+        if (/^(ready|ok|green|gruen|grün|verfuegbar|verfügbar|freigegeben)$/.test(text))
+          return 'ready';
+        if (/^(partial|partly|teilweise|pending|in_progress|in-progress|offen)$/.test(text))
+          return 'partial';
+        if (
+          /^(blocked|blockiert|red|rot|failed|fehlt|missing|not_ready|not-ready|unready)$/.test(
+            text
+          )
+        )
+          return text.includes('fehlt') || text.includes('missing') ? 'missing' : 'blocked';
         if (/unknown|unklar|unbekannt/.test(text)) return 'unknown';
         return text;
       };
       const isReady = (status) => status === 'ready';
       const isBlocked = (status) => status === 'blocked';
-      const isPartial = (status) => ['partial', 'missing', 'unknown'].includes(status) || !isReady(status);
+      const isPartial = (status) =>
+        ['partial', 'missing', 'unknown'].includes(status) || !isReady(status);
 
       const sourceRefs = toList(params.sourceRef);
       const extraMissingEvidence = toList(params.missingEvidence);
@@ -21276,7 +24919,8 @@ module.exports = {
           value: params.portalAccess,
           owner: params.owner,
           dueAt: params.dueAt,
-          enablesDossierAddition: 'adds portal access readiness proof and removes the access blocker',
+          enablesDossierAddition:
+            'adds portal access readiness proof and removes the access blocker',
         },
         {
           code: 'sftp_route',
@@ -21322,7 +24966,10 @@ module.exports = {
 
       const customSignals = toList(params.customSignals).map((raw, index) => {
         const [codeRaw, statusRaw] = String(raw).split(':');
-        const code = (codeRaw || `custom_signal_${index + 1}`).trim().toLowerCase().replace(/[^a-z0-9_]+/g, '_');
+        const code = (codeRaw || `custom_signal_${index + 1}`)
+          .trim()
+          .toLowerCase()
+          .replace(/[^a-z0-9_]+/g, '_');
         return {
           code,
           label: code.replace(/_/g, ' '),
@@ -21334,7 +24981,9 @@ module.exports = {
       });
 
       const readinessSignals = [...baseSignals, ...customSignals]
-        .filter((signal) => signal.value !== undefined && signal.value !== null && signal.value !== '')
+        .filter(
+          (signal) => signal.value !== undefined && signal.value !== null && signal.value !== ''
+        )
         .map((signal) => {
           const status = normalizeStatus(signal.value);
           return {
@@ -21364,11 +25013,13 @@ module.exports = {
           enablesDossierAddition: signal.enablesDossierAddition,
         }));
       const blockedDecisionGap = params.blockedDecision
-        ? [{
-            missingDataPoint: 'blocked_decision',
-            value: params.blockedDecision,
-            enablesDossierAddition: 'adds decision-frame context for the next process gate',
-          }]
+        ? [
+            {
+              missingDataPoint: 'blocked_decision',
+              value: params.blockedDecision,
+              enablesDossierAddition: 'adds decision-frame context for the next process gate',
+            },
+          ]
         : [];
       const missingEvidence = [...missingFromSignals, ...missingFromParams, ...blockedDecisionGap];
 
@@ -21376,7 +25027,10 @@ module.exports = {
       if (readinessSignals.length > 0) {
         if (readinessSignals.some((signal) => isBlocked(signal.status)) || params.blockedDecision) {
           overallStatus = 'blocked';
-        } else if (readinessSignals.some((signal) => isPartial(signal.status)) || missingFromParams.length > 0) {
+        } else if (
+          readinessSignals.some((signal) => isPartial(signal.status)) ||
+          missingFromParams.length > 0
+        ) {
           overallStatus = 'partial';
         } else {
           overallStatus = 'ready';
@@ -21400,7 +25054,14 @@ module.exports = {
         });
       }
 
-      const owners = [...new Set(readinessSignals.map((signal) => signal.owner).filter(Boolean).concat(params.owner ? [params.owner] : []))];
+      const owners = [
+        ...new Set(
+          readinessSignals
+            .map((signal) => signal.owner)
+            .filter(Boolean)
+            .concat(params.owner ? [params.owner] : [])
+        ),
+      ];
       const positiveFollowUps = missingEvidence.map((item) => ({
         missingDataPoint: item.missingDataPoint,
         status: item.status,
@@ -21410,7 +25071,10 @@ module.exports = {
       }));
       const validationFindings = missingEvidence.map((item, index) => ({
         code: `NPRG_${String(item.missingDataPoint).toUpperCase()}_${index + 1}`,
-        severity: item.status === 'blocked' || item.missingDataPoint === 'blocked_decision' ? 'high' : 'medium',
+        severity:
+          item.status === 'blocked' || item.missingDataPoint === 'blocked_decision'
+            ? 'high'
+            : 'medium',
         message: item.enablesDossierAddition,
       }));
       const dossierFacts = [
@@ -21451,7 +25115,11 @@ module.exports = {
       };
 
       return {
-        netzprozessReadinessGateStatusId: `nprg:${Buffer.from(`${params.processType || 'general'}:${params.processId || params.processRefId || ''}`).toString('base64url').slice(0, 28)}`,
+        netzprozessReadinessGateStatusId: `nprg:${Buffer.from(
+          `${params.processType || 'general'}:${params.processId || params.processRefId || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 28)}`,
         capabilityKey: 'netzprozess_readiness_gate',
         safety: 'read_only',
         overallStatus,
@@ -21489,31 +25157,57 @@ module.exports = {
 
     buildGrossspeicherAnschlussReadinessGateStatus(params = {}) {
       const toList = (value) => {
-        if (Array.isArray(value)) return value.map((item) => String(item || '').trim()).filter(Boolean);
+        if (Array.isArray(value))
+          return value.map((item) => String(item || '').trim()).filter(Boolean);
         if (value && typeof value === 'string') {
-          return value.split(',').map((item) => item.trim()).filter(Boolean);
+          return value
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean);
         }
         return [];
       };
       const toNumber = (value) => {
         if (value === undefined || value === null || value === '') return null;
-        const n = Number(typeof value === 'string' ? value.replace(/\s/g, '').replace(',', '.') : value);
+        const n = Number(
+          typeof value === 'string' ? value.replace(/\s/g, '').replace(',', '.') : value
+        );
         return Number.isFinite(n) ? n : null;
       };
       const normalizeStatus = (value) => {
-        const text = String(value || '').trim().toLowerCase();
+        const text = String(value || '')
+          .trim()
+          .toLowerCase();
         if (!text) return 'missing';
-        if (/^(ready|ok|green|gruen|grün|complete|completed|valid|validiert|confirmed|bestaetigt|bestätigt|approved|freigegeben|vorhanden)$/.test(text)) return 'ready';
-        if (/^(partial|partly|pending|open|offen|in_progress|in-progress|review|review_required|unklar|unknown)$/.test(text)) return 'partial';
+        if (
+          /^(ready|ok|green|gruen|grün|complete|completed|valid|validiert|confirmed|bestaetigt|bestätigt|approved|freigegeben|vorhanden)$/.test(
+            text
+          )
+        )
+          return 'ready';
+        if (
+          /^(partial|partly|pending|open|offen|in_progress|in-progress|review|review_required|unklar|unknown)$/.test(
+            text
+          )
+        )
+          return 'partial';
         if (/^(missing|fehlt|absent|not_available|not-available)$/.test(text)) return 'missing';
-        if (/^(blocked|blockiert|red|rot|failed|rejected|not_ready|not-ready|stop)$/.test(text)) return 'blocked';
-        if (/vorrang|priority|netzsignal|engpass/.test(text) && /block|stop|red|rot|reject|ablehn/.test(text)) return 'blocked';
+        if (/^(blocked|blockiert|red|rot|failed|rejected|not_ready|not-ready|stop)$/.test(text))
+          return 'blocked';
+        if (
+          /vorrang|priority|netzsignal|engpass/.test(text) &&
+          /block|stop|red|rot|reject|ablehn/.test(text)
+        )
+          return 'blocked';
         return text;
       };
       const isReady = (status) => status === 'ready';
       const isBlocked = (status) => status === 'blocked';
       const sourceRefs = [...toList(params.sourceRef), ...toList(params.source)];
-      const suppliedEvidenceGaps = [...toList(params.missingEvidence), ...toList(params.evidenceGaps)];
+      const suppliedEvidenceGaps = [
+        ...toList(params.missingEvidence),
+        ...toList(params.evidenceGaps),
+      ];
       const projectContext = {
         gridOperatorId: params.gridOperatorId || null,
         projectId: params.projectId || null,
@@ -21585,7 +25279,10 @@ module.exports = {
         {
           code: 'schedule_assumption',
           label: 'Schedule / Dispatch Assumption',
-          value: params.scheduleEvidenceStatus || params.storageDispatchAssumption || params.scheduleRequirement,
+          value:
+            params.scheduleEvidenceStatus ||
+            params.storageDispatchAssumption ||
+            params.scheduleRequirement,
           enablesDossierAddition: 'add Speicherfahrplan or dispatch-assumption evidence',
           statusWhenMissing: 'needs_schedule_assumption',
         },
@@ -21631,26 +25328,35 @@ module.exports = {
         status: 'missing',
         enablesDossierAddition: `add evidence for ${value}`,
       }));
-      const ownerOrSourceGap = !params.owner || sourceRefs.length === 0
-        ? [{
-            missingDataPoint: 'owner_or_source',
-            value: !params.owner ? 'owner' : 'source',
-            status: 'missing',
-            enablesDossierAddition: 'add accountable owner/source for the next connection decision',
-          }]
-        : [];
-      const gridSignalStatus = normalizeStatus(params.gridSignalStatus || params.networkSignalPriority);
+      const ownerOrSourceGap =
+        !params.owner || sourceRefs.length === 0
+          ? [
+              {
+                missingDataPoint: 'owner_or_source',
+                value: !params.owner ? 'owner' : 'source',
+                status: 'missing',
+                enablesDossierAddition:
+                  'add accountable owner/source for the next connection decision',
+              },
+            ]
+          : [];
+      const gridSignalStatus = normalizeStatus(
+        params.gridSignalStatus || params.networkSignalPriority
+      );
       const blockedByGridSignal = isBlocked(gridSignalStatus);
-      const gridSignalGap = params.gridSignalStatus || params.networkSignalPriority
-        ? [{
-            missingDataPoint: 'network_signal_priority',
-            value: params.gridSignalStatus || params.networkSignalPriority,
-            status: gridSignalStatus,
-            enablesDossierAddition: blockedByGridSignal
-              ? 'document blocked grid-signal priority before connection decision'
-              : 'add network-signal priority evidence',
-          }]
-        : [];
+      const gridSignalGap =
+        params.gridSignalStatus || params.networkSignalPriority
+          ? [
+              {
+                missingDataPoint: 'network_signal_priority',
+                value: params.gridSignalStatus || params.networkSignalPriority,
+                status: gridSignalStatus,
+                enablesDossierAddition: blockedByGridSignal
+                  ? 'document blocked grid-signal priority before connection decision'
+                  : 'add network-signal priority evidence',
+              },
+            ]
+          : [];
       const evidenceGaps = [
         ...missingFromSignals,
         ...missingFromParams,
@@ -21663,22 +25369,30 @@ module.exports = {
       else if (readinessSignals.some((signal) => isBlocked(signal.status))) {
         const firstBlocked = readinessSignals.find((signal) => isBlocked(signal.status));
         status = firstBlocked.statusWhenMissing;
-      } else if (readinessSignals.every((signal) => isReady(signal.status)) && ownerOrSourceGap.length === 0 && suppliedEvidenceGaps.length === 0) {
+      } else if (
+        readinessSignals.every((signal) => isReady(signal.status)) &&
+        ownerOrSourceGap.length === 0 &&
+        suppliedEvidenceGaps.length === 0
+      ) {
         status = 'ready_for_connection_decision';
       } else if (missingFromSignals.length > 0) {
-        status = missingFromSignals[0].missingDataPoint === 'asset_context'
-          ? 'needs_asset_context'
-          : readinessSignals.find((signal) => signal.code === missingFromSignals[0].missingDataPoint)?.statusWhenMissing || 'unknown';
+        status =
+          missingFromSignals[0].missingDataPoint === 'asset_context'
+            ? 'needs_asset_context'
+            : readinessSignals.find(
+                (signal) => signal.code === missingFromSignals[0].missingDataPoint
+              )?.statusWhenMissing || 'unknown';
       } else if (ownerOrSourceGap.length > 0 || suppliedEvidenceGaps.length > 0) {
         status = 'needs_asset_context';
       }
-      const gateStatus = status === 'ready_for_connection_decision'
-        ? 'ready'
-        : status === 'blocked_by_grid_signal'
-          ? 'blocked'
-          : status === 'unknown'
-            ? 'unknown'
-            : 'incomplete';
+      const gateStatus =
+        status === 'ready_for_connection_decision'
+          ? 'ready'
+          : status === 'blocked_by_grid_signal'
+            ? 'blocked'
+            : status === 'unknown'
+              ? 'unknown'
+              : 'incomplete';
       const blockers = evidenceGaps
         .filter((gap) => gap.status === 'blocked' || status === 'blocked_by_grid_signal')
         .map((gap) => ({
@@ -21695,7 +25409,10 @@ module.exports = {
       }));
       const validationFindings = evidenceGaps.map((gap, index) => ({
         code: `GSARG_${String(gap.missingDataPoint).toUpperCase()}_${index + 1}`,
-        severity: gap.status === 'blocked' || gap.missingDataPoint === 'network_signal_priority' ? 'high' : 'medium',
+        severity:
+          gap.status === 'blocked' || gap.missingDataPoint === 'network_signal_priority'
+            ? 'high'
+            : 'medium',
         message: gap.enablesDossierAddition,
       }));
       const dossierFacts = [
@@ -21707,7 +25424,11 @@ module.exports = {
       if (params.nextDecision) dossierFacts.push(`Next Decision: ${params.nextDecision}`);
 
       return {
-        grossspeicherAnschlussReadinessGateStatusId: `gsarg:${Buffer.from(`${params.gridOperatorId || ''}:${params.projectId || ''}:${params.storageAssetId || ''}`).toString('base64url').slice(0, 28)}`,
+        grossspeicherAnschlussReadinessGateStatusId: `gsarg:${Buffer.from(
+          `${params.gridOperatorId || ''}:${params.projectId || ''}:${params.storageAssetId || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 28)}`,
         capabilityKey: 'grossspeicher_anschluss_readiness_gate',
         safety: 'read_only',
         status,
@@ -21747,26 +25468,54 @@ module.exports = {
 
     buildRolePermissionAccessReadinessGateStatus(params = {}) {
       const toList = (value) => {
-        if (Array.isArray(value)) return value.map((item) => String(item || '').trim()).filter(Boolean);
+        if (Array.isArray(value))
+          return value.map((item) => String(item || '').trim()).filter(Boolean);
         if (value && typeof value === 'string') {
-          return value.split(',').map((item) => item.trim()).filter(Boolean);
+          return value
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean);
         }
         return [];
       };
       const normalizeStatus = (value) => {
-        const text = String(value || '').trim().toLowerCase();
+        const text = String(value || '')
+          .trim()
+          .toLowerCase();
         if (!text) return 'missing';
-        if (/^(ready|ok|green|gruen|grün|complete|completed|valid|validiert|confirmed|bestaetigt|bestätigt|approved|freigegeben|present|vorhanden|cleared|synced)$/.test(text)) return 'ready';
-        if (/^(partial|partly|pending|open|offen|in_progress|in-progress|review|review_required|unklar|unknown|scheduled)$/.test(text)) return 'partial';
+        if (
+          /^(ready|ok|green|gruen|grün|complete|completed|valid|validiert|confirmed|bestaetigt|bestätigt|approved|freigegeben|present|vorhanden|cleared|synced)$/.test(
+            text
+          )
+        )
+          return 'ready';
+        if (
+          /^(partial|partly|pending|open|offen|in_progress|in-progress|review|review_required|unklar|unknown|scheduled)$/.test(
+            text
+          )
+        )
+          return 'partial';
         if (/^(missing|fehlt|absent|not_available|not-available)$/.test(text)) return 'missing';
-        if (/^(blocked|blockiert|red|rot|failed|rejected|denied|expired|not_ready|not-ready|stop|revoked)$/.test(text)) return 'blocked';
+        if (
+          /^(blocked|blockiert|red|rot|failed|rejected|denied|expired|not_ready|not-ready|stop|revoked)$/.test(
+            text
+          )
+        )
+          return 'blocked';
         if (/(block|denied|reject|expired|revoked|gesperrt|abgelehnt)/.test(text)) return 'blocked';
         return text;
       };
       const isReady = (status) => status === 'ready';
       const isBlocked = (status) => status === 'blocked';
-      const sourceRefs = [...toList(params.sourceRef), ...toList(params.source), ...toList(params.sourcePath)];
-      const suppliedEvidenceGaps = [...toList(params.missingEvidence), ...toList(params.evidenceGaps)];
+      const sourceRefs = [
+        ...toList(params.sourceRef),
+        ...toList(params.source),
+        ...toList(params.sourcePath),
+      ];
+      const suppliedEvidenceGaps = [
+        ...toList(params.missingEvidence),
+        ...toList(params.evidenceGaps),
+      ];
       const roleContext = {
         roleId: params.roleId || null,
         roleName: params.roleName || null,
@@ -21881,33 +25630,42 @@ module.exports = {
         enablesDossierAddition: `add evidence for ${value}`,
       }));
       const ownerDueSourceGaps = [
-        !params.owner ? {
-          missingDataPoint: 'owner',
-          value: null,
-          status: 'missing',
-          enablesDossierAddition: 'add accountable owner for role/access follow-up',
-        } : null,
-        !params.dueDate ? {
-          missingDataPoint: 'due_date',
-          value: null,
-          status: 'missing',
-          enablesDossierAddition: 'add due date for reapproval or access readiness follow-up',
-        } : null,
-        sourceRefs.length === 0 ? {
-          missingDataPoint: 'source_path',
-          value: null,
-          status: 'missing',
-          enablesDossierAddition: 'add source path or evidence snapshot for access readiness',
-        } : null,
+        !params.owner
+          ? {
+              missingDataPoint: 'owner',
+              value: null,
+              status: 'missing',
+              enablesDossierAddition: 'add accountable owner for role/access follow-up',
+            }
+          : null,
+        !params.dueDate
+          ? {
+              missingDataPoint: 'due_date',
+              value: null,
+              status: 'missing',
+              enablesDossierAddition: 'add due date for reapproval or access readiness follow-up',
+            }
+          : null,
+        sourceRefs.length === 0
+          ? {
+              missingDataPoint: 'source_path',
+              value: null,
+              status: 'missing',
+              enablesDossierAddition: 'add source path or evidence snapshot for access readiness',
+            }
+          : null,
       ].filter(Boolean);
       const blockedAccessStatus = normalizeStatus(params.blockedAccess);
       const blockedAccessGap = params.blockedAccess
-        ? [{
-            missingDataPoint: 'blocked_access',
-            value: params.blockedAccess,
-            status: blockedAccessStatus === 'ready' ? 'partial' : blockedAccessStatus,
-            enablesDossierAddition: 'document blocked access or rejected permission before operational use',
-          }]
+        ? [
+            {
+              missingDataPoint: 'blocked_access',
+              value: params.blockedAccess,
+              status: blockedAccessStatus === 'ready' ? 'partial' : blockedAccessStatus,
+              enablesDossierAddition:
+                'document blocked access or rejected permission before operational use',
+            },
+          ]
         : [];
       const evidenceGaps = [
         ...missingFromSignals,
@@ -21917,14 +25675,23 @@ module.exports = {
       ];
 
       let status = 'unknown';
-      if (isBlocked(blockedAccessStatus) || readinessSignals.some((signal) => isBlocked(signal.status))) {
+      if (
+        isBlocked(blockedAccessStatus) ||
+        readinessSignals.some((signal) => isBlocked(signal.status))
+      ) {
         status = 'blocked_by_access_gap';
       } else if (!params.roleId && !params.roleName) {
         status = 'needs_role_profile';
-      } else if (readinessSignals.every((signal) => isReady(signal.status)) && ownerDueSourceGaps.length === 0 && suppliedEvidenceGaps.length === 0) {
+      } else if (
+        readinessSignals.every((signal) => isReady(signal.status)) &&
+        ownerDueSourceGaps.length === 0 &&
+        suppliedEvidenceGaps.length === 0
+      ) {
         status = 'ready_for_operational_role';
       } else if (missingFromSignals.length > 0) {
-        status = readinessSignals.find((signal) => signal.code === missingFromSignals[0].missingDataPoint)?.statusWhenMissing || 'unknown';
+        status =
+          readinessSignals.find((signal) => signal.code === missingFromSignals[0].missingDataPoint)
+            ?.statusWhenMissing || 'unknown';
       } else if (ownerDueSourceGaps.length > 0 || suppliedEvidenceGaps.length > 0) {
         status = 'needs_reapproval_decision';
       }
@@ -21951,7 +25718,8 @@ module.exports = {
       }));
       const validationFindings = evidenceGaps.map((gap, index) => ({
         code: `RPAR_${String(gap.missingDataPoint).toUpperCase()}_${index + 1}`,
-        severity: gap.status === 'blocked' || gap.missingDataPoint === 'blocked_access' ? 'high' : 'medium',
+        severity:
+          gap.status === 'blocked' || gap.missingDataPoint === 'blocked_access' ? 'high' : 'medium',
         message: gap.enablesDossierAddition,
       }));
       const dossierFacts = [
@@ -21960,10 +25728,15 @@ module.exports = {
         `Readiness Signals: ${readinessSignals.length}`,
         `Open gaps: ${evidenceGaps.length}`,
       ];
-      if (params.accessManagerRef) dossierFacts.push(`AccessManager Ref: ${params.accessManagerRef}`);
+      if (params.accessManagerRef)
+        dossierFacts.push(`AccessManager Ref: ${params.accessManagerRef}`);
 
       return {
-        rolePermissionAccessReadinessGateStatusId: `rpar:${Buffer.from(`${params.roleId || ''}:${params.roleName || ''}:${params.accessManagerRef || ''}`).toString('base64url').slice(0, 28)}`,
+        rolePermissionAccessReadinessGateStatusId: `rpar:${Buffer.from(
+          `${params.roleId || ''}:${params.roleName || ''}:${params.accessManagerRef || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 28)}`,
         capabilityKey: 'role_permission_access_readiness_gate',
         safety: 'read_only',
         status,
@@ -21998,27 +25771,60 @@ module.exports = {
 
     buildOwnerDeadlineEvidenceGateStatus(params = {}) {
       const toList = (value) => {
-        if (Array.isArray(value)) return value.map((item) => String(item || '').trim()).filter(Boolean);
+        if (Array.isArray(value))
+          return value.map((item) => String(item || '').trim()).filter(Boolean);
         if (value && typeof value === 'string') {
-          return value.split(',').map((item) => item.trim()).filter(Boolean);
+          return value
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean);
         }
         return [];
       };
       const normalizeStatus = (value) => {
-        const text = String(value || '').trim().toLowerCase();
+        const text = String(value || '')
+          .trim()
+          .toLowerCase();
         if (!text) return 'missing';
-        if (/^(ready|ok|green|gruen|grün|complete|completed|valid|validiert|confirmed|bestaetigt|bestätigt|approved|freigegeben|present|vorhanden|cleared|attached|linked)$/.test(text)) return 'ready';
-        if (/^(partial|partly|pending|open|offen|in_progress|in-progress|review|review_required|unklar|unknown|scheduled)$/.test(text)) return 'partial';
+        if (
+          /^(ready|ok|green|gruen|grün|complete|completed|valid|validiert|confirmed|bestaetigt|bestätigt|approved|freigegeben|present|vorhanden|cleared|attached|linked)$/.test(
+            text
+          )
+        )
+          return 'ready';
+        if (
+          /^(partial|partly|pending|open|offen|in_progress|in-progress|review|review_required|unklar|unknown|scheduled)$/.test(
+            text
+          )
+        )
+          return 'partial';
         if (/^(missing|fehlt|absent|not_available|not-available)$/.test(text)) return 'missing';
-        if (/^(blocked|blockiert|red|rot|failed|rejected|denied|expired|overdue|ueberfaellig|überfällig|not_ready|not-ready|stop)$/.test(text)) return 'blocked';
-        if (/(block|denied|reject|expired|overdue|ueberfaellig|überfällig|gesperrt|abgelehnt)/.test(text)) return 'blocked';
+        if (
+          /^(blocked|blockiert|red|rot|failed|rejected|denied|expired|overdue|ueberfaellig|überfällig|not_ready|not-ready|stop)$/.test(
+            text
+          )
+        )
+          return 'blocked';
+        if (
+          /(block|denied|reject|expired|overdue|ueberfaellig|überfällig|gesperrt|abgelehnt)/.test(
+            text
+          )
+        )
+          return 'blocked';
         return text;
       };
-      const flagIsTrue = (value) => value === true || /^(true|yes|ja|1|blocked|blockiert|overdue|ueberfaellig|überfällig)$/i.test(String(value || '').trim());
+      const flagIsTrue = (value) =>
+        value === true ||
+        /^(true|yes|ja|1|blocked|blockiert|overdue|ueberfaellig|überfällig)$/i.test(
+          String(value || '').trim()
+        );
       const isReady = (status) => status === 'ready';
       const isBlocked = (status) => status === 'blocked';
       const sourceRefs = toList(params.sourceRef);
-      const suppliedEvidenceGaps = [...toList(params.missingEvidence), ...toList(params.evidenceGaps)];
+      const suppliedEvidenceGaps = [
+        ...toList(params.missingEvidence),
+        ...toList(params.evidenceGaps),
+      ];
       const signalContext = {
         signalId: params.signalId || params.caseId || null,
         sourceType: params.sourceType || null,
@@ -22063,7 +25869,8 @@ module.exports = {
         {
           code: 'signal_context',
           label: 'Signal Context',
-          value: params.signalContextStatus || (params.signalId && params.sourceType ? 'ready' : ''),
+          value:
+            params.signalContextStatus || (params.signalId && params.sourceType ? 'ready' : ''),
           enablesDossierAddition: 'add signal provenance and process context',
           statusWhenMissing: 'needs_signal_context',
         },
@@ -22099,7 +25906,8 @@ module.exports = {
           code: 'linked_entity',
           label: 'Linked Entity',
           value: params.linkedEntity ? 'ready' : '',
-          enablesDossierAddition: 'link the signal to asset, process, market role, Redispatch, security, finance, or governance context',
+          enablesDossierAddition:
+            'link the signal to asset, process, market role, Redispatch, security, finance, or governance context',
           statusWhenMissing: 'needs_signal_context',
         },
       ];
@@ -22131,30 +25939,39 @@ module.exports = {
         status: 'missing',
         enablesDossierAddition: `add evidence for ${value}`,
       }));
-      const sourceGap = sourceRefs.length === 0
-        ? [{
-            missingDataPoint: 'source_ref',
-            value: null,
-            status: 'missing',
-            enablesDossierAddition: 'add source reference for auditability',
-          }]
-        : [];
+      const sourceGap =
+        sourceRefs.length === 0
+          ? [
+              {
+                missingDataPoint: 'source_ref',
+                value: null,
+                status: 'missing',
+                enablesDossierAddition: 'add source reference for auditability',
+              },
+            ]
+          : [];
       const evidenceStatus = normalizeStatus(params.evidenceStatus);
-      const blockedByMissingEvidence = flagIsTrue(params.blockedByMissingEvidence) || isBlocked(evidenceStatus);
+      const blockedByMissingEvidence =
+        flagIsTrue(params.blockedByMissingEvidence) || isBlocked(evidenceStatus);
       const overdue = flagIsTrue(params.overdue);
       const blockerGaps = [
-        blockedByMissingEvidence ? {
-          missingDataPoint: 'blocked_by_missing_evidence',
-          value: params.evidenceStatus || params.blockedByMissingEvidence || true,
-          status: 'blocked',
-          enablesDossierAddition: 'document missing evidence before the blocked decision can proceed',
-        } : null,
-        overdue ? {
-          missingDataPoint: 'overdue_deadline',
-          value: params.dueAt || params.overdue,
-          status: 'blocked',
-          enablesDossierAddition: 'document overdue deadline handling and owner follow-up',
-        } : null,
+        blockedByMissingEvidence
+          ? {
+              missingDataPoint: 'blocked_by_missing_evidence',
+              value: params.evidenceStatus || params.blockedByMissingEvidence || true,
+              status: 'blocked',
+              enablesDossierAddition:
+                'document missing evidence before the blocked decision can proceed',
+            }
+          : null,
+        overdue
+          ? {
+              missingDataPoint: 'overdue_deadline',
+              value: params.dueAt || params.overdue,
+              status: 'blocked',
+              enablesDossierAddition: 'document overdue deadline handling and owner follow-up',
+            }
+          : null,
       ].filter(Boolean);
       const evidenceGaps = [
         ...missingFromSignals,
@@ -22170,10 +25987,16 @@ module.exports = {
       else if (!params.ownerRole && !params.ownerContact) status = 'needs_owner';
       else if (!params.dueAt) status = 'needs_deadline';
       else if (!params.evidenceRef && !params.evidenceStatus) status = 'needs_evidence_ref';
-      else if (readinessSignals.every((signal) => isReady(signal.status)) && sourceGap.length === 0 && suppliedEvidenceGaps.length === 0) {
+      else if (
+        readinessSignals.every((signal) => isReady(signal.status)) &&
+        sourceGap.length === 0 &&
+        suppliedEvidenceGaps.length === 0
+      ) {
         status = 'ready_for_decision_followup';
       } else if (missingFromSignals.length > 0) {
-        status = readinessSignals.find((signal) => signal.code === missingFromSignals[0].missingDataPoint)?.statusWhenMissing || 'unknown';
+        status =
+          readinessSignals.find((signal) => signal.code === missingFromSignals[0].missingDataPoint)
+            ?.statusWhenMissing || 'unknown';
       } else if (sourceGap.length > 0 || suppliedEvidenceGaps.length > 0) {
         status = 'needs_evidence_ref';
       }
@@ -22201,7 +26024,10 @@ module.exports = {
       }));
       const validationFindings = evidenceGaps.map((gap, index) => ({
         code: `ODEG_${String(gap.missingDataPoint).toUpperCase()}_${index + 1}`,
-        severity: gap.status === 'blocked' || /critical|hoch|high/i.test(String(params.riskLevel || '')) ? 'high' : 'medium',
+        severity:
+          gap.status === 'blocked' || /critical|hoch|high/i.test(String(params.riskLevel || ''))
+            ? 'high'
+            : 'medium',
         message: gap.enablesDossierAddition,
       }));
       const dossierFacts = [
@@ -22213,7 +26039,11 @@ module.exports = {
       if (params.blockedDecision) dossierFacts.push(`Blocked Decision: ${params.blockedDecision}`);
 
       return {
-        ownerDeadlineEvidenceGateStatusId: `odeg:${Buffer.from(`${params.signalId || params.caseId || ''}:${params.ownerRole || params.ownerContact || ''}:${params.dueAt || ''}`).toString('base64url').slice(0, 28)}`,
+        ownerDeadlineEvidenceGateStatusId: `odeg:${Buffer.from(
+          `${params.signalId || params.caseId || ''}:${params.ownerRole || params.ownerContact || ''}:${params.dueAt || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 28)}`,
         capabilityKey: 'owner_deadline_evidence_gate',
         safety: 'read_only',
         status,
@@ -22247,25 +26077,53 @@ module.exports = {
 
     buildAutomationRiskGateStatus(params = {}) {
       const toList = (value) => {
-        if (Array.isArray(value)) return value.map((item) => String(item || '').trim()).filter(Boolean);
+        if (Array.isArray(value))
+          return value.map((item) => String(item || '').trim()).filter(Boolean);
         if (value && typeof value === 'string') {
-          return value.split(',').map((item) => item.trim()).filter(Boolean);
+          return value
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean);
         }
         return [];
       };
       const normalizeStatus = (value) => {
-        const text = String(value || '').trim().toLowerCase();
+        const text = String(value || '')
+          .trim()
+          .toLowerCase();
         if (!text) return 'missing';
-        if (/^(ready|ok|green|gruen|grün|complete|completed|valid|validiert|confirmed|bestaetigt|bestätigt|approved|freigegeben|present|vorhanden|covered|documented|ja|yes)$/.test(text)) return 'ready';
-        if (/^(partial|partly|pending|open|offen|in_progress|in-progress|review|review_required|unklar|unknown|scheduled)$/.test(text)) return 'partial';
-        if (/^(missing|fehlt|absent|not_available|not-available|none|nein|no)$/.test(text)) return 'missing';
-        if (/^(blocked|blockiert|red|rot|failed|rejected|denied|uncontrolled|critical|kritisch|stop|no_rollback|no-stop)$/.test(text)) return 'blocked';
-        if (/(block|reject|uncontrolled|kritisch|critical|fehlend|missing|ohne rollback|no rollback|ohne stopp|no stop)/.test(text)) return 'blocked';
+        if (
+          /^(ready|ok|green|gruen|grün|complete|completed|valid|validiert|confirmed|bestaetigt|bestätigt|approved|freigegeben|present|vorhanden|covered|documented|ja|yes)$/.test(
+            text
+          )
+        )
+          return 'ready';
+        if (
+          /^(partial|partly|pending|open|offen|in_progress|in-progress|review|review_required|unklar|unknown|scheduled)$/.test(
+            text
+          )
+        )
+          return 'partial';
+        if (/^(missing|fehlt|absent|not_available|not-available|none|nein|no)$/.test(text))
+          return 'missing';
+        if (
+          /^(blocked|blockiert|red|rot|failed|rejected|denied|uncontrolled|critical|kritisch|stop|no_rollback|no-stop)$/.test(
+            text
+          )
+        )
+          return 'blocked';
+        if (
+          /(block|reject|uncontrolled|kritisch|critical|fehlend|missing|ohne rollback|no rollback|ohne stopp|no stop)/.test(
+            text
+          )
+        )
+          return 'blocked';
         return text;
       };
       const toNumber = (value) => {
         if (value === undefined || value === null || value === '') return null;
-        const normalized = typeof value === 'string' ? value.replace(/\s/g, '').replace(',', '.') : value;
+        const normalized =
+          typeof value === 'string' ? value.replace(/\s/g, '').replace(',', '.') : value;
         const parsed = Number(normalized);
         return Number.isFinite(parsed) ? parsed : null;
       };
@@ -22322,7 +26180,8 @@ module.exports = {
           code: 'process_context',
           label: 'Process Context',
           value: params.processId || params.processName ? 'ready' : '',
-          enablesDossierAddition: 'add process id, process name, class, frequency, mass-run scope, and affected domains',
+          enablesDossierAddition:
+            'add process id, process name, class, frequency, mass-run scope, and affected domains',
           statusWhenMissing: 'needs_process_context',
         },
         {
@@ -22350,7 +26209,8 @@ module.exports = {
           code: 'stop_criteria',
           label: 'Stop Criteria',
           value: params.stopCriteria,
-          enablesDossierAddition: 'add documented stop criteria and operational kill switch evidence',
+          enablesDossierAddition:
+            'add documented stop criteria and operational kill switch evidence',
           statusWhenMissing: 'needs_stop_criteria',
         },
         {
@@ -22394,35 +26254,50 @@ module.exports = {
         status: 'missing',
         enablesDossierAddition: `add evidence for ${value}`,
       }));
-      const hasCriticalDomain = [params.customerCommunicationImpact, params.billingImpact, params.marketCommunicationImpact, params.massDataImpact, params.riskLevel]
-        .some((value) => /critical|kritisch|hoch|high|blocked|blockiert|uncontrolled|unkontrolliert|mass/i.test(String(value || '')));
-      const uncontrolledMassRun = (massRunVolume !== null && massRunVolume >= 1000 && hasCriticalDomain) ||
-        readinessSignals.some((signal) => ['stop_criteria', 'rollback_path'].includes(signal.code) && isBlocked(signal.status));
+      const hasCriticalDomain = [
+        params.customerCommunicationImpact,
+        params.billingImpact,
+        params.marketCommunicationImpact,
+        params.massDataImpact,
+        params.riskLevel,
+      ].some((value) =>
+        /critical|kritisch|hoch|high|blocked|blockiert|uncontrolled|unkontrolliert|mass/i.test(
+          String(value || '')
+        )
+      );
+      const uncontrolledMassRun =
+        (massRunVolume !== null && massRunVolume >= 1000 && hasCriticalDomain) ||
+        readinessSignals.some(
+          (signal) =>
+            ['stop_criteria', 'rollback_path'].includes(signal.code) && isBlocked(signal.status)
+        );
       const blockerGaps = [
-        uncontrolledMassRun ? {
-          missingDataPoint: 'uncontrolled_mass_run',
-          value: massRunVolume || params.riskLevel || true,
-          status: 'blocked',
-          enablesDossierAddition: 'document stop criteria, rollback path, monitoring, and risk acceptance before any mass automation run',
-        } : null,
+        uncontrolledMassRun
+          ? {
+              missingDataPoint: 'uncontrolled_mass_run',
+              value: massRunVolume || params.riskLevel || true,
+              status: 'blocked',
+              enablesDossierAddition:
+                'document stop criteria, rollback path, monitoring, and risk acceptance before any mass automation run',
+            }
+          : null,
       ].filter(Boolean);
-      const evidenceGaps = [
-        ...missingFromSignals,
-        ...missingFromParams,
-        ...blockerGaps,
-      ];
+      const evidenceGaps = [...missingFromSignals, ...missingFromParams, ...blockerGaps];
       let status = 'unknown';
       if (uncontrolledMassRun) status = 'blocked_by_uncontrolled_mass_run';
       else if (!params.processId && !params.processName) status = 'needs_process_context';
       else if (!params.processOwner && !params.operationsOwner) status = 'needs_process_owner';
       else if (!isReady(normalizeStatus(params.testCaseCoverage))) status = 'needs_test_coverage';
-      else if (!isReady(normalizeStatus(params.edgeCaseCatalog))) status = 'needs_edge_case_catalog';
+      else if (!isReady(normalizeStatus(params.edgeCaseCatalog)))
+        status = 'needs_edge_case_catalog';
       else if (!isReady(normalizeStatus(params.stopCriteria))) status = 'needs_stop_criteria';
       else if (!isReady(normalizeStatus(params.rollbackPath))) status = 'needs_rollback_path';
       else if (!isReady(normalizeStatus(params.monitoringSignals))) status = 'needs_monitoring';
       else if (evidenceGaps.length === 0) status = 'ready_for_automation_decision';
       else if (missingFromSignals.length > 0) {
-        status = readinessSignals.find((signal) => signal.code === missingFromSignals[0].missingDataPoint)?.statusWhenMissing || 'unknown';
+        status =
+          readinessSignals.find((signal) => signal.code === missingFromSignals[0].missingDataPoint)
+            ?.statusWhenMissing || 'unknown';
       }
       const blockers = evidenceGaps
         .filter((gap) => gap.status === 'blocked')
@@ -22447,7 +26322,11 @@ module.exports = {
       }));
       const validationFindings = evidenceGaps.map((gap, index) => ({
         code: `ARG_${String(gap.missingDataPoint).toUpperCase()}_${index + 1}`,
-        severity: gap.status === 'blocked' || /critical|kritisch|hoch|high/i.test(String(params.riskLevel || '')) ? 'high' : 'medium',
+        severity:
+          gap.status === 'blocked' ||
+          /critical|kritisch|hoch|high/i.test(String(params.riskLevel || ''))
+            ? 'high'
+            : 'medium',
         message: gap.enablesDossierAddition,
       }));
       const dossierFacts = [
@@ -22459,7 +26338,11 @@ module.exports = {
       if (params.blockedDecision) dossierFacts.push(`Blocked Decision: ${params.blockedDecision}`);
 
       return {
-        automationRiskGateStatusId: `arg:${Buffer.from(`${params.processId || params.processName || ''}:${params.processOwner || params.operationsOwner || ''}:${params.riskLevel || ''}`).toString('base64url').slice(0, 28)}`,
+        automationRiskGateStatusId: `arg:${Buffer.from(
+          `${params.processId || params.processName || ''}:${params.processOwner || params.operationsOwner || ''}:${params.riskLevel || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 28)}`,
         capabilityKey: 'automation_risk_gate',
         safety: 'read_only',
         status,
@@ -22493,21 +26376,46 @@ module.exports = {
 
     buildRedispatchProjectControllingKpiCockpitStatus(params = {}) {
       const toList = (value) => {
-        if (Array.isArray(value)) return value.map((item) => String(item || '').trim()).filter(Boolean);
+        if (Array.isArray(value))
+          return value.map((item) => String(item || '').trim()).filter(Boolean);
         if (value && typeof value === 'string') {
-          return value.split(',').map((item) => item.trim()).filter(Boolean);
+          return value
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean);
         }
         return [];
       };
       const normalizeStatus = (value) => {
-        const text = String(value || '').trim().toLowerCase();
+        const text = String(value || '')
+          .trim()
+          .toLowerCase();
         if (!text) return 'missing';
-        if (/^(ready|ok|green|gruen|grün|complete|completed|valid|validiert|confirmed|bestaetigt|bestätigt|approved|freigegeben|present|vorhanden|covered|documented|ja|yes|true)$/.test(text)) return 'ready';
-        if (/^(partial|partly|pending|open|offen|in_progress|in-progress|review|review_required|unklar|unknown|scheduled)$/.test(text)) return 'partial';
-        if (/^(missing|fehlt|absent|not_available|not-available|none|nein|no|false)$/.test(text)) return 'missing';
+        if (
+          /^(ready|ok|green|gruen|grün|complete|completed|valid|validiert|confirmed|bestaetigt|bestätigt|approved|freigegeben|present|vorhanden|covered|documented|ja|yes|true)$/.test(
+            text
+          )
+        )
+          return 'ready';
+        if (
+          /^(partial|partly|pending|open|offen|in_progress|in-progress|review|review_required|unklar|unknown|scheduled)$/.test(
+            text
+          )
+        )
+          return 'partial';
+        if (/^(missing|fehlt|absent|not_available|not-available|none|nein|no|false)$/.test(text))
+          return 'missing';
         if (/^(stale|veraltet|expired|outdated)$/.test(text)) return 'stale';
-        if (/^(blocked|blockiert|red|rot|failed|rejected|denied|conflicting|conflict|stop)$/.test(text)) return 'blocked';
-        if (/(block|reject|conflict|stale|veraltet|expired|fehlend|missing)/.test(text)) return text.includes('stale') || text.includes('veraltet') || text.includes('expired') ? 'stale' : 'blocked';
+        if (
+          /^(blocked|blockiert|red|rot|failed|rejected|denied|conflicting|conflict|stop)$/.test(
+            text
+          )
+        )
+          return 'blocked';
+        if (/(block|reject|conflict|stale|veraltet|expired|fehlend|missing)/.test(text))
+          return text.includes('stale') || text.includes('veraltet') || text.includes('expired')
+            ? 'stale'
+            : 'blocked';
         return text;
       };
       const flagIsReady = (value) => value === true || normalizeStatus(value) === 'ready';
@@ -22534,15 +26442,31 @@ module.exports = {
           decisionBlocker: params.decisionBlocker || null,
           affectedAssets,
         },
-        ...toList(params.tasks).map((task) => ({ taskId: task, status: null, owner: null, dueDate: null })),
-      ].filter((task) => task.taskId || task.status || task.owner || task.dueDate || task.blockedDecision || task.decisionBlocker || task.affectedAssets?.length);
+        ...toList(params.tasks).map((task) => ({
+          taskId: task,
+          status: null,
+          owner: null,
+          dueDate: null,
+        })),
+      ].filter(
+        (task) =>
+          task.taskId ||
+          task.status ||
+          task.owner ||
+          task.dueDate ||
+          task.blockedDecision ||
+          task.decisionBlocker ||
+          task.affectedAssets?.length
+      );
       const kpiSignals = toList(params.kpiSignals);
       if (params.hasKpiReference || params.settlementRef) {
         kpiSignals.unshift(params.settlementRef || 'supplied-kpi-reference');
       }
       const sourceHealth = toList(params.sourceHealth);
       if (params.datasourceHealth || params.sourceFreshness || params.qualityStatus) {
-        sourceHealth.unshift(`datasource=${params.datasourceHealth || 'unknown'}; freshness=${params.sourceFreshness || 'unknown'}; quality=${params.qualityStatus || 'unknown'}`);
+        sourceHealth.unshift(
+          `datasource=${params.datasourceHealth || 'unknown'}; freshness=${params.sourceFreshness || 'unknown'}; quality=${params.qualityStatus || 'unknown'}`
+        );
       }
       const sourceActions = {
         inspected: ['dashboard-api.redispatchProjectControllingKpiCockpitStatus'],
@@ -22588,13 +26512,16 @@ module.exports = {
           label: 'Redispatch Audit',
           ready: params.redispatchAuditId || flagIsReady(params.hasRedispatchAudit),
           value: params.redispatchAuditId || params.hasRedispatchAudit,
-          enablesDossierAddition: 'add Redispatch audit chain, steps, findings, and audit-readiness summary',
+          enablesDossierAddition:
+            'add Redispatch audit chain, steps, findings, and audit-readiness summary',
           statusWhenMissing: 'needs_redispatch_audit',
         },
         {
           code: 'source_health',
           label: 'Datasource Health',
-          ready: flagIsReady(params.datasourceHealth) && (flagIsReady(params.sourceFreshness) || !params.sourceFreshness),
+          ready:
+            flagIsReady(params.datasourceHealth) &&
+            (flagIsReady(params.sourceFreshness) || !params.sourceFreshness),
           value: params.datasourceHealth || params.sourceFreshness,
           enablesDossierAddition: 'add source quality, freshness, and provenance evidence',
           statusWhenMissing: 'needs_source_health',
@@ -22620,7 +26547,8 @@ module.exports = {
           label: 'Settlement Readiness',
           ready: params.settlementRef || flagIsReady(params.hasSettlementReadiness),
           value: params.settlementRef || params.hasSettlementReadiness,
-          enablesDossierAddition: 'add settlement-readiness and KPI-impact evidence without executing settlement',
+          enablesDossierAddition:
+            'add settlement-readiness and KPI-impact evidence without executing settlement',
           statusWhenMissing: 'needs_settlement_readiness',
         },
         {
@@ -22680,23 +26608,32 @@ module.exports = {
         status: 'stale',
         enablesDossierAddition: `refresh stale Redispatch source ${value}`,
       }));
-      const datasourceStatus = normalizeStatus(params.datasourceHealth || params.qualityStatus || params.sourceFreshness);
-      const blockedGap = params.blockedDecision || params.decisionBlocker
-        ? [{
-            missingDataPoint: 'blocked_decision',
-            value: params.blockedDecision || params.decisionBlocker,
-            status: 'blocked',
-            enablesDossierAddition: 'add explicit blocker and required decision context',
-          }]
-        : [];
-      const staleHealthGap = datasourceStatus === 'stale'
-        ? [{
-            missingDataPoint: 'source_health',
-            value: params.datasourceHealth || params.sourceFreshness || params.qualityStatus,
-            status: 'stale',
-            enablesDossierAddition: 'refresh stale datasource or quality signal before project review',
-          }]
-        : [];
+      const datasourceStatus = normalizeStatus(
+        params.datasourceHealth || params.qualityStatus || params.sourceFreshness
+      );
+      const blockedGap =
+        params.blockedDecision || params.decisionBlocker
+          ? [
+              {
+                missingDataPoint: 'blocked_decision',
+                value: params.blockedDecision || params.decisionBlocker,
+                status: 'blocked',
+                enablesDossierAddition: 'add explicit blocker and required decision context',
+              },
+            ]
+          : [];
+      const staleHealthGap =
+        datasourceStatus === 'stale'
+          ? [
+              {
+                missingDataPoint: 'source_health',
+                value: params.datasourceHealth || params.sourceFreshness || params.qualityStatus,
+                status: 'stale',
+                enablesDossierAddition:
+                  'refresh stale datasource or quality signal before project review',
+              },
+            ]
+          : [];
       const evidenceGaps = [
         ...missingFromSignals,
         ...missingFromParams,
@@ -22707,15 +26644,31 @@ module.exports = {
 
       let status = 'unknown';
       if (blockedGap.length > 0) status = 'blocked_by_decision_gap';
-      else if (!params.redispatchAuditId && !flagIsReady(params.hasRedispatchAudit)) status = 'needs_redispatch_audit';
-      else if (!flagIsReady(params.datasourceHealth) || datasourceStatus === 'stale' || staleSources.length > 0) status = 'needs_source_health';
-      else if (!flagIsReady(params.hasAssetEvidence) || !flagIsReady(params.hasMastrEvidence)) status = 'needs_asset_evidence';
+      else if (!params.redispatchAuditId && !flagIsReady(params.hasRedispatchAudit))
+        status = 'needs_redispatch_audit';
+      else if (
+        !flagIsReady(params.datasourceHealth) ||
+        datasourceStatus === 'stale' ||
+        staleSources.length > 0
+      )
+        status = 'needs_source_health';
+      else if (!flagIsReady(params.hasAssetEvidence) || !flagIsReady(params.hasMastrEvidence))
+        status = 'needs_asset_evidence';
       else if (!flagIsReady(params.hasLoadProfileEvidence)) status = 'needs_load_profile_evidence';
-      else if (!params.settlementRef && !flagIsReady(params.hasSettlementReadiness)) status = 'needs_settlement_readiness';
+      else if (!params.settlementRef && !flagIsReady(params.hasSettlementReadiness))
+        status = 'needs_settlement_readiness';
       else if (!params.taskOwner || !params.dueDate) status = 'needs_owner';
-      else if (!flagIsReady(params.hasKpiReference) && kpiSignals.length === 0) status = 'needs_settlement_readiness';
-      else if (evidenceGaps.length === 0 && readinessSignals.every((signal) => isReady(signal.status))) status = 'ready_for_project_review';
-      else if (missingFromSignals.length > 0) status = readinessSignals.find((signal) => signal.code === missingFromSignals[0].missingDataPoint)?.statusWhenMissing || 'unknown';
+      else if (!flagIsReady(params.hasKpiReference) && kpiSignals.length === 0)
+        status = 'needs_settlement_readiness';
+      else if (
+        evidenceGaps.length === 0 &&
+        readinessSignals.every((signal) => isReady(signal.status))
+      )
+        status = 'ready_for_project_review';
+      else if (missingFromSignals.length > 0)
+        status =
+          readinessSignals.find((signal) => signal.code === missingFromSignals[0].missingDataPoint)
+            ?.statusWhenMissing || 'unknown';
 
       const decisionBlockers = evidenceGaps
         .filter((gap) => isBlocked(gap.status))
@@ -22753,7 +26706,11 @@ module.exports = {
       if (params.blockedDecision) dossierFacts.push(`Blocked Decision: ${params.blockedDecision}`);
 
       return {
-        redispatchProjectControllingKpiCockpitStatusId: `rdpck:${Buffer.from(`${projectContext.cockpitId || ''}:${params.period || ''}:${params.redispatchAuditId || ''}:${params.taskOwner || ''}`).toString('base64url').slice(0, 28)}`,
+        redispatchProjectControllingKpiCockpitStatusId: `rdpck:${Buffer.from(
+          `${projectContext.cockpitId || ''}:${params.period || ''}:${params.redispatchAuditId || ''}:${params.taskOwner || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 28)}`,
         capabilityKey: 'redispatch_project_controlling_kpi_cockpit',
         safety: 'read_only',
         status,
@@ -22794,35 +26751,135 @@ module.exports = {
         if (typeof value === 'boolean') return value;
         return /^(1|true|yes|ja|include|with)$/i.test(String(value).trim());
       };
-      const focusSparte = String(params.focusSparte || '').trim().toLowerCase();
+      const focusSparte = String(params.focusSparte || '')
+        .trim()
+        .toLowerCase();
       const includeRoles = normalizeBoolean(params.includeRoles, true);
       const includeEvidenceGaps = normalizeBoolean(params.includeEvidenceGaps, true);
       const tenantId = params.tenantId || 'stadtwerk-mauer';
       const allSparten = [
-        { id: 'strom', label: 'Strom', primaryMarketRoles: ['VNB', 'MSB', 'LF', 'BKV', 'EDM', 'MaKo'] },
-        { id: 'gas', label: 'Gas', primaryMarketRoles: ['VNB', 'LF', 'BKV', 'Beschaffung', 'Asset Management'] },
-        { id: 'wasser', label: 'Wasser', primaryMarketRoles: ['Infrastrukturbetreiber', 'Billing', 'Asset Management', 'Management'] },
-        { id: 'waerme', label: 'Waerme', primaryMarketRoles: ['Infrastrukturbetreiber', 'Erzeugungsplanung', 'Beschaffung', 'Billing'] },
+        {
+          id: 'strom',
+          label: 'Strom',
+          primaryMarketRoles: ['VNB', 'MSB', 'LF', 'BKV', 'EDM', 'MaKo'],
+        },
+        {
+          id: 'gas',
+          label: 'Gas',
+          primaryMarketRoles: ['VNB', 'LF', 'BKV', 'Beschaffung', 'Asset Management'],
+        },
+        {
+          id: 'wasser',
+          label: 'Wasser',
+          primaryMarketRoles: [
+            'Infrastrukturbetreiber',
+            'Billing',
+            'Asset Management',
+            'Management',
+          ],
+        },
+        {
+          id: 'waerme',
+          label: 'Waerme',
+          primaryMarketRoles: [
+            'Infrastrukturbetreiber',
+            'Erzeugungsplanung',
+            'Beschaffung',
+            'Billing',
+          ],
+        },
       ];
       const sparten = focusSparte
-        ? allSparten.filter((sparte) => [sparte.id, sparte.label.toLowerCase()].includes(focusSparte))
+        ? allSparten.filter((sparte) =>
+            [sparte.id, sparte.label.toLowerCase()].includes(focusSparte)
+          )
         : allSparten;
       const roleSpecs = [
-        ['management', 'Management', 'internal', 'Decides portfolio priorities, committee readiness, and escalation boundaries.'],
-        ['regulierung', 'Regulierung', 'internal', 'Owns regulatory evidence for paragraph 14a, 14d, 42c, A96, and audit readiness.'],
-        ['asset_management', 'Asset Management', 'internal', 'Owns cross-sparte asset facts, valuation context, and investment readiness.'],
-        ['netzplanung', 'Netzplanung', 'internal', 'Owns ZNP, grid bottleneck, target-network, and municipal planning evidence.'],
-        ['netzbetrieb', 'Netzbetrieb', 'internal', 'Owns operational constraints, outage/maintenance context, and source-action guards.'],
-        ['edm', 'EDM', 'market', 'Owns load profiles, schedules, metering time series, and data-quality evidence.'],
-        ['mako', 'MaKo', 'market', 'Owns market-communication evidence chains and A96/MSCONS/GPKE-adjacent gaps.'],
-        ['billing', 'Billing', 'market', 'Owns settlement, billing, water/heat price and grid-fee impact evidence.'],
-        ['vnb', 'VNB', 'market', 'Owns DSO network process, connection, capacity, and bottleneck responsibility.'],
-        ['msb', 'MSB', 'market', 'Owns metering concept, iMSys/SMGW readiness, and device-data evidence.'],
+        [
+          'management',
+          'Management',
+          'internal',
+          'Decides portfolio priorities, committee readiness, and escalation boundaries.',
+        ],
+        [
+          'regulierung',
+          'Regulierung',
+          'internal',
+          'Owns regulatory evidence for paragraph 14a, 14d, 42c, A96, and audit readiness.',
+        ],
+        [
+          'asset_management',
+          'Asset Management',
+          'internal',
+          'Owns cross-sparte asset facts, valuation context, and investment readiness.',
+        ],
+        [
+          'netzplanung',
+          'Netzplanung',
+          'internal',
+          'Owns ZNP, grid bottleneck, target-network, and municipal planning evidence.',
+        ],
+        [
+          'netzbetrieb',
+          'Netzbetrieb',
+          'internal',
+          'Owns operational constraints, outage/maintenance context, and source-action guards.',
+        ],
+        [
+          'edm',
+          'EDM',
+          'market',
+          'Owns load profiles, schedules, metering time series, and data-quality evidence.',
+        ],
+        [
+          'mako',
+          'MaKo',
+          'market',
+          'Owns market-communication evidence chains and A96/MSCONS/GPKE-adjacent gaps.',
+        ],
+        [
+          'billing',
+          'Billing',
+          'market',
+          'Owns settlement, billing, water/heat price and grid-fee impact evidence.',
+        ],
+        [
+          'vnb',
+          'VNB',
+          'market',
+          'Owns DSO network process, connection, capacity, and bottleneck responsibility.',
+        ],
+        [
+          'msb',
+          'MSB',
+          'market',
+          'Owns metering concept, iMSys/SMGW readiness, and device-data evidence.',
+        ],
         ['lf', 'LF', 'market', 'Owns supplier/customer contract and tariff consequence evidence.'],
-        ['bkv', 'BKV/Bilanzkreismanagement', 'market', 'Owns balancing group, procurement schedule, and imbalance-risk evidence.'],
-        ['esa', 'ESA/Einsatz-/Steuerungsverantwortung', 'market', 'Owns Redispatch, flexibility, generation schedule, and dispatch-responsibility evidence.'],
-        ['beschaffung', 'Beschaffung', 'internal', 'Owns procurement assumptions for Strom, Gas, and Waerme quantity/price risks.'],
-        ['erzeugungsplanung', 'Erzeugungsplanung', 'internal', 'Owns local generation, heat generation and municipal supply planning evidence.'],
+        [
+          'bkv',
+          'BKV/Bilanzkreismanagement',
+          'market',
+          'Owns balancing group, procurement schedule, and imbalance-risk evidence.',
+        ],
+        [
+          'esa',
+          'ESA/Einsatz-/Steuerungsverantwortung',
+          'market',
+          'Owns Redispatch, flexibility, generation schedule, and dispatch-responsibility evidence.',
+        ],
+        [
+          'beschaffung',
+          'Beschaffung',
+          'internal',
+          'Owns procurement assumptions for Strom, Gas, and Waerme quantity/price risks.',
+        ],
+        [
+          'erzeugungsplanung',
+          'Erzeugungsplanung',
+          'internal',
+          'Owns local generation, heat generation and municipal supply planning evidence.',
+        ],
       ];
       const roles = roleSpecs.map(([id, label, type, responsibility], index) => ({
         id,
@@ -22831,10 +26888,7 @@ module.exports = {
         vdmiResponsibility: responsibility,
         involvement: index < 5 ? 'core_ring' : 'market_role',
         decisionBoundary: 'advisory_only_in_phase_1',
-        evidenceNeeds: [
-          `${id}_source_evidence`,
-          `${id}_owner_confirmation`,
-        ],
+        evidenceNeeds: [`${id}_source_evidence`, `${id}_owner_confirmation`],
       }));
       const matrix = sparten.map((sparte) => ({
         sparte: sparte.id,
@@ -22853,11 +26907,31 @@ module.exports = {
         ],
       }));
       const baseGaps = [
-        ['sparte_asset_facts', 'missing sparte-specific asset facts', 'add a more precise asset and network-risk section'],
-        ['mako_edm_evidence', 'missing MaKo / EDM evidence', 'add market-communication and data-quality risk assessment'],
-        ['billing_bkv_evidence', 'missing Billing / BKV evidence', 'add settlement, procurement, and balancing impact assessment'],
-        ['role_owner_confirmation', 'missing VDMI role owner confirmation', 'add accountable owner and escalation boundary'],
-        ['capability_projection', 'missing role-scoped capability projection', 'enable Phase 2 Eve-compatible capability projection'],
+        [
+          'sparte_asset_facts',
+          'missing sparte-specific asset facts',
+          'add a more precise asset and network-risk section',
+        ],
+        [
+          'mako_edm_evidence',
+          'missing MaKo / EDM evidence',
+          'add market-communication and data-quality risk assessment',
+        ],
+        [
+          'billing_bkv_evidence',
+          'missing Billing / BKV evidence',
+          'add settlement, procurement, and balancing impact assessment',
+        ],
+        [
+          'role_owner_confirmation',
+          'missing VDMI role owner confirmation',
+          'add accountable owner and escalation boundary',
+        ],
+        [
+          'capability_projection',
+          'missing role-scoped capability projection',
+          'enable Phase 2 Eve-compatible capability projection',
+        ],
       ];
       const evidenceGaps = includeEvidenceGaps
         ? baseGaps.map(([missingDataPoint, label, enablesDossierAddition]) => ({
@@ -22901,7 +26975,8 @@ module.exports = {
           'personal-agent.execute',
         ],
       };
-      const demoQuestion = params.demoQuestion ||
+      const demoQuestion =
+        params.demoQuestion ||
         'Welche Transformations- und Netzrisiken hat Stadtwerk Mauer fuer Strom, Gas, Wasser und Waerme, und welche Rollen muessen als naechstes Evidenz liefern?';
       const demoQuestionAnswer = {
         question: demoQuestion,
@@ -22921,7 +26996,9 @@ module.exports = {
       ];
 
       return {
-        stadtwerkMauerVdmiProfileStatusId: `smv:${Buffer.from(`${tenantId}:${focusSparte || 'all'}`).toString('base64url').slice(0, 28)}`,
+        stadtwerkMauerVdmiProfileStatusId: `smv:${Buffer.from(`${tenantId}:${focusSparte || 'all'}`)
+          .toString('base64url')
+          .slice(0, 28)}`,
         profileId: 'stadtwerk_mauer_vdmi_profile',
         capabilityKey: 'stadtwerk_mauer_vdmi_profile',
         safety: 'read_only',
@@ -22986,7 +27063,10 @@ module.exports = {
       const toList = (value) => {
         if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean);
         if (value && typeof value === 'string') {
-          return value.split(',').map((item) => item.trim()).filter(Boolean);
+          return value
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean);
         }
         return [];
       };
@@ -23027,8 +27107,14 @@ module.exports = {
             'budget_committee_followup',
           ],
           evidenceGaps: [
-            ['missing_consequential_boundary', 'add explicit NOVA/VDMI/task handoff classification for management decisions'],
-            ['missing_demo_question_context', 'enable Phase-4 demo dossier grounding for management review'],
+            [
+              'missing_consequential_boundary',
+              'add explicit NOVA/VDMI/task handoff classification for management decisions',
+            ],
+            [
+              'missing_demo_question_context',
+              'enable Phase-4 demo dossier grounding for management review',
+            ],
           ],
         },
         'grid-planning': {
@@ -23056,8 +27142,14 @@ module.exports = {
             'fnav_decision_proposal',
           ],
           evidenceGaps: [
-            ['missing_capability_descriptor', 'add catalog and hydration provenance for ZNP/grid-planning capabilities'],
-            ['missing_evidence_source', 'add Layer 1/2, G-Factor, NAP, or fNAV evidence source references'],
+            [
+              'missing_capability_descriptor',
+              'add catalog and hydration provenance for ZNP/grid-planning capabilities',
+            ],
+            [
+              'missing_evidence_source',
+              'add Layer 1/2, G-Factor, NAP, or fNAV evidence source references',
+            ],
           ],
         },
         'asset-management': {
@@ -23085,8 +27177,14 @@ module.exports = {
             'device_control_change_request',
           ],
           evidenceGaps: [
-            ['missing_role_context', 'add role-specific VDMI responsibility evidence for asset ownership'],
-            ['missing_evidence_source', 'add asset, feedback capability, and source snapshot evidence references'],
+            [
+              'missing_role_context',
+              'add role-specific VDMI responsibility evidence for asset ownership',
+            ],
+            [
+              'missing_evidence_source',
+              'add asset, feedback capability, and source snapshot evidence references',
+            ],
           ],
         },
         regulatory: {
@@ -23114,8 +27212,14 @@ module.exports = {
             'billing_or_mako_change_request',
           ],
           evidenceGaps: [
-            ['missing_consequential_boundary', 'add explicit legal/regulatory handoff classification'],
-            ['missing_evidence_source', 'add MaKo, EDM, audit, or regulatory source evidence references'],
+            [
+              'missing_consequential_boundary',
+              'add explicit legal/regulatory handoff classification',
+            ],
+            [
+              'missing_evidence_source',
+              'add MaKo, EDM, audit, or regulatory source evidence references',
+            ],
           ],
         },
       };
@@ -23155,14 +27259,18 @@ module.exports = {
         .filter((roleId) => roleSpecs[roleId])
         .map((roleId) => {
           const spec = roleSpecs[roleId];
-          const profileRoles = profile.roles.filter((role) => spec.profileRoleIds.includes(role.id));
-          const evidenceGaps = spec.evidenceGaps.map(([missingDataPoint, enablesDossierAddition]) => ({
-            missingDataPoint,
-            status: 'partial',
-            enablesDossierAddition,
-            category: 'stadtwerk_mauer_capability_projection',
-            roleId: spec.roleId,
-          }));
+          const profileRoles = profile.roles.filter((role) =>
+            spec.profileRoleIds.includes(role.id)
+          );
+          const evidenceGaps = spec.evidenceGaps.map(
+            ([missingDataPoint, enablesDossierAddition]) => ({
+              missingDataPoint,
+              status: 'partial',
+              enablesDossierAddition,
+              category: 'stadtwerk_mauer_capability_projection',
+              roleId: spec.roleId,
+            })
+          );
           return {
             roleId: spec.roleId,
             label: spec.label,
@@ -23211,7 +27319,10 @@ module.exports = {
       const allEvidenceGaps = roles.flatMap((role) => role.evidenceGaps);
       const readOnlyCount = roles.reduce((sum, role) => sum + role.readOnlyCapabilities.length, 0);
       const advisoryCount = roles.reduce((sum, role) => sum + role.advisoryCapabilities.length, 0);
-      const consequentialCount = roles.reduce((sum, role) => sum + role.consequentialFollowUps.length, 0);
+      const consequentialCount = roles.reduce(
+        (sum, role) => sum + role.consequentialFollowUps.length,
+        0
+      );
       const dossierFacts = [
         'Projection: stadtwerk_mauer_capability_projection',
         `Tenant: ${tenantId}`,
@@ -23224,7 +27335,11 @@ module.exports = {
       ];
 
       return {
-        stadtwerkMauerCapabilityProjectionStatusId: `smcp:${Buffer.from(`${tenantId}:${roles.map((role) => role.roleId).join(',') || 'none'}`).toString('base64url').slice(0, 28)}`,
+        stadtwerkMauerCapabilityProjectionStatusId: `smcp:${Buffer.from(
+          `${tenantId}:${roles.map((role) => role.roleId).join(',') || 'none'}`
+        )
+          .toString('base64url')
+          .slice(0, 28)}`,
         profileId: 'stadtwerk_mauer_vdmi_profile',
         projectionId: 'stadtwerk_mauer_capability_projection',
         capabilityKey: 'stadtwerk_mauer_capability_projection',
@@ -23249,7 +27364,12 @@ module.exports = {
           'Eve runtime, agent skeletons, event simulation, and artifact placement stay out of this slice',
         ],
         descriptorSources: includeDescriptorSources
-          ? ['stadtwerk_mauer_vdmi_profile', 'capability-catalog', 'hydration-registry', 'llm-descriptor']
+          ? [
+              'stadtwerk_mauer_vdmi_profile',
+              'capability-catalog',
+              'hydration-registry',
+              'llm-descriptor',
+            ]
           : [],
         sourceActions,
         validationFindings: allEvidenceGaps.map((gap, index) => ({
@@ -23279,7 +27399,12 @@ module.exports = {
             'Eve runtime, agent skeletons, event simulation, and artifact placement stay out of this slice',
           ],
           descriptorSources: includeDescriptorSources
-            ? ['stadtwerk_mauer_vdmi_profile', 'capability-catalog', 'hydration-registry', 'llm-descriptor']
+            ? [
+                'stadtwerk_mauer_vdmi_profile',
+                'capability-catalog',
+                'hydration-registry',
+                'llm-descriptor',
+              ]
             : [],
           sourceActions: {
             notCalled: sourceActions.notCalled,
@@ -23290,7 +27415,10 @@ module.exports = {
     },
 
     buildStadtwerkMauerEventReplayPreviewStatus(params = {}) {
-      const normalize = (value) => String(value || '').trim().toLowerCase();
+      const normalize = (value) =>
+        String(value || '')
+          .trim()
+          .toLowerCase();
       const hashString = (value) => {
         let hash = 2166136261;
         for (const char of String(value)) {
@@ -23307,62 +27435,403 @@ module.exports = {
       const tenantId = 'stadtwerk-mauer';
       const seed = params.seed || 'stadtwerk-mauer-demo';
       const templates = [
-        ['pv_anmeldung_elektriker', 'PV-Anmeldung Elektriker', 'strom', 'VNB', 'Elektriker', 'PV-Anlage mit unvollstaendiger NAP-Referenz', ['vnb', 'netzplanung'], ['grid_connection_transformation_gate', 'owner_deadline_evidence_gate'], 'Netzanschluss/Einspeiser-Dossier', 'netzanschluss', 'partial', 'advisory_only'],
-        ['pv_speicher_wallbox_kombi', 'PV + Speicher + Wallbox Kombination', 'strom', 'VNB', 'Elektriker', 'Kombinierter Anschlussfall mit Speicher und steuerbarer Verbrauchseinrichtung', ['vnb', 'asset_management', 'esa'], ['grossspeicher_anschluss_readiness_gate', 'controllability_asset_handover'], 'Flex-/Asset-Handover-Dossier', 'asset-management', 'partial', 'consequential_requires_followup'],
-        ['pv_erweiterung_bestand', 'PV-Erweiterung Bestand', 'strom', 'VNB', 'Betreiber', 'Erweiterung einer bestehenden PV-Anlage mit MaStR-Abgleich', ['vnb', 'netzplanung'], ['mastr_quality_oemetadata', 'grid_connection_transformation_gate'], 'MaStR/Netzanschluss-Klaerfall', 'netzplanung', 'partial', 'advisory_only'],
-        ['waermepumpe_wallbox_last', 'Waermepumpe/Wallbox/Gewerbe-Last', 'strom', 'VNB', 'Kunde', 'Anschlussbegehren fuer neue flexible Last', ['vnb', 'netzplanung', 'edm'], ['znp_production_readiness_evidence_gate', 'owner_deadline_evidence_gate'], 'Last-/ZNP-Folgefrage', 'netzplanung', 'missing', 'advisory_only'],
-        ['lieferantenwechsel_mako', 'Lieferantenwechsel per MaKo', 'strom', 'MaKo', 'Lieferant', 'Lieferantenwechsel mit fehlender MaLo-/MeLo-Pruefung', ['mako', 'lf', 'msb'], ['market_communication_evidence_chain'], 'MaKo-Evidenzkette', 'mako', 'partial', 'advisory_only'],
-        ['malo_melo_widerspruch', 'MaLo/MeLo Widerspruch', 'strom', 'MSB', 'MSB', 'Widerspruechliche MaLo-/MeLo-/MSB-Daten', ['msb', 'mako', 'edm'], ['market_communication_evidence_chain', 'controllability_asset_handover'], 'Messwesen-Klaerfall', 'edm', 'missing', 'advisory_only'],
-        ['gpke_mscons_status', 'GPKE/MSCONS Statusmeldung', 'strom', 'MaKo', 'Lieferant', 'Statusmeldung mit offenem Zaehlerstand', ['mako', 'edm', 'billing'], ['market_communication_evidence_chain'], 'MaKo/Abrechnung-Evidenz', 'mako', 'partial', 'advisory_only'],
-        ['zaehlerablesung_unplausibel', 'Unplausible Zaehlerablesung', 'strom', 'EDM', 'Kunde', 'Manuelle Zaehlerablesung kommt verspaetet oder widerspruechlich', ['edm', 'billing', 'msb'], ['owner_deadline_evidence_gate'], 'EDM-Plausibilitaets-Follow-up', 'edm', 'partial', 'advisory_only'],
-        ['imsys_luecken_lastgang', 'iMSys lueckenhafter Lastgang', 'strom', 'MSB', 'MSB', 'Viertelstundenwerte enthalten Luecken', ['msb', 'edm', 'esa'], ['imsys_taf2_compliance', 'cls_digital_twin_compliance_gate'], 'Messdatenqualitaet-Dossier', 'msb', 'partial', 'advisory_only'],
-        ['zaehlerwechsel_gateway_stoerung', 'Zaehlerwechsel / Gateway-Stoerung', 'strom', 'MSB', 'MSB', 'Geraetewechsel mit Gateway-Stoerungsmeldung', ['msb', 'asset_management'], ['controllability_asset_handover'], 'Asset-/Messstellen-Handover', 'msb', 'partial', 'advisory_only'],
-        ['kundenservice_netzanschlussstatus', 'Kundenfrage Netzanschlussstatus', 'uebergreifend', 'VNB', 'Kunde', 'Kunde fragt nach Bearbeitungsstand', ['vnb', 'kundenservice'], ['netzprozess_readiness_gate', 'owner_deadline_evidence_gate'], 'Owner-Frist-Evidenzsicht', 'kundenservice', 'missing', 'read_only_event'],
-        ['kundenservice_falsche_rechnung', 'Kundenmeldung falsche Rechnung', 'strom', 'Billing', 'Kunde', 'Rechnung wirkt falsch wegen unklarer Messwerte', ['billing', 'edm', 'mako'], ['market_communication_evidence_chain'], 'Billing-Grenzfall ohne Abrechnungsausloesung', 'billing', 'partial', 'consequential_requires_followup'],
-        ['umzug_zaehlerstand_fehlt', 'Umzug mit fehlendem Zaehlerstand', 'strom', 'LF', 'Kunde', 'Einzug/Auszug ohne belastbaren Zaehlerstand', ['lf', 'mako', 'billing'], ['market_communication_evidence_chain', 'owner_deadline_evidence_gate'], 'Umzugs-/MaKo-Klaerfall', 'mako', 'missing', 'advisory_only'],
-        ['gas_kapazitaetsannahme_aendert', 'Gas-Kapazitaetsannahme aendert sich', 'gas', 'VNB', 'Kommune', 'Neue Annahme fuer Gasnetz-Kapazitaet im Fotojahr', ['vnb', 'regulierung', 'asset_management'], ['gas_capacity_order_revision_gate', 'gas_transformation_dependency_map'], 'Gasnetz-Transformationsdossier', 'asset-management', 'partial', 'advisory_only'],
-        ['waermeplanung_gasfolgefrage', 'Kommunale Waermeplanung erzeugt Gasfolgefrage', 'waerme', 'VNB', 'Kommune', 'Waermeplanung kollidiert mit Gasnetzrueckbauannahme', ['regulierung', 'netzplanung', 'management'], ['heat_transformation_line_asset_model', 'gas_decommissioning_roadmap'], 'Waerme/Gas-Abhaengigkeitsdossier', 'management', 'partial', 'advisory_only'],
-        ['wasserablesung_unplausibel', 'Wasserzaehlerablesung unplausibel', 'wasser', 'VNB', 'Kunde', 'Wasserzaehlerablesung fehlt oder wirkt unplausibel', ['asset_management', 'billing'], ['owner_deadline_evidence_gate'], 'Wasser-Evidenzklaerung', 'asset-management', 'missing', 'read_only_event'],
-        ['fernwaerme_anschluss_tarif', 'Fernwaerme Anschluss-/Tariffrage', 'waerme', 'VNB', 'Kunde', 'Anschlussbegehren mit Tarif-/Asset-Folgefrage', ['vnb', 'billing', 'asset_management'], ['heat_asset_tariff_steering'], 'Waerme Asset/Tarif-Dossier', 'billing', 'partial', 'advisory_only'],
-        ['waermepumpe_ersetzt_gas', 'Waermepumpe ersetzt Gasheizung', 'uebergreifend', 'VNB', 'Kunde', 'Spartenuebergreifender Fall mit Stromnetz-, Gasnetz- und Waermefolge', ['vnb', 'netzplanung', 'asset_management', 'management'], ['stadtwerk_mauer_capability_projection', 'gas_transformation_dependency_map'], 'Spartenuebergreifendes Transformationsdossier', 'management', 'partial', 'advisory_only'],
-        ['ns_engpass_hinweis', 'Niederspannungsengpass-Hinweis', 'strom', 'VNB', 'Netzbetrieb', 'Operativer Engpasshinweis ohne Steuerhandlung', ['netzplanung', 'netzbetrieb', 'esa'], ['znp_production_readiness_evidence_gate', 'redispatch_readiness_gate'], 'Netzsignal-Dossier', 'netzbetrieb', 'partial', 'consequential_requires_followup'],
-        ['trafo_auslastungswarnung', 'Ortsnetztransformator Auslastungswarnung', 'strom', 'VNB', 'Netzbetrieb', 'Trafostation zeigt Auslastungswarnung', ['netzplanung', 'asset_management'], ['grossspeicher_anschluss_readiness_gate', 'owner_deadline_evidence_gate'], 'Asset-/ZNP-Risikodossier', 'asset-management', 'partial', 'advisory_only'],
-        ['redispatch_speicher_gemeldet', 'Redispatch-relevanter Speicher gemeldet', 'strom', 'ESA', 'Erzeuger', 'Speicher wird als flexibilitaetsrelevant gemeldet', ['esa', 'vnb', 'asset_management'], ['redispatch_readiness_gate', 'battery_redispatch_special_gate'], 'Redispatch-Speicher-Dossier', 'esa', 'partial', 'consequential_requires_followup'],
-        ['wartungsfenster_kollision', 'Wartungsfenster kollidiert mit MaKo/Kundenprozess', 'uebergreifend', 'VNB', 'Netzbetrieb', 'Wartung ueberschneidet sich mit MaKo- und Kundenservice-Fall', ['netzbetrieb', 'mako', 'kundenservice'], ['process_sensitization_readiness_map', 'owner_deadline_evidence_gate'], 'Betriebskoordination-Dossier', 'netzbetrieb', 'partial', 'advisory_only'],
-        ['bilanzkreis_prognoseabweichung', 'Bilanzkreis Prognoseabweichung', 'strom', 'BKV', 'BKV', 'Prognoseabweichung erzeugt Beschaffungs-/Erzeugungsfolge', ['bkv', 'beschaffung', 'erzeugungsplanung'], ['energy_market_price_risk', 'owner_deadline_evidence_gate'], 'BKV/Beschaffung-Dossier', 'beschaffung', 'partial', 'advisory_only'],
-        ['kommunale_erzeugung_ausfall', 'Kommunale Erzeugungsanlage faellt aus', 'strom', 'Erzeugung', 'Erzeuger', 'Erzeugungsfahrplan passt nicht zur Lastannahme', ['erzeugungsplanung', 'bkv', 'edm'], ['market_communication_evidence_chain'], 'Erzeugungs-/EDM-Klaerfall', 'erzeugungsplanung', 'partial', 'advisory_only'],
-        ['energy_sharing_42c_fall', 'Energy-Sharing / §42c Folgefall', 'uebergreifend', 'LF', 'Kommune', 'Energy-Sharing-Fall erzeugt Bilanzierungs-/Settlement-Folge', ['lf', 'bkv', 'billing', 'regulierung'], ['energy_sharing_simulation_gate', 'market_communication_evidence_chain'], '§42c/Bilanzierungs-Dossier', 'regulierung', 'partial', 'consequential_requires_followup'],
-      ].map(([eventType, title, sparte, marketRole, sourceActor, payloadSummary, vdmiRoles, capabilities, dossierPath, nextOwner, evidenceQuality, sideEffectPolicy]) => ({
-        templateId: `sm-event:${eventType}`,
-        eventType,
-        title,
-        sparte,
-        marketRole,
-        sourceActor,
-        payload: { summary: payloadSummary, municipality: 'Mauer', postcode: '69256' },
-        expectedRouting: {
+        [
+          'pv_anmeldung_elektriker',
+          'PV-Anmeldung Elektriker',
+          'strom',
+          'VNB',
+          'Elektriker',
+          'PV-Anlage mit unvollstaendiger NAP-Referenz',
+          ['vnb', 'netzplanung'],
+          ['grid_connection_transformation_gate', 'owner_deadline_evidence_gate'],
+          'Netzanschluss/Einspeiser-Dossier',
+          'netzanschluss',
+          'partial',
+          'advisory_only',
+        ],
+        [
+          'pv_speicher_wallbox_kombi',
+          'PV + Speicher + Wallbox Kombination',
+          'strom',
+          'VNB',
+          'Elektriker',
+          'Kombinierter Anschlussfall mit Speicher und steuerbarer Verbrauchseinrichtung',
+          ['vnb', 'asset_management', 'esa'],
+          ['grossspeicher_anschluss_readiness_gate', 'controllability_asset_handover'],
+          'Flex-/Asset-Handover-Dossier',
+          'asset-management',
+          'partial',
+          'consequential_requires_followup',
+        ],
+        [
+          'pv_erweiterung_bestand',
+          'PV-Erweiterung Bestand',
+          'strom',
+          'VNB',
+          'Betreiber',
+          'Erweiterung einer bestehenden PV-Anlage mit MaStR-Abgleich',
+          ['vnb', 'netzplanung'],
+          ['mastr_quality_oemetadata', 'grid_connection_transformation_gate'],
+          'MaStR/Netzanschluss-Klaerfall',
+          'netzplanung',
+          'partial',
+          'advisory_only',
+        ],
+        [
+          'waermepumpe_wallbox_last',
+          'Waermepumpe/Wallbox/Gewerbe-Last',
+          'strom',
+          'VNB',
+          'Kunde',
+          'Anschlussbegehren fuer neue flexible Last',
+          ['vnb', 'netzplanung', 'edm'],
+          ['znp_production_readiness_evidence_gate', 'owner_deadline_evidence_gate'],
+          'Last-/ZNP-Folgefrage',
+          'netzplanung',
+          'missing',
+          'advisory_only',
+        ],
+        [
+          'lieferantenwechsel_mako',
+          'Lieferantenwechsel per MaKo',
+          'strom',
+          'MaKo',
+          'Lieferant',
+          'Lieferantenwechsel mit fehlender MaLo-/MeLo-Pruefung',
+          ['mako', 'lf', 'msb'],
+          ['market_communication_evidence_chain'],
+          'MaKo-Evidenzkette',
+          'mako',
+          'partial',
+          'advisory_only',
+        ],
+        [
+          'malo_melo_widerspruch',
+          'MaLo/MeLo Widerspruch',
+          'strom',
+          'MSB',
+          'MSB',
+          'Widerspruechliche MaLo-/MeLo-/MSB-Daten',
+          ['msb', 'mako', 'edm'],
+          ['market_communication_evidence_chain', 'controllability_asset_handover'],
+          'Messwesen-Klaerfall',
+          'edm',
+          'missing',
+          'advisory_only',
+        ],
+        [
+          'gpke_mscons_status',
+          'GPKE/MSCONS Statusmeldung',
+          'strom',
+          'MaKo',
+          'Lieferant',
+          'Statusmeldung mit offenem Zaehlerstand',
+          ['mako', 'edm', 'billing'],
+          ['market_communication_evidence_chain'],
+          'MaKo/Abrechnung-Evidenz',
+          'mako',
+          'partial',
+          'advisory_only',
+        ],
+        [
+          'zaehlerablesung_unplausibel',
+          'Unplausible Zaehlerablesung',
+          'strom',
+          'EDM',
+          'Kunde',
+          'Manuelle Zaehlerablesung kommt verspaetet oder widerspruechlich',
+          ['edm', 'billing', 'msb'],
+          ['owner_deadline_evidence_gate'],
+          'EDM-Plausibilitaets-Follow-up',
+          'edm',
+          'partial',
+          'advisory_only',
+        ],
+        [
+          'imsys_luecken_lastgang',
+          'iMSys lueckenhafter Lastgang',
+          'strom',
+          'MSB',
+          'MSB',
+          'Viertelstundenwerte enthalten Luecken',
+          ['msb', 'edm', 'esa'],
+          ['imsys_taf2_compliance', 'cls_digital_twin_compliance_gate'],
+          'Messdatenqualitaet-Dossier',
+          'msb',
+          'partial',
+          'advisory_only',
+        ],
+        [
+          'zaehlerwechsel_gateway_stoerung',
+          'Zaehlerwechsel / Gateway-Stoerung',
+          'strom',
+          'MSB',
+          'MSB',
+          'Geraetewechsel mit Gateway-Stoerungsmeldung',
+          ['msb', 'asset_management'],
+          ['controllability_asset_handover'],
+          'Asset-/Messstellen-Handover',
+          'msb',
+          'partial',
+          'advisory_only',
+        ],
+        [
+          'kundenservice_netzanschlussstatus',
+          'Kundenfrage Netzanschlussstatus',
+          'uebergreifend',
+          'VNB',
+          'Kunde',
+          'Kunde fragt nach Bearbeitungsstand',
+          ['vnb', 'kundenservice'],
+          ['netzprozess_readiness_gate', 'owner_deadline_evidence_gate'],
+          'Owner-Frist-Evidenzsicht',
+          'kundenservice',
+          'missing',
+          'read_only_event',
+        ],
+        [
+          'kundenservice_falsche_rechnung',
+          'Kundenmeldung falsche Rechnung',
+          'strom',
+          'Billing',
+          'Kunde',
+          'Rechnung wirkt falsch wegen unklarer Messwerte',
+          ['billing', 'edm', 'mako'],
+          ['market_communication_evidence_chain'],
+          'Billing-Grenzfall ohne Abrechnungsausloesung',
+          'billing',
+          'partial',
+          'consequential_requires_followup',
+        ],
+        [
+          'umzug_zaehlerstand_fehlt',
+          'Umzug mit fehlendem Zaehlerstand',
+          'strom',
+          'LF',
+          'Kunde',
+          'Einzug/Auszug ohne belastbaren Zaehlerstand',
+          ['lf', 'mako', 'billing'],
+          ['market_communication_evidence_chain', 'owner_deadline_evidence_gate'],
+          'Umzugs-/MaKo-Klaerfall',
+          'mako',
+          'missing',
+          'advisory_only',
+        ],
+        [
+          'gas_kapazitaetsannahme_aendert',
+          'Gas-Kapazitaetsannahme aendert sich',
+          'gas',
+          'VNB',
+          'Kommune',
+          'Neue Annahme fuer Gasnetz-Kapazitaet im Fotojahr',
+          ['vnb', 'regulierung', 'asset_management'],
+          ['gas_capacity_order_revision_gate', 'gas_transformation_dependency_map'],
+          'Gasnetz-Transformationsdossier',
+          'asset-management',
+          'partial',
+          'advisory_only',
+        ],
+        [
+          'waermeplanung_gasfolgefrage',
+          'Kommunale Waermeplanung erzeugt Gasfolgefrage',
+          'waerme',
+          'VNB',
+          'Kommune',
+          'Waermeplanung kollidiert mit Gasnetzrueckbauannahme',
+          ['regulierung', 'netzplanung', 'management'],
+          ['heat_transformation_line_asset_model', 'gas_decommissioning_roadmap'],
+          'Waerme/Gas-Abhaengigkeitsdossier',
+          'management',
+          'partial',
+          'advisory_only',
+        ],
+        [
+          'wasserablesung_unplausibel',
+          'Wasserzaehlerablesung unplausibel',
+          'wasser',
+          'VNB',
+          'Kunde',
+          'Wasserzaehlerablesung fehlt oder wirkt unplausibel',
+          ['asset_management', 'billing'],
+          ['owner_deadline_evidence_gate'],
+          'Wasser-Evidenzklaerung',
+          'asset-management',
+          'missing',
+          'read_only_event',
+        ],
+        [
+          'fernwaerme_anschluss_tarif',
+          'Fernwaerme Anschluss-/Tariffrage',
+          'waerme',
+          'VNB',
+          'Kunde',
+          'Anschlussbegehren mit Tarif-/Asset-Folgefrage',
+          ['vnb', 'billing', 'asset_management'],
+          ['heat_asset_tariff_steering'],
+          'Waerme Asset/Tarif-Dossier',
+          'billing',
+          'partial',
+          'advisory_only',
+        ],
+        [
+          'waermepumpe_ersetzt_gas',
+          'Waermepumpe ersetzt Gasheizung',
+          'uebergreifend',
+          'VNB',
+          'Kunde',
+          'Spartenuebergreifender Fall mit Stromnetz-, Gasnetz- und Waermefolge',
+          ['vnb', 'netzplanung', 'asset_management', 'management'],
+          ['stadtwerk_mauer_capability_projection', 'gas_transformation_dependency_map'],
+          'Spartenuebergreifendes Transformationsdossier',
+          'management',
+          'partial',
+          'advisory_only',
+        ],
+        [
+          'ns_engpass_hinweis',
+          'Niederspannungsengpass-Hinweis',
+          'strom',
+          'VNB',
+          'Netzbetrieb',
+          'Operativer Engpasshinweis ohne Steuerhandlung',
+          ['netzplanung', 'netzbetrieb', 'esa'],
+          ['znp_production_readiness_evidence_gate', 'redispatch_readiness_gate'],
+          'Netzsignal-Dossier',
+          'netzbetrieb',
+          'partial',
+          'consequential_requires_followup',
+        ],
+        [
+          'trafo_auslastungswarnung',
+          'Ortsnetztransformator Auslastungswarnung',
+          'strom',
+          'VNB',
+          'Netzbetrieb',
+          'Trafostation zeigt Auslastungswarnung',
+          ['netzplanung', 'asset_management'],
+          ['grossspeicher_anschluss_readiness_gate', 'owner_deadline_evidence_gate'],
+          'Asset-/ZNP-Risikodossier',
+          'asset-management',
+          'partial',
+          'advisory_only',
+        ],
+        [
+          'redispatch_speicher_gemeldet',
+          'Redispatch-relevanter Speicher gemeldet',
+          'strom',
+          'ESA',
+          'Erzeuger',
+          'Speicher wird als flexibilitaetsrelevant gemeldet',
+          ['esa', 'vnb', 'asset_management'],
+          ['redispatch_readiness_gate', 'battery_redispatch_special_gate'],
+          'Redispatch-Speicher-Dossier',
+          'esa',
+          'partial',
+          'consequential_requires_followup',
+        ],
+        [
+          'wartungsfenster_kollision',
+          'Wartungsfenster kollidiert mit MaKo/Kundenprozess',
+          'uebergreifend',
+          'VNB',
+          'Netzbetrieb',
+          'Wartung ueberschneidet sich mit MaKo- und Kundenservice-Fall',
+          ['netzbetrieb', 'mako', 'kundenservice'],
+          ['process_sensitization_readiness_map', 'owner_deadline_evidence_gate'],
+          'Betriebskoordination-Dossier',
+          'netzbetrieb',
+          'partial',
+          'advisory_only',
+        ],
+        [
+          'bilanzkreis_prognoseabweichung',
+          'Bilanzkreis Prognoseabweichung',
+          'strom',
+          'BKV',
+          'BKV',
+          'Prognoseabweichung erzeugt Beschaffungs-/Erzeugungsfolge',
+          ['bkv', 'beschaffung', 'erzeugungsplanung'],
+          ['energy_market_price_risk', 'owner_deadline_evidence_gate'],
+          'BKV/Beschaffung-Dossier',
+          'beschaffung',
+          'partial',
+          'advisory_only',
+        ],
+        [
+          'kommunale_erzeugung_ausfall',
+          'Kommunale Erzeugungsanlage faellt aus',
+          'strom',
+          'Erzeugung',
+          'Erzeuger',
+          'Erzeugungsfahrplan passt nicht zur Lastannahme',
+          ['erzeugungsplanung', 'bkv', 'edm'],
+          ['market_communication_evidence_chain'],
+          'Erzeugungs-/EDM-Klaerfall',
+          'erzeugungsplanung',
+          'partial',
+          'advisory_only',
+        ],
+        [
+          'energy_sharing_42c_fall',
+          'Energy-Sharing / §42c Folgefall',
+          'uebergreifend',
+          'LF',
+          'Kommune',
+          'Energy-Sharing-Fall erzeugt Bilanzierungs-/Settlement-Folge',
+          ['lf', 'bkv', 'billing', 'regulierung'],
+          ['energy_sharing_simulation_gate', 'market_communication_evidence_chain'],
+          '§42c/Bilanzierungs-Dossier',
+          'regulierung',
+          'partial',
+          'consequential_requires_followup',
+        ],
+      ].map(
+        ([
+          eventType,
+          title,
+          sparte,
+          marketRole,
+          sourceActor,
+          payloadSummary,
           vdmiRoles,
           capabilities,
           dossierPath,
           nextOwner,
-        },
-        evidenceQuality,
-        sideEffectPolicy,
-        positiveFollowUps: [
-          {
-            missingDataPoint: `${eventType}_evidence`,
-            status: evidenceQuality === 'missing' ? 'missing' : 'partial',
-            enablesDossierAddition: `add supplied evidence for ${title} to ${dossierPath}`,
-            category: 'stadtwerk_mauer_event_replay_preview',
+          evidenceQuality,
+          sideEffectPolicy,
+        ]) => ({
+          templateId: `sm-event:${eventType}`,
+          eventType,
+          title,
+          sparte,
+          marketRole,
+          sourceActor,
+          payload: { summary: payloadSummary, municipality: 'Mauer', postcode: '69256' },
+          expectedRouting: {
+            vdmiRoles,
+            capabilities,
+            dossierPath,
+            nextOwner,
           },
-        ],
-      }));
+          evidenceQuality,
+          sideEffectPolicy,
+          positiveFollowUps: [
+            {
+              missingDataPoint: `${eventType}_evidence`,
+              status: evidenceQuality === 'missing' ? 'missing' : 'partial',
+              enablesDossierAddition: `add supplied evidence for ${title} to ${dossierPath}`,
+              category: 'stadtwerk_mauer_event_replay_preview',
+            },
+          ],
+        })
+      );
       const match = (value, filter) => !filter || normalize(value) === normalize(filter);
-      const filteredTemplates = templates.filter((template) =>
-        match(template.eventType, params.eventType) &&
-        match(template.sparte, params.sparte) &&
-        match(template.marketRole, params.marketRole) &&
-        match(template.sourceActor, params.sourceActor)
+      const filteredTemplates = templates.filter(
+        (template) =>
+          match(template.eventType, params.eventType) &&
+          match(template.sparte, params.sparte) &&
+          match(template.marketRole, params.marketRole) &&
+          match(template.sourceActor, params.sourceActor)
       );
       const activeTemplates = filteredTemplates.length > 0 ? filteredTemplates : templates;
       const count = toCount(params.count, activeTemplates.length);
@@ -23382,14 +27851,16 @@ module.exports = {
           expectedRouting: template.expectedRouting,
           evidenceQuality: template.evidenceQuality,
           sideEffectPolicy: template.sideEffectPolicy,
-          followUpClass: template.sideEffectPolicy === 'consequential_requires_followup'
-            ? 'proposal_task_vdmi_or_nova_only'
-            : 'dossier_or_owner_evidence_followup',
+          followUpClass:
+            template.sideEffectPolicy === 'consequential_requires_followup'
+              ? 'proposal_task_vdmi_or_nova_only'
+              : 'dossier_or_owner_evidence_followup',
         }));
-      const countBy = (items, field) => items.reduce((acc, item) => {
-        acc[item[field]] = (acc[item[field]] || 0) + 1;
-        return acc;
-      }, {});
+      const countBy = (items, field) =>
+        items.reduce((acc, item) => {
+          acc[item[field]] = (acc[item[field]] || 0) + 1;
+          return acc;
+        }, {});
       const sourceActions = {
         inspected: ['dashboard-api.stadtwerkMauerEventReplayPreviewStatus'],
         referenced: [
@@ -23739,8 +28210,7 @@ module.exports = {
         (e2eStatus.caseId === requiredCaseId && traces[0] ? traces[0] : null);
       const hasCase =
         sandboxBoundaryAllowed &&
-        (selectedTrace != null ||
-          requiredCaseId === 'smm-budibase-workbench');
+        (selectedTrace != null || requiredCaseId === 'smm-budibase-workbench');
 
       const evidence = this.buildStadtwerkMauerCaseEvidence(seed, e2eStatus);
       const missingEvidence = evidence
@@ -23993,7 +28463,9 @@ module.exports = {
           state: item.missingState || 'evidence_gap',
           enablesDossierAddition: item.enablesDossierAddition || null,
         }));
-      const budibaseHint = commandHints.find((hint) => String(hint.id || '').startsWith('budibase:'));
+      const budibaseHint = commandHints.find((hint) =>
+        String(hint.id || '').startsWith('budibase:')
+      );
       const runbookHint = commandHints.find((hint) => String(hint.id || '').startsWith('rundeck:'));
       const data = {
         seedId,
@@ -24104,7 +28576,10 @@ module.exports = {
       };
     },
 
-    buildMissingStadtwerkMauerCaseAnnotationStatus(tenantId = 'stadtwerk-mauer', caseId = 'smm-budibase-workbench') {
+    buildMissingStadtwerkMauerCaseAnnotationStatus(
+      tenantId = 'stadtwerk-mauer',
+      caseId = 'smm-budibase-workbench'
+    ) {
       return {
         capabilityKey: 'stadtwerk_mauer_case_annotations',
         safety: 'read_only_sandbox_annotation_readback',
@@ -24135,10 +28610,14 @@ module.exports = {
     },
 
     buildStadtwerkMauerCaseEvidence(seed, e2eStatus = {}) {
-      const missing = new Set((e2eStatus.missingEvidence || []).map((item) => item.missingDataPoint));
+      const missing = new Set(
+        (e2eStatus.missingEvidence || []).map((item) => item.missingDataPoint)
+      );
       const clarificationItems = buildWorkbenchClarificationItems(seed);
       return (seed.evidenceRequirements || []).map((item) => {
-        const clarification = clarificationItems.find((candidate) => candidate.evidenceId === item.id);
+        const clarification = clarificationItems.find(
+          (candidate) => candidate.evidenceId === item.id
+        );
         const state = missing.has(item.id)
           ? item.missingState
           : e2eStatus.traceCount > 0
@@ -24313,11 +28792,10 @@ module.exports = {
             e2eStatus?.evidenceQuality ||
             'no_demo_trace_yet',
         },
-        nextGate:
-          plannedOrBlocked[0]?.nextGate || {
-            id: 'admin_inventory_product_cut',
-            label: 'Cut Administrator inventory as a generated read-only catalog (#307)',
-          },
+        nextGate: plannedOrBlocked[0]?.nextGate || {
+          id: 'admin_inventory_product_cut',
+          label: 'Cut Administrator inventory as a generated read-only catalog (#307)',
+        },
         missingEvidence,
         positiveFollowUps,
         capabilityBroker: {
@@ -24434,8 +28912,13 @@ module.exports = {
           safety: 'read_only_verify_only',
           dataClasses: ['sandboxRuntimeArtifact'],
           requiredEvidenceDomains: ['action_contract', 'automation_boundary', 'forbidden_actions'],
-          allowedActionClasses: ['refresh_read_model', 'verify_blueprint_seed', 'validate_evidence_completeness'],
-          readinessSummary: 'Curated action-button contract is available as a read-only/verify-only API.',
+          allowedActionClasses: [
+            'refresh_read_model',
+            'verify_blueprint_seed',
+            'validate_evidence_completeness',
+          ],
+          readinessSummary:
+            'Curated action-button contract is available as a read-only/verify-only API.',
           nextGate: {
             id: 'render_case_actions',
             label: 'Render selected-case action rows from #305',
@@ -24481,7 +28964,8 @@ module.exports = {
           dataClasses: ['syntheticTenantSeed'],
           requiredEvidenceDomains: ['customer_advisory_context', 'commercial_boundary'],
           allowedActionClasses: ['read_model_navigation'],
-          readinessSummary: 'Customer-facing advisory projection is planned; no Vertrieb logic is implemented in #306.',
+          readinessSummary:
+            'Customer-facing advisory projection is planned; no Vertrieb logic is implemented in #306.',
           nextGate: {
             id: 'role_workbench_cut_sales',
             label: 'Cut a later Vertrieb/Key Account read-only advisory workbench',
@@ -24539,7 +29023,8 @@ module.exports = {
       const seed = stadtwerkMauerPvMissingNap;
       const sandboxBoundaryAllowed = tenantId === seed.demoTenant.tenantId;
       const selectedCaseAllowed = caseId === 'smm-budibase-workbench';
-      const found = sandboxBoundaryAllowed && selectedCaseAllowed && caseDetailStatus?.found !== false;
+      const found =
+        sandboxBoundaryAllowed && selectedCaseAllowed && caseDetailStatus?.found !== false;
       const missingEvidence = found
         ? caseDetailStatus?.missingEvidence || []
         : sandboxBoundaryAllowed
@@ -24677,12 +29162,15 @@ module.exports = {
         },
         {
           boundaryId: 'operations_runbook_operational_execution',
-          label: 'Setup, reset, provisioning and E2E smoke remain Cernion-controlled runbook surfaces.',
+          label:
+            'Setup, reset, provisioning and E2E smoke remain Cernion-controlled runbook surfaces.',
           allowedPath: '/api/operations-runbook/**',
           forbiddenExecution: 'direct_budibase_execution_without_scope_gate',
         },
       ];
-      const forbiddenActions = Array.from(new Set([...noCallGuards, 'arbitrary_budibase_table_write']));
+      const forbiddenActions = Array.from(
+        new Set([...noCallGuards, 'arbitrary_budibase_table_write'])
+      );
       const dossierFacts = [
         `Case Actions Status: ${status}`,
         `Tenant: ${tenantId}`,
@@ -24722,7 +29210,8 @@ module.exports = {
           actionCount: availableActions.length,
           enabledActionCount: availableActions.filter((action) => action.enabled !== false).length,
           processActionCount: processActionRows.length,
-          disabledProcessActionCount: processActionRows.filter((row) => row.enabled === false).length,
+          disabledProcessActionCount: processActionRows.filter((row) => row.enabled === false)
+            .length,
           lastResultCount: lastResultRows.length,
           riskClass: 'read_only_verify_only',
           syntheticIdDisclaimer:
@@ -24737,8 +29226,7 @@ module.exports = {
         },
         hydrationRegistry: {
           exposed: false,
-          reason:
-            'No dossier hydration rule is added for this Workbench-only action-bar slice.',
+          reason: 'No dossier hydration rule is added for this Workbench-only action-bar slice.',
         },
         sourceActions: {
           inspected: ['dashboard-api.stadtwerkMauerCaseActionsStatus'],
@@ -24829,7 +29317,9 @@ module.exports = {
           requiredScope: 'dashboard:read',
           confirmationRequired: false,
           enabled: true,
-          nextGate: evidenceMissing ? 'resolve_missing_evidence' : 'case_ready_for_next_gate_review',
+          nextGate: evidenceMissing
+            ? 'resolve_missing_evidence'
+            : 'case_ready_for_next_gate_review',
           evidenceStatus: evidenceMissing ? 'evidence_gaps_present' : 'evidence_complete',
           enablesDossierAddition: evidenceMissing
             ? 'show which missing evidence must arrive before the next selected-case gate is complete'
@@ -24864,14 +29354,9 @@ module.exports = {
         actionId: action.actionId,
         label: action.label,
         riskClass: action.riskClass,
-        boundary:
-          action.actionId === 'verify_blueprint_seed'
-            ? 'cernion-api'
-            : 'budibase-ui-near',
+        boundary: action.actionId === 'verify_blueprint_seed' ? 'cernion-api' : 'budibase-ui-near',
         executionMode:
-          action.actionId === 'verify_blueprint_seed'
-            ? 'read_verify_only'
-            : 'query_refresh_only',
+          action.actionId === 'verify_blueprint_seed' ? 'read_verify_only' : 'query_refresh_only',
         enabled: action.enabled !== false,
         enabledLabel: action.enabled === false ? 'blocked' : 'verify-ready',
         disabledReason: action.disabledReason || null,
@@ -24937,14 +29422,12 @@ module.exports = {
       caseDetailStatus = {},
       missingEvidence = [],
     } = {}) {
-      const evidenceStatus = missingEvidence.length > 0 ? 'evidence_gaps_present' : 'evidence_complete';
+      const evidenceStatus =
+        missingEvidence.length > 0 ? 'evidence_gaps_present' : 'evidence_complete';
       return actions.map((action) => ({
         actionId: action.actionId,
         label: action.label,
-        boundary:
-          action.actionId === 'verify_blueprint_seed'
-            ? 'cernion-api'
-            : 'budibase-ui-near',
+        boundary: action.actionId === 'verify_blueprint_seed' ? 'cernion-api' : 'budibase-ui-near',
         lastResultStatus:
           action.actionId === 'validate_evidence_completeness'
             ? evidenceStatus
@@ -24989,7 +29472,8 @@ module.exports = {
           allowedOperation: 'future curated runbook wrapper after separate approval',
           blockedOperation: 'direct Budibase-triggered Rundeck job execution',
           owner: 'Operations runbook wrapper',
-          presenterMessage: 'Operational execution is visible as a boundary, not available as a free-form button.',
+          presenterMessage:
+            'Operational execution is visible as a boundary, not available as a free-form button.',
         },
       ];
     },
@@ -24997,7 +29481,9 @@ module.exports = {
     buildStadtwerkMauerRequiredEvidenceRows(missingEvidence = []) {
       const rows = missingEvidence.map((item, index) => ({
         evidenceKey: item.missingDataPoint || `missing_evidence_${index + 1}`,
-        label: this.humanizeWorkbenchLabel(item.missingDataPoint || `missing evidence ${index + 1}`),
+        label: this.humanizeWorkbenchLabel(
+          item.missingDataPoint || `missing evidence ${index + 1}`
+        ),
         state: item.state || 'missing',
         requiredGate: item.requiredGate || 'selected_case_next_gate',
         enablesAction: 'validate_evidence_completeness',
@@ -25013,7 +29499,8 @@ module.exports = {
           state: 'complete',
           requiredGate: 'case_ready_for_next_gate_review',
           enablesAction: 'validate_evidence_completeness',
-          presenterMessage: 'The current selected case has no open evidence gaps in the demo panel.',
+          presenterMessage:
+            'The current selected case has no open evidence gaps in the demo panel.',
         },
       ];
     },
@@ -25031,10 +29518,7 @@ module.exports = {
       const sandboxBoundaryAllowed = tenantId === seed.demoTenant.tenantId;
       const runtimeEvidence = includeRuntime ? e2eStatus || {} : {};
       const missingEvidence = sandboxBoundaryAllowed
-        ? [
-            ...(caseDetailStatus?.missingEvidence || []),
-            ...(hubStatus?.missingEvidence || []),
-          ]
+        ? [...(caseDetailStatus?.missingEvidence || []), ...(hubStatus?.missingEvidence || [])]
         : [
             {
               missingDataPoint: 'stadtwerk_mauer_tenant_scope',
@@ -25234,8 +29718,7 @@ module.exports = {
               title: 'MaStR/OSM baseline',
               status: mastrStatus?.status || 'unavailable',
               provenance: 'public_context_read_only',
-              detail:
-                `${mastrStatus?.assetCount || 0} public-context asset rows, original MaStR facts preserved`,
+              detail: `${mastrStatus?.assetCount || 0} public-context asset rows, original MaStR facts preserved`,
             },
           ],
         },
@@ -25354,7 +29837,11 @@ module.exports = {
 
     normalizeStadtwerkMauerDatabrowserCategory(value) {
       if (!value) return null;
-      const key = String(value).trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+      const key = String(value)
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_|_$/g, '');
       const aliases = {
         public_context: 'public_context_layer',
         public_context_layer: 'public_context_layer',
@@ -25413,7 +29900,8 @@ module.exports = {
       const itemRows = allItemRows.slice(0, boundedLimit);
       const selectedItem = itemId ? allItemRows.find((row) => row.itemId === itemId) || null : null;
       const traceRows =
-        selectedCategory?.categoryId === 'process_trace' || selectedCategory?.categoryId === 'sandbox_runtime_artifact'
+        selectedCategory?.categoryId === 'process_trace' ||
+        selectedCategory?.categoryId === 'sandbox_runtime_artifact'
           ? this.buildStadtwerkMauerTenantDatabrowserTraceRows(e2eStatus, boundedLimit)
           : [];
       const detailRows = this.buildStadtwerkMauerTenantDatabrowserDetailRows({
@@ -25503,19 +29991,22 @@ module.exports = {
         })),
         {
           missingDataPoint: 'selected_znp_item_detail',
-          enablesDossierAddition: 'add selected grid-planning item detail and next-gate context from #323',
+          enablesDossierAddition:
+            'add selected grid-planning item detail and next-gate context from #323',
           category: 'stadtwerk_mauer_tenant_databrowser',
           state: 'planned',
         },
         {
           missingDataPoint: 'vertrieb_briefing_rows',
-          enablesDossierAddition: 'add Vertrieb/Key-Account evidence-backed briefing rows from #321',
+          enablesDossierAddition:
+            'add Vertrieb/Key-Account evidence-backed briefing rows from #321',
           category: 'stadtwerk_mauer_tenant_databrowser',
           state: 'planned',
         },
         {
           missingDataPoint: 'process_panel_last_result',
-          enablesDossierAddition: 'add verify action last-result and runbook boundary rows from #322',
+          enablesDossierAddition:
+            'add verify action last-result and runbook boundary rows from #322',
           category: 'stadtwerk_mauer_tenant_databrowser',
           state: 'planned',
         },
@@ -25547,7 +30038,10 @@ module.exports = {
         title: 'Stadtwerk Mauer Tenant Databrowser',
         summary: {
           categoryCount: categories.length,
-          totalBoundedItems: categories.reduce((sum, category) => sum + (category.itemCount || 0), 0),
+          totalBoundedItems: categories.reduce(
+            (sum, category) => sum + (category.itemCount || 0),
+            0
+          ),
           selectedCategoryLabel: selectedCategory?.label || null,
           selectedCategoryItemCount: selectedCategory?.itemCount || 0,
           returnedItemRows: itemRows.length,
@@ -25586,8 +30080,7 @@ module.exports = {
         },
         hydrationRegistry: {
           exposed: false,
-          reason:
-            'No dossier hydration rule is added for this UI-near bounded Databrowser slice.',
+          reason: 'No dossier hydration rule is added for this UI-near bounded Databrowser slice.',
         },
         sourceActions: {
           inspected: ['dashboard-api.stadtwerkMauerTenantDatabrowserStatus'],
@@ -25720,7 +30213,8 @@ module.exports = {
               displayLabel: caseId,
               sourceType: 'synthetic_demo_case',
               readinessStatus: caseDetailStatus?.status || 'case_detail_unknown',
-              evidenceHint: caseDetailStatus?.caseSummary?.evidenceQuality || 'case evidence readiness',
+              evidenceHint:
+                caseDetailStatus?.caseSummary?.evidenceQuality || 'case evidence readiness',
               traceCount: e2eStatus?.traceCount || 0,
               safeNextAction: 'Inspect selected case evidence',
             }),
@@ -25753,7 +30247,8 @@ module.exports = {
           label: 'Case Annotations',
           sourceType: 'stadtwerk-mauer-sandbox-runtime.listCaseAnnotations',
           dataClass: 'sandboxRuntimeArtifact',
-          readinessStatus: annotationRows.length > 0 ? 'case_annotations_ready' : 'case_annotations_empty',
+          readinessStatus:
+            annotationRows.length > 0 ? 'case_annotations_ready' : 'case_annotations_empty',
           evidenceHint: `${annotationRows.length} annotation rows / ${annotationAuditRows.length} audit rows`,
           safeNextAction: 'Record or inspect bounded sandbox annotation',
           items: annotationRows.length
@@ -25818,7 +30313,9 @@ module.exports = {
               sourceType: row.sourceClass || 'case_evidence',
               readinessStatus: row.state,
               evidenceHint: row.nextGateLabel,
-              safeNextAction: row.present ? 'Use as available evidence' : 'Collect missing evidence',
+              safeNextAction: row.present
+                ? 'Use as available evidence'
+                : 'Collect missing evidence',
             })
           ),
         },
@@ -25850,7 +30347,8 @@ module.exports = {
           label: 'Artifacts',
           sourceType: 'artifact_read_model',
           dataClass: 'sandboxRuntimeArtifact',
-          readinessStatus: e2eStatus?.artifactCount > 0 ? 'artifacts_available' : 'artifacts_not_found',
+          readinessStatus:
+            e2eStatus?.artifactCount > 0 ? 'artifacts_available' : 'artifacts_not_found',
           evidenceHint: `${e2eStatus?.artifactCount || 0} sandbox artifact refs`,
           safeNextAction: 'Inspect artifact references',
           items: [
@@ -25916,11 +30414,14 @@ module.exports = {
       return fallback.slice(0, limit).map((trace, index) => ({
         traceId: trace.traceId || trace.id || `smm-e2e-trace:${index + 1}`,
         stepKey: trace.stepKey || `trace-step-${index + 1}`,
-        stepLabel: trace.stepLabel || this.humanizeWorkbenchLabel(trace.stepKey || trace.status || 'Demo trace'),
+        stepLabel:
+          trace.stepLabel ||
+          this.humanizeWorkbenchLabel(trace.stepKey || trace.status || 'Demo trace'),
         source: trace.source || 'stadtwerk-mauer-e2e-process-demo.getStatus',
         status: trace.status || e2eStatus?.status || 'trace_status_unknown',
         evidenceRef: trace.evidenceRef || trace.evidenceId || 'stadtwerk_mauer_demo_trace',
-        artifactRef: trace.artifactRef || (e2eStatus?.artifactCount ? 'sandbox-runtime-artifacts' : null),
+        artifactRef:
+          trace.artifactRef || (e2eStatus?.artifactCount ? 'sandbox-runtime-artifacts' : null),
         order: Number.isFinite(trace.order) ? trace.order : index + 1,
         timestamp: trace.timestamp || e2eStatus?.timestamp || null,
         nextGateLabel: trace.nextGateLabel || 'Review trace evidence in Cernion read model',
@@ -25994,12 +30495,18 @@ module.exports = {
       administratorInventoryStatus = {},
     } = {}) {
       return [
-        ['administrator_inventory', 'dashboard-api.stadtwerkMauerAdministratorInventoryStatus', administratorInventoryStatus?.status],
+        [
+          'administrator_inventory',
+          'dashboard-api.stadtwerkMauerAdministratorInventoryStatus',
+          administratorInventoryStatus?.status,
+        ],
         ['case_detail', 'dashboard-api.stadtwerkMauerCaseDetailStatus', caseDetailStatus?.status],
         [
           'case_annotations',
           'stadtwerk-mauer-sandbox-runtime.listCaseAnnotations',
-          caseDetailStatus?.annotationRows?.length ? 'case_annotations_ready' : 'case_annotations_empty',
+          caseDetailStatus?.annotationRows?.length
+            ? 'case_annotations_ready'
+            : 'case_annotations_empty',
         ],
         ['workbench_hub', 'dashboard-api.stadtwerkMauerWorkbenchHubStatus', hubStatus?.status],
         ['e2e_trace', 'stadtwerk-mauer-e2e-process-demo.getStatus', e2eStatus?.status],
@@ -26135,11 +30642,10 @@ module.exports = {
         openTargetRows,
         missingEvidence,
         positiveFollowUps,
-        nextGate:
-          plannedOrBlocked[0]?.nextGate || {
-            id: 'grid_planning_role_queue_cut_317',
-            label: 'Cut a ZNP/grid-planning role queue projection (#317)',
-          },
+        nextGate: plannedOrBlocked[0]?.nextGate || {
+          id: 'grid_planning_role_queue_cut_317',
+          label: 'Cut a ZNP/grid-planning role queue projection (#317)',
+        },
         capabilityBroker: {
           exposed: false,
           reason:
@@ -26147,8 +30653,7 @@ module.exports = {
         },
         hydrationRegistry: {
           exposed: false,
-          reason:
-            'No dossier hydration rule is added for this Workbench-only role catalog slice.',
+          reason: 'No dossier hydration rule is added for this Workbench-only role catalog slice.',
         },
         sourceActions: {
           inspected: ['dashboard-api.stadtwerkMauerRoleWorkbenchCatalogStatus'],
@@ -26208,10 +30713,18 @@ module.exports = {
           requiredEvidenceDomains: ['tenant_inventory', 'data_catalog', 'source_boundaries'],
           allowedActionClasses: ['read_model_navigation', 'verify_readiness'],
           nextGate: adminAvailable
-            ? { id: 'inspect_administrator_inventory', label: 'Render Administrator inventory rows' }
-            : { id: 'restore_administrator_inventory', label: 'Restore Administrator inventory read model' },
-          safetyNotes: 'Read-only inventory; no tenant provisioning, reset, delete or Budibase table writes.',
-          dataClassNotes: 'public context, synthetic tenant seed and sandbox runtime are separated.',
+            ? {
+                id: 'inspect_administrator_inventory',
+                label: 'Render Administrator inventory rows',
+              }
+            : {
+                id: 'restore_administrator_inventory',
+                label: 'Restore Administrator inventory read model',
+              },
+          safetyNotes:
+            'Read-only inventory; no tenant provisioning, reset, delete or Budibase table writes.',
+          dataClassNotes:
+            'public context, synthetic tenant seed and sandbox runtime are separated.',
           readinessSummary:
             administratorInventoryStatus?.status || 'administrator_inventory_status_unknown',
           enablesDossierAddition:
@@ -26226,14 +30739,20 @@ module.exports = {
           routeKey: 'grid-planning',
           routeTarget: '/stadtwerk-mauer/grid-planning',
           openTarget: 'grid_planning_role_queue',
-          requiredEvidenceDomains: ['nap_reference', 'grid_capacity_context', 'malo_melo_meter_context'],
+          requiredEvidenceDomains: [
+            'nap_reference',
+            'grid_capacity_context',
+            'malo_melo_meter_context',
+          ],
           allowedActionClasses: ['read_model_navigation', 'verify_evidence_completeness'],
           nextGate: {
             id: 'render_grid_planning_role_queue',
             label: 'Render ZNP/grid-planning role queue rows from #317',
           },
-          safetyNotes: 'Read-only role queue target; no grid-capacity calculation or device-control action.',
-          dataClassNotes: 'public context, generated VDMI projection and synthetic tenant seed stay explicit.',
+          safetyNotes:
+            'Read-only role queue target; no grid-capacity calculation or device-control action.',
+          dataClassNotes:
+            'public context, generated VDMI projection and synthetic tenant seed stay explicit.',
           readinessSummary: hubReady
             ? `Grid-planning role queue rows are available for case ${caseId}.`
             : 'Hub target is not available for this tenant/case.',
@@ -26256,7 +30775,8 @@ module.exports = {
             label: 'Render Vertrieb evidence-backed briefing rows from #321',
           },
           safetyNotes: 'No offer, tariff, billing or settlement release is implemented.',
-          dataClassNotes: 'synthetic tenant seed and generated evidence rows only; no real customer data.',
+          dataClassNotes:
+            'synthetic tenant seed and generated evidence rows only; no real customer data.',
           readinessSummary: actionsAvailable
             ? 'Evidence-backed Vertrieb briefing rows are available for the synthetic demo case.'
             : 'Selected-case actions are unavailable for this tenant/case.',
@@ -26278,7 +30798,8 @@ module.exports = {
             id: 'render_sales_briefing_key_account',
             label: 'Render Key Account evidence-backed briefing rows from #321',
           },
-          safetyNotes: 'No customer communication, offer creation, billing or contract mutation is implemented.',
+          safetyNotes:
+            'No customer communication, offer creation, billing or contract mutation is implemented.',
           dataClassNotes: 'synthetic tenant, case and evidence-backed advisory rows only.',
           readinessSummary: 'Key Account briefing uses the same evidence-backed sales projection.',
           enablesDossierAddition:
@@ -26293,15 +30814,21 @@ module.exports = {
           routeKey: 'vdmi-governance',
           routeTarget: '/stadtwerk-mauer/vdmi-governance',
           openTarget: 'vdmi_governance_reviewer',
-          requiredEvidenceDomains: ['vdmi_blueprint_seed', 'decision_policy', 'evidence_requirements'],
+          requiredEvidenceDomains: [
+            'vdmi_blueprint_seed',
+            'decision_policy',
+            'evidence_requirements',
+          ],
           allowedActionClasses: ['read_model_navigation', 'verify_blueprint_seed'],
           nextGate: {
             id: 'vdmi_governance_reviewer_cut',
             label: 'Cut a VDMI governance/reviewer projection',
           },
-          safetyNotes: 'Reviewer target is metadata-only; no policy mutation or HITL case creation.',
+          safetyNotes:
+            'Reviewer target is metadata-only; no policy mutation or HITL case creation.',
           dataClassNotes: 'generated VDMI seed facts and sandbox runtime evidence only.',
-          readinessSummary: 'Blueprint verify exists; reviewer workbench projection is not cut yet.',
+          readinessSummary:
+            'Blueprint verify exists; reviewer workbench projection is not cut yet.',
           enablesDossierAddition:
             'add VDMI reviewer evidence and policy-boundary rows once a governance slice is cut',
         },
@@ -26348,10 +30875,11 @@ module.exports = {
       const seed = stadtwerkMauerPvMissingNap;
       const sandboxBoundaryAllowed = tenantId === seed.demoTenant.tenantId;
       const selectedCaseAllowed = caseId === 'smm-budibase-workbench';
-      const found = sandboxBoundaryAllowed && selectedCaseAllowed && caseDetailStatus?.found !== false;
+      const found =
+        sandboxBoundaryAllowed && selectedCaseAllowed && caseDetailStatus?.found !== false;
       const gridRole = (seed.roles || []).find((role) => role.roleId === 'ROLE_NETZPLANUNG') || {};
       const missingEvidence = found
-        ? (caseDetailStatus?.missingEvidence || [])
+        ? caseDetailStatus?.missingEvidence || []
         : sandboxBoundaryAllowed
           ? [
               {
@@ -26407,13 +30935,19 @@ module.exports = {
         ])
       );
       const queueItems = found
-        ? this.buildStadtwerkMauerGridPlanningQueueItems({ seed, caseId, caseDetailStatus, gridRole })
+        ? this.buildStadtwerkMauerGridPlanningQueueItems({
+            seed,
+            caseId,
+            caseDetailStatus,
+            gridRole,
+          })
         : [];
       const evidenceHandover = found
         ? this.buildStadtwerkMauerGridPlanningEvidenceHandover({ seed, caseDetailStatus })
         : [];
       const queueRows = this.buildStadtwerkMauerGridPlanningQueueRows(queueItems);
-      const evidenceHandoverRows = this.buildStadtwerkMauerGridPlanningEvidenceRows(evidenceHandover);
+      const evidenceHandoverRows =
+        this.buildStadtwerkMauerGridPlanningEvidenceRows(evidenceHandover);
       const status = !sandboxBoundaryAllowed
         ? 'grid_planning_role_queue_blocked_outside_sandbox_tenant'
         : !selectedCaseAllowed || caseDetailStatus?.found === false
@@ -26519,8 +31053,7 @@ module.exports = {
         },
         hydrationRegistry: {
           exposed: false,
-          reason:
-            'No dossier hydration rule is added for this Workbench-only role queue slice.',
+          reason: 'No dossier hydration rule is added for this Workbench-only role queue slice.',
         },
         sourceActions: {
           inspected: ['dashboard-api.stadtwerkMauerGridPlanningRoleQueueStatus'],
@@ -26870,7 +31403,11 @@ module.exports = {
       const normalizedAudience = this.normalizeStadtwerkMauerSalesAudience(audience);
       const audienceSupported = Boolean(normalizedAudience);
       const briefingAudience = normalizedAudience || 'vertrieb';
-      const found = sandboxBoundaryAllowed && selectedCaseAllowed && audienceSupported && caseDetailStatus?.found !== false;
+      const found =
+        sandboxBoundaryAllowed &&
+        selectedCaseAllowed &&
+        audienceSupported &&
+        caseDetailStatus?.found !== false;
       const unsupportedAudienceGap = audienceSupported
         ? []
         : [
@@ -26883,10 +31420,7 @@ module.exports = {
             },
           ];
       const missingEvidence = found
-        ? [
-            ...(caseDetailStatus?.missingEvidence || []),
-            ...unsupportedAudienceGap,
-          ]
+        ? [...(caseDetailStatus?.missingEvidence || []), ...unsupportedAudienceGap]
         : sandboxBoundaryAllowed && selectedCaseAllowed
           ? unsupportedAudienceGap
           : sandboxBoundaryAllowed
@@ -26963,11 +31497,21 @@ module.exports = {
         : [];
       const briefingRows = this.buildStadtwerkMauerSalesBriefingRows(briefingItems);
       const claimRows = briefingRows.filter((row) => row.rowType === 'claim');
-      const evidenceRows = this.buildStadtwerkMauerSalesEvidenceRows({ briefingItems, caseDetailStatus });
+      const evidenceRows = this.buildStadtwerkMauerSalesEvidenceRows({
+        briefingItems,
+        caseDetailStatus,
+      });
       const gapRows = this.buildStadtwerkMauerSalesGapRows({ missingEvidence, briefingItems });
-      const followUpRows = this.buildStadtwerkMauerSalesFollowUpRows({ missingEvidence, briefingItems });
-      const safeClaimCount = claimRows.filter((row) => row.claimStatus === 'evidence_backed').length;
-      const notClaimableCount = claimRows.filter((row) => row.claimStatus === 'not_yet_claimable').length;
+      const followUpRows = this.buildStadtwerkMauerSalesFollowUpRows({
+        missingEvidence,
+        briefingItems,
+      });
+      const safeClaimCount = claimRows.filter(
+        (row) => row.claimStatus === 'evidence_backed'
+      ).length;
+      const notClaimableCount = claimRows.filter(
+        (row) => row.claimStatus === 'not_yet_claimable'
+      ).length;
       const status = !sandboxBoundaryAllowed
         ? 'sales_briefing_blocked_outside_sandbox_tenant'
         : !selectedCaseAllowed || caseDetailStatus?.found === false
@@ -27099,7 +31643,10 @@ module.exports = {
     },
 
     normalizeStadtwerkMauerSalesAudience(audience = 'vertrieb') {
-      const normalized = String(audience || 'vertrieb').trim().toLowerCase().replace(/_/g, '-');
+      const normalized = String(audience || 'vertrieb')
+        .trim()
+        .toLowerCase()
+        .replace(/_/g, '-');
       const aliases = {
         sales: 'vertrieb',
         vertrieb: 'vertrieb',
@@ -27120,10 +31667,17 @@ module.exports = {
       gridPlanningRoleQueueStatus,
       tenantDatabrowserStatus,
     }) {
-      const missingEvidenceIds = new Set((caseDetailStatus?.missingEvidence || []).map((item) => item.missingDataPoint));
-      const evidenceRows = caseDetailStatus?.evidence || this.buildStadtwerkMauerCaseEvidence(seed, {});
-      const presentEvidence = evidenceRows.filter((item) => item.present === true).map((item) => item.id);
-      const openEvidence = evidenceRows.filter((item) => item.present !== true).map((item) => item.id);
+      const missingEvidenceIds = new Set(
+        (caseDetailStatus?.missingEvidence || []).map((item) => item.missingDataPoint)
+      );
+      const evidenceRows =
+        caseDetailStatus?.evidence || this.buildStadtwerkMauerCaseEvidence(seed, {});
+      const presentEvidence = evidenceRows
+        .filter((item) => item.present === true)
+        .map((item) => item.id);
+      const openEvidence = evidenceRows
+        .filter((item) => item.present !== true)
+        .map((item) => item.id);
       const audienceLabel =
         audience === 'key-account'
           ? 'Key Account'
@@ -27144,7 +31698,8 @@ module.exports = {
           backingCaseId: caseId,
           backingWorkbenchItem: tenantDatabrowserStatus?.status || 'tenant_databrowser_ready',
           openGap: '',
-          recommendedInternalFollowUp: 'Open Tenant Databrowser for category, trace and source evidence rows.',
+          recommendedInternalFollowUp:
+            'Open Tenant Databrowser for category, trace and source evidence rows.',
           notClaimableReason: '',
           sourceLabel: 'Tenant Databrowser / Blueprint seed',
         },
@@ -27161,7 +31716,8 @@ module.exports = {
           backingCaseId: caseId,
           backingWorkbenchItem: caseDetailStatus?.status || 'case_detail_status_unknown',
           openGap: openEvidence.join(', '),
-          recommendedInternalFollowUp: 'Resolve missing evidence before turning partial statements into firm claims.',
+          recommendedInternalFollowUp:
+            'Resolve missing evidence before turning partial statements into firm claims.',
           notClaimableReason: '',
           sourceLabel: 'Selected Case Evidence',
         },
@@ -27173,14 +31729,19 @@ module.exports = {
           audienceLabel,
           safeClaim:
             'Zielnetzplanung sieht die Rolle, den naechsten Gate und die Evidence-Handover-Zeilen fuer den synthetischen Fall.',
-          claimStatus: gridPlanningRoleQueueStatus?.found === true ? 'evidence_backed' : 'not_yet_claimable',
+          claimStatus:
+            gridPlanningRoleQueueStatus?.found === true ? 'evidence_backed' : 'not_yet_claimable',
           evidenceStatus: gridPlanningRoleQueueStatus?.found === true ? 'available' : 'missing',
           backingCaseId: caseId,
-          backingWorkbenchItem: gridPlanningRoleQueueStatus?.status || 'grid_planning_role_queue_missing',
+          backingWorkbenchItem:
+            gridPlanningRoleQueueStatus?.status || 'grid_planning_role_queue_missing',
           openGap: gridPlanningRoleQueueStatus?.found === true ? '' : 'grid_planning_role_queue',
-          recommendedInternalFollowUp: 'Open Zielnetzplanung Role Queue and verify NAP handover gaps.',
+          recommendedInternalFollowUp:
+            'Open Zielnetzplanung Role Queue and verify NAP handover gaps.',
           notClaimableReason:
-            gridPlanningRoleQueueStatus?.found === true ? '' : 'ZNP handover rows are not available for this case.',
+            gridPlanningRoleQueueStatus?.found === true
+              ? ''
+              : 'ZNP handover rows are not available for this case.',
           sourceLabel: 'Zielnetzplanung Role Queue',
         },
         {
@@ -27196,8 +31757,10 @@ module.exports = {
           backingCaseId: caseId,
           backingWorkbenchItem: 'municipal_energy_value_analysis',
           openGap: 'municipal_energy_value_analysis',
-          recommendedInternalFollowUp: 'Implement #324 before using municipal value or concession-fee talking points.',
-          notClaimableReason: 'Municipal value analysis is a separate read-only endpoint and not implemented in #321.',
+          recommendedInternalFollowUp:
+            'Implement #324 before using municipal value or concession-fee talking points.',
+          notClaimableReason:
+            'Municipal value analysis is a separate read-only endpoint and not implemented in #321.',
           sourceLabel: 'Planned #324 Municipal Energy Value Lagebild',
         },
         {
@@ -27213,11 +31776,17 @@ module.exports = {
           backingCaseId: caseId,
           backingWorkbenchItem: 'no_call_guards',
           openGap: missingEvidenceIds.has('customerReference') ? 'customerReference' : '',
-          recommendedInternalFollowUp: 'Add a future customer-master integration only after a separate product cut.',
+          recommendedInternalFollowUp:
+            'Add a future customer-master integration only after a separate product cut.',
           notClaimableReason: '',
           sourceLabel: 'No-call guard contract',
         },
-      ].filter((item) => item.audience === audience || item.topicKey !== 'crm_customer_context' || presentEvidence.length >= 0);
+      ].filter(
+        (item) =>
+          item.audience === audience ||
+          item.topicKey !== 'crm_customer_context' ||
+          presentEvidence.length >= 0
+      );
     },
 
     buildStadtwerkMauerSalesBriefingRows(briefingItems = []) {
@@ -27259,7 +31828,10 @@ module.exports = {
         evidenceStatus: item.evidenceStatus,
         present: item.claimStatus !== 'not_yet_claimable',
         required: item.claimStatus === 'not_yet_claimable',
-        dataClass: item.topicKey === 'commercial_value' ? 'plannedReadModel' : 'generatedWorkbenchProjection',
+        dataClass:
+          item.topicKey === 'commercial_value'
+            ? 'plannedReadModel'
+            : 'generatedWorkbenchProjection',
         sourceLabel: item.sourceLabel,
         enablesSafeClaim: item.claimStatus === 'evidence_backed' ? 'yes' : 'partial',
       }));
@@ -27301,7 +31873,8 @@ module.exports = {
           claimStatus: item.claimStatus,
           label: item.topicLabel,
           nextInternalFollowUp: item.recommendedInternalFollowUp,
-          enablesSafeClaim: item.claimStatus === 'not_yet_claimable' ? 'after_gap_resolution' : 'already_safe',
+          enablesSafeClaim:
+            item.claimStatus === 'not_yet_claimable' ? 'after_gap_resolution' : 'already_safe',
         })),
         ...missingEvidence.map((gap) => ({
           followUpKey: gap.missingDataPoint,
@@ -27327,11 +31900,20 @@ module.exports = {
       const sandboxBoundaryAllowed = tenantId === seed.demoTenant.tenantId;
       const normalizedTargetId = this.normalizeStadtwerkMauerWorkbenchTargetId(targetId);
       const targetDirectory = sandboxBoundaryAllowed
-        ? this.buildStadtwerkMauerWorkbenchTargetDirectory({ hubStatus, roleCatalogStatus, landingStatus })
+        ? this.buildStadtwerkMauerWorkbenchTargetDirectory({
+            hubStatus,
+            roleCatalogStatus,
+            landingStatus,
+          })
         : [];
-      const selectedTarget = targetDirectory.find((target) => target.targetId === normalizedTargetId) || null;
-      const selectedRows = selectedTarget ? this.buildStadtwerkMauerWorkbenchSelectedRows(selectedTarget) : [];
-      const focusRows = selectedTarget ? this.buildStadtwerkMauerWorkbenchFocusRows(selectedTarget) : [];
+      const selectedTarget =
+        targetDirectory.find((target) => target.targetId === normalizedTargetId) || null;
+      const selectedRows = selectedTarget
+        ? this.buildStadtwerkMauerWorkbenchSelectedRows(selectedTarget)
+        : [];
+      const focusRows = selectedTarget
+        ? this.buildStadtwerkMauerWorkbenchFocusRows(selectedTarget)
+        : [];
       const helperRows = selectedTarget
         ? this.buildStadtwerkMauerWorkbenchFocusHelperRows(selectedTarget)
         : [];
@@ -27449,8 +32031,7 @@ module.exports = {
         },
         hydrationRegistry: {
           exposed: false,
-          reason:
-            'No dossier hydration rule is added for this Workbench-only focus-state slice.',
+          reason: 'No dossier hydration rule is added for this Workbench-only focus-state slice.',
         },
         sourceActions: {
           inspected: ['dashboard-api.stadtwerkMauerWorkbenchSelectedTargetStatus'],
@@ -27487,7 +32068,9 @@ module.exports = {
     },
 
     normalizeStadtwerkMauerWorkbenchTargetId(targetId = 'hub') {
-      const normalized = String(targetId || 'hub').trim().toLowerCase();
+      const normalized = String(targetId || 'hub')
+        .trim()
+        .toLowerCase();
       const aliases = {
         admin: 'administrator-workbench',
         administrator: 'administrator-workbench',
@@ -27509,7 +32092,11 @@ module.exports = {
       return aliases[normalized] || normalized.replace(/_/g, '-');
     },
 
-    buildStadtwerkMauerWorkbenchTargetDirectory({ hubStatus = null, roleCatalogStatus = null, landingStatus = null } = {}) {
+    buildStadtwerkMauerWorkbenchTargetDirectory({
+      hubStatus = null,
+      roleCatalogStatus = null,
+      landingStatus = null,
+    } = {}) {
       const hubTargets = (hubStatus?.targets || []).map((target) => ({
         targetId: target.targetId,
         title: target.label,
@@ -27528,7 +32115,9 @@ module.exports = {
         targetId: target.roleKey,
         title: target.displayName || target.label || this.humanizeWorkbenchLabel(target.roleKey),
         roleKey: target.roleKey,
-        sectionKey: target.openTarget || this.mapStadtwerkMauerTargetToSection(target.roleKey, target.routeKey),
+        sectionKey:
+          target.openTarget ||
+          this.mapStadtwerkMauerTargetToSection(target.roleKey, target.routeKey),
         anchor: `#${target.openTarget || this.mapStadtwerkMauerTargetToSection(target.roleKey, target.routeKey)}`,
         status: target.status || 'planned',
         readiness: target.readinessSummary || null,
@@ -27627,7 +32216,8 @@ module.exports = {
           title: target.title,
           sectionKey: target.sectionKey,
           anchor: target.anchor,
-          focusState: target.status === 'available' ? 'focus_available_section' : 'focus_planned_section',
+          focusState:
+            target.status === 'available' ? 'focus_available_section' : 'focus_planned_section',
           status: target.status,
           routeKey: target.routeKey,
           targetType: target.targetType,
@@ -27642,14 +32232,16 @@ module.exports = {
           helperId: `${target.targetId}:open`,
           label: 'Open Target Section',
           helperText: `Focus ${target.title} in section ${target.sectionKey}.`,
-          safeNextAction: target.status === 'available' ? 'show_selected_section' : 'show_planned_target_context',
+          safeNextAction:
+            target.status === 'available' ? 'show_selected_section' : 'show_planned_target_context',
           requiredEvidence: target.readiness || target.status,
           followUp: target.followUp,
         },
         {
           helperId: `${target.targetId}:boundary`,
           label: 'Interaction Boundary',
-          helperText: 'Budibase may select and render this section; Cernion remains the source of truth.',
+          helperText:
+            'Budibase may select and render this section; Cernion remains the source of truth.',
           safeNextAction: 'query_refresh_only',
           requiredEvidence: 'read_only_workbench_query',
           followUp: 'do not write tenant data or execute runbooks from this focus state',
@@ -27911,7 +32503,9 @@ module.exports = {
           category: 'data_basis',
           label: 'Public Context',
           status: mastrStatus?.status || 'mastr_overlay_status_unknown',
-          statusLabel: this.humanizeWorkbenchLabel(mastrStatus?.status || 'mastr_overlay_status_unknown'),
+          statusLabel: this.humanizeWorkbenchLabel(
+            mastrStatus?.status || 'mastr_overlay_status_unknown'
+          ),
           valueLabel: mastrStatus?.municipality
             ? `${mastrStatus.municipality} ${mastrStatus.postalCode || ''}`.trim()
             : 'Mauer public-context overlay',
@@ -27939,7 +32533,9 @@ module.exports = {
           category: 'navigation',
           label: 'Inspectable Sections',
           status: hubStatus?.status || 'workbench_hub_status_unknown',
-          statusLabel: this.humanizeWorkbenchLabel(hubStatus?.status || 'workbench_hub_status_unknown'),
+          statusLabel: this.humanizeWorkbenchLabel(
+            hubStatus?.status || 'workbench_hub_status_unknown'
+          ),
           valueLabel: `${hubStatus?.targetRows?.length ?? 0} Hub targets`,
           evidenceHint: `${roleCatalogStatus?.roleRows?.length ?? 0} role workbench rows`,
           roleTarget: 'presenter',
@@ -27965,9 +32561,12 @@ module.exports = {
           category: 'process_boundary',
           label: 'Safe Presenter Action',
           status: caseActionsStatus?.status || 'case_actions_status_unknown',
-          statusLabel: this.humanizeWorkbenchLabel(caseActionsStatus?.status || 'case_actions_status_unknown'),
+          statusLabel: this.humanizeWorkbenchLabel(
+            caseActionsStatus?.status || 'case_actions_status_unknown'
+          ),
           valueLabel: `${caseActionsStatus?.actionRows?.length ?? 0} read/verify actions`,
-          evidenceHint: caseDetailStatus?.status || e2eStatus?.status || 'case_detail_status_unknown',
+          evidenceHint:
+            caseDetailStatus?.status || e2eStatus?.status || 'case_detail_status_unknown',
           roleTarget: 'presenter',
           safeNextAction: 'Refresh read-only status',
           sourceCategory: 'sandboxRuntimeArtifact',
@@ -27994,9 +32593,27 @@ module.exports = {
           'admin',
           'Inspect tenant inventory',
         ],
-        ['selected_case_detail', 'Selected Case Detail', caseDetailStatus?.status, 'case-detail', 'Inspect case evidence'],
-        ['selected_case_actions', 'Selected Case Actions', caseActionsStatus?.status, 'case-actions', 'Refresh/verify status'],
-        ['role_workbench_catalog', 'Role Workbench Catalog', roleCatalogStatus?.status, 'roles', 'Open role targets'],
+        [
+          'selected_case_detail',
+          'Selected Case Detail',
+          caseDetailStatus?.status,
+          'case-detail',
+          'Inspect case evidence',
+        ],
+        [
+          'selected_case_actions',
+          'Selected Case Actions',
+          caseActionsStatus?.status,
+          'case-actions',
+          'Refresh/verify status',
+        ],
+        [
+          'role_workbench_catalog',
+          'Role Workbench Catalog',
+          roleCatalogStatus?.status,
+          'roles',
+          'Open role targets',
+        ],
         [
           'grid_planning_role_queue',
           'Zielnetzplanung Role Queue',
@@ -28005,7 +32622,13 @@ module.exports = {
           'Inspect ZNP queue',
         ],
         ['mastr_overlay', 'MaStR Overlay', mastrStatus?.status, 'admin', 'Inspect public context'],
-        ['e2e_demo_status', 'E2E Demo Status', e2eStatus?.status, 'presenter', 'Review demo trace status'],
+        [
+          'e2e_demo_status',
+          'E2E Demo Status',
+          e2eStatus?.status,
+          'presenter',
+          'Review demo trace status',
+        ],
       ];
       return sectionDefs.map(([sectionKey, label, statusValue, roleTarget, safeNextAction]) => ({
         sectionKey,
@@ -28047,7 +32670,8 @@ module.exports = {
           enabledLabel: gridPlanningRoleQueueStatus?.found ? 'Enabled' : 'Blocked',
           targetSection: 'grid_planning_role_queue',
           expectedResult: 'Show queue and evidence handover rows',
-          requiredEvidence: gridPlanningRoleQueueStatus?.status || 'grid_planning_role_queue_status_unknown',
+          requiredEvidence:
+            gridPlanningRoleQueueStatus?.status || 'grid_planning_role_queue_status_unknown',
         },
         {
           actionId: 'presenter-resolve-first-gap',
@@ -28057,7 +32681,8 @@ module.exports = {
           enabled: true,
           enabledLabel: 'Enabled',
           targetSection: firstGap?.sectionKey || 'selected_case_detail',
-          expectedResult: firstGap?.followUp || 'Move from landing status into selected case evidence',
+          expectedResult:
+            firstGap?.followUp || 'Move from landing status into selected case evidence',
           requiredEvidence: firstGap?.evidenceHint || 'all first-screen sections available',
         },
       ];
@@ -28160,36 +32785,41 @@ module.exports = {
     buildStadtwerkMauerMastrRevalidationRows(status = {}, params = {}) {
       const mode = String(params.revalidationMode || '').toLowerCase();
       const queryFailed = Boolean(status.mastrQuery?.queryFailed);
-      const observedStatus = mode === 'drill'
-        ? 'synthetic_revalidation_drill'
-        : queryFailed
-          ? 'source_unavailable_or_not_watched'
-          : 'no_delta_observed';
-      const evidenceStatus = observedStatus === 'no_delta_observed'
-        ? 'public_context_current_for_demo'
-        : observedStatus === 'synthetic_revalidation_drill'
-          ? 'synthetic_drill_requires_review'
-          : 'source_watch_unavailable';
+      const observedStatus =
+        mode === 'drill'
+          ? 'synthetic_revalidation_drill'
+          : queryFailed
+            ? 'source_unavailable_or_not_watched'
+            : 'no_delta_observed';
+      const evidenceStatus =
+        observedStatus === 'no_delta_observed'
+          ? 'public_context_current_for_demo'
+          : observedStatus === 'synthetic_revalidation_drill'
+            ? 'synthetic_drill_requires_review'
+            : 'source_watch_unavailable';
       return [
         {
           rowKey: 'mastr_revalidation_status',
           revalidationStatus: observedStatus,
           evidenceStatus,
-          sourceClass: observedStatus === 'synthetic_revalidation_drill'
-            ? 'synthetic_revalidation_drill'
-            : 'public_context_layer',
+          sourceClass:
+            observedStatus === 'synthetic_revalidation_drill'
+              ? 'synthetic_revalidation_drill'
+              : 'public_context_layer',
           affectedCaseId: params.caseId || 'smm-budibase-workbench',
           watchId: params.watchId || 'not_configured',
           deltaCount: observedStatus === 'public_context_delta_observed' ? 1 : 0,
-          safeNextAction: observedStatus === 'no_delta_observed'
-            ? 'refresh_mastr_overlay_read_model'
-            : 'review_public_context_delta_before_case_claim',
+          safeNextAction:
+            observedStatus === 'no_delta_observed'
+              ? 'refresh_mastr_overlay_read_model'
+              : 'review_public_context_delta_before_case_claim',
         },
       ];
     },
 
     buildStadtwerkMauerMastrAffectedCaseRows(status = {}, params = {}, revalidationRows = []) {
-      const revalidationStatus = revalidationRows[0]?.revalidationStatus || 'source_unavailable_or_not_watched';
+      const revalidationStatus =
+        revalidationRows[0]?.revalidationStatus || 'source_unavailable_or_not_watched';
       return [
         {
           rowKey: 'affected_case',
@@ -28197,27 +32827,31 @@ module.exports = {
           workbenchItemId: params.queueItemId || 'grid-planning:missing-nap-clarification',
           sourceClass: 'synthetic_tenant_seed',
           affectedByPublicContext: revalidationStatus !== 'no_delta_observed',
-          impactStatus: revalidationStatus === 'no_delta_observed'
-            ? 'public_context_current_for_demo'
-            : 'review_required_before_case_claim',
+          impactStatus:
+            revalidationStatus === 'no_delta_observed'
+              ? 'public_context_current_for_demo'
+              : 'review_required_before_case_claim',
           evidenceHint: status.status || 'mastr_overlay_status_unknown',
         },
       ];
     },
 
     buildStadtwerkMauerMastrNextGateRows(status = {}, revalidationRows = []) {
-      const revalidationStatus = revalidationRows[0]?.revalidationStatus || 'source_unavailable_or_not_watched';
-      const gate = revalidationStatus === 'no_delta_observed'
-        ? 'public_context_current_for_demo'
-        : 'review_public_context_delta_before_case_claim';
+      const revalidationStatus =
+        revalidationRows[0]?.revalidationStatus || 'source_unavailable_or_not_watched';
+      const gate =
+        revalidationStatus === 'no_delta_observed'
+          ? 'public_context_current_for_demo'
+          : 'review_public_context_delta_before_case_claim';
       return [
         {
           rowKey: 'next_gate',
           gateKey: gate,
           label: this.humanizeWorkbenchLabel(gate),
-          sourceClass: revalidationStatus === 'synthetic_revalidation_drill'
-            ? 'synthetic_revalidation_drill'
-            : 'public_context_layer',
+          sourceClass:
+            revalidationStatus === 'synthetic_revalidation_drill'
+              ? 'synthetic_revalidation_drill'
+              : 'public_context_layer',
           status: revalidationStatus,
           requiredEvidence: status.status || 'mastr_overlay_status_unknown',
         },
@@ -28226,7 +32860,8 @@ module.exports = {
 
     buildStadtwerkMauerMastrSafeActionRows(status = {}, params = {}, revalidationRows = []) {
       const affectedCaseId = params.caseId || 'smm-budibase-workbench';
-      const revalidationStatus = revalidationRows[0]?.revalidationStatus || 'source_unavailable_or_not_watched';
+      const revalidationStatus =
+        revalidationRows[0]?.revalidationStatus || 'source_unavailable_or_not_watched';
       return [
         {
           actionKey: 'refresh_mastr_overlay_read_model',
@@ -28254,7 +32889,8 @@ module.exports = {
           riskClass: 'read_only_verify',
           boundary: 'cernion-api',
           enabled: revalidationStatus !== 'no_delta_observed',
-          enabledLabel: revalidationStatus !== 'no_delta_observed' ? 'Enabled' : 'No delta observed',
+          enabledLabel:
+            revalidationStatus !== 'no_delta_observed' ? 'Enabled' : 'No delta observed',
           targetSection: 'mastr_revalidation',
           expectedResult: 'Review delta/drill evidence before case claims',
         },
@@ -28277,16 +32913,14 @@ module.exports = {
         boundary,
         status: 'not_called',
         sourceClass: boundary === 'mastr.write' ? 'public_context_layer' : 'command_boundary',
-        safeAlternative: boundary === 'mastr.write'
-          ? 'refresh_mastr_overlay_read_model'
-          : 'view_or_verify_existing_evidence',
+        safeAlternative:
+          boundary === 'mastr.write'
+            ? 'refresh_mastr_overlay_read_model'
+            : 'view_or_verify_existing_evidence',
       }));
     },
 
-    buildMissingStadtwerkMauerMastrDataOverlayStatus(
-      tenantId = 'stadtwerk-mauer',
-      params = {}
-    ) {
+    buildMissingStadtwerkMauerMastrDataOverlayStatus(tenantId = 'stadtwerk-mauer', params = {}) {
       const missingEvidence = [
         {
           missingDataPoint: 'mastr_overlay_status',
@@ -28395,19 +33029,41 @@ module.exports = {
 
     buildFnavFastTrackContractGateStatus(params = {}) {
       const toList = (value) => {
-        if (Array.isArray(value)) return value.map((item) => String(item || '').trim()).filter(Boolean);
+        if (Array.isArray(value))
+          return value.map((item) => String(item || '').trim()).filter(Boolean);
         if (value && typeof value === 'string') {
-          return value.split(',').map((item) => item.trim()).filter(Boolean);
+          return value
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean);
         }
         return [];
       };
       const normalizeStatus = (value) => {
-        const text = String(value || '').trim().toLowerCase();
+        const text = String(value || '')
+          .trim()
+          .toLowerCase();
         if (!text) return 'missing';
-        if (/^(ready|ok|green|gruen|grün|complete|completed|valid|validiert|confirmed|bestaetigt|bestätigt|approved|freigegeben|signed|vorhanden|ja|yes)$/.test(text)) return 'ready';
-        if (/^(partial|partly|pending|open|offen|in_progress|in-progress|review|review_required|unklar|unknown|draft)$/.test(text)) return 'partial';
-        if (/^(missing|fehlt|absent|not_available|not-available|none)$/.test(text)) return 'missing';
-        if (/^(blocked|blockiert|red|rot|failed|rejected|not_ready|not-ready|stop|verboten)$/.test(text)) return 'blocked';
+        if (
+          /^(ready|ok|green|gruen|grün|complete|completed|valid|validiert|confirmed|bestaetigt|bestätigt|approved|freigegeben|signed|vorhanden|ja|yes)$/.test(
+            text
+          )
+        )
+          return 'ready';
+        if (
+          /^(partial|partly|pending|open|offen|in_progress|in-progress|review|review_required|unklar|unknown|draft)$/.test(
+            text
+          )
+        )
+          return 'partial';
+        if (/^(missing|fehlt|absent|not_available|not-available|none)$/.test(text))
+          return 'missing';
+        if (
+          /^(blocked|blockiert|red|rot|failed|rejected|not_ready|not-ready|stop|verboten)$/.test(
+            text
+          )
+        )
+          return 'blocked';
         if (/legal|recht/.test(text) && /pending|open|unklar|not/.test(text)) return 'partial';
         if (/stop|abort|abbruch|reject|ablehn|block/.test(text)) return 'blocked';
         return 'ready';
@@ -28415,13 +33071,20 @@ module.exports = {
       const isReady = (status) => status === 'ready';
       const isBlocked = (status) => status === 'blocked';
       const sourceRefs = toList(params.sourceRef);
-      const gateId = params.gateId || `fnav-ft:${Buffer.from(`${params.gridOperatorId || ''}:${params.requestType || ''}:${params.assetOrLoadType || ''}:${params.requestedCapacityKW || ''}`).toString('base64url').slice(0, 28)}`;
+      const gateId =
+        params.gateId ||
+        `fnav-ft:${Buffer.from(
+          `${params.gridOperatorId || ''}:${params.requestType || ''}:${params.assetOrLoadType || ''}:${params.requestedCapacityKW || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 28)}`;
       const evidenceSpecs = [
         {
           code: 'fnav_profile',
           label: 'fNAV Profile',
           value: params.requestType || params.assetOrLoadType || params.requestedCapacityKW,
-          enablesDossierAddition: 'add fNAV request profile for storage, data-center or large-load fast-track review',
+          enablesDossierAddition:
+            'add fNAV request profile for storage, data-center or large-load fast-track review',
           statusWhenMissing: 'needs_contract_evidence',
         },
         {
@@ -28435,7 +33098,8 @@ module.exports = {
           code: 'netzsignal_priority_policy',
           label: 'Network-Signal Priority',
           value: params.netzsignalPriorityPolicy,
-          enablesDossierAddition: 'add the network-signal priority boundary for the fast-track decision',
+          enablesDossierAddition:
+            'add the network-signal priority boundary for the fast-track decision',
           statusWhenMissing: 'requires_governance_decision',
         },
         {
@@ -28508,7 +33172,9 @@ module.exports = {
           enablesDossierAddition: 'document fast-track stop or abort criteria before continuing',
         });
       }
-      const commercialStatus = normalizeStatus(params.commercialImpact || params.marketingBoundaries);
+      const commercialStatus = normalizeStatus(
+        params.commercialImpact || params.marketingBoundaries
+      );
       if (!isReady(commercialStatus)) {
         evidenceGaps.push({
           missingDataPoint: 'commercial_impact',
@@ -28518,13 +33184,30 @@ module.exports = {
         });
       }
       let decisionReadiness = 'ready_for_fast_track';
-      if (evidenceGaps.some((gap) => gap.missingDataPoint === 'break_criteria' || gap.status === 'blocked')) {
+      if (
+        evidenceGaps.some(
+          (gap) => gap.missingDataPoint === 'break_criteria' || gap.status === 'blocked'
+        )
+      ) {
         decisionReadiness = 'stop_fast_track';
       } else if (evidenceGaps.some((gap) => gap.missingDataPoint === 'legal_status')) {
         decisionReadiness = 'blocked_by_legal_status';
-      } else if (evidenceGaps.some((gap) => gap.missingDataPoint === 'control_evidence_ref' || gap.missingDataPoint === 'metering_requirement')) {
+      } else if (
+        evidenceGaps.some(
+          (gap) =>
+            gap.missingDataPoint === 'control_evidence_ref' ||
+            gap.missingDataPoint === 'metering_requirement'
+        )
+      ) {
         decisionReadiness = 'needs_control_evidence';
-      } else if (evidenceGaps.some((gap) => gap.missingDataPoint === 'contract_status' || gap.missingDataPoint === 'fnav_profile' || gap.missingDataPoint === 'schedule_obligation')) {
+      } else if (
+        evidenceGaps.some(
+          (gap) =>
+            gap.missingDataPoint === 'contract_status' ||
+            gap.missingDataPoint === 'fnav_profile' ||
+            gap.missingDataPoint === 'schedule_obligation'
+        )
+      ) {
         decisionReadiness = 'needs_contract_evidence';
       } else if (evidenceGaps.some((gap) => gap.missingDataPoint === 'commercial_impact')) {
         decisionReadiness = 'needs_commercial_review';
@@ -28566,7 +33249,16 @@ module.exports = {
         category: 'fnav_fast_track_contract_gate',
       }));
       const governanceBlockers = evidenceGaps
-        .filter((gap) => ['grid_operator_identity', 'netzsignal_priority_policy', 'owner_contact', 'legal_status', 'break_criteria'].includes(gap.missingDataPoint) || isBlocked(gap.status))
+        .filter(
+          (gap) =>
+            [
+              'grid_operator_identity',
+              'netzsignal_priority_policy',
+              'owner_contact',
+              'legal_status',
+              'break_criteria',
+            ].includes(gap.missingDataPoint) || isBlocked(gap.status)
+        )
         .map((gap) => ({
           code: gap.missingDataPoint,
           owner: params.ownerContact || params.escalationOwner || null,
@@ -28651,7 +33343,8 @@ module.exports = {
 
     buildVnbDeltaSignalClassifierStatus(params = {}) {
       const toList = (value) => {
-        if (Array.isArray(value)) return value.filter((item) => item !== undefined && item !== null && item !== '');
+        if (Array.isArray(value))
+          return value.filter((item) => item !== undefined && item !== null && item !== '');
         if (value && typeof value === 'string') {
           const trimmed = value.trim();
           if (!trimmed) return [];
@@ -28663,7 +33356,10 @@ module.exports = {
               return [trimmed];
             }
           }
-          return trimmed.split(',').map((item) => item.trim()).filter(Boolean);
+          return trimmed
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean);
         }
         return value && typeof value === 'object' ? [value] : [];
       };
@@ -28683,7 +33379,8 @@ module.exports = {
       };
       const classifyProcess = (text, hint) => {
         if (hint) return hint;
-        if (hasAny(text, ['anschluss', 'netzanschluss', 'kapazitaet', 'kapazität'])) return 'grid_connection_capacity';
+        if (hasAny(text, ['anschluss', 'netzanschluss', 'kapazitaet', 'kapazität']))
+          return 'grid_connection_capacity';
         if (hasAny(text, ['redispatch', 'fahrplan', 'abruf'])) return 'redispatch_flexibility';
         if (hasAny(text, ['messstelle', 'imsys', 'msb', 'zaehler', 'zähler'])) return 'metering';
         if (hasAny(text, ['regulierung', 'enwg', 'nzentg', 'bnetza'])) return 'regulatory';
@@ -28706,8 +33403,23 @@ module.exports = {
       const classifyRelevance = (text, urgency, blockedDecision) => {
         let score = 0;
         if (blockedDecision) score += 2;
-        if (hasAny(text, ['frist', 'deadline', 'entscheidung', 'blockiert', 'freigabe', 'eskalation'])) score += 2;
-        if (hasAny(text, ['kapazitaet', 'kapazität', 'anschluss', 'redispatch', 'regulierung', 'messstellen', 'asset', 'flex'])) score += 1;
+        if (
+          hasAny(text, ['frist', 'deadline', 'entscheidung', 'blockiert', 'freigabe', 'eskalation'])
+        )
+          score += 2;
+        if (
+          hasAny(text, [
+            'kapazitaet',
+            'kapazität',
+            'anschluss',
+            'redispatch',
+            'regulierung',
+            'messstellen',
+            'asset',
+            'flex',
+          ])
+        )
+          score += 1;
         if (['overdue', 'urgent_48h'].includes(urgency)) score += 2;
         if (urgency === 'near_term') score += 1;
         if (score >= 5) return 'high';
@@ -28721,28 +33433,34 @@ module.exports = {
         if (anchorHits < anchors.length) return 'partial_delta';
         return 'known_context_update';
       };
-      const rawSignals = Array.isArray(params.signals) && params.signals.length > 0
-        ? params.signals.slice(0, 10)
-        : [{
-            signalId: params.signalId,
-            caseId: params.caseId,
-            sourceType: params.sourceType,
-            receivedAt: params.receivedAt,
-            subject: params.subject,
-            bodyExcerpt: params.bodyExcerpt,
-            knownContextAnchors: params.knownContextAnchors,
-            processHint: params.processHint,
-            ownerHint: params.ownerHint,
-            dueDateHint: params.dueDateHint,
-            blockedDecisionHint: params.blockedDecisionHint,
-            nextEvidenceHint: params.nextEvidenceHint,
-          }];
+      const rawSignals =
+        Array.isArray(params.signals) && params.signals.length > 0
+          ? params.signals.slice(0, 10)
+          : [
+              {
+                signalId: params.signalId,
+                caseId: params.caseId,
+                sourceType: params.sourceType,
+                receivedAt: params.receivedAt,
+                subject: params.subject,
+                bodyExcerpt: params.bodyExcerpt,
+                knownContextAnchors: params.knownContextAnchors,
+                processHint: params.processHint,
+                ownerHint: params.ownerHint,
+                dueDateHint: params.dueDateHint,
+                blockedDecisionHint: params.blockedDecisionHint,
+                nextEvidenceHint: params.nextEvidenceHint,
+              },
+            ];
 
       const missingMap = {
-        source_type: 'add supplied source type such as mail, teams, task, portal or meeting-note label',
+        source_type:
+          'add supplied source type such as mail, teams, task, portal or meeting-note label',
         received_at: 'add received-at timestamp for freshness and SLA interpretation',
-        subject_or_excerpt: 'add sanitized subject or body excerpt for deterministic classification',
-        known_context_anchors: 'add known context anchors to distinguish fresh deltas from known noise',
+        subject_or_excerpt:
+          'add sanitized subject or body excerpt for deterministic classification',
+        known_context_anchors:
+          'add known context anchors to distinguish fresh deltas from known noise',
         owner_hint: 'add owner or role hint to make routing accountable',
         due_date: 'add deadline hint to classify urgency',
         blocked_decision: 'add explicit blocked decision if management action is required',
@@ -28753,7 +33471,9 @@ module.exports = {
         const anchors = toList(signal.knownContextAnchors);
         const subject = normalize(signal.subject);
         const excerpt = normalize(signal.bodyExcerpt);
-        const text = normalizeKey(`${subject} ${excerpt} ${anchors.join(' ')} ${signal.processHint || ''}`);
+        const text = normalizeKey(
+          `${subject} ${excerpt} ${anchors.join(' ')} ${signal.processHint || ''}`
+        );
         const missing = [];
         if (!signal.sourceType) missing.push('source_type');
         if (!signal.receivedAt) missing.push('received_at');
@@ -28772,9 +33492,17 @@ module.exports = {
           (hasAny(text, ['blockiert', 'blocked', 'entscheidung', 'freigabe'])
             ? 'management_decision_required'
             : 'not_explicit');
-        const decisionRelevance = classifyRelevance(text, deadlineUrgency, signal.blockedDecisionHint);
+        const decisionRelevance = classifyRelevance(
+          text,
+          deadlineUrgency,
+          signal.blockedDecisionHint
+        );
         const noveltyLevel = classifyNovelty(text, anchors);
-        const confidence = clamp(0.9 - missing.length * 0.08 + (affectedProcess === 'unclassified_vnb_signal' ? -0.1 : 0), 0.35, 0.95);
+        const confidence = clamp(
+          0.9 - missing.length * 0.08 + (affectedProcess === 'unclassified_vnb_signal' ? -0.1 : 0),
+          0.35,
+          0.95
+        );
         const nextEvidencePoint =
           signal.nextEvidenceHint ||
           missingMap[missing.find((item) => item !== 'blocked_decision') || 'next_evidence_point'];
@@ -28806,15 +33534,22 @@ module.exports = {
         return row;
       });
 
-      const highPriorityCount = classifications.filter((row) => row.decisionRelevance === 'high').length;
-      const status = highPriorityCount > 0
-        ? 'decision_queue_attention'
-        : allMissing.length > 0
-          ? 'classification_with_evidence_gaps'
-          : 'classified';
+      const highPriorityCount = classifications.filter(
+        (row) => row.decisionRelevance === 'high'
+      ).length;
+      const status =
+        highPriorityCount > 0
+          ? 'decision_queue_attention'
+          : allMissing.length > 0
+            ? 'classification_with_evidence_gaps'
+            : 'classified';
       const sourceActions = {
         inspected: ['dashboard-api.vnbDeltaSignalClassifierStatus'],
-        referenced: ['vdmi.dossier', 'evidence-planner.plan', 'dashboard-api.leadershipDeltaCockpitStatus'],
+        referenced: [
+          'vdmi.dossier',
+          'evidence-planner.plan',
+          'dashboard-api.leadershipDeltaCockpitStatus',
+        ],
         notCalled: [
           'mail.connector.ingest',
           'outlook.connector.read',
@@ -28899,13 +33634,16 @@ module.exports = {
       const receivedTs = toTimestamp(params.receivedTimestamp) || Date.now();
       const lastSeenTs = toTimestamp(params.lastSeenTimestamp);
       const stalenessDays = sourceTs == null ? null : ageDays(receivedTs, sourceTs);
-      const baselineAgeDays = sourceTs == null || lastSeenTs == null ? null : ageDays(sourceTs, lastSeenTs);
+      const baselineAgeDays =
+        sourceTs == null || lastSeenTs == null ? null : ageDays(sourceTs, lastSeenTs);
       const knownSnapshot = params.knownSnapshotHash || params.knownSnapshotId || null;
       const currentSnapshot = params.currentSnapshotHash || params.currentSnapshotId || null;
       const hasKnownSnapshot = Boolean(knownSnapshot);
       const hasCurrentSnapshot = Boolean(currentSnapshot);
-      const sameSnapshot = hasKnownSnapshot && hasCurrentSnapshot && String(knownSnapshot) === String(currentSnapshot);
-      const changedSnapshot = hasKnownSnapshot && hasCurrentSnapshot && String(knownSnapshot) !== String(currentSnapshot);
+      const sameSnapshot =
+        hasKnownSnapshot && hasCurrentSnapshot && String(knownSnapshot) === String(currentSnapshot);
+      const changedSnapshot =
+        hasKnownSnapshot && hasCurrentSnapshot && String(knownSnapshot) !== String(currentSnapshot);
       const threshold = Number.isFinite(Number(params.escalationThresholdDays))
         ? Number(params.escalationThresholdDays)
         : 7;
@@ -28913,7 +33651,8 @@ module.exports = {
       const severityIsHigh = /high|hoch|red|rot|critical|kritisch|eskal/.test(severity);
       const hasBlockedDecision = Boolean(normalize(params.blockedDecision));
       const dueTs = toTimestamp(params.dueDate);
-      const daysUntilDue = dueTs == null ? null : Number(((dueTs - receivedTs) / (24 * 60 * 60 * 1000)).toFixed(2));
+      const daysUntilDue =
+        dueTs == null ? null : Number(((dueTs - receivedTs) / (24 * 60 * 60 * 1000)).toFixed(2));
       const dueUrgent = daysUntilDue != null && daysUntilDue <= 3;
 
       let freshnessState = 'freshness_unknown';
@@ -28924,13 +33663,20 @@ module.exports = {
       let deltaState = 'delta_unknown';
       if (sameSnapshot) deltaState = 'known_anchor_repeat';
       else if (changedSnapshot) deltaState = 'new_delta';
-      else if (!hasKnownSnapshot && hasCurrentSnapshot) deltaState = 'new_snapshot_without_baseline';
-      else if (baselineAgeDays != null && baselineAgeDays > 0) deltaState = 'timestamp_delta_without_hash';
+      else if (!hasKnownSnapshot && hasCurrentSnapshot)
+        deltaState = 'new_snapshot_without_baseline';
+      else if (baselineAgeDays != null && baselineAgeDays > 0)
+        deltaState = 'timestamp_delta_without_hash';
 
       const isKnownAnchor = deltaState === 'known_anchor_repeat';
-      const isNewDelta = ['new_delta', 'new_snapshot_without_baseline', 'timestamp_delta_without_hash'].includes(deltaState);
+      const isNewDelta = [
+        'new_delta',
+        'new_snapshot_without_baseline',
+        'timestamp_delta_without_hash',
+      ].includes(deltaState);
       const escalationRecommended =
-        isNewDelta && (severityIsHigh || hasBlockedDecision || dueUrgent || freshnessState === 'fresh_signal');
+        isNewDelta &&
+        (severityIsHigh || hasBlockedDecision || dueUrgent || freshnessState === 'fresh_signal');
       const nonEscalationReason = escalationRecommended
         ? null
         : isKnownAnchor
@@ -28945,7 +33691,8 @@ module.exports = {
         {
           id: 'source_kind',
           ok: Boolean(params.sourceKind),
-          enablesDossierAddition: 'add source kind such as mail excerpt, task, monitoring report or meeting note',
+          enablesDossierAddition:
+            'add source kind such as mail excerpt, task, monitoring report or meeting note',
         },
         {
           id: 'source_timestamp',
@@ -28955,12 +33702,14 @@ module.exports = {
         {
           id: 'last_seen_timestamp',
           ok: lastSeenTs != null,
-          enablesDossierAddition: 'add last-seen timestamp to separate repeated context from a true new delta',
+          enablesDossierAddition:
+            'add last-seen timestamp to separate repeated context from a true new delta',
         },
         {
           id: 'snapshot_identity',
           ok: hasKnownSnapshot || hasCurrentSnapshot,
-          enablesDossierAddition: 'add known/current snapshot id or hash for deterministic delta classification',
+          enablesDossierAddition:
+            'add known/current snapshot id or hash for deterministic delta classification',
         },
         {
           id: 'owner',
@@ -28975,7 +33724,8 @@ module.exports = {
         {
           id: 'blocked_decision',
           ok: hasBlockedDecision,
-          enablesDossierAddition: 'add blocked decision wording for dossier-safe escalation rationale',
+          enablesDossierAddition:
+            'add blocked decision wording for dossier-safe escalation rationale',
         },
       ];
       const evidenceGaps = gapSpecs
@@ -29100,11 +33850,15 @@ module.exports = {
 
     buildCrossChannelVnbSignalQueueStatus(params = {}) {
       const toList = (value) => {
-        if (Array.isArray(value)) return value.filter((item) => item !== undefined && item !== null && item !== '');
+        if (Array.isArray(value))
+          return value.filter((item) => item !== undefined && item !== null && item !== '');
         if (value && typeof value === 'string') {
           const trimmed = value.trim();
           if (!trimmed) return [];
-          if ((trimmed.startsWith('[') && trimmed.endsWith(']')) || (trimmed.startsWith('{') && trimmed.endsWith('}'))) {
+          if (
+            (trimmed.startsWith('[') && trimmed.endsWith(']')) ||
+            (trimmed.startsWith('{') && trimmed.endsWith('}'))
+          ) {
             try {
               const parsed = JSON.parse(trimmed);
               return Array.isArray(parsed) ? parsed : [parsed];
@@ -29112,15 +33866,30 @@ module.exports = {
               return [trimmed];
             }
           }
-          return trimmed.split(',').map((item) => item.trim()).filter(Boolean);
+          return trimmed
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean);
         }
         return value && typeof value === 'object' ? [value] : [];
       };
 
-      const normalizeStatus = (value) => String(value || '').trim().toLowerCase();
+      const normalizeStatus = (value) =>
+        String(value || '')
+          .trim()
+          .toLowerCase();
       const isReady = (value) => {
         const status = normalizeStatus(value);
-        return ['ready', 'complete', 'completed', 'confirmed', 'resolved', 'valid', 'provided', 'ok'].includes(status);
+        return [
+          'ready',
+          'complete',
+          'completed',
+          'confirmed',
+          'resolved',
+          'valid',
+          'provided',
+          'ok',
+        ].includes(status);
       };
       const isBlocked = (value) => {
         const status = normalizeStatus(value);
@@ -29137,27 +33906,31 @@ module.exports = {
       };
 
       const rawSignals = toList(params.signals);
-      const signals = rawSignals.length > 0 && rawSignals.every((item) => item && typeof item === 'object' && !Array.isArray(item))
-        ? rawSignals
-        : [{
-            signalId: params.signalId,
-            channel: params.channel,
-            sourceSystem: params.sourceSystem,
-            sourceRef: params.sourceRef,
-            receivedAt: params.receivedAt,
-            affectedProcess: params.affectedProcess,
-            processType: params.processType,
-            riskType: params.riskType,
-            riskSeverity: params.riskSeverity,
-            ownerRole: params.ownerRole,
-            ownerPersonaId: params.ownerPersonaId,
-            dueAt: params.dueAt,
-            evidenceStatus: params.evidenceStatus,
-            evidenceRefs: params.evidenceRefs,
-            nextDatapoint: params.nextDatapoint,
-            dedupeKey: params.dedupeKey,
-            status: params.status,
-          }];
+      const signals =
+        rawSignals.length > 0 &&
+        rawSignals.every((item) => item && typeof item === 'object' && !Array.isArray(item))
+          ? rawSignals
+          : [
+              {
+                signalId: params.signalId,
+                channel: params.channel,
+                sourceSystem: params.sourceSystem,
+                sourceRef: params.sourceRef,
+                receivedAt: params.receivedAt,
+                affectedProcess: params.affectedProcess,
+                processType: params.processType,
+                riskType: params.riskType,
+                riskSeverity: params.riskSeverity,
+                ownerRole: params.ownerRole,
+                ownerPersonaId: params.ownerPersonaId,
+                dueAt: params.dueAt,
+                evidenceStatus: params.evidenceStatus,
+                evidenceRefs: params.evidenceRefs,
+                nextDatapoint: params.nextDatapoint,
+                dedupeKey: params.dedupeKey,
+                status: params.status,
+              },
+            ];
 
       const normalizedSignals = signals.map((signal, index) => {
         const sourceRefs = toList(signal.sourceRef || signal.sourceRefs);
@@ -29294,9 +34067,15 @@ module.exports = {
         ...gap,
         category: 'cross_channel_vnb_signal_queue',
       }));
-      const readyForActionSignals = normalizedSignals.filter((signal) => signal.status === 'ready_for_action');
-      const overdueSignals = normalizedSignals.filter((signal) => signal.overdue || signal.status === 'overdue');
-      const nextDatapoints = [...new Set(normalizedSignals.map((signal) => signal.nextDatapoint).filter(Boolean))];
+      const readyForActionSignals = normalizedSignals.filter(
+        (signal) => signal.status === 'ready_for_action'
+      );
+      const overdueSignals = normalizedSignals.filter(
+        (signal) => signal.overdue || signal.status === 'overdue'
+      );
+      const nextDatapoints = [
+        ...new Set(normalizedSignals.map((signal) => signal.nextDatapoint).filter(Boolean)),
+      ];
       const dossierFacts = [
         `Queue Status: ${queueStatus}`,
         `Signals: ${normalizedSignals.length}`,
@@ -29316,7 +34095,9 @@ module.exports = {
         byRiskType,
         overdueSignals,
         needsOwnerSignals: normalizedSignals.filter((signal) => signal.status === 'needs_owner'),
-        needsEvidenceSignals: normalizedSignals.filter((signal) => signal.status === 'needs_evidence'),
+        needsEvidenceSignals: normalizedSignals.filter(
+          (signal) => signal.status === 'needs_evidence'
+        ),
         readyForActionSignals,
         missingEvidence,
         positiveFollowUps,
@@ -29355,9 +34136,13 @@ module.exports = {
           .map((item) => item.trim())
           .filter(Boolean);
       };
-      const normalize = (value) => String(value || '').trim().toLowerCase();
+      const normalize = (value) =>
+        String(value || '')
+          .trim()
+          .toLowerCase();
       const isProvided = (value) =>
-        Boolean(value) && !['missing', 'unknown', 'open', 'pending', 'none', 'null'].includes(normalize(value));
+        Boolean(value) &&
+        !['missing', 'unknown', 'open', 'pending', 'none', 'null'].includes(normalize(value));
       const isLowQuality = (value) =>
         ['low', 'poor', 'blocked', 'invalid', 'insufficient', 'red'].includes(normalize(value));
 
@@ -29390,15 +34175,23 @@ module.exports = {
         gridOperatorId: params.gridOperatorId || null,
       };
       if (!assetScope.assetId && !assetScope.assetGroupId) addGap('asset_scope');
-      if (!isProvided(params.bookValueStatus) && !isProvided(params.bookValueSource)) addGap('book_value_source');
+      if (!isProvided(params.bookValueStatus) && !isProvided(params.bookValueSource))
+        addGap('book_value_source');
       if (!isProvided(params.assetConditionStatus) && !isProvided(params.assetConditionSource)) {
         addGap('asset_condition_source');
       }
-      if (!isProvided(params.transformationOption) && !isProvided(params.transformationOptionBasis)) {
+      if (
+        !isProvided(params.transformationOption) &&
+        !isProvided(params.transformationOptionBasis)
+      ) {
         addGap('transformation_option_basis');
       }
-      if (!isProvided(params.contractRisk) && !isProvided(params.contractRiskBasis)) addGap('contract_risk_basis');
-      if (!isProvided(params.regulatoryUncertainty) && !isProvided(params.regulatoryUncertaintyBasis)) {
+      if (!isProvided(params.contractRisk) && !isProvided(params.contractRiskBasis))
+        addGap('contract_risk_basis');
+      if (
+        !isProvided(params.regulatoryUncertainty) &&
+        !isProvided(params.regulatoryUncertaintyBasis)
+      ) {
         addGap('regulatory_uncertainty_basis');
       }
       if (!isProvided(params.dataQualityStatus)) addGap('data_quality_status');
@@ -29414,9 +34207,13 @@ module.exports = {
         decisionReadiness = 'needs_asset_condition';
       } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'contract_risk_basis')) {
         decisionReadiness = 'needs_contract_evidence';
-      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'transformation_option_basis')) {
+      } else if (
+        missingEvidence.some((gap) => gap.missingDataPoint === 'transformation_option_basis')
+      ) {
         decisionReadiness = 'needs_transformation_option';
-      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'regulatory_uncertainty_basis')) {
+      } else if (
+        missingEvidence.some((gap) => gap.missingDataPoint === 'regulatory_uncertainty_basis')
+      ) {
         decisionReadiness = 'needs_regulatory_assessment';
       } else if (missingEvidence.length > 0) {
         decisionReadiness = 'needs_gate_metadata';
@@ -29478,7 +34275,8 @@ module.exports = {
           source: params.bookValueSource || null,
         },
         assetConditionStatus: {
-          status: params.assetConditionStatus || (params.assetConditionSource ? 'provided' : 'missing'),
+          status:
+            params.assetConditionStatus || (params.assetConditionSource ? 'provided' : 'missing'),
           source: params.assetConditionSource || null,
         },
         transformationOption: {
@@ -29508,8 +34306,10 @@ module.exports = {
           capabilityKey: 'asset_valuation_transformation_gate',
           decisionReadiness,
           assetScope,
-          bookValueStatus: params.bookValueStatus || (params.bookValueSource ? 'provided' : 'missing'),
-          assetConditionStatus: params.assetConditionStatus || (params.assetConditionSource ? 'provided' : 'missing'),
+          bookValueStatus:
+            params.bookValueStatus || (params.bookValueSource ? 'provided' : 'missing'),
+          assetConditionStatus:
+            params.assetConditionStatus || (params.assetConditionSource ? 'provided' : 'missing'),
           transformationOption: params.transformationOption || null,
           contractRisk: params.contractRisk || null,
           regulatoryUncertainty: params.regulatoryUncertainty || null,
@@ -29534,7 +34334,10 @@ module.exports = {
       const toList = (value) => {
         if (Array.isArray(value)) return value.filter(Boolean);
         if (value && typeof value === 'string') {
-          return value.split(',').map((item) => item.trim()).filter(Boolean);
+          return value
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean);
         }
         return [];
       };
@@ -29545,7 +34348,8 @@ module.exports = {
         congestion_history_evidence: 'add congestion-history grounding',
         vdmi_owner: 'add accountable VDMI review owner',
         decision_frame_ref: 'add decision-frame traceability',
-        commercial_signoff: 'add commercial review status without treating it as automatic approval',
+        commercial_signoff:
+          'add commercial review status without treating it as automatic approval',
         source_refs: 'add source references for review provenance',
         risk_scenarios: 'add risk-scenario comparison for over- and under-booking',
       };
@@ -29577,7 +34381,9 @@ module.exports = {
         status = 'needs_capacity_assumption';
       } else if (
         missingEvidence.some((gap) =>
-          ['cold_year_evidence', 'rlm_rebound_evidence', 'congestion_history_evidence'].includes(gap.missingDataPoint)
+          ['cold_year_evidence', 'rlm_rebound_evidence', 'congestion_history_evidence'].includes(
+            gap.missingDataPoint
+          )
         )
       ) {
         status = 'needs_scenario_evidence';
@@ -29590,7 +34396,9 @@ module.exports = {
       }
 
       const requiredCount = Object.keys(missingMap).length;
-      const readinessScore = Number(((requiredCount - missingEvidence.length) / requiredCount).toFixed(2));
+      const readinessScore = Number(
+        ((requiredCount - missingEvidence.length) / requiredCount).toFixed(2)
+      );
       const sourceActions = {
         inspected: ['dashboard-api.gasCapacityBookingReviewGateStatus'],
         referenced: [
@@ -29675,7 +34483,8 @@ module.exports = {
           status,
           readinessScore,
           reviewScope,
-          capacityAssumptionStatus: params.capacityAssumption || (params.capacityAssumptionSource ? 'provided' : 'missing'),
+          capacityAssumptionStatus:
+            params.capacityAssumption || (params.capacityAssumptionSource ? 'provided' : 'missing'),
           scenarioEvidenceStatus,
           vdmiOwner: params.vdmiOwner || null,
           decisionFrameRef: params.decisionFrameRef || null,
@@ -29698,7 +34507,10 @@ module.exports = {
       const toList = (value) => {
         if (Array.isArray(value)) return value.filter(Boolean);
         if (value && typeof value === 'string') {
-          return value.split(',').map((item) => item.trim()).filter(Boolean);
+          return value
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean);
         }
         return [];
       };
@@ -29726,14 +34538,23 @@ module.exports = {
       if (!isProvided(params.capacityAssumption) && !isProvided(params.capacityEvidenceRef)) {
         addGap('capacity_assumption');
       }
-      if (!isProvided(params.decommissioningPath) && !isProvided(params.decommissioningEvidenceRef)) {
+      if (
+        !isProvided(params.decommissioningPath) &&
+        !isProvided(params.decommissioningEvidenceRef)
+      ) {
         addGap('decommissioning_path');
       }
-      if (!isProvided(params.regulatoryImpactRef) && !isProvided(params.eogRef) && !isProvided(params.kanuRef)) {
+      if (
+        !isProvided(params.regulatoryImpactRef) &&
+        !isProvided(params.eogRef) &&
+        !isProvided(params.kanuRef)
+      ) {
         addGap('regulatory_impact_refs');
       }
-      if (!isProvided(params.assetRef) || !isProvided(params.bookValueRef)) addGap('asset_book_value_refs');
-      if (!isProvided(params.photoYear) || !isProvided(params.decisionDeadline)) addGap('photo_year_window');
+      if (!isProvided(params.assetRef) || !isProvided(params.bookValueRef))
+        addGap('asset_book_value_refs');
+      if (!isProvided(params.photoYear) || !isProvided(params.decisionDeadline))
+        addGap('photo_year_window');
       if (!isProvided(params.owner) && !isProvided(params.ownerRole)) addGap('owner');
       if (!isProvided(params.blockedFollowUpDecision)) addGap('blocked_follow_up_decision');
       if (!isProvided(params.nextEvidenceStep)) addGap('next_evidence_step');
@@ -29757,7 +34578,9 @@ module.exports = {
       }
 
       const requiredCount = Object.keys(missingMap).length;
-      const readinessScore = Number(((requiredCount - missingEvidence.length) / requiredCount).toFixed(2));
+      const readinessScore = Number(
+        ((requiredCount - missingEvidence.length) / requiredCount).toFixed(2)
+      );
       const sourceActions = {
         inspected: ['dashboard-api.gasNetworkDecisionChainStatus'],
         referenced: [
@@ -29850,7 +34673,8 @@ module.exports = {
           status,
           readinessScore,
           chainScope,
-          capacityAssumptionStatus: params.capacityAssumption || (params.capacityEvidenceRef ? 'provided' : 'missing'),
+          capacityAssumptionStatus:
+            params.capacityAssumption || (params.capacityEvidenceRef ? 'provided' : 'missing'),
           decommissioningPath: params.decommissioningPath || null,
           regulatoryImpactRef: params.regulatoryImpactRef || null,
           eogRef: params.eogRef || null,
@@ -29879,7 +34703,10 @@ module.exports = {
       const toList = (value) => {
         if (Array.isArray(value)) return value.filter(Boolean);
         if (value && typeof value === 'string') {
-          return value.split(',').map((item) => item.trim()).filter(Boolean);
+          return value
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean);
         }
         return [];
       };
@@ -29889,7 +34716,8 @@ module.exports = {
         net_investment_reference: 'add net-investment or infrastructure-measure reference',
         asset_accounting_reference: 'add sourced Anlagenbuchhaltung evidence',
         lease_condition_reference: 'add Pachtnetz, concession or lease-condition traceability',
-        regulatory_impact_reference: 'add regulatory-impact or tariff-logic boundary evidence without claiming approval',
+        regulatory_impact_reference:
+          'add regulatory-impact or tariff-logic boundary evidence without claiming approval',
         governance_owner: 'add accountable governance or committee owner',
         review_window: 'add review period or target committee date',
         alignment_decision: 'add clear blocked or committee-review decision status',
@@ -29908,31 +34736,50 @@ module.exports = {
       if (!isProvided(params.waterPriceReference) && !isProvided(params.calculationReference)) {
         addGap('water_price_reference');
       }
-      if (!isProvided(params.netInvestmentReference) && !isProvided(params.infrastructureMeasureReference)) {
+      if (
+        !isProvided(params.netInvestmentReference) &&
+        !isProvided(params.infrastructureMeasureReference)
+      ) {
         addGap('net_investment_reference');
       }
       if (!isProvided(params.assetAccountingReference)) addGap('asset_accounting_reference');
-      if (!isProvided(params.leaseOrConcessionReference) && !isProvided(params.pachtnetzReference)) {
+      if (
+        !isProvided(params.leaseOrConcessionReference) &&
+        !isProvided(params.pachtnetzReference)
+      ) {
         addGap('lease_condition_reference');
       }
-      if (!isProvided(params.regulatoryImpactReference) && !isProvided(params.tariffLogicReference)) {
+      if (
+        !isProvided(params.regulatoryImpactReference) &&
+        !isProvided(params.tariffLogicReference)
+      ) {
         addGap('regulatory_impact_reference');
       }
-      if (!isProvided(params.governanceOwner) && !isProvided(params.committeeOwner)) addGap('governance_owner');
-      if (!isProvided(params.reviewPeriod) && !isProvided(params.targetCommitteeDate)) addGap('review_window');
+      if (!isProvided(params.governanceOwner) && !isProvided(params.committeeOwner))
+        addGap('governance_owner');
+      if (!isProvided(params.reviewPeriod) && !isProvided(params.targetCommitteeDate))
+        addGap('review_window');
       if (!isProvided(params.alignmentDecision)) addGap('alignment_decision');
       if (sourceRefs.length === 0) addGap('source_refs');
 
       let status = 'committee_review_ready';
       if (missingEvidence.some((gap) => gap.missingDataPoint === 'water_price_reference')) {
         status = 'needs_water_price_reference';
-      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'net_investment_reference')) {
+      } else if (
+        missingEvidence.some((gap) => gap.missingDataPoint === 'net_investment_reference')
+      ) {
         status = 'needs_net_investment_reference';
-      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'asset_accounting_reference')) {
+      } else if (
+        missingEvidence.some((gap) => gap.missingDataPoint === 'asset_accounting_reference')
+      ) {
         status = 'needs_asset_accounting_reference';
-      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'lease_condition_reference')) {
+      } else if (
+        missingEvidence.some((gap) => gap.missingDataPoint === 'lease_condition_reference')
+      ) {
         status = 'needs_lease_condition_reference';
-      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'regulatory_impact_reference')) {
+      } else if (
+        missingEvidence.some((gap) => gap.missingDataPoint === 'regulatory_impact_reference')
+      ) {
         status = 'needs_regulatory_impact_reference';
       } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'governance_owner')) {
         status = 'needs_governance_owner';
@@ -29941,7 +34788,9 @@ module.exports = {
       }
 
       const requiredCount = Object.keys(missingMap).length;
-      const readinessScore = Number(((requiredCount - missingEvidence.length) / requiredCount).toFixed(2));
+      const readinessScore = Number(
+        ((requiredCount - missingEvidence.length) / requiredCount).toFixed(2)
+      );
       const sourceActions = {
         inspected: ['dashboard-api.waterPricingNetInvestmentAlignmentStatus'],
         referenced: [
@@ -30041,10 +34890,13 @@ module.exports = {
           readinessScore,
           alignmentScope,
           waterPriceReference: params.waterPriceReference || params.calculationReference || null,
-          netInvestmentReference: params.netInvestmentReference || params.infrastructureMeasureReference || null,
+          netInvestmentReference:
+            params.netInvestmentReference || params.infrastructureMeasureReference || null,
           assetAccountingReference: params.assetAccountingReference || null,
-          leaseConditionReference: params.leaseOrConcessionReference || params.pachtnetzReference || null,
-          regulatoryImpactReference: params.regulatoryImpactReference || params.tariffLogicReference || null,
+          leaseConditionReference:
+            params.leaseOrConcessionReference || params.pachtnetzReference || null,
+          regulatoryImpactReference:
+            params.regulatoryImpactReference || params.tariffLogicReference || null,
           owner: params.governanceOwner || params.committeeOwner || null,
           reviewWindow: params.reviewPeriod || params.targetCommitteeDate || null,
           alignmentDecision: params.alignmentDecision || null,
@@ -30067,15 +34919,17 @@ module.exports = {
       const toList = (value) => {
         if (Array.isArray(value)) return value.filter(Boolean);
         if (value && typeof value === 'string') {
-          return value.split(',').map((item) => item.trim()).filter(Boolean);
+          return value
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean);
         }
         return [];
       };
       const toNumber = (value) => {
         if (value === undefined || value === null || value === '') return null;
-        const normalized = typeof value === 'string'
-          ? value.replace(/\s/g, '').replace(',', '.')
-          : value;
+        const normalized =
+          typeof value === 'string' ? value.replace(/\s/g, '').replace(',', '.') : value;
         const parsed = Number(normalized);
         return Number.isFinite(parsed) ? parsed : null;
       };
@@ -30104,21 +34958,32 @@ module.exports = {
         });
       };
 
-      if (!isProvided(params.siteReference) && !isProvided(params.areaReference)) addGap('site_reference');
+      if (!isProvided(params.siteReference) && !isProvided(params.areaReference))
+        addGap('site_reference');
       if (!isProvided(params.requestedConnectionCapacity) && requestedCapacityKw === null) {
         addGap('requested_connection_capacity');
       }
-      if (!isProvided(params.gridCapacityEvidence) && !isProvided(params.capacityEvidenceReference)) {
+      if (
+        !isProvided(params.gridCapacityEvidence) &&
+        !isProvided(params.capacityEvidenceReference)
+      ) {
         addGap('grid_capacity_evidence');
       }
-      if (!isProvided(params.targetGridPath) && !isProvided(params.zielnetzPath)) addGap('target_grid_path');
+      if (!isProvided(params.targetGridPath) && !isProvided(params.zielnetzPath))
+        addGap('target_grid_path');
       if (!isProvided(params.investmentReference) && !isProvided(params.capexReference)) {
         addGap('investment_capex_reference');
       }
-      if (!isProvided(params.regulatoryImpactBoundary) && !isProvided(params.regulatoryImpactReference)) {
+      if (
+        !isProvided(params.regulatoryImpactBoundary) &&
+        !isProvided(params.regulatoryImpactReference)
+      ) {
         addGap('regulatory_impact_boundary');
       }
-      if (!isProvided(params.commercialOfferAssumptions) && !isProvided(params.offerAssumptionReference)) {
+      if (
+        !isProvided(params.commercialOfferAssumptions) &&
+        !isProvided(params.offerAssumptionReference)
+      ) {
         addGap('commercial_offer_assumptions');
       }
       if (!isProvided(params.owner) && !isProvided(params.gateOwner)) addGap('owner');
@@ -30129,24 +34994,34 @@ module.exports = {
       let status = 'ready_for_offer_gate_review';
       if (missingEvidence.some((gap) => gap.missingDataPoint === 'site_reference')) {
         status = 'needs_site_reference';
-      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'requested_connection_capacity')) {
+      } else if (
+        missingEvidence.some((gap) => gap.missingDataPoint === 'requested_connection_capacity')
+      ) {
         status = 'needs_requested_capacity';
       } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'grid_capacity_evidence')) {
         status = 'needs_grid_capacity_evidence';
       } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'target_grid_path')) {
         status = 'needs_target_grid_path';
-      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'investment_capex_reference')) {
+      } else if (
+        missingEvidence.some((gap) => gap.missingDataPoint === 'investment_capex_reference')
+      ) {
         status = 'needs_investment_capex_reference';
-      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'regulatory_impact_boundary')) {
+      } else if (
+        missingEvidence.some((gap) => gap.missingDataPoint === 'regulatory_impact_boundary')
+      ) {
         status = 'needs_regulatory_boundary';
-      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'commercial_offer_assumptions')) {
+      } else if (
+        missingEvidence.some((gap) => gap.missingDataPoint === 'commercial_offer_assumptions')
+      ) {
         status = 'needs_offer_assumptions';
       } else if (missingEvidence.length > 0) {
         status = 'needs_decision_card_provenance';
       }
 
       const requiredCount = Object.keys(missingMap).length;
-      const readinessScore = Number(((requiredCount - missingEvidence.length) / requiredCount).toFixed(2));
+      const readinessScore = Number(
+        ((requiredCount - missingEvidence.length) / requiredCount).toFixed(2)
+      );
       const sourceActions = {
         inspected: ['dashboard-api.arealNetworkIntegrationOfferGateStatus'],
         referenced: [
@@ -30252,12 +35127,16 @@ module.exports = {
           decisionScope,
           siteReference: params.siteReference || params.areaReference || null,
           requestedConnectionCapacity:
-            params.requestedConnectionCapacity || (requestedCapacityKw !== null ? `${requestedCapacityKw} kW` : null),
-          gridCapacityEvidence: params.gridCapacityEvidence || params.capacityEvidenceReference || null,
+            params.requestedConnectionCapacity ||
+            (requestedCapacityKw !== null ? `${requestedCapacityKw} kW` : null),
+          gridCapacityEvidence:
+            params.gridCapacityEvidence || params.capacityEvidenceReference || null,
           targetGridPath: params.targetGridPath || params.zielnetzPath || null,
           investmentReference: params.investmentReference || params.capexReference || null,
-          regulatoryImpactBoundary: params.regulatoryImpactBoundary || params.regulatoryImpactReference || null,
-          commercialOfferAssumptions: params.commercialOfferAssumptions || params.offerAssumptionReference || null,
+          regulatoryImpactBoundary:
+            params.regulatoryImpactBoundary || params.regulatoryImpactReference || null,
+          commercialOfferAssumptions:
+            params.commercialOfferAssumptions || params.offerAssumptionReference || null,
           owner: params.owner || params.gateOwner || null,
           nextDecisionDate: params.nextDecisionDate || null,
           offerDecisionStatus: params.offerDecisionStatus || null,
@@ -30274,14 +35153,19 @@ module.exports = {
 
     buildTransformationFinancingScenarioViewStatus(params = {}) {
       const toList = (value) => {
-        if (Array.isArray(value)) return value.map((item) => String(item || '').trim()).filter(Boolean);
+        if (Array.isArray(value))
+          return value.map((item) => String(item || '').trim()).filter(Boolean);
         if (value && typeof value === 'string') {
-          return value.split(',').map((item) => item.trim()).filter(Boolean);
+          return value
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean);
         }
         return [];
       };
 
-      const isProvided = (value) => value !== undefined && value !== null && String(value).trim() !== '';
+      const isProvided = (value) =>
+        value !== undefined && value !== null && String(value).trim() !== '';
       const firstProvided = (...values) => values.find((value) => isProvided(value)) || null;
       const sourceDatapoints = toList(params.sourceDatapoints);
       const callerSourceActions = toList(params.sourceActions);
@@ -30318,8 +35202,10 @@ module.exports = {
       ) {
         addGap('scenario_identity');
       }
-      if (!isProvided(params.cashflowSource) && !isProvided(params.cashflowSourceRef)) addGap('cashflow_source');
-      if (!isProvided(params.marginCompensationAssumption)) addGap('margin_compensation_assumption');
+      if (!isProvided(params.cashflowSource) && !isProvided(params.cashflowSourceRef))
+        addGap('cashflow_source');
+      if (!isProvided(params.marginCompensationAssumption))
+        addGap('margin_compensation_assumption');
       if (!isProvided(params.capitalReallocationOption)) addGap('capital_reallocation_option');
       if (!isProvided(params.gasDecommissioningPath)) addGap('gas_decommissioning_path');
       if (!isProvided(params.rollbackCostBasis)) addGap('rollback_cost_basis');
@@ -30341,7 +35227,8 @@ module.exports = {
       if (!isProvided(params.committeeDecisionGate) || !isProvided(params.owner)) {
         addGap('committee_decision_gate');
       }
-      if (sourceDatapoints.length === 0 && callerSourceActions.length === 0) addGap('source_datapoints');
+      if (sourceDatapoints.length === 0 && callerSourceActions.length === 0)
+        addGap('source_datapoints');
 
       let status = 'ready_for_decision';
       if (missingEvidence.some((gap) => gap.missingDataPoint === 'scenario_identity')) {
@@ -30354,18 +35241,24 @@ module.exports = {
         status = 'needs_municipal_burden_basis';
       } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'eog_regulatory_impact')) {
         status = 'needs_regulatory_assessment';
-      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'liquidity_impact_assumption')) {
+      } else if (
+        missingEvidence.some((gap) => gap.missingDataPoint === 'liquidity_impact_assumption')
+      ) {
         status = 'needs_liquidity_assumption';
       } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'stress_threshold')) {
         status = 'blocked_by_missing_threshold';
-      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'committee_decision_gate')) {
+      } else if (
+        missingEvidence.some((gap) => gap.missingDataPoint === 'committee_decision_gate')
+      ) {
         status = 'needs_committee_gate';
       } else if (missingEvidence.length > 0) {
         status = 'needs_scenario_evidence';
       }
 
       const requiredCount = Object.keys(missingMap).length;
-      const readinessScore = Number(((requiredCount - missingEvidence.length) / requiredCount).toFixed(2));
+      const readinessScore = Number(
+        ((requiredCount - missingEvidence.length) / requiredCount).toFixed(2)
+      );
       const sourceActions = {
         inspected: ['dashboard-api.transformationFinancingScenarioViewStatus'],
         referenced: [
@@ -30502,11 +35395,17 @@ module.exports = {
 
     buildInvestmentOwnerDeadlineBudgetGateStatus(params = {}) {
       const toList = (value) => {
-        if (Array.isArray(value)) return value.map((item) => String(item || '').trim()).filter(Boolean);
-        if (value && typeof value === 'string') return value.split(',').map((item) => item.trim()).filter(Boolean);
+        if (Array.isArray(value))
+          return value.map((item) => String(item || '').trim()).filter(Boolean);
+        if (value && typeof value === 'string')
+          return value
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean);
         return [];
       };
-      const isProvided = (value) => value !== undefined && value !== null && String(value).trim() !== '';
+      const isProvided = (value) =>
+        value !== undefined && value !== null && String(value).trim() !== '';
       const sourceDatapoints = toList(params.sourceDatapoints);
       const callerSourceActions = toList(params.sourceActions);
       const requiredEvidence = toList(params.requiredEvidence);
@@ -30530,7 +35429,8 @@ module.exports = {
         });
       };
 
-      if (!isProvided(params.measureId) && !isProvided(params.measureTitle)) addGap('measure_identity');
+      if (!isProvided(params.measureId) && !isProvided(params.measureTitle))
+        addGap('measure_identity');
       if (!isProvided(params.owner)) addGap('owner');
       if (!isProvided(params.deadline)) addGap('deadline');
       if (!isProvided(params.budgetEffect)) addGap('budget_effect');
@@ -30538,21 +35438,37 @@ module.exports = {
       if (!isProvided(params.approvalStatus)) addGap('approval_status');
       if (!isProvided(params.blockedFollowUpDecision)) addGap('blocked_follow_up_decision');
       if (!isProvided(params.nextEscalationStep)) addGap('next_escalation_step');
-      if (sourceDatapoints.length === 0 && callerSourceActions.length === 0) addGap('source_datapoints');
+      if (sourceDatapoints.length === 0 && callerSourceActions.length === 0)
+        addGap('source_datapoints');
 
       let status = 'ready_for_investment_gate_review';
       if (missingEvidence.some((gap) => gap.missingDataPoint === 'measure_identity')) {
         status = 'needs_measure_identity';
-      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'owner' || gap.missingDataPoint === 'deadline' || gap.missingDataPoint === 'budget_effect')) {
+      } else if (
+        missingEvidence.some(
+          (gap) =>
+            gap.missingDataPoint === 'owner' ||
+            gap.missingDataPoint === 'deadline' ||
+            gap.missingDataPoint === 'budget_effect'
+        )
+      ) {
         status = 'needs_owner_deadline_budget_evidence';
-      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'approval_status' || gap.missingDataPoint === 'next_escalation_step')) {
+      } else if (
+        missingEvidence.some(
+          (gap) =>
+            gap.missingDataPoint === 'approval_status' ||
+            gap.missingDataPoint === 'next_escalation_step'
+        )
+      ) {
         status = 'needs_approval_or_escalation';
       } else if (missingEvidence.length > 0) {
         status = 'needs_gate_evidence';
       }
 
       const requiredCount = Object.keys(gapMap).length;
-      const readinessScore = Number(((requiredCount - missingEvidence.length) / requiredCount).toFixed(2));
+      const readinessScore = Number(
+        ((requiredCount - missingEvidence.length) / requiredCount).toFixed(2)
+      );
       const positiveFollowUps = missingEvidence.map((gap) => ({
         ...gap,
         category: 'investment_owner_deadline_budget_gate',
@@ -30618,7 +35534,11 @@ module.exports = {
       ];
 
       return {
-        investmentOwnerDeadlineBudgetGateStatusId: `iodbg:${Buffer.from(`${params.measureId || params.measureTitle || ''}:${params.owner || ''}:${params.deadline || ''}`).toString('base64url').slice(0, 28)}`,
+        investmentOwnerDeadlineBudgetGateStatusId: `iodbg:${Buffer.from(
+          `${params.measureId || params.measureTitle || ''}:${params.owner || ''}:${params.deadline || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 28)}`,
         capabilityKey: 'investment_owner_deadline_budget_gate',
         safety: 'read_only',
         status,
@@ -30649,11 +35569,15 @@ module.exports = {
       const toList = (value) => {
         if (Array.isArray(value)) return value.filter(Boolean);
         if (value && typeof value === 'string') {
-          return value.split(',').map((item) => item.trim()).filter(Boolean);
+          return value
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean);
         }
         return [];
       };
-      const isProvided = (value) => value !== undefined && value !== null && String(value).trim() !== '';
+      const isProvided = (value) =>
+        value !== undefined && value !== null && String(value).trim() !== '';
 
       const sourceDatapoints = toList(params.sourceDatapoints);
       const callerSourceActions = toList(params.sourceActions);
@@ -30677,15 +35601,32 @@ module.exports = {
         });
       };
 
-      if (!isProvided(params.measureId) && !isProvided(params.measureName) && !isProvided(params.programmeId)) addGap('measure_identity');
-      if (!isProvided(params.scenarioAssumption) || !isProvided(params.transformationEffect)) addGap('scenario_effect');
-      if (!isProvided(params.budgetEffect) || !isProvided(params.fundingOwner)) addGap('budget_funding');
-      if (!isProvided(params.regulatoryFit) && !isProvided(params.constraintHint)) addGap('regulatory_fit');
-      if (!isProvided(params.prioritisationRule) && !isProvided(params.nominationRight)) addGap('prioritisation_rule');
-      if (!isProvided(params.dataQualityStatus) || !isProvided(params.sourceSnapshot)) addGap('data_quality');
-      if (!isProvided(params.communicationRule) || !isProvided(params.stakeholderGroup)) addGap('communication_rule');
-      if (!isProvided(params.nextReviewGate) || !isProvided(params.dueDate) || !isProvided(params.owner)) addGap('review_gate');
-      if (sourceDatapoints.length === 0 && callerSourceActions.length === 0) addGap('source_datapoints');
+      if (
+        !isProvided(params.measureId) &&
+        !isProvided(params.measureName) &&
+        !isProvided(params.programmeId)
+      )
+        addGap('measure_identity');
+      if (!isProvided(params.scenarioAssumption) || !isProvided(params.transformationEffect))
+        addGap('scenario_effect');
+      if (!isProvided(params.budgetEffect) || !isProvided(params.fundingOwner))
+        addGap('budget_funding');
+      if (!isProvided(params.regulatoryFit) && !isProvided(params.constraintHint))
+        addGap('regulatory_fit');
+      if (!isProvided(params.prioritisationRule) && !isProvided(params.nominationRight))
+        addGap('prioritisation_rule');
+      if (!isProvided(params.dataQualityStatus) || !isProvided(params.sourceSnapshot))
+        addGap('data_quality');
+      if (!isProvided(params.communicationRule) || !isProvided(params.stakeholderGroup))
+        addGap('communication_rule');
+      if (
+        !isProvided(params.nextReviewGate) ||
+        !isProvided(params.dueDate) ||
+        !isProvided(params.owner)
+      )
+        addGap('review_gate');
+      if (sourceDatapoints.length === 0 && callerSourceActions.length === 0)
+        addGap('source_datapoints');
 
       let status = 'ready_for_no_regret_gate_review';
       if (missingEvidence.some((gap) => gap.missingDataPoint === 'measure_identity')) {
@@ -30694,14 +35635,22 @@ module.exports = {
         status = 'needs_scenario_effect_basis';
       } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'budget_funding')) {
         status = 'needs_budget_funding_basis';
-      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'regulatory_fit' || gap.missingDataPoint === 'prioritisation_rule')) {
+      } else if (
+        missingEvidence.some(
+          (gap) =>
+            gap.missingDataPoint === 'regulatory_fit' ||
+            gap.missingDataPoint === 'prioritisation_rule'
+        )
+      ) {
         status = 'needs_definition_boundary';
       } else if (missingEvidence.length > 0) {
         status = 'needs_definition_evidence';
       }
 
       const requiredCount = Object.keys(gapMap).length;
-      const readinessScore = Number(((requiredCount - missingEvidence.length) / requiredCount).toFixed(2));
+      const readinessScore = Number(
+        ((requiredCount - missingEvidence.length) / requiredCount).toFixed(2)
+      );
       const positiveFollowUps = missingEvidence.map((gap) => ({
         ...gap,
         category: 'no_regret_measure_definition_gate',
@@ -30781,7 +35730,11 @@ module.exports = {
       ];
 
       return {
-        noRegretMeasureDefinitionGateStatusId: `nrg:${Buffer.from(`${params.measureId || params.measureName || params.programmeId || ''}:${params.owner || ''}:${params.nextReviewGate || ''}`).toString('base64url').slice(0, 28)}`,
+        noRegretMeasureDefinitionGateStatusId: `nrg:${Buffer.from(
+          `${params.measureId || params.measureName || params.programmeId || ''}:${params.owner || ''}:${params.nextReviewGate || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 28)}`,
         capabilityKey: 'no_regret_measure_definition_gate',
         safety: 'read_only',
         status,
@@ -30812,19 +35765,22 @@ module.exports = {
       const toList = (value) => {
         if (Array.isArray(value)) return value.filter(Boolean);
         if (value && typeof value === 'string') {
-          return value.split(',').map((item) => item.trim()).filter(Boolean);
+          return value
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean);
         }
         return [];
       };
       const toNumber = (value) => {
         if (value === undefined || value === null || value === '') return null;
-        const normalized = typeof value === 'string'
-          ? value.replace(/\s/g, '').replace(',', '.')
-          : value;
+        const normalized =
+          typeof value === 'string' ? value.replace(/\s/g, '').replace(',', '.') : value;
         const n = Number(normalized);
         return Number.isFinite(n) ? n : null;
       };
-      const isProvided = (value) => value !== undefined && value !== null && String(value).trim() !== '';
+      const isProvided = (value) =>
+        value !== undefined && value !== null && String(value).trim() !== '';
 
       const sourceDatapoints = toList(params.sourceDatapoints);
       const callerSourceActions = toList(params.sourceActions);
@@ -30841,12 +35797,10 @@ module.exports = {
           'adds technical reuse feasibility evidence for the gas asset segment.',
         decommissioning_cost_basis:
           'adds rollback/removal cost evidence and committee cost exposure.',
-        financial_impact_basis:
-          'adds cashflow, TOTEX and regulatory recognition facts.',
+        financial_impact_basis: 'adds cashflow, TOTEX and regulatory recognition facts.',
         dependency_review:
           'adds heat-network, power-grid and customer-transition dependency evidence.',
-        decision_gate_owner:
-          'adds the next committee gate and accountable owner role.',
+        decision_gate_owner: 'adds the next committee gate and accountable owner role.',
         source_datapoints:
           'adds source datapoint or action provenance for every cockpit statement.',
       };
@@ -30889,7 +35843,8 @@ module.exports = {
       if (!isProvided(params.decisionGate) || !isProvided(params.ownerRole)) {
         addGap('decision_gate_owner');
       }
-      if (sourceDatapoints.length === 0 && callerSourceActions.length === 0) addGap('source_datapoints');
+      if (sourceDatapoints.length === 0 && callerSourceActions.length === 0)
+        addGap('source_datapoints');
 
       let status = 'ready_for_committee';
       if (missingEvidence.some((gap) => gap.missingDataPoint === 'program_identity')) {
@@ -30900,7 +35855,9 @@ module.exports = {
         status = 'needs_target_option';
       } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'technical_reuse_status')) {
         status = 'needs_h2_assessment';
-      } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'decommissioning_cost_basis')) {
+      } else if (
+        missingEvidence.some((gap) => gap.missingDataPoint === 'decommissioning_cost_basis')
+      ) {
         status = 'needs_decommissioning_cost';
       } else if (missingEvidence.some((gap) => gap.missingDataPoint === 'financial_impact_basis')) {
         status = 'needs_finance_review';
@@ -30913,7 +35870,9 @@ module.exports = {
       }
 
       const requiredCount = Object.keys(missingMap).length;
-      const readinessScore = Number(((requiredCount - missingEvidence.length) / requiredCount).toFixed(2));
+      const readinessScore = Number(
+        ((requiredCount - missingEvidence.length) / requiredCount).toFixed(2)
+      );
       const sourceActions = {
         inspected: ['dashboard-api.gasGridTransformationAssetCockpitStatus'],
         referenced: [
@@ -31049,14 +36008,25 @@ module.exports = {
       const toList = (value) => {
         if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean);
         if (value && typeof value === 'string') {
-          return value.split(',').map((item) => item.trim()).filter(Boolean);
+          return value
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean);
         }
         return [];
       };
-      const isProvided = (value) => value !== undefined && value !== null && String(value).trim() !== '';
+      const isProvided = (value) =>
+        value !== undefined && value !== null && String(value).trim() !== '';
       const normalizeKey = (value) =>
-        String(value || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
-      const titleize = (value) => String(value || '').trim().replace(/[_-]+/g, ' ');
+        String(value || '')
+          .trim()
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '_')
+          .replace(/^_+|_+$/g, '');
+      const titleize = (value) =>
+        String(value || '')
+          .trim()
+          .replace(/[_-]+/g, ' ');
       const inferTransport = (key) => {
         if (/websocket|ws\b/.test(key)) return 'websocket';
         if (/polling|fallback/.test(key)) return 'polling_fallback';
@@ -31074,12 +36044,14 @@ module.exports = {
       };
       const defaultSource = (key) => {
         if (/hitl/.test(key)) return { sourceService: 'hitl', sourceAction: 'list' };
-        if (/rag|knowledge/.test(key)) return { sourceService: 'knowledge-rag', sourceAction: 'getJob' };
+        if (/rag|knowledge/.test(key))
+          return { sourceService: 'knowledge-rag', sourceAction: 'getJob' };
         if (/mastr/.test(key)) return { sourceService: 'mastr-monitor', sourceAction: 'getWatch' };
         if (/job/.test(key)) return { sourceService: 'jobs', sourceAction: 'get' };
         if (/nova/.test(key)) return { sourceService: 'nova', sourceAction: 'status' };
         if (/cya|session/.test(key)) return { sourceService: 'cya', sourceAction: 'getSession' };
-        if (/observability|log/.test(key)) return { sourceService: 'observability', sourceAction: 'mini' };
+        if (/observability|log/.test(key))
+          return { sourceService: 'observability', sourceAction: 'mini' };
         return { sourceService: null, sourceAction: null };
       };
 
@@ -31094,11 +36066,16 @@ module.exports = {
         missing_auth_boundary: 'adds tenant/auth readiness evidence.',
         missing_fallback_polling_path: 'adds the safe polling fallback path for UI clients.',
         missing_resume_policy: 'adds heartbeat/resume contract evidence.',
-        unsupported_channel: 'adds product/architecture decision evidence before any stream is claimed.',
+        unsupported_channel:
+          'adds product/architecture decision evidence before any stream is claimed.',
       };
       const missingEvidence = [];
       const addGap = (id, channelKey) => {
-        if (!missingEvidence.some((gap) => gap.missingDataPoint === id && gap.channelKey === channelKey)) {
+        if (
+          !missingEvidence.some(
+            (gap) => gap.missingDataPoint === id && gap.channelKey === channelKey
+          )
+        ) {
           missingEvidence.push({
             missingDataPoint: id,
             channelKey,
@@ -31117,7 +36094,8 @@ module.exports = {
         const availability = explicitUnsupported
           ? 'not_supported'
           : params.availability || 'planned';
-        const requiresResume = params.requiresResume !== undefined ? Boolean(params.requiresResume) : true;
+        const requiresResume =
+          params.requiresResume !== undefined ? Boolean(params.requiresResume) : true;
         const resumePolicy = requiresResume
           ? {
               required: true,
@@ -31146,14 +36124,19 @@ module.exports = {
         if (!sourceAction) addGap('missing_source_action', channelKey);
         if (!isProvided(item.authBoundary)) addGap('missing_auth_boundary', channelKey);
         if (!fallbackPollingPath) addGap('missing_fallback_polling_path', channelKey);
-        if (requiresResume && !resumePolicy.heartbeatSeconds) addGap('missing_resume_policy', channelKey);
+        if (requiresResume && !resumePolicy.heartbeatSeconds)
+          addGap('missing_resume_policy', channelKey);
         if (explicitUnsupported) {
-          item.blockers.push('No supported source service/action or fallback path is declared for this channel.');
+          item.blockers.push(
+            'No supported source service/action or fallback path is declared for this channel.'
+          );
           addGap('unsupported_channel', channelKey);
         }
         item.contractComplete =
           item.availability !== 'not_supported' &&
-          Boolean(item.sourceService && item.sourceAction && item.fallbackPollingPath && item.authBoundary);
+          Boolean(
+            item.sourceService && item.sourceAction && item.fallbackPollingPath && item.authBoundary
+          );
         return item;
       });
 
@@ -31197,9 +36180,10 @@ module.exports = {
       const dossierFacts = [
         `Live Update Contract Status: ${status}`,
         `Channel Count: ${channels.length}`,
-        ...channels.map((channel) => (
-          `${channel.key}: ${channel.availability} via ${channel.proposedTransport}; fallback ${channel.fallbackPollingPath || 'missing'}`
-        )),
+        ...channels.map(
+          (channel) =>
+            `${channel.key}: ${channel.availability} via ${channel.proposedTransport}; fallback ${channel.fallbackPollingPath || 'missing'}`
+        ),
       ];
 
       return {
@@ -31250,9 +36234,15 @@ module.exports = {
     pickMunicipalVnbdigitalSearchResult(results = []) {
       const normalized = Array.isArray(results) ? results : [];
       return (
-        normalized.find((item) => String(item?.entityType || item?.type || '').toLowerCase() === 'community') ||
-        normalized.find((item) => String(item?.entityType || item?.type || '').toLowerCase() === 'postcode') ||
-        normalized.find((item) => String(item?.entityType || item?.type || '').toLowerCase() === 'location') ||
+        normalized.find(
+          (item) => String(item?.entityType || item?.type || '').toLowerCase() === 'community'
+        ) ||
+        normalized.find(
+          (item) => String(item?.entityType || item?.type || '').toLowerCase() === 'postcode'
+        ) ||
+        normalized.find(
+          (item) => String(item?.entityType || item?.type || '').toLowerCase() === 'location'
+        ) ||
         null
       );
     },
@@ -31301,7 +36291,11 @@ module.exports = {
     },
 
     async resolveMunicipalVnbdigitalOperator(ctx, analysis = {}) {
-      if (!analysis?.ags || !analysis?.municipality || analysis.status === 'lagebild_municipality_unresolved') {
+      if (
+        !analysis?.ags ||
+        !analysis?.municipality ||
+        analysis.status === 'lagebild_municipality_unresolved'
+      ) {
         return {
           gridOperatorName: null,
           evidenceStatus: 'missing-evidence',
@@ -31358,7 +36352,9 @@ module.exports = {
         gridOperatorBdewCode: vnb.canonicalCodes?.bdewCode || vnb.bdewCode || null,
         gridOperatorBnr: vnb.canonicalCodes?.bnr || vnb.bnr || null,
         gridOperatorMastrId: vnb.canonicalCodes?.mastrId || vnb.mastrId || null,
-        gridOperatorVoltageTypes: Array.isArray(vnb.voltageTypes) ? vnb.voltageTypes.join(', ') : null,
+        gridOperatorVoltageTypes: Array.isArray(vnb.voltageTypes)
+          ? vnb.voltageTypes.join(', ')
+          : null,
         evidenceStatus: 'available',
         sourceLabel: 'VNBdigital Gemeinde-/PLZ-Lookup',
         _errors: errors,
@@ -31423,7 +36419,9 @@ module.exports = {
       const municipalityKey = municipalityRaw.toLowerCase();
       const agsParam = String(params.ags || '').trim();
       const year = Number(params.year) || 2025;
-      const scenario = String(params.scenario || 'baseline').trim().toLowerCase();
+      const scenario = String(params.scenario || 'baseline')
+        .trim()
+        .toLowerCase();
 
       const profile = resolveMunicipalityProfile({ municipality: municipalityRaw, ags: agsParam });
 
@@ -31433,7 +36431,8 @@ module.exports = {
 
       const analysisRunId = `municipal-lagebild:${resolvedAgs || municipalityKey}:${year}:${scenario}`;
 
-      const assumedMarketPriceEurPerMwh = scenario === 'high-price' ? 110 : scenario === 'low-price' ? 45 : 70;
+      const assumedMarketPriceEurPerMwh =
+        scenario === 'high-price' ? 110 : scenario === 'low-price' ? 45 : 70;
       const pvFullLoadHours = 1000;
       const biomassFullLoadHours = 7000;
       const windFullLoadHours = 1800;
@@ -31550,17 +36549,22 @@ module.exports = {
         {
           riskKey: 'ewk_anschlussdauer_risk',
           riskLabel: 'Anschlussdauer beim Netzbetreiber',
-          severity: isKnown && profile.gridOperatorBdewHint !== 'missing-evidence' ? 'medium' : 'high',
+          severity:
+            isKnown && profile.gridOperatorBdewHint !== 'missing-evidence' ? 'medium' : 'high',
           severityScore: isKnown && profile.gridOperatorBdewHint !== 'missing-evidence' ? 45 : 70,
           valueAtRiskEurPerYear: null,
           economicImpactEurPerYear: null,
           delayRiskDays: isKnown ? 60 : null,
-          evidenceStatus: isKnown && profile.gridOperatorBdewHint !== 'missing-evidence'
-            ? 'assumption-backed'
-            : 'missing-evidence',
-          sourceLabel: 'Netzbetreiber-Monitoring; BNr oder MaStR-Netzbetreiber-ID für Benchmark-Abgleich erforderlich',
-          assumptionLabel: 'Schätzung: ohne Benchmark-Kennung bleibt die tatsächliche Anschlussdauer im EWK-Monitoring offen.',
-          nextGateLabel: 'Anschlussdauer des zuständigen Netzbetreibers mit aktuellen Fällen belegen.',
+          evidenceStatus:
+            isKnown && profile.gridOperatorBdewHint !== 'missing-evidence'
+              ? 'assumption-backed'
+              : 'missing-evidence',
+          sourceLabel:
+            'Netzbetreiber-Monitoring; BNr oder MaStR-Netzbetreiber-ID für Benchmark-Abgleich erforderlich',
+          assumptionLabel:
+            'Schätzung: ohne Benchmark-Kennung bleibt die tatsächliche Anschlussdauer im EWK-Monitoring offen.',
+          nextGateLabel:
+            'Anschlussdauer des zuständigen Netzbetreibers mit aktuellen Fällen belegen.',
         },
         {
           riskKey: 'digitalization_index_risk',
@@ -31572,7 +36576,8 @@ module.exports = {
           delayRiskDays: null,
           evidenceStatus: 'missing-evidence',
           sourceLabel: 'Netzbetreiber-Monitoring; Prozessdaten erforderlich',
-          assumptionLabel: 'Schätzung: ohne Prozessdaten bleibt offen, wie transparent Anschluss- und Fristenprozesse laufen.',
+          assumptionLabel:
+            'Schätzung: ohne Prozessdaten bleibt offen, wie transparent Anschluss- und Fristenprozesse laufen.',
           nextGateLabel: 'Prozessdaten und Ansprechpartner des Netzbetreibers prüfen.',
         },
         {
@@ -31585,8 +36590,10 @@ module.exports = {
           delayRiskDays: null,
           evidenceStatus: 'assumption-backed',
           sourceLabel: 'BNetzA- und Messstellenbetreiber-Daten; lokale Daten fehlen',
-          assumptionLabel: 'Schätzung: verzögerter Smart-Meter-Rollout kann flexible Tarife und steuerbare Anlagen bremsen.',
-          nextGateLabel: 'Rollout-Stand beim Messstellenbetreiber abfragen und auf kommunale Projekte beziehen.',
+          assumptionLabel:
+            'Schätzung: verzögerter Smart-Meter-Rollout kann flexible Tarife und steuerbare Anlagen bremsen.',
+          nextGateLabel:
+            'Rollout-Stand beim Messstellenbetreiber abfragen und auf kommunale Projekte beziehen.',
         },
         {
           riskKey: 'grid_capacity_constraint_risk',
@@ -31598,27 +36605,28 @@ module.exports = {
           delayRiskDays: null,
           evidenceStatus: 'missing-evidence',
           sourceLabel: 'Netzkapazitätsanzeige oder konkrete Anschlussanfrage fehlt',
-          assumptionLabel: 'Ohne Kapazitätsauskunft bleibt offen, ob neue Projekte wirtschaftlich rechtzeitig ans Netz kommen.',
+          assumptionLabel:
+            'Ohne Kapazitätsauskunft bleibt offen, ob neue Projekte wirtschaftlich rechtzeitig ans Netz kommen.',
           nextGateLabel: 'Für priorisierte Flächen eine Anschluss- und Kapazitätsprüfung starten.',
         },
       ];
 
       const budgetImpactRows = [];
       if (profile.found && profile.population) {
-        const totalHouseholds = Math.round(
-          profile.population * profile.avgHouseholdsPerEinwohner
-        );
+        const totalHouseholds = Math.round(profile.population * profile.avgHouseholdsPerEinwohner);
         const residentialConsumptionKwh = totalHouseholds * profile.avgHouseholdConsumptionKwh;
-        const kavRateNsCtPerKwh = profile.kavRateNsCtPerKwh != null
-          ? profile.kavRateNsCtPerKwh
-          : profile.konzessionsabgabeKategorie.includes('100.000') ? 1.99 : 1.32;
+        const kavRateNsCtPerKwh =
+          profile.kavRateNsCtPerKwh != null
+            ? profile.kavRateNsCtPerKwh
+            : profile.konzessionsabgabeKategorie.includes('100.000')
+              ? 1.99
+              : 1.32;
         const kavSonderkundenCtPerKwh = 0.11;
-        const kavNsEurPerYear = Math.round(
-          (residentialConsumptionKwh * kavRateNsCtPerKwh) / 100
-        );
-        const commercialConsumptionKwh = annualLoad?.commercialKwh != null
-          ? Math.round(Number(annualLoad.commercialKwh) || 0)
-          : Math.round(residentialConsumptionKwh * 0.35);
+        const kavNsEurPerYear = Math.round((residentialConsumptionKwh * kavRateNsCtPerKwh) / 100);
+        const commercialConsumptionKwh =
+          annualLoad?.commercialKwh != null
+            ? Math.round(Number(annualLoad.commercialKwh) || 0)
+            : Math.round(residentialConsumptionKwh * 0.35);
         const kavGewerbeEurPerYear = Math.round(
           (commercialConsumptionKwh * kavSonderkundenCtPerKwh) / 100
         );
@@ -31698,7 +36706,8 @@ module.exports = {
           calculationStatus: 'missing-data',
           assumptionStatus: 'Gemeindeprofil nicht aufgelöst',
           evidenceStatus: 'missing-evidence',
-          assumptionLabel: 'Gemeinde nicht im lokalen Profil; Einwohnerzahl und KAV-Kategorie erforderlich',
+          assumptionLabel:
+            'Gemeinde nicht im lokalen Profil; Einwohnerzahl und KAV-Kategorie erforderlich',
           sourceLabel: 'keine Quelle verfügbar',
         });
       }
@@ -31799,7 +36808,8 @@ module.exports = {
         },
         {
           sourceKey: 'bnetza_fca_storage_flex',
-          sourceLabel: 'Bundesnetzagentur: Flexible Netzanschlussvereinbarungen für Speicher und Verbrauchsanlagen',
+          sourceLabel:
+            'Bundesnetzagentur: Flexible Netzanschlussvereinbarungen für Speicher und Verbrauchsanlagen',
           sourceType: 'regulatory',
           availability: 'public',
           coverage: 'deutschland-weit',
@@ -31823,7 +36833,9 @@ module.exports = {
       );
 
       const buildTsRow = (tech, rowKey, capacityKw, fullLoadHours, techLabel) => {
-        const marketValueEur = Math.round(capacityKw * fullLoadHours / 1000 * assumedMarketPriceEurPerMwh);
+        const marketValueEur = Math.round(
+          ((capacityKw * fullLoadHours) / 1000) * assumedMarketPriceEurPerMwh
+        );
         const corrTech = correlationResult
           ? correlationResult.techResults.find((r) => r.technology === tech)
           : null;
@@ -31858,22 +36870,46 @@ module.exports = {
 
       const timeSeriesValueRows = profile.found
         ? [
-            ...(profile.pvCapacityKw > 0 ? [buildTsRow('pv', 'ts_pv_annual', profile.pvCapacityKw, pvFullLoadHours, 'PV')] : []),
-            ...(profile.biomassCapacityKw > 0 ? [buildTsRow('biomass', 'ts_biomass_annual', profile.biomassCapacityKw, biomassFullLoadHours, 'Biomasse')] : []),
-            ...(profile.windCapacityKw > 0 ? [buildTsRow('wind', 'ts_wind_annual', profile.windCapacityKw, windFullLoadHours, 'Wind')] : []),
+            ...(profile.pvCapacityKw > 0
+              ? [buildTsRow('pv', 'ts_pv_annual', profile.pvCapacityKw, pvFullLoadHours, 'PV')]
+              : []),
+            ...(profile.biomassCapacityKw > 0
+              ? [
+                  buildTsRow(
+                    'biomass',
+                    'ts_biomass_annual',
+                    profile.biomassCapacityKw,
+                    biomassFullLoadHours,
+                    'Biomasse'
+                  ),
+                ]
+              : []),
+            ...(profile.windCapacityKw > 0
+              ? [
+                  buildTsRow(
+                    'wind',
+                    'ts_wind_annual',
+                    profile.windCapacityKw,
+                    windFullLoadHours,
+                    'Wind'
+                  ),
+                ]
+              : []),
           ]
-        : [{
-            rowKey: 'ts_no_data',
-            technology: 'unknown',
-            timeWindow: `annual_${year}`,
-            marketValueEur: null,
-            localCorrelationValueEur: null,
-            unmatchedGenerationValueEur: null,
-            importExposureEur: null,
-            confidence: 'none',
-            evidenceStatus: 'missing-evidence',
-            sourceLabel: 'Gemeindeprofil nicht aufgelöst',
-          }];
+        : [
+            {
+              rowKey: 'ts_no_data',
+              technology: 'unknown',
+              timeWindow: `annual_${year}`,
+              marketValueEur: null,
+              localCorrelationValueEur: null,
+              unmatchedGenerationValueEur: null,
+              importExposureEur: null,
+              confidence: 'none',
+              evidenceStatus: 'missing-evidence',
+              sourceLabel: 'Gemeindeprofil nicht aufgelöst',
+            },
+          ];
 
       const existingStoragePowerKw = Number(profile.storagePowerKw) || 0;
       const existingStorageCapacityKWh =
@@ -31887,19 +36923,20 @@ module.exports = {
       const pvUnmatchedValueEur = timeSeriesValueRows
         .filter((row) => row.technology === 'pv')
         .reduce((sum, row) => sum + (Number(row.unmatchedGenerationValueEur) || 0), 0);
-      const flexReferenceValueEur = pvUnmatchedValueEur > 0 ? pvUnmatchedValueEur : unmatchedGenerationValueEur;
+      const flexReferenceValueEur =
+        pvUnmatchedValueEur > 0 ? pvUnmatchedValueEur : unmatchedGenerationValueEur;
       const buildFlexScenario = (rowKey, rowLabel, captureShare, planningLever, nextGateLabel) => ({
         rowKey,
         rowLabel,
         scenarioType: 'storage_flex_fnav',
         existingStoragePowerKw,
         existingStorageCapacityKWh,
-        storageEvidenceStatus: existingStoragePowerKw > 0 ? 'assumption-backed' : 'missing-evidence',
+        storageEvidenceStatus:
+          existingStoragePowerKw > 0 ? 'assumption-backed' : 'missing-evidence',
         referenceUnmatchedValueEur: flexReferenceValueEur || null,
         captureShare,
-        potentialLocalRetentionEurPerYear: flexReferenceValueEur > 0
-          ? Math.round(flexReferenceValueEur * captureShare)
-          : null,
+        potentialLocalRetentionEurPerYear:
+          flexReferenceValueEur > 0 ? Math.round(flexReferenceValueEur * captureShare) : null,
         planningLever,
         evidenceStatus: flexReferenceValueEur > 0 ? 'scenario-based' : 'missing-evidence',
         assumptionLabel:
@@ -31912,23 +36949,33 @@ module.exports = {
         ? [
             {
               rowKey: 'existing_storage_context',
-              rowLabel: existingStoragePowerKw > 0 ? 'Bestehender Speicherbestand' : 'Speicherbestand noch nicht belegt',
+              rowLabel:
+                existingStoragePowerKw > 0
+                  ? 'Bestehender Speicherbestand'
+                  : 'Speicherbestand noch nicht belegt',
               scenarioType: 'storage_inventory',
               existingStoragePowerKw,
               existingStorageCapacityKWh,
-              storageEvidenceStatus: existingStoragePowerKw > 0 ? 'assumption-backed' : 'missing-evidence',
+              storageEvidenceStatus:
+                existingStoragePowerKw > 0 ? 'assumption-backed' : 'missing-evidence',
               referenceUnmatchedValueEur: flexReferenceValueEur || null,
               captureShare: null,
               potentialLocalRetentionEurPerYear: null,
-              planningLever: existingStoragePowerKw > 0
-                ? 'Bestehenden Speicher in Flex-/fNAV-Prüfung und lokale Wertbindung einbeziehen.'
-                : 'Speicherbestand per MaStR/Netzbetreiber prüfen, bevor ein Bestandsnutzen behauptet wird.',
+              planningLever:
+                existingStoragePowerKw > 0
+                  ? 'Bestehenden Speicher in Flex-/fNAV-Prüfung und lokale Wertbindung einbeziehen.'
+                  : 'Speicherbestand per MaStR/Netzbetreiber prüfen, bevor ein Bestandsnutzen behauptet wird.',
               evidenceStatus: existingStoragePowerKw > 0 ? 'assumption-backed' : 'missing-evidence',
-              assumptionLabel: existingStoragePowerKw > 0
-                ? 'Speicherbestand aus kommunalem Profil belegt; Dispatch und Netzfahrweise noch offen.'
-                : 'Kein Speicherbestand im kommunalen Profil belegt; öffentliche Live-Abfrage muss nachgeführt werden.',
-              sourceLabel: existingStoragePowerKw > 0 ? 'Kommunales Energieprofil / MaStR-nahe Overlaydaten' : 'Kein belegter Speicherbestand im aktuellen Profil',
-              nextGateLabel: 'Speicher-MaStR, Netzanschlusspunkt, Betreiberstruktur und Steuerbarkeit belegen.',
+              assumptionLabel:
+                existingStoragePowerKw > 0
+                  ? 'Speicherbestand aus kommunalem Profil belegt; Dispatch und Netzfahrweise noch offen.'
+                  : 'Kein Speicherbestand im kommunalen Profil belegt; öffentliche Live-Abfrage muss nachgeführt werden.',
+              sourceLabel:
+                existingStoragePowerKw > 0
+                  ? 'Kommunales Energieprofil / MaStR-nahe Overlaydaten'
+                  : 'Kein belegter Speicherbestand im aktuellen Profil',
+              nextGateLabel:
+                'Speicher-MaStR, Netzanschlusspunkt, Betreiberstruktur und Steuerbarkeit belegen.',
             },
             buildFlexScenario(
               'storage_flex_conservative',
@@ -31958,9 +37005,8 @@ module.exports = {
         (sum, row) => sum + (Number(row.localCorrelationValueEur) || 0),
         0
       );
-      const energySharingAddressableValueEur = unmatchedGenerationValueEur > 0
-        ? unmatchedGenerationValueEur
-        : totalGrossMarketValueEur;
+      const energySharingAddressableValueEur =
+        unmatchedGenerationValueEur > 0 ? unmatchedGenerationValueEur : totalGrossMarketValueEur;
       const buildEnergySharingScenario = (
         rowKey,
         rowLabel,
@@ -31974,16 +37020,19 @@ module.exports = {
         rowLabel,
         scenarioType,
         legalBasis: 'EnWG §42c',
-        eligibilityWindow: 'seit 01.06.2026 im VNB-Bilanzierungsgebiet möglich; ab 01.06.2028 auch direkt angrenzende VNB-Bilanzierungsgebiete derselben Regelzone',
+        eligibilityWindow:
+          'seit 01.06.2026 im VNB-Bilanzierungsgebiet möglich; ab 01.06.2028 auch direkt angrenzende VNB-Bilanzierungsgebiete derselben Regelzone',
         communityModel,
         municipalUseCase,
         referenceUnmatchedValueEur: energySharingAddressableValueEur || null,
         currentLocalCorrelationValueEur: totalLocalCorrelationValueEur || null,
         captureShare,
-        potentialLocalCirculationEurPerYear: energySharingAddressableValueEur > 0
-          ? Math.round(energySharingAddressableValueEur * captureShare)
-          : null,
-        evidenceStatus: energySharingAddressableValueEur > 0 ? 'scenario-based' : 'missing-evidence',
+        potentialLocalCirculationEurPerYear:
+          energySharingAddressableValueEur > 0
+            ? Math.round(energySharingAddressableValueEur * captureShare)
+            : null,
+        evidenceStatus:
+          energySharingAddressableValueEur > 0 ? 'scenario-based' : 'missing-evidence',
         assumptionLabel:
           'Szenario: Energy Sharing kann zeitgleich erzeugten oder aus EE zwischengespeicherten Strom zwischen getrennten Verbrauchsstellen vertraglich nutzbar machen; kein Liefer-, Tarif- oder Abrechnungsnachweis.',
         sourceLabel:
@@ -31997,9 +37046,12 @@ module.exports = {
               rowLabel: 'Was Energy Sharing nach §42c bedeutet',
               scenarioType: 'legal_context',
               legalBasis: 'EnWG §42c',
-              eligibilityWindow: 'seit 01.06.2026 im VNB-Bilanzierungsgebiet möglich; ab 01.06.2028 auch direkt angrenzende VNB-Bilanzierungsgebiete derselben Regelzone',
-              communityModel: 'Betreiber und Abnehmer teilen EE-Strom über das öffentliche Verteilnetz; Reststrom bleibt separat zu beschaffen.',
-              municipalUseCase: 'PV am Bauhof, Schule, Rathaus und weitere Liegenschaften können in einem gemeinsamen Nutzungsmodell geprüft werden.',
+              eligibilityWindow:
+                'seit 01.06.2026 im VNB-Bilanzierungsgebiet möglich; ab 01.06.2028 auch direkt angrenzende VNB-Bilanzierungsgebiete derselben Regelzone',
+              communityModel:
+                'Betreiber und Abnehmer teilen EE-Strom über das öffentliche Verteilnetz; Reststrom bleibt separat zu beschaffen.',
+              municipalUseCase:
+                'PV am Bauhof, Schule, Rathaus und weitere Liegenschaften können in einem gemeinsamen Nutzungsmodell geprüft werden.',
               referenceUnmatchedValueEur: energySharingAddressableValueEur || null,
               currentLocalCorrelationValueEur: totalLocalCorrelationValueEur || null,
               captureShare: null,
@@ -32008,7 +37060,8 @@ module.exports = {
               assumptionLabel:
                 'Aufklärungszeile: gemeinsame Nutzung braucht Liefervertrag, Vertrag zur gemeinsamen Nutzung, Aufteilungsschlüssel, 15-Minuten-Messung/RLM und Reststromregelung.',
               sourceLabel: 'Gesetze im Internet: EnWG §42c',
-              nextGateLabel: 'Liegenschaften, Betreiber, Messkonzept, Reststromlieferant und Bilanzierungsgebiet zu einem Pilot-Setup verdichten.',
+              nextGateLabel:
+                'Liegenschaften, Betreiber, Messkonzept, Reststromlieferant und Bilanzierungsgebiet zu einem Pilot-Setup verdichten.',
             },
             buildEnergySharingScenario(
               'energy_sharing_municipal_estates',
@@ -32040,12 +37093,11 @@ module.exports = {
           ]
         : [];
 
-      const totalBudgetRow = budgetImpactRows.find((r) =>
-        String(r.rowKey || '').includes('total')
-      );
-      const budgetTotalEur = totalBudgetRow?.estimatedEurPerYear != null
-        ? Number(totalBudgetRow.estimatedEurPerYear) || 0
-        : budgetImpactRows.reduce((sum, r) => sum + (r.estimatedEurPerYear || 0), 0);
+      const totalBudgetRow = budgetImpactRows.find((r) => String(r.rowKey || '').includes('total'));
+      const budgetTotalEur =
+        totalBudgetRow?.estimatedEurPerYear != null
+          ? Number(totalBudgetRow.estimatedEurPerYear) || 0
+          : budgetImpactRows.reduce((sum, r) => sum + (r.estimatedEurPerYear || 0), 0);
       const euroKpiRows = [
         {
           rowKey: 'euro_kpi_gross_market_value',
@@ -32067,7 +37119,8 @@ module.exports = {
           rowKey: 'euro_kpi_municipal_budget_effect',
           label: 'Kommunaler Haushaltseffekt (Szenario)',
           valueEur: budgetTotalEur > 0 ? budgetTotalEur : null,
-          description: 'Konzessionsabgabe und Szenario-Budgeteffekte als Schätzung; noch nicht haushalterisch geprüft.',
+          description:
+            'Konzessionsabgabe und Szenario-Budgeteffekte als Schätzung; noch nicht haushalterisch geprüft.',
           evidenceStatus: budgetTotalEur > 0 ? 'assumption-backed' : 'missing-evidence',
         },
         {
@@ -32096,25 +37149,75 @@ module.exports = {
         missingEvidence.push({ missingDataPoint, enablesDossierAddition });
       };
 
-      if (!isKnown) addGap('municipality_profile', 'Gemeindeprofil (AGS, Einwohnerzahl, Fläche) ermöglicht das Grundlagenbild.');
-      if (!resolvedAgs) addGap('ags_code', 'AGS-Code ermöglicht MaStR-Abfrage und KAV-Kategorisierung.');
+      if (!isKnown)
+        addGap(
+          'municipality_profile',
+          'Gemeindeprofil (AGS, Einwohnerzahl, Fläche) ermöglicht das Grundlagenbild.'
+        );
+      if (!resolvedAgs)
+        addGap('ags_code', 'AGS-Code ermöglicht MaStR-Abfrage und KAV-Kategorisierung.');
       if (!correlationResult) {
-        addGap('local_load_profile', 'Lokales Lastprofil (Stundenauflösung) ermöglicht Zeitreihen-Korrelation und belastbare lokale Werterfassung in EUR.');
-        addGap('generation_time_series', 'Erzeugungszeitreihe je Technologie ermöglicht Zeitkorrelation; ohne sie bleiben localCorrelationValueEur und importExposureEur null.');
+        addGap(
+          'local_load_profile',
+          'Lokales Lastprofil (Stundenauflösung) ermöglicht Zeitreihen-Korrelation und belastbare lokale Werterfassung in EUR.'
+        );
+        addGap(
+          'generation_time_series',
+          'Erzeugungszeitreihe je Technologie ermöglicht Zeitkorrelation; ohne sie bleiben localCorrelationValueEur und importExposureEur null.'
+        );
       }
-      addGap('vnb_bnr', 'BNr oder MaStR-Netzbetreiber-ID ermöglicht EWK-Anschlussdauer und Digitalisierungsindex.');
-      addGap('mastr_live_data', 'Live-MaStR-Abfrage ermöglicht belastbare Erzeugungskapazitäten statt Annahmen.');
-      addGap('netzkapazitaetsnachweis', 'Netzkapazitätsnachweis ermöglicht Kapazitätsengpass-Risikobewertung.');
-      addGap('imsys_rollout_quote', 'Lokale iMSys/SMGW-Rollout-Quote vom Netzbetreiber ermöglicht SMGW-Risikozeile.');
-      addGap('storage_mastr_inventory', 'Belegter Speicherbestand ermöglicht Bestandsszenarien statt reiner Speicher-/Flex-Hypothesen.');
-      addGap('fnav_capacity_window', 'fNAV-/FCA-Leistungsfenster des Netzbetreibers ermöglicht statische oder dynamische Flex-Szenarien.');
-      addGap('building_permit_fast_track_policy', 'Kommunale Genehmigungs- und Förderleitplanken ermöglichen eine belastbare Beschlussvorlage für Speicher/Flex-Projekte.');
-      addGap('energy_sharing_malo_metering', 'MaLo-/Messkonzept je Liegenschaft ermöglicht §42c-Allokation mit 15-Minuten-Messung oder RLM.');
-      addGap('energy_sharing_participant_contracts', 'Teilnehmer-, Liefer- und gemeinsame Nutzungsverträge ermöglichen ein belastbares Energy-Sharing-Pilotmodell.');
-      addGap('energy_sharing_reststrom_supplier', 'Reststromlieferant und Informationspflichten ermöglichen rechtskonforme Teilversorgung statt Vollversorgungsbehauptung.');
-      addGap('energy_sharing_vnb_bilanzierungsgebiet', 'Bilanzierungsgebiet und angrenzende VNB-Gebiete bestimmen, welche Liegenschaften und Teilnehmer ab 2026/2028 gemeinsam nutzbar sind.');
-      addGap('operator_locality', 'Belege zur Lokalität des Netzbetreibers ermöglichen kommunale Steuer-/Umsatzeffekt-Abschätzung.');
-      addGap('local_tax_assumptions', 'Lokale Gewerbesteuer-/Einkommensteuerannahmen ermöglichen kommunales Steuereffekt-Szenario.');
+      addGap(
+        'vnb_bnr',
+        'BNr oder MaStR-Netzbetreiber-ID ermöglicht EWK-Anschlussdauer und Digitalisierungsindex.'
+      );
+      addGap(
+        'mastr_live_data',
+        'Live-MaStR-Abfrage ermöglicht belastbare Erzeugungskapazitäten statt Annahmen.'
+      );
+      addGap(
+        'netzkapazitaetsnachweis',
+        'Netzkapazitätsnachweis ermöglicht Kapazitätsengpass-Risikobewertung.'
+      );
+      addGap(
+        'imsys_rollout_quote',
+        'Lokale iMSys/SMGW-Rollout-Quote vom Netzbetreiber ermöglicht SMGW-Risikozeile.'
+      );
+      addGap(
+        'storage_mastr_inventory',
+        'Belegter Speicherbestand ermöglicht Bestandsszenarien statt reiner Speicher-/Flex-Hypothesen.'
+      );
+      addGap(
+        'fnav_capacity_window',
+        'fNAV-/FCA-Leistungsfenster des Netzbetreibers ermöglicht statische oder dynamische Flex-Szenarien.'
+      );
+      addGap(
+        'building_permit_fast_track_policy',
+        'Kommunale Genehmigungs- und Förderleitplanken ermöglichen eine belastbare Beschlussvorlage für Speicher/Flex-Projekte.'
+      );
+      addGap(
+        'energy_sharing_malo_metering',
+        'MaLo-/Messkonzept je Liegenschaft ermöglicht §42c-Allokation mit 15-Minuten-Messung oder RLM.'
+      );
+      addGap(
+        'energy_sharing_participant_contracts',
+        'Teilnehmer-, Liefer- und gemeinsame Nutzungsverträge ermöglichen ein belastbares Energy-Sharing-Pilotmodell.'
+      );
+      addGap(
+        'energy_sharing_reststrom_supplier',
+        'Reststromlieferant und Informationspflichten ermöglichen rechtskonforme Teilversorgung statt Vollversorgungsbehauptung.'
+      );
+      addGap(
+        'energy_sharing_vnb_bilanzierungsgebiet',
+        'Bilanzierungsgebiet und angrenzende VNB-Gebiete bestimmen, welche Liegenschaften und Teilnehmer ab 2026/2028 gemeinsam nutzbar sind.'
+      );
+      addGap(
+        'operator_locality',
+        'Belege zur Lokalität des Netzbetreibers ermöglichen kommunale Steuer-/Umsatzeffekt-Abschätzung.'
+      );
+      addGap(
+        'local_tax_assumptions',
+        'Lokale Gewerbesteuer-/Einkommensteuerannahmen ermöglichen kommunales Steuereffekt-Szenario.'
+      );
       if (annualLoad?.sectorEvidenceStatus === 'heuristic-fallback') {
         addGap(
           'osm_mastr_sector_split',
@@ -32145,9 +37248,9 @@ module.exports = {
       ];
 
       const status = isKnown
-        ? (missingEvidence.some((g) => g.missingDataPoint === 'vnb_bnr')
+        ? missingEvidence.some((g) => g.missingDataPoint === 'vnb_bnr')
           ? 'lagebild_partial'
-          : 'lagebild_available')
+          : 'lagebild_available'
         : 'lagebild_municipality_unresolved';
 
       const derivedLoadProfileRows = annualLoad
@@ -32195,7 +37298,8 @@ module.exports = {
               evidenceStatus: annualLoad.sectorEvidenceStatus || 'unknown',
               evidenceLabel: annualLoad.sectorEvidenceLabel || annualLoad.sourceLabel || null,
               nextGateLabel: annualLoad.sectorNextGateLabel || null,
-              sourceLabel: 'REST-API: kommunales Lastmodell; OSM-/MaStR-Sektorevidenz als nächster Backend-Nachweis',
+              sourceLabel:
+                'REST-API: kommunales Lastmodell; OSM-/MaStR-Sektorevidenz als nächster Backend-Nachweis',
             },
           ]
         : [];
@@ -32236,10 +37340,7 @@ module.exports = {
         );
         for (const row of valueRows) {
           const rowKey = String(row.rowKey || '');
-          if (
-            rowKey.includes('generation_value') ||
-            rowKey === 'local_value_capture_indicator'
-          ) {
+          if (rowKey.includes('generation_value') || rowKey === 'local_value_capture_indicator') {
             row.evidenceStatus = 'integrity-review-required';
             row.integrityWarningKey = generationIntegrityWarning.warningKey;
           }
@@ -32318,11 +37419,15 @@ module.exports = {
       const toList = (value) => {
         if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean);
         if (value && typeof value === 'string') {
-          return value.split(',').map((item) => item.trim()).filter(Boolean);
+          return value
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean);
         }
         return [];
       };
-      const isProvided = (value) => value !== undefined && value !== null && String(value).trim() !== '';
+      const isProvided = (value) =>
+        value !== undefined && value !== null && String(value).trim() !== '';
       const normalizeKey = (value, fallback) =>
         String(value || fallback || '')
           .trim()
@@ -32330,13 +37435,17 @@ module.exports = {
           .replace(/[^a-z0-9]+/g, '_')
           .replace(/^_+|_+$/g, '');
       const missingMap = {
-        integration_scope: 'adds the concrete SMGW integration scope before connector readiness can be claimed.',
+        integration_scope:
+          'adds the concrete SMGW integration scope before connector readiness can be claimed.',
         tenant_auth_boundary: 'adds tenant/auth boundary evidence for a future SMGW adapter path.',
-        adapter_class: 'adds target gateway or adapter class evidence without calling that adapter.',
-        control_domain_intent: 'adds the intended §14a control-domain boundary and non-execution reason.',
+        adapter_class:
+          'adds target gateway or adapter class evidence without calling that adapter.',
+        control_domain_intent:
+          'adds the intended §14a control-domain boundary and non-execution reason.',
         nes2_module_evidence: 'adds NES2 tariff-module readiness classification evidence.',
         eebus_taf_evidence: 'adds EEBUS/TAF evidence for the planned gateway path.',
-        audit_prerequisites: 'adds compliance/audit prerequisite evidence before production connector work.',
+        audit_prerequisites:
+          'adds compliance/audit prerequisite evidence before production connector work.',
         owner: 'adds the accountable owner for closing SMGW readiness gaps.',
       };
       const missingEvidence = [];
@@ -32350,27 +37459,26 @@ module.exports = {
       };
 
       if (!isProvided(params.integrationScope)) addGap('integration_scope');
-      if (!isProvided(params.authBoundary) && !isProvided(params.tenantBoundary)) addGap('tenant_auth_boundary');
-      if (!isProvided(params.adapterClass) && !isProvided(params.gatewayClass)) addGap('adapter_class');
+      if (!isProvided(params.authBoundary) && !isProvided(params.tenantBoundary))
+        addGap('tenant_auth_boundary');
+      if (!isProvided(params.adapterClass) && !isProvided(params.gatewayClass))
+        addGap('adapter_class');
       if (!isProvided(params.controlDomainIntent)) addGap('control_domain_intent');
       if (!isProvided(params.nes2ModuleEvidence)) addGap('nes2_module_evidence');
-      if (!isProvided(params.eebusEvidence) && !isProvided(params.tafEvidence)) addGap('eebus_taf_evidence');
+      if (!isProvided(params.eebusEvidence) && !isProvided(params.tafEvidence))
+        addGap('eebus_taf_evidence');
       if (!isProvided(params.auditPrerequisites)) addGap('audit_prerequisites');
       if (!isProvided(params.ownerRole)) addGap('owner');
 
       const callerBlockers = toList(params.blocker);
-      const blockers = [
-        ...callerBlockers,
-        ...missingEvidence.map((gap) => gap.missingDataPoint),
-      ];
-      const readinessScore = Number(
-        Math.max(0, (8 - missingEvidence.length) / 8).toFixed(2)
-      );
-      const status = readinessScore === 1
-        ? 'ready_for_connector_design'
-        : missingEvidence.some((gap) => gap.missingDataPoint === 'tenant_auth_boundary')
-          ? 'blocked_by_auth_boundary'
-          : 'needs_connector_evidence';
+      const blockers = [...callerBlockers, ...missingEvidence.map((gap) => gap.missingDataPoint)];
+      const readinessScore = Number(Math.max(0, (8 - missingEvidence.length) / 8).toFixed(2));
+      const status =
+        readinessScore === 1
+          ? 'ready_for_connector_design'
+          : missingEvidence.some((gap) => gap.missingDataPoint === 'tenant_auth_boundary')
+            ? 'blocked_by_auth_boundary'
+            : 'needs_connector_evidence';
       const connectorReadiness = {
         integrationScope: params.integrationScope || '§14a SMGW connector readiness',
         scopeKey: normalizeKey(params.integrationScope, 'smgw_connector'),
@@ -32384,7 +37492,9 @@ module.exports = {
         authBoundary: params.authBoundary || params.tenantBoundary || null,
         tenantBoundary: params.tenantBoundary || params.authBoundary || null,
         ownerRole: params.ownerRole || 'unassigned',
-        fallbackReason: params.fallbackReason || 'readiness evidence only; connector/control execution remains out of scope',
+        fallbackReason:
+          params.fallbackReason ||
+          'readiness evidence only; connector/control execution remains out of scope',
         evidenceHints: toList(params.evidenceHints),
       };
       const sourceActions = {
@@ -32459,14 +37569,28 @@ module.exports = {
 
     buildLeadershipDeltaCockpitStatus(params = {}) {
       const toList = (value) => {
-        if (Array.isArray(value)) return value.filter(Boolean).map((item) => String(item).trim()).filter(Boolean);
+        if (Array.isArray(value))
+          return value
+            .filter(Boolean)
+            .map((item) => String(item).trim())
+            .filter(Boolean);
         if (value && typeof value === 'string') {
-          return value.split(',').map((item) => item.trim()).filter(Boolean);
+          return value
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean);
         }
         return [];
       };
-      const isProvided = (value) => value !== undefined && value !== null && String(value).trim() !== '';
-      const normalizeStatus = (value, evidenceStatus, blockedDecision, escalationState, newSignals) => {
+      const isProvided = (value) =>
+        value !== undefined && value !== null && String(value).trim() !== '';
+      const normalizeStatus = (
+        value,
+        evidenceStatus,
+        blockedDecision,
+        escalationState,
+        newSignals
+      ) => {
         const explicit = String(value || '').trim();
         const allowed = new Set([
           'known',
@@ -32480,8 +37604,10 @@ module.exports = {
         if (allowed.has(explicit)) return explicit;
         if (/escalat|eskal/i.test(String(escalationState || ''))) return 'escalated';
         if (isProvided(blockedDecision)) return 'blocked';
-        if (/missing|partial|gap|luecke|lücke/i.test(String(evidenceStatus || ''))) return 'evidence_gap';
-        if (/ready|approval|entscheidungsreif/i.test(String(evidenceStatus || ''))) return 'decision_ready';
+        if (/missing|partial|gap|luecke|lücke/i.test(String(evidenceStatus || '')))
+          return 'evidence_gap';
+        if (/ready|approval|entscheidungsreif/i.test(String(evidenceStatus || '')))
+          return 'decision_ready';
         if (newSignals.length > 0) return 'delta_detected';
         return 'known';
       };
@@ -32489,7 +37615,9 @@ module.exports = {
       const newSignals = toList(params.newSignals);
       const linkedEntities = toList(params.linkedEntities);
       const sourceSignals = toList(params.sourceSignals);
-      const explicitErrors = params.includeDegradedSample ? ['leadership-delta-cockpit.sampleSource'] : [];
+      const explicitErrors = params.includeDegradedSample
+        ? ['leadership-delta-cockpit.sampleSource']
+        : [];
       const topic = {
         topicId: params.topicId || `leadership-delta:${params.topic || params.domain || 'general'}`,
         title: params.topic || 'Fuehrungscockpit Delta Steuerung',
@@ -32642,16 +37770,18 @@ module.exports = {
       const toList = (value) => {
         if (Array.isArray(value)) return value.filter(Boolean);
         if (value && typeof value === 'string') {
-          return value.split(',').map((item) => item.trim()).filter(Boolean);
+          return value
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean);
         }
         return [];
       };
 
       const toNumber = (value) => {
         if (value === undefined || value === null || value === '') return null;
-        const normalized = typeof value === 'string'
-          ? value.replace(/\s/g, '').replace(',', '.')
-          : value;
+        const normalized =
+          typeof value === 'string' ? value.replace(/\s/g, '').replace(',', '.') : value;
         const n = Number(normalized);
         return Number.isFinite(n) ? n : null;
       };
@@ -32681,7 +37811,8 @@ module.exports = {
           label: 'Asset Scope',
           value: params.assetScope,
           sourceClass: 'metering_asset_scope',
-          enablesDossierAddition: 'confirm whether iMSys, gateways, mME, water or heat meters are in scope',
+          enablesDossierAddition:
+            'confirm whether iMSys, gateways, mME, water or heat meters are in scope',
         },
         {
           id: 'metering_scope',
@@ -32716,7 +37847,8 @@ module.exports = {
           label: 'Financing Model',
           value: params.financingModel,
           sourceClass: 'financing_model',
-          enablesDossierAddition: 'add financing model such as own capital, leasing, credit or contracting',
+          enablesDossierAddition:
+            'add financing model such as own capital, leasing, credit or contracting',
         },
         {
           id: 'opex_annual',
@@ -32730,7 +37862,8 @@ module.exports = {
           label: 'Regulatory Relevance',
           value: params.regulatoryRelevance,
           sourceClass: 'regulatory_context',
-          enablesDossierAddition: 'add regulatory context such as paragraph_14a, paragraph_14d or MaStR validation',
+          enablesDossierAddition:
+            'add regulatory context such as paragraph_14a, paragraph_14d or MaStR validation',
         },
         {
           id: 'source_refs',
@@ -32738,7 +37871,8 @@ module.exports = {
           value: sourceRefs.length > 0,
           displayValue: sourceRefs.join(', '),
           sourceClass: 'source_grounding',
-          enablesDossierAddition: 'add source references for scenario assumptions and evidence status',
+          enablesDossierAddition:
+            'add source references for scenario assumptions and evidence status',
         },
       ];
 
@@ -32761,48 +37895,61 @@ module.exports = {
           enablesDossierAddition: spec.enablesDossierAddition,
         }));
 
-      const status =
-        !params.gridOperatorId
-          ? 'needs_grid_operator'
-          : !params.scenarioId
-            ? 'needs_scenario'
-            : !params.assetScope
-              ? 'needs_asset_scope'
-              : investmentVolume === null
-                ? 'needs_investment_volume'
-                : imsysCount === null
-                  ? 'needs_imsys_count'
-                  : !params.financingModel
-                    ? 'needs_financing_model'
-                    : sourceRefs.length === 0
-                      ? 'needs_source_refs'
-                      : 'ready_for_decision';
+      const status = !params.gridOperatorId
+        ? 'needs_grid_operator'
+        : !params.scenarioId
+          ? 'needs_scenario'
+          : !params.assetScope
+            ? 'needs_asset_scope'
+            : investmentVolume === null
+              ? 'needs_investment_volume'
+              : imsysCount === null
+                ? 'needs_imsys_count'
+                : !params.financingModel
+                  ? 'needs_financing_model'
+                  : sourceRefs.length === 0
+                    ? 'needs_source_refs'
+                    : 'ready_for_decision';
 
       const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
-      const complianceScore = Number((
-        evidenceItems.filter((item) => [
-          'grid_operator_id',
-          'scenario_id',
-          'asset_scope',
-          'metering_scope',
-          'regulatory_relevance',
-          'source_refs',
-        ].includes(item.id)).length / 6
-      ).toFixed(2));
+      const complianceScore = Number(
+        (
+          evidenceItems.filter((item) =>
+            [
+              'grid_operator_id',
+              'scenario_id',
+              'asset_scope',
+              'metering_scope',
+              'regulatory_relevance',
+              'source_refs',
+            ].includes(item.id)
+          ).length / 6
+        ).toFixed(2)
+      );
 
       const financingModel = String(params.financingModel || '').toLowerCase();
       const regulatory = String(params.regulatoryRelevance || '').toLowerCase();
-      const capexPerImsys = investmentVolume !== null && imsysCount > 0
-        ? Number((investmentVolume / imsysCount).toFixed(2))
-        : null;
+      const capexPerImsys =
+        investmentVolume !== null && imsysCount > 0
+          ? Number((investmentVolume / imsysCount).toFixed(2))
+          : null;
 
       let gateStatus = 'insufficient_data';
       if (status === 'ready_for_decision') {
         const debtOrLease = /leasing|credit|kredit|contracting|fremd/.test(financingModel);
         const regulatorySensitive = /14a|14d|mastr|regulatory|regulator/.test(regulatory);
-        if (readinessScore >= 1 && complianceScore >= 1 && investmentVolume <= 5000000 && !debtOrLease) {
+        if (
+          readinessScore >= 1 &&
+          complianceScore >= 1 &&
+          investmentVolume <= 5000000 &&
+          !debtOrLease
+        ) {
           gateStatus = 'committee_ready';
-        } else if (readinessScore >= 1 && complianceScore >= 0.83 && (debtOrLease || regulatorySensitive || investmentVolume > 5000000)) {
+        } else if (
+          readinessScore >= 1 &&
+          complianceScore >= 0.83 &&
+          (debtOrLease || regulatorySensitive || investmentVolume > 5000000)
+        ) {
           gateStatus = 'review_required';
         } else {
           gateStatus = 'insufficient_data';
@@ -32819,9 +37966,10 @@ module.exports = {
         investmentVolume,
         financingModel: params.financingModel || null,
         opexAnnual,
-        totexFirstYear: investmentVolume !== null || opexAnnual !== null
-          ? Number(((investmentVolume || 0) + (opexAnnual || 0)).toFixed(2))
-          : null,
+        totexFirstYear:
+          investmentVolume !== null || opexAnnual !== null
+            ? Number(((investmentVolume || 0) + (opexAnnual || 0)).toFixed(2))
+            : null,
       };
       const regulatoryContext = {
         regulatoryRelevance: params.regulatoryRelevance || null,
@@ -32838,7 +37986,14 @@ module.exports = {
 
       const blockingFindings = missingEvidence.map((item) => ({
         code: `ZFS_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
-        severity: ['grid_operator_id', 'scenario_id', 'asset_scope', 'investment_volume', 'imsys_count', 'financing_model'].includes(item.missingDataPoint)
+        severity: [
+          'grid_operator_id',
+          'scenario_id',
+          'asset_scope',
+          'investment_volume',
+          'imsys_count',
+          'financing_model',
+        ].includes(item.missingDataPoint)
           ? 'high'
           : 'medium',
         message: item.enablesDossierAddition,
@@ -32870,7 +38025,11 @@ module.exports = {
       if (params.scenarioId) dossierFacts.push(`Scenario ID: ${params.scenarioId}`);
 
       return {
-        zaehlparkFinanzierungSzenarioCockpitStatusId: `zfs:${Buffer.from(`${params.gridOperatorId || ''}:${params.scenarioId || ''}`).toString('base64url').slice(0, 28)}`,
+        zaehlparkFinanzierungSzenarioCockpitStatusId: `zfs:${Buffer.from(
+          `${params.gridOperatorId || ''}:${params.scenarioId || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 28)}`,
         capabilityKey: 'zaehlpark_finanzierung_szenario_cockpit',
         safety: 'read_only',
         requestContext: {
@@ -32918,7 +38077,7 @@ module.exports = {
             'external.bank.call',
             'external.leasing.call',
             'external.connector.call',
-            'personal-agent.execute'
+            'personal-agent.execute',
           ],
         },
         validationFindings: blockingFindings,
@@ -32946,7 +38105,10 @@ module.exports = {
       const toList = (value) => {
         if (Array.isArray(value)) return value.filter(Boolean);
         if (value && typeof value === 'string') {
-          return value.split(',').map((item) => item.trim()).filter(Boolean);
+          return value
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean);
         }
         return [];
       };
@@ -33067,26 +38229,25 @@ module.exports = {
           enablesDossierAddition: spec.enablesDossierAddition,
         }));
 
-      const status =
-        !params.connectionRequestId
-          ? 'needs_connection_request'
-          : !params.gridOperatorId
-            ? 'needs_grid_operator'
-            : !params.znpAlignment
-              ? 'needs_znp_alignment'
-              : !params.gridNode
-                ? 'needs_grid_node'
-                : !params.technicalRestriction
-                  ? 'needs_technical_restriction'
-                  : !params.requestedCapacityKW
-                    ? 'needs_requested_capacity'
-                    : !params.technicalStatus
-                      ? 'needs_technical_status'
-                      : !params.capacityUtilization
-                        ? 'needs_capacity_utilization'
-                        : sourceRefs.length === 0
-                          ? 'needs_source_refs'
-                          : 'ready_for_offer_decision';
+      const status = !params.connectionRequestId
+        ? 'needs_connection_request'
+        : !params.gridOperatorId
+          ? 'needs_grid_operator'
+          : !params.znpAlignment
+            ? 'needs_znp_alignment'
+            : !params.gridNode
+              ? 'needs_grid_node'
+              : !params.technicalRestriction
+                ? 'needs_technical_restriction'
+                : !params.requestedCapacityKW
+                  ? 'needs_requested_capacity'
+                  : !params.technicalStatus
+                    ? 'needs_technical_status'
+                    : !params.capacityUtilization
+                      ? 'needs_capacity_utilization'
+                      : sourceRefs.length === 0
+                        ? 'needs_source_refs'
+                        : 'ready_for_offer_decision';
 
       const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
       const complianceScore = readinessScore;
@@ -33098,16 +38259,34 @@ module.exports = {
         const feasibility = String(params.technicalStatus || '').toLowerCase();
 
         const isOkOrLow = (str) => {
-          return str.includes('ok') || str.includes('low') || str.includes('niedrig') || str.includes('none') || str.includes('freigegeben') || str.includes('approved') || str.includes('feasible');
+          return (
+            str.includes('ok') ||
+            str.includes('low') ||
+            str.includes('niedrig') ||
+            str.includes('none') ||
+            str.includes('freigegeben') ||
+            str.includes('approved') ||
+            str.includes('feasible')
+          );
         };
 
         const isConditionalOrFlexible = (str) => {
-          return str.includes('conditional') || str.includes('flexible') || str.includes('fnav') || str.includes('monitor') || str.includes('eingeschränkt');
+          return (
+            str.includes('conditional') ||
+            str.includes('flexible') ||
+            str.includes('fnav') ||
+            str.includes('monitor') ||
+            str.includes('eingeschränkt')
+          );
         };
 
         if ((isOkOrLow(restriction) || isOkOrLow(feasibility)) && isOkOrLow(utilization)) {
           gateStatus = 'invest';
-        } else if (isConditionalOrFlexible(restriction) || isConditionalOrFlexible(feasibility) || isConditionalOrFlexible(utilization)) {
+        } else if (
+          isConditionalOrFlexible(restriction) ||
+          isConditionalOrFlexible(feasibility) ||
+          isConditionalOrFlexible(utilization)
+        ) {
           gateStatus = 'monitor';
         } else {
           gateStatus = 'reject';
@@ -33124,7 +38303,13 @@ module.exports = {
 
       const blockingFindings = missingEvidence.map((item) => ({
         code: `TCOC_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
-        severity: ['connection_request_id', 'grid_operator_id', 'technical_restriction', 'requested_capacity_kw', 'technical_status'].includes(item.missingDataPoint)
+        severity: [
+          'connection_request_id',
+          'grid_operator_id',
+          'technical_restriction',
+          'requested_capacity_kw',
+          'technical_status',
+        ].includes(item.missingDataPoint)
           ? 'high'
           : 'medium',
         message: item.enablesDossierAddition,
@@ -33153,10 +38338,15 @@ module.exports = {
         `Provided Technical & Commercial Offer Cockpit Gate evidence: ${evidenceItems.length}/${evidenceSpecs.length}`,
         `Open gaps: ${missingEvidence.length}`,
       ];
-      if (params.connectionRequestId) dossierFacts.push(`Connection Request ID: ${params.connectionRequestId}`);
+      if (params.connectionRequestId)
+        dossierFacts.push(`Connection Request ID: ${params.connectionRequestId}`);
 
       return {
-        techCommercialOfferCockpitStatusId: `tcoc:${Buffer.from(`${params.connectionRequestId || ''}`).toString('base64url').slice(0, 24)}`,
+        techCommercialOfferCockpitStatusId: `tcoc:${Buffer.from(
+          `${params.connectionRequestId || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 24)}`,
         capabilityKey: 'tech_commercial_offer_cockpit',
         safety: 'read_only',
         requestContext: complianceContext,
@@ -33189,7 +38379,7 @@ module.exports = {
             'datapoint.health',
             'mastr-quality.audit',
             'edm-validation.validate',
-            'vdmi.dossier'
+            'vdmi.dossier',
           ],
           notCalled: [
             'hitl.create',
@@ -33199,7 +38389,7 @@ module.exports = {
             'budget.release',
             'settlement.prepareBilling',
             'external.connector.call',
-            'personal-agent.execute'
+            'personal-agent.execute',
           ],
         },
         validationFindings: blockingFindings,
@@ -33228,8 +38418,11 @@ module.exports = {
     },
 
     requiresOperatorConfirmation(params) {
-      const text = `${params.domain || ''} ${params.query || ''} ${params.sourceAction || ''}`.toLowerCase();
-      return /grid|netz|vnb|dso|anschluss|kapazitaet|kapazität|redispatch|marktkommunikation/.test(text);
+      const text =
+        `${params.domain || ''} ${params.query || ''} ${params.sourceAction || ''}`.toLowerCase();
+      return /grid|netz|vnb|dso|anschluss|kapazitaet|kapazität|redispatch|marktkommunikation/.test(
+        text
+      );
     },
 
     extractRagEvidenceItems(ragRes) {
@@ -33270,7 +38463,13 @@ module.exports = {
       return classes;
     },
 
-    buildEvidenceGroundingMissingEvidence({ params, hasScope, hasDomainContext, toolFailures, ragItems }) {
+    buildEvidenceGroundingMissingEvidence({
+      params,
+      hasScope,
+      hasDomainContext,
+      toolFailures,
+      ragItems,
+    }) {
       const missing = [];
       const add = (missingDataPoint, enablesDossierAddition, category, severity = 'medium') => {
         missing.push({ missingDataPoint, enablesDossierAddition, category, severity });
@@ -33416,20 +38615,29 @@ module.exports = {
       }
       if (!hasScope) {
         assumptions.push({
-          assumption: 'No local scope filter was supplied; answer must remain bounded as preliminary.',
+          assumption:
+            'No local scope filter was supplied; answer must remain bounded as preliminary.',
           sourceRef: 'scope_filter_grid_area',
         });
       }
       if (requiresNetworkOperatorConfirmation) {
         assumptions.push({
-          assumption: 'Network-operator confirmation is missing; fachliche confidence remains capped.',
+          assumption:
+            'Network-operator confirmation is missing; fachliche confidence remains capped.',
           sourceRef: 'network_operator_confirmation',
         });
       }
       return assumptions;
     },
 
-    buildEvidenceGroundingSourceActions({ routingRes, datapointRes, vdmiRes, ragRes, params, errors }) {
+    buildEvidenceGroundingSourceActions({
+      routingRes,
+      datapointRes,
+      vdmiRes,
+      ragRes,
+      params,
+      errors,
+    }) {
       const failed = new Set(errors || []);
       return {
         'capability-broker.recommend': {
@@ -33437,7 +38645,8 @@ module.exports = {
           skipped: !params.query,
           failed: failed.has('capability-broker.recommend'),
           capability: routingRes?.capability || null,
-          confidence: routingRes?.confidence ?? routingRes?.recommendedCapabilities?.[0]?.confidence ?? null,
+          confidence:
+            routingRes?.confidence ?? routingRes?.recommendedCapabilities?.[0]?.confidence ?? null,
         },
         'knowledge-rag.query': {
           success: !!ragRes,
@@ -33474,7 +38683,12 @@ module.exports = {
       const openEvidence = [];
       const monitoringTasks = [];
 
-      const addMissing = (missingDataPoint, enablesDossierAddition, category, severity = 'medium') => {
+      const addMissing = (
+        missingDataPoint,
+        enablesDossierAddition,
+        category,
+        severity = 'medium'
+      ) => {
         const item = { missingDataPoint, enablesDossierAddition, category, severity };
         missingDataPoints.push(item);
         openEvidence.push(item);

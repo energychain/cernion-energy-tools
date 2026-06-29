@@ -48,8 +48,15 @@ const SCORE_MAX = 125;
 const VDMI_GUARD_SCORE = 120;
 
 const GENERIC_ONLY_TERMS = new Set([
-  'evidence', 'governance', 'freigabe', 'validierung', 'nachweis',
-  'prüfung', 'pruefung', 'beleg', 'entscheidung',
+  'evidence',
+  'governance',
+  'freigabe',
+  'validierung',
+  'nachweis',
+  'prüfung',
+  'pruefung',
+  'beleg',
+  'entscheidung',
 ]);
 
 function validateRoute(route) {
@@ -57,14 +64,21 @@ function validateRoute(route) {
   const warnings = [];
 
   if (!route || typeof route !== 'object') {
-    return { valid: false, errors: [{ field: 'route', message: 'route must be an object' }], warnings: [] };
+    return {
+      valid: false,
+      errors: [{ field: 'route', message: 'route must be an object' }],
+      warnings: [],
+    };
   }
 
   // id
   if (!route.id || typeof route.id !== 'string') {
     errors.push({ field: 'id', message: 'id is required and must be a string' });
   } else if (!ROUTE_ID_PATTERN.test(route.id)) {
-    errors.push({ field: 'id', message: 'id must be lowercase snake_case (a-z, 0-9, underscores; must start with a letter)' });
+    errors.push({
+      field: 'id',
+      message: 'id must be lowercase snake_case (a-z, 0-9, underscores; must start with a letter)',
+    });
   }
 
   // label
@@ -83,7 +97,10 @@ function validateRoute(route) {
   } else if (typeof route.score !== 'number' || !isFinite(route.score)) {
     errors.push({ field: 'score', message: 'score must be a finite number' });
   } else if (route.score < SCORE_MIN || route.score > SCORE_MAX) {
-    errors.push({ field: 'score', message: `score must be between ${SCORE_MIN} and ${SCORE_MAX} (inclusive)` });
+    errors.push({
+      field: 'score',
+      message: `score must be between ${SCORE_MIN} and ${SCORE_MAX} (inclusive)`,
+    });
   } else if (route.score >= VDMI_GUARD_SCORE) {
     warnings.push({
       field: 'score',
@@ -92,10 +109,15 @@ function validateRoute(route) {
   }
 
   // triggers / combos — at least one must be present and non-empty
-  const hasTriggers = Array.isArray(route.triggers) && route.triggers.some((t) => typeof t === 'string' && t.length > 0);
+  const hasTriggers =
+    Array.isArray(route.triggers) &&
+    route.triggers.some((t) => typeof t === 'string' && t.length > 0);
   const hasCombos = Array.isArray(route.combos) && route.combos.length > 0;
   if (!hasTriggers && !hasCombos) {
-    errors.push({ field: 'triggers', message: 'At least one non-empty trigger or combo entry is required' });
+    errors.push({
+      field: 'triggers',
+      message: 'At least one non-empty trigger or combo entry is required',
+    });
   }
 
   // validate combo regex patterns
@@ -103,18 +125,27 @@ function validateRoute(route) {
     for (let i = 0; i < route.combos.length; i++) {
       const combo = route.combos[i];
       if (!combo || !Array.isArray(combo.all)) {
-        errors.push({ field: `combos[${i}]`, message: 'each combo must have an "all" array of regex strings' });
+        errors.push({
+          field: `combos[${i}]`,
+          message: 'each combo must have an "all" array of regex strings',
+        });
         continue;
       }
       for (let j = 0; j < combo.all.length; j++) {
         const pattern = combo.all[j];
         if (isUnsafePattern(pattern)) {
-          errors.push({ field: `combos[${i}].all[${j}]`, message: `Pattern "${pattern}" is too broad or empty` });
+          errors.push({
+            field: `combos[${i}].all[${j}]`,
+            message: `Pattern "${pattern}" is too broad or empty`,
+          });
         } else {
           try {
-            new RegExp(pattern, 'i'); // eslint-disable-line no-new
+            new RegExp(pattern, 'i');
           } catch (e) {
-            errors.push({ field: `combos[${i}].all[${j}]`, message: `Invalid regex: ${e.message}` });
+            errors.push({
+              field: `combos[${i}].all[${j}]`,
+              message: `Invalid regex: ${e.message}`,
+            });
           }
         }
       }
@@ -127,7 +158,8 @@ function validateRoute(route) {
     if (allGeneric) {
       warnings.push({
         field: 'triggers',
-        message: 'All triggers are generic governance terms (evidence, nachweis, etc.); add domain-specific phrases',
+        message:
+          'All triggers are generic governance terms (evidence, nachweis, etc.); add domain-specific phrases',
       });
     }
   }
@@ -135,8 +167,8 @@ function validateRoute(route) {
   // warn: no negativeTriggers for routes that may overlap VDMI-adjacent terms
   if (!Array.isArray(route.negativeTriggers) || route.negativeTriggers.length === 0) {
     const mayOverlapVdmi = (route.triggers || []).some((t) =>
-      ['projektvalidierung', 'mastr-kandidat', 'netzasset', 'asset relation'].some(
-        (v) => String(t).toLowerCase().includes(v)
+      ['projektvalidierung', 'mastr-kandidat', 'netzasset', 'asset relation'].some((v) =>
+        String(t).toLowerCase().includes(v)
       )
     );
     if (mayOverlapVdmi) {
@@ -282,9 +314,15 @@ module.exports = {
             limit: 500,
           });
           const docs = Array.isArray(response.docs) ? response.docs : [];
-          docs.sort((a, b) => String(b.createdAt || b.promotedAt || '').localeCompare(String(a.createdAt || a.promotedAt || '')));
+          docs.sort((a, b) =>
+            String(b.createdAt || b.promotedAt || '').localeCompare(
+              String(a.createdAt || a.promotedAt || '')
+            )
+          );
           for (const doc of docs) {
-            result.push(doc.type === 'domain-route-active' ? toActivePublic(doc) : toDraftPublic(doc));
+            result.push(
+              doc.type === 'domain-route-active' ? toActivePublic(doc) : toDraftPublic(doc)
+            );
           }
         }
 
@@ -322,12 +360,9 @@ module.exports = {
         }
 
         if (!doc) {
-          throw new MoleculerClientError(
-            `Domain route not found: ${id}`,
-            404,
-            'ROUTE_NOT_FOUND',
-            { id }
-          );
+          throw new MoleculerClientError(`Domain route not found: ${id}`, 404, 'ROUTE_NOT_FOUND', {
+            id,
+          });
         }
 
         return {
@@ -535,7 +570,12 @@ module.exports = {
             prevActive.version || 'unknown',
             Date.now().toString(36)
           );
-          const archiveDoc = { ...prevActive, _id: archiveId, type: 'domain-route-archive', archivedAt: now };
+          const archiveDoc = {
+            ...prevActive,
+            _id: archiveId,
+            type: 'domain-route-archive',
+            archivedAt: now,
+          };
           delete archiveDoc._rev;
           await this.db.put(archiveDoc);
           rollbackTarget = archiveId;
@@ -569,9 +609,16 @@ module.exports = {
         setRuntimeRoute(routeId, doc.route);
 
         // Mark draft as promoted
-        await this.db.put({ ...doc, promotedBy: promotedBy || null, promotedAt: now, updatedAt: now });
+        await this.db.put({
+          ...doc,
+          promotedBy: promotedBy || null,
+          promotedAt: now,
+          updatedAt: now,
+        });
 
-        this.logger.info(`[domain-routes] Promoted ${routeId} v${doc.version} by ${promotedBy || 'unknown'}${runtimeCapabilityMaterialized ? ' (runtime capability materialized)' : ''}`);
+        this.logger.info(
+          `[domain-routes] Promoted ${routeId} v${doc.version} by ${promotedBy || 'unknown'}${runtimeCapabilityMaterialized ? ' (runtime capability materialized)' : ''}`
+        );
 
         return {
           success: true,
@@ -658,10 +705,15 @@ module.exports = {
 
         setRuntimeRoute(id, archiveDoc.route);
         if (archiveDoc.runtimeCapabilityMaterialized) {
-          setRuntimeCapability(archiveDoc.route.capability, buildGapMarkerCapability(archiveDoc.route));
+          setRuntimeCapability(
+            archiveDoc.route.capability,
+            buildGapMarkerCapability(archiveDoc.route)
+          );
         }
 
-        this.logger.info(`[domain-routes] Rolled back ${id} to v${archiveDoc.version} by ${rolledBackBy || 'unknown'}`);
+        this.logger.info(
+          `[domain-routes] Rolled back ${id} to v${archiveDoc.version} by ${rolledBackBy || 'unknown'}`
+        );
 
         return {
           success: true,
@@ -765,7 +817,11 @@ module.exports = {
             task: tc.prompt,
           });
         } catch (err) {
-          results.push({ name: tc.name || tc.prompt.slice(0, 40), passed: false, error: err.message });
+          results.push({
+            name: tc.name || tc.prompt.slice(0, 40),
+            passed: false,
+            error: err.message,
+          });
           continue;
         }
         const passed = result.capability === tc.expectedCapability;
@@ -804,7 +860,9 @@ module.exports = {
           this.logger.info(`[domain-routes] Restored ${count} runtime route(s) from store`);
         }
       } catch (err) {
-        this.logger.warn(`[domain-routes] Could not restore runtime overlay: ${err.message} — falling back to static routes`);
+        this.logger.warn(
+          `[domain-routes] Could not restore runtime overlay: ${err.message} — falling back to static routes`
+        );
       }
     },
   },

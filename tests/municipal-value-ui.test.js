@@ -41,7 +41,9 @@ describe('municipal-value public UI decision framing', () => {
     expect(html).toContain('Diese Liste ist kein Defizitbericht');
     expect(html).toContain('Sinkende Nachweiszahl');
     expect(html).toContain('beauftragbare Nachweise sind noch offen');
-    expect(html).not.toContain('${(data.sourceRows || []).length} Quellen / ${(data.missingEvidence || []).length} offene Punkte');
+    expect(html).not.toContain(
+      '${(data.sourceRows || []).length} Quellen / ${(data.missingEvidence || []).length} offene Punkte'
+    );
   });
 
   it('keeps the executive layer clear and resolves the PV/biomass priority tension', () => {
@@ -54,7 +56,9 @@ describe('municipal-value public UI decision framing', () => {
     expect(html).toContain('["Bundesland", data.state]');
     expect(html).toContain('["AGS", data.ags]');
     expect(html).toContain('Warum PV trotz Biomasse-Signal priorisiert wird');
-    expect(html).toContain('PV wird priorisiert, weil absoluter Wert, Dachflächenlogik und politische Umsetzbarkeit am höchsten sind');
+    expect(html).toContain(
+      'PV wird priorisiert, weil absoluter Wert, Dachflächenlogik und politische Umsetzbarkeit am höchsten sind'
+    );
     expect(html).toContain('Biomasse passt zeitlich besser zum Verbrauch');
     expect(html).toContain('mit derselben Marktwertannahme wie Tabelle und Diagramm');
     expect(html).toContain('Erzeugungswert EUR/Jahr');
@@ -71,7 +75,9 @@ describe('municipal-value public UI decision framing', () => {
     expect(html).toContain('Seit 01.06.2026 im VNB-Gebiet möglich');
     expect(html).toContain('Herkunft: gerundete Marktpreisannahme plus KAV-Mischwert');
     expect(html).toContain('Erzeugungswert plus rund');
-    expect(html).toContain('Höchster Risikoscore: ${escapeHtml(maxRisk)}/100, aktuell ${escapeHtml(riskLevelText(maxRisk))}');
+    expect(html).toContain(
+      'Höchster Risikoscore: ${escapeHtml(maxRisk)}/100, aktuell ${escapeHtml(riskLevelText(maxRisk))}'
+    );
     expect(html).toContain('if (value >= 70) return "hohes Gesamtrisiko"');
     expect(html).toContain('Handlungsoption statt Ohnmacht');
     expect(html).toContain('Übersetzerrolle zum Netzbetreiber');
@@ -84,7 +90,9 @@ describe('municipal-value public UI decision framing', () => {
     expect(html).toContain('Dieser Wert ist nicht als direkte Haushaltseinnahme zu lesen.');
     expect(html).toContain('function householdTranslationText()');
     expect(html).toContain('Die Spanne ist kein frei verfügbares Haushaltsgeld');
-    expect(html).toContain('Stromkostenentlastung kommunaler Liegenschaften; standortpolitisch über Pacht, Gewerbesteuerlokalität und lokale Aufträge');
+    expect(html).toContain(
+      'Stromkostenentlastung kommunaler Liegenschaften; standortpolitisch über Pacht, Gewerbesteuerlokalität und lokale Aufträge'
+    );
     expect(html).toContain('<strong>Haushaltsklarheit:</strong>');
     expect(html).not.toContain('€,\\n              nicht als direkte Haushaltseinnahme');
     expect(html).toContain('Welche Erzeugung bringt den größten lokalen Wert?');

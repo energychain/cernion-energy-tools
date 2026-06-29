@@ -205,7 +205,11 @@ describe('operations-runbook.service', () => {
   });
 
   it('groups blocked work from HITL, alarms, and observability', async () => {
-    const result = await broker.call('operations-runbook.listBlockedWork', {}, meta(['rundeck-read']));
+    const result = await broker.call(
+      'operations-runbook.listBlockedWork',
+      {},
+      meta(['rundeck-read'])
+    );
     expect(result.runbookId).toBe('blocked-work');
     expect(result.data.groups.map((group) => group.group)).toEqual([
       'human_review',
@@ -367,7 +371,13 @@ describe('operations-runbook.service', () => {
       resettable: true,
     });
     expect(result.data.requiredEvidence).toEqual(
-      expect.arrayContaining(['napReference', 'maloId', 'meloId', 'meterId', 'customerConsentStatus'])
+      expect.arrayContaining([
+        'napReference',
+        'maloId',
+        'meloId',
+        'meterId',
+        'customerConsentStatus',
+      ])
     );
     expect(result.data.roleRelations).toEqual(
       expect.arrayContaining([
@@ -376,7 +386,9 @@ describe('operations-runbook.service', () => {
         expect.objectContaining({ roleId: 'ROLE_COMMERCIAL_AUDIT', relation: 'information' }),
       ])
     );
-    expect(result.data.workbenchProjectionHint.targetEndpoint).toBe('/api/governance/role-workbench');
+    expect(result.data.workbenchProjectionHint.targetEndpoint).toBe(
+      '/api/governance/role-workbench'
+    );
     expect(result.data.budibaseRenderTarget).toBe('budibase:stadtwerk-mauer-workbench');
     expect(result.data.sourceActions.notCalled).toEqual(
       expect.arrayContaining([

@@ -1539,7 +1539,6 @@ module.exports = {
       },
       // Gibt den aktuellen L1-Cache-Status zurück (für Monitoring/Ops)
       handler(_ctx) {
-        // eslint-disable-line no-unused-vars
         return {
           ok: true,
           cache: graphCache.getStats(),
@@ -3191,7 +3190,7 @@ module.exports = {
       let currentStates = { ...stakeholderStates };
       for (let round = 1; round <= MAX_DIALOGUE_ROUNDS; round++) {
         const conflict = detectConflicts(currentStates);
-        // eslint-disable-next-line no-await-in-loop
+
         const consensus = await synthesizeConsensusWith({
           ...synthesisArgs,
           stakeholderStates: currentStates,
@@ -3214,13 +3213,11 @@ module.exports = {
         dialogueRounds.push(roundEntry);
 
         if (sessionId) {
-          // eslint-disable-next-line no-await-in-loop
           await this._emitA2AMessage(ctx, a2a.negotiationRound(sessionId, roundEntry));
         }
 
         if (consensus.consensusReached) {
           if (sessionId) {
-            // eslint-disable-next-line no-await-in-loop
             await this._emitA2AMessage(
               ctx,
               a2a.consensusReached(sessionId, { narrative: consensus.narrative, round })

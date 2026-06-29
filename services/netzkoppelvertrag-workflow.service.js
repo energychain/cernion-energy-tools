@@ -289,7 +289,11 @@ module.exports = {
       async handler(ctx) {
         const tenantId = getTenantId(ctx);
         const { gridOperatorId, status, limit } = ctx.params;
-        const selector = { tenantId, type: 'netzkoppelvertrag-workflow', createdAt: { $exists: true } };
+        const selector = {
+          tenantId,
+          type: 'netzkoppelvertrag-workflow',
+          createdAt: { $exists: true },
+        };
         if (gridOperatorId) selector.gridOperatorId = gridOperatorId;
         if (status) selector.status = status;
         const result = await this.db.find({ selector, limit, sort: [{ createdAt: 'desc' }] });

@@ -341,7 +341,11 @@ module.exports = {
       async handler(ctx) {
         const tenantId = getTenantId(ctx);
         const { gridOperatorId, ruleType, limit } = ctx.params;
-        const selector = { tenantId, type: 'regulatorische-entgeltlogik', createdAt: { $exists: true } };
+        const selector = {
+          tenantId,
+          type: 'regulatorische-entgeltlogik',
+          createdAt: { $exists: true },
+        };
         if (gridOperatorId) selector.gridOperatorId = gridOperatorId;
         if (ruleType) selector.ruleType = ruleType;
         const result = await this.db.find({ selector, limit, sort: [{ createdAt: 'desc' }] });

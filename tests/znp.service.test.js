@@ -85,7 +85,7 @@ function makeAssets(count = 3, baseCapacity = 10, offset = 0) {
 
 async function waitFor(predicate, { timeoutMs = 1000, intervalMs = 10 } = {}) {
   const startedAt = Date.now();
-  // eslint-disable-next-line no-constant-condition
+
   while (true) {
     const value = predicate();
     if (value) return value;
@@ -1697,9 +1697,9 @@ describe('ZNP Service', () => {
       });
 
       expect(result.status).toBe('needs_layer2_evidence');
-      expect(result.readinessSignals.find((signal) => signal.code === 'layer1_evidence').status).toBe(
-        'present'
-      );
+      expect(
+        result.readinessSignals.find((signal) => signal.code === 'layer1_evidence').status
+      ).toBe('present');
       expect(result.evidenceGaps.map((gap) => gap.missingDataPoint)).toEqual(
         expect.arrayContaining([
           'layer2_evidence',

@@ -572,8 +572,18 @@ describe('consultation-execution-bridge', () => {
           intent: 'vdmi_grid_connection_decision_governance',
           capability: 'vdmi_grid_connection_decision_governance',
           recommendedPlan: [
-            { step: 1, action: 'vdmi.dossier', purpose: 'Dossier aufbauen', params: { taskId: 'network-operator-decision' } },
-            { step: 2, action: 'vdmi.negotiationTrace', purpose: 'Verhandlungs-Trace prüfen', params: {} },
+            {
+              step: 1,
+              action: 'vdmi.dossier',
+              purpose: 'Dossier aufbauen',
+              params: { taskId: 'network-operator-decision' },
+            },
+            {
+              step: 2,
+              action: 'vdmi.negotiationTrace',
+              purpose: 'Verhandlungs-Trace prüfen',
+              params: {},
+            },
             { step: 3, action: 'vdmi.agentRole', purpose: 'V-Akteur-Rolle auflösen', params: {} },
           ],
         },
@@ -611,7 +621,9 @@ describe('consultation-execution-bridge', () => {
         message: 'Wie transparent ist euer KI-Governance-Framework für den Aufsichtsrat?',
         brokerRecommendation: {
           intent: 'some_unmapped_domain',
-          recommendedPlan: [{ step: 1, action: 'interface-placeholder.markGap', purpose: 'x', params: {} }],
+          recommendedPlan: [
+            { step: 1, action: 'interface-placeholder.markGap', purpose: 'x', params: {} },
+          ],
         },
         executionMode: 'auto',
       });

@@ -6,10 +6,7 @@ const {
   buildCernionProviderCall,
   buildCernionSidecarDescriptor,
 } = require('../src/cernion-sidecar-provider');
-const {
-  buildMcpLikeToolsList,
-  callMcpLikeTool,
-} = require('../src/energy-sidecar-mcp-bridge');
+const { buildMcpLikeToolsList, callMcpLikeTool } = require('../src/energy-sidecar-mcp-bridge');
 
 const EXPECTED_TOOLS = [
   'cernion.ask',

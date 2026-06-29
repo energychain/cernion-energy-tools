@@ -38,10 +38,18 @@ function _mcpTimeoutMs() {
  */
 function _classifyDegradedReason(errCodeOrMessage) {
   const s = String(errCodeOrMessage || '').toUpperCase();
-  if (s.includes('GEOCOD') || s.includes('BBOX') || s.includes('PLACE_NOT_FOUND') || s.includes('NOT_FOUND')) return 'GEOCODING_FAILED';
+  if (
+    s.includes('GEOCOD') ||
+    s.includes('BBOX') ||
+    s.includes('PLACE_NOT_FOUND') ||
+    s.includes('NOT_FOUND')
+  )
+    return 'GEOCODING_FAILED';
   if (s.includes('TIMEOUT') || s.includes('OVERPASS_TIMEOUT')) return 'OVERPASS_TIMEOUT';
-  if (s.includes('TOO_LARGE') || s.includes('TOO_BROAD') || s.includes('AREA_TOO')) return 'AREA_TOO_BROAD';
-  if (s.includes('SIZE_LIMIT') || s.includes('RESPONSE_SIZE') || s.includes('TRUNCATED')) return 'RESPONSE_SIZE_LIMIT';
+  if (s.includes('TOO_LARGE') || s.includes('TOO_BROAD') || s.includes('AREA_TOO'))
+    return 'AREA_TOO_BROAD';
+  if (s.includes('SIZE_LIMIT') || s.includes('RESPONSE_SIZE') || s.includes('TRUNCATED'))
+    return 'RESPONSE_SIZE_LIMIT';
   return 'SERVICE_ABORT';
 }
 
@@ -541,7 +549,8 @@ Returns both a detail list and **aggregated statistics**:
                   },
                   postalCode: {
                     type: 'string',
-                    description: 'German PLZ (postal code). Combined with location when both are provided (e.g. "74909 Meckesheim"). Can be used alone for PLZ-scoped queries.',
+                    description:
+                      'German PLZ (postal code). Combined with location when both are provided (e.g. "74909 Meckesheim"). Can be used alone for PLZ-scoped queries.',
                     example: '74909',
                   },
                   boundingBox: {
@@ -758,7 +767,8 @@ Returns both a detail list and **aggregated statistics**:
                   },
                   postalCode: {
                     type: 'string',
-                    description: 'German PLZ (postal code). Combined with location when both are provided (e.g. "74909 Meckesheim"). Can be used alone for PLZ-scoped queries.',
+                    description:
+                      'German PLZ (postal code). Combined with location when both are provided (e.g. "74909 Meckesheim"). Can be used alone for PLZ-scoped queries.',
                     example: '74909',
                   },
                   boundingBox: {

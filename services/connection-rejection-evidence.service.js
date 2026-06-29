@@ -260,7 +260,11 @@ module.exports = {
         const tenantId = getTenantId(ctx);
         const { gridOperatorId, decision, limit } = ctx.params;
 
-        const selector = { tenantId, type: 'connection-rejection-evidence-package', createdAt: { $exists: true } };
+        const selector = {
+          tenantId,
+          type: 'connection-rejection-evidence-package',
+          createdAt: { $exists: true },
+        };
         if (gridOperatorId) selector.gridOperatorId = gridOperatorId;
         if (decision) selector.decision = decision;
 

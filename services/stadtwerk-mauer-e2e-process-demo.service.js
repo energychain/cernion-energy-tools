@@ -106,7 +106,8 @@ module.exports = {
           });
         }
 
-        const caseId = ctx.params.caseId || `smm-e2e:${hashPayload({ demoPath, tenantId, t: Date.now() })}`;
+        const caseId =
+          ctx.params.caseId || `smm-e2e:${hashPayload({ demoPath, tenantId, t: Date.now() })}`;
         const createdAt = nowIso();
         const namespace = tenantNamespace(BASE_NAMESPACE, tenantId);
         const missingEvidence = this.buildMissingEvidence(ctx.params);
@@ -156,7 +157,8 @@ module.exports = {
           eventId: event.eventId,
           transcriptId: stub.transcript?.transcriptId || null,
           rolesAndCapabilities,
-          evidenceQuality: missingEvidence.length > 0 ? 'incomplete_demo_evidence' : 'complete_demo_evidence',
+          evidenceQuality:
+            missingEvidence.length > 0 ? 'incomplete_demo_evidence' : 'complete_demo_evidence',
           missingEvidence,
           positiveFollowUps,
           sourceActions,
@@ -218,11 +220,17 @@ module.exports = {
   methods: {
     buildMissingEvidence(params = {}) {
       const candidates = [
-        ['napReference', 'add NAP / Netzanschlusspunkt reference evidence to complete PV registration trace'],
+        [
+          'napReference',
+          'add NAP / Netzanschlusspunkt reference evidence to complete PV registration trace',
+        ],
         ['maloId', 'add MaLo context for the simulated downstream boundary'],
         ['meloId', 'add MeLo context for the simulated downstream boundary'],
         ['electricianRegistrationRef', 'add electrician registration / installer context'],
-        ['customerConsentStatus', 'add communication consent context for customer-communication stub evidence'],
+        [
+          'customerConsentStatus',
+          'add communication consent context for customer-communication stub evidence',
+        ],
         ['meterId', 'add meter identity for MSB/EDM plausibility evidence'],
       ];
       return candidates
@@ -329,7 +337,8 @@ module.exports = {
       if (!sandboxBoundaryAllowed) {
         missingEvidence.push({
           missingDataPoint: 'stadtwerk_mauer_tenant_scope',
-          enablesDossierAddition: 'add proof that E2E demo mutation is limited to tenant stadtwerk-mauer',
+          enablesDossierAddition:
+            'add proof that E2E demo mutation is limited to tenant stadtwerk-mauer',
         });
       }
       if (!selectedTrace) {

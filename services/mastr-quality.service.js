@@ -429,8 +429,7 @@ module.exports = {
       },
       openapi: {
         summary: 'Get OEMetadata v2.0 FAIR metadata for an audit report by ID',
-        description:
-          'Returns a fully OEMetadata v2.0 conformant JSON-LD metadata document.',
+        description: 'Returns a fully OEMetadata v2.0 conformant JSON-LD metadata document.',
         tags: ['MaStR Data Quality'],
         parameters: [
           {

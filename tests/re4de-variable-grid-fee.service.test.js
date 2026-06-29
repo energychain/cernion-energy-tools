@@ -38,8 +38,22 @@ describe('re4de-variable-grid-fee service', () => {
       timezone: 'UTC',
       basePriceEurPerYear: 365,
       windows: [
-        { windowId: 'offpeak', dayType: 'all', from: '00:00', to: '12:00', priceCtPerKwh: 4, priority: 10 },
-        { windowId: 'peak', dayType: 'all', from: '12:00', to: '24:00', priceCtPerKwh: 8, priority: 10 },
+        {
+          windowId: 'offpeak',
+          dayType: 'all',
+          from: '00:00',
+          to: '12:00',
+          priceCtPerKwh: 4,
+          priority: 10,
+        },
+        {
+          windowId: 'peak',
+          dayType: 'all',
+          from: '12:00',
+          to: '24:00',
+          priceCtPerKwh: 8,
+          priority: 10,
+        },
       ],
       ...overrides,
     };
@@ -51,9 +65,7 @@ describe('re4de-variable-grid-fee service', () => {
       meloId: 'melo-demo',
       resolution: 'PT15M',
       timezone: 'UTC',
-      values: [
-        { from: '2026-01-01T10:00:00.000Z', to: '2026-01-01T11:00:00.000Z', kwh: 10 },
-      ],
+      values: [{ from: '2026-01-01T10:00:00.000Z', to: '2026-01-01T11:00:00.000Z', kwh: 10 }],
       ...overrides,
     };
   }
@@ -97,9 +109,7 @@ describe('re4de-variable-grid-fee service', () => {
       {
         tariffSheet: tariffSheet({ basePriceEurPerYear: 0 }),
         meteringInput: meteringInput({
-          values: [
-            { from: '2026-01-01T11:30:00.000Z', to: '2026-01-01T12:30:00.000Z', kwh: 10 },
-          ],
+          values: [{ from: '2026-01-01T11:30:00.000Z', to: '2026-01-01T12:30:00.000Z', kwh: 10 }],
         }),
       },
       { meta }
@@ -123,15 +133,27 @@ describe('re4de-variable-grid-fee service', () => {
           timezone: 'Europe/Berlin',
           basePriceEurPerYear: 0,
           windows: [
-            { windowId: 'berlin-offpeak', dayType: 'all', from: '00:00', to: '12:00', priceCtPerKwh: 4, priority: 10 },
-            { windowId: 'berlin-peak', dayType: 'all', from: '12:00', to: '24:00', priceCtPerKwh: 8, priority: 10 },
+            {
+              windowId: 'berlin-offpeak',
+              dayType: 'all',
+              from: '00:00',
+              to: '12:00',
+              priceCtPerKwh: 4,
+              priority: 10,
+            },
+            {
+              windowId: 'berlin-peak',
+              dayType: 'all',
+              from: '12:00',
+              to: '24:00',
+              priceCtPerKwh: 8,
+              priority: 10,
+            },
           ],
         }),
         meteringInput: meteringInput({
           timezone: 'Europe/Berlin',
-          values: [
-            { from: '2026-01-01T12:00:00+01:00', to: '2026-01-01T13:00:00+01:00', kwh: 10 },
-          ],
+          values: [{ from: '2026-01-01T12:00:00+01:00', to: '2026-01-01T13:00:00+01:00', kwh: 10 }],
         }),
       },
       { meta }
@@ -148,7 +170,9 @@ describe('re4de-variable-grid-fee service', () => {
     const result = await broker.call(
       're4de-variable-grid-fee.calculate',
       {
-        tariffSheet: tariffSheet({ windows: [{ windowId: 'bad', from: '99:00', to: '10:00', priceCtPerKwh: 1 }] }),
+        tariffSheet: tariffSheet({
+          windows: [{ windowId: 'bad', from: '99:00', to: '10:00', priceCtPerKwh: 1 }],
+        }),
         meteringInput: meteringInput({ timezone: 'Europe/Berlin' }),
       },
       { meta }

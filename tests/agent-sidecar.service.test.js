@@ -242,9 +242,7 @@ describe('agent-sidecar service', () => {
     expect(result.structuredContent.recommendedPlan[0].action).toBe(
       'redispatch-readiness-gate.getStatus'
     );
-    expect(calls).toEqual([
-      expect.objectContaining({ action: 'capability-broker.recommend' }),
-    ]);
+    expect(calls).toEqual([expect.objectContaining({ action: 'capability-broker.recommend' })]);
   });
 
   it('defaults answer dossier calls to the slim OpenClaw-safe contract', async () => {

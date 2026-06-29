@@ -43,7 +43,6 @@ let _compiledRoutesCache = null;
 function _loadStaticRoutes() {
   if (_staticRoutesCache !== null) return _staticRoutesCache;
   try {
-    // eslint-disable-next-line global-require
     _staticRoutesCache = require(STATIC_ROUTES_PATH);
   } catch (_err) {
     _staticRoutesCache = [];
@@ -146,10 +145,12 @@ function buildGapMarkerCapability(route) {
   // Runtime-materialized capabilities are constrained to interface-placeholder actions only.
   // Any non-placeholder actions passed via route fields are silently dropped; if nothing
   // remains after filtering the safe fallback is used.
-  const preferredActions =
-    _filterSafeActions(route.preferredActions) || ['interface-placeholder.markGap'];
-  const fallbackActions =
-    _filterSafeActions(route.fallbackActions) || ['interface-placeholder.markGap'];
+  const preferredActions = _filterSafeActions(route.preferredActions) || [
+    'interface-placeholder.markGap',
+  ];
+  const fallbackActions = _filterSafeActions(route.fallbackActions) || [
+    'interface-placeholder.markGap',
+  ];
 
   return {
     capability: route.capability,
