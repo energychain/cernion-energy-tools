@@ -344,7 +344,7 @@ module.exports = {
       openapi: {
         summary: 'List investment maturity off-balance gates',
         tags: [OPENAPI_TAG],
-      
+
         parameters: [
           { in: 'query', name: 'investmentCaseId', schema: { type: 'string' } },
           { in: 'query', name: 'limit', schema: { type: 'number' } },
@@ -367,10 +367,8 @@ module.exports = {
       openapi: {
         summary: 'Get an investment maturity off-balance gate',
         tags: [OPENAPI_TAG],
-      
-        parameters: [
-          { in: 'path', name: 'gateId', required: true, schema: { type: 'string' } },
-        ],
+
+        parameters: [{ in: 'path', name: 'gateId', required: true, schema: { type: 'string' } }],
       },
       async handler(ctx) {
         const tenantId = getTenantId(ctx);
@@ -398,7 +396,7 @@ module.exports = {
       openapi: {
         summary: 'Get dossier-safe investment maturity off-balance status',
         tags: [OPENAPI_TAG],
-      
+
         parameters: [
           { in: 'query', name: 'gateId', schema: { type: 'string' } },
           { in: 'query', name: 'investmentCaseId', schema: { type: 'string' } },

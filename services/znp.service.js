@@ -1412,7 +1412,8 @@ module.exports = {
         if (assumptions.some((item) => item.hasFlexibleNav)) {
           recommendedActions.push({
             title: 'Flexible NAV als Angebotslinie vorbereiten',
-            detail: 'Planungsannahme im NOVA-/Portfolio-Kontext pruefen und kaufmaennische Freigabe separat einholen.',
+            detail:
+              'Planungsannahme im NOVA-/Portfolio-Kontext pruefen und kaufmaennische Freigabe separat einholen.',
             actionType: 'advisory',
             priority: 'high',
           });
@@ -1420,7 +1421,8 @@ module.exports = {
         if (utilization >= 0.8) {
           recommendedActions.push({
             title: '81-MW Engpassbezug pruefen',
-            detail: 'Anschlussdelta gegen N-1-Grenze, Gleichzeitigkeit und Layer-2-Messbasis plausibilisieren.',
+            detail:
+              'Anschlussdelta gegen N-1-Grenze, Gleichzeitigkeit und Layer-2-Messbasis plausibilisieren.',
             actionType: 'review',
             priority: utilization >= 0.95 ? 'critical' : 'high',
           });
@@ -1428,7 +1430,8 @@ module.exports = {
         if (recommendedActions.length === 0) {
           recommendedActions.push({
             title: 'Morgenlage beobachten',
-            detail: 'Keine akute Schwellenverletzung; naechsten Layer-2-/Anschlussdelta-Lauf abwarten.',
+            detail:
+              'Keine akute Schwellenverletzung; naechsten Layer-2-/Anschlussdelta-Lauf abwarten.',
             actionType: 'monitor',
             priority: 'normal',
           });
@@ -1493,7 +1496,7 @@ module.exports = {
           { name: 'gfactorValidation', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'acceptanceReference', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'novaHandoff', in: 'query', required: false, schema: { type: 'string' } },
-                  { in: 'query', name: 'referenceDataset', schema: { type: 'string' } },
+          { in: 'query', name: 'referenceDataset', schema: { type: 'string' } },
           { in: 'query', name: 'measuredGfactor', schema: { type: 'number' } },
           { in: 'query', name: 'modelGfactor', schema: { type: 'number' } },
           { in: 'query', name: 'owner', schema: { type: 'string' } },

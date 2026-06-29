@@ -156,10 +156,8 @@ module.exports = {
       openapi: {
         summary: 'List grouped operational blockers for human operators',
         tags: [OPENAPI_TAG],
-      
-        parameters: [
-          { in: 'query', name: 'limit', schema: { type: 'number' } },
-        ],
+
+        parameters: [{ in: 'query', name: 'limit', schema: { type: 'number' } }],
       },
       async handler(ctx) {
         this.requireScope(ctx, RUNBOOK_SCOPES.read);
@@ -204,7 +202,7 @@ module.exports = {
       openapi: {
         summary: 'Return simple option values for Rundeck job prompts',
         tags: [OPENAPI_TAG],
-      
+
         parameters: [
           { in: 'path', name: 'name', required: true, schema: { type: 'string' } },
           { in: 'query', name: 'tenantId', schema: { type: 'string' } },
@@ -544,7 +542,7 @@ module.exports = {
       openapi: {
         summary: 'Verify a read-only VDMI Blueprint Pack seed for Rundeck and Budibase',
         tags: [OPENAPI_TAG],
-      
+
         parameters: [
           { in: 'query', name: 'tenantId', schema: { type: 'string' } },
           { in: 'query', name: 'seedId', schema: { type: 'string' } },

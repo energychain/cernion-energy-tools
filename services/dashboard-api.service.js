@@ -958,7 +958,7 @@ module.exports = {
           { name: 'from', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'to', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'auditId', in: 'query', required: false, schema: { type: 'string' } },
-                  { in: 'query', name: 'obis', schema: { type: 'string' } },
+          { in: 'query', name: 'obis', schema: { type: 'string' } },
           { in: 'query', name: 'profileId', schema: { type: 'string' } },
           { in: 'query', name: 'annualConsumptionKwh', schema: { type: 'number' } },
         ],
@@ -2682,7 +2682,7 @@ module.exports = {
           { name: 'ownerRaci', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'correctionWorkflow', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'approvalStatus', in: 'query', required: false, schema: { type: 'string' } },
-                  { in: 'query', name: 'sapAccountSources', schema: { type: 'string' } },
+          { in: 'query', name: 'sapAccountSources', schema: { type: 'string' } },
           { in: 'query', name: 'controllingSourceIds', schema: { type: 'string' } },
           { in: 'query', name: 'loanTmsSourceIds', schema: { type: 'string' } },
           { in: 'query', name: 'scenarioAssumptions', schema: { type: 'string' } },
@@ -4438,7 +4438,7 @@ module.exports = {
             description: 'Read-only smart-meter off-balancing purpose-lock status',
           },
         },
-      
+
         parameters: [
           { in: 'query', name: 'caseId', schema: { type: 'string' } },
           { in: 'query', name: 'gridOperatorId', schema: { type: 'string' } },
@@ -4536,7 +4536,7 @@ module.exports = {
             description: 'Read-only iMSys schedule value-chain readiness status',
           },
         },
-      
+
         parameters: [
           { in: 'query', name: 'caseId', schema: { type: 'string' } },
           { in: 'query', name: 'gridOperatorId', schema: { type: 'string' } },
@@ -4650,7 +4650,7 @@ module.exports = {
             description: 'Read-only CLS digital-twin compliance gate status',
           },
         },
-      
+
         parameters: [
           { in: 'query', name: 'procurementId', schema: { type: 'string' } },
           { in: 'query', name: 'vendorId', schema: { type: 'string' } },
@@ -4736,7 +4736,7 @@ module.exports = {
             description: 'Read-only legacy control technology transition status',
           },
         },
-      
+
         parameters: [
           { in: 'query', name: 'assetGroupId', schema: { type: 'string' } },
           { in: 'query', name: 'assetId', schema: { type: 'string' } },
@@ -4859,7 +4859,7 @@ module.exports = {
             description: 'Read-only controllability submission cockpit status',
           },
         },
-      
+
         parameters: [
           { in: 'query', name: 'submissionId', schema: { type: 'string' } },
           { in: 'query', name: 'submissionDeadline', schema: { type: 'string' } },
@@ -4953,7 +4953,7 @@ module.exports = {
             description: 'Read-only crisis decision routine status',
           },
         },
-      
+
         parameters: [
           { in: 'query', name: 'caseId', schema: { type: 'string' } },
           { in: 'query', name: 'topic', schema: { type: 'string' } },
@@ -5034,7 +5034,7 @@ module.exports = {
             description: 'Read-only investment committee steering card status',
           },
         },
-      
+
         parameters: [
           { in: 'query', name: 'investmentItemId', schema: { type: 'string' } },
           { in: 'query', name: 'projectId', schema: { type: 'string' } },
@@ -5107,7 +5107,7 @@ module.exports = {
             description: 'Read-only investment data review queue status',
           },
         },
-      
+
         parameters: [
           { in: 'query', name: 'sourceId', schema: { type: 'string' } },
           { in: 'query', name: 'dataPackageId', schema: { type: 'string' } },
@@ -5189,7 +5189,7 @@ module.exports = {
             description: 'Read-only strategic Flex demand intake status',
           },
         },
-      
+
         parameters: [
           { in: 'query', name: 'demandId', schema: { type: 'string' } },
           { in: 'query', name: 'caseId', schema: { type: 'string' } },
@@ -5275,7 +5275,7 @@ module.exports = {
             description: 'Read-only gas infrastructure risk governance status',
           },
         },
-      
+
         parameters: [
           { in: 'query', name: 'caseId', schema: { type: 'string' } },
           { in: 'query', name: 'technicalFact', schema: { type: 'string' } },
@@ -5376,7 +5376,7 @@ module.exports = {
             description: 'Read-only metering rollout process-indicator status',
           },
         },
-      
+
         parameters: [
           { in: 'query', name: 'indicatorId', schema: { type: 'string' } },
           { in: 'query', name: 'division', schema: { type: 'string' } },
@@ -5464,7 +5464,7 @@ module.exports = {
             description: 'Read-only heat transformation line-asset model status',
           },
         },
-      
+
         parameters: [
           { in: 'query', name: 'lineAssetId', schema: { type: 'string' } },
           { in: 'query', name: 'geometryRef', schema: { type: 'string' } },
@@ -5545,7 +5545,7 @@ module.exports = {
             description: 'Read-only KI Floorwalker governance status',
           },
         },
-      
+
         parameters: [
           { in: 'query', name: 'useCaseId', schema: { type: 'string' } },
           { in: 'query', name: 'processOwner', schema: { type: 'string' } },
@@ -5617,7 +5617,7 @@ module.exports = {
             description: 'Read-only investment waterfall governance status',
           },
         },
-      
+
         parameters: [
           { in: 'query', name: 'investmentItemId', schema: { type: 'string' } },
           { in: 'query', name: 'targetProcess', schema: { type: 'string' } },
@@ -5695,7 +5695,7 @@ module.exports = {
             description: 'Read-only capacity and contract risk status',
           },
         },
-      
+
         parameters: [
           { in: 'query', name: 'gridOperatorId', required: true, schema: { type: 'string' } },
           { in: 'query', name: 'utilization', schema: { type: 'number' } },
@@ -5773,7 +5773,7 @@ module.exports = {
             description: 'Read-only iMSys TAF2 compliance status',
           },
         },
-      
+
         parameters: [
           { in: 'query', name: 'meteringPointId', required: true, schema: { type: 'string' } },
           { in: 'query', name: 'taf2Obligation', schema: { type: 'boolean' } },
@@ -5892,7 +5892,7 @@ module.exports = {
             description: 'Read-only schedule management status and roadmap evidence',
           },
         },
-      
+
         parameters: [
           { in: 'query', name: 'meteringPointId', schema: { type: 'string' } },
           { in: 'query', name: 'targetState', schema: { type: 'string' } },
@@ -6014,7 +6014,7 @@ module.exports = {
             description: 'Read-only gas and heat transformation status and dependency map evidence',
           },
         },
-      
+
         parameters: [
           { in: 'query', name: 'projectId', schema: { type: 'string' } },
           { in: 'query', name: 'division', schema: { type: 'string' } },
@@ -6086,7 +6086,7 @@ module.exports = {
             description: 'Read-only grid connection transformation status evidence',
           },
         },
-      
+
         parameters: [
           { in: 'query', name: 'meteringPointId', schema: { type: 'string' } },
           { in: 'query', name: 'division', schema: { type: 'string' } },
@@ -6157,7 +6157,7 @@ module.exports = {
             description: 'Read-only district heating asset and tariff status evidence',
           },
         },
-      
+
         parameters: [
           { in: 'query', name: 'heatPortfolioId', schema: { type: 'string' } },
           { in: 'query', name: 'division', schema: { type: 'string' } },
@@ -6236,7 +6236,7 @@ module.exports = {
             description: 'Read-only technical and commercial offer status evidence',
           },
         },
-      
+
         parameters: [
           { in: 'query', name: 'connectionRequestId', schema: { type: 'string' } },
           { in: 'query', name: 'gridOperatorId', schema: { type: 'string' } },
@@ -6322,7 +6322,7 @@ module.exports = {
             description: 'Read-only metering rollout financing scenario evidence',
           },
         },
-      
+
         parameters: [
           { in: 'query', name: 'gridOperatorId', schema: { type: 'string' } },
           { in: 'query', name: 'scenarioId', schema: { type: 'string' } },
@@ -6438,7 +6438,7 @@ module.exports = {
             description: 'Read-only process sensitization readiness evidence',
           },
         },
-      
+
         parameters: [
           { in: 'query', name: 'processType', schema: { type: 'string' } },
           { in: 'query', name: 'topic', schema: { type: 'string' } },
@@ -6536,7 +6536,7 @@ module.exports = {
             description: 'Read-only Netzprozess readiness evidence',
           },
         },
-      
+
         parameters: [
           { in: 'query', name: 'processType', schema: { type: 'string' } },
           { in: 'query', name: 'processId', schema: { type: 'string' } },
@@ -6652,7 +6652,7 @@ module.exports = {
             description: 'Read-only Grossspeicher Anschluss readiness evidence',
           },
         },
-      
+
         parameters: [
           { in: 'query', name: 'gridOperatorId', schema: { type: 'string' } },
           { in: 'query', name: 'projectId', schema: { type: 'string' } },
@@ -6763,7 +6763,7 @@ module.exports = {
             description: 'Read-only Role-Permission / AccessManager readiness evidence',
           },
         },
-      
+
         parameters: [
           { in: 'query', name: 'roleId', schema: { type: 'string' } },
           { in: 'query', name: 'roleName', schema: { type: 'string' } },
@@ -6873,7 +6873,7 @@ module.exports = {
             description: 'Read-only Owner-Frist-Evidenz readiness evidence',
           },
         },
-      
+
         parameters: [
           { in: 'query', name: 'signalId', schema: { type: 'string' } },
           { in: 'query', name: 'sourceType', schema: { type: 'string' } },
@@ -6981,7 +6981,7 @@ module.exports = {
             description: 'Read-only automation-risk readiness evidence',
           },
         },
-      
+
         parameters: [
           { in: 'query', name: 'processId', schema: { type: 'string' } },
           { in: 'query', name: 'processName', schema: { type: 'string' } },
@@ -7131,7 +7131,7 @@ module.exports = {
             description: 'Read-only Redispatch project-controlling KPI evidence',
           },
         },
-      
+
         parameters: [
           { in: 'query', name: 'cockpitId', schema: { type: 'string' } },
           { in: 'query', name: 'gridOperatorId', schema: { type: 'string' } },
@@ -7214,7 +7214,7 @@ module.exports = {
             description: 'Read-only Stadtwerk Mauer VDMI/profile evidence',
           },
         },
-      
+
         parameters: [
           { in: 'query', name: 'tenantId', schema: { type: 'string' } },
           { in: 'query', name: 'includeRoles', schema: { type: 'string' } },
@@ -7274,7 +7274,7 @@ module.exports = {
             description: 'Read-only Stadtwerk Mauer role/capability projection',
           },
         },
-      
+
         parameters: [
           { in: 'query', name: 'tenantId', schema: { type: 'string' } },
           { in: 'query', name: 'roles', schema: { type: 'string' } },
@@ -7331,7 +7331,7 @@ module.exports = {
             description: 'Read-only deterministic Stadtwerk Mauer event replay preview',
           },
         },
-      
+
         parameters: [
           { in: 'query', name: 'tenantId', schema: { type: 'string' } },
           { in: 'query', name: 'seed', schema: { type: 'string' } },
@@ -9267,7 +9267,7 @@ module.exports = {
           { name: 'contractStatus', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'legalStatus', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'ownerContact', in: 'query', required: false, schema: { type: 'string' } },
-                  { in: 'query', name: 'requestedCapacityKW', schema: { type: 'number' } },
+          { in: 'query', name: 'requestedCapacityKW', schema: { type: 'number' } },
           { in: 'query', name: 'firmCapacityKW', schema: { type: 'number' } },
           { in: 'query', name: 'flexibleCapacityKW', schema: { type: 'number' } },
           { in: 'query', name: 'curtailmentWindow', schema: { type: 'string' } },
@@ -9382,7 +9382,7 @@ module.exports = {
           { name: 'dueAt', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'evidenceStatus', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'nextDatapoint', in: 'query', required: false, schema: { type: 'string' } },
-                  { in: 'query', name: 'receivedAt', schema: { type: 'string' } },
+          { in: 'query', name: 'receivedAt', schema: { type: 'string' } },
           { in: 'query', name: 'processType', schema: { type: 'string' } },
           { in: 'query', name: 'riskSeverity', schema: { type: 'string' } },
           { in: 'query', name: 'ownerPersonaId', schema: { type: 'string' } },
@@ -9507,7 +9507,7 @@ module.exports = {
           { name: 'dataQualityStatus', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'decisionOwner', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'nextDecision', in: 'query', required: false, schema: { type: 'string' } },
-                  { in: 'query', name: 'gateId', schema: { type: 'string' } },
+          { in: 'query', name: 'gateId', schema: { type: 'string' } },
           { in: 'query', name: 'bookValueSource', schema: { type: 'string' } },
           { in: 'query', name: 'assetConditionSource', schema: { type: 'string' } },
           { in: 'query', name: 'transformationOptionBasis', schema: { type: 'string' } },
@@ -9620,7 +9620,7 @@ module.exports = {
           { name: 'vdmiOwner', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'decisionFrameRef', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'commercialSignoff', in: 'query', required: false, schema: { type: 'string' } },
-                  { in: 'query', name: 'capacityAssumptionSource', schema: { type: 'string' } },
+          { in: 'query', name: 'capacityAssumptionSource', schema: { type: 'string' } },
           { in: 'query', name: 'riskScenarios', schema: { type: 'string' } },
           { in: 'query', name: 'sourceRefs', schema: { type: 'string' } },
         ],
@@ -9737,7 +9737,7 @@ module.exports = {
             schema: { type: 'string' },
           },
           { name: 'nextEvidenceStep', in: 'query', required: false, schema: { type: 'string' } },
-                  { in: 'query', name: 'capacityEvidenceRef', schema: { type: 'string' } },
+          { in: 'query', name: 'capacityEvidenceRef', schema: { type: 'string' } },
           { in: 'query', name: 'decommissioningEvidenceRef', schema: { type: 'string' } },
           { in: 'query', name: 'eogRef', schema: { type: 'string' } },
           { in: 'query', name: 'kanuRef', schema: { type: 'string' } },
@@ -9867,7 +9867,7 @@ module.exports = {
           { name: 'reviewPeriod', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'targetCommitteeDate', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'alignmentDecision', in: 'query', required: false, schema: { type: 'string' } },
-                  { in: 'query', name: 'tenantId', schema: { type: 'string' } },
+          { in: 'query', name: 'tenantId', schema: { type: 'string' } },
           { in: 'query', name: 'infrastructureMeasureReference', schema: { type: 'string' } },
           { in: 'query', name: 'leaseOrConcessionReference', schema: { type: 'string' } },
           { in: 'query', name: 'tariffLogicReference', schema: { type: 'string' } },
@@ -10005,7 +10005,7 @@ module.exports = {
           { name: 'owner', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'nextDecisionDate', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'offerDecisionStatus', in: 'query', required: false, schema: { type: 'string' } },
-                  { in: 'query', name: 'tenantId', schema: { type: 'string' } },
+          { in: 'query', name: 'tenantId', schema: { type: 'string' } },
           { in: 'query', name: 'capacityEvidenceReference', schema: { type: 'string' } },
           { in: 'query', name: 'zielnetzPath', schema: { type: 'string' } },
           { in: 'query', name: 'capexReference', schema: { type: 'string' } },
@@ -10135,7 +10135,7 @@ module.exports = {
             schema: { type: 'string' },
           },
           { name: 'sourceDatapoints', in: 'query', required: false, schema: { type: 'string' } },
-                  { in: 'query', name: 'cashflowSourceRef', schema: { type: 'string' } },
+          { in: 'query', name: 'cashflowSourceRef', schema: { type: 'string' } },
           { in: 'query', name: 'marginCompensationAssumption', schema: { type: 'string' } },
           { in: 'query', name: 'capitalReallocationOption', schema: { type: 'string' } },
           { in: 'query', name: 'gasDecommissioningPath', schema: { type: 'string' } },
@@ -10246,7 +10246,7 @@ module.exports = {
             description: 'Read-only investment owner/deadline/budget gate evidence',
           },
         },
-      
+
         parameters: [
           { in: 'query', name: 'measureId', schema: { type: 'string' } },
           { in: 'query', name: 'measureTitle', schema: { type: 'string' } },
@@ -10333,7 +10333,7 @@ module.exports = {
             description: 'Read-only No-Regret measure definition evidence',
           },
         },
-      
+
         parameters: [
           { in: 'query', name: 'measureId', schema: { type: 'string' } },
           { in: 'query', name: 'programmeId', schema: { type: 'string' } },
@@ -10476,7 +10476,7 @@ module.exports = {
           { name: 'decisionGate', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'ownerRole', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'sourceDatapoints', in: 'query', required: false, schema: { type: 'string' } },
-                  { in: 'query', name: 'vdmiProcessId', schema: { type: 'string' } },
+          { in: 'query', name: 'vdmiProcessId', schema: { type: 'string' } },
           { in: 'query', name: 'investmentPlanId', schema: { type: 'string' } },
           { in: 'query', name: 'financeAnalysisId', schema: { type: 'string' } },
           { in: 'query', name: 'sourceActions', schema: { type: 'string' } },
@@ -10565,7 +10565,7 @@ module.exports = {
           { name: 'fallbackPollingPath', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'heartbeatSeconds', in: 'query', required: false, schema: { type: 'number' } },
           { name: 'ownerRole', in: 'query', required: false, schema: { type: 'string' } },
-                  { in: 'query', name: 'availability', schema: { type: 'string' } },
+          { in: 'query', name: 'availability', schema: { type: 'string' } },
           { in: 'query', name: 'includeUnsupportedSample', schema: { type: 'boolean' } },
         ],
         responses: {
@@ -10657,7 +10657,7 @@ module.exports = {
           { name: 'tenantBoundary', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'ownerRole', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'fallbackReason', in: 'query', required: false, schema: { type: 'string' } },
-                  { in: 'query', name: 'blocker', schema: { type: 'string' } },
+          { in: 'query', name: 'blocker', schema: { type: 'string' } },
           { in: 'query', name: 'evidenceHints', schema: { type: 'string' } },
         ],
         responses: {
@@ -10763,7 +10763,7 @@ module.exports = {
           { name: 'escalationState', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'nextLever', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'newSignals', in: 'query', required: false, schema: { type: 'string' } },
-                  { in: 'query', name: 'topicId', schema: { type: 'string' } },
+          { in: 'query', name: 'topicId', schema: { type: 'string' } },
           { in: 'query', name: 'role', schema: { type: 'string' } },
           { in: 'query', name: 'status', schema: { type: 'string' } },
           { in: 'query', name: 'dueBefore', schema: { type: 'string' } },
