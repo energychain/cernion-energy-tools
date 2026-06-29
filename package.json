@@ -26,7 +26,7 @@
     "check:tdd-matrix-coverage": "node scripts/check-tdd-matrix-coverage.js",
     "audit:openapi": "node scripts/audit-openapi.js",
     "audit:security": "node scripts/audit-security.js",
-    "audit:security:advisory": "npm audit --audit-level=high",
+    "audit:security:advisory": "node scripts/audit-security.js",
     "generate:llm": "node scripts/generate-llm-txt.js",
     "check:llm": "node scripts/generate-llm-txt.js --check",
     "check:quality-gate": "node scripts/check-quality-gate.js",
