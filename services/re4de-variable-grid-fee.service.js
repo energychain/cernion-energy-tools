@@ -108,7 +108,14 @@ function validateTariffSheet(tariffSheet) {
     return { findings, windows: [] };
   }
 
-  for (const field of ['tariffSheetId', 'version', 'gridAreaId', 'currency', 'priceUnit', 'timezone']) {
+  for (const field of [
+    'tariffSheetId',
+    'version',
+    'gridAreaId',
+    'currency',
+    'priceUnit',
+    'timezone',
+  ]) {
     if (!tariffSheet[field]) {
       findings.push({
         finding: 'RE4DE_TARIFF_FIELD_MISSING',
@@ -168,7 +175,11 @@ function validateMeteringInput(meteringInput, tariffSheet) {
       message: 'At least one metering interval is required',
     });
   }
-  if (tariffSheet?.timezone && meteringInput.timezone && tariffSheet.timezone !== meteringInput.timezone) {
+  if (
+    tariffSheet?.timezone &&
+    meteringInput.timezone &&
+    tariffSheet.timezone !== meteringInput.timezone
+  ) {
     findings.push({
       finding: 'RE4DE_TIMEZONE_MISMATCH',
       severity: 'error',
@@ -202,7 +213,14 @@ function calculateWindowBreakdown(meteringInput, windows) {
     const from = new Date(interval.from);
     const to = new Date(interval.to);
     const kwh = Number(interval.kwh);
-    if (!interval.from || !interval.to || Number.isNaN(from.getTime()) || Number.isNaN(to.getTime()) || to <= from || Number.isNaN(kwh)) {
+    if (
+      !interval.from ||
+      !interval.to ||
+      Number.isNaN(from.getTime()) ||
+      Number.isNaN(to.getTime()) ||
+      to <= from ||
+      Number.isNaN(kwh)
+    ) {
       findings.push({
         finding: 'RE4DE_METERING_INTERVAL_INVALID',
         severity: 'error',
@@ -238,12 +256,16 @@ function calculateWindowBreakdown(meteringInput, windows) {
         localCursor.getUTCDate()
       );
       const cursorMinute = minutesOfDay(cursor, offsetMinutes);
-      const segment = windowSegmentsForDay(window).find((s) => cursorMinute >= s.from && cursorMinute < s.to);
-      const segmentEnd = new Date(localDayStart + segment.to * 60 * 1000 - offsetMinutes * 60 * 1000);
+      const segment = windowSegmentsForDay(window).find(
+        (s) => cursorMinute >= s.from && cursorMinute < s.to
+      );
+      const segmentEnd = new Date(
+        localDayStart + segment.to * 60 * 1000 - offsetMinutes * 60 * 1000
+      );
       const next = segmentEnd < to ? segmentEnd : to;
       const share = (next.getTime() - cursor.getTime()) / durationMs;
       const segmentKwh = kwh * share;
-      const eur = segmentKwh * window.priceCtPerKwh / 100;
+      const eur = (segmentKwh * window.priceCtPerKwh) / 100;
       const current = breakdown.get(window.windowId) || {
         windowId: window.windowId,
         kwh: 0,
@@ -262,7 +284,10 @@ function calculateWindowBreakdown(meteringInput, windows) {
     findings,
     totalKwh: roundKwh(totalKwh),
     variableFeeEur: roundMoney(variableFeeEur),
-    period: periodFrom && periodTo ? { from: periodFrom.toISOString(), to: periodTo.toISOString() } : null,
+    period:
+      periodFrom && periodTo
+        ? { from: periodFrom.toISOString(), to: periodTo.toISOString() }
+        : null,
     windowBreakdown: Array.from(breakdown.values()).map((entry) => ({
       ...entry,
       kwh: roundKwh(entry.kwh),
@@ -276,7 +301,7 @@ function prorateBasePrice(basePriceEurPerYear, period) {
   const from = new Date(period.from);
   const to = new Date(period.to);
   const days = Math.max(0, (to.getTime() - from.getTime()) / (24 * 60 * 60 * 1000));
-  return roundMoney(Number(basePriceEurPerYear) * days / 365);
+  return roundMoney((Number(basePriceEurPerYear) * days) / 365);
 }
 
 function buildEvidence(calculation) {
@@ -369,7 +394,9 @@ module.exports = {
         }
 
         const hasError = findings.some((finding) => finding.severity === 'error');
-        const basePriceEur = hasError ? 0 : prorateBasePrice(tariffSheet.basePriceEurPerYear, calculation.period);
+        const basePriceEur = hasError
+          ? 0
+          : prorateBasePrice(tariffSheet.basePriceEurPerYear, calculation.period);
         const calculationId = `${CALCULATION_PREFIX}${crypto.randomUUID()}`;
         const evidenceId = `evidence:${calculationId}`;
         const calculatedAt = nowIso();
@@ -395,7 +422,10 @@ module.exports = {
           validationFindings: findings,
           status: hasError ? 'invalid' : 'calculated',
           sourceActions: Array.isArray(sourceActions) ? sourceActions : [],
-          inputHash: crypto.createHash('sha256').update(JSON.stringify({ tariffSheet, meteringInput, section14aConfig })).digest('hex'),
+          inputHash: crypto
+            .createHash('sha256')
+            .update(JSON.stringify({ tariffSheet, meteringInput, section14aConfig }))
+            .digest('hex'),
           calculationVersion: CALCULATION_VERSION,
           calculatedAt,
         };
@@ -411,7 +441,7 @@ module.exports = {
       openapi: {
         summary: 'Get a variable grid-fee calculation',
         tags: [OPENAPI_TAG],
-      
+
         parameters: [
           { in: 'path', name: 'calculationId', required: true, schema: { type: 'string' } },
         ],
@@ -439,7 +469,7 @@ module.exports = {
       openapi: {
         summary: 'Get dossier-safe evidence for a variable grid-fee calculation',
         tags: [OPENAPI_TAG],
-      
+
         parameters: [
           { in: 'path', name: 'calculationId', required: true, schema: { type: 'string' } },
         ],
@@ -449,14 +479,19 @@ module.exports = {
         try {
           const calculation = await this.db.get(ctx.params.calculationId);
           if (calculation.tenantId !== tenantId) {
-            throw new MoleculerClientError('Calculation evidence not found', 404, 'EVIDENCE_NOT_FOUND');
+            throw new MoleculerClientError(
+              'Calculation evidence not found',
+              404,
+              'EVIDENCE_NOT_FOUND'
+            );
           }
           return buildEvidence(calculation);
         } catch (err) {
           if (err.status === 404) {
             return {
               found: false,
-              message: 'No Re4DE variable grid-fee calculation evidence is available for this tenant yet',
+              message:
+                'No Re4DE variable grid-fee calculation evidence is available for this tenant yet',
             };
           }
           throw err;

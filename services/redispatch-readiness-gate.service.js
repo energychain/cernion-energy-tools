@@ -121,7 +121,12 @@ module.exports = {
           optional: true,
           default: 'missing',
         },
-        productionProofConfirmed: { type: 'boolean', optional: true, default: false, convert: true },
+        productionProofConfirmed: {
+          type: 'boolean',
+          optional: true,
+          default: false,
+          convert: true,
+        },
         templateVersion: { type: 'string', optional: true },
         requiredTemplateVersion: { type: 'string', optional: true },
         openQuestions: { type: 'array', optional: true, default: [] },
@@ -269,7 +274,8 @@ module.exports = {
               : status === 'ready_with_warnings'
                 ? RRG_GATE_READY_WITH_WARNINGS
                 : RRG_GATE_READY,
-          severity: status === 'blocked' ? 'error' : status === 'ready_with_warnings' ? 'warning' : 'info',
+          severity:
+            status === 'blocked' ? 'error' : status === 'ready_with_warnings' ? 'warning' : 'info',
           message:
             status === 'blocked'
               ? 'Redispatch readiness gate blocked'
@@ -316,7 +322,7 @@ module.exports = {
       openapi: {
         summary: 'List Redispatch readiness gate runs',
         tags: [OPENAPI_TAG],
-      
+
         parameters: [
           { in: 'query', name: 'processId', schema: { type: 'string' } },
           { in: 'query', name: 'limit', schema: { type: 'number' } },
@@ -328,7 +334,9 @@ module.exports = {
         if (ctx.params.processId) selector.processId = ctx.params.processId;
 
         const result = await this.db.find({ selector, limit: ctx.params.limit });
-        const runs = result.docs.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+        const runs = result.docs.sort((a, b) =>
+          String(b.createdAt).localeCompare(String(a.createdAt))
+        );
         return { runs };
       },
     },
@@ -339,10 +347,8 @@ module.exports = {
       openapi: {
         summary: 'Get Redispatch readiness gate run',
         tags: [OPENAPI_TAG],
-      
-        parameters: [
-          { in: 'path', name: 'id', required: true, schema: { type: 'string' } },
-        ],
+
+        parameters: [{ in: 'path', name: 'id', required: true, schema: { type: 'string' } }],
       },
       async handler(ctx) {
         const tenantId = getTenantId(ctx);
@@ -369,10 +375,8 @@ module.exports = {
       openapi: {
         summary: 'Get latest Redispatch readiness status',
         tags: [OPENAPI_TAG],
-      
-        parameters: [
-          { in: 'query', name: 'processId', schema: { type: 'string' } },
-        ],
+
+        parameters: [{ in: 'query', name: 'processId', schema: { type: 'string' } }],
       },
       async handler(ctx) {
         const tenantId = getTenantId(ctx);
@@ -380,7 +384,9 @@ module.exports = {
         if (ctx.params.processId) selector.processId = ctx.params.processId;
 
         const result = await this.db.find({ selector, limit: 100 });
-        const latest = result.docs.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))[0];
+        const latest = result.docs.sort((a, b) =>
+          String(b.createdAt).localeCompare(String(a.createdAt))
+        )[0];
 
         if (!latest) {
           return {

@@ -73,13 +73,16 @@ function buildPositiveFollowUps(missingDataPoints) {
     historical_bottleneck_evidence: 'adds bottleneck-history rationale for the order value',
     nkp_distribution: 'adds network-coupling-point allocation and concentration risk',
     tariff_impact: 'adds tariff/fee consequence statement',
-    pressure_maintenance_flexibility: 'adds technical flexibility and maintenance-window constraint view',
+    pressure_maintenance_flexibility:
+      'adds technical flexibility and maintenance-window constraint view',
     decision_resolution: 'adds documented order-decision forum/status',
-    source_action_references: 'adds traceability to reused gas, forecast, grid, finance and evidence capabilities',
+    source_action_references:
+      'adds traceability to reused gas, forecast, grid, finance and evidence capabilities',
   };
   return missingDataPoints.map((missingDataPoint) => ({
     missingDataPoint,
-    enablesDossierAddition: mapping[missingDataPoint] || 'adds gas-capacity revision evidence to the dossier',
+    enablesDossierAddition:
+      mapping[missingDataPoint] || 'adds gas-capacity revision evidence to the dossier',
   }));
 }
 
@@ -203,12 +206,18 @@ module.exports = {
 
         if (!toolValue || toolValue <= 0) missingDataPoints.push('tool_value');
         if (!hasObjectEvidence(p.coldYearScenario)) missingDataPoints.push('cold_year_scenario');
-        if (!hasObjectEvidence(p.industrialReboundScenario)) missingDataPoints.push('industrial_rebound_scenario');
-        if (asArray(p.reversibleRlmLoads).length === 0) missingDataPoints.push('reversible_rlm_loads');
-        if (asArray(p.historicalBottleneckEvidence).length === 0) missingDataPoints.push('historical_bottleneck_evidence');
+        if (!hasObjectEvidence(p.industrialReboundScenario))
+          missingDataPoints.push('industrial_rebound_scenario');
+        if (asArray(p.reversibleRlmLoads).length === 0)
+          missingDataPoints.push('reversible_rlm_loads');
+        if (asArray(p.historicalBottleneckEvidence).length === 0)
+          missingDataPoints.push('historical_bottleneck_evidence');
         if (asArray(p.nkpDistribution).length === 0) missingDataPoints.push('nkp_distribution');
         if (!hasObjectEvidence(p.tariffImpact)) missingDataPoints.push('tariff_impact');
-        if (!hasObjectEvidence(p.pressureMaintenanceFlexibility) && asArray(p.maintenanceWindows).length === 0) {
+        if (
+          !hasObjectEvidence(p.pressureMaintenanceFlexibility) &&
+          asArray(p.maintenanceWindows).length === 0
+        ) {
           missingDataPoints.push('pressure_maintenance_flexibility');
         }
         if (!normalizeString(p.decisionForum) || !normalizeString(p.decisionStatus)) {
@@ -217,31 +226,73 @@ module.exports = {
         if (sourceActions.length === 0) missingDataPoints.push('source_action_references');
 
         if (!toolValue || toolValue <= 0) {
-          findings.push({ finding: GCORG_TOOL_VALUE_MISSING, severity: 'error', message: 'Gas-capacity tool value is missing or invalid' });
+          findings.push({
+            finding: GCORG_TOOL_VALUE_MISSING,
+            severity: 'error',
+            message: 'Gas-capacity tool value is missing or invalid',
+          });
         }
         if (!hasObjectEvidence(p.coldYearScenario)) {
-          findings.push({ finding: GCORG_COLD_YEAR_SCENARIO_MISSING, severity: 'error', message: 'Cold-year scenario evidence is missing' });
+          findings.push({
+            finding: GCORG_COLD_YEAR_SCENARIO_MISSING,
+            severity: 'error',
+            message: 'Cold-year scenario evidence is missing',
+          });
         }
-        if (!hasObjectEvidence(p.industrialReboundScenario) && asArray(p.reversibleRlmLoads).length === 0) {
-          findings.push({ finding: GCORG_RLM_REBOUND_MISSING, severity: 'warning', message: 'Industrial rebound or reversible RLM load evidence is missing' });
+        if (
+          !hasObjectEvidence(p.industrialReboundScenario) &&
+          asArray(p.reversibleRlmLoads).length === 0
+        ) {
+          findings.push({
+            finding: GCORG_RLM_REBOUND_MISSING,
+            severity: 'warning',
+            message: 'Industrial rebound or reversible RLM load evidence is missing',
+          });
         }
         if (asArray(p.historicalBottleneckEvidence).length === 0) {
-          findings.push({ finding: GCORG_BOTTLENECK_EVIDENCE_MISSING, severity: 'warning', message: 'Historical bottleneck evidence is missing' });
+          findings.push({
+            finding: GCORG_BOTTLENECK_EVIDENCE_MISSING,
+            severity: 'warning',
+            message: 'Historical bottleneck evidence is missing',
+          });
         }
         if (asArray(p.nkpDistribution).length === 0) {
-          findings.push({ finding: GCORG_NKP_DISTRIBUTION_MISSING, severity: 'error', message: 'Network-coupling-point distribution is missing' });
+          findings.push({
+            finding: GCORG_NKP_DISTRIBUTION_MISSING,
+            severity: 'error',
+            message: 'Network-coupling-point distribution is missing',
+          });
         }
         if (!hasObjectEvidence(p.tariffImpact)) {
-          findings.push({ finding: GCORG_TARIFF_IMPACT_MISSING, severity: 'warning', message: 'Tariff impact evidence is missing' });
+          findings.push({
+            finding: GCORG_TARIFF_IMPACT_MISSING,
+            severity: 'warning',
+            message: 'Tariff impact evidence is missing',
+          });
         }
-        if (!hasObjectEvidence(p.pressureMaintenanceFlexibility) && asArray(p.maintenanceWindows).length === 0) {
-          findings.push({ finding: GCORG_FLEXIBILITY_EVIDENCE_MISSING, severity: 'warning', message: 'Pressure or maintenance flexibility evidence is missing' });
+        if (
+          !hasObjectEvidence(p.pressureMaintenanceFlexibility) &&
+          asArray(p.maintenanceWindows).length === 0
+        ) {
+          findings.push({
+            finding: GCORG_FLEXIBILITY_EVIDENCE_MISSING,
+            severity: 'warning',
+            message: 'Pressure or maintenance flexibility evidence is missing',
+          });
         }
         if (!normalizeString(p.decisionForum) || !normalizeString(p.decisionStatus)) {
-          findings.push({ finding: GCORG_DECISION_RESOLUTION_MISSING, severity: 'error', message: 'Documented gas-capacity order decision forum or status is missing' });
+          findings.push({
+            finding: GCORG_DECISION_RESOLUTION_MISSING,
+            severity: 'error',
+            message: 'Documented gas-capacity order decision forum or status is missing',
+          });
         }
         if (sourceActions.length === 0) {
-          findings.push({ finding: GCORG_SOURCE_ACTIONS_MISSING, severity: 'warning', message: 'Gas-capacity source action references are missing' });
+          findings.push({
+            finding: GCORG_SOURCE_ACTIONS_MISSING,
+            severity: 'warning',
+            message: 'Gas-capacity source action references are missing',
+          });
         }
 
         const hasError = findings.some((finding) => finding.severity === 'error');
@@ -250,7 +301,9 @@ module.exports = {
         findings.push({
           finding: hasError ? GCORG_GATE_BLOCKED : GCORG_GATE_READY,
           severity: hasError ? 'error' : 'info',
-          message: hasError ? 'Gas-capacity order revision gate is blocked' : 'Gas-capacity order revision gate is ready',
+          message: hasError
+            ? 'Gas-capacity order revision gate is blocked'
+            : 'Gas-capacity order revision gate is ready',
         });
 
         const uniqueMissingDataPoints = [...new Set(missingDataPoints)];
@@ -280,7 +333,11 @@ module.exports = {
           decisionStatus: normalizeString(p.decisionStatus),
           evidenceStatus,
           readinessScore,
-          recommendedStatus: hasError ? 'needs_evidence' : hasWarning ? 'review_with_warnings' : 'revision_evidence_ready',
+          recommendedStatus: hasError
+            ? 'needs_evidence'
+            : hasWarning
+              ? 'review_with_warnings'
+              : 'revision_evidence_ready',
           validationFindings: findings,
           blockingFindings: findings.filter((finding) => finding.severity === 'error'),
           missingDataPoints: uniqueMissingDataPoints,
@@ -316,7 +373,7 @@ module.exports = {
       openapi: {
         summary: 'List gas-capacity order revisions',
         tags: [OPENAPI_TAG],
-      
+
         parameters: [
           { in: 'query', name: 'orderYear', schema: { type: 'number' } },
           { in: 'query', name: 'gridOperatorId', schema: { type: 'string' } },
@@ -329,7 +386,11 @@ module.exports = {
         if (ctx.params.orderYear) selector.orderYear = ctx.params.orderYear;
         if (ctx.params.gridOperatorId) selector.gridOperatorId = ctx.params.gridOperatorId;
         const result = await this.db.find({ selector, limit: ctx.params.limit });
-        return { revisions: result.docs.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt))) };
+        return {
+          revisions: result.docs.sort((a, b) =>
+            String(b.createdAt).localeCompare(String(a.createdAt))
+          ),
+        };
       },
     },
 
@@ -339,7 +400,7 @@ module.exports = {
       openapi: {
         summary: 'Get a gas-capacity order revision',
         tags: [OPENAPI_TAG],
-      
+
         parameters: [
           { in: 'path', name: 'revisionId', required: true, schema: { type: 'string' } },
         ],
@@ -349,12 +410,20 @@ module.exports = {
         try {
           const model = await this.db.get(ctx.params.revisionId);
           if (model.tenantId !== tenantId) {
-            throw new MoleculerClientError('Gas-capacity revision not found', 404, 'GAS_CAPACITY_REVISION_NOT_FOUND');
+            throw new MoleculerClientError(
+              'Gas-capacity revision not found',
+              404,
+              'GAS_CAPACITY_REVISION_NOT_FOUND'
+            );
           }
           return model;
         } catch (err) {
           if (err.status === 404) {
-            throw new MoleculerClientError('Gas-capacity revision not found', 404, 'GAS_CAPACITY_REVISION_NOT_FOUND');
+            throw new MoleculerClientError(
+              'Gas-capacity revision not found',
+              404,
+              'GAS_CAPACITY_REVISION_NOT_FOUND'
+            );
           }
           throw err;
         }
@@ -371,7 +440,7 @@ module.exports = {
       openapi: {
         summary: 'Get dossier-safe gas-capacity order revision status',
         tags: [OPENAPI_TAG],
-      
+
         parameters: [
           { in: 'query', name: 'revisionId', schema: { type: 'string' } },
           { in: 'query', name: 'orderYear', schema: { type: 'number' } },
@@ -385,16 +454,26 @@ module.exports = {
           if (ctx.params.revisionId) {
             model = await this.db.get(ctx.params.revisionId);
             if (model.tenantId !== tenantId) {
-              throw new MoleculerClientError('Gas-capacity revision status not found', 404, 'GAS_CAPACITY_REVISION_STATUS_NOT_FOUND');
+              throw new MoleculerClientError(
+                'Gas-capacity revision status not found',
+                404,
+                'GAS_CAPACITY_REVISION_STATUS_NOT_FOUND'
+              );
             }
           } else {
             const selector = { tenantId, docType: 'gas-capacity-order-revision-gate' };
             if (ctx.params.orderYear) selector.orderYear = ctx.params.orderYear;
             if (ctx.params.gridOperatorId) selector.gridOperatorId = ctx.params.gridOperatorId;
             const result = await this.db.find({ selector, limit: 50 });
-            model = result.docs.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))[0];
+            model = result.docs.sort((a, b) =>
+              String(b.createdAt).localeCompare(String(a.createdAt))
+            )[0];
             if (!model) {
-              throw new MoleculerClientError('Gas-capacity revision status not found', 404, 'GAS_CAPACITY_REVISION_STATUS_NOT_FOUND');
+              throw new MoleculerClientError(
+                'Gas-capacity revision status not found',
+                404,
+                'GAS_CAPACITY_REVISION_STATUS_NOT_FOUND'
+              );
             }
           }
           return buildStatusFromModel(model);

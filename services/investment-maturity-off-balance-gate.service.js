@@ -77,7 +77,8 @@ function buildPositiveFollowUps(missingDataPoints) {
     asset_risk_reference: 'adds asset-risk linkage to the investment decision',
     iso_risk_reference: 'adds ISO/risk-control traceability',
     decision_forum: 'adds responsible governance and approval context',
-    source_action_references: 'adds traceability to reused finance, investment, VDMI and presentation actions',
+    source_action_references:
+      'adds traceability to reused finance, investment, VDMI and presentation actions',
   };
   return missingDataPoints.map((missingDataPoint) => ({
     missingDataPoint,
@@ -154,7 +155,9 @@ module.exports = {
     await this.db.createIndex({ index: { fields: ['investmentCaseId'] } });
     await this.db.createIndex({ index: { fields: ['evidenceStatus'] } });
     await this.db.createIndex({ index: { fields: ['createdAt'] } });
-    this.logger.info(`Investment Maturity Off-Balance Gate DB initialized at ${this.settings.dbPath}`);
+    this.logger.info(
+      `Investment Maturity Off-Balance Gate DB initialized at ${this.settings.dbPath}`
+    );
   },
 
   async stopped() {
@@ -193,8 +196,12 @@ module.exports = {
         const maturityLevel = normalizeString(p.maturityLevel);
         const processQualityScore = normalizeScore(p.processQualityScore);
         const sourceActions = asArray(p.sourceActions);
-        const observedEvidence = asArray(p.evidence).filter((entry) => entry?.kind !== 'hypothesis');
-        const hypothesisEvidence = asArray(p.evidence).filter((entry) => entry?.kind === 'hypothesis');
+        const observedEvidence = asArray(p.evidence).filter(
+          (entry) => entry?.kind !== 'hypothesis'
+        );
+        const hypothesisEvidence = asArray(p.evidence).filter(
+          (entry) => entry?.kind === 'hypothesis'
+        );
         const additionalFinancingCostEur = normalizeNumber(p.additionalFinancingCostEur);
         const regulatoryReturnHypothesis = normalizeObject(p.regulatoryReturnHypothesis);
         const assetRiskReference = normalizeObject(p.assetRiskReference);
@@ -207,8 +214,10 @@ module.exports = {
         if (Object.keys(regulatoryReturnHypothesis).length === 0) {
           missingDataPoints.push('regulatory_return_hypothesis');
         }
-        if (Object.keys(assetRiskReference).length === 0) missingDataPoints.push('asset_risk_reference');
-        if (Object.keys(isoRiskReference).length === 0) missingDataPoints.push('iso_risk_reference');
+        if (Object.keys(assetRiskReference).length === 0)
+          missingDataPoints.push('asset_risk_reference');
+        if (Object.keys(isoRiskReference).length === 0)
+          missingDataPoints.push('iso_risk_reference');
         if (Object.keys(decisionForum).length === 0) missingDataPoints.push('decision_forum');
         if (sourceActions.length === 0) missingDataPoints.push('source_action_references');
 
@@ -335,7 +344,7 @@ module.exports = {
       openapi: {
         summary: 'List investment maturity off-balance gates',
         tags: [OPENAPI_TAG],
-      
+
         parameters: [
           { in: 'query', name: 'investmentCaseId', schema: { type: 'string' } },
           { in: 'query', name: 'limit', schema: { type: 'number' } },
@@ -358,10 +367,8 @@ module.exports = {
       openapi: {
         summary: 'Get an investment maturity off-balance gate',
         tags: [OPENAPI_TAG],
-      
-        parameters: [
-          { in: 'path', name: 'gateId', required: true, schema: { type: 'string' } },
-        ],
+
+        parameters: [{ in: 'path', name: 'gateId', required: true, schema: { type: 'string' } }],
       },
       async handler(ctx) {
         const tenantId = getTenantId(ctx);
@@ -389,7 +396,7 @@ module.exports = {
       openapi: {
         summary: 'Get dossier-safe investment maturity off-balance status',
         tags: [OPENAPI_TAG],
-      
+
         parameters: [
           { in: 'query', name: 'gateId', schema: { type: 'string' } },
           { in: 'query', name: 'investmentCaseId', schema: { type: 'string' } },
@@ -403,7 +410,11 @@ module.exports = {
           if (gateId) {
             gate = await this.db.get(gateId);
             if (gate.tenantId !== tenantId) {
-              throw new MoleculerClientError('Gate status not found', 404, 'IMOB_GATE_STATUS_NOT_FOUND');
+              throw new MoleculerClientError(
+                'Gate status not found',
+                404,
+                'IMOB_GATE_STATUS_NOT_FOUND'
+              );
             }
           } else {
             const result = await this.db.find({
@@ -414,8 +425,15 @@ module.exports = {
               },
               limit: 50,
             });
-            gate = result.docs.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))[0];
-            if (!gate) throw new MoleculerClientError('Gate status not found', 404, 'IMOB_GATE_STATUS_NOT_FOUND');
+            gate = result.docs.sort((a, b) =>
+              String(b.createdAt).localeCompare(String(a.createdAt))
+            )[0];
+            if (!gate)
+              throw new MoleculerClientError(
+                'Gate status not found',
+                404,
+                'IMOB_GATE_STATUS_NOT_FOUND'
+              );
           }
           return buildStatusFromGate(gate);
         } catch (err) {
@@ -424,7 +442,8 @@ module.exports = {
               found: false,
               investmentCaseId: investmentCaseId || null,
               gateId: gateId || null,
-              message: 'No investment maturity off-balance gate evidence is available for this tenant yet',
+              message:
+                'No investment maturity off-balance gate evidence is available for this tenant yet',
             };
           }
           throw err;
