@@ -424,7 +424,11 @@ describe('personal-agent presentation integration (Prompt 6)', () => {
 
     const result = await broker.call(
       'personal-agent.chat',
-      { message: 'Zeige #Triwo Step 3 als Human View', executionMode: 'auto', chatMode: 'execution' },
+      {
+        message: 'Zeige #Triwo Step 3 als Human View',
+        executionMode: 'auto',
+        chatMode: 'execution',
+      },
       { meta: { tenantId: 'tenant-pa-pres-triwo-01', authUser: { userId: 'user-1' } } }
     );
 
@@ -489,7 +493,11 @@ describe('personal-agent presentation integration (Prompt 6)', () => {
 
     const result = await broker.call(
       'personal-agent.chat',
-      { message: 'Erstelle Due-Diligence View für Kreditkomitee', executionMode: 'auto', chatMode: 'execution' },
+      {
+        message: 'Erstelle Due-Diligence View für Kreditkomitee',
+        executionMode: 'auto',
+        chatMode: 'execution',
+      },
       { meta: { tenantId: 'tenant-pa-pres-bank-dd-01', authUser: { userId: 'user-1' } } }
     );
 

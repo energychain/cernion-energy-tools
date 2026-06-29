@@ -46,7 +46,14 @@ describe('VDMI satellite consistency audit (#290/#297)', () => {
   test('keeps the core VDMI action surface explicit for missing legacy task actions', () => {
     const actionNames = extractVdmiActionNames();
 
-    for (const actionName of ['get', 'update', 'evidence', 'negotiationTrace', 'dossier', 'findings']) {
+    for (const actionName of [
+      'get',
+      'update',
+      'evidence',
+      'negotiationTrace',
+      'dossier',
+      'findings',
+    ]) {
       expect(actionNames.has(actionName)).toBe(true);
     }
 

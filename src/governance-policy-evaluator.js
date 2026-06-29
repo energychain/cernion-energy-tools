@@ -96,7 +96,9 @@ function collectEvidenceRequirementGaps(row, context) {
   const provided = new Set(
     providedEvidence
       .map((item) =>
-        typeof item === 'string' ? item : item?.id || item?.name || item?.label || item?.type || null
+        typeof item === 'string'
+          ? item
+          : item?.id || item?.name || item?.label || item?.type || null
       )
       .filter(Boolean)
   );
@@ -104,7 +106,11 @@ function collectEvidenceRequirementGaps(row, context) {
   return requirements
     .map((requirement) => {
       if (typeof requirement === 'string') {
-        return { name: requirement, label: requirement, source: 'controlCase.evidenceRequirements' };
+        return {
+          name: requirement,
+          label: requirement,
+          source: 'controlCase.evidenceRequirements',
+        };
       }
       return {
         name: requirement.id || requirement.name || requirement.label,
@@ -151,7 +157,9 @@ function evaluateCapabilityPolicy({ capability, action, context = {} } = {}) {
 
   const gaps = collectRequiredInputGaps(resolvedCapability, context);
   const clarificationMatch = findClarificationPolicyMatch({
-    message: [context.message, context.question, context.task, requestedAction].filter(Boolean).join(' '),
+    message: [context.message, context.question, context.task, requestedAction]
+      .filter(Boolean)
+      .join(' '),
     knownContext: {
       ...context,
       intent: resolvedCapability.intent,
@@ -280,7 +288,12 @@ function evaluateControlCasePolicy({ controlCase, context = {} } = {}) {
 
 function evaluateGovernancePolicy(input = {}) {
   const context = isPlainObject(input.context) ? input.context : {};
-  if (input.controlCase || context.controlCase || context.evidenceRequirements || context.decisionPolicy) {
+  if (
+    input.controlCase ||
+    context.controlCase ||
+    context.evidenceRequirements ||
+    context.decisionPolicy
+  ) {
     return evaluateControlCasePolicy({ controlCase: input.controlCase, context });
   }
   return evaluateCapabilityPolicy({

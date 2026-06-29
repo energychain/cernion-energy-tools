@@ -629,7 +629,10 @@ const COOKBOOK_RECIPES = [
     ],
     expectedResult:
       'Read-only management asset cockpit card that separates hard evidence from assumptions and lists the missing data needed before committee use.',
-    prerequisites: ['Gas transformation work-package inputs or explicit evidence gaps', 'Read-only API token (optional)'],
+    prerequisites: [
+      'Gas transformation work-package inputs or explicit evidence gaps',
+      'Read-only API token (optional)',
+    ],
   },
   {
     id: 'transformation-financing-scenario-view',
@@ -1733,8 +1736,7 @@ const COOKBOOK_RECIPES = [
           ruleType: null,
           referenceDate: null,
         },
-        description:
-          'Resolve the active regulatory rule set or mark missing rule-window evidence.',
+        description: 'Resolve the active regulatory rule set or mark missing rule-window evidence.',
         expectedOutput: 'Active rule-set reference, legal basis and effective window.',
       },
       {

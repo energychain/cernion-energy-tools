@@ -762,9 +762,7 @@ describe('API Gateway Service', () => {
       expect(aliases['POST /agent-sidecar/tools/:name/call']).toBe('agent-sidecar.callTool');
       expect(aliases['GET /agent-sidecar/descriptor']).toBe('agent-sidecar.descriptor');
       expect(aliases['GET /agent-sidecar/mcp/tools']).toBe('agent-sidecar.mcpListTools');
-      expect(aliases['POST /agent-sidecar/mcp/tools/:name/call']).toBe(
-        'agent-sidecar.mcpCallTool'
-      );
+      expect(aliases['POST /agent-sidecar/mcp/tools/:name/call']).toBe('agent-sidecar.mcpCallTool');
       expect(aliases['GET /dashboard/observability-mini']).toBe('dashboard-api.observabilityMini');
       expect(aliases['GET /observability/logs']).toBe('observability.logs');
       expect(aliases['GET /observability/metrics']).toBe('observability.metrics');

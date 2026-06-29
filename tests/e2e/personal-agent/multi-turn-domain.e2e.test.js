@@ -1,5 +1,3 @@
-/* eslint-disable no-console */
-
 const { spawnSync } = require('child_process');
 
 const RUN_E2E = process.env.RUN_PERSONAL_AGENT_E2E === 'true';

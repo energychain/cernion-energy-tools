@@ -182,9 +182,7 @@ describe('askCernionAgent evidence bundle', () => {
       'Netzanschlussanfragen in Wiesloch muessen anhand dokumentierter Betreiber- und Prozess-Evidenz beantwortet werden.'
     );
     expect(result.groundingAnswer).toContain('RETRIEVAL-HINWEISE');
-    expect(result.groundingAnswer).toContain(
-      'Netzanschluss Wiesloch Betreiber Prozess Evidence'
-    );
+    expect(result.groundingAnswer).toContain('Netzanschluss Wiesloch Betreiber Prozess Evidence');
     expect(result.groundingAnswer).toContain('Evidence-Snippets als fachliche Grundlage');
     expect(result.groundingAnswer).toContain('Nicht aus Modellwissen auffuellen');
     expect(result.evidenceBySource.entities.status).toBe('available');
@@ -275,9 +273,7 @@ describe('askCernionAgent evidence bundle', () => {
     expect(result.groundingAnswer).toContain(
       'Treffer vorhanden; sie sollten als indirekter Kontext genutzt'
     );
-    expect(result.groundingAnswer).toContain(
-      'verwertbare Snippet-Inhalte trotzdem zusammenfassen'
-    );
+    expect(result.groundingAnswer).toContain('verwertbare Snippet-Inhalte trotzdem zusammenfassen');
     expect(result.groundingAnswer).toContain(
       'Welche konkrete Fundstelle, Rechtsquelle, Domäne oder Prozesssicht soll bei Bedarf vertieft werden?'
     );
@@ -526,7 +522,9 @@ describe('askCernionAgent evidence bundle', () => {
       'Copilot soll klar sagen, dass aus dem Cernion-Kontext keine belastbare Machbarkeits- oder Kapazitätsaussage ableitbar ist, und nur die fehlenden Prüfpunkte nennen.'
     );
     expect(result.groundingAnswer).toContain('Planner-Schnellcheck unvollständig');
-    expect(result.groundingAnswer).toContain('keine belastbare Machbarkeits- oder Kapazitätsaussage');
+    expect(result.groundingAnswer).toContain(
+      'keine belastbare Machbarkeits- oder Kapazitätsaussage'
+    );
     expect(result.groundingAnswer).not.toContain('Request is timed out');
     expect(result.groundingAnswer).not.toContain('nicht verfügbar: Request');
   });
@@ -568,8 +566,7 @@ describe('askCernionAgent evidence bundle', () => {
                   score: 0.518,
                   referenceText_L0:
                     'UTILMD Anwendungshandbuch Strom Seite 470 von 1397 EDIFACT Struktur Beschreibung Änderung Rückmeldung.',
-                  vectorText:
-                    'Fachbegriffe: SG10, CCI 00249, CCI 7059, ZW5, ZW6.',
+                  vectorText: 'Fachbegriffe: SG10, CCI 00249, CCI 7059, ZW5, ZW6.',
                   metadata: { docType: 'Festlegung' },
                 },
                 {
@@ -612,7 +609,9 @@ describe('askCernionAgent evidence bundle', () => {
     expect(result.confidence).toBe('low');
     expect(result.evidenceBySource.knowledge.status).toBe('missing');
     expect(result.groundingAnswer).toContain('Cernion Analysis Planner');
-    expect(result.groundingAnswer).toContain('keine belastbare Machbarkeits- oder Kapazitätsaussage');
+    expect(result.groundingAnswer).toContain(
+      'keine belastbare Machbarkeits- oder Kapazitätsaussage'
+    );
     expect(result.groundingAnswer).toContain(
       'Für diese Standort-/Leistungsfrage liegt keine belastbare Standort-, VNB- oder Netzkapazitäts-Evidence vor.'
     );
@@ -722,7 +721,9 @@ describe('askCernionAgent evidence bundle', () => {
         },
       },
       call: jest.fn(async (action) => {
-        throw new Error(`unexpected action ${action} — evidence planner must not run when a Blueprint plan compiles`);
+        throw new Error(
+          `unexpected action ${action} — evidence planner must not run when a Blueprint plan compiles`
+        );
       }),
     };
 

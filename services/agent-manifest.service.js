@@ -26,7 +26,7 @@ function loadOperations() {
   let spec;
   try {
     spec = JSON.parse(fs.readFileSync(OPENAPI_EXPORT_PATH, 'utf8'));
-  } catch (err) {
+  } catch {
     return [];
   }
 

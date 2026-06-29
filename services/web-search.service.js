@@ -66,7 +66,11 @@ module.exports = {
               examples: {
                 utilityNews: {
                   summary: 'News about a utility operator',
-                  value: { query: 'STROMDAO Netze GmbH Netzausbau 2026', language: 'de', numResults: 5 },
+                  value: {
+                    query: 'STROMDAO Netze GmbH Netzausbau 2026',
+                    language: 'de',
+                    numResults: 5,
+                  },
                 },
                 ewkBenchmark: {
                   summary: 'EWK benchmark context',

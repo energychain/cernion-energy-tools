@@ -56,7 +56,13 @@ describe('stadtwerk-mauer-e2e-process-demo service', () => {
       expect.arrayContaining(['Elektriker', 'Netzanschluss', 'Kundenkommunikation', 'VDMI Dossier'])
     );
     expect(result.trace.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
-      expect.arrayContaining(['napReference', 'maloId', 'meloId', 'customerConsentStatus', 'meterId'])
+      expect.arrayContaining([
+        'napReference',
+        'maloId',
+        'meloId',
+        'customerConsentStatus',
+        'meterId',
+      ])
     );
     expect(result.sourceActions.notCalled).toEqual(
       expect.arrayContaining([

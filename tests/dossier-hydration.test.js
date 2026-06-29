@@ -141,7 +141,9 @@ describe('dossier-hydration-registry (unit)', () => {
 
     it('co2Intensity extracts city-only follow-up location facts', () => {
       const rule = getRule('energy-market.co2Intensity');
-      const facts = [{ factType: 'city', value: 'Heidelberg', projectScope: { location: 'Heidelberg' } }];
+      const facts = [
+        { factType: 'city', value: 'Heidelberg', projectScope: { location: 'Heidelberg' } },
+      ];
       const params = rule.extractParams(facts, 'Ich wohne in Heidelberg');
       expect(params).not.toBeNull();
       expect(params.location).toBe('Heidelberg');
@@ -202,7 +204,9 @@ describe('dossier-hydration-registry (unit)', () => {
 
     it('residual-load.netResidualLoad uses location fact if no city in prompt', () => {
       const rule = getRule('residual-load.netResidualLoad');
-      const facts = [{ factType: 'location', value: 'Heidelberg', projectScope: { city: 'Heidelberg' } }];
+      const facts = [
+        { factType: 'location', value: 'Heidelberg', projectScope: { city: 'Heidelberg' } },
+      ];
       const params = rule.extractParams(facts, 'Residuallast prüfen');
       expect(params).not.toBeNull();
       expect(params.gemeinde).toBe('Heidelberg');
@@ -367,7 +371,9 @@ describe('dossier-hydration-registry (unit)', () => {
 
       expect(formatted).toContain('Selected Renderer: debug_summary');
       expect(formatted).toContain('Allowed Renderer: debug_summary');
-      expect(formatted).toContain('Blocked Reason: requested_renderer_not_grounded:vdmi_matrix_table');
+      expect(formatted).toContain(
+        'Blocked Reason: requested_renderer_not_grounded:vdmi_matrix_table'
+      );
       expect(formatted).toContain('Source Action: mock.kpi');
       expect(formatted).toContain('Evidence Gap: missing_vdmi_roles');
     });
@@ -395,8 +401,7 @@ describe('dossier-hydration-registry (unit)', () => {
         missingEvidence: [{ missingDataPoint: 'utilmd_masterdata_path' }],
         positiveFollowUps: [
           {
-            enablesDossierAddition:
-              'replace portal hints with official master-data provenance',
+            enablesDossierAddition: 'replace portal hints with official master-data provenance',
           },
         ],
         timestamp: '2026-06-19T21:30:00.000Z',
@@ -632,7 +637,10 @@ describe('dossier-hydration-registry (unit)', () => {
         nextGate: 'management-review',
         missingEvidence: [{ missingDataPoint: 'legal_question_marker' }],
         positiveFollowUps: [
-          { enablesDossierAddition: 'route the open legal question without automated legal qualification' },
+          {
+            enablesDossierAddition:
+              'route the open legal question without automated legal qualification',
+          },
         ],
         sourceActions: {
           notCalled: ['grid-connection.reserveCapacity'],
@@ -683,9 +691,7 @@ describe('dossier-hydration-registry (unit)', () => {
         possibleMisinterpretation: 'Benchmark signal is not a final finding.',
         checkFields: Array.from({ length: 10 }, (_, index) => ({ id: `check-${index + 1}` })),
         missingEvidence: [{ missingDataPoint: 'peer_deviation' }],
-        positiveFollowUps: [
-          { enablesDossierAddition: 'add the benchmark or peer deviation' },
-        ],
+        positiveFollowUps: [{ enablesDossierAddition: 'add the benchmark or peer deviation' }],
         sourceActions: {
           notCalled: ['audit-queue.create'],
         },
@@ -771,9 +777,7 @@ describe('dossier-hydration-registry (unit)', () => {
           owner: 'Strategic Asset Management',
           readiness: '0/4',
         },
-        missingEvidence: [
-          { missingDataPoint: 'finance_review' },
-        ],
+        missingEvidence: [{ missingDataPoint: 'finance_review' }],
         dossierEvidence: {
           dossierFacts: ['Status: needs_finance_review'],
         },
@@ -1002,12 +1006,14 @@ describe('dossier-hydration-registry (unit)', () => {
         evidenceGaps: [
           {
             missingDataPoint: 'uncontrolled_mass_run',
-            enablesDossierAddition: 'document stop criteria, rollback path, monitoring, and risk acceptance before any mass automation run',
+            enablesDossierAddition:
+              'document stop criteria, rollback path, monitoring, and risk acceptance before any mass automation run',
           },
         ],
         positiveFollowUps: [
           {
-            enablesDossierAddition: 'document stop criteria, rollback path, monitoring, and risk acceptance before any mass automation run',
+            enablesDossierAddition:
+              'document stop criteria, rollback path, monitoring, and risk acceptance before any mass automation run',
           },
         ],
         sourceActions: {
@@ -1235,7 +1241,8 @@ describe('dossier-hydration-registry (unit)', () => {
         missingEvidence: [{ missingDataPoint: 'meloId' }],
         positiveFollowUps: [
           {
-            enablesDossierAddition: 'add MaLo/MeLo and supplier reference for simulated MaKo exchange evidence',
+            enablesDossierAddition:
+              'add MaLo/MeLo and supplier reference for simulated MaKo exchange evidence',
           },
         ],
         timestamp: '2026-06-23T08:40:00.000Z',
@@ -1274,7 +1281,8 @@ describe('dossier-hydration-registry (unit)', () => {
         missingEvidence: [{ missingDataPoint: 'napReference' }],
         positiveFollowUps: [
           {
-            enablesDossierAddition: 'add NAP / Netzanschlusspunkt reference evidence to complete PV registration trace',
+            enablesDossierAddition:
+              'add NAP / Netzanschlusspunkt reference evidence to complete PV registration trace',
           },
         ],
         timestamp: '2026-06-23T10:40:00.000Z',
@@ -1358,7 +1366,9 @@ describe('dossier-hydration-registry (unit)', () => {
         },
         missingEvidence: [{ missingDataPoint: 'legal_status' }],
         positiveFollowUps: [
-          { enablesDossierAddition: 'state whether execution is legally cleared instead of pending' },
+          {
+            enablesDossierAddition: 'state whether execution is legally cleared instead of pending',
+          },
         ],
         sourceActions: {
           notCalled: ['legal.approve'],
@@ -1401,9 +1411,7 @@ describe('dossier-hydration-registry (unit)', () => {
         requestContext: { tenantScope: 'public' },
         owner: 'Operations',
         missingEvidence: [{ missingDataPoint: 'snapshot_manifest' }],
-        positiveFollowUps: [
-          { enablesDossierAddition: 'add cutover snapshot manifest evidence' },
-        ],
+        positiveFollowUps: [{ enablesDossierAddition: 'add cutover snapshot manifest evidence' }],
         sourceActions: {
           notCalled: ['backup.restore'],
         },
@@ -1646,7 +1654,10 @@ describe('dossier-hydration-registry (unit)', () => {
         dataQualityStatus: { status: 'high' },
         missingEvidence: [{ missingDataPoint: 'book_value_source' }],
         positiveFollowUps: [
-          { enablesDossierAddition: 'add book-value and residual-value basis to the management gate' },
+          {
+            enablesDossierAddition:
+              'add book-value and residual-value basis to the management gate',
+          },
         ],
         sourceActions: {
           notCalled: ['valuation.recordCreate'],
@@ -2225,9 +2236,7 @@ describe('dossier-hydration-registry (unit)', () => {
         },
         deadlineRisk: true,
         missingEvidence: [{ missingDataPoint: 'quantity_basis' }],
-        positiveFollowUps: [
-          { enablesDossierAddition: 'add source-backed quantity evidence' },
-        ],
+        positiveFollowUps: [{ enablesDossierAddition: 'add source-backed quantity evidence' }],
         sourceActions: {
           notCalled: ['settlement.prepareBilling'],
         },
@@ -2348,7 +2357,10 @@ describe('dossier-hydration-registry (unit)', () => {
         pilotTenantId: 'tenant-hoeheinoed',
         missingEvidence: [{ missingDataPoint: 'compliance_signoff_evidence' }],
         positiveFollowUps: [
-          { enablesDossierAddition: 'add compliance and sign-off evidence without automating legal/regulatory interpretation' },
+          {
+            enablesDossierAddition:
+              'add compliance and sign-off evidence without automating legal/regulatory interpretation',
+          },
         ],
         sourceActions: {
           notCalled: ['tenant.migrate', 'settlement.exportA96'],
@@ -2407,10 +2419,7 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(rule).not.toBeNull();
       expect(isSafetyRejectedAction(rule.action)).toBe(false);
       expect(
-        rule.extractParams(
-          [],
-          'Bitte NOVA readiness case=nova-trl7 kind=asset_override pruefen'
-        )
+        rule.extractParams([], 'Bitte NOVA readiness case=nova-trl7 kind=asset_override pruefen')
       ).toEqual({
         caseId: 'nova-trl7',
         decisionKind: 'asset_override',
@@ -2423,7 +2432,10 @@ describe('dossier-hydration-registry (unit)', () => {
         decisionKind: 'asset_override',
         missingEvidence: [{ missingDataPoint: 'decision_lifecycle_model' }],
         positiveFollowUps: [
-          { enablesDossierAddition: 'add a documented NOVA lifecycle model from proposed to applied/rejected/expired' },
+          {
+            enablesDossierAddition:
+              'add a documented NOVA lifecycle model from proposed to applied/rejected/expired',
+          },
         ],
         sourceActions: {
           notCalled: ['nova.decisions.create', 'hitl.create'],
@@ -2484,7 +2496,9 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Status: blocked_by_decision_gap');
       expect(formatted).toContain('Cockpit: rd-222');
       expect(formatted).toContain('Redispatch Audit: aud-222');
-      expect(formatted).toContain('Decision Blocker: add explicit blocker and required decision context');
+      expect(formatted).toContain(
+        'Decision Blocker: add explicit blocker and required decision context'
+      );
       expect(formatted).toContain('Side-Effect Guard: redispatch.execute');
     });
 
@@ -2574,9 +2588,7 @@ describe('dossier-hydration-registry (unit)', () => {
         gateEvidence: {
           financeGate: 'board-pack-ready',
         },
-        missingEvidence: [
-          { missingDataPoint: 'budget_owner' },
-        ],
+        missingEvidence: [{ missingDataPoint: 'budget_owner' }],
         sourceActions: {
           notCalled: ['sap.psp.write'],
         },
@@ -2622,9 +2634,7 @@ describe('dossier-hydration-registry (unit)', () => {
         handoverContext: {
           auditReference: 'audit:188',
         },
-        missingEvidence: [
-          { missingDataPoint: 'responsible_owner' },
-        ],
+        missingEvidence: [{ missingDataPoint: 'responsible_owner' }],
         sourceActions: {
           notCalled: ['tax.calculate'],
         },
@@ -2671,9 +2681,7 @@ describe('dossier-hydration-registry (unit)', () => {
           blockedDecisionId: 'decision:capex-q3',
           nextAction: 'prepare handover',
         },
-        missingEvidence: [
-          { missingDataPoint: 'owner_role' },
-        ],
+        missingEvidence: [{ missingDataPoint: 'owner_role' }],
         sourceActions: {
           notCalled: ['vdmi.create'],
         },
@@ -2722,9 +2730,7 @@ describe('dossier-hydration-registry (unit)', () => {
           signConvention: 'positive reduces headroom',
           approvalStatus: 'draft',
         },
-        missingEvidence: [
-          { missingDataPoint: 'forecast_cutoff' },
-        ],
+        missingEvidence: [{ missingDataPoint: 'forecast_cutoff' }],
         sourceActions: {
           notCalled: ['finance-agent.mutate'],
         },
@@ -2774,9 +2780,7 @@ describe('dossier-hydration-registry (unit)', () => {
           committeeGateDate: '2026-09-15',
         },
         nextDecisionGate: 'committee:decommissioning-q3',
-        missingEvidence: [
-          { missingDataPoint: 'investment_impact_ref' },
-        ],
+        missingEvidence: [{ missingDataPoint: 'investment_impact_ref' }],
         sourceActions: {
           notCalled: ['gas-transformation.executeDecommissioning'],
         },
@@ -2828,9 +2832,7 @@ describe('dossier-hydration-registry (unit)', () => {
           decisionCriterion: 'committee-approved',
           blockedFollowUpAction: 'investment-gate',
         },
-        missingEvidence: [
-          { missingDataPoint: 'next_gate' },
-        ],
+        missingEvidence: [{ missingDataPoint: 'next_gate' }],
         sourceActions: {
           notCalled: ['vdmi.create'],
         },
@@ -2885,9 +2887,7 @@ describe('dossier-hydration-registry (unit)', () => {
           gridInvestmentSpaceProof: null,
           usableGridInvestmentHeadroomProven: false,
         },
-        missingEvidence: [
-          { missingDataPoint: 'grid_investment_space_proof' },
-        ],
+        missingEvidence: [{ missingDataPoint: 'grid_investment_space_proof' }],
         sourceActions: {
           notCalled: ['finance-agent.mutate'],
         },
@@ -2943,9 +2943,7 @@ describe('dossier-hydration-registry (unit)', () => {
           decisionValue: 'redispatch-kpi',
           followUpProcess: null,
         },
-        missingEvidence: [
-          { missingDataPoint: 'follow_up_process' },
-        ],
+        missingEvidence: [{ missingDataPoint: 'follow_up_process' }],
         sourceActions: {
           notCalled: ['powerbi.createDashboard'],
         },
@@ -3007,9 +3005,7 @@ describe('dossier-hydration-registry (unit)', () => {
         budgetDilutionRisk: {
           status: 'open',
         },
-        missingEvidence: [
-          { missingDataPoint: 'budget_dilution_risk_open' },
-        ],
+        missingEvidence: [{ missingDataPoint: 'budget_dilution_risk_open' }],
         sourceActions: {
           notCalled: ['finance-agent.mutate'],
         },
@@ -3067,9 +3063,7 @@ describe('dossier-hydration-registry (unit)', () => {
           controlReadiness: 'missing',
           lineOwnerRole: 'Leitwarte',
         },
-        missingEvidence: [
-          { missingDataPoint: 'controllability_status' },
-        ],
+        missingEvidence: [{ missingDataPoint: 'controllability_status' }],
         sourceActions: {
           notCalled: ['device-control.execute'],
         },
@@ -3125,9 +3119,7 @@ describe('dossier-hydration-registry (unit)', () => {
           owner: null,
           nextAction: null,
         },
-        missingEvidence: [
-          { missingDataPoint: 'division' },
-        ],
+        missingEvidence: [{ missingDataPoint: 'division' }],
         sourceActions: {
           notCalled: ['hitl.create'],
         },
@@ -3175,9 +3167,7 @@ describe('dossier-hydration-registry (unit)', () => {
           owner: null,
           nextAction: null,
         },
-        missingEvidence: [
-          { missingDataPoint: 'division' },
-        ],
+        missingEvidence: [{ missingDataPoint: 'division' }],
         sourceActions: {
           notCalled: ['hitl.create'],
         },
@@ -3229,9 +3219,7 @@ describe('dossier-hydration-registry (unit)', () => {
           nextDecisionGate: null,
           blockedFollowUpAction: null,
         },
-        missingEvidence: [
-          { missingDataPoint: 'division' },
-        ],
+        missingEvidence: [{ missingDataPoint: 'division' }],
         sourceActions: {
           notCalled: ['hitl.create'],
         },
@@ -3285,9 +3273,7 @@ describe('dossier-hydration-registry (unit)', () => {
           billingModuleImpact: 'review-only',
           regulatoryEvidenceStatus: 'bnetza-ref',
         },
-        missingEvidence: [
-          { missingDataPoint: 'rbac_refs' },
-        ],
+        missingEvidence: [{ missingDataPoint: 'rbac_refs' }],
         sourceActions: {
           notCalled: ['procurement.approve'],
         },
@@ -3348,9 +3334,7 @@ describe('dossier-hydration-registry (unit)', () => {
           targetTechnology: 'steuerbox-cls',
           migrationRoadmap: 'roadmap-2026-q4',
         },
-        missingEvidence: [
-          { missingDataPoint: 'owner_next_action' },
-        ],
+        missingEvidence: [{ missingDataPoint: 'owner_next_action' }],
         sourceActions: {
           notCalled: ['grid-operations.executeControl'],
         },
@@ -3410,9 +3394,7 @@ describe('dossier-hydration-registry (unit)', () => {
           openMeasures: ['measure-1'],
           handoverOwner: 'Assetmanagement',
         },
-        missingEvidence: [
-          { missingDataPoint: 'handover_decision' },
-        ],
+        missingEvidence: [{ missingDataPoint: 'handover_decision' }],
         sourceActions: {
           notCalled: ['hitl.create'],
         },
@@ -3471,9 +3453,7 @@ describe('dossier-hydration-registry (unit)', () => {
           requiredMeasures: ['hotline priorisieren'],
           blockedFollowUp: ['budget commitment'],
         },
-        missingEvidence: [
-          { missingDataPoint: 'finance_impact' },
-        ],
+        missingEvidence: [{ missingDataPoint: 'finance_impact' }],
         sourceActions: {
           notCalled: ['hitl.create'],
         },
@@ -3529,9 +3509,7 @@ describe('dossier-hydration-registry (unit)', () => {
           owner: 'Assetmanagement',
           blockedFollowUpAction: 'committee-release',
         },
-        missingEvidence: [
-          { missingDataPoint: 'source_refs' },
-        ],
+        missingEvidence: [{ missingDataPoint: 'source_refs' }],
         sourceActions: {
           notCalled: ['hitl.create'],
         },
@@ -3558,7 +3536,10 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(rule).not.toBeNull();
       expect(isSafetyRejectedAction(rule.action)).toBe(false);
       expect(
-        rule.extractParams([], 'Bitte Evidenz fuer re4de-vgf:123e4567-e89b-12d3-a456-426614174000 laden')
+        rule.extractParams(
+          [],
+          'Bitte Evidenz fuer re4de-vgf:123e4567-e89b-12d3-a456-426614174000 laden'
+        )
       ).toEqual({ calculationId: 're4de-vgf:123e4567-e89b-12d3-a456-426614174000' });
 
       const formatted = rule.formatEvidence({
@@ -3584,7 +3565,10 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(rule).not.toBeNull();
       expect(isSafetyRejectedAction(rule.action)).toBe(false);
       expect(
-        rule.extractParams([], 'Bitte Speicher-Sondergate brs:123e4567-e89b-12d3-a456-426614174000 laden')
+        rule.extractParams(
+          [],
+          'Bitte Speicher-Sondergate brs:123e4567-e89b-12d3-a456-426614174000 laden'
+        )
       ).toEqual({ gateId: 'brs:123e4567-e89b-12d3-a456-426614174000' });
 
       const formatted = rule.formatEvidence({
@@ -3623,7 +3607,10 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(rule).not.toBeNull();
       expect(isSafetyRejectedAction(rule.action)).toBe(false);
       expect(
-        rule.extractParams([], 'Bitte Rollenmodell flex-role:process-001 fuer Flexibilitaetsdirigent laden')
+        rule.extractParams(
+          [],
+          'Bitte Rollenmodell flex-role:process-001 fuer Flexibilitaetsdirigent laden'
+        )
       ).toEqual({ processId: 'flex-role:process-001' });
 
       const formatted = rule.formatEvidence({
@@ -3731,9 +3718,9 @@ describe('dossier-hydration-registry (unit)', () => {
 
     it('investment-maturity-off-balance-gate.getStatus formats not-found message as fallback evidence', () => {
       const rule = getRule('investment-maturity-off-balance-gate.getStatus');
-      expect(rule.formatEvidence({ found: false, message: 'No off-balance gate evidence yet' })).toBe(
-        'No off-balance gate evidence yet'
-      );
+      expect(
+        rule.formatEvidence({ found: false, message: 'No off-balance gate evidence yet' })
+      ).toBe('No off-balance gate evidence yet');
     });
 
     it('gas-capacity-order-revision-gate.getStatus is dossier-safe and formats revision evidence', () => {
@@ -3779,50 +3766,56 @@ describe('dossier-hydration-registry (unit)', () => {
     });
 
     it('listSummary formats empty arrays as explicit negative evidence', () => {
-      const rule = compileRule(makeRule({
-        id: 'test.emptyList',
-        action: 'test.emptyList',
-        paramTemplate: {},
-        formatter: {
-          type: 'listSummary',
-          arrayPaths: ['items'],
-          itemLabelField: 'name',
-          countLabel: 'Testeintraege',
-        },
-      }));
+      const rule = compileRule(
+        makeRule({
+          id: 'test.emptyList',
+          action: 'test.emptyList',
+          paramTemplate: {},
+          formatter: {
+            type: 'listSummary',
+            arrayPaths: ['items'],
+            itemLabelField: 'name',
+            countLabel: 'Testeintraege',
+          },
+        })
+      );
 
       expect(rule.formatEvidence({ items: [] })).toBe('Testeintraege: 0');
     });
 
     it('listSummary supports a custom emptyMessage', () => {
-      const rule = compileRule(makeRule({
-        id: 'test.emptyListMessage',
-        action: 'test.emptyListMessage',
-        paramTemplate: {},
-        formatter: {
-          type: 'listSummary',
-          arrayPaths: ['items'],
-          itemLabelField: 'name',
-          countLabel: 'Testeintraege',
-          emptyMessage: 'Keine aktiven Testeintraege gefunden',
-        },
-      }));
+      const rule = compileRule(
+        makeRule({
+          id: 'test.emptyListMessage',
+          action: 'test.emptyListMessage',
+          paramTemplate: {},
+          formatter: {
+            type: 'listSummary',
+            arrayPaths: ['items'],
+            itemLabelField: 'name',
+            countLabel: 'Testeintraege',
+            emptyMessage: 'Keine aktiven Testeintraege gefunden',
+          },
+        })
+      );
 
       expect(rule.formatEvidence({ items: [] })).toBe('Keine aktiven Testeintraege gefunden');
     });
 
     it('listSummary still returns null when no configured array path exists', () => {
-      const rule = compileRule(makeRule({
-        id: 'test.missingList',
-        action: 'test.missingList',
-        paramTemplate: {},
-        formatter: {
-          type: 'listSummary',
-          arrayPaths: ['items'],
-          itemLabelField: 'name',
-          countLabel: 'Testeintraege',
-        },
-      }));
+      const rule = compileRule(
+        makeRule({
+          id: 'test.missingList',
+          action: 'test.missingList',
+          paramTemplate: {},
+          formatter: {
+            type: 'listSummary',
+            arrayPaths: ['items'],
+            itemLabelField: 'name',
+            countLabel: 'Testeintraege',
+          },
+        })
+      );
 
       expect(rule.formatEvidence({ data: [] })).toBeNull();
     });
@@ -3861,11 +3854,7 @@ describe('dossier-hydration-registry (unit)', () => {
       const rule = getRule('energy-market.prices');
       const formatted = rule.formatEvidence({
         data: {
-          prices: [
-            { priceEURMWh: 80 },
-            { priceEURMWh: 90 },
-            { priceEURMWh: 100 },
-          ],
+          prices: [{ priceEURMWh: 80 }, { priceEURMWh: 90 }, { priceEURMWh: 100 }],
           unit: 'EUR/MWh',
           market: 'day-ahead',
         },
@@ -3901,11 +3890,7 @@ describe('dossier-hydration-registry (unit)', () => {
       // Do NOT include summary.region here: the arrayFallback condition is "firstFieldNull",
       // so any matched field (including region) would suppress the fallback.
       const formatted = rule.formatEvidence({
-        forecast: [
-          { residualLoadMW: 300 },
-          { residualLoadMW: 400 },
-          { residualLoadMW: 500 },
-        ],
+        forecast: [{ residualLoadMW: 300 }, { residualLoadMW: 400 }, { residualLoadMW: 500 }],
       });
       expect(formatted).toContain('Residuallast Mittel: 400.0 MW');
     });
@@ -4046,19 +4031,25 @@ describe('dossier-hydration-registry (unit)', () => {
     });
 
     it('rejects readOnly: false', () => {
-      const r = validateRule(makeRule({ safety: { readOnly: false, allowsMutation: false, hitlRequired: false } }));
+      const r = validateRule(
+        makeRule({ safety: { readOnly: false, allowsMutation: false, hitlRequired: false } })
+      );
       expect(r.valid).toBe(false);
       expect(r.errors.some((e) => e.field === 'safety.readOnly')).toBe(true);
     });
 
     it('rejects allowsMutation: true', () => {
-      const r = validateRule(makeRule({ safety: { readOnly: true, allowsMutation: true, hitlRequired: false } }));
+      const r = validateRule(
+        makeRule({ safety: { readOnly: true, allowsMutation: true, hitlRequired: false } })
+      );
       expect(r.valid).toBe(false);
       expect(r.errors.some((e) => e.field === 'safety.allowsMutation')).toBe(true);
     });
 
     it('rejects hitlRequired: true', () => {
-      const r = validateRule(makeRule({ safety: { readOnly: true, allowsMutation: false, hitlRequired: true } }));
+      const r = validateRule(
+        makeRule({ safety: { readOnly: true, allowsMutation: false, hitlRequired: true } })
+      );
       expect(r.valid).toBe(false);
       expect(r.errors.some((e) => e.field === 'safety.hitlRequired')).toBe(true);
     });
@@ -4086,17 +4077,21 @@ describe('dossier-hydration-registry (unit)', () => {
     });
 
     it('rejects unknown extractor type', () => {
-      const r = validateRule(makeRule({ paramTemplate: { foo: { extractor: 'nonExistentExtractor123' } } }));
+      const r = validateRule(
+        makeRule({ paramTemplate: { foo: { extractor: 'nonExistentExtractor123' } } })
+      );
       expect(r.valid).toBe(false);
       expect(r.errors.some((e) => e.field.startsWith('paramTemplate'))).toBe(true);
     });
 
     it('rejects unsafe regex in regexCaptureSafe extractor', () => {
-      const r = validateRule(makeRule({
-        paramTemplate: {
-          value: { extractor: 'regexCaptureSafe', config: { pattern: '.*' } },
-        },
-      }));
+      const r = validateRule(
+        makeRule({
+          paramTemplate: {
+            value: { extractor: 'regexCaptureSafe', config: { pattern: '.*' } },
+          },
+        })
+      );
       expect(r.valid).toBe(false);
       expect(r.errors.some((e) => e.field.includes('pattern'))).toBe(true);
     });
@@ -4114,9 +4109,15 @@ describe('dossier-hydration-registry (unit)', () => {
 
     it('KNOWN_EXTRACTORS includes all expected types', () => {
       const expected = [
-        'constant', 'dateRangeFromPrompt', 'locationFromPromptOrFacts',
-        'cityFromPromptOrFacts', 'postalCodeFromPromptOrFacts', 'regionFromPromptOrDefault',
-        'knownContextPath', 'userFactByType', 'regexCaptureSafe',
+        'constant',
+        'dateRangeFromPrompt',
+        'locationFromPromptOrFacts',
+        'cityFromPromptOrFacts',
+        'postalCodeFromPromptOrFacts',
+        'regionFromPromptOrDefault',
+        'knownContextPath',
+        'userFactByType',
+        'regexCaptureSafe',
       ];
       for (const e of expected) {
         expect(KNOWN_EXTRACTORS.has(e)).toBe(true);
@@ -4124,7 +4125,15 @@ describe('dossier-hydration-registry (unit)', () => {
     });
 
     it('KNOWN_FORMATTERS includes all expected types', () => {
-      const expected = ['fieldSummary', 'timeseriesStats', 'priceArrayStats', 'listSummary', 'statusSummary', 'scalarValue', 'noDataMessage'];
+      const expected = [
+        'fieldSummary',
+        'timeseriesStats',
+        'priceArrayStats',
+        'listSummary',
+        'statusSummary',
+        'scalarValue',
+        'noDataMessage',
+      ];
       for (const f of expected) {
         expect(KNOWN_FORMATTERS.has(f)).toBe(true);
       }
@@ -4139,9 +4148,12 @@ describe('dossier-hydration-registry (unit)', () => {
     it('blocks .update verbs', () => expect(isBlockedAction('foo.update')).toBe(true));
     it('blocks hitl service', () => expect(isBlockedAction('hitl.list')).toBe(true));
     it('blocks webhooks service', () => expect(isBlockedAction('webhooks.trigger')).toBe(true));
-    it('allows energy-market.co2Intensity', () => expect(isBlockedAction('energy-market.co2Intensity')).toBe(false));
-    it('allows entsoe.loadForecast', () => expect(isBlockedAction('entsoe.loadForecast')).toBe(false));
-    it('allows gas-storage.countryStorage', () => expect(isBlockedAction('gas-storage.countryStorage')).toBe(false));
+    it('allows energy-market.co2Intensity', () =>
+      expect(isBlockedAction('energy-market.co2Intensity')).toBe(false));
+    it('allows entsoe.loadForecast', () =>
+      expect(isBlockedAction('entsoe.loadForecast')).toBe(false));
+    it('allows gas-storage.countryStorage', () =>
+      expect(isBlockedAction('gas-storage.countryStorage')).toBe(false));
   });
 
   // ── compileRule safety gate includes isBlockedAction ─────────────────────
@@ -4193,7 +4205,11 @@ describe('dossier-hydration-registry (unit)', () => {
     });
 
     it('returns false (not safety-rejected) for a disabled rule', () => {
-      const disabledRule = makeRule({ id: 'disabled.action', action: 'disabled.action', enabled: false });
+      const disabledRule = makeRule({
+        id: 'disabled.action',
+        action: 'disabled.action',
+        enabled: false,
+      });
       setRuntimeRule('disabled.action', disabledRule);
       // disabled rules are not compiled but also not "safety-rejected"
       expect(isSafetyRejectedAction('disabled.action')).toBe(false);
@@ -4227,7 +4243,11 @@ describe('dossier-hydration-registry (unit)', () => {
     });
 
     it('removeRuntimeRule falls back to static rule', () => {
-      const overrideRule = makeRule({ action: 'energy-market.co2Intensity', id: 'energy-market.co2Intensity', label: 'tmp' });
+      const overrideRule = makeRule({
+        action: 'energy-market.co2Intensity',
+        id: 'energy-market.co2Intensity',
+        label: 'tmp',
+      });
       setRuntimeRule('energy-market.co2Intensity', overrideRule);
       removeRuntimeRule('energy-market.co2Intensity');
       const rule = getRule('energy-market.co2Intensity');
@@ -4235,7 +4255,11 @@ describe('dossier-hydration-registry (unit)', () => {
     });
 
     it('runtime-only rule (not in static) is returned by getRule', () => {
-      const runtimeRule = makeRule({ id: 'my-service.customQuery', action: 'my-service.customQuery', label: 'Custom Query' });
+      const runtimeRule = makeRule({
+        id: 'my-service.customQuery',
+        action: 'my-service.customQuery',
+        label: 'Custom Query',
+      });
       setRuntimeRule('my-service.customQuery', runtimeRule);
       const rule = getRule('my-service.customQuery');
       expect(rule).not.toBeNull();
@@ -4244,7 +4268,11 @@ describe('dossier-hydration-registry (unit)', () => {
     });
 
     it('disabled rule is not returned by getRule', () => {
-      const disabledRule = makeRule({ id: 'disabled.action', action: 'disabled.action', enabled: false });
+      const disabledRule = makeRule({
+        id: 'disabled.action',
+        action: 'disabled.action',
+        enabled: false,
+      });
       setRuntimeRule('disabled.action', disabledRule);
       expect(getRule('disabled.action')).toBeNull();
       removeRuntimeRule('disabled.action');
@@ -4287,7 +4315,9 @@ describe('dossier-hydration-management.service', () => {
     });
 
     it('rejects allowsMutation: true', async () => {
-      const rule = makeRule({ safety: { readOnly: true, allowsMutation: true, hitlRequired: false } });
+      const rule = makeRule({
+        safety: { readOnly: true, allowsMutation: true, hitlRequired: false },
+      });
       const result = await broker.call('dossier-hydration.createDraft', { rule });
       expect(result.validationStatus).toBe('invalid');
     });
@@ -4378,7 +4408,8 @@ describe('dossier-hydration-management.service', () => {
 
       // 1. Create draft v1
       const { draftId: d1 } = await broker.call('dossier-hydration.createDraft', {
-        rule, version: '1.0.0',
+        rule,
+        version: '1.0.0',
       });
 
       // 2. Validate
@@ -4391,7 +4422,8 @@ describe('dossier-hydration-management.service', () => {
 
       // 4. Promote v1
       const pr1 = await broker.call('dossier-hydration.promote', {
-        id: d1, promotedBy: 'test-runner',
+        id: d1,
+        promotedBy: 'test-runner',
       });
       expect(pr1.success).toBe(true);
 
@@ -4401,16 +4433,19 @@ describe('dossier-hydration-management.service', () => {
 
       // 5. Promote v2 (creates archive)
       const { draftId: d2 } = await broker.call('dossier-hydration.createDraft', {
-        rule: { ...rule, label: 'Updated Label' }, version: '2.0.0',
+        rule: { ...rule, label: 'Updated Label' },
+        version: '2.0.0',
       });
       const pr2 = await broker.call('dossier-hydration.promote', {
-        id: d2, promotedBy: 'test-runner-v2',
+        id: d2,
+        promotedBy: 'test-runner-v2',
       });
       expect(pr2.data.rollbackTarget).toBeTruthy();
 
       // 6. Rollback to v1
       const rb = await broker.call('dossier-hydration.rollback', {
-        id: ruleId, rolledBackBy: 'ops',
+        id: ruleId,
+        rolledBackBy: 'ops',
       });
       expect(rb.success).toBe(true);
       expect(rb.version).toBe('1.0.0');
@@ -4428,9 +4463,9 @@ describe('dossier-hydration-management.service', () => {
       });
       await broker.call('dossier-hydration.promote', { id: draftId });
 
-      await expect(
-        broker.call('dossier-hydration.rollback', { id: ruleId })
-      ).rejects.toMatchObject({ code: 409 });
+      await expect(broker.call('dossier-hydration.rollback', { id: ruleId })).rejects.toMatchObject(
+        { code: 409 }
+      );
     });
   });
 
@@ -4458,7 +4493,9 @@ describe('dossier-hydration-management.service', () => {
 
   describe('get', () => {
     it('retrieves a static rule by action id', async () => {
-      const result = await broker.call('dossier-hydration.get', { id: 'energy-market.co2Intensity' });
+      const result = await broker.call('dossier-hydration.get', {
+        id: 'energy-market.co2Intensity',
+      });
       expect(result.success).toBe(true);
       expect(result.source).toBe('static');
     });
@@ -4480,9 +4517,9 @@ describe('dossier-hydration-management.service', () => {
         safety: { readOnly: false, allowsMutation: false, hitlRequired: false },
       });
       const { draftId } = await broker.call('dossier-hydration.createDraft', { rule });
-      await expect(
-        broker.call('dossier-hydration.promote', { id: draftId })
-      ).rejects.toMatchObject({ code: 409 });
+      await expect(broker.call('dossier-hydration.promote', { id: draftId })).rejects.toMatchObject(
+        { code: 409 }
+      );
     });
 
     it('compileRule returns null for unsafe rule', () => {
@@ -4528,7 +4565,9 @@ describe('dossier-hydration-management.service', () => {
       });
       const result = await broker.call('dossier-hydration.createDraft', { rule });
       expect(result.validationWarnings.some((w) => w.field === 'action')).toBe(true);
-      expect(result.validationWarnings.some((w) => w.message.includes('not currently registered'))).toBe(true);
+      expect(
+        result.validationWarnings.some((w) => w.message.includes('not currently registered'))
+      ).toBe(true);
     });
 
     it('validate adds a warning when action is not registered in the broker', async () => {

@@ -191,7 +191,12 @@ describe('T-EV-001 — evidence-planner: planEvidence() pure-function contract',
     expect(result).not.toBeNull();
     expect(result.registryKey).toBe('legal_clarification_operating_model');
     expect(result.checkedSources).toEqual(
-      expect.arrayContaining(['clarification_point', 'affected_decision', 'legal_status', 'role_owner'])
+      expect.arrayContaining([
+        'clarification_point',
+        'affected_decision',
+        'legal_status',
+        'role_owner',
+      ])
     );
     expect(result.gaps.map((gap) => gap.id)).toEqual(
       expect.arrayContaining([
@@ -361,7 +366,12 @@ describe('T-EV-001 — evidence-planner: planEvidence() pure-function contract',
     expect(result).not.toBeNull();
     expect(result.registryKey).toBe('investment_committee_steering_cards');
     expect(result.checkedSources).toEqual(
-      expect.arrayContaining(['investment_item', 'asset_project_reference', 'review_status', 'owner'])
+      expect.arrayContaining([
+        'investment_item',
+        'asset_project_reference',
+        'review_status',
+        'owner',
+      ])
     );
     expect(result.gaps.map((gap) => gap.id)).toEqual(
       expect.arrayContaining([
@@ -387,7 +397,12 @@ describe('T-EV-001 — evidence-planner: planEvidence() pure-function contract',
     expect(result).not.toBeNull();
     expect(result.registryKey).toBe('investment_data_review_queue');
     expect(result.checkedSources).toEqual(
-      expect.arrayContaining(['source_data_package', 'asset_project_reference', 'quality_status', 'owner'])
+      expect.arrayContaining([
+        'source_data_package',
+        'asset_project_reference',
+        'quality_status',
+        'owner',
+      ])
     );
     expect(result.gaps.map((gap) => gap.id)).toEqual(
       expect.arrayContaining([
@@ -650,7 +665,12 @@ describe('T-EV-001 — evidence-planner: planEvidence() pure-function contract',
     expect(result).not.toBeNull();
     expect(result.registryKey).toBe('energy_tax_information_package');
     expect(result.checkedSources).toEqual(
-      expect.arrayContaining(['package_identity', 'data_dictionary', 'period_definition', 'responsible_owner'])
+      expect.arrayContaining([
+        'package_identity',
+        'data_dictionary',
+        'period_definition',
+        'responsible_owner',
+      ])
     );
     expect(result.gaps.map((gap) => gap.id)).toEqual(
       expect.arrayContaining([
@@ -709,7 +729,12 @@ describe('T-EV-001 — evidence-planner: planEvidence() pure-function contract',
     expect(result).not.toBeNull();
     expect(result.registryKey).toBe('budget_waterfall_governance');
     expect(result.checkedSources).toEqual(
-      expect.arrayContaining(['source_identity', 'period_division', 'baseline_reference', 'sign_convention'])
+      expect.arrayContaining([
+        'source_identity',
+        'period_division',
+        'baseline_reference',
+        'sign_convention',
+      ])
     );
     expect(result.gaps.map((gap) => gap.id)).toEqual(
       expect.arrayContaining([
@@ -837,11 +862,7 @@ describe('T-EV-001 — evidence-planner: planEvidence() pure-function contract',
       ])
     );
     expect(result.gaps.map((gap) => gap.id)).toEqual(
-      expect.arrayContaining([
-        'follow_up_process',
-        'data_quality',
-        'rollback_or_stop_criterion',
-      ])
+      expect.arrayContaining(['follow_up_process', 'data_quality', 'rollback_or_stop_criterion'])
     );
   });
 
@@ -868,11 +889,7 @@ describe('T-EV-001 — evidence-planner: planEvidence() pure-function contract',
       ])
     );
     expect(result.gaps.map((gap) => gap.id)).toEqual(
-      expect.arrayContaining([
-        'controllability_status',
-        'control_readiness',
-        'line_owner_role',
-      ])
+      expect.arrayContaining(['controllability_status', 'control_readiness', 'line_owner_role'])
     );
   });
 
@@ -1600,9 +1617,7 @@ describe('T-EV-006 — evidence-planner: Phase 4 registry shortcuts for all rout
     });
 
     expect(result.registryKey).toBe('investment_owner_deadline_budget_gate');
-    expect(result.checkedSources).toEqual(
-      expect.arrayContaining(['measure_identity', 'owner'])
-    );
+    expect(result.checkedSources).toEqual(expect.arrayContaining(['measure_identity', 'owner']));
     expect(result.gaps.map((gap) => gap.id)).toEqual(
       expect.arrayContaining([
         'deadline',
@@ -1623,9 +1638,7 @@ describe('T-EV-006 — evidence-planner: Phase 4 registry shortcuts for all rout
     });
 
     expect(result.registryKey).toBe('no_regret_measure_definition_gate');
-    expect(result.checkedSources).toEqual(
-      expect.arrayContaining(['measure_identity'])
-    );
+    expect(result.checkedSources).toEqual(expect.arrayContaining(['measure_identity']));
     expect(result.gaps.map((gap) => gap.id)).toEqual(
       expect.arrayContaining([
         'scenario_effect',
@@ -1681,9 +1694,7 @@ describe('T-EV-006 — evidence-planner: Phase 4 registry shortcuts for all rout
     });
 
     expect(result.registryKey).toBe('gas_grid_transformation_asset_cockpit');
-    expect(result.checkedSources).toEqual(
-      expect.arrayContaining(['program_identity'])
-    );
+    expect(result.checkedSources).toEqual(expect.arrayContaining(['program_identity']));
     expect(result.gaps.map((gap) => gap.id)).toEqual(
       expect.arrayContaining([
         'asset_segment_scope',

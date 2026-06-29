@@ -166,7 +166,12 @@ describe('Agent Service', () => {
               description:
                 'Internal grid connection list (STROMDAO 2025). Contains: anschlussnummer, kundennummer, plz.',
               privacyFlaggedFields: ['kundennummer'],
-              aliases: ['GW29', 'Netzanschlüsse STROMDAO 2025', 'netzanschluesse_stromdao_2025', '2025'],
+              aliases: [
+                'GW29',
+                'Netzanschlüsse STROMDAO 2025',
+                'netzanschluesse_stromdao_2025',
+                '2025',
+              ],
               capabilities: ['timeseries', 'timeseries_cost_enrichment'],
               semanticHints: {
                 domain: 'metering',

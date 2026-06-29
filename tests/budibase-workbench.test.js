@@ -67,7 +67,11 @@ const capabilityFixture = {
       label: 'Grid Planning',
       vdmiResponsibilities: ['ZNP evidence'],
       readOnlyCapabilities: [
-        { capability: 'znp_gate', classification: 'read_only', handoff: 'dossier_hydration_allowed' },
+        {
+          capability: 'znp_gate',
+          classification: 'read_only',
+          handoff: 'dossier_hydration_allowed',
+        },
       ],
       advisoryCapabilities: [
         { capability: 'automation_risk_gate', classification: 'advisory', handoff: 'dossier_only' },
@@ -205,7 +209,12 @@ const vnbClassifierFixture = {
     createsExternalAction: false,
   },
   sourceActions: {
-    notCalled: ['mail.connector.ingest', 'teams.connector.read', 'ticket.create', 'personal-agent.execute'],
+    notCalled: [
+      'mail.connector.ingest',
+      'teams.connector.read',
+      'ticket.create',
+      'personal-agent.execute',
+    ],
   },
 };
 
@@ -387,7 +396,12 @@ const blueprintVerifyFixture = {
       },
     ],
     budibaseRenderTarget: 'budibase:stadtwerk-mauer-workbench',
-    forbiddenActions: ['tenant.provision', 'seed.import', 'rundeck.execute', 'public-context.mutate'],
+    forbiddenActions: [
+      'tenant.provision',
+      'seed.import',
+      'rundeck.execute',
+      'public-context.mutate',
+    ],
     sourceActions: {
       notCalled: [
         'blueprint-pack.load',
@@ -399,7 +413,8 @@ const blueprintVerifyFixture = {
     },
     brokerDossierHydration: {
       exposed: false,
-      reason: 'Runbook-only verify slice; Capability Broker and Hydration Registry exposure is intentionally deferred.',
+      reason:
+        'Runbook-only verify slice; Capability Broker and Hydration Registry exposure is intentionally deferred.',
     },
   },
 };
@@ -449,10 +464,11 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
   it('uses the existing read-only dashboard bricks for the VDMI panel', () => {
     const paths = new Set(
       manifest.queries
-        .filter((query) =>
-          (query.name.includes('Vdmi') && !query.name.includes('VdmiBlueprintPackVerify')) ||
-          query.name.includes('CapabilityProjection') ||
-          query.name.includes('EventReplay')
+        .filter(
+          (query) =>
+            (query.name.includes('Vdmi') && !query.name.includes('VdmiBlueprintPackVerify')) ||
+            query.name.includes('CapabilityProjection') ||
+            query.name.includes('EventReplay')
         )
         .map((query) => query.path)
     );
@@ -469,7 +485,10 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
   it('uses the existing read-only dashboard bricks for the VNB delta signal queue panel', () => {
     const paths = new Set(
       manifest.queries
-        .filter((query) => query.name.includes('VnbDeltaSignalQueue') || query.name.includes('EvidenceFreshness'))
+        .filter(
+          (query) =>
+            query.name.includes('VnbDeltaSignalQueue') || query.name.includes('EvidenceFreshness')
+        )
         .map((query) => query.path)
     );
 
@@ -513,7 +532,10 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       sourceClass: 'freshness_positive_follow_up',
     });
 
-    const boundaryRows = runTransformer('getEvidenceFreshnessGuardBoundaryRows', evidenceFreshnessFixture);
+    const boundaryRows = runTransformer(
+      'getEvidenceFreshnessGuardBoundaryRows',
+      evidenceFreshnessFixture
+    );
     expectScalarRows(boundaryRows);
     expect(boundaryRows).toEqual(
       expect.arrayContaining([
@@ -524,7 +546,10 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
   });
 
   it('flattens Blueprint Pack verify rows for presenter-safe Budibase tables', () => {
-    const summaryRows = runTransformer('getVdmiBlueprintPackVerifySummaryRows', blueprintVerifyFixture);
+    const summaryRows = runTransformer(
+      'getVdmiBlueprintPackVerifySummaryRows',
+      blueprintVerifyFixture
+    );
     expectScalarRows(summaryRows);
     expect(summaryRows[0]).toMatchObject({
       seedId: 'stadtwerk-mauer-pv-missing-nap-v1',
@@ -535,7 +560,10 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       sourceClass: 'vdmi_blueprint_pack_verify',
     });
 
-    const dataClassRows = runTransformer('getVdmiBlueprintPackVerifyDataClassRows', blueprintVerifyFixture);
+    const dataClassRows = runTransformer(
+      'getVdmiBlueprintPackVerifyDataClassRows',
+      blueprintVerifyFixture
+    );
     expectScalarRows(dataClassRows);
     expect(dataClassRows).toEqual(
       expect.arrayContaining([
@@ -545,7 +573,10 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       ])
     );
 
-    const evidenceRows = runTransformer('getVdmiBlueprintPackVerifyEvidenceRows', blueprintVerifyFixture);
+    const evidenceRows = runTransformer(
+      'getVdmiBlueprintPackVerifyEvidenceRows',
+      blueprintVerifyFixture
+    );
     expectScalarRows(evidenceRows);
     expect(evidenceRows).toEqual(
       expect.arrayContaining([
@@ -564,11 +595,17 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       ])
     );
 
-    const warningRows = runTransformer('getVdmiBlueprintPackVerifyWarningRows', blueprintVerifyFixture);
+    const warningRows = runTransformer(
+      'getVdmiBlueprintPackVerifyWarningRows',
+      blueprintVerifyFixture
+    );
     expectScalarRows(warningRows);
     expect(warningRows).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ rowType: 'next_gate', sourceClass: 'blueprint_verify_next_gate' }),
+        expect.objectContaining({
+          rowType: 'next_gate',
+          sourceClass: 'blueprint_verify_next_gate',
+        }),
         expect.objectContaining({ rowKey: 'broker_dossier_hydration', status: 'not_exposed' }),
       ])
     );
@@ -595,16 +632,29 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
   });
 
   it('flattens capability rows and keeps consequential actions non-executable', () => {
-    expectScalarRows(runTransformer('getStadtwerkMauerCapabilityProjectionSummaryRows', capabilityFixture));
-    expectScalarRows(runTransformer('getStadtwerkMauerCapabilityProjectionRoleRows', capabilityFixture));
-    const capabilityRows = runTransformer('getStadtwerkMauerCapabilityProjectionCapabilityRows', capabilityFixture);
+    expectScalarRows(
+      runTransformer('getStadtwerkMauerCapabilityProjectionSummaryRows', capabilityFixture)
+    );
+    expectScalarRows(
+      runTransformer('getStadtwerkMauerCapabilityProjectionRoleRows', capabilityFixture)
+    );
+    const capabilityRows = runTransformer(
+      'getStadtwerkMauerCapabilityProjectionCapabilityRows',
+      capabilityFixture
+    );
     expectScalarRows(capabilityRows);
-    expect(capabilityRows.find((row) => row.classification === 'consequential_follow_up')).toMatchObject({
+    expect(
+      capabilityRows.find((row) => row.classification === 'consequential_follow_up')
+    ).toMatchObject({
       executable: false,
       sourceClass: 'proposal_only_followup',
     });
-    expectScalarRows(runTransformer('getStadtwerkMauerCapabilityProjectionEvidenceRows', capabilityFixture));
-    expectScalarRows(runTransformer('getStadtwerkMauerCapabilityProjectionBoundaryRows', capabilityFixture));
+    expectScalarRows(
+      runTransformer('getStadtwerkMauerCapabilityProjectionEvidenceRows', capabilityFixture)
+    );
+    expectScalarRows(
+      runTransformer('getStadtwerkMauerCapabilityProjectionBoundaryRows', capabilityFixture)
+    );
   });
 
   it('flattens synthetic event preview rows without exposing executable event payloads', () => {
@@ -631,7 +681,10 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       sourceClass: 'synthetic_caller_supplied_queue',
     });
 
-    const classifierRows = runTransformer('getVnbDeltaSignalQueueClassifierRows', vnbClassifierFixture);
+    const classifierRows = runTransformer(
+      'getVnbDeltaSignalQueueClassifierRows',
+      vnbClassifierFixture
+    );
     expectScalarRows(classifierRows);
     expect(classifierRows[0]).toMatchObject({
       signalId: 'vnb-delta-demo-anschluss',
@@ -639,8 +692,12 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       sourceClass: 'synthetic_signal_classification',
     });
 
-    expectScalarRows(runTransformer('getVnbDeltaSignalQueueOwnerEvidenceRows', vnbOwnerEvidenceFixture));
-    expectScalarRows(runTransformer('getVnbDeltaSignalQueueSafeNextActionRows', vnbOwnerEvidenceFixture));
+    expectScalarRows(
+      runTransformer('getVnbDeltaSignalQueueOwnerEvidenceRows', vnbOwnerEvidenceFixture)
+    );
+    expectScalarRows(
+      runTransformer('getVnbDeltaSignalQueueSafeNextActionRows', vnbOwnerEvidenceFixture)
+    );
     expectScalarRows(runTransformer('getVnbDeltaSignalQueueLeadershipRows', vnbLeadershipFixture));
 
     const boundaryRows = runTransformer('getVnbDeltaSignalQueueBoundaryRows', vnbClassifierFixture);
@@ -654,7 +711,9 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
   });
 
   it('binds sandbox annotation command and flattens annotation readback rows', () => {
-    const commandQuery = manifest.queries.find((query) => query.name === 'recordStadtwerkMauerCaseAnnotation');
+    const commandQuery = manifest.queries.find(
+      (query) => query.name === 'recordStadtwerkMauerCaseAnnotation'
+    );
     expect(commandQuery).toMatchObject({
       method: 'POST',
       path: '/api/dashboard/stadtwerk-mauer-case-annotations',
@@ -698,7 +757,11 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
     expectScalarRows(runTransformer('getStadtwerkMauerCaseAnnotationRows', fixture));
     expectScalarRows(runTransformer('getStadtwerkMauerCaseAnnotationAuditRows', fixture));
     expect(manifest.sections.map((section) => section.id)).toEqual(
-      expect.arrayContaining(['case_annotation_command', 'case_annotation_rows', 'case_annotation_audit'])
+      expect.arrayContaining([
+        'case_annotation_command',
+        'case_annotation_rows',
+        'case_annotation_audit',
+      ])
     );
   });
 });

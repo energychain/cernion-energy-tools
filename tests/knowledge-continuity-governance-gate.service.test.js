@@ -52,13 +52,19 @@ describe('knowledge-continuity-governance-gate service', () => {
   }
 
   test('evaluate stores a ready governance-gate evidence record without control execution', async () => {
-    const result = await broker.call('knowledge-continuity-governance-gate.evaluate', readyParams(), {
-      meta,
-    });
+    const result = await broker.call(
+      'knowledge-continuity-governance-gate.evaluate',
+      readyParams(),
+      {
+        meta,
+      }
+    );
 
     expect(result.governanceGateId).toMatch(/^kcgg:/);
     expect(result.evidenceStatus).toBe('ready');
-    expect(result.validationFindings.some((f) => f.finding === 'KCGG_GOVERNANCE_GATE_READY')).toBe(true);
+    expect(result.validationFindings.some((f) => f.finding === 'KCGG_GOVERNANCE_GATE_READY')).toBe(
+      true
+    );
     expect(result.sourceActions).toContain('vdmi.create');
     expect(result.forbiddenAutomaticActions).toEqual(
       expect.arrayContaining(['permission-mutation', 'retention-policy-change', 'hitl-approval'])

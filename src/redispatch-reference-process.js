@@ -114,7 +114,13 @@ function buildRedispatchReferenceProcessInput(input = {}) {
   };
 }
 
-function summarizeRedispatchReferenceProcess({ input, policyDecision, roleDerivation, auditRecord, verification }) {
+function summarizeRedispatchReferenceProcess({
+  input,
+  policyDecision,
+  roleDerivation,
+  auditRecord,
+  verification,
+}) {
   const requiresHumanDecision = Boolean(policyDecision?.requiresHumanDecision);
   const missingAuditActor = !input.actor;
   const positiveFollowUps = buildPositiveFollowUps({

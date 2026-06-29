@@ -1021,7 +1021,12 @@ module.exports = {
                 installations: [],
                 stats: computeInstallationStats([]),
                 requestedTypes,
-                pagination: { offset: startOffset, limit: isUnlimited ? 'all' : requestedLimit, count: 0, hasMore: false },
+                pagination: {
+                  offset: startOffset,
+                  limit: isUnlimited ? 'all' : requestedLimit,
+                  count: 0,
+                  hasMore: false,
+                },
                 locationResolutionWarning,
               },
             },

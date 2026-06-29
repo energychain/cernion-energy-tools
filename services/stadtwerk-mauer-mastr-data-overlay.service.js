@@ -74,8 +74,13 @@ function installationId(item) {
 
 function installationType(item) {
   return (
-    pickValue(item, ['installationType', 'assetType', 'type', 'einheitTypLabel', 'EinheitTypLabel']) ||
-    'unknown'
+    pickValue(item, [
+      'installationType',
+      'assetType',
+      'type',
+      'einheitTypLabel',
+      'EinheitTypLabel',
+    ]) || 'unknown'
   );
 }
 
@@ -182,9 +187,20 @@ module.exports = {
   },
 
   methods: {
-    buildStatus({ tenantId, postalCode, municipality, limit, installations, queryFailed, queryError }) {
+    buildStatus({
+      tenantId,
+      postalCode,
+      municipality,
+      limit,
+      installations,
+      queryFailed,
+      queryError,
+    }) {
       const assetCount = installations.length;
-      const totalCapacityKw = installations.reduce((sum, item) => sum + installedCapacityKw(item), 0);
+      const totalCapacityKw = installations.reduce(
+        (sum, item) => sum + installedCapacityKw(item),
+        0
+      );
       const typeCounts = installations.reduce((acc, item) => {
         const type = installationType(item);
         acc[type] = (acc[type] || 0) + 1;
@@ -214,7 +230,10 @@ module.exports = {
         originalGridOperatorMastrId: operatorMastrId(item),
         virtualGridOperatorName: VIRTUAL_GRID_OPERATOR.name,
       }));
-      const positiveFollowUps = missingEvidence.map((item) => ({ ...item, category: CAPABILITY_KEY }));
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        ...item,
+        category: CAPABILITY_KEY,
+      }));
       const status = queryFailed
         ? 'blended_overlay_mastr_query_failed'
         : assetCount > 0

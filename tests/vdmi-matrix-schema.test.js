@@ -84,12 +84,7 @@ describe('vdmi-matrix-schema', () => {
 
   test('rejects malformed evidence requirements', () => {
     const result = validateVdmiMatrixRow({
-      evidenceRequirements: [
-        '',
-        {},
-        { id: 'ok', type: '' },
-        17,
-      ],
+      evidenceRequirements: ['', {}, { id: 'ok', type: '' }, 17],
     });
 
     expect(result.valid).toBe(false);

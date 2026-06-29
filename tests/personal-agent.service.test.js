@@ -2622,7 +2622,9 @@ describe('personal-agent.service', () => {
           step: 1,
           action: 'grid-operations.marketPartners',
           status: 'completed',
-          result: { data: { results: [{ name: 'STROMDAO Netze GmbH', bdewCode: '9904350000002' }] } },
+          result: {
+            data: { results: [{ name: 'STROMDAO Netze GmbH', bdewCode: '9904350000002' }] },
+          },
         },
         {
           step: 2,
@@ -3232,7 +3234,8 @@ describe('personal-agent.service', () => {
           reply: 'Die Zuständigkeit ist nun über die Toolkette eingeordnet.',
           hypotheses: [
             {
-              statement: 'STROMDAO Netze ist der relevante Netzbetreiber für den angefragten Kontext.',
+              statement:
+                'STROMDAO Netze ist der relevante Netzbetreiber für den angefragten Kontext.',
               confidence: 'high',
               evidence: 'Tool-basierte Marktpartner- und VNB-Auflösung.',
             },
@@ -3517,7 +3520,11 @@ describe('personal-agent.service', () => {
         semanticClassification: { workflowType: WORKFLOW_TYPES.VNB_IDENTIFICATION },
         resolvedParams: { gridOperatorName: 'STROMDAO Netze', city: 'Burgbernheim' },
         knowledgeContext: { gridOperatorName: 'STROMDAO Netze', city: 'Burgbernheim' },
-        knownContext: { gridOperatorName: 'STROMDAO Netze', city: 'Burgbernheim', debugTrace: true },
+        knownContext: {
+          gridOperatorName: 'STROMDAO Netze',
+          city: 'Burgbernheim',
+          debugTrace: true,
+        },
       });
 
       expect(
@@ -3659,7 +3666,11 @@ describe('personal-agent.service', () => {
         semanticClassification: { workflowType: WORKFLOW_TYPES.VNB_IDENTIFICATION },
         resolvedParams: { gridOperatorName: 'STROMDAO Netze', city: 'Burgbernheim' },
         knowledgeContext: { gridOperatorName: 'STROMDAO Netze', city: 'Burgbernheim' },
-        knownContext: { gridOperatorName: 'STROMDAO Netze', city: 'Burgbernheim', debugTrace: true },
+        knownContext: {
+          gridOperatorName: 'STROMDAO Netze',
+          city: 'Burgbernheim',
+          debugTrace: true,
+        },
       });
 
       const timeoutEvent = (result.debugTrace || []).find(
@@ -3749,7 +3760,11 @@ describe('personal-agent.service', () => {
         semanticClassification: { workflowType: WORKFLOW_TYPES.VNB_IDENTIFICATION },
         resolvedParams: { gridOperatorName: 'STROMDAO Netze', city: 'Burgbernheim' },
         knowledgeContext: { gridOperatorName: 'STROMDAO Netze', city: 'Burgbernheim' },
-        knownContext: { gridOperatorName: 'STROMDAO Netze', city: 'Burgbernheim', debugTrace: true },
+        knownContext: {
+          gridOperatorName: 'STROMDAO Netze',
+          city: 'Burgbernheim',
+          debugTrace: true,
+        },
       });
 
       expect(
@@ -3877,7 +3892,11 @@ describe('personal-agent.service', () => {
         semanticClassification: { workflowType: WORKFLOW_TYPES.VNB_IDENTIFICATION },
         resolvedParams: { gridOperatorName: 'STROMDAO Netze', city: 'Burgbernheim' },
         knowledgeContext: { gridOperatorName: 'STROMDAO Netze', city: 'Burgbernheim' },
-        knownContext: { gridOperatorName: 'STROMDAO Netze', city: 'Burgbernheim', debugTrace: true },
+        knownContext: {
+          gridOperatorName: 'STROMDAO Netze',
+          city: 'Burgbernheim',
+          debugTrace: true,
+        },
       });
 
       expect(result.reply).toContain('Kurzfazit auf Basis der erhobenen Tool-Evidenz');
@@ -3970,7 +3989,11 @@ describe('personal-agent.service', () => {
         semanticClassification: { workflowType: WORKFLOW_TYPES.VNB_IDENTIFICATION },
         resolvedParams: { gridOperatorName: 'STROMDAO Netze', city: 'Burgbernheim' },
         knowledgeContext: { gridOperatorName: 'STROMDAO Netze', city: 'Burgbernheim' },
-        knownContext: { gridOperatorName: 'STROMDAO Netze', city: 'Burgbernheim', debugTrace: true },
+        knownContext: {
+          gridOperatorName: 'STROMDAO Netze',
+          city: 'Burgbernheim',
+          debugTrace: true,
+        },
       });
 
       expect(result.reply).toContain('Kurzfazit auf Basis der erhobenen Tool-Evidenz');

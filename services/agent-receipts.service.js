@@ -634,7 +634,6 @@ module.exports = {
         } = ctx.params;
 
         const normalizedSelectionInput = normalizeSelectionPayload(ctx.params);
-        const message = normalizedSelectionInput.message;
         const context = normalizedSelectionInput.context;
         const input = normalizedSelectionInput.input;
 
@@ -2011,7 +2010,7 @@ module.exports = {
           try {
             const latest = await this.db.get(toDocId(receiptId));
             currentRev = latest?._rev || null;
-          } catch (_loadErr) {
+          } catch {
             currentRev = null;
           }
 
@@ -2192,7 +2191,7 @@ module.exports = {
       };
     },
 
-    async enrichEvaluationWithKnowledge(ctx, receipt, evalInput = {}, evaluation = {}) {
+    async enrichEvaluationWithKnowledge(ctx, receipt, evalInput = {}, _evaluation = {}) {
       const evidence = await this.collectKnowledgeEvidence(ctx, receipt, evalInput);
       return evaluateReceiptPlan(receipt, {
         broker: this.broker,

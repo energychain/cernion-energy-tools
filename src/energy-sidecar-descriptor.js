@@ -112,7 +112,9 @@ function summarizeDescriptorForDossier(descriptor) {
     safetyClasses: Array.from(new Set(descriptor.tools.map((tool) => tool.safetyClass))).sort(),
     requiredScopes: Array.from(new Set(descriptor.tools.map((tool) => tool.requiredScope))).sort(),
     tenantPolicies: Array.from(new Set(descriptor.tools.map((tool) => tool.tenantPolicy))).sort(),
-    rolePolicies: Array.from(new Set(descriptor.tools.flatMap((tool) => tool.rolePolicy || []))).sort(),
+    rolePolicies: Array.from(
+      new Set(descriptor.tools.flatMap((tool) => tool.rolePolicy || []))
+    ).sort(),
     hitlPolicies: Array.from(new Set(descriptor.tools.map((tool) => tool.hitlPolicy))).sort(),
     sideEffects: Array.from(new Set(descriptor.tools.map((tool) => tool.sideEffects))).sort(),
     policyOwner: descriptor.provider.policyOwner,

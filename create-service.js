@@ -42,7 +42,7 @@ async function questionJson(prompt) {
   if (!raw) return null;
   try {
     return JSON.parse(raw);
-  } catch (error) {
+  } catch {
     throw new Error('Invalid JSON input');
   }
 }
@@ -216,7 +216,7 @@ async function resolveModelName(requestedName, apiKey) {
     }
 
     return { modelName: pickFallbackModel(models), reason: 'fallback' };
-  } catch (error) {
+  } catch {
     return { modelName: requestedName || 'gemini-pro-latest', reason: 'unverified' };
   }
 }
@@ -571,7 +571,7 @@ async function main() {
     delete require.cache[require.resolve(serviceFilePath)];
     const serviceModule = require(serviceFilePath);
     testCode = buildTestCode(serviceName, serviceModule, path.basename(CUSTOM_SERVICES_DIR));
-  } catch (error) {
+  } catch {
     if (!testCode || typeof testCode !== 'string') {
       testCode = buildTestCode(serviceName, null, path.basename(CUSTOM_SERVICES_DIR));
     }
@@ -625,7 +625,7 @@ async function main() {
         serviceModule,
         path.basename(CUSTOM_SERVICES_DIR)
       );
-    } catch (error) {
+    } catch {
       if (!updatedTestCode || typeof updatedTestCode !== 'string') {
         updatedTestCode = buildTestCode(serviceName, null, path.basename(CUSTOM_SERVICES_DIR));
       }

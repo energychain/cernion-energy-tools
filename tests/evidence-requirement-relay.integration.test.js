@@ -48,47 +48,91 @@ describe('Evidence Requirement relay integration', () => {
     broker.createService({
       name: 'copilot-knowledge',
       actions: {
-        query: { handler() { return { hits: [] }; } },
-        search: { handler() { return { results: [] }; } },
+        query: {
+          handler() {
+            return { hits: [] };
+          },
+        },
+        search: {
+          handler() {
+            return { results: [] };
+          },
+        },
       },
     });
     broker.createService({
       name: 'copilot-entities',
       actions: {
-        search: { handler() { return { results: [] }; } },
+        search: {
+          handler() {
+            return { results: [] };
+          },
+        },
       },
     });
     broker.createService({
       name: 'agent-persona',
       actions: {
-        get: { handler() { return { success: true, item: null }; } },
-        resolveByRole: { handler() { return { success: true, items: [], count: 0 }; } },
-        findByUserId: { handler() { return { success: true, item: null }; } },
+        get: {
+          handler() {
+            return { success: true, item: null };
+          },
+        },
+        resolveByRole: {
+          handler() {
+            return { success: true, items: [], count: 0 };
+          },
+        },
+        findByUserId: {
+          handler() {
+            return { success: true, item: null };
+          },
+        },
       },
     });
     broker.createService({
       name: 'notification',
       actions: {
-        dispatch: { handler() { return { success: true, dispatch: { id: 'test', status: 'sent' }, deduplicated: false }; } },
+        dispatch: {
+          handler() {
+            return { success: true, dispatch: { id: 'test', status: 'sent' }, deduplicated: false };
+          },
+        },
       },
     });
     broker.createService({
       name: 'evidence-revalidation',
       actions: {
-        recordRequirement: { handler() { return { success: true, deduplicated: false }; } },
-        correlateFact: { handler() { return { success: true, matchedCount: 0, correlated: [] }; } },
+        recordRequirement: {
+          handler() {
+            return { success: true, deduplicated: false };
+          },
+        },
+        correlateFact: {
+          handler() {
+            return { success: true, matchedCount: 0, correlated: [] };
+          },
+        },
       },
     });
     broker.createService({
       name: 'routing-contract-store',
       actions: {
-        getContracts: { handler() { return { success: true, contracts: [] }; } },
+        getContracts: {
+          handler() {
+            return { success: true, contracts: [] };
+          },
+        },
       },
     });
     broker.createService({
       name: 'grid-operator-identity-resolution',
       actions: {
-        resolve: { handler() { return { success: false, operator: null }; } },
+        resolve: {
+          handler() {
+            return { success: false, operator: null };
+          },
+        },
       },
     });
 
@@ -98,7 +142,9 @@ describe('Evidence Requirement relay integration', () => {
   afterAll(async () => {
     await broker.stop();
     for (const dir of [objectStorePath, evidenceRequirementDbPath]) {
-      try { fs.rmSync(dir, { recursive: true, force: true }); } catch (_) {}
+      try {
+        fs.rmSync(dir, { recursive: true, force: true });
+      } catch (_) {}
     }
   });
 
@@ -116,7 +162,8 @@ describe('Evidence Requirement relay integration', () => {
       await broker.call(
         'personal-agent.answerDossier',
         {
-          question: 'Zuständiger Netzbetreiber für das Rechenzentrum in Sinsheim 74889 ist noch unbekannt.',
+          question:
+            'Zuständiger Netzbetreiber für das Rechenzentrum in Sinsheim 74889 ist noch unbekannt.',
           sessionId,
           domain: 'auto',
           mode: 'answer_dossier',
@@ -136,8 +183,8 @@ describe('Evidence Requirement relay integration', () => {
 
       expect(listed.success).toBe(true);
       expect(listed.count).toBeGreaterThanOrEqual(1);
-      const found = listed.items.some((item) =>
-        /netzbetreiber/i.test(item.label) || /netzbetreiber/i.test(item.requestedFact)
+      const found = listed.items.some(
+        (item) => /netzbetreiber/i.test(item.label) || /netzbetreiber/i.test(item.requestedFact)
       );
       expect(found).toBe(true);
     });
@@ -171,7 +218,9 @@ describe('Evidence Requirement relay integration', () => {
         { role: 'netzplanung', projectScopeKey: '74889 sinsheim|12 mw' },
         { meta: { tenantId } }
       );
-      expect(sinsheimResult.items.some((i) => i.requirementId === 'evreq:relay-s-iso:vnb')).toBe(true);
+      expect(sinsheimResult.items.some((i) => i.requirementId === 'evreq:relay-s-iso:vnb')).toBe(
+        true
+      );
     });
   });
 

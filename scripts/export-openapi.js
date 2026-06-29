@@ -147,7 +147,6 @@ function loadActionRegistry() {
     .sort((a, b) => a.localeCompare(b));
 
   for (const file of files) {
-    // eslint-disable-next-line global-require
     const svc = require(path.join(SERVICES_DIR, file));
     if (!svc || !svc.name || !svc.actions || typeof svc.actions !== 'object') continue;
 
@@ -239,7 +238,6 @@ function buildAutoAliasedPaths() {
   for (const file of files) {
     let svc;
     try {
-      // eslint-disable-next-line global-require
       svc = require(path.join(SERVICES_DIR, file));
     } catch {
       continue;
@@ -285,7 +283,6 @@ function buildAutoAliasedPaths() {
 }
 
 function buildStaticSpec() {
-  // eslint-disable-next-line global-require
   const apiSvc = require('../services/api.service');
   const tags = apiSvc.settings?.openapi?.tags || [];
   const actionRegistry = loadActionRegistry();
@@ -471,7 +468,7 @@ async function main() {
       );
       process.exit(1);
     }
-    // eslint-disable-next-line global-require
+
     const { allowlist } = require(copilotConfigPath);
     const copilotSpec = buildCopilotSpec(exportSpec, allowlist);
     const copilotOutPath = path.join(__dirname, '..', 'openapi-copilot.json');

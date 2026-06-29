@@ -33,8 +33,12 @@ describe('gas-capacity-order-revision-gate service', () => {
       securityMarkupPercent: 8,
       coldYearScenario: { summary: 'Kaltjahr P95 hebt Spitzenbedarf um 6 Prozent' },
       industrialReboundScenario: { summary: 'RLM-Rebound auf 2024-Niveau plausibilisiert' },
-      reversibleRlmLoads: [{ customerGroup: 'Industrie', mwhPerDay: 90, reversibility: 'interruptible' }],
-      historicalBottleneckEvidence: [{ nkpId: 'nkp:west', winter: '2023/24', status: 'near_constraint' }],
+      reversibleRlmLoads: [
+        { customerGroup: 'Industrie', mwhPerDay: 90, reversibility: 'interruptible' },
+      ],
+      historicalBottleneckEvidence: [
+        { nkpId: 'nkp:west', winter: '2023/24', status: 'near_constraint' },
+      ],
       nkpDistribution: [
         { nkpId: 'nkp:west', share: 0.6 },
         { nkpId: 'nkp:ost', share: 0.4 },
@@ -66,7 +70,11 @@ describe('gas-capacity-order-revision-gate service', () => {
     expect(result.validationFindings.some((f) => f.finding === 'GCORG_GATE_READY')).toBe(true);
     expect(result.sourceActions).toContain('forecast.generate');
     expect(result.forbiddenAutomaticActions).toEqual(
-      expect.arrayContaining(['gas-capacity-order-submission', 'nomination-write', 'pressure-control-action'])
+      expect.arrayContaining([
+        'gas-capacity-order-submission',
+        'nomination-write',
+        'pressure-control-action',
+      ])
     );
   });
 
@@ -117,7 +125,8 @@ describe('gas-capacity-order-revision-gate service', () => {
     );
     expect(result.positiveFollowUps).toContainEqual({
       missingDataPoint: 'cold_year_scenario',
-      enablesDossierAddition: 'adds cold-year peak-risk explanation and safety-markup justification',
+      enablesDossierAddition:
+        'adds cold-year peak-risk explanation and safety-markup justification',
     });
   });
 
