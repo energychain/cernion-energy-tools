@@ -135,6 +135,7 @@ module.exports = {
       stadtwerkMauerTransferReadinessStatus: 5 * 60 * 1000, // 5 min
       fnavFastTrackContractGateStatus: 5 * 60 * 1000, // 5 min
       crossChannelVnbSignalQueueStatus: 5 * 60 * 1000, // 5 min
+      crossDomainSpecialTopicsQueueStatus: 5 * 60 * 1000, // 5 min
       assetValuationTransformationGateStatus: 5 * 60 * 1000, // 5 min
       gasCapacityBookingReviewGateStatus: 5 * 60 * 1000, // 5 min
       gasNetworkDecisionChainStatus: 5 * 60 * 1000, // 5 min
@@ -9427,6 +9428,68 @@ module.exports = {
           this.settings.cacheTtlMs.crossChannelVnbSignalQueueStatus,
           async () => ({
             ...this.buildCrossChannelVnbSignalQueueStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- crossDomainSpecialTopicsQueueStatus -------------------------------
+    /**
+     * GET /api/dashboard/cross-domain-special-topics-queue
+     *
+     * Read-only dossier-safe management queue projection for supplied special
+     * topics. It normalizes topic metadata only; it does not create tasks,
+     * workflows, tickets, connector calls, capacity bookings, or executions.
+     */
+    crossDomainSpecialTopicsQueueStatus: {
+      rest: 'GET /cross-domain-special-topics-queue',
+      params: {
+        caseId: { type: 'string', optional: true, min: 1 },
+        topic: { type: 'string', optional: true, min: 1 },
+        topics: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
+        domainLane: { type: 'string', optional: true, min: 1 },
+        ownerRole: { type: 'string', optional: true, min: 1 },
+        dueAt: { type: 'string', optional: true, min: 1 },
+        regulatoryReference: { type: 'string', optional: true, min: 1 },
+        dataGap: { type: 'string', optional: true, min: 1 },
+        assetRevenueImpact: { type: 'string', optional: true, min: 1 },
+        escalationThreshold: { type: 'string', optional: true, min: 1 },
+        nextGovernanceGate: { type: 'string', optional: true, min: 1 },
+        decisionStatus: { type: 'string', optional: true, min: 1 },
+        evidenceRefs: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Cross-domain special topics queue -- read-only management projection',
+        description:
+          'Normalizes supplied Anschluss-, Flexibilitaets-, Energy-Sharing-, Mess-/Steuerdaten-, Kapazitaets-, Asset- and revenue-impact topics into a dossier-safe management queue. The endpoint is read-only and never creates tasks, workflows, tickets, e-mails, connector calls, bookings, executions, billing/settlement/tariff/device-control effects, or Personal-Agent shortcuts.',
+        parameters: [
+          { name: 'caseId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'topic', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'topics', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'domainLane', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'ownerRole', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'dueAt', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'regulatoryReference', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'dataGap', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'assetRevenueImpact', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'escalationThreshold', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'nextGovernanceGate', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'decisionStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'evidenceRefs', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: { 200: { description: 'Read-only cross-domain special topics queue' } },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `cross-domain-special-topics-queue:${JSON.stringify(params)}`;
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.crossDomainSpecialTopicsQueueStatus,
+          async () => ({
+            ...this.buildCrossDomainSpecialTopicsQueueStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -35252,6 +35315,183 @@ module.exports = {
           dossierFacts,
         },
         _errors: [],
+      };
+    },
+
+    buildCrossDomainSpecialTopicsQueueStatus(params = {}) {
+      const toList = (value) => {
+        if (Array.isArray(value)) return value.filter(Boolean);
+        if (!value) return [];
+        const trimmed = String(value).trim();
+        if (!trimmed) return [];
+        if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+          try {
+            const parsed = JSON.parse(trimmed);
+            return Array.isArray(parsed) ? parsed.filter(Boolean) : [parsed].filter(Boolean);
+          } catch (_err) {
+            return [trimmed];
+          }
+        }
+        return trimmed
+          .split(',')
+          .map((item) => item.trim())
+          .filter(Boolean);
+      };
+      const slug = (value, fallback) =>
+        String(value || fallback)
+          .trim()
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-|-$/g, '')
+          .slice(0, 48);
+      const isOverdue = (dueAt) => {
+        const ts = Date.parse(dueAt || '');
+        return Number.isFinite(ts) && ts < Date.now();
+      };
+      const evidenceRefs = toList(params.evidenceRefs);
+      const suppliedTopics = toList(params.topics);
+      const topicItems =
+        suppliedTopics.length > 0
+          ? suppliedTopics
+          : [
+              params.topic || 'Grossanschluss Flexibilitaet Energy Sharing',
+              !params.topic && 'Mess- und Steuerdaten Kapazitaetsbestellung',
+            ].filter(Boolean);
+      const gapMessages = {
+        owner_role: 'add owner role to route the topic to the right management lane',
+        due_date: 'add due date to rank governance urgency',
+        regulatory_reference: 'add regulatory reference to ground the management decision',
+        data_gap: 'add missing data point to focus evidence preparation',
+        asset_revenue_impact: 'add asset/revenue impact note to support management prioritization',
+        escalation_threshold: 'add escalation threshold to clarify when the topic enters a gate',
+        next_governance_gate: 'add next governance gate to prepare the responsible committee',
+        decision_status: 'add decision status to separate observation from decision readiness',
+        evidence_refs: 'add evidence references to make the queue dossier-grounded',
+      };
+      const queueRows = topicItems.map((topic, index) => {
+        const topicLabel = typeof topic === 'object' ? topic.topicLabel || topic.topic : topic;
+        const source = typeof topic === 'object' ? topic : params;
+        const missing = [];
+        if (!source.ownerRole) missing.push('owner_role');
+        if (!source.dueAt) missing.push('due_date');
+        if (!source.regulatoryReference) missing.push('regulatory_reference');
+        if (!source.dataGap) missing.push('data_gap');
+        if (!source.assetRevenueImpact) missing.push('asset_revenue_impact');
+        if (!source.escalationThreshold) missing.push('escalation_threshold');
+        if (!source.nextGovernanceGate) missing.push('next_governance_gate');
+        if (!source.decisionStatus) missing.push('decision_status');
+        if (evidenceRefs.length === 0 && !source.evidenceRefs) missing.push('evidence_refs');
+        const rowEvidenceRefs = toList(source.evidenceRefs || evidenceRefs);
+        let decisionStatus = source.decisionStatus || 'needs_management_evidence';
+        if (isOverdue(source.dueAt) && missing.length > 0) decisionStatus = 'escalation_candidate';
+        else if (missing.length === 0) decisionStatus = 'ready_for_governance_gate';
+        else if (source.decisionStatus) decisionStatus = source.decisionStatus;
+        return {
+          topicKey: slug(topicLabel, `special-topic-${index + 1}`),
+          topicLabel: topicLabel || `Special topic ${index + 1}`,
+          domainLane: source.domainLane || 'cross_domain_management',
+          ownerRole: source.ownerRole || null,
+          dueAt: source.dueAt || null,
+          regulatoryReference: source.regulatoryReference || null,
+          dataGap: source.dataGap || null,
+          assetRevenueImpact: source.assetRevenueImpact || null,
+          escalationThreshold: source.escalationThreshold || null,
+          nextGovernanceGate: source.nextGovernanceGate || null,
+          decisionStatus,
+          evidenceRefs: rowEvidenceRefs,
+          missingEvidence: missing,
+          positiveFollowUps: missing.map((missingDataPoint) => ({
+            missingDataPoint,
+            enablesDossierAddition: gapMessages[missingDataPoint],
+            category: 'cross_domain_special_topics_queue',
+          })),
+        };
+      });
+      const missingEvidence = queueRows.flatMap((row) =>
+        row.missingEvidence.map((missingDataPoint) => ({
+          topicKey: row.topicKey,
+          topicLabel: row.topicLabel,
+          missingDataPoint,
+          enablesDossierAddition: gapMessages[missingDataPoint],
+          category: 'cross_domain_special_topics_queue',
+        }))
+      );
+      const positiveFollowUps = missingEvidence.map((gap) => ({ ...gap }));
+      const status = queueRows.every((row) => row.missingEvidence.length === 0)
+        ? 'ready_for_governance_gate'
+        : queueRows.some((row) => row.decisionStatus === 'escalation_candidate')
+          ? 'needs_escalation_evidence'
+          : 'needs_management_evidence';
+      const sourceActions = {
+        inspected: ['dashboard-api.crossDomainSpecialTopicsQueueStatus'],
+        referenced: [
+          'vdmi.dossier',
+          'evidence-registry.lookup',
+          'capability-broker.recommend',
+          'presentation.generate',
+        ],
+        notCalled: [
+          'mail.connector.ingest',
+          'persona-inbox.enqueue',
+          'notification.dispatchInternal',
+          'hitl.create',
+          'vdmi.taskMutate',
+          'external.connector.call',
+          'mako.execute',
+          'billing.execute',
+          'settlement.execute',
+          'tariff.execute',
+          'device-control.execute',
+          'capacity-booking.execute',
+          'energy-sharing.execute',
+          'personal-agent.execute',
+        ],
+      };
+      const dossierFacts = [
+        `Queue Status: ${status}`,
+        `Topics: ${queueRows.length}`,
+        `Open Gaps: ${missingEvidence.length}`,
+      ];
+      queueRows.slice(0, 3).forEach((row) => {
+        dossierFacts.push(`${row.topicLabel}: ${row.decisionStatus}`);
+      });
+
+      return {
+        capabilityKey: 'cross_domain_special_topics_queue',
+        caseId: params.caseId || null,
+        safety: 'read_only',
+        status,
+        queueStatus: status,
+        queueRows,
+        evidenceRows: queueRows.map((row) => ({
+          topicKey: row.topicKey,
+          evidenceRefs: row.evidenceRefs,
+          missingEvidence: row.missingEvidence,
+        })),
+        missingEvidence,
+        positiveFollowUps,
+        managementSummary: {
+          topicCount: queueRows.length,
+          openGapCount: missingEvidence.length,
+          nextGovernanceGates: [...new Set(queueRows.map((row) => row.nextGovernanceGate).filter(Boolean))],
+          domainLanes: [...new Set(queueRows.map((row) => row.domainLane).filter(Boolean))],
+        },
+        sourceActions,
+        sourceBoundary: {
+          suppliedMetadataOnly: true,
+          connectorRead: false,
+          persistsQueue: false,
+          createsExternalAction: false,
+        },
+        dossierEvidence: {
+          capabilityKey: 'cross_domain_special_topics_queue',
+          status,
+          queueRows,
+          missingEvidence,
+          positiveFollowUps,
+          sourceActions: { notCalled: sourceActions.notCalled },
+          dossierFacts,
+        },
       };
     },
 

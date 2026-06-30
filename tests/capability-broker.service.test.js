@@ -1861,6 +1861,25 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes cross-domain special topics queue prompts to the read-only management gate', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Bitte spartenuebergreifende Sonderthemen Management Queue fuer Energy Sharing, Kapazitaetsbestellung, Asset Erloeswirkung, Datenluecke und naechstes Gremien-Gate vorbereiten.',
+    });
+
+    expect(result.capability).toBe('cross_domain_special_topics_queue');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'cross_domain_special_topics_queue'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.crossDomainSpecialTopicsQueueStatus');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('vdmi.taskMutate');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('energy-sharing.execute');
+    expect(actionNames).not.toContain('capacity-booking.execute');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes strategic Flex demand-intake prompts to the read-only evidence gate', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Bitte strategische Bedarfsanmeldung Flexibilisierung fuer Fahrplanmanagement pruefen: Risiko des Nicht-Handelns, kaufmaennische Bewertungsfrage, Ressourcenkonflikt, Stop-doing-Option, Owner, next decision gate und blockierte Folgeentscheidung.',

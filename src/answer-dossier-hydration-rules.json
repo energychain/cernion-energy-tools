@@ -4199,6 +4199,94 @@
     "sourceIssue": 171
   },
   {
+    "id": "cross-domain-special-topics-queue-status",
+    "description": "Read-only cross-domain special-topics queue evidence for dossier hydration",
+    "routeLabel": "cross_domain_special_topics_queue",
+    "capability": "cross_domain_special_topics_queue",
+    "action": "dashboard-api.crossDomainSpecialTopicsQueueStatus",
+    "safety": {
+      "classification": "read_only",
+      "readOnly": true,
+      "allowDossierHydration": true,
+      "forbiddenActions": [
+        "mail.connector.ingest",
+        "persona-inbox.enqueue",
+        "notification.dispatchInternal",
+        "hitl.create",
+        "vdmi.taskMutate",
+        "external.connector.call",
+        "mako.execute",
+        "billing.execute",
+        "settlement.execute",
+        "tariff.execute",
+        "device-control.execute",
+        "capacity-booking.execute",
+        "energy-sharing.execute",
+        "personal-agent.execute"
+      ]
+    },
+    "triggers": [
+      "spartenuebergreifende sonderthemen",
+      "spartenübergreifende sonderthemen",
+      "sonderthemen management queue",
+      "management queue",
+      "energy sharing kapazitaetsbestellung",
+      "asset erloeswirkung",
+      "gremien-gate",
+      "datenluecke"
+    ],
+    "paramTemplate": {
+      "topic": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:topic[:= ]+|thema[:= ]+|sonderthema[:= ]+)([a-zA-Z0-9_.: -]+)",
+          "group": 1
+        }
+      },
+      "domainLane": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:domainLane[:= ]+|fachspur[:= ]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "ownerRole": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:ownerRole[:= ]+|owner[:= ]+|verantwortlich[:= ]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "dossierEvidence.status"], "label": "Special Topics Queue", "maxLen": 100 },
+        { "paths": ["caseId"], "label": "Case", "maxLen": 120 },
+        { "paths": ["queueRows.0.topicLabel", "dossierEvidence.queueRows.0.topicLabel"], "label": "Top Topic", "maxLen": 160 },
+        { "paths": ["queueRows.0.domainLane", "dossierEvidence.queueRows.0.domainLane"], "label": "Domain Lane", "maxLen": 120 },
+        { "paths": ["queueRows.0.ownerRole", "dossierEvidence.queueRows.0.ownerRole"], "label": "Owner", "maxLen": 120 },
+        { "paths": ["queueRows.0.dueAt", "dossierEvidence.queueRows.0.dueAt"], "label": "Due", "maxLen": 120 },
+        { "paths": ["queueRows.0.regulatoryReference", "dossierEvidence.queueRows.0.regulatoryReference"], "label": "Regulatory", "maxLen": 140 },
+        { "paths": ["queueRows.0.assetRevenueImpact", "dossierEvidence.queueRows.0.assetRevenueImpact"], "label": "Impact", "maxLen": 140 },
+        { "paths": ["queueRows.0.nextGovernanceGate", "dossierEvidence.queueRows.0.nextGovernanceGate"], "label": "Next Gate", "maxLen": 140 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 347
+  },
+  {
     "id": "ki-floorwalker-governance-status",
     "description": "Read-only KI Floorwalker governance evidence for dossier hydration",
     "routeLabel": "ki_floorwalker_governance",

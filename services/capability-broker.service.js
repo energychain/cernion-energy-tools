@@ -936,6 +936,26 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasCrossDomainSpecialTopicsQueueSpecificSignal =
+    /(sonderthemen|special topics|management queue|managementqueue|entscheidungsqueue|gremien-gate|gremien gate)/i.test(
+      haystack
+    ) &&
+    /(spartenuebergreifend|spartenübergreifend|cross.?domain|anschluss|grossanschluss|großanschluss|flexibilitaet|flexibilität|energy sharing|kapazitaetsbestellung|kapazitätsbestellung|mess-?\/?steuerdaten|asset.?erloeswirkung|asset.?erlöswirkung|datenluecke|datenlücke|owner|frist|regulatorisch)/i.test(
+      haystack
+    ) &&
+    !/(leadership_delta_cockpit|fuehrungscockpit|führungscockpit|delta steuerung|delta-steuerung|next lever|simulation|execute|ausfuehren|ausführen|buchung|booking|abrechnung|settlement|billing|tarif|device-control|smgw|cls|ticket erstellen|mail senden|connector ingest)/i.test(
+      haystack
+    );
+
+  if (hasCrossDomainSpecialTopicsQueueSpecificSignal) {
+    const specialTopicsQueueCapability = findCapabilityByName(
+      'cross_domain_special_topics_queue'
+    );
+    if (specialTopicsQueueCapability) {
+      return { capability: specialTopicsQueueCapability, score: 139, usedFallback: false };
+    }
+  }
+
   const hasGridConnectionTransformationGateSpecificSignal =
     /(netzanschlusspunkt|transformations-gate|umbaupfad|anschluss transformation|netzanschluss|geografisch erfasst)/i.test(
       haystack

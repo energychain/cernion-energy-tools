@@ -3040,6 +3040,88 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  cross_domain_special_topics_queue: {
+    sources: [
+      {
+        id: 'topic',
+        label: 'Sonderthema',
+        resolvedBy: ['dashboard-api.crossDomainSpecialTopicsQueueStatus', 'vdmi.dossier'],
+        contextKeys: ['topic', 'topics', 'caseId'],
+        optional: false,
+      },
+      {
+        id: 'domain_lane',
+        label: 'Fachspur / Domain Lane',
+        resolvedBy: ['dashboard-api.crossDomainSpecialTopicsQueueStatus'],
+        contextKeys: ['domainLane'],
+        optional: false,
+      },
+      {
+        id: 'owner_role',
+        label: 'Owner Rolle',
+        resolvedBy: ['dashboard-api.crossDomainSpecialTopicsQueueStatus', 'vdmi.dossier'],
+        contextKeys: ['ownerRole'],
+        optional: false,
+      },
+      {
+        id: 'due_date',
+        label: 'Frist / Managementtermin',
+        resolvedBy: ['dashboard-api.crossDomainSpecialTopicsQueueStatus'],
+        contextKeys: ['dueAt', 'dueDate'],
+        optional: false,
+      },
+      {
+        id: 'regulatory_reference',
+        label: 'Regulatorischer Bezug',
+        resolvedBy: ['dashboard-api.crossDomainSpecialTopicsQueueStatus'],
+        contextKeys: ['regulatoryReference'],
+        optional: false,
+      },
+      {
+        id: 'data_gap',
+        label: 'Datenluecke',
+        resolvedBy: ['dashboard-api.crossDomainSpecialTopicsQueueStatus'],
+        contextKeys: ['dataGap'],
+        optional: false,
+      },
+      {
+        id: 'asset_revenue_impact',
+        label: 'Asset-/Erloeswirkung',
+        resolvedBy: ['dashboard-api.crossDomainSpecialTopicsQueueStatus'],
+        contextKeys: ['assetRevenueImpact'],
+        optional: false,
+      },
+      {
+        id: 'escalation_threshold',
+        label: 'Eskalationsschwelle',
+        resolvedBy: ['dashboard-api.crossDomainSpecialTopicsQueueStatus'],
+        contextKeys: ['escalationThreshold'],
+        optional: false,
+      },
+      {
+        id: 'next_governance_gate',
+        label: 'Naechstes Gremien-Gate',
+        resolvedBy: ['dashboard-api.crossDomainSpecialTopicsQueueStatus'],
+        contextKeys: ['nextGovernanceGate'],
+        optional: false,
+      },
+      {
+        id: 'decision_status',
+        label: 'Entscheidungsstatus',
+        resolvedBy: ['dashboard-api.crossDomainSpecialTopicsQueueStatus'],
+        contextKeys: ['decisionStatus'],
+        optional: false,
+      },
+      {
+        id: 'evidence_refs',
+        label: 'Evidenzreferenzen',
+        resolvedBy: ['dashboard-api.crossDomainSpecialTopicsQueueStatus', 'vdmi-evidence.inject'],
+        contextKeys: ['evidenceRefs'],
+        optional: false,
+      },
+    ],
+  },
+
   flex_strategic_demand_intake: {
     sources: [
       {

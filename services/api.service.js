@@ -1528,6 +1528,8 @@ module.exports = {
             'dashboard-api.fnavFastTrackContractGateStatus',
           'GET /dashboard/cross-channel-vnb-signal-queue':
             'dashboard-api.crossChannelVnbSignalQueueStatus',
+          'GET /dashboard/cross-domain-special-topics-queue':
+            'dashboard-api.crossDomainSpecialTopicsQueueStatus',
           'GET /dashboard/asset-valuation-transformation-gate':
             'dashboard-api.assetValuationTransformationGateStatus',
           'GET /dashboard/gas-capacity-booking-review-gate':

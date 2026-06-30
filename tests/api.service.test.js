@@ -593,6 +593,9 @@ describe('API Gateway Service', () => {
       expect(aliases['GET /dashboard/cross-channel-vnb-signal-queue']).toBe(
         'dashboard-api.crossChannelVnbSignalQueueStatus'
       );
+      expect(aliases['GET /dashboard/cross-domain-special-topics-queue']).toBe(
+        'dashboard-api.crossDomainSpecialTopicsQueueStatus'
+      );
       expect(aliases['GET /dashboard/asset-valuation-transformation-gate']).toBe(
         'dashboard-api.assetValuationTransformationGateStatus'
       );

@@ -22008,6 +22008,127 @@
         ]
       }
     },
+    "/api/dashboard-api/cross-domain-special-topics-queue": {
+      "get": {
+        "operationId": "dashboard-api_crossDomainSpecialTopicsQueueStatus",
+        "summary": "Cross-domain special topics queue -- read-only management projection",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only cross-domain special topics queue"
+          }
+        },
+        "description": "Normalizes supplied Anschluss-, Flexibilitaets-, Energy-Sharing-, Mess-/Steuerdaten-, Kapazitaets-, Asset- and revenue-impact topics into a dossier-safe management queue. The endpoint is read-only and never creates tasks, workflows, tickets, e-mails, connector calls, bookings, executions, billing/settlement/tariff/device-control effects, or Personal-Agent shortcuts.",
+        "parameters": [
+          {
+            "name": "caseId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "topic",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "topics",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "domainLane",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ownerRole",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dueAt",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "regulatoryReference",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dataGap",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "assetRevenueImpact",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "escalationThreshold",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "nextGovernanceGate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "decisionStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "evidenceRefs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/api/dashboard-api/asset-valuation-transformation-gate": {
       "get": {
         "operationId": "dashboard-api_assetValuationTransformationGateStatus",
@@ -67650,6 +67771,127 @@
           {
             "in": "query",
             "name": "signals",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard/cross-domain-special-topics-queue": {
+      "get": {
+        "operationId": "dashboard-api_crossDomainSpecialTopicsQueueStatus",
+        "summary": "Cross-domain special topics queue -- read-only management projection",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only cross-domain special topics queue"
+          }
+        },
+        "description": "Normalizes supplied Anschluss-, Flexibilitaets-, Energy-Sharing-, Mess-/Steuerdaten-, Kapazitaets-, Asset- and revenue-impact topics into a dossier-safe management queue. The endpoint is read-only and never creates tasks, workflows, tickets, e-mails, connector calls, bookings, executions, billing/settlement/tariff/device-control effects, or Personal-Agent shortcuts.",
+        "parameters": [
+          {
+            "name": "caseId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "topic",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "topics",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "domainLane",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ownerRole",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dueAt",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "regulatoryReference",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dataGap",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "assetRevenueImpact",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "escalationThreshold",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "nextGovernanceGate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "decisionStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "evidenceRefs",
+            "in": "query",
+            "required": false,
             "schema": {
               "type": "string"
             }

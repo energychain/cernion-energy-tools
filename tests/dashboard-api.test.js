@@ -5955,6 +5955,82 @@ describe('dashboard-api.service', () => {
       });
     });
 
+    // ── crossDomainSpecialTopicsQueueStatus ────────────────────────────────
+
+    describe('crossDomainSpecialTopicsQueueStatus', () => {
+      it('reports default special-topic management gaps without operational side effects', async () => {
+        const result = await broker.call('dashboard-api.crossDomainSpecialTopicsQueueStatus', {
+          caseId: 'case-347',
+        });
+
+        expect(result.capabilityKey).toBe('cross_domain_special_topics_queue');
+        expect(result.safety).toBe('read_only');
+        expect(result.status).toBe('needs_management_evidence');
+        expect(result.queueRows.length).toBeGreaterThanOrEqual(1);
+        expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+          expect.arrayContaining([
+            'owner_role',
+            'due_date',
+            'regulatory_reference',
+            'data_gap',
+            'asset_revenue_impact',
+            'next_governance_gate',
+          ])
+        );
+        expect(result.positiveFollowUps[0].category).toBe('cross_domain_special_topics_queue');
+        expect(result.sourceActions.notCalled).toEqual(
+          expect.arrayContaining([
+            'mail.connector.ingest',
+            'hitl.create',
+            'vdmi.taskMutate',
+            'external.connector.call',
+            'capacity-booking.execute',
+            'energy-sharing.execute',
+            'billing.execute',
+            'settlement.execute',
+            'tariff.execute',
+            'device-control.execute',
+            'personal-agent.execute',
+          ])
+        );
+      });
+
+      it('returns ready_for_governance_gate for complete query-provided topic hints', async () => {
+        const result = await broker.call('dashboard-api.crossDomainSpecialTopicsQueueStatus', {
+          caseId: 'case-347-ready',
+          topic: 'Energy Sharing 42c und Kapazitaetsbestellung',
+          domainLane: 'vertrieb_regulierung',
+          ownerRole: 'regulierung',
+          dueAt: '2026-09-30',
+          regulatoryReference: 'EnWG 42c',
+          dataGap: 'Messkonzept und Teilnahmequote',
+          assetRevenueImpact: 'Erloswirkung positiv bei gesicherter Messdatenlage',
+          escalationThreshold: 'Vorstandsgate bei mehr als 2 MW',
+          nextGovernanceGate: 'Jour Fixe Regulierung',
+          decisionStatus: 'ready_for_gate',
+          evidenceRefs: 'vdmi:347,meeting:jour-fixe-347',
+        });
+
+        expect(result.status).toBe('ready_for_governance_gate');
+        expect(result.missingEvidence).toEqual([]);
+        expect(result.queueRows[0]).toMatchObject({
+          topicKey: 'energy-sharing-42c-und-kapazitaetsbestellung',
+          domainLane: 'vertrieb_regulierung',
+          ownerRole: 'regulierung',
+          nextGovernanceGate: 'Jour Fixe Regulierung',
+        });
+        expect(result.queueRows[0].evidenceRefs).toEqual(
+          expect.arrayContaining(['vdmi:347', 'meeting:jour-fixe-347'])
+        );
+        expect(result.dossierEvidence.dossierFacts).toEqual(
+          expect.arrayContaining([
+            'Queue Status: ready_for_governance_gate',
+            'Energy Sharing 42c und Kapazitaetsbestellung: ready_for_governance_gate',
+          ])
+        );
+      });
+    });
+
     // ── flexStrategicDemandIntakeStatus ────────────────────────────────────
 
     describe('flexStrategicDemandIntakeStatus', () => {

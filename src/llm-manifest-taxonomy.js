@@ -113,6 +113,7 @@ const CAPABILITY_DOMAIN_MAP = {
   process_governance: 'governance',
   governance_decision_closure: 'governance',
   governance_management: 'governance',
+  cross_domain_management: 'governance',
   management_steering: 'governance',
   nova_governance: 'governance',
   automation_governance: 'governance',

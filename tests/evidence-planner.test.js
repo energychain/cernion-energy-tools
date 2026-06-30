@@ -1489,6 +1489,34 @@ describe('T-EV-006 — evidence-planner: Phase 4 registry shortcuts for all rout
     );
   });
 
+  it('cross_domain_special_topics_queue: requires management owner, deadline, impact and governance evidence', () => {
+    const result = planEvidence(
+      { routeLabel: 'cross_domain_special_topics_queue' },
+      {
+        topic: 'Energy Sharing 42c',
+        domainLane: 'vertrieb_regulierung',
+        regulatoryReference: 'EnWG 42c',
+      }
+    );
+
+    expect(result.registryKey).toBe('cross_domain_special_topics_queue');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining(['topic', 'domain_lane', 'regulatory_reference'])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'owner_role',
+        'due_date',
+        'data_gap',
+        'asset_revenue_impact',
+        'escalation_threshold',
+        'next_governance_gate',
+        'decision_status',
+        'evidence_refs',
+      ])
+    );
+  });
+
   it('evidence_freshness_guard: requires freshness, snapshot, owner and decision evidence', () => {
     const plan = { routeKey: 'evidence_freshness_guard' };
     const result = planEvidence(plan, {

@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 100 static rules', () => {
+    it('loads all 101 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(100);
+      expect(rules.length).toBe(101);
     });
 
-    it('compiles all 100 static rules without error', () => {
+    it('compiles all 101 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(100);
+      expect(rules.length).toBe(101);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -3965,6 +3965,36 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Review Queue: review_ready');
       expect(formatted).toContain('Source: datasource-171');
       expect(formatted).toContain('Owner: Assetmanagement');
+      expect(formatted).toContain('Side-Effect Guard: hitl.create');
+    });
+
+    it('cross-domain-special-topics-queue-status formats management queue evidence', () => {
+      const rule = getRule('dashboard-api.crossDomainSpecialTopicsQueueStatus');
+      const formatted = rule.formatEvidence({
+        status: 'ready_for_governance_gate',
+        caseId: 'case-347',
+        queueRows: [
+          {
+            topicLabel: 'Energy Sharing 42c',
+            domainLane: 'vertrieb_regulierung',
+            ownerRole: 'regulierung',
+            dueAt: '2026-09-30',
+            regulatoryReference: 'EnWG 42c',
+            assetRevenueImpact: 'positive Erloswirkung',
+            nextGovernanceGate: 'Jour Fixe Regulierung',
+          },
+        ],
+        sourceActions: {
+          notCalled: ['hitl.create'],
+        },
+        dossierEvidence: {
+          dossierFacts: ['Queue Status: ready_for_governance_gate'],
+        },
+      });
+
+      expect(formatted).toContain('Special Topics Queue: ready_for_governance_gate');
+      expect(formatted).toContain('Top Topic: Energy Sharing 42c');
+      expect(formatted).toContain('Domain Lane: vertrieb_regulierung');
       expect(formatted).toContain('Side-Effect Guard: hitl.create');
     });
 
