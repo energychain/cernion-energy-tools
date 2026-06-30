@@ -17,6 +17,15 @@ const REQUIRED_DATA_CLASSES = Object.freeze([
 ]);
 
 const REQUIRED_ROLE_IDS = Object.freeze(['ROLE_NETZPLANUNG', 'ROLE_GRID_OPERATOR']);
+const REQUIRED_MATRIX_ROLE_KEYS = Object.freeze(['v', 'd', 'm', 'i']);
+const MATRIX_HEADER_WORDS = Object.freeze([
+  'Phase',
+  'Verantwortlich',
+  'Durchfuehrend',
+  'Mitwirkend',
+  'Informiert',
+  'Nachweise',
+]);
 
 const SEEDS = Object.freeze([stadtwerkMauerPvMissingNap]);
 
@@ -91,6 +100,70 @@ function validateVdmiBlueprintPackSeed(seed) {
     }
   }
 
+  const matrix = seed.demoProcessMatrix;
+  if (!matrix || typeof matrix !== 'object') {
+    errors.push('missing demoProcessMatrix');
+  } else {
+    if (matrix.slug !== 'pv-registration-missing-nap') {
+      errors.push('demoProcessMatrix.slug must be pv-registration-missing-nap');
+    }
+    if (matrix.roleLegend?.M !== 'Mitwirkend') {
+      errors.push('demoProcessMatrix.roleLegend.M must be Mitwirkend');
+    }
+    for (const key of ['V', 'D', 'M', 'I']) {
+      if (!matrix.roleLegend?.[key]) {
+        errors.push(`demoProcessMatrix.roleLegend.${key} is required`);
+      }
+    }
+
+    const rows = Array.isArray(matrix.rows) ? matrix.rows : [];
+    if (rows.length < 3 || rows.length > 5) {
+      errors.push('demoProcessMatrix.rows must contain 3-5 rows');
+    }
+
+    const allowedDataClasses = new Set(REQUIRED_DATA_CLASSES);
+    for (const dataClass of matrix.allowedDataClasses || []) {
+      if (!allowedDataClasses.has(dataClass)) {
+        errors.push(`demoProcessMatrix.allowedDataClasses contains unsupported class: ${dataClass}`);
+      }
+    }
+
+    rows.forEach((row, index) => {
+      const rowLabel = row.phase || index + 1;
+      for (const roleKey of REQUIRED_MATRIX_ROLE_KEYS) {
+        const roleValue = row[roleKey];
+        if (!roleValue) {
+          errors.push(`demoProcessMatrix row ${rowLabel} missing role cell: ${roleKey}`);
+          continue;
+        }
+        for (const dataClass of REQUIRED_DATA_CLASSES) {
+          if (roleValue === dataClass) {
+            errors.push(`demoProcessMatrix row ${rowLabel} role ${roleKey} must not be a data class`);
+          }
+        }
+        for (const headerWord of MATRIX_HEADER_WORDS) {
+          if (roleValue === headerWord || roleValue.includes(`= ${headerWord}`)) {
+            errors.push(`demoProcessMatrix row ${rowLabel} role ${roleKey} repeats header text`);
+          }
+        }
+      }
+      if (!Array.isArray(row.evidenceRequirements) || row.evidenceRequirements.length === 0) {
+        errors.push(`demoProcessMatrix row ${rowLabel} missing evidence requirements`);
+      }
+      for (const dataClass of row.dataClassRefs || []) {
+        if (!allowedDataClasses.has(dataClass)) {
+          errors.push(`demoProcessMatrix row ${rowLabel} uses unsupported data class: ${dataClass}`);
+        }
+      }
+      if (!row.gateOutcome) {
+        errors.push(`demoProcessMatrix row ${rowLabel} missing gate outcome`);
+      }
+      if (!row.enablesDossierAddition) {
+        errors.push(`demoProcessMatrix row ${rowLabel} missing positive follow-up`);
+      }
+    });
+  }
+
   for (const hint of seed.allowedCommandHints || []) {
     if (hint.execution !== 'metadata_only') {
       errors.push(`command hint ${hint.id || hint.kind} must be metadata_only`);
@@ -145,10 +218,70 @@ function buildWorkbenchClarificationItems(seed) {
   }));
 }
 
+function buildDemoProcessMatrixSync(seed) {
+  const selectedSeed = seed || stadtwerkMauerPvMissingNap;
+  const matrix = selectedSeed.demoProcessMatrix || {};
+  const rows = Array.isArray(matrix.rows) ? matrix.rows : [];
+  const allowedDataClasses = Array.isArray(matrix.allowedDataClasses)
+    ? matrix.allowedDataClasses
+    : [];
+  const allowedSet = new Set(REQUIRED_DATA_CLASSES);
+  const forbiddenRoleCellValues = new Set([
+    ...REQUIRED_DATA_CLASSES,
+    ...MATRIX_HEADER_WORDS,
+    ...MATRIX_HEADER_WORDS.map((word) => `= ${word}`),
+  ]);
+  const rowSummaries = rows.map((row) => ({
+    phase: row.phase,
+    roles: {
+      V: row.v,
+      D: row.d,
+      M: row.m,
+      I: row.i,
+    },
+    evidenceRequirements: row.evidenceRequirements || [],
+    dataClassRefs: row.dataClassRefs || [],
+    status: row.status,
+    gateOutcome: row.gateOutcome,
+    enablesDossierAddition: row.enablesDossierAddition || null,
+  }));
+  const roleCells = rowSummaries.flatMap((row) => Object.values(row.roles));
+  const evidenceRequirements = Array.from(
+    new Set(rowSummaries.flatMap((row) => row.evidenceRequirements))
+  );
+  const dataClassRefs = Array.from(new Set(rowSummaries.flatMap((row) => row.dataClassRefs)));
+  const roleCellsClean = roleCells.every((cell) => cell && !forbiddenRoleCellValues.has(cell));
+  const dataClassesLimited =
+    allowedDataClasses.every((dataClass) => allowedSet.has(dataClass)) &&
+    dataClassRefs.every((dataClass) => allowedSet.has(dataClass));
+
+  return {
+    slug: matrix.slug || null,
+    expectedSlug: 'pv-registration-missing-nap',
+    synced: matrix.slug === 'pv-registration-missing-nap',
+    roleLegend: matrix.roleLegend || {},
+    roleLegendM: matrix.roleLegend?.M || null,
+    rowCount: rows.length,
+    rowCountValid: rows.length >= 3 && rows.length <= 5,
+    roleCellsClean,
+    evidenceRequirements,
+    dataClassRefs,
+    dataClassesLimited,
+    forbiddenActionsStatus: 'not_introduced',
+    downstreamHandoff: matrix.downstreamHandoff || {
+      blueprintPack: 'pending',
+      landingRegistry: 'pending',
+      productiveDemoRoom: 'pending',
+    },
+    rows: rowSummaries,
+  };
+}
+
 module.exports = {
   REQUIRED_DATA_CLASSES,
   REQUIRED_EVIDENCE,
   REQUIRED_ROLE_IDS,
+  buildDemoProcessMatrixSync,
   buildWorkbenchClarificationItems,
   getVdmiBlueprintPackSeed,
   listVdmiBlueprintPackSeeds,

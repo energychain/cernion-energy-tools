@@ -8383,6 +8383,7 @@ describe('dashboard-api.service', () => {
         expect(result.riskClass).toBe('read_only');
         expect(result.summary.counts.requiredEvidence).toBe(5);
         expect(result.summary.counts.roleRelations).toBe(3);
+        expect(result.summary.counts.demoProcessMatrixRows).toBe(4);
         expect(result.data.validation).toEqual({ valid: true, errors: [] });
         expect(result.data.publicContextLayer).toMatchObject({ present: true, mutable: false });
         expect(result.data.syntheticTenantSeed).toMatchObject({
@@ -8408,6 +8409,34 @@ describe('dashboard-api.service', () => {
             expect.objectContaining({ roleId: 'ROLE_NETZPLANUNG', relation: 'verantwortlich' }),
           ])
         );
+        expect(result.data.demoProcessMatrixSync).toMatchObject({
+          slug: 'pv-registration-missing-nap',
+          expectedSlug: 'pv-registration-missing-nap',
+          synced: true,
+          roleLegendM: 'Mitwirkend',
+          rowCount: 4,
+          rowCountValid: true,
+          roleCellsClean: true,
+          dataClassesLimited: true,
+          forbiddenActionsStatus: 'not_introduced',
+        });
+        expect(result.data.demoProcessMatrixSync.downstreamHandoff).toMatchObject({
+          blueprintPack: 'complete',
+          landingRegistry: 'pending',
+          productiveDemoRoom: 'pending',
+        });
+        expect(result.data.demoProcessMatrixSync.rows[0]).toMatchObject({
+          phase: '1',
+          roles: {
+            V: 'ROLE_NETZPLANUNG',
+            D: 'ROLE_GRID_OPERATOR',
+            M: 'ROLE_ELECTRICIAN',
+            I: 'ROLE_COMMERCIAL_AUDIT',
+          },
+          evidenceRequirements: expect.arrayContaining(['napReference']),
+          dataClassRefs: expect.arrayContaining(['publicContextLayer', 'syntheticTenantSeed']),
+          gateOutcome: 'missing_nap_clarification',
+        });
         expect(result.data.budibaseRenderTarget).toBe('budibase:stadtwerk-mauer-workbench');
         expect(result.data.brokerDossierHydration.exposed).toBe(false);
         expect(result.data.sourceActions.notCalled).toEqual(

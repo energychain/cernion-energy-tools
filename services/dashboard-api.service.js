@@ -31,6 +31,7 @@ const {
 const { buildIntermunicipalComparison } = require('../src/intermunicipal-comparison');
 const { evaluatePresentationGrounding } = require('../src/receipt-grounded-presentation-contract');
 const {
+  buildDemoProcessMatrixSync,
   buildWorkbenchClarificationItems,
   getVdmiBlueprintPackSeed,
   stadtwerkMauerPvMissingNap,
@@ -29398,6 +29399,7 @@ module.exports = {
       const forbiddenActions = Array.isArray(seed?.forbiddenActions) ? seed.forbiddenActions : [];
       const commandHints = Array.isArray(seed?.allowedCommandHints) ? seed.allowedCommandHints : [];
       const clarificationItems = seed ? buildWorkbenchClarificationItems(seed) : [];
+      const matrixSync = seed ? buildDemoProcessMatrixSync(seed) : null;
       const dataClasses = seed?.dataClasses || {};
       const requiredEvidence = evidenceRequirements.map((item) => item.id).filter(Boolean);
       const missingEvidence = evidenceRequirements
@@ -29453,6 +29455,22 @@ module.exports = {
           targetEndpoint: '/api/governance/role-workbench',
           sourceSeedId: seed?.id || seedId,
         },
+        demoProcessMatrixSync: matrixSync || {
+          slug: null,
+          expectedSlug: 'pv-registration-missing-nap',
+          synced: false,
+          rowCount: 0,
+          rowCountValid: false,
+          roleLegendM: null,
+          roleCellsClean: false,
+          dataClassesLimited: false,
+          rows: [],
+          downstreamHandoff: {
+            blueprintPack: 'missing_seed',
+            landingRegistry: 'pending',
+            productiveDemoRoom: 'pending',
+          },
+        },
         budibaseRenderTarget: budibaseHint?.id || 'budibase:stadtwerk-mauer-workbench',
         rundeckHint: runbookHint?.id || null,
         forbiddenActions,
@@ -29507,6 +29525,7 @@ module.exports = {
             roleRelations: roles.length,
             forbiddenActions: forbiddenActions.length,
             workbenchClarificationItems: clarificationItems.length,
+            demoProcessMatrixRows: matrixSync?.rowCount || 0,
           },
         },
         data,

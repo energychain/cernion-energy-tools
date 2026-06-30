@@ -79,6 +79,111 @@
       "enablesDossierAddition": "Adds consent/evidence status once tenant-provided approval exists."
     }
   ],
+  "demoProcessMatrix": {
+    "slug": "pv-registration-missing-nap",
+    "title": "PV registration with missing NAP evidence",
+    "roleLegend": {
+      "V": "Verantwortlich",
+      "D": "Durchfuehrend",
+      "M": "Mitwirkend",
+      "I": "Informiert"
+    },
+    "headers": [
+      "Phase",
+      "V = Verantwortlich",
+      "D = Durchfuehrend",
+      "M = Mitwirkend",
+      "I = Informiert",
+      "Nachweise"
+    ],
+    "allowedDataClasses": [
+      "publicContextLayer",
+      "syntheticTenantSeed",
+      "sandboxRuntimeArtifact"
+    ],
+    "downstreamHandoff": {
+      "blueprintPack": "complete",
+      "landingRegistry": "pending",
+      "productiveDemoRoom": "pending",
+      "acceptanceNote": "Blueprint-Pack/Cernion-Energy-Tools matrix is canonical; Landing-Registry and productive Demo-Raum sync remain downstream proof steps."
+    },
+    "rows": [
+      {
+        "phase": "1",
+        "v": "ROLE_NETZPLANUNG",
+        "d": "ROLE_GRID_OPERATOR",
+        "m": "ROLE_ELECTRICIAN",
+        "i": "ROLE_COMMERCIAL_AUDIT",
+        "evidenceRequirements": [
+          "publicMunicipalityContext",
+          "napReference"
+        ],
+        "dataClassRefs": [
+          "publicContextLayer",
+          "syntheticTenantSeed"
+        ],
+        "status": "clarification",
+        "gateOutcome": "missing_nap_clarification",
+        "enablesDossierAddition": "Adds NAP assignment and grid-connection context once the synthetic tenant seed contains a usable NAP reference."
+      },
+      {
+        "phase": "2",
+        "v": "ROLE_NETZPLANUNG",
+        "d": "ROLE_ELECTRICIAN",
+        "m": "ROLE_METERING",
+        "i": "ROLE_COMMERCIAL_AUDIT",
+        "evidenceRequirements": [
+          "maloId",
+          "meloId",
+          "meterId"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed"
+        ],
+        "status": "evidence_gap",
+        "gateOutcome": "market_and_metering_evidence_incomplete",
+        "enablesDossierAddition": "Adds MaLo, MeLo and meter evidence rows once tenant-provided placeholders are clarified."
+      },
+      {
+        "phase": "3",
+        "v": "ROLE_NETZPLANUNG",
+        "d": "ROLE_COMMERCIAL_AUDIT",
+        "m": "ROLE_ELECTRICIAN",
+        "i": "ROLE_GRID_OPERATOR",
+        "evidenceRequirements": [
+          "customerConsentStatus"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed",
+          "sandboxRuntimeArtifact"
+        ],
+        "status": "clarification",
+        "gateOutcome": "consent_marker_pending",
+        "enablesDossierAddition": "Adds consent and release clarification before the case can be marked ready for Workbench review."
+      },
+      {
+        "phase": "4",
+        "v": "ROLE_NETZPLANUNG",
+        "d": "ROLE_GRID_OPERATOR",
+        "m": "ROLE_COMMERCIAL_AUDIT",
+        "i": "ROLE_ELECTRICIAN",
+        "evidenceRequirements": [
+          "napReference",
+          "maloId",
+          "meloId",
+          "meterId",
+          "customerConsentStatus"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed",
+          "sandboxRuntimeArtifact"
+        ],
+        "status": "evidence_gap",
+        "gateOutcome": "workbench_review_not_ready",
+        "enablesDossierAddition": "Selects the next safe Workbench gate once all synthetic evidence gaps are closed."
+      }
+    ]
+  },
   "decisionPolicy": {
     "onMissingNapReference": "clarification",
     "onMissingEvidence": "evidence_gap",

@@ -3,6 +3,7 @@
 const {
   REQUIRED_DATA_CLASSES,
   REQUIRED_EVIDENCE,
+  buildDemoProcessMatrixSync,
   buildWorkbenchClarificationItems,
   getVdmiBlueprintPackSeed,
   listVdmiBlueprintPackSeeds,
@@ -88,6 +89,75 @@ describe('VDMI Blueprint Pack seeds', () => {
     expect(stadtwerkMauerPvMissingNap.publicContextMutationAllowed).toBe(false);
     expect(stadtwerkMauerPvMissingNap.tenantProvisioningAllowed).toBe(false);
     expect(stadtwerkMauerPvMissingNap.realWorldClaim).toBe('synthetic_demo_only');
+  });
+
+  test('exposes a canonical Demo-Raum process matrix for PV missing NAP sync', () => {
+    const matrix = stadtwerkMauerPvMissingNap.demoProcessMatrix;
+
+    expect(matrix.slug).toBe('pv-registration-missing-nap');
+    expect(matrix.roleLegend.M).toBe('Mitwirkend');
+    expect(matrix.rows).toHaveLength(4);
+    expect(matrix.rows.length).toBeGreaterThanOrEqual(3);
+    expect(matrix.rows.length).toBeLessThanOrEqual(5);
+    expect(matrix.allowedDataClasses).toEqual(REQUIRED_DATA_CLASSES);
+    expect(matrix.downstreamHandoff).toMatchObject({
+      blueprintPack: 'complete',
+      landingRegistry: 'pending',
+      productiveDemoRoom: 'pending',
+    });
+
+    for (const row of matrix.rows) {
+      expect(row).toEqual(
+        expect.objectContaining({
+          phase: expect.any(String),
+          v: expect.stringMatching(/^ROLE_/),
+          d: expect.stringMatching(/^ROLE_/),
+          m: expect.stringMatching(/^ROLE_/),
+          i: expect.stringMatching(/^ROLE_/),
+          evidenceRequirements: expect.arrayContaining([expect.any(String)]),
+          dataClassRefs: expect.arrayContaining([expect.any(String)]),
+          gateOutcome: expect.any(String),
+          enablesDossierAddition: expect.any(String),
+        })
+      );
+
+      for (const roleCell of [row.v, row.d, row.m, row.i]) {
+        expect(REQUIRED_DATA_CLASSES).not.toContain(roleCell);
+        expect(roleCell).not.toMatch(/Phase|Verantwortlich|Durchfuehrend|Mitwirkend|Informiert|Nachweise/);
+      }
+
+      for (const dataClass of row.dataClassRefs) {
+        expect(REQUIRED_DATA_CLASSES).toContain(dataClass);
+      }
+    }
+  });
+
+  test('builds scalar matrix-sync facts for Workbench verification', () => {
+    const sync = buildDemoProcessMatrixSync(stadtwerkMauerPvMissingNap);
+
+    expect(sync).toMatchObject({
+      slug: 'pv-registration-missing-nap',
+      expectedSlug: 'pv-registration-missing-nap',
+      synced: true,
+      roleLegendM: 'Mitwirkend',
+      rowCount: 4,
+      rowCountValid: true,
+      roleCellsClean: true,
+      dataClassesLimited: true,
+      forbiddenActionsStatus: 'not_introduced',
+    });
+    expect(sync.evidenceRequirements).toEqual(
+      expect.arrayContaining([
+        'napReference',
+        'maloId',
+        'meloId',
+        'meterId',
+        'customerConsentStatus',
+      ])
+    );
+    expect(sync.dataClassRefs).toEqual(
+      expect.arrayContaining(['publicContextLayer', 'syntheticTenantSeed', 'sandboxRuntimeArtifact'])
+    );
   });
 
   test('maps missing evidence to clarification/workbench additions without execution', () => {
