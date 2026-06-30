@@ -8466,6 +8466,60 @@ describe('dashboard-api.service', () => {
           expect.arrayContaining(['tenant.provision', 'external.connector.call'])
         );
       });
+
+      it('returns Redispatch readiness matrix facts through the same verify projection', async () => {
+        const result = await broker.call('dashboard-api.stadtwerkMauerBlueprintPackVerifyStatus', {
+          tenantId: 'stadtwerk-mauer',
+          seedId: 'stadtwerk-mauer-redispatch-participation-readiness-v1',
+        });
+
+        expect(result.status).toBe('completed');
+        expect(result.summary.counts.requiredEvidence).toBe(5);
+        expect(result.summary.counts.demoProcessMatrixRows).toBe(5);
+        expect(result.data.processFamily).toBe('redispatch_readiness');
+        expect(result.data.controlCase).toBe('redispatch_participation_readiness');
+        expect(result.data.requiredEvidence).toEqual(
+          expect.arrayContaining([
+            'syntheticRedispatchAssetPortfolio',
+            'installationGridLocationEvidence',
+            'remoteControlCommunicationTestEvidence',
+            'forecastDispatchTestProof',
+            'readinessReviewDecision',
+          ])
+        );
+        expect(result.data.demoProcessMatrixSync).toMatchObject({
+          slug: 'redispatch-participation-readiness',
+          expectedSlug: 'redispatch-participation-readiness',
+          synced: true,
+          roleLegendM: 'Mitwirkend',
+          rowCount: 5,
+          rowCountValid: true,
+          roleCellsClean: true,
+          dataClassesLimited: true,
+        });
+        expect(result.data.demoProcessMatrixSync.rows[2]).toMatchObject({
+          phase: '3',
+          roles: {
+            V: 'ROLE_GRID_OPERATIONS_LEAD',
+            D: 'ROLE_CERNION_GOVERNANCE',
+            M: 'ROLE_METERING',
+            I: 'ROLE_REGULATORY_AFFAIRS',
+          },
+          evidenceRequirements: ['remoteControlCommunicationTestEvidence'],
+          gateOutcome: 'communication_test_evidence_gap',
+        });
+        expect(result.data.sourceActions.notCalled).toEqual(
+          expect.arrayContaining([
+            'mako.write',
+            'billing.prepare',
+            'settlement.export',
+            'tariff.mutate',
+            'device-control.execute',
+            'personal-agent.execute',
+          ])
+        );
+        expect(result.data.brokerDossierHydration.exposed).toBe(false);
+      });
     });
 
     // -- stadtwerkMauerTransferReadinessStatus -----------------------------

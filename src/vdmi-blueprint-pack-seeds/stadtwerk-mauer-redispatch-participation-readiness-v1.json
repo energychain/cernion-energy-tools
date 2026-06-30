@@ -1,0 +1,260 @@
+{
+  "id": "stadtwerk-mauer-redispatch-participation-readiness-v1",
+  "kind": "vdmi_blueprint_pack_seed",
+  "version": "1.0.0",
+  "safetyClassification": "read_only_blueprint_seed",
+  "title": "Stadtwerk Mauer Redispatch participation readiness seed",
+  "processFamily": "redispatch_readiness",
+  "controlCase": "redispatch_participation_readiness",
+  "sourceTemplateId": "redispatch-participation-confirmation",
+  "demoTenant": {
+    "tenantId": "stadtwerk-mauer",
+    "classification": "synthetic_demo_tenant",
+    "description": "Virtual Stadtwerk Mauer demo tenant; Redispatch readiness values are synthetic unless explicitly marked as public context."
+  },
+  "dataClasses": {
+    "publicContextLayer": {
+      "description": "Read-only MaStR, OSM, grid-location or comparable public context already blended into the virtual Stadtwerk. Demo reset flows must not mutate this layer.",
+      "examples": ["MaStR installation context", "OSM/grid-location context"]
+    },
+    "syntheticTenantSeed": {
+      "description": "Invented demo assets, portfolios, evidence gaps, test markers, roles and process traces for stadtwerk-mauer.",
+      "examples": ["synthetic Redispatch portfolio id", "synthetic communication-test marker", "synthetic forecast proof"]
+    },
+    "sandboxRuntimeArtifact": {
+      "description": "Resettable output from Cernion/Rundeck demo verification runs, separate from public context baselines.",
+      "examples": ["Workbench verify trace", "readiness-gate render artifact"]
+    }
+  },
+  "roles": [
+    {
+      "roleId": "ROLE_GRID_OPERATIONS_LEAD",
+      "relation": "verantwortlich",
+      "responsibility": "Owns the synthetic Redispatch readiness review and decides whether the case is ready for review or still an evidence gap."
+    },
+    {
+      "roleId": "ROLE_CERNION_GOVERNANCE",
+      "relation": "durchfuehrend",
+      "responsibility": "Builds deterministic readiness projections and evidence rows from existing Blueprint-Pack and dashboard read models."
+    },
+    {
+      "roleId": "ROLE_ASSET_MANAGEMENT",
+      "relation": "mitwirkend",
+      "responsibility": "Provides synthetic installation, asset and portfolio context without enrolling or controlling assets."
+    },
+    {
+      "roleId": "ROLE_METERING",
+      "relation": "mitwirkend",
+      "responsibility": "Provides metering and communication-test evidence markers as demo facts only."
+    },
+    {
+      "roleId": "ROLE_REGULATORY_AFFAIRS",
+      "relation": "information",
+      "responsibility": "Receives readiness and evidence-gap context without MaKo, settlement, billing or productive Redispatch action."
+    }
+  ],
+  "evidenceRequirements": [
+    {
+      "id": "syntheticRedispatchAssetPortfolio",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds concrete synthetic asset and portfolio context for a Redispatch readiness review once tenant-provided demo values exist."
+    },
+    {
+      "id": "installationGridLocationEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds MaStR, installation and grid-location review facts once tenant-provided demo evidence exists."
+    },
+    {
+      "id": "remoteControlCommunicationTestEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds remote-control and communication-test readiness proof as evidence only, never as a control action."
+    },
+    {
+      "id": "forecastDispatchTestProof",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds forecast or dispatch-test proof for the next safe review gate without claiming productive dispatch participation."
+    },
+    {
+      "id": "readinessReviewDecision",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds the ready-for-review or evidence-gap handoff once the synthetic review decision exists."
+    }
+  ],
+  "demoProcessMatrix": {
+    "slug": "redispatch-participation-readiness",
+    "title": "Redispatch participation readiness review",
+    "roleLegend": {
+      "V": "Verantwortlich",
+      "D": "Durchfuehrend",
+      "M": "Mitwirkend",
+      "I": "Informiert"
+    },
+    "headers": [
+      "Phase",
+      "V = Verantwortlich",
+      "D = Durchfuehrend",
+      "M = Mitwirkend",
+      "I = Informiert",
+      "Nachweise"
+    ],
+    "allowedDataClasses": [
+      "publicContextLayer",
+      "syntheticTenantSeed",
+      "sandboxRuntimeArtifact"
+    ],
+    "downstreamHandoff": {
+      "blueprintPack": "complete",
+      "landingRegistry": "pending",
+      "productiveDemoRoom": "pending",
+      "acceptanceNote": "Blueprint-Pack/Cernion-Energy-Tools matrix is canonical; Landing-Registry and productive Demo-Raum sync remain downstream proof steps."
+    },
+    "rows": [
+      {
+        "phase": "1",
+        "v": "ROLE_GRID_OPERATIONS_LEAD",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_ASSET_MANAGEMENT",
+        "i": "ROLE_REGULATORY_AFFAIRS",
+        "evidenceRequirements": [
+          "syntheticRedispatchAssetPortfolio"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed"
+        ],
+        "status": "evidence_gap",
+        "gateOutcome": "redispatch_demo_case_identified",
+        "enablesDossierAddition": "Adds the synthetic asset and portfolio as a bounded Redispatch readiness demo case."
+      },
+      {
+        "phase": "2",
+        "v": "ROLE_GRID_OPERATIONS_LEAD",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_ASSET_MANAGEMENT",
+        "i": "ROLE_REGULATORY_AFFAIRS",
+        "evidenceRequirements": [
+          "installationGridLocationEvidence"
+        ],
+        "dataClassRefs": [
+          "publicContextLayer",
+          "syntheticTenantSeed"
+        ],
+        "status": "evidence_gap",
+        "gateOutcome": "installation_grid_location_review_pending",
+        "enablesDossierAddition": "Adds installation, MaStR and grid-location eligibility facts once synthetic evidence is present."
+      },
+      {
+        "phase": "3",
+        "v": "ROLE_GRID_OPERATIONS_LEAD",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_METERING",
+        "i": "ROLE_REGULATORY_AFFAIRS",
+        "evidenceRequirements": [
+          "remoteControlCommunicationTestEvidence"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed",
+          "sandboxRuntimeArtifact"
+        ],
+        "status": "evidence_gap",
+        "gateOutcome": "communication_test_evidence_gap",
+        "enablesDossierAddition": "Adds communication-test and remote-control readiness proof as review evidence only."
+      },
+      {
+        "phase": "4",
+        "v": "ROLE_GRID_OPERATIONS_LEAD",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_ASSET_MANAGEMENT",
+        "i": "ROLE_REGULATORY_AFFAIRS",
+        "evidenceRequirements": [
+          "forecastDispatchTestProof"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed",
+          "sandboxRuntimeArtifact"
+        ],
+        "status": "evidence_gap",
+        "gateOutcome": "forecast_dispatch_test_proof_pending",
+        "enablesDossierAddition": "Adds forecast or dispatch-test review evidence without productive dispatch participation."
+      },
+      {
+        "phase": "5",
+        "v": "ROLE_GRID_OPERATIONS_LEAD",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_ASSET_MANAGEMENT",
+        "i": "ROLE_REGULATORY_AFFAIRS",
+        "evidenceRequirements": [
+          "readinessReviewDecision"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed",
+          "sandboxRuntimeArtifact"
+        ],
+        "status": "clarification",
+        "gateOutcome": "ready_for_review_or_evidence_gap",
+        "enablesDossierAddition": "Adds the next safe readiness gate once the synthetic review decision is present."
+      }
+    ]
+  },
+  "decisionPolicy": {
+    "onMissingEvidence": "evidence_gap",
+    "onMissingReviewDecision": "clarification",
+    "allowedStates": ["clarification", "evidence_gap", "ready_for_review"],
+    "mustNotTrigger": [
+      "redispatch_enrollment",
+      "dispatch_control",
+      "mako_write",
+      "billing",
+      "settlement",
+      "tariff_mutation",
+      "smgw_cls_device_control",
+      "external_connector_call",
+      "hitl_create",
+      "production_mutation",
+      "public_context_mutation"
+    ]
+  },
+  "allowedCommandHints": [
+    {
+      "kind": "workbench_hint",
+      "id": "budibase:stadtwerk-mauer-workbench",
+      "label": "Cernion Stadtwerk Mauer Workbench",
+      "execution": "metadata_only"
+    }
+  ],
+  "forbiddenActions": [
+    "redispatch_enrollment",
+    "dispatch_control",
+    "mako_write",
+    "billing",
+    "settlement",
+    "tariff_mutation",
+    "smgw_cls_device_control",
+    "external_connector_call",
+    "webhook",
+    "hitl_create",
+    "tenant_provisioning",
+    "rundeck_execution",
+    "public_context_mutation",
+    "production_mutation",
+    "personal_agent_hardcoding"
+  ],
+  "publicContextMutationAllowed": false,
+  "tenantProvisioningAllowed": false,
+  "realWorldClaim": "synthetic_demo_only",
+  "projectionHints": {
+    "sourceIssue": 351,
+    "sourceTemplateId": "redispatch-participation-confirmation",
+    "targetSurface": "stadtwerk_mauer_blueprint_pack_verify",
+    "missingEvidenceToWorkbenchItem": true
+  }
+}

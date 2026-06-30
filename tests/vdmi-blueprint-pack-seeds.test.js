@@ -3,11 +3,13 @@
 const {
   REQUIRED_DATA_CLASSES,
   REQUIRED_EVIDENCE,
+  REQUIRED_REDISPATCH_READINESS_EVIDENCE,
   buildDemoProcessMatrixSync,
   buildWorkbenchClarificationItems,
   getVdmiBlueprintPackSeed,
   listVdmiBlueprintPackSeeds,
   stadtwerkMauerPvMissingNap,
+  stadtwerkMauerRedispatchParticipationReadiness,
   validateVdmiBlueprintPackSeed,
 } = require('../src/vdmi-blueprint-pack-seeds');
 
@@ -37,6 +39,32 @@ describe('VDMI Blueprint Pack seeds', () => {
     );
   });
 
+  test('exposes the Redispatch participation readiness seed as read-only metadata', () => {
+    expect(stadtwerkMauerRedispatchParticipationReadiness).toMatchObject({
+      id: 'stadtwerk-mauer-redispatch-participation-readiness-v1',
+      kind: 'vdmi_blueprint_pack_seed',
+      version: '1.0.0',
+      safetyClassification: 'read_only_blueprint_seed',
+      processFamily: 'redispatch_readiness',
+      controlCase: 'redispatch_participation_readiness',
+      sourceTemplateId: 'redispatch-participation-confirmation',
+      demoTenant: {
+        tenantId: 'stadtwerk-mauer',
+        classification: 'synthetic_demo_tenant',
+      },
+    });
+
+    expect(listVdmiBlueprintPackSeeds()).toContainEqual(
+      expect.objectContaining({
+        id: 'stadtwerk-mauer-redispatch-participation-readiness-v1',
+        demoTenantId: 'stadtwerk-mauer',
+      })
+    );
+    expect(getVdmiBlueprintPackSeed('stadtwerk-mauer-redispatch-participation-readiness-v1')).toBe(
+      stadtwerkMauerRedispatchParticipationReadiness
+    );
+  });
+
   test('validates required data-class separation and required evidence points', () => {
     const result = validateVdmiBlueprintPackSeed(stadtwerkMauerPvMissingNap);
     expect(result).toEqual({ valid: true, errors: [] });
@@ -51,6 +79,36 @@ describe('VDMI Blueprint Pack seeds', () => {
       expect(item.dataClass).toBe('syntheticTenantSeed');
       expect(item.enablesDossierAddition).toEqual(expect.any(String));
     }
+  });
+
+  test('validates Redispatch readiness evidence without operational side effects', () => {
+    const result = validateVdmiBlueprintPackSeed(stadtwerkMauerRedispatchParticipationReadiness);
+    expect(result).toEqual({ valid: true, errors: [] });
+
+    const evidenceIds = stadtwerkMauerRedispatchParticipationReadiness.evidenceRequirements.map(
+      (item) => item.id
+    );
+    expect(evidenceIds).toEqual(expect.arrayContaining(REQUIRED_REDISPATCH_READINESS_EVIDENCE));
+    for (const item of stadtwerkMauerRedispatchParticipationReadiness.evidenceRequirements) {
+      expect(item.dataClass).toBe('syntheticTenantSeed');
+      expect(item.enablesDossierAddition).toEqual(expect.any(String));
+    }
+
+    expect(stadtwerkMauerRedispatchParticipationReadiness.forbiddenActions).toEqual(
+      expect.arrayContaining([
+        'redispatch_enrollment',
+        'dispatch_control',
+        'mako_write',
+        'billing',
+        'settlement',
+        'tariff_mutation',
+        'smgw_cls_device_control',
+        'external_connector_call',
+        'hitl_create',
+        'production_mutation',
+        'personal_agent_hardcoding',
+      ])
+    );
   });
 
   test('models role relations for Netzplanung, Grid Operator, and an informed audit role', () => {
@@ -132,6 +190,43 @@ describe('VDMI Blueprint Pack seeds', () => {
     }
   });
 
+  test('exposes a canonical Demo-Raum process matrix for Redispatch readiness sync', () => {
+    const matrix = stadtwerkMauerRedispatchParticipationReadiness.demoProcessMatrix;
+
+    expect(matrix.slug).toBe('redispatch-participation-readiness');
+    expect(matrix.roleLegend.M).toBe('Mitwirkend');
+    expect(matrix.rows).toHaveLength(5);
+    expect(matrix.allowedDataClasses).toEqual(REQUIRED_DATA_CLASSES);
+    expect(matrix.downstreamHandoff).toMatchObject({
+      blueprintPack: 'complete',
+      landingRegistry: 'pending',
+      productiveDemoRoom: 'pending',
+    });
+
+    for (const row of matrix.rows) {
+      expect(row).toEqual(
+        expect.objectContaining({
+          phase: expect.any(String),
+          v: expect.stringMatching(/^ROLE_/),
+          d: expect.stringMatching(/^ROLE_/),
+          m: expect.stringMatching(/^ROLE_/),
+          i: expect.stringMatching(/^ROLE_/),
+          evidenceRequirements: expect.arrayContaining([expect.any(String)]),
+          dataClassRefs: expect.arrayContaining([expect.any(String)]),
+          gateOutcome: expect.any(String),
+          enablesDossierAddition: expect.any(String),
+        })
+      );
+
+      for (const roleCell of [row.v, row.d, row.m, row.i]) {
+        expect(REQUIRED_DATA_CLASSES).not.toContain(roleCell);
+        expect(roleCell).not.toMatch(
+          /Phase|Verantwortlich|Durchfuehrend|Mitwirkend|Informiert|Nachweise/
+        );
+      }
+    }
+  });
+
   test('builds scalar matrix-sync facts for Workbench verification', () => {
     const sync = buildDemoProcessMatrixSync(stadtwerkMauerPvMissingNap);
 
@@ -160,6 +255,31 @@ describe('VDMI Blueprint Pack seeds', () => {
     );
   });
 
+  test('builds scalar matrix-sync facts for Redispatch readiness verification', () => {
+    const sync = buildDemoProcessMatrixSync(stadtwerkMauerRedispatchParticipationReadiness);
+
+    expect(sync).toMatchObject({
+      slug: 'redispatch-participation-readiness',
+      expectedSlug: 'redispatch-participation-readiness',
+      synced: true,
+      roleLegendM: 'Mitwirkend',
+      rowCount: 5,
+      rowCountValid: true,
+      roleCellsClean: true,
+      dataClassesLimited: true,
+      forbiddenActionsStatus: 'not_introduced',
+    });
+    expect(sync.evidenceRequirements).toEqual(
+      expect.arrayContaining([
+        'syntheticRedispatchAssetPortfolio',
+        'installationGridLocationEvidence',
+        'remoteControlCommunicationTestEvidence',
+        'forecastDispatchTestProof',
+        'readinessReviewDecision',
+      ])
+    );
+  });
+
   test('maps missing evidence to clarification/workbench additions without execution', () => {
     const items = buildWorkbenchClarificationItems(stadtwerkMauerPvMissingNap);
 
@@ -176,6 +296,28 @@ describe('VDMI Blueprint Pack seeds', () => {
     expect(items).toContainEqual(
       expect.objectContaining({
         evidenceId: 'customerConsentStatus',
+        state: 'clarification',
+        execution: 'none',
+      })
+    );
+  });
+
+  test('maps Redispatch readiness missing evidence to non-executing workbench additions', () => {
+    const items = buildWorkbenchClarificationItems(stadtwerkMauerRedispatchParticipationReadiness);
+
+    expect(items).toHaveLength(REQUIRED_REDISPATCH_READINESS_EVIDENCE.length);
+    expect(items).toContainEqual(
+      expect.objectContaining({
+        evidenceId: 'remoteControlCommunicationTestEvidence',
+        state: 'evidence_gap',
+        roleHint: 'ROLE_GRID_OPERATIONS_LEAD',
+        execution: 'none',
+        enablesDossierAddition: expect.stringContaining('never as a control action'),
+      })
+    );
+    expect(items).toContainEqual(
+      expect.objectContaining({
+        evidenceId: 'readinessReviewDecision',
         state: 'clarification',
         execution: 'none',
       })

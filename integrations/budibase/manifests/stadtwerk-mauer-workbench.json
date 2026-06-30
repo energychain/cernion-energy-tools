@@ -3768,7 +3768,7 @@
       "name": "getVdmiBlueprintPackVerify",
       "method": "GET",
       "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
-      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-pv-missing-nap-v1",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-redispatch-participation-readiness-v1",
       "parameters": [
         {
           "name": "tenantId",
@@ -3806,14 +3806,14 @@
       "name": "getVdmiBlueprintPackVerifySummaryRows",
       "method": "GET",
       "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
-      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-pv-missing-nap-v1",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-redispatch-participation-readiness-v1",
       "parameters": [
         {
           "name": "tenantId",
           "default": "stadtwerk-mauer"
         }
       ],
-      "transformer": "const d=data.data||{}; const counts=(data.summary||{}).counts||{}; const v=d.validation||{}; return [{rowKey:'blueprint_verify_summary',label:'Blueprint Verify Summary',seedId:d.seedId||'stadtwerk-mauer-pv-missing-nap-v1',tenantId:d.tenantId||data.tenantId||'stadtwerk-mauer',status:data.status||'unknown',valid:Boolean(v.valid),riskClass:data.riskClass||'read_only',processFamily:d.processFamily||'',controlCase:d.controlCase||'',requiredEvidenceCount:counts.requiredEvidence||0,roleRelationCount:counts.roleRelations||0,forbiddenActionCount:counts.forbiddenActions||0,budibaseRenderTarget:d.budibaseRenderTarget||'',safeNextAction:(data.nextActions||[])[0]||'render_verify_read_model_in_budibase',sourceClass:'vdmi_blueprint_pack_verify'}]",
+      "transformer": "const d=data.data||{}; const counts=(data.summary||{}).counts||{}; const v=d.validation||{}; return [{rowKey:'blueprint_verify_summary',label:'Blueprint Verify Summary',seedId:d.seedId||'stadtwerk-mauer-redispatch-participation-readiness-v1',tenantId:d.tenantId||data.tenantId||'stadtwerk-mauer',status:data.status||'unknown',valid:Boolean(v.valid),riskClass:data.riskClass||'read_only',processFamily:d.processFamily||'',controlCase:d.controlCase||'',requiredEvidenceCount:counts.requiredEvidence||0,roleRelationCount:counts.roleRelations||0,forbiddenActionCount:counts.forbiddenActions||0,budibaseRenderTarget:d.budibaseRenderTarget||'',safeNextAction:(data.nextActions||[])[0]||'render_verify_read_model_in_budibase',sourceClass:'vdmi_blueprint_pack_verify'}]",
       "schema": {
         "rowKey": {
           "type": "string"
@@ -3866,7 +3866,7 @@
       "name": "getVdmiBlueprintPackVerifyMatrixRows",
       "method": "GET",
       "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
-      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-pv-missing-nap-v1",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-redispatch-participation-readiness-v1",
       "parameters": [
         {
           "name": "tenantId",
@@ -3935,7 +3935,7 @@
       "name": "getVdmiBlueprintPackVerifyDataClassRows",
       "method": "GET",
       "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
-      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-pv-missing-nap-v1",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-redispatch-participation-readiness-v1",
       "parameters": [
         {
           "name": "tenantId",
@@ -3983,7 +3983,7 @@
       "name": "getVdmiBlueprintPackVerifyEvidenceRows",
       "method": "GET",
       "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
-      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-pv-missing-nap-v1",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-redispatch-participation-readiness-v1",
       "parameters": [
         {
           "name": "tenantId",
@@ -4019,7 +4019,7 @@
       "name": "getVdmiBlueprintPackVerifyRoleRows",
       "method": "GET",
       "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
-      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-pv-missing-nap-v1",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-redispatch-participation-readiness-v1",
       "parameters": [
         {
           "name": "tenantId",
@@ -4055,7 +4055,7 @@
       "name": "getVdmiBlueprintPackVerifyWarningRows",
       "method": "GET",
       "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
-      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-pv-missing-nap-v1",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-redispatch-participation-readiness-v1",
       "parameters": [
         {
           "name": "tenantId",
@@ -4088,7 +4088,7 @@
       "name": "getVdmiBlueprintPackVerifyForbiddenActionRows",
       "method": "GET",
       "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
-      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-pv-missing-nap-v1",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-redispatch-participation-readiness-v1",
       "parameters": [
         {
           "name": "tenantId",
@@ -4118,7 +4118,7 @@
       "name": "getStadtwerkMauerTransferReadinessSummaryRows",
       "method": "GET",
       "path": "/api/dashboard/stadtwerk-mauer-transfer-readiness",
-      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-pv-missing-nap-v1&caseId=smm-budibase-workbench",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-redispatch-participation-readiness-v1&caseId=smm-budibase-workbench",
       "parameters": [
         {
           "name": "tenantId",
@@ -4169,7 +4169,7 @@
       "name": "getStadtwerkMauerTransferReadinessDataClassRows",
       "method": "GET",
       "path": "/api/dashboard/stadtwerk-mauer-transfer-readiness",
-      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-pv-missing-nap-v1&caseId=smm-budibase-workbench",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-redispatch-participation-readiness-v1&caseId=smm-budibase-workbench",
       "parameters": [
         {
           "name": "tenantId",
@@ -4217,7 +4217,7 @@
       "name": "getStadtwerkMauerTransferReadinessTenantParameterRows",
       "method": "GET",
       "path": "/api/dashboard/stadtwerk-mauer-transfer-readiness",
-      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-pv-missing-nap-v1&caseId=smm-budibase-workbench",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-redispatch-participation-readiness-v1&caseId=smm-budibase-workbench",
       "parameters": [
         {
           "name": "tenantId",
@@ -4256,7 +4256,7 @@
       "name": "getStadtwerkMauerTransferReadinessReusableRows",
       "method": "GET",
       "path": "/api/dashboard/stadtwerk-mauer-transfer-readiness",
-      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-pv-missing-nap-v1&caseId=smm-budibase-workbench",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-redispatch-participation-readiness-v1&caseId=smm-budibase-workbench",
       "parameters": [
         {
           "name": "tenantId",
@@ -4292,7 +4292,7 @@
       "name": "getStadtwerkMauerTransferReadinessBoundaryRows",
       "method": "GET",
       "path": "/api/dashboard/stadtwerk-mauer-transfer-readiness",
-      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-pv-missing-nap-v1&caseId=smm-budibase-workbench",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-redispatch-participation-readiness-v1&caseId=smm-budibase-workbench",
       "parameters": [
         {
           "name": "tenantId",
@@ -4325,7 +4325,7 @@
       "name": "getStadtwerkMauerTransferReadinessSafeNextGateRows",
       "method": "GET",
       "path": "/api/dashboard/stadtwerk-mauer-transfer-readiness",
-      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-pv-missing-nap-v1&caseId=smm-budibase-workbench",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-redispatch-participation-readiness-v1&caseId=smm-budibase-workbench",
       "parameters": [
         {
           "name": "tenantId",
@@ -5068,7 +5068,7 @@
       "id": "blueprint_verify_demo_process_matrix",
       "title": "Demo Process Matrix",
       "queryName": "getVdmiBlueprintPackVerifyMatrixRows",
-      "tableTitle": "PV Missing-NAP Matrix Sync"
+      "tableTitle": "Redispatch Readiness Matrix Sync"
     },
     {
       "id": "blueprint_verify_data_classes",
@@ -5194,7 +5194,7 @@
     "Controlled Action runStadtwerkMauerE2ESmoke remains scope-protected by Cernion.",
     "VDMI Profile and Synthetic Event Preview bind to existing dashboard read models with scalar role, capability, evidence, preview and no-call rows; Budibase refreshes queries only and never injects or executes synthetic events.",
     "Evidence Freshness binds to the existing evidence-freshness-guard read model with synthetic Stadtwerk Mauer signal metadata; Budibase renders scalar freshness, delta, evidence-gap and no-call rows only.",
-    "Blueprint Verify binds to the existing operations-runbook verify wrapper and renders scalar summary, matrix-sync, data-class, required-evidence, role-relation, next-gate and no-call rows for stadtwerk-mauer-pv-missing-nap-v1.",
+    "Blueprint Verify binds to the existing operations-runbook verify wrapper and renders scalar summary, matrix-sync, data-class, required-evidence, role-relation, next-gate and no-call rows for stadtwerk-mauer-redispatch-participation-readiness-v1.",
     "Transfer Readiness binds to a read-only dashboard facade that separates public context, synthetic seed values, sandbox runtime artifacts, tenant parameters, reusable Workbench elements and blocked production boundaries.",
     "VNB Delta / Signal Queue binds to existing classifier, queue, owner/deadline/evidence and leadership delta read models with synthetic caller-supplied signals; Budibase renders scalar operator rows and no-call guards only.",
     "Budibase renders the workbench; Cernion remains the system of record and command gate."

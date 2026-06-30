@@ -1,6 +1,7 @@
 'use strict';
 
 const stadtwerkMauerPvMissingNap = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-pv-missing-nap-v1.json');
+const stadtwerkMauerRedispatchParticipationReadiness = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-redispatch-participation-readiness-v1.json');
 
 const REQUIRED_EVIDENCE = Object.freeze([
   'napReference',
@@ -8,6 +9,13 @@ const REQUIRED_EVIDENCE = Object.freeze([
   'meloId',
   'meterId',
   'customerConsentStatus',
+]);
+const REQUIRED_REDISPATCH_READINESS_EVIDENCE = Object.freeze([
+  'syntheticRedispatchAssetPortfolio',
+  'installationGridLocationEvidence',
+  'remoteControlCommunicationTestEvidence',
+  'forecastDispatchTestProof',
+  'readinessReviewDecision',
 ]);
 
 const REQUIRED_DATA_CLASSES = Object.freeze([
@@ -17,6 +25,10 @@ const REQUIRED_DATA_CLASSES = Object.freeze([
 ]);
 
 const REQUIRED_ROLE_IDS = Object.freeze(['ROLE_NETZPLANUNG', 'ROLE_GRID_OPERATOR']);
+const REQUIRED_REDISPATCH_READINESS_ROLE_IDS = Object.freeze([
+  'ROLE_GRID_OPERATIONS_LEAD',
+  'ROLE_CERNION_GOVERNANCE',
+]);
 const REQUIRED_MATRIX_ROLE_KEYS = Object.freeze(['v', 'd', 'm', 'i']);
 const MATRIX_HEADER_WORDS = Object.freeze([
   'Phase',
@@ -27,7 +39,33 @@ const MATRIX_HEADER_WORDS = Object.freeze([
   'Nachweise',
 ]);
 
-const SEEDS = Object.freeze([stadtwerkMauerPvMissingNap]);
+const SEEDS = Object.freeze([
+  stadtwerkMauerPvMissingNap,
+  stadtwerkMauerRedispatchParticipationReadiness,
+]);
+
+const SEED_VALIDATION_REQUIREMENTS = Object.freeze({
+  [stadtwerkMauerPvMissingNap.id]: Object.freeze({
+    requiredEvidence: REQUIRED_EVIDENCE,
+    requiredRoleIds: REQUIRED_ROLE_IDS,
+    expectedMatrixSlug: 'pv-registration-missing-nap',
+  }),
+  [stadtwerkMauerRedispatchParticipationReadiness.id]: Object.freeze({
+    requiredEvidence: REQUIRED_REDISPATCH_READINESS_EVIDENCE,
+    requiredRoleIds: REQUIRED_REDISPATCH_READINESS_ROLE_IDS,
+    expectedMatrixSlug: 'redispatch-participation-readiness',
+  }),
+});
+
+function getSeedValidationRequirements(seed) {
+  return (
+    SEED_VALIDATION_REQUIREMENTS[seed?.id] || {
+      requiredEvidence: [],
+      requiredRoleIds: [],
+      expectedMatrixSlug: seed?.demoProcessMatrix?.slug || null,
+    }
+  );
+}
 
 function listVdmiBlueprintPackSeeds() {
   return SEEDS.map((seed) => ({
@@ -78,8 +116,9 @@ function validateVdmiBlueprintPackSeed(seed) {
     }
   }
 
+  const requirements = getSeedValidationRequirements(seed);
   const roleIds = new Set((seed.roles || []).map((role) => role.roleId));
-  for (const roleId of REQUIRED_ROLE_IDS) {
+  for (const roleId of requirements.requiredRoleIds) {
     if (!roleIds.has(roleId)) errors.push(`missing role: ${roleId}`);
   }
   if (!(seed.roles || []).some((role) => role.relation === 'information')) {
@@ -87,7 +126,7 @@ function validateVdmiBlueprintPackSeed(seed) {
   }
 
   const evidenceIds = new Set((seed.evidenceRequirements || []).map((item) => item.id));
-  for (const evidenceId of REQUIRED_EVIDENCE) {
+  for (const evidenceId of requirements.requiredEvidence) {
     if (!evidenceIds.has(evidenceId)) errors.push(`missing evidence requirement: ${evidenceId}`);
   }
 
@@ -104,8 +143,8 @@ function validateVdmiBlueprintPackSeed(seed) {
   if (!matrix || typeof matrix !== 'object') {
     errors.push('missing demoProcessMatrix');
   } else {
-    if (matrix.slug !== 'pv-registration-missing-nap') {
-      errors.push('demoProcessMatrix.slug must be pv-registration-missing-nap');
+    if (requirements.expectedMatrixSlug && matrix.slug !== requirements.expectedMatrixSlug) {
+      errors.push(`demoProcessMatrix.slug must be ${requirements.expectedMatrixSlug}`);
     }
     if (matrix.roleLegend?.M !== 'Mitwirkend') {
       errors.push('demoProcessMatrix.roleLegend.M must be Mitwirkend');
@@ -211,7 +250,12 @@ function buildWorkbenchClarificationItems(seed) {
     controlCase: selectedSeed.controlCase,
     evidenceId: item.id,
     state: item.missingState,
-    roleHint: item.id === 'napReference' ? 'ROLE_NETZPLANUNG' : 'ROLE_GRID_OPERATOR',
+    roleHint:
+      item.id === 'napReference'
+        ? 'ROLE_NETZPLANUNG'
+        : selectedSeed.id === stadtwerkMauerRedispatchParticipationReadiness.id
+          ? 'ROLE_GRID_OPERATIONS_LEAD'
+          : 'ROLE_GRID_OPERATOR',
     enablesDossierAddition: item.enablesDossierAddition,
     sourceSeedId: selectedSeed.id,
     execution: 'none',
@@ -257,8 +301,10 @@ function buildDemoProcessMatrixSync(seed) {
 
   return {
     slug: matrix.slug || null,
-    expectedSlug: 'pv-registration-missing-nap',
-    synced: matrix.slug === 'pv-registration-missing-nap',
+    expectedSlug:
+      getSeedValidationRequirements(selectedSeed).expectedMatrixSlug || matrix.slug || null,
+    synced:
+      matrix.slug === (getSeedValidationRequirements(selectedSeed).expectedMatrixSlug || matrix.slug),
     roleLegend: matrix.roleLegend || {},
     roleLegendM: matrix.roleLegend?.M || null,
     rowCount: rows.length,
@@ -280,11 +326,14 @@ function buildDemoProcessMatrixSync(seed) {
 module.exports = {
   REQUIRED_DATA_CLASSES,
   REQUIRED_EVIDENCE,
+  REQUIRED_REDISPATCH_READINESS_EVIDENCE,
+  REQUIRED_REDISPATCH_READINESS_ROLE_IDS,
   REQUIRED_ROLE_IDS,
   buildDemoProcessMatrixSync,
   buildWorkbenchClarificationItems,
   getVdmiBlueprintPackSeed,
   listVdmiBlueprintPackSeeds,
+  stadtwerkMauerRedispatchParticipationReadiness,
   stadtwerkMauerPvMissingNap,
   validateVdmiBlueprintPackSeed,
 };

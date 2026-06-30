@@ -29457,7 +29457,7 @@ module.exports = {
         },
         demoProcessMatrixSync: matrixSync || {
           slug: null,
-          expectedSlug: 'pv-registration-missing-nap',
+          expectedSlug: null,
           synced: false,
           rowCount: 0,
           rowCountValid: false,
@@ -29477,7 +29477,9 @@ module.exports = {
         sourceActions: {
           inspected: ['dashboard-api.stadtwerkMauerBlueprintPackVerifyStatus'],
           referenced: [
-            'src/vdmi-blueprint-pack-seeds/stadtwerk-mauer-pv-missing-nap-v1.json',
+            seed?.id
+              ? `src/vdmi-blueprint-pack-seeds/${seed.id}.json`
+              : 'src/vdmi-blueprint-pack-seeds',
             'validateVdmiBlueprintPackSeed',
             'operations-runbook.verifyVdmiBlueprintPackSeed',
           ],
