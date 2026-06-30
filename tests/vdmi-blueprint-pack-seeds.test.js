@@ -4,12 +4,14 @@ const {
   REQUIRED_DATA_CLASSES,
   REQUIRED_EVIDENCE,
   REQUIRED_REDISPATCH_READINESS_EVIDENCE,
+  REQUIRED_SUBSTATION_LOAD_ASSESSMENT_EVIDENCE,
   buildDemoProcessMatrixSync,
   buildWorkbenchClarificationItems,
   getVdmiBlueprintPackSeed,
   listVdmiBlueprintPackSeeds,
   stadtwerkMauerPvMissingNap,
   stadtwerkMauerRedispatchParticipationReadiness,
+  stadtwerkMauerSubstationLoadAssessment,
   validateVdmiBlueprintPackSeed,
 } = require('../src/vdmi-blueprint-pack-seeds');
 
@@ -65,6 +67,32 @@ describe('VDMI Blueprint Pack seeds', () => {
     );
   });
 
+  test('exposes the substation load assessment seed as read-only metadata', () => {
+    expect(stadtwerkMauerSubstationLoadAssessment).toMatchObject({
+      id: 'stadtwerk-mauer-substation-load-assessment-v1',
+      kind: 'vdmi_blueprint_pack_seed',
+      version: '1.0.0',
+      safetyClassification: 'read_only_blueprint_seed',
+      processFamily: 'grid_capacity_governance',
+      controlCase: 'substation_load_assessment',
+      sourceTemplateId: 'substation-load-assessment',
+      demoTenant: {
+        tenantId: 'stadtwerk-mauer',
+        classification: 'synthetic_demo_tenant',
+      },
+    });
+
+    expect(listVdmiBlueprintPackSeeds()).toContainEqual(
+      expect.objectContaining({
+        id: 'stadtwerk-mauer-substation-load-assessment-v1',
+        demoTenantId: 'stadtwerk-mauer',
+      })
+    );
+    expect(getVdmiBlueprintPackSeed('stadtwerk-mauer-substation-load-assessment-v1')).toBe(
+      stadtwerkMauerSubstationLoadAssessment
+    );
+  });
+
   test('validates required data-class separation and required evidence points', () => {
     const result = validateVdmiBlueprintPackSeed(stadtwerkMauerPvMissingNap);
     expect(result).toEqual({ valid: true, errors: [] });
@@ -105,6 +133,39 @@ describe('VDMI Blueprint Pack seeds', () => {
         'smgw_cls_device_control',
         'external_connector_call',
         'hitl_create',
+        'production_mutation',
+        'personal_agent_hardcoding',
+      ])
+    );
+  });
+
+  test('validates substation load assessment evidence without investment or control side effects', () => {
+    const result = validateVdmiBlueprintPackSeed(stadtwerkMauerSubstationLoadAssessment);
+    expect(result).toEqual({ valid: true, errors: [] });
+
+    const evidenceIds = stadtwerkMauerSubstationLoadAssessment.evidenceRequirements.map(
+      (item) => item.id
+    );
+    expect(evidenceIds).toEqual(
+      expect.arrayContaining(REQUIRED_SUBSTATION_LOAD_ASSESSMENT_EVIDENCE)
+    );
+    for (const item of stadtwerkMauerSubstationLoadAssessment.evidenceRequirements) {
+      expect(item.dataClass).toBe('syntheticTenantSeed');
+      expect(item.enablesDossierAddition).toEqual(expect.any(String));
+    }
+
+    expect(stadtwerkMauerSubstationLoadAssessment.forbiddenActions).toEqual(
+      expect.arrayContaining([
+        'grid_expansion_decision',
+        'procurement_start',
+        'budget_approval',
+        'section_14a_switching',
+        'flex_dispatch',
+        'device_control',
+        'billing',
+        'settlement',
+        'tariff_mutation',
+        'external_connector_call',
         'production_mutation',
         'personal_agent_hardcoding',
       ])
@@ -227,6 +288,52 @@ describe('VDMI Blueprint Pack seeds', () => {
     }
   });
 
+  test('exposes a canonical Demo-Raum process matrix for substation load assessment sync', () => {
+    const matrix = stadtwerkMauerSubstationLoadAssessment.demoProcessMatrix;
+
+    expect(matrix.slug).toBe('substation-load-assessment');
+    expect(matrix.roleLegend.M).toBe('Mitwirkend');
+    expect(matrix.rows).toHaveLength(5);
+    expect(matrix.allowedDataClasses).toEqual(REQUIRED_DATA_CLASSES);
+    expect(matrix.downstreamHandoff).toMatchObject({
+      blueprintPack: 'complete',
+      landingRegistry: 'pending',
+      productiveDemoRoom: 'pending',
+    });
+    expect(matrix.rows[2]).toMatchObject({
+      phase: '3',
+      v: 'ROLE_ASSET_PLANNING_LEAD',
+      d: 'ROLE_CERNION_GOVERNANCE',
+      m: 'ROLE_GRID_OPERATIONS',
+      i: 'ROLE_COMMERCIAL_AUDIT',
+      evidenceRequirements: ['flexOptionEvidence', 'capexOptionEvidence'],
+      gateOutcome: 'flex_capex_scenario_review_only',
+    });
+
+    for (const row of matrix.rows) {
+      expect(row).toEqual(
+        expect.objectContaining({
+          phase: expect.any(String),
+          v: expect.stringMatching(/^ROLE_/),
+          d: expect.stringMatching(/^ROLE_/),
+          m: expect.stringMatching(/^ROLE_/),
+          i: expect.stringMatching(/^ROLE_/),
+          evidenceRequirements: expect.arrayContaining([expect.any(String)]),
+          dataClassRefs: expect.arrayContaining([expect.any(String)]),
+          gateOutcome: expect.any(String),
+          enablesDossierAddition: expect.any(String),
+        })
+      );
+
+      for (const roleCell of [row.v, row.d, row.m, row.i]) {
+        expect(REQUIRED_DATA_CLASSES).not.toContain(roleCell);
+        expect(roleCell).not.toMatch(
+          /Phase|Verantwortlich|Durchfuehrend|Mitwirkend|Informiert|Nachweise/
+        );
+      }
+    }
+  });
+
   test('builds scalar matrix-sync facts for Workbench verification', () => {
     const sync = buildDemoProcessMatrixSync(stadtwerkMauerPvMissingNap);
 
@@ -280,6 +387,35 @@ describe('VDMI Blueprint Pack seeds', () => {
     );
   });
 
+  test('builds scalar matrix-sync facts for substation load assessment verification', () => {
+    const sync = buildDemoProcessMatrixSync(stadtwerkMauerSubstationLoadAssessment);
+
+    expect(sync).toMatchObject({
+      slug: 'substation-load-assessment',
+      expectedSlug: 'substation-load-assessment',
+      synced: true,
+      roleLegendM: 'Mitwirkend',
+      rowCount: 5,
+      rowCountValid: true,
+      roleCellsClean: true,
+      dataClassesLimited: true,
+      forbiddenActionsStatus: 'not_introduced',
+    });
+    expect(sync.evidenceRequirements).toEqual(
+      expect.arrayContaining(REQUIRED_SUBSTATION_LOAD_ASSESSMENT_EVIDENCE)
+    );
+    expect(sync.rows[2]).toMatchObject({
+      phase: '3',
+      roles: {
+        V: 'ROLE_ASSET_PLANNING_LEAD',
+        D: 'ROLE_CERNION_GOVERNANCE',
+        M: 'ROLE_GRID_OPERATIONS',
+        I: 'ROLE_COMMERCIAL_AUDIT',
+      },
+      gateOutcome: 'flex_capex_scenario_review_only',
+    });
+  });
+
   test('maps missing evidence to clarification/workbench additions without execution', () => {
     const items = buildWorkbenchClarificationItems(stadtwerkMauerPvMissingNap);
 
@@ -320,6 +456,28 @@ describe('VDMI Blueprint Pack seeds', () => {
         evidenceId: 'readinessReviewDecision',
         state: 'clarification',
         execution: 'none',
+      })
+    );
+  });
+
+  test('maps substation load assessment missing evidence to non-executing workbench additions', () => {
+    const items = buildWorkbenchClarificationItems(stadtwerkMauerSubstationLoadAssessment);
+
+    expect(items).toHaveLength(REQUIRED_SUBSTATION_LOAD_ASSESSMENT_EVIDENCE.length);
+    expect(items).toContainEqual(
+      expect.objectContaining({
+        evidenceId: 'stationBoundaryEvidence',
+        state: 'evidence_gap',
+        roleHint: 'ROLE_ASSET_PLANNING_LEAD',
+        execution: 'none',
+      })
+    );
+    expect(items).toContainEqual(
+      expect.objectContaining({
+        evidenceId: 'reviewGateMarker',
+        state: 'clarification',
+        execution: 'none',
+        enablesDossierAddition: expect.stringContaining('next safe review gate'),
       })
     );
   });

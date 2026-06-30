@@ -38,7 +38,7 @@ The workbench renders:
 - VDMI profile, role model, evidence-gap, capability-projection and synthetic event preview rows from the existing read-only dashboard bricks: `GET /api/dashboard/stadtwerk-mauer-vdmi-profile`, `GET /api/dashboard/stadtwerk-mauer-capability-projection` and `GET /api/dashboard/stadtwerk-mauer-event-replay-preview`
 - VNB delta signal queue rows from existing read-only dashboard bricks: `GET /api/dashboard/cross-channel-vnb-signal-queue`, `POST /api/dashboard/vnb-delta-signal-classifier/classify`, `GET /api/dashboard/owner-deadline-evidence-gate` and `GET /api/dashboard/leadership-delta-cockpit`
 - Evidence Freshness rows for the selected synthetic VNB signal from `GET /api/dashboard/evidence-freshness-guard`
-- Blueprint-Pack verify and Demo-Raum matrix-sync rows for `stadtwerk-mauer-redispatch-participation-readiness-v1` from `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify`, backed by the existing operations-runbook verify contract
+- Blueprint-Pack verify and Demo-Raum matrix-sync rows for `stadtwerk-mauer-substation-load-assessment-v1` from `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify`, backed by the existing operations-runbook verify contract
 - Transfer Readiness rows from `GET /api/dashboard/stadtwerk-mauer-transfer-readiness`, separating public context, synthetic seed data, sandbox runtime artifacts, tenant parameters, reusable Blueprint/Workbench elements and blocked production boundaries
 - a scope-protected action query for `POST /api/operations-runbook/stadtwerk-mauer/e2e-smoke`
 

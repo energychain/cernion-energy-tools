@@ -1,0 +1,293 @@
+{
+  "id": "stadtwerk-mauer-substation-load-assessment-v1",
+  "kind": "vdmi_blueprint_pack_seed",
+  "version": "1.0.0",
+  "safetyClassification": "read_only_blueprint_seed",
+  "title": "Stadtwerk Mauer substation load assessment seed",
+  "processFamily": "grid_capacity_governance",
+  "controlCase": "substation_load_assessment",
+  "sourceTemplateId": "substation-load-assessment",
+  "demoTenant": {
+    "tenantId": "stadtwerk-mauer",
+    "classification": "synthetic_demo_tenant",
+    "description": "Virtual Stadtwerk Mauer demo tenant; station, load, forecast, Flex and CAPEX values are synthetic unless explicitly marked as public context."
+  },
+  "dataClasses": {
+    "publicContextLayer": {
+      "description": "Read-only MaStR, OSM, municipal or comparable public context already blended into the virtual Stadtwerk. Demo reset flows must not mutate this layer.",
+      "examples": ["municipal load-growth context", "OSM station-area context", "MaStR asset surroundings"]
+    },
+    "syntheticTenantSeed": {
+      "description": "Invented demo station, load profile, forecast, Flex option, CAPEX option, governance marker and process traces for stadtwerk-mauer.",
+      "examples": ["synthetic station boundary", "synthetic 12-month forecast", "synthetic CAPEX option marker"]
+    },
+    "sandboxRuntimeArtifact": {
+      "description": "Resettable output from Cernion/Rundeck demo verification runs, separate from public context baselines.",
+      "examples": ["Workbench verify trace", "matrix-sync render artifact"]
+    }
+  },
+  "roles": [
+    {
+      "roleId": "ROLE_ASSET_PLANNING_LEAD",
+      "relation": "verantwortlich",
+      "responsibility": "Owns the synthetic station/load review and decides whether the case is ready for review or still an evidence gap."
+    },
+    {
+      "roleId": "ROLE_CERNION_GOVERNANCE",
+      "relation": "durchfuehrend",
+      "responsibility": "Builds deterministic station/load/Flex/CAPEX review rows from existing Blueprint-Pack and dashboard read models."
+    },
+    {
+      "roleId": "ROLE_GRID_OPERATIONS",
+      "relation": "mitwirkend",
+      "responsibility": "Provides synthetic grid-operations plausibility context without switching, control or expansion execution."
+    },
+    {
+      "roleId": "ROLE_ASSET_MANAGEMENT",
+      "relation": "mitwirkend",
+      "responsibility": "Provides synthetic asset and station context without starting procurement or budget workflows."
+    },
+    {
+      "roleId": "ROLE_CONTROLLING",
+      "relation": "mitwirkend",
+      "responsibility": "Provides synthetic CAPEX scenario context as non-binding review evidence only."
+    },
+    {
+      "roleId": "ROLE_REGULATORY_AFFAIRS",
+      "relation": "information",
+      "responsibility": "Receives review-readiness and governance-boundary context without legal approval, MaKo, settlement, billing or tariff action."
+    },
+    {
+      "roleId": "ROLE_COMMERCIAL_AUDIT",
+      "relation": "information",
+      "responsibility": "Receives non-binding commercial context without budget approval or investment commitment."
+    }
+  ],
+  "evidenceRequirements": [
+    {
+      "id": "stationBoundaryEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds the synthetic station/load review scope and asset boundary once tenant-provided review evidence exists."
+    },
+    {
+      "id": "loadProfileEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds the current load-profile baseline to the station review matrix once tenant-provided values exist."
+    },
+    {
+      "id": "forecastHorizonEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds 12-month forecast confidence and horizon context to the dossier once supplied."
+    },
+    {
+      "id": "flexOptionEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds non-binding Flex scenario comparison without dispatch, switching or device-control execution."
+    },
+    {
+      "id": "capexOptionEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds investment scenario context without procurement start, budget approval or expansion commitment."
+    },
+    {
+      "id": "reviewGateMarker",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds the next safe review gate and governance boundary once owner and review state are supplied."
+    }
+  ],
+  "demoProcessMatrix": {
+    "slug": "substation-load-assessment",
+    "title": "Substation load assessment review",
+    "roleLegend": {
+      "V": "Verantwortlich",
+      "D": "Durchfuehrend",
+      "M": "Mitwirkend",
+      "I": "Informiert"
+    },
+    "headers": [
+      "Phase",
+      "V = Verantwortlich",
+      "D = Durchfuehrend",
+      "M = Mitwirkend",
+      "I = Informiert",
+      "Nachweise"
+    ],
+    "allowedDataClasses": [
+      "publicContextLayer",
+      "syntheticTenantSeed",
+      "sandboxRuntimeArtifact"
+    ],
+    "downstreamHandoff": {
+      "blueprintPack": "complete",
+      "landingRegistry": "pending",
+      "productiveDemoRoom": "pending",
+      "acceptanceNote": "Blueprint-Pack/Cernion-Energy-Tools matrix is canonical; Landing-Registry and productive Demo-Raum sync remain downstream proof steps."
+    },
+    "rows": [
+      {
+        "phase": "1",
+        "v": "ROLE_ASSET_PLANNING_LEAD",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_ASSET_MANAGEMENT",
+        "i": "ROLE_REGULATORY_AFFAIRS",
+        "evidenceRequirements": [
+          "stationBoundaryEvidence"
+        ],
+        "dataClassRefs": [
+          "publicContextLayer",
+          "syntheticTenantSeed"
+        ],
+        "status": "evidence_gap",
+        "gateOutcome": "synthetic_station_case_identified",
+        "enablesDossierAddition": "Adds the synthetic station/load case boundary as a bounded review case."
+      },
+      {
+        "phase": "2",
+        "v": "ROLE_ASSET_PLANNING_LEAD",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_GRID_OPERATIONS",
+        "i": "ROLE_REGULATORY_AFFAIRS",
+        "evidenceRequirements": [
+          "loadProfileEvidence",
+          "forecastHorizonEvidence"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed",
+          "sandboxRuntimeArtifact"
+        ],
+        "status": "evidence_gap",
+        "gateOutcome": "load_forecast_evidence_pending",
+        "enablesDossierAddition": "Adds load-profile baseline and 12-month forecast confidence once synthetic evidence is present."
+      },
+      {
+        "phase": "3",
+        "v": "ROLE_ASSET_PLANNING_LEAD",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_GRID_OPERATIONS",
+        "i": "ROLE_COMMERCIAL_AUDIT",
+        "evidenceRequirements": [
+          "flexOptionEvidence",
+          "capexOptionEvidence"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed"
+        ],
+        "status": "evidence_gap",
+        "gateOutcome": "flex_capex_scenario_review_only",
+        "enablesDossierAddition": "Adds non-binding Flex and CAPEX scenario evidence without approval or operational execution."
+      },
+      {
+        "phase": "4",
+        "v": "ROLE_ASSET_PLANNING_LEAD",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_CONTROLLING",
+        "i": "ROLE_REGULATORY_AFFAIRS",
+        "evidenceRequirements": [
+          "reviewGateMarker"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed",
+          "sandboxRuntimeArtifact"
+        ],
+        "status": "clarification",
+        "gateOutcome": "budget_procurement_legal_gate_review_only",
+        "enablesDossierAddition": "Adds the review-only budget, procurement and legal boundary without creating approval authority."
+      },
+      {
+        "phase": "5",
+        "v": "ROLE_ASSET_PLANNING_LEAD",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_ASSET_MANAGEMENT",
+        "i": "ROLE_COMMERCIAL_AUDIT",
+        "evidenceRequirements": [
+          "stationBoundaryEvidence",
+          "loadProfileEvidence",
+          "forecastHorizonEvidence",
+          "flexOptionEvidence",
+          "capexOptionEvidence",
+          "reviewGateMarker"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed",
+          "sandboxRuntimeArtifact"
+        ],
+        "status": "evidence_gap",
+        "gateOutcome": "ready_for_review_or_evidence_gap",
+        "enablesDossierAddition": "Selects the next safe review gate once all synthetic station/load evidence is complete."
+      }
+    ]
+  },
+  "decisionPolicy": {
+    "onMissingEvidence": "evidence_gap",
+    "onMissingReviewGateMarker": "clarification",
+    "allowedStates": ["clarification", "evidence_gap", "ready_for_review"],
+    "mustNotTrigger": [
+      "grid_expansion_decision",
+      "procurement_start",
+      "budget_approval",
+      "legal_approval",
+      "section_14a_switching",
+      "flex_dispatch",
+      "device_control",
+      "mako_write",
+      "billing",
+      "settlement",
+      "tariff_mutation",
+      "external_connector_call",
+      "hitl_create",
+      "production_mutation",
+      "public_context_mutation"
+    ]
+  },
+  "allowedCommandHints": [
+    {
+      "kind": "workbench_hint",
+      "id": "budibase:stadtwerk-mauer-workbench",
+      "label": "Cernion Stadtwerk Mauer Workbench",
+      "execution": "metadata_only"
+    }
+  ],
+  "forbiddenActions": [
+    "grid_expansion_decision",
+    "procurement_start",
+    "budget_approval",
+    "legal_approval",
+    "section_14a_switching",
+    "flex_dispatch",
+    "device_control",
+    "mako_write",
+    "billing",
+    "settlement",
+    "tariff_mutation",
+    "smgw_cls_device_control",
+    "external_connector_call",
+    "webhook",
+    "hitl_create",
+    "tenant_provisioning",
+    "rundeck_execution",
+    "public_context_mutation",
+    "production_mutation",
+    "personal_agent_hardcoding"
+  ],
+  "publicContextMutationAllowed": false,
+  "tenantProvisioningAllowed": false,
+  "realWorldClaim": "synthetic_demo_only",
+  "projectionHints": {
+    "sourceIssue": 352,
+    "sourceTemplateId": "substation-load-assessment",
+    "targetSurface": "stadtwerk_mauer_blueprint_pack_verify",
+    "missingEvidenceToWorkbenchItem": true
+  }
+}

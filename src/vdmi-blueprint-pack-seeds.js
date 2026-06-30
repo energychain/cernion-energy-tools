@@ -2,6 +2,7 @@
 
 const stadtwerkMauerPvMissingNap = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-pv-missing-nap-v1.json');
 const stadtwerkMauerRedispatchParticipationReadiness = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-redispatch-participation-readiness-v1.json');
+const stadtwerkMauerSubstationLoadAssessment = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-substation-load-assessment-v1.json');
 
 const REQUIRED_EVIDENCE = Object.freeze([
   'napReference',
@@ -17,6 +18,14 @@ const REQUIRED_REDISPATCH_READINESS_EVIDENCE = Object.freeze([
   'forecastDispatchTestProof',
   'readinessReviewDecision',
 ]);
+const REQUIRED_SUBSTATION_LOAD_ASSESSMENT_EVIDENCE = Object.freeze([
+  'stationBoundaryEvidence',
+  'loadProfileEvidence',
+  'forecastHorizonEvidence',
+  'flexOptionEvidence',
+  'capexOptionEvidence',
+  'reviewGateMarker',
+]);
 
 const REQUIRED_DATA_CLASSES = Object.freeze([
   'publicContextLayer',
@@ -27,6 +36,10 @@ const REQUIRED_DATA_CLASSES = Object.freeze([
 const REQUIRED_ROLE_IDS = Object.freeze(['ROLE_NETZPLANUNG', 'ROLE_GRID_OPERATOR']);
 const REQUIRED_REDISPATCH_READINESS_ROLE_IDS = Object.freeze([
   'ROLE_GRID_OPERATIONS_LEAD',
+  'ROLE_CERNION_GOVERNANCE',
+]);
+const REQUIRED_SUBSTATION_LOAD_ASSESSMENT_ROLE_IDS = Object.freeze([
+  'ROLE_ASSET_PLANNING_LEAD',
   'ROLE_CERNION_GOVERNANCE',
 ]);
 const REQUIRED_MATRIX_ROLE_KEYS = Object.freeze(['v', 'd', 'm', 'i']);
@@ -42,6 +55,7 @@ const MATRIX_HEADER_WORDS = Object.freeze([
 const SEEDS = Object.freeze([
   stadtwerkMauerPvMissingNap,
   stadtwerkMauerRedispatchParticipationReadiness,
+  stadtwerkMauerSubstationLoadAssessment,
 ]);
 
 const SEED_VALIDATION_REQUIREMENTS = Object.freeze({
@@ -54,6 +68,11 @@ const SEED_VALIDATION_REQUIREMENTS = Object.freeze({
     requiredEvidence: REQUIRED_REDISPATCH_READINESS_EVIDENCE,
     requiredRoleIds: REQUIRED_REDISPATCH_READINESS_ROLE_IDS,
     expectedMatrixSlug: 'redispatch-participation-readiness',
+  }),
+  [stadtwerkMauerSubstationLoadAssessment.id]: Object.freeze({
+    requiredEvidence: REQUIRED_SUBSTATION_LOAD_ASSESSMENT_EVIDENCE,
+    requiredRoleIds: REQUIRED_SUBSTATION_LOAD_ASSESSMENT_ROLE_IDS,
+    expectedMatrixSlug: 'substation-load-assessment',
   }),
 });
 
@@ -253,6 +272,8 @@ function buildWorkbenchClarificationItems(seed) {
     roleHint:
       item.id === 'napReference'
         ? 'ROLE_NETZPLANUNG'
+        : selectedSeed.id === stadtwerkMauerSubstationLoadAssessment.id
+          ? 'ROLE_ASSET_PLANNING_LEAD'
         : selectedSeed.id === stadtwerkMauerRedispatchParticipationReadiness.id
           ? 'ROLE_GRID_OPERATIONS_LEAD'
           : 'ROLE_GRID_OPERATOR',
@@ -329,11 +350,14 @@ module.exports = {
   REQUIRED_REDISPATCH_READINESS_EVIDENCE,
   REQUIRED_REDISPATCH_READINESS_ROLE_IDS,
   REQUIRED_ROLE_IDS,
+  REQUIRED_SUBSTATION_LOAD_ASSESSMENT_EVIDENCE,
+  REQUIRED_SUBSTATION_LOAD_ASSESSMENT_ROLE_IDS,
   buildDemoProcessMatrixSync,
   buildWorkbenchClarificationItems,
   getVdmiBlueprintPackSeed,
   listVdmiBlueprintPackSeeds,
   stadtwerkMauerRedispatchParticipationReadiness,
+  stadtwerkMauerSubstationLoadAssessment,
   stadtwerkMauerPvMissingNap,
   validateVdmiBlueprintPackSeed,
 };

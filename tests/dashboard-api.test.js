@@ -8520,6 +8520,61 @@ describe('dashboard-api.service', () => {
         );
         expect(result.data.brokerDossierHydration.exposed).toBe(false);
       });
+
+      it('returns substation load assessment matrix facts through the same verify projection', async () => {
+        const result = await broker.call('dashboard-api.stadtwerkMauerBlueprintPackVerifyStatus', {
+          tenantId: 'stadtwerk-mauer',
+          seedId: 'stadtwerk-mauer-substation-load-assessment-v1',
+        });
+
+        expect(result.status).toBe('completed');
+        expect(result.summary.counts.requiredEvidence).toBe(6);
+        expect(result.summary.counts.demoProcessMatrixRows).toBe(5);
+        expect(result.data.processFamily).toBe('grid_capacity_governance');
+        expect(result.data.controlCase).toBe('substation_load_assessment');
+        expect(result.data.requiredEvidence).toEqual(
+          expect.arrayContaining([
+            'stationBoundaryEvidence',
+            'loadProfileEvidence',
+            'forecastHorizonEvidence',
+            'flexOptionEvidence',
+            'capexOptionEvidence',
+            'reviewGateMarker',
+          ])
+        );
+        expect(result.data.demoProcessMatrixSync).toMatchObject({
+          slug: 'substation-load-assessment',
+          expectedSlug: 'substation-load-assessment',
+          synced: true,
+          roleLegendM: 'Mitwirkend',
+          rowCount: 5,
+          rowCountValid: true,
+          roleCellsClean: true,
+          dataClassesLimited: true,
+        });
+        expect(result.data.demoProcessMatrixSync.rows[2]).toMatchObject({
+          phase: '3',
+          roles: {
+            V: 'ROLE_ASSET_PLANNING_LEAD',
+            D: 'ROLE_CERNION_GOVERNANCE',
+            M: 'ROLE_GRID_OPERATIONS',
+            I: 'ROLE_COMMERCIAL_AUDIT',
+          },
+          evidenceRequirements: ['flexOptionEvidence', 'capexOptionEvidence'],
+          gateOutcome: 'flex_capex_scenario_review_only',
+        });
+        expect(result.data.sourceActions.notCalled).toEqual(
+          expect.arrayContaining([
+            'mako.write',
+            'billing.prepare',
+            'settlement.export',
+            'tariff.mutate',
+            'device-control.execute',
+            'personal-agent.execute',
+          ])
+        );
+        expect(result.data.brokerDossierHydration.exposed).toBe(false);
+      });
     });
 
     // -- stadtwerkMauerTransferReadinessStatus -----------------------------
