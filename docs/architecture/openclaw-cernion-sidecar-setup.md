@@ -4,6 +4,22 @@ This guide describes how an agent host such as OpenClaw, Hermes or another MCP/H
 
 The sidecar is a controlled Cernion facade. It is not a full OpenAPI export, not a new agent brain and not a policy delegation to the agent host. Cernion remains the policy owner.
 
+## OpenClaw Install
+
+For OpenClaw users, the public ClawHub package is the easiest discovery and install path:
+
+- ClawHub: [@cernion/openclaw-energy-tools-sidecar](https://clawhub.ai/cernion/plugins/openclaw-energy-tools-sidecar)
+- GitHub: [SmartEnergySolutions/cernion-openclaw-sidecar](https://github.com/SmartEnergySolutions/cernion-openclaw-sidecar)
+
+```bash
+openclaw plugins install clawhub:@cernion/openclaw-energy-tools-sidecar
+```
+
+Use this when OpenClaw should handle the agent runtime, workspace context, tool orchestration,
+memory and final answer synthesis while Cernion provides the energy-domain layer: MaStR assets,
+grid context, Redispatch, Zielnetzplanung, 14a/14d EnWG checks, Knowledge RAG, process
+preparation and read-only operational APIs.
+
 ## Requirements
 
 The operator needs:
@@ -279,4 +295,3 @@ Do not use this MVP to:
 - Create or revoke tokens through the sidecar.
 - Hide tenant or role context inside prompts.
 - Reimplement Cernion process logic in OpenClaw or another host.
-

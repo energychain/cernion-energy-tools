@@ -230,10 +230,24 @@ The Copilot-facing surface distinguishes:
 
 ### OpenClaw Sidecar
 
+Cernion Energy Tools can be used from OpenClaw through the public
+[ClawHub package @cernion/openclaw-energy-tools-sidecar](https://clawhub.ai/cernion/plugins/openclaw-energy-tools-sidecar).
+Install it in OpenClaw with:
+
+```bash
+openclaw plugins install clawhub:@cernion/openclaw-energy-tools-sidecar
+```
+
 The companion repository
 [SmartEnergySolutions/cernion-openclaw-sidecar](https://github.com/SmartEnergySolutions/cernion-openclaw-sidecar)
 provides an OpenClaw plugin for generic Energy Sidecar providers, with Cernion as the first
 provider.
+
+The product boundary is intentionally split: OpenClaw is the agent runtime for conversation,
+tool orchestration, memory and answer synthesis. Cernion Energy Tools is the energy-domain
+evidence, policy, Knowledge RAG and read-only API layer behind answers about MaStR assets,
+grid context, Redispatch, Zielnetzplanung, 14a/14d EnWG duties, process intake and operational
+status.
 
 The sidecar consumes the Cernion Sidecar contract:
 
