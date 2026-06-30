@@ -3863,6 +3863,75 @@
       }
     },
     {
+      "name": "getVdmiBlueprintPackVerifyMatrixRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-pv-missing-nap-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.data||{}; const m=d.demoProcessMatrixSync||{}; const base={slug:m.slug||'',synced:Boolean(m.synced),roleLegendM:m.roleLegendM||'',rowCount:m.rowCount||0,rowCountValid:Boolean(m.rowCountValid),roleCellsClean:Boolean(m.roleCellsClean),dataClassesLimited:Boolean(m.dataClassesLimited),downstreamHandoff:[m.downstreamHandoff&&m.downstreamHandoff.blueprintPack,m.downstreamHandoff&&m.downstreamHandoff.landingRegistry,m.downstreamHandoff&&m.downstreamHandoff.productiveDemoRoom].filter(Boolean).join(' -> ')}; const summary={rowKey:'matrix_sync_summary',rowType:'summary',phase:'-',roles:'-',evidenceRequirements:(m.evidenceRequirements||[]).join(', '),dataClassRefs:(m.dataClassRefs||[]).join(', '),status:m.synced?'synced':'not_synced',gateOutcome:m.forbiddenActionsStatus||'not_introduced',enablesDossierAddition:`${base.slug} rows=${base.rowCount} M=${base.roleLegendM} handoff=${base.downstreamHandoff}`,sourceClass:'blueprint_demo_process_matrix',...base}; const rows=(m.rows||[]).map((row,index)=>({rowKey:`matrix_row_${row.phase||index+1}`,rowType:'process_row',phase:row.phase||String(index+1),roles:['V:'+((row.roles||{}).V||''),'D:'+((row.roles||{}).D||''),'M:'+((row.roles||{}).M||''),'I:'+((row.roles||{}).I||'')].join(' | '),evidenceRequirements:(row.evidenceRequirements||[]).join(', '),dataClassRefs:(row.dataClassRefs||[]).join(', '),status:row.status||'',gateOutcome:row.gateOutcome||'',enablesDossierAddition:row.enablesDossierAddition||'',sourceClass:'blueprint_demo_process_matrix_row',...base})); return [summary].concat(rows)",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "rowType": {
+          "type": "string"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "synced": {
+          "type": "boolean"
+        },
+        "roleLegendM": {
+          "type": "string"
+        },
+        "rowCount": {
+          "type": "number"
+        },
+        "rowCountValid": {
+          "type": "boolean"
+        },
+        "roleCellsClean": {
+          "type": "boolean"
+        },
+        "dataClassesLimited": {
+          "type": "boolean"
+        },
+        "phase": {
+          "type": "string"
+        },
+        "roles": {
+          "type": "string"
+        },
+        "evidenceRequirements": {
+          "type": "string"
+        },
+        "dataClassRefs": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "gateOutcome": {
+          "type": "string"
+        },
+        "enablesDossierAddition": {
+          "type": "string"
+        },
+        "downstreamHandoff": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
       "name": "getVdmiBlueprintPackVerifyDataClassRows",
       "method": "GET",
       "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
@@ -4996,6 +5065,12 @@
       "tableTitle": "Seed Validity and Counts"
     },
     {
+      "id": "blueprint_verify_demo_process_matrix",
+      "title": "Demo Process Matrix",
+      "queryName": "getVdmiBlueprintPackVerifyMatrixRows",
+      "tableTitle": "PV Missing-NAP Matrix Sync"
+    },
+    {
       "id": "blueprint_verify_data_classes",
       "title": "Seed Data Classes",
       "queryName": "getVdmiBlueprintPackVerifyDataClassRows",
@@ -5119,7 +5194,7 @@
     "Controlled Action runStadtwerkMauerE2ESmoke remains scope-protected by Cernion.",
     "VDMI Profile and Synthetic Event Preview bind to existing dashboard read models with scalar role, capability, evidence, preview and no-call rows; Budibase refreshes queries only and never injects or executes synthetic events.",
     "Evidence Freshness binds to the existing evidence-freshness-guard read model with synthetic Stadtwerk Mauer signal metadata; Budibase renders scalar freshness, delta, evidence-gap and no-call rows only.",
-    "Blueprint Verify binds to the existing operations-runbook verify wrapper and renders scalar summary, data-class, required-evidence, role-relation, next-gate and no-call rows for stadtwerk-mauer-pv-missing-nap-v1.",
+    "Blueprint Verify binds to the existing operations-runbook verify wrapper and renders scalar summary, matrix-sync, data-class, required-evidence, role-relation, next-gate and no-call rows for stadtwerk-mauer-pv-missing-nap-v1.",
     "Transfer Readiness binds to a read-only dashboard facade that separates public context, synthetic seed values, sandbox runtime artifacts, tenant parameters, reusable Workbench elements and blocked production boundaries.",
     "VNB Delta / Signal Queue binds to existing classifier, queue, owner/deadline/evidence and leadership delta read models with synthetic caller-supplied signals; Budibase renders scalar operator rows and no-call guards only.",
     "Budibase renders the workbench; Cernion remains the system of record and command gate."

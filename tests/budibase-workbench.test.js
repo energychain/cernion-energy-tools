@@ -395,6 +395,46 @@ const blueprintVerifyFixture = {
         responsibility: 'operational boundary review',
       },
     ],
+    demoProcessMatrixSync: {
+      slug: 'pv-registration-missing-nap',
+      expectedSlug: 'pv-registration-missing-nap',
+      synced: true,
+      roleLegendM: 'Mitwirkend',
+      rowCount: 4,
+      rowCountValid: true,
+      roleCellsClean: true,
+      dataClassesLimited: true,
+      forbiddenActionsStatus: 'not_introduced',
+      evidenceRequirements: [
+        'napReference',
+        'maloId',
+        'meloId',
+        'meterId',
+        'customerConsentStatus',
+      ],
+      dataClassRefs: ['publicContextLayer', 'syntheticTenantSeed', 'sandboxRuntimeArtifact'],
+      downstreamHandoff: {
+        blueprintPack: 'complete',
+        landingRegistry: 'pending',
+        productiveDemoRoom: 'pending',
+      },
+      rows: [
+        {
+          phase: '1',
+          roles: {
+            V: 'ROLE_NETZPLANUNG',
+            D: 'ROLE_GRID_OPERATOR',
+            M: 'ROLE_ELECTRICIAN',
+            I: 'ROLE_COMMERCIAL_AUDIT',
+          },
+          evidenceRequirements: ['publicMunicipalityContext', 'napReference'],
+          dataClassRefs: ['publicContextLayer', 'syntheticTenantSeed'],
+          status: 'clarification',
+          gateOutcome: 'missing_nap_clarification',
+          enablesDossierAddition: 'Adds NAP assignment and grid-connection context.',
+        },
+      ],
+    },
     budibaseRenderTarget: 'budibase:stadtwerk-mauer-workbench',
     forbiddenActions: [
       'tenant.provision',
@@ -440,6 +480,7 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
     'evidence_freshness_guard_gaps',
     'evidence_freshness_guard_boundaries',
     'blueprint_verify_summary',
+    'blueprint_verify_demo_process_matrix',
     'blueprint_verify_data_classes',
     'blueprint_verify_required_evidence',
     'blueprint_verify_role_relations',
@@ -570,6 +611,37 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
         expect.objectContaining({ dataClass: 'public_context', mutable: false }),
         expect.objectContaining({ dataClass: 'synthetic_seed', syntheticOnly: true }),
         expect.objectContaining({ dataClass: 'sandbox_runtime', resettable: true }),
+      ])
+    );
+
+    const matrixRows = runTransformer(
+      'getVdmiBlueprintPackVerifyMatrixRows',
+      blueprintVerifyFixture
+    );
+    expectScalarRows(matrixRows);
+    expect(matrixRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'matrix_sync_summary',
+          slug: 'pv-registration-missing-nap',
+          synced: true,
+          roleLegendM: 'Mitwirkend',
+          rowCount: 4,
+          rowCountValid: true,
+          roleCellsClean: true,
+          dataClassesLimited: true,
+          downstreamHandoff: 'complete -> pending -> pending',
+          sourceClass: 'blueprint_demo_process_matrix',
+        }),
+        expect.objectContaining({
+          rowKey: 'matrix_row_1',
+          phase: '1',
+          roles: 'V:ROLE_NETZPLANUNG | D:ROLE_GRID_OPERATOR | M:ROLE_ELECTRICIAN | I:ROLE_COMMERCIAL_AUDIT',
+          evidenceRequirements: 'publicMunicipalityContext, napReference',
+          dataClassRefs: 'publicContextLayer, syntheticTenantSeed',
+          gateOutcome: 'missing_nap_clarification',
+          sourceClass: 'blueprint_demo_process_matrix_row',
+        }),
       ])
     );
 
