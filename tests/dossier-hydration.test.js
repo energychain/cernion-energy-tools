@@ -89,6 +89,12 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(rule.timeoutMs).toBe(7000);
     });
 
+    it('defers portfolio backtest hydration until dossier has explicit portfolio asset context', () => {
+      // #357 is API-only in the first slice: generic dossier hydration must not
+      // invent portfolio assets or run broad 365-day backtests without context.
+      expect(getRule('energy-market.portfolioBacktest')).toBeNull();
+    });
+
     it('residual-load.netResidualLoad has 14000ms timeout', () => {
       const rule = getRule('residual-load.netResidualLoad');
       expect(rule).not.toBeNull();

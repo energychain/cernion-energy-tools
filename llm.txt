@@ -3,7 +3,7 @@
 ## Metadata
 - project: cernion-energy-tools
 - version: 0.67.8
-- changelog_latest_release: 0.67.9
+- changelog_latest_release: 0.67.10
 
 ## Purpose
 This file is a navigation manifest for LLM/agent consumers. It lists cluster
@@ -158,7 +158,7 @@ recipes:
   inhouse-metering-spot-cost "An uploaded inhouse load profile should be priced against…"
 resolve: GET /api/_agent/operations?domain=inhouse-data
 
-### market-data (3 capabilities · 5 recipes · 39 operations)
+### market-data (3 capabilities · 5 recipes · 40 operations)
 capabilities: cross_commodity_supply_security_lagebild, market_communication_evidence_chain, oep_research_dataset_discovery
 recipes:
   forecast-vs-actual-comparison "A generation operator wants to measure forecast accuracy…"
@@ -246,17 +246,17 @@ Agents resolving capabilities/recipes/operations do not need to read past this p
 - `tests/query.service.test.js`: `query.searchCopilot` body-based wrapper returns expected `query`, `domain`, and `results` shape.
 
 ## Source File Hashes
-- CHANGELOG.md: 478d721d12cbefe2e68855e15930e9eab75bb898a4b19620fee3983489b28ce8
+- CHANGELOG.md: f40bac272500f3ed80363c13660be47b36a04ee95987a60f8ff5e8a8c323d4a9
 - README.md: bdfc5d35a65796de3357f3ce717a61998325fa257776cbf17f7077893d0b23e7
 - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
 - src/cookbook-recipes.js: 9e48573ca263ef129bc3944a83b013cff25157e25afc703be0ada62d5af8163d
 - src/capability-catalog.js: 069c60c4647088ca51b0196d9869b55650850f79785f193e75526380f4af3ddc
-- openapi-export.json: db5820f369919f24c6f76fbea9f4f98b166da541a7a43bea4c5a13ac37a45312
+- openapi-export.json: b532cdd5381cf8734dd35ca2263129870f2fded04b5f20fdfaafaea7d9d07385
 
 ## OpenAPI Surface (full contract, not embedded)
-- path_count: 944
-- operation_count: 1054
+- path_count: 945
+- operation_count: 1055
 - full_spec: openapi-export.json (repo root) or GET /api/openapi.json
 
 ## Integrity
-- llm_txt_sha256: b7dc78d7a2912fdc2c502a7e25587d2b451200932ff60aec31df97bcb2ccbdc5
+- llm_txt_sha256: eeeb792220ec845f8d76860a58c46709269555b2f8b72d773a03ef951d86eb49

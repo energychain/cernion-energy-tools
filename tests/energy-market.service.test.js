@@ -15,6 +15,7 @@ const EnergyMarketService = require('../services/energy-market.service');
 
 describe('Energy Market Service', () => {
   let broker;
+  let mockDayAheadPrices;
 
   beforeAll(async () => {
     callWithNewSession.mockImplementation(async (toolName, params) => ({
@@ -25,8 +26,34 @@ describe('Energy Market Service', () => {
     }));
 
     broker = new ServiceBroker({ logger: false });
+    broker.createService({
+      name: 'entsoe',
+      actions: {
+        dayAheadPrices: {
+          handler(ctx) {
+            return mockDayAheadPrices(ctx);
+          },
+        },
+      },
+    });
     broker.createService(EnergyMarketService);
     await broker.start();
+  });
+
+  beforeEach(() => {
+    callWithNewSession.mockClear();
+    callWithNewSession.mockImplementation(async (toolName, params) => ({
+      success: true,
+      toolName,
+      params,
+      data: {},
+    }));
+    mockDayAheadPrices = jest.fn(async () => ({
+      prices: [
+        { hour: '2026-06-29T00:00:00Z', price: 80 },
+        { hour: '2026-06-29T01:00:00Z', price: 60 },
+      ],
+    }));
   });
 
   afterAll(async () => {
@@ -1407,6 +1434,154 @@ describe('Energy Market Service', () => {
         limit: 5,
       });
       expect(result.success).toBe(true);
+    });
+  });
+
+  describe('portfolioBacktest action', () => {
+    it('computes mixed portfolio KPIs with data-quality flags, negative-price scenario, and commissioning zeroing', async () => {
+      mockDayAheadPrices.mockResolvedValueOnce({
+        prices: [
+          { hour: '2026-06-29T00:00:00Z', price: 100 },
+          { hour: '2026-06-29T01:00:00Z', price: -50 },
+        ],
+      });
+
+      const result = await broker.call('energy-market.portfolioBacktest', {
+        dateFrom: '2026-06-29',
+        dateTo: '2026-06-29',
+        includeTimeseries: true,
+        assets: [
+          {
+            mastrNumber: 'SEE123',
+            type: 'solar',
+            capacityKw: 1000,
+            commissioningDate: '2026-06-29T01:00:00Z',
+            timeseries: [
+              { timestamp: '2026-06-29T00:00:00Z', generationMwh: 1 },
+              { timestamp: '2026-06-29T01:00:00Z', generationMwh: 2 },
+            ],
+          },
+          { type: 'biomass', capacityKw: 876, commissioningDate: '2020-01-01' },
+          { type: 'storage', capacityKw: 500, commissioningDate: '2020-01-01' },
+        ],
+      });
+
+      expect(result.success).toBe(true);
+      expect(mockDayAheadPrices).toHaveBeenCalledWith(
+        expect.objectContaining({
+          params: expect.objectContaining({ region: 'Germany', dateFrom: '2026-06-29', dateTo: '2026-06-29' }),
+        })
+      );
+
+      expect(result.portfolio).toMatchObject({
+        assetCount: 3,
+        totalCapacityKw: 2376,
+        generationMwh: 3.5,
+        marketValueEur: -62.5,
+        curtailedMarketValueEur: 75,
+        negativePriceAvoidableLossEur: 137.5,
+        negativePriceHours: 1,
+      });
+      expect(result.portfolio.captureRate).toBe(-0.7144);
+      expect(result.monthly).toHaveLength(1);
+      expect(result.timeseries).toEqual([
+        { timestamp: '2026-06-29T00:00:00Z', generationMwh: 0.75, priceEurPerMwh: 100, marketValueEur: 75 },
+        { timestamp: '2026-06-29T01:00:00Z', generationMwh: 2.75, priceEurPerMwh: -50, marketValueEur: -137.5 },
+      ]);
+
+      expect(result.assets[0]).toMatchObject({
+        mastrNumber: 'SEE123',
+        dataQuality: 'uploaded_timeseries',
+        generationMwh: 2,
+        warnings: ['pre_commissioning_period_zeroed'],
+      });
+      expect(result.assets[1]).toMatchObject({
+        type: 'biomass',
+        dataQuality: 'assumption',
+        generationMwh: 1.5,
+        warnings: ['assumption_used'],
+      });
+      expect(result.assets[2]).toMatchObject({
+        type: 'storage',
+        dataQuality: 'missing_profile',
+        generationMwh: 0,
+        warnings: ['generation_profile_missing'],
+      });
+      expect(result.methodology.assumptions).toEqual([
+        { assetType: 'biomass', fullLoadHoursPerYear: 7500, profile: 'flat_base_generation' },
+      ]);
+    });
+
+    it('uses MaStR historical reconstruction for solar and supports daily timeseries compaction', async () => {
+      mockDayAheadPrices.mockResolvedValueOnce({
+        prices: [
+          { hour: '2026-06-29T00:00:00Z', price: 80 },
+          { hour: '2026-06-29T01:00:00Z', price: 120 },
+        ],
+      });
+      callWithNewSession.mockResolvedValueOnce({
+        forecasts: [
+          { timestamp: '2026-06-29T00:00:00Z', generationMwh: 0.5 },
+          { timestamp: '2026-06-29T01:00:00Z', generationMwh: 1.5 },
+        ],
+      });
+
+      const result = await broker.call('energy-market.portfolioBacktest', {
+        dateFrom: '2026-06-29',
+        dateTo: '2026-06-29',
+        resolution: 'daily',
+        includeTimeseries: true,
+        assets: [{ mastrNumber: 'SEE123456789012', type: 'solar', capacityKw: 742.5, commissioningDate: '2020-06-01' }],
+      });
+
+      expect(result.success).toBe(true);
+      expect(callWithNewSession).toHaveBeenCalledWith(
+        'mastr_generation_forecast',
+        expect.objectContaining({
+          installationMastrNummer: 'SEE123456789012',
+          startDate: '2026-06-29',
+          endDate: '2026-06-29',
+          resolution: 'hourly',
+        }),
+        undefined
+      );
+      expect(result.assets[0].dataQuality).toBe('mastr_historical_reconstruction');
+      expect(result.portfolio).toMatchObject({
+        generationMwh: 2,
+        marketValueEur: 220,
+        weightedMarketValueEurPerMwh: 110,
+        averageSpotPriceEurPerMwh: 100,
+        captureRate: 1.1,
+      });
+      expect(result.timeseries).toEqual([
+        { timestamp: '2026-06-29T00:00:00Z', generationMwh: 2, priceEurPerMwh: 100, marketValueEur: 220 },
+      ]);
+    });
+
+    it('returns explicit non-mutating errors for unsupported inputs and missing price data', async () => {
+      await expect(
+        broker.call('energy-market.portfolioBacktest', {
+          region: 'France',
+          assets: [{ type: 'storage', capacityKw: 1 }],
+        })
+      ).resolves.toMatchObject({ success: false, error: { code: 'UNSUPPORTED_REGION' } });
+
+      await expect(
+        broker.call('energy-market.portfolioBacktest', {
+          dateFrom: '2026-06-30',
+          dateTo: '2026-06-29',
+          assets: [{ type: 'storage', capacityKw: 1 }],
+        })
+      ).resolves.toMatchObject({ success: false, error: { code: 'INVALID_DATE_RANGE' } });
+
+      mockDayAheadPrices.mockResolvedValueOnce({ prices: [] });
+      await expect(
+        broker.call('energy-market.portfolioBacktest', {
+          dateFrom: '2026-06-29',
+          dateTo: '2026-06-29',
+          assets: [{ type: 'storage', capacityKw: 1 }],
+        })
+      ).resolves.toMatchObject({ success: false, error: { code: 'PRICE_DATA_UNAVAILABLE' } });
     });
   });
 });

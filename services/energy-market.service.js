@@ -76,11 +76,16 @@ function _btBuildAssumptionSeries(asset, priceTimestamps) {
 function _btApplyCommissioningDate(series, commissioningDate) {
   if (!commissioningDate) return { series, warnings: ['commissioning_date_missing'] };
   const cutoffMs = new Date(commissioningDate).getTime();
+  let zeroed = false;
   return {
-    series: series.map((r) =>
-      new Date(r.timestamp).getTime() < cutoffMs ? { ...r, generationMwh: 0 } : r
-    ),
-    warnings: [],
+    series: series.map((r) => {
+      if (new Date(r.timestamp).getTime() < cutoffMs) {
+        zeroed = true;
+        return { ...r, generationMwh: 0 };
+      }
+      return r;
+    }),
+    warnings: zeroed ? ['pre_commissioning_period_zeroed'] : [],
   };
 }
 
@@ -144,6 +149,34 @@ function _btMonthlyAggregation(intervals) {
       curtailedMarketValueEur: Math.round(m.curtailedMarketValueEur * 100) / 100,
       averageSpotPriceEurPerMwh: _priceCount > 0 ? Math.round((_priceSum / _priceCount) * 100) / 100 : 0,
       weightedMarketValueEurPerMwh: m.generationMwh > 0 ? Math.round((m.marketValueEur / m.generationMwh) * 100) / 100 : 0,
+    }));
+}
+
+function _btDailyAggregation(intervals) {
+  const days = {};
+  for (const iv of intervals) {
+    const day = iv.timestamp.slice(0, 10);
+    if (!days[day]) {
+      days[day] = {
+        timestamp: `${day}T00:00:00Z`,
+        generationMwh: 0,
+        marketValueEur: 0,
+        _priceSum: 0,
+        _priceCount: 0,
+      };
+    }
+    days[day].generationMwh += iv.generationMwh;
+    days[day].marketValueEur += iv.marketValueEur;
+    days[day]._priceSum += iv.priceEurPerMwh;
+    days[day]._priceCount += 1;
+  }
+  return Object.values(days)
+    .sort((a, b) => a.timestamp.localeCompare(b.timestamp))
+    .map(({ _priceSum, _priceCount, ...d }) => ({
+      ...d,
+      generationMwh: Math.round(d.generationMwh * 1000) / 1000,
+      priceEurPerMwh: _priceCount > 0 ? Math.round((_priceSum / _priceCount) * 100) / 100 : 0,
+      marketValueEur: Math.round(d.marketValueEur * 100) / 100,
     }));
 }
 
@@ -1476,6 +1509,12 @@ Combines generation timeseries (inline upload, MaStR-based historical reconstruc
 
         const fromMs = new Date(dateFrom).getTime();
         const toMs = new Date(dateTo).getTime();
+        if (!Number.isFinite(fromMs) || !Number.isFinite(toMs) || fromMs > toMs) {
+          return {
+            success: false,
+            error: { code: 'INVALID_DATE_RANGE', message: `Invalid date range: ${dateFrom} to ${dateTo}.` },
+          };
+        }
         const daysDiff = Math.round((toMs - fromMs) / (24 * 3600 * 1000)) + 1;
 
         if (daysDiff > BACKTEST_MAX_DAYS) {
@@ -1692,12 +1731,15 @@ Combines generation timeseries (inline upload, MaStR-based historical reconstruc
         };
 
         if (includeTimeseries) {
-          response.timeseries = allIntervals.map((iv) => ({
-            timestamp: iv.timestamp,
-            generationMwh: Math.round(iv.generationMwh * 1000) / 1000,
-            priceEurPerMwh: iv.priceEurPerMwh,
-            marketValueEur: Math.round(iv.marketValueEur * 100) / 100,
-          }));
+          response.timeseries =
+            response.period.resolution === 'daily'
+              ? _btDailyAggregation(allIntervals)
+              : allIntervals.map((iv) => ({
+                  timestamp: iv.timestamp,
+                  generationMwh: Math.round(iv.generationMwh * 1000) / 1000,
+                  priceEurPerMwh: iv.priceEurPerMwh,
+                  marketValueEur: Math.round(iv.marketValueEur * 100) / 100,
+                }));
         }
 
         return response;

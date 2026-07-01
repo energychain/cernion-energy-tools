@@ -30629,6 +30629,234 @@
         ]
       }
     },
+    "/api/energy-market/portfolio-backtest": {
+      "post": {
+        "operationId": "energy-market_portfolioBacktest",
+        "summary": "Historical portfolio market value backtest (Day-Ahead)",
+        "tags": [
+          "Energy Market Data"
+        ],
+        "responses": {
+          "200": {
+            "description": "Backtest result",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "period": {
+                    "dateFrom": "2025-07-01",
+                    "dateTo": "2026-06-30",
+                    "days": 365,
+                    "resolution": "hourly"
+                  },
+                  "market": {
+                    "type": "day-ahead",
+                    "region": "Deutschland",
+                    "currency": "EUR",
+                    "priceUnit": "EUR/MWh"
+                  },
+                  "portfolio": {
+                    "assetCount": 1,
+                    "totalCapacityKw": 742.5,
+                    "generationMwh": 721.4,
+                    "marketValueEur": 54321.1,
+                    "weightedMarketValueEurPerMwh": 75.3,
+                    "averageSpotPriceEurPerMwh": 82.1,
+                    "captureRate": 0.917,
+                    "negativePriceHours": 24,
+                    "generationDuringNegativePricesMwh": 18.2,
+                    "valueDuringNegativePricesEur": -145.6,
+                    "curtailedMarketValueEur": 54466.7,
+                    "negativePriceAvoidableLossEur": 145.6
+                  },
+                  "monthly": [
+                    {
+                      "month": "2025-07",
+                      "generationMwh": 82.1,
+                      "marketValueEur": 6234.5,
+                      "curtailedMarketValueEur": 6280,
+                      "averageSpotPriceEurPerMwh": 78.4,
+                      "weightedMarketValueEurPerMwh": 75.9,
+                      "negativePriceHours": 3
+                    }
+                  ],
+                  "assets": [
+                    {
+                      "mastrNumber": "SEE123456789012",
+                      "type": "solar",
+                      "capacityKw": 742.5,
+                      "dataQuality": "mastr_historical_reconstruction",
+                      "generationMwh": 721.4,
+                      "marketValueEur": 54321.1,
+                      "weightedMarketValueEurPerMwh": 75.3,
+                      "curtailedMarketValueEur": 54466.7,
+                      "negativePriceAvoidableLossEur": 145.6,
+                      "negativePriceHours": 24,
+                      "warnings": []
+                    }
+                  ],
+                  "methodology": {
+                    "timezone": "UTC",
+                    "priceAlignment": "hourly",
+                    "fallbackPolicy": "assumption_if_no_forecast_or_uploaded_profile",
+                    "captureRateDefinition": "weightedMarketValueEurPerMwh / timeWeightedAverageSpotPrice"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Computes the historical spot market value for a portfolio of energy installations.\n\nCombines generation timeseries (inline upload, MaStR-based historical reconstruction, or technology assumption) with Day-Ahead prices over a selectable period (default: last 365 complete days).\n\n**Data quality priority per asset:**\n1. `uploaded_timeseries` — inline `timeseries` array in request\n2. `mastr_historical_reconstruction` — solar/wind with `mastrNumber`, weather-based historical model\n3. `assumption` — biomass (7 500 h/a), hydro (4 200 h/a), combustion (3 500 h/a): flat profile\n4. `missing_profile` — storage and unknown types: generation = 0, warning emitted\n\n**Negative price handling:** `marketValueEur` reflects physical generation including negative intervals; `curtailedMarketValueEur` shows the value under ideal curtailment; `negativePriceAvoidableLossEur` is the difference.\n\n**Limits:** max 50 assets per request, max 365 days, region `Deutschland` only in v1.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "assets"
+                ],
+                "properties": {
+                  "assets": {
+                    "type": "array",
+                    "maxItems": 50,
+                    "description": "Portfolio of energy installations",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "mastrNumber": {
+                          "type": "string",
+                          "description": "MaStR unit ID (SEE…=solar, SWE…=wind)"
+                        },
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "solar",
+                            "wind",
+                            "biomass",
+                            "hydro",
+                            "combustion",
+                            "storage",
+                            "other"
+                          ],
+                          "description": "Technology type"
+                        },
+                        "capacityKw": {
+                          "type": "number",
+                          "description": "Installed capacity in kW"
+                        },
+                        "postleitzahl": {
+                          "type": "string",
+                          "description": "Postal code (used as fallback location)"
+                        },
+                        "commissioningDate": {
+                          "type": "string",
+                          "format": "date",
+                          "description": "Grid connection date — intervals before this are zeroed"
+                        },
+                        "timeseries": {
+                          "type": "array",
+                          "description": "Optional inline generation timeseries (highest priority)",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "timestamp": {
+                                "type": "string"
+                              },
+                              "generationMwh": {
+                                "type": "number"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "dateFrom": {
+                    "type": "string",
+                    "format": "date",
+                    "description": "Start date (YYYY-MM-DD). Default: today − 365 days",
+                    "example": "2025-07-01"
+                  },
+                  "dateTo": {
+                    "type": "string",
+                    "format": "date",
+                    "description": "End date inclusive (YYYY-MM-DD). Default: yesterday",
+                    "example": "2026-06-30"
+                  },
+                  "resolution": {
+                    "type": "string",
+                    "enum": [
+                      "hourly",
+                      "daily"
+                    ],
+                    "default": "hourly",
+                    "description": "Response resolution"
+                  },
+                  "market": {
+                    "type": "string",
+                    "default": "day-ahead",
+                    "description": "Market type"
+                  },
+                  "region": {
+                    "type": "string",
+                    "default": "Deutschland",
+                    "description": "Market region (only \"Deutschland\" supported in v1)"
+                  },
+                  "includeTimeseries": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Include full hourly timeseries in response"
+                  }
+                }
+              },
+              "examples": {
+                "minimal": {
+                  "summary": "Single solar asset, default 365-day period",
+                  "value": {
+                    "assets": [
+                      {
+                        "mastrNumber": "SEE123456789012",
+                        "type": "solar",
+                        "capacityKw": 742.5,
+                        "postleitzahl": "69115",
+                        "commissioningDate": "2020-06-01"
+                      }
+                    ]
+                  }
+                },
+                "mixedPortfolio": {
+                  "summary": "Mixed portfolio with inline biomass timeseries",
+                  "value": {
+                    "assets": [
+                      {
+                        "mastrNumber": "SEE123456789012",
+                        "type": "solar",
+                        "capacityKw": 500,
+                        "commissioningDate": "2021-01-01"
+                      },
+                      {
+                        "type": "biomass",
+                        "capacityKw": 500,
+                        "commissioningDate": "2019-03-15",
+                        "timeseries": [
+                          {
+                            "timestamp": "2025-07-01T00:00:00Z",
+                            "generationMwh": 0.42
+                          }
+                        ]
+                      }
+                    ],
+                    "dateFrom": "2025-07-01",
+                    "dateTo": "2026-06-30",
+                    "includeTimeseries": false
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/energy-sharing-allocation/allocate": {
       "post": {
         "operationId": "energy-sharing-allocation_allocate",
