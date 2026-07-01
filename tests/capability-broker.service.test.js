@@ -991,6 +991,24 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes Anschlussfristen evidence queue prompts to the read-only deadline view', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Erstelle Anschlussfristen Evidence Queue fuer Anschlussmappe mit VNB-Zustaendigkeit, Nachweisstand, Klaerungspunkten, Kommunikationsnotiz, Owner und Freigabegate.',
+    });
+
+    expect(result.capability).toBe('connection_deadline_evidence_queue');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'connection_deadline_evidence_queue'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.connectionDeadlineEvidenceQueueStatus');
+    expect(actionNames).not.toContain('communication.send');
+    expect(actionNames).not.toContain('grid-connection.approve');
+    expect(actionNames).not.toContain('grid-connection.reject');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes Layer-0 audit drilldown prompts to the read-only validation note', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Erstelle layer0_audit_drilldown_note als Layer-0 Audit Drilldown Generator Validierungsnotiz fuer KPI Auffaelligkeit mit Peer-Abweichung und naechstem 90-Tage-Schritt.',

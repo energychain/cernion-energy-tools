@@ -2537,6 +2537,77 @@ describe('dashboard-api.service', () => {
       });
     });
 
+    // -- connectionDeadlineEvidenceQueueStatus ------------------------------
+
+    describe('connectionDeadlineEvidenceQueueStatus', () => {
+      it('reports deadline-critical connection evidence gaps without side effects', async () => {
+        const result = await broker.call('dashboard-api.connectionDeadlineEvidenceQueueStatus', {
+          caseId: 'gc-77',
+          connectionType: 'grossspeicher',
+          deadlineDate: '2026-07-04',
+          responsibleVnb: 'stadtwerk-mauer',
+          owner: 'netzanschluss',
+          clarificationPoints: ['technische-plausibilitaet-offen'],
+          asOf: '2026-07-01T00:00:00.000Z',
+        });
+
+        expect(result.status).toBe('fristkritisch');
+        expect(result.deadlineRisk).toBe('fristkritisch');
+        expect(result.evidenceQueue).toMatchObject({
+          caseId: 'gc-77',
+          connectionType: 'grossspeicher',
+          responsibleVnb: 'stadtwerk-mauer',
+          owner: 'netzanschluss',
+          communicationSent: false,
+          connectionDecisionApplied: false,
+        });
+        expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+          expect.arrayContaining([
+            'technical_plausibility',
+            'next_gate',
+            'clarification_points_open',
+          ])
+        );
+        expect(result.positiveFollowUps[0].category).toBe('connection_deadline_evidence_queue');
+        expect(result.communicationNoteDraft.sent).toBe(false);
+        expect(result.sourceActions.notCalled).toEqual(
+          expect.arrayContaining([
+            'communication.send',
+            'email.send',
+            'crm.update',
+            'grid-connection.approve',
+            'grid-connection.reject',
+            'deadline.legalCalculate',
+            'hitl.create',
+            'personal-agent.execute',
+          ])
+        );
+        expect(result.safety).toBe('read_only');
+      });
+
+      it('returns im_plan when all deadline evidence facts are supplied', async () => {
+        const result = await broker.call('dashboard-api.connectionDeadlineEvidenceQueueStatus', {
+          caseId: 'gc-78',
+          connectionType: 'pv',
+          deadlineDate: '2026-08-20',
+          responsibleVnb: 'stadtwerk-mauer',
+          technicalPlausibility: 'nvp-plausibility-documented',
+          owner: 'netzanschluss',
+          nextGate: 'fachliche-freigabe',
+          communicationContext: 'Nachweise vollstaendig, Freigabegate vorbereitet.',
+          asOf: '2026-07-01T00:00:00.000Z',
+        });
+
+        expect(result.status).toBe('im_plan');
+        expect(result.deadlineRisk).toBe('im_plan');
+        expect(result.missingEvidence).toEqual([]);
+        expect(result.nextGate).toBe('fachliche-freigabe');
+        expect(result.communicationNoteDraft.status).toBe('draft_ready');
+        expect(result.dossierEvidence.dossierFacts).toContain('Status: im_plan');
+        expect(result.sourceActions.notCalled).toContain('communication.send');
+      });
+    });
+
     // -- layer0AuditDrilldownNoteStatus ------------------------------------
 
     describe('layer0AuditDrilldownNoteStatus', () => {

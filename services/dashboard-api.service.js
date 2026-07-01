@@ -66,6 +66,7 @@ module.exports = {
       communicationBreakProcessRiskStatus: 5 * 60 * 1000, // 5 min
       noRegretMeasureProofGateStatus: 5 * 60 * 1000, // 5 min
       anschlusskapazitaetEvidenceQueueStatus: 5 * 60 * 1000, // 5 min
+      connectionDeadlineEvidenceQueueStatus: 5 * 60 * 1000, // 5 min
       layer0AuditDrilldownNoteStatus: 5 * 60 * 1000, // 5 min
       legalClarificationOperatingModelStatus: 5 * 60 * 1000, // 5 min
       drReadinessEvidenceStatus: 5 * 60 * 1000, // 5 min
@@ -2121,6 +2122,111 @@ module.exports = {
           this.settings.cacheTtlMs.anschlusskapazitaetEvidenceQueueStatus,
           async () => ({
             ...this.buildAnschlusskapazitaetEvidenceQueueStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- connectionDeadlineEvidenceQueueStatus -----------------------------
+    /**
+     * GET /api/dashboard/connection-deadline-evidence-queue
+     *
+     * Read-only dossier-safe evidence queue for deadline-critical connection
+     * cases. It structures deadlines, VNB ownership, evidence gaps, clearing
+     * points and a communication-note draft without sending messages,
+     * approving/rejecting connections or mutating process state.
+     */
+    connectionDeadlineEvidenceQueueStatus: {
+      rest: 'GET /connection-deadline-evidence-queue',
+      params: {
+        caseId: { type: 'string', optional: true, min: 1 },
+        connectionType: { type: 'string', optional: true, min: 1 },
+        deadlineDate: { type: 'string', optional: true, min: 1 },
+        responsibleVnb: { type: 'string', optional: true, min: 1 },
+        technicalPlausibility: { type: 'string', optional: true, min: 1 },
+        owner: { type: 'string', optional: true, min: 1 },
+        nextGate: { type: 'string', optional: true, min: 1 },
+        missingEvidence: { type: 'array', items: 'string', optional: true },
+        clarificationPoints: { type: 'array', items: 'string', optional: true },
+        communicationContext: { type: 'string', optional: true, min: 1 },
+        asOf: { type: 'string', optional: true, min: 1 },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Connection deadline evidence queue - read-only dossier-safe status',
+        description:
+          'Builds a deterministic evidence queue for deadline-critical VNB connection cases. The endpoint is read-only and ' +
+          'does not send communication, approve/reject/condition a connection, reserve capacity, create workflow/HITL tasks, ' +
+          'calculate legally binding deadlines, or mutate CRM, customer portal, billing, settlement, MaKo, tariff or device-control state.',
+        parameters: [
+          { name: 'caseId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'connectionType', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'deadlineDate', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'responsibleVnb', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'technicalPlausibility',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
+          { name: 'owner', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'nextGate', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'missingEvidence',
+            in: 'query',
+            required: false,
+            schema: { type: 'array', items: { type: 'string' } },
+          },
+          {
+            name: 'clarificationPoints',
+            in: 'query',
+            required: false,
+            schema: { type: 'array', items: { type: 'string' } },
+          },
+          {
+            name: 'communicationContext',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
+          { name: 'asOf', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only connection-deadline evidence queue',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string' },
+                    deadlineRisk: { type: 'string' },
+                    evidenceItems: { type: 'array' },
+                    missingEvidence: { type: 'array' },
+                    clarificationPoints: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    communicationNoteDraft: { type: 'object' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `connection-deadline-evidence-queue:${params.caseId || 'no-case'}:${params.deadlineDate || 'no-deadline'}:${params.responsibleVnb || 'no-vnb'}:${params.owner || 'no-owner'}:${params.nextGate || 'no-gate'}:${params.asOf || 'no-asof'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.connectionDeadlineEvidenceQueueStatus,
+          async () => ({
+            ...this.buildConnectionDeadlineEvidenceQueueStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -14560,6 +14666,213 @@ module.exports = {
           missingEvidence,
           positiveFollowUps,
           nextGate: params.nextGate || null,
+          sourceActions: { notCalled: sourceActions.notCalled },
+          dossierFacts,
+        },
+      };
+    },
+
+    buildConnectionDeadlineEvidenceQueueStatus(params = {}) {
+      const isProvided = (value) =>
+        value !== undefined &&
+        value !== null &&
+        (Array.isArray(value) ? value.length > 0 : String(value).trim() !== '');
+      const toList = (value) => {
+        if (Array.isArray(value)) return value.filter(isProvided).map((item) => String(item));
+        if (!isProvided(value)) return [];
+        return String(value)
+          .split(',')
+          .map((item) => item.trim())
+          .filter(Boolean);
+      };
+      const asOf = params.asOf ? new Date(params.asOf) : new Date();
+      const deadline = params.deadlineDate ? new Date(params.deadlineDate) : null;
+      const daysUntilDeadline =
+        deadline && !Number.isNaN(deadline.getTime())
+          ? Math.ceil((deadline.getTime() - asOf.getTime()) / (24 * 60 * 60 * 1000))
+          : null;
+      let deadlineRisk = 'deadline_missing';
+      if (daysUntilDeadline != null) {
+        if (daysUntilDeadline < 0) deadlineRisk = 'overdue';
+        else if (daysUntilDeadline <= 7) deadlineRisk = 'fristkritisch';
+        else if (daysUntilDeadline <= 30) deadlineRisk = 'due_soon';
+        else deadlineRisk = 'im_plan';
+      }
+
+      const explicitMissingEvidence = toList(params.missingEvidence);
+      const clarificationPoints = toList(params.clarificationPoints);
+      const gapMap = {
+        case_id: {
+          present: isProvided(params.caseId),
+          enablesDossierAddition: 'adds the concrete connection case to the evidence queue',
+        },
+        deadline_date: {
+          present: isProvided(params.deadlineDate),
+          enablesDossierAddition: 'adds deadline-risk classification and due-date proof',
+        },
+        responsible_vnb: {
+          present: isProvided(params.responsibleVnb),
+          enablesDossierAddition: 'adds the accountable VNB responsibility for the connection case',
+        },
+        technical_plausibility: {
+          present: isProvided(params.technicalPlausibility),
+          enablesDossierAddition: 'adds technical-readiness evidence for gate advancement',
+        },
+        owner: {
+          present: isProvided(params.owner),
+          enablesDossierAddition: 'adds accountable owner and escalation path',
+        },
+        next_gate: {
+          present: isProvided(params.nextGate),
+          enablesDossierAddition: 'adds the next release or clarification gate',
+        },
+      };
+      const missingEvidence = Object.entries(gapMap)
+        .filter(([, spec]) => !spec.present)
+        .map(([missingDataPoint, spec]) => ({
+          missingDataPoint,
+          enablesDossierAddition: spec.enablesDossierAddition,
+        }));
+      for (const item of explicitMissingEvidence) {
+        missingEvidence.push({
+          missingDataPoint: item,
+          enablesDossierAddition: `adds submitted evidence item ${item} to the connection dossier`,
+        });
+      }
+      if (clarificationPoints.length > 0) {
+        missingEvidence.push({
+          missingDataPoint: 'clarification_points_open',
+          enablesDossierAddition:
+            'adds ready-for-release status once clarification points are resolved',
+        });
+      }
+
+      let status = 'klaerungsbereit';
+      if (deadlineRisk === 'overdue' || deadlineRisk === 'fristkritisch') status = 'fristkritisch';
+      else if (
+        missingEvidence.some((gap) =>
+          ['case_id', 'deadline_date', 'responsible_vnb', 'technical_plausibility'].includes(
+            gap.missingDataPoint
+          )
+        )
+      ) {
+        status = 'nachweisoffen';
+      } else if (clarificationPoints.length > 0) {
+        status = 'klaerungsbereit';
+      } else {
+        status = 'im_plan';
+      }
+
+      const evidenceQueue = {
+        caseId: params.caseId || null,
+        connectionType: params.connectionType || null,
+        deadlineDate: params.deadlineDate || null,
+        daysUntilDeadline,
+        responsibleVnb: params.responsibleVnb || null,
+        technicalPlausibility: params.technicalPlausibility || null,
+        owner: params.owner || null,
+        nextGate: params.nextGate || null,
+        communicationContext: params.communicationContext || null,
+        communicationSent: false,
+        connectionDecisionApplied: false,
+        workflowMutationApplied: false,
+      };
+      const evidenceItems = Object.entries(evidenceQueue)
+        .filter(
+          ([key, value]) =>
+            !['communicationSent', 'connectionDecisionApplied', 'workflowMutationApplied'].includes(
+              key
+            ) && isProvided(value)
+        )
+        .map(([id, value]) => ({ id, value, status: 'provided' }));
+      const sourceActions = {
+        inspected: ['dashboard-api.connectionDeadlineEvidenceQueueStatus'],
+        referenced: [
+          'grid-connection.validate',
+          'vdmi.dossier',
+          'evidence-registry.lookup',
+          'interface-placeholder.requestEvidence',
+        ],
+        notCalled: [
+          'communication.send',
+          'email.send',
+          'crm.update',
+          'customer-portal.write',
+          'workflow.execute',
+          'grid-connection.reserveCapacity',
+          'grid-connection.approve',
+          'grid-connection.reject',
+          'legal.interpret',
+          'deadline.legalCalculate',
+          'hitl.create',
+          'billing.release',
+          'settlement.prepareBilling',
+          'settlement.exportA96',
+          'tariff.mutate',
+          'mako.dispatch',
+          'device-control.execute',
+          'external.connector.call',
+          'personal-agent.execute',
+        ],
+      };
+      const communicationNoteDraft = {
+        status: params.communicationContext ? 'draft_ready' : 'context_missing',
+        subject: `Anschlussverfahren ${params.caseId || 'ohne Fall-ID'} - Evidenzstand`,
+        body:
+          params.communicationContext ||
+          'Kommunikationsnotiz bleibt Entwurf, bis Kontext und Freigabe vorliegen.',
+        sent: false,
+      };
+      const positiveFollowUps = missingEvidence.map((gap) => ({
+        ...gap,
+        category: 'connection_deadline_evidence_queue',
+      }));
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Deadline Risk: ${deadlineRisk}`,
+        `Case: ${evidenceQueue.caseId || 'missing'}`,
+        `Responsible VNB: ${evidenceQueue.responsibleVnb || 'missing'}`,
+        `Technical Plausibility: ${evidenceQueue.technicalPlausibility || 'missing'}`,
+        `Owner/Gate: ${evidenceQueue.owner || 'missing'} / ${evidenceQueue.nextGate || 'missing'}`,
+        `Communication Draft: ${communicationNoteDraft.status}`,
+      ];
+
+      return {
+        queueId: `cdeq:${Buffer.from(
+          `${params.caseId || ''}:${params.deadlineDate || ''}:${params.owner || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 28)}`,
+        capabilityKey: 'connection_deadline_evidence_queue',
+        safety: 'read_only',
+        status,
+        deadlineRisk,
+        evidenceQueue,
+        evidenceItems,
+        missingEvidence,
+        clarificationPoints,
+        positiveFollowUps,
+        nextGate: params.nextGate || null,
+        communicationNoteDraft,
+        sourceActions,
+        validationFindings: missingEvidence.map((gap) => ({
+          code: `CDEQ_${String(gap.missingDataPoint).toUpperCase()}_MISSING`,
+          severity: ['case_id', 'deadline_date', 'responsible_vnb'].includes(gap.missingDataPoint)
+            ? 'high'
+            : 'medium',
+          message: gap.enablesDossierAddition,
+        })),
+        dossierEvidence: {
+          capabilityKey: 'connection_deadline_evidence_queue',
+          status,
+          deadlineRisk,
+          evidenceQueue,
+          evidenceItems,
+          missingEvidence,
+          clarificationPoints,
+          positiveFollowUps,
+          nextGate: params.nextGate || null,
+          communicationNoteDraft,
           sourceActions: { notCalled: sourceActions.notCalled },
           dossierFacts,
         },

@@ -6109,6 +6109,120 @@
     "sourceIssue": 299
   },
   {
+    "id": "connection_deadline_evidence_queue",
+    "description": "Read-only connection deadline evidence queue",
+    "routeLabel": "connection_deadline_evidence_queue",
+    "capability": "connection_deadline_evidence_queue",
+    "action": "dashboard-api.connectionDeadlineEvidenceQueueStatus",
+    "safety": {
+      "classification": "read_only",
+      "readOnly": true,
+      "allowDossierHydration": true,
+      "forbiddenActions": [
+        "communication.send",
+        "email.send",
+        "crm.update",
+        "customer-portal.write",
+        "workflow.execute",
+        "grid-connection.reserveCapacity",
+        "grid-connection.approve",
+        "grid-connection.reject",
+        "legal.interpret",
+        "deadline.legalCalculate",
+        "billing.release",
+        "settlement.prepareBilling",
+        "settlement.exportA96",
+        "tariff.mutate",
+        "mako.dispatch",
+        "device-control.execute",
+        "hitl.create",
+        "external.connector.call",
+        "personal-agent.execute"
+      ]
+    },
+    "triggers": [
+      "anschlussfristen",
+      "anschlussfrist",
+      "fristkritisches anschlussverfahren",
+      "anschlussmappe",
+      "netzanschluss evidence queue",
+      "freigabegate",
+      "klaerungspunkte",
+      "nachweisstand",
+      "kommunikationsnotiz",
+      "connection deadline evidence",
+      "connection_deadline_evidence_queue"
+    ],
+    "paramTemplate": {
+      "caseId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:caseId|case-id|fall|anschlussfall)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      },
+      "deadlineDate": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:deadlineDate|deadline|frist)[:= ]+([0-9]{4}-[0-9]{2}-[0-9]{2})",
+          "group": 1
+        }
+      },
+      "responsibleVnb": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:responsibleVnb|vnb|zustaendig|zuständig)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      },
+      "owner": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:owner|verantwortlich)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      },
+      "nextGate": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:nextGate|next-gate|gate|freigabegate)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["capabilityKey", "dossierEvidence.capabilityKey"], "label": "Capability", "maxLen": 120 },
+        { "paths": ["status", "dossierEvidence.status"], "label": "Status", "maxLen": 120 },
+        { "paths": ["deadlineRisk", "dossierEvidence.deadlineRisk"], "label": "Deadline Risk", "maxLen": 120 },
+        { "paths": ["evidenceQueue.caseId", "dossierEvidence.evidenceQueue.caseId"], "label": "Case", "maxLen": 120 },
+        { "paths": ["evidenceQueue.deadlineDate", "dossierEvidence.evidenceQueue.deadlineDate"], "label": "Deadline", "maxLen": 80 },
+        { "paths": ["evidenceQueue.responsibleVnb", "dossierEvidence.evidenceQueue.responsibleVnb"], "label": "Responsible VNB", "maxLen": 120 },
+        { "paths": ["evidenceQueue.technicalPlausibility", "dossierEvidence.evidenceQueue.technicalPlausibility"], "label": "Technical Plausibility", "maxLen": 160 },
+        { "paths": ["evidenceQueue.owner", "dossierEvidence.evidenceQueue.owner"], "label": "Owner", "maxLen": 120 },
+        { "paths": ["nextGate", "dossierEvidence.nextGate"], "label": "Next Gate", "maxLen": 120 },
+        { "paths": ["communicationNoteDraft.status", "dossierEvidence.communicationNoteDraft.status"], "label": "Communication Draft", "maxLen": 120 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "First Gap", "maxLen": 120 },
+        { "paths": ["positiveFollowUps.0.enablesDossierAddition", "dossierEvidence.positiveFollowUps.0.enablesDossierAddition"], "label": "Positive Follow-up", "maxLen": 180 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 362
+  },
+  {
     "id": "legal_clarification_operating_model",
     "description": "Read-only legal clarification operating-model evidence view",
     "routeLabel": "legal_clarification_operating_model",

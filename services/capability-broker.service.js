@@ -559,6 +559,26 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasConnectionDeadlineEvidenceQueueSpecificSignal =
+    /(anschlussfrist|anschlussfristen|fristkritisches anschlussverfahren|connection deadline|connection_deadline_evidence_queue|anschlussmappe|freigabegate)/i.test(
+      haystack
+    ) &&
+    /(vnb.?zustaendigkeit|vnb.?zuständigkeit|nachweisstand|klaerungspunkt|klärungspunkt|kommunikationsnotiz|owner|frist|deadline|evidence queue|evidenzqueue)/i.test(
+      haystack
+    ) &&
+    !/(kommunikation senden|sende kommunikation|email senden|crm update|workflow execute|workflow ausfuehren|workflow ausführen|anschluss freigeben|anschluss ablehnen|kapazitaet reservieren|kapazität reservieren|hitl create|task create|personal-agent execute)/i.test(
+      haystack
+    );
+
+  if (hasConnectionDeadlineEvidenceQueueSpecificSignal) {
+    const connectionDeadlineCapability = findCapabilityByName(
+      'connection_deadline_evidence_queue'
+    );
+    if (connectionDeadlineCapability) {
+      return { capability: connectionDeadlineCapability, score: 143, usedFallback: false };
+    }
+  }
+
   const hasAutomationRequirementsDecisionValueSpecificSignal =
     /(automation_requirements_decision_value|automation requirements decision value|requirements card|powerbi dashboard wunsch|bewegungsdatenfluss|entscheidungswert|folgeprozess|rollback criterion)/i.test(
       haystack

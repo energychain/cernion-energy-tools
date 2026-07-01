@@ -1472,6 +1472,8 @@ module.exports = {
             'dashboard-api.noRegretMeasureProofGateStatus',
           'GET /dashboard/anschlusskapazitaet-evidence-queue':
             'dashboard-api.anschlusskapazitaetEvidenceQueueStatus',
+          'GET /dashboard/connection-deadline-evidence-queue':
+            'dashboard-api.connectionDeadlineEvidenceQueueStatus',
           'GET /dashboard/layer0-audit-drilldown': 'dashboard-api.layer0AuditDrilldownNoteStatus',
           'GET /dashboard/legal-clarification-operating-model':
             'dashboard-api.legalClarificationOperatingModelStatus',

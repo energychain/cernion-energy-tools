@@ -5944,6 +5944,79 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  connection_deadline_evidence_queue: {
+    sources: [
+      {
+        id: 'case_id',
+        label: 'Connection case id',
+        resolvedBy: [
+          'dashboard-api.connectionDeadlineEvidenceQueueStatus',
+          'grid-connection.validate',
+        ],
+        contextKeys: ['caseId', 'connectionCaseId'],
+        optional: false,
+      },
+      {
+        id: 'deadline_date',
+        label: 'Deadline date',
+        resolvedBy: ['dashboard-api.connectionDeadlineEvidenceQueueStatus', 'vdmi.dossier'],
+        contextKeys: ['deadlineDate', 'dueDate'],
+        optional: false,
+      },
+      {
+        id: 'responsible_vnb',
+        label: 'Responsible VNB',
+        resolvedBy: [
+          'dashboard-api.connectionDeadlineEvidenceQueueStatus',
+          'grid-connection.validate',
+        ],
+        contextKeys: ['responsibleVnb', 'vnbName', 'gridOperatorId'],
+        optional: false,
+      },
+      {
+        id: 'technical_plausibility',
+        label: 'Technical plausibility evidence',
+        resolvedBy: [
+          'dashboard-api.connectionDeadlineEvidenceQueueStatus',
+          'grid-connection.validate',
+        ],
+        contextKeys: ['technicalPlausibility', 'technicalReadinessEvidence'],
+        optional: false,
+      },
+      {
+        id: 'owner',
+        label: 'Owner',
+        resolvedBy: ['dashboard-api.connectionDeadlineEvidenceQueueStatus', 'vdmi.dossier'],
+        contextKeys: ['owner'],
+        optional: false,
+      },
+      {
+        id: 'next_gate',
+        label: 'Next release or clarification gate',
+        resolvedBy: ['dashboard-api.connectionDeadlineEvidenceQueueStatus', 'vdmi.dossier'],
+        contextKeys: ['nextGate'],
+        optional: false,
+      },
+      {
+        id: 'clarification_points',
+        label: 'Clarification points',
+        resolvedBy: [
+          'dashboard-api.connectionDeadlineEvidenceQueueStatus',
+          'interface-placeholder.requestEvidence',
+        ],
+        contextKeys: ['clarificationPoints'],
+        optional: true,
+      },
+      {
+        id: 'communication_note_draft',
+        label: 'Communication note draft',
+        resolvedBy: ['dashboard-api.connectionDeadlineEvidenceQueueStatus', 'vdmi.dossier'],
+        contextKeys: ['communicationContext', 'communicationNoteDraft'],
+        optional: true,
+      },
+    ],
+  },
+
   layer0_audit_drilldown_note: {
     sources: [
       {

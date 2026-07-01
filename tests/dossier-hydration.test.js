@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 101 static rules', () => {
+    it('loads all 102 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(101);
+      expect(rules.length).toBe(102);
     });
 
-    it('compiles all 101 static rules without error', () => {
+    it('compiles all 102 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(101);
+      expect(rules.length).toBe(102);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -663,6 +663,59 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('NVP Hint: nvp-west');
       expect(formatted).toContain('Capacity kW: 1250');
       expect(formatted).toContain('Side-Effect Guard: grid-connection.reserveCapacity');
+    });
+
+    it('dashboard-api.connectionDeadlineEvidenceQueueStatus is dossier-safe and formats deadline facts', () => {
+      const rule = getRule('dashboard-api.connectionDeadlineEvidenceQueueStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Anschlussfristen Evidence Queue fall=gc-77 frist=2026-07-09 vnb=stadtwerk-mauer owner=netzanschluss gate=freigabe laden'
+        )
+      ).toEqual({
+        caseId: 'gc-77',
+        deadlineDate: '2026-07-09',
+        responsibleVnb: 'stadtwerk-mauer',
+        owner: 'netzanschluss',
+        nextGate: 'freigabe',
+      });
+
+      const formatted = rule.formatEvidence({
+        capabilityKey: 'connection_deadline_evidence_queue',
+        status: 'fristkritisch',
+        deadlineRisk: 'fristkritisch',
+        evidenceQueue: {
+          caseId: 'gc-77',
+          deadlineDate: '2026-07-09',
+          responsibleVnb: 'stadtwerk-mauer',
+          technicalPlausibility: 'trafo-headroom-open',
+          owner: 'netzanschluss',
+        },
+        nextGate: 'freigabe',
+        communicationNoteDraft: { status: 'draft_ready' },
+        missingEvidence: [{ missingDataPoint: 'clarification_points_open' }],
+        positiveFollowUps: [
+          {
+            enablesDossierAddition:
+              'adds ready-for-release status once clarification points are resolved',
+          },
+        ],
+        sourceActions: {
+          notCalled: ['communication.send'],
+        },
+        dossierEvidence: {
+          dossierFacts: ['Status: fristkritisch'],
+        },
+      });
+
+      expect(formatted).toContain('Capability: connection_deadline_evidence_queue');
+      expect(formatted).toContain('Status: fristkritisch');
+      expect(formatted).toContain('Deadline Risk: fristkritisch');
+      expect(formatted).toContain('Case: gc-77');
+      expect(formatted).toContain('Responsible VNB: stadtwerk-mauer');
+      expect(formatted).toContain('Side-Effect Guard: communication.send');
     });
 
     it('dashboard-api.layer0AuditDrilldownNoteStatus is dossier-safe and formats audit note facts', () => {

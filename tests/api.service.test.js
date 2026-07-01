@@ -518,6 +518,9 @@ describe('API Gateway Service', () => {
       expect(aliases['GET /dashboard/anschlusskapazitaet-evidence-queue']).toBe(
         'dashboard-api.anschlusskapazitaetEvidenceQueueStatus'
       );
+      expect(aliases['GET /dashboard/connection-deadline-evidence-queue']).toBe(
+        'dashboard-api.connectionDeadlineEvidenceQueueStatus'
+      );
       expect(aliases['GET /dashboard/layer0-audit-drilldown']).toBe(
         'dashboard-api.layer0AuditDrilldownNoteStatus'
       );
