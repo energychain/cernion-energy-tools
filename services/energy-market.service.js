@@ -16,6 +16,134 @@ const {
 
 const SUPPORTED_INSTALLATION_TYPES = ['solar', 'wind', 'storage', 'biomass', 'hydro', 'combustion'];
 
+// ── Portfolio Backtest helpers ─────────────────────────────────────────────────
+
+const BACKTEST_ASSUMPTION_FULL_LOAD_HOURS = { biomass: 7500, hydro: 4200, combustion: 3500 };
+const BACKTEST_WEATHER_TYPES = new Set(['solar', 'wind']);
+const BACKTEST_MAX_ASSETS = 50;
+const BACKTEST_MAX_DAYS = 365;
+
+function _btNormalisePrices(raw) {
+  const arr = Array.isArray(raw)
+    ? raw
+    : Array.isArray(raw?.data)
+    ? raw.data
+    : Array.isArray(raw?.prices)
+    ? raw.prices
+    : Array.isArray(raw?.data?.prices)
+    ? raw.data.prices
+    : [];
+  return arr
+    .map((r) => ({
+      timestamp: r.timestamp ?? r.ts ?? r.hour,
+      priceEurMwh: Number(r.priceEURMWh ?? r.priceEurMwh ?? r.price_eur_mwh ?? r.value ?? NaN),
+    }))
+    .filter((r) => r.timestamp && Number.isFinite(r.priceEurMwh));
+}
+
+function _btNormaliseForecast(result) {
+  const arr =
+    result?.forecasts ||
+    result?.data?.forecasts ||
+    result?.data ||
+    [];
+  if (!Array.isArray(arr)) return [];
+  return arr
+    .map((r) => ({
+      timestamp: r.timestamp ?? r.ts,
+      generationMwh:
+        r.generationMwh != null
+          ? Number(r.generationMwh)
+          : r.generation_mwh != null
+          ? Number(r.generation_mwh)
+          : r.generationKwh != null
+          ? Number(r.generationKwh) / 1000
+          : Number(r.value ?? 0),
+    }))
+    .filter((r) => r.timestamp);
+}
+
+function _btBuildAssumptionSeries(asset, priceTimestamps) {
+  const hoursPerYear = BACKTEST_ASSUMPTION_FULL_LOAD_HOURS[asset.type] || 0;
+  const genPerHourMwh = ((asset.capacityKw || 0) * hoursPerYear) / 8760 / 1000;
+  return priceTimestamps.map((ts) => ({ timestamp: ts, generationMwh: genPerHourMwh }));
+}
+
+function _btApplyCommissioningDate(series, commissioningDate) {
+  if (!commissioningDate) return { series, warnings: ['commissioning_date_missing'] };
+  const cutoffMs = new Date(commissioningDate).getTime();
+  return {
+    series: series.map((r) =>
+      new Date(r.timestamp).getTime() < cutoffMs ? { ...r, generationMwh: 0 } : r
+    ),
+    warnings: [],
+  };
+}
+
+function _btMergeIntervals(genSeries, prices) {
+  const genMap = new Map(genSeries.map((r) => [r.timestamp, r.generationMwh]));
+  return prices.map((p) => {
+    const gen = genMap.get(p.timestamp) ?? 0;
+    return {
+      timestamp: p.timestamp,
+      generationMwh: gen,
+      priceEurPerMwh: p.priceEurMwh,
+      marketValueEur: gen * p.priceEurMwh,
+    };
+  });
+}
+
+function _btAssetKpis(intervals) {
+  let genMwh = 0, valueEur = 0, curtailedEur = 0;
+  let negHours = 0, genDuringNegMwh = 0, valueDuringNegEur = 0;
+  for (const iv of intervals) {
+    genMwh += iv.generationMwh;
+    valueEur += iv.marketValueEur;
+    curtailedEur += iv.priceEurPerMwh < 0 ? 0 : iv.marketValueEur;
+    if (iv.priceEurPerMwh < 0) {
+      negHours += 1;
+      genDuringNegMwh += iv.generationMwh;
+      valueDuringNegEur += iv.marketValueEur;
+    }
+  }
+  return {
+    generationMwh: Math.round(genMwh * 1000) / 1000,
+    marketValueEur: Math.round(valueEur * 100) / 100,
+    curtailedMarketValueEur: Math.round(curtailedEur * 100) / 100,
+    negativePriceAvoidableLossEur: Math.round((curtailedEur - valueEur) * 100) / 100,
+    negativePriceHours: negHours,
+    generationDuringNegativePricesMwh: Math.round(genDuringNegMwh * 1000) / 1000,
+    valueDuringNegativePricesEur: Math.round(valueDuringNegEur * 100) / 100,
+  };
+}
+
+function _btMonthlyAggregation(intervals) {
+  const months = {};
+  for (const iv of intervals) {
+    const m = iv.timestamp.slice(0, 7);
+    if (!months[m]) {
+      months[m] = { month: m, generationMwh: 0, marketValueEur: 0, curtailedMarketValueEur: 0, negativePriceHours: 0, _priceSum: 0, _priceCount: 0 };
+    }
+    months[m].generationMwh += iv.generationMwh;
+    months[m].marketValueEur += iv.marketValueEur;
+    months[m].curtailedMarketValueEur += iv.priceEurPerMwh < 0 ? 0 : iv.marketValueEur;
+    if (iv.priceEurPerMwh < 0) months[m].negativePriceHours += 1;
+    months[m]._priceSum += iv.priceEurPerMwh;
+    months[m]._priceCount += 1;
+  }
+  return Object.values(months)
+    .sort((a, b) => a.month.localeCompare(b.month))
+    .map(({ _priceSum, _priceCount, ...m }) => ({
+      ...m,
+      generationMwh: Math.round(m.generationMwh * 1000) / 1000,
+      marketValueEur: Math.round(m.marketValueEur * 100) / 100,
+      curtailedMarketValueEur: Math.round(m.curtailedMarketValueEur * 100) / 100,
+      averageSpotPriceEurPerMwh: _priceCount > 0 ? Math.round((_priceSum / _priceCount) * 100) / 100 : 0,
+      weightedMarketValueEurPerMwh: m.generationMwh > 0 ? Math.round((m.marketValueEur / m.generationMwh) * 100) / 100 : 0,
+    }));
+}
+
+
 function computeInstallationStats(installations) {
   const count = installations.length;
   const totalCapacity = installations.reduce((sum, installation) => {
@@ -1214,6 +1342,354 @@ module.exports = {
         }
 
         return applyFormat(ctx, result, format, 'installations', 'Installations', exportRows);
+      },
+    },
+
+    /**
+     * Historical portfolio market value backtest
+     * POST /api/energy-market/portfolio-backtest
+     */
+    portfolioBacktest: {
+      rest: 'POST /portfolio-backtest',
+      timeout: 120000,
+      params: {
+        assets: { type: 'array', min: 1, max: BACKTEST_MAX_ASSETS, items: { type: 'object' } },
+        dateFrom: { type: 'string', optional: true, pattern: /^\d{4}-\d{2}-\d{2}$/ },
+        dateTo: { type: 'string', optional: true, pattern: /^\d{4}-\d{2}-\d{2}$/ },
+        resolution: { type: 'enum', values: ['hourly', 'daily'], optional: true, default: 'hourly' },
+        market: { type: 'string', optional: true, default: 'day-ahead' },
+        region: { type: 'string', optional: true, default: 'Deutschland' },
+        includeTimeseries: { type: 'boolean', optional: true, default: false },
+      },
+      openapi: {
+        summary: 'Historical portfolio market value backtest (Day-Ahead)',
+        tags: ['Energy Market Data'],
+        description: `Computes the historical spot market value for a portfolio of energy installations.
+
+Combines generation timeseries (inline upload, MaStR-based historical reconstruction, or technology assumption) with Day-Ahead prices over a selectable period (default: last 365 complete days).
+
+**Data quality priority per asset:**
+1. \`uploaded_timeseries\` — inline \`timeseries\` array in request
+2. \`mastr_historical_reconstruction\` — solar/wind with \`mastrNumber\`, weather-based historical model
+3. \`assumption\` — biomass (7 500 h/a), hydro (4 200 h/a), combustion (3 500 h/a): flat profile
+4. \`missing_profile\` — storage and unknown types: generation = 0, warning emitted
+
+**Negative price handling:** \`marketValueEur\` reflects physical generation including negative intervals; \`curtailedMarketValueEur\` shows the value under ideal curtailment; \`negativePriceAvoidableLossEur\` is the difference.
+
+**Limits:** max 50 assets per request, max 365 days, region \`Deutschland\` only in v1.`,
+        requestBody: {
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['assets'],
+                properties: {
+                  assets: {
+                    type: 'array',
+                    maxItems: 50,
+                    description: 'Portfolio of energy installations',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        mastrNumber: { type: 'string', description: 'MaStR unit ID (SEE…=solar, SWE…=wind)' },
+                        type: { type: 'string', enum: ['solar', 'wind', 'biomass', 'hydro', 'combustion', 'storage', 'other'], description: 'Technology type' },
+                        capacityKw: { type: 'number', description: 'Installed capacity in kW' },
+                        postleitzahl: { type: 'string', description: 'Postal code (used as fallback location)' },
+                        commissioningDate: { type: 'string', format: 'date', description: 'Grid connection date — intervals before this are zeroed' },
+                        timeseries: { type: 'array', description: 'Optional inline generation timeseries (highest priority)', items: { type: 'object', properties: { timestamp: { type: 'string' }, generationMwh: { type: 'number' } } } },
+                      },
+                    },
+                  },
+                  dateFrom: { type: 'string', format: 'date', description: 'Start date (YYYY-MM-DD). Default: today − 365 days', example: '2025-07-01' },
+                  dateTo: { type: 'string', format: 'date', description: 'End date inclusive (YYYY-MM-DD). Default: yesterday', example: '2026-06-30' },
+                  resolution: { type: 'string', enum: ['hourly', 'daily'], default: 'hourly', description: 'Response resolution' },
+                  market: { type: 'string', default: 'day-ahead', description: 'Market type' },
+                  region: { type: 'string', default: 'Deutschland', description: 'Market region (only "Deutschland" supported in v1)' },
+                  includeTimeseries: { type: 'boolean', default: false, description: 'Include full hourly timeseries in response' },
+                },
+              },
+              examples: {
+                minimal: {
+                  summary: 'Single solar asset, default 365-day period',
+                  value: {
+                    assets: [{ mastrNumber: 'SEE123456789012', type: 'solar', capacityKw: 742.5, postleitzahl: '69115', commissioningDate: '2020-06-01' }],
+                  },
+                },
+                mixedPortfolio: {
+                  summary: 'Mixed portfolio with inline biomass timeseries',
+                  value: {
+                    assets: [
+                      { mastrNumber: 'SEE123456789012', type: 'solar', capacityKw: 500, commissioningDate: '2021-01-01' },
+                      { type: 'biomass', capacityKw: 500, commissioningDate: '2019-03-15',
+                        timeseries: [{ timestamp: '2025-07-01T00:00:00Z', generationMwh: 0.42 }] },
+                    ],
+                    dateFrom: '2025-07-01',
+                    dateTo: '2026-06-30',
+                    includeTimeseries: false,
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Backtest result',
+            content: {
+              'application/json': {
+                example: {
+                  success: true,
+                  period: { dateFrom: '2025-07-01', dateTo: '2026-06-30', days: 365, resolution: 'hourly' },
+                  market: { type: 'day-ahead', region: 'Deutschland', currency: 'EUR', priceUnit: 'EUR/MWh' },
+                  portfolio: { assetCount: 1, totalCapacityKw: 742.5, generationMwh: 721.4, marketValueEur: 54321.1, weightedMarketValueEurPerMwh: 75.3, averageSpotPriceEurPerMwh: 82.1, captureRate: 0.917, negativePriceHours: 24, generationDuringNegativePricesMwh: 18.2, valueDuringNegativePricesEur: -145.6, curtailedMarketValueEur: 54466.7, negativePriceAvoidableLossEur: 145.6 },
+                  monthly: [{ month: '2025-07', generationMwh: 82.1, marketValueEur: 6234.5, curtailedMarketValueEur: 6280.0, averageSpotPriceEurPerMwh: 78.4, weightedMarketValueEurPerMwh: 75.9, negativePriceHours: 3 }],
+                  assets: [{ mastrNumber: 'SEE123456789012', type: 'solar', capacityKw: 742.5, dataQuality: 'mastr_historical_reconstruction', generationMwh: 721.4, marketValueEur: 54321.1, weightedMarketValueEurPerMwh: 75.3, curtailedMarketValueEur: 54466.7, negativePriceAvoidableLossEur: 145.6, negativePriceHours: 24, warnings: [] }],
+                  methodology: { timezone: 'UTC', priceAlignment: 'hourly', fallbackPolicy: 'assumption_if_no_forecast_or_uploaded_profile', captureRateDefinition: 'weightedMarketValueEurPerMwh / timeWeightedAverageSpotPrice' },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const { assets, market, region, includeTimeseries } = ctx.params;
+
+        // Region guard (v1: Deutschland only)
+        if (region && region !== 'Deutschland') {
+          return {
+            success: false,
+            error: { code: 'UNSUPPORTED_REGION', message: `Region "${region}" is not supported. Only "Deutschland" is available in v1.` },
+          };
+        }
+
+        // Date defaults: last 365 complete days
+        const todayMs = Date.now();
+        const yesterday = new Date(todayMs - 24 * 3600 * 1000);
+        const defaultDateTo = yesterday.toISOString().slice(0, 10);
+        const defaultDateFrom = new Date(todayMs - 365 * 24 * 3600 * 1000).toISOString().slice(0, 10);
+        const dateFrom = ctx.params.dateFrom || defaultDateFrom;
+        const dateTo = ctx.params.dateTo || defaultDateTo;
+
+        const fromMs = new Date(dateFrom).getTime();
+        const toMs = new Date(dateTo).getTime();
+        const daysDiff = Math.round((toMs - fromMs) / (24 * 3600 * 1000)) + 1;
+
+        if (daysDiff > BACKTEST_MAX_DAYS) {
+          return {
+            success: false,
+            error: { code: 'DATE_RANGE_TOO_LARGE', message: `Maximum date range is ${BACKTEST_MAX_DAYS} days. Requested: ${daysDiff} days.` },
+          };
+        }
+
+        // 1. Fetch Day-Ahead prices for the full period
+        let prices = [];
+        try {
+          const raw = await ctx.call('energy-market.prices', {
+            market: market || 'day-ahead',
+            region: 'Deutschland',
+            startDate: dateFrom,
+            endDate: dateTo,
+          });
+          prices = _btNormalisePrices(raw);
+        } catch (err) {
+          this.logger.warn(`portfolioBacktest: price fetch failed: ${err.message}`);
+        }
+
+        if (prices.length === 0) {
+          return {
+            success: false,
+            error: { code: 'PRICE_DATA_UNAVAILABLE', message: 'No Day-Ahead price data available for the requested period.' },
+          };
+        }
+
+        const priceTimestamps = prices.map((p) => p.timestamp);
+        const avgSpotPrice =
+          prices.length > 0
+            ? prices.reduce((s, p) => s + p.priceEurMwh, 0) / prices.length
+            : 0;
+
+        // 2. Process each asset
+        const assetResults = [];
+        for (let i = 0; i < assets.length; i++) {
+          const asset = assets[i];
+          const assetType = (asset.type || 'other').toLowerCase();
+          const mastrId = asset.mastrNumber || asset.installationMastrNummer;
+          let genSeries = [];
+          let dataQuality;
+          const warnings = [];
+
+          // Priority 1: inline timeseries
+          if (Array.isArray(asset.timeseries) && asset.timeseries.length > 0) {
+            genSeries = asset.timeseries.map((r) => ({
+              timestamp: r.timestamp,
+              generationMwh: Number(r.generationMwh ?? r.value ?? 0),
+            }));
+            dataQuality = 'uploaded_timeseries';
+          }
+          // Priority 2: solar/wind with MaStR ID → historical weather model
+          else if (BACKTEST_WEATHER_TYPES.has(assetType) && mastrId) {
+            try {
+              const forecastResult = await CernionMCPClient.callWithNewSession(
+                'mastr_generation_forecast',
+                {
+                  installationMastrNummer: mastrId,
+                  startDate: dateFrom,
+                  endDate: dateTo,
+                  resolution: 'hourly',
+                },
+                ctx.meta.cernionToken
+              );
+              genSeries = _btNormaliseForecast(forecastResult);
+              dataQuality = 'mastr_historical_reconstruction';
+            } catch (err) {
+              this.logger.warn(`portfolioBacktest: forecast failed for ${mastrId}: ${err.message}`);
+              warnings.push('forecast_unavailable');
+              dataQuality = 'missing_profile';
+              genSeries = priceTimestamps.map((ts) => ({ timestamp: ts, generationMwh: 0 }));
+            }
+          }
+          // Priority 3: dispatchable types with known assumption
+          else if (BACKTEST_ASSUMPTION_FULL_LOAD_HOURS[assetType] !== undefined) {
+            genSeries = _btBuildAssumptionSeries(asset, priceTimestamps);
+            dataQuality = 'assumption';
+            warnings.push('assumption_used');
+          }
+          // Priority 4: storage / unknown → no profile
+          else {
+            genSeries = priceTimestamps.map((ts) => ({ timestamp: ts, generationMwh: 0 }));
+            dataQuality = 'missing_profile';
+            warnings.push('generation_profile_missing');
+          }
+
+          // Apply commissioningDate: zero intervals before grid connection
+          const { series: zeroed, warnings: cdWarnings } = _btApplyCommissioningDate(
+            genSeries,
+            asset.commissioningDate
+          );
+          genSeries = zeroed;
+          if (cdWarnings.length > 0) warnings.push(...cdWarnings);
+
+          const intervals = _btMergeIntervals(genSeries, prices);
+          const kpis = _btAssetKpis(intervals);
+          const weightedMvPerMwh =
+            kpis.generationMwh > 0
+              ? Math.round((kpis.marketValueEur / kpis.generationMwh) * 100) / 100
+              : 0;
+
+          assetResults.push({
+            mastrNumber: mastrId || undefined,
+            type: assetType,
+            capacityKw: asset.capacityKw,
+            dataQuality,
+            warnings,
+            generationMwh: kpis.generationMwh,
+            marketValueEur: kpis.marketValueEur,
+            weightedMarketValueEurPerMwh: weightedMvPerMwh,
+            curtailedMarketValueEur: kpis.curtailedMarketValueEur,
+            negativePriceAvoidableLossEur: kpis.negativePriceAvoidableLossEur,
+            negativePriceHours: kpis.negativePriceHours,
+            _intervals: intervals,
+          });
+        }
+
+        // 3. Aggregate portfolio across all intervals
+        const allIntervals = [];
+        {
+          // Sum generation across assets per timestamp slot using the shared price grid
+          const genByTs = {};
+          for (const ar of assetResults) {
+            for (const iv of ar._intervals) {
+              if (!genByTs[iv.timestamp]) {
+                genByTs[iv.timestamp] = { timestamp: iv.timestamp, generationMwh: 0, priceEurPerMwh: iv.priceEurPerMwh };
+              }
+              genByTs[iv.timestamp].generationMwh += iv.generationMwh;
+            }
+          }
+          for (const ts of priceTimestamps) {
+            const slot = genByTs[ts];
+            if (slot) {
+              allIntervals.push({
+                ...slot,
+                marketValueEur: slot.generationMwh * slot.priceEurPerMwh,
+              });
+            }
+          }
+        }
+
+        const pfKpis = _btAssetKpis(allIntervals);
+        const pfWeightedMvPerMwh =
+          pfKpis.generationMwh > 0
+            ? Math.round((pfKpis.marketValueEur / pfKpis.generationMwh) * 100) / 100
+            : 0;
+        const captureRate =
+          avgSpotPrice !== 0
+            ? Math.round((pfWeightedMvPerMwh / avgSpotPrice) * 10000) / 10000
+            : null;
+
+        const monthly = _btMonthlyAggregation(allIntervals);
+
+        // 4. Build response
+        const assetSummaries = assetResults.map(({ _intervals, ...rest }) => rest);
+
+        const response = {
+          success: true,
+          period: {
+            dateFrom,
+            dateTo,
+            days: daysDiff,
+            resolution: ctx.params.resolution || 'hourly',
+          },
+          market: {
+            type: market || 'day-ahead',
+            region: 'Deutschland',
+            currency: 'EUR',
+            priceUnit: 'EUR/MWh',
+          },
+          portfolio: {
+            assetCount: assets.length,
+            totalCapacityKw: assets.reduce((s, a) => s + Number(a.capacityKw || 0), 0),
+            generationMwh: pfKpis.generationMwh,
+            marketValueEur: pfKpis.marketValueEur,
+            weightedMarketValueEurPerMwh: pfWeightedMvPerMwh,
+            averageSpotPriceEurPerMwh: Math.round(avgSpotPrice * 100) / 100,
+            captureRate,
+            negativePriceHours: pfKpis.negativePriceHours,
+            generationDuringNegativePricesMwh: pfKpis.generationDuringNegativePricesMwh,
+            valueDuringNegativePricesEur: pfKpis.valueDuringNegativePricesEur,
+            curtailedMarketValueEur: pfKpis.curtailedMarketValueEur,
+            negativePriceAvoidableLossEur: pfKpis.negativePriceAvoidableLossEur,
+          },
+          monthly,
+          assets: assetSummaries,
+          methodology: {
+            timezone: 'UTC',
+            priceAlignment: 'hourly',
+            fallbackPolicy: 'assumption_if_no_forecast_or_uploaded_profile',
+            captureRateDefinition: 'weightedMarketValueEurPerMwh / timeWeightedAverageSpotPrice',
+            assumptions: assetResults
+              .filter((a) => a.dataQuality === 'assumption')
+              .map((a) => ({
+                assetType: a.type,
+                fullLoadHoursPerYear: BACKTEST_ASSUMPTION_FULL_LOAD_HOURS[a.type],
+                profile: 'flat_base_generation',
+              })),
+          },
+          sources: [
+            { key: 'spot_market_prices', reference: '/api/energy-market/prices' },
+            { key: 'generation_forecast', reference: 'mastr_generation_forecast (historical mode)' },
+          ],
+        };
+
+        if (includeTimeseries) {
+          response.timeseries = allIntervals.map((iv) => ({
+            timestamp: iv.timestamp,
+            generationMwh: Math.round(iv.generationMwh * 1000) / 1000,
+            priceEurPerMwh: iv.priceEurPerMwh,
+            marketValueEur: Math.round(iv.marketValueEur * 100) / 100,
+          }));
+        }
+
+        return response;
       },
     },
   },
