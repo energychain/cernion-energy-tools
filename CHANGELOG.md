@@ -5,6 +5,23 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+## [0.67.10] — 2026-07-01
+
+### Added
+- **Historical portfolio market value backtest** (`services/energy-market.service.js`, #357): New endpoint `POST /api/energy-market/portfolio-backtest` computes the Day-Ahead spot market value for an asset portfolio over a selectable period (default: last 365 complete days). Highlights:
+  - Per-interval revenue calculation — each hourly slot is valued at its actual spot price, never at an average.
+  - Four data-quality tiers per asset, applied in priority order: `uploaded_timeseries` (inline generation series in request) → `mastr_historical_reconstruction` (solar/wind via `mastr_generation_forecast` historical weather model) → `assumption` (biomass 7 500 h/a, hydro 4 200 h/a, combustion 3 500 h/a, flat profile) → `missing_profile` (storage/unknown: generation = 0, warning emitted).
+  - `commissioningDate` support: intervals before grid connection are automatically zeroed; missing date emits `commissioning_date_missing` warning.
+  - Dual negative-price reporting: `marketValueEur` (physical generation including negative intervals) and `curtailedMarketValueEur` (ideal curtailment at price < 0), with `negativePriceAvoidableLossEur` as the difference.
+  - Response includes portfolio-level KPIs, monthly aggregation, per-asset breakdown with `dataQuality` and `warnings`, and an optional full hourly timeseries (`includeTimeseries: true`).
+  - Limits: max 50 assets per request, max 365-day range, `region: "Deutschland"` only in v1.
+
+### Security
+- **Legacy/global admin token sunset decision** (`docs/architecture/legacy-global-admin-token-sunset.md`, `docs/AUTH_OIDC_SAML.md`, `docs/ui-contracts/12-auth.md`, #252): documented the compatibility-only policy for tenant-neutral legacy `ck_` tokens, aligned the sunset date with the runtime `Sunset: Wed, 31 Dec 2026 23:59:59 GMT` header, and defined the migration path to tenant-/user-bound replacement tokens. No runtime restriction is introduced in this cut; post-sunset rejection requires a separate tested token-manager/API change.
+- **Support-token operational hardening** (#252): updated bootstrap/runbook examples to prefer environment/TTY-provided `CERNION_SUPPORT_TOKEN_INPUT` instead of putting support secrets into `--support-token` command arguments. The local CLI compatibility argument remains accepted, but is no longer the recommended runbook path.
+
 ## [0.67.9] — 2026-06-28
 
 ### Added
