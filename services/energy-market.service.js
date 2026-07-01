@@ -26,17 +26,21 @@ const BACKTEST_MAX_DAYS = 365;
 function _btNormalisePrices(raw) {
   const arr = Array.isArray(raw)
     ? raw
-    : Array.isArray(raw?.data)
-    ? raw.data
     : Array.isArray(raw?.prices)
     ? raw.prices
     : Array.isArray(raw?.data?.prices)
     ? raw.data.prices
+    : Array.isArray(raw?.data)
+    ? raw.data
     : [];
   return arr
     .map((r) => ({
-      timestamp: r.timestamp ?? r.ts ?? r.hour,
-      priceEurMwh: Number(r.priceEURMWh ?? r.priceEurMwh ?? r.price_eur_mwh ?? r.value ?? NaN),
+      // entsoe.dayAheadPrices uses 'hour'; cernion_energy_prices uses 'timestamp'
+      timestamp: r.timestamp ?? r.hour ?? r.ts,
+      // entsoe returns 'price'; cernion MCP returns 'priceEURMWh' / 'priceEurMwh'
+      priceEurMwh: Number(
+        r.price ?? r.priceEURMWh ?? r.priceEurMwh ?? r.price_eur_mwh ?? r.value ?? NaN
+      ),
     }))
     .filter((r) => r.timestamp && Number.isFinite(r.priceEurMwh));
 }
@@ -1481,24 +1485,31 @@ Combines generation timeseries (inline upload, MaStR-based historical reconstruc
           };
         }
 
-        // 1. Fetch Day-Ahead prices for the full period
+        // 1. Fetch Day-Ahead prices for the full period via entsoe.dayAheadPrices.
+        // Note: cernion_energy_prices MCP tool ignores startDate/endDate and always
+        // queries today internally — entsoe.dayAheadPrices accepts dateFrom/dateTo
+        // and works correctly for historical ranges.
         let prices = [];
+        let priceFetchError = null;
         try {
-          const raw = await ctx.call('energy-market.prices', {
-            market: market || 'day-ahead',
-            region: 'Deutschland',
-            startDate: dateFrom,
-            endDate: dateTo,
-          });
+          const raw = await ctx.call(
+            'entsoe.dayAheadPrices',
+            { region: 'Germany', dateFrom, dateTo, includeStatistics: false, format: 'json' },
+            { meta: { cernionToken: ctx.meta.cernionToken } }
+          );
           prices = _btNormalisePrices(raw);
         } catch (err) {
-          this.logger.warn(`portfolioBacktest: price fetch failed: ${err.message}`);
+          priceFetchError = err.message;
+          this.logger.warn(`portfolioBacktest: entsoe.dayAheadPrices failed: ${err.message}`);
         }
 
         if (prices.length === 0) {
           return {
             success: false,
-            error: { code: 'PRICE_DATA_UNAVAILABLE', message: 'No Day-Ahead price data available for the requested period.' },
+            error: {
+              code: 'PRICE_DATA_UNAVAILABLE',
+              message: `No Day-Ahead price data available for ${dateFrom}–${dateTo}.${priceFetchError ? ` Detail: ${priceFetchError}` : ''}`,
+            },
           };
         }
 
