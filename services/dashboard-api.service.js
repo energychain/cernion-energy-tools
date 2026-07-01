@@ -2148,8 +2148,22 @@ module.exports = {
         technicalPlausibility: { type: 'string', optional: true, min: 1 },
         owner: { type: 'string', optional: true, min: 1 },
         nextGate: { type: 'string', optional: true, min: 1 },
-        missingEvidence: { type: 'array', items: 'string', optional: true },
-        clarificationPoints: { type: 'array', items: 'string', optional: true },
+        missingEvidence: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+        clarificationPoints: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
         communicationContext: { type: 'string', optional: true, min: 1 },
         asOf: { type: 'string', optional: true, min: 1 },
       },
