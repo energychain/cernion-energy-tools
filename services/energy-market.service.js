@@ -31,7 +31,11 @@ function _btHourTimestamp(timestamp) {
 }
 
 function _btNormalisePrices(raw) {
-  const arr = Array.isArray(raw)
+  // entsoe_day_ahead_prices returns { dataPoints: [{timestamp, priceEURperMWh}] }
+  // cernion_energy_prices returns { prices: [{timestamp, priceEURMWh}] } or { data: { prices: [...] } }
+  const arr = Array.isArray(raw?.dataPoints)
+    ? raw.dataPoints
+    : Array.isArray(raw)
     ? raw
     : Array.isArray(raw?.prices)
     ? raw.prices
@@ -39,19 +43,15 @@ function _btNormalisePrices(raw) {
     ? raw.data.prices
     : Array.isArray(raw?.data)
     ? raw.data
-    : Array.isArray(raw?.dataPoints)
-    ? raw.dataPoints
     : [];
   const byHour = new Map();
   for (const r of arr
     .map((r) => ({
-      // entsoe.dayAheadPrices uses 'hour'; cernion_energy_prices uses 'timestamp'
-      timestamp: r.timestamp ?? r.hour ?? r.ts,
-      // entsoe returns 'price'; cernion MCP returns 'priceEURMWh' / 'priceEurMwh'
+      timestamp: r.timestamp ?? r.ts,
       priceEurMwh: Number(
-        r.price ??
+        r.priceEURperMWh ??
+          r.price ??
           r.priceEURMWh ??
-          r.priceEURperMWh ??
           r.priceEurMwh ??
           r.price_eur_mwh ??
           r.value ??
@@ -72,18 +72,24 @@ function _btNormalisePrices(raw) {
 }
 
 function _btNormaliseForecast(result) {
-  const arr =
-    result?.forecasts ||
-    result?.data?.forecasts ||
-    result?.data ||
-    [];
-  if (!Array.isArray(arr)) return [];
+  // mastr_generation_forecast returns top-level { forecasts: [...] }
+  // Each item: { timestamp, generationMW, capacityFactor, weather: {...} }
+  // generationMW is average power in MW over the hour → MWh = MW × 1h
+  const arr = Array.isArray(result?.forecasts)
+    ? result.forecasts
+    : Array.isArray(result?.data?.forecasts)
+    ? result.data.forecasts
+    : Array.isArray(result?.data)
+    ? result.data
+    : [];
   return arr
     .map((r) => ({
       timestamp: _btHourTimestamp(r.timestamp ?? r.ts),
       generationMwh:
         r.generationMwh != null
           ? Number(r.generationMwh)
+          : r.generationMW != null
+          ? Number(r.generationMW) // MW × 1h = MWh for hourly resolution
           : r.generation_mwh != null
           ? Number(r.generation_mwh)
           : r.generationKwh != null
@@ -1612,19 +1618,40 @@ Combines generation timeseries (inline upload, MaStR-based historical reconstruc
             dataQuality = 'uploaded_timeseries';
           }
           // Priority 2: solar/wind with MaStR ID → historical weather model
+          // mastr_generation_forecast does not support endDate; fetch in 14-day batches
           else if (BACKTEST_WEATHER_TYPES.has(assetType) && mastrId) {
             try {
-              const forecastResult = await CernionMCPClient.callWithNewSession(
-                'mastr_generation_forecast',
-                {
-                  installationMastrNummer: mastrId,
-                  startDate: dateFrom,
-                  endDate: dateTo,
-                  resolution: 'hourly',
-                },
-                ctx.meta.cernionToken
-              );
-              genSeries = _btNormaliseForecast(forecastResult);
+              const BATCH_DAYS = 14;
+              const allForecasts = [];
+              let batchStart = new Date(dateFrom);
+              const endMs = new Date(dateTo).getTime();
+
+              while (batchStart.getTime() <= endMs) {
+                const batchStartStr = batchStart.toISOString().slice(0, 10);
+                const batchResult = await CernionMCPClient.callWithNewSession(
+                  'mastr_generation_forecast',
+                  {
+                    installationMastrNummer: mastrId,
+                    startDate: batchStartStr,
+                    forecastDays: BATCH_DAYS,
+                    resolution: 'hourly',
+                  },
+                  ctx.meta.cernionToken
+                );
+                if (batchResult?.data?.isError) {
+                  throw new Error(batchResult?.data?.content?.[0]?.text || 'mastr_generation_forecast error');
+                }
+                allForecasts.push(..._btNormaliseForecast(batchResult));
+                batchStart = new Date(batchStart.getTime() + BATCH_DAYS * 24 * 3600 * 1000);
+              }
+
+              // Deduplicate by timestamp (batches may overlap at boundaries)
+              const seen = new Set();
+              genSeries = allForecasts.filter((r) => {
+                if (seen.has(r.timestamp)) return false;
+                seen.add(r.timestamp);
+                return true;
+              });
               dataQuality = 'mastr_historical_reconstruction';
             } catch (err) {
               this.logger.warn(`portfolioBacktest: forecast failed for ${mastrId}: ${err.message}`);
