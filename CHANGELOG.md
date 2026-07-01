@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.67.14] — 2026-07-01
+
+### Fixed
+- **Portfolio backtest: full price coverage for multi-month periods** (`services/energy-market.service.js`, #357): `entsoe_day_ahead_prices` MCP tool ignores `dateTo` and always returns exactly one German calendar day per call. For a 365-day backtest the previous single call produced only 96 price points (one day), leaving all months except the first with zero generation and market value. Price fetch is now a day-by-day loop that runs in parallel batches of 30, yielding ~8 760 hourly price slots for a full year. Deduplication by timestamp removes the UTC midnight overlap between adjacent day batches.
+
 ## [0.67.13] — 2026-07-01
 
 ### Fixed

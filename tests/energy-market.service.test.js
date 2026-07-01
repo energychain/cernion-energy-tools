@@ -1439,7 +1439,7 @@ describe('Energy Market Service', () => {
 
   describe('portfolioBacktest action', () => {
     it('computes mixed portfolio KPIs with data-quality flags, negative-price scenario, and commissioning zeroing', async () => {
-      mockDayAheadPrices.mockResolvedValueOnce({
+      callWithNewSession.mockResolvedValueOnce({
         dataPoints: [
           { timestamp: '2026-06-29T00:00:00Z', priceEURperMWh: 80 },
           { timestamp: '2026-06-29T00:15:00Z', priceEURperMWh: 120 },
@@ -1469,10 +1469,9 @@ describe('Energy Market Service', () => {
       });
 
       expect(result.success).toBe(true);
-      expect(mockDayAheadPrices).toHaveBeenCalledWith(
-        expect.objectContaining({
-          params: expect.objectContaining({ region: 'Germany', dateFrom: '2026-06-29', dateTo: '2026-06-29' }),
-        })
+      expect(callWithNewSession).toHaveBeenCalledWith(
+        'entsoe_day_ahead_prices',
+        expect.objectContaining({ region: 'Germany', dateFrom: '2026-06-29', dateTo: '2026-06-29' })
       );
 
       expect(result.portfolio).toMatchObject({
@@ -1515,18 +1514,19 @@ describe('Energy Market Service', () => {
     });
 
     it('uses MaStR historical reconstruction for solar and supports daily timeseries compaction', async () => {
-      mockDayAheadPrices.mockResolvedValueOnce({
-        prices: [
-          { hour: '2026-06-29T00:00:00Z', price: 80 },
-          { hour: '2026-06-29T01:00:00Z', price: 120 },
-        ],
-      });
-      callWithNewSession.mockResolvedValueOnce({
-        forecasts: [
-          { timestamp: '2026-06-29T00:00:00Z', generationMwh: 0.5 },
-          { timestamp: '2026-06-29T01:00:00Z', generationMwh: 1.5 },
-        ],
-      });
+      callWithNewSession
+        .mockResolvedValueOnce({
+          dataPoints: [
+            { timestamp: '2026-06-29T00:00:00Z', priceEURperMWh: 80 },
+            { timestamp: '2026-06-29T01:00:00Z', priceEURperMWh: 120 },
+          ],
+        })
+        .mockResolvedValueOnce({
+          forecasts: [
+            { timestamp: '2026-06-29T00:00:00Z', generationMwh: 0.5 },
+            { timestamp: '2026-06-29T01:00:00Z', generationMwh: 1.5 },
+          ],
+        });
 
       const result = await broker.call('energy-market.portfolioBacktest', {
         dateFrom: '2026-06-29',
@@ -1576,7 +1576,6 @@ describe('Energy Market Service', () => {
         })
       ).resolves.toMatchObject({ success: false, error: { code: 'INVALID_DATE_RANGE' } });
 
-      mockDayAheadPrices.mockResolvedValueOnce({ prices: [] });
       await expect(
         broker.call('energy-market.portfolioBacktest', {
           dateFrom: '2026-06-29',

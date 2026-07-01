@@ -1583,22 +1583,51 @@ Combines generation timeseries (inline upload, MaStR-based historical reconstruc
           };
         }
 
-        // 1. Fetch Day-Ahead prices for the full period via entsoe.dayAheadPrices.
-        // Note: cernion_energy_prices MCP tool ignores startDate/endDate and always
-        // queries today internally — entsoe.dayAheadPrices accepts dateFrom/dateTo
-        // and works correctly for historical ranges.
+        // 1. Fetch Day-Ahead prices for the full period.
+        // entsoe_day_ahead_prices returns exactly one German calendar day per call
+        // regardless of dateTo, so we iterate day-by-day in parallel batches of 30.
         let prices = [];
         let priceFetchError = null;
         try {
-          const raw = await ctx.call(
-            'entsoe.dayAheadPrices',
-            { region: 'Germany', dateFrom, dateTo, includeStatistics: false, format: 'json' },
-            { meta: { cernionToken: ctx.meta.cernionToken } }
+          const priceDates = [];
+          let curDay = new Date(dateFrom + 'T00:00:00Z');
+          const endDay = new Date(dateTo + 'T00:00:00Z');
+          while (curDay <= endDay) {
+            priceDates.push(curDay.toISOString().slice(0, 10));
+            curDay = new Date(curDay.getTime() + 24 * 3600 * 1000);
+          }
+          const PRICE_BATCH = 30;
+          this.logger.info(
+            `portfolioBacktest: fetching prices for ${priceDates.length} days in ${Math.ceil(priceDates.length / PRICE_BATCH)} batches`
           );
-          prices = _btNormalisePrices(raw);
+          const allRaw = [];
+          for (let i = 0; i < priceDates.length; i += PRICE_BATCH) {
+            const chunk = priceDates.slice(i, i + PRICE_BATCH);
+            const results = await Promise.allSettled(
+              chunk.map((d) =>
+                CernionMCPClient.callWithNewSession('entsoe_day_ahead_prices', {
+                  region: 'Germany',
+                  dateFrom: d,
+                  dateTo: d,
+                  includeStatistics: false,
+                  format: 'json',
+                })
+              )
+            );
+            for (const r of results) {
+              if (r.status === 'fulfilled' && r.value) allRaw.push(..._btNormalisePrices(r.value));
+            }
+          }
+          // Deduplicate by timestamp (adjacent days share a UTC midnight boundary)
+          const seen = new Set();
+          prices = allRaw.filter((p) => {
+            if (seen.has(p.timestamp)) return false;
+            seen.add(p.timestamp);
+            return true;
+          });
         } catch (err) {
           priceFetchError = err.message;
-          this.logger.warn(`portfolioBacktest: entsoe.dayAheadPrices failed: ${err.message}`);
+          this.logger.warn(`portfolioBacktest: price fetch failed: ${err.message}`);
         }
 
         if (prices.length === 0) {
