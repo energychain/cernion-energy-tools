@@ -1604,6 +1604,8 @@ Combines generation timeseries (inline upload, MaStR-based historical reconstruc
           ctx,
           { service: 'energy-market', action: 'portfolioBacktest' },
           async (jobId) => {
+        const todayStr = new Date().toISOString().slice(0, 10);
+
         // 1. Fetch Day-Ahead prices for the full period.
         // entsoe_day_ahead_prices returns exactly one German calendar day per call
         // regardless of dateTo, so we iterate day-by-day in parallel batches of 30.
@@ -1618,7 +1620,6 @@ Combines generation timeseries (inline upload, MaStR-based historical reconstruc
             curDay = new Date(curDay.getTime() + 24 * 3600 * 1000);
           }
           const PRICE_BATCH = 30;
-          const todayStr = new Date().toISOString().slice(0, 10);
           if (jobId) jobStore.appendLog(jobId, 'prices', 5, `Fetching Day-Ahead prices for ${priceDates.length} days (${Math.ceil(priceDates.length / PRICE_BATCH)} batches, cache-first)`);
           this.logger.info(
             `portfolioBacktest: fetching prices for ${priceDates.length} days in ${Math.ceil(priceDates.length / PRICE_BATCH)} batches`
@@ -1712,6 +1713,8 @@ Combines generation timeseries (inline upload, MaStR-based historical reconstruc
           let genSeries = [];
           let dataQuality;
           const warnings = [];
+          let genCacheHits = 0;
+          let genBatchCount = 0;
 
           // Priority 1: inline timeseries
           if (Array.isArray(asset.timeseries) && asset.timeseries.length > 0) {
@@ -1731,7 +1734,9 @@ Combines generation timeseries (inline upload, MaStR-based historical reconstruc
             dataQuality = 'uploaded_timeseries';
           }
           // Priority 2: solar/wind with MaStR ID → historical weather model
-          // mastr_generation_forecast does not support endDate; fetch in 14-day batches
+          // mastr_generation_forecast does not support endDate; fetch in 14-day batches.
+          // Fully-past batches (last day < today) are cached in the object store since
+          // historical generation profiles do not change after the fact.
           else if (BACKTEST_WEATHER_TYPES.has(assetType) && mastrId) {
             try {
               const BATCH_DAYS = 14;
@@ -1741,20 +1746,58 @@ Combines generation timeseries (inline upload, MaStR-based historical reconstruc
 
               while (batchStart.getTime() <= endMs) {
                 const batchStartStr = batchStart.toISOString().slice(0, 10);
-                const batchResult = await CernionMCPClient.callWithNewSession(
-                  'mastr_generation_forecast',
-                  {
-                    installationMastrNummer: mastrId,
-                    startDate: batchStartStr,
-                    forecastDays: BATCH_DAYS,
-                    resolution: 'hourly',
-                  },
-                  ctx.meta.cernionToken
-                );
-                if (batchResult?.data?.isError) {
-                  throw new Error(batchResult?.data?.content?.[0]?.text || 'mastr_generation_forecast error');
+                const batchLastDayStr = new Date(batchStart.getTime() + (BATCH_DAYS - 1) * 24 * 3600 * 1000)
+                  .toISOString()
+                  .slice(0, 10);
+                const batchIsPast = batchLastDayStr < todayStr;
+                const genCacheKey = `${mastrId}:${batchStartStr}`;
+                genBatchCount++;
+
+                let batchForecasts = null;
+                if (batchIsPast) {
+                  try {
+                    const cached = await ctx.call('object-store.get', {
+                      namespace: 'mastr_gen_cache',
+                      key: genCacheKey,
+                    });
+                    if (Array.isArray(cached?.payload?.forecasts) && cached.payload.forecasts.length > 0) {
+                      batchForecasts = cached.payload.forecasts;
+                      genCacheHits++;
+                    }
+                  } catch (_) {
+                    /* cache miss — fall through to MCP fetch */
+                  }
                 }
-                allForecasts.push(..._btNormaliseForecast(batchResult));
+
+                if (!batchForecasts) {
+                  const batchResult = await CernionMCPClient.callWithNewSession(
+                    'mastr_generation_forecast',
+                    {
+                      installationMastrNummer: mastrId,
+                      startDate: batchStartStr,
+                      forecastDays: BATCH_DAYS,
+                      resolution: 'hourly',
+                    },
+                    ctx.meta.cernionToken
+                  );
+                  if (batchResult?.data?.isError) {
+                    throw new Error(batchResult?.data?.content?.[0]?.text || 'mastr_generation_forecast error');
+                  }
+                  batchForecasts = _btNormaliseForecast(batchResult);
+                  if (batchIsPast && batchForecasts.length > 0) {
+                    ctx
+                      .call('object-store.put', {
+                        namespace: 'mastr_gen_cache',
+                        key: genCacheKey,
+                        payload: { forecasts: batchForecasts },
+                      })
+                      .catch((e) =>
+                        this.logger.warn(`[mastr-cache] write failed for ${genCacheKey}: ${e.message}`)
+                      );
+                  }
+                }
+
+                allForecasts.push(...batchForecasts);
                 batchStart = new Date(batchStart.getTime() + BATCH_DAYS * 24 * 3600 * 1000);
               }
 
@@ -1819,7 +1862,7 @@ Combines generation timeseries (inline upload, MaStR-based historical reconstruc
             jobId,
             'assets',
             Math.round(35 + ((i + 1) / assets.length) * 55),
-            `Asset ${i + 1}/${assets.length} processed (${dataQuality})`
+            `Asset ${i + 1}/${assets.length} processed (${dataQuality}${genBatchCount > 0 ? `, ${genCacheHits}/${genBatchCount} gen batches cached` : ''})`
           );
         }
 

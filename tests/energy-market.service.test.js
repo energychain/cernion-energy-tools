@@ -1655,6 +1655,63 @@ describe('Energy Market Service', () => {
       expect(cached.prices[1]).toMatchObject({ timestamp: '2026-06-28T01:00:00.000Z', priceEurMwh: 110 });
     });
 
+    it('serves MaStR generation batches from object-store cache without calling MCP', async () => {
+      // Use a date whose 14-day batch (2026-06-01 – 2026-06-14) is fully before today (2026-07-01)
+      objectStoreData.set('epex_spot_prices:2026-06-01', {
+        prices: [
+          { timestamp: '2026-06-01T00:00:00.000Z', priceEurMwh: 90 },
+          { timestamp: '2026-06-01T01:00:00.000Z', priceEurMwh: 110 },
+        ],
+      });
+      objectStoreData.set('mastr_gen_cache:SEE999000111:2026-06-01', {
+        forecasts: [
+          { timestamp: '2026-06-01T00:00:00.000Z', generationMwh: 0.3 },
+          { timestamp: '2026-06-01T01:00:00.000Z', generationMwh: 0.6 },
+        ],
+      });
+
+      const result = await broker.call('energy-market.portfolioBacktest', {
+        dateFrom: '2026-06-01',
+        dateTo: '2026-06-01',
+        assets: [{ mastrNumber: 'SEE999000111', type: 'solar', capacityKw: 500, commissioningDate: '2020-01-01' }],
+      });
+
+      expect(result.success).toBe(true);
+      // Neither price nor generation MCP calls should have been made (both fully cached)
+      expect(callWithNewSession.mock.calls).toHaveLength(0);
+      expect(result.portfolio.generationMwh).toBeCloseTo(0.9, 5);
+    });
+
+    it('writes MaStR generation batches to object-store cache for fully-past batches', async () => {
+      // 2026-06-01 batch ends 2026-06-14 — fully before today (2026-07-01)
+      objectStoreData.set('epex_spot_prices:2026-06-01', {
+        prices: [
+          { timestamp: '2026-06-01T00:00:00.000Z', priceEurMwh: 80 },
+          { timestamp: '2026-06-01T01:00:00.000Z', priceEurMwh: 100 },
+        ],
+      });
+      callWithNewSession.mockResolvedValueOnce({
+        forecasts: [
+          { timestamp: '2026-06-01T00:00:00.000Z', generationMwh: 0.4 },
+          { timestamp: '2026-06-01T01:00:00.000Z', generationMwh: 0.8 },
+        ],
+      });
+
+      await broker.call('energy-market.portfolioBacktest', {
+        dateFrom: '2026-06-01',
+        dateTo: '2026-06-01',
+        assets: [{ mastrNumber: 'SEE999000222', type: 'solar', capacityKw: 500, commissioningDate: '2020-01-01' }],
+      });
+
+      await new Promise((r) => setTimeout(r, 10));
+
+      const cached = objectStoreData.get('mastr_gen_cache:SEE999000222:2026-06-01');
+      expect(cached).toBeDefined();
+      expect(Array.isArray(cached.forecasts)).toBe(true);
+      expect(cached.forecasts).toHaveLength(2);
+      expect(cached.forecasts[0]).toMatchObject({ timestamp: '2026-06-01T00:00:00.000Z', generationMwh: 0.4 });
+    });
+
     it('returns 202 job descriptor when called from the REST gateway', async () => {
       const jobStore = require('../src/job-store');
       const spy = jest.spyOn(jobStore, 'startJob').mockResolvedValueOnce({

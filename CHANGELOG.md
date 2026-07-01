@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.67.17] — 2026-07-01
+
+### Added
+- **MaStR generation forecast cache in Object Store** (`services/energy-market.service.js`, #357): `mastr_generation_forecast` MCP calls are now cached by 14-day batch under namespace `mastr_gen_cache` / key = `{mastrId}:{batchStartDate}`. A batch is written to cache only when its last day is strictly before today (immutability guarantee: past forecasts never change). On subsequent `portfolioBacktest` runs every fully-past batch is served from cache before falling back to an MCP call. Cache writes are fire-and-forget (a degraded Object Store never blocks the response). Progress logs include per-asset cache hit ratios (e.g. `3/4 gen batches cached`). Combined with the EPEX Spot price cache, a warm-cache backtest over historical data requires zero MCP round-trips.
+
 ## [0.67.16] — 2026-07-01
 
 ### Changed
