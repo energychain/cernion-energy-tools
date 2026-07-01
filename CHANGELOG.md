@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.67.13] — 2026-07-01
+
+### Fixed
+- **MCP always uses `CERNION_TOKEN` from environment** (`src/mcp-client.js`): `callWithNewSession` was accepting a `customToken` parameter and using it as the MCP authentication credential. In practice every service passed `ctx.meta.cernionToken` — the `ck_*` Bearer token from the HTTP request — which is a REST-API credential, not a valid MCP credential. This caused `{"error":"Unauthorized","message":"Invalid access token"}` from the MCP server for all endpoints that fetch data via MCP (e.g. `portfolioBacktest`, ENTSO-E price queries, MaStR forecasts). The parameter is now renamed `_customToken` and ignored; MCP always authenticates with `process.env.CERNION_TOKEN`. The parameter signature is preserved for call-site backward compatibility — no call-site changes required.
+
 ## [0.67.12] — 2026-07-01
 
 ### Added

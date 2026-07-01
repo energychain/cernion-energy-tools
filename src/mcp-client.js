@@ -445,13 +445,15 @@ class CernionMCPClient {
    *
    * @param {string} toolName
    * @param {object} [params={}]
-   * @param {string|null} [customToken=null] - Overrides CERNION_TOKEN env var.
+   * @param {string|null} [_customToken=null] - Ignored. MCP always uses CERNION_TOKEN from env.
+   *   The parameter is kept for call-site backward compat but must not be used for auth.
+   *   Bearer tokens from HTTP requests (ck_*) are REST-API credentials, not MCP credentials.
    * @param {object} [options={}] - Optional { jobId } for progress logging.
    * @returns {Promise<object>} Tool response
    */
-  static async callWithNewSession(toolName, params = {}, customToken = null, options = {}) {
+  static async callWithNewSession(toolName, params = {}, _customToken = null, options = {}) {
     const startedAt = Date.now();
-    const token = customToken || process.env.CERNION_TOKEN;
+    const token = process.env.CERNION_TOKEN;
     const jobId = options?.jobId || null;
 
     return tracing.withSpan(
@@ -470,7 +472,7 @@ class CernionMCPClient {
             success: false,
             error: {
               code: 'MISSING_TOKEN',
-              message: 'CERNION_TOKEN environment variable not set and no custom token provided',
+              message: 'CERNION_TOKEN environment variable not set.',
             },
           };
           tracing.setError(span, new Error(error.error.message));
