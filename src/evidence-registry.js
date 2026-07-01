@@ -5547,6 +5547,86 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  investment_budget_cap_exception_governance: {
+    sources: [
+      {
+        id: 'measure_identity',
+        label: 'Investment measure identity and scope',
+        resolvedBy: ['dashboard-api.investmentBudgetCapExceptionGovernanceStatus'],
+        contextKeys: ['measureId', 'measureName', 'scope'],
+        optional: false,
+      },
+      {
+        id: 'budget_cap',
+        label: 'Budget cap evidence',
+        resolvedBy: [
+          'dashboard-api.investmentBudgetCapExceptionGovernanceStatus',
+          'finance-agent.analyze',
+        ],
+        contextKeys: ['budgetCapEur'],
+        optional: false,
+      },
+      {
+        id: 'required_budget',
+        label: 'Fachlicher Soll-Bedarf / required budget',
+        resolvedBy: [
+          'dashboard-api.investmentBudgetCapExceptionGovernanceStatus',
+          'investment-planning.review',
+        ],
+        contextKeys: ['requiredBudgetEur'],
+        optional: false,
+      },
+      {
+        id: 'no_regret_and_technical_justification',
+        label: 'No-Regret and technical/regulatory exception basis',
+        resolvedBy: ['dashboard-api.investmentBudgetCapExceptionGovernanceStatus', 'vdmi.dossier'],
+        contextKeys: ['noRegretCriterion', 'technicalJustification', 'regulatoryContext'],
+        optional: false,
+      },
+      {
+        id: 'kpi_reference',
+        label: 'KPI-backed governance rationale',
+        resolvedBy: [
+          'dashboard-api.investmentBudgetCapExceptionGovernanceStatus',
+          'presentation.generate',
+        ],
+        contextKeys: ['kpiReference'],
+        optional: false,
+      },
+      {
+        id: 'asset_context',
+        label: 'Sparte or asset reference',
+        resolvedBy: ['dashboard-api.investmentBudgetCapExceptionGovernanceStatus'],
+        contextKeys: ['division', 'assetRef'],
+        optional: false,
+      },
+      {
+        id: 'evidence_refs',
+        label: 'Audit-ready evidence references and data quality',
+        resolvedBy: [
+          'dashboard-api.investmentBudgetCapExceptionGovernanceStatus',
+          'evidence-registry.lookup',
+        ],
+        contextKeys: ['evidenceRefs', 'dataQuality', 'sourceDatapoints'],
+        optional: false,
+      },
+      {
+        id: 'risk_owner_gate',
+        label: 'Risk if deferred, owner, deadline and next gate',
+        resolvedBy: ['dashboard-api.investmentBudgetCapExceptionGovernanceStatus', 'vdmi.dossier'],
+        contextKeys: ['riskIfDeferred', 'owner', 'deadline', 'nextDecisionGate'],
+        optional: false,
+      },
+      {
+        id: 'exception_justification',
+        label: 'Exception justification draft',
+        resolvedBy: ['dashboard-api.investmentBudgetCapExceptionGovernanceStatus'],
+        contextKeys: ['exceptionJustification'],
+        optional: false,
+      },
+    ],
+  },
+
   investment_owner_deadline_budget_gate: {
     sources: [
       {

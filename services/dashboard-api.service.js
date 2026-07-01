@@ -100,6 +100,7 @@ module.exports = {
       heatTransformationLineAssetModelStatus: 5 * 60 * 1000, // 5 min
       kiFloorwalkerGovernanceStatus: 5 * 60 * 1000, // 5 min
       investmentWaterfallGovernanceStatus: 5 * 60 * 1000, // 5 min
+      investmentBudgetCapExceptionGovernanceStatus: 5 * 60 * 1000, // 5 min
       investmentOwnerDeadlineBudgetGateStatus: 5 * 60 * 1000, // 5 min
       noRegretMeasureDefinitionGateStatus: 5 * 60 * 1000, // 5 min
       capacityContractRiskAssetCockpitStatus: 5 * 60 * 1000, // 5 min
@@ -9633,7 +9634,11 @@ module.exports = {
         escalationThreshold: { type: 'string', optional: true, min: 1 },
         nextGovernanceGate: { type: 'string', optional: true, min: 1 },
         decisionStatus: { type: 'string', optional: true, min: 1 },
-        evidenceRefs: { type: 'multi', optional: true, rules: [{ type: 'string' }, { type: 'array' }] },
+        evidenceRefs: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'string' }, { type: 'array' }],
+        },
       },
       openapi: {
         tags: [OPENAPI_TAG],
@@ -10423,6 +10428,117 @@ module.exports = {
           this.settings.cacheTtlMs.transformationFinancingScenarioViewStatus,
           async () => ({
             ...this.buildTransformationFinancingScenarioViewStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- investmentBudgetCapExceptionGovernanceStatus ----------------------
+    /**
+     * GET /api/dashboard/investment-budget-cap-exception-governance
+     *
+     * Read-only dossier-safe governance queue for investment measures above a
+     * supplied budget cap. It classifies evidence only and never approves
+     * budgets, creates committee decisions, mutates ERP/SAP/PSP data, creates
+     * HITL tasks, or calls external systems.
+     */
+    investmentBudgetCapExceptionGovernanceStatus: {
+      rest: 'GET /investment-budget-cap-exception-governance',
+      params: {
+        measureId: { type: 'string', optional: true, min: 1 },
+        measureName: { type: 'string', optional: true, min: 1 },
+        scope: { type: 'string', optional: true, min: 1 },
+        budgetCapEur: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'number' }, { type: 'string', min: 1 }],
+        },
+        requiredBudgetEur: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'number' }, { type: 'string', min: 1 }],
+        },
+        noRegretCriterion: { type: 'string', optional: true, min: 1 },
+        technicalJustification: { type: 'string', optional: true, min: 1 },
+        regulatoryContext: { type: 'string', optional: true, min: 1 },
+        kpiReference: { type: 'string', optional: true, min: 1 },
+        division: { type: 'string', optional: true, min: 1 },
+        assetRef: { type: 'string', optional: true, min: 1 },
+        dataQuality: { type: 'string', optional: true, min: 1 },
+        evidenceRefs: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+        riskIfDeferred: { type: 'string', optional: true, min: 1 },
+        owner: { type: 'string', optional: true, min: 1 },
+        deadline: { type: 'string', optional: true, min: 1 },
+        nextDecisionGate: { type: 'string', optional: true, min: 1 },
+        exceptionJustification: { type: 'string', optional: true, min: 1 },
+        sourceDatapoints: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+        sourceActions: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Investment budget cap exception governance -- read-only evidence queue',
+        description:
+          'Builds deterministic dossier-safe evidence for investment measures above a budget cap or missing an exception justification. ' +
+          'The endpoint is read-only and never approves budgets, creates committee decisions, writes SAP/ERP/PSP records, creates HITL/workflow tasks, sends communications, calls external connectors, or mutates billing/settlement/MaKo/tariff/device-control data.',
+        responses: {
+          200: {
+            description: 'Read-only budget-cap exception governance evidence',
+          },
+        },
+        parameters: [
+          { in: 'query', name: 'measureId', schema: { type: 'string' } },
+          { in: 'query', name: 'measureName', schema: { type: 'string' } },
+          { in: 'query', name: 'scope', schema: { type: 'string' } },
+          { in: 'query', name: 'budgetCapEur', schema: { type: 'string' } },
+          { in: 'query', name: 'requiredBudgetEur', schema: { type: 'string' } },
+          { in: 'query', name: 'noRegretCriterion', schema: { type: 'string' } },
+          { in: 'query', name: 'technicalJustification', schema: { type: 'string' } },
+          { in: 'query', name: 'regulatoryContext', schema: { type: 'string' } },
+          { in: 'query', name: 'kpiReference', schema: { type: 'string' } },
+          { in: 'query', name: 'division', schema: { type: 'string' } },
+          { in: 'query', name: 'assetRef', schema: { type: 'string' } },
+          { in: 'query', name: 'dataQuality', schema: { type: 'string' } },
+          { in: 'query', name: 'evidenceRefs', schema: { type: 'string' } },
+          { in: 'query', name: 'riskIfDeferred', schema: { type: 'string' } },
+          { in: 'query', name: 'owner', schema: { type: 'string' } },
+          { in: 'query', name: 'deadline', schema: { type: 'string' } },
+          { in: 'query', name: 'nextDecisionGate', schema: { type: 'string' } },
+          { in: 'query', name: 'exceptionJustification', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceDatapoints', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceActions', schema: { type: 'string' } },
+        ],
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `investment-budget-cap-exception-governance:${JSON.stringify(params)}`;
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.investmentBudgetCapExceptionGovernanceStatus,
+          async () => ({
+            ...this.buildInvestmentBudgetCapExceptionGovernanceStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -35052,8 +35168,12 @@ module.exports = {
     },
 
     buildNetzsignalDeltaGatingStatus(params = {}) {
-      const present = (value) => value !== undefined && value !== null && String(value).trim() !== '';
-      const lower = (value) => String(value || '').trim().toLowerCase();
+      const present = (value) =>
+        value !== undefined && value !== null && String(value).trim() !== '';
+      const lower = (value) =>
+        String(value || '')
+          .trim()
+          .toLowerCase();
       const normalizeMateriality = (value) => {
         const text = lower(value);
         if (/hoch|high|kritisch|critical|red|rot|vorstand|management/.test(text)) return 'high';
@@ -35940,7 +36060,9 @@ module.exports = {
         managementSummary: {
           topicCount: queueRows.length,
           openGapCount: missingEvidence.length,
-          nextGovernanceGates: [...new Set(queueRows.map((row) => row.nextGovernanceGate).filter(Boolean))],
+          nextGovernanceGates: [
+            ...new Set(queueRows.map((row) => row.nextGovernanceGate).filter(Boolean)),
+          ],
           domainLanes: [...new Set(queueRows.map((row) => row.domainLane).filter(Boolean))],
         },
         sourceActions,
@@ -37501,6 +37623,249 @@ module.exports = {
           missingEvidence,
           positiveFollowUps,
           nextActions,
+          sourceActions: { notCalled: sourceActions.notCalled },
+          dossierFacts,
+        },
+      };
+    },
+
+    buildInvestmentBudgetCapExceptionGovernanceStatus(params = {}) {
+      const toList = (value) => {
+        if (Array.isArray(value))
+          return value.map((item) => String(item || '').trim()).filter(Boolean);
+        if (value && typeof value === 'string') {
+          return value
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean);
+        }
+        return [];
+      };
+      const toNumberOrNull = (value) => {
+        if (value === undefined || value === null || String(value).trim() === '') return null;
+        const parsed = Number(String(value).replace(',', '.'));
+        return Number.isFinite(parsed) ? parsed : null;
+      };
+      const isProvided = (value) =>
+        value !== undefined && value !== null && String(value).trim() !== '';
+      const evidenceRefs = toList(params.evidenceRefs);
+      const sourceDatapoints = toList(params.sourceDatapoints);
+      const callerSourceActions = toList(params.sourceActions);
+      const budgetCapEur = toNumberOrNull(params.budgetCapEur);
+      const requiredBudgetEur = toNumberOrNull(params.requiredBudgetEur);
+      const budgetDeltaEur =
+        budgetCapEur !== null && requiredBudgetEur !== null
+          ? Number((requiredBudgetEur - budgetCapEur).toFixed(2))
+          : null;
+      const gapMap = {
+        measure_identity: 'add investment measure id, name or scope',
+        budget_cap_missing: 'add budget cap comparison and delta classification',
+        required_budget_missing: 'add fachlicher Soll-Bedarf and exception amount',
+        no_regret_missing: 'add no-regret justification for the committee gate',
+        technical_justification_missing:
+          'add technical or regulatory justification for the exception',
+        kpi_reference_missing: 'add KPI-backed governance rationale',
+        asset_context_missing: 'add Sparte or asset reference for operational accountability',
+        data_quality_missing: 'add data-quality status for auditability',
+        evidence_refs_missing: 'add audit-ready evidence references',
+        risk_if_deferred_missing: 'add risk if the measure is deferred',
+        owner_deadline_missing: 'add accountable owner, due date, and next decision gate',
+        exception_justification_missing:
+          'add exception justification draft for the governance gate',
+        source_datapoints_missing: 'add source datapoints or source actions for provenance',
+      };
+      const missingEvidence = [];
+      const addGap = (missingDataPoint) => {
+        missingEvidence.push({
+          missingDataPoint,
+          status: 'missing',
+          enablesDossierAddition: gapMap[missingDataPoint],
+        });
+      };
+
+      if (
+        !isProvided(params.measureId) &&
+        !isProvided(params.measureName) &&
+        !isProvided(params.scope)
+      )
+        addGap('measure_identity');
+      if (budgetCapEur === null) addGap('budget_cap_missing');
+      if (requiredBudgetEur === null) addGap('required_budget_missing');
+      if (!isProvided(params.noRegretCriterion)) addGap('no_regret_missing');
+      if (!isProvided(params.technicalJustification) && !isProvided(params.regulatoryContext))
+        addGap('technical_justification_missing');
+      if (!isProvided(params.kpiReference)) addGap('kpi_reference_missing');
+      if (!isProvided(params.division) && !isProvided(params.assetRef))
+        addGap('asset_context_missing');
+      if (!isProvided(params.dataQuality)) addGap('data_quality_missing');
+      if (evidenceRefs.length === 0) addGap('evidence_refs_missing');
+      if (!isProvided(params.riskIfDeferred)) addGap('risk_if_deferred_missing');
+      if (
+        !isProvided(params.owner) ||
+        !isProvided(params.deadline) ||
+        !isProvided(params.nextDecisionGate)
+      )
+        addGap('owner_deadline_missing');
+      if (!isProvided(params.exceptionJustification)) addGap('exception_justification_missing');
+      if (sourceDatapoints.length === 0 && callerSourceActions.length === 0)
+        addGap('source_datapoints_missing');
+
+      let status = 'exception_evidence_ready';
+      if (missingEvidence.some((gap) => gap.missingDataPoint === 'measure_identity')) {
+        status = 'needs_measure_identity';
+      } else if (
+        missingEvidence.some((gap) =>
+          ['budget_cap_missing', 'required_budget_missing'].includes(gap.missingDataPoint)
+        )
+      ) {
+        status = 'needs_budget_cap_evidence';
+      } else if (
+        missingEvidence.some((gap) =>
+          [
+            'no_regret_missing',
+            'technical_justification_missing',
+            'kpi_reference_missing',
+          ].includes(gap.missingDataPoint)
+        )
+      ) {
+        status = 'needs_exception_evidence';
+      } else if (
+        missingEvidence.some((gap) =>
+          ['owner_deadline_missing', 'exception_justification_missing'].includes(
+            gap.missingDataPoint
+          )
+        )
+      ) {
+        status = 'needs_governance_gate';
+      } else if (missingEvidence.length > 0) {
+        status = 'needs_exception_evidence';
+      }
+
+      const requiredCount = Object.keys(gapMap).length;
+      const readinessScore = Number(
+        ((requiredCount - missingEvidence.length) / requiredCount).toFixed(2)
+      );
+      const positiveFollowUps = missingEvidence.map((gap) => ({
+        ...gap,
+        category: 'investment_budget_cap_exception_governance',
+      }));
+      const governanceContext = {
+        measureId: params.measureId || null,
+        measureName: params.measureName || null,
+        scope: params.scope || null,
+        budgetCapEur,
+        requiredBudgetEur,
+        budgetDeltaEur,
+        aboveCap: budgetDeltaEur !== null ? budgetDeltaEur > 0 : null,
+        noRegretCriterion: params.noRegretCriterion || null,
+        technicalJustification: params.technicalJustification || null,
+        regulatoryContext: params.regulatoryContext || null,
+        kpiReference: params.kpiReference || null,
+        division: params.division || null,
+        assetRef: params.assetRef || null,
+        dataQuality: params.dataQuality || null,
+        evidenceRefs,
+        riskIfDeferred: params.riskIfDeferred || null,
+        owner: params.owner || null,
+        deadline: params.deadline || null,
+        nextDecisionGate: params.nextDecisionGate || null,
+        exceptionJustification: params.exceptionJustification || null,
+        exceptionJustificationStatus:
+          missingEvidence.length === 0
+            ? 'evidence_ready'
+            : params.exceptionJustification
+              ? 'draft'
+              : 'blocked',
+        budgetApproved: false,
+        committeeDecisionCreated: false,
+        erpWritten: false,
+        hitlCreated: false,
+        externalConnectorCalled: false,
+      };
+      const sourceActions = {
+        inspected: ['dashboard-api.investmentBudgetCapExceptionGovernanceStatus'],
+        referenced: [
+          'investment-planning.review',
+          'finance-agent.analyze',
+          'vdmi.dossier',
+          'evidence-registry.lookup',
+          'presentation.generate',
+          ...callerSourceActions,
+        ],
+        notCalled: [
+          'investment.approve',
+          'investment-planning.mutate',
+          'budget.release',
+          'committee.createDecision',
+          'sap.psp.write',
+          'erp.write',
+          'finance.createBooking',
+          'accounting.postJournal',
+          'hitl.create',
+          'workflow.create',
+          'communication.send',
+          'crm.update',
+          'portal.write',
+          'billing.release',
+          'settlement.exportA96',
+          'tariff.mutate',
+          'mako.dispatch',
+          'device-control.execute',
+          'smgw.cls.execute',
+          'external.connector.call',
+          'personal-agent.execute',
+        ],
+      };
+      const nextActions = positiveFollowUps.map((gap) => ({
+        action: 'requestEvidence',
+        missingDataPoint: gap.missingDataPoint,
+        description: gap.enablesDossierAddition,
+      }));
+      const dossierFacts = [
+        `Budget Cap Exception Status: ${status}`,
+        `Measure: ${governanceContext.measureId || governanceContext.measureName || governanceContext.scope || 'missing'}`,
+        `Budget Cap EUR: ${budgetCapEur ?? 'missing'}`,
+        `Required Budget EUR: ${requiredBudgetEur ?? 'missing'}`,
+        `Budget Delta EUR: ${budgetDeltaEur ?? 'missing'}`,
+        `Exception Justification: ${governanceContext.exceptionJustificationStatus}`,
+        `Owner: ${governanceContext.owner || 'missing'}`,
+        `Next Gate: ${governanceContext.nextDecisionGate || 'missing'}`,
+      ];
+
+      return {
+        investmentBudgetCapExceptionGovernanceStatusId: `ibceg:${Buffer.from(
+          `${params.measureId || params.measureName || params.scope || ''}:${params.owner || ''}:${params.nextDecisionGate || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 28)}`,
+        capabilityKey: 'investment_budget_cap_exception_governance',
+        safety: 'read_only',
+        status,
+        readinessScore,
+        budgetDeltaEur,
+        exceptionJustificationStatus: governanceContext.exceptionJustificationStatus,
+        governanceContext,
+        missingEvidence,
+        positiveFollowUps,
+        nextActions,
+        sourceDatapoints,
+        sourceActions,
+        decisionBoundary: {
+          classificationOnly: true,
+          budgetApproved: false,
+          committeeDecisionCreated: false,
+          productionMutation: false,
+        },
+        dossierEvidence: {
+          status,
+          readinessScore,
+          budgetDeltaEur,
+          exceptionJustificationStatus: governanceContext.exceptionJustificationStatus,
+          governanceContext,
+          missingEvidence,
+          positiveFollowUps,
+          nextActions,
+          sourceDatapoints,
           sourceActions: { notCalled: sourceActions.notCalled },
           dossierFacts,
         },

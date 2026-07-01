@@ -3570,6 +3570,105 @@ describe('dashboard-api.service', () => {
       });
     });
 
+    // -- investmentBudgetCapExceptionGovernanceStatus ------------------------
+
+    describe('investmentBudgetCapExceptionGovernanceStatus', () => {
+      it('reports missing budget-cap exception evidence without executing mutations', async () => {
+        const result = await broker.call(
+          'dashboard-api.investmentBudgetCapExceptionGovernanceStatus',
+          {
+            measureId: 'measure-361',
+            budgetCapEur: '1000000',
+            requiredBudgetEur: '1250000',
+            owner: 'assetmanagement',
+          }
+        );
+
+        expect(result.status).toBe('needs_exception_evidence');
+        expect(result.safety).toBe('read_only');
+        expect(result.capabilityKey).toBe('investment_budget_cap_exception_governance');
+        expect(result.budgetDeltaEur).toBe(250000);
+        expect(result.governanceContext.budgetApproved).toBe(false);
+        expect(result.governanceContext.committeeDecisionCreated).toBe(false);
+        expect(result.governanceContext.erpWritten).toBe(false);
+        expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+          expect.arrayContaining([
+            'no_regret_missing',
+            'technical_justification_missing',
+            'kpi_reference_missing',
+            'asset_context_missing',
+            'data_quality_missing',
+            'evidence_refs_missing',
+            'risk_if_deferred_missing',
+            'owner_deadline_missing',
+            'exception_justification_missing',
+            'source_datapoints_missing',
+          ])
+        );
+        expect(result.positiveFollowUps[0].category).toBe(
+          'investment_budget_cap_exception_governance'
+        );
+        expect(result.sourceActions.notCalled).toEqual(
+          expect.arrayContaining([
+            'investment.approve',
+            'budget.release',
+            'committee.createDecision',
+            'sap.psp.write',
+            'erp.write',
+            'finance.createBooking',
+            'hitl.create',
+            'workflow.create',
+            'communication.send',
+            'settlement.exportA96',
+            'tariff.mutate',
+            'mako.dispatch',
+            'device-control.execute',
+            'external.connector.call',
+            'personal-agent.execute',
+          ])
+        );
+      });
+
+      it('returns exception_evidence_ready for complete caller-supplied evidence', async () => {
+        const result = await broker.call(
+          'dashboard-api.investmentBudgetCapExceptionGovernanceStatus',
+          {
+            measureId: 'measure-ready-361',
+            measureName: 'UW Nord Entlastung',
+            scope: 'mittelspannung',
+            budgetCapEur: 1000000,
+            requiredBudgetEur: 1425000,
+            noRegretCriterion: 'supply-security',
+            technicalJustification: 'load-growth',
+            regulatoryContext: 'netzpflicht',
+            kpiReference: 'saidi-risk',
+            division: 'strom',
+            assetRef: 'asset-361',
+            dataQuality: 'reviewed',
+            evidenceRefs: 'psp:4711,kpi:saidi',
+            riskIfDeferred: 'redispatch-cost-increase',
+            owner: 'investment-board',
+            deadline: '2026-09-30',
+            nextDecisionGate: 'board-q3',
+            exceptionJustification: 'draft-ready',
+            sourceDatapoints: 'psp:4711,kpi:saidi',
+          }
+        );
+
+        expect(result.status).toBe('exception_evidence_ready');
+        expect(result.readinessScore).toBe(1);
+        expect(result.budgetDeltaEur).toBe(425000);
+        expect(result.exceptionJustificationStatus).toBe('evidence_ready');
+        expect(result.missingEvidence).toEqual([]);
+        expect(result.decisionBoundary.budgetApproved).toBe(false);
+        expect(result.decisionBoundary.committeeDecisionCreated).toBe(false);
+        expect(result.governanceContext.externalConnectorCalled).toBe(false);
+        expect(result.dossierEvidence.dossierFacts).toContain(
+          'Budget Cap Exception Status: exception_evidence_ready'
+        );
+      });
+    });
+
     // -- investmentOwnerDeadlineBudgetGateStatus -----------------------------
 
     describe('investmentOwnerDeadlineBudgetGateStatus', () => {

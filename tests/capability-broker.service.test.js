@@ -997,9 +997,7 @@ describe('Capability Broker Service', () => {
     });
 
     expect(result.capability).toBe('connection_deadline_evidence_queue');
-    expect(result.recommendedCapabilities[0].capability).toBe(
-      'connection_deadline_evidence_queue'
-    );
+    expect(result.recommendedCapabilities[0].capability).toBe('connection_deadline_evidence_queue');
     const actionNames = result.recommendedPlan.map((step) => step.action);
     expect(actionNames).toContain('dashboard-api.connectionDeadlineEvidenceQueueStatus');
     expect(actionNames).not.toContain('communication.send');
@@ -1341,6 +1339,27 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('tariff.mutate');
     expect(actionNames).not.toContain('mako.dispatch');
     expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
+  it('routes investment budget-cap exception prompts to the read-only governance queue', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe Budgetdeckel Deckel-Ausnahme Investitionsgovernance No-Regret KPI Begruendung Gremienpfad fuer eine Investitionsmassnahme oberhalb des Budgetdeckels.',
+    });
+
+    expect(result.capability).toBe('investment_budget_cap_exception_governance');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'investment_budget_cap_exception_governance'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.investmentBudgetCapExceptionGovernanceStatus');
+    expect(actionNames).not.toContain('investment.approve');
+    expect(actionNames).not.toContain('budget.release');
+    expect(actionNames).not.toContain('committee.createDecision');
+    expect(actionNames).not.toContain('finance.createBooking');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('settlement.exportA96');
     expect(actionNames).not.toContain('external.connector.call');
     expect(actionNames).not.toContain('personal-agent.execute');
   });
@@ -1885,9 +1904,7 @@ describe('Capability Broker Service', () => {
     });
 
     expect(result.capability).toBe('cross_domain_special_topics_queue');
-    expect(result.recommendedCapabilities[0].capability).toBe(
-      'cross_domain_special_topics_queue'
-    );
+    expect(result.recommendedCapabilities[0].capability).toBe('cross_domain_special_topics_queue');
     const actionNames = result.recommendedPlan.map((step) => step.action);
     expect(actionNames).toContain('dashboard-api.crossDomainSpecialTopicsQueueStatus');
     expect(actionNames).not.toContain('hitl.create');

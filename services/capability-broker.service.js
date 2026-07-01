@@ -571,9 +571,7 @@ function findBestCapability(taskText, options = {}) {
     );
 
   if (hasConnectionDeadlineEvidenceQueueSpecificSignal) {
-    const connectionDeadlineCapability = findCapabilityByName(
-      'connection_deadline_evidence_queue'
-    );
+    const connectionDeadlineCapability = findCapabilityByName('connection_deadline_evidence_queue');
     if (connectionDeadlineCapability) {
       return { capability: connectionDeadlineCapability, score: 143, usedFallback: false };
     }
@@ -968,9 +966,7 @@ function findBestCapability(taskText, options = {}) {
     );
 
   if (hasCrossDomainSpecialTopicsQueueSpecificSignal) {
-    const specialTopicsQueueCapability = findCapabilityByName(
-      'cross_domain_special_topics_queue'
-    );
+    const specialTopicsQueueCapability = findCapabilityByName('cross_domain_special_topics_queue');
     if (specialTopicsQueueCapability) {
       return { capability: specialTopicsQueueCapability, score: 139, usedFallback: false };
     }
@@ -993,6 +989,30 @@ function findBestCapability(taskText, options = {}) {
     );
     if (gridConnectionGateCapability) {
       return { capability: gridConnectionGateCapability, score: 138, usedFallback: false };
+    }
+  }
+
+  const hasInvestmentBudgetCapExceptionGovernanceSpecificSignal =
+    /(budgetdeckel|deckel.?ausnahme|budget cap exception|investment_budget_cap_exception_governance|investitionsbudget deckel)/i.test(
+      haystack
+    ) &&
+    /(investitionsgovernance|gremienpfad|gremiengate|ausnahmebegruendung|ausnahmebegründung|kpi.?begruendung|kpi.?begründung|no.?regret|sollbedarf|required budget)/i.test(
+      haystack
+    ) &&
+    !/(investment\.approve|budget\.release|committee\.createDecision|sap\.psp\.write|erp\.write|finance\.createBooking|accounting\.postJournal|hitl\.create|workflow\.create|communication\.send|settlement\.exportA96|billing\.release|tariff\.mutate|mako\.dispatch|device-control\.execute|external\.connector\.call|personal-agent\.execute|wallet|key material|schluessel|schlüssel|crypto)/i.test(
+      haystack
+    );
+
+  if (hasInvestmentBudgetCapExceptionGovernanceSpecificSignal) {
+    const investmentBudgetCapExceptionCapability = findCapabilityByName(
+      'investment_budget_cap_exception_governance'
+    );
+    if (investmentBudgetCapExceptionCapability) {
+      return {
+        capability: investmentBudgetCapExceptionCapability,
+        score: 151,
+        usedFallback: false,
+      };
     }
   }
 

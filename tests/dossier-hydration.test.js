@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 102 static rules', () => {
+    it('loads all 103 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(102);
+      expect(rules.length).toBe(103);
     });
 
-    it('compiles all 102 static rules without error', () => {
+    it('compiles all 103 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(102);
+      expect(rules.length).toBe(103);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -2018,6 +2018,53 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Scenario: tf-206');
       expect(formatted).toContain('Leading Gap: cashflow_source');
       expect(formatted).toContain('Side-Effect Guard: finance.createBooking');
+    });
+
+    it('dashboard-api.investmentBudgetCapExceptionGovernanceStatus is dossier-safe and formats budget-cap facts', () => {
+      const rule = getRule('dashboard-api.investmentBudgetCapExceptionGovernanceStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Budgetdeckel Ausnahme massnahme=measure-361 budgetdeckel=1000000 sollbedarf=1425000 no-regret=supply-security kpi=saidi owner=board frist=2026-09-30 gremiengate=q3 pruefen'
+        )
+      ).toEqual({
+        measureId: 'measure-361',
+        budgetCapEur: '1000000',
+        requiredBudgetEur: '1425000',
+        noRegretCriterion: 'supply-security',
+        kpiReference: 'saidi',
+        owner: 'board',
+        deadline: '2026-09-30',
+        nextDecisionGate: 'q3',
+      });
+
+      const formatted = rule.formatEvidence({
+        capabilityKey: 'investment_budget_cap_exception_governance',
+        status: 'needs_exception_evidence',
+        budgetDeltaEur: 425000,
+        exceptionJustificationStatus: 'draft',
+        governanceContext: {
+          measureId: 'measure-361',
+          budgetCapEur: 1000000,
+          requiredBudgetEur: 1425000,
+          owner: 'board',
+          nextDecisionGate: 'q3',
+        },
+        missingEvidence: [{ missingDataPoint: 'evidence_refs_missing' }],
+        positiveFollowUps: [{ enablesDossierAddition: 'add audit-ready evidence references' }],
+        sourceActions: {
+          notCalled: ['investment.approve'],
+        },
+      });
+
+      expect(formatted).toContain('Capability: investment_budget_cap_exception_governance');
+      expect(formatted).toContain('Budget Cap Exception Status: needs_exception_evidence');
+      expect(formatted).toContain('Measure: measure-361');
+      expect(formatted).toContain('Budget Delta EUR: 425000');
+      expect(formatted).toContain('Leading Gap: evidence_refs_missing');
+      expect(formatted).toContain('Side-Effect Guard: investment.approve');
     });
 
     it('dashboard-api.investmentOwnerDeadlineBudgetGateStatus is dossier-safe and formats gate facts', () => {

@@ -23662,6 +23662,163 @@
         ]
       }
     },
+    "/api/dashboard-api/investment-budget-cap-exception-governance": {
+      "get": {
+        "operationId": "dashboard-api_investmentBudgetCapExceptionGovernanceStatus",
+        "summary": "Investment budget cap exception governance -- read-only evidence queue",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only budget-cap exception governance evidence"
+          }
+        },
+        "description": "Builds deterministic dossier-safe evidence for investment measures above a budget cap or missing an exception justification. The endpoint is read-only and never approves budgets, creates committee decisions, writes SAP/ERP/PSP records, creates HITL/workflow tasks, sends communications, calls external connectors, or mutates billing/settlement/MaKo/tariff/device-control data.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "measureId",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "measureName",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "scope",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "budgetCapEur",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "requiredBudgetEur",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "noRegretCriterion",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "technicalJustification",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "regulatoryContext",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "kpiReference",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "division",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "assetRef",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "dataQuality",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "evidenceRefs",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "riskIfDeferred",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "owner",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "deadline",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "nextDecisionGate",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "exceptionJustification",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sourceDatapoints",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sourceActions",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/api/dashboard-api/investment-owner-deadline-budget-gate": {
       "get": {
         "operationId": "dashboard-api_investmentOwnerDeadlineBudgetGateStatus",
@@ -69844,6 +70001,163 @@
           {
             "in": "query",
             "name": "owner",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sourceActions",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard/investment-budget-cap-exception-governance": {
+      "get": {
+        "operationId": "dashboard-api_investmentBudgetCapExceptionGovernanceStatus",
+        "summary": "Investment budget cap exception governance -- read-only evidence queue",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only budget-cap exception governance evidence"
+          }
+        },
+        "description": "Builds deterministic dossier-safe evidence for investment measures above a budget cap or missing an exception justification. The endpoint is read-only and never approves budgets, creates committee decisions, writes SAP/ERP/PSP records, creates HITL/workflow tasks, sends communications, calls external connectors, or mutates billing/settlement/MaKo/tariff/device-control data.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "measureId",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "measureName",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "scope",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "budgetCapEur",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "requiredBudgetEur",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "noRegretCriterion",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "technicalJustification",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "regulatoryContext",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "kpiReference",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "division",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "assetRef",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "dataQuality",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "evidenceRefs",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "riskIfDeferred",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "owner",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "deadline",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "nextDecisionGate",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "exceptionJustification",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sourceDatapoints",
             "schema": {
               "type": "string"
             }

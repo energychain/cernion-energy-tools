@@ -1546,6 +1546,8 @@ module.exports = {
             'dashboard-api.arealNetworkIntegrationOfferGateStatus',
           'GET /dashboard/transformation-financing-scenario-view':
             'dashboard-api.transformationFinancingScenarioViewStatus',
+          'GET /dashboard/investment-budget-cap-exception-governance':
+            'dashboard-api.investmentBudgetCapExceptionGovernanceStatus',
           'GET /dashboard/investment-owner-deadline-budget-gate':
             'dashboard-api.investmentOwnerDeadlineBudgetGateStatus',
           'GET /dashboard/no-regret-measure-definition-gate':
@@ -1553,8 +1555,7 @@ module.exports = {
           'GET /dashboard/gas-grid-transformation-asset-cockpit':
             'dashboard-api.gasGridTransformationAssetCockpitStatus',
           'GET /dashboard/leadership-delta-cockpit': 'dashboard-api.leadershipDeltaCockpitStatus',
-          'GET /dashboard/netzsignal-delta-gating':
-            'dashboard-api.netzsignalDeltaGatingStatus',
+          'GET /dashboard/netzsignal-delta-gating': 'dashboard-api.netzsignalDeltaGatingStatus',
           'POST /dashboard/vnb-delta-signal-classifier/classify':
             'dashboard-api.vnbDeltaSignalClassifierStatus',
           'GET /dashboard/evidence-freshness-guard': 'dashboard-api.evidenceFreshnessGuardStatus',
