@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.67.15] — 2026-07-01
+
+### Added
+- **EPEX Spot price cache in Object Store** (`services/energy-market.service.js`): Day-ahead prices are immutable once the EPEX Spot auction closes, so they are now cached persistently in the Object Store under namespace `epex_spot_prices` / key = ISO date. On `portfolioBacktest`, each past day is served from cache before falling back to `entsoe_day_ahead_prices` MCP calls. The cache write is fire-and-forget — a degraded Object Store never blocks the backtest response. Today's date is never cached (auction price may still change). For a warm-cache 365-day backtest the MCP calls drop from 365 to 0 (first run still pays full cost).
+
 ## [0.67.14] — 2026-07-01
 
 ### Fixed

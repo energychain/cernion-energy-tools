@@ -1597,25 +1597,58 @@ Combines generation timeseries (inline upload, MaStR-based historical reconstruc
             curDay = new Date(curDay.getTime() + 24 * 3600 * 1000);
           }
           const PRICE_BATCH = 30;
+          const todayStr = new Date().toISOString().slice(0, 10);
           this.logger.info(
             `portfolioBacktest: fetching prices for ${priceDates.length} days in ${Math.ceil(priceDates.length / PRICE_BATCH)} batches`
           );
+
+          // Returns normalized hourly prices for one calendar day.
+          // Past days are served from the object-store cache (EPEX Spot prices are
+          // immutable once the day-ahead auction closes). Cache misses and write
+          // failures are swallowed so a degraded object-store never blocks the response.
+          const fetchDayPrices = async (d) => {
+            const isPast = d < todayStr;
+            if (isPast) {
+              try {
+                const cached = await ctx.call('object-store.get', {
+                  namespace: 'epex_spot_prices',
+                  key: d,
+                });
+                if (Array.isArray(cached?.payload?.prices) && cached.payload.prices.length > 0) {
+                  return cached.payload.prices;
+                }
+              } catch (_) {
+                /* cache miss — fall through to MCP fetch */
+              }
+            }
+            const raw = await CernionMCPClient.callWithNewSession('entsoe_day_ahead_prices', {
+              region: 'Germany',
+              dateFrom: d,
+              dateTo: d,
+              includeStatistics: false,
+              format: 'json',
+            });
+            const normalized = _btNormalisePrices(raw);
+            if (isPast && normalized.length > 0) {
+              ctx
+                .call('object-store.put', {
+                  namespace: 'epex_spot_prices',
+                  key: d,
+                  payload: { prices: normalized },
+                })
+                .catch((e) =>
+                  this.logger.warn(`[epex-cache] write failed for ${d}: ${e.message}`)
+                );
+            }
+            return normalized;
+          };
+
           const allRaw = [];
           for (let i = 0; i < priceDates.length; i += PRICE_BATCH) {
             const chunk = priceDates.slice(i, i + PRICE_BATCH);
-            const results = await Promise.allSettled(
-              chunk.map((d) =>
-                CernionMCPClient.callWithNewSession('entsoe_day_ahead_prices', {
-                  region: 'Germany',
-                  dateFrom: d,
-                  dateTo: d,
-                  includeStatistics: false,
-                  format: 'json',
-                })
-              )
-            );
+            const results = await Promise.allSettled(chunk.map(fetchDayPrices));
             for (const r of results) {
-              if (r.status === 'fulfilled' && r.value) allRaw.push(..._btNormalisePrices(r.value));
+              if (r.status === 'fulfilled' && r.value) allRaw.push(...r.value);
             }
           }
           // Deduplicate by timestamp (adjacent days share a UTC midnight boundary)

@@ -5,6 +5,7 @@
  */
 
 const { ServiceBroker } = require('moleculer');
+const { MoleculerClientError } = require('moleculer').Errors;
 
 jest.mock('../src/mcp-client', () => ({
   callWithNewSession: jest.fn(),
@@ -16,6 +17,8 @@ const EnergyMarketService = require('../services/energy-market.service');
 describe('Energy Market Service', () => {
   let broker;
   let mockDayAheadPrices;
+  // In-memory store backing the object-store mock (keyed as "namespace:key")
+  const objectStoreData = new Map();
 
   beforeAll(async () => {
     callWithNewSession.mockImplementation(async (toolName, params) => ({
@@ -36,11 +39,33 @@ describe('Energy Market Service', () => {
         },
       },
     });
+    broker.createService({
+      name: 'object-store',
+      actions: {
+        get: {
+          async handler(ctx) {
+            const id = `${ctx.params.namespace}:${ctx.params.key}`;
+            if (!objectStoreData.has(id)) {
+              throw new MoleculerClientError('Not found', 404, 'OBJECT_NOT_FOUND');
+            }
+            return { namespace: ctx.params.namespace, key: ctx.params.key, payload: objectStoreData.get(id) };
+          },
+        },
+        put: {
+          async handler(ctx) {
+            const id = `${ctx.params.namespace}:${ctx.params.key}`;
+            objectStoreData.set(id, ctx.params.payload);
+            return { namespace: ctx.params.namespace, key: ctx.params.key };
+          },
+        },
+      },
+    });
     broker.createService(EnergyMarketService);
     await broker.start();
   });
 
   beforeEach(() => {
+    objectStoreData.clear();
     callWithNewSession.mockClear();
     callWithNewSession.mockImplementation(async (toolName, params) => ({
       success: true,
@@ -1583,6 +1608,51 @@ describe('Energy Market Service', () => {
           assets: [{ type: 'storage', capacityKw: 1 }],
         })
       ).resolves.toMatchObject({ success: false, error: { code: 'PRICE_DATA_UNAVAILABLE' } });
+    });
+
+    it('serves EPEX Spot prices from object-store cache without calling MCP', async () => {
+      objectStoreData.set('epex_spot_prices:2026-06-29', {
+        prices: [
+          { timestamp: '2026-06-29T00:00:00.000Z', priceEurMwh: 75 },
+          { timestamp: '2026-06-29T01:00:00.000Z', priceEurMwh: 125 },
+        ],
+      });
+
+      const result = await broker.call('energy-market.portfolioBacktest', {
+        dateFrom: '2026-06-29',
+        dateTo: '2026-06-29',
+        assets: [{ type: 'biomass', capacityKw: 1000, commissioningDate: '2020-01-01' }],
+      });
+
+      expect(result.success).toBe(true);
+      const priceCalls = callWithNewSession.mock.calls.filter((c) => c[0] === 'entsoe_day_ahead_prices');
+      expect(priceCalls).toHaveLength(0);
+      expect(result.portfolio.averageSpotPriceEurPerMwh).toBe(100);
+    });
+
+    it('writes fetched prices into object-store for past days', async () => {
+      callWithNewSession.mockResolvedValueOnce({
+        dataPoints: [
+          { timestamp: '2026-06-28T00:00:00Z', priceEURperMWh: 90 },
+          { timestamp: '2026-06-28T01:00:00Z', priceEURperMWh: 110 },
+        ],
+      });
+
+      await broker.call('energy-market.portfolioBacktest', {
+        dateFrom: '2026-06-28',
+        dateTo: '2026-06-28',
+        assets: [{ type: 'biomass', capacityKw: 500, commissioningDate: '2020-01-01' }],
+      });
+
+      // Fire-and-forget write resolves on the next microtask
+      await new Promise((r) => setTimeout(r, 10));
+
+      const cached = objectStoreData.get('epex_spot_prices:2026-06-28');
+      expect(cached).toBeDefined();
+      expect(Array.isArray(cached.prices)).toBe(true);
+      expect(cached.prices).toHaveLength(2);
+      expect(cached.prices[0]).toMatchObject({ timestamp: '2026-06-28T00:00:00.000Z', priceEurMwh: 90 });
+      expect(cached.prices[1]).toMatchObject({ timestamp: '2026-06-28T01:00:00.000Z', priceEurMwh: 110 });
     });
   });
 });
