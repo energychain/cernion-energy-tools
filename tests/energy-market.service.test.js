@@ -1542,7 +1542,7 @@ describe('Energy Market Service', () => {
         expect.objectContaining({
           installationMastrNummer: 'SEE123456789012',
           startDate: '2026-06-29',
-          endDate: '2026-06-29',
+          forecastDays: 14,
           resolution: 'hourly',
         }),
         undefined

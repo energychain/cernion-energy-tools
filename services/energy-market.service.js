@@ -47,7 +47,7 @@ function _btNormalisePrices(raw) {
   const byHour = new Map();
   for (const r of arr
     .map((r) => ({
-      timestamp: r.timestamp ?? r.ts,
+      timestamp: r.timestamp ?? r.hour ?? r.ts,
       priceEurMwh: Number(
         r.priceEURperMWh ??
           r.price ??
@@ -158,10 +158,23 @@ function _btAssetKpis(intervals) {
   };
 }
 
-function _btMonthlyAggregation(intervals) {
+const _btBerlinMonthFmt = new Intl.DateTimeFormat('de-DE', {
+  timeZone: 'Europe/Berlin',
+  year: 'numeric',
+  month: '2-digit',
+});
+
+function _btBerlinMonth(isoTimestamp) {
+  const parts = _btBerlinMonthFmt.formatToParts(new Date(isoTimestamp));
+  const y = parts.find((p) => p.type === 'year').value;
+  const mo = parts.find((p) => p.type === 'month').value;
+  return `${y}-${mo}`;
+}
+
+function _btMonthlyAggregation(intervals, dateFrom, dateTo) {
   const months = {};
   for (const iv of intervals) {
-    const m = iv.timestamp.slice(0, 7);
+    const m = _btBerlinMonth(iv.timestamp);
     if (!months[m]) {
       months[m] = { month: m, generationMwh: 0, marketValueEur: 0, curtailedMarketValueEur: 0, negativePriceHours: 0, _priceSum: 0, _priceCount: 0 };
     }
@@ -172,16 +185,30 @@ function _btMonthlyAggregation(intervals) {
     months[m]._priceSum += iv.priceEurPerMwh;
     months[m]._priceCount += 1;
   }
-  return Object.values(months)
-    .sort((a, b) => a.month.localeCompare(b.month))
-    .map(({ _priceSum, _priceCount, ...m }) => ({
-      ...m,
-      generationMwh: Math.round(m.generationMwh * 1000) / 1000,
-      marketValueEur: Math.round(m.marketValueEur * 100) / 100,
-      curtailedMarketValueEur: Math.round(m.curtailedMarketValueEur * 100) / 100,
+
+  // Build scaffold of every calendar month from dateFrom to dateTo
+  const scaffold = [];
+  let cur = new Date(Date.UTC(parseInt(dateFrom.slice(0, 4)), parseInt(dateFrom.slice(5, 7)) - 1, 1));
+  const endYM = dateTo.slice(0, 7);
+  while (true) {
+    const ym = cur.toISOString().slice(0, 7);
+    scaffold.push(ym);
+    if (ym >= endYM) break;
+    cur = new Date(Date.UTC(cur.getUTCFullYear(), cur.getUTCMonth() + 1, 1));
+  }
+
+  return scaffold.map((m) => {
+    const d = months[m] || { month: m, generationMwh: 0, marketValueEur: 0, curtailedMarketValueEur: 0, negativePriceHours: 0, _priceSum: 0, _priceCount: 0 };
+    const { _priceSum, _priceCount, ...rest } = d;
+    return {
+      ...rest,
+      generationMwh: Math.round(rest.generationMwh * 1000) / 1000,
+      marketValueEur: Math.round(rest.marketValueEur * 100) / 100,
+      curtailedMarketValueEur: Math.round(rest.curtailedMarketValueEur * 100) / 100,
       averageSpotPriceEurPerMwh: _priceCount > 0 ? Math.round((_priceSum / _priceCount) * 100) / 100 : 0,
-      weightedMarketValueEurPerMwh: m.generationMwh > 0 ? Math.round((m.marketValueEur / m.generationMwh) * 100) / 100 : 0,
-    }));
+      weightedMarketValueEurPerMwh: rest.generationMwh > 0 ? Math.round((rest.marketValueEur / rest.generationMwh) * 100) / 100 : 0,
+    };
+  });
 }
 
 function _btDailyAggregation(intervals) {
@@ -1738,7 +1765,7 @@ Combines generation timeseries (inline upload, MaStR-based historical reconstruc
             ? Math.round((pfWeightedMvPerMwh / avgSpotPrice) * 10000) / 10000
             : null;
 
-        const monthly = _btMonthlyAggregation(allIntervals);
+        const monthly = _btMonthlyAggregation(allIntervals, dateFrom, dateTo);
 
         // 4. Build response
         const assetSummaries = assetResults.map(({ _intervals, ...rest }) => rest);

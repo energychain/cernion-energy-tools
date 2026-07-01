@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.67.11] — 2026-07-01
+
+### Fixed
+- **Portfolio backtest monthly aggregation** (`services/energy-market.service.js`, #357): `monthly` array now always contains exactly the calendar months intersecting `period.dateFrom`–`period.dateTo`, even when generation is zero for a month. Previously only months with data appeared, leaving the series incomplete for multi-month requests. Month grouping now uses German local time (Europe/Berlin, CET/CEST) instead of UTC, eliminating the phantom entry (`2025-06`) caused by ENTSO-E returning the first German price slot at `22:00Z` of the preceding UTC day.
+- **Price normaliser: `r.hour` timestamp field** (`services/energy-market.service.js`, #357): restored support for the `hour` key in price row objects so that both the legacy `{ hour, price }` format and the ENTSO-E `{ timestamp, priceEURperMWh }` format are handled correctly by `_btNormalisePrices`.
+
 ## [0.67.10] — 2026-07-01
 
 ### Added
