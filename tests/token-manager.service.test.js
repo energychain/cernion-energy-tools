@@ -304,4 +304,74 @@ describe('token-manager.service', () => {
     expect(verified.userId).toBeNull();
     expect(verified.legacy).toBe(true);
   });
+
+  describe('createCli action (permanent CLI path)', () => {
+    beforeAll(() => {
+      // Start with empty storage so the token limit from earlier tests doesn't interfere.
+      fs.writeFileSync(storageFile, '[]', 'utf8');
+    });
+
+    it('creates a full-access token and verifies it as writable', async () => {
+      const created = await broker.call('token-manager.createCli', {
+        name: 'CLI Full Access',
+        scope: 'full-access',
+        tenantId: 'stadtwerk-a',
+        userId: 'svc:cli-operator',
+      });
+
+      expect(created.success).toBe(true);
+      expect(created.data.token.startsWith('ck_')).toBe(true);
+      expect(created.data.scope).toBe('full-access');
+      expect(created.data.scopes).toContain('full-access');
+      expect(created.data.tenantId).toBe('stadtwerk-a');
+      expect(created.data.userId).toBe('svc:cli-operator');
+      expect(created.data.legacy).toBe(false);
+
+      const verified = await broker.call('token-manager.verify', {
+        token: created.data.token,
+        method: 'POST',
+        path: '/api/tokens',
+      });
+      expect(verified.valid).toBe(true);
+      expect(verified.scope).toBe('full-access');
+    });
+
+    it('defaults to full-access scope when scope is omitted', async () => {
+      const created = await broker.call('token-manager.createCli', {
+        name: 'CLI Default Scope',
+        tenantId: 'stadtwerk-a',
+        userId: 'svc:cli-default',
+      });
+
+      expect(created.success).toBe(true);
+      expect(created.data.scope).toBe('full-access');
+    });
+
+    it('is not REST-exposed (no rest: property on the action)', () => {
+      const service = broker.services.find((s) => s.name === 'token-manager');
+      const action = service?.schema?.actions?.createCli;
+      expect(action).toBeDefined();
+      expect(action.rest).toBeUndefined();
+    });
+
+    it('rejects missing tenantId', async () => {
+      await expect(
+        broker.call('token-manager.createCli', {
+          name: 'Bad Token',
+          scope: 'full-access',
+          userId: 'svc:cli-operator',
+        })
+      ).rejects.toThrow();
+    });
+
+    it('rejects missing userId', async () => {
+      await expect(
+        broker.call('token-manager.createCli', {
+          name: 'Bad Token',
+          scope: 'full-access',
+          tenantId: 'stadtwerk-a',
+        })
+      ).rejects.toThrow();
+    });
+  });
 });

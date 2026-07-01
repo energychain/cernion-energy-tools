@@ -224,101 +224,50 @@ module.exports = {
         },
       },
       handler(ctx) {
-        const { name, tenantId, userId } = ctx.params;
-        const scope = normaliseScope(ctx.params.scope);
-        const scopes = normalizeScopes(scope, ctx.params.scopes || []);
-
-        // Explicit checks (not just the params schema) so direct handler
-        // invocation — bypassing the moleculer-web validator — still rejects
-        // unbound tokens. Issue #157: no new token may be created without
-        // an explicit tenant/user binding.
-        if (!tenantId) {
-          throw new Errors.MoleculerClientError(
-            'tenantId is required to create a token.',
-            422,
-            'TENANT_ID_REQUIRED'
-          );
-        }
-        if (!userId) {
-          throw new Errors.MoleculerClientError(
-            'userId is required to create a token.',
-            422,
-            'USER_ID_REQUIRED'
-          );
-        }
-
         const callerTenantId = getCallerTenantId(ctx);
-        if (callerTenantId && callerTenantId !== tenantId) {
+        if (callerTenantId && callerTenantId !== ctx.params.tenantId) {
           throw new Errors.MoleculerClientError(
-            `Token principal for tenant '${callerTenantId}' cannot create tokens for tenant '${tenantId}'.`,
+            `Token principal for tenant '${callerTenantId}' cannot create tokens for tenant '${ctx.params.tenantId}'.`,
             403,
             'TOKEN_TENANT_FORBIDDEN'
           );
         }
+        return this._doCreateToken(ctx.params);
+      },
+    },
 
-        validateTenantId(tenantId);
-        if (!isTenantAllowed(tenantId) && !tenantExistsInRegistry(tenantId)) {
-          throw new Errors.MoleculerClientError(
-            `Tenant '${tenantId}' is not in the allowed tenant list.`,
-            403,
-            'TENANT_NOT_ALLOWED'
-          );
-        }
-        if (!USER_ID_PATTERN.test(userId)) {
-          throw new Errors.MoleculerClientError(
-            `userId '${userId}' does not match the allowed pattern.`,
-            422,
-            'INVALID_USER_ID'
-          );
-        }
-
-        const tokens = this.loadTokens();
-        const activeCount = tokens.filter((entry) => entry.active !== false).length;
-
-        if (activeCount >= this.settings.maxTokensPerInstallation) {
-          throw new Error(
-            `Token limit reached (${this.settings.maxTokensPerInstallation}). Revoke unused tokens first.`
-          );
-        }
-
-        const rawToken = `ck_${crypto.randomBytes(16).toString('hex')}`;
-        const createdAt = nowIso();
-
-        const record = {
-          id: crypto.randomUUID(),
-          name,
-          tokenHash: sha256(rawToken),
-          tokenMasked: maskToken(rawToken),
-          createdAt,
-          lastUsedAt: null,
-          usageCount: 0,
-          scope,
-          scopes,
-          tenantId,
-          userId,
-          active: true,
-        };
-
-        tokens.push(record);
-        this.saveTokens(tokens);
-
-        return {
-          success: true,
-          data: {
-            id: record.id,
-            name: record.name,
-            token: rawToken,
-            createdAt: record.createdAt,
-            scope: record.scope,
-            scopes: record.scopes,
-            tenantId: record.tenantId,
-            userId: record.userId,
-            legacy: false,
-            active: true,
+    // CLI-only creation path — intentionally NOT REST-exposed.
+    // This action must never acquire a sunset gate or date-based block.
+    // Gating belongs on the `create` action above (the HTTP-facing path).
+    // Callers: scripts/provision-token.js (guarded by CERNION_SUPPORT_TOKEN).
+    createCli: {
+      params: {
+        name: { type: 'string', min: 1, max: MAX_NAME_LENGTH, trim: true },
+        scope: {
+          type: 'enum',
+          values: ['read-only', 'full-access'],
+          optional: true,
+          default: 'full-access',
+        },
+        tenantId: { type: 'string', min: 1, max: 64, trim: true },
+        userId: { type: 'string', min: 1, max: 120, pattern: USER_ID_PATTERN, trim: true },
+        scopes: {
+          type: 'array',
+          optional: true,
+          items: {
+            type: 'enum',
+            values: [
+              'vnb-monitor',
+              'rundeck-read',
+              'rundeck-dry-run',
+              'rundeck-ack',
+              'rundeck-execute-dev',
+            ],
           },
-          message:
-            'Token created. The plain token is shown only once. Copy it now and store it securely.',
-        };
+        },
+      },
+      handler(ctx) {
+        return this._doCreateToken(ctx.params);
       },
     },
 
@@ -483,6 +432,89 @@ module.exports = {
   },
 
   methods: {
+    _doCreateToken({ name, tenantId, userId, scope: rawScope, scopes: extraScopes = [] }) {
+      // Explicit checks so direct invocation — bypassing moleculer-web validator —
+      // still rejects unbound tokens. Issue #157: no new token without tenant/user binding.
+      if (!tenantId) {
+        throw new Errors.MoleculerClientError(
+          'tenantId is required to create a token.',
+          422,
+          'TENANT_ID_REQUIRED'
+        );
+      }
+      if (!userId) {
+        throw new Errors.MoleculerClientError(
+          'userId is required to create a token.',
+          422,
+          'USER_ID_REQUIRED'
+        );
+      }
+
+      const scope = normaliseScope(rawScope);
+      const scopes = normalizeScopes(scope, extraScopes);
+
+      validateTenantId(tenantId);
+      if (!isTenantAllowed(tenantId) && !tenantExistsInRegistry(tenantId)) {
+        throw new Errors.MoleculerClientError(
+          `Tenant '${tenantId}' is not in the allowed tenant list.`,
+          403,
+          'TENANT_NOT_ALLOWED'
+        );
+      }
+      if (!USER_ID_PATTERN.test(userId)) {
+        throw new Errors.MoleculerClientError(
+          `userId '${userId}' does not match the allowed pattern.`,
+          422,
+          'INVALID_USER_ID'
+        );
+      }
+
+      const tokens = this.loadTokens();
+      const activeCount = tokens.filter((entry) => entry.active !== false).length;
+      if (activeCount >= this.settings.maxTokensPerInstallation) {
+        throw new Error(
+          `Token limit reached (${this.settings.maxTokensPerInstallation}). Revoke unused tokens first.`
+        );
+      }
+
+      const rawToken = `ck_${crypto.randomBytes(16).toString('hex')}`;
+      const createdAt = nowIso();
+      const record = {
+        id: crypto.randomUUID(),
+        name,
+        tokenHash: sha256(rawToken),
+        tokenMasked: maskToken(rawToken),
+        createdAt,
+        lastUsedAt: null,
+        usageCount: 0,
+        scope,
+        scopes,
+        tenantId,
+        userId,
+        active: true,
+      };
+
+      tokens.push(record);
+      this.saveTokens(tokens);
+
+      return {
+        success: true,
+        data: {
+          id: record.id,
+          name: record.name,
+          token: rawToken,
+          createdAt: record.createdAt,
+          scope: record.scope,
+          scopes: record.scopes,
+          tenantId: record.tenantId,
+          userId: record.userId,
+          legacy: false,
+          active: true,
+        },
+        message: 'Token created. The plain token is shown only once. Copy it now and store it securely.',
+      };
+    },
+
     loadTokens() {
       try {
         const filePath = this.settings.storageFile;

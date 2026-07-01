@@ -19,7 +19,7 @@ async function main() {
   const tenantId = required(args, 'tenant');
   const userId = required(args, 'user');
   const name = required(args, 'name');
-  const scope = optional(args, 'scope', 'read-only');
+  const scope = optional(args, 'scope', 'full-access');
   const email = optional(args, 'email');
 
   const tenant = upsertTenant({ tenantId, name: optional(args, 'tenant-name', tenantId) });
@@ -29,7 +29,7 @@ async function main() {
   broker.createService(TokenManagerService);
   await broker.start();
   try {
-    const created = await broker.call('token-manager.create', {
+    const created = await broker.call('token-manager.createCli', {
       name,
       scope,
       tenantId: tenant.tenantId,

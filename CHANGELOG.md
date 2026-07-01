@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.67.12] — 2026-07-01
+
+### Added
+- **`token-manager.createCli` action** (`services/token-manager.service.js`): Permanent, non-REST-exposed action for CLI token provisioning. Shares all validation logic with the existing `create` action via the extracted `_doCreateToken()` method, but carries no REST route and must never acquire a sunset gate. Called exclusively by `scripts/provision-token.js`. The `create` action (HTTP path) can be independently sunset/gated in a future hardening cut without affecting CLI operators.
+- **CLI always defaults to `full-access` scope** (`scripts/provision-token.js`): `npm run token:create` now defaults `--scope` to `full-access` instead of `read-only`, matching the stated requirement that the CLI must always be capable of issuing a valid full-access token.
+
 ## [0.67.11] — 2026-07-01
 
 ### Fixed
