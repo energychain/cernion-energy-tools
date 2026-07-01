@@ -23,6 +23,13 @@ const BACKTEST_WEATHER_TYPES = new Set(['solar', 'wind']);
 const BACKTEST_MAX_ASSETS = 50;
 const BACKTEST_MAX_DAYS = 365;
 
+function _btHourTimestamp(timestamp) {
+  const d = new Date(timestamp);
+  if (!Number.isFinite(d.getTime())) return null;
+  d.setUTCMinutes(0, 0, 0);
+  return d.toISOString();
+}
+
 function _btNormalisePrices(raw) {
   const arr = Array.isArray(raw)
     ? raw
@@ -32,17 +39,36 @@ function _btNormalisePrices(raw) {
     ? raw.data.prices
     : Array.isArray(raw?.data)
     ? raw.data
+    : Array.isArray(raw?.dataPoints)
+    ? raw.dataPoints
     : [];
-  return arr
+  const byHour = new Map();
+  for (const r of arr
     .map((r) => ({
       // entsoe.dayAheadPrices uses 'hour'; cernion_energy_prices uses 'timestamp'
       timestamp: r.timestamp ?? r.hour ?? r.ts,
       // entsoe returns 'price'; cernion MCP returns 'priceEURMWh' / 'priceEurMwh'
       priceEurMwh: Number(
-        r.price ?? r.priceEURMWh ?? r.priceEurMwh ?? r.price_eur_mwh ?? r.value ?? NaN
+        r.price ??
+          r.priceEURMWh ??
+          r.priceEURperMWh ??
+          r.priceEurMwh ??
+          r.price_eur_mwh ??
+          r.value ??
+          NaN
       ),
     }))
-    .filter((r) => r.timestamp && Number.isFinite(r.priceEurMwh));
+    .filter((r) => r.timestamp && Number.isFinite(r.priceEurMwh))) {
+    const hour = _btHourTimestamp(r.timestamp);
+    if (!hour) continue;
+    const bucket = byHour.get(hour) || { timestamp: hour, sum: 0, count: 0 };
+    bucket.sum += r.priceEurMwh;
+    bucket.count += 1;
+    byHour.set(hour, bucket);
+  }
+  return Array.from(byHour.values())
+    .sort((a, b) => a.timestamp.localeCompare(b.timestamp))
+    .map((b) => ({ timestamp: b.timestamp, priceEurMwh: b.sum / b.count }));
 }
 
 function _btNormaliseForecast(result) {
@@ -54,7 +80,7 @@ function _btNormaliseForecast(result) {
   if (!Array.isArray(arr)) return [];
   return arr
     .map((r) => ({
-      timestamp: r.timestamp ?? r.ts,
+      timestamp: _btHourTimestamp(r.timestamp ?? r.ts),
       generationMwh:
         r.generationMwh != null
           ? Number(r.generationMwh)
@@ -1570,9 +1596,18 @@ Combines generation timeseries (inline upload, MaStR-based historical reconstruc
 
           // Priority 1: inline timeseries
           if (Array.isArray(asset.timeseries) && asset.timeseries.length > 0) {
-            genSeries = asset.timeseries.map((r) => ({
-              timestamp: r.timestamp,
-              generationMwh: Number(r.generationMwh ?? r.value ?? 0),
+            const uploadedByHour = new Map();
+            for (const r of asset.timeseries) {
+              const timestamp = _btHourTimestamp(r.timestamp);
+              if (!timestamp) continue;
+              uploadedByHour.set(
+                timestamp,
+                (uploadedByHour.get(timestamp) || 0) + Number(r.generationMwh ?? r.value ?? 0)
+              );
+            }
+            genSeries = Array.from(uploadedByHour.entries()).map(([timestamp, generationMwh]) => ({
+              timestamp,
+              generationMwh,
             }));
             dataQuality = 'uploaded_timeseries';
           }

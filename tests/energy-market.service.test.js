@@ -1440,9 +1440,11 @@ describe('Energy Market Service', () => {
   describe('portfolioBacktest action', () => {
     it('computes mixed portfolio KPIs with data-quality flags, negative-price scenario, and commissioning zeroing', async () => {
       mockDayAheadPrices.mockResolvedValueOnce({
-        prices: [
-          { hour: '2026-06-29T00:00:00Z', price: 100 },
-          { hour: '2026-06-29T01:00:00Z', price: -50 },
+        dataPoints: [
+          { timestamp: '2026-06-29T00:00:00Z', priceEURperMWh: 80 },
+          { timestamp: '2026-06-29T00:15:00Z', priceEURperMWh: 120 },
+          { timestamp: '2026-06-29T01:00:00Z', priceEURperMWh: -60 },
+          { timestamp: '2026-06-29T01:15:00Z', priceEURperMWh: -40 },
         ],
       });
 
@@ -1485,8 +1487,8 @@ describe('Energy Market Service', () => {
       expect(result.portfolio.captureRate).toBe(-0.7144);
       expect(result.monthly).toHaveLength(1);
       expect(result.timeseries).toEqual([
-        { timestamp: '2026-06-29T00:00:00Z', generationMwh: 0.75, priceEurPerMwh: 100, marketValueEur: 75 },
-        { timestamp: '2026-06-29T01:00:00Z', generationMwh: 2.75, priceEurPerMwh: -50, marketValueEur: -137.5 },
+        { timestamp: '2026-06-29T00:00:00.000Z', generationMwh: 0.75, priceEurPerMwh: 100, marketValueEur: 75 },
+        { timestamp: '2026-06-29T01:00:00.000Z', generationMwh: 2.75, priceEurPerMwh: -50, marketValueEur: -137.5 },
       ]);
 
       expect(result.assets[0]).toMatchObject({
