@@ -2,6 +2,7 @@
 
 const {
   REQUIRED_DATA_CLASSES,
+  REQUIRED_ENERGY_SHARING_COLLECTIVE_APPROVAL_EVIDENCE,
   REQUIRED_EVIDENCE,
   REQUIRED_REDISPATCH_READINESS_EVIDENCE,
   REQUIRED_SUBSTATION_LOAD_ASSESSMENT_EVIDENCE,
@@ -10,6 +11,7 @@ const {
   buildWorkbenchClarificationItems,
   getVdmiBlueprintPackSeed,
   listVdmiBlueprintPackSeeds,
+  stadtwerkMauerEnergySharingCollectiveApproval,
   stadtwerkMauerPvMissingNap,
   stadtwerkMauerRedispatchParticipationReadiness,
   stadtwerkMauerSubstationLoadAssessment,
@@ -94,6 +96,32 @@ describe('VDMI Blueprint Pack seeds', () => {
     );
   });
 
+  test('exposes the Energy Sharing collective approval seed as read-only metadata', () => {
+    expect(stadtwerkMauerEnergySharingCollectiveApproval).toMatchObject({
+      id: 'stadtwerk-mauer-energy-sharing-collective-approval-v1',
+      kind: 'vdmi_blueprint_pack_seed',
+      version: '1.0.0',
+      safetyClassification: 'read_only_blueprint_seed',
+      processFamily: 'energy_sharing_governance',
+      controlCase: 'energy_sharing_collective_approval',
+      sourceTemplateId: 'energy-sharing-collective-approval',
+      demoTenant: {
+        tenantId: 'stadtwerk-mauer',
+        classification: 'synthetic_demo_tenant',
+      },
+    });
+
+    expect(listVdmiBlueprintPackSeeds()).toContainEqual(
+      expect.objectContaining({
+        id: 'stadtwerk-mauer-energy-sharing-collective-approval-v1',
+        demoTenantId: 'stadtwerk-mauer',
+      })
+    );
+    expect(getVdmiBlueprintPackSeed('stadtwerk-mauer-energy-sharing-collective-approval-v1')).toBe(
+      stadtwerkMauerEnergySharingCollectiveApproval
+    );
+  });
+
   test('validates required data-class separation and required evidence points', () => {
     const result = validateVdmiBlueprintPackSeed(stadtwerkMauerPvMissingNap);
     expect(result).toEqual({ valid: true, errors: [] });
@@ -163,6 +191,38 @@ describe('VDMI Blueprint Pack seeds', () => {
         'section_14a_switching',
         'flex_dispatch',
         'device_control',
+        'billing',
+        'settlement',
+        'tariff_mutation',
+        'external_connector_call',
+        'production_mutation',
+        'personal_agent_hardcoding',
+      ])
+    );
+  });
+
+  test('validates Energy Sharing collective approval evidence without onboarding or settlement side effects', () => {
+    const result = validateVdmiBlueprintPackSeed(stadtwerkMauerEnergySharingCollectiveApproval);
+    expect(result).toEqual({ valid: true, errors: [] });
+
+    const evidenceIds = stadtwerkMauerEnergySharingCollectiveApproval.evidenceRequirements.map(
+      (item) => item.id
+    );
+    expect(evidenceIds).toEqual(
+      expect.arrayContaining(REQUIRED_ENERGY_SHARING_COLLECTIVE_APPROVAL_EVIDENCE)
+    );
+    for (const item of stadtwerkMauerEnergySharingCollectiveApproval.evidenceRequirements) {
+      expect(item.dataClass).toBe('syntheticTenantSeed');
+      expect(item.enablesDossierAddition).toEqual(expect.any(String));
+    }
+
+    expect(stadtwerkMauerEnergySharingCollectiveApproval.forbiddenActions).toEqual(
+      expect.arrayContaining([
+        'participant_onboarding',
+        'customer_communication',
+        'contract_signing',
+        'allocation_execution',
+        'a96_settlement_export',
         'billing',
         'settlement',
         'tariff_mutation',
@@ -335,6 +395,52 @@ describe('VDMI Blueprint Pack seeds', () => {
     }
   });
 
+  test('exposes a canonical Demo-Raum process matrix for Energy Sharing collective approval sync', () => {
+    const matrix = stadtwerkMauerEnergySharingCollectiveApproval.demoProcessMatrix;
+
+    expect(matrix.slug).toBe('energy-sharing-collective-approval');
+    expect(matrix.roleLegend.M).toBe('Mitwirkend');
+    expect(matrix.rows).toHaveLength(5);
+    expect(matrix.allowedDataClasses).toEqual(REQUIRED_DATA_CLASSES);
+    expect(matrix.downstreamHandoff).toMatchObject({
+      blueprintPack: 'complete',
+      landingRegistry: 'pending',
+      productiveDemoRoom: 'pending',
+    });
+    expect(matrix.rows[3]).toMatchObject({
+      phase: '4',
+      v: 'ROLE_ENERGY_SHARING_PRODUCT_OWNER',
+      d: 'ROLE_CERNION_GOVERNANCE',
+      m: 'ROLE_SETTLEMENT_BILLING_SPECIALIST',
+      i: 'ROLE_COMMERCIAL_AUDIT',
+      evidenceRequirements: ['allocationBillingSettlementGapEvidence'],
+      gateOutcome: 'allocation_a96_billing_settlement_evidence_gap',
+    });
+
+    for (const row of matrix.rows) {
+      expect(row).toEqual(
+        expect.objectContaining({
+          phase: expect.any(String),
+          v: expect.stringMatching(/^ROLE_/),
+          d: expect.stringMatching(/^ROLE_/),
+          m: expect.stringMatching(/^ROLE_/),
+          i: expect.stringMatching(/^ROLE_/),
+          evidenceRequirements: expect.arrayContaining([expect.any(String)]),
+          dataClassRefs: expect.arrayContaining([expect.any(String)]),
+          gateOutcome: expect.any(String),
+          enablesDossierAddition: expect.any(String),
+        })
+      );
+
+      for (const roleCell of [row.v, row.d, row.m, row.i]) {
+        expect(REQUIRED_DATA_CLASSES).not.toContain(roleCell);
+        expect(roleCell).not.toMatch(
+          /Phase|Verantwortlich|Durchfuehrend|Mitwirkend|Informiert|Nachweise/
+        );
+      }
+    }
+  });
+
   test('builds scalar matrix-sync facts for Workbench verification', () => {
     const sync = buildDemoProcessMatrixSync(stadtwerkMauerPvMissingNap);
 
@@ -414,6 +520,35 @@ describe('VDMI Blueprint Pack seeds', () => {
         I: 'ROLE_COMMERCIAL_AUDIT',
       },
       gateOutcome: 'flex_capex_scenario_review_only',
+    });
+  });
+
+  test('builds scalar matrix-sync facts for Energy Sharing collective approval verification', () => {
+    const sync = buildDemoProcessMatrixSync(stadtwerkMauerEnergySharingCollectiveApproval);
+
+    expect(sync).toMatchObject({
+      slug: 'energy-sharing-collective-approval',
+      expectedSlug: 'energy-sharing-collective-approval',
+      synced: true,
+      roleLegendM: 'Mitwirkend',
+      rowCount: 5,
+      rowCountValid: true,
+      roleCellsClean: true,
+      dataClassesLimited: true,
+      forbiddenActionsStatus: 'not_introduced',
+    });
+    expect(sync.evidenceRequirements).toEqual(
+      expect.arrayContaining(REQUIRED_ENERGY_SHARING_COLLECTIVE_APPROVAL_EVIDENCE)
+    );
+    expect(sync.rows[3]).toMatchObject({
+      phase: '4',
+      roles: {
+        V: 'ROLE_ENERGY_SHARING_PRODUCT_OWNER',
+        D: 'ROLE_CERNION_GOVERNANCE',
+        M: 'ROLE_SETTLEMENT_BILLING_SPECIALIST',
+        I: 'ROLE_COMMERCIAL_AUDIT',
+      },
+      gateOutcome: 'allocation_a96_billing_settlement_evidence_gap',
     });
   });
 
@@ -529,6 +664,29 @@ describe('VDMI Blueprint Pack seeds', () => {
         state: 'clarification',
         execution: 'none',
         enablesDossierAddition: expect.stringContaining('next safe review gate'),
+      })
+    );
+  });
+
+  test('maps Energy Sharing collective approval missing evidence to non-executing workbench additions', () => {
+    const items = buildWorkbenchClarificationItems(stadtwerkMauerEnergySharingCollectiveApproval);
+
+    expect(items).toHaveLength(REQUIRED_ENERGY_SHARING_COLLECTIVE_APPROVAL_EVIDENCE.length);
+    expect(items).toContainEqual(
+      expect.objectContaining({
+        evidenceId: 'allocationBillingSettlementGapEvidence',
+        state: 'evidence_gap',
+        roleHint: 'ROLE_ENERGY_SHARING_PRODUCT_OWNER',
+        execution: 'none',
+        enablesDossierAddition: expect.stringContaining('never execution'),
+      })
+    );
+    expect(items).toContainEqual(
+      expect.objectContaining({
+        evidenceId: 'approvalReadinessDecision',
+        state: 'clarification',
+        execution: 'none',
+        enablesDossierAddition: expect.stringContaining('next safe governance gate'),
       })
     );
   });

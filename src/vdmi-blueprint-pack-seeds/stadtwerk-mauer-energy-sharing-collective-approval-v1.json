@@ -1,0 +1,297 @@
+{
+  "id": "stadtwerk-mauer-energy-sharing-collective-approval-v1",
+  "kind": "vdmi_blueprint_pack_seed",
+  "version": "1.0.0",
+  "safetyClassification": "read_only_blueprint_seed",
+  "title": "Stadtwerk Mauer Energy Sharing collective approval seed",
+  "processFamily": "energy_sharing_governance",
+  "controlCase": "energy_sharing_collective_approval",
+  "sourceTemplateId": "energy-sharing-collective-approval",
+  "demoTenant": {
+    "tenantId": "stadtwerk-mauer",
+    "classification": "synthetic_demo_tenant",
+    "description": "Virtual Stadtwerk Mauer demo tenant; collective, participant, metering, contract, allocation, A96, billing and settlement values are synthetic review data."
+  },
+  "dataClasses": {
+    "publicContextLayer": {
+      "description": "Read-only municipal, regulatory, MaStR, OSM or comparable public context already blended into the virtual Stadtwerk. Demo reset flows must not mutate this layer.",
+      "examples": ["municipal energy-sharing context", "public legal-reference context", "public network-area context"]
+    },
+    "syntheticTenantSeed": {
+      "description": "Invented demo collective, operator, participant-boundary, metering, contract, consent, market-role and evidence-gap markers for stadtwerk-mauer.",
+      "examples": ["synthetic community boundary", "synthetic metering concept marker", "synthetic settlement evidence gap"]
+    },
+    "sandboxRuntimeArtifact": {
+      "description": "Resettable output from Cernion/Rundeck demo verification runs, separate from public context baselines.",
+      "examples": ["Workbench verify trace", "matrix-sync render artifact"]
+    }
+  },
+  "roles": [
+    {
+      "roleId": "ROLE_ENERGY_SHARING_PRODUCT_OWNER",
+      "relation": "verantwortlich",
+      "responsibility": "Owns the synthetic collective approval review and decides whether the case is ready for review or still an evidence gap."
+    },
+    {
+      "roleId": "ROLE_CERNION_GOVERNANCE",
+      "relation": "durchfuehrend",
+      "responsibility": "Builds deterministic collective approval rows from existing Blueprint-Pack and dashboard read models."
+    },
+    {
+      "roleId": "ROLE_METERING_PROVIDER",
+      "relation": "mitwirkend",
+      "responsibility": "Provides synthetic participant-boundary and metering-concept markers without onboarding participants or changing meters."
+    },
+    {
+      "roleId": "ROLE_LEGAL_REGULATORY_AFFAIRS",
+      "relation": "mitwirkend",
+      "responsibility": "Provides contract, consent and market-role review context without legal approval, customer communication or contract signing."
+    },
+    {
+      "roleId": "ROLE_SETTLEMENT_BILLING_SPECIALIST",
+      "relation": "mitwirkend",
+      "responsibility": "Marks A96, allocation, billing and settlement evidence gaps without executing export, allocation, billing or settlement."
+    },
+    {
+      "roleId": "ROLE_GRID_OPERATIONS",
+      "relation": "mitwirkend",
+      "responsibility": "Provides grid-operations plausibility context without switching, control, MaKo or device action."
+    },
+    {
+      "roleId": "ROLE_MANAGEMENT",
+      "relation": "information",
+      "responsibility": "Receives review-readiness and governance-boundary context without approving a real customer or tenant project."
+    },
+    {
+      "roleId": "ROLE_COMMERCIAL_AUDIT",
+      "relation": "information",
+      "responsibility": "Receives non-binding commercial review context without tariff, billing, settlement or customer-facing action."
+    }
+  ],
+  "evidenceRequirements": [
+    {
+      "id": "syntheticCollectiveBoundaryEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds the synthetic collective and pilot boundary as public-safe review material, not as a real customer project."
+    },
+    {
+      "id": "operatorParticipantBoundaryEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds operator ownership, participant boundary and governance scope once tenant-provided review evidence exists."
+    },
+    {
+      "id": "meteringConceptEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds the metering concept readiness statement without creating, changing or controlling metering assets."
+    },
+    {
+      "id": "contractConsentMarketRoleEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds contract, consent and market-role review readiness without customer communication or contract signing."
+    },
+    {
+      "id": "allocationBillingSettlementGapEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds allocation, A96, billing and settlement evidence-gap closure as review evidence only, never execution."
+    },
+    {
+      "id": "approvalReadinessDecision",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds the ready-for-review or evidence-gap classification and the next safe governance gate."
+    }
+  ],
+  "demoProcessMatrix": {
+    "slug": "energy-sharing-collective-approval",
+    "title": "Energy Sharing collective approval review",
+    "roleLegend": {
+      "V": "Verantwortlich",
+      "D": "Durchfuehrend",
+      "M": "Mitwirkend",
+      "I": "Informiert"
+    },
+    "headers": [
+      "Phase",
+      "V = Verantwortlich",
+      "D = Durchfuehrend",
+      "M = Mitwirkend",
+      "I = Informiert",
+      "Nachweise"
+    ],
+    "allowedDataClasses": [
+      "publicContextLayer",
+      "syntheticTenantSeed",
+      "sandboxRuntimeArtifact"
+    ],
+    "downstreamHandoff": {
+      "blueprintPack": "complete",
+      "landingRegistry": "pending",
+      "productiveDemoRoom": "pending",
+      "acceptanceNote": "Blueprint-Pack/Cernion-Energy-Tools matrix is canonical; Landing-Registry and productive Demo-Raum sync remain downstream proof steps."
+    },
+    "rows": [
+      {
+        "phase": "1",
+        "v": "ROLE_ENERGY_SHARING_PRODUCT_OWNER",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_LEGAL_REGULATORY_AFFAIRS",
+        "i": "ROLE_MANAGEMENT",
+        "evidenceRequirements": [
+          "syntheticCollectiveBoundaryEvidence"
+        ],
+        "dataClassRefs": [
+          "publicContextLayer",
+          "syntheticTenantSeed"
+        ],
+        "status": "evidence_gap",
+        "gateOutcome": "synthetic_collective_review_case_identified",
+        "enablesDossierAddition": "Adds the synthetic collective/pilot intake as bounded review material, not a customer project."
+      },
+      {
+        "phase": "2",
+        "v": "ROLE_ENERGY_SHARING_PRODUCT_OWNER",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_METERING_PROVIDER",
+        "i": "ROLE_COMMERCIAL_AUDIT",
+        "evidenceRequirements": [
+          "operatorParticipantBoundaryEvidence",
+          "meteringConceptEvidence"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed",
+          "sandboxRuntimeArtifact"
+        ],
+        "status": "evidence_gap",
+        "gateOutcome": "operator_boundary_metering_review_pending",
+        "enablesDossierAddition": "Adds operator, participant-boundary and metering-concept readiness once review evidence is present."
+      },
+      {
+        "phase": "3",
+        "v": "ROLE_ENERGY_SHARING_PRODUCT_OWNER",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_LEGAL_REGULATORY_AFFAIRS",
+        "i": "ROLE_MANAGEMENT",
+        "evidenceRequirements": [
+          "contractConsentMarketRoleEvidence"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed"
+        ],
+        "status": "evidence_gap",
+        "gateOutcome": "contract_consent_market_role_review_only",
+        "enablesDossierAddition": "Adds contract, consent and market-role readiness as review evidence without signing or customer communication."
+      },
+      {
+        "phase": "4",
+        "v": "ROLE_ENERGY_SHARING_PRODUCT_OWNER",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_SETTLEMENT_BILLING_SPECIALIST",
+        "i": "ROLE_COMMERCIAL_AUDIT",
+        "evidenceRequirements": [
+          "allocationBillingSettlementGapEvidence"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed",
+          "sandboxRuntimeArtifact"
+        ],
+        "status": "evidence_gap",
+        "gateOutcome": "allocation_a96_billing_settlement_evidence_gap",
+        "enablesDossierAddition": "Adds allocation, A96, billing and settlement evidence-gap status without any export, billing or settlement run."
+      },
+      {
+        "phase": "5",
+        "v": "ROLE_ENERGY_SHARING_PRODUCT_OWNER",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_GRID_OPERATIONS",
+        "i": "ROLE_MANAGEMENT",
+        "evidenceRequirements": [
+          "approvalReadinessDecision"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed",
+          "sandboxRuntimeArtifact"
+        ],
+        "status": "clarification",
+        "gateOutcome": "ready_for_review_or_evidence_gap",
+        "enablesDossierAddition": "Adds ready-for-review or evidence-gap classification and the next safe governance gate."
+      }
+    ]
+  },
+  "decisionPolicy": {
+    "onMissingEvidence": "evidence_gap",
+    "onMissingReviewDecision": "clarification",
+    "allowedStates": ["clarification", "evidence_gap", "ready_for_review"],
+    "mustNotTrigger": [
+      "participant_onboarding",
+      "customer_communication",
+      "project_creation",
+      "tenant_onboarding",
+      "contract_signing",
+      "consent_capture",
+      "allocation_execution",
+      "a96_settlement_export",
+      "mako_write",
+      "billing",
+      "settlement",
+      "tariff_mutation",
+      "smgw_cls_device_control",
+      "external_connector_call",
+      "hitl_create",
+      "production_mutation",
+      "public_context_mutation"
+    ]
+  },
+  "allowedCommandHints": [
+    {
+      "kind": "workbench_hint",
+      "id": "budibase:stadtwerk-mauer-workbench",
+      "label": "Cernion Stadtwerk Mauer Workbench",
+      "execution": "metadata_only",
+      "note": "Render existing Energy-Sharing and Stadtwerk-Mauer read models only; do not hand-edit live Budibase or use Budibase as system of record."
+    },
+    {
+      "kind": "verify_hint",
+      "id": "blueprint-pack:matrix-sync-readback",
+      "label": "Blueprint-Pack matrix-sync readback",
+      "execution": "metadata_only",
+      "note": "Read back the canonical demoProcessMatrix for sync proof; no endpoint or production publication is introduced by this seed."
+    }
+  ],
+  "forbiddenActions": [
+    "participant_onboarding",
+    "customer_communication",
+    "project_creation",
+    "tenant_onboarding",
+    "contract_signing",
+    "consent_capture",
+    "allocation_execution",
+    "a96_settlement_export",
+    "mako_write",
+    "billing",
+    "settlement",
+    "tariff_mutation",
+    "smgw_cls_device_control",
+    "device_control",
+    "external_connector_call",
+    "hitl_create",
+    "secret_key_handling",
+    "public_context_mutation",
+    "production_mutation",
+    "personal_agent_hardcoding",
+    "cernion.de.publish"
+  ],
+  "publicContextMutationAllowed": false,
+  "tenantProvisioningAllowed": false,
+  "realWorldClaim": "synthetic_demo_only"
+}
