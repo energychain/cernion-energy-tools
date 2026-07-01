@@ -1610,6 +1610,69 @@ describe('Energy Market Service', () => {
       ).resolves.toMatchObject({ success: false, error: { code: 'PRICE_DATA_UNAVAILABLE' } });
     });
 
+    it('fails explicitly when a requested price day rejects', async () => {
+      callWithNewSession
+        .mockResolvedValueOnce({
+          dataPoints: [
+            { timestamp: '2026-06-29T00:00:00Z', priceEURperMWh: 80 },
+            { timestamp: '2026-06-29T01:00:00Z', priceEURperMWh: 120 },
+          ],
+        })
+        .mockRejectedValueOnce(new Error('ENTSO-E timeout'));
+
+      const result = await broker.call('energy-market.portfolioBacktest', {
+        dateFrom: '2026-06-29',
+        dateTo: '2026-06-30',
+        assets: [{ type: 'biomass', capacityKw: 1000, commissioningDate: '2020-01-01' }],
+      });
+
+      expect(result).toMatchObject({
+        success: false,
+        error: {
+          code: 'PRICE_DATA_UNAVAILABLE',
+          missingPriceDates: ['2026-06-30'],
+          priceCoverage: {
+            policy: 'fail_on_missing_price_day',
+            requestedDays: 2,
+            coveredDays: 1,
+            missingDays: 1,
+            failures: { '2026-06-30': 'ENTSO-E timeout' },
+          },
+        },
+      });
+    });
+
+    it('fails explicitly when a requested price day normalizes to no usable hourly prices', async () => {
+      callWithNewSession
+        .mockResolvedValueOnce({
+          dataPoints: [
+            { timestamp: '2026-06-29T00:00:00Z', priceEURperMWh: 80 },
+            { timestamp: '2026-06-29T01:00:00Z', priceEURperMWh: 120 },
+          ],
+        })
+        .mockResolvedValueOnce({ dataPoints: [] });
+
+      const result = await broker.call('energy-market.portfolioBacktest', {
+        dateFrom: '2026-06-29',
+        dateTo: '2026-06-30',
+        assets: [{ type: 'biomass', capacityKw: 1000, commissioningDate: '2020-01-01' }],
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatchObject({
+        code: 'PRICE_DATA_UNAVAILABLE',
+        missingPriceDates: ['2026-06-30'],
+        priceCoverage: {
+          policy: 'fail_on_missing_price_day',
+          requestedDays: 2,
+          coveredDays: 1,
+          missingDays: 1,
+          failures: {},
+        },
+      });
+      expect(result.error.positiveFollowUp).toContain('Complete hourly Day-Ahead price coverage');
+    });
+
     it('serves EPEX Spot prices from object-store cache without calling MCP', async () => {
       objectStoreData.set('epex_spot_prices:2026-06-29', {
         prices: [

@@ -1671,12 +1671,41 @@ Combines generation timeseries (inline upload, MaStR-based historical reconstruc
           };
 
           const allRaw = [];
+          const missingPriceDates = [];
+          const priceFetchFailures = {};
           for (let i = 0; i < priceDates.length; i += PRICE_BATCH) {
             const chunk = priceDates.slice(i, i + PRICE_BATCH);
             const results = await Promise.allSettled(chunk.map(fetchDayPrices));
-            for (const r of results) {
-              if (r.status === 'fulfilled' && r.value) allRaw.push(...r.value);
+            for (let j = 0; j < results.length; j++) {
+              const r = results[j];
+              const priceDate = chunk[j];
+              if (r.status === 'fulfilled' && Array.isArray(r.value) && r.value.length > 0) {
+                allRaw.push(...r.value);
+                continue;
+              }
+              missingPriceDates.push(priceDate);
+              if (r.status === 'rejected') {
+                priceFetchFailures[priceDate] = r.reason?.message || String(r.reason || 'price fetch failed');
+              }
             }
+          }
+          if (missingPriceDates.length > 0) {
+            return {
+              success: false,
+              error: {
+                code: 'PRICE_DATA_UNAVAILABLE',
+                message: `Day-Ahead price data is incomplete for ${dateFrom}–${dateTo}. Missing usable hourly prices for ${missingPriceDates.length} day(s).`,
+                missingPriceDates,
+                priceCoverage: {
+                  policy: 'fail_on_missing_price_day',
+                  requestedDays: priceDates.length,
+                  coveredDays: priceDates.length - missingPriceDates.length,
+                  missingDays: missingPriceDates.length,
+                  failures: priceFetchFailures,
+                },
+                positiveFollowUp: 'Complete hourly Day-Ahead price coverage for all requested dates enables portfolio, monthly, asset, negative-price, and curtailed-value KPIs for the declared period.',
+              },
+            };
           }
           // Deduplicate by timestamp (adjacent days share a UTC midnight boundary)
           const seen = new Set();
