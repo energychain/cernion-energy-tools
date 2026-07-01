@@ -8790,6 +8790,72 @@ describe('dashboard-api.service', () => {
           expect.arrayContaining(['cernion.de.publish', 'landing-registry.write'])
         );
       });
+
+      it('returns the Energy Sharing Landing-Registry draft sync proof from the canonical matrix', async () => {
+        const result = await broker.call('dashboard-api.stadtwerkMauerLandingRegistryDraftStatus', {
+          tenantId: 'stadtwerk-mauer',
+          seedId: 'stadtwerk-mauer-energy-sharing-collective-approval-v1',
+        });
+
+        expect(result.status).toBe('landing_registry_draft_ready');
+        expect(result.found).toBe(true);
+        expect(result.rowCount).toBe(5);
+        expect(result.roleHeaders).toEqual([
+          'Phase',
+          'V = Verantwortlich',
+          'D = Durchfuehrend',
+          'M = Mitwirkend',
+          'I = Informiert',
+          'Nachweise',
+        ]);
+        expect(result.draft).toMatchObject({
+          slug: 'energy-sharing-collective-approval',
+          processFamily: 'energy_sharing_governance',
+          controlCase: 'energy_sharing_collective_approval',
+          seedId: 'stadtwerk-mauer-energy-sharing-collective-approval-v1',
+          canonicalSource:
+            'src/vdmi-blueprint-pack-seeds/stadtwerk-mauer-energy-sharing-collective-approval-v1.json',
+          rowCount: 5,
+        });
+        expect(result.draft.roleLegend.M).toBe('Mitwirkend');
+        expect(result.draft.rows[3]).toMatchObject({
+          phase: '4',
+          V: 'ROLE_ENERGY_SHARING_PRODUCT_OWNER',
+          D: 'ROLE_CERNION_GOVERNANCE',
+          M: 'ROLE_SETTLEMENT_BILLING_SPECIALIST',
+          I: 'ROLE_COMMERCIAL_AUDIT',
+          evidenceRequirements: ['allocationBillingSettlementGapEvidence'],
+          gateOutcome: 'allocation_a96_billing_settlement_evidence_gap',
+        });
+        expect(result.syncProof).toMatchObject({
+          blueprintPack: { status: 'complete' },
+          landingRegistryDraft: { status: 'draft_ready' },
+          productiveDemoRoom: { status: 'pending' },
+        });
+        expect(result.publicationBlockers).toEqual(
+          expect.arrayContaining([
+            'productive_demo_room_publication_issue_missing',
+            'landing_registry_review_owner_missing',
+          ])
+        );
+        expect(result.sourceActions.notCalled).toEqual(
+          expect.arrayContaining([
+            'cernion.de.publish',
+            'landing-registry.write',
+            'budibase.table.write',
+            'operations-runbook.execute',
+            'external.connector.call',
+            'hitl.create',
+            'settlement.export',
+            'device-control.execute',
+            'personal-agent.execute',
+          ])
+        );
+        expect(result.brokerDossierHydration).toMatchObject({
+          exposed: false,
+          reason: expect.stringContaining('dossier-facing capability is cut'),
+        });
+      });
     });
 
     // -- stadtwerkMauerWorkbenchHubStatus ----------------------------------

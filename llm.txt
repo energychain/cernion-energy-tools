@@ -3,7 +3,7 @@
 ## Metadata
 - project: cernion-energy-tools
 - version: 0.67.8
-- changelog_latest_release: 0.67.11
+- changelog_latest_release: 0.67.17
 
 ## Purpose
 This file is a navigation manifest for LLM/agent consumers. It lists cluster
@@ -246,12 +246,12 @@ Agents resolving capabilities/recipes/operations do not need to read past this p
 - `tests/query.service.test.js`: `query.searchCopilot` body-based wrapper returns expected `query`, `domain`, and `results` shape.
 
 ## Source File Hashes
-- CHANGELOG.md: c80afca1197bbf15dc9fd070ead26876d1fb55cde9812eeef91e13c33c4c7892
+- CHANGELOG.md: c10e2666350af84c5e8320bd73ec6463c836f6f48ff463606a0f01387fd516ab
 - README.md: bdfc5d35a65796de3357f3ce717a61998325fa257776cbf17f7077893d0b23e7
 - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
 - src/cookbook-recipes.js: 9e48573ca263ef129bc3944a83b013cff25157e25afc703be0ada62d5af8163d
 - src/capability-catalog.js: 069c60c4647088ca51b0196d9869b55650850f79785f193e75526380f4af3ddc
-- openapi-export.json: b532cdd5381cf8734dd35ca2263129870f2fded04b5f20fdfaafaea7d9d07385
+- openapi-export.json: 73408610688c7ce3b8f2743005091508de2db3dc2fb78647b61998dc9df5add1
 
 ## OpenAPI Surface (full contract, not embedded)
 - path_count: 945
@@ -259,4 +259,4 @@ Agents resolving capabilities/recipes/operations do not need to read past this p
 - full_spec: openapi-export.json (repo root) or GET /api/openapi.json
 
 ## Integrity
-- llm_txt_sha256: cf4c251111529b2fc738d3539ea5c12e2de895f8e33fd376d814904989de075a
+- llm_txt_sha256: dc217ae0a857270d55c206b8c186d83b84dc079b33be718bf2bb868dc95e0bb6

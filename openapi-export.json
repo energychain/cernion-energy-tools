@@ -21218,7 +21218,7 @@
             "description": "Read-only Landing-Registry draft sync proof"
           }
         },
-        "description": "Returns a deterministic Landing-Registry draft projection for the Stadtwerk Mauer Substation Load Assessment demo. The draft is derived from the canonical Blueprint-Pack demoProcessMatrix and keeps productive cernion.de publication pending. The endpoint performs no Landing-Registry write, Budibase write, deploy, publication, external connector, MaKo, billing, settlement, tariff, device-control, HITL, secret/key or Personal-Agent action.",
+        "description": "Returns a deterministic Landing-Registry draft projection for the Stadtwerk Mauer Blueprint-Pack demo seed. The draft is derived from the canonical Blueprint-Pack demoProcessMatrix and keeps productive cernion.de publication pending. The endpoint performs no Landing-Registry write, Budibase write, deploy, publication, external connector, MaKo, billing, settlement, tariff, device-control, HITL, secret/key or Personal-Agent action.",
         "parameters": [
           {
             "name": "tenantId",
@@ -30638,7 +30638,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Backtest result",
+            "description": "Backtest result (from `/api/jobs/{jobId}/result` once status is `completed`)",
             "content": {
               "application/json": {
                 "example": {
@@ -30701,6 +30701,21 @@
                     "fallbackPolicy": "assumption_if_no_forecast_or_uploaded_profile",
                     "captureRateDefinition": "weightedMarketValueEurPerMwh / timeWeightedAverageSpotPrice"
                   }
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Job accepted — poll `/api/jobs/{jobId}/status`, fetch result from `/api/jobs/{jobId}/result`",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "jobId": "a3f8b2c1-0000-0000-0000-000000000001",
+                  "status": "queued",
+                  "message": "Job started. Poll /api/jobs/:jobId/status for progress.",
+                  "statusUrl": "/api/jobs/a3f8b2c1-0000-0000-0000-000000000001/status",
+                  "resultUrl": "/api/jobs/a3f8b2c1-0000-0000-0000-000000000001/result"
                 }
               }
             }
@@ -67614,7 +67629,7 @@
             "description": "Read-only Landing-Registry draft sync proof"
           }
         },
-        "description": "Returns a deterministic Landing-Registry draft projection for the Stadtwerk Mauer Substation Load Assessment demo. The draft is derived from the canonical Blueprint-Pack demoProcessMatrix and keeps productive cernion.de publication pending. The endpoint performs no Landing-Registry write, Budibase write, deploy, publication, external connector, MaKo, billing, settlement, tariff, device-control, HITL, secret/key or Personal-Agent action.",
+        "description": "Returns a deterministic Landing-Registry draft projection for the Stadtwerk Mauer Blueprint-Pack demo seed. The draft is derived from the canonical Blueprint-Pack demoProcessMatrix and keeps productive cernion.de publication pending. The endpoint performs no Landing-Registry write, Budibase write, deploy, publication, external connector, MaKo, billing, settlement, tariff, device-control, HITL, secret/key or Personal-Agent action.",
         "parameters": [
           {
             "name": "tenantId",

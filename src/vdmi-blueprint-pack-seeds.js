@@ -424,9 +424,10 @@ function buildLandingRegistryDraftFromBlueprintSeed(seed) {
     })),
     safetyBoundaries,
     syntheticDataStatement:
-      selectedSeed.realWorldClaim === 'synthetic_demo_only'
-        ? 'Stadtwerk Mauer station, load, forecast, Flex, CAPEX and review markers are synthetic demo data unless explicitly marked as public context.'
-        : 'Review source data classification before publication.',
+      selectedSeed.demoTenant?.description ||
+      (selectedSeed.realWorldClaim === 'synthetic_demo_only'
+        ? 'Stadtwerk Mauer review markers are synthetic demo data unless explicitly marked as public context.'
+        : 'Review source data classification before publication.'),
     syncProof: {
       blueprintPack: {
         status: downstreamHandoff.blueprintPack || 'pending',

@@ -602,6 +602,62 @@ describe('VDMI Blueprint Pack seeds', () => {
     );
   });
 
+  test('derives an Energy Sharing Landing-Registry draft from the canonical collective approval matrix', () => {
+    const draft = buildLandingRegistryDraftFromBlueprintSeed(
+      stadtwerkMauerEnergySharingCollectiveApproval
+    );
+
+    expect(draft).toMatchObject({
+      slug: 'energy-sharing-collective-approval',
+      processFamily: 'energy_sharing_governance',
+      controlCase: 'energy_sharing_collective_approval',
+      seedId: 'stadtwerk-mauer-energy-sharing-collective-approval-v1',
+      canonicalSource:
+        'src/vdmi-blueprint-pack-seeds/stadtwerk-mauer-energy-sharing-collective-approval-v1.json',
+      roleHeaders: [
+        'Phase',
+        'V = Verantwortlich',
+        'D = Durchfuehrend',
+        'M = Mitwirkend',
+        'I = Informiert',
+        'Nachweise',
+      ],
+      rowCount: 5,
+      syncProof: {
+        blueprintPack: expect.objectContaining({ status: 'complete' }),
+        landingRegistryDraft: expect.objectContaining({ status: 'draft_ready' }),
+        productiveDemoRoom: expect.objectContaining({ status: 'pending' }),
+      },
+    });
+    expect(draft.roleLegend.M).toBe('Mitwirkend');
+    expect(draft.rows).toHaveLength(5);
+    expect(draft.rows[3]).toMatchObject({
+      phase: '4',
+      V: 'ROLE_ENERGY_SHARING_PRODUCT_OWNER',
+      D: 'ROLE_CERNION_GOVERNANCE',
+      M: 'ROLE_SETTLEMENT_BILLING_SPECIALIST',
+      I: 'ROLE_COMMERCIAL_AUDIT',
+      evidenceRequirements: ['allocationBillingSettlementGapEvidence'],
+      gateOutcome: 'allocation_a96_billing_settlement_evidence_gap',
+      positiveFollowUp: expect.stringContaining('A96'),
+    });
+    expect(draft.syntheticDataStatement).toContain('synthetic review data');
+    expect(draft.sourceActions.notCalled).toEqual(
+      expect.arrayContaining([
+        'cernion.de.publish',
+        'landing-registry.write',
+        'budibase.table.write',
+        'allocation_execution',
+        'a96_settlement_export',
+        'billing',
+        'settlement',
+        'mako_write',
+        'device-control.execute',
+        'personal-agent.execute',
+      ])
+    );
+  });
+
   test('maps missing evidence to clarification/workbench additions without execution', () => {
     const items = buildWorkbenchClarificationItems(stadtwerkMauerPvMissingNap);
 

@@ -8115,7 +8115,7 @@ module.exports = {
         summary: 'Stadtwerk Mauer Landing-Registry draft -- read-only sync proof',
         description:
           'Returns a deterministic Landing-Registry draft projection for the Stadtwerk Mauer ' +
-          'Substation Load Assessment demo. The draft is derived from the canonical ' +
+          'Blueprint-Pack demo seed. The draft is derived from the canonical ' +
           'Blueprint-Pack demoProcessMatrix and keeps productive cernion.de publication pending. ' +
           'The endpoint performs no Landing-Registry write, Budibase write, deploy, publication, ' +
           'external connector, MaKo, billing, settlement, tariff, device-control, HITL, secret/key ' +
@@ -29953,7 +29953,7 @@ module.exports = {
         brokerDossierHydration: {
           exposed: false,
           reason:
-            'Dashboard Workbench sync-proof slice only; Capability Broker and Hydration Registry exposure is intentionally deferred.',
+            'Landing-Registry draft sync-proof slice only; Capability Broker and Hydration Registry exposure are intentionally deferred until a dossier-facing capability is cut.',
         },
         warnings: validation.valid ? [] : validation.errors,
       };
