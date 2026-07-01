@@ -23,6 +23,10 @@ const BACKTEST_ASSUMPTION_FULL_LOAD_HOURS = { biomass: 7500, hydro: 4200, combus
 const BACKTEST_WEATHER_TYPES = new Set(['solar', 'wind']);
 const BACKTEST_MAX_ASSETS = 50;
 const BACKTEST_MAX_DAYS = 365;
+// Reference orientation yield per type (kWh/kW/year, Germany, standard conditions).
+// Solar: south-facing 30° tilt, no shading. Wind onshore: typical hub height, open terrain.
+// Used as plausibility comparator — actual yield depends on site orientation, shading, losses.
+const BACKTEST_ORIENTATION_YIELD_KWH_KW = { solar: 950, wind: 1800, wind_onshore: 1800, wind_offshore: 3500 };
 
 function _btHourTimestamp(timestamp) {
   const d = new Date(timestamp);
@@ -1844,6 +1848,14 @@ Combines generation timeseries (inline upload, MaStR-based historical reconstruc
               ? Math.round((kpis.marketValueEur / kpis.generationMwh) * 100) / 100
               : 0;
 
+          const assetCapacityKw = Number(asset.capacityKw || 0);
+          const orientationYield = BACKTEST_ORIENTATION_YIELD_KWH_KW[assetType] ?? null;
+          const specificYield =
+            assetCapacityKw > 0 ? Math.round((kpis.generationMwh * 1000) / assetCapacityKw * 10) / 10 : null;
+          const nonZeroSlots = intervals.filter((iv) => iv.generationMwh > 0).length;
+          const genCoverage =
+            intervals.length > 0 ? Math.round((nonZeroSlots / intervals.length) * 1000) / 1000 : null;
+
           assetResults.push({
             mastrNumber: mastrId || undefined,
             type: assetType,
@@ -1856,6 +1868,17 @@ Combines generation timeseries (inline upload, MaStR-based historical reconstruc
             curtailedMarketValueEur: kpis.curtailedMarketValueEur,
             negativePriceAvoidableLossEur: kpis.negativePriceAvoidableLossEur,
             negativePriceHours: kpis.negativePriceHours,
+            plausibility: {
+              specificYieldKwhPerKw: specificYield,
+              orientationYieldKwhPerKw: orientationYield,
+              // yieldRatio < 1 is expected for non-standard orientation, shading, or large-array losses.
+              yieldRatio:
+                orientationYield && specificYield != null
+                  ? Math.round((specificYield / orientationYield) * 1000) / 1000
+                  : null,
+              generationCoverage: genCoverage,
+              capacityBasis: 'capacityKw_from_request',
+            },
             _intervals: intervals,
           });
           if (jobId) jobStore.appendLog(
@@ -1906,6 +1929,23 @@ Combines generation timeseries (inline upload, MaStR-based historical reconstruc
         // 4. Build response
         const assetSummaries = assetResults.map(({ _intervals, ...rest }) => rest);
 
+        // Portfolio-level plausibility: capacity-weighted reference yield and aggregate coverage
+        const pfCapacityKw = assets.reduce((s, a) => s + Number(a.capacityKw || 0), 0);
+        const pfSpecificYield =
+          pfCapacityKw > 0 ? Math.round((pfKpis.generationMwh * 1000) / pfCapacityKw * 10) / 10 : null;
+        const pfOrientationYield =
+          pfCapacityKw > 0
+            ? Math.round(
+                assets.reduce((s, a) => {
+                  const ref = BACKTEST_ORIENTATION_YIELD_KWH_KW[(a.type || '').toLowerCase()] ?? 0;
+                  return s + ref * Number(a.capacityKw || 0);
+                }, 0) / pfCapacityKw
+              )
+            : null;
+        const pfNonZeroSlots = allIntervals.filter((iv) => iv.generationMwh > 0).length;
+        const pfGenCoverage =
+          allIntervals.length > 0 ? Math.round((pfNonZeroSlots / allIntervals.length) * 1000) / 1000 : null;
+
         const response = {
           success: true,
           period: {
@@ -1922,7 +1962,7 @@ Combines generation timeseries (inline upload, MaStR-based historical reconstruc
           },
           portfolio: {
             assetCount: assets.length,
-            totalCapacityKw: assets.reduce((s, a) => s + Number(a.capacityKw || 0), 0),
+            totalCapacityKw: pfCapacityKw,
             generationMwh: pfKpis.generationMwh,
             marketValueEur: pfKpis.marketValueEur,
             weightedMarketValueEurPerMwh: pfWeightedMvPerMwh,
@@ -1933,6 +1973,16 @@ Combines generation timeseries (inline upload, MaStR-based historical reconstruc
             valueDuringNegativePricesEur: pfKpis.valueDuringNegativePricesEur,
             curtailedMarketValueEur: pfKpis.curtailedMarketValueEur,
             negativePriceAvoidableLossEur: pfKpis.negativePriceAvoidableLossEur,
+            plausibility: {
+              specificYieldKwhPerKw: pfSpecificYield,
+              orientationYieldKwhPerKw: pfOrientationYield,
+              yieldRatio:
+                pfOrientationYield && pfSpecificYield != null
+                  ? Math.round((pfSpecificYield / pfOrientationYield) * 1000) / 1000
+                  : null,
+              generationCoverage: pfGenCoverage,
+              capacityBasis: 'sum_of_asset_capacityKw',
+            },
           },
           monthly,
           assets: assetSummaries,
@@ -1941,6 +1991,11 @@ Combines generation timeseries (inline upload, MaStR-based historical reconstruc
             priceAlignment: 'hourly',
             fallbackPolicy: 'assumption_if_no_forecast_or_uploaded_profile',
             captureRateDefinition: 'weightedMarketValueEurPerMwh / timeWeightedAverageSpotPrice',
+            commissioningDatePolicy:
+              'full_period_used_if_commissioningDate_missing — warning commissioning_date_missing is set but no generation is zeroed',
+            generationModel:
+              'mastr_generation_forecast_historical_mode — weather-based reconstruction via MaStR MCP; actual yield reflects site-specific orientation, tilt, shading, and array losses; south-30deg orientation yield used as plausibility reference only',
+            orientationYieldBasis: 'Germany_typical_conditions (solar: 950 kWh/kW/a south-30deg; wind_onshore: 1800 kWh/kW/a)',
             assumptions: assetResults
               .filter((a) => a.dataQuality === 'assumption')
               .map((a) => ({

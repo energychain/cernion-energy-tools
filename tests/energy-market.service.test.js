@@ -1712,6 +1712,57 @@ describe('Energy Market Service', () => {
       expect(cached.forecasts[0]).toMatchObject({ timestamp: '2026-06-01T00:00:00.000Z', generationMwh: 0.4 });
     });
 
+    it('attaches plausibility block to portfolio and each asset', async () => {
+      // 2 price slots, 1 with generation and 1 without — tests generationCoverage = 0.5
+      callWithNewSession
+        .mockResolvedValueOnce({
+          dataPoints: [
+            { timestamp: '2026-06-01T10:00:00Z', priceEURperMWh: 100 },
+            { timestamp: '2026-06-01T11:00:00Z', priceEURperMWh: 100 },
+          ],
+        })
+        .mockResolvedValueOnce({
+          forecasts: [
+            { timestamp: '2026-06-01T10:00:00Z', generationMwh: 2.0 },
+            // 11:00 slot absent → 0 via genMap default
+          ],
+        });
+
+      const result = await broker.call('energy-market.portfolioBacktest', {
+        dateFrom: '2026-06-01',
+        dateTo: '2026-06-01',
+        assets: [{ mastrNumber: 'SEE000111222333', type: 'solar', capacityKw: 1000 }],
+      });
+
+      expect(result.success).toBe(true);
+
+      // Asset plausibility
+      const ap = result.assets[0].plausibility;
+      expect(ap).toBeDefined();
+      // specificYield = 2000 Wh / 1000 kW = 2 kWh/kW
+      expect(ap.specificYieldKwhPerKw).toBe(2.0);
+      expect(ap.orientationYieldKwhPerKw).toBe(950);
+      // yieldRatio = 2 / 950 ≈ 0.002
+      expect(ap.yieldRatio).toBeCloseTo(2 / 950, 3);
+      // 1 out of 2 slots is non-zero
+      expect(ap.generationCoverage).toBe(0.5);
+      expect(ap.capacityBasis).toBe('capacityKw_from_request');
+
+      // Portfolio plausibility
+      const pp = result.portfolio.plausibility;
+      expect(pp).toBeDefined();
+      expect(pp.specificYieldKwhPerKw).toBe(2.0);
+      expect(pp.orientationYieldKwhPerKw).toBe(950);
+      expect(pp.yieldRatio).toBeCloseTo(2 / 950, 3);
+      expect(pp.generationCoverage).toBe(0.5);
+      expect(pp.capacityBasis).toBe('sum_of_asset_capacityKw');
+
+      // Methodology block enrichment
+      expect(result.methodology.commissioningDatePolicy).toContain('commissioning_date_missing');
+      expect(result.methodology.generationModel).toContain('mastr_generation_forecast_historical_mode');
+      expect(result.methodology.orientationYieldBasis).toContain('950');
+    });
+
     it('returns 202 job descriptor when called from the REST gateway', async () => {
       const jobStore = require('../src/job-store');
       const spy = jest.spyOn(jobStore, 'startJob').mockResolvedValueOnce({

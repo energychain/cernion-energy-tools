@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.67.18] — 2026-07-01
+
+### Added
+- **`portfolioBacktest` plausibility block** (`services/energy-market.service.js`, #359): Every asset result and the top-level `portfolio` object now include a `plausibility` sub-object with `specificYieldKwhPerKw` (actual backtest yield), `orientationYieldKwhPerKw` (reference yield for the asset type — 950 kWh/kW for solar, 1800 for wind onshore), `yieldRatio` (actual / reference, 1.0 = matches reference), and `generationCoverage` (fraction of price timestamps where generation > 0 — useful to distinguish night-hour zeros from data gaps). The portfolio-level `orientationYieldKwhPerKw` is capacity-weighted across all asset types. The `methodology` block is enriched with `commissioningDatePolicy` (explaining that the full backtest period is used when no commissioning date is supplied), `generationModel` (documenting that `mastr_generation_forecast` is used in historical reconstruction mode and that the orientation yield is a south-30° reference, not a guarantee), and `orientationYieldBasis`. These fields allow frontends to surface the reason for deviations between backtest results and simple capacity-factor estimates without needing additional API calls.
+
 ## [0.67.17] — 2026-07-01
 
 ### Added
