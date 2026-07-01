@@ -1654,5 +1654,31 @@ describe('Energy Market Service', () => {
       expect(cached.prices[0]).toMatchObject({ timestamp: '2026-06-28T00:00:00.000Z', priceEurMwh: 90 });
       expect(cached.prices[1]).toMatchObject({ timestamp: '2026-06-28T01:00:00.000Z', priceEurMwh: 110 });
     });
+
+    it('returns 202 job descriptor when called from the REST gateway', async () => {
+      const jobStore = require('../src/job-store');
+      const spy = jest.spyOn(jobStore, 'startJob').mockResolvedValueOnce({
+        success: true,
+        jobId: 'test-job-123',
+        status: 'queued',
+        message: 'Job started. Poll /api/jobs/:jobId/status for progress.',
+        statusUrl: '/api/jobs/test-job-123/status',
+        resultUrl: '/api/jobs/test-job-123/result',
+      });
+
+      const result = await broker.call(
+        'energy-market.portfolioBacktest',
+        { dateFrom: '2026-06-29', dateTo: '2026-06-29', assets: [{ type: 'storage', capacityKw: 1 }] },
+        { meta: { $gateway: true } }
+      );
+
+      expect(spy).toHaveBeenCalledWith(
+        expect.objectContaining({ meta: expect.objectContaining({ $gateway: true }) }),
+        { service: 'energy-market', action: 'portfolioBacktest' },
+        expect.any(Function)
+      );
+      expect(result).toMatchObject({ success: true, jobId: 'test-job-123', status: 'queued' });
+      spy.mockRestore();
+    });
   });
 });

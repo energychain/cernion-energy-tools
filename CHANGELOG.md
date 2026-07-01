@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.67.16] — 2026-07-01
+
+### Changed
+- **`portfolioBacktest` runs as async background job** (`services/energy-market.service.js`): The endpoint now uses the shared Job Pattern (`jobStore.startJob`). REST gateway calls return **202** immediately with `{ jobId, statusUrl, resultUrl }`; progress is available at `GET /api/jobs/:jobId/progress` (phases: prices → assets → aggregate). Validation errors (UNSUPPORTED_REGION, INVALID_DATE_RANGE, DATE_RANGE_TOO_LARGE) are still returned synchronously before the job is created, so they do not occupy a job slot. Internal Moleculer callers (no `ctx.meta.$gateway`) continue to receive the synchronous result directly — no behavioural change for service-to-service calls. The `timeout: 120000` override is removed; the handler now returns in milliseconds.
+
 ## [0.67.15] — 2026-07-01
 
 ### Added

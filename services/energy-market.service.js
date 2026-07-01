@@ -7,6 +7,7 @@
 
 const CernionMCPClient = require('../src/mcp-client');
 const { callWithAutoPoll } = require('../src/async-job-poller');
+const jobStore = require('../src/job-store');
 const {
   applyFormat,
   convertToCSV,
@@ -1447,7 +1448,6 @@ module.exports = {
      */
     portfolioBacktest: {
       rest: 'POST /portfolio-backtest',
-      timeout: 120000,
       params: {
         assets: { type: 'array', min: 1, max: BACKTEST_MAX_ASSETS, items: { type: 'object' } },
         dateFrom: { type: 'string', optional: true, pattern: /^\d{4}-\d{2}-\d{2}$/ },
@@ -1529,8 +1529,23 @@ Combines generation timeseries (inline upload, MaStR-based historical reconstruc
           },
         },
         responses: {
+          202: {
+            description: 'Job accepted — poll `/api/jobs/{jobId}/status`, fetch result from `/api/jobs/{jobId}/result`',
+            content: {
+              'application/json': {
+                example: {
+                  success: true,
+                  jobId: 'a3f8b2c1-0000-0000-0000-000000000001',
+                  status: 'queued',
+                  message: 'Job started. Poll /api/jobs/:jobId/status for progress.',
+                  statusUrl: '/api/jobs/a3f8b2c1-0000-0000-0000-000000000001/status',
+                  resultUrl: '/api/jobs/a3f8b2c1-0000-0000-0000-000000000001/result',
+                },
+              },
+            },
+          },
           200: {
-            description: 'Backtest result',
+            description: 'Backtest result (from `/api/jobs/{jobId}/result` once status is `completed`)',
             content: {
               'application/json': {
                 example: {
@@ -1550,7 +1565,7 @@ Combines generation timeseries (inline upload, MaStR-based historical reconstruc
       async handler(ctx) {
         const { assets, market, region, includeTimeseries } = ctx.params;
 
-        // Region guard (v1: Deutschland only)
+        // Region guard (v1: Deutschland only) — fast synchronous rejection, no job needed
         if (region && region !== 'Deutschland') {
           return {
             success: false,
@@ -1583,6 +1598,12 @@ Combines generation timeseries (inline upload, MaStR-based historical reconstruc
           };
         }
 
+        // Long-running computation runs as a background job when called from the REST gateway.
+        // Internal Moleculer callers (no ctx.meta.$gateway) get the synchronous result directly.
+        return jobStore.startJob(
+          ctx,
+          { service: 'energy-market', action: 'portfolioBacktest' },
+          async (jobId) => {
         // 1. Fetch Day-Ahead prices for the full period.
         // entsoe_day_ahead_prices returns exactly one German calendar day per call
         // regardless of dateTo, so we iterate day-by-day in parallel batches of 30.
@@ -1598,6 +1619,7 @@ Combines generation timeseries (inline upload, MaStR-based historical reconstruc
           }
           const PRICE_BATCH = 30;
           const todayStr = new Date().toISOString().slice(0, 10);
+          if (jobId) jobStore.appendLog(jobId, 'prices', 5, `Fetching Day-Ahead prices for ${priceDates.length} days (${Math.ceil(priceDates.length / PRICE_BATCH)} batches, cache-first)`);
           this.logger.info(
             `portfolioBacktest: fetching prices for ${priceDates.length} days in ${Math.ceil(priceDates.length / PRICE_BATCH)} batches`
           );
@@ -1673,6 +1695,7 @@ Combines generation timeseries (inline upload, MaStR-based historical reconstruc
           };
         }
 
+        if (jobId) jobStore.appendLog(jobId, 'prices', 30, `Prices ready: ${prices.length} hourly slots`);
         const priceTimestamps = prices.map((p) => p.timestamp);
         const avgSpotPrice =
           prices.length > 0
@@ -1680,6 +1703,7 @@ Combines generation timeseries (inline upload, MaStR-based historical reconstruc
             : 0;
 
         // 2. Process each asset
+        if (jobId) jobStore.appendLog(jobId, 'assets', 35, `Processing ${assets.length} asset(s)`);
         const assetResults = [];
         for (let i = 0; i < assets.length; i++) {
           const asset = assets[i];
@@ -1791,9 +1815,16 @@ Combines generation timeseries (inline upload, MaStR-based historical reconstruc
             negativePriceHours: kpis.negativePriceHours,
             _intervals: intervals,
           });
+          if (jobId) jobStore.appendLog(
+            jobId,
+            'assets',
+            Math.round(35 + ((i + 1) / assets.length) * 55),
+            `Asset ${i + 1}/${assets.length} processed (${dataQuality})`
+          );
         }
 
         // 3. Aggregate portfolio across all intervals
+        if (jobId) jobStore.appendLog(jobId, 'aggregate', 92, 'Aggregating portfolio KPIs');
         const allIntervals = [];
         {
           // Sum generation across assets per timestamp slot using the shared price grid
@@ -1893,7 +1924,10 @@ Combines generation timeseries (inline upload, MaStR-based historical reconstruc
                 }));
         }
 
+        if (jobId) jobStore.appendLog(jobId, 'completed', 100, 'Backtest complete');
         return response;
+          } // end worker
+        ); // end startJob
       },
     },
   },
