@@ -21206,6 +21206,39 @@
         ]
       }
     },
+    "/api/dashboard-api/stadtwerk-mauer-landing-registry-draft": {
+      "get": {
+        "operationId": "dashboard-api_stadtwerkMauerLandingRegistryDraftStatus",
+        "summary": "Stadtwerk Mauer Landing-Registry draft -- read-only sync proof",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Landing-Registry draft sync proof"
+          }
+        },
+        "description": "Returns a deterministic Landing-Registry draft projection for the Stadtwerk Mauer Substation Load Assessment demo. The draft is derived from the canonical Blueprint-Pack demoProcessMatrix and keeps productive cernion.de publication pending. The endpoint performs no Landing-Registry write, Budibase write, deploy, publication, external connector, MaKo, billing, settlement, tariff, device-control, HITL, secret/key or Personal-Agent action.",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "seedId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/api/dashboard-api/stadtwerk-mauer-administrator-inventory": {
       "get": {
         "operationId": "dashboard-api_stadtwerkMauerAdministratorInventoryStatus",
@@ -67336,6 +67369,39 @@
             "required": false,
             "schema": {
               "type": "boolean"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard/stadtwerk-mauer-landing-registry-draft": {
+      "get": {
+        "operationId": "dashboard-api_stadtwerkMauerLandingRegistryDraftStatus",
+        "summary": "Stadtwerk Mauer Landing-Registry draft -- read-only sync proof",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Landing-Registry draft sync proof"
+          }
+        },
+        "description": "Returns a deterministic Landing-Registry draft projection for the Stadtwerk Mauer Substation Load Assessment demo. The draft is derived from the canonical Blueprint-Pack demoProcessMatrix and keeps productive cernion.de publication pending. The endpoint performs no Landing-Registry write, Budibase write, deploy, publication, external connector, MaKo, billing, settlement, tariff, device-control, HITL, secret/key or Personal-Agent action.",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "seedId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
             }
           }
         ]

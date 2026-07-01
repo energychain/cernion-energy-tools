@@ -6,6 +6,7 @@ const {
   REQUIRED_REDISPATCH_READINESS_EVIDENCE,
   REQUIRED_SUBSTATION_LOAD_ASSESSMENT_EVIDENCE,
   buildDemoProcessMatrixSync,
+  buildLandingRegistryDraftFromBlueprintSeed,
   buildWorkbenchClarificationItems,
   getVdmiBlueprintPackSeed,
   listVdmiBlueprintPackSeeds,
@@ -414,6 +415,56 @@ describe('VDMI Blueprint Pack seeds', () => {
       },
       gateOutcome: 'flex_capex_scenario_review_only',
     });
+  });
+
+  test('derives a Landing-Registry draft from the canonical substation matrix', () => {
+    const draft = buildLandingRegistryDraftFromBlueprintSeed(stadtwerkMauerSubstationLoadAssessment);
+
+    expect(draft).toMatchObject({
+      slug: 'substation-load-assessment',
+      processFamily: 'grid_capacity_governance',
+      controlCase: 'substation_load_assessment',
+      seedId: 'stadtwerk-mauer-substation-load-assessment-v1',
+      canonicalSource:
+        'src/vdmi-blueprint-pack-seeds/stadtwerk-mauer-substation-load-assessment-v1.json',
+      roleHeaders: [
+        'Phase',
+        'V = Verantwortlich',
+        'D = Durchfuehrend',
+        'M = Mitwirkend',
+        'I = Informiert',
+        'Nachweise',
+      ],
+      rowCount: 5,
+      syncProof: {
+        blueprintPack: expect.objectContaining({ status: 'complete' }),
+        landingRegistryDraft: expect.objectContaining({ status: 'draft_ready' }),
+        productiveDemoRoom: expect.objectContaining({ status: 'pending' }),
+      },
+    });
+    expect(draft.roleLegend.M).toBe('Mitwirkend');
+    expect(draft.rows[2]).toMatchObject({
+      phase: '3',
+      V: 'ROLE_ASSET_PLANNING_LEAD',
+      D: 'ROLE_CERNION_GOVERNANCE',
+      M: 'ROLE_GRID_OPERATIONS',
+      I: 'ROLE_COMMERCIAL_AUDIT',
+      evidenceRequirements: ['flexOptionEvidence', 'capexOptionEvidence'],
+      gateOutcome: 'flex_capex_scenario_review_only',
+      positiveFollowUp: expect.stringContaining('Flex'),
+    });
+    expect(draft.publicationBlockers).toEqual(
+      expect.arrayContaining(['productive_demo_room_publication_issue_missing'])
+    );
+    expect(draft.sourceActions.notCalled).toEqual(
+      expect.arrayContaining([
+        'cernion.de.publish',
+        'landing-registry.write',
+        'budibase.table.write',
+        'operations-runbook.execute',
+        'personal-agent.execute',
+      ])
+    );
   });
 
   test('maps missing evidence to clarification/workbench additions without execution', () => {

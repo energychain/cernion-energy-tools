@@ -344,6 +344,111 @@ function buildDemoProcessMatrixSync(seed) {
   };
 }
 
+function buildLandingRegistryDraftFromBlueprintSeed(seed) {
+  const selectedSeed = seed || stadtwerkMauerSubstationLoadAssessment;
+  const matrixSync = buildDemoProcessMatrixSync(selectedSeed);
+  const matrix = selectedSeed.demoProcessMatrix || {};
+  const roleHeaders = [
+    'Phase',
+    'V = Verantwortlich',
+    'D = Durchfuehrend',
+    'M = Mitwirkend',
+    'I = Informiert',
+    'Nachweise',
+  ];
+  const downstreamHandoff = matrixSync.downstreamHandoff || {};
+  const productivePending =
+    downstreamHandoff.productiveDemoRoom == null ||
+    downstreamHandoff.productiveDemoRoom === 'pending';
+  const publicationBlockers = [
+    'productive_demo_room_publication_issue_missing',
+    'landing_registry_review_owner_missing',
+    'cernion_de_sitemap_canonical_update_pending',
+  ];
+  const safetyBoundaries = Array.from(
+    new Set([
+      ...(selectedSeed.forbiddenActions || []),
+      'cernion.de.publish',
+      'landing-registry.write',
+      'budibase.table.write',
+      'operations-runbook.execute',
+      'external.connector.call',
+      'hitl.create',
+      'settlement.export',
+      'device-control.execute',
+      'personal-agent.execute',
+    ])
+  );
+
+  return {
+    slug: matrixSync.slug,
+    title: matrix.title || selectedSeed.title || selectedSeed.id,
+    processFamily: selectedSeed.processFamily || null,
+    controlCase: selectedSeed.controlCase || null,
+    seedId: selectedSeed.id,
+    canonicalSource: `src/vdmi-blueprint-pack-seeds/${selectedSeed.id}.json`,
+    roleHeaders,
+    roleLegend: matrixSync.roleLegend,
+    rowCount: matrixSync.rowCount,
+    rows: matrixSync.rows.map((row) => ({
+      phase: row.phase,
+      V: row.roles.V,
+      D: row.roles.D,
+      M: row.roles.M,
+      I: row.roles.I,
+      evidenceRequirements: row.evidenceRequirements,
+      gateOutcome: row.gateOutcome,
+      status: row.status,
+      positiveFollowUp: row.enablesDossierAddition,
+    })),
+    safetyBoundaries,
+    syntheticDataStatement:
+      selectedSeed.realWorldClaim === 'synthetic_demo_only'
+        ? 'Stadtwerk Mauer station, load, forecast, Flex, CAPEX and review markers are synthetic demo data unless explicitly marked as public context.'
+        : 'Review source data classification before publication.',
+    syncProof: {
+      blueprintPack: {
+        status: downstreamHandoff.blueprintPack || 'pending',
+        source: 'Cernion-Energy-Tools Blueprint-Pack seed',
+      },
+      landingRegistryDraft: {
+        status: 'draft_ready',
+        source: 'derived_from_canonical_demoProcessMatrix',
+      },
+      productiveDemoRoom: {
+        status: productivePending ? 'pending' : downstreamHandoff.productiveDemoRoom,
+        source: 'cernion.de publication remains a later explicit issue',
+      },
+    },
+    publicationBlockers: productivePending ? publicationBlockers : [],
+    positiveFollowUps: [
+      {
+        missingDataPoint: 'landing_registry_review_owner',
+        enablesDossierAddition:
+          'adds who reviewed the downstream draft without changing the canonical matrix',
+      },
+      {
+        missingDataPoint: 'productive_demo_room_publication',
+        enablesDossierAddition:
+          'adds productive cernion.de publication evidence after a later explicit publication issue',
+      },
+      {
+        missingDataPoint: 'budibase_visible_sync_row',
+        enablesDossierAddition:
+          'adds Workbench-visible sync status after generated manifest/apply smoke if the manifest is touched',
+      },
+    ],
+    sourceActions: {
+      inspected: ['buildLandingRegistryDraftFromBlueprintSeed', 'buildDemoProcessMatrixSync'],
+      referenced: [
+        `src/vdmi-blueprint-pack-seeds/${selectedSeed.id}.json`,
+        'demoProcessMatrix',
+      ],
+      notCalled: safetyBoundaries,
+    },
+  };
+}
+
 module.exports = {
   REQUIRED_DATA_CLASSES,
   REQUIRED_EVIDENCE,
@@ -353,6 +458,7 @@ module.exports = {
   REQUIRED_SUBSTATION_LOAD_ASSESSMENT_EVIDENCE,
   REQUIRED_SUBSTATION_LOAD_ASSESSMENT_ROLE_IDS,
   buildDemoProcessMatrixSync,
+  buildLandingRegistryDraftFromBlueprintSeed,
   buildWorkbenchClarificationItems,
   getVdmiBlueprintPackSeed,
   listVdmiBlueprintPackSeeds,

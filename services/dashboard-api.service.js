@@ -32,8 +32,10 @@ const { buildIntermunicipalComparison } = require('../src/intermunicipal-compari
 const { evaluatePresentationGrounding } = require('../src/receipt-grounded-presentation-contract');
 const {
   buildDemoProcessMatrixSync,
+  buildLandingRegistryDraftFromBlueprintSeed,
   buildWorkbenchClarificationItems,
   getVdmiBlueprintPackSeed,
+  stadtwerkMauerSubstationLoadAssessment,
   stadtwerkMauerPvMissingNap,
   validateVdmiBlueprintPackSeed,
 } = require('../src/vdmi-blueprint-pack-seeds');
@@ -134,6 +136,7 @@ module.exports = {
       stadtwerkMauerWorkbenchSelectedTargetStatus: 5 * 60 * 1000, // 5 min
       stadtwerkMauerBlueprintPackVerifyStatus: 5 * 60 * 1000, // 5 min
       stadtwerkMauerTransferReadinessStatus: 5 * 60 * 1000, // 5 min
+      stadtwerkMauerLandingRegistryDraftStatus: 5 * 60 * 1000, // 5 min
       fnavFastTrackContractGateStatus: 5 * 60 * 1000, // 5 min
       crossChannelVnbSignalQueueStatus: 5 * 60 * 1000, // 5 min
       crossDomainSpecialTopicsQueueStatus: 5 * 60 * 1000, // 5 min
@@ -8087,6 +8090,57 @@ module.exports = {
               includeBlockedBoundaries,
               includeSafeNextSteps,
             }),
+            timestamp: new Date().toISOString(),
+          })
+        );
+      },
+    },
+
+    // -- stadtwerkMauerLandingRegistryDraftStatus -----------------------
+    /**
+     * GET /api/dashboard/stadtwerk-mauer-landing-registry-draft
+     *
+     * Read-only Demo-Raum sync proof derived from the canonical
+     * Blueprint-Pack demoProcessMatrix. This does not write the downstream
+     * Landing-Registry and does not publish cernion.de.
+     */
+    stadtwerkMauerLandingRegistryDraftStatus: {
+      rest: 'GET /stadtwerk-mauer-landing-registry-draft',
+      params: {
+        tenantId: { type: 'string', optional: true, min: 1 },
+        seedId: { type: 'string', optional: true, min: 1 },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Stadtwerk Mauer Landing-Registry draft -- read-only sync proof',
+        description:
+          'Returns a deterministic Landing-Registry draft projection for the Stadtwerk Mauer ' +
+          'Substation Load Assessment demo. The draft is derived from the canonical ' +
+          'Blueprint-Pack demoProcessMatrix and keeps productive cernion.de publication pending. ' +
+          'The endpoint performs no Landing-Registry write, Budibase write, deploy, publication, ' +
+          'external connector, MaKo, billing, settlement, tariff, device-control, HITL, secret/key ' +
+          'or Personal-Agent action.',
+        parameters: [
+          { name: 'tenantId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'seedId', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only Landing-Registry draft sync proof',
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const tenantId = params.tenantId || ctx.meta?.tenantId || 'stadtwerk-mauer';
+        const seedId = params.seedId || stadtwerkMauerSubstationLoadAssessment.id;
+        const cacheKey = `stadtwerk-mauer-landing-registry-draft:${tenantId}:${seedId}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.stadtwerkMauerLandingRegistryDraftStatus,
+          async () => ({
+            ...this.buildStadtwerkMauerLandingRegistryDraftStatus({ tenantId, seedId }),
             timestamp: new Date().toISOString(),
           })
         );
@@ -29837,6 +29891,71 @@ module.exports = {
           reason:
             'Budibase Workbench transfer-readiness slice only; Capability Broker, Hydration Registry and slim dossier formatter are intentionally deferred.',
         },
+      };
+    },
+
+    buildStadtwerkMauerLandingRegistryDraftStatus({
+      tenantId = 'stadtwerk-mauer',
+      seedId = stadtwerkMauerSubstationLoadAssessment.id,
+    } = {}) {
+      const seed = tenantId === 'stadtwerk-mauer' ? getVdmiBlueprintPackSeed(seedId) : null;
+      const validation = validateVdmiBlueprintPackSeed(seed);
+      const draft = seed ? buildLandingRegistryDraftFromBlueprintSeed(seed) : null;
+      const found = Boolean(seed);
+      const status = !found
+        ? 'seed_not_found'
+        : validation.valid
+          ? 'landing_registry_draft_ready'
+          : 'landing_registry_draft_blocked';
+      const sourceActions = draft?.sourceActions || {
+        inspected: ['dashboard-api.stadtwerkMauerLandingRegistryDraftStatus'],
+        referenced: ['src/vdmi-blueprint-pack-seeds'],
+        notCalled: [
+          'cernion.de.publish',
+          'landing-registry.write',
+          'budibase.table.write',
+          'operations-runbook.execute',
+          'external.connector.call',
+          'hitl.create',
+          'settlement.export',
+          'device-control.execute',
+          'personal-agent.execute',
+        ],
+      };
+
+      return {
+        capabilityKey: 'stadtwerk_mauer_landing_registry_draft',
+        safety: 'read_only_workbench_projection',
+        status,
+        riskClass: 'read_only',
+        tenantId,
+        seedId,
+        found,
+        title: 'Stadtwerk Mauer Landing-Registry draft sync proof',
+        draft,
+        rowCount: draft?.rowCount || 0,
+        roleHeaders: draft?.roleHeaders || [],
+        syncProof: draft?.syncProof || {
+          blueprintPack: { status: found ? 'blocked' : 'missing_seed' },
+          landingRegistryDraft: { status: 'pending' },
+          productiveDemoRoom: { status: 'pending' },
+        },
+        publicationBlockers: draft?.publicationBlockers || [],
+        positiveFollowUps: draft?.positiveFollowUps || [],
+        sourceActions: {
+          inspected: [
+            'dashboard-api.stadtwerkMauerLandingRegistryDraftStatus',
+            ...sourceActions.inspected,
+          ],
+          referenced: sourceActions.referenced,
+          notCalled: sourceActions.notCalled,
+        },
+        brokerDossierHydration: {
+          exposed: false,
+          reason:
+            'Dashboard Workbench sync-proof slice only; Capability Broker and Hydration Registry exposure is intentionally deferred.',
+        },
+        warnings: validation.valid ? [] : validation.errors,
       };
     },
 

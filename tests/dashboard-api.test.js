@@ -8705,6 +8705,93 @@ describe('dashboard-api.service', () => {
       });
     });
 
+    // -- stadtwerkMauerLandingRegistryDraftStatus --------------------------
+    describe('stadtwerkMauerLandingRegistryDraftStatus', () => {
+      it('returns a read-only Landing-Registry draft sync proof for substation load assessment', async () => {
+        const result = await broker.call('dashboard-api.stadtwerkMauerLandingRegistryDraftStatus', {
+          tenantId: 'stadtwerk-mauer',
+          seedId: 'stadtwerk-mauer-substation-load-assessment-v1',
+        });
+
+        expect(result.capabilityKey).toBe('stadtwerk_mauer_landing_registry_draft');
+        expect(result.safety).toBe('read_only_workbench_projection');
+        expect(result.status).toBe('landing_registry_draft_ready');
+        expect(result.riskClass).toBe('read_only');
+        expect(result.rowCount).toBe(5);
+        expect(result.roleHeaders).toEqual([
+          'Phase',
+          'V = Verantwortlich',
+          'D = Durchfuehrend',
+          'M = Mitwirkend',
+          'I = Informiert',
+          'Nachweise',
+        ]);
+        expect(result.draft).toMatchObject({
+          slug: 'substation-load-assessment',
+          processFamily: 'grid_capacity_governance',
+          controlCase: 'substation_load_assessment',
+          seedId: 'stadtwerk-mauer-substation-load-assessment-v1',
+          rowCount: 5,
+        });
+        expect(result.draft.roleLegend.M).toBe('Mitwirkend');
+        expect(result.draft.rows[0]).toMatchObject({
+          phase: '1',
+          V: 'ROLE_ASSET_PLANNING_LEAD',
+          D: 'ROLE_CERNION_GOVERNANCE',
+          M: 'ROLE_ASSET_MANAGEMENT',
+          I: 'ROLE_REGULATORY_AFFAIRS',
+          evidenceRequirements: ['stationBoundaryEvidence'],
+        });
+        expect(result.syncProof).toMatchObject({
+          blueprintPack: { status: 'complete' },
+          landingRegistryDraft: { status: 'draft_ready' },
+          productiveDemoRoom: { status: 'pending' },
+        });
+        expect(result.publicationBlockers).toEqual(
+          expect.arrayContaining([
+            'productive_demo_room_publication_issue_missing',
+            'cernion_de_sitemap_canonical_update_pending',
+          ])
+        );
+        expect(result.positiveFollowUps.map((item) => item.missingDataPoint)).toEqual(
+          expect.arrayContaining([
+            'landing_registry_review_owner',
+            'productive_demo_room_publication',
+            'budibase_visible_sync_row',
+          ])
+        );
+        expect(result.sourceActions.notCalled).toEqual(
+          expect.arrayContaining([
+            'cernion.de.publish',
+            'landing-registry.write',
+            'budibase.table.write',
+            'operations-runbook.execute',
+            'external.connector.call',
+            'hitl.create',
+            'settlement.export',
+            'device-control.execute',
+            'personal-agent.execute',
+          ])
+        );
+        expect(result.brokerDossierHydration.exposed).toBe(false);
+      });
+
+      it('returns a read-only missing-seed state without publication side effects', async () => {
+        const result = await broker.call('dashboard-api.stadtwerkMauerLandingRegistryDraftStatus', {
+          tenantId: 'stadtwerk-mauer',
+          seedId: 'missing-seed',
+        });
+
+        expect(result.status).toBe('seed_not_found');
+        expect(result.found).toBe(false);
+        expect(result.rowCount).toBe(0);
+        expect(result.syncProof.productiveDemoRoom.status).toBe('pending');
+        expect(result.sourceActions.notCalled).toEqual(
+          expect.arrayContaining(['cernion.de.publish', 'landing-registry.write'])
+        );
+      });
+    });
+
     // -- stadtwerkMauerWorkbenchHubStatus ----------------------------------
     describe('stadtwerkMauerWorkbenchHubStatus', () => {
       it('returns a read-only Hub launcher with target readiness and no-call guards', async () => {
