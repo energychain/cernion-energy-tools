@@ -1,0 +1,381 @@
+{
+  "id": "stadtwerk-mauer-portfolio-market-value-readiness-v1",
+  "kind": "vdmi_blueprint_pack_seed",
+  "version": "1.0.0",
+  "safetyClassification": "read_only_blueprint_seed",
+  "title": "Stadtwerk Mauer Portfolio Market Value Readiness seed",
+  "processFamily": "energy_market_portfolio_readiness",
+  "controlCase": "portfolio_market_value_readiness",
+  "sourceApi": {
+    "operation": "POST /api/energy-market/portfolio-backtest",
+    "path": "/api/energy-market/portfolio-backtest",
+    "method": "POST",
+    "capability": "energy-market.portfolioBacktest",
+    "readOnly": true,
+    "invocation": "source_hint_only"
+  },
+  "demoTenant": {
+    "tenantId": "stadtwerk-mauer",
+    "classification": "synthetic_demo_tenant",
+    "description": "Virtual Stadtwerk Mauer demo tenant; portfolio scope, generation profile, price coverage, market-value and readiness values are synthetic review data."
+  },
+  "roleQuestion": {
+    "actor": "Portfolio Owner / Energy Market Analyst",
+    "answerableIn": "under_one_minute",
+    "question": "Is this synthetic portfolio backtest demo-ready, what evidence quality and risk are visible, and what is the next safe review gate?"
+  },
+  "dataClasses": {
+    "publicContextLayer": {
+      "description": "Read-only public market, price-zone, network-area or regulatory context already blended into the virtual Stadtwerk. Demo reset flows must not mutate this layer.",
+      "examples": ["public spot-price context", "market-zone reference", "negative-price public context"]
+    },
+    "syntheticTenantSeed": {
+      "description": "Invented demo portfolio scope, synthetic asset mix, generation profile, cache coverage and readiness markers for stadtwerk-mauer.",
+      "examples": ["synthetic portfolio scope", "synthetic generation profile", "synthetic readiness gate marker"]
+    },
+    "sandboxRuntimeArtifact": {
+      "description": "Resettable output from Cernion/Rundeck demo verification runs, separate from public context baselines.",
+      "examples": ["portfolio backtest verification trace", "matrix-sync render artifact", "read-model refresh proof"]
+    }
+  },
+  "roles": [
+    {
+      "roleId": "ROLE_PORTFOLIO_OWNER",
+      "relation": "verantwortlich",
+      "responsibility": "Owns the synthetic portfolio scope and decides whether the review package is ready for the next safe gate."
+    },
+    {
+      "roleId": "ROLE_ENERGY_MARKET_ANALYST",
+      "relation": "durchfuehrend",
+      "responsibility": "Reviews generation profile, price coverage, market-value and negative-price evidence without creating a trading or investment recommendation."
+    },
+    {
+      "roleId": "ROLE_ASSET_MANAGEMENT",
+      "relation": "mitwirkend",
+      "responsibility": "Provides synthetic asset-mix and generation-profile context without changing asset records."
+    },
+    {
+      "roleId": "ROLE_MARKET_DATA_PROVIDER",
+      "relation": "mitwirkend",
+      "responsibility": "Provides price/cache coverage evidence as a read-only provenance hint without external connector execution."
+    },
+    {
+      "roleId": "ROLE_CERNION_GOVERNANCE",
+      "relation": "mitwirkend",
+      "responsibility": "Verifies the Blueprint-Pack seed, matrix sync and non-advice safety boundary."
+    },
+    {
+      "roleId": "ROLE_LEGAL_REGULATORY_AFFAIRS",
+      "relation": "mitwirkend",
+      "responsibility": "Reviews the non-advice and market-value-commitment boundary without approving trading or commercial action."
+    },
+    {
+      "roleId": "ROLE_MANAGEMENT",
+      "relation": "information",
+      "responsibility": "Receives readiness, evidence-quality and risk context without approving operational or market action."
+    },
+    {
+      "roleId": "ROLE_COMMERCIAL_AUDIT",
+      "relation": "information",
+      "responsibility": "Receives evidence-gap and safety-boundary context without billing, settlement, trading or customer-accounting effects."
+    }
+  ],
+  "evidenceRequirements": [
+    {
+      "id": "portfolioScopeEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds the bounded synthetic portfolio scope and source API hint as review material."
+    },
+    {
+      "id": "syntheticAssetMixEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds the synthetic asset mix used for portfolio readiness without changing asset records."
+    },
+    {
+      "id": "generationProfileEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds generation-profile context for the backtest without customer or meter data."
+    },
+    {
+      "id": "dataQualityEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds data-quality and completeness markers for the synthetic portfolio package."
+    },
+    {
+      "id": "plausibilityEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds plausibility boundaries for read-only review without investment advice."
+    },
+    {
+      "id": "spotPriceCoverageEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds spot-price coverage status as evidence provenance without calling an external market connector."
+    },
+    {
+      "id": "cacheCoverageEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds cache coverage and no-external-call provenance for the demo readiness review."
+    },
+    {
+      "id": "noExternalCallEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "verification",
+      "enablesDossierAddition": "Adds proof that the seed remains metadata-only and does not invoke market data connectors."
+    },
+    {
+      "id": "marketValueBacktestEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "review",
+      "enablesDossierAddition": "Adds read-only market-value backtest facts without trading approval or value commitment."
+    },
+    {
+      "id": "negativePriceRiskEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "review",
+      "enablesDossierAddition": "Adds negative-price exposure context for management review without dispatch or trading action."
+    },
+    {
+      "id": "captureRateEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "review",
+      "enablesDossierAddition": "Adds synthetic capture-rate context for a non-advice readiness dossier."
+    },
+    {
+      "id": "readinessGateEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds whether the portfolio package is ready for the next safe review gate or remains blocked."
+    },
+    {
+      "id": "nonAdviceBoundaryEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "boundary",
+      "enablesDossierAddition": "Adds the explicit non-advice, non-trading and non-market-value-commitment boundary."
+    }
+  ],
+  "demoProcessMatrix": {
+    "slug": "portfolio-market-value-readiness",
+    "title": "Portfolio Market Value Readiness review",
+    "roleLegend": {
+      "V": "Verantwortlich",
+      "D": "Durchfuehrend",
+      "M": "Mitwirkend",
+      "I": "Informiert"
+    },
+    "headers": [
+      "Phase",
+      "V = Verantwortlich",
+      "D = Durchfuehrend",
+      "M = Mitwirkend",
+      "I = Informiert",
+      "Nachweise"
+    ],
+    "allowedDataClasses": [
+      "publicContextLayer",
+      "syntheticTenantSeed",
+      "sandboxRuntimeArtifact"
+    ],
+    "downstreamHandoff": {
+      "blueprintPack": "complete",
+      "landingRegistry": "pending",
+      "productiveDemoRoom": "pending",
+      "acceptanceNote": "Blueprint-Pack/Cernion-Energy-Tools matrix is canonical; Landing-Registry and productive Demo-Raum sync remain downstream proof steps."
+    },
+    "rows": [
+      {
+        "phase": "1",
+        "v": "ROLE_PORTFOLIO_OWNER",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_ASSET_MANAGEMENT",
+        "i": "ROLE_COMMERCIAL_AUDIT",
+        "evidenceRequirements": [
+          "portfolioScopeEvidence",
+          "syntheticAssetMixEvidence"
+        ],
+        "dataClassRefs": [
+          "publicContextLayer",
+          "syntheticTenantSeed"
+        ],
+        "status": "evidence_gap",
+        "gateOutcome": "synthetic_portfolio_scope_bounded",
+        "enablesDossierAddition": "Adds synthetic portfolio scope and asset-mix evidence as bounded review material."
+      },
+      {
+        "phase": "2",
+        "v": "ROLE_PORTFOLIO_OWNER",
+        "d": "ROLE_ENERGY_MARKET_ANALYST",
+        "m": "ROLE_ASSET_MANAGEMENT",
+        "i": "ROLE_MANAGEMENT",
+        "evidenceRequirements": [
+          "generationProfileEvidence",
+          "dataQualityEvidence",
+          "plausibilityEvidence"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed",
+          "sandboxRuntimeArtifact"
+        ],
+        "status": "clarification",
+        "gateOutcome": "generation_profile_quality_review_pending",
+        "enablesDossierAddition": "Adds generation, quality and plausibility context without customer or meter data."
+      },
+      {
+        "phase": "3",
+        "v": "ROLE_ENERGY_MARKET_ANALYST",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_MARKET_DATA_PROVIDER",
+        "i": "ROLE_COMMERCIAL_AUDIT",
+        "evidenceRequirements": [
+          "spotPriceCoverageEvidence",
+          "cacheCoverageEvidence",
+          "noExternalCallEvidence"
+        ],
+        "dataClassRefs": [
+          "publicContextLayer",
+          "syntheticTenantSeed",
+          "sandboxRuntimeArtifact"
+        ],
+        "status": "verification",
+        "gateOutcome": "price_cache_coverage_verified_read_only",
+        "enablesDossierAddition": "Adds price/cache coverage and no-external-call provenance for read-only review."
+      },
+      {
+        "phase": "4",
+        "v": "ROLE_COMMERCIAL_AUDIT",
+        "d": "ROLE_ENERGY_MARKET_ANALYST",
+        "m": "ROLE_PORTFOLIO_OWNER",
+        "i": "ROLE_MANAGEMENT",
+        "evidenceRequirements": [
+          "marketValueBacktestEvidence",
+          "negativePriceRiskEvidence",
+          "captureRateEvidence"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed",
+          "sandboxRuntimeArtifact"
+        ],
+        "status": "review",
+        "gateOutcome": "market_value_risk_visible_without_advice",
+        "enablesDossierAddition": "Adds synthetic market-value, negative-price and capture-rate facts without advice or trading action."
+      },
+      {
+        "phase": "5",
+        "v": "ROLE_PORTFOLIO_OWNER",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_LEGAL_REGULATORY_AFFAIRS",
+        "i": "ROLE_COMMERCIAL_AUDIT",
+        "evidenceRequirements": [
+          "readinessGateEvidence",
+          "nonAdviceBoundaryEvidence"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed"
+        ],
+        "status": "clarification",
+        "gateOutcome": "ready_for_safe_review_or_boundary_gap",
+        "enablesDossierAddition": "Adds readiness-gate and non-advice boundary status before any downstream Demo-Raum publication."
+      }
+    ]
+  },
+  "decisionPolicy": {
+    "onMissingEvidence": "evidence_gap",
+    "onMissingBoundary": "boundary",
+    "allowedStates": ["evidence_gap", "clarification", "verification", "review", "boundary", "ready_for_review"],
+    "mustNotTrigger": [
+      "portfolio_persistence",
+      "portfolio_upload_storage",
+      "object_store_mutation",
+      "cache_mutation",
+      "trading_approval",
+      "supplier_approval",
+      "balancing_group_approval",
+      "investment_advice",
+      "market_value_commitment",
+      "dispatch_curtailment",
+      "device_control",
+      "hitl_create",
+      "external_connector_call",
+      "mako_write",
+      "billing",
+      "settlement",
+      "tariff_mutation",
+      "smgw_cls_device_control",
+      "production_mutation",
+      "public_context_mutation"
+    ]
+  },
+  "allowedCommandHints": [
+    {
+      "kind": "source_api_hint",
+      "id": "api:energy-market-portfolio-backtest",
+      "label": "Energy Market Portfolio Backtest",
+      "execution": "metadata_only",
+      "safeNextAction": "inspect_source_api_hint"
+    },
+    {
+      "kind": "verification_hint",
+      "id": "blueprint-pack:verify-portfolio-market-value-readiness",
+      "label": "Verify Portfolio Market Value Readiness matrix seed",
+      "execution": "metadata_only",
+      "safeNextAction": "verify_seed_matrix"
+    },
+    {
+      "kind": "inspection_hint",
+      "id": "workbench:inspect-portfolio-market-value-readiness",
+      "label": "Inspect portfolio market value readiness evidence",
+      "execution": "metadata_only",
+      "safeNextAction": "inspect_evidence_gaps"
+    }
+  ],
+  "forbiddenActions": [
+    "portfolio_persistence",
+    "portfolio_upload_storage",
+    "object_store_mutation",
+    "cache_mutation",
+    "real_customer_data",
+    "real_meter_data",
+    "trading_approval",
+    "supplier_approval",
+    "balancing_group_approval",
+    "investment_advice",
+    "market_value_commitment",
+    "dispatch_curtailment",
+    "device_control",
+    "mako_write",
+    "billing",
+    "settlement",
+    "tariff_mutation",
+    "smgw_cls_device_control",
+    "external_connector_call",
+    "hitl_create",
+    "budibase_table_write",
+    "landing_registry_publication",
+    "cernion_de_publication",
+    "public_context_mutation",
+    "production_mutation",
+    "personal_agent_hardcoding"
+  ],
+  "publicContextMutationAllowed": false,
+  "tenantProvisioningAllowed": false,
+  "realWorldClaim": "synthetic_demo_only"
+}

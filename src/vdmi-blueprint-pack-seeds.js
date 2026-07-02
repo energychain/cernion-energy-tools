@@ -5,6 +5,7 @@ const stadtwerkMauerRedispatchParticipationReadiness = require('./vdmi-blueprint
 const stadtwerkMauerSubstationLoadAssessment = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-substation-load-assessment-v1.json');
 const stadtwerkMauerEnergySharingCollectiveApproval = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-energy-sharing-collective-approval-v1.json');
 const stadtwerkMauerConnectionDeadlineEvidenceQueue = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-connection-deadline-evidence-queue-v1.json');
+const stadtwerkMauerPortfolioMarketValueReadiness = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-portfolio-market-value-readiness-v1.json');
 
 const REQUIRED_EVIDENCE = Object.freeze([
   'napReference',
@@ -44,6 +45,21 @@ const REQUIRED_CONNECTION_DEADLINE_EVIDENCE = Object.freeze([
   'communicationNoteDraftEvidence',
   'nextGateReadinessEvidence',
 ]);
+const REQUIRED_PORTFOLIO_MARKET_VALUE_READINESS_EVIDENCE = Object.freeze([
+  'portfolioScopeEvidence',
+  'syntheticAssetMixEvidence',
+  'generationProfileEvidence',
+  'dataQualityEvidence',
+  'plausibilityEvidence',
+  'spotPriceCoverageEvidence',
+  'cacheCoverageEvidence',
+  'noExternalCallEvidence',
+  'marketValueBacktestEvidence',
+  'negativePriceRiskEvidence',
+  'captureRateEvidence',
+  'readinessGateEvidence',
+  'nonAdviceBoundaryEvidence',
+]);
 
 const REQUIRED_DATA_CLASSES = Object.freeze([
   'publicContextLayer',
@@ -68,6 +84,10 @@ const REQUIRED_CONNECTION_DEADLINE_ROLE_IDS = Object.freeze([
   'ROLE_NETZPLANUNG',
   'ROLE_ANSCHLUSSWESEN',
 ]);
+const REQUIRED_PORTFOLIO_MARKET_VALUE_READINESS_ROLE_IDS = Object.freeze([
+  'ROLE_PORTFOLIO_OWNER',
+  'ROLE_CERNION_GOVERNANCE',
+]);
 const REQUIRED_MATRIX_ROLE_KEYS = Object.freeze(['v', 'd', 'm', 'i']);
 const MATRIX_HEADER_WORDS = Object.freeze([
   'Phase',
@@ -84,6 +104,7 @@ const SEEDS = Object.freeze([
   stadtwerkMauerSubstationLoadAssessment,
   stadtwerkMauerEnergySharingCollectiveApproval,
   stadtwerkMauerConnectionDeadlineEvidenceQueue,
+  stadtwerkMauerPortfolioMarketValueReadiness,
 ]);
 
 const SEED_VALIDATION_REQUIREMENTS = Object.freeze({
@@ -111,6 +132,11 @@ const SEED_VALIDATION_REQUIREMENTS = Object.freeze({
     requiredEvidence: REQUIRED_CONNECTION_DEADLINE_EVIDENCE,
     requiredRoleIds: REQUIRED_CONNECTION_DEADLINE_ROLE_IDS,
     expectedMatrixSlug: 'connection-deadline-evidence-queue',
+  }),
+  [stadtwerkMauerPortfolioMarketValueReadiness.id]: Object.freeze({
+    requiredEvidence: REQUIRED_PORTFOLIO_MARKET_VALUE_READINESS_EVIDENCE,
+    requiredRoleIds: REQUIRED_PORTFOLIO_MARKET_VALUE_READINESS_ROLE_IDS,
+    expectedMatrixSlug: 'portfolio-market-value-readiness',
   }),
 });
 
@@ -310,6 +336,8 @@ function buildWorkbenchClarificationItems(seed) {
     roleHint:
       item.id === 'napReference'
         ? 'ROLE_NETZPLANUNG'
+        : selectedSeed.id === stadtwerkMauerPortfolioMarketValueReadiness.id
+          ? 'ROLE_PORTFOLIO_OWNER'
         : selectedSeed.id === stadtwerkMauerConnectionDeadlineEvidenceQueue.id
           ? 'ROLE_ANSCHLUSSWESEN'
         : selectedSeed.id === stadtwerkMauerEnergySharingCollectiveApproval.id
@@ -499,6 +527,8 @@ module.exports = {
   REQUIRED_ENERGY_SHARING_COLLECTIVE_APPROVAL_EVIDENCE,
   REQUIRED_ENERGY_SHARING_COLLECTIVE_APPROVAL_ROLE_IDS,
   REQUIRED_EVIDENCE,
+  REQUIRED_PORTFOLIO_MARKET_VALUE_READINESS_EVIDENCE,
+  REQUIRED_PORTFOLIO_MARKET_VALUE_READINESS_ROLE_IDS,
   REQUIRED_REDISPATCH_READINESS_EVIDENCE,
   REQUIRED_REDISPATCH_READINESS_ROLE_IDS,
   REQUIRED_ROLE_IDS,
@@ -514,5 +544,6 @@ module.exports = {
   stadtwerkMauerPvMissingNap,
   stadtwerkMauerEnergySharingCollectiveApproval,
   stadtwerkMauerConnectionDeadlineEvidenceQueue,
+  stadtwerkMauerPortfolioMarketValueReadiness,
   validateVdmiBlueprintPackSeed,
 };

@@ -5,6 +5,7 @@ const {
   REQUIRED_CONNECTION_DEADLINE_EVIDENCE,
   REQUIRED_ENERGY_SHARING_COLLECTIVE_APPROVAL_EVIDENCE,
   REQUIRED_EVIDENCE,
+  REQUIRED_PORTFOLIO_MARKET_VALUE_READINESS_EVIDENCE,
   REQUIRED_REDISPATCH_READINESS_EVIDENCE,
   REQUIRED_SUBSTATION_LOAD_ASSESSMENT_EVIDENCE,
   buildDemoProcessMatrixSync,
@@ -15,6 +16,7 @@ const {
   stadtwerkMauerConnectionDeadlineEvidenceQueue,
   stadtwerkMauerEnergySharingCollectiveApproval,
   stadtwerkMauerPvMissingNap,
+  stadtwerkMauerPortfolioMarketValueReadiness,
   stadtwerkMauerRedispatchParticipationReadiness,
   stadtwerkMauerSubstationLoadAssessment,
   validateVdmiBlueprintPackSeed,
@@ -74,6 +76,39 @@ describe('VDMI Blueprint Pack seeds', () => {
     );
     expect(getVdmiBlueprintPackSeed('stadtwerk-mauer-connection-deadline-evidence-queue-v1')).toBe(
       stadtwerkMauerConnectionDeadlineEvidenceQueue
+    );
+  });
+
+  test('exposes the Portfolio Market Value Readiness seed as read-only metadata', () => {
+    expect(stadtwerkMauerPortfolioMarketValueReadiness).toMatchObject({
+      id: 'stadtwerk-mauer-portfolio-market-value-readiness-v1',
+      kind: 'vdmi_blueprint_pack_seed',
+      version: '1.0.0',
+      safetyClassification: 'read_only_blueprint_seed',
+      processFamily: 'energy_market_portfolio_readiness',
+      controlCase: 'portfolio_market_value_readiness',
+      sourceApi: {
+        operation: 'POST /api/energy-market/portfolio-backtest',
+        path: '/api/energy-market/portfolio-backtest',
+        method: 'POST',
+        capability: 'energy-market.portfolioBacktest',
+        readOnly: true,
+        invocation: 'source_hint_only',
+      },
+      demoTenant: {
+        tenantId: 'stadtwerk-mauer',
+        classification: 'synthetic_demo_tenant',
+      },
+    });
+
+    expect(listVdmiBlueprintPackSeeds()).toContainEqual(
+      expect.objectContaining({
+        id: 'stadtwerk-mauer-portfolio-market-value-readiness-v1',
+        demoTenantId: 'stadtwerk-mauer',
+      })
+    );
+    expect(getVdmiBlueprintPackSeed('stadtwerk-mauer-portfolio-market-value-readiness-v1')).toBe(
+      stadtwerkMauerPortfolioMarketValueReadiness
     );
   });
 
@@ -140,6 +175,52 @@ describe('VDMI Blueprint Pack seeds', () => {
     );
   });
 
+  test('validates Portfolio Market Value Readiness evidence without market or publication side effects', () => {
+    const result = validateVdmiBlueprintPackSeed(stadtwerkMauerPortfolioMarketValueReadiness);
+    expect(result).toEqual({ valid: true, errors: [] });
+
+    const evidenceIds = stadtwerkMauerPortfolioMarketValueReadiness.evidenceRequirements.map(
+      (item) => item.id
+    );
+    expect(evidenceIds).toEqual(
+      expect.arrayContaining(REQUIRED_PORTFOLIO_MARKET_VALUE_READINESS_EVIDENCE)
+    );
+    for (const item of stadtwerkMauerPortfolioMarketValueReadiness.evidenceRequirements) {
+      expect(item.dataClass).toBe('syntheticTenantSeed');
+      expect(item.enablesDossierAddition).toEqual(expect.any(String));
+    }
+
+    expect(stadtwerkMauerPortfolioMarketValueReadiness.forbiddenActions).toEqual(
+      expect.arrayContaining([
+        'portfolio_persistence',
+        'portfolio_upload_storage',
+        'object_store_mutation',
+        'cache_mutation',
+        'real_customer_data',
+        'real_meter_data',
+        'trading_approval',
+        'supplier_approval',
+        'balancing_group_approval',
+        'investment_advice',
+        'market_value_commitment',
+        'dispatch_curtailment',
+        'device_control',
+        'mako_write',
+        'billing',
+        'settlement',
+        'tariff_mutation',
+        'smgw_cls_device_control',
+        'external_connector_call',
+        'hitl_create',
+        'budibase_table_write',
+        'landing_registry_publication',
+        'cernion_de_publication',
+        'production_mutation',
+        'personal_agent_hardcoding',
+      ])
+    );
+  });
+
   test('exposes the substation load assessment seed as read-only metadata', () => {
     expect(stadtwerkMauerSubstationLoadAssessment).toMatchObject({
       id: 'stadtwerk-mauer-substation-load-assessment-v1',
@@ -186,6 +267,56 @@ describe('VDMI Blueprint Pack seeds', () => {
       i: 'ROLE_COMMERCIAL_AUDIT',
       evidenceRequirements: ['clarificationOwnerEvidence', 'communicationNoteDraftEvidence'],
       gateOutcome: 'clarification_owner_and_non_sending_note_available',
+    });
+
+    for (const row of matrix.rows) {
+      expect(row).toEqual(
+        expect.objectContaining({
+          phase: expect.any(String),
+          v: expect.stringMatching(/^ROLE_/),
+          d: expect.stringMatching(/^ROLE_/),
+          m: expect.stringMatching(/^ROLE_/),
+          i: expect.stringMatching(/^ROLE_/),
+          evidenceRequirements: expect.arrayContaining([expect.any(String)]),
+          dataClassRefs: expect.arrayContaining([expect.any(String)]),
+          gateOutcome: expect.any(String),
+          enablesDossierAddition: expect.any(String),
+        })
+      );
+
+      for (const roleCell of [row.v, row.d, row.m, row.i]) {
+        expect(REQUIRED_DATA_CLASSES).not.toContain(roleCell);
+        expect(roleCell).not.toMatch(
+          /Phase|Verantwortlich|Durchfuehrend|Mitwirkend|Informiert|Nachweise/
+        );
+      }
+    }
+  });
+
+  test('exposes a canonical Demo-Raum process matrix for Portfolio Market Value Readiness sync', () => {
+    const matrix = stadtwerkMauerPortfolioMarketValueReadiness.demoProcessMatrix;
+
+    expect(matrix.slug).toBe('portfolio-market-value-readiness');
+    expect(matrix.roleLegend.M).toBe('Mitwirkend');
+    expect(matrix.rows).toHaveLength(5);
+    expect(matrix.allowedDataClasses).toEqual(REQUIRED_DATA_CLASSES);
+    expect(matrix.downstreamHandoff).toMatchObject({
+      blueprintPack: 'complete',
+      landingRegistry: 'pending',
+      productiveDemoRoom: 'pending',
+    });
+    expect(matrix.rows[2]).toMatchObject({
+      phase: '3',
+      v: 'ROLE_ENERGY_MARKET_ANALYST',
+      d: 'ROLE_CERNION_GOVERNANCE',
+      m: 'ROLE_MARKET_DATA_PROVIDER',
+      i: 'ROLE_COMMERCIAL_AUDIT',
+      evidenceRequirements: [
+        'spotPriceCoverageEvidence',
+        'cacheCoverageEvidence',
+        'noExternalCallEvidence',
+      ],
+      gateOutcome: 'price_cache_coverage_verified_read_only',
     });
 
     for (const row of matrix.rows) {
