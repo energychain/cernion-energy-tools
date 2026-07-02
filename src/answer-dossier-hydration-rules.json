@@ -4818,6 +4818,90 @@
     "sourceIssue": 155
   },
   {
+    "id": "gas-transformation-dataroom-status",
+    "description": "Read-only Gasnetz-Transformationsdatenraum status evidence for dossier hydration",
+    "routeLabel": "gas_transformation_dataroom_status",
+    "capability": "gas_transformation_dataroom_status",
+    "action": "dashboard-api.gasTransformationDataroomStatus",
+    "safety": {
+      "classification": "read_only",
+      "readOnly": true,
+      "allowDossierHydration": true,
+      "forbiddenActions": [
+        "object-store.create",
+        "object-store.update",
+        "knowledge-rag.ingest",
+        "tenant-knowledge.promote",
+        "acl.grant",
+        "archive.export",
+        "review-snapshot.create",
+        "eog-calculator.persistScenario",
+        "investment.approve",
+        "gas-transformation.executeDecommissioning",
+        "h2-conversion.execute",
+        "gremium.approve",
+        "hitl.create",
+        "workflow.execute",
+        "mail.send",
+        "external.connector.call",
+        "mako.dispatch",
+        "settlement.prepareBilling",
+        "billing.release",
+        "tariff.mutate",
+        "device-control.execute",
+        "personal-agent.execute"
+      ]
+    },
+    "triggers": [
+      "gasnetz transformationsdatenraum",
+      "gasnetz-transformationsdatenraum",
+      "gas transformation dataroom",
+      "transformationsdatenraum status",
+      "datenraum gasnetz",
+      "review snapshot",
+      "evidence register",
+      "decision log",
+      "gremiennotiz",
+      "eog kanu scenario"
+    ],
+    "paramTemplate": {
+      "roomId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:roomId[:= ]+|room_id[:= ]+|room[:= ]+|datenraum[:=]+)([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "dossierEvidence.status"], "label": "Dataroom Status", "maxLen": 90 },
+        { "paths": ["readinessScore", "dossierEvidence.readinessScore"], "label": "Readiness", "precision": 2 },
+        { "paths": ["dataRoomProfile.roomId", "dossierEvidence.dataRoomProfile.roomId"], "label": "Room", "maxLen": 120 },
+        { "paths": ["dataRoomProfile.mandateId", "dossierEvidence.dataRoomProfile.mandateId"], "label": "Mandate", "maxLen": 120 },
+        { "paths": ["dataRoomProfile.profile", "dossierEvidence.dataRoomProfile.profile"], "label": "Profile", "maxLen": 120 },
+        { "paths": ["transformationPaths.0", "dossierEvidence.transformationPaths.0"], "label": "Transformation Path", "maxLen": 120 },
+        { "paths": ["scenarioReferences.0", "dossierEvidence.scenarioReferences.0"], "label": "Scenario Reference", "maxLen": 120 },
+        { "paths": ["reviewSnapshot.evidenceStatus", "dossierEvidence.reviewSnapshot.evidenceStatus"], "label": "Evidence", "maxLen": 120 },
+        { "paths": ["reviewSnapshot.decisionStatus", "dossierEvidence.reviewSnapshot.decisionStatus"], "label": "Decision Log", "maxLen": 120 },
+        { "paths": ["reviewSnapshot.roadmapStatus", "dossierEvidence.reviewSnapshot.roadmapStatus"], "label": "Roadmap", "maxLen": 120 },
+        { "paths": ["reviewSnapshot.reviewDate", "dossierEvidence.reviewSnapshot.reviewDate"], "label": "Review Date", "maxLen": 40 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 365
+  },
+  {
     "id": "grid-connection-transformation-gate",
     "description": "Read-only Netzanschlusspunkt Transformations Gate status evidence for dossier hydration",
     "routeLabel": "grid_connection_transformation_gate",

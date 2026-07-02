@@ -301,6 +301,7 @@ describe('API Gateway Service', () => {
       expect(schema.paths['/api/dashboard/redispatch-metering-cockpit']).toBeDefined();
       expect(schema.paths['/api/dashboard/load-profile-stream-monitor']).toBeDefined();
       expect(schema.paths['/api/dashboard/controllability-asset-handover']).toBeDefined();
+      expect(schema.paths['/api/dashboard/gas-transformation-dataroom']).toBeDefined();
       expect(schema.paths['/api/dashboard/steering-artifact-acceptance-gate']).toBeDefined();
       expect(schema.paths['/api/dashboard/no-regret-measure-proof-gate']).toBeDefined();
       expect(schema.paths['/api/dashboard/legal-clarification-operating-model']).toBeDefined();
@@ -317,6 +318,7 @@ describe('API Gateway Service', () => {
       expect(schema.paths['/api/dashboard/redispatch-metering-cockpit'].get).toBeDefined();
       expect(schema.paths['/api/dashboard/load-profile-stream-monitor'].get).toBeDefined();
       expect(schema.paths['/api/dashboard/controllability-asset-handover'].get).toBeDefined();
+      expect(schema.paths['/api/dashboard/gas-transformation-dataroom'].get).toBeDefined();
       expect(schema.paths['/api/dashboard/steering-artifact-acceptance-gate'].get).toBeDefined();
       expect(schema.paths['/api/dashboard/no-regret-measure-proof-gate'].get).toBeDefined();
       expect(schema.paths['/api/dashboard/legal-clarification-operating-model'].get).toBeDefined();
@@ -337,6 +339,9 @@ describe('API Gateway Service', () => {
         'Dashboard API'
       );
       expect(schema.paths['/api/dashboard/controllability-asset-handover'].get.tags).toContain(
+        'Dashboard API'
+      );
+      expect(schema.paths['/api/dashboard/gas-transformation-dataroom'].get.tags).toContain(
         'Dashboard API'
       );
       expect(schema.paths['/api/dashboard/steering-artifact-acceptance-gate'].get.tags).toContain(
@@ -628,6 +633,9 @@ describe('API Gateway Service', () => {
       );
       expect(aliases['GET /dashboard/gas-grid-transformation-asset-cockpit']).toBe(
         'dashboard-api.gasGridTransformationAssetCockpitStatus'
+      );
+      expect(aliases['GET /dashboard/gas-transformation-dataroom']).toBe(
+        'dashboard-api.gasTransformationDataroomStatus'
       );
       expect(aliases['GET /dashboard/leadership-delta-cockpit']).toBe(
         'dashboard-api.leadershipDeltaCockpitStatus'

@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 103 static rules', () => {
+    it('loads all 104 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(103);
+      expect(rules.length).toBe(104);
     });
 
-    it('compiles all 103 static rules without error', () => {
+    it('compiles all 104 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(103);
+      expect(rules.length).toBe(104);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -3284,6 +3284,54 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Sparte: Gas');
       expect(formatted).toContain('Leading Gap: division');
       expect(formatted).toContain('Side-Effect Guard: hitl.create');
+    });
+
+    it('dashboard-api.gasTransformationDataroomStatus is dossier-safe and formats data-room facts', () => {
+      const rule = getRule('dashboard-api.gasTransformationDataroomStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Gasnetz-Transformationsdatenraum roomId=room-365 als Review Snapshot laden'
+        )
+      ).toEqual({
+        roomId: 'room-365',
+      });
+
+      const formatted = rule.formatEvidence({
+        status: 'needs_evidence_register',
+        readinessScore: 0.5,
+        dataRoomProfile: {
+          roomId: 'room-365',
+          mandateId: 'mandate-gas-west',
+          profile: 'stadtwerk-gasnetz',
+        },
+        transformationPaths: ['h2-review'],
+        scenarioReferences: ['eog-demo-2026'],
+        reviewSnapshot: {
+          evidenceStatus: null,
+          decisionStatus: 'decision-log-current',
+          roadmapStatus: 'roadmap-review-open',
+          reviewDate: '2026-07-02',
+        },
+        missingEvidence: [{ missingDataPoint: 'evidence_register' }],
+        sourceActions: {
+          notCalled: ['object-store.create'],
+        },
+        dossierEvidence: {
+          dossierFacts: ['Gas Transformation Dataroom Status: needs_evidence_register'],
+        },
+      });
+
+      expect(formatted).toContain('Dataroom Status: needs_evidence_register');
+      expect(formatted).toContain('Readiness: 0.5');
+      expect(formatted).toContain('Room: room-365');
+      expect(formatted).toContain('Mandate: mandate-gas-west');
+      expect(formatted).toContain('Transformation Path: h2-review');
+      expect(formatted).toContain('Scenario Reference: eog-demo-2026');
+      expect(formatted).toContain('Leading Gap: evidence_register');
+      expect(formatted).toContain('Side-Effect Guard: object-store.create');
     });
 
     it('dashboard-api.gridConnectionTransformationGateStatus is dossier-safe and formats transformations gate facts', () => {

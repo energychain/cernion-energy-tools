@@ -19018,6 +19018,114 @@
         ]
       }
     },
+    "/api/dashboard-api/gas-transformation-dataroom": {
+      "get": {
+        "operationId": "dashboard-api_gasTransformationDataroomStatus",
+        "summary": "Gasnetz-Transformationsdatenraum -- read-only status snapshot",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Gasnetz-Transformationsdatenraum status evidence"
+          }
+        },
+        "description": "Returns a deterministic dossier-safe status and evidence snapshot for a Gasnetz-Transformationsdatenraum. The endpoint is read-only and does not write Object-Store documents, ingest Knowledge-RAG sources, mutate ACL/export/archive state, create review snapshots, decide EOG/KANU/GasNEV matters, approve investments, create HITL/workflow items, call external connectors, or add Personal-Agent shortcuts.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "roomId",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "mandateId",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "profile",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "transformationPath",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "scenarioReference",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "evidenceStatus",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "decisionStatus",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "roadmapStatus",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "reviewDate",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "owner",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "reviewer",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "lifecycleStatus",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sourceRefs",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/api/dashboard-api/grid-connection-transformation-gate": {
       "get": {
         "operationId": "dashboard-api_gridConnectionTransformationGateStatus",
@@ -75914,6 +76022,114 @@
           {
             "in": "query",
             "name": "sourceRef",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard/gas-transformation-dataroom": {
+      "get": {
+        "operationId": "dashboard-api_gasTransformationDataroomStatus",
+        "summary": "Gasnetz-Transformationsdatenraum -- read-only status snapshot",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Gasnetz-Transformationsdatenraum status evidence"
+          }
+        },
+        "description": "Returns a deterministic dossier-safe status and evidence snapshot for a Gasnetz-Transformationsdatenraum. The endpoint is read-only and does not write Object-Store documents, ingest Knowledge-RAG sources, mutate ACL/export/archive state, create review snapshots, decide EOG/KANU/GasNEV matters, approve investments, create HITL/workflow items, call external connectors, or add Personal-Agent shortcuts.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "roomId",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "mandateId",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "profile",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "transformationPath",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "scenarioReference",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "evidenceStatus",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "decisionStatus",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "roadmapStatus",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "reviewDate",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "owner",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "reviewer",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "lifecycleStatus",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sourceRefs",
             "schema": {
               "type": "string"
             }

@@ -1629,6 +1629,8 @@ module.exports = {
             'dashboard-api.scheduleManagementGovernanceRoadmapStatus',
           'GET /dashboard/gas-transformation-dependency-map':
             'dashboard-api.gasTransformationDependencyMapStatus',
+          'GET /dashboard/gas-transformation-dataroom':
+            'dashboard-api.gasTransformationDataroomStatus',
           'GET /dashboard/grid-connection-transformation-gate':
             'dashboard-api.gridConnectionTransformationGateStatus',
           'GET /dashboard/heat-asset-tariff-steering':

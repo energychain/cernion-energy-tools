@@ -107,6 +107,7 @@ module.exports = {
       imsysTaf2ComplianceStatus: 5 * 60 * 1000, // 5 min
       scheduleManagementGovernanceRoadmapStatus: 5 * 60 * 1000, // 5 min
       gasTransformationDependencyMapStatus: 5 * 60 * 1000, // 5 min
+      gasTransformationDataroomStatus: 5 * 60 * 1000, // 5 min
       gridConnectionTransformationGateStatus: 5 * 60 * 1000, // 5 min
       heatAssetTariffSteeringStatus: 5 * 60 * 1000, // 5 min
       techCommercialOfferCockpitStatus: 5 * 60 * 1000, // 5 min
@@ -6167,6 +6168,95 @@ module.exports = {
           this.settings.cacheTtlMs.gasTransformationDependencyMapStatus,
           async () => ({
             ...this.buildGasTransformationDependencyMapStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // ── gasTransformationDataroomStatus ───────────────────────────────────
+    /**
+     * GET /api/dashboard/gas-transformation-dataroom
+     *
+     * Read-only dossier-safe status and evidence snapshot for a long-lived
+     * Gasnetz-Transformationsdatenraum. It describes the room contract without
+     * writing Object-Store data, ingesting RAG sources, changing ACL/export
+     * state, creating review snapshots, or executing legal/regulatory decisions.
+     */
+    gasTransformationDataroomStatus: {
+      rest: 'GET /gas-transformation-dataroom',
+      params: {
+        roomId: { type: 'string', optional: true, min: 1 },
+        mandateId: { type: 'string', optional: true, min: 1 },
+        profile: { type: 'string', optional: true, min: 1 },
+        transformationPath: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+        scenarioReference: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+        evidenceStatus: { type: 'string', optional: true, min: 1 },
+        decisionStatus: { type: 'string', optional: true, min: 1 },
+        roadmapStatus: { type: 'string', optional: true, min: 1 },
+        reviewDate: { type: 'string', optional: true, min: 1 },
+        owner: { type: 'string', optional: true, min: 1 },
+        reviewer: { type: 'string', optional: true, min: 1 },
+        lifecycleStatus: { type: 'string', optional: true, min: 1 },
+        sourceRefs: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Gasnetz-Transformationsdatenraum -- read-only status snapshot',
+        description:
+          'Returns a deterministic dossier-safe status and evidence snapshot for a Gasnetz-Transformationsdatenraum. The endpoint is read-only and does not write Object-Store documents, ingest Knowledge-RAG sources, mutate ACL/export/archive state, create review snapshots, decide EOG/KANU/GasNEV matters, approve investments, create HITL/workflow items, call external connectors, or add Personal-Agent shortcuts.',
+        parameters: [
+          { in: 'query', name: 'roomId', schema: { type: 'string' } },
+          { in: 'query', name: 'mandateId', schema: { type: 'string' } },
+          { in: 'query', name: 'profile', schema: { type: 'string' } },
+          { in: 'query', name: 'transformationPath', schema: { type: 'string' } },
+          { in: 'query', name: 'scenarioReference', schema: { type: 'string' } },
+          { in: 'query', name: 'evidenceStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'decisionStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'roadmapStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'reviewDate', schema: { type: 'string' } },
+          { in: 'query', name: 'owner', schema: { type: 'string' } },
+          { in: 'query', name: 'reviewer', schema: { type: 'string' } },
+          { in: 'query', name: 'lifecycleStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceRefs', schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only Gasnetz-Transformationsdatenraum status evidence',
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `gas-transformation-dataroom:${params.roomId || 'no-room'}:${params.mandateId || 'no-mandate'}:${params.reviewDate || 'no-review-date'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.gasTransformationDataroomStatus,
+          async () => ({
+            ...this.buildGasTransformationDataroomStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -25541,6 +25631,286 @@ module.exports = {
           positiveFollowUps,
           blockingFindings,
           sourceRefs,
+          dossierFacts,
+        },
+      };
+    },
+
+    buildGasTransformationDataroomStatus(params = {}) {
+      const toList = (value) => {
+        if (Array.isArray(value)) return value.filter(Boolean).map(String);
+        if (value && typeof value === 'string') {
+          return value
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean);
+        }
+        return [];
+      };
+
+      const transformationPaths = toList(params.transformationPath);
+      const scenarioReferences = toList(params.scenarioReference);
+      const sourceRefs = toList(params.sourceRefs);
+      const lifecycleStatus = params.lifecycleStatus || 'active_contract_reference_only';
+      const namespaceContracts = [
+        'tenant:<tenantId>:gas_transformation_rooms',
+        'tenant:<tenantId>:gas_transformation_paths',
+        'tenant:<tenantId>:gas_transformation_evidence',
+        'tenant:<tenantId>:gas_transformation_decisions',
+        'tenant:<tenantId>:gas_transformation_roadmap',
+      ];
+
+      const evidenceSpecs = [
+        {
+          id: 'room_identity',
+          label: 'Datenraum-/Mandatsidentitaet',
+          value: params.roomId && (params.mandateId || params.profile),
+          displayValue: [params.roomId, params.mandateId, params.profile]
+            .filter(Boolean)
+            .join(' / '),
+          sourceClass: 'data_room_identity',
+          enablesDossierAddition:
+            'adds the concrete data-room, mandate and network-profile boundary to the dossier.',
+        },
+        {
+          id: 'transformation_path',
+          label: 'Transformationspfad',
+          value: transformationPaths.length > 0,
+          displayValue: transformationPaths.join(', '),
+          sourceClass: 'transformation_path_reference',
+          enablesDossierAddition:
+            'adds H2 conversion, decommissioning, continuation or mixed transformation options.',
+        },
+        {
+          id: 'scenario_reference',
+          label: 'Szenarioreferenz',
+          value: scenarioReferences.length > 0,
+          displayValue: scenarioReferences.join(', '),
+          sourceClass: 'scenario_version_reference',
+          enablesDossierAddition:
+            'adds traceable EOG/KANU/Fotojahr scenario context without persisting a scenario engine.',
+        },
+        {
+          id: 'evidence_register',
+          label: 'Evidence Register',
+          value: params.evidenceStatus,
+          sourceClass: 'evidence_register_status',
+          enablesDossierAddition:
+            'adds source-backed evidence completeness and carry-forward requirements.',
+        },
+        {
+          id: 'decision_log',
+          label: 'Decision Log',
+          value: params.decisionStatus,
+          sourceClass: 'decision_log_status',
+          enablesDossierAddition:
+            'adds Gremium, owner and decision-boundary notes without executing approvals.',
+        },
+        {
+          id: 'roadmap_snapshot',
+          label: 'Roadmap-/Review-Snapshot',
+          value: params.roadmapStatus && params.reviewDate,
+          displayValue: [params.roadmapStatus, params.reviewDate].filter(Boolean).join(' / '),
+          sourceClass: 'roadmap_review_snapshot',
+          enablesDossierAddition:
+            'adds a point-in-time roadmap and review snapshot for later claim revalidation.',
+        },
+        {
+          id: 'owner_reviewer',
+          label: 'Owner/Reviewer',
+          value: params.owner || params.reviewer,
+          displayValue: [params.owner, params.reviewer].filter(Boolean).join(' / '),
+          sourceClass: 'data_room_accountability',
+          enablesDossierAddition:
+            'adds accountable data-room ownership and review responsibility.',
+        },
+        {
+          id: 'source_refs',
+          label: 'Quellenreferenzen',
+          value: sourceRefs.length > 0,
+          displayValue: sourceRefs.join(', '),
+          sourceClass: 'source_grounding',
+          enablesDossierAddition:
+            'adds source references for review notes without copying raw RAG/vector payloads.',
+        },
+      ];
+
+      const evidenceItems = evidenceSpecs
+        .filter((spec) => spec.value !== undefined && spec.value !== null && spec.value !== false)
+        .map((spec) => ({
+          id: spec.id,
+          label: spec.label,
+          value: spec.displayValue ?? spec.value,
+          sourceClass: spec.sourceClass,
+          evidenceStatus: 'provided',
+        }));
+
+      const missingEvidence = evidenceSpecs
+        .filter((spec) => spec.value === undefined || spec.value === null || spec.value === false)
+        .map((spec) => ({
+          missingDataPoint: spec.id,
+          label: spec.label,
+          sourceClass: spec.sourceClass,
+          enablesDossierAddition: spec.enablesDossierAddition,
+        }));
+
+      const status = !params.roomId || (!params.mandateId && !params.profile)
+        ? 'needs_room_profile'
+        : transformationPaths.length === 0
+          ? 'needs_transformation_path'
+          : scenarioReferences.length === 0
+            ? 'needs_scenario_reference'
+            : !params.evidenceStatus
+              ? 'needs_evidence_register'
+              : !params.decisionStatus
+                ? 'needs_decision_log'
+                : !params.roadmapStatus || !params.reviewDate
+                  ? 'needs_review_snapshot'
+                  : !params.owner && !params.reviewer
+                    ? 'needs_owner_reviewer'
+                    : sourceRefs.length === 0
+                      ? 'needs_source_refs'
+                      : 'ready_for_dataroom_review';
+
+      const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'gas_transformation_dataroom_status',
+      }));
+      const blockingFindings = missingEvidence.map((item) => ({
+        code: `GTDR_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
+        severity: ['room_identity', 'transformation_path', 'scenario_reference'].includes(
+          item.missingDataPoint
+        )
+          ? 'high'
+          : 'medium',
+        message: item.enablesDossierAddition,
+      }));
+      const dataRoomProfile = {
+        roomId: params.roomId || null,
+        mandateId: params.mandateId || null,
+        profile: params.profile || null,
+        lifecycleStatus,
+        tenantIsolation: 'tenant_namespace_only_first_slice',
+        roomScopedObjectsRequired: true,
+      };
+      const reviewSnapshot = {
+        reviewDate: params.reviewDate || null,
+        roadmapStatus: params.roadmapStatus || null,
+        evidenceStatus: params.evidenceStatus || null,
+        decisionStatus: params.decisionStatus || null,
+        trigger: 'manual_or_api_referenced_point_in_time_status',
+        generatedExport: false,
+      };
+      const contractMetadata = {
+        namespaceContracts,
+        schemaObjects: [
+          'network_profile',
+          'transformation_path',
+          'asset_group',
+          'scenario_version',
+          'evidence_item',
+          'decision_log',
+          'roadmap_item',
+          'review_snapshot',
+        ],
+        scenarioVersionOwnership: 'data_room_object_references_eog_output',
+        tenantKnowledgePromotionRequired: missingEvidence.length > 0,
+        persistenceImplemented: false,
+        aclExportArchiveImplemented: false,
+        ragIngestionImplemented: false,
+      };
+      const sourceActions = {
+        inspected: ['dashboard-api.gasTransformationDataroomStatus'],
+        referenced: [
+          'eog-calculator.evaluate',
+          'gasnetz-waermeplanung.reconcile',
+          'gas_decommissioning_roadmap_status',
+          'gas_network_decision_chain',
+          'assets.effective',
+          'knowledge-rag.search',
+          'object-store.query',
+          'vdmi.dossier',
+          'interface-placeholder.requestEvidence',
+        ],
+        notCalled: [
+          'object-store.create',
+          'object-store.update',
+          'knowledge-rag.ingest',
+          'tenant-knowledge.promote',
+          'acl.grant',
+          'archive.export',
+          'review-snapshot.create',
+          'eog-calculator.persistScenario',
+          'investment.approve',
+          'gas-transformation.executeDecommissioning',
+          'h2-conversion.execute',
+          'gremium.approve',
+          'hitl.create',
+          'workflow.execute',
+          'mail.send',
+          'external.connector.call',
+          'mako.dispatch',
+          'settlement.prepareBilling',
+          'billing.release',
+          'tariff.mutate',
+          'device-control.execute',
+          'personal-agent.execute',
+        ],
+      };
+      const dossierFacts = [
+        `Gas Transformation Dataroom Status: ${status}`,
+        `Room: ${dataRoomProfile.roomId || 'missing'}`,
+        `Mandate/Profile: ${dataRoomProfile.mandateId || dataRoomProfile.profile || 'missing'}`,
+        `Transformation Paths: ${transformationPaths.join(', ') || 'missing'}`,
+        `Scenario References: ${scenarioReferences.join(', ') || 'missing'}`,
+        `Evidence Status: ${params.evidenceStatus || 'missing'}`,
+        `Decision Status: ${params.decisionStatus || 'missing'}`,
+        `Roadmap Review: ${params.roadmapStatus || 'missing'} / ${params.reviewDate || 'missing'}`,
+        `Open gaps: ${missingEvidence.length}`,
+      ];
+
+      return {
+        gasTransformationDataroomStatusId: `gtdr:${Buffer.from(`${params.roomId || ''}`)
+          .toString('base64url')
+          .slice(0, 24)}`,
+        capabilityKey: 'gas_transformation_dataroom_status',
+        safety: 'read_only',
+        status,
+        readinessScore,
+        complianceScore: readinessScore,
+        requestContext: {
+          roomId: params.roomId || null,
+          mandateId: params.mandateId || null,
+        },
+        dataRoomProfile,
+        transformationPaths,
+        scenarioReferences,
+        reviewSnapshot,
+        contractMetadata,
+        evidenceItems,
+        missingEvidence,
+        positiveFollowUps,
+        blockingFindings,
+        sourceEvidence: { sourceRefs },
+        sourceRefs,
+        sourceActions,
+        validationFindings: blockingFindings,
+        dossierEvidence: {
+          status,
+          readinessScore,
+          dataRoomProfile,
+          transformationPaths,
+          scenarioReferences,
+          reviewSnapshot,
+          contractMetadata,
+          evidenceItems,
+          missingEvidence,
+          positiveFollowUps,
+          blockingFindings,
+          sourceRefs,
+          sourceActions: { notCalled: sourceActions.notCalled },
           dossierFacts,
         },
       };

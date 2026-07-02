@@ -1697,6 +1697,26 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes Gas Transformation Dataroom prompts to the read-only status capability', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe gas_transformation_dataroom_status fuer Gasnetz-Transformationsdatenraum Status, Datenraum Gasnetz, Review Snapshot, Evidence Register, Decision Log, Gremiennotiz, EOG KANU Szenarioreferenz und Roadmap Snapshot.',
+    });
+
+    expect(result.capability).toBe('gas_transformation_dataroom_status');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'gas_transformation_dataroom_status'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.gasTransformationDataroomStatus');
+    expect(actionNames).not.toContain('object-store.create');
+    expect(actionNames).not.toContain('knowledge-rag.ingest');
+    expect(actionNames).not.toContain('tenant-knowledge.promote');
+    expect(actionNames).not.toContain('gas-transformation.executeDecommissioning');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes Jour-Fixe Decision Closure prompts to the read-only evidence status', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Pruefe jour_fixe_decision_closure_tracker fuer Jour Fixe, Entscheidung offen, Abschlussstatus, Owner, KPI, Entscheidungskriterium, naechstes Gate, carried over und Abschlussnachweis.',

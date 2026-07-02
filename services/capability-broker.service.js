@@ -1656,6 +1656,34 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  // ── Gas Transformation Dataroom Status
+  // Must run before Re4DE because both domains may mention "Datenraum" and evidence.
+  const gasTransformationDataroomSignals = [
+    'gas_transformation_dataroom_status',
+    'gasnetz transformationsdatenraum',
+    'gasnetz-transformationsdatenraum',
+    'gas transformation dataroom',
+    'gas transformation data room',
+    'transformationsdatenraum status',
+    'datenraum gasnetz',
+    'gasnetz datenraum',
+  ];
+  const hasGasTransformationDataroomCombo =
+    /(gasnetz|gas transformation|gas.?netz)/i.test(haystack) &&
+    /(datenraum|data.?room|dataroom|review snapshot|evidence register|decision log|gremiennotiz)/i.test(
+      haystack
+    );
+
+  if (
+    gasTransformationDataroomSignals.some((signal) => haystack.includes(signal)) ||
+    hasGasTransformationDataroomCombo
+  ) {
+    const dataroomCapability = findCapabilityByName('gas_transformation_dataroom_status');
+    if (dataroomCapability) {
+      return { capability: dataroomCapability, score: 123, usedFallback: false };
+    }
+  }
+
   // ── Re4DE Variable Grid-Fee Layer-3 Service
   const re4deVariableGridFeeSignals = [
     're4de',

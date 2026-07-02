@@ -6972,6 +6972,87 @@ describe('dashboard-api.service', () => {
       });
     });
 
+    // ── gasTransformationDataroomStatus ───────────────────────────────────
+
+    describe('gasTransformationDataroomStatus', () => {
+      it('reports data-room status gaps without creating persistence, RAG or lifecycle side effects', async () => {
+        const result = await broker.call('dashboard-api.gasTransformationDataroomStatus', {
+          roomId: 'room-365',
+        });
+
+        expect(result.status).toBe('needs_room_profile');
+        expect(result.safety).toBe('read_only');
+        expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+          expect.arrayContaining([
+            'room_identity',
+            'transformation_path',
+            'scenario_reference',
+            'evidence_register',
+            'decision_log',
+            'roadmap_snapshot',
+            'owner_reviewer',
+            'source_refs',
+          ])
+        );
+        expect(result.contractMetadata.persistenceImplemented).toBe(false);
+        expect(result.contractMetadata.aclExportArchiveImplemented).toBe(false);
+        expect(result.contractMetadata.ragIngestionImplemented).toBe(false);
+        expect(result.sourceActions.notCalled).toEqual(
+          expect.arrayContaining([
+            'object-store.create',
+            'object-store.update',
+            'knowledge-rag.ingest',
+            'tenant-knowledge.promote',
+            'acl.grant',
+            'archive.export',
+            'review-snapshot.create',
+            'eog-calculator.persistScenario',
+            'gas-transformation.executeDecommissioning',
+            'gremium.approve',
+            'hitl.create',
+            'external.connector.call',
+            'personal-agent.execute',
+          ])
+        );
+      });
+
+      it('returns ready_for_dataroom_review when first-slice status evidence is complete', async () => {
+        const result = await broker.call('dashboard-api.gasTransformationDataroomStatus', {
+          roomId: 'room-365',
+          mandateId: 'mandate-gas-west',
+          profile: 'stadtwerk-gasnetz',
+          transformationPath: 'h2-review, decommissioning-review',
+          scenarioReference: 'eog-demo-2026, kanu-context-2026',
+          evidenceStatus: 'evidence-register-current',
+          decisionStatus: 'decision-log-current',
+          roadmapStatus: 'roadmap-review-open',
+          reviewDate: '2026-07-02',
+          owner: 'Assetmanagement Gas',
+          reviewer: 'Gremium Vorbereitung',
+          sourceRefs: 'Waermeplanung_2026,EOG_Demo_Run',
+        });
+
+        expect(result.status).toBe('ready_for_dataroom_review');
+        expect(result.readinessScore).toBe(1);
+        expect(result.missingEvidence).toEqual([]);
+        expect(result.dataRoomProfile.roomId).toBe('room-365');
+        expect(result.transformationPaths).toEqual(
+          expect.arrayContaining(['h2-review', 'decommissioning-review'])
+        );
+        expect(result.scenarioReferences).toEqual(
+          expect.arrayContaining(['eog-demo-2026', 'kanu-context-2026'])
+        );
+        expect(result.reviewSnapshot.reviewDate).toBe('2026-07-02');
+        expect(result.dossierEvidence.dossierFacts).toEqual(
+          expect.arrayContaining([
+            'Gas Transformation Dataroom Status: ready_for_dataroom_review',
+            'Room: room-365',
+            'Open gaps: 0',
+          ])
+        );
+      });
+    });
+
     // ── gridConnectionTransformationGateStatus ─────────────────────────────
 
     describe('gridConnectionTransformationGateStatus', () => {

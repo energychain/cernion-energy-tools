@@ -5022,6 +5022,73 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  gas_transformation_dataroom_status: {
+    sources: [
+      {
+        id: 'room_identity',
+        label: 'Datenraum-/Mandatsprofil',
+        resolvedBy: ['dashboard-api.gasTransformationDataroomStatus'],
+        contextKeys: ['roomId', 'mandateId', 'profile'],
+        optional: false,
+      },
+      {
+        id: 'transformation_path',
+        label: 'Transformationspfad',
+        resolvedBy: [
+          'dashboard-api.gasTransformationDataroomStatus',
+          'gasnetz-waermeplanung.reconcile',
+        ],
+        contextKeys: ['transformationPath'],
+        optional: false,
+      },
+      {
+        id: 'scenario_reference',
+        label: 'EOG-/KANU-/Fotojahr-Szenarioreferenz',
+        resolvedBy: ['dashboard-api.gasTransformationDataroomStatus', 'eog-calculator.evaluate'],
+        contextKeys: ['scenarioReference'],
+        optional: false,
+      },
+      {
+        id: 'evidence_register',
+        label: 'Evidence Register Status',
+        resolvedBy: ['dashboard-api.gasTransformationDataroomStatus', 'vdmi.dossier'],
+        contextKeys: ['evidenceStatus'],
+        optional: false,
+      },
+      {
+        id: 'decision_log',
+        label: 'Decision Log Status',
+        resolvedBy: ['dashboard-api.gasTransformationDataroomStatus', 'vdmi.dossier'],
+        contextKeys: ['decisionStatus'],
+        optional: false,
+      },
+      {
+        id: 'roadmap_snapshot',
+        label: 'Roadmap-/Review-Snapshot',
+        resolvedBy: [
+          'dashboard-api.gasTransformationDataroomStatus',
+          'dashboard-api.gasDecommissioningRoadmapStatus',
+        ],
+        contextKeys: ['roadmapStatus', 'reviewDate'],
+        optional: false,
+      },
+      {
+        id: 'owner_reviewer',
+        label: 'Owner und Reviewer',
+        resolvedBy: ['dashboard-api.gasTransformationDataroomStatus'],
+        contextKeys: ['owner', 'reviewer'],
+        optional: false,
+      },
+      {
+        id: 'source_refs',
+        label: 'Quellenreferenzen',
+        resolvedBy: ['dashboard-api.gasTransformationDataroomStatus', 'knowledge-rag.search'],
+        contextKeys: ['sourceRefs'],
+        optional: false,
+      },
+    ],
+  },
+
   gas_network_decision_chain: {
     sources: [
       {
