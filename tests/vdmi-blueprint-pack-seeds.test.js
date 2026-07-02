@@ -193,19 +193,25 @@ describe('VDMI Blueprint Pack seeds', () => {
     expect(stadtwerkMauerPortfolioMarketValueReadiness.forbiddenActions).toEqual(
       expect.arrayContaining([
         'portfolio_persistence',
+        'customer_data_use',
         'portfolio_upload_storage',
         'object_store_mutation',
         'cache_mutation',
         'real_customer_data',
         'real_meter_data',
         'trading_approval',
+        'trading_decision',
         'supplier_approval',
         'balancing_group_approval',
+        'supplier_or_balancing_group_approval',
         'investment_advice',
         'market_value_commitment',
         'dispatch_curtailment',
+        'dispatch_control',
+        'curtailment_action',
         'device_control',
         'mako_write',
+        'a96_export',
         'billing',
         'settlement',
         'tariff_mutation',
@@ -317,6 +323,18 @@ describe('VDMI Blueprint Pack seeds', () => {
         'noExternalCallEvidence',
       ],
       gateOutcome: 'price_cache_coverage_verified_read_only',
+    });
+    expect(matrix.rows[1]).toMatchObject({
+      phase: '2',
+      v: 'ROLE_PORTFOLIO_OWNER',
+      d: 'ROLE_ENERGY_MARKET_ANALYST',
+      m: 'ROLE_METERING_PROVIDER',
+      i: 'ROLE_MANAGEMENT',
+      evidenceRequirements: [
+        'generationProfileEvidence',
+        'dataQualityEvidence',
+        'plausibilityEvidence',
+      ],
     });
 
     for (const row of matrix.rows) {
@@ -825,6 +843,44 @@ describe('VDMI Blueprint Pack seeds', () => {
         I: 'ROLE_COMMERCIAL_AUDIT',
       },
       gateOutcome: 'allocation_a96_billing_settlement_evidence_gap',
+    });
+  });
+
+  test('builds scalar matrix-sync facts for Portfolio Market Value Readiness verification', () => {
+    const sync = buildDemoProcessMatrixSync(stadtwerkMauerPortfolioMarketValueReadiness);
+
+    expect(sync).toMatchObject({
+      slug: 'portfolio-market-value-readiness',
+      expectedSlug: 'portfolio-market-value-readiness',
+      synced: true,
+      roleLegendM: 'Mitwirkend',
+      rowCount: 5,
+      rowCountValid: true,
+      roleCellsClean: true,
+      dataClassesLimited: true,
+      forbiddenActionsStatus: 'not_introduced',
+      downstreamHandoff: {
+        blueprintPack: 'complete',
+        landingRegistry: 'pending',
+        productiveDemoRoom: 'pending',
+      },
+    });
+    expect(sync.evidenceRequirements).toEqual(
+      expect.arrayContaining(REQUIRED_PORTFOLIO_MARKET_VALUE_READINESS_EVIDENCE)
+    );
+    expect(sync.rows[1]).toMatchObject({
+      phase: '2',
+      roles: {
+        V: 'ROLE_PORTFOLIO_OWNER',
+        D: 'ROLE_ENERGY_MARKET_ANALYST',
+        M: 'ROLE_METERING_PROVIDER',
+        I: 'ROLE_MANAGEMENT',
+      },
+      evidenceRequirements: [
+        'generationProfileEvidence',
+        'dataQualityEvidence',
+        'plausibilityEvidence',
+      ],
     });
   });
 
