@@ -150,6 +150,7 @@ module.exports = {
       arealNetworkIntegrationOfferGateStatus: 5 * 60 * 1000, // 5 min
       transformationFinancingScenarioViewStatus: 5 * 60 * 1000, // 5 min
       gasGridTransformationAssetCockpitStatus: 5 * 60 * 1000, // 5 min
+      vnbSpecialTopicWorkstateStatus: 5 * 60 * 1000, // 5 min
       leadershipDeltaCockpitStatus: 5 * 60 * 1000, // 5 min
       netzsignalDeltaGatingStatus: 5 * 60 * 1000, // 5 min
       vnbDeltaSignalClassifierStatus: 5 * 60 * 1000, // 5 min
@@ -11140,6 +11141,122 @@ module.exports = {
           this.settings.cacheTtlMs.smgwConnectorReadinessStatus,
           async () => ({
             ...this.buildSmgwConnectorReadinessStatus(params),
+            timestamp: new Date().toISOString(),
+          })
+        );
+      },
+    },
+
+    // -- vnbSpecialTopicWorkstateStatus -----------------------------------
+    /**
+     * GET /api/dashboard/vnb-special-topic-workstate
+     *
+     * Read-only dossier-safe evidence card for the leading work state of
+     * VNB special topics. It evaluates caller-supplied source freshness,
+     * owner and side-source policy without connector reads, task creation,
+     * workflow execution or production mutation.
+     */
+    vnbSpecialTopicWorkstateStatus: {
+      rest: 'GET /vnb-special-topic-workstate',
+      params: {
+        topicId: { type: 'string', optional: true, min: 1 },
+        topicName: { type: 'string', optional: true, min: 1 },
+        domain: { type: 'string', optional: true, min: 1 },
+        leadingSource: { type: 'string', optional: true, min: 1 },
+        leadingSourceTimestamp: { type: 'string', optional: true, min: 1 },
+        leadingSourceVersion: { type: 'string', optional: true, min: 1 },
+        owner: { type: 'string', optional: true, min: 1 },
+        accountableRole: { type: 'string', optional: true, min: 1 },
+        allowedSideSources: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'string' }, { type: 'array' }],
+        },
+        sideSourceFreshness: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'string' }, { type: 'array' }],
+        },
+        allowSideSourceOverride: { type: 'boolean', optional: true, convert: true },
+        freshnessThresholdDays: { type: 'number', optional: true, convert: true, min: 1, max: 365 },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'VNB special-topic leading work state -- read-only evidence card',
+        description:
+          'Returns a deterministic dossier-safe evidence card for the leading work state of VNB special topics. ' +
+          'It surfaces leading source, source timestamp/version, owner/accountable role, allowed side sources, stale markers, missing evidence, readiness status and positive follow-ups. ' +
+          'The endpoint is read-only and does not call SharePoint/Teams/Outlook, create tasks, send mail, execute workflows, mutate Cernion data, run HITL, edit Budibase or use Personal-Agent shortcuts.',
+        parameters: [
+          { name: 'topicId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'topicName', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'domain', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'leadingSource', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'leadingSourceTimestamp',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'leadingSourceVersion',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
+          { name: 'owner', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'accountableRole', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'allowedSideSources', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'sideSourceFreshness', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'allowSideSourceOverride',
+            in: 'query',
+            required: false,
+            schema: { type: 'boolean' },
+          },
+          {
+            name: 'freshnessThresholdDays',
+            in: 'query',
+            required: false,
+            schema: { type: 'number' },
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only VNB special-topic work-state evidence card',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    capabilityKey: { type: 'string' },
+                    safety: { type: 'string' },
+                    status: { type: 'string' },
+                    topic: { type: 'object' },
+                    sourceFreshness: { type: 'object' },
+                    allowedSideSources: { type: 'array' },
+                    staleMarkers: { type: 'array' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                    _errors: { type: 'array' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `vnb-special-topic-workstate:${JSON.stringify(params)}`;
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.vnbSpecialTopicWorkstateStatus,
+          async () => ({
+            ...this.buildVnbSpecialTopicWorkstateStatus(params),
             timestamp: new Date().toISOString(),
           })
         );
@@ -40409,6 +40526,235 @@ module.exports = {
           missingEvidence,
           positiveFollowUps,
           nextActions,
+          sourceActions: { notCalled: sourceActions.notCalled },
+          dossierFacts,
+        },
+        _errors: [],
+      };
+    },
+
+    buildVnbSpecialTopicWorkstateStatus(params = {}) {
+      const toList = (value) => {
+        if (Array.isArray(value))
+          return value
+            .filter(Boolean)
+            .map((item) => String(item).trim())
+            .filter(Boolean);
+        if (value && typeof value === 'string') {
+          return value
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean);
+        }
+        return [];
+      };
+      const normalize = (value) => String(value || '').trim();
+      const hasValue = (value) => normalize(value) !== '';
+      const normalizeDomain = (value) => {
+        const domain = normalize(value).toLowerCase();
+        const allowed = new Set(['anschluss', 'flexibility', 'energy_sharing', 'gas', 'asset']);
+        return allowed.has(domain) ? domain : 'other';
+      };
+      const parseTimestamp = (value) => {
+        const parsed = Date.parse(value);
+        return Number.isFinite(parsed) ? parsed : null;
+      };
+      const ageDays = (timestampMs) => {
+        if (!Number.isFinite(timestampMs)) return null;
+        return Math.max(0, Number(((Date.now() - timestampMs) / (24 * 60 * 60 * 1000)).toFixed(2)));
+      };
+      const thresholdDays = Number.isFinite(Number(params.freshnessThresholdDays))
+        ? Number(params.freshnessThresholdDays)
+        : 45;
+      const leadingSourceTimestampMs = parseTimestamp(params.leadingSourceTimestamp);
+      const leadingSourceAgeDays = ageDays(leadingSourceTimestampMs);
+      const leadingSourceStale =
+        leadingSourceAgeDays != null && leadingSourceAgeDays > thresholdDays;
+      const allowedSideSources = toList(params.allowedSideSources).map((source) => ({
+        source,
+        role: params.allowSideSourceOverride ? 'allowed_override_candidate' : 'side_evidence_only',
+      }));
+      const sideSourceFreshness = toList(params.sideSourceFreshness).map((entry) => {
+        const [source, timestamp] = String(entry).split('@');
+        const tsMs = parseTimestamp(timestamp);
+        return {
+          source: normalize(source || entry),
+          timestamp: timestamp || null,
+          ageDays: ageDays(tsMs),
+          stale: tsMs == null ? null : ageDays(tsMs) > thresholdDays,
+          canOverrideLeadingSource: Boolean(params.allowSideSourceOverride),
+        };
+      });
+
+      const topic = {
+        topicId: params.topicId || `vnb-workstate:${normalize(params.topicName) || 'sonderthema'}`,
+        topicName: params.topicName || 'VNB Sonderthema',
+        domain: normalizeDomain(params.domain),
+        owner: params.owner || null,
+        accountableRole: params.accountableRole || params.owner || null,
+      };
+      const sourceFreshness = {
+        leadingSource: params.leadingSource || null,
+        leadingSourceTimestamp: params.leadingSourceTimestamp || null,
+        leadingSourceVersion: params.leadingSourceVersion || null,
+        leadingSourceAgeDays,
+        thresholdDays,
+        leadingSourceStale,
+        sideSourceOverrideAllowed: Boolean(params.allowSideSourceOverride),
+      };
+      const staleMarkers = [];
+      if (leadingSourceStale) {
+        staleMarkers.push({
+          marker: 'leading_source_stale',
+          message: `Leading source is older than ${thresholdDays} days.`,
+        });
+      }
+      for (const side of sideSourceFreshness) {
+        if (side.stale) {
+          staleMarkers.push({
+            marker: 'side_source_stale',
+            source: side.source,
+            message: 'Allowed side source is stale and cannot establish leading work state.',
+          });
+        }
+      }
+
+      const gapSpecs = [
+        {
+          id: 'missing_leading_source',
+          ok: hasValue(params.leadingSource),
+          enablesDossierAddition:
+            'Fuehrende Quelle kann als verbindlicher Arbeitsstand im Dossier belegt werden.',
+        },
+        {
+          id: 'missing_leading_source_timestamp',
+          ok: leadingSourceTimestampMs != null,
+          enablesDossierAddition:
+            'Quellenfrische kann als Dossier-Fakt ergaenzt und gegen Stale-Marker geprueft werden.',
+        },
+        {
+          id: 'missing_leading_source_version',
+          ok: hasValue(params.leadingSourceVersion),
+          enablesDossierAddition:
+            'Versionsstand der fuehrenden Quelle kann fuer Audit und Wiederholbarkeit belegt werden.',
+        },
+        {
+          id: 'missing_owner',
+          ok: hasValue(topic.owner) || hasValue(topic.accountableRole),
+          enablesDossierAddition:
+            'Arbeitsstand kann mit verantwortlicher Rolle und Review-Anker belegt werden.',
+        },
+        {
+          id: 'missing_side_source_policy',
+          ok: allowedSideSources.length > 0,
+          enablesDossierAddition:
+            'Nebenquellen-Regel kann Uebersteuerung nachvollziehbar machen.',
+        },
+      ];
+      const missingEvidence = gapSpecs
+        .filter((gap) => !gap.ok)
+        .map((gap) => ({
+          missingDataPoint: gap.id,
+          enablesDossierAddition: gap.enablesDossierAddition,
+          category: 'vnb_special_topic_workstate',
+        }));
+      if (leadingSourceStale) {
+        missingEvidence.push({
+          missingDataPoint: 'stale_leading_source_refresh',
+          enablesDossierAddition:
+            'Aktualisierte fuehrende Quelle kann Entscheidungsreife wiederherstellen.',
+          category: 'vnb_special_topic_workstate',
+        });
+      }
+
+      let status = 'current';
+      if (!hasValue(params.leadingSource) || leadingSourceTimestampMs == null) {
+        status = 'insufficient_evidence';
+      } else if (!hasValue(topic.owner) && !hasValue(topic.accountableRole)) {
+        status = 'needs_owner_review';
+      } else if (leadingSourceStale) {
+        status = 'stale';
+      }
+      const decisionReadiness = {
+        status,
+        canUseAsLeadingWorkstate: status === 'current',
+        reason:
+          status === 'current'
+            ? 'Leading source, source freshness and owner/accountable role are present.'
+            : status === 'stale'
+              ? 'Leading source is older than the configured freshness threshold.'
+              : status === 'needs_owner_review'
+                ? 'Owner or accountable role is missing.'
+                : 'Leading source or timestamp evidence is missing.',
+      };
+      const sourceActions = {
+        inspected: ['dashboard-api.vnbSpecialTopicWorkstateStatus'],
+        referenced: ['evidence-registry.lookup', 'dossier-hydration.registry'],
+        notCalled: [
+          'sharepoint.connector.read',
+          'teams.connector.read',
+          'outlook.connector.read',
+          'mail.send',
+          'task.create',
+          'workflow.execute',
+          'hitl.create',
+          'budibase.apply',
+          'external.connector.call',
+          'object-store.write',
+          'rag.ingest',
+          'cernion.table.write',
+          'personal-agent.execute',
+          'mako.dispatch',
+          'billing.prepareInvoice',
+          'settlement.exportA96',
+          'tariff.mutate',
+          'device-control.execute',
+        ],
+      };
+      const positiveFollowUps = missingEvidence.map((gap) => ({
+        ...gap,
+        state: 'missing_or_stale_evidence',
+      }));
+      const dossierFacts = [
+        `VNB Sonderthema Arbeitsstand: ${status}`,
+        `Topic: ${topic.topicName}`,
+        `Domain: ${topic.domain}`,
+        `Leading Source: ${sourceFreshness.leadingSource || 'missing'}`,
+        `Leading Source Version: ${sourceFreshness.leadingSourceVersion || 'missing'}`,
+        `Leading Source Age Days: ${
+          sourceFreshness.leadingSourceAgeDays == null
+            ? 'unknown'
+            : sourceFreshness.leadingSourceAgeDays
+        }`,
+        `Owner: ${topic.owner || 'missing'}`,
+        `Accountable Role: ${topic.accountableRole || 'missing'}`,
+        `Side Source Override Allowed: ${sourceFreshness.sideSourceOverrideAllowed}`,
+      ];
+
+      return {
+        capabilityKey: 'vnb_special_topic_workstate',
+        safety: 'read_only',
+        status,
+        topic,
+        sourceFreshness,
+        allowedSideSources,
+        sideSourceFreshness,
+        staleMarkers,
+        missingEvidence,
+        positiveFollowUps,
+        decisionReadiness,
+        sourceActions,
+        dossierEvidence: {
+          capabilityKey: 'vnb_special_topic_workstate',
+          status,
+          topic,
+          sourceFreshness,
+          allowedSideSources,
+          sideSourceFreshness,
+          staleMarkers,
+          missingEvidence,
+          positiveFollowUps,
+          decisionReadiness,
           sourceActions: { notCalled: sourceActions.notCalled },
           dossierFacts,
         },

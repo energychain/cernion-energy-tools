@@ -954,6 +954,24 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasVnbSpecialTopicWorkstateSpecificSignal =
+    /(vnb_special_topic_workstate|fuehrender arbeitsstand|führender arbeitsstand|arbeitsstand evidenz|workstate evidence)/i.test(
+      haystack
+    ) &&
+    /(vnb sonderthemen|sonderthemen|quellenfrische|stale.?markierung|entscheidungsreife|leading source|fuehrende quelle|führende quelle|nebenquellen|owner)/i.test(
+      haystack
+    ) &&
+    !/(sharepoint connector|teams connector|outlook connector|mail senden|task erstellen|workflow execute|hitl\.create|budibase apply|external connector|object-store write|rag ingest|billing|settlement|mako|tarif|device-control|personal-agent execute)/i.test(
+      haystack
+    );
+
+  if (hasVnbSpecialTopicWorkstateSpecificSignal) {
+    const workstateCapability = findCapabilityByName('vnb_special_topic_workstate');
+    if (workstateCapability) {
+      return { capability: workstateCapability, score: 148, usedFallback: false };
+    }
+  }
+
   const hasCrossDomainSpecialTopicsQueueSpecificSignal =
     /(sonderthemen|special topics|management queue|managementqueue|entscheidungsqueue|gremien-gate|gremien gate)/i.test(
       haystack

@@ -637,6 +637,9 @@ describe('API Gateway Service', () => {
       expect(aliases['GET /dashboard/gas-transformation-dataroom']).toBe(
         'dashboard-api.gasTransformationDataroomStatus'
       );
+      expect(aliases['GET /dashboard/vnb-special-topic-workstate']).toBe(
+        'dashboard-api.vnbSpecialTopicWorkstateStatus'
+      );
       expect(aliases['GET /dashboard/leadership-delta-cockpit']).toBe(
         'dashboard-api.leadershipDeltaCockpitStatus'
       );

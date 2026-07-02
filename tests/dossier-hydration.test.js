@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 104 static rules', () => {
+    it('loads all 105 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(104);
+      expect(rules.length).toBe(105);
     });
 
-    it('compiles all 104 static rules without error', () => {
+    it('compiles all 105 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(104);
+      expect(rules.length).toBe(105);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -2217,6 +2217,59 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Program: gas-2030');
       expect(formatted).toContain('Leading Gap: decommissioning_cost_basis');
       expect(formatted).toContain('Side-Effect Guard: gas-assets.applyDecommissioning');
+    });
+
+    it('dashboard-api.vnbSpecialTopicWorkstateStatus is dossier-safe and formats work-state facts', () => {
+      const rule = getRule('dashboard-api.vnbSpecialTopicWorkstateStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte fuehrender Arbeitsstand Thema=Flexibilitaet domain=flexibility quelle=SharePoint version=v1 owner=netzstrategie pruefen'
+        )
+      ).toEqual({
+        topicName: 'Flexibilitaet',
+        domain: 'flexibility',
+        leadingSource: 'SharePoint',
+        leadingSourceVersion: 'v1',
+        owner: 'netzstrategie',
+      });
+
+      const formatted = rule.formatEvidence({
+        capabilityKey: 'vnb_special_topic_workstate',
+        status: 'stale',
+        topic: {
+          topicName: 'Flexibilitaet',
+          domain: 'flexibility',
+          owner: 'netzstrategie',
+        },
+        sourceFreshness: {
+          leadingSource: 'SharePoint',
+          leadingSourceVersion: 'v1',
+          leadingSourceAgeDays: 62,
+        },
+        decisionReadiness: {
+          reason: 'Leading source is older than the configured freshness threshold.',
+        },
+        missingEvidence: [{ missingDataPoint: 'stale_leading_source_refresh' }],
+        positiveFollowUps: [
+          {
+            enablesDossierAddition:
+              'Aktualisierte fuehrende Quelle kann Entscheidungsreife wiederherstellen.',
+          },
+        ],
+        sourceActions: { notCalled: ['sharepoint.connector.read'] },
+        dossierEvidence: {
+          dossierFacts: ['VNB Sonderthema Arbeitsstand: stale'],
+        },
+      });
+
+      expect(formatted).toContain('Arbeitsstand: stale');
+      expect(formatted).toContain('Thema: Flexibilitaet');
+      expect(formatted).toContain('Fuehrende Quelle: SharePoint');
+      expect(formatted).toContain('Leading Gap: stale_leading_source_refresh');
+      expect(formatted).toContain('Side-Effect Guard: sharepoint.connector.read');
     });
 
     it('dashboard-api.leadershipDeltaCockpitStatus is dossier-safe and formats cockpit facts', () => {

@@ -122,6 +122,25 @@ describe('T-EV-001 — evidence-planner: planEvidence() pure-function contract',
     expect(result.confidence).toBeGreaterThanOrEqual(1);
   });
 
+  it('plans VNB special-topic work-state evidence with leading source and owner gaps', () => {
+    const result = planEvidence(
+      { routeLabel: 'vnb_special_topic_workstate' },
+      {
+        leadingSource: 'SharePoint',
+        leadingSourceTimestamp: '2026-07-02T12:00:00.000Z',
+        owner: 'netzstrategie',
+      }
+    );
+
+    expect(result).not.toBeNull();
+    expect(result.registryKey).toBe('vnb_special_topic_workstate');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining(['leading_source', 'leading_source_timestamp', 'owner_or_accountable_role'])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toContain('leading_source_version');
+    expect(result.gaps.map((gap) => gap.id)).not.toContain('side_source_policy');
+  });
+
   it('plans E2E controllability governance as explicit handover evidence, not inferred readiness', () => {
     const result = planEvidence(
       { routeLabel: 'e2e_controllability_check_governance' },

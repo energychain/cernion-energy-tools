@@ -1635,6 +1635,69 @@
     "sourceIssue": 72
   },
   {
+    "id": "dashboard-api.vnbSpecialTopicWorkstateStatus",
+    "action": "dashboard-api.vnbSpecialTopicWorkstateStatus",
+    "label": "VNB Sonderthemen Arbeitsstand",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "topicName": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:topic|thema|sonderthema)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "domain": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:domain|domaene|domäne)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "leadingSource": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:leadingSource|quelle|fuehrendeQuelle)[:= ]+([a-zA-Z0-9_.:@-]+)", "group": 1 }
+      },
+      "leadingSourceVersion": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:leadingSourceVersion|version|snapshot)[:= ]+([a-zA-Z0-9_.:@-]+)", "group": 1 }
+      },
+      "owner": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:owner|verantwortung|accountableRole)[:= ]+([a-zA-Z0-9_.:@-]+)", "group": 1 }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "dossierEvidence.status"], "label": "Arbeitsstand", "maxLen": 80 },
+        { "paths": ["topic.topicName", "dossierEvidence.topic.topicName"], "label": "Thema", "maxLen": 120 },
+        { "paths": ["topic.domain", "dossierEvidence.topic.domain"], "label": "Domain", "maxLen": 80 },
+        { "paths": ["sourceFreshness.leadingSource", "dossierEvidence.sourceFreshness.leadingSource"], "label": "Fuehrende Quelle", "maxLen": 120 },
+        { "paths": ["sourceFreshness.leadingSourceVersion", "dossierEvidence.sourceFreshness.leadingSourceVersion"], "label": "Version", "maxLen": 80 },
+        { "paths": ["sourceFreshness.leadingSourceAgeDays", "dossierEvidence.sourceFreshness.leadingSourceAgeDays"], "label": "Alter Tage", "precision": 2 },
+        { "paths": ["topic.owner", "dossierEvidence.topic.owner"], "label": "Owner", "maxLen": 100 },
+        { "paths": ["decisionReadiness.reason", "dossierEvidence.decisionReadiness.reason"], "label": "Readiness", "maxLen": 180 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 120 },
+        { "paths": ["positiveFollowUps.0.enablesDossierAddition", "dossierEvidence.positiveFollowUps.0.enablesDossierAddition"], "label": "Positive Follow-up", "maxLen": 180 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "derived",
+    "timeoutMs": 7000,
+    "sourceIssue": 369
+  },
+  {
     "id": "dashboard-api.leadershipDeltaCockpitStatus",
     "action": "dashboard-api.leadershipDeltaCockpitStatus",
     "label": "Leadership Delta Cockpit",

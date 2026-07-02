@@ -4138,6 +4138,81 @@ describe('dashboard-api.service', () => {
       });
     });
 
+    describe('vnbSpecialTopicWorkstateStatus', () => {
+      it('returns current work-state evidence when leading source and owner are present', async () => {
+        const result = await broker.call('dashboard-api.vnbSpecialTopicWorkstateStatus', {
+          topicId: 'sonder-flex-1',
+          topicName: 'Flexibilitaetsfahrplan',
+          domain: 'flexibility',
+          leadingSource: 'SharePoint',
+          leadingSourceTimestamp: '2026-07-02T12:00:00.000Z',
+          leadingSourceVersion: 'v1',
+          owner: 'netzstrategie',
+          allowedSideSources: 'Teams,Outlook',
+          sideSourceFreshness: 'Teams@2026-07-01T12:00:00.000Z',
+        });
+
+        expect(result.capabilityKey).toBe('vnb_special_topic_workstate');
+        expect(result.safety).toBe('read_only');
+        expect(result.status).toBe('current');
+        expect(result.topic.domain).toBe('flexibility');
+        expect(result.decisionReadiness.canUseAsLeadingWorkstate).toBe(true);
+        expect(result.allowedSideSources).toHaveLength(2);
+        expect(result.missingEvidence).toEqual([]);
+        expect(result.sourceActions.notCalled).toEqual(
+          expect.arrayContaining([
+            'sharepoint.connector.read',
+            'teams.connector.read',
+            'outlook.connector.read',
+            'task.create',
+            'workflow.execute',
+            'hitl.create',
+            'budibase.apply',
+            'object-store.write',
+            'rag.ingest',
+            'cernion.table.write',
+            'personal-agent.execute',
+          ])
+        );
+      });
+
+      it('marks stale and insufficient work states with positive follow-ups', async () => {
+        const stale = await broker.call('dashboard-api.vnbSpecialTopicWorkstateStatus', {
+          topicName: 'Gasnetzstrategie',
+          domain: 'gas',
+          leadingSource: 'Teams',
+          leadingSourceTimestamp: '2026-01-01T00:00:00.000Z',
+          leadingSourceVersion: 'v0',
+          owner: 'asset-management',
+          freshnessThresholdDays: 30,
+        });
+
+        expect(stale.status).toBe('stale');
+        expect(stale.staleMarkers.map((marker) => marker.marker)).toContain(
+          'leading_source_stale'
+        );
+        expect(stale.positiveFollowUps.map((gap) => gap.missingDataPoint)).toContain(
+          'stale_leading_source_refresh'
+        );
+
+        const insufficient = await broker.call('dashboard-api.vnbSpecialTopicWorkstateStatus', {
+          topicName: 'Anschluss-Sonderthema',
+          domain: 'anschluss',
+        });
+
+        expect(insufficient.status).toBe('insufficient_evidence');
+        expect(insufficient.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+          expect.arrayContaining([
+            'missing_leading_source',
+            'missing_leading_source_timestamp',
+            'missing_leading_source_version',
+            'missing_owner',
+            'missing_side_source_policy',
+          ])
+        );
+      });
+    });
+
     describe('leadershipDeltaCockpitStatus', () => {
       it('reports missing leadership delta evidence without executing mutations', async () => {
         const result = await broker.call('dashboard-api.leadershipDeltaCockpitStatus', {

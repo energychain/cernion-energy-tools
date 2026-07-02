@@ -1428,6 +1428,26 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes VNB special-topic work-state prompts to the read-only dashboard view', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'vnb_special_topic_workstate fuehrender arbeitsstand fuer VNB Sonderthemen mit Quellenfrische Stale Markierung Entscheidungsreife Owner und Nebenquellen pruefen',
+    });
+
+    expect(result.capability).toBe('vnb_special_topic_workstate');
+    expect(result.recommendedCapabilities[0].capability).toBe('vnb_special_topic_workstate');
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.vnbSpecialTopicWorkstateStatus');
+    expect(actionNames).not.toContain('sharepoint.connector.read');
+    expect(actionNames).not.toContain('teams.connector.read');
+    expect(actionNames).not.toContain('outlook.connector.read');
+    expect(actionNames).not.toContain('task.create');
+    expect(actionNames).not.toContain('workflow.execute');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('budibase.apply');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes leadership delta cockpit prompts to the read-only dashboard view', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'leadership_delta_cockpit Fuehrungscockpit Delta Steuerung fuer Sonderthemen mit Owner Frist Evidenzstatus blockierte Entscheidung Eskalation und Next Lever pruefen.',

@@ -109,6 +109,46 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  vnb_special_topic_workstate: {
+    sources: [
+      {
+        id: 'leading_source',
+        label: 'Fuehrende Quelle fuer den aktuellen Arbeitsstand',
+        resolvedBy: ['dashboard-api.vnbSpecialTopicWorkstateStatus'],
+        contextKeys: ['leadingSource', 'sourceSystem', 'sourceName'],
+        optional: false,
+      },
+      {
+        id: 'leading_source_timestamp',
+        label: 'Zeitpunkt der fuehrenden Quelle',
+        resolvedBy: ['dashboard-api.vnbSpecialTopicWorkstateStatus'],
+        contextKeys: ['leadingSourceTimestamp', 'sourceTimestamp', 'updatedAt'],
+        optional: false,
+      },
+      {
+        id: 'leading_source_version',
+        label: 'Version oder Snapshot der fuehrenden Quelle',
+        resolvedBy: ['dashboard-api.vnbSpecialTopicWorkstateStatus'],
+        contextKeys: ['leadingSourceVersion', 'sourceVersion', 'snapshotId'],
+        optional: false,
+      },
+      {
+        id: 'owner_or_accountable_role',
+        label: 'Owner oder verantwortliche Rolle',
+        resolvedBy: ['dashboard-api.vnbSpecialTopicWorkstateStatus'],
+        contextKeys: ['owner', 'accountableRole', 'ownerRole'],
+        optional: false,
+      },
+      {
+        id: 'side_source_policy',
+        label: 'Regel fuer erlaubte Nebenquellen',
+        resolvedBy: ['dashboard-api.vnbSpecialTopicWorkstateStatus'],
+        contextKeys: ['allowedSideSources', 'sideSourcePolicy'],
+        optional: true,
+      },
+    ],
+  },
+
   // Phase 5: semantic evidence bundle for near-term Redispatch probability
   // prompts (e.g. "nächste Tage", "morgen", "kommende Woche").
   redispatch_probability_forecast: {
