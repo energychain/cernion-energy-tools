@@ -149,6 +149,60 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  non_escalation_control_evidence: {
+    sources: [
+      {
+        id: 'checked_source',
+        label: 'Gepruefte Monitoring-Quelle',
+        resolvedBy: ['dashboard-api.monitoringNonEscalationStatus'],
+        contextKeys: ['sourceName', 'checkedSource', 'monitoringSource'],
+        optional: false,
+      },
+      {
+        id: 'source_checked_at',
+        label: 'Zeitpunkt des letzten Prueflaufs',
+        resolvedBy: ['dashboard-api.monitoringNonEscalationStatus'],
+        contextKeys: ['sourceCheckedAt', 'lastCheckAt', 'checkedAt'],
+        optional: false,
+      },
+      {
+        id: 'novelty',
+        label: 'Neuheitsgrad des Signals',
+        resolvedBy: ['dashboard-api.monitoringNonEscalationStatus'],
+        contextKeys: ['novelty', 'noveltyStatus', 'signalNovelty'],
+        optional: false,
+      },
+      {
+        id: 'blocking_finding',
+        label: 'Ausbleibender Blocker / Nicht-Treffer',
+        resolvedBy: ['dashboard-api.monitoringNonEscalationStatus'],
+        contextKeys: ['blockingFinding', 'absentBlocker', 'blockerStatus'],
+        optional: false,
+      },
+      {
+        id: 'next_check_at',
+        label: 'Naechster Pruefzeitpunkt',
+        resolvedBy: ['dashboard-api.monitoringNonEscalationStatus'],
+        contextKeys: ['nextCheckAt', 'nextReviewAt'],
+        optional: false,
+      },
+      {
+        id: 'owner',
+        label: 'Owner fuer Wiederholpruefung',
+        resolvedBy: ['dashboard-api.monitoringNonEscalationStatus'],
+        contextKeys: ['owner', 'accountableRole'],
+        optional: false,
+      },
+      {
+        id: 'rationale',
+        label: 'Begruendung der Nicht-Eskalation',
+        resolvedBy: ['dashboard-api.monitoringNonEscalationStatus'],
+        contextKeys: ['rationale', 'nonEscalationRationale'],
+        optional: false,
+      },
+    ],
+  },
+
   // Phase 5: semantic evidence bundle for near-term Redispatch probability
   // prompts (e.g. "nächste Tage", "morgen", "kommende Woche").
   redispatch_probability_forecast: {

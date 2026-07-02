@@ -1698,6 +1698,64 @@
     "sourceIssue": 369
   },
   {
+    "id": "dashboard-api.monitoringNonEscalationStatus",
+    "action": "dashboard-api.monitoringNonEscalationStatus",
+    "label": "Monitoring Nicht-Eskalationsnachweis",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "signalId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:signal|signalId|monitoringSignal)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "sourceName": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:source|quelle|sourceName)[:= ]+([a-zA-Z0-9_.:@-]+)", "group": 1 }
+      },
+      "owner": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:owner|verantwortung|accountableRole)[:= ]+([a-zA-Z0-9_.:@-]+)", "group": 1 }
+      },
+      "nextCheckAt": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:nextCheckAt|nextCheck|naechstePruefung|nächstePrüfung)[:= ]+([0-9TZ:_.@+-]+)", "group": 1 }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "dossierEvidence.status"], "label": "Nicht-Eskalation Status", "maxLen": 100 },
+        { "paths": ["signal.signalId", "dossierEvidence.signal.signalId"], "label": "Signal", "maxLen": 100 },
+        { "paths": ["checkedSource.sourceName", "dossierEvidence.checkedSource.sourceName"], "label": "Quelle", "maxLen": 120 },
+        { "paths": ["novelty", "dossierEvidence.novelty"], "label": "Neuheit", "maxLen": 100 },
+        { "paths": ["absentBlocker.classification", "dossierEvidence.absentBlocker.classification"], "label": "Blocker", "maxLen": 120 },
+        { "paths": ["owner", "dossierEvidence.owner"], "label": "Owner", "maxLen": 100 },
+        { "paths": ["nextCheckAt", "dossierEvidence.nextCheckAt"], "label": "Naechster Check", "maxLen": 120 },
+        { "paths": ["nonEscalationRationale", "dossierEvidence.nonEscalationRationale"], "label": "Begruendung", "maxLen": 180 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 120 },
+        { "paths": ["positiveFollowUps.0.enablesDossierAddition", "dossierEvidence.positiveFollowUps.0.enablesDossierAddition"], "label": "Positive Follow-up", "maxLen": 180 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "derived",
+    "timeoutMs": 7000,
+    "sourceIssue": 368
+  },
+  {
     "id": "dashboard-api.leadershipDeltaCockpitStatus",
     "action": "dashboard-api.leadershipDeltaCockpitStatus",
     "label": "Leadership Delta Cockpit",

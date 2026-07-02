@@ -640,6 +640,9 @@ describe('API Gateway Service', () => {
       expect(aliases['GET /dashboard/vnb-special-topic-workstate']).toBe(
         'dashboard-api.vnbSpecialTopicWorkstateStatus'
       );
+      expect(aliases['GET /dashboard/monitoring-non-escalation']).toBe(
+        'dashboard-api.monitoringNonEscalationStatus'
+      );
       expect(aliases['GET /dashboard/leadership-delta-cockpit']).toBe(
         'dashboard-api.leadershipDeltaCockpitStatus'
       );

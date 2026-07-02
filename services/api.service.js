@@ -1556,6 +1556,8 @@ module.exports = {
             'dashboard-api.gasGridTransformationAssetCockpitStatus',
           'GET /dashboard/vnb-special-topic-workstate':
             'dashboard-api.vnbSpecialTopicWorkstateStatus',
+          'GET /dashboard/monitoring-non-escalation':
+            'dashboard-api.monitoringNonEscalationStatus',
           'GET /dashboard/leadership-delta-cockpit': 'dashboard-api.leadershipDeltaCockpitStatus',
           'GET /dashboard/netzsignal-delta-gating': 'dashboard-api.netzsignalDeltaGatingStatus',
           'POST /dashboard/vnb-delta-signal-classifier/classify':

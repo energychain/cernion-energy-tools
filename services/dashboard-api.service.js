@@ -151,6 +151,7 @@ module.exports = {
       transformationFinancingScenarioViewStatus: 5 * 60 * 1000, // 5 min
       gasGridTransformationAssetCockpitStatus: 5 * 60 * 1000, // 5 min
       vnbSpecialTopicWorkstateStatus: 5 * 60 * 1000, // 5 min
+      monitoringNonEscalationStatus: 5 * 60 * 1000, // 5 min
       leadershipDeltaCockpitStatus: 5 * 60 * 1000, // 5 min
       netzsignalDeltaGatingStatus: 5 * 60 * 1000, // 5 min
       vnbDeltaSignalClassifierStatus: 5 * 60 * 1000, // 5 min
@@ -11257,6 +11258,89 @@ module.exports = {
           this.settings.cacheTtlMs.vnbSpecialTopicWorkstateStatus,
           async () => ({
             ...this.buildVnbSpecialTopicWorkstateStatus(params),
+            timestamp: new Date().toISOString(),
+          })
+        );
+      },
+    },
+
+    // -- monitoringNonEscalationStatus -----------------------------------
+    /**
+     * GET /api/dashboard/monitoring-non-escalation
+     *
+     * Read-only dossier-safe evidence card for justified non-escalation in
+     * recurring VNB monitoring. It projects caller-supplied source, novelty,
+     * blocker, owner and next-check facts without running monitoring,
+     * escalation, workflow, mail, HITL or external connector actions.
+     */
+    monitoringNonEscalationStatus: {
+      rest: 'GET /monitoring-non-escalation',
+      params: {
+        signalId: { type: 'string', optional: true, min: 1 },
+        domain: { type: 'string', optional: true, min: 1 },
+        assetContext: { type: 'string', optional: true, min: 1 },
+        sourceName: { type: 'string', optional: true, min: 1 },
+        sourceCheckedAt: { type: 'string', optional: true, min: 1 },
+        novelty: { type: 'string', optional: true, min: 1 },
+        blockingFinding: { type: 'string', optional: true, min: 1 },
+        nextCheckAt: { type: 'string', optional: true, min: 1 },
+        owner: { type: 'string', optional: true, min: 1 },
+        rationale: { type: 'string', optional: true, min: 1 },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Monitoring non-escalation evidence -- read-only status card',
+        description:
+          'Returns deterministic dossier-safe evidence for a justified non-escalation in recurring VNB monitoring. ' +
+          'The endpoint surfaces checked source, novelty, absent blocker, next check, owner, rationale, missing evidence and positive follow-ups. ' +
+          'It is read-only and does not schedule monitoring, escalate, create HITL tickets, send mail/webhooks, call external connectors, mutate Cernion data, edit Budibase or use Personal-Agent shortcuts.',
+        parameters: [
+          { name: 'signalId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'domain', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'assetContext', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'sourceName', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'sourceCheckedAt', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'novelty', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'blockingFinding', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'nextCheckAt', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'owner', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'rationale', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only monitoring non-escalation evidence card',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    capabilityKey: { type: 'string' },
+                    safety: { type: 'string' },
+                    status: { type: 'string' },
+                    signal: { type: 'object' },
+                    checkedSource: { type: 'object' },
+                    absentBlocker: { type: 'object' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                    _errors: { type: 'array' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `monitoring-non-escalation:${JSON.stringify(params)}`;
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.monitoringNonEscalationStatus,
+          async () => ({
+            ...this.buildMonitoringNonEscalationStatus(params),
             timestamp: new Date().toISOString(),
           })
         );
@@ -40755,6 +40839,207 @@ module.exports = {
           missingEvidence,
           positiveFollowUps,
           decisionReadiness,
+          sourceActions: { notCalled: sourceActions.notCalled },
+          dossierFacts,
+        },
+        _errors: [],
+      };
+    },
+
+    buildMonitoringNonEscalationStatus(params = {}) {
+      const isProvided = (value) =>
+        value !== undefined && value !== null && String(value).trim() !== '';
+      const normalize = (value) => String(value || '').trim();
+      const sourceCheckedAtMs = Date.parse(params.sourceCheckedAt || '');
+      const nextCheckAtMs = Date.parse(params.nextCheckAt || '');
+      const hasValidSourceCheckedAt = Number.isFinite(sourceCheckedAtMs);
+      const hasValidNextCheckAt = Number.isFinite(nextCheckAtMs);
+      const normalizedBlockingFinding = normalize(params.blockingFinding).toLowerCase();
+      const blockerAbsent =
+        isProvided(params.blockingFinding) &&
+        /^(none|absent|no|kein|keine|nicht vorhanden|ohne|unauffaellig|unauffällig|false)$/i.test(
+          normalizedBlockingFinding
+        );
+
+      const signal = {
+        signalId: params.signalId || 'monitoring-signal:unspecified',
+        domain: params.domain || 'vnb_monitoring',
+        assetContext: params.assetContext || null,
+      };
+      const checkedSource = {
+        sourceName: params.sourceName || null,
+        sourceCheckedAt: params.sourceCheckedAt || null,
+        sourceCheckedAtValid: hasValidSourceCheckedAt,
+      };
+      const absentBlocker = {
+        blockingFinding: params.blockingFinding || null,
+        blockerAbsent,
+        classification: blockerAbsent
+          ? 'absent_blocker_documented'
+          : isProvided(params.blockingFinding)
+            ? 'blocking_finding_not_absent'
+            : 'unknown_blocker_state',
+      };
+      const evidenceSpecs = [
+        {
+          id: 'checked_source',
+          label: 'Checked source',
+          value: params.sourceName,
+          enablesDossierAddition: 'add checked monitoring source to the dossier evidence trail',
+        },
+        {
+          id: 'source_checked_at',
+          label: 'Source checked timestamp',
+          value: hasValidSourceCheckedAt ? params.sourceCheckedAt : null,
+          enablesDossierAddition: 'add audit-ready last-check timestamp',
+        },
+        {
+          id: 'novelty',
+          label: 'Novelty classification',
+          value: params.novelty,
+          enablesDossierAddition: 'add whether the signal is new, unchanged, stale or unknown',
+        },
+        {
+          id: 'blocking_finding',
+          label: 'Absent blocker evidence',
+          value: blockerAbsent ? params.blockingFinding : null,
+          enablesDossierAddition: 'distinguish absent blocker from unresolved unknown or active blocker',
+        },
+        {
+          id: 'next_check_at',
+          label: 'Next check timestamp',
+          value: hasValidNextCheckAt ? params.nextCheckAt : null,
+          enablesDossierAddition: 'add next review gate for recurring monitoring',
+        },
+        {
+          id: 'owner',
+          label: 'Owner',
+          value: params.owner,
+          enablesDossierAddition: 'add accountable follow-up owner',
+        },
+        {
+          id: 'rationale',
+          label: 'Non-escalation rationale',
+          value: params.rationale,
+          enablesDossierAddition: 'add reviewable non-escalation justification',
+        },
+      ];
+      const evidenceItems = evidenceSpecs
+        .filter((spec) => isProvided(spec.value))
+        .map((spec) => ({
+          id: spec.id,
+          label: spec.label,
+          value: spec.value,
+          evidenceStatus: 'provided',
+          sourceClass: 'monitoring_non_escalation_evidence',
+        }));
+      const missingEvidence = evidenceSpecs
+        .filter((spec) => !isProvided(spec.value))
+        .map((spec) => ({
+          missingDataPoint: spec.id,
+          label: spec.label,
+          enablesDossierAddition: spec.enablesDossierAddition,
+          category: 'non_escalation_control_evidence',
+        }));
+      const status =
+        missingEvidence.length === 0
+          ? 'non_escalation_evidence_complete'
+          : !isProvided(params.sourceName) || !hasValidSourceCheckedAt
+            ? 'needs_checked_source'
+            : !blockerAbsent
+              ? 'needs_absent_blocker_evidence'
+              : !isProvided(params.owner)
+                ? 'needs_owner'
+                : !isProvided(params.rationale)
+                  ? 'needs_rationale'
+                  : 'partial_non_escalation_evidence';
+      const sourceActions = {
+        inspected: ['dashboard-api.monitoringNonEscalationStatus'],
+        referenced: [
+          'evidence-registry.lookup',
+          'dossier-hydration.registry',
+          'dashboard-api.vnbSpecialTopicWorkstateStatus',
+          'dashboard-api.crossDomainSpecialTopicsQueueStatus',
+        ],
+        notCalled: [
+          'monitoring.scheduler.run',
+          'alerting.escalate',
+          'hitl.create',
+          'mail.send',
+          'webhook.emit',
+          'workflow.execute',
+          'external.connector.call',
+          'object-store.write',
+          'rag.ingest',
+          'budibase.apply',
+          'cernion.table.write',
+          'mako.dispatch',
+          'billing.prepareInvoice',
+          'settlement.exportA96',
+          'tariff.mutate',
+          'device-control.execute',
+          'smgw.connector.call',
+          'cls.control.execute',
+          'personal-agent.execute',
+        ],
+      };
+      const positiveFollowUps = missingEvidence.map((gap) => ({
+        ...gap,
+        state: 'missing_non_escalation_evidence',
+      }));
+      const dossierFacts = [
+        `Nicht-Eskalation Status: ${status}`,
+        `Signal: ${signal.signalId}`,
+        `Domain: ${signal.domain}`,
+        `Checked Source: ${checkedSource.sourceName || 'missing'}`,
+        `Novelty: ${params.novelty || 'missing'}`,
+        `Absent Blocker: ${blockerAbsent}`,
+        `Owner: ${params.owner || 'missing'}`,
+        `Next Check: ${params.nextCheckAt || 'missing'}`,
+      ];
+
+      return {
+        evidenceId: `nec:${Buffer.from(
+          `${signal.signalId}:${checkedSource.sourceName || ''}:${params.owner || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 24)}`,
+        capabilityKey: 'non_escalation_control_evidence',
+        safety: 'read_only',
+        status,
+        signal,
+        checkedSource,
+        novelty: params.novelty || null,
+        absentBlocker,
+        nextCheckAt: params.nextCheckAt || null,
+        owner: params.owner || null,
+        nonEscalationRationale: params.rationale || null,
+        evidenceItems,
+        missingEvidence,
+        positiveFollowUps,
+        sourceActions,
+        validationFindings: missingEvidence.map((gap) => ({
+          code: `NEC_${String(gap.missingDataPoint).toUpperCase()}_MISSING`,
+          severity: ['checked_source', 'source_checked_at', 'blocking_finding'].includes(
+            gap.missingDataPoint
+          )
+            ? 'high'
+            : 'medium',
+          message: gap.enablesDossierAddition,
+        })),
+        dossierEvidence: {
+          capabilityKey: 'non_escalation_control_evidence',
+          status,
+          signal,
+          checkedSource,
+          novelty: params.novelty || null,
+          absentBlocker,
+          nextCheckAt: params.nextCheckAt || null,
+          owner: params.owner || null,
+          nonEscalationRationale: params.rationale || null,
+          evidenceItems,
+          missingEvidence,
+          positiveFollowUps,
           sourceActions: { notCalled: sourceActions.notCalled },
           dossierFacts,
         },

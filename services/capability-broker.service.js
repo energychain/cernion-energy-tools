@@ -487,6 +487,33 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasMonitoringNonEscalationSpecificSignal =
+    /(nicht.?eskalationsnachweis|nicht.?eskalation.?nachweis|nicht.?eskalieren|nicht.?treffer|vnb.?steuerungsnachweis|monitoring.?nachweis|statusmonitoring|ausbleibender blocker|absent blocker|non_escalation_control_evidence|monitoring_non_escalation_status)/i.test(
+      haystack
+    ) &&
+    /(quelle|source|neuheit|novelty|blocker|owner|naechster pruefzeitpunkt|nächster prüfzeitpunkt|next check|rationale|begruendung|begründung)/i.test(
+      haystack
+    ) &&
+    !/(alerting ausfuehren|alerting ausführen|automatic escalation|automatische eskalation|mail senden|webhook senden|workflow execute|workflow ausfuehren|workflow ausführen|ticket create|hitl create|task create|external connector|connector ausfuehren|connector ausführen|personal-agent execute|budibase table write)/i.test(
+      haystack
+    ) &&
+    !/(evidence.?freshness.?guard|evidence_freshness_guard|freshness.?guard)/i.test(
+      haystack
+    );
+
+  if (hasMonitoringNonEscalationSpecificSignal) {
+    const monitoringNonEscalationCapability = findCapabilityByName(
+      'non_escalation_control_evidence'
+    );
+    if (monitoringNonEscalationCapability) {
+      return {
+        capability: monitoringNonEscalationCapability,
+        score: 146,
+        usedFallback: false,
+      };
+    }
+  }
+
   const hasEvidenceFreshnessGuardSpecificSignal =
     /(evidence.?freshness.?guard|evidence_freshness_guard|freshness.?guard|vnb.?signal.?freshness|source timestamp|quellzeitpunkt|stale context|kontextanker|known anchor|snapshot.?alter|snapshot hash|known snapshot|current snapshot|new delta|neues delta|non.?escalation|nicht.?eskalation)/i.test(
       haystack

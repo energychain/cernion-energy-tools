@@ -4213,6 +4213,68 @@ describe('dashboard-api.service', () => {
       });
     });
 
+    describe('monitoringNonEscalationStatus', () => {
+      it('returns complete non-escalation evidence without executing side effects', async () => {
+        const result = await broker.call('dashboard-api.monitoringNonEscalationStatus', {
+          signalId: 'signal-368',
+          domain: 'grossanschluss',
+          assetContext: 'asset-cluster-west',
+          sourceName: 'cross-domain-monitor',
+          sourceCheckedAt: '2026-07-02T20:00:00.000Z',
+          novelty: 'unchanged',
+          blockingFinding: 'none',
+          nextCheckAt: '2026-07-15T10:00:00.000Z',
+          owner: 'netzfuehrung',
+          rationale: 'Keine neue Blockerquelle seit letztem Prueflauf.',
+        });
+
+        expect(result.capabilityKey).toBe('non_escalation_control_evidence');
+        expect(result.safety).toBe('read_only');
+        expect(result.status).toBe('non_escalation_evidence_complete');
+        expect(result.signal.signalId).toBe('signal-368');
+        expect(result.absentBlocker.blockerAbsent).toBe(true);
+        expect(result.missingEvidence).toEqual([]);
+        expect(result.dossierEvidence.dossierFacts).toContain('Absent Blocker: true');
+        expect(result.sourceActions.notCalled).toEqual(
+          expect.arrayContaining([
+            'monitoring.scheduler.run',
+            'alerting.escalate',
+            'hitl.create',
+            'mail.send',
+            'workflow.execute',
+            'external.connector.call',
+            'budibase.apply',
+            'settlement.exportA96',
+            'device-control.execute',
+            'personal-agent.execute',
+          ])
+        );
+      });
+
+      it('surfaces missing non-escalation evidence as positive follow-ups', async () => {
+        const result = await broker.call('dashboard-api.monitoringNonEscalationStatus', {
+          signalId: 'signal-368-gap',
+          sourceName: 'cross-domain-monitor',
+          sourceCheckedAt: '2026-07-02T20:00:00.000Z',
+        });
+
+        expect(result.status).toBe('needs_absent_blocker_evidence');
+        expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+          expect.arrayContaining([
+            'novelty',
+            'blocking_finding',
+            'next_check_at',
+            'owner',
+            'rationale',
+          ])
+        );
+        expect(result.positiveFollowUps[0].category).toBe('non_escalation_control_evidence');
+        expect(result.validationFindings.map((finding) => finding.code)).toContain(
+          'NEC_BLOCKING_FINDING_MISSING'
+        );
+      });
+    });
+
     describe('leadershipDeltaCockpitStatus', () => {
       it('reports missing leadership delta evidence without executing mutations', async () => {
         const result = await broker.call('dashboard-api.leadershipDeltaCockpitStatus', {

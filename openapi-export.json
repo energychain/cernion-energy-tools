@@ -24897,6 +24897,149 @@
         ]
       }
     },
+    "/api/dashboard-api/monitoring-non-escalation": {
+      "get": {
+        "operationId": "dashboard-api_monitoringNonEscalationStatus",
+        "summary": "Monitoring non-escalation evidence -- read-only status card",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only monitoring non-escalation evidence card",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "capabilityKey": {
+                      "type": "string"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "signal": {
+                      "type": "object"
+                    },
+                    "checkedSource": {
+                      "type": "object"
+                    },
+                    "absentBlocker": {
+                      "type": "object"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "_errors": {
+                      "type": "array"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns deterministic dossier-safe evidence for a justified non-escalation in recurring VNB monitoring. The endpoint surfaces checked source, novelty, absent blocker, next check, owner, rationale, missing evidence and positive follow-ups. It is read-only and does not schedule monitoring, escalate, create HITL tickets, send mail/webhooks, call external connectors, mutate Cernion data, edit Budibase or use Personal-Agent shortcuts.",
+        "parameters": [
+          {
+            "name": "signalId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "domain",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "assetContext",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sourceName",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sourceCheckedAt",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "novelty",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "blockingFinding",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "nextCheckAt",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "owner",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "rationale",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/api/dashboard-api/leadership-delta-cockpit": {
       "get": {
         "operationId": "dashboard-api_leadershipDeltaCockpitStatus",
@@ -71080,6 +71223,149 @@
             "required": false,
             "schema": {
               "type": "number"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard/monitoring-non-escalation": {
+      "get": {
+        "operationId": "dashboard-api_monitoringNonEscalationStatus",
+        "summary": "Monitoring non-escalation evidence -- read-only status card",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only monitoring non-escalation evidence card",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "capabilityKey": {
+                      "type": "string"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "signal": {
+                      "type": "object"
+                    },
+                    "checkedSource": {
+                      "type": "object"
+                    },
+                    "absentBlocker": {
+                      "type": "object"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "_errors": {
+                      "type": "array"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns deterministic dossier-safe evidence for a justified non-escalation in recurring VNB monitoring. The endpoint surfaces checked source, novelty, absent blocker, next check, owner, rationale, missing evidence and positive follow-ups. It is read-only and does not schedule monitoring, escalate, create HITL tickets, send mail/webhooks, call external connectors, mutate Cernion data, edit Budibase or use Personal-Agent shortcuts.",
+        "parameters": [
+          {
+            "name": "signalId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "domain",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "assetContext",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sourceName",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sourceCheckedAt",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "novelty",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "blockingFinding",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "nextCheckAt",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "owner",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "rationale",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
             }
           }
         ]

@@ -1448,6 +1448,20 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes non-escalation monitoring prompts to the read-only evidence view', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Erstelle einen Nicht-Eskalationsnachweis als VNB Steuerungsnachweis fuer Statusmonitoring mit gepruefter Quelle Neuheitsgrad ausbleibendem Blocker Owner und naechstem Pruefzeitpunkt.',
+    });
+
+    expect(result.capability).toBe('non_escalation_control_evidence');
+    expect(result.recommendedCapabilities[0].capability).toBe('non_escalation_control_evidence');
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.monitoringNonEscalationStatus');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('mail.send');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes leadership delta cockpit prompts to the read-only dashboard view', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'leadership_delta_cockpit Fuehrungscockpit Delta Steuerung fuer Sonderthemen mit Owner Frist Evidenzstatus blockierte Entscheidung Eskalation und Next Lever pruefen.',

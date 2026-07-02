@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 105 static rules', () => {
+    it('loads all 106 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(105);
+      expect(rules.length).toBe(106);
     });
 
-    it('compiles all 105 static rules without error', () => {
+    it('compiles all 106 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(105);
+      expect(rules.length).toBe(106);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -2270,6 +2270,54 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Fuehrende Quelle: SharePoint');
       expect(formatted).toContain('Leading Gap: stale_leading_source_refresh');
       expect(formatted).toContain('Side-Effect Guard: sharepoint.connector.read');
+    });
+
+    it('dashboard-api.monitoringNonEscalationStatus is dossier-safe and formats non-escalation facts', () => {
+      const rule = getRule('dashboard-api.monitoringNonEscalationStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Nicht-Eskalationsnachweis signal=signal-368 quelle=monitor owner=netzfuehrung nextCheck=2026-07-15T10:00:00Z laden'
+        )
+      ).toEqual({
+        signalId: 'signal-368',
+        sourceName: 'monitor',
+        owner: 'netzfuehrung',
+        nextCheckAt: '2026-07-15T10:00:00Z',
+      });
+
+      const formatted = rule.formatEvidence({
+        capabilityKey: 'non_escalation_control_evidence',
+        status: 'needs_absent_blocker_evidence',
+        signal: { signalId: 'signal-368' },
+        checkedSource: { sourceName: 'monitor' },
+        novelty: 'unchanged',
+        absentBlocker: { classification: 'unknown_blocker_state' },
+        owner: 'netzfuehrung',
+        nextCheckAt: '2026-07-15T10:00:00Z',
+        nonEscalationRationale: 'Keine neue Blockerquelle.',
+        missingEvidence: [{ missingDataPoint: 'blocking_finding' }],
+        positiveFollowUps: [
+          {
+            enablesDossierAddition:
+              'distinguish absent blocker from unresolved unknown or active blocker',
+          },
+        ],
+        sourceActions: { notCalled: ['monitoring.scheduler.run'] },
+        dossierEvidence: {
+          dossierFacts: ['Nicht-Eskalation Status: needs_absent_blocker_evidence'],
+        },
+      });
+
+      expect(formatted).toContain(
+        'Nicht-Eskalation Status: needs_absent_blocker_evidence'
+      );
+      expect(formatted).toContain('Signal: signal-368');
+      expect(formatted).toContain('Quelle: monitor');
+      expect(formatted).toContain('Leading Gap: blocking_finding');
+      expect(formatted).toContain('Side-Effect Guard: monitoring.scheduler.run');
     });
 
     it('dashboard-api.leadershipDeltaCockpitStatus is dossier-safe and formats cockpit facts', () => {

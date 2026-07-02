@@ -141,6 +141,26 @@ describe('T-EV-001 — evidence-planner: planEvidence() pure-function contract',
     expect(result.gaps.map((gap) => gap.id)).not.toContain('side_source_policy');
   });
 
+  it('plans non-escalation control evidence with blocker and rationale gaps', () => {
+    const result = planEvidence(
+      { routeLabel: 'non_escalation_control_evidence' },
+      {
+        sourceName: 'cross-domain-monitor',
+        sourceCheckedAt: '2026-07-02T20:00:00.000Z',
+        owner: 'netzfuehrung',
+      }
+    );
+
+    expect(result).not.toBeNull();
+    expect(result.registryKey).toBe('non_escalation_control_evidence');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining(['checked_source', 'source_checked_at', 'owner'])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining(['novelty', 'blocking_finding', 'next_check_at', 'rationale'])
+    );
+  });
+
   it('plans E2E controllability governance as explicit handover evidence, not inferred readiness', () => {
     const result = planEvidence(
       { routeLabel: 'e2e_controllability_check_governance' },
