@@ -4,6 +4,7 @@ const stadtwerkMauerPvMissingNap = require('./vdmi-blueprint-pack-seeds/stadtwer
 const stadtwerkMauerRedispatchParticipationReadiness = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-redispatch-participation-readiness-v1.json');
 const stadtwerkMauerSubstationLoadAssessment = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-substation-load-assessment-v1.json');
 const stadtwerkMauerEnergySharingCollectiveApproval = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-energy-sharing-collective-approval-v1.json');
+const stadtwerkMauerConnectionDeadlineEvidenceQueue = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-connection-deadline-evidence-queue-v1.json');
 
 const REQUIRED_EVIDENCE = Object.freeze([
   'napReference',
@@ -35,6 +36,14 @@ const REQUIRED_ENERGY_SHARING_COLLECTIVE_APPROVAL_EVIDENCE = Object.freeze([
   'allocationBillingSettlementGapEvidence',
   'approvalReadinessDecision',
 ]);
+const REQUIRED_CONNECTION_DEADLINE_EVIDENCE = Object.freeze([
+  'connectionCaseIntakeEvidence',
+  'deadlineRiskEvidence',
+  'technicalPlausibilityEvidence',
+  'clarificationOwnerEvidence',
+  'communicationNoteDraftEvidence',
+  'nextGateReadinessEvidence',
+]);
 
 const REQUIRED_DATA_CLASSES = Object.freeze([
   'publicContextLayer',
@@ -55,6 +64,10 @@ const REQUIRED_ENERGY_SHARING_COLLECTIVE_APPROVAL_ROLE_IDS = Object.freeze([
   'ROLE_ENERGY_SHARING_PRODUCT_OWNER',
   'ROLE_CERNION_GOVERNANCE',
 ]);
+const REQUIRED_CONNECTION_DEADLINE_ROLE_IDS = Object.freeze([
+  'ROLE_NETZPLANUNG',
+  'ROLE_ANSCHLUSSWESEN',
+]);
 const REQUIRED_MATRIX_ROLE_KEYS = Object.freeze(['v', 'd', 'm', 'i']);
 const MATRIX_HEADER_WORDS = Object.freeze([
   'Phase',
@@ -70,6 +83,7 @@ const SEEDS = Object.freeze([
   stadtwerkMauerRedispatchParticipationReadiness,
   stadtwerkMauerSubstationLoadAssessment,
   stadtwerkMauerEnergySharingCollectiveApproval,
+  stadtwerkMauerConnectionDeadlineEvidenceQueue,
 ]);
 
 const SEED_VALIDATION_REQUIREMENTS = Object.freeze({
@@ -92,6 +106,11 @@ const SEED_VALIDATION_REQUIREMENTS = Object.freeze({
     requiredEvidence: REQUIRED_ENERGY_SHARING_COLLECTIVE_APPROVAL_EVIDENCE,
     requiredRoleIds: REQUIRED_ENERGY_SHARING_COLLECTIVE_APPROVAL_ROLE_IDS,
     expectedMatrixSlug: 'energy-sharing-collective-approval',
+  }),
+  [stadtwerkMauerConnectionDeadlineEvidenceQueue.id]: Object.freeze({
+    requiredEvidence: REQUIRED_CONNECTION_DEADLINE_EVIDENCE,
+    requiredRoleIds: REQUIRED_CONNECTION_DEADLINE_ROLE_IDS,
+    expectedMatrixSlug: 'connection-deadline-evidence-queue',
   }),
 });
 
@@ -291,6 +310,8 @@ function buildWorkbenchClarificationItems(seed) {
     roleHint:
       item.id === 'napReference'
         ? 'ROLE_NETZPLANUNG'
+        : selectedSeed.id === stadtwerkMauerConnectionDeadlineEvidenceQueue.id
+          ? 'ROLE_ANSCHLUSSWESEN'
         : selectedSeed.id === stadtwerkMauerEnergySharingCollectiveApproval.id
           ? 'ROLE_ENERGY_SHARING_PRODUCT_OWNER'
         : selectedSeed.id === stadtwerkMauerSubstationLoadAssessment.id
@@ -473,6 +494,8 @@ function buildLandingRegistryDraftFromBlueprintSeed(seed) {
 
 module.exports = {
   REQUIRED_DATA_CLASSES,
+  REQUIRED_CONNECTION_DEADLINE_EVIDENCE,
+  REQUIRED_CONNECTION_DEADLINE_ROLE_IDS,
   REQUIRED_ENERGY_SHARING_COLLECTIVE_APPROVAL_EVIDENCE,
   REQUIRED_ENERGY_SHARING_COLLECTIVE_APPROVAL_ROLE_IDS,
   REQUIRED_EVIDENCE,
@@ -490,5 +513,6 @@ module.exports = {
   stadtwerkMauerSubstationLoadAssessment,
   stadtwerkMauerPvMissingNap,
   stadtwerkMauerEnergySharingCollectiveApproval,
+  stadtwerkMauerConnectionDeadlineEvidenceQueue,
   validateVdmiBlueprintPackSeed,
 };

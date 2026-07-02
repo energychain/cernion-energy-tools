@@ -1,0 +1,293 @@
+{
+  "id": "stadtwerk-mauer-connection-deadline-evidence-queue-v1",
+  "kind": "vdmi_blueprint_pack_seed",
+  "version": "1.0.0",
+  "safetyClassification": "read_only_blueprint_seed",
+  "title": "Stadtwerk Mauer Anschlussfristen Evidence Queue seed",
+  "processFamily": "connection_deadline_governance",
+  "controlCase": "connection_deadline_evidence_queue",
+  "sourceApi": {
+    "operation": "GET /api/dashboard/connection-deadline-evidence-queue",
+    "path": "/api/dashboard/connection-deadline-evidence-queue",
+    "method": "GET",
+    "workbenchBrick": "connection_deadline_evidence_queue",
+    "readOnly": true
+  },
+  "demoTenant": {
+    "tenantId": "stadtwerk-mauer",
+    "classification": "synthetic_demo_tenant",
+    "description": "Virtual Stadtwerk Mauer demo tenant; Anschlussfall, deadline, clarification, communication-note and gate-readiness values are synthetic review data."
+  },
+  "roleQuestion": {
+    "actor": "Netzplanung / Anschlusswesen",
+    "answerableIn": "under_one_minute",
+    "question": "Which connection cases are deadline-critical, what evidence is missing, who owns the next gate, and what can safely happen next?"
+  },
+  "dataClasses": {
+    "publicContextLayer": {
+      "description": "Read-only municipal, network-area, regulatory or deadline-context references already blended into the virtual Stadtwerk. Demo reset flows must not mutate this layer.",
+      "examples": ["public network-area context", "deadline governance reference", "municipal grid-connection context"]
+    },
+    "syntheticTenantSeed": {
+      "description": "Invented demo connection cases, deadline-risk markers, owner markers, clarification points and communication-note draft status for stadtwerk-mauer.",
+      "examples": ["synthetic connection case", "synthetic deadline-risk marker", "synthetic evidence-gap marker"]
+    },
+    "sandboxRuntimeArtifact": {
+      "description": "Resettable output from Cernion/Rundeck demo verification runs, separate from public context baselines.",
+      "examples": ["Workbench verify trace", "matrix-sync render artifact", "read-model refresh proof"]
+    }
+  },
+  "roles": [
+    {
+      "roleId": "ROLE_NETZPLANUNG",
+      "relation": "verantwortlich",
+      "responsibility": "Owns the deadline-critical connection case review and decides whether the next gate is review-ready or still blocked by evidence."
+    },
+    {
+      "roleId": "ROLE_ANSCHLUSSWESEN",
+      "relation": "durchfuehrend",
+      "responsibility": "Maintains the synthetic Anschlussfall evidence queue and clarification status without approving, rejecting or conditioning a real connection."
+    },
+    {
+      "roleId": "ROLE_GRID_CAPACITY_PLANNING",
+      "relation": "mitwirkend",
+      "responsibility": "Provides technical plausibility and capacity-context markers without reserving capacity or changing grid operations."
+    },
+    {
+      "roleId": "ROLE_CUSTOMER_COMMUNICATION",
+      "relation": "mitwirkend",
+      "responsibility": "Reviews non-sending communication-note draft status without sending mail, CRM updates or customer-facing messages."
+    },
+    {
+      "roleId": "ROLE_CERNION_GOVERNANCE",
+      "relation": "mitwirkend",
+      "responsibility": "Verifies the Blueprint-Pack seed, matrix sync and read-only dashboard brick reference."
+    },
+    {
+      "roleId": "ROLE_MANAGEMENT",
+      "relation": "information",
+      "responsibility": "Receives deadline-risk, owner and next-gate readiness context without approving operational action."
+    },
+    {
+      "roleId": "ROLE_COMMERCIAL_AUDIT",
+      "relation": "information",
+      "responsibility": "Receives evidence-gap and safety-boundary context without billing, settlement or customer-accounting effects."
+    }
+  ],
+  "evidenceRequirements": [
+    {
+      "id": "connectionCaseIntakeEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds the synthetic Anschlussfall intake, owner context and source brick reference as bounded review material."
+    },
+    {
+      "id": "deadlineRiskEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds deadline-criticality classification and the reason a case is near-term or blocked."
+    },
+    {
+      "id": "technicalPlausibilityEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds the technical plausibility marker and capacity-context evidence without reserving capacity."
+    },
+    {
+      "id": "clarificationOwnerEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds who owns the next clarification gate and which evidence gap must be closed next."
+    },
+    {
+      "id": "communicationNoteDraftEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "draft_only",
+      "enablesDossierAddition": "Adds the non-sending communication-note draft status for review without creating or sending a message."
+    },
+    {
+      "id": "nextGateReadinessEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds whether the case is ready for the next safe review gate or remains blocked by missing evidence."
+    }
+  ],
+  "demoProcessMatrix": {
+    "slug": "connection-deadline-evidence-queue",
+    "title": "Anschlussfristen Evidence Queue review",
+    "roleLegend": {
+      "V": "Verantwortlich",
+      "D": "Durchfuehrend",
+      "M": "Mitwirkend",
+      "I": "Informiert"
+    },
+    "headers": [
+      "Phase",
+      "V = Verantwortlich",
+      "D = Durchfuehrend",
+      "M = Mitwirkend",
+      "I = Informiert",
+      "Nachweise"
+    ],
+    "allowedDataClasses": [
+      "publicContextLayer",
+      "syntheticTenantSeed",
+      "sandboxRuntimeArtifact"
+    ],
+    "downstreamHandoff": {
+      "blueprintPack": "complete",
+      "landingRegistry": "pending",
+      "productiveDemoRoom": "pending",
+      "acceptanceNote": "Blueprint-Pack/Cernion-Energy-Tools matrix is canonical; Landing-Registry and productive Demo-Raum sync remain downstream proof steps."
+    },
+    "rows": [
+      {
+        "phase": "1",
+        "v": "ROLE_NETZPLANUNG",
+        "d": "ROLE_ANSCHLUSSWESEN",
+        "m": "ROLE_CERNION_GOVERNANCE",
+        "i": "ROLE_MANAGEMENT",
+        "evidenceRequirements": [
+          "connectionCaseIntakeEvidence"
+        ],
+        "dataClassRefs": [
+          "publicContextLayer",
+          "syntheticTenantSeed"
+        ],
+        "status": "evidence_gap",
+        "gateOutcome": "synthetic_connection_case_identified",
+        "enablesDossierAddition": "Adds the bounded Anschlussfall intake and source API reference for safe review."
+      },
+      {
+        "phase": "2",
+        "v": "ROLE_NETZPLANUNG",
+        "d": "ROLE_ANSCHLUSSWESEN",
+        "m": "ROLE_GRID_CAPACITY_PLANNING",
+        "i": "ROLE_MANAGEMENT",
+        "evidenceRequirements": [
+          "deadlineRiskEvidence",
+          "technicalPlausibilityEvidence"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed",
+          "sandboxRuntimeArtifact"
+        ],
+        "status": "clarification",
+        "gateOutcome": "deadline_risk_and_plausibility_review_pending",
+        "enablesDossierAddition": "Adds deadline criticality and technical plausibility context without legal deadline calculation or capacity reservation."
+      },
+      {
+        "phase": "3",
+        "v": "ROLE_NETZPLANUNG",
+        "d": "ROLE_ANSCHLUSSWESEN",
+        "m": "ROLE_CUSTOMER_COMMUNICATION",
+        "i": "ROLE_COMMERCIAL_AUDIT",
+        "evidenceRequirements": [
+          "clarificationOwnerEvidence",
+          "communicationNoteDraftEvidence"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed"
+        ],
+        "status": "draft_only",
+        "gateOutcome": "clarification_owner_and_non_sending_note_available",
+        "enablesDossierAddition": "Adds clarification ownership and non-sending communication-note draft status without customer communication."
+      },
+      {
+        "phase": "4",
+        "v": "ROLE_NETZPLANUNG",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_GRID_CAPACITY_PLANNING",
+        "i": "ROLE_MANAGEMENT",
+        "evidenceRequirements": [
+          "nextGateReadinessEvidence"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed",
+          "sandboxRuntimeArtifact"
+        ],
+        "status": "clarification",
+        "gateOutcome": "ready_for_safe_review_or_evidence_gap",
+        "enablesDossierAddition": "Adds whether the next gate is ready for safe review or still blocked by missing evidence."
+      }
+    ]
+  },
+  "decisionPolicy": {
+    "onMissingEvidence": "evidence_gap",
+    "onMissingClarificationOwner": "clarification",
+    "allowedStates": ["evidence_gap", "clarification", "draft_only", "ready_for_review"],
+    "mustNotTrigger": [
+      "connection_approval",
+      "connection_rejection",
+      "connection_conditioning",
+      "capacity_reservation",
+      "legal_deadline_calculation",
+      "customer_communication",
+      "crm_write",
+      "mail_send",
+      "workflow_create",
+      "hitl_create",
+      "mako_write",
+      "billing",
+      "settlement",
+      "tariff_mutation",
+      "smgw_cls_device_control",
+      "external_connector_call",
+      "production_mutation",
+      "public_context_mutation"
+    ]
+  },
+  "allowedCommandHints": [
+    {
+      "kind": "workbench_hint",
+      "id": "api:connection-deadline-evidence-queue",
+      "label": "Connection Deadline Evidence Queue",
+      "execution": "metadata_only",
+      "safeNextAction": "refresh_read_model"
+    },
+    {
+      "kind": "verification_hint",
+      "id": "blueprint-pack:verify-connection-deadline-matrix",
+      "label": "Verify Anschlussfristen matrix seed",
+      "execution": "metadata_only",
+      "safeNextAction": "verify_seed_matrix"
+    },
+    {
+      "kind": "inspection_hint",
+      "id": "workbench:inspect-connection-deadline-evidence-gaps",
+      "label": "Inspect deadline evidence gaps",
+      "execution": "metadata_only",
+      "safeNextAction": "inspect_evidence_gaps"
+    }
+  ],
+  "forbiddenActions": [
+    "connection_approval",
+    "connection_rejection",
+    "connection_conditioning",
+    "capacity_reservation",
+    "legal_deadline_calculation",
+    "customer_communication",
+    "crm_write",
+    "mail_send",
+    "workflow_create",
+    "mako_write",
+    "billing",
+    "settlement",
+    "tariff_mutation",
+    "smgw_cls_device_control",
+    "external_connector_call",
+    "hitl_create",
+    "public_context_mutation",
+    "production_mutation",
+    "personal_agent_hardcoding"
+  ],
+  "publicContextMutationAllowed": false,
+  "tenantProvisioningAllowed": false,
+  "realWorldClaim": "synthetic_demo_only"
+}

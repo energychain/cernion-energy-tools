@@ -2,6 +2,7 @@
 
 const {
   REQUIRED_DATA_CLASSES,
+  REQUIRED_CONNECTION_DEADLINE_EVIDENCE,
   REQUIRED_ENERGY_SHARING_COLLECTIVE_APPROVAL_EVIDENCE,
   REQUIRED_EVIDENCE,
   REQUIRED_REDISPATCH_READINESS_EVIDENCE,
@@ -11,6 +12,7 @@ const {
   buildWorkbenchClarificationItems,
   getVdmiBlueprintPackSeed,
   listVdmiBlueprintPackSeeds,
+  stadtwerkMauerConnectionDeadlineEvidenceQueue,
   stadtwerkMauerEnergySharingCollectiveApproval,
   stadtwerkMauerPvMissingNap,
   stadtwerkMauerRedispatchParticipationReadiness,
@@ -44,6 +46,37 @@ describe('VDMI Blueprint Pack seeds', () => {
     );
   });
 
+  test('exposes the Anschlussfristen Evidence Queue seed as read-only metadata', () => {
+    expect(stadtwerkMauerConnectionDeadlineEvidenceQueue).toMatchObject({
+      id: 'stadtwerk-mauer-connection-deadline-evidence-queue-v1',
+      kind: 'vdmi_blueprint_pack_seed',
+      version: '1.0.0',
+      safetyClassification: 'read_only_blueprint_seed',
+      processFamily: 'connection_deadline_governance',
+      controlCase: 'connection_deadline_evidence_queue',
+      sourceApi: {
+        operation: 'GET /api/dashboard/connection-deadline-evidence-queue',
+        path: '/api/dashboard/connection-deadline-evidence-queue',
+        method: 'GET',
+        readOnly: true,
+      },
+      demoTenant: {
+        tenantId: 'stadtwerk-mauer',
+        classification: 'synthetic_demo_tenant',
+      },
+    });
+
+    expect(listVdmiBlueprintPackSeeds()).toContainEqual(
+      expect.objectContaining({
+        id: 'stadtwerk-mauer-connection-deadline-evidence-queue-v1',
+        demoTenantId: 'stadtwerk-mauer',
+      })
+    );
+    expect(getVdmiBlueprintPackSeed('stadtwerk-mauer-connection-deadline-evidence-queue-v1')).toBe(
+      stadtwerkMauerConnectionDeadlineEvidenceQueue
+    );
+  });
+
   test('exposes the Redispatch participation readiness seed as read-only metadata', () => {
     expect(stadtwerkMauerRedispatchParticipationReadiness).toMatchObject({
       id: 'stadtwerk-mauer-redispatch-participation-readiness-v1',
@@ -67,6 +100,43 @@ describe('VDMI Blueprint Pack seeds', () => {
     );
     expect(getVdmiBlueprintPackSeed('stadtwerk-mauer-redispatch-participation-readiness-v1')).toBe(
       stadtwerkMauerRedispatchParticipationReadiness
+    );
+  });
+
+  test('validates Anschlussfristen Evidence Queue evidence without connection-process side effects', () => {
+    const result = validateVdmiBlueprintPackSeed(stadtwerkMauerConnectionDeadlineEvidenceQueue);
+    expect(result).toEqual({ valid: true, errors: [] });
+
+    const evidenceIds = stadtwerkMauerConnectionDeadlineEvidenceQueue.evidenceRequirements.map(
+      (item) => item.id
+    );
+    expect(evidenceIds).toEqual(expect.arrayContaining(REQUIRED_CONNECTION_DEADLINE_EVIDENCE));
+    for (const item of stadtwerkMauerConnectionDeadlineEvidenceQueue.evidenceRequirements) {
+      expect(item.dataClass).toBe('syntheticTenantSeed');
+      expect(item.enablesDossierAddition).toEqual(expect.any(String));
+    }
+
+    expect(stadtwerkMauerConnectionDeadlineEvidenceQueue.forbiddenActions).toEqual(
+      expect.arrayContaining([
+        'connection_approval',
+        'connection_rejection',
+        'connection_conditioning',
+        'capacity_reservation',
+        'legal_deadline_calculation',
+        'customer_communication',
+        'crm_write',
+        'mail_send',
+        'workflow_create',
+        'mako_write',
+        'billing',
+        'settlement',
+        'tariff_mutation',
+        'smgw_cls_device_control',
+        'external_connector_call',
+        'hitl_create',
+        'production_mutation',
+        'personal_agent_hardcoding',
+      ])
     );
   });
 
@@ -96,6 +166,52 @@ describe('VDMI Blueprint Pack seeds', () => {
     );
   });
 
+  test('exposes a canonical Demo-Raum process matrix for Anschlussfristen Evidence Queue sync', () => {
+    const matrix = stadtwerkMauerConnectionDeadlineEvidenceQueue.demoProcessMatrix;
+
+    expect(matrix.slug).toBe('connection-deadline-evidence-queue');
+    expect(matrix.roleLegend.M).toBe('Mitwirkend');
+    expect(matrix.rows).toHaveLength(4);
+    expect(matrix.allowedDataClasses).toEqual(REQUIRED_DATA_CLASSES);
+    expect(matrix.downstreamHandoff).toMatchObject({
+      blueprintPack: 'complete',
+      landingRegistry: 'pending',
+      productiveDemoRoom: 'pending',
+    });
+    expect(matrix.rows[2]).toMatchObject({
+      phase: '3',
+      v: 'ROLE_NETZPLANUNG',
+      d: 'ROLE_ANSCHLUSSWESEN',
+      m: 'ROLE_CUSTOMER_COMMUNICATION',
+      i: 'ROLE_COMMERCIAL_AUDIT',
+      evidenceRequirements: ['clarificationOwnerEvidence', 'communicationNoteDraftEvidence'],
+      gateOutcome: 'clarification_owner_and_non_sending_note_available',
+    });
+
+    for (const row of matrix.rows) {
+      expect(row).toEqual(
+        expect.objectContaining({
+          phase: expect.any(String),
+          v: expect.stringMatching(/^ROLE_/),
+          d: expect.stringMatching(/^ROLE_/),
+          m: expect.stringMatching(/^ROLE_/),
+          i: expect.stringMatching(/^ROLE_/),
+          evidenceRequirements: expect.arrayContaining([expect.any(String)]),
+          dataClassRefs: expect.arrayContaining([expect.any(String)]),
+          gateOutcome: expect.any(String),
+          enablesDossierAddition: expect.any(String),
+        })
+      );
+
+      for (const roleCell of [row.v, row.d, row.m, row.i]) {
+        expect(REQUIRED_DATA_CLASSES).not.toContain(roleCell);
+        expect(roleCell).not.toMatch(
+          /Phase|Verantwortlich|Durchfuehrend|Mitwirkend|Informiert|Nachweise/
+        );
+      }
+    }
+  });
+
   test('exposes the Energy Sharing collective approval seed as read-only metadata', () => {
     expect(stadtwerkMauerEnergySharingCollectiveApproval).toMatchObject({
       id: 'stadtwerk-mauer-energy-sharing-collective-approval-v1',
@@ -120,6 +236,35 @@ describe('VDMI Blueprint Pack seeds', () => {
     expect(getVdmiBlueprintPackSeed('stadtwerk-mauer-energy-sharing-collective-approval-v1')).toBe(
       stadtwerkMauerEnergySharingCollectiveApproval
     );
+  });
+
+  test('builds scalar matrix-sync facts for Anschlussfristen Evidence Queue verification', () => {
+    const sync = buildDemoProcessMatrixSync(stadtwerkMauerConnectionDeadlineEvidenceQueue);
+
+    expect(sync).toMatchObject({
+      slug: 'connection-deadline-evidence-queue',
+      expectedSlug: 'connection-deadline-evidence-queue',
+      synced: true,
+      roleLegendM: 'Mitwirkend',
+      rowCount: 4,
+      rowCountValid: true,
+      roleCellsClean: true,
+      dataClassesLimited: true,
+      forbiddenActionsStatus: 'not_introduced',
+    });
+    expect(sync.evidenceRequirements).toEqual(
+      expect.arrayContaining(REQUIRED_CONNECTION_DEADLINE_EVIDENCE)
+    );
+    expect(sync.rows[2]).toMatchObject({
+      phase: '3',
+      roles: {
+        V: 'ROLE_NETZPLANUNG',
+        D: 'ROLE_ANSCHLUSSWESEN',
+        M: 'ROLE_CUSTOMER_COMMUNICATION',
+        I: 'ROLE_COMMERCIAL_AUDIT',
+      },
+      gateOutcome: 'clarification_owner_and_non_sending_note_available',
+    });
   });
 
   test('validates required data-class separation and required evidence points', () => {
