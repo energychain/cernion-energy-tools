@@ -5,6 +5,7 @@ const {
   REQUIRED_CONNECTION_DEADLINE_EVIDENCE,
   REQUIRED_ENERGY_SHARING_COLLECTIVE_APPROVAL_EVIDENCE,
   REQUIRED_EVIDENCE,
+  REQUIRED_GAS_TRANSFORMATION_DATAROOM_REVIEW_EVIDENCE,
   REQUIRED_PORTFOLIO_MARKET_VALUE_READINESS_EVIDENCE,
   REQUIRED_REDISPATCH_READINESS_EVIDENCE,
   REQUIRED_SUBSTATION_LOAD_ASSESSMENT_EVIDENCE,
@@ -15,6 +16,7 @@ const {
   listVdmiBlueprintPackSeeds,
   stadtwerkMauerConnectionDeadlineEvidenceQueue,
   stadtwerkMauerEnergySharingCollectiveApproval,
+  stadtwerkMauerGasTransformationDataroomReview,
   stadtwerkMauerPvMissingNap,
   stadtwerkMauerPortfolioMarketValueReadiness,
   stadtwerkMauerRedispatchParticipationReadiness,
@@ -109,6 +111,39 @@ describe('VDMI Blueprint Pack seeds', () => {
     );
     expect(getVdmiBlueprintPackSeed('stadtwerk-mauer-portfolio-market-value-readiness-v1')).toBe(
       stadtwerkMauerPortfolioMarketValueReadiness
+    );
+  });
+
+  test('exposes the Gas Transformation Dataroom Review seed as read-only metadata', () => {
+    expect(stadtwerkMauerGasTransformationDataroomReview).toMatchObject({
+      id: 'stadtwerk-mauer-gas-transformation-dataroom-review-v1',
+      kind: 'vdmi_blueprint_pack_seed',
+      version: '1.0.0',
+      safetyClassification: 'read_only_blueprint_seed',
+      processFamily: 'gas_transformation_dataroom_review',
+      controlCase: 'gas_transformation_dataroom_status_review',
+      sourceApi: {
+        operation: 'GET /api/dashboard/gas-transformation-dataroom',
+        path: '/api/dashboard/gas-transformation-dataroom',
+        method: 'GET',
+        workbenchBrick: 'gas_transformation_dataroom_status',
+        readOnly: true,
+        invocation: 'source_hint_only',
+      },
+      demoTenant: {
+        tenantId: 'stadtwerk-mauer',
+        classification: 'synthetic_demo_tenant',
+      },
+    });
+
+    expect(listVdmiBlueprintPackSeeds()).toContainEqual(
+      expect.objectContaining({
+        id: 'stadtwerk-mauer-gas-transformation-dataroom-review-v1',
+        demoTenantId: 'stadtwerk-mauer',
+      })
+    );
+    expect(getVdmiBlueprintPackSeed('stadtwerk-mauer-gas-transformation-dataroom-review-v1')).toBe(
+      stadtwerkMauerGasTransformationDataroomReview
     );
   });
 
@@ -215,6 +250,51 @@ describe('VDMI Blueprint Pack seeds', () => {
         'budibase_table_write',
         'landing_registry_publication',
         'cernion_de_publication',
+        'production_mutation',
+        'personal_agent_hardcoding',
+      ])
+    );
+  });
+
+  test('validates Gas Transformation Dataroom Review evidence without dataroom or publication side effects', () => {
+    const result = validateVdmiBlueprintPackSeed(stadtwerkMauerGasTransformationDataroomReview);
+    expect(result).toEqual({ valid: true, errors: [] });
+
+    const evidenceIds = stadtwerkMauerGasTransformationDataroomReview.evidenceRequirements.map(
+      (item) => item.id
+    );
+    expect(evidenceIds).toEqual(
+      expect.arrayContaining(REQUIRED_GAS_TRANSFORMATION_DATAROOM_REVIEW_EVIDENCE)
+    );
+    for (const item of stadtwerkMauerGasTransformationDataroomReview.evidenceRequirements) {
+      expect(item.dataClass).toBe('syntheticTenantSeed');
+      expect(item.enablesDossierAddition).toEqual(expect.any(String));
+    }
+
+    expect(stadtwerkMauerGasTransformationDataroomReview.forbiddenActions).toEqual(
+      expect.arrayContaining([
+        'object_store_write',
+        'dataroom_persistence',
+        'rag_ingestion',
+        'tenant_knowledge_promotion',
+        'legal_regulatory_decision',
+        'investment_approval',
+        'h2_conversion_execution',
+        'decommissioning_execution',
+        'gremium_approval',
+        'hitl_create',
+        'workflow_create',
+        'mail_send',
+        'mako_write',
+        'billing',
+        'settlement',
+        'tariff_mutation',
+        'smgw_cls_device_control',
+        'external_connector_call',
+        'budibase_table_write',
+        'landing_registry_publication',
+        'cernion_de_publication',
+        'public_context_mutation',
         'production_mutation',
         'personal_agent_hardcoding',
       ])
@@ -343,6 +423,56 @@ describe('VDMI Blueprint Pack seeds', () => {
     }
   });
 
+  test('exposes a canonical Demo-Raum process matrix for Gas Transformation Dataroom Review sync', () => {
+    const matrix = stadtwerkMauerGasTransformationDataroomReview.demoProcessMatrix;
+
+    expect(matrix.slug).toBe('gas-transformation-dataroom-review');
+    expect(matrix.roleLegend.M).toBe('Mitwirkend');
+    expect(matrix.rows).toHaveLength(5);
+    expect(matrix.allowedDataClasses).toEqual(REQUIRED_DATA_CLASSES);
+    expect(matrix.downstreamHandoff).toMatchObject({
+      blueprintPack: 'complete',
+      landingRegistry: 'pending',
+      productiveDemoRoom: 'pending',
+    });
+    expect(matrix.rows[2]).toMatchObject({
+      phase: '3',
+      v: 'ROLE_REGULATORY_AFFAIRS',
+      d: 'ROLE_CERNION_GOVERNANCE',
+      m: 'ROLE_ENERGY_ECONOMICS',
+      i: 'ROLE_MANAGEMENT',
+      evidenceRequirements: [
+        'scenarioReferenceEvidence',
+        'eogKanuBoundaryEvidence',
+        'noLegalDecisionEvidence',
+      ],
+      gateOutcome: 'scenario_and_regulatory_boundary_review_only',
+    });
+
+    for (const row of matrix.rows) {
+      expect(row).toEqual(
+        expect.objectContaining({
+          phase: expect.any(String),
+          v: expect.stringMatching(/^ROLE_/),
+          d: expect.stringMatching(/^ROLE_/),
+          m: expect.stringMatching(/^ROLE_/),
+          i: expect.stringMatching(/^ROLE_/),
+          evidenceRequirements: expect.arrayContaining([expect.any(String)]),
+          dataClassRefs: expect.arrayContaining([expect.any(String)]),
+          gateOutcome: expect.any(String),
+          enablesDossierAddition: expect.any(String),
+        })
+      );
+
+      for (const roleCell of [row.v, row.d, row.m, row.i]) {
+        expect(REQUIRED_DATA_CLASSES).not.toContain(roleCell);
+        expect(roleCell).not.toMatch(
+          /Phase|Verantwortlich|Durchfuehrend|Mitwirkend|Informiert|Nachweise/
+        );
+      }
+    }
+  });
+
   test('exposes the Energy Sharing collective approval seed as read-only metadata', () => {
     expect(stadtwerkMauerEnergySharingCollectiveApproval).toMatchObject({
       id: 'stadtwerk-mauer-energy-sharing-collective-approval-v1',
@@ -395,6 +525,35 @@ describe('VDMI Blueprint Pack seeds', () => {
         I: 'ROLE_COMMERCIAL_AUDIT',
       },
       gateOutcome: 'clarification_owner_and_non_sending_note_available',
+    });
+  });
+
+  test('builds scalar matrix-sync facts for Gas Transformation Dataroom Review verification', () => {
+    const sync = buildDemoProcessMatrixSync(stadtwerkMauerGasTransformationDataroomReview);
+
+    expect(sync).toMatchObject({
+      slug: 'gas-transformation-dataroom-review',
+      expectedSlug: 'gas-transformation-dataroom-review',
+      synced: true,
+      roleLegendM: 'Mitwirkend',
+      rowCount: 5,
+      rowCountValid: true,
+      roleCellsClean: true,
+      dataClassesLimited: true,
+      forbiddenActionsStatus: 'not_introduced',
+    });
+    expect(sync.evidenceRequirements).toEqual(
+      expect.arrayContaining(REQUIRED_GAS_TRANSFORMATION_DATAROOM_REVIEW_EVIDENCE)
+    );
+    expect(sync.rows[3]).toMatchObject({
+      phase: '4',
+      roles: {
+        V: 'ROLE_DATAROOM_OWNER',
+        D: 'ROLE_CERNION_GOVERNANCE',
+        M: 'ROLE_EXTERNAL_REVIEWER',
+        I: 'ROLE_COMMERCIAL_AUDIT',
+      },
+      gateOutcome: 'evidence_register_and_decision_log_review_pending',
     });
   });
 

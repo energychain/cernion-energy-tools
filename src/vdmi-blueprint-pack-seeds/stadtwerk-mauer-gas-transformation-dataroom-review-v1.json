@@ -1,0 +1,397 @@
+{
+  "id": "stadtwerk-mauer-gas-transformation-dataroom-review-v1",
+  "kind": "vdmi_blueprint_pack_seed",
+  "version": "1.0.0",
+  "safetyClassification": "read_only_blueprint_seed",
+  "title": "Stadtwerk Mauer Gas Transformation Dataroom Review seed",
+  "processFamily": "gas_transformation_dataroom_review",
+  "controlCase": "gas_transformation_dataroom_status_review",
+  "sourceApi": {
+    "operation": "GET /api/dashboard/gas-transformation-dataroom",
+    "path": "/api/dashboard/gas-transformation-dataroom",
+    "method": "GET",
+    "workbenchBrick": "gas_transformation_dataroom_status",
+    "readOnly": true,
+    "invocation": "source_hint_only"
+  },
+  "demoTenant": {
+    "tenantId": "stadtwerk-mauer",
+    "classification": "synthetic_demo_tenant",
+    "description": "Virtual Stadtwerk Mauer demo tenant; Gasnetz dataroom room, mandate, evidence-register, decision-log and roadmap values are synthetic review data."
+  },
+  "roleQuestion": {
+    "actor": "Netzstrategie / Asset Strategy",
+    "answerableIn": "under_one_minute",
+    "question": "Is this Gasnetz transformation dataroom review-ready, which evidence is missing, who must contribute clarification, and what is the next safe review gate?"
+  },
+  "dataClasses": {
+    "publicContextLayer": {
+      "description": "Read-only OSM, MaStR, municipal heat-planning or regulatory context references already blended into the virtual Stadtwerk. Demo reset flows must not mutate this layer.",
+      "examples": ["public municipal heat-planning context", "public gas-network area context", "public scenario-reference label"]
+    },
+    "syntheticTenantSeed": {
+      "description": "Invented demo room, mandate, scenario references, evidence gaps, decision-log placeholders and roadmap labels for stadtwerk-mauer.",
+      "examples": ["synthetic dataroom profile", "synthetic mandate boundary", "synthetic evidence register"]
+    },
+    "sandboxRuntimeArtifact": {
+      "description": "Resettable output from Cernion/Rundeck demo verification runs, separate from public context baselines.",
+      "examples": ["gas dataroom status verification trace", "matrix-sync render artifact", "read-model refresh proof"]
+    }
+  },
+  "roles": [
+    {
+      "roleId": "ROLE_NETZSTRATEGIE",
+      "relation": "verantwortlich",
+      "responsibility": "Owns the synthetic Gasnetz transformation dataroom review and decides whether the next safe review gate is ready."
+    },
+    {
+      "roleId": "ROLE_CERNION_GOVERNANCE",
+      "relation": "durchfuehrend",
+      "responsibility": "Verifies the Blueprint-Pack seed, matrix sync, evidence boundary and source API hint without creating runtime records."
+    },
+    {
+      "roleId": "ROLE_ASSET_MANAGEMENT",
+      "relation": "mitwirkend",
+      "responsibility": "Provides synthetic asset-group and transformation-path context without changing asset records."
+    },
+    {
+      "roleId": "ROLE_WAERMEPLANUNG_COORDINATION",
+      "relation": "mitwirkend",
+      "responsibility": "Contributes municipal heat-planning and H2/decommissioning context as review evidence only."
+    },
+    {
+      "roleId": "ROLE_REGULATORY_AFFAIRS",
+      "relation": "mitwirkend",
+      "responsibility": "Reviews EOG/KANU/GasNEV boundary markers without making legal or regulatory decisions."
+    },
+    {
+      "roleId": "ROLE_ENERGY_ECONOMICS",
+      "relation": "mitwirkend",
+      "responsibility": "Contributes scenario-reference and commercial plausibility context without investment approval."
+    },
+    {
+      "roleId": "ROLE_DATAROOM_OWNER",
+      "relation": "verantwortlich",
+      "responsibility": "Owns the synthetic evidence register, decision-log placeholders, roadmap review and next-gate readiness status."
+    },
+    {
+      "roleId": "ROLE_EXTERNAL_REVIEWER",
+      "relation": "mitwirkend",
+      "responsibility": "Reviews evidence gaps and decision-log placeholders without receiving real customer, asset or regulatory data."
+    },
+    {
+      "roleId": "ROLE_MANAGEMENT",
+      "relation": "information",
+      "responsibility": "Receives review readiness, missing evidence and next-gate context without approving investment or transformation action."
+    },
+    {
+      "roleId": "ROLE_COMMERCIAL_AUDIT",
+      "relation": "information",
+      "responsibility": "Receives evidence-gap and safety-boundary context without billing, settlement or commercial posting effects."
+    }
+  ],
+  "evidenceRequirements": [
+    {
+      "id": "roomProfileEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds the synthetic dataroom profile, room scope and source API hint as bounded review material."
+    },
+    {
+      "id": "mandateBoundaryEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "boundary",
+      "enablesDossierAddition": "Adds mandate and room-boundary evidence without creating an ACL, approval or persistence action."
+    },
+    {
+      "id": "transformationPathEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds gas-network transformation-path context for read-only review."
+    },
+    {
+      "id": "assetGroupEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds synthetic asset-group context without changing Asset-MDM or operational records."
+    },
+    {
+      "id": "scenarioReferenceEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds scenario-reference and heat-planning context without persisting an EOG scenario version."
+    },
+    {
+      "id": "eogKanuBoundaryEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "boundary",
+      "enablesDossierAddition": "Adds EOG/KANU boundary markers as review metadata, not as legal or regulatory advice."
+    },
+    {
+      "id": "noLegalDecisionEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "boundary",
+      "enablesDossierAddition": "Adds explicit proof that the review matrix does not decide GasNEV, KANU, EOG or decommissioning matters."
+    },
+    {
+      "id": "evidenceRegisterEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds synthetic evidence-register completeness and provenance markers."
+    },
+    {
+      "id": "decisionLogEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "review",
+      "enablesDossierAddition": "Adds decision-log placeholders without creating, approving or publishing real decisions."
+    },
+    {
+      "id": "missingEvidenceList",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds the missing-evidence list and clarification owner context for safe review."
+    },
+    {
+      "id": "roadmapReviewEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "review",
+      "enablesDossierAddition": "Adds roadmap-review markers without approving H2 conversion, decommissioning or investment action."
+    },
+    {
+      "id": "reviewSnapshotEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "review",
+      "enablesDossierAddition": "Adds review-snapshot context as resettable metadata, not a persisted snapshot."
+    },
+    {
+      "id": "nextGateEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds the next safe review gate and remaining blocker list without executing workflow."
+    }
+  ],
+  "demoProcessMatrix": {
+    "slug": "gas-transformation-dataroom-review",
+    "title": "Gas Transformation Dataroom Review",
+    "roleLegend": {
+      "V": "Verantwortlich",
+      "D": "Durchfuehrend",
+      "M": "Mitwirkend",
+      "I": "Informiert"
+    },
+    "headers": [
+      "Phase",
+      "V = Verantwortlich",
+      "D = Durchfuehrend",
+      "M = Mitwirkend",
+      "I = Informiert",
+      "Nachweise"
+    ],
+    "allowedDataClasses": [
+      "publicContextLayer",
+      "syntheticTenantSeed",
+      "sandboxRuntimeArtifact"
+    ],
+    "downstreamHandoff": {
+      "blueprintPack": "complete",
+      "landingRegistry": "pending",
+      "productiveDemoRoom": "pending",
+      "acceptanceNote": "Blueprint-Pack/Cernion-Energy-Tools matrix is canonical; Landing-Registry and productive Demo-Raum sync remain downstream proof steps."
+    },
+    "rows": [
+      {
+        "phase": "1",
+        "v": "ROLE_NETZSTRATEGIE",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_ASSET_MANAGEMENT",
+        "i": "ROLE_MANAGEMENT",
+        "evidenceRequirements": [
+          "roomProfileEvidence",
+          "mandateBoundaryEvidence"
+        ],
+        "dataClassRefs": [
+          "publicContextLayer",
+          "syntheticTenantSeed"
+        ],
+        "status": "boundary",
+        "gateOutcome": "room_and_mandate_boundary_bounded",
+        "enablesDossierAddition": "Adds room profile and mandate boundary evidence as bounded review material."
+      },
+      {
+        "phase": "2",
+        "v": "ROLE_NETZSTRATEGIE",
+        "d": "ROLE_ASSET_MANAGEMENT",
+        "m": "ROLE_WAERMEPLANUNG_COORDINATION",
+        "i": "ROLE_COMMERCIAL_AUDIT",
+        "evidenceRequirements": [
+          "transformationPathEvidence",
+          "assetGroupEvidence"
+        ],
+        "dataClassRefs": [
+          "publicContextLayer",
+          "syntheticTenantSeed"
+        ],
+        "status": "clarification",
+        "gateOutcome": "transformation_path_and_asset_context_visible",
+        "enablesDossierAddition": "Adds transformation path and asset-group context without Asset-MDM or roadmap mutation."
+      },
+      {
+        "phase": "3",
+        "v": "ROLE_REGULATORY_AFFAIRS",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_ENERGY_ECONOMICS",
+        "i": "ROLE_MANAGEMENT",
+        "evidenceRequirements": [
+          "scenarioReferenceEvidence",
+          "eogKanuBoundaryEvidence",
+          "noLegalDecisionEvidence"
+        ],
+        "dataClassRefs": [
+          "publicContextLayer",
+          "syntheticTenantSeed"
+        ],
+        "status": "boundary",
+        "gateOutcome": "scenario_and_regulatory_boundary_review_only",
+        "enablesDossierAddition": "Adds scenario and EOG/KANU boundary context without legal, investment or regulatory decision."
+      },
+      {
+        "phase": "4",
+        "v": "ROLE_DATAROOM_OWNER",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_EXTERNAL_REVIEWER",
+        "i": "ROLE_COMMERCIAL_AUDIT",
+        "evidenceRequirements": [
+          "evidenceRegisterEvidence",
+          "decisionLogEvidence",
+          "missingEvidenceList"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed",
+          "sandboxRuntimeArtifact"
+        ],
+        "status": "evidence_gap",
+        "gateOutcome": "evidence_register_and_decision_log_review_pending",
+        "enablesDossierAddition": "Adds evidence-register, decision-log and missing-evidence facts without persistence or publication."
+      },
+      {
+        "phase": "5",
+        "v": "ROLE_DATAROOM_OWNER",
+        "d": "ROLE_NETZSTRATEGIE",
+        "m": "ROLE_REGULATORY_AFFAIRS",
+        "i": "ROLE_MANAGEMENT",
+        "evidenceRequirements": [
+          "roadmapReviewEvidence",
+          "reviewSnapshotEvidence",
+          "nextGateEvidence"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed",
+          "sandboxRuntimeArtifact"
+        ],
+        "status": "clarification",
+        "gateOutcome": "ready_for_safe_review_gate_or_missing_evidence",
+        "enablesDossierAddition": "Adds roadmap/review snapshot and next safe gate evidence before any downstream publication."
+      }
+    ]
+  },
+  "decisionPolicy": {
+    "onMissingEvidence": "evidence_gap",
+    "onMissingBoundary": "boundary",
+    "allowedStates": ["evidence_gap", "clarification", "review", "boundary", "ready_for_review"],
+    "mustNotTrigger": [
+      "object_store_write",
+      "dataroom_persistence",
+      "rag_ingestion",
+      "tenant_knowledge_promotion",
+      "acl_lifecycle",
+      "export_archive_lifecycle",
+      "review_snapshot_creation",
+      "eog_scenario_persistence",
+      "legal_regulatory_decision",
+      "investment_approval",
+      "h2_conversion_execution",
+      "decommissioning_execution",
+      "gremium_approval",
+      "hitl_create",
+      "workflow_create",
+      "mail_send",
+      "external_connector_call",
+      "mako_write",
+      "billing",
+      "settlement",
+      "tariff_mutation",
+      "smgw_cls_device_control",
+      "production_mutation",
+      "public_context_mutation"
+    ]
+  },
+  "allowedCommandHints": [
+    {
+      "kind": "source_api_hint",
+      "id": "api:gas-transformation-dataroom-status",
+      "label": "Gas Transformation Dataroom Status",
+      "execution": "metadata_only",
+      "safeNextAction": "inspect_source_api_hint"
+    },
+    {
+      "kind": "verification_hint",
+      "id": "blueprint-pack:verify-gas-transformation-dataroom-review",
+      "label": "Verify Gas Transformation Dataroom Review matrix seed",
+      "execution": "metadata_only",
+      "safeNextAction": "verify_seed_matrix"
+    },
+    {
+      "kind": "inspection_hint",
+      "id": "workbench:inspect-gas-transformation-dataroom-review",
+      "label": "Inspect gas dataroom review evidence",
+      "execution": "metadata_only",
+      "safeNextAction": "inspect_evidence_gaps"
+    }
+  ],
+  "forbiddenActions": [
+    "object_store_write",
+    "dataroom_persistence",
+    "rag_ingestion",
+    "tenant_knowledge_promotion",
+    "acl_lifecycle",
+    "export_archive_lifecycle",
+    "review_snapshot_creation",
+    "eog_scenario_persistence",
+    "legal_regulatory_decision",
+    "investment_approval",
+    "h2_conversion_execution",
+    "decommissioning_execution",
+    "gremium_approval",
+    "workflow_create",
+    "mail_send",
+    "mako_write",
+    "billing",
+    "settlement",
+    "tariff_mutation",
+    "smgw_cls_device_control",
+    "external_connector_call",
+    "hitl_create",
+    "budibase_table_write",
+    "landing_registry_publication",
+    "cernion_de_publication",
+    "public_context_mutation",
+    "production_mutation",
+    "personal_agent_hardcoding"
+  ],
+  "publicContextMutationAllowed": false,
+  "tenantProvisioningAllowed": false,
+  "realWorldClaim": "synthetic_demo_only"
+}

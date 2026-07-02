@@ -6,6 +6,7 @@ const stadtwerkMauerSubstationLoadAssessment = require('./vdmi-blueprint-pack-se
 const stadtwerkMauerEnergySharingCollectiveApproval = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-energy-sharing-collective-approval-v1.json');
 const stadtwerkMauerConnectionDeadlineEvidenceQueue = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-connection-deadline-evidence-queue-v1.json');
 const stadtwerkMauerPortfolioMarketValueReadiness = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-portfolio-market-value-readiness-v1.json');
+const stadtwerkMauerGasTransformationDataroomReview = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-gas-transformation-dataroom-review-v1.json');
 
 const REQUIRED_EVIDENCE = Object.freeze([
   'napReference',
@@ -60,6 +61,21 @@ const REQUIRED_PORTFOLIO_MARKET_VALUE_READINESS_EVIDENCE = Object.freeze([
   'readinessGateEvidence',
   'nonAdviceBoundaryEvidence',
 ]);
+const REQUIRED_GAS_TRANSFORMATION_DATAROOM_REVIEW_EVIDENCE = Object.freeze([
+  'roomProfileEvidence',
+  'mandateBoundaryEvidence',
+  'transformationPathEvidence',
+  'assetGroupEvidence',
+  'scenarioReferenceEvidence',
+  'eogKanuBoundaryEvidence',
+  'noLegalDecisionEvidence',
+  'evidenceRegisterEvidence',
+  'decisionLogEvidence',
+  'missingEvidenceList',
+  'roadmapReviewEvidence',
+  'reviewSnapshotEvidence',
+  'nextGateEvidence',
+]);
 
 const REQUIRED_DATA_CLASSES = Object.freeze([
   'publicContextLayer',
@@ -88,6 +104,11 @@ const REQUIRED_PORTFOLIO_MARKET_VALUE_READINESS_ROLE_IDS = Object.freeze([
   'ROLE_PORTFOLIO_OWNER',
   'ROLE_CERNION_GOVERNANCE',
 ]);
+const REQUIRED_GAS_TRANSFORMATION_DATAROOM_REVIEW_ROLE_IDS = Object.freeze([
+  'ROLE_NETZSTRATEGIE',
+  'ROLE_DATAROOM_OWNER',
+  'ROLE_CERNION_GOVERNANCE',
+]);
 const REQUIRED_MATRIX_ROLE_KEYS = Object.freeze(['v', 'd', 'm', 'i']);
 const MATRIX_HEADER_WORDS = Object.freeze([
   'Phase',
@@ -105,6 +126,7 @@ const SEEDS = Object.freeze([
   stadtwerkMauerEnergySharingCollectiveApproval,
   stadtwerkMauerConnectionDeadlineEvidenceQueue,
   stadtwerkMauerPortfolioMarketValueReadiness,
+  stadtwerkMauerGasTransformationDataroomReview,
 ]);
 
 const SEED_VALIDATION_REQUIREMENTS = Object.freeze({
@@ -137,6 +159,11 @@ const SEED_VALIDATION_REQUIREMENTS = Object.freeze({
     requiredEvidence: REQUIRED_PORTFOLIO_MARKET_VALUE_READINESS_EVIDENCE,
     requiredRoleIds: REQUIRED_PORTFOLIO_MARKET_VALUE_READINESS_ROLE_IDS,
     expectedMatrixSlug: 'portfolio-market-value-readiness',
+  }),
+  [stadtwerkMauerGasTransformationDataroomReview.id]: Object.freeze({
+    requiredEvidence: REQUIRED_GAS_TRANSFORMATION_DATAROOM_REVIEW_EVIDENCE,
+    requiredRoleIds: REQUIRED_GAS_TRANSFORMATION_DATAROOM_REVIEW_ROLE_IDS,
+    expectedMatrixSlug: 'gas-transformation-dataroom-review',
   }),
 });
 
@@ -336,6 +363,8 @@ function buildWorkbenchClarificationItems(seed) {
     roleHint:
       item.id === 'napReference'
         ? 'ROLE_NETZPLANUNG'
+        : selectedSeed.id === stadtwerkMauerGasTransformationDataroomReview.id
+          ? 'ROLE_DATAROOM_OWNER'
         : selectedSeed.id === stadtwerkMauerPortfolioMarketValueReadiness.id
           ? 'ROLE_PORTFOLIO_OWNER'
         : selectedSeed.id === stadtwerkMauerConnectionDeadlineEvidenceQueue.id
@@ -527,6 +556,8 @@ module.exports = {
   REQUIRED_ENERGY_SHARING_COLLECTIVE_APPROVAL_EVIDENCE,
   REQUIRED_ENERGY_SHARING_COLLECTIVE_APPROVAL_ROLE_IDS,
   REQUIRED_EVIDENCE,
+  REQUIRED_GAS_TRANSFORMATION_DATAROOM_REVIEW_EVIDENCE,
+  REQUIRED_GAS_TRANSFORMATION_DATAROOM_REVIEW_ROLE_IDS,
   REQUIRED_PORTFOLIO_MARKET_VALUE_READINESS_EVIDENCE,
   REQUIRED_PORTFOLIO_MARKET_VALUE_READINESS_ROLE_IDS,
   REQUIRED_REDISPATCH_READINESS_EVIDENCE,
@@ -544,6 +575,7 @@ module.exports = {
   stadtwerkMauerPvMissingNap,
   stadtwerkMauerEnergySharingCollectiveApproval,
   stadtwerkMauerConnectionDeadlineEvidenceQueue,
+  stadtwerkMauerGasTransformationDataroomReview,
   stadtwerkMauerPortfolioMarketValueReadiness,
   validateVdmiBlueprintPackSeed,
 };
