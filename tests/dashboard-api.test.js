@@ -2244,6 +2244,87 @@ describe('dashboard-api.service', () => {
       });
     });
 
+    // ── decisionReadinessMatrixStatus ──────────────────────────────────────
+
+    describe('decisionReadinessMatrixStatus', () => {
+      it('reports explicit decision-readiness gaps without creating downstream actions', async () => {
+        const result = await broker.call('dashboard-api.decisionReadinessMatrixStatus', {
+          caseId: 'case-379',
+          measureName: 'OPL grid study',
+          category: 'no_regret',
+          owner: 'Netzplanung',
+          openEvidence: 'budget-note',
+        });
+
+        expect(result.status).toBe('evidence_gap');
+        expect(result.capabilityKey).toBe('decision_readiness_matrix');
+        expect(result.rows[0]).toMatchObject({
+          measureName: 'OPL grid study',
+          readiness: 'evidence_gap',
+        });
+        expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+          expect.arrayContaining([
+            'budget_status',
+            'financing_option',
+            'risk_if_not_implemented',
+            'evidence_source',
+            'committee_window',
+            'next_decision_point',
+            'open_evidence',
+          ])
+        );
+        expect(result.positiveFollowUps[0].category).toBe('decision_readiness_matrix');
+        expect(result.sourceActions.notCalled).toEqual(
+          expect.arrayContaining([
+            'budget.approve',
+            'sap.erp.write',
+            'hitl.create',
+            'billing.release',
+            'external.connector.call',
+          ])
+        );
+        expect(result.safety).toBe('read_only');
+      });
+
+      it('returns decision_ready for a fully evidenced measure row', async () => {
+        const result = await broker.call('dashboard-api.decisionReadinessMatrixStatus', {
+          caseId: 'case-379',
+          measureId: 'measure-379',
+          measureName: 'Transformer replacement',
+          category: 'asset_investment',
+          budgetStatus: 'minimum-budget-confirmed',
+          financingOption: 'internal-planning-budget',
+          riskIfNotImplemented: 'capacity-delay',
+          evidenceSource: 'opl:row-379',
+          owner: 'Assetmanagement',
+          committeeWindow: '2026-Q3',
+          nextDecisionPoint: 'investment-committee',
+        });
+
+        expect(result.status).toBe('decision_ready');
+        expect(result.readinessCounts.decision_ready).toBe(1);
+        expect(result.missingEvidence).toEqual([]);
+        expect(result.dossierEvidence.dossierFacts).toContain('Decision-ready rows: 1');
+      });
+
+      it('flags budget and financing uncertainty as financing_risk', async () => {
+        const result = await broker.call('dashboard-api.decisionReadinessMatrixStatus', {
+          measureName: 'Cable section renewal',
+          category: 'renewal',
+          budgetStatus: 'budget-risk-open',
+          financingOption: 'unknown',
+          riskIfNotImplemented: 'outage-risk',
+          evidenceSource: 'budget-list:17',
+          owner: 'Netzplanung',
+          committeeWindow: '2026-Q4',
+          nextDecisionPoint: 'capex-board',
+        });
+
+        expect(result.status).toBe('financing_risk');
+        expect(result.rows[0].readiness).toBe('financing_risk');
+      });
+    });
+
     // ── steeringArtifactAcceptanceGateStatus ────────────────────────────────
 
     describe('steeringArtifactAcceptanceGateStatus', () => {

@@ -62,6 +62,7 @@ module.exports = {
       marketCommunicationEvidenceChainStatus: 5 * 60 * 1000, // 5 min
       e2eControllabilityGovernanceStatus: 5 * 60 * 1000, // 5 min
       controllabilityAssetHandoverStatus: 5 * 60 * 1000, // 5 min
+      decisionReadinessMatrixStatus: 5 * 60 * 1000, // 5 min
       costReviewCommitteeStatus: 5 * 60 * 1000, // 5 min
       steeringArtifactAcceptanceGateStatus: 5 * 60 * 1000, // 5 min
       communicationBreakProcessRiskStatus: 5 * 60 * 1000, // 5 min
@@ -1734,6 +1735,111 @@ module.exports = {
           this.settings.cacheTtlMs.controllabilityAssetHandoverStatus,
           async () => ({
             ...this.buildControllabilityAssetHandoverStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- decisionReadinessMatrixStatus -------------------------------------
+    /**
+     * GET /api/dashboard/decision-readiness-matrix?caseId=...
+     *
+     * Read-only dossier-safe decision-readiness matrix for VNB OPL, budget
+     * and measure rows. It classifies caller-supplied planning facts into
+     * evidence, gaps and follow-ups without approving budgets or syncing ERP.
+     */
+    decisionReadinessMatrixStatus: {
+      rest: 'GET /decision-readiness-matrix',
+      params: {
+        caseId: { type: 'string', optional: true, min: 1 },
+        measureId: { type: 'string', optional: true, min: 1 },
+        measureName: { type: 'string', optional: true, min: 1 },
+        category: { type: 'string', optional: true, min: 1 },
+        budgetStatus: { type: 'string', optional: true, min: 1 },
+        financingOption: { type: 'string', optional: true, min: 1 },
+        riskIfNotImplemented: { type: 'string', optional: true, min: 1 },
+        evidenceSource: { type: 'string', optional: true, min: 1 },
+        owner: { type: 'string', optional: true, min: 1 },
+        committeeWindow: { type: 'string', optional: true, min: 1 },
+        nextDecisionPoint: { type: 'string', optional: true, min: 1 },
+        blockers: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+        openEvidence: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+        includeSyntheticRows: { type: 'boolean', optional: true, convert: true, default: false },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Decision-readiness matrix -- read-only VNB OPL/budget evidence',
+        description:
+          'Classifies caller-supplied VNB OPL, budget and measure facts into a read-only decision-readiness matrix. ' +
+          'The endpoint reports row readiness, budget/financing risk, evidence gaps, owner and committee-window context, ' +
+          'positive follow-ups and explicit side-effect guards. It does not approve budgets, choose financing, create procurement/project records, write SAP/ERP, create HITL/workflow/webhooks, mutate billing/settlement/tariff/MaKo/device-control state, call external connectors or add Personal-Agent shortcuts.',
+        parameters: [
+          { name: 'caseId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'measureId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'measureName', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'category', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'budgetStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'financingOption', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'riskIfNotImplemented', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'evidenceSource', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'owner', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'committeeWindow', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'nextDecisionPoint', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'blockers', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'openEvidence', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'includeSyntheticRows', in: 'query', required: false, schema: { type: 'boolean' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only decision-readiness matrix evidence view',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    capabilityKey: { type: 'string' },
+                    safety: { type: 'string' },
+                    status: { type: 'string' },
+                    rows: { type: 'array' },
+                    readinessCounts: { type: 'object' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    decisionBoundaries: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                    _errors: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `decision-readiness-matrix:${JSON.stringify(params)}`;
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.decisionReadinessMatrixStatus,
+          async () => ({
+            ...this.buildDecisionReadinessMatrixStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -14257,6 +14363,251 @@ module.exports = {
           nextReportingCycle: params.nextReportingCycle || null,
           nonExecutionReason: params.nonExecutionReason || null,
           blockingFindings,
+          dossierFacts,
+        },
+      };
+    },
+
+    buildDecisionReadinessMatrixStatus(params = {}) {
+      const normalizeList = (value) => {
+        if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean);
+        if (value == null || value === '') return [];
+        return String(value)
+          .split(',')
+          .map((item) => item.trim())
+          .filter(Boolean);
+      };
+      const hasValue = (value) => value !== undefined && value !== null && String(value) !== '';
+      const blockers = normalizeList(params.blockers);
+      const openEvidence = normalizeList(params.openEvidence);
+      const baseRow = {
+        measureId: params.measureId || 'measure:decision-readiness',
+        measureName: params.measureName || 'Decision-readiness measure',
+        category: params.category || null,
+        budgetStatus: params.budgetStatus || null,
+        financingOption: params.financingOption || null,
+        riskIfNotImplemented: params.riskIfNotImplemented || null,
+        evidenceSource: params.evidenceSource || null,
+        owner: params.owner || null,
+        committeeWindow: params.committeeWindow || null,
+        nextDecisionPoint: params.nextDecisionPoint || null,
+        blockers,
+        openEvidence,
+      };
+      const rows = [baseRow];
+      if (params.includeSyntheticRows) {
+        rows.push({
+          measureId: 'synthetic:no-regret-grid-study',
+          measureName: 'Synthetic no-regret grid study',
+          category: 'no_regret',
+          budgetStatus: 'minimum-budget-confirmed',
+          financingOption: 'internal-planning-budget',
+          riskIfNotImplemented: 'capacity-decision-delay',
+          evidenceSource: 'synthetic:opl-row',
+          owner: 'Netzplanung',
+          committeeWindow: '2026-Q3',
+          nextDecisionPoint: 'investment-committee',
+          blockers: [],
+          openEvidence: [],
+        });
+      }
+
+      const classifyRow = (row) => {
+        if (!hasValue(row.measureName) || !hasValue(row.category)) return 'informational';
+        if (!hasValue(row.owner)) return 'owner_needed';
+        if (!hasValue(row.evidenceSource) || row.openEvidence.length > 0) return 'evidence_gap';
+        if (
+          /risk|kritisch|critical|offen|unconfirmed|unknown|unklar|gap/i.test(
+            `${row.budgetStatus || ''} ${row.financingOption || ''}`
+          )
+        ) {
+          return 'financing_risk';
+        }
+        if (row.blockers.length > 0) return 'evidence_gap';
+        if (
+          hasValue(row.budgetStatus) &&
+          hasValue(row.financingOption) &&
+          hasValue(row.riskIfNotImplemented) &&
+          hasValue(row.committeeWindow) &&
+          hasValue(row.nextDecisionPoint)
+        ) {
+          return 'decision_ready';
+        }
+        return 'evidence_gap';
+      };
+
+      const evidenceSpecs = [
+        {
+          id: 'category',
+          label: 'Measure category',
+          value: baseRow.category,
+          enablesDossierAddition: 'add measure category and OPL grouping',
+        },
+        {
+          id: 'budget_status',
+          label: 'Budget status',
+          value: baseRow.budgetStatus,
+          enablesDossierAddition: 'add budget-readiness classification',
+        },
+        {
+          id: 'financing_option',
+          label: 'Financing option',
+          value: baseRow.financingOption,
+          enablesDossierAddition: 'add financing-risk evidence, not a financing decision',
+        },
+        {
+          id: 'risk_if_not_implemented',
+          label: 'Risk if not implemented',
+          value: baseRow.riskIfNotImplemented,
+          enablesDossierAddition: 'add non-implementation risk context',
+        },
+        {
+          id: 'evidence_source',
+          label: 'Evidence source',
+          value: baseRow.evidenceSource,
+          enablesDossierAddition: 'add source traceability',
+        },
+        {
+          id: 'owner',
+          label: 'Decision owner',
+          value: baseRow.owner,
+          enablesDossierAddition: 'add accountable decision owner and escalation target',
+        },
+        {
+          id: 'committee_window',
+          label: 'Committee window',
+          value: baseRow.committeeWindow,
+          enablesDossierAddition: 'add committee-window evidence',
+        },
+        {
+          id: 'next_decision_point',
+          label: 'Next decision point',
+          value: baseRow.nextDecisionPoint,
+          enablesDossierAddition: 'add next decision-point evidence',
+        },
+      ];
+      const classifiedRows = rows.map((row, index) => ({
+        ...row,
+        rowId: row.measureId || `row:${index + 1}`,
+        readiness: classifyRow(row),
+        evidenceStatus:
+          !hasValue(row.evidenceSource) || row.openEvidence.length > 0 ? 'incomplete' : 'provided',
+      }));
+      const readinessCounts = classifiedRows.reduce((acc, row) => {
+        acc[row.readiness] = (acc[row.readiness] || 0) + 1;
+        return acc;
+      }, {});
+      const missingEvidence = evidenceSpecs
+        .filter((spec) => !hasValue(spec.value))
+        .map((spec) => ({
+          missingDataPoint: spec.id,
+          label: spec.label,
+          enablesDossierAddition: spec.enablesDossierAddition,
+        }));
+      for (const evidenceGap of openEvidence) {
+        missingEvidence.push({
+          missingDataPoint: 'open_evidence',
+          label: evidenceGap,
+          enablesDossierAddition: `add open evidence: ${evidenceGap}`,
+        });
+      }
+      for (const blocker of blockers) {
+        missingEvidence.push({
+          missingDataPoint: 'blocker',
+          label: blocker,
+          enablesDossierAddition: `add blocker resolution evidence: ${blocker}`,
+        });
+      }
+      const status =
+        classifiedRows.some((row) => row.readiness === 'financing_risk')
+          ? 'financing_risk'
+          : classifiedRows.every((row) => row.readiness === 'decision_ready')
+            ? 'decision_ready'
+            : classifiedRows.some((row) => row.readiness === 'owner_needed')
+              ? 'owner_needed'
+              : missingEvidence.length > 0
+                ? 'evidence_gap'
+                : 'informational';
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'decision_readiness_matrix',
+      }));
+      const decisionBoundaries = [
+        {
+          boundary: 'Budget and financing fields classify evidence only; they do not approve spend.',
+        },
+        {
+          boundary: 'Committee windows and next decision points are planning facts, not workflow triggers.',
+        },
+        {
+          boundary: 'No SAP/ERP, procurement, HITL, billing, settlement, tariff, MaKo or device-control action is called.',
+        },
+      ];
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Rows: ${classifiedRows.length}`,
+        `Decision-ready rows: ${readinessCounts.decision_ready || 0}`,
+        `Open gaps: ${missingEvidence.length}`,
+      ];
+      if (params.caseId) dossierFacts.push(`Case: ${params.caseId}`);
+      if (baseRow.owner) dossierFacts.push(`Owner: ${baseRow.owner}`);
+      if (baseRow.nextDecisionPoint)
+        dossierFacts.push(`Next Decision Point: ${baseRow.nextDecisionPoint}`);
+
+      return {
+        matrixId: `drm:${Buffer.from(
+          `${params.caseId || ''}:${baseRow.measureId}:${baseRow.owner || ''}:${baseRow.nextDecisionPoint || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 24)}`,
+        capabilityKey: 'decision_readiness_matrix',
+        safety: 'read_only',
+        requestContext: {
+          caseId: params.caseId || null,
+          includeSyntheticRows: Boolean(params.includeSyntheticRows),
+        },
+        status,
+        rows: classifiedRows,
+        readinessCounts,
+        missingEvidence,
+        positiveFollowUps,
+        decisionBoundaries,
+        dossierFacts,
+        sourceActions: {
+          inspected: ['dashboard-api.decisionReadinessMatrixStatus'],
+          referenced: ['vdmi.dossier', 'evidence-registry.findings', 'decision-frame.list'],
+          notCalled: [
+            'budget.approve',
+            'finance.book',
+            'procurement.create',
+            'sap.erp.write',
+            'hitl.create',
+            'workflow.execute',
+            'webhook.emit',
+            'mail.send',
+            'billing.release',
+            'settlement.prepareBilling',
+            'tariff.mutate',
+            'mako.dispatch',
+            'device-control.execute',
+            'external.connector.call',
+          ],
+        },
+        validationFindings: missingEvidence.map((item) => ({
+          code: `DRM_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
+          severity: ['owner', 'budget_status', 'financing_option'].includes(item.missingDataPoint)
+            ? 'high'
+            : 'medium',
+          message: item.enablesDossierAddition,
+        })),
+        dossierEvidence: {
+          status,
+          rows: classifiedRows,
+          readinessCounts,
+          missingEvidence,
+          positiveFollowUps,
+          decisionBoundaries,
           dossierFacts,
         },
       };

@@ -113,8 +113,8 @@ recipes:
   redispatch-settlement-audit "Check settlement readiness and financial risk exposure for…"
 resolve: GET /api/_agent/operations?domain=redispatch
 
-### grid-planning (23 capabilities · 8 recipes · 47 operations)
-capabilities: altdaten_assessment, areal_network_integration_offer_gate, asset_valuation_transformation_gate, automatisierungsradar, blindflug_radar_anomaly_detection, budget_waterfall_governance, cost_review_committee_status, finance_nkp_capex_reinvest_governance, investment_budget_cap_exception_governance, investment_committee_steering_cards, investment_data_review_queue, investment_maturity_off_balance_gate, investment_owner_deadline_budget_gate, investment_risk_translation_status, investment_two_track_control, investment_waterfall_governance, no_regret_measure_definition_gate, reinvest_signal, sap_budget_psp_gate, transformation_financing_scenario_view, vnb_100_tage_assessment, znp_portfolio_assessment, znp_production_readiness_evidence_gate
+### grid-planning (24 capabilities · 8 recipes · 47 operations)
+capabilities: altdaten_assessment, areal_network_integration_offer_gate, asset_valuation_transformation_gate, automatisierungsradar, blindflug_radar_anomaly_detection, budget_waterfall_governance, cost_review_committee_status, decision_readiness_matrix, finance_nkp_capex_reinvest_governance, investment_budget_cap_exception_governance, investment_committee_steering_cards, investment_data_review_queue, investment_maturity_off_balance_gate, investment_owner_deadline_budget_gate, investment_risk_translation_status, investment_two_track_control, investment_waterfall_governance, no_regret_measure_definition_gate, reinvest_signal, sap_budget_psp_gate, transformation_financing_scenario_view, vnb_100_tage_assessment, znp_portfolio_assessment, znp_production_readiness_evidence_gate
 recipes:
   cybergrid-counter-location-scout "A VNB wants to proactively identify storage locations near…"
   nova-capex-defender "A planner wants to test whether operational/asset…"
@@ -182,7 +182,7 @@ recipes:
   transformation-financing-scenario-view "Management needs one dossier-safe view over cashflow, gas…"
 resolve: GET /api/_agent/operations?domain=governance
 
-### platform (12 capabilities · 9 recipes · 388 operations)
+### platform (12 capabilities · 9 recipes · 389 operations)
 capabilities: datasource_registry_classification_governance, dr_readiness_evidence_gate, evidence_grounding_confidence_audit, evu_api_migration_diagnostics, file_ingest_monitor, hitl_role_based_evidence_request, live_update_stream_contract_status, receipt_grounded_presentation_contract, stadtwerk_mauer_e2e_process_demo, stadtwerk_mauer_external_interface_stubs, stadtwerk_mauer_mastr_data_overlay, stadtwerk_mauer_sandbox_runtime
 recipes:
   agentic-production-feedback-prompt "An engineering agent should receive a consistent, redacted…"
@@ -250,13 +250,13 @@ Agents resolving capabilities/recipes/operations do not need to read past this p
 - README.md: bdfc5d35a65796de3357f3ce717a61998325fa257776cbf17f7077893d0b23e7
 - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
 - src/cookbook-recipes.js: 9e48573ca263ef129bc3944a83b013cff25157e25afc703be0ada62d5af8163d
-- src/capability-catalog.js: 7a619f3f1fba65aa6378d6aa6bfc5b4a4a449fafcb45c681be02abeb2b7c2803
-- openapi-export.json: 58d40a0e3ee3da560676714d54bb51310d5c83516cdf8b7cae33853073be00da
+- src/capability-catalog.js: 8320a6ef96eda19d98ffa21c2bfb35940f99b0f48f4a7d36b1c89b48b37a5380
+- openapi-export.json: 2a5eb400592a8276832db9352963c349e74dc03c9636458b6fbb48c415bff447
 
 ## OpenAPI Surface (full contract, not embedded)
-- path_count: 957
-- operation_count: 1067
+- path_count: 959
+- operation_count: 1069
 - full_spec: openapi-export.json (repo root) or GET /api/openapi.json
 
 ## Integrity
-- llm_txt_sha256: b1d74e41e163d38a86a3936299ffd8212418db3a114e94fd2409dd75753b102c
+- llm_txt_sha256: 29343f60fe146efb66d3ec5dfc18ea9f071c69d598bd0589124e96d8bd7546de

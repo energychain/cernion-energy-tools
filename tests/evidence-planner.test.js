@@ -143,6 +143,32 @@ describe('T-EV-001 — evidence-planner: planEvidence() pure-function contract',
     );
   });
 
+  it('plans decision-readiness matrix evidence as budget and governance gaps', () => {
+    const result = planEvidence(
+      { routeLabel: 'decision_readiness_matrix' },
+      {
+        category: 'no_regret',
+        owner: 'netzplanung',
+        nextDecisionPoint: 'capex-board',
+      }
+    );
+
+    expect(result).not.toBeNull();
+    expect(result.registryKey).toBe('decision_readiness_matrix');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining(['category', 'owner', 'next_decision_point'])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'budget_status',
+        'financing_option',
+        'risk_if_not_implemented',
+        'evidence_source',
+        'committee_window',
+      ])
+    );
+  });
+
   it('plans VNB special-topic work-state evidence with leading source and owner gaps', () => {
     const result = planEvidence(
       { routeLabel: 'vnb_special_topic_workstate' },

@@ -919,6 +919,22 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes decision-readiness matrix prompts to the read-only OPL/budget evidence view', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Bitte erstelle eine Decision-Readiness-Matrix fuer OPL Massnahmen, Budgetstatus, Finanzierungsrisiko, Gremienfenster, Owner, No-Regret Bedarf und offene Nachweise.',
+    });
+
+    expect(result.capability).toBe('decision_readiness_matrix');
+    expect(result.recommendedCapabilities[0].capability).toBe('decision_readiness_matrix');
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.decisionReadinessMatrixStatus');
+    expect(actionNames).not.toContain('budget.approve');
+    expect(actionNames).not.toContain('sap.erp.write');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('billing.release');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes Netzsignal Delta-Gating prompts to the read-only evidence classifier', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Klassifiziere Netzsignal Delta-Gating: bekannter Kontext, Freshness Proof, Entscheidungsdelta, neuer Blocker, Owner, Frist, Materialitaet und naechster Evidenzpunkt.',

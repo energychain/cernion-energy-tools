@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 107 static rules', () => {
+    it('loads all 108 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(107);
+      expect(rules.length).toBe(108);
     });
 
-    it('compiles all 107 static rules without error', () => {
+    it('compiles all 108 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(107);
+      expect(rules.length).toBe(108);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -486,6 +486,41 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Asset: asset-194');
       expect(formatted).toContain('Owner: assetmanagement');
       expect(formatted).toContain('Leading Gap: feedback_capability');
+    });
+
+    it('dashboard-api.decisionReadinessMatrixStatus is dossier-safe and formats decision facts', () => {
+      const rule = getRule('dashboard-api.decisionReadinessMatrixStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Decision-Readiness-Matrix case=case-379 massnahme=grid-study owner=netzplanung gate=capex-board laden'
+        )
+      ).toEqual({
+        caseId: 'case-379',
+        measureName: 'grid-study',
+        owner: 'netzplanung',
+        nextDecisionPoint: 'capex-board',
+      });
+
+      const formatted = rule.formatEvidence({
+        status: 'evidence_gap',
+        rows: [{ measureName: 'grid-study', readiness: 'evidence_gap' }],
+        readinessCounts: { decision_ready: 0 },
+        missingEvidence: [{ missingDataPoint: 'budget_status' }],
+        positiveFollowUps: [
+          {
+            enablesDossierAddition: 'add budget-readiness classification',
+          },
+        ],
+        timestamp: '2026-07-03T21:30:00.000Z',
+      });
+
+      expect(formatted).toContain('Decision Readiness: evidence_gap');
+      expect(formatted).toContain('Measure: grid-study');
+      expect(formatted).toContain('Row Status: evidence_gap');
+      expect(formatted).toContain('Leading Gap: budget_status');
     });
 
     it('dashboard-api.steeringArtifactAcceptanceGateStatus is dossier-safe and formats acceptance facts', () => {

@@ -1299,6 +1299,24 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasDecisionReadinessMatrixSpecificSignal =
+    /(decision.?readiness.?matrix|entscheidungsreife.?matrix|opl|massnahmen|maßnahmen)/i.test(
+      haystack
+    ) &&
+    /(budgetstatus|finanzierungsrisiko|finanzierungsoption|no.?regret|owner|gremienfenster|next decision point|offene nachweise)/i.test(
+      haystack
+    ) &&
+    !/(budget\.approve|budgetfreigabe|sap\.erp\.write|sap\.psp\.write|erp\.write|procurement\.create|billing|settlement|abrechnung|tarif|payment|device-control|smgw switch|hitl\.create|workflow\.execute|external\.connector\.call|personal-agent\.execute)/i.test(
+      haystack
+    );
+
+  if (hasDecisionReadinessMatrixSpecificSignal) {
+    const decisionReadinessCapability = findCapabilityByName('decision_readiness_matrix');
+    if (decisionReadinessCapability) {
+      return { capability: decisionReadinessCapability, score: 139, usedFallback: false };
+    }
+  }
+
   const hasInvestmentCommitteeSteeringCardsSpecificSignal =
     /(investmittel|investitionskarte|investment item|capex|committee|gremien)/i.test(haystack) &&
     /(gremiensteuerung|gremienkarte|steering card|committee card|committee window|gremienfenster|pruefstatus|prüfstatus|review status|evidenzstatus|blocked follow.?up|blockierte folgeaktion)/i.test(

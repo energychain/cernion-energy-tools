@@ -6312,6 +6312,67 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  decision_readiness_matrix: {
+    sources: [
+      {
+        id: 'category',
+        label: 'Measure category / OPL grouping',
+        resolvedBy: ['dashboard-api.decisionReadinessMatrixStatus', 'vdmi.dossier'],
+        contextKeys: ['category'],
+        optional: false,
+      },
+      {
+        id: 'budget_status',
+        label: 'Budget status',
+        resolvedBy: ['dashboard-api.decisionReadinessMatrixStatus', 'finance.evidence'],
+        contextKeys: ['budgetStatus'],
+        optional: false,
+      },
+      {
+        id: 'financing_option',
+        label: 'Financing option / risk evidence',
+        resolvedBy: ['dashboard-api.decisionReadinessMatrixStatus', 'finance.evidence'],
+        contextKeys: ['financingOption'],
+        optional: false,
+      },
+      {
+        id: 'risk_if_not_implemented',
+        label: 'Risk if not implemented',
+        resolvedBy: ['dashboard-api.decisionReadinessMatrixStatus', 'vdmi.evidence'],
+        contextKeys: ['riskIfNotImplemented'],
+        optional: false,
+      },
+      {
+        id: 'evidence_source',
+        label: 'Evidence source',
+        resolvedBy: ['dashboard-api.decisionReadinessMatrixStatus', 'vdmi.evidence'],
+        contextKeys: ['evidenceSource'],
+        optional: false,
+      },
+      {
+        id: 'owner',
+        label: 'Decision owner',
+        resolvedBy: ['dashboard-api.decisionReadinessMatrixStatus', 'vdmi.dossier'],
+        contextKeys: ['owner'],
+        optional: false,
+      },
+      {
+        id: 'committee_window',
+        label: 'Committee window',
+        resolvedBy: ['dashboard-api.decisionReadinessMatrixStatus', 'vdmi.dossier'],
+        contextKeys: ['committeeWindow'],
+        optional: false,
+      },
+      {
+        id: 'next_decision_point',
+        label: 'Next decision point',
+        resolvedBy: ['dashboard-api.decisionReadinessMatrixStatus', 'vdmi.dossier'],
+        contextKeys: ['nextDecisionPoint'],
+        optional: false,
+      },
+    ],
+  },
+
   cost_review_committee_status: {
     sources: [
       {
