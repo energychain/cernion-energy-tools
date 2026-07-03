@@ -3,6 +3,7 @@
 const {
   REQUIRED_DATA_CLASSES,
   REQUIRED_CONNECTION_DEADLINE_EVIDENCE,
+  REQUIRED_COST_REVIEW_COMMITTEE_READINESS_EVIDENCE,
   REQUIRED_ENERGY_SHARING_COLLECTIVE_APPROVAL_EVIDENCE,
   REQUIRED_EVIDENCE,
   REQUIRED_GAS_TRANSFORMATION_DATAROOM_REVIEW_EVIDENCE,
@@ -15,6 +16,7 @@ const {
   getVdmiBlueprintPackSeed,
   listVdmiBlueprintPackSeeds,
   stadtwerkMauerConnectionDeadlineEvidenceQueue,
+  stadtwerkMauerCostReviewCommitteeReadiness,
   stadtwerkMauerEnergySharingCollectiveApproval,
   stadtwerkMauerGasTransformationDataroomReview,
   stadtwerkMauerPvMissingNap,
@@ -144,6 +146,83 @@ describe('VDMI Blueprint Pack seeds', () => {
     );
     expect(getVdmiBlueprintPackSeed('stadtwerk-mauer-gas-transformation-dataroom-review-v1')).toBe(
       stadtwerkMauerGasTransformationDataroomReview
+    );
+  });
+
+  test('exposes the Cost Review Committee Readiness seed as read-only metadata', () => {
+    expect(stadtwerkMauerCostReviewCommitteeReadiness).toMatchObject({
+      id: 'stadtwerk-mauer-cost-review-committee-readiness-v1',
+      kind: 'vdmi_blueprint_pack_seed',
+      version: '1.0.0',
+      safetyClassification: 'read_only_blueprint_seed',
+      processFamily: 'investment_cost_review',
+      controlCase: 'cost_review_committee_readiness',
+      sourceApi: {
+        operation: 'GET /api/dashboard/cost-review-committee-status',
+        path: '/api/dashboard/cost-review-committee-status',
+        method: 'GET',
+        workbenchBrick: 'cost_review_committee_status',
+        capability: 'dashboard-api.costReviewCommitteeStatus',
+        readOnly: true,
+        invocation: 'source_hint_only',
+      },
+      demoTenant: {
+        tenantId: 'stadtwerk-mauer',
+        classification: 'synthetic_demo_tenant',
+      },
+    });
+
+    expect(listVdmiBlueprintPackSeeds()).toContainEqual(
+      expect.objectContaining({
+        id: 'stadtwerk-mauer-cost-review-committee-readiness-v1',
+        demoTenantId: 'stadtwerk-mauer',
+      })
+    );
+    expect(getVdmiBlueprintPackSeed('stadtwerk-mauer-cost-review-committee-readiness-v1')).toBe(
+      stadtwerkMauerCostReviewCommitteeReadiness
+    );
+  });
+
+  test('validates Cost Review Committee Readiness evidence without finance or committee side effects', () => {
+    const result = validateVdmiBlueprintPackSeed(stadtwerkMauerCostReviewCommitteeReadiness);
+    expect(result).toEqual({ valid: true, errors: [] });
+
+    const evidenceIds = stadtwerkMauerCostReviewCommitteeReadiness.evidenceRequirements.map(
+      (item) => item.id
+    );
+    expect(evidenceIds).toEqual(
+      expect.arrayContaining(REQUIRED_COST_REVIEW_COMMITTEE_READINESS_EVIDENCE)
+    );
+    for (const item of stadtwerkMauerCostReviewCommitteeReadiness.evidenceRequirements) {
+      expect(item.dataClass).toBe('syntheticTenantSeed');
+      expect(item.enablesDossierAddition).toEqual(expect.any(String));
+    }
+
+    expect(stadtwerkMauerCostReviewCommitteeReadiness.forbiddenActions).toEqual(
+      expect.arrayContaining([
+        'erp.write',
+        'sap.psp.write',
+        'accounting.post',
+        'budget.approve',
+        'committee.decision.execute',
+        'workflow_create',
+        'mail_send',
+        'hitl_create',
+        'external_connector_call',
+        'billing',
+        'settlement',
+        'mako_write',
+        'tariff_mutation',
+        'device_control',
+        'smgw_cls_device_control',
+        'budibase_table_write',
+        'landing_registry_publication',
+        'cernion_de_publication',
+        'public_context_mutation',
+        'production_mutation',
+        'secret_key_handling',
+        'personal_agent_hardcoding',
+      ])
     );
   });
 
@@ -473,6 +552,52 @@ describe('VDMI Blueprint Pack seeds', () => {
     }
   });
 
+  test('exposes a canonical Demo-Raum process matrix for Cost Review Committee Readiness sync', () => {
+    const matrix = stadtwerkMauerCostReviewCommitteeReadiness.demoProcessMatrix;
+
+    expect(matrix.slug).toBe('cost-review-committee-readiness');
+    expect(matrix.roleLegend.M).toBe('Mitwirkend');
+    expect(matrix.rows).toHaveLength(4);
+    expect(matrix.allowedDataClasses).toEqual(REQUIRED_DATA_CLASSES);
+    expect(matrix.downstreamHandoff).toMatchObject({
+      blueprintPack: 'complete',
+      landingRegistry: 'pending',
+      productiveDemoRoom: 'pending',
+    });
+    expect(matrix.rows[2]).toMatchObject({
+      phase: '3',
+      v: 'ROLE_CONTROLLING',
+      d: 'ROLE_CERNION_GOVERNANCE',
+      m: 'ROLE_FINANCE_GOVERNANCE',
+      i: 'ROLE_COMMERCIAL_AUDIT',
+      evidenceRequirements: ['escalationThresholdEvidence'],
+      gateOutcome: 'escalation_threshold_review_pending',
+    });
+
+    for (const row of matrix.rows) {
+      expect(row).toEqual(
+        expect.objectContaining({
+          phase: expect.any(String),
+          v: expect.stringMatching(/^ROLE_/),
+          d: expect.stringMatching(/^ROLE_/),
+          m: expect.stringMatching(/^ROLE_/),
+          i: expect.stringMatching(/^ROLE_/),
+          evidenceRequirements: expect.arrayContaining([expect.any(String)]),
+          dataClassRefs: expect.arrayContaining([expect.any(String)]),
+          gateOutcome: expect.any(String),
+          enablesDossierAddition: expect.any(String),
+        })
+      );
+
+      for (const roleCell of [row.v, row.d, row.m, row.i]) {
+        expect(REQUIRED_DATA_CLASSES).not.toContain(roleCell);
+        expect(roleCell).not.toMatch(
+          /Phase|Verantwortlich|Durchfuehrend|Mitwirkend|Informiert|Nachweise/
+        );
+      }
+    }
+  });
+
   test('exposes the Energy Sharing collective approval seed as read-only metadata', () => {
     expect(stadtwerkMauerEnergySharingCollectiveApproval).toMatchObject({
       id: 'stadtwerk-mauer-energy-sharing-collective-approval-v1',
@@ -554,6 +679,45 @@ describe('VDMI Blueprint Pack seeds', () => {
         I: 'ROLE_COMMERCIAL_AUDIT',
       },
       gateOutcome: 'evidence_register_and_decision_log_review_pending',
+    });
+  });
+
+  test('builds scalar matrix-sync facts and clarification rows for Cost Review Committee Readiness', () => {
+    const sync = buildDemoProcessMatrixSync(stadtwerkMauerCostReviewCommitteeReadiness);
+    const clarificationItems = buildWorkbenchClarificationItems(
+      stadtwerkMauerCostReviewCommitteeReadiness
+    );
+
+    expect(sync).toMatchObject({
+      slug: 'cost-review-committee-readiness',
+      expectedSlug: 'cost-review-committee-readiness',
+      synced: true,
+      roleLegendM: 'Mitwirkend',
+      rowCount: 4,
+      rowCountValid: true,
+      roleCellsClean: true,
+      dataClassesLimited: true,
+      forbiddenActionsStatus: 'not_introduced',
+    });
+    expect(sync.evidenceRequirements).toEqual(
+      expect.arrayContaining(REQUIRED_COST_REVIEW_COMMITTEE_READINESS_EVIDENCE)
+    );
+    expect(sync.rows[3]).toMatchObject({
+      phase: '4',
+      roles: {
+        V: 'ROLE_FINANCE_GOVERNANCE',
+        D: 'ROLE_CERNION_GOVERNANCE',
+        M: 'ROLE_CONTROLLING',
+        I: 'ROLE_MANAGEMENT',
+      },
+      gateOutcome: 'committee_ready_or_evidence_gap',
+    });
+    expect(clarificationItems[0]).toMatchObject({
+      id: 'cost_review_committee_readiness:costItemOwnerEvidence',
+      processFamily: 'investment_cost_review',
+      controlCase: 'cost_review_committee_readiness',
+      roleHint: 'ROLE_CONTROLLING',
+      execution: 'none',
     });
   });
 

@@ -1,0 +1,288 @@
+{
+  "id": "stadtwerk-mauer-cost-review-committee-readiness-v1",
+  "kind": "vdmi_blueprint_pack_seed",
+  "version": "1.0.0",
+  "safetyClassification": "read_only_blueprint_seed",
+  "title": "Stadtwerk Mauer Cost Review Committee Readiness seed",
+  "processFamily": "investment_cost_review",
+  "controlCase": "cost_review_committee_readiness",
+  "sourceApi": {
+    "operation": "GET /api/dashboard/cost-review-committee-status",
+    "path": "/api/dashboard/cost-review-committee-status",
+    "method": "GET",
+    "workbenchBrick": "cost_review_committee_status",
+    "capability": "dashboard-api.costReviewCommitteeStatus",
+    "readOnly": true,
+    "invocation": "source_hint_only"
+  },
+  "demoTenant": {
+    "tenantId": "stadtwerk-mauer",
+    "classification": "synthetic_demo_tenant",
+    "description": "Virtual Stadtwerk Mauer demo tenant; cost item, owner, threshold, evidence gaps and committee gate labels are synthetic review data."
+  },
+  "roleQuestion": {
+    "actor": "Controlling / Asset Planning / Governance",
+    "answerableIn": "under_one_minute",
+    "question": "Is this synthetic cost item ready for committee review, what evidence is missing, what gate blocks it, and which clarification row is safe next?"
+  },
+  "dataClasses": {
+    "publicContextLayer": {
+      "description": "Read-only municipal, asset-category or governance-policy context already blended into the virtual Stadtwerk. Demo reset flows must not mutate this layer.",
+      "examples": ["public municipal planning context", "read-only asset-category labels", "non-binding committee calendar label"]
+    },
+    "syntheticTenantSeed": {
+      "description": "Invented cost item, owner, data origin, relevance markers, threshold, evidence gaps and committee gate labels for stadtwerk-mauer.",
+      "examples": ["synthetic cost item id", "synthetic owner hint", "synthetic escalation threshold"]
+    },
+    "sandboxRuntimeArtifact": {
+      "description": "Resettable output from Cernion/Rundeck or Workbench verification runs, separate from public context baselines.",
+      "examples": ["cost-review status render proof", "matrix-sync render artifact", "read-model refresh proof"]
+    }
+  },
+  "roles": [
+    {
+      "roleId": "ROLE_CONTROLLING",
+      "relation": "verantwortlich",
+      "responsibility": "Owns the synthetic cost-review package and decides whether the package is ready for committee discussion or still a clarification case."
+    },
+    {
+      "roleId": "ROLE_CERNION_GOVERNANCE",
+      "relation": "durchfuehrend",
+      "responsibility": "Verifies the Blueprint-Pack seed, matrix sync, no-call boundary and source API hint without creating runtime records."
+    },
+    {
+      "roleId": "ROLE_ASSET_PLANNING",
+      "relation": "mitwirkend",
+      "responsibility": "Provides asset-relevance and technical-value context without changing Asset-MDM, project or budget records."
+    },
+    {
+      "roleId": "ROLE_FINANCE_GOVERNANCE",
+      "relation": "mitwirkend",
+      "responsibility": "Reviews municipal-value, escalation-threshold and committee gate context without approving budget or executing a committee decision."
+    },
+    {
+      "roleId": "ROLE_MANAGEMENT",
+      "relation": "information",
+      "responsibility": "Receives readiness and gate context without approving budget, project scope or commercial action."
+    },
+    {
+      "roleId": "ROLE_COMMERCIAL_AUDIT",
+      "relation": "information",
+      "responsibility": "Receives evidence-gap and safety-boundary context without ERP, SAP, accounting, billing or settlement effects."
+    }
+  ],
+  "evidenceRequirements": [
+    {
+      "id": "costItemOwnerEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds the owner-clarification row and accountability context once the synthetic cost item owner is supplied."
+    },
+    {
+      "id": "dataOriginEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds source-class and data-origin verification to the Workbench row without writing to ERP, SAP or accounting systems."
+    },
+    {
+      "id": "assetRelevanceEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "review",
+      "enablesDossierAddition": "Adds asset-planning relevance review context without changing asset or project records."
+    },
+    {
+      "id": "revenueMunicipalValueEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds non-binding revenue or municipal-value relevance context for commercial review."
+    },
+    {
+      "id": "escalationThresholdEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds escalation-threshold comparison as review evidence without approving budget or committee action."
+    },
+    {
+      "id": "nextCommitteeGateEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds the next committee gate and safe clarification owner without creating a workflow, mail or HITL task."
+    },
+    {
+      "id": "decisionReadinessMarker",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "review",
+      "enablesDossierAddition": "Adds the committee-ready or evidence-gap marker as read-only status, not as a committee decision."
+    }
+  ],
+  "demoProcessMatrix": {
+    "slug": "cost-review-committee-readiness",
+    "title": "Cost Review Committee Readiness",
+    "roleLegend": {
+      "V": "Verantwortlich",
+      "D": "Durchfuehrend",
+      "M": "Mitwirkend",
+      "I": "Informiert"
+    },
+    "headers": [
+      "Phase",
+      "V = Verantwortlich",
+      "D = Durchfuehrend",
+      "M = Mitwirkend",
+      "I = Informiert",
+      "Nachweise"
+    ],
+    "allowedDataClasses": [
+      "publicContextLayer",
+      "syntheticTenantSeed",
+      "sandboxRuntimeArtifact"
+    ],
+    "downstreamHandoff": {
+      "blueprintPack": "complete",
+      "landingRegistry": "pending",
+      "productiveDemoRoom": "pending",
+      "acceptanceNote": "Blueprint-Pack/Cernion-Energy-Tools matrix is canonical; Landing-Registry and productive Demo-Raum sync remain downstream proof steps."
+    },
+    "rows": [
+      {
+        "phase": "1",
+        "v": "ROLE_CONTROLLING",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_ASSET_PLANNING",
+        "i": "ROLE_COMMERCIAL_AUDIT",
+        "evidenceRequirements": [
+          "costItemOwnerEvidence",
+          "dataOriginEvidence"
+        ],
+        "dataClassRefs": [
+          "publicContextLayer",
+          "syntheticTenantSeed"
+        ],
+        "status": "clarification",
+        "gateOutcome": "cost_item_scope_and_source_class_pending",
+        "enablesDossierAddition": "Adds bounded cost-item owner and source-class context before any committee review."
+      },
+      {
+        "phase": "2",
+        "v": "ROLE_ASSET_PLANNING",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_CONTROLLING",
+        "i": "ROLE_MANAGEMENT",
+        "evidenceRequirements": [
+          "assetRelevanceEvidence",
+          "revenueMunicipalValueEvidence"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed"
+        ],
+        "status": "review",
+        "gateOutcome": "asset_and_value_relevance_review_only",
+        "enablesDossierAddition": "Adds asset and municipal-value relevance context without project, ERP or budget mutation."
+      },
+      {
+        "phase": "3",
+        "v": "ROLE_CONTROLLING",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_FINANCE_GOVERNANCE",
+        "i": "ROLE_COMMERCIAL_AUDIT",
+        "evidenceRequirements": [
+          "escalationThresholdEvidence"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed",
+          "sandboxRuntimeArtifact"
+        ],
+        "status": "evidence_gap",
+        "gateOutcome": "escalation_threshold_review_pending",
+        "enablesDossierAddition": "Adds threshold comparison and risk gate context without budget approval or committee execution."
+      },
+      {
+        "phase": "4",
+        "v": "ROLE_FINANCE_GOVERNANCE",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_CONTROLLING",
+        "i": "ROLE_MANAGEMENT",
+        "evidenceRequirements": [
+          "nextCommitteeGateEvidence",
+          "decisionReadinessMarker"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed",
+          "sandboxRuntimeArtifact"
+        ],
+        "status": "clarification",
+        "gateOutcome": "committee_ready_or_evidence_gap",
+        "enablesDossierAddition": "Adds next-gate and committee-readiness status as review evidence only."
+      }
+    ]
+  },
+  "decisionPolicy": {
+    "onMissingEvidence": "evidence_gap",
+    "onMissingOwner": "clarification",
+    "onReadyEvidence": "committee_ready",
+    "allowedStates": ["clarification", "evidence_gap", "review", "committee_ready"],
+    "mustNotTrigger": [
+      "erp.write",
+      "sap.psp.write",
+      "accounting.post",
+      "budget.approve",
+      "committee.decision.execute",
+      "workflow_create",
+      "mail_send",
+      "hitl_create",
+      "external_connector_call",
+      "billing",
+      "settlement",
+      "mako_write",
+      "tariff_mutation",
+      "device_control",
+      "smgw_cls_device_control",
+      "public_context_mutation",
+      "production_mutation",
+      "personal_agent_hardcoding"
+    ]
+  },
+  "allowedCommandHints": [
+    {
+      "id": "inspect-cost-review-status-brick",
+      "kind": "source_api_reference",
+      "execution": "metadata_only",
+      "description": "References the existing read-only dashboard brick; this seed must not invoke or mutate live committee state."
+    }
+  ],
+  "forbiddenActions": [
+    "erp.write",
+    "sap.psp.write",
+    "accounting.post",
+    "budget.approve",
+    "committee.decision.execute",
+    "workflow_create",
+    "mail_send",
+    "hitl_create",
+    "external_connector_call",
+    "billing",
+    "settlement",
+    "mako_write",
+    "tariff_mutation",
+    "device_control",
+    "smgw_cls_device_control",
+    "budibase_table_write",
+    "rundeck_execute",
+    "landing_registry_publication",
+    "cernion_de_publication",
+    "public_context_mutation",
+    "production_mutation",
+    "secret_key_handling",
+    "personal_agent_hardcoding"
+  ],
+  "publicContextMutationAllowed": false,
+  "tenantProvisioningAllowed": false,
+  "realWorldClaim": "synthetic_demo_only"
+}

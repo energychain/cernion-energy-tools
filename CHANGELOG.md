@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+- **VDMI Blueprint Pack seed for cost-review committee readiness** (`src/vdmi-blueprint-pack-seeds/stadtwerk-mauer-cost-review-committee-readiness-v1.json`, #370): Adds a versioned, read-only `vdmi_blueprint_pack_seed` for `cost_review_committee_readiness`, including a canonical 4-row Demo-Raum `demoProcessMatrix`, V/D/M/I role legend with `M = Mitwirkend`, data-class separation, evidence requirements, source reference to `GET /api/dashboard/cost-review-committee-status`, positive follow-up rows, and explicit no-call guards for ERP/SAP/accounting writes, budget approval, committee execution, external connectors, Budibase writes, public-context mutation and production tenant mutation.
+
 ## [0.67.18] — 2026-07-01
 
 ### Added
