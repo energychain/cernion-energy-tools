@@ -14400,9 +14400,12 @@ module.exports = {
           : 'medium',
         message: item.enablesDossierAddition,
       }));
+      const providedRequiredEvidence = evidenceItems.filter((item) =>
+        evidenceSpecs.some((spec) => spec.id === item.id)
+      );
       const dossierFacts = [
         `Kostenpruefung Status: ${status}`,
-        `Provided Cost Evidence: ${evidenceItems.length}/${evidenceSpecs.length}`,
+        `Provided Cost Evidence: ${providedRequiredEvidence.length}/${evidenceSpecs.length}`,
         `Open Gaps: ${missingEvidence.length}`,
       ];
       if (params.owner) dossierFacts.push(`Owner: ${params.owner}`);

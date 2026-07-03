@@ -4295,6 +4295,7 @@ describe('dashboard-api.service', () => {
         expect(result.safety).toBe('read_only');
         expect(result.status).toBe('committee_ready');
         expect(result.missingEvidence).toEqual([]);
+        expect(result.dossierEvidence.dossierFacts).toContain('Provided Cost Evidence: 8/8');
         expect(result.dossierEvidence.dossierFacts).toContain(
           'Next Committee Gate: invest-board-2026-07-15'
         );
