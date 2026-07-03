@@ -1464,6 +1464,8 @@ module.exports = {
             'dashboard-api.e2eControllabilityGovernanceStatus',
           'GET /dashboard/controllability-asset-handover':
             'dashboard-api.controllabilityAssetHandoverStatus',
+          'GET /dashboard/cost-review-committee-status':
+            'dashboard-api.costReviewCommitteeStatus',
           'GET /dashboard/steering-artifact-acceptance-gate':
             'dashboard-api.steeringArtifactAcceptanceGateStatus',
           'GET /dashboard/communication-break-process-risk':

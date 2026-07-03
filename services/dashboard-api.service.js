@@ -62,6 +62,7 @@ module.exports = {
       marketCommunicationEvidenceChainStatus: 5 * 60 * 1000, // 5 min
       e2eControllabilityGovernanceStatus: 5 * 60 * 1000, // 5 min
       controllabilityAssetHandoverStatus: 5 * 60 * 1000, // 5 min
+      costReviewCommitteeStatus: 5 * 60 * 1000, // 5 min
       steeringArtifactAcceptanceGateStatus: 5 * 60 * 1000, // 5 min
       communicationBreakProcessRiskStatus: 5 * 60 * 1000, // 5 min
       noRegretMeasureProofGateStatus: 5 * 60 * 1000, // 5 min
@@ -1733,6 +1734,115 @@ module.exports = {
           this.settings.cacheTtlMs.controllabilityAssetHandoverStatus,
           async () => ({
             ...this.buildControllabilityAssetHandoverStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- costReviewCommitteeStatus ----------------------------------------
+    /**
+     * GET /api/dashboard/cost-review-committee-status?reviewId=...
+     *
+     * Read-only dossier-safe evidence board for cost-review and committee
+     * readiness. It normalizes supplied facts into gaps and follow-ups without
+     * ERP/accounting writes, budget approval or committee decision execution.
+     */
+    costReviewCommitteeStatus: {
+      rest: 'GET /cost-review-committee-status',
+      params: {
+        reviewId: { type: 'string', optional: true, min: 1 },
+        caseId: { type: 'string', optional: true, min: 1 },
+        owner: { type: 'string', optional: true, min: 1 },
+        reviewStatus: { type: 'string', optional: true, min: 1 },
+        dataOrigin: { type: 'string', optional: true, min: 1 },
+        assetRelevance: { type: 'string', optional: true, min: 1 },
+        revenueRelevance: { type: 'string', optional: true, min: 1 },
+        decisionReadiness: { type: 'string', optional: true, min: 1 },
+        escalationThreshold: { type: 'string', optional: true, min: 1 },
+        nextCommitteeGate: { type: 'string', optional: true, min: 1 },
+        dueDate: { type: 'string', optional: true, min: 1 },
+        amountClass: { type: 'string', optional: true, min: 1 },
+        rationale: { type: 'string', optional: true, min: 1 },
+        evidenceRefs: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Cost review committee status - read-only dossier-safe evidence board',
+        description:
+          'Builds a deterministic evidence and committee-readiness view for cost reviews. ' +
+          'The endpoint is read-only and does not write ERP/SAP/PSP/accounting records, approve ' +
+          'budgets, execute committee decisions, create HITL/workflow items, send messages or call external connectors.',
+        parameters: [
+          { name: 'reviewId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'caseId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'owner', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'reviewStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'dataOrigin', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'assetRelevance', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'revenueRelevance', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'decisionReadiness', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'escalationThreshold', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'nextCommitteeGate', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'dueDate', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'amountClass', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'rationale', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'evidenceRefs',
+            in: 'query',
+            required: false,
+            schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] },
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only cost review evidence board',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string' },
+                    safety: { type: 'string' },
+                    evidenceItems: { type: 'array' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    owner: { type: 'string' },
+                    reviewStatus: { type: 'string' },
+                    dataOrigin: { type: 'string' },
+                    assetRelevance: { type: 'string' },
+                    revenueRelevance: { type: 'string' },
+                    decisionReadiness: { type: 'string' },
+                    escalationThreshold: { type: 'string' },
+                    nextCommitteeGate: { type: 'string' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                    _errors: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `cost-review-committee-status:${params.reviewId || params.caseId || 'no-review'}:${params.owner || 'no-owner'}:${params.reviewStatus || 'no-review-status'}:${params.dataOrigin || 'no-origin'}:${params.assetRelevance || 'no-asset'}:${params.revenueRelevance || 'no-revenue'}:${params.decisionReadiness || 'no-readiness'}:${params.escalationThreshold || 'no-threshold'}:${params.nextCommitteeGate || 'no-gate'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.costReviewCommitteeStatus,
+          async () => ({
+            ...this.buildCostReviewCommitteeStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -14147,6 +14257,228 @@ module.exports = {
           nextReportingCycle: params.nextReportingCycle || null,
           nonExecutionReason: params.nonExecutionReason || null,
           blockingFindings,
+          dossierFacts,
+        },
+      };
+    },
+
+    buildCostReviewCommitteeStatus(params = {}) {
+      const evidenceRefs = Array.isArray(params.evidenceRefs)
+        ? params.evidenceRefs.filter(Boolean)
+        : params.evidenceRefs
+          ? String(params.evidenceRefs)
+              .split(',')
+              .map((item) => item.trim())
+              .filter(Boolean)
+          : [];
+      const hasValue = (value) => value !== undefined && value !== null && String(value) !== '';
+      const evidenceSpecs = [
+        {
+          id: 'owner',
+          label: 'Cost review owner',
+          value: params.owner,
+          sourceClass: 'governance_owner',
+          enablesDossierAddition: 'add accountable cost-review owner',
+        },
+        {
+          id: 'review_status',
+          label: 'Review status',
+          value: params.reviewStatus,
+          sourceClass: 'review_state',
+          enablesDossierAddition: 'add current cost-review status',
+        },
+        {
+          id: 'data_origin',
+          label: 'Data origin',
+          value: params.dataOrigin || (evidenceRefs.length > 0 ? evidenceRefs.join(',') : null),
+          sourceClass: 'source_provenance',
+          enablesDossierAddition: 'add source/provenance evidence',
+        },
+        {
+          id: 'asset_relevance',
+          label: 'Asset relevance',
+          value: params.assetRelevance,
+          sourceClass: 'asset_effect',
+          enablesDossierAddition: 'add operational asset relevance evidence',
+        },
+        {
+          id: 'revenue_relevance',
+          label: 'Revenue relevance',
+          value: params.revenueRelevance,
+          sourceClass: 'economic_effect',
+          enablesDossierAddition: 'add economic/revenue relevance evidence',
+        },
+        {
+          id: 'decision_readiness',
+          label: 'Decision readiness',
+          value: params.decisionReadiness,
+          sourceClass: 'decision_gate',
+          enablesDossierAddition: 'add readiness rationale and blockers',
+        },
+        {
+          id: 'escalation_threshold',
+          label: 'Escalation threshold',
+          value: params.escalationThreshold,
+          sourceClass: 'escalation_boundary',
+          enablesDossierAddition: 'add escalation boundary',
+        },
+        {
+          id: 'next_committee_gate',
+          label: 'Next committee gate',
+          value: params.nextCommitteeGate,
+          sourceClass: 'committee_gate',
+          enablesDossierAddition: 'add next governance gate and date',
+        },
+      ];
+      const evidenceItems = evidenceSpecs
+        .filter((spec) => hasValue(spec.value))
+        .map((spec) => ({
+          id: spec.id,
+          label: spec.label,
+          value: spec.value,
+          sourceClass: spec.sourceClass,
+          evidenceStatus: 'provided',
+        }));
+      if (hasValue(params.dueDate)) {
+        evidenceItems.push({
+          id: 'due_date',
+          label: 'Due date',
+          value: params.dueDate,
+          sourceClass: 'deadline',
+          evidenceStatus: 'provided',
+        });
+      }
+      if (hasValue(params.amountClass)) {
+        evidenceItems.push({
+          id: 'amount_class',
+          label: 'Amount class',
+          value: params.amountClass,
+          sourceClass: 'materiality_band',
+          evidenceStatus: 'provided',
+        });
+      }
+      if (hasValue(params.rationale)) {
+        evidenceItems.push({
+          id: 'rationale',
+          label: 'Review rationale',
+          value: params.rationale,
+          sourceClass: 'decision_rationale',
+          evidenceStatus: 'provided',
+        });
+      }
+      const missingEvidence = evidenceSpecs
+        .filter((spec) => !hasValue(spec.value))
+        .map((spec) => ({
+          missingDataPoint: spec.id,
+          label: spec.label,
+          sourceClass: spec.sourceClass,
+          enablesDossierAddition: spec.enablesDossierAddition,
+        }));
+      const status =
+        missingEvidence.length === 0
+          ? 'committee_ready'
+          : !hasValue(params.owner)
+            ? 'needs_owner'
+            : !hasValue(params.dataOrigin) && evidenceRefs.length === 0
+              ? 'needs_data_origin'
+              : !hasValue(params.decisionReadiness)
+                ? 'needs_decision_readiness'
+                : !hasValue(params.nextCommitteeGate)
+                  ? 'needs_committee_gate'
+                  : 'needs_cost_review_evidence';
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'cost_review_committee_status',
+      }));
+      const validationFindings = missingEvidence.map((item) => ({
+        code: `CRCS_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
+        severity: ['owner', 'decision_readiness', 'next_committee_gate'].includes(
+          item.missingDataPoint
+        )
+          ? 'high'
+          : 'medium',
+        message: item.enablesDossierAddition,
+      }));
+      const dossierFacts = [
+        `Kostenpruefung Status: ${status}`,
+        `Provided Cost Evidence: ${evidenceItems.length}/${evidenceSpecs.length}`,
+        `Open Gaps: ${missingEvidence.length}`,
+      ];
+      if (params.owner) dossierFacts.push(`Owner: ${params.owner}`);
+      if (params.reviewStatus) dossierFacts.push(`Review Status: ${params.reviewStatus}`);
+      if (params.nextCommitteeGate) dossierFacts.push(`Next Committee Gate: ${params.nextCommitteeGate}`);
+
+      return {
+        costReviewId: `crcs:${Buffer.from(
+          `${params.reviewId || params.caseId || ''}:${params.owner || ''}:${params.nextCommitteeGate || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 24)}`,
+        capabilityKey: 'cost_review_committee_status',
+        safety: 'read_only',
+        requestContext: {
+          reviewId: params.reviewId || null,
+          caseId: params.caseId || null,
+          evidenceRefs,
+        },
+        status,
+        owner: params.owner || null,
+        reviewStatus: params.reviewStatus || null,
+        dataOrigin: params.dataOrigin || null,
+        assetRelevance: params.assetRelevance || null,
+        revenueRelevance: params.revenueRelevance || null,
+        decisionReadiness: params.decisionReadiness || null,
+        escalationThreshold: params.escalationThreshold || null,
+        nextCommitteeGate: params.nextCommitteeGate || null,
+        dueDate: params.dueDate || null,
+        amountClass: params.amountClass || null,
+        rationale: params.rationale || null,
+        evidenceItems,
+        missingEvidence,
+        positiveFollowUps,
+        validationFindings,
+        sourceActions: {
+          inspected: ['dashboard-api.costReviewCommitteeStatus'],
+          referenced: [
+            'vdmi.dossier',
+            'vdmi.evidence',
+            'finance.evidence',
+            'asset-context.read',
+            'interface-placeholder.requestEvidence',
+          ],
+          notCalled: [
+            'erp.write',
+            'sap.psp.write',
+            'accounting.post',
+            'budget.approve',
+            'committee.decision.execute',
+            'billing.run',
+            'settlement.exportA96',
+            'tariff.mutate',
+            'market-communication.send',
+            'hitl.create',
+            'mail.send',
+            'webhook.call',
+            'workflow.execute',
+            'external.connector.call',
+            'personal-agent.execute',
+          ],
+        },
+        dossierEvidence: {
+          status,
+          owner: params.owner || null,
+          reviewStatus: params.reviewStatus || null,
+          dataOrigin: params.dataOrigin || null,
+          assetRelevance: params.assetRelevance || null,
+          revenueRelevance: params.revenueRelevance || null,
+          decisionReadiness: params.decisionReadiness || null,
+          escalationThreshold: params.escalationThreshold || null,
+          nextCommitteeGate: params.nextCommitteeGate || null,
+          missingEvidence,
+          positiveFollowUps,
+          evidenceItems,
+          validationFindings,
           dossierFacts,
         },
       };

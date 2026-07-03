@@ -6312,6 +6312,67 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  cost_review_committee_status: {
+    sources: [
+      {
+        id: 'owner',
+        label: 'Accountable cost-review owner',
+        resolvedBy: ['dashboard-api.costReviewCommitteeStatus', 'vdmi.dossier'],
+        contextKeys: ['owner'],
+        optional: false,
+      },
+      {
+        id: 'review_status',
+        label: 'Cost review status',
+        resolvedBy: ['dashboard-api.costReviewCommitteeStatus', 'vdmi.dossier'],
+        contextKeys: ['reviewStatus'],
+        optional: false,
+      },
+      {
+        id: 'data_origin',
+        label: 'Source/provenance evidence',
+        resolvedBy: ['dashboard-api.costReviewCommitteeStatus', 'vdmi.evidence'],
+        contextKeys: ['dataOrigin', 'evidenceRefs'],
+        optional: false,
+      },
+      {
+        id: 'asset_relevance',
+        label: 'Operational asset relevance',
+        resolvedBy: ['dashboard-api.costReviewCommitteeStatus', 'asset-context.read'],
+        contextKeys: ['assetRelevance'],
+        optional: false,
+      },
+      {
+        id: 'revenue_relevance',
+        label: 'Economic or revenue relevance',
+        resolvedBy: ['dashboard-api.costReviewCommitteeStatus', 'finance.evidence'],
+        contextKeys: ['revenueRelevance'],
+        optional: false,
+      },
+      {
+        id: 'decision_readiness',
+        label: 'Decision readiness and blockers',
+        resolvedBy: ['dashboard-api.costReviewCommitteeStatus', 'vdmi.dossier'],
+        contextKeys: ['decisionReadiness', 'rationale'],
+        optional: false,
+      },
+      {
+        id: 'escalation_threshold',
+        label: 'Escalation threshold',
+        resolvedBy: ['dashboard-api.costReviewCommitteeStatus', 'vdmi.dossier'],
+        contextKeys: ['escalationThreshold'],
+        optional: false,
+      },
+      {
+        id: 'next_committee_gate',
+        label: 'Next committee gate',
+        resolvedBy: ['dashboard-api.costReviewCommitteeStatus', 'vdmi.dossier'],
+        contextKeys: ['nextCommitteeGate', 'dueDate'],
+        optional: false,
+      },
+    ],
+  },
+
   'forecast-flex': {
     sources: [
       {

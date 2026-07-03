@@ -122,6 +122,27 @@ describe('T-EV-001 — evidence-planner: planEvidence() pure-function contract',
     expect(result.confidence).toBeGreaterThanOrEqual(1);
   });
 
+  it('plans cost-review committee evidence as explicit dossier gaps', () => {
+    const result = planEvidence(
+      { routeLabel: 'cost_review_committee_status' },
+      { owner: 'controlling', reviewStatus: 'started' }
+    );
+
+    expect(result).not.toBeNull();
+    expect(result.registryKey).toBe('cost_review_committee_status');
+    expect(result.checkedSources).toEqual(expect.arrayContaining(['owner', 'review_status']));
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'data_origin',
+        'asset_relevance',
+        'revenue_relevance',
+        'decision_readiness',
+        'escalation_threshold',
+        'next_committee_gate',
+      ])
+    );
+  });
+
   it('plans VNB special-topic work-state evidence with leading source and owner gaps', () => {
     const result = planEvidence(
       { routeLabel: 'vnb_special_topic_workstate' },

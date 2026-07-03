@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 106 static rules', () => {
+    it('loads all 107 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(106);
+      expect(rules.length).toBe(107);
     });
 
-    it('compiles all 106 static rules without error', () => {
+    it('compiles all 107 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(106);
+      expect(rules.length).toBe(107);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -2318,6 +2318,45 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Quelle: monitor');
       expect(formatted).toContain('Leading Gap: blocking_finding');
       expect(formatted).toContain('Side-Effect Guard: monitoring.scheduler.run');
+    });
+
+    it('dashboard-api.costReviewCommitteeStatus is dossier-safe and formats cost-review facts', () => {
+      const rule = getRule('dashboard-api.costReviewCommitteeStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte review=cr-367 owner=controlling gate=invest-board laden'
+        )
+      ).toEqual({
+        reviewId: 'cr-367',
+        owner: 'controlling',
+        nextCommitteeGate: 'invest-board',
+      });
+
+      const formatted = rule.formatEvidence({
+        capabilityKey: 'cost_review_committee_status',
+        status: 'needs_decision_readiness',
+        owner: 'controlling',
+        reviewStatus: 'fachlich-geprueft',
+        decisionReadiness: null,
+        nextCommitteeGate: 'invest-board',
+        missingEvidence: [{ missingDataPoint: 'decision_readiness' }],
+        positiveFollowUps: [
+          { enablesDossierAddition: 'add readiness rationale and blockers' },
+        ],
+        sourceActions: { notCalled: ['budget.approve'] },
+        dossierEvidence: {
+          dossierFacts: ['Kostenpruefung Status: needs_decision_readiness'],
+        },
+      });
+
+      expect(formatted).toContain('Kostenpruefung Status: needs_decision_readiness');
+      expect(formatted).toContain('Owner: controlling');
+      expect(formatted).toContain('Next Gate: invest-board');
+      expect(formatted).toContain('Leading Gap: decision_readiness');
+      expect(formatted).toContain('Side-Effect Guard: budget.approve');
     });
 
     it('dashboard-api.leadershipDeltaCockpitStatus is dossier-safe and formats cockpit facts', () => {

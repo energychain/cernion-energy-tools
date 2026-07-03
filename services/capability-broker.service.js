@@ -1281,6 +1281,24 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasCostReviewCommitteeSpecificSignal =
+    /(kostenpruefung|kostenprüfung|kostenreview|cost review|cost evidence|budgetpruefung|budgetprüfung)/i.test(
+      haystack
+    ) &&
+    /(gremienkarte|committee gate|gremium|entscheidungsreife|eskalationsschwelle|datenherkunft|asset.?relevanz|erloeswirkung|erlöswirkung|review status|pruefstatus|prüfstatus)/i.test(
+      haystack
+    ) &&
+    !/(erp\.write|sap\.psp\.write|accounting\.post|budget\.approve|committee\.decision\.execute|settlement|billing|abrechnung|tarif|payment|device-control|smgw switch|hitl\.create|workflow\.execute|external\.connector\.call|personal-agent\.execute)/i.test(
+      haystack
+    );
+
+  if (hasCostReviewCommitteeSpecificSignal) {
+    const costReviewCapability = findCapabilityByName('cost_review_committee_status');
+    if (costReviewCapability) {
+      return { capability: costReviewCapability, score: 139, usedFallback: false };
+    }
+  }
+
   const hasInvestmentCommitteeSteeringCardsSpecificSignal =
     /(investmittel|investitionskarte|investment item|capex|committee|gremien)/i.test(haystack) &&
     /(gremiensteuerung|gremienkarte|steering card|committee card|committee window|gremienfenster|pruefstatus|prüfstatus|review status|evidenzstatus|blocked follow.?up|blockierte folgeaktion)/i.test(

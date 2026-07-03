@@ -1462,6 +1462,21 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes cost-review committee prompts to the read-only evidence board', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Erstelle eine Kostenpruefung Gremienkarte mit Owner Pruefstatus Datenherkunft Asset Relevanz Erloeswirkung Entscheidungsreife Eskalationsschwelle und naechstem Gremium Gate.',
+    });
+
+    expect(result.capability).toBe('cost_review_committee_status');
+    expect(result.recommendedCapabilities[0].capability).toBe('cost_review_committee_status');
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.costReviewCommitteeStatus');
+    expect(actionNames).not.toContain('budget.approve');
+    expect(actionNames).not.toContain('workflow.execute');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes leadership delta cockpit prompts to the read-only dashboard view', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'leadership_delta_cockpit Fuehrungscockpit Delta Steuerung fuer Sonderthemen mit Owner Frist Evidenzstatus blockierte Entscheidung Eskalation und Next Lever pruefen.',

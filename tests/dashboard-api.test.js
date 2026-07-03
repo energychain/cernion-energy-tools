@@ -4275,6 +4275,69 @@ describe('dashboard-api.service', () => {
       });
     });
 
+    describe('costReviewCommitteeStatus', () => {
+      it('returns committee-ready cost review evidence without executing finance side effects', async () => {
+        const result = await broker.call('dashboard-api.costReviewCommitteeStatus', {
+          reviewId: 'cost-review-367',
+          owner: 'controlling',
+          reviewStatus: 'fachlich-geprueft',
+          dataOrigin: 'psp-export:2026-07',
+          assetRelevance: 'netzanschluss-portfolio',
+          revenueRelevance: 'erlösobergrenze plausibilisiert',
+          decisionReadiness: 'ready-for-committee',
+          escalationThreshold: 'abweichung-groesser-10p',
+          nextCommitteeGate: 'invest-board-2026-07-15',
+          evidenceRefs: 'cost:367,asset:367',
+          rationale: 'Kostenblock ist fachlich nachvollziehbar.',
+        });
+
+        expect(result.capabilityKey).toBe('cost_review_committee_status');
+        expect(result.safety).toBe('read_only');
+        expect(result.status).toBe('committee_ready');
+        expect(result.missingEvidence).toEqual([]);
+        expect(result.dossierEvidence.dossierFacts).toContain(
+          'Next Committee Gate: invest-board-2026-07-15'
+        );
+        expect(result.sourceActions.notCalled).toEqual(
+          expect.arrayContaining([
+            'erp.write',
+            'sap.psp.write',
+            'accounting.post',
+            'budget.approve',
+            'committee.decision.execute',
+            'hitl.create',
+            'workflow.execute',
+            'external.connector.call',
+            'personal-agent.execute',
+          ])
+        );
+      });
+
+      it('surfaces missing cost-review evidence as positive dossier follow-ups', async () => {
+        const result = await broker.call('dashboard-api.costReviewCommitteeStatus', {
+          reviewId: 'cost-review-gap',
+          reviewStatus: 'started',
+        });
+
+        expect(result.status).toBe('needs_owner');
+        expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+          expect.arrayContaining([
+            'owner',
+            'data_origin',
+            'asset_relevance',
+            'revenue_relevance',
+            'decision_readiness',
+            'escalation_threshold',
+            'next_committee_gate',
+          ])
+        );
+        expect(result.positiveFollowUps[0].category).toBe('cost_review_committee_status');
+        expect(result.validationFindings.map((finding) => finding.code)).toContain(
+          'CRCS_OWNER_MISSING'
+        );
+      });
+    });
+
     describe('leadershipDeltaCockpitStatus', () => {
       it('reports missing leadership delta evidence without executing mutations', async () => {
         const result = await broker.call('dashboard-api.leadershipDeltaCockpitStatus', {
