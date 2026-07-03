@@ -6373,6 +6373,81 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  cross_system_variance_matrix: {
+    sources: [
+      {
+        id: 'source_system',
+        label: 'Source system / data origin',
+        resolvedBy: ['dashboard-api.crossSystemVarianceMatrixStatus', 'vdmi.dossier'],
+        contextKeys: ['sourceSystem'],
+        optional: false,
+      },
+      {
+        id: 'target_system',
+        label: 'Target system / comparison boundary',
+        resolvedBy: ['dashboard-api.crossSystemVarianceMatrixStatus', 'vdmi.dossier'],
+        contextKeys: ['targetSystem'],
+        optional: false,
+      },
+      {
+        id: 'affected_object',
+        label: 'Affected revenue, budget or asset object',
+        resolvedBy: ['dashboard-api.crossSystemVarianceMatrixStatus', 'vdmi.evidence'],
+        contextKeys: ['affectedObject'],
+        optional: false,
+      },
+      {
+        id: 'amount_eur',
+        label: 'Quantified revenue or budget impact',
+        resolvedBy: ['dashboard-api.crossSystemVarianceMatrixStatus', 'finance.evidence'],
+        contextKeys: ['amountEur'],
+        optional: false,
+      },
+      {
+        id: 'revenue_impact',
+        label: 'Revenue / budget risk explanation',
+        resolvedBy: ['dashboard-api.crossSystemVarianceMatrixStatus', 'finance.evidence'],
+        contextKeys: ['revenueImpact'],
+        optional: false,
+      },
+      {
+        id: 'asset_scope',
+        label: 'Asset or grid-scope evidence',
+        resolvedBy: ['dashboard-api.crossSystemVarianceMatrixStatus', 'vdmi.evidence'],
+        contextKeys: ['assetScope'],
+        optional: false,
+      },
+      {
+        id: 'owner',
+        label: 'Accountable variance owner',
+        resolvedBy: ['dashboard-api.crossSystemVarianceMatrixStatus', 'vdmi.dossier'],
+        contextKeys: ['owner'],
+        optional: false,
+      },
+      {
+        id: 'deadline',
+        label: 'Clarification deadline / SLA',
+        resolvedBy: ['dashboard-api.crossSystemVarianceMatrixStatus', 'vdmi.dossier'],
+        contextKeys: ['deadline'],
+        optional: false,
+      },
+      {
+        id: 'evidence',
+        label: 'Official variance evidence reference',
+        resolvedBy: ['dashboard-api.crossSystemVarianceMatrixStatus', 'vdmi.evidence'],
+        contextKeys: ['evidence'],
+        optional: false,
+      },
+      {
+        id: 'threshold',
+        label: 'Management threshold',
+        resolvedBy: ['dashboard-api.crossSystemVarianceMatrixStatus', 'vdmi.dossier'],
+        contextKeys: ['threshold'],
+        optional: false,
+      },
+    ],
+  },
+
   cost_review_committee_status: {
     sources: [
       {

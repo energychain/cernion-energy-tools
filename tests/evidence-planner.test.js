@@ -169,6 +169,34 @@ describe('T-EV-001 — evidence-planner: planEvidence() pure-function contract',
     );
   });
 
+  it('plans cross-system variance matrix evidence as source, owner and threshold gaps', () => {
+    const result = planEvidence(
+      { routeLabel: 'cross_system_variance_matrix' },
+      {
+        sourceSystem: 'GIS',
+        targetSystem: 'ERP',
+        affectedObject: 'NAP-4711',
+      }
+    );
+
+    expect(result).not.toBeNull();
+    expect(result.registryKey).toBe('cross_system_variance_matrix');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining(['source_system', 'target_system', 'affected_object'])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'amount_eur',
+        'revenue_impact',
+        'asset_scope',
+        'owner',
+        'deadline',
+        'evidence',
+        'threshold',
+      ])
+    );
+  });
+
   it('plans VNB special-topic work-state evidence with leading source and owner gaps', () => {
     const result = planEvidence(
       { routeLabel: 'vnb_special_topic_workstate' },

@@ -1466,6 +1466,8 @@ module.exports = {
             'dashboard-api.controllabilityAssetHandoverStatus',
           'GET /dashboard/decision-readiness-matrix':
             'dashboard-api.decisionReadinessMatrixStatus',
+          'GET /dashboard/cross-system-variance-matrix':
+            'dashboard-api.crossSystemVarianceMatrixStatus',
           'GET /dashboard/cost-review-committee-status':
             'dashboard-api.costReviewCommitteeStatus',
           'GET /dashboard/steering-artifact-acceptance-gate':

@@ -2325,6 +2325,94 @@ describe('dashboard-api.service', () => {
       });
     });
 
+    // ── crossSystemVarianceMatrixStatus ───────────────────────────────────
+
+    describe('crossSystemVarianceMatrixStatus', () => {
+      it('reports explicit variance gaps without creating downstream actions', async () => {
+        const result = await broker.call('dashboard-api.crossSystemVarianceMatrixStatus', {
+          caseId: 'case-381',
+          sourceSystem: 'GIS',
+          targetSystem: 'RevenueLedger',
+          affectedObject: 'NAP-4711',
+          owner: 'Assetmanagement',
+          openEvidence: 'official-source-snapshot',
+        });
+
+        expect(result.status).toBe('evidence_gap');
+        expect(result.capabilityKey).toBe('cross_system_variance_matrix');
+        expect(result.rows[0]).toMatchObject({
+          sourceSystem: 'GIS',
+          targetSystem: 'RevenueLedger',
+          affectedObject: 'NAP-4711',
+          varianceState: 'evidence_gap',
+        });
+        expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+          expect.arrayContaining([
+            'amount_eur',
+            'revenue_impact',
+            'asset_scope',
+            'deadline',
+            'evidence',
+            'threshold',
+            'open_evidence',
+          ])
+        );
+        expect(result.positiveFollowUps[0].category).toBe('cross_system_variance_matrix');
+        expect(result.sourceActions.notCalled).toEqual(
+          expect.arrayContaining([
+            'erp.sap.write',
+            'gis.sync',
+            'asset-mdm.correct',
+            'revenue.book',
+            'billing.release',
+            'external.connector.call',
+          ])
+        );
+        expect(result.safety).toBe('read_only');
+      });
+
+      it('returns management_ready for a fully evidenced variance row', async () => {
+        const result = await broker.call('dashboard-api.crossSystemVarianceMatrixStatus', {
+          caseId: 'case-381',
+          varianceId: 'variance-381',
+          sourceSystem: 'GIS',
+          targetSystem: 'RevenueLedger',
+          domain: 'asset_revenue',
+          affectedObject: 'NAP-4711',
+          amountEur: 12500,
+          revenueImpact: 'material-revenue-delta',
+          assetScope: 'medium-voltage-feeder',
+          owner: 'Assetmanagement',
+          deadline: '2026-Q3',
+          evidence: 'variance-ticket:381',
+          threshold: 'management-threshold',
+          resolutionStatus: 'ready-for-management-review',
+        });
+
+        expect(result.status).toBe('management_ready');
+        expect(result.varianceCounts.management_ready).toBe(1);
+        expect(result.missingEvidence).toEqual([]);
+        expect(result.dossierEvidence.dossierFacts).toContain('Management-ready rows: 1');
+      });
+
+      it('flags quantified revenue variance without threshold as revenue_risk', async () => {
+        const result = await broker.call('dashboard-api.crossSystemVarianceMatrixStatus', {
+          sourceSystem: 'ERP',
+          targetSystem: 'Billing',
+          domain: 'revenue',
+          affectedObject: 'MaLo-381',
+          amountEur: 7400,
+          revenueImpact: 'revenue-delta-open',
+          assetScope: 'metering-point',
+          owner: 'Abrechnung',
+          evidence: 'ledger-export:381',
+        });
+
+        expect(result.status).toBe('revenue_risk');
+        expect(result.rows[0].varianceState).toBe('revenue_risk');
+      });
+    });
+
     // ── steeringArtifactAcceptanceGateStatus ────────────────────────────────
 
     describe('steeringArtifactAcceptanceGateStatus', () => {

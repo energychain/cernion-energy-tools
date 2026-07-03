@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 108 static rules', () => {
+    it('loads all 109 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(108);
+      expect(rules.length).toBe(109);
     });
 
-    it('compiles all 108 static rules without error', () => {
+    it('compiles all 109 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(108);
+      expect(rules.length).toBe(109);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -521,6 +521,50 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Measure: grid-study');
       expect(formatted).toContain('Row Status: evidence_gap');
       expect(formatted).toContain('Leading Gap: budget_status');
+    });
+
+    it('dashboard-api.crossSystemVarianceMatrixStatus is dossier-safe and formats variance facts', () => {
+      const rule = getRule('dashboard-api.crossSystemVarianceMatrixStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Cross-System Variance Matrix case=case-381 source=GIS target=ERP asset=NAP-4711 owner=assetmanagement laden'
+        )
+      ).toEqual({
+        caseId: 'case-381',
+        sourceSystem: 'GIS',
+        targetSystem: 'ERP',
+        affectedObject: 'NAP-4711',
+        owner: 'assetmanagement',
+      });
+
+      const formatted = rule.formatEvidence({
+        status: 'evidence_gap',
+        rows: [
+          {
+            sourceSystem: 'GIS',
+            targetSystem: 'ERP',
+            affectedObject: 'NAP-4711',
+            varianceState: 'evidence_gap',
+          },
+        ],
+        varianceCounts: { management_ready: 0 },
+        missingEvidence: [{ missingDataPoint: 'threshold' }],
+        positiveFollowUps: [
+          {
+            enablesDossierAddition: 'add management-threshold readiness',
+          },
+        ],
+        timestamp: '2026-07-03T22:30:00.000Z',
+      });
+
+      expect(formatted).toContain('Variance Status: evidence_gap');
+      expect(formatted).toContain('Source: GIS');
+      expect(formatted).toContain('Target: ERP');
+      expect(formatted).toContain('Object: NAP-4711');
+      expect(formatted).toContain('Leading Gap: threshold');
     });
 
     it('dashboard-api.steeringArtifactAcceptanceGateStatus is dossier-safe and formats acceptance facts', () => {

@@ -63,6 +63,7 @@ module.exports = {
       e2eControllabilityGovernanceStatus: 5 * 60 * 1000, // 5 min
       controllabilityAssetHandoverStatus: 5 * 60 * 1000, // 5 min
       decisionReadinessMatrixStatus: 5 * 60 * 1000, // 5 min
+      crossSystemVarianceMatrixStatus: 5 * 60 * 1000, // 5 min
       costReviewCommitteeStatus: 5 * 60 * 1000, // 5 min
       steeringArtifactAcceptanceGateStatus: 5 * 60 * 1000, // 5 min
       communicationBreakProcessRiskStatus: 5 * 60 * 1000, // 5 min
@@ -1840,6 +1841,107 @@ module.exports = {
           this.settings.cacheTtlMs.decisionReadinessMatrixStatus,
           async () => ({
             ...this.buildDecisionReadinessMatrixStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- crossSystemVarianceMatrixStatus -----------------------------------
+    /**
+     * GET /api/dashboard/cross-system-variance-matrix?caseId=...
+     *
+     * Read-only dossier-safe variance matrix for caller-supplied VNB revenue,
+     * budget and asset-data discrepancies. It classifies evidence and gaps
+     * without reconciling systems, writing master data or approving revenue.
+     */
+    crossSystemVarianceMatrixStatus: {
+      rest: 'GET /cross-system-variance-matrix',
+      params: {
+        caseId: { type: 'string', optional: true, min: 1 },
+        varianceId: { type: 'string', optional: true, min: 1 },
+        sourceSystem: { type: 'string', optional: true, min: 1 },
+        targetSystem: { type: 'string', optional: true, min: 1 },
+        domain: { type: 'string', optional: true, min: 1 },
+        affectedObject: { type: 'string', optional: true, min: 1 },
+        amountEur: { type: 'number', optional: true, convert: true },
+        revenueImpact: { type: 'string', optional: true, min: 1 },
+        assetScope: { type: 'string', optional: true, min: 1 },
+        owner: { type: 'string', optional: true, min: 1 },
+        deadline: { type: 'string', optional: true, min: 1 },
+        evidence: { type: 'string', optional: true, min: 1 },
+        threshold: { type: 'string', optional: true, min: 1 },
+        resolutionStatus: { type: 'string', optional: true, min: 1 },
+        openEvidence: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+        includeSyntheticRows: { type: 'boolean', optional: true, convert: true, default: false },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Cross-system variance matrix -- read-only VNB evidence view',
+        description:
+          'Classifies caller-supplied VNB revenue, budget and asset-data variances into a read-only evidence matrix. ' +
+          'The endpoint reports row state, source-system lineage, missing evidence, owner/deadline/threshold hints, positive follow-ups and explicit no-call guards. It does not connect to ERP/SAP/GIS/MDM, reconcile systems, persist records, approve revenue, book finance, mutate master data, create HITL/workflow/webhooks, call external connectors or add Personal-Agent shortcuts.',
+        parameters: [
+          { name: 'caseId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'varianceId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'sourceSystem', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'targetSystem', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'domain', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'affectedObject', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'amountEur', in: 'query', required: false, schema: { type: 'number' } },
+          { name: 'revenueImpact', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'assetScope', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'owner', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'deadline', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'evidence', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'threshold', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'resolutionStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'openEvidence', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'includeSyntheticRows', in: 'query', required: false, schema: { type: 'boolean' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only cross-system variance evidence matrix',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    capabilityKey: { type: 'string' },
+                    safety: { type: 'string' },
+                    status: { type: 'string' },
+                    rows: { type: 'array' },
+                    varianceCounts: { type: 'object' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    decisionBoundaries: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                    _errors: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `cross-system-variance-matrix:${JSON.stringify(params)}`;
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.crossSystemVarianceMatrixStatus,
+          async () => ({
+            ...this.buildCrossSystemVarianceMatrixStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -14605,6 +14707,277 @@ module.exports = {
           status,
           rows: classifiedRows,
           readinessCounts,
+          missingEvidence,
+          positiveFollowUps,
+          decisionBoundaries,
+          dossierFacts,
+        },
+      };
+    },
+
+    buildCrossSystemVarianceMatrixStatus(params = {}) {
+      const normalizeList = (value) => {
+        if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean);
+        if (value == null || value === '') return [];
+        return String(value)
+          .split(',')
+          .map((item) => item.trim())
+          .filter(Boolean);
+      };
+      const hasValue = (value) => value !== undefined && value !== null && String(value) !== '';
+      const openEvidence = normalizeList(params.openEvidence);
+      const amountEur =
+        params.amountEur === undefined || params.amountEur === null || params.amountEur === ''
+          ? null
+          : Number(params.amountEur);
+      const baseRow = {
+        varianceId: params.varianceId || 'variance:cross-system',
+        sourceSystem: params.sourceSystem || null,
+        targetSystem: params.targetSystem || null,
+        domain: params.domain || null,
+        affectedObject: params.affectedObject || null,
+        amountEur: Number.isFinite(amountEur) ? amountEur : null,
+        revenueImpact: params.revenueImpact || null,
+        assetScope: params.assetScope || null,
+        owner: params.owner || null,
+        deadline: params.deadline || null,
+        evidence: params.evidence || null,
+        threshold: params.threshold || null,
+        resolutionStatus: params.resolutionStatus || null,
+        openEvidence,
+      };
+      const rows = [baseRow];
+      if (params.includeSyntheticRows) {
+        rows.push({
+          varianceId: 'synthetic:gis-asset-revenue-delta',
+          sourceSystem: 'synthetic:gis',
+          targetSystem: 'synthetic:revenue-ledger',
+          domain: 'asset_revenue',
+          affectedObject: 'NAP-4711',
+          amountEur: 12500,
+          revenueImpact: 'material-revenue-delta',
+          assetScope: 'medium-voltage-feeder',
+          owner: 'Assetmanagement',
+          deadline: '2026-Q3',
+          evidence: 'synthetic:variance-ticket',
+          threshold: 'management-threshold',
+          resolutionStatus: 'ready-for-management-review',
+          openEvidence: [],
+        });
+      }
+
+      const classifyRow = (row) => {
+        if (!hasValue(row.sourceSystem) || !hasValue(row.targetSystem) || !hasValue(row.affectedObject)) {
+          return 'evidence_gap';
+        }
+        if (!hasValue(row.owner)) return 'needs_owner';
+        if (!hasValue(row.evidence) || row.openEvidence.length > 0) return 'evidence_gap';
+        if (
+          /asset|gis|mdm|anlage|anschluss|nap|melo|malo|scope/i.test(
+            `${row.domain || ''} ${row.assetScope || ''} ${row.affectedObject || ''}`
+          ) &&
+          !hasValue(row.assetScope)
+        ) {
+          return 'asset_scope_risk';
+        }
+        if (
+          Number.isFinite(row.amountEur) &&
+          Math.abs(row.amountEur) > 0 &&
+          /revenue|erlos|erlös|budget|finance|umsatz|abrechnung/i.test(
+            `${row.domain || ''} ${row.revenueImpact || ''}`
+          )
+        ) {
+          return hasValue(row.threshold) && hasValue(row.deadline)
+            ? 'management_ready'
+            : 'revenue_risk';
+        }
+        if (hasValue(row.threshold) && hasValue(row.deadline) && hasValue(row.resolutionStatus)) {
+          return 'management_ready';
+        }
+        return 'informational';
+      };
+
+      const evidenceSpecs = [
+        {
+          id: 'source_system',
+          label: 'Source system',
+          value: baseRow.sourceSystem,
+          enablesDossierAddition: 'add source-system lineage for the variance',
+        },
+        {
+          id: 'target_system',
+          label: 'Target system',
+          value: baseRow.targetSystem,
+          enablesDossierAddition: 'add comparison target and reconciliation boundary',
+        },
+        {
+          id: 'affected_object',
+          label: 'Affected object',
+          value: baseRow.affectedObject,
+          enablesDossierAddition: 'add asset, revenue object or planning object scope',
+        },
+        {
+          id: 'amount_eur',
+          label: 'Amount / impact in EUR',
+          value: baseRow.amountEur,
+          enablesDossierAddition: 'add quantified revenue or budget impact',
+        },
+        {
+          id: 'revenue_impact',
+          label: 'Revenue / budget impact',
+          value: baseRow.revenueImpact,
+          enablesDossierAddition: 'add revenue or budget risk explanation',
+        },
+        {
+          id: 'asset_scope',
+          label: 'Asset scope',
+          value: baseRow.assetScope,
+          enablesDossierAddition: 'add asset or grid-scope evidence',
+        },
+        {
+          id: 'owner',
+          label: 'Variance owner',
+          value: baseRow.owner,
+          enablesDossierAddition: 'add accountable clarification owner',
+        },
+        {
+          id: 'deadline',
+          label: 'Clarification deadline',
+          value: baseRow.deadline,
+          enablesDossierAddition: 'add SLA or management deadline tracking',
+        },
+        {
+          id: 'evidence',
+          label: 'Evidence reference',
+          value: baseRow.evidence,
+          enablesDossierAddition: 'add official evidence reference',
+        },
+        {
+          id: 'threshold',
+          label: 'Management threshold',
+          value: baseRow.threshold,
+          enablesDossierAddition: 'add management-threshold readiness',
+        },
+      ];
+      const classifiedRows = rows.map((row, index) => ({
+        ...row,
+        rowId: row.varianceId || `row:${index + 1}`,
+        varianceState: classifyRow(row),
+        evidenceStatus:
+          !hasValue(row.evidence) || row.openEvidence.length > 0 ? 'incomplete' : 'provided',
+      }));
+      const varianceCounts = classifiedRows.reduce((acc, row) => {
+        acc[row.varianceState] = (acc[row.varianceState] || 0) + 1;
+        return acc;
+      }, {});
+      const missingEvidence = evidenceSpecs
+        .filter((spec) => !hasValue(spec.value))
+        .map((spec) => ({
+          missingDataPoint: spec.id,
+          label: spec.label,
+          enablesDossierAddition: spec.enablesDossierAddition,
+        }));
+      for (const evidenceGap of openEvidence) {
+        missingEvidence.push({
+          missingDataPoint: 'open_evidence',
+          label: evidenceGap,
+          enablesDossierAddition: `add open variance evidence: ${evidenceGap}`,
+        });
+      }
+      const status =
+        classifiedRows.some((row) => row.varianceState === 'revenue_risk')
+          ? 'revenue_risk'
+          : classifiedRows.some((row) => row.varianceState === 'asset_scope_risk')
+            ? 'asset_scope_risk'
+            : classifiedRows.every((row) => row.varianceState === 'management_ready')
+              ? 'management_ready'
+              : classifiedRows.some((row) => row.varianceState === 'needs_owner')
+                ? 'needs_owner'
+                : missingEvidence.length > 0
+                  ? 'evidence_gap'
+                  : 'informational';
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'cross_system_variance_matrix',
+      }));
+      const decisionBoundaries = [
+        {
+          boundary: 'Variance rows classify caller-supplied evidence only; they do not reconcile or correct source systems.',
+        },
+        {
+          boundary: 'Revenue, budget and asset hints are risk context, not booking, billing, settlement or master-data authority.',
+        },
+        {
+          boundary: 'No ERP/SAP/GIS/MDM connector, workflow, HITL, webhook, MaKo, tariff or device-control action is called.',
+        },
+      ];
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Rows: ${classifiedRows.length}`,
+        `Management-ready rows: ${varianceCounts.management_ready || 0}`,
+        `Open gaps: ${missingEvidence.length}`,
+      ];
+      if (params.caseId) dossierFacts.push(`Case: ${params.caseId}`);
+      if (baseRow.owner) dossierFacts.push(`Owner: ${baseRow.owner}`);
+      if (baseRow.sourceSystem && baseRow.targetSystem)
+        dossierFacts.push(`Systems: ${baseRow.sourceSystem} -> ${baseRow.targetSystem}`);
+
+      return {
+        matrixId: `csvm:${Buffer.from(
+          `${params.caseId || ''}:${baseRow.varianceId}:${baseRow.sourceSystem || ''}:${baseRow.targetSystem || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 24)}`,
+        capabilityKey: 'cross_system_variance_matrix',
+        safety: 'read_only',
+        requestContext: {
+          caseId: params.caseId || null,
+          includeSyntheticRows: Boolean(params.includeSyntheticRows),
+        },
+        status,
+        rows: classifiedRows,
+        varianceCounts,
+        missingEvidence,
+        positiveFollowUps,
+        decisionBoundaries,
+        dossierFacts,
+        sourceActions: {
+          inspected: ['dashboard-api.crossSystemVarianceMatrixStatus'],
+          referenced: ['vdmi.dossier', 'evidence-registry.findings', 'variance-register.suppliedFacts'],
+          notCalled: [
+            'erp.sap.read',
+            'erp.sap.write',
+            'gis.sync',
+            'asset-mdm.correct',
+            'revenue.book',
+            'budget.approve',
+            'finance.book',
+            'billing.release',
+            'settlement.prepareBilling',
+            'tariff.mutate',
+            'mako.dispatch',
+            'hitl.create',
+            'workflow.execute',
+            'webhook.emit',
+            'mail.send',
+            'device-control.execute',
+            'external.connector.call',
+          ],
+        },
+        validationFindings: missingEvidence.map((item) => ({
+          code: `CSVM_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
+          severity: ['owner', 'source_system', 'target_system', 'affected_object'].includes(
+            item.missingDataPoint
+          )
+            ? 'high'
+            : 'medium',
+          message: item.enablesDossierAddition,
+        })),
+        dossierEvidence: {
+          status,
+          rows: classifiedRows,
+          varianceCounts,
           missingEvidence,
           positiveFollowUps,
           decisionBoundaries,

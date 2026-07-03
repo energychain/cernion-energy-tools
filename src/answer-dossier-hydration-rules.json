@@ -640,6 +640,81 @@
     "sourceIssue": 379
   },
   {
+    "id": "dashboard-api.crossSystemVarianceMatrixStatus",
+    "action": "dashboard-api.crossSystemVarianceMatrixStatus",
+    "label": "Cross-System Variance Matrix",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "caseId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:case|caseId|fall)[:= ]+([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "sourceSystem": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:sourceSystem|quellsystem|source)[:= ]+([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "targetSystem": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:targetSystem|zielsystem|target)[:= ]+([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "affectedObject": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:affectedObject|objekt|asset)[:= ]+([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "owner": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:owner|verantwortlich|verantwortlicher)[:= ]+([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "dossierEvidence.status"], "label": "Variance Status", "maxLen": 80 },
+        { "paths": ["rows.0.sourceSystem", "dossierEvidence.rows.0.sourceSystem"], "label": "Source", "maxLen": 100 },
+        { "paths": ["rows.0.targetSystem", "dossierEvidence.rows.0.targetSystem"], "label": "Target", "maxLen": 100 },
+        { "paths": ["rows.0.affectedObject", "dossierEvidence.rows.0.affectedObject"], "label": "Object", "maxLen": 120 },
+        { "paths": ["rows.0.varianceState", "dossierEvidence.rows.0.varianceState"], "label": "Row State", "maxLen": 80 },
+        { "paths": ["varianceCounts.management_ready", "dossierEvidence.varianceCounts.management_ready"], "label": "Ready Rows", "maxLen": 40 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["positiveFollowUps.0.enablesDossierAddition", "dossierEvidence.positiveFollowUps.0.enablesDossierAddition"], "label": "Follow-up Enables", "maxLen": 160 },
+        { "paths": ["timestamp"], "label": "Stand", "maxLen": 40 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "derived",
+    "timeoutMs": 7000,
+    "sourceIssue": 381
+  },
+  {
     "id": "dashboard-api.costReviewCommitteeStatus",
     "action": "dashboard-api.costReviewCommitteeStatus",
     "label": "Kostenpruefung Evidence Board",

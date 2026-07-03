@@ -302,6 +302,7 @@ describe('API Gateway Service', () => {
       expect(schema.paths['/api/dashboard/load-profile-stream-monitor']).toBeDefined();
       expect(schema.paths['/api/dashboard/controllability-asset-handover']).toBeDefined();
       expect(schema.paths['/api/dashboard/cost-review-committee-status']).toBeDefined();
+      expect(schema.paths['/api/dashboard/cross-system-variance-matrix']).toBeDefined();
       expect(schema.paths['/api/dashboard/gas-transformation-dataroom']).toBeDefined();
       expect(schema.paths['/api/dashboard/steering-artifact-acceptance-gate']).toBeDefined();
       expect(schema.paths['/api/dashboard/no-regret-measure-proof-gate']).toBeDefined();
@@ -320,6 +321,7 @@ describe('API Gateway Service', () => {
       expect(schema.paths['/api/dashboard/load-profile-stream-monitor'].get).toBeDefined();
       expect(schema.paths['/api/dashboard/controllability-asset-handover'].get).toBeDefined();
       expect(schema.paths['/api/dashboard/decision-readiness-matrix'].get).toBeDefined();
+      expect(schema.paths['/api/dashboard/cross-system-variance-matrix'].get).toBeDefined();
       expect(schema.paths['/api/dashboard/cost-review-committee-status'].get).toBeDefined();
       expect(schema.paths['/api/dashboard/gas-transformation-dataroom'].get).toBeDefined();
       expect(schema.paths['/api/dashboard/steering-artifact-acceptance-gate'].get).toBeDefined();
@@ -345,6 +347,9 @@ describe('API Gateway Service', () => {
         'Dashboard API'
       );
       expect(schema.paths['/api/dashboard/decision-readiness-matrix'].get.tags).toContain(
+        'Dashboard API'
+      );
+      expect(schema.paths['/api/dashboard/cross-system-variance-matrix'].get.tags).toContain(
         'Dashboard API'
       );
       expect(schema.paths['/api/dashboard/gas-transformation-dataroom'].get.tags).toContain(
@@ -519,6 +524,9 @@ describe('API Gateway Service', () => {
       );
       expect(aliases['GET /dashboard/decision-readiness-matrix']).toBe(
         'dashboard-api.decisionReadinessMatrixStatus'
+      );
+      expect(aliases['GET /dashboard/cross-system-variance-matrix']).toBe(
+        'dashboard-api.crossSystemVarianceMatrixStatus'
       );
       expect(aliases['GET /dashboard/cost-review-committee-status']).toBe(
         'dashboard-api.costReviewCommitteeStatus'
