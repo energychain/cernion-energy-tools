@@ -1,0 +1,383 @@
+{
+  "manifestId": "case-view:stadtwerk-mauer:selected-case-evidence-trace-artifact-review:v1",
+  "schemaVersion": "cernion.case-view-manifest.v1",
+  "contract": "selected_case_evidence_trace_artifact_review",
+  "tenantId": "stadtwerk-mauer",
+  "caseId": "smm-budibase-workbench",
+  "seedId": "stadtwerk-mauer-pv-missing-nap-v1",
+  "municipalityAgs": "08226048",
+  "controlCase": "selected_case_evidence_trace_artifact_review",
+  "personaRole": "ROLE_NETZPLANUNG",
+  "personaLabel": "Zielnetzplanung",
+  "routeTarget": "/stadtwerk-mauer?target=zielnetzplanung&caseId=smm-budibase-workbench",
+  "rendererTargets": ["budibase"],
+  "serviceBoundary": "static/read-only manifest contract; no new endpoint",
+  "safetyClassification": "read_only_manifest",
+  "systemOfRecord": "cernion",
+  "budibaseRole": "renderer_curated_command_surface",
+  "brokerRouting": {
+    "enabled": false,
+    "reason": "Workbench rendering manifest only; no dossier-facing read model in this slice."
+  },
+  "hydrationRegistry": {
+    "enabled": false,
+    "reason": "No read-only service action is added for dossier hydration in this slice."
+  },
+  "transferParameters": [
+    {
+      "key": "tenantId",
+      "value": "stadtwerk-mauer",
+      "required": true,
+      "dataClass": "synthetic_tenant_seed"
+    },
+    {
+      "key": "roleMapping",
+      "value": "ROLE_NETZPLANUNG",
+      "required": true,
+      "dataClass": "synthetic_tenant_seed"
+    },
+    {
+      "key": "caseId",
+      "value": "smm-budibase-workbench",
+      "required": true,
+      "dataClass": "synthetic_tenant_seed"
+    },
+    {
+      "key": "seedId",
+      "value": "stadtwerk-mauer-pv-missing-nap-v1",
+      "required": true,
+      "dataClass": "synthetic_tenant_seed"
+    },
+    {
+      "key": "municipalityAgs",
+      "value": "08226048",
+      "required": true,
+      "dataClass": "public_context_layer"
+    },
+    {
+      "key": "allowedCommandScope",
+      "value": "read_only,verify_only,sandbox_annotation",
+      "required": true,
+      "dataClass": "synthetic_tenant_seed"
+    }
+  ],
+  "forbiddenActions": [
+    "budibase.table.write",
+    "budibase.system_of_record",
+    "budibase.automation.arbitrary_write",
+    "rundeck.execute",
+    "personal-agent.execute",
+    "mako.process",
+    "billing.settle",
+    "device-control.execute"
+  ],
+  "positiveFollowUps": [
+    {
+      "missingDataPoint": "napReference",
+      "enablesDossierAddition": "add selected-case evidence row with NAP reference status"
+    },
+    {
+      "missingDataPoint": "traceId",
+      "enablesDossierAddition": "add trace review row for the selected case"
+    },
+    {
+      "missingDataPoint": "artifactId",
+      "enablesDossierAddition": "add artifact review row with source and data class"
+    },
+    {
+      "missingDataPoint": "nextGateInput",
+      "enablesDossierAddition": "complete next-gate row and safe next action"
+    },
+    {
+      "missingDataPoint": "tenantTransferParameter",
+      "enablesDossierAddition": "show transfer-readiness row without generating unsafe commands"
+    }
+  ],
+  "sections": [
+    {
+      "id": "selected_case_summary",
+      "title": "Selected Case Summary",
+      "roleTarget": "ROLE_NETZPLANUNG",
+      "routeTarget": "selected-case",
+      "sourceDashboardEndpoint": "/api/dashboard/stadtwerk-mauer-case-detail",
+      "queryParameters": {
+        "tenantId": "stadtwerk-mauer",
+        "caseId": "smm-budibase-workbench"
+      },
+      "rowBinding": "caseRows",
+      "columns": [
+        { "key": "caseId", "label": "Case", "type": "string" },
+        { "key": "status", "label": "Status", "type": "string" },
+        { "key": "ownerRole", "label": "Owner", "type": "string" },
+        { "key": "safeNextAction", "label": "Safe Next Action", "type": "string" }
+      ],
+      "semantics": {
+        "evidence": "selected synthetic PV missing-NAP case",
+        "risk": "missing grid-connection evidence",
+        "nextGate": "nap_reference_clarification"
+      },
+      "dataClass": "synthetic_tenant_seed",
+      "safeActionClass": "read_only",
+      "forbiddenActions": ["budibase.table.write", "personal-agent.execute"],
+      "sampleRows": [
+        {
+          "caseId": "smm-budibase-workbench",
+          "status": "needs_evidence",
+          "ownerRole": "ROLE_NETZPLANUNG",
+          "safeNextAction": "refresh_selected_case_read_model"
+        }
+      ]
+    },
+    {
+      "id": "evidence_rows",
+      "title": "Evidence Rows",
+      "roleTarget": "ROLE_NETZPLANUNG",
+      "routeTarget": "evidence",
+      "sourceDashboardEndpoint": "/api/dashboard/stadtwerk-mauer-case-detail",
+      "queryParameters": {
+        "tenantId": "stadtwerk-mauer",
+        "caseId": "smm-budibase-workbench"
+      },
+      "rowBinding": "evidenceRows",
+      "columns": [
+        { "key": "evidenceId", "label": "Evidence", "type": "string" },
+        { "key": "status", "label": "Status", "type": "string" },
+        { "key": "dataClass", "label": "Data Class", "type": "string" },
+        { "key": "enablesDossierAddition", "label": "Adds When Present", "type": "string" }
+      ],
+      "semantics": {
+        "evidence": "NAP reference and grid-connection evidence completeness",
+        "risk": "case cannot advance without evidence",
+        "nextGate": "complete_evidence_before_gate"
+      },
+      "dataClass": "synthetic_tenant_seed",
+      "safeActionClass": "read_only",
+      "forbiddenActions": ["mako.process", "billing.settle", "device-control.execute"],
+      "sampleRows": [
+        {
+          "evidenceId": "napReference",
+          "status": "missing",
+          "dataClass": "synthetic_tenant_seed",
+          "enablesDossierAddition": "show NAP reference evidence"
+        }
+      ]
+    },
+    {
+      "id": "trace_rows",
+      "title": "Trace Rows",
+      "roleTarget": "ROLE_NETZPLANUNG",
+      "routeTarget": "traces",
+      "sourceDashboardEndpoint": "/api/dashboard/stadtwerk-mauer-tenant-databrowser",
+      "queryParameters": {
+        "tenantId": "stadtwerk-mauer",
+        "caseId": "smm-budibase-workbench"
+      },
+      "rowBinding": "traceRows",
+      "columns": [
+        { "key": "traceId", "label": "Trace", "type": "string" },
+        { "key": "source", "label": "Source", "type": "string" },
+        { "key": "status", "label": "Status", "type": "string" },
+        { "key": "boundary", "label": "Boundary", "type": "string" }
+      ],
+      "semantics": {
+        "evidence": "tenant trace hints for selected synthetic case",
+        "risk": "trace is informational until evidence is complete",
+        "nextGate": "trace_review"
+      },
+      "dataClass": "sandbox_runtime_artifact",
+      "safeActionClass": "read_only",
+      "forbiddenActions": ["rundeck.execute", "budibase.system_of_record"],
+      "sampleRows": [
+        {
+          "traceId": "trace:smm-budibase-workbench:nap",
+          "source": "tenant-databrowser",
+          "status": "available",
+          "boundary": "read_only_trace_hint"
+        }
+      ]
+    },
+    {
+      "id": "artifact_rows",
+      "title": "Artifact Rows",
+      "roleTarget": "ROLE_NETZPLANUNG",
+      "routeTarget": "artifacts",
+      "sourceDashboardEndpoint": "/api/dashboard/stadtwerk-mauer-case-detail",
+      "queryParameters": {
+        "tenantId": "stadtwerk-mauer",
+        "caseId": "smm-budibase-workbench"
+      },
+      "rowBinding": "artifactRows",
+      "columns": [
+        { "key": "artifactId", "label": "Artifact", "type": "string" },
+        { "key": "artifactType", "label": "Type", "type": "string" },
+        { "key": "dataClass", "label": "Data Class", "type": "string" },
+        { "key": "safeUse", "label": "Safe Use", "type": "string" }
+      ],
+      "semantics": {
+        "evidence": "bounded generated workbench artifacts",
+        "risk": "artifact is synthetic and not production evidence",
+        "nextGate": "operator_review"
+      },
+      "dataClass": "sandbox_runtime_artifact",
+      "safeActionClass": "read_only",
+      "forbiddenActions": ["budibase.table.write", "mako.process"],
+      "sampleRows": [
+        {
+          "artifactId": "artifact:smm:nap-gap",
+          "artifactType": "evidence_gap",
+          "dataClass": "sandbox_runtime_artifact",
+          "safeUse": "render_for_operator_review"
+        }
+      ]
+    },
+    {
+      "id": "next_gate_rows",
+      "title": "Next Gate Rows",
+      "roleTarget": "ROLE_NETZPLANUNG",
+      "routeTarget": "next-gate",
+      "sourceDashboardEndpoint": "/api/dashboard/stadtwerk-mauer-grid-planning-selected-item-detail",
+      "queryParameters": {
+        "tenantId": "stadtwerk-mauer",
+        "caseId": "smm-budibase-workbench",
+        "queueItemId": "grid-planning:missing-nap-clarification"
+      },
+      "rowBinding": "nextGateRows",
+      "columns": [
+        { "key": "gateId", "label": "Gate", "type": "string" },
+        { "key": "status", "label": "Status", "type": "string" },
+        { "key": "requiredInput", "label": "Required Input", "type": "string" },
+        { "key": "safeNextAction", "label": "Safe Next Action", "type": "string" }
+      ],
+      "semantics": {
+        "evidence": "next gate waits for NAP evidence",
+        "risk": "grid-capacity decision remains blocked",
+        "nextGate": "missing_nap_clarification"
+      },
+      "dataClass": "synthetic_tenant_seed",
+      "safeActionClass": "verify_only",
+      "forbiddenActions": ["device-control.execute", "billing.settle"],
+      "sampleRows": [
+        {
+          "gateId": "missing_nap_clarification",
+          "status": "blocked",
+          "requiredInput": "napReference",
+          "safeNextAction": "verify_blueprint_seed"
+        }
+      ]
+    },
+    {
+      "id": "safe_action_rows",
+      "title": "Safe Action Rows",
+      "roleTarget": "ROLE_NETZPLANUNG",
+      "routeTarget": "actions",
+      "sourceDashboardEndpoint": "/api/dashboard/stadtwerk-mauer-case-actions",
+      "queryParameters": {
+        "tenantId": "stadtwerk-mauer",
+        "caseId": "smm-budibase-workbench"
+      },
+      "rowBinding": "safeActionRows",
+      "columns": [
+        { "key": "actionId", "label": "Action", "type": "string" },
+        { "key": "safeActionClass", "label": "Class", "type": "string" },
+        { "key": "enabled", "label": "Enabled", "type": "boolean" },
+        { "key": "boundary", "label": "Boundary", "type": "string" }
+      ],
+      "semantics": {
+        "evidence": "curated refresh and verify affordances",
+        "risk": "only renderer-near read/verify actions are enabled",
+        "nextGate": "safe_operator_review"
+      },
+      "dataClass": "synthetic_tenant_seed",
+      "safeActionClass": "verify_only",
+      "forbiddenActions": ["rundeck.execute", "budibase.automation.arbitrary_write"],
+      "sampleRows": [
+        {
+          "actionId": "verify_blueprint_seed",
+          "safeActionClass": "verify_only",
+          "enabled": true,
+          "boundary": "operations-runbook-wrapper"
+        }
+      ]
+    },
+    {
+      "id": "source_boundary_rows",
+      "title": "Source Boundary Rows",
+      "roleTarget": "ROLE_NETZPLANUNG",
+      "routeTarget": "boundaries",
+      "sourceDashboardEndpoint": "/api/dashboard/stadtwerk-mauer-transfer-readiness",
+      "queryParameters": {
+        "tenantId": "stadtwerk-mauer",
+        "caseId": "smm-budibase-workbench"
+      },
+      "rowBinding": "boundaryRows",
+      "columns": [
+        { "key": "boundary", "label": "Boundary", "type": "string" },
+        { "key": "status", "label": "Status", "type": "string" },
+        { "key": "reason", "label": "Reason", "type": "string" },
+        { "key": "safeAlternative", "label": "Safe Alternative", "type": "string" }
+      ],
+      "semantics": {
+        "evidence": "explicit source and execution boundaries",
+        "risk": "prevents renderer from becoming system of record",
+        "nextGate": "tenant_transfer_readiness"
+      },
+      "dataClass": "public_context_layer",
+      "safeActionClass": "read_only",
+      "forbiddenActions": ["budibase.system_of_record", "personal-agent.execute"],
+      "sampleRows": [
+        {
+          "boundary": "budibase.system_of_record",
+          "status": "forbidden",
+          "reason": "Cernion owns case state",
+          "safeAlternative": "render_curated_read_model"
+        }
+      ]
+    },
+    {
+      "id": "data_class_rows",
+      "title": "Data Class Rows",
+      "roleTarget": "ROLE_NETZPLANUNG",
+      "routeTarget": "data-classes",
+      "sourceDashboardEndpoint": "/api/dashboard/stadtwerk-mauer-transfer-readiness",
+      "queryParameters": {
+        "tenantId": "stadtwerk-mauer",
+        "caseId": "smm-budibase-workbench"
+      },
+      "rowBinding": "dataClassRows",
+      "columns": [
+        { "key": "dataClass", "label": "Data Class", "type": "string" },
+        { "key": "scope", "label": "Scope", "type": "string" },
+        { "key": "mutableByBudibase", "label": "Budibase Mutable", "type": "boolean" },
+        { "key": "example", "label": "Example", "type": "string" }
+      ],
+      "semantics": {
+        "evidence": "public, synthetic and sandbox data separation",
+        "risk": "prevents synthetic data from becoming production evidence",
+        "nextGate": "transfer_parameter_review"
+      },
+      "dataClass": "public_context_layer",
+      "safeActionClass": "read_only",
+      "forbiddenActions": ["budibase.table.write", "mako.process"],
+      "sampleRows": [
+        {
+          "dataClass": "public_context_layer",
+          "scope": "MaStR/OSM context",
+          "mutableByBudibase": false,
+          "example": "municipalityAgs=08226048"
+        },
+        {
+          "dataClass": "synthetic_tenant_seed",
+          "scope": "Stadtwerk Mauer demo case",
+          "mutableByBudibase": false,
+          "example": "stadtwerk-mauer-pv-missing-nap-v1"
+        },
+        {
+          "dataClass": "sandbox_runtime_artifact",
+          "scope": "bounded demo audit/readback",
+          "mutableByBudibase": false,
+          "example": "case annotation audit rows"
+        }
+      ]
+    }
+  ]
+}

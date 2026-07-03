@@ -126,6 +126,26 @@ the verify query, but it must not execute Rundeck directly, run setup/reset/prov
 seeds, write public context, mutate Budibase-owned Cernion state, or treat synthetic Blueprint
 evidence as real customer, meter, consent, MaKo, billing, settlement, tariff or device-control data.
 
+## Case View Manifest Contract
+
+Reusable role/persona case views are described by Cernion-owned Case View Manifests before they
+become renderer-specific Budibase panels. The first static contract is
+`integrations/budibase/manifests/case-view-manifest-stadtwerk-mauer-pv-missing-nap.json` for
+`selected_case_evidence_trace_artifact_review`, `ROLE_NETZPLANUNG` and the synthetic
+`stadtwerk-mauer` PV missing-NAP case.
+
+The manifest is a read-only renderer contract, not a new runtime endpoint. It declares section ids,
+route targets, source dashboard endpoints, query parameters, scalar row bindings, column schemas,
+evidence/risk/next-gate semantics, data-class labels, safe action classes, forbidden actions,
+positive follow-ups and transfer parameters. The matching helper
+`integrations/budibase/manifests/case-view-manifest.js` validates that rows stay scalar and that
+Budibase cannot become the system of record.
+
+Budibase may consume these manifests as generated rendering metadata. Cernion still owns tenant
+boundaries, case state, evidence, traces, artifacts, command gates and audit trails. A manifest must
+not add arbitrary Budibase writes, broad cockpit behavior, Personal-Agent shortcuts, direct Rundeck
+execution, MaKo, billing, settlement, tariff, device-control or production mutations.
+
 ## Apply Locally
 
 For the local Docker spike, Budibase may need `SELF_HOSTED=1` and an empty `BLACKLIST_IPS` so
