@@ -1,0 +1,300 @@
+{
+  "id": "stadtwerk-mauer-monitoring-non-escalation-status-v1",
+  "kind": "vdmi_blueprint_pack_seed",
+  "version": "1.0.0",
+  "safetyClassification": "read_only_blueprint_seed",
+  "title": "Stadtwerk Mauer Monitoring Non-Escalation Status seed",
+  "processFamily": "vnb_signal_monitoring",
+  "controlCase": "monitoring_non_escalation_status",
+  "sourceApi": {
+    "operation": "GET /api/dashboard/monitoring-non-escalation",
+    "path": "/api/dashboard/monitoring-non-escalation",
+    "method": "GET",
+    "workbenchBrick": "monitoring_non_escalation_status",
+    "capability": "dashboard-api.monitoringNonEscalationStatus",
+    "readOnly": true,
+    "invocation": "source_hint_only",
+    "relatedContextBricks": [
+      "GET /api/dashboard/cross-channel-vnb-signal-queue",
+      "GET /api/dashboard/evidence-freshness-guard",
+      "GET /api/dashboard/owner-deadline-evidence-gate",
+      "GET /api/dashboard/leadership-delta-cockpit"
+    ]
+  },
+  "demoTenant": {
+    "tenantId": "stadtwerk-mauer",
+    "classification": "synthetic_demo_tenant",
+    "description": "Virtual Stadtwerk Mauer demo tenant; monitoring source, novelty, absent blocker, owner, next check, rationale and evidence gaps are invented review data."
+  },
+  "roleQuestion": {
+    "actor": "Netzfuehrung / Governance Owner",
+    "answerableIn": "under_one_minute",
+    "question": "Why is this VNB signal not escalated right now, who owns the next check, what evidence is missing, and which next gate is safe?"
+  },
+  "dataClasses": {
+    "publicContextLayer": {
+      "description": "Read-only public or already curated context about signal families, monitoring cadence and governance vocabulary. Demo reset flows must not mutate this layer.",
+      "examples": ["public VNB signal category", "read-only monitoring cadence label", "non-binding governance vocabulary"]
+    },
+    "syntheticTenantSeed": {
+      "description": "Invented Stadtwerk-Mauer monitoring source, checked timestamp, novelty, absent blocker, owner, next check, rationale and evidence gap markers.",
+      "examples": ["synthetic signal id", "synthetic next-check owner", "synthetic non-escalation rationale"]
+    },
+    "sandboxRuntimeArtifact": {
+      "description": "Resettable output from Cernion/Rundeck or Workbench verification runs, separate from public context baselines.",
+      "examples": ["monitoring non-escalation render proof", "matrix-sync render artifact", "read-model refresh proof"]
+    }
+  },
+  "roles": [
+    {
+      "roleId": "ROLE_NETZFUEHRUNG",
+      "relation": "verantwortlich",
+      "responsibility": "Owns the operational decision boundary for whether the monitored VNB signal remains non-escalated or needs a later review."
+    },
+    {
+      "roleId": "ROLE_CERNION_GOVERNANCE",
+      "relation": "durchfuehrend",
+      "responsibility": "Verifies the Blueprint-Pack seed, matrix sync, no-call boundary and source API hint without creating runtime records."
+    },
+    {
+      "roleId": "ROLE_VNB_SIGNAL_ANALYST",
+      "relation": "mitwirkend",
+      "responsibility": "Provides checked-source, novelty and absent-blocker context without calling external monitoring connectors."
+    },
+    {
+      "roleId": "ROLE_GOVERNANCE_OWNER",
+      "relation": "mitwirkend",
+      "responsibility": "Provides rationale, owner and next-check evidence without creating a workflow, HITL task or escalation."
+    },
+    {
+      "roleId": "ROLE_MANAGEMENT",
+      "relation": "information",
+      "responsibility": "Receives non-escalation status and missing-evidence context without approving escalation or operational action."
+    },
+    {
+      "roleId": "ROLE_COMMERCIAL_AUDIT",
+      "relation": "information",
+      "responsibility": "Receives safety-boundary and evidence-gap context without MaKo, billing, settlement or tariff effects."
+    }
+  ],
+  "evidenceRequirements": [
+    {
+      "id": "monitoringSourceFreshnessEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds the checked monitoring source and freshness row once the synthetic last-check evidence is supplied."
+    },
+    {
+      "id": "signalNoveltyEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "review",
+      "enablesDossierAddition": "Adds whether the signal is new, repeated or already known so the dossier can explain the non-escalation boundary."
+    },
+    {
+      "id": "absentBlockerEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds the absent-blocker proof needed to mark non-escalation as review-ready without triggering escalation."
+    },
+    {
+      "id": "nonEscalationRationaleEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds the rationale row explaining why no escalation is currently safe."
+    },
+    {
+      "id": "ownerNextCheckEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds the owner and next-check gate so accountability is visible without creating a workflow or HITL task."
+    },
+    {
+      "id": "missingEvidenceList",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds the remaining evidence gaps as positive Workbench additions for the next review."
+    },
+    {
+      "id": "reviewReadinessMarker",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "review",
+      "enablesDossierAddition": "Adds the review-ready or needs-clarification marker as read-only dossier status, not as an escalation decision."
+    }
+  ],
+  "demoProcessMatrix": {
+    "slug": "monitoring-non-escalation-status",
+    "title": "Monitoring Non-Escalation Status",
+    "roleLegend": {
+      "V": "Verantwortlich",
+      "D": "Durchfuehrend",
+      "M": "Mitwirkend",
+      "I": "Informiert"
+    },
+    "headers": [
+      "Phase",
+      "V = Verantwortlich",
+      "D = Durchfuehrend",
+      "M = Mitwirkend",
+      "I = Informiert",
+      "Nachweise"
+    ],
+    "allowedDataClasses": [
+      "publicContextLayer",
+      "syntheticTenantSeed",
+      "sandboxRuntimeArtifact"
+    ],
+    "downstreamHandoff": {
+      "blueprintPack": "complete",
+      "landingRegistry": "pending",
+      "productiveDemoRoom": "pending",
+      "acceptanceNote": "Blueprint-Pack/Cernion-Energy-Tools matrix is canonical; Landing-Registry and productive Demo-Raum sync remain downstream proof steps."
+    },
+    "rows": [
+      {
+        "phase": "1",
+        "v": "ROLE_NETZFUEHRUNG",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_VNB_SIGNAL_ANALYST",
+        "i": "ROLE_COMMERCIAL_AUDIT",
+        "evidenceRequirements": [
+          "monitoringSourceFreshnessEvidence",
+          "signalNoveltyEvidence"
+        ],
+        "dataClassRefs": [
+          "publicContextLayer",
+          "syntheticTenantSeed"
+        ],
+        "status": "evidence_gap",
+        "gateOutcome": "monitoring_source_and_novelty_review_pending",
+        "enablesDossierAddition": "Adds checked-source freshness and novelty context before any escalation discussion."
+      },
+      {
+        "phase": "2",
+        "v": "ROLE_NETZFUEHRUNG",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_VNB_SIGNAL_ANALYST",
+        "i": "ROLE_MANAGEMENT",
+        "evidenceRequirements": [
+          "absentBlockerEvidence",
+          "nonEscalationRationaleEvidence"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed"
+        ],
+        "status": "clarification",
+        "gateOutcome": "absent_blocker_and_rationale_review_only",
+        "enablesDossierAddition": "Adds absent-blocker proof and rationale without creating an escalation, workflow or ticket."
+      },
+      {
+        "phase": "3",
+        "v": "ROLE_GOVERNANCE_OWNER",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_NETZFUEHRUNG",
+        "i": "ROLE_COMMERCIAL_AUDIT",
+        "evidenceRequirements": [
+          "ownerNextCheckEvidence",
+          "missingEvidenceList"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed",
+          "sandboxRuntimeArtifact"
+        ],
+        "status": "evidence_gap",
+        "gateOutcome": "owner_next_check_and_evidence_gaps_visible",
+        "enablesDossierAddition": "Adds the accountable owner, next-check date and missing-evidence list as review evidence only."
+      },
+      {
+        "phase": "4",
+        "v": "ROLE_GOVERNANCE_OWNER",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_VNB_SIGNAL_ANALYST",
+        "i": "ROLE_MANAGEMENT",
+        "evidenceRequirements": [
+          "reviewReadinessMarker"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed",
+          "sandboxRuntimeArtifact"
+        ],
+        "status": "review",
+        "gateOutcome": "non_escalation_review_ready_or_needs_clarification",
+        "enablesDossierAddition": "Adds the final read-only non-escalation status for the next governance review."
+      }
+    ]
+  },
+  "decisionPolicy": {
+    "onMissingEvidence": "evidence_gap",
+    "onMissingOwner": "clarification",
+    "onReadyEvidence": "review_ready",
+    "allowedStates": ["clarification", "evidence_gap", "review", "review_ready"],
+    "mustNotTrigger": [
+      "vnb_monitoring_connector_call",
+      "sharepoint_read",
+      "teams_read",
+      "outlook_read",
+      "mail_send",
+      "webhook_send",
+      "workflow_create",
+      "hitl_create",
+      "escalation_execute",
+      "object_store_write",
+      "rag_ingestion",
+      "mako_write",
+      "billing",
+      "settlement",
+      "tariff_mutation",
+      "device_control",
+      "smgw_cls_device_control",
+      "external_connector_call",
+      "public_context_mutation",
+      "production_mutation",
+      "personal_agent_hardcoding"
+    ]
+  },
+  "allowedCommandHints": [
+    {
+      "id": "inspect-monitoring-non-escalation-brick",
+      "kind": "source_api_reference",
+      "execution": "metadata_only",
+      "description": "References the existing read-only dashboard brick; this seed must not invoke connectors, mutate monitoring state or create escalation work."
+    }
+  ],
+  "forbiddenActions": [
+    "vnb_monitoring_connector_call",
+    "sharepoint_read",
+    "teams_read",
+    "outlook_read",
+    "mail_send",
+    "webhook_send",
+    "workflow_create",
+    "hitl_create",
+    "escalation_execute",
+    "object_store_write",
+    "rag_ingestion",
+    "mako_write",
+    "billing",
+    "settlement",
+    "tariff_mutation",
+    "device_control",
+    "smgw_cls_device_control",
+    "external_connector_call",
+    "budibase_table_write",
+    "rundeck_execute",
+    "landing_registry_publication",
+    "cernion_de_publication",
+    "public_context_mutation",
+    "production_mutation",
+    "secret_key_handling",
+    "personal_agent_hardcoding"
+  ],
+  "publicContextMutationAllowed": false,
+  "tenantProvisioningAllowed": false,
+  "realWorldClaim": "synthetic_demo_only"
+}

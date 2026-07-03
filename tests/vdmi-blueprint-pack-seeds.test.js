@@ -7,6 +7,7 @@ const {
   REQUIRED_ENERGY_SHARING_COLLECTIVE_APPROVAL_EVIDENCE,
   REQUIRED_EVIDENCE,
   REQUIRED_GAS_TRANSFORMATION_DATAROOM_REVIEW_EVIDENCE,
+  REQUIRED_MONITORING_NON_ESCALATION_STATUS_EVIDENCE,
   REQUIRED_PORTFOLIO_MARKET_VALUE_READINESS_EVIDENCE,
   REQUIRED_REDISPATCH_READINESS_EVIDENCE,
   REQUIRED_SUBSTATION_LOAD_ASSESSMENT_EVIDENCE,
@@ -19,6 +20,7 @@ const {
   stadtwerkMauerCostReviewCommitteeReadiness,
   stadtwerkMauerEnergySharingCollectiveApproval,
   stadtwerkMauerGasTransformationDataroomReview,
+  stadtwerkMauerMonitoringNonEscalationStatus,
   stadtwerkMauerPvMissingNap,
   stadtwerkMauerPortfolioMarketValueReadiness,
   stadtwerkMauerRedispatchParticipationReadiness,
@@ -180,6 +182,84 @@ describe('VDMI Blueprint Pack seeds', () => {
     );
     expect(getVdmiBlueprintPackSeed('stadtwerk-mauer-cost-review-committee-readiness-v1')).toBe(
       stadtwerkMauerCostReviewCommitteeReadiness
+    );
+  });
+
+  test('exposes the Monitoring Non-Escalation Status seed as read-only metadata', () => {
+    expect(stadtwerkMauerMonitoringNonEscalationStatus).toMatchObject({
+      id: 'stadtwerk-mauer-monitoring-non-escalation-status-v1',
+      kind: 'vdmi_blueprint_pack_seed',
+      version: '1.0.0',
+      safetyClassification: 'read_only_blueprint_seed',
+      processFamily: 'vnb_signal_monitoring',
+      controlCase: 'monitoring_non_escalation_status',
+      sourceApi: {
+        operation: 'GET /api/dashboard/monitoring-non-escalation',
+        path: '/api/dashboard/monitoring-non-escalation',
+        method: 'GET',
+        workbenchBrick: 'monitoring_non_escalation_status',
+        capability: 'dashboard-api.monitoringNonEscalationStatus',
+        readOnly: true,
+        invocation: 'source_hint_only',
+      },
+      demoTenant: {
+        tenantId: 'stadtwerk-mauer',
+        classification: 'synthetic_demo_tenant',
+      },
+    });
+
+    expect(listVdmiBlueprintPackSeeds()).toContainEqual(
+      expect.objectContaining({
+        id: 'stadtwerk-mauer-monitoring-non-escalation-status-v1',
+        demoTenantId: 'stadtwerk-mauer',
+      })
+    );
+    expect(getVdmiBlueprintPackSeed('stadtwerk-mauer-monitoring-non-escalation-status-v1')).toBe(
+      stadtwerkMauerMonitoringNonEscalationStatus
+    );
+  });
+
+  test('validates Monitoring Non-Escalation Status evidence without connector or escalation side effects', () => {
+    const result = validateVdmiBlueprintPackSeed(stadtwerkMauerMonitoringNonEscalationStatus);
+    expect(result).toEqual({ valid: true, errors: [] });
+
+    const evidenceIds = stadtwerkMauerMonitoringNonEscalationStatus.evidenceRequirements.map(
+      (item) => item.id
+    );
+    expect(evidenceIds).toEqual(
+      expect.arrayContaining(REQUIRED_MONITORING_NON_ESCALATION_STATUS_EVIDENCE)
+    );
+    for (const item of stadtwerkMauerMonitoringNonEscalationStatus.evidenceRequirements) {
+      expect(item.dataClass).toBe('syntheticTenantSeed');
+      expect(item.enablesDossierAddition).toEqual(expect.any(String));
+    }
+
+    expect(stadtwerkMauerMonitoringNonEscalationStatus.forbiddenActions).toEqual(
+      expect.arrayContaining([
+        'vnb_monitoring_connector_call',
+        'sharepoint_read',
+        'teams_read',
+        'outlook_read',
+        'mail_send',
+        'webhook_send',
+        'workflow_create',
+        'hitl_create',
+        'escalation_execute',
+        'object_store_write',
+        'rag_ingestion',
+        'mako_write',
+        'billing',
+        'settlement',
+        'tariff_mutation',
+        'smgw_cls_device_control',
+        'external_connector_call',
+        'budibase_table_write',
+        'landing_registry_publication',
+        'cernion_de_publication',
+        'public_context_mutation',
+        'production_mutation',
+        'personal_agent_hardcoding',
+      ])
     );
   });
 
@@ -572,6 +652,52 @@ describe('VDMI Blueprint Pack seeds', () => {
       i: 'ROLE_COMMERCIAL_AUDIT',
       evidenceRequirements: ['escalationThresholdEvidence'],
       gateOutcome: 'escalation_threshold_review_pending',
+    });
+
+    for (const row of matrix.rows) {
+      expect(row).toEqual(
+        expect.objectContaining({
+          phase: expect.any(String),
+          v: expect.stringMatching(/^ROLE_/),
+          d: expect.stringMatching(/^ROLE_/),
+          m: expect.stringMatching(/^ROLE_/),
+          i: expect.stringMatching(/^ROLE_/),
+          evidenceRequirements: expect.arrayContaining([expect.any(String)]),
+          dataClassRefs: expect.arrayContaining([expect.any(String)]),
+          gateOutcome: expect.any(String),
+          enablesDossierAddition: expect.any(String),
+        })
+      );
+
+      for (const roleCell of [row.v, row.d, row.m, row.i]) {
+        expect(REQUIRED_DATA_CLASSES).not.toContain(roleCell);
+        expect(roleCell).not.toMatch(
+          /Phase|Verantwortlich|Durchfuehrend|Mitwirkend|Informiert|Nachweise/
+        );
+      }
+    }
+  });
+
+  test('exposes a canonical Demo-Raum process matrix for Monitoring Non-Escalation Status sync', () => {
+    const matrix = stadtwerkMauerMonitoringNonEscalationStatus.demoProcessMatrix;
+
+    expect(matrix.slug).toBe('monitoring-non-escalation-status');
+    expect(matrix.roleLegend.M).toBe('Mitwirkend');
+    expect(matrix.rows).toHaveLength(4);
+    expect(matrix.allowedDataClasses).toEqual(REQUIRED_DATA_CLASSES);
+    expect(matrix.downstreamHandoff).toMatchObject({
+      blueprintPack: 'complete',
+      landingRegistry: 'pending',
+      productiveDemoRoom: 'pending',
+    });
+    expect(matrix.rows[2]).toMatchObject({
+      phase: '3',
+      v: 'ROLE_GOVERNANCE_OWNER',
+      d: 'ROLE_CERNION_GOVERNANCE',
+      m: 'ROLE_NETZFUEHRUNG',
+      i: 'ROLE_COMMERCIAL_AUDIT',
+      evidenceRequirements: ['ownerNextCheckEvidence', 'missingEvidenceList'],
+      gateOutcome: 'owner_next_check_and_evidence_gaps_visible',
     });
 
     for (const row of matrix.rows) {
@@ -1342,6 +1468,29 @@ describe('VDMI Blueprint Pack seeds', () => {
         state: 'clarification',
         execution: 'none',
         enablesDossierAddition: expect.stringContaining('next safe governance gate'),
+      })
+    );
+  });
+
+  test('maps Monitoring Non-Escalation missing evidence to non-executing workbench additions', () => {
+    const items = buildWorkbenchClarificationItems(stadtwerkMauerMonitoringNonEscalationStatus);
+
+    expect(items).toHaveLength(REQUIRED_MONITORING_NON_ESCALATION_STATUS_EVIDENCE.length);
+    expect(items).toContainEqual(
+      expect.objectContaining({
+        evidenceId: 'ownerNextCheckEvidence',
+        state: 'clarification',
+        roleHint: 'ROLE_GOVERNANCE_OWNER',
+        execution: 'none',
+        enablesDossierAddition: expect.stringContaining('accountability'),
+      })
+    );
+    expect(items).toContainEqual(
+      expect.objectContaining({
+        evidenceId: 'reviewReadinessMarker',
+        state: 'review',
+        execution: 'none',
+        enablesDossierAddition: expect.stringContaining('not as an escalation decision'),
       })
     );
   });
