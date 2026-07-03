@@ -4188,9 +4188,7 @@ describe('dashboard-api.service', () => {
         });
 
         expect(stale.status).toBe('stale');
-        expect(stale.staleMarkers.map((marker) => marker.marker)).toContain(
-          'leading_source_stale'
-        );
+        expect(stale.staleMarkers.map((marker) => marker.marker)).toContain('leading_source_stale');
         expect(stale.positiveFollowUps.map((gap) => gap.missingDataPoint)).toContain(
           'stale_leading_source_refresh'
         );

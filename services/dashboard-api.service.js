@@ -14410,7 +14410,8 @@ module.exports = {
       ];
       if (params.owner) dossierFacts.push(`Owner: ${params.owner}`);
       if (params.reviewStatus) dossierFacts.push(`Review Status: ${params.reviewStatus}`);
-      if (params.nextCommitteeGate) dossierFacts.push(`Next Committee Gate: ${params.nextCommitteeGate}`);
+      if (params.nextCommitteeGate)
+        dossierFacts.push(`Next Committee Gate: ${params.nextCommitteeGate}`);
 
       return {
         costReviewId: `crcs:${Buffer.from(
@@ -26257,8 +26258,7 @@ module.exports = {
           value: params.owner || params.reviewer,
           displayValue: [params.owner, params.reviewer].filter(Boolean).join(' / '),
           sourceClass: 'data_room_accountability',
-          enablesDossierAddition:
-            'adds accountable data-room ownership and review responsibility.',
+          enablesDossierAddition: 'adds accountable data-room ownership and review responsibility.',
         },
         {
           id: 'source_refs',
@@ -26290,23 +26290,24 @@ module.exports = {
           enablesDossierAddition: spec.enablesDossierAddition,
         }));
 
-      const status = !params.roomId || (!params.mandateId && !params.profile)
-        ? 'needs_room_profile'
-        : transformationPaths.length === 0
-          ? 'needs_transformation_path'
-          : scenarioReferences.length === 0
-            ? 'needs_scenario_reference'
-            : !params.evidenceStatus
-              ? 'needs_evidence_register'
-              : !params.decisionStatus
-                ? 'needs_decision_log'
-                : !params.roadmapStatus || !params.reviewDate
-                  ? 'needs_review_snapshot'
-                  : !params.owner && !params.reviewer
-                    ? 'needs_owner_reviewer'
-                    : sourceRefs.length === 0
-                      ? 'needs_source_refs'
-                      : 'ready_for_dataroom_review';
+      const status =
+        !params.roomId || (!params.mandateId && !params.profile)
+          ? 'needs_room_profile'
+          : transformationPaths.length === 0
+            ? 'needs_transformation_path'
+            : scenarioReferences.length === 0
+              ? 'needs_scenario_reference'
+              : !params.evidenceStatus
+                ? 'needs_evidence_register'
+                : !params.decisionStatus
+                  ? 'needs_decision_log'
+                  : !params.roadmapStatus || !params.reviewDate
+                    ? 'needs_review_snapshot'
+                    : !params.owner && !params.reviewer
+                      ? 'needs_owner_reviewer'
+                      : sourceRefs.length === 0
+                        ? 'needs_source_refs'
+                        : 'ready_for_dataroom_review';
 
       const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
       const positiveFollowUps = missingEvidence.map((item) => ({
@@ -41066,8 +41067,7 @@ module.exports = {
         {
           id: 'missing_side_source_policy',
           ok: allowedSideSources.length > 0,
-          enablesDossierAddition:
-            'Nebenquellen-Regel kann Uebersteuerung nachvollziehbar machen.',
+          enablesDossierAddition: 'Nebenquellen-Regel kann Uebersteuerung nachvollziehbar machen.',
         },
       ];
       const missingEvidence = gapSpecs
@@ -41238,7 +41238,8 @@ module.exports = {
           id: 'blocking_finding',
           label: 'Absent blocker evidence',
           value: blockerAbsent ? params.blockingFinding : null,
-          enablesDossierAddition: 'distinguish absent blocker from unresolved unknown or active blocker',
+          enablesDossierAddition:
+            'distinguish absent blocker from unresolved unknown or active blocker',
         },
         {
           id: 'next_check_at',

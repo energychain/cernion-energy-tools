@@ -1028,7 +1028,9 @@ describe('VDMI Blueprint Pack seeds', () => {
 
       for (const roleCell of [row.v, row.d, row.m, row.i]) {
         expect(REQUIRED_DATA_CLASSES).not.toContain(roleCell);
-        expect(roleCell).not.toMatch(/Phase|Verantwortlich|Durchfuehrend|Mitwirkend|Informiert|Nachweise/);
+        expect(roleCell).not.toMatch(
+          /Phase|Verantwortlich|Durchfuehrend|Mitwirkend|Informiert|Nachweise/
+        );
       }
 
       for (const dataClass of row.dataClassRefs) {
@@ -1190,7 +1192,11 @@ describe('VDMI Blueprint Pack seeds', () => {
       ])
     );
     expect(sync.dataClassRefs).toEqual(
-      expect.arrayContaining(['publicContextLayer', 'syntheticTenantSeed', 'sandboxRuntimeArtifact'])
+      expect.arrayContaining([
+        'publicContextLayer',
+        'syntheticTenantSeed',
+        'sandboxRuntimeArtifact',
+      ])
     );
   });
 
@@ -1278,7 +1284,9 @@ describe('VDMI Blueprint Pack seeds', () => {
   });
 
   test('derives a Landing-Registry draft from the canonical substation matrix', () => {
-    const draft = buildLandingRegistryDraftFromBlueprintSeed(stadtwerkMauerSubstationLoadAssessment);
+    const draft = buildLandingRegistryDraftFromBlueprintSeed(
+      stadtwerkMauerSubstationLoadAssessment
+    );
 
     expect(draft).toMatchObject({
       slug: 'substation-load-assessment',

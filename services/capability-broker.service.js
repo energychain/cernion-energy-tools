@@ -497,9 +497,7 @@ function findBestCapability(taskText, options = {}) {
     !/(alerting ausfuehren|alerting ausführen|automatic escalation|automatische eskalation|mail senden|webhook senden|workflow execute|workflow ausfuehren|workflow ausführen|ticket create|hitl create|task create|external connector|connector ausfuehren|connector ausführen|personal-agent execute|budibase table write)/i.test(
       haystack
     ) &&
-    !/(evidence.?freshness.?guard|evidence_freshness_guard|freshness.?guard)/i.test(
-      haystack
-    );
+    !/(evidence.?freshness.?guard|evidence_freshness_guard|freshness.?guard)/i.test(haystack);
 
   if (hasMonitoringNonEscalationSpecificSignal) {
     const monitoringNonEscalationCapability = findCapabilityByName(

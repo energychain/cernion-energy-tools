@@ -1464,8 +1464,7 @@ module.exports = {
             'dashboard-api.e2eControllabilityGovernanceStatus',
           'GET /dashboard/controllability-asset-handover':
             'dashboard-api.controllabilityAssetHandoverStatus',
-          'GET /dashboard/cost-review-committee-status':
-            'dashboard-api.costReviewCommitteeStatus',
+          'GET /dashboard/cost-review-committee-status': 'dashboard-api.costReviewCommitteeStatus',
           'GET /dashboard/steering-artifact-acceptance-gate':
             'dashboard-api.steeringArtifactAcceptanceGateStatus',
           'GET /dashboard/communication-break-process-risk':
@@ -1558,8 +1557,7 @@ module.exports = {
             'dashboard-api.gasGridTransformationAssetCockpitStatus',
           'GET /dashboard/vnb-special-topic-workstate':
             'dashboard-api.vnbSpecialTopicWorkstateStatus',
-          'GET /dashboard/monitoring-non-escalation':
-            'dashboard-api.monitoringNonEscalationStatus',
+          'GET /dashboard/monitoring-non-escalation': 'dashboard-api.monitoringNonEscalationStatus',
           'GET /dashboard/leadership-delta-cockpit': 'dashboard-api.leadershipDeltaCockpitStatus',
           'GET /dashboard/netzsignal-delta-gating': 'dashboard-api.netzsignalDeltaGatingStatus',
           'POST /dashboard/vnb-delta-signal-classifier/classify':

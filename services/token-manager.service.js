@@ -511,7 +511,8 @@ module.exports = {
           legacy: false,
           active: true,
         },
-        message: 'Token created. The plain token is shown only once. Copy it now and store it securely.',
+        message:
+          'Token created. The plain token is shown only once. Copy it now and store it securely.',
       };
     },
 

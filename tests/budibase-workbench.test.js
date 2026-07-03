@@ -636,7 +636,8 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
         expect.objectContaining({
           rowKey: 'matrix_row_1',
           phase: '1',
-          roles: 'V:ROLE_NETZPLANUNG | D:ROLE_GRID_OPERATOR | M:ROLE_ELECTRICIAN | I:ROLE_COMMERCIAL_AUDIT',
+          roles:
+            'V:ROLE_NETZPLANUNG | D:ROLE_GRID_OPERATOR | M:ROLE_ELECTRICIAN | I:ROLE_COMMERCIAL_AUDIT',
           evidenceRequirements: 'publicMunicipalityContext, napReference',
           dataClassRefs: 'publicContextLayer, syntheticTenantSeed',
           gateOutcome: 'missing_nap_clarification',
