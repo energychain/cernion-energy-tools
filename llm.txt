@@ -246,12 +246,12 @@ Agents resolving capabilities/recipes/operations do not need to read past this p
 - `tests/query.service.test.js`: `query.searchCopilot` body-based wrapper returns expected `query`, `domain`, and `results` shape.
 
 ## Source File Hashes
-- CHANGELOG.md: 1af9d00461d2fcf59ee68bf8385572934bdd47d9e91f21dde28689e5c5b89bbd
+- CHANGELOG.md: 34917c6a84a29026060761cda6a5c074c1be6d1561b0a9b5a562a4bfa574d4be
 - README.md: bdfc5d35a65796de3357f3ce717a61998325fa257776cbf17f7077893d0b23e7
 - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
 - src/cookbook-recipes.js: 9e48573ca263ef129bc3944a83b013cff25157e25afc703be0ada62d5af8163d
 - src/capability-catalog.js: 1923e5f7853d594b2d0fc2f6f2cee4a9d4ed4c101a0ee20e99bb08d79a0f8a15
-- openapi-export.json: 8bf3f16fbd28f2402d17a6a7714d1077994da7c45688f7f3ef3817080cf1fca8
+- openapi-export.json: 9a7e8df62daf0c116a972d791cc414859c1dc20b06f9566b6515349b65e55699
 
 ## OpenAPI Surface (full contract, not embedded)
 - path_count: 963
@@ -259,4 +259,4 @@ Agents resolving capabilities/recipes/operations do not need to read past this p
 - full_spec: openapi-export.json (repo root) or GET /api/openapi.json
 
 ## Integrity
-- llm_txt_sha256: df9785f82386278fa3e7aee104f8ab0cf27fee3c52c1509e5e78ca1adb3b5b43
+- llm_txt_sha256: 5e073b99203ca8d64aea71d054eb4bdb36a0f7cc3a56fe6143ed1ae769c96fce

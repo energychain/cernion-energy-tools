@@ -6324,14 +6324,14 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'budget_status',
         label: 'Budget status',
-        resolvedBy: ['dashboard-api.decisionReadinessMatrixStatus', 'finance.evidence'],
+        resolvedBy: ['dashboard-api.decisionReadinessMatrixStatus', 'vdmi.dossier'],
         contextKeys: ['budgetStatus'],
         optional: false,
       },
       {
         id: 'financing_option',
         label: 'Financing option / risk evidence',
-        resolvedBy: ['dashboard-api.decisionReadinessMatrixStatus', 'finance.evidence'],
+        resolvedBy: ['dashboard-api.decisionReadinessMatrixStatus', 'vdmi.dossier'],
         contextKeys: ['financingOption'],
         optional: false,
       },

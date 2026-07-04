@@ -624,7 +624,7 @@
       "fields": [
         { "paths": ["status", "dossierEvidence.status"], "label": "Decision Readiness", "maxLen": 80 },
         { "paths": ["rows.0.measureName", "dossierEvidence.rows.0.measureName"], "label": "Measure", "maxLen": 120 },
-        { "paths": ["rows.0.readiness", "dossierEvidence.rows.0.readiness"], "label": "Row Status", "maxLen": 80 },
+        { "paths": ["rows.0.status", "dossierEvidence.rows.0.status", "rows.0.readiness", "dossierEvidence.rows.0.readiness"], "label": "Row Status", "maxLen": 80 },
         { "paths": ["readinessCounts.decision_ready", "dossierEvidence.readinessCounts.decision_ready"], "label": "Ready Rows", "maxLen": 40 },
         { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
         { "paths": ["positiveFollowUps.0.enablesDossierAddition", "dossierEvidence.positiveFollowUps.0.enablesDossierAddition"], "label": "Follow-up Enables", "maxLen": 160 },

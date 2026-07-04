@@ -506,7 +506,7 @@ describe('dossier-hydration-registry (unit)', () => {
 
       const formatted = rule.formatEvidence({
         status: 'evidence_gap',
-        rows: [{ measureName: 'grid-study', readiness: 'evidence_gap' }],
+        rows: [{ measureName: 'grid-study', status: 'evidence_gap', readiness: 'evidence_gap' }],
         readinessCounts: { decision_ready: 0 },
         missingEvidence: [{ missingDataPoint: 'budget_status' }],
         positiveFollowUps: [

@@ -2258,9 +2258,16 @@ describe('dashboard-api.service', () => {
 
         expect(result.status).toBe('evidence_gap');
         expect(result.capabilityKey).toBe('decision_readiness_matrix');
+        expect(result.caseId).toBe('case-379');
+        expect(result.summary).toMatchObject({
+          status: 'evidence_gap',
+          rowCount: 1,
+          missingEvidenceCount: expect.any(Number),
+        });
         expect(result.rows[0]).toMatchObject({
           measureName: 'OPL grid study',
           readiness: 'evidence_gap',
+          status: 'evidence_gap',
         });
         expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
           expect.arrayContaining([
@@ -2277,13 +2284,25 @@ describe('dashboard-api.service', () => {
         expect(result.sourceActions.notCalled).toEqual(
           expect.arrayContaining([
             'budget.approve',
+            'finance.book',
+            'procurement.create',
             'sap.erp.write',
             'hitl.create',
+            'workflow.execute',
+            'mail.send',
             'billing.release',
+            'settlement.prepareBilling',
+            'tariff.mutate',
+            'mako.dispatch',
+            'device-control.execute',
             'external.connector.call',
           ])
         );
-        expect(result.safety).toBe('read_only');
+        expect(result.dossierEvidence.sourceActions.notCalled).toEqual(
+          expect.arrayContaining(['budget.approve', 'settlement.prepareBilling'])
+        );
+        expect(result.evidenceFacts).toEqual(result.dossierFacts);
+        expect(result.safety).toBe('read_only_evidence');
       });
 
       it('returns decision_ready for a fully evidenced measure row', async () => {
@@ -2303,6 +2322,8 @@ describe('dashboard-api.service', () => {
 
         expect(result.status).toBe('decision_ready');
         expect(result.readinessCounts.decision_ready).toBe(1);
+        expect(result.summary.readyRows).toBe(1);
+        expect(result.rows[0].status).toBe('decision_ready');
         expect(result.missingEvidence).toEqual([]);
         expect(result.dossierEvidence.dossierFacts).toContain('Decision-ready rows: 1');
       });
@@ -2322,6 +2343,36 @@ describe('dashboard-api.service', () => {
 
         expect(result.status).toBe('financing_risk');
         expect(result.rows[0].readiness).toBe('financing_risk');
+        expect(result.rows[0].status).toBe('financing_risk');
+        expect(result.summary.financingRiskRows).toBe(1);
+      });
+
+      it('flags a sourced measure without owner as owner_needed', async () => {
+        const result = await broker.call('dashboard-api.decisionReadinessMatrixStatus', {
+          measureName: 'Station reinforcement',
+          category: 'asset_investment',
+          budgetStatus: 'minimum-budget-confirmed',
+          financingOption: 'internal-planning-budget',
+          riskIfNotImplemented: 'capacity-delay',
+          evidenceSource: 'opl:row-380',
+          committeeWindow: '2026-Q4',
+          nextDecisionPoint: 'capex-board',
+        });
+
+        expect(result.status).toBe('owner_needed');
+        expect(result.rows[0].status).toBe('owner_needed');
+        expect(result.readinessCounts.owner_needed).toBe(1);
+      });
+
+      it('keeps rows with only descriptive context informational', async () => {
+        const result = await broker.call('dashboard-api.decisionReadinessMatrixStatus', {
+          caseId: 'case-379',
+          measureName: 'Parking-lot OPL note',
+        });
+
+        expect(result.status).toBe('evidence_gap');
+        expect(result.rows[0].status).toBe('informational');
+        expect(result.readinessCounts.informational).toBe(1);
       });
     });
 

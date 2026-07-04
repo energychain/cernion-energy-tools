@@ -12481,11 +12481,17 @@
                     "capabilityKey": {
                       "type": "string"
                     },
+                    "caseId": {
+                      "type": "string"
+                    },
                     "safety": {
                       "type": "string"
                     },
                     "status": {
                       "type": "string"
+                    },
+                    "summary": {
+                      "type": "object"
                     },
                     "rows": {
                       "type": "array"
@@ -12500,6 +12506,9 @@
                       "type": "array"
                     },
                     "decisionBoundaries": {
+                      "type": "array"
+                    },
+                    "evidenceFacts": {
                       "type": "array"
                     },
                     "sourceActions": {
@@ -65818,11 +65827,17 @@
                     "capabilityKey": {
                       "type": "string"
                     },
+                    "caseId": {
+                      "type": "string"
+                    },
                     "safety": {
                       "type": "string"
                     },
                     "status": {
                       "type": "string"
+                    },
+                    "summary": {
+                      "type": "object"
                     },
                     "rows": {
                       "type": "array"
@@ -65837,6 +65852,9 @@
                       "type": "array"
                     },
                     "decisionBoundaries": {
+                      "type": "array"
+                    },
+                    "evidenceFacts": {
                       "type": "array"
                     },
                     "sourceActions": {

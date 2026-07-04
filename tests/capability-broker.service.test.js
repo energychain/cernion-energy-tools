@@ -932,7 +932,25 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('sap.erp.write');
     expect(actionNames).not.toContain('hitl.create');
     expect(actionNames).not.toContain('billing.release');
+    expect(actionNames).not.toContain('settlement.prepareBilling');
+    expect(actionNames).not.toContain('tariff.mutate');
+    expect(actionNames).not.toContain('mako.dispatch');
+    expect(actionNames).not.toContain('device-control.execute');
+    expect(actionNames).not.toContain('external.connector.call');
     expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
+  it('does not steal billing, settlement, tariff, MaKo, legal or regulatory intents', async () => {
+    const prompts = [
+      'Bitte MaKo Abrechnung Settlement Tarifstatus fuer Lieferstellen pruefen.',
+      'Bitte legal regulatory clarification fuer EEG Rechtsfrage und BNetzA Nachweis klaeren.',
+    ];
+
+    for (const task of prompts) {
+      const result = await broker.call('capability-broker.recommend', { task });
+      expect(result.capability).not.toBe('decision_readiness_matrix');
+      expect(result.recommendedCapabilities[0].capability).not.toBe('decision_readiness_matrix');
+    }
   });
 
   it('routes cross-system variance prompts to the read-only VNB variance matrix', async () => {

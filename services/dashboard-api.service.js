@@ -1816,13 +1816,16 @@ module.exports = {
                   type: 'object',
                   properties: {
                     capabilityKey: { type: 'string' },
+                    caseId: { type: 'string' },
                     safety: { type: 'string' },
                     status: { type: 'string' },
+                    summary: { type: 'object' },
                     rows: { type: 'array' },
                     readinessCounts: { type: 'object' },
                     missingEvidence: { type: 'array' },
                     positiveFollowUps: { type: 'array' },
                     decisionBoundaries: { type: 'array' },
+                    evidenceFacts: { type: 'array' },
                     sourceActions: { type: 'object' },
                     dossierEvidence: { type: 'object' },
                     timestamp: { type: 'string', format: 'date-time' },
@@ -14676,13 +14679,19 @@ module.exports = {
           enablesDossierAddition: 'add next decision-point evidence',
         },
       ];
-      const classifiedRows = rows.map((row, index) => ({
-        ...row,
-        rowId: row.measureId || `row:${index + 1}`,
-        readiness: classifyRow(row),
-        evidenceStatus:
-          !hasValue(row.evidenceSource) || row.openEvidence.length > 0 ? 'incomplete' : 'provided',
-      }));
+      const classifiedRows = rows.map((row, index) => {
+        const rowStatus = classifyRow(row);
+        return {
+          ...row,
+          rowId: row.measureId || `row:${index + 1}`,
+          readiness: rowStatus,
+          status: rowStatus,
+          evidenceStatus:
+            !hasValue(row.evidenceSource) || row.openEvidence.length > 0
+              ? 'incomplete'
+              : 'provided',
+        };
+      });
       const readinessCounts = classifiedRows.reduce((acc, row) => {
         acc[row.readiness] = (acc[row.readiness] || 0) + 1;
         return acc;
@@ -14744,6 +14753,16 @@ module.exports = {
       if (baseRow.owner) dossierFacts.push(`Owner: ${baseRow.owner}`);
       if (baseRow.nextDecisionPoint)
         dossierFacts.push(`Next Decision Point: ${baseRow.nextDecisionPoint}`);
+      const summary = {
+        rowCount: classifiedRows.length,
+        status,
+        readyRows: readinessCounts.decision_ready || 0,
+        gapRows: readinessCounts.evidence_gap || 0,
+        financingRiskRows: readinessCounts.financing_risk || 0,
+        ownerNeededRows: readinessCounts.owner_needed || 0,
+        informationalRows: readinessCounts.informational || 0,
+        missingEvidenceCount: missingEvidence.length,
+      };
 
       return {
         matrixId: `drm:${Buffer.from(
@@ -14752,18 +14771,21 @@ module.exports = {
           .toString('base64url')
           .slice(0, 24)}`,
         capabilityKey: 'decision_readiness_matrix',
-        safety: 'read_only',
+        caseId: params.caseId || null,
+        safety: 'read_only_evidence',
         requestContext: {
           caseId: params.caseId || null,
           includeSyntheticRows: Boolean(params.includeSyntheticRows),
         },
         status,
+        summary,
         rows: classifiedRows,
         readinessCounts,
         missingEvidence,
         positiveFollowUps,
         decisionBoundaries,
         dossierFacts,
+        evidenceFacts: dossierFacts,
         sourceActions: {
           inspected: ['dashboard-api.decisionReadinessMatrixStatus'],
           referenced: ['vdmi.dossier', 'evidence-registry.findings', 'decision-frame.list'],
@@ -14793,12 +14815,32 @@ module.exports = {
         })),
         dossierEvidence: {
           status,
+          summary,
           rows: classifiedRows,
           readinessCounts,
           missingEvidence,
           positiveFollowUps,
           decisionBoundaries,
+          sourceActions: {
+            notCalled: [
+              'budget.approve',
+              'finance.book',
+              'procurement.create',
+              'sap.erp.write',
+              'hitl.create',
+              'workflow.execute',
+              'webhook.emit',
+              'mail.send',
+              'billing.release',
+              'settlement.prepareBilling',
+              'tariff.mutate',
+              'mako.dispatch',
+              'device-control.execute',
+              'external.connector.call',
+            ],
+          },
           dossierFacts,
+          evidenceFacts: dossierFacts,
         },
       };
     },
