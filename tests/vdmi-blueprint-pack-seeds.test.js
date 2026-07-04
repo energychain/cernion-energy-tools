@@ -4,6 +4,7 @@ const {
   REQUIRED_DATA_CLASSES,
   REQUIRED_CONNECTION_DEADLINE_EVIDENCE,
   REQUIRED_COST_REVIEW_COMMITTEE_READINESS_EVIDENCE,
+  REQUIRED_CROSS_SYSTEM_VARIANCE_EVIDENCE,
   REQUIRED_ENERGY_SHARING_COLLECTIVE_APPROVAL_EVIDENCE,
   REQUIRED_EVIDENCE,
   REQUIRED_GAS_TRANSFORMATION_DATAROOM_REVIEW_EVIDENCE,
@@ -18,6 +19,7 @@ const {
   listVdmiBlueprintPackSeeds,
   stadtwerkMauerConnectionDeadlineEvidenceQueue,
   stadtwerkMauerCostReviewCommitteeReadiness,
+  stadtwerkMauerCrossSystemVarianceEvidenceMatrix,
   stadtwerkMauerEnergySharingCollectiveApproval,
   stadtwerkMauerGasTransformationDataroomReview,
   stadtwerkMauerMonitoringNonEscalationStatus,
@@ -216,6 +218,89 @@ describe('VDMI Blueprint Pack seeds', () => {
     );
     expect(getVdmiBlueprintPackSeed('stadtwerk-mauer-monitoring-non-escalation-status-v1')).toBe(
       stadtwerkMauerMonitoringNonEscalationStatus
+    );
+  });
+
+  test('exposes the Cross-System Variance Evidence Matrix seed as read-only metadata', () => {
+    expect(stadtwerkMauerCrossSystemVarianceEvidenceMatrix).toMatchObject({
+      id: 'stadtwerk-mauer-cross-system-variance-evidence-matrix-v1',
+      kind: 'vdmi_blueprint_pack_seed',
+      version: '1.0.0',
+      safetyClassification: 'read_only_blueprint_seed',
+      processFamily: 'vnb_data_quality_governance',
+      controlCase: 'cross_system_variance_evidence_matrix',
+      sourceApi: {
+        operation: 'GET /api/dashboard/cross-system-variance-matrix',
+        path: '/api/dashboard/cross-system-variance-matrix',
+        method: 'GET',
+        workbenchBrick: 'cross_system_variance_matrix',
+        capability: 'dashboard-api.crossSystemVarianceMatrixStatus',
+        readOnly: true,
+        invocation: 'source_hint_only',
+      },
+      demoTenant: {
+        tenantId: 'stadtwerk-mauer',
+        classification: 'synthetic_demo_tenant',
+      },
+    });
+
+    expect(listVdmiBlueprintPackSeeds()).toContainEqual(
+      expect.objectContaining({
+        id: 'stadtwerk-mauer-cross-system-variance-evidence-matrix-v1',
+        demoTenantId: 'stadtwerk-mauer',
+      })
+    );
+    expect(getVdmiBlueprintPackSeed('stadtwerk-mauer-cross-system-variance-evidence-matrix-v1')).toBe(
+      stadtwerkMauerCrossSystemVarianceEvidenceMatrix
+    );
+  });
+
+  test('validates Cross-System Variance Evidence Matrix without system or finance side effects', () => {
+    const result = validateVdmiBlueprintPackSeed(stadtwerkMauerCrossSystemVarianceEvidenceMatrix);
+    expect(result).toEqual({ valid: true, errors: [] });
+
+    const evidenceIds = stadtwerkMauerCrossSystemVarianceEvidenceMatrix.evidenceRequirements.map(
+      (item) => item.id
+    );
+    expect(evidenceIds).toEqual(expect.arrayContaining(REQUIRED_CROSS_SYSTEM_VARIANCE_EVIDENCE));
+    for (const item of stadtwerkMauerCrossSystemVarianceEvidenceMatrix.evidenceRequirements) {
+      expect(item.dataClass).toBe('syntheticTenantSeed');
+      expect(item.enablesDossierAddition).toEqual(expect.any(String));
+    }
+
+    expect(stadtwerkMauerCrossSystemVarianceEvidenceMatrix.forbiddenActions).toEqual(
+      expect.arrayContaining([
+        'erp_write',
+        'sap_write',
+        'gis_write',
+        'mdm_write',
+        'reconciliation_execute',
+        'revenue_booking',
+        'budget_approval',
+        'billing',
+        'settlement',
+        'tariff_mutation',
+        'mako_write',
+        'workflow_create',
+        'hitl_create',
+        'webhook_send',
+        'device_control',
+        'smgw_cls_device_control',
+        'external_connector_call',
+        'budibase_table_write',
+        'landing_registry_publication',
+        'cernion_de_publication',
+        'public_context_mutation',
+        'production_mutation',
+        'secret_key_handling',
+        'irreversible_tenant_mutation',
+        'personal_agent_hardcoding',
+      ])
+    );
+    expect(stadtwerkMauerCrossSystemVarianceEvidenceMatrix.publicContextMutationAllowed).toBe(false);
+    expect(stadtwerkMauerCrossSystemVarianceEvidenceMatrix.tenantProvisioningAllowed).toBe(false);
+    expect(stadtwerkMauerCrossSystemVarianceEvidenceMatrix.realWorldClaim).toBe(
+      'synthetic_demo_only'
     );
   });
 
@@ -724,6 +809,64 @@ describe('VDMI Blueprint Pack seeds', () => {
     }
   });
 
+  test('exposes a canonical Demo-Raum process matrix for Cross-System Variance Evidence Matrix sync', () => {
+    const matrix = stadtwerkMauerCrossSystemVarianceEvidenceMatrix.demoProcessMatrix;
+
+    expect(matrix.slug).toBe('cross-system-variance-evidence-matrix');
+    expect(matrix.roleLegend.M).toBe('Mitwirkend');
+    expect(matrix.headers).toEqual([
+      'Phase',
+      'V = Verantwortlich',
+      'D = Durchfuehrend',
+      'M = Mitwirkend',
+      'I = Informiert',
+      'Nachweise',
+    ]);
+    expect(matrix.rows).toHaveLength(4);
+    expect(matrix.allowedDataClasses).toEqual(REQUIRED_DATA_CLASSES);
+    expect(matrix.downstreamHandoff).toMatchObject({
+      blueprintPack: 'complete',
+      landingRegistry: 'pending',
+      productiveDemoRoom: 'pending',
+    });
+    expect(matrix.rows[1]).toMatchObject({
+      phase: '2',
+      v: 'ROLE_CONTROLLING',
+      d: 'ROLE_CERNION_GOVERNANCE',
+      m: 'ROLE_ASSET_MDM_OWNER',
+      i: 'ROLE_MANAGEMENT',
+      evidenceRequirements: [
+        'amountRevenueImpactEvidence',
+        'assetScopeEvidence',
+        'thresholdEvidence',
+      ],
+      gateOutcome: 'impact_threshold_classification_review_only',
+    });
+
+    for (const row of matrix.rows) {
+      expect(row).toEqual(
+        expect.objectContaining({
+          phase: expect.any(String),
+          v: expect.stringMatching(/^ROLE_/),
+          d: expect.stringMatching(/^ROLE_/),
+          m: expect.stringMatching(/^ROLE_/),
+          i: expect.stringMatching(/^ROLE_/),
+          evidenceRequirements: expect.arrayContaining([expect.any(String)]),
+          dataClassRefs: expect.arrayContaining([expect.any(String)]),
+          gateOutcome: expect.any(String),
+          enablesDossierAddition: expect.any(String),
+        })
+      );
+
+      for (const roleCell of [row.v, row.d, row.m, row.i]) {
+        expect(REQUIRED_DATA_CLASSES).not.toContain(roleCell);
+        expect(roleCell).not.toMatch(
+          /Phase|Verantwortlich|Durchfuehrend|Mitwirkend|Informiert|Nachweise|source|target|revenue|amount|threshold|evidence/i
+        );
+      }
+    }
+  });
+
   test('exposes the Energy Sharing collective approval seed as read-only metadata', () => {
     expect(stadtwerkMauerEnergySharingCollectiveApproval).toMatchObject({
       id: 'stadtwerk-mauer-energy-sharing-collective-approval-v1',
@@ -845,6 +988,65 @@ describe('VDMI Blueprint Pack seeds', () => {
       roleHint: 'ROLE_CONTROLLING',
       execution: 'none',
     });
+  });
+
+  test('builds scalar matrix-sync facts and clarification rows for Cross-System Variance Evidence Matrix', () => {
+    const sync = buildDemoProcessMatrixSync(stadtwerkMauerCrossSystemVarianceEvidenceMatrix);
+    const clarificationItems = buildWorkbenchClarificationItems(
+      stadtwerkMauerCrossSystemVarianceEvidenceMatrix
+    );
+    const draft = buildLandingRegistryDraftFromBlueprintSeed(
+      stadtwerkMauerCrossSystemVarianceEvidenceMatrix
+    );
+
+    expect(sync).toMatchObject({
+      slug: 'cross-system-variance-evidence-matrix',
+      expectedSlug: 'cross-system-variance-evidence-matrix',
+      synced: true,
+      roleLegendM: 'Mitwirkend',
+      rowCount: 4,
+      rowCountValid: true,
+      roleCellsClean: true,
+      dataClassesLimited: true,
+      forbiddenActionsStatus: 'not_introduced',
+    });
+    expect(sync.evidenceRequirements).toEqual(
+      expect.arrayContaining(REQUIRED_CROSS_SYSTEM_VARIANCE_EVIDENCE)
+    );
+    expect(sync.rows[2]).toMatchObject({
+      phase: '3',
+      roles: {
+        V: 'ROLE_GOVERNANCE_OWNER',
+        D: 'ROLE_CERNION_GOVERNANCE',
+        M: 'ROLE_CONTROLLING',
+        I: 'ROLE_COMMERCIAL_AUDIT',
+      },
+      gateOutcome: 'owner_deadline_gate_visible',
+    });
+    expect(clarificationItems[0]).toMatchObject({
+      id: 'cross_system_variance_evidence_matrix:sourceSystemEvidence',
+      processFamily: 'vnb_data_quality_governance',
+      controlCase: 'cross_system_variance_evidence_matrix',
+      roleHint: 'ROLE_GOVERNANCE_OWNER',
+      execution: 'none',
+    });
+    expect(draft).toMatchObject({
+      slug: 'cross-system-variance-evidence-matrix',
+      seedId: 'stadtwerk-mauer-cross-system-variance-evidence-matrix-v1',
+      rowCount: 4,
+      syntheticDataStatement: expect.stringContaining('synthetic'),
+    });
+    expect(draft.safetyBoundaries).toEqual(
+      expect.arrayContaining([
+        'erp_write',
+        'sap_write',
+        'gis_write',
+        'mdm_write',
+        'reconciliation_execute',
+        'budibase_table_write',
+        'personal_agent_hardcoding',
+      ])
+    );
   });
 
   test('validates required data-class separation and required evidence points', () => {

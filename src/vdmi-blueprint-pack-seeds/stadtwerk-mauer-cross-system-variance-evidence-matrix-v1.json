@@ -1,0 +1,314 @@
+{
+  "id": "stadtwerk-mauer-cross-system-variance-evidence-matrix-v1",
+  "kind": "vdmi_blueprint_pack_seed",
+  "version": "1.0.0",
+  "safetyClassification": "read_only_blueprint_seed",
+  "title": "Stadtwerk Mauer Cross-System Variance Evidence Matrix seed",
+  "processFamily": "vnb_data_quality_governance",
+  "controlCase": "cross_system_variance_evidence_matrix",
+  "sourceApi": {
+    "operation": "GET /api/dashboard/cross-system-variance-matrix",
+    "path": "/api/dashboard/cross-system-variance-matrix",
+    "method": "GET",
+    "workbenchBrick": "cross_system_variance_matrix",
+    "capability": "dashboard-api.crossSystemVarianceMatrixStatus",
+    "readOnly": true,
+    "invocation": "source_hint_only",
+    "relatedContextBricks": [
+      "GET /api/dashboard/stadtwerk-mauer-role-workbench-catalog",
+      "GET /api/dashboard/stadtwerk-mauer-case-detail",
+      "GET /api/dashboard/evidence-freshness-guard",
+      "GET /api/dashboard/leadership-delta-cockpit"
+    ]
+  },
+  "demoTenant": {
+    "tenantId": "stadtwerk-mauer",
+    "classification": "synthetic_demo_tenant",
+    "description": "Virtual Stadtwerk Mauer demo tenant; variance rows, thresholds, owners, deadlines and evidence references are synthetic invented governance data."
+  },
+  "roleQuestion": {
+    "actor": "Controller / Asset-MDM Owner / Governance Owner",
+    "answerableIn": "under_one_minute",
+    "question": "Which cross-system discrepancy blocks a revenue, budget or asset decision, who owns clarification, what evidence is missing, and which safe gate is available?"
+  },
+  "dataClasses": {
+    "publicContextLayer": {
+      "description": "Read-only public or curated vocabulary for variance states, VDMI roles and governance handoff labels. Demo reset flows must not mutate this layer.",
+      "examples": ["read-only variance-state vocabulary", "VDMI role legend", "public governance handoff label"]
+    },
+    "syntheticTenantSeed": {
+      "description": "Invented Stadtwerk-Mauer source/target systems, variance objects, thresholds, owners, deadlines and evidence references.",
+      "examples": ["synthetic GIS asset delta", "synthetic SAP revenue variance", "synthetic clarification owner"]
+    },
+    "sandboxRuntimeArtifact": {
+      "description": "Resettable output from Cernion/Rundeck or Workbench verification runs, separate from public context baselines.",
+      "examples": ["variance matrix render proof", "Blueprint-Pack matrix sync artifact", "read-model refresh proof"]
+    }
+  },
+  "roles": [
+    {
+      "roleId": "ROLE_GOVERNANCE_OWNER",
+      "relation": "verantwortlich",
+      "responsibility": "Owns the governance gate for whether variance evidence is management-ready or still blocked by missing source, owner, threshold or evidence facts."
+    },
+    {
+      "roleId": "ROLE_CERNION_GOVERNANCE",
+      "relation": "durchfuehrend",
+      "responsibility": "Verifies the Blueprint-Pack seed, matrix sync, no-call boundary and source API hint without creating runtime records."
+    },
+    {
+      "roleId": "ROLE_CONTROLLING",
+      "relation": "mitwirkend",
+      "responsibility": "Provides revenue or budget impact context without approving budgets, booking revenue or changing finance systems."
+    },
+    {
+      "roleId": "ROLE_ASSET_MDM_OWNER",
+      "relation": "mitwirkend",
+      "responsibility": "Provides source and target asset-data lineage without writing to GIS, MDM, ERP or SAP systems."
+    },
+    {
+      "roleId": "ROLE_COMMERCIAL_AUDIT",
+      "relation": "information",
+      "responsibility": "Receives variance evidence and no-call guard context without triggering settlement, billing or tariff activity."
+    },
+    {
+      "roleId": "ROLE_MANAGEMENT",
+      "relation": "information",
+      "responsibility": "Receives management-readiness status after evidence gates are satisfied, without making the seed an approval workflow."
+    }
+  ],
+  "evidenceRequirements": [
+    {
+      "id": "sourceSystemEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds the source system and lineage row once the synthetic variance source is supplied."
+    },
+    {
+      "id": "targetSystemEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds the target system comparison row once the synthetic target reference is supplied."
+    },
+    {
+      "id": "affectedObjectEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds the affected asset, revenue object or budget item so the dossier can anchor the discrepancy."
+    },
+    {
+      "id": "amountRevenueImpactEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "review",
+      "enablesDossierAddition": "Adds the quantified amount or revenue impact needed for threshold classification."
+    },
+    {
+      "id": "assetScopeEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds the affected asset scope without changing Asset-MDM, GIS or ERP records."
+    },
+    {
+      "id": "ownerEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "needs_owner",
+      "enablesDossierAddition": "Adds the clarification owner and role queue context without creating HITL or workflow tasks."
+    },
+    {
+      "id": "deadlineEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds the deadline gate so the workbench can sort variance clarification without sending reminders."
+    },
+    {
+      "id": "thresholdEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "review",
+      "enablesDossierAddition": "Adds the management threshold used to classify revenue, budget or asset-scope impact."
+    },
+    {
+      "id": "evidenceReference",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds the official variance evidence reference once it is supplied by the tenant."
+    }
+  ],
+  "demoProcessMatrix": {
+    "slug": "cross-system-variance-evidence-matrix",
+    "title": "Cross-System Variance Evidence Matrix",
+    "roleLegend": {
+      "V": "Verantwortlich",
+      "D": "Durchfuehrend",
+      "M": "Mitwirkend",
+      "I": "Informiert"
+    },
+    "headers": [
+      "Phase",
+      "V = Verantwortlich",
+      "D = Durchfuehrend",
+      "M = Mitwirkend",
+      "I = Informiert",
+      "Nachweise"
+    ],
+    "allowedDataClasses": [
+      "publicContextLayer",
+      "syntheticTenantSeed",
+      "sandboxRuntimeArtifact"
+    ],
+    "downstreamHandoff": {
+      "blueprintPack": "complete",
+      "landingRegistry": "pending",
+      "productiveDemoRoom": "pending",
+      "acceptanceNote": "Blueprint-Pack/Cernion-Energy-Tools matrix is canonical; Landing-Registry and productive Demo-Raum sync remain downstream proof steps."
+    },
+    "rows": [
+      {
+        "phase": "1",
+        "v": "ROLE_ASSET_MDM_OWNER",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_CONTROLLING",
+        "i": "ROLE_COMMERCIAL_AUDIT",
+        "evidenceRequirements": [
+          "sourceSystemEvidence",
+          "targetSystemEvidence",
+          "affectedObjectEvidence"
+        ],
+        "dataClassRefs": [
+          "publicContextLayer",
+          "syntheticTenantSeed"
+        ],
+        "status": "evidence_gap",
+        "gateOutcome": "source_target_and_object_lineage_visible",
+        "enablesDossierAddition": "Adds source, target and affected-object lineage before any reconciliation or system correction is discussed."
+      },
+      {
+        "phase": "2",
+        "v": "ROLE_CONTROLLING",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_ASSET_MDM_OWNER",
+        "i": "ROLE_MANAGEMENT",
+        "evidenceRequirements": [
+          "amountRevenueImpactEvidence",
+          "assetScopeEvidence",
+          "thresholdEvidence"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed"
+        ],
+        "status": "review",
+        "gateOutcome": "impact_threshold_classification_review_only",
+        "enablesDossierAddition": "Adds quantified impact and threshold classification without booking revenue, approving budget or changing asset scope."
+      },
+      {
+        "phase": "3",
+        "v": "ROLE_GOVERNANCE_OWNER",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_CONTROLLING",
+        "i": "ROLE_COMMERCIAL_AUDIT",
+        "evidenceRequirements": [
+          "ownerEvidence",
+          "deadlineEvidence"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed",
+          "sandboxRuntimeArtifact"
+        ],
+        "status": "needs_owner",
+        "gateOutcome": "owner_deadline_gate_visible",
+        "enablesDossierAddition": "Adds the accountable owner and deadline so a role queue can display the gap without creating a workflow."
+      },
+      {
+        "phase": "4",
+        "v": "ROLE_GOVERNANCE_OWNER",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_ASSET_MDM_OWNER",
+        "i": "ROLE_MANAGEMENT",
+        "evidenceRequirements": [
+          "evidenceReference"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed",
+          "sandboxRuntimeArtifact"
+        ],
+        "status": "management_ready",
+        "gateOutcome": "management_readiness_handover_or_evidence_gap",
+        "enablesDossierAddition": "Adds the official evidence reference and management-ready handover status after all read-only checks are satisfied."
+      }
+    ]
+  },
+  "decisionPolicy": {
+    "onMissingEvidence": "evidence_gap",
+    "onMissingOwner": "needs_owner",
+    "onReadyEvidence": "management_ready",
+    "allowedStates": ["clarification", "evidence_gap", "needs_owner", "review", "management_ready"],
+    "mustNotTrigger": [
+      "erp_write",
+      "sap_write",
+      "gis_write",
+      "mdm_write",
+      "reconciliation_execute",
+      "revenue_booking",
+      "budget_approval",
+      "billing",
+      "settlement",
+      "tariff_mutation",
+      "mako_write",
+      "workflow_create",
+      "hitl_create",
+      "webhook_send",
+      "device_control",
+      "smgw_cls_device_control",
+      "external_connector_call",
+      "public_context_mutation",
+      "production_mutation",
+      "personal_agent_hardcoding"
+    ]
+  },
+  "allowedCommandHints": [
+    {
+      "id": "inspect-cross-system-variance-matrix-brick",
+      "kind": "source_api_reference",
+      "execution": "metadata_only",
+      "description": "References the existing read-only dashboard brick; this seed must not invoke connectors, reconcile systems, mutate master data or create approval work."
+    }
+  ],
+  "forbiddenActions": [
+    "erp_write",
+    "sap_write",
+    "gis_write",
+    "mdm_write",
+    "reconciliation_execute",
+    "revenue_booking",
+    "budget_approval",
+    "billing",
+    "settlement",
+    "tariff_mutation",
+    "mako_write",
+    "workflow_create",
+    "hitl_create",
+    "webhook_send",
+    "device_control",
+    "smgw_cls_device_control",
+    "external_connector_call",
+    "budibase_table_write",
+    "landing_registry_publication",
+    "cernion_de_publication",
+    "public_context_mutation",
+    "production_mutation",
+    "secret_key_handling",
+    "irreversible_tenant_mutation",
+    "personal_agent_hardcoding"
+  ],
+  "publicContextMutationAllowed": false,
+  "tenantProvisioningAllowed": false,
+  "realWorldClaim": "synthetic_demo_only"
+}

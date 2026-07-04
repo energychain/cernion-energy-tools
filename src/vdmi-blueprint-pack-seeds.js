@@ -9,6 +9,7 @@ const stadtwerkMauerPortfolioMarketValueReadiness = require('./vdmi-blueprint-pa
 const stadtwerkMauerGasTransformationDataroomReview = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-gas-transformation-dataroom-review-v1.json');
 const stadtwerkMauerCostReviewCommitteeReadiness = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-cost-review-committee-readiness-v1.json');
 const stadtwerkMauerMonitoringNonEscalationStatus = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-monitoring-non-escalation-status-v1.json');
+const stadtwerkMauerCrossSystemVarianceEvidenceMatrix = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-cross-system-variance-evidence-matrix-v1.json');
 
 const REQUIRED_EVIDENCE = Object.freeze([
   'napReference',
@@ -96,6 +97,17 @@ const REQUIRED_MONITORING_NON_ESCALATION_STATUS_EVIDENCE = Object.freeze([
   'missingEvidenceList',
   'reviewReadinessMarker',
 ]);
+const REQUIRED_CROSS_SYSTEM_VARIANCE_EVIDENCE = Object.freeze([
+  'sourceSystemEvidence',
+  'targetSystemEvidence',
+  'affectedObjectEvidence',
+  'amountRevenueImpactEvidence',
+  'assetScopeEvidence',
+  'ownerEvidence',
+  'deadlineEvidence',
+  'thresholdEvidence',
+  'evidenceReference',
+]);
 
 const REQUIRED_DATA_CLASSES = Object.freeze([
   'publicContextLayer',
@@ -139,6 +151,13 @@ const REQUIRED_MONITORING_NON_ESCALATION_STATUS_ROLE_IDS = Object.freeze([
   'ROLE_GOVERNANCE_OWNER',
   'ROLE_CERNION_GOVERNANCE',
 ]);
+const REQUIRED_CROSS_SYSTEM_VARIANCE_ROLE_IDS = Object.freeze([
+  'ROLE_ASSET_MDM_OWNER',
+  'ROLE_COMMERCIAL_AUDIT',
+  'ROLE_CONTROLLING',
+  'ROLE_GOVERNANCE_OWNER',
+  'ROLE_MANAGEMENT',
+]);
 const REQUIRED_MATRIX_ROLE_KEYS = Object.freeze(['v', 'd', 'm', 'i']);
 const MATRIX_HEADER_WORDS = Object.freeze([
   'Phase',
@@ -159,6 +178,7 @@ const SEEDS = Object.freeze([
   stadtwerkMauerGasTransformationDataroomReview,
   stadtwerkMauerCostReviewCommitteeReadiness,
   stadtwerkMauerMonitoringNonEscalationStatus,
+  stadtwerkMauerCrossSystemVarianceEvidenceMatrix,
 ]);
 
 const SEED_VALIDATION_REQUIREMENTS = Object.freeze({
@@ -206,6 +226,11 @@ const SEED_VALIDATION_REQUIREMENTS = Object.freeze({
     requiredEvidence: REQUIRED_MONITORING_NON_ESCALATION_STATUS_EVIDENCE,
     requiredRoleIds: REQUIRED_MONITORING_NON_ESCALATION_STATUS_ROLE_IDS,
     expectedMatrixSlug: 'monitoring-non-escalation-status',
+  }),
+  [stadtwerkMauerCrossSystemVarianceEvidenceMatrix.id]: Object.freeze({
+    requiredEvidence: REQUIRED_CROSS_SYSTEM_VARIANCE_EVIDENCE,
+    requiredRoleIds: REQUIRED_CROSS_SYSTEM_VARIANCE_ROLE_IDS,
+    expectedMatrixSlug: 'cross-system-variance-evidence-matrix',
   }),
 });
 
@@ -411,6 +436,8 @@ function buildWorkbenchClarificationItems(seed) {
           ? 'ROLE_PORTFOLIO_OWNER'
         : selectedSeed.id === stadtwerkMauerMonitoringNonEscalationStatus.id
           ? 'ROLE_GOVERNANCE_OWNER'
+        : selectedSeed.id === stadtwerkMauerCrossSystemVarianceEvidenceMatrix.id
+          ? 'ROLE_GOVERNANCE_OWNER'
         : selectedSeed.id === stadtwerkMauerCostReviewCommitteeReadiness.id
           ? 'ROLE_CONTROLLING'
         : selectedSeed.id === stadtwerkMauerConnectionDeadlineEvidenceQueue.id
@@ -601,6 +628,8 @@ module.exports = {
   REQUIRED_CONNECTION_DEADLINE_ROLE_IDS,
   REQUIRED_COST_REVIEW_COMMITTEE_READINESS_EVIDENCE,
   REQUIRED_COST_REVIEW_COMMITTEE_READINESS_ROLE_IDS,
+  REQUIRED_CROSS_SYSTEM_VARIANCE_EVIDENCE,
+  REQUIRED_CROSS_SYSTEM_VARIANCE_ROLE_IDS,
   REQUIRED_ENERGY_SHARING_COLLECTIVE_APPROVAL_EVIDENCE,
   REQUIRED_ENERGY_SHARING_COLLECTIVE_APPROVAL_ROLE_IDS,
   REQUIRED_EVIDENCE,
@@ -626,6 +655,7 @@ module.exports = {
   stadtwerkMauerEnergySharingCollectiveApproval,
   stadtwerkMauerConnectionDeadlineEvidenceQueue,
   stadtwerkMauerCostReviewCommitteeReadiness,
+  stadtwerkMauerCrossSystemVarianceEvidenceMatrix,
   stadtwerkMauerGasTransformationDataroomReview,
   stadtwerkMauerMonitoringNonEscalationStatus,
   stadtwerkMauerPortfolioMarketValueReadiness,
