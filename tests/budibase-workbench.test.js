@@ -459,6 +459,82 @@ const blueprintVerifyFixture = {
   },
 };
 
+const blueprintVarianceFixture = {
+  ...blueprintVerifyFixture,
+  data: {
+    ...blueprintVerifyFixture.data,
+    seedId: 'stadtwerk-mauer-cross-system-variance-evidence-matrix-v1',
+    processFamily: 'vnb_data_quality_governance',
+    controlCase: 'cross_system_variance_evidence_matrix',
+    requiredEvidence: [
+      'sourceSystemVarianceSnapshot',
+      'targetSystemVarianceSnapshot',
+      'varianceOwner',
+      'dataClassBoundary',
+    ],
+    missingEvidence: [
+      {
+        missingDataPoint: 'targetSystemVarianceSnapshot',
+        state: 'evidence_gap',
+        enablesDossierAddition: 'show target-system variance snapshot evidence',
+      },
+    ],
+    demoProcessMatrixSync: {
+      slug: 'cross-system-variance-evidence-matrix',
+      expectedSlug: 'cross-system-variance-evidence-matrix',
+      synced: false,
+      roleLegendM: 'Mitwirkend',
+      rowCount: 4,
+      rowCountValid: true,
+      roleCellsClean: true,
+      dataClassesLimited: true,
+      forbiddenActionsStatus: 'not_introduced',
+      evidenceRequirements: [
+        'sourceSystemVarianceSnapshot',
+        'targetSystemVarianceSnapshot',
+        'varianceOwner',
+        'dataClassBoundary',
+      ],
+      dataClassRefs: ['publicContextLayer', 'syntheticTenantSeed'],
+      downstreamHandoff: {
+        blueprintPack: 'complete',
+        landingRegistry: 'pending',
+        productiveDemoRoom: 'blocked',
+      },
+      rows: [
+        {
+          phase: '1',
+          roles: {
+            V: 'ROLE_VDMI_GOVERNANCE',
+            D: 'ROLE_DATENMANAGEMENT',
+            M: 'ROLE_NETZPLANUNG',
+            I: 'ROLE_MANAGEMENT',
+          },
+          evidenceRequirements: ['sourceSystemVarianceSnapshot', 'targetSystemVarianceSnapshot'],
+          dataClassRefs: ['publicContextLayer', 'syntheticTenantSeed'],
+          status: 'variance_review',
+          gateOutcome: 'sync_proof_required',
+          enablesDossierAddition: 'Adds cross-system variance evidence boundaries.',
+        },
+      ],
+    },
+    forbiddenActions: [
+      'landing-registry.publish',
+      'cernion.de.publish',
+      'seed.import',
+      'budibase.table.write',
+    ],
+    sourceActions: {
+      notCalled: [
+        'landing-registry.publish',
+        'cernion.de.publish',
+        'budibase.table.write',
+        'personal-agent.execute',
+      ],
+    },
+  },
+};
+
 describe('Budibase Stadtwerk Mauer workbench manifest', () => {
   const expectedSectionIds = [
     'vdmi_profile_summary',
@@ -486,6 +562,14 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
     'blueprint_verify_role_relations',
     'blueprint_verify_warnings_next_gates',
     'blueprint_verify_forbidden_actions',
+    'blueprint_seed_selector',
+    'blueprint_variance_verify_summary',
+    'blueprint_variance_demo_process_matrix',
+    'blueprint_variance_required_evidence',
+    'blueprint_variance_data_classes',
+    'blueprint_variance_forbidden_actions',
+    'blueprint_variance_sync_focus',
+    'blueprint_variance_matrix_focus',
     'vnb_delta_signal_queue_classifier',
     'vnb_delta_signal_queue_owner_evidence',
     'vnb_delta_signal_queue_safe_next_actions',
@@ -507,7 +591,10 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       manifest.queries
         .filter(
           (query) =>
-            (query.name.includes('Vdmi') && !query.name.includes('VdmiBlueprintPackVerify')) ||
+            (query.name.includes('Vdmi') &&
+              !query.name.includes('VdmiBlueprintPackVerify') &&
+              !query.name.includes('VdmiBlueprintSelector') &&
+              !query.name.includes('VdmiBlueprintSeedSelector')) ||
             query.name.includes('CapabilityProjection') ||
             query.name.includes('EventReplay')
         )
@@ -552,6 +639,29 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
     );
 
     expect(paths).toEqual(new Set(['/api/dashboard/stadtwerk-mauer-blueprint-pack-verify']));
+  });
+
+  it('composes the Blueprint seed selector from read-only Workbench bricks', () => {
+    const queries = manifest.queries.filter((query) => query.name.includes('BlueprintSelector'));
+    const paths = new Set(queries.map((query) => query.path));
+
+    expect(paths).toEqual(
+      new Set([
+        '/api/dashboard/stadtwerk-mauer-blueprint-pack-verify',
+        '/api/dashboard/stadtwerk-mauer-transfer-readiness',
+        '/api/dashboard/cross-system-variance-matrix',
+      ])
+    );
+    expect(
+      queries.some((query) =>
+        query.queryString?.includes('stadtwerk-mauer-cross-system-variance-evidence-matrix-v1')
+      )
+    ).toBe(true);
+    expect(
+      manifest.sections
+        .filter((section) => section.id.startsWith('blueprint_variance'))
+        .every((section) => queries.some((query) => query.name === section.queryName))
+    ).toBe(true);
   });
 
   it('flattens evidence freshness rows for the selected synthetic signal', () => {
@@ -693,6 +803,145 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
         expect.objectContaining({ action: 'personal-agent.execute', status: 'not_called' }),
       ])
     );
+  });
+
+  it('flattens the Blueprint selector and #382 matrix-sync rows for display-safe cells', () => {
+    const assertNoRawObjectText = (rows) => {
+      for (const row of rows) {
+        for (const value of Object.values(row)) {
+          if (typeof value === 'string') {
+            expect(value).not.toContain('[object Object]');
+            expect(value).not.toMatch(/^\s*[{[]/);
+          }
+        }
+      }
+    };
+
+    const selectorRows = runTransformer(
+      'getVdmiBlueprintSeedSelectorRows',
+      blueprintVerifyFixture
+    );
+    expectScalarRows(selectorRows);
+    assertNoRawObjectText(selectorRows);
+    expect(selectorRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          availableSeedId: 'stadtwerk-mauer-substation-load-assessment-v1',
+          selected: false,
+          sourceClass: 'blueprint_seed_selector',
+        }),
+        expect.objectContaining({
+          availableSeedId: 'stadtwerk-mauer-cross-system-variance-evidence-matrix-v1',
+          selectedSeedId: 'stadtwerk-mauer-cross-system-variance-evidence-matrix-v1',
+          selected: true,
+          controlCase: 'cross_system_variance_evidence_matrix',
+        }),
+      ])
+    );
+
+    const summaryRows = runTransformer(
+      'getVdmiBlueprintSelectorVarianceVerifySummaryRows',
+      blueprintVarianceFixture
+    );
+    expectScalarRows(summaryRows);
+    expect(summaryRows[0]).toMatchObject({
+      seedId: 'stadtwerk-mauer-cross-system-variance-evidence-matrix-v1',
+      processFamily: 'vnb_data_quality_governance',
+      controlCase: 'cross_system_variance_evidence_matrix',
+      sourceClass: 'vdmi_blueprint_pack_verify_selector',
+    });
+
+    const matrixRows = runTransformer(
+      'getVdmiBlueprintSelectorVarianceMatrixRows',
+      blueprintVarianceFixture
+    );
+    expectScalarRows(matrixRows);
+    assertNoRawObjectText(matrixRows);
+    expect(matrixRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'variance_matrix_sync_summary',
+          roleLegendM: 'Mitwirkend',
+          status: 'sync_proof_required',
+          downstreamHandoff: 'complete -> pending -> blocked',
+        }),
+        expect.objectContaining({
+          rowKey: 'variance_matrix_row_1',
+          phase: '1',
+          v: 'ROLE_VDMI_GOVERNANCE',
+          d: 'ROLE_DATENMANAGEMENT',
+          m: 'ROLE_NETZPLANUNG',
+          i: 'ROLE_MANAGEMENT',
+          nachweise: 'sourceSystemVarianceSnapshot, targetSystemVarianceSnapshot',
+        }),
+      ])
+    );
+    expect(matrixRows[1]).not.toHaveProperty('roles');
+
+    const evidenceRows = runTransformer(
+      'getVdmiBlueprintSelectorVarianceEvidenceRows',
+      blueprintVarianceFixture
+    );
+    expectScalarRows(evidenceRows);
+    expect(evidenceRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          evidenceId: 'targetSystemVarianceSnapshot',
+          enablesDossierAddition: 'show target-system variance snapshot evidence',
+        }),
+      ])
+    );
+
+    const dataClassRows = runTransformer(
+      'getVdmiBlueprintSelectorVarianceDataClassRows',
+      blueprintVarianceFixture
+    );
+    expectScalarRows(dataClassRows);
+    expect(dataClassRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ dataClass: 'public_context', mutable: false }),
+        expect.objectContaining({ dataClass: 'synthetic_seed', syntheticOnly: true }),
+      ])
+    );
+
+    const guardRows = runTransformer(
+      'getVdmiBlueprintSelectorVarianceForbiddenActionRows',
+      blueprintVarianceFixture
+    );
+    expectScalarRows(guardRows);
+    expect(guardRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ action: 'landing-registry.publish', status: 'forbidden' }),
+        expect.objectContaining({ action: 'personal-agent.execute', status: 'not_called' }),
+      ])
+    );
+
+    const syncRows = runTransformer('getVdmiBlueprintSelectorSyncFocusRows', {
+      status: 'transfer_readiness_pending',
+      transferSummaryRows: [{ status: 'blocked', transferState: 'sync_proof_required' }],
+    });
+    expectScalarRows(syncRows);
+    expect(syncRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          selectedSeedId: 'stadtwerk-mauer-cross-system-variance-evidence-matrix-v1',
+          focusPath: '/api/dashboard/cross-system-variance-matrix',
+          sourceClass: 'blueprint_selector_sync_focus',
+        }),
+      ])
+    );
+
+    const focusRows = runTransformer('getVdmiBlueprintSelectorVarianceMatrixFocusRows', {
+      status: 'matrix_ready',
+      matrixStatus: 'variance_matrix_ready',
+      evidenceStatus: 'read_only_evidence_complete',
+    });
+    expectScalarRows(focusRows);
+    expect(focusRows[0]).toMatchObject({
+      focusPath: '/api/dashboard/cross-system-variance-matrix',
+      matrixStatus: 'variance_matrix_ready',
+      sourceClass: 'blueprint_selector_variance_matrix_focus',
+    });
   });
 
   it('flattens VDMI profile rows for display-safe Budibase tables', () => {
