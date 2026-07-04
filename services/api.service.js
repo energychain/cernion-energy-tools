@@ -1468,6 +1468,8 @@ module.exports = {
             'dashboard-api.decisionReadinessMatrixStatus',
           'GET /dashboard/cross-system-variance-matrix':
             'dashboard-api.crossSystemVarianceMatrixStatus',
+          'GET /dashboard/regulatory-signal-process-translator':
+            'dashboard-api.regulatorySignalProcessTranslatorStatus',
           'GET /dashboard/cost-review-committee-status':
             'dashboard-api.costReviewCommitteeStatus',
           'GET /dashboard/steering-artifact-acceptance-gate':

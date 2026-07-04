@@ -951,6 +951,24 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes regulatory signal prompts to the read-only process translator', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Bitte uebersetze ein BNetzA Regulatoriksignal zu Messstellenbetrieb, Flexibilitaet, Fristenmatrix, Nachweismatrix und Testfallableitung fuer VNB Governance.',
+    });
+
+    expect(result.capability).toBe('regulatory_signal_process_translator');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'regulatory_signal_process_translator'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.regulatorySignalProcessTranslatorStatus');
+    expect(actionNames).not.toContain('legal.interpret');
+    expect(actionNames).not.toContain('compliance.decide');
+    expect(actionNames).not.toContain('bnetza.crawler.fetch');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes Netzsignal Delta-Gating prompts to the read-only evidence classifier', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Klassifiziere Netzsignal Delta-Gating: bekannter Kontext, Freshness Proof, Entscheidungsdelta, neuer Blocker, Owner, Frist, Materialitaet und naechster Evidenzpunkt.',

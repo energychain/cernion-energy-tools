@@ -115,6 +115,7 @@ const CAPABILITY_DOMAIN_MAP = {
   governance_management: 'governance',
   cross_domain_management: 'governance',
   vnb_data_quality_governance: 'governance',
+  vnb_governance: 'governance',
   management_steering: 'governance',
   nova_governance: 'governance',
   automation_governance: 'governance',

@@ -2413,6 +2413,79 @@ describe('dashboard-api.service', () => {
       });
     });
 
+    // -- regulatorySignalProcessTranslatorStatus ---------------------------
+
+    describe('regulatorySignalProcessTranslatorStatus', () => {
+      it('returns provenance and process gaps without legal interpretation or downstream actions', async () => {
+        const result = await broker.call('dashboard-api.regulatorySignalProcessTranslatorStatus', {
+          signalId: 'signal-380',
+          sourceName: 'BNetzA',
+          affectedDomain: 'messstellenbetrieb',
+          deadlineHint: '2026-Q4',
+        });
+
+        expect(result.status).toBe('needs_signal_provenance');
+        expect(result.capabilityKey).toBe('regulatory_signal_process_translator');
+        expect(result.affectedProcesses[0]).toMatchObject({
+          processKey: 'metering_operations',
+          affectedDomain: 'messstellenbetrieb',
+        });
+        expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+          expect.arrayContaining([
+            'signal_summary',
+            'published_at',
+            'process_hint',
+            'owner_hint',
+            'evidence_hint',
+            'test_case_hint',
+          ])
+        );
+        expect(result.positiveFollowUps[0].category).toBe(
+          'regulatory_signal_process_translator'
+        );
+        expect(result.sourceActions.notCalled).toEqual(
+          expect.arrayContaining([
+            'legal.interpret',
+            'compliance.decide',
+            'bnetza.crawler.fetch',
+            'hitl.create',
+            'mako.dispatch',
+            'billing.release',
+            'device-control.execute',
+            'external.connector.call',
+            'personal-agent.execute',
+          ])
+        );
+        expect(result.safety).toBe('read_only');
+      });
+
+      it('returns an operational translation matrix for complete supplied signal facts', async () => {
+        const result = await broker.call('dashboard-api.regulatorySignalProcessTranslatorStatus', {
+          signalId: 'signal-380',
+          sourceName: 'BNetzA',
+          publishedAt: '2026-07-01',
+          summary: 'Flexibilitaet und Messstellenbetrieb brauchen neue Nachweismatrix.',
+          affectedDomain: 'flexibilitaet',
+          processHint: 'steuerbarkeitscheck',
+          deadlineHint: '2026-Q4',
+          ownerHint: 'Netzbetrieb',
+          evidenceHint: 'regulatory-signal-ticket:380',
+          testCaseHint: 'no-device-control-smoke',
+        });
+
+        expect(result.status).toBe('operational_translation_ready');
+        expect(result.confidence).toBe('medium');
+        expect(result.missingEvidence).toEqual([]);
+        expect(result.affectedProcesses.map((process) => process.processKey)).toEqual(
+          expect.arrayContaining(['metering_operations', 'flexibility_grid_operations'])
+        );
+        expect(result.dataRequirements.map((entry) => entry.label)).toEqual(
+          expect.arrayContaining(['asset controllability scope', 'supplied owner hint'])
+        );
+        expect(result.dossierEvidence.dossierFacts).toContain('Open gaps: 0');
+      });
+    });
+
     // ── steeringArtifactAcceptanceGateStatus ────────────────────────────────
 
     describe('steeringArtifactAcceptanceGateStatus', () => {

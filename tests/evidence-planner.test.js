@@ -197,6 +197,33 @@ describe('T-EV-001 — evidence-planner: planEvidence() pure-function contract',
     );
   });
 
+  it('plans regulatory signal translator evidence as provenance and process gaps', () => {
+    const result = planEvidence(
+      { routeLabel: 'regulatory_signal_process_translator' },
+      {
+        sourceName: 'BNetzA',
+        summary: 'Messstellenbetrieb signal',
+        affectedDomain: 'messstellenbetrieb',
+      }
+    );
+
+    expect(result).not.toBeNull();
+    expect(result.registryKey).toBe('regulatory_signal_process_translator');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining(['signal_summary', 'source_name', 'affected_domain'])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'published_at',
+        'process_hint',
+        'deadline_hint',
+        'owner_hint',
+        'evidence_hint',
+        'test_case_hint',
+      ])
+    );
+  });
+
   it('plans VNB special-topic work-state evidence with leading source and owner gaps', () => {
     const result = planEvidence(
       { routeLabel: 'vnb_special_topic_workstate' },

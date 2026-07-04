@@ -715,6 +715,80 @@
     "sourceIssue": 381
   },
   {
+    "id": "dashboard-api.regulatorySignalProcessTranslatorStatus",
+    "action": "dashboard-api.regulatorySignalProcessTranslatorStatus",
+    "label": "Regulatory Signal Process Translator",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "signalId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "\\b(?:signalId|signal)[:= ]+([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "sourceName": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:sourceName|quelle|source)[:= ]+([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "affectedDomain": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:affectedDomain|domaene|domain)[:= ]+([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "processHint": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:processHint|prozess|process)[:= ]+([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "ownerHint": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:ownerHint|owner|verantwortlich)[:= ]+([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "dossierEvidence.status"], "label": "Regulatory Translation", "maxLen": 80 },
+        { "paths": ["signalSummary.sourceName", "dossierEvidence.signalSummary.sourceName"], "label": "Source", "maxLen": 100 },
+        { "paths": ["signalSummary.summary", "dossierEvidence.signalSummary.summary"], "label": "Summary", "maxLen": 160 },
+        { "paths": ["affectedProcesses.0.processKey", "dossierEvidence.affectedProcesses.0.processKey"], "label": "Process", "maxLen": 100 },
+        { "paths": ["decisionGates.0.label", "dossierEvidence.decisionGates.0.label"], "label": "Gate", "maxLen": 140 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["positiveFollowUps.0.enablesDossierAddition", "dossierEvidence.positiveFollowUps.0.enablesDossierAddition"], "label": "Follow-up Enables", "maxLen": 160 },
+        { "paths": ["timestamp"], "label": "Stand", "maxLen": 40 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "derived",
+    "timeoutMs": 7000,
+    "sourceIssue": 380
+  },
+  {
     "id": "dashboard-api.costReviewCommitteeStatus",
     "action": "dashboard-api.costReviewCommitteeStatus",
     "label": "Kostenpruefung Evidence Board",

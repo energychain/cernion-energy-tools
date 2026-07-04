@@ -2132,6 +2132,29 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasRegulatorySignalProcessTranslatorSignal =
+    /(regulatory signal process translator|regulatoriksignal|regulatorisches signal|prozessuebersetzung|prozessübersetzung|bnetza vorgaben)/i.test(
+      haystack
+    ) &&
+    /(fristenmatrix|nachweismatrix|testfallableitung|messstellenbetrieb|flexibilitaet|flexibilität|gas.?waerme|gas.?wärme|vnb governance|prozess|process)/i.test(
+      haystack
+    ) &&
+    !/(legal\.interpret|compliance\.decide|rechtsberatung|verbindliche rechtsauslegung|crawler|workflow execute|hitl\.create|billing|settlement|tariff|device-control|produktion)/i.test(
+      haystack
+    );
+
+  if (
+    hasRegulatorySignalProcessTranslatorSignal ||
+    haystack.includes('regulatory_signal_process_translator')
+  ) {
+    const regulatoryTranslatorCapability = findCapabilityByName(
+      'regulatory_signal_process_translator'
+    );
+    if (regulatoryTranslatorCapability) {
+      return { capability: regulatoryTranslatorCapability, score: 126, usedFallback: false };
+    }
+  }
+
   if (
     vdmiAssetValidationSignals.some((signal) => haystack.includes(signal)) ||
     hasVdmiAssetValidationCombo

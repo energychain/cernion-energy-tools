@@ -64,6 +64,7 @@ module.exports = {
       controllabilityAssetHandoverStatus: 5 * 60 * 1000, // 5 min
       decisionReadinessMatrixStatus: 5 * 60 * 1000, // 5 min
       crossSystemVarianceMatrixStatus: 5 * 60 * 1000, // 5 min
+      regulatorySignalProcessTranslatorStatus: 5 * 60 * 1000, // 5 min
       costReviewCommitteeStatus: 5 * 60 * 1000, // 5 min
       steeringArtifactAcceptanceGateStatus: 5 * 60 * 1000, // 5 min
       communicationBreakProcessRiskStatus: 5 * 60 * 1000, // 5 min
@@ -1942,6 +1943,93 @@ module.exports = {
           this.settings.cacheTtlMs.crossSystemVarianceMatrixStatus,
           async () => ({
             ...this.buildCrossSystemVarianceMatrixStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- regulatorySignalProcessTranslatorStatus ---------------------------
+    /**
+     * GET /api/dashboard/regulatory-signal-process-translator?signalId=...
+     *
+     * Read-only dossier-safe translator for caller-supplied regulatory signal
+     * facts. It derives operational process, data, evidence, test and gate
+     * hints without interpreting law, crawling sources or mutating workflows.
+     */
+    regulatorySignalProcessTranslatorStatus: {
+      rest: 'GET /regulatory-signal-process-translator',
+      params: {
+        signalId: { type: 'string', optional: true, min: 1 },
+        sourceName: { type: 'string', optional: true, min: 1 },
+        publishedAt: { type: 'string', optional: true, min: 1 },
+        signalText: { type: 'string', optional: true, min: 1 },
+        summary: { type: 'string', optional: true, min: 1 },
+        affectedDomain: { type: 'string', optional: true, min: 1 },
+        processHint: { type: 'string', optional: true, min: 1 },
+        deadlineHint: { type: 'string', optional: true, min: 1 },
+        ownerHint: { type: 'string', optional: true, min: 1 },
+        evidenceHint: { type: 'string', optional: true, min: 1 },
+        testCaseHint: { type: 'string', optional: true, min: 1 },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Regulatory signal process translator -- read-only governance evidence view',
+        description:
+          'Translates caller-supplied regulatory signal facts into operational VNB/EVU process, data, evidence, test-case and decision-gate hints. The endpoint does not provide legal advice, determine compliance truth, crawl sources, create workflow/HITL tasks, write SAP/ERP/GIS/MDM/Budibase data, mutate MaKo/billing/settlement/tariff/device-control state, call external connectors or add Personal-Agent shortcuts.',
+        parameters: [
+          { name: 'signalId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'sourceName', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'publishedAt', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'signalText', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'summary', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'affectedDomain', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'processHint', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'deadlineHint', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'ownerHint', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'evidenceHint', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'testCaseHint', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only operational translation of supplied regulatory signal facts',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    capabilityKey: { type: 'string' },
+                    safety: { type: 'string' },
+                    status: { type: 'string' },
+                    signalSummary: { type: 'object' },
+                    affectedProcesses: { type: 'array' },
+                    dataRequirements: { type: 'array' },
+                    evidenceRequirements: { type: 'array' },
+                    testCaseHints: { type: 'array' },
+                    decisionGates: { type: 'array' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    decisionBoundaries: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                    _errors: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `regulatory-signal-process-translator:${JSON.stringify(params)}`;
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.regulatorySignalProcessTranslatorStatus,
+          async () => ({
+            ...this.buildRegulatorySignalProcessTranslatorStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -14978,6 +15066,285 @@ module.exports = {
           status,
           rows: classifiedRows,
           varianceCounts,
+          missingEvidence,
+          positiveFollowUps,
+          decisionBoundaries,
+          dossierFacts,
+        },
+      };
+    },
+
+    buildRegulatorySignalProcessTranslatorStatus(params = {}) {
+      const hasValue = (value) => value !== undefined && value !== null && String(value) !== '';
+      const normalize = (value) => String(value || '').trim();
+      const textBlob = [
+        params.affectedDomain,
+        params.processHint,
+        params.signalText,
+        params.summary,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      const sourceSummary = normalize(params.summary || params.signalText).slice(0, 360);
+      const domainProfiles = [
+        {
+          key: 'metering_operations',
+          label: 'Metering operations',
+          rx: /messstellenbetrieb|metering|imsys|smart.?meter|msb|melo|malo/i,
+          data: ['MaLo/MeLo reference', 'metering-role boundary', 'rollout or measurement status'],
+          evidence: ['source signal reference', 'affected metering process', 'role responsibility proof'],
+          tests: ['metering-process impact check', 'role-boundary regression test'],
+          gate: 'Metering owner confirms affected process and evidence scope',
+        },
+        {
+          key: 'flexibility_grid_operations',
+          label: 'Flexibility and grid operations',
+          rx: /flex|steuerbar|14a|redispatch|netzbetrieb|grid|cls|smgw/i,
+          data: ['asset controllability scope', 'grid-operation decision boundary', 'flexibility process status'],
+          evidence: ['asset/control evidence', 'grid operations handover proof', 'non-execution boundary'],
+          tests: ['read-only controllability evidence check', 'no device-control mutation smoke'],
+          gate: 'Grid operations owner confirms control boundary remains non-executing',
+        },
+        {
+          key: 'gas_heat_transformation',
+          label: 'Gas / heat transformation',
+          rx: /gas|waerme|wärme|heat|transformation|dekarbon/i,
+          data: ['asset segment', 'transformation dependency', 'planning horizon'],
+          evidence: ['asset roadmap reference', 'dependency evidence', 'owner/deadline proof'],
+          tests: ['transformation dependency matrix check', 'planning-horizon evidence check'],
+          gate: 'Transformation owner confirms dependency and planning horizon',
+        },
+        {
+          key: 'market_communication',
+          label: 'Market communication and handover',
+          rx: /mako|marktkommunikation|utilmd|gpke|wim|handover|uebergabe|übergabe/i,
+          data: ['market role', 'handover object', 'message/process boundary'],
+          evidence: ['handover evidence', 'message boundary proof', 'market role ownership'],
+          tests: ['handover evidence-chain check', 'no MaKo dispatch smoke'],
+          gate: 'MaKo owner confirms evidence-only handover boundary',
+        },
+        {
+          key: 'vnb_governance',
+          label: 'VNB governance',
+          rx: /vnb|governance|frist|deadline|nachweis|evidence|bnetza|regulatorik|prozess/i,
+          data: ['process owner', 'deadline', 'evidence object'],
+          evidence: ['signal provenance', 'owner assignment', 'decision-gate reference'],
+          tests: ['owner/deadline/evidence completeness check', 'management-gate dossier smoke'],
+          gate: 'Governance owner confirms next decision gate and missing evidence',
+        },
+      ];
+      const matchedProfiles = domainProfiles.filter((profile) => profile.rx.test(textBlob));
+      const selectedProfiles = matchedProfiles.length
+        ? matchedProfiles
+        : [domainProfiles[domainProfiles.length - 1]];
+      const affectedProcesses = selectedProfiles.map((profile) => ({
+        processKey: profile.key,
+        label: params.processHint || profile.label,
+        affectedDomain: params.affectedDomain || profile.label,
+        ownerHint: params.ownerHint || null,
+        deadlineHint: params.deadlineHint || null,
+        confidence: matchedProfiles.length ? 'supplied_hint_match' : 'generic_governance_fallback',
+      }));
+      const uniq = (values) => Array.from(new Set(values.filter(Boolean)));
+      const dataRequirements = uniq([
+        ...selectedProfiles.flatMap((profile) => profile.data),
+        params.processHint ? 'supplied process hint' : null,
+        params.deadlineHint ? 'supplied deadline hint' : null,
+        params.ownerHint ? 'supplied owner hint' : null,
+      ]).map((label) => ({ label, status: 'required_for_operational_translation' }));
+      const evidenceRequirements = uniq([
+        ...selectedProfiles.flatMap((profile) => profile.evidence),
+        params.evidenceHint || null,
+      ]).map((label) => ({ label, status: params.evidenceHint === label ? 'supplied' : 'required' }));
+      const testCaseHints = uniq([
+        ...selectedProfiles.flatMap((profile) => profile.tests),
+        params.testCaseHint || null,
+      ]).map((label) => ({ label, safety: 'read_only_test_hint' }));
+      const decisionGates = uniq([
+        ...selectedProfiles.map((profile) => profile.gate),
+        params.deadlineHint ? `Deadline gate: ${params.deadlineHint}` : null,
+      ]).map((label) => ({
+        label,
+        ownerHint: params.ownerHint || null,
+        binding: 'operational_hint_only',
+      }));
+      const evidenceSpecs = [
+        {
+          id: 'signal_summary',
+          label: 'Signal summary or text',
+          value: sourceSummary,
+          enablesDossierAddition: 'add supplied regulatory signal summary',
+        },
+        {
+          id: 'source_name',
+          label: 'Signal source',
+          value: params.sourceName,
+          enablesDossierAddition: 'add signal provenance and source name',
+        },
+        {
+          id: 'published_at',
+          label: 'Publication or observation date',
+          value: params.publishedAt,
+          enablesDossierAddition: 'add signal timing and freshness context',
+        },
+        {
+          id: 'affected_domain',
+          label: 'Affected domain',
+          value: params.affectedDomain,
+          enablesDossierAddition: 'add affected VNB/EVU domain mapping',
+        },
+        {
+          id: 'process_hint',
+          label: 'Process hint',
+          value: params.processHint,
+          enablesDossierAddition: 'add concrete process and data-field mapping',
+        },
+        {
+          id: 'deadline_hint',
+          label: 'Deadline hint',
+          value: params.deadlineHint,
+          enablesDossierAddition: 'add due-date and gate timing',
+        },
+        {
+          id: 'owner_hint',
+          label: 'Owner hint',
+          value: params.ownerHint,
+          enablesDossierAddition: 'add accountable process owner',
+        },
+        {
+          id: 'evidence_hint',
+          label: 'Evidence hint',
+          value: params.evidenceHint,
+          enablesDossierAddition: 'add concrete evidence object reference',
+        },
+        {
+          id: 'test_case_hint',
+          label: 'Test-case hint',
+          value: params.testCaseHint,
+          enablesDossierAddition: 'add implementation-test matrix detail',
+        },
+      ];
+      const missingEvidence = evidenceSpecs
+        .filter((spec) => !hasValue(spec.value))
+        .map((spec) => ({
+          missingDataPoint: spec.id,
+          label: spec.label,
+          enablesDossierAddition: spec.enablesDossierAddition,
+        }));
+      const status =
+        !sourceSummary || !params.sourceName
+          ? 'needs_signal_provenance'
+          : !params.affectedDomain || !params.processHint
+            ? 'needs_process_mapping'
+            : !params.deadlineHint || !params.ownerHint || !params.evidenceHint
+              ? 'needs_governance_evidence'
+              : 'operational_translation_ready';
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'regulatory_signal_process_translator',
+      }));
+      const decisionBoundaries = [
+        {
+          boundary:
+            'The translator structures supplied facts into operational hints only; it does not provide legal advice or determine compliance truth.',
+        },
+        {
+          boundary:
+            'Regulatory source text is not fetched, crawled or authenticated by this capability.',
+        },
+        {
+          boundary:
+            'No connector, workflow, HITL, MaKo, billing, settlement, tariff, device-control, SMGW/CLS or production mutation is executed.',
+        },
+      ];
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Processes: ${affectedProcesses.map((process) => process.processKey).join(', ')}`,
+        `Open gaps: ${missingEvidence.length}`,
+      ];
+      if (params.signalId) dossierFacts.push(`Signal: ${params.signalId}`);
+      if (params.sourceName) dossierFacts.push(`Source: ${params.sourceName}`);
+      if (params.deadlineHint) dossierFacts.push(`Deadline: ${params.deadlineHint}`);
+
+      return {
+        translatorId: `rspt:${Buffer.from(
+          `${params.signalId || ''}:${params.sourceName || ''}:${sourceSummary || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 24)}`,
+        capabilityKey: 'regulatory_signal_process_translator',
+        safety: 'read_only',
+        status,
+        signalSummary: {
+          signalId: params.signalId || 'signal:regulatory',
+          sourceName: params.sourceName || null,
+          publishedAt: params.publishedAt || null,
+          summary: sourceSummary || null,
+          affectedDomain: params.affectedDomain || null,
+        },
+        affectedProcesses,
+        dataRequirements,
+        evidenceRequirements,
+        testCaseHints,
+        decisionGates,
+        ownerHints: params.ownerHint ? [params.ownerHint] : [],
+        deadlineHints: params.deadlineHint ? [params.deadlineHint] : [],
+        confidence: matchedProfiles.length ? 'medium' : 'low',
+        missingEvidence,
+        positiveFollowUps,
+        decisionBoundaries,
+        dossierFacts,
+        sourceActions: {
+          inspected: ['dashboard-api.regulatorySignalProcessTranslatorStatus'],
+          referenced: ['vdmi.dossier', 'evidence-registry.findings', 'regulatory-signal.suppliedFacts'],
+          notCalled: [
+            'legal.interpret',
+            'compliance.decide',
+            'regtech.connector.fetch',
+            'bnetza.crawler.fetch',
+            'sap.erp.write',
+            'gis.sync',
+            'asset-mdm.write',
+            'budibase.table.write',
+            'hitl.create',
+            'workflow.execute',
+            'webhook.emit',
+            'mail.send',
+            'mako.dispatch',
+            'billing.release',
+            'settlement.prepareBilling',
+            'tariff.mutate',
+            'device-control.execute',
+            'smgw.cls.execute',
+            'public-context.mutate',
+            'external.connector.call',
+            'personal-agent.execute',
+          ],
+        },
+        validationFindings: missingEvidence.map((item) => ({
+          code: `RSPT_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
+          severity: ['signal_summary', 'source_name', 'affected_domain', 'process_hint'].includes(
+            item.missingDataPoint
+          )
+            ? 'high'
+            : 'medium',
+          message: item.enablesDossierAddition,
+        })),
+        dossierEvidence: {
+          status,
+          signalSummary: {
+            signalId: params.signalId || 'signal:regulatory',
+            sourceName: params.sourceName || null,
+            publishedAt: params.publishedAt || null,
+            summary: sourceSummary || null,
+          },
+          affectedProcesses,
+          dataRequirements,
+          evidenceRequirements,
+          testCaseHints,
+          decisionGates,
           missingEvidence,
           positiveFollowUps,
           decisionBoundaries,

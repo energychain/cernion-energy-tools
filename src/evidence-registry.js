@@ -6448,6 +6448,74 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  regulatory_signal_process_translator: {
+    sources: [
+      {
+        id: 'signal_summary',
+        label: 'Supplied regulatory signal summary or text',
+        resolvedBy: ['dashboard-api.regulatorySignalProcessTranslatorStatus', 'vdmi.dossier'],
+        contextKeys: ['summary', 'signalText'],
+        optional: false,
+      },
+      {
+        id: 'source_name',
+        label: 'Signal source name',
+        resolvedBy: ['dashboard-api.regulatorySignalProcessTranslatorStatus', 'vdmi.dossier'],
+        contextKeys: ['sourceName'],
+        optional: false,
+      },
+      {
+        id: 'published_at',
+        label: 'Publication or observation date',
+        resolvedBy: ['dashboard-api.regulatorySignalProcessTranslatorStatus', 'vdmi.evidence'],
+        contextKeys: ['publishedAt'],
+        optional: false,
+      },
+      {
+        id: 'affected_domain',
+        label: 'Affected VNB/EVU domain',
+        resolvedBy: ['dashboard-api.regulatorySignalProcessTranslatorStatus', 'vdmi.dossier'],
+        contextKeys: ['affectedDomain'],
+        optional: false,
+      },
+      {
+        id: 'process_hint',
+        label: 'Affected process hint',
+        resolvedBy: ['dashboard-api.regulatorySignalProcessTranslatorStatus', 'vdmi.dossier'],
+        contextKeys: ['processHint'],
+        optional: false,
+      },
+      {
+        id: 'deadline_hint',
+        label: 'Deadline or gate timing hint',
+        resolvedBy: ['dashboard-api.regulatorySignalProcessTranslatorStatus', 'vdmi.dossier'],
+        contextKeys: ['deadlineHint'],
+        optional: false,
+      },
+      {
+        id: 'owner_hint',
+        label: 'Accountable owner hint',
+        resolvedBy: ['dashboard-api.regulatorySignalProcessTranslatorStatus', 'vdmi.dossier'],
+        contextKeys: ['ownerHint'],
+        optional: false,
+      },
+      {
+        id: 'evidence_hint',
+        label: 'Evidence object hint',
+        resolvedBy: ['dashboard-api.regulatorySignalProcessTranslatorStatus', 'vdmi.evidence'],
+        contextKeys: ['evidenceHint'],
+        optional: false,
+      },
+      {
+        id: 'test_case_hint',
+        label: 'Implementation test-case hint',
+        resolvedBy: ['dashboard-api.regulatorySignalProcessTranslatorStatus', 'vdmi.evidence'],
+        contextKeys: ['testCaseHint'],
+        optional: false,
+      },
+    ],
+  },
+
   cost_review_committee_status: {
     sources: [
       {

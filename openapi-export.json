@@ -12835,6 +12835,172 @@
         ]
       }
     },
+    "/api/dashboard-api/regulatory-signal-process-translator": {
+      "get": {
+        "operationId": "dashboard-api_regulatorySignalProcessTranslatorStatus",
+        "summary": "Regulatory signal process translator -- read-only governance evidence view",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only operational translation of supplied regulatory signal facts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "capabilityKey": {
+                      "type": "string"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "signalSummary": {
+                      "type": "object"
+                    },
+                    "affectedProcesses": {
+                      "type": "array"
+                    },
+                    "dataRequirements": {
+                      "type": "array"
+                    },
+                    "evidenceRequirements": {
+                      "type": "array"
+                    },
+                    "testCaseHints": {
+                      "type": "array"
+                    },
+                    "decisionGates": {
+                      "type": "array"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "decisionBoundaries": {
+                      "type": "array"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "_errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Translates caller-supplied regulatory signal facts into operational VNB/EVU process, data, evidence, test-case and decision-gate hints. The endpoint does not provide legal advice, determine compliance truth, crawl sources, create workflow/HITL tasks, write SAP/ERP/GIS/MDM/Budibase data, mutate MaKo/billing/settlement/tariff/device-control state, call external connectors or add Personal-Agent shortcuts.",
+        "parameters": [
+          {
+            "name": "signalId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sourceName",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "publishedAt",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "signalText",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "summary",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "affectedDomain",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "processHint",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "deadlineHint",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ownerHint",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "evidenceHint",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "testCaseHint",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/api/dashboard-api/cost-review-committee-status": {
       "get": {
         "operationId": "dashboard-api_costReviewCommitteeStatus",
@@ -66001,6 +66167,172 @@
             "required": false,
             "schema": {
               "type": "boolean"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard/regulatory-signal-process-translator": {
+      "get": {
+        "operationId": "dashboard-api_regulatorySignalProcessTranslatorStatus",
+        "summary": "Regulatory signal process translator -- read-only governance evidence view",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only operational translation of supplied regulatory signal facts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "capabilityKey": {
+                      "type": "string"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "signalSummary": {
+                      "type": "object"
+                    },
+                    "affectedProcesses": {
+                      "type": "array"
+                    },
+                    "dataRequirements": {
+                      "type": "array"
+                    },
+                    "evidenceRequirements": {
+                      "type": "array"
+                    },
+                    "testCaseHints": {
+                      "type": "array"
+                    },
+                    "decisionGates": {
+                      "type": "array"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "decisionBoundaries": {
+                      "type": "array"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "_errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Translates caller-supplied regulatory signal facts into operational VNB/EVU process, data, evidence, test-case and decision-gate hints. The endpoint does not provide legal advice, determine compliance truth, crawl sources, create workflow/HITL tasks, write SAP/ERP/GIS/MDM/Budibase data, mutate MaKo/billing/settlement/tariff/device-control state, call external connectors or add Personal-Agent shortcuts.",
+        "parameters": [
+          {
+            "name": "signalId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sourceName",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "publishedAt",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "signalText",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "summary",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "affectedDomain",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "processHint",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "deadlineHint",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ownerHint",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "evidenceHint",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "testCaseHint",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
             }
           }
         ]

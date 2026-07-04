@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 109 static rules', () => {
+    it('loads all 110 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(109);
+      expect(rules.length).toBe(110);
     });
 
-    it('compiles all 109 static rules without error', () => {
+    it('compiles all 110 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(109);
+      expect(rules.length).toBe(110);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -565,6 +565,46 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Target: ERP');
       expect(formatted).toContain('Object: NAP-4711');
       expect(formatted).toContain('Leading Gap: threshold');
+    });
+
+    it('dashboard-api.regulatorySignalProcessTranslatorStatus is dossier-safe and formats operational translation facts', () => {
+      const rule = getRule('dashboard-api.regulatorySignalProcessTranslatorStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Regulatoriksignal signal=signal-380 quelle=BNetzA domain=messstellenbetrieb process=rollout owner=msb laden'
+        )
+      ).toEqual({
+        signalId: 'signal-380',
+        sourceName: 'BNetzA',
+        affectedDomain: 'messstellenbetrieb',
+        processHint: 'rollout',
+        ownerHint: 'msb',
+      });
+
+      const formatted = rule.formatEvidence({
+        status: 'needs_governance_evidence',
+        signalSummary: {
+          sourceName: 'BNetzA',
+          summary: 'Messstellenbetrieb signal',
+        },
+        affectedProcesses: [{ processKey: 'metering_operations' }],
+        decisionGates: [{ label: 'Metering owner confirms affected process' }],
+        missingEvidence: [{ missingDataPoint: 'deadline_hint' }],
+        positiveFollowUps: [
+          {
+            enablesDossierAddition: 'add due-date and gate timing',
+          },
+        ],
+        timestamp: '2026-07-04T00:30:00.000Z',
+      });
+
+      expect(formatted).toContain('Regulatory Translation: needs_governance_evidence');
+      expect(formatted).toContain('Source: BNetzA');
+      expect(formatted).toContain('Process: metering_operations');
+      expect(formatted).toContain('Leading Gap: deadline_hint');
     });
 
     it('dashboard-api.steeringArtifactAcceptanceGateStatus is dossier-safe and formats acceptance facts', () => {
