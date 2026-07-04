@@ -12482,7 +12482,8 @@
                       "type": "string"
                     },
                     "caseId": {
-                      "type": "string"
+                      "type": "string",
+                      "nullable": true
                     },
                     "safety": {
                       "type": "string"
@@ -65828,7 +65829,8 @@
                       "type": "string"
                     },
                     "caseId": {
-                      "type": "string"
+                      "type": "string",
+                      "nullable": true
                     },
                     "safety": {
                       "type": "string"

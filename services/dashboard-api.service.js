@@ -1816,7 +1816,7 @@ module.exports = {
                   type: 'object',
                   properties: {
                     capabilityKey: { type: 'string' },
-                    caseId: { type: 'string' },
+                    caseId: { type: 'string', nullable: true },
                     safety: { type: 'string' },
                     status: { type: 'string' },
                     summary: { type: 'object' },
