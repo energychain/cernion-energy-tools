@@ -2244,6 +2244,76 @@ describe('dashboard-api.service', () => {
       });
     });
 
+    // ── gremiencoachWorkbookReadinessStatus ────────────────────────────────
+
+    describe('gremiencoachWorkbookReadinessStatus', () => {
+      it('reports private-prep workbook gaps without ingesting documents or creating Office files', async () => {
+        const result = await broker.call('dashboard-api.gremiencoachWorkbookReadinessStatus', {
+          tenantId: 'stadtwerk-mauer',
+          workbookId: 'synthetic-vnb-gremienmappe',
+          committeeContext: 'board-prep',
+          processHint: 'vdmi',
+          evidenceProfile: 'anonymized-vnb-pattern',
+          processRole: 'Netzplanung',
+        });
+
+        expect(result.capabilityKey).toBe('gremiencoach_workbook_readiness');
+        expect(result.status).toBe('needs_source_evidence');
+        expect(result.claimRows.map((row) => row.status)).toContain('not_yet_claimable');
+        expect(result.evidenceGapRows.map((gap) => gap.missingDataPoint)).toEqual(
+          expect.arrayContaining([
+            'source_register',
+            'regulatory_reference',
+            'artifact_classification',
+            'release_boundary',
+          ])
+        );
+        expect(result.draftArtifactRows[0]).toMatchObject({
+          artifactType: 'word_outline',
+          createsFile: false,
+        });
+        expect(result.guardrailRows.map((row) => row.guardrailId)).toEqual(
+          expect.arrayContaining(['no_private_document_ingestion', 'no_office_generation'])
+        );
+        expect(result.positiveFollowUpRows[0].category).toBe(
+          'gremiencoach_workbook_readiness'
+        );
+        expect(result.sourceActions.notCalled).toEqual(
+          expect.arrayContaining([
+            'document.upload',
+            'office.word.create',
+            'm365.graph.call',
+            'publication.publish',
+            'personal-agent.execute',
+          ])
+        );
+        expect(result.safety).toBe('read_only');
+      });
+
+      it('returns ready_for_private_prep when all workbook evidence boundaries are supplied', async () => {
+        const result = await broker.call('dashboard-api.gremiencoachWorkbookReadinessStatus', {
+          tenantId: 'stadtwerk-mauer',
+          workbookId: 'synthetic-vnb-gremienmappe',
+          committeeContext: 'board-prep',
+          processHint: 'vdmi',
+          sourceRegister: 'register:claims-evidence-v1',
+          processRole: 'Netzplanung',
+          regulatoryReference: 'EnWG-14a-context',
+          artifactClassification: 'draft-intent-only',
+          releaseBoundary: 'private-prep-no-publication',
+          includeSyntheticRows: true,
+        });
+
+        expect(result.status).toBe('ready_for_private_prep');
+        expect(result.evidenceGapRows).toEqual([]);
+        expect(result.claimRows.every((row) => row.status === 'claimable_with_evidence')).toBe(
+          true
+        );
+        expect(result.dossierEvidence.dossierFacts).toContain('Open evidence gaps: 0');
+        expect(result.sourceActions.notCalled).toContain('office.powerpoint.create');
+      });
+    });
+
     // ── decisionReadinessMatrixStatus ──────────────────────────────────────
 
     describe('decisionReadinessMatrixStatus', () => {

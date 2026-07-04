@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 110 static rules', () => {
+    it('loads all 111 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(110);
+      expect(rules.length).toBe(111);
     });
 
-    it('compiles all 110 static rules without error', () => {
+    it('compiles all 111 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(110);
+      expect(rules.length).toBe(111);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -101,7 +101,7 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(rule.timeoutMs).toBe(14000);
     });
 
-    it('all 16 actions are retrievable by getRule()', () => {
+    it('all listed actions are retrievable by getRule()', () => {
       const expected = [
         'energy-market.co2Intensity',
         'gas-storage.countryStorage',
@@ -121,6 +121,7 @@ describe('dossier-hydration-registry (unit)', () => {
         'dashboard-api.netzsignalDeltaGatingStatus',
         'dashboard-api.vnbDeltaSignalClassifierStatus',
         'dashboard-api.evidenceFreshnessGuardStatus',
+        'dashboard-api.gremiencoachWorkbookReadinessStatus',
       ];
       for (const action of expected) {
         expect(getRule(action)).not.toBeNull();
@@ -274,6 +275,37 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(rule.formatEvidence({ found: false, message: 'No readiness evaluation yet' })).toBe(
         'No readiness evaluation yet'
       );
+    });
+
+    it('dashboard-api.gremiencoachWorkbookReadinessStatus is dossier-safe and formats private-prep rows', () => {
+      const rule = getRule('dashboard-api.gremiencoachWorkbookReadinessStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+
+      const formatted = rule.formatEvidence({
+        capabilityKey: 'gremiencoach_workbook_readiness',
+        status: 'needs_source_evidence',
+        requestContext: {
+          workbookId: 'synthetic-vnb-gremienmappe',
+          committeeContext: 'board-prep',
+        },
+        claimRows: [{ status: 'not_yet_claimable' }],
+        evidenceGapRows: [{ missingDataPoint: 'source_register' }],
+        draftArtifactRows: [{ status: 'needs_classification' }],
+        guardrailRows: [{ guardrailId: 'no_private_document_ingestion' }],
+        positiveFollowUpRows: [
+          {
+            enablesDossierAddition:
+              'add evidence-backed source register for committee-safe claims',
+          },
+        ],
+        sourceActions: { notCalled: ['document.upload'] },
+      });
+
+      expect(formatted).toContain('Capability: gremiencoach_workbook_readiness');
+      expect(formatted).toContain('Leading Claim Status: not_yet_claimable');
+      expect(formatted).toContain('Leading Gap: source_register');
+      expect(formatted).toContain('Side-Effect Guard: document.upload');
     });
 
     it('dashboard-api.redispatchCallQualityGate is dossier-safe and formats call-gate evidence', () => {

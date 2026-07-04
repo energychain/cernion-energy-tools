@@ -62,6 +62,7 @@ module.exports = {
       marketCommunicationEvidenceChainStatus: 5 * 60 * 1000, // 5 min
       e2eControllabilityGovernanceStatus: 5 * 60 * 1000, // 5 min
       controllabilityAssetHandoverStatus: 5 * 60 * 1000, // 5 min
+      gremiencoachWorkbookReadinessStatus: 5 * 60 * 1000, // 5 min
       decisionReadinessMatrixStatus: 5 * 60 * 1000, // 5 min
       crossSystemVarianceMatrixStatus: 5 * 60 * 1000, // 5 min
       regulatorySignalProcessTranslatorStatus: 5 * 60 * 1000, // 5 min
@@ -1737,6 +1738,110 @@ module.exports = {
           this.settings.cacheTtlMs.controllabilityAssetHandoverStatus,
           async () => ({
             ...this.buildControllabilityAssetHandoverStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // ── gremiencoachWorkbookReadinessStatus ───────────────────────────────
+    /**
+     * GET /api/dashboard/gremiencoach-workbook-readiness?workbookId=...
+     *
+     * Read-only private-prep readiness contract for anonymized VNB
+     * Gremienmappen. It produces deterministic scalar rows for claims, gaps,
+     * process context, draft artifact intents and guardrails without ingesting
+     * documents, creating Office files, calling M365/Graph or retaining private
+     * source content.
+     */
+    gremiencoachWorkbookReadinessStatus: {
+      rest: 'GET /gremiencoach-workbook-readiness',
+      params: {
+        tenantId: { type: 'string', optional: true, min: 1 },
+        workbookId: { type: 'string', optional: true, min: 1 },
+        committeeContext: { type: 'string', optional: true, min: 1 },
+        processHint: { type: 'string', optional: true, min: 1 },
+        evidenceProfile: { type: 'string', optional: true, min: 1 },
+        sourceRegister: { type: 'string', optional: true, min: 1 },
+        processRole: { type: 'string', optional: true, min: 1 },
+        regulatoryReference: { type: 'string', optional: true, min: 1 },
+        artifactClassification: { type: 'string', optional: true, min: 1 },
+        releaseBoundary: { type: 'string', optional: true, min: 1 },
+        includeSyntheticRows: { type: 'boolean', optional: true, convert: true },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Gremiencoach workbook readiness - read-only private-prep status',
+        description:
+          'Builds a deterministic, anonymized readiness contract for VNB committee workbook preparation. ' +
+          'The endpoint returns scalar rows for evidence-backed candidate claims, evidence gaps, VDMI/process context, ' +
+          'draft artifact intents, guardrails and positive follow-ups. It is read-only and does not upload, parse, retain, embed or train on private Office/PDF/Excel/protocol/mail content; does not create Office files; does not call M365/SharePoint/Graph, mail/calendar/tasks or external connectors; and does not publish, approve, settle, bill, control devices, create HITL/workflows or hardcode Personal Agent behavior.',
+        parameters: [
+          { name: 'tenantId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'workbookId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'committeeContext', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'processHint', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'evidenceProfile', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'sourceRegister', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'processRole', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'regulatoryReference',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'artifactClassification',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
+          { name: 'releaseBoundary', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'includeSyntheticRows',
+            in: 'query',
+            required: false,
+            schema: { type: 'boolean' },
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only Gremiencoach workbook readiness status',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string' },
+                    capabilityKey: { type: 'string' },
+                    safety: { type: 'string' },
+                    claimRows: { type: 'array' },
+                    evidenceGapRows: { type: 'array' },
+                    processContextRows: { type: 'array' },
+                    draftArtifactRows: { type: 'array' },
+                    guardrailRows: { type: 'array' },
+                    positiveFollowUpRows: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                    _errors: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `gremiencoach-workbook-readiness:${params.tenantId || 'no-tenant'}:${params.workbookId || 'no-workbook'}:${params.committeeContext || 'no-context'}:${params.processHint || 'no-process'}:${params.evidenceProfile || 'no-profile'}:${params.sourceRegister || 'no-register'}:${params.processRole || 'no-role'}:${params.regulatoryReference || 'no-reg-ref'}:${params.artifactClassification || 'no-artifact'}:${params.releaseBoundary || 'no-release'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.gremiencoachWorkbookReadinessStatus,
+          async () => ({
+            ...this.buildGremiencoachWorkbookReadinessStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -14553,6 +14658,262 @@ module.exports = {
           nextReportingCycle: params.nextReportingCycle || null,
           nonExecutionReason: params.nonExecutionReason || null,
           blockingFindings,
+          dossierFacts,
+        },
+      };
+    },
+
+    buildGremiencoachWorkbookReadinessStatus(params = {}) {
+      const hasValue = (value) => value !== undefined && value !== null && String(value) !== '';
+      const workbook = {
+        tenantId: params.tenantId || null,
+        workbookId: params.workbookId || 'synthetic-vnb-gremienmappe',
+        committeeContext: params.committeeContext || 'private-board-prep',
+        processHint: params.processHint || 'vdmi',
+        evidenceProfile: params.evidenceProfile || 'anonymized-vnb-pattern',
+      };
+      const evidenceSpecs = [
+        {
+          id: 'source_register',
+          label: 'Source register',
+          value: params.sourceRegister,
+          category: 'claim_evidence',
+          enablesDossierAddition: 'add evidence-backed source register for committee-safe claims',
+        },
+        {
+          id: 'process_role',
+          label: 'Process role',
+          value: params.processRole,
+          category: 'process_context',
+          enablesDossierAddition: 'add owner and decision-boundary row for the workbook',
+        },
+        {
+          id: 'regulatory_reference',
+          label: 'Regulatory reference',
+          value: params.regulatoryReference,
+          category: 'committee_context',
+          enablesDossierAddition: 'add committee-safe regulatory context note',
+        },
+        {
+          id: 'artifact_classification',
+          label: 'Source artifact classification',
+          value: params.artifactClassification,
+          category: 'draft_artifact_intent',
+          enablesDossierAddition: 'add allowed Word/PPT/Excel draft-intent description',
+        },
+        {
+          id: 'release_boundary',
+          label: 'Release boundary',
+          value: params.releaseBoundary,
+          category: 'publication_guard',
+          enablesDossierAddition: 'add publication/no-publication guard decision',
+        },
+      ];
+      const evidenceGapRows = evidenceSpecs
+        .filter((spec) => !hasValue(spec.value))
+        .map((spec) => ({
+          gapId: spec.id,
+          label: spec.label,
+          missingDataPoint: spec.id,
+          category: spec.category,
+          severity: spec.id === 'release_boundary' ? 'high' : 'medium',
+          enablesDossierAddition: spec.enablesDossierAddition,
+        }));
+      const positiveFollowUpRows = evidenceGapRows.map((gap) => ({
+        missingDataPoint: gap.missingDataPoint,
+        enablesDossierAddition: gap.enablesDossierAddition,
+        category: 'gremiencoach_workbook_readiness',
+      }));
+      const claimRows = [
+        {
+          claimId: 'claim:evidence-backed-committee-summary',
+          title: 'Committee summary may use the prepared VNB pattern',
+          status: hasValue(params.sourceRegister) ? 'claimable_with_evidence' : 'not_yet_claimable',
+          evidenceBinding: params.sourceRegister || 'missing_source_register',
+          allowedUse: 'private-prep-summary',
+        },
+        {
+          claimId: 'claim:process-owner-boundary',
+          title: 'Process owner and decision boundary are explicit',
+          status: hasValue(params.processRole) ? 'claimable_with_evidence' : 'not_yet_claimable',
+          evidenceBinding: params.processRole || 'missing_process_role',
+          allowedUse: 'internal-workbook-context',
+        },
+        {
+          claimId: 'claim:regulatory-context-note',
+          title: 'Regulatory context is available as committee-safe note',
+          status: hasValue(params.regulatoryReference)
+            ? 'claimable_with_evidence'
+            : 'not_yet_claimable',
+          evidenceBinding: params.regulatoryReference || 'missing_regulatory_reference',
+          allowedUse: 'context-note-only',
+        },
+      ];
+      if (params.includeSyntheticRows) {
+        claimRows.push({
+          claimId: 'claim:synthetic-vnb-lesson',
+          title: 'Synthetic VNB lesson can be reused as anonymized pattern',
+          status: 'claimable_with_evidence',
+          evidenceBinding: 'synthetic:stadtwerke-vnb-pattern',
+          allowedUse: 'anonymized-example',
+        });
+      }
+      const processContextRows = [
+        {
+          rowId: 'context:committee',
+          label: 'Committee context',
+          value: workbook.committeeContext,
+          vdmiClass: 'I',
+        },
+        {
+          rowId: 'context:process',
+          label: 'Process / VDMI hint',
+          value: workbook.processHint,
+          vdmiClass: 'V',
+        },
+        {
+          rowId: 'context:evidence-profile',
+          label: 'Evidence profile',
+          value: workbook.evidenceProfile,
+          vdmiClass: 'D',
+        },
+        {
+          rowId: 'context:process-role',
+          label: 'Process role',
+          value: params.processRole || 'missing',
+          vdmiClass: 'M',
+        },
+      ];
+      const draftArtifactRows = [
+        {
+          artifactId: 'draft:word-briefing-outline',
+          artifactType: 'word_outline',
+          intent: 'describe allowed briefing outline sections',
+          status: hasValue(params.artifactClassification) ? 'intent_allowed' : 'needs_classification',
+          createsFile: false,
+          evidenceBinding: params.artifactClassification || 'missing_artifact_classification',
+        },
+        {
+          artifactId: 'draft:ppt-claim-evidence-map',
+          artifactType: 'ppt_outline',
+          intent: 'describe claim-to-evidence slide intent',
+          status: hasValue(params.sourceRegister) ? 'intent_allowed' : 'needs_source_register',
+          createsFile: false,
+          evidenceBinding: params.sourceRegister || 'missing_source_register',
+        },
+        {
+          artifactId: 'draft:excel-gap-table',
+          artifactType: 'excel_table_schema',
+          intent: 'describe gap table columns for manual review',
+          status: 'intent_allowed',
+          createsFile: false,
+          evidenceBinding: 'schema-only',
+        },
+      ];
+      const guardrailRows = [
+        {
+          guardrailId: 'no_private_document_ingestion',
+          guardrailClass: 'privacy',
+          status: 'enforced',
+          description: 'No upload, parsing, retention, embedding or training on private documents.',
+        },
+        {
+          guardrailId: 'no_office_generation',
+          guardrailClass: 'office',
+          status: 'enforced',
+          description: 'Draft rows describe intents only and create no Word/PPT/Excel files.',
+        },
+        {
+          guardrailId: 'no_m365_or_external_connector',
+          guardrailClass: 'connector',
+          status: 'enforced',
+          description: 'No M365, SharePoint, Graph, mail, calendar, task or external connector call.',
+        },
+        {
+          guardrailId: 'no_publication_or_decision',
+          guardrailClass: 'publication',
+          status: hasValue(params.releaseBoundary) ? 'evidence_provided' : 'needs_release_boundary',
+          description: 'No publication, approval, finance/legal/regulatory decision or workflow execution.',
+        },
+        {
+          guardrailId: 'no_personal_agent_shortcut',
+          guardrailClass: 'routing',
+          status: 'enforced',
+          description: 'Consumption must use broker/hydration/dossier metadata, not Personal Agent hardcoding.',
+        },
+      ];
+      const status =
+        evidenceGapRows.length === 0
+          ? 'ready_for_private_prep'
+          : hasValue(params.sourceRegister)
+            ? 'needs_workbook_governance_evidence'
+            : 'needs_source_evidence';
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Claim rows: ${claimRows.length}`,
+        `Open evidence gaps: ${evidenceGapRows.length}`,
+        `Draft artifact intents: ${draftArtifactRows.length}`,
+      ];
+      if (workbook.workbookId) dossierFacts.push(`Workbook: ${workbook.workbookId}`);
+      if (workbook.committeeContext) dossierFacts.push(`Committee context: ${workbook.committeeContext}`);
+
+      return {
+        readinessId: `gcwr:${Buffer.from(
+          `${workbook.tenantId || ''}:${workbook.workbookId}:${workbook.committeeContext}:${workbook.processHint}`
+        )
+          .toString('base64url')
+          .slice(0, 24)}`,
+        capabilityKey: 'gremiencoach_workbook_readiness',
+        safety: 'read_only',
+        requestContext: workbook,
+        status,
+        claimRows,
+        evidenceGapRows,
+        processContextRows,
+        draftArtifactRows,
+        guardrailRows,
+        positiveFollowUpRows,
+        sourceActions: {
+          inspected: ['dashboard-api.gremiencoachWorkbookReadinessStatus'],
+          referenced: ['vdmi.dossier', 'interface-placeholder.requestEvidence'],
+          notCalled: [
+            'document.upload',
+            'document.parse',
+            'embedding.create',
+            'office.word.create',
+            'office.powerpoint.create',
+            'office.excel.create',
+            'm365.graph.call',
+            'sharepoint.write',
+            'mail.send',
+            'calendar.create',
+            'task.create',
+            'publication.publish',
+            'hitl.create',
+            'workflow.execute',
+            'settlement.exportA96',
+            'settlement.prepareBilling',
+            'billing.release',
+            'tariff.mutate',
+            'device-control.execute',
+            'external.connector.call',
+            'personal-agent.execute',
+          ],
+        },
+        validationFindings: evidenceGapRows.map((gap) => ({
+          code: `GCWR_${String(gap.missingDataPoint).toUpperCase()}_MISSING`,
+          severity: gap.severity,
+          message: gap.enablesDossierAddition,
+        })),
+        dossierEvidence: {
+          capabilityKey: 'gremiencoach_workbook_readiness',
+          status,
+          claimRows,
+          evidenceGapRows,
+          processContextRows,
+          draftArtifactRows,
+          guardrailRows,
+          positiveFollowUpRows,
           dossierFacts,
         },
       };

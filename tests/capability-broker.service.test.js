@@ -919,6 +919,23 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes Gremiencoach workbook prompts to the read-only private-prep view', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Erstelle einen Gremiencoach fuer eine VNB Arbeitsmappe mit Claims, Evidenzluecken, Prozessbezug, Word PPT Excel Entwurf-Intents und No-Call Guardrails fuer private Gremienvorbereitung.',
+    });
+
+    expect(result.capability).toBe('gremiencoach_workbook_readiness');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'gremiencoach_workbook_readiness'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.gremiencoachWorkbookReadinessStatus');
+    expect(actionNames).not.toContain('document.upload');
+    expect(actionNames).not.toContain('office.word.create');
+    expect(actionNames).not.toContain('m365.graph.call');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes decision-readiness matrix prompts to the read-only OPL/budget evidence view', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Bitte erstelle eine Decision-Readiness-Matrix fuer OPL Massnahmen, Budgetstatus, Finanzierungsrisiko, Gremienfenster, Owner, No-Regret Bedarf und offene Nachweise.',

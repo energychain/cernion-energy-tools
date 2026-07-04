@@ -318,6 +318,30 @@ describe('T-EV-001 — evidence-planner: planEvidence() pure-function contract',
     );
   });
 
+  it('plans Gremiencoach workbook readiness as private-prep evidence with guard gaps', () => {
+    const result = planEvidence(
+      { routeLabel: 'gremiencoach_workbook_readiness' },
+      {
+        workbookId: 'synthetic-vnb-gremienmappe',
+        committeeContext: 'board-prep',
+        processRole: 'Netzplanung',
+      }
+    );
+
+    expect(result).not.toBeNull();
+    expect(result.registryKey).toBe('gremiencoach_workbook_readiness');
+    expect(result.checkedSources).toEqual(expect.arrayContaining(['process_role']));
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'source_register',
+        'regulatory_reference',
+        'artifact_classification',
+        'release_boundary',
+        'no_call_guards',
+      ])
+    );
+  });
+
   it('plans Netzsignal Delta-Gating as caller-supplied evidence, not connector ingestion', () => {
     const result = planEvidence(
       { routeLabel: 'netzsignal_delta_gating' },

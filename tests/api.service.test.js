@@ -321,6 +321,7 @@ describe('API Gateway Service', () => {
       expect(schema.paths['/api/dashboard/redispatch-metering-cockpit'].get).toBeDefined();
       expect(schema.paths['/api/dashboard/load-profile-stream-monitor'].get).toBeDefined();
       expect(schema.paths['/api/dashboard/controllability-asset-handover'].get).toBeDefined();
+      expect(schema.paths['/api/dashboard/gremiencoach-workbook-readiness'].get).toBeDefined();
       expect(schema.paths['/api/dashboard/decision-readiness-matrix'].get).toBeDefined();
       expect(schema.paths['/api/dashboard/cross-system-variance-matrix'].get).toBeDefined();
       expect(schema.paths['/api/dashboard/regulatory-signal-process-translator'].get).toBeDefined();
@@ -346,6 +347,9 @@ describe('API Gateway Service', () => {
         'Dashboard API'
       );
       expect(schema.paths['/api/dashboard/controllability-asset-handover'].get.tags).toContain(
+        'Dashboard API'
+      );
+      expect(schema.paths['/api/dashboard/gremiencoach-workbook-readiness'].get.tags).toContain(
         'Dashboard API'
       );
       expect(schema.paths['/api/dashboard/decision-readiness-matrix'].get.tags).toContain(
@@ -526,6 +530,9 @@ describe('API Gateway Service', () => {
       );
       expect(aliases['GET /dashboard/controllability-asset-handover']).toBe(
         'dashboard-api.controllabilityAssetHandoverStatus'
+      );
+      expect(aliases['GET /dashboard/gremiencoach-workbook-readiness']).toBe(
+        'dashboard-api.gremiencoachWorkbookReadinessStatus'
       );
       expect(aliases['GET /dashboard/decision-readiness-matrix']).toBe(
         'dashboard-api.decisionReadinessMatrixStatus'

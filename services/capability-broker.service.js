@@ -2155,6 +2155,24 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasGremiencoachWorkbookSignal =
+    /(gremiencoach|gremienmappe|committee workbook|vnb arbeitsmappe|arbeitsmappe)/i.test(
+      haystack
+    ) &&
+    /(claim|claims|evidenz|evidence|luecke|lücke|gap|guardrail|no-call|word|ppt|excel|draft|entwurf|private prep|gremienvorbereitung)/i.test(
+      haystack
+    ) &&
+    !/(document\.upload|document\.parse|office\.word\.create|office\.powerpoint\.create|office\.excel\.create|m365\.graph|sharepoint\.write|mail\.send|calendar\.create|publication\.publish|workflow execute|hitl\.create|external connector|billing|settlement|tariff|device-control|produktion)/i.test(
+      haystack
+    );
+
+  if (hasGremiencoachWorkbookSignal || haystack.includes('gremiencoach_workbook_readiness')) {
+    const gremiencoachCapability = findCapabilityByName('gremiencoach_workbook_readiness');
+    if (gremiencoachCapability) {
+      return { capability: gremiencoachCapability, score: 127, usedFallback: false };
+    }
+  }
+
   if (
     vdmiAssetValidationSignals.some((signal) => haystack.includes(signal)) ||
     hasVdmiAssetValidationCombo

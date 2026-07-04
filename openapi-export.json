@@ -12463,6 +12463,163 @@
         ]
       }
     },
+    "/api/dashboard-api/gremiencoach-workbook-readiness": {
+      "get": {
+        "operationId": "dashboard-api_gremiencoachWorkbookReadinessStatus",
+        "summary": "Gremiencoach workbook readiness - read-only private-prep status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Gremiencoach workbook readiness status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "capabilityKey": {
+                      "type": "string"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "claimRows": {
+                      "type": "array"
+                    },
+                    "evidenceGapRows": {
+                      "type": "array"
+                    },
+                    "processContextRows": {
+                      "type": "array"
+                    },
+                    "draftArtifactRows": {
+                      "type": "array"
+                    },
+                    "guardrailRows": {
+                      "type": "array"
+                    },
+                    "positiveFollowUpRows": {
+                      "type": "array"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "_errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Builds a deterministic, anonymized readiness contract for VNB committee workbook preparation. The endpoint returns scalar rows for evidence-backed candidate claims, evidence gaps, VDMI/process context, draft artifact intents, guardrails and positive follow-ups. It is read-only and does not upload, parse, retain, embed or train on private Office/PDF/Excel/protocol/mail content; does not create Office files; does not call M365/SharePoint/Graph, mail/calendar/tasks or external connectors; and does not publish, approve, settle, bill, control devices, create HITL/workflows or hardcode Personal Agent behavior.",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "workbookId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "committeeContext",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "processHint",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "evidenceProfile",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sourceRegister",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "processRole",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "regulatoryReference",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "artifactClassification",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "releaseBoundary",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "includeSyntheticRows",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ]
+      }
+    },
     "/api/dashboard-api/decision-readiness-matrix": {
       "get": {
         "operationId": "dashboard-api_decisionReadinessMatrixStatus",
@@ -65795,6 +65952,163 @@
             "required": false,
             "schema": {
               "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard/gremiencoach-workbook-readiness": {
+      "get": {
+        "operationId": "dashboard-api_gremiencoachWorkbookReadinessStatus",
+        "summary": "Gremiencoach workbook readiness - read-only private-prep status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Gremiencoach workbook readiness status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "capabilityKey": {
+                      "type": "string"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "claimRows": {
+                      "type": "array"
+                    },
+                    "evidenceGapRows": {
+                      "type": "array"
+                    },
+                    "processContextRows": {
+                      "type": "array"
+                    },
+                    "draftArtifactRows": {
+                      "type": "array"
+                    },
+                    "guardrailRows": {
+                      "type": "array"
+                    },
+                    "positiveFollowUpRows": {
+                      "type": "array"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "_errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Builds a deterministic, anonymized readiness contract for VNB committee workbook preparation. The endpoint returns scalar rows for evidence-backed candidate claims, evidence gaps, VDMI/process context, draft artifact intents, guardrails and positive follow-ups. It is read-only and does not upload, parse, retain, embed or train on private Office/PDF/Excel/protocol/mail content; does not create Office files; does not call M365/SharePoint/Graph, mail/calendar/tasks or external connectors; and does not publish, approve, settle, bill, control devices, create HITL/workflows or hardcode Personal Agent behavior.",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "workbookId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "committeeContext",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "processHint",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "evidenceProfile",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sourceRegister",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "processRole",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "regulatoryReference",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "artifactClassification",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "releaseBoundary",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "includeSyntheticRows",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
             }
           }
         ]
