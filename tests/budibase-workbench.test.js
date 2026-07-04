@@ -1,4 +1,5 @@
 const manifest = require('../integrations/budibase/manifests/stadtwerk-mauer-workbench.json');
+const actionManifest = require('../integrations/budibase/manifests/workbench-action-manifest-stadtwerk-mauer.json');
 
 function runTransformer(queryName, data) {
   const query = manifest.queries.find((item) => item.name === queryName);
@@ -570,6 +571,8 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
     'blueprint_variance_forbidden_actions',
     'blueprint_variance_sync_focus',
     'blueprint_variance_matrix_focus',
+    'action_button_contract',
+    'action_button_guards',
     'vnb_delta_signal_queue_classifier',
     'vnb_delta_signal_queue_owner_evidence',
     'vnb_delta_signal_queue_safe_next_actions',
@@ -662,6 +665,104 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
         .filter((section) => section.id.startsWith('blueprint_variance'))
         .every((section) => queries.some((query) => query.name === section.queryName))
     ).toBe(true);
+  });
+
+  it('declares a separate Workbench action-button manifest with only safe enabled actions', () => {
+    expect(actionManifest).toMatchObject({
+      manifestId: 'workbench-action-manifest-stadtwerk-mauer-v1',
+      tenantId: 'stadtwerk-mauer',
+      caseId: 'smm-budibase-workbench',
+      persona: 'ROLE_NETZPLANUNG',
+    });
+    expect(actionManifest.enabledActions.map((action) => action.actionId)).toEqual([
+      'refresh_read_model',
+      'verify_blueprint_seed',
+      'validate_evidence_completeness',
+    ]);
+    expect(new Set(actionManifest.enabledActions.map((action) => action.safetyClass))).toEqual(
+      new Set(['read_only', 'verify_only'])
+    );
+    expect(actionManifest.disabledActions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          actionId: 'add_sandbox_annotation',
+          safetyClass: 'sandbox_annotation',
+        }),
+        expect.objectContaining({ actionId: 'run_rundeck_job', safetyClass: 'consequential' }),
+      ])
+    );
+    expect(actionManifest.forbiddenClasses).toEqual(
+      expect.arrayContaining([
+        'budibase.table.write',
+        'rundeck.execute',
+        'external.connector.call',
+        'personal-agent.execute',
+      ])
+    );
+  });
+
+  it('renders curated action-button rows as scalar enabled read-only and verify actions', () => {
+    const rows = runTransformer('getStadtwerkMauerActionButtonContractRows', {
+      tenantId: 'stadtwerk-mauer',
+      caseId: 'smm-budibase-workbench',
+    });
+    expectScalarRows(rows);
+
+    const enabledRows = rows.filter((row) => row.enabled);
+    expect(enabledRows.map((row) => row.actionId)).toEqual([
+      'refresh_read_model',
+      'verify_blueprint_seed',
+      'validate_evidence_completeness',
+    ]);
+    expect(new Set(enabledRows.map((row) => row.safetyClass))).toEqual(
+      new Set(['read_only', 'verify_only'])
+    );
+    expect(enabledRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          actionId: 'refresh_read_model',
+          persona: 'ROLE_NETZPLANUNG',
+          sourceEndpoint: 'GET /api/dashboard/stadtwerk-mauer-case-detail',
+          dataClass: 'synthetic_tenant_seed',
+        }),
+        expect.objectContaining({
+          actionId: 'verify_blueprint_seed',
+          expectedReadback: expect.stringContaining('Blueprint validity'),
+        }),
+        expect.objectContaining({
+          actionId: 'validate_evidence_completeness',
+          transferParameters: expect.stringContaining('allowedCommandScope=verify_only'),
+        }),
+      ])
+    );
+
+    const disabledRows = rows.filter((row) => !row.enabled);
+    expect(disabledRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          actionId: 'add_sandbox_annotation',
+          safetyClass: 'sandbox_annotation',
+          disabledReason: expect.stringContaining('guarded'),
+        }),
+        expect.objectContaining({
+          actionId: 'run_rundeck_job',
+          safetyClass: 'consequential',
+          disabledReason: expect.stringContaining('forbidden'),
+        }),
+      ])
+    );
+  });
+
+  it('renders action-button forbidden classes as no-call guard rows', () => {
+    const guardRows = runTransformer('getStadtwerkMauerActionButtonForbiddenGuardRows', {});
+    expectScalarRows(guardRows);
+    expect(guardRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ action: 'budibase.table.write', status: 'forbidden' }),
+        expect.objectContaining({ action: 'rundeck.execute', status: 'forbidden' }),
+        expect.objectContaining({ action: 'personal-agent.execute', status: 'forbidden' }),
+      ])
+    );
   });
 
   it('flattens evidence freshness rows for the selected synthetic signal', () => {

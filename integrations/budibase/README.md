@@ -29,6 +29,7 @@ The workbench renders:
 - selectable case detail from `GET /api/dashboard/stadtwerk-mauer-case-detail?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench`
 - sandbox annotation command/readback rows from `POST /api/dashboard/stadtwerk-mauer-case-annotations` and `GET /api/dashboard/stadtwerk-mauer-case-detail?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench`
 - selected-case action rows from `GET /api/dashboard/stadtwerk-mauer-case-actions?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench`
+- curated action-button contract rows from `GET /api/dashboard/stadtwerk-mauer-case-actions?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench`, backed by `integrations/budibase/manifests/workbench-action-manifest-stadtwerk-mauer.json`
 - demo process-panel rows, last-result rows, required evidence rows and runbook-boundary rows from `GET /api/dashboard/stadtwerk-mauer-case-actions?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench`
 - role workbench catalog/open-target rows from `GET /api/dashboard/stadtwerk-mauer-role-workbench-catalog?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench`
 - selected Zielnetzplanung item detail, context, evidence-gap, next-gate and safe-follow-up rows from `GET /api/dashboard/stadtwerk-mauer-grid-planning-selected-item-detail?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench&queueItemId=grid-planning:missing-nap-clarification`
@@ -67,6 +68,12 @@ The selected-case action query is read-only / verify-only: it returns scalar but
 refreshing the selected case, verifying the Blueprint seed and validating evidence completeness.
 Budibase may use these rows for UI-near query refreshes, but setup/reset/provisioning, arbitrary
 table writes, Rundeck execution and production mutations stay out of Budibase.
+The curated action-button contract is the first reusable Workbench button manifest. It targets
+`ROLE_NETZPLANUNG` and synthetic case `smm-budibase-workbench`; only `refresh_read_model`,
+`verify_blueprint_seed` and `validate_evidence_completeness` are enabled. Sandbox annotation is
+shown only as guarded/disabled in this slice, and consequential classes such as direct Rundeck,
+Budibase table writes, provisioning, settlement, HITL, device-control, external connectors and
+Personal-Agent execution remain forbidden no-call guards.
 The demo process panel uses the same read-only endpoint to render scalar process actions,
 last known results, required evidence and Budibase/Cernion/Rundeck boundary rows. Unsafe
 operational actions are visible as disabled rows only; Budibase does not execute Rundeck jobs

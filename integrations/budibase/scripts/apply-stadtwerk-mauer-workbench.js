@@ -369,19 +369,6 @@ async function main() {
   const cernionBaseUrl = normalizeBaseUrl(
     process.env[manifest.datasource.urlEnv] || manifest.datasource.defaultUrl
   );
-  const cookie = process.env.BUDIBASE_COOKIE_FILE
-    ? parseCookieJar(process.env.BUDIBASE_COOKIE_FILE)
-    : '';
-  const client = new BudibaseClient({ baseUrl: budibaseBaseUrl, cookie });
-  if (!client.cookie) {
-    const email = process.env.BUDIBASE_EMAIL;
-    const password = process.env.BUDIBASE_PASSWORD;
-    if (!email || !password) {
-      throw new Error(`Missing Budibase credentials.\n\n${usage()}`);
-    }
-    await client.login({ email, password });
-  }
-
   if (args.dryRun) {
     console.log(
       JSON.stringify(
@@ -393,12 +380,26 @@ async function main() {
           app: manifest.name,
           screenRoute: manifest.screen.route,
           queries: manifest.queries.map((query) => query.name),
+          sections: (manifest.sections || []).map((section) => section.id),
         },
         null,
         2
       )
     );
     return;
+  }
+
+  const cookie = process.env.BUDIBASE_COOKIE_FILE
+    ? parseCookieJar(process.env.BUDIBASE_COOKIE_FILE)
+    : '';
+  const client = new BudibaseClient({ baseUrl: budibaseBaseUrl, cookie });
+  if (!client.cookie) {
+    const email = process.env.BUDIBASE_EMAIL;
+    const password = process.env.BUDIBASE_PASSWORD;
+    if (!email || !password) {
+      throw new Error(`Missing Budibase credentials.\n\n${usage()}`);
+    }
+    await client.login({ email, password });
   }
 
   const app = await ensureApp(client, manifest);

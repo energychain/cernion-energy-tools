@@ -1241,6 +1241,116 @@
       }
     },
     {
+      "name": "getStadtwerkMauerActionButtonContractRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-case-actions",
+      "queryString": "tenantId={{tenantId}}&caseId={{caseId}}",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "caseId",
+          "default": "smm-budibase-workbench"
+        }
+      ],
+      "transformer": "const tenantId=data.tenantId||'stadtwerk-mauer'; const caseId=data.caseId||'smm-budibase-workbench'; const base={persona:'ROLE_NETZPLANUNG',tenantId,caseId,manifestId:'workbench-action-manifest-stadtwerk-mauer-v1'}; const rows=[{actionId:'refresh_read_model',label:'Refresh selected-case read model',safetyClass:'read_only',enabled:true,enabledLabel:'enabled',sourceEndpoint:'GET /api/dashboard/stadtwerk-mauer-case-detail',preconditions:'selected synthetic case exists; tenant is stadtwerk-mauer',disabledReason:'',expectedReadback:'case evidence, trace, artifact, next-gate and annotation readback rows',evidenceImpact:'refreshes display state without changing Cernion domain data',nextGate:'inspect refreshed selected-case rows',dataClass:'synthetic_tenant_seed',transferParameters:'tenantId, caseId, roleMapping, allowedCommandScope=read_only',auditBinding:'query refresh only; no command audit row'},{actionId:'verify_blueprint_seed',label:'Verify selected Blueprint seed',safetyClass:'verify_only',enabled:true,enabledLabel:'enabled',sourceEndpoint:'GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify',preconditions:'selected seed is one of the canonical Stadtwerk-Mauer Blueprint seeds',disabledReason:'',expectedReadback:'Blueprint validity, required evidence, matrix, data-class and no-call guard rows',evidenceImpact:'adds verify/readback evidence for the selected seed',nextGate:'resolve missing Blueprint evidence before sync proof',dataClass:'synthetic_tenant_seed',transferParameters:'tenantId, seedId, allowedCommandScope=verify_only',auditBinding:'operations-runbook verify readback; no direct Rundeck execution'},{actionId:'validate_evidence_completeness',label:'Validate evidence completeness',safetyClass:'verify_only',enabled:true,enabledLabel:'enabled',sourceEndpoint:'GET /api/dashboard/stadtwerk-mauer-transfer-readiness',preconditions:'case and Blueprint verify rows are renderable',disabledReason:'',expectedReadback:'transfer readiness, missing evidence and safe next-gate rows',evidenceImpact:'turns missing evidence into explicit next-gate rows',nextGate:'complete missing evidence before any transfer claim',dataClass:'synthetic_tenant_seed',transferParameters:'tenantId, caseId, seedId, allowedCommandScope=verify_only',auditBinding:'read-only readiness readback'}]; const disabled=[{actionId:'add_sandbox_annotation',label:'Add sandbox annotation',safetyClass:'sandbox_annotation',enabled:false,enabledLabel:'disabled',sourceEndpoint:'POST /api/dashboard/stadtwerk-mauer-case-annotations',preconditions:'curated sandbox command, audit metadata and idempotency key are required',disabledReason:'guarded in this first action-button slice; not exposed as an enabled Budibase button',expectedReadback:'annotation rows and annotation audit rows after a separately approved curated command',evidenceImpact:'would add sandbox runtime artifact only',nextGate:'prove curated command guard before enabling',dataClass:'sandbox_runtime_artifact',transferParameters:'tenantId, caseId, commandType=add_operator_note_sandbox, actorLabel, audit metadata',auditBinding:'bounded Cernion command audit row required'},{actionId:'run_rundeck_job',label:'Run Rundeck job',safetyClass:'consequential',enabled:false,enabledLabel:'disabled',sourceEndpoint:'/api/operations-runbook/** wrapper required',preconditions:'not available from Budibase direct button',disabledReason:'direct Rundeck execution is forbidden; future actions must stay behind curated operations-runbook wrappers',expectedReadback:'none in this slice',evidenceImpact:'no effect; forbidden no-call guard',nextGate:'split a separate approved runbook wrapper issue if needed',dataClass:'forbidden_operation',transferParameters:'operationsRunbookWrapperId required in a later approved slice',auditBinding:'not called'}]; return rows.concat(disabled).map((row)=>({...base,...row,noCallGuard:row.enabled?'budibase.table.write, personal-agent.execute, external.connector.call not called':'action disabled; no operational call'}))",
+      "schema": {
+        "manifestId": {
+          "type": "string"
+        },
+        "actionId": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "persona": {
+          "type": "string"
+        },
+        "tenantId": {
+          "type": "string"
+        },
+        "caseId": {
+          "type": "string"
+        },
+        "safetyClass": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "enabledLabel": {
+          "type": "string"
+        },
+        "sourceEndpoint": {
+          "type": "string"
+        },
+        "preconditions": {
+          "type": "string"
+        },
+        "disabledReason": {
+          "type": "string"
+        },
+        "expectedReadback": {
+          "type": "string"
+        },
+        "evidenceImpact": {
+          "type": "string"
+        },
+        "nextGate": {
+          "type": "string"
+        },
+        "noCallGuard": {
+          "type": "string"
+        },
+        "dataClass": {
+          "type": "string"
+        },
+        "transferParameters": {
+          "type": "string"
+        },
+        "auditBinding": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getStadtwerkMauerActionButtonForbiddenGuardRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-case-actions",
+      "queryString": "tenantId={{tenantId}}&caseId={{caseId}}",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "caseId",
+          "default": "smm-budibase-workbench"
+        }
+      ],
+      "transformer": "const forbidden=['budibase.table.write','rundeck.execute','tenant.provision','seed.reset','external.connector.call','device-control.execute','settlement.exportA96','hitl.create','personal-agent.execute']; return forbidden.map((action,index)=>({rowKey:`action_button_guard_${index+1}`,action,status:'forbidden',safeAlternative:action==='rundeck.execute'?'curated /api/operations-runbook/** wrapper in a separate approved slice':'render existing read-only/verify Workbench rows only',sourceClass:'workbench_action_button_no_call_guard'}))",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "action": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "safeAlternative": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
       "name": "getStadtwerkMauerProcessActionRows",
       "method": "GET",
       "path": "/api/dashboard/stadtwerk-mauer-case-actions",
@@ -5146,6 +5256,18 @@
       "tableTitle": "Selected Case Actions"
     },
     {
+      "id": "action_button_contract",
+      "title": "Curated Action Button Contract",
+      "queryName": "getStadtwerkMauerActionButtonContractRows",
+      "tableTitle": "Curated Action Button Contract"
+    },
+    {
+      "id": "action_button_guards",
+      "title": "Action Button No-Call Guards",
+      "queryName": "getStadtwerkMauerActionButtonForbiddenGuardRows",
+      "tableTitle": "Action Button No-Call Guards"
+    },
+    {
       "id": "process_panel_actions",
       "title": "Demo Process Panel",
       "queryName": "getStadtwerkMauerProcessActionRows",
@@ -5617,6 +5739,7 @@
     "Selected Case Evidence and Next Gates bind to scalar rows so tables do not render nested objects.",
     "Sandbox Case Annotation uses a curated Cernion POST command plus scalar readback/audit rows; Budibase never writes arbitrary tables or owns case state.",
     "Selected-case action rows are curated read-only/verify-only button metadata; Budibase may refresh queries but must not write arbitrary Cernion tables.",
+    "Curated Action Button Contract rows expose ROLE_NETZPLANUNG buttons for smm-budibase-workbench: only refresh_read_model, verify_blueprint_seed and validate_evidence_completeness are enabled; sandbox annotation and operational actions stay disabled with scalar reasons.",
     "Demo Process Panel rows show safe verify actions, disabled operational actions, last known results and Cernion/Rundeck boundaries without executing jobs.",
     "Role Workbench Catalog binds to scalar role/open-target rows for Administrator, Zielnetzplanung, Vertrieb, Key Account and VDMI governance views.",
     "Zielnetzplanung Role Queue binds to scalar queue and evidence-handover rows for the generated grid-planning target.",
