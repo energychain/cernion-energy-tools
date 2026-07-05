@@ -1,6 +1,13 @@
 'use strict';
 
-const { createInMemorySessionStore, TTL_OPTIONS } = require('../src/chatgpt-sidecar-session-store');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const {
+  createFileBackedSessionStore,
+  createInMemorySessionStore,
+  TTL_OPTIONS,
+} = require('../src/chatgpt-sidecar-session-store');
 
 describe('chatgpt-sidecar session store', () => {
   let store;
@@ -72,5 +79,34 @@ describe('chatgpt-sidecar session store', () => {
     expect(summary.eventCount).toBe(3);
     expect(summary).not.toHaveProperty('tenantId');
     expect(summary).not.toHaveProperty('userId');
+  });
+
+  it('persists sessions, revocation and metering across store instances', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'chatgpt-sidecar-store-'));
+    const filePath = path.join(dir, 'sessions.json');
+    const persistentStore = createFileBackedSessionStore({ filePath });
+
+    const { session } = persistentStore.createSession({
+      tenantId: 'tenant-a',
+      userId: 'user-a',
+      ttl: '4h',
+      capabilityProfile: ['knowledge-rag', 'draft-datapoints'],
+      writeScope: 'draft_write',
+      origin: 'chatgpt_prompt_generator',
+      metadata: { useCase: 'zielnetzplanung' },
+    });
+    persistentStore.recordMeteringEvent(session.sessionId, 'session_created', {});
+    persistentStore.recordMeteringEvent(session.sessionId, 'manifest_read', {});
+
+    const rehydratedStore = createFileBackedSessionStore({ filePath });
+    expect(rehydratedStore.resolveByTicket(session.ticket).status).toBe('active');
+    expect(rehydratedStore.getMeteringSummary(session.sessionId).counts).toEqual({
+      session_created: 1,
+      manifest_read: 1,
+    });
+
+    rehydratedStore.revoke(session.sessionId, { tenantId: 'tenant-a' });
+    const afterRevokeRestart = createFileBackedSessionStore({ filePath });
+    expect(afterRevokeRestart.resolveByTicket(session.ticket).status).toBe('not_found');
   });
 });

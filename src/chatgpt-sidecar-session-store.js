@@ -17,6 +17,8 @@
  */
 
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 
 const TTL_OPTIONS = Object.freeze({
   '1h': 60 * 60 * 1000,
@@ -145,6 +147,26 @@ function createInMemorySessionStore() {
     return session ? [...session.meteringEvents] : [];
   }
 
+  function _allSessions() {
+    return [...byId.values()];
+  }
+
+  function _loadSession(session) {
+    if (!session?.sessionId || !session?.ticket) return false;
+    const normalized = {
+      ...session,
+      capabilityProfile: Array.isArray(session.capabilityProfile)
+        ? [...session.capabilityProfile]
+        : [],
+      metadata: { ...(session.metadata || {}) },
+      meteringEvents: Array.isArray(session.meteringEvents) ? [...session.meteringEvents] : [],
+      meteringCounts: { ...(session.meteringCounts || {}) },
+    };
+    byTicket.set(normalized.ticket, normalized);
+    byId.set(normalized.sessionId, normalized);
+    return true;
+  }
+
   return {
     createSession,
     resolveByTicket,
@@ -153,12 +175,84 @@ function createInMemorySessionStore() {
     recordMeteringEvent,
     getMeteringSummary,
     _getInternalEvents,
+    _allSessions,
+    _loadSession,
   };
 }
 
-// Process-wide default instance for the running service. Tests should build
-// their own store via createInMemorySessionStore() for isolation.
-const defaultStore = createInMemorySessionStore();
+function createFileBackedSessionStore({
+  filePath = process.env.CHATGPT_SIDECAR_SESSION_STORE_PATH ||
+    path.join(process.cwd(), 'data', 'chatgpt-sidecar-sessions', 'sessions.json'),
+} = {}) {
+  const memory = createInMemorySessionStore();
+
+  function ensureDirectory() {
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  }
+
+  function persist() {
+    ensureDirectory();
+    const sessions = [];
+    for (const session of memory._allSessions()) {
+      sessions.push(session);
+    }
+    const tempPath = `${filePath}.${process.pid}.tmp`;
+    fs.writeFileSync(tempPath, JSON.stringify({ schemaVersion: 1, sessions }, null, 2));
+    fs.renameSync(tempPath, filePath);
+  }
+
+  function hydrate() {
+    if (!fs.existsSync(filePath)) return;
+    const payload = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    const sessions = Array.isArray(payload?.sessions) ? payload.sessions : [];
+    for (const session of sessions) {
+      memory._loadSession(session);
+    }
+  }
+
+  hydrate();
+
+  return {
+    createSession(params) {
+      const result = memory.createSession(params);
+      if (result.ok) persist();
+      return result;
+    },
+    resolveByTicket: memory.resolveByTicket,
+    getById: memory.getById,
+    revoke(sessionId, options) {
+      const result = memory.revoke(sessionId, options);
+      if (result.ok) persist();
+      return result;
+    },
+    recordMeteringEvent(sessionId, eventType, detail) {
+      const event = memory.recordMeteringEvent(sessionId, eventType, detail);
+      if (event) persist();
+      return event;
+    },
+    getMeteringSummary: memory.getMeteringSummary,
+    _getInternalEvents: memory._getInternalEvents,
+    _filePath: filePath,
+  };
+}
+
+function createDefaultSessionStore() {
+  if (process.env.CHATGPT_SIDECAR_SESSION_STORE === 'memory') {
+    return createInMemorySessionStore();
+  }
+  if (
+    process.env.CHATGPT_SIDECAR_SESSION_STORE === 'file' ||
+    process.env.NODE_ENV === 'production'
+  ) {
+    return createFileBackedSessionStore();
+  }
+  return createInMemorySessionStore();
+}
+
+// Process-wide default instance for the running service. Production uses a
+// durable file-backed store so expiry, revocation and metering survive PM2
+// restarts; tests/dev can still use the in-memory implementation explicitly.
+const defaultStore = createDefaultSessionStore();
 
 module.exports = {
   TTL_OPTIONS,
@@ -167,5 +261,7 @@ module.exports = {
   isValidTtl,
   resolveTtlMs,
   createInMemorySessionStore,
+  createFileBackedSessionStore,
+  createDefaultSessionStore,
   defaultStore,
 };
