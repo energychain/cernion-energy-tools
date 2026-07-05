@@ -18,7 +18,7 @@ describe('token-manager.service', () => {
       settings: {
         ...TokenManagerService.settings,
         storageFile,
-        maxTokensPerInstallation: 5,
+        maxTokensPerInstallation: 10,
       },
     });
     await broker.start();
@@ -141,6 +141,28 @@ describe('token-manager.service', () => {
     });
     expect(deniedRawHitlPost.valid).toBe(false);
     expect(deniedRawHitlPost.reason).toBe('SCOPE_VIOLATION');
+  });
+
+  it('supports the explicit ChatGPT Sidecar creator scope for full-access solution tokens', async () => {
+    const created = await broker.call('token-manager.create', {
+      name: 'Solutions ChatGPT Sidecar',
+      scope: 'full-access',
+      tenantId: 'stadtwerk-a',
+      userId: 'svc:solutions',
+      scopes: ['chatgpt-sidecar-creator'],
+    });
+    expect(created.data.scopes).toEqual(
+      expect.arrayContaining(['full-access', 'vnb-monitor', 'chatgpt-sidecar-creator'])
+    );
+
+    const verified = await broker.call('token-manager.verify', {
+      token: created.data.token,
+      method: 'POST',
+      path: '/api/chatgpt-sidecar/sessions',
+      trackUsage: false,
+    });
+    expect(verified.valid).toBe(true);
+    expect(verified.scopes).toEqual(expect.arrayContaining(['chatgpt-sidecar-creator']));
   });
 
   it('rejects unsupported or privilege-escalating extra token scopes before storage', async () => {

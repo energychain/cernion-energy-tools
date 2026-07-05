@@ -16,6 +16,7 @@ const DEFAULT_STORAGE_FILE = process.env.TOKEN_STORAGE_FILE || './uploads/.api-t
 const MAX_NAME_LENGTH = 60;
 const ALLOWED_EXTRA_SCOPES = new Set([
   'vnb-monitor',
+  'chatgpt-sidecar-creator',
   'rundeck-read',
   'rundeck-dry-run',
   'rundeck-ack',
@@ -165,6 +166,7 @@ module.exports = {
             type: 'enum',
             values: [
               'vnb-monitor',
+              'chatgpt-sidecar-creator',
               'rundeck-read',
               'rundeck-dry-run',
               'rundeck-ack',
@@ -258,6 +260,7 @@ module.exports = {
             type: 'enum',
             values: [
               'vnb-monitor',
+              'chatgpt-sidecar-creator',
               'rundeck-read',
               'rundeck-dry-run',
               'rundeck-ack',

@@ -21,6 +21,10 @@ async function main() {
   const name = required(args, 'name');
   const scope = optional(args, 'scope', 'full-access');
   const email = optional(args, 'email');
+  const scopes = optional(args, 'scopes', '')
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter(Boolean);
 
   const tenant = upsertTenant({ tenantId, name: optional(args, 'tenant-name', tenantId) });
   const user = upsertUser({ tenantId: tenant.tenantId, userId, email });
@@ -32,6 +36,7 @@ async function main() {
     const created = await broker.call('token-manager.createCli', {
       name,
       scope,
+      scopes,
       tenantId: tenant.tenantId,
       userId: user.userId,
     });

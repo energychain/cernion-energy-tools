@@ -70,6 +70,8 @@ describe('provisioning registry and CLI', () => {
         'svc:chat-ui',
         '--scope',
         'full-access',
+        '--scopes',
+        'chatgpt-sidecar-creator',
         '--name',
         'Chat UI',
       ],
@@ -96,6 +98,7 @@ describe('provisioning registry and CLI', () => {
     expect(payload.data.tenantId).toBe('public');
     expect(payload.data.userId).toBe('svc:chat-ui');
     expect(payload.data.scope).toBe('full-access');
+    expect(payload.data.scopes).toContain('chatgpt-sidecar-creator');
 
     const storedTokens = fs.readFileSync(tokenFile, 'utf8');
     expect(storedTokens).not.toContain(payload.data.token);
