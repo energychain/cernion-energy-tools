@@ -6467,6 +6467,177 @@
         }
       }
     },
+    "/api/chatgpt-sidecar/sessions": {
+      "post": {
+        "operationId": "chatgpt-sidecar_createSession",
+        "summary": "Create a ChatGPT Sidecar session ticket with scoped capabilities",
+        "tags": [
+          "ChatGPT Sidecar"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Requires an authenticated Cernion tenant/user with the chatgpt-sidecar-creator role. Returns an opaque ticket URL and backend-generated prompt text; the response never echoes the session id/prompt back through the ticket endpoints."
+      }
+    },
+    "/api/chatgpt-sidecar/sessions/:sessionId": {
+      "delete": {
+        "operationId": "chatgpt-sidecar_revokeSession",
+        "summary": "Revoke a ChatGPT Sidecar session (authenticated Cernion side only)",
+        "tags": [
+          "ChatGPT Sidecar"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/chatgpt-sidecar/s/:ticket/manifest": {
+      "get": {
+        "operationId": "chatgpt-sidecar_manifest",
+        "summary": "Read the session-scoped capability manifest (allowlist only)",
+        "tags": [
+          "ChatGPT Sidecar"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "ticket",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Opaque ChatGPT Sidecar session ticket."
+          }
+        ]
+      }
+    },
+    "/api/chatgpt-sidecar/s/:ticket/ask": {
+      "post": {
+        "operationId": "chatgpt-sidecar_ask",
+        "summary": "Ask Cernion through the session-scoped evidence/capability facade",
+        "tags": [
+          "ChatGPT Sidecar"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/chatgpt-sidecar/s/:ticket/plan": {
+      "post": {
+        "operationId": "chatgpt-sidecar_plan",
+        "summary": "Resolve a request to a Blueprint/Capability Broker route (no execution)",
+        "tags": [
+          "ChatGPT Sidecar"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/chatgpt-sidecar/s/:ticket/datapoints": {
+      "post": {
+        "operationId": "chatgpt-sidecar_datapoints",
+        "summary": "Create a draft datapoint through the session (draft_write only)",
+        "tags": [
+          "ChatGPT Sidecar"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Only draft_write mutates in this slice. controlled_write, process_execute and requires_confirmation return a policy decision without creating anything."
+      }
+    },
+    "/api/chatgpt-sidecar/s/:ticket/metering": {
+      "get": {
+        "operationId": "chatgpt-sidecar_metering",
+        "summary": "Read a redacted metering summary for the session",
+        "tags": [
+          "ChatGPT Sidecar"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "ticket",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Opaque ChatGPT Sidecar session ticket."
+          }
+        ]
+      }
+    },
     "/api/clarification-policy/drafts": {
       "post": {
         "operationId": "clarification-policy_createDraft",

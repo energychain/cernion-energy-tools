@@ -562,6 +562,33 @@ function requiresHitlApproverRole(method, requestPath) {
   );
 }
 
+// ChatGPT Sidecar (#388) session/ticket create+manage role, required in
+// addition to the generic full-access role — an operator must grant this
+// role deliberately (custom API-token scope or IdP group mapping), unlike
+// hitl-approver it is never implied by full-access alone.
+function requiresChatgptSidecarCreatorRole(method, requestPath) {
+  const m = String(method || '').toUpperCase();
+  const pathOnly = String(requestPath || '').split('?')[0];
+
+  if (pathOnly === '/api/chatgpt-sidecar/sessions' && m === 'POST') return true;
+  if (/^\/api\/chatgpt-sidecar\/sessions\/[^/]+$/.test(pathOnly) && m === 'DELETE') return true;
+  return false;
+}
+
+// The opaque ticket in /s/:ticket/* is itself the caller's credential,
+// resolved and policy-gated server-side (services/chatgpt-sidecar.service.js).
+// These routes must stay reachable even if a caller happens to attach an
+// unrelated Cernion bearer token, so they are exempt from the generic
+// full-access RBAC default the same way isReadOnlySidecarInvocation is.
+function isChatgptSidecarTicketInvocation(method, requestPath) {
+  const m = String(method || '').toUpperCase();
+  const pathOnly = String(requestPath || '').split('?')[0];
+  return (
+    (m === 'POST' || m === 'GET') &&
+    /^\/api\/chatgpt-sidecar\/s\/[^/]+\/(manifest|ask|plan|datapoints|metering)$/.test(pathOnly)
+  );
+}
+
 function addLegacyTokenDeprecationHeaders(ctx) {
   ctx.meta.$responseHeaders = {
     ...(ctx.meta.$responseHeaders || {}),
@@ -581,6 +608,17 @@ function enforceRbacForPath(roles, method, requestPath) {
     );
   }
 
+  if (
+    requiresChatgptSidecarCreatorRole(m, requestPath) &&
+    !hasRole(roles, 'chatgpt-sidecar-creator')
+  ) {
+    throw new Errors.MoleculerClientError(
+      'Role required: chatgpt-sidecar-creator to create or revoke ChatGPT Sidecar sessions.',
+      403,
+      'ROLE_REQUIRED'
+    );
+  }
+
   const pathOnly = String(requestPath || '').split('?')[0];
   const isSessionSelfServiceEndpoint =
     pathOnly === '/api/auth/verify' ||
@@ -594,6 +632,7 @@ function enforceRbacForPath(roles, method, requestPath) {
     m !== 'OPTIONS' &&
     !isSessionSelfServiceEndpoint &&
     !isReadOnlySidecarInvocation(m, requestPath) &&
+    !isChatgptSidecarTicketInvocation(m, requestPath) &&
     !isOperationsRunbookInvocation(m, requestPath)
   ) {
     if (!hasRole(roles, 'full-access')) {
@@ -1449,6 +1488,17 @@ module.exports = {
           'GET /agent-sidecar/descriptor': 'agent-sidecar.descriptor',
           'GET /agent-sidecar/mcp/tools': 'agent-sidecar.mcpListTools',
           'POST /agent-sidecar/mcp/tools/:name/call': 'agent-sidecar.mcpCallTool',
+          // ChatGPT Sidecar (#388) — session-ticket facade. sessions create/delete
+          // require an authenticated tenant + chatgpt-sidecar-creator role; the
+          // /s/:ticket/* routes resolve the opaque ticket server-side and are
+          // reachable without any Cernion auth token by design.
+          'POST /chatgpt-sidecar/sessions': 'chatgpt-sidecar.createSession',
+          'DELETE /chatgpt-sidecar/sessions/:sessionId': 'chatgpt-sidecar.revokeSession',
+          'GET /chatgpt-sidecar/s/:ticket/manifest': 'chatgpt-sidecar.manifest',
+          'POST /chatgpt-sidecar/s/:ticket/ask': 'chatgpt-sidecar.ask',
+          'POST /chatgpt-sidecar/s/:ticket/plan': 'chatgpt-sidecar.plan',
+          'POST /chatgpt-sidecar/s/:ticket/datapoints': 'chatgpt-sidecar.datapoints',
+          'GET /chatgpt-sidecar/s/:ticket/metering': 'chatgpt-sidecar.metering',
           // Dashboard API (v0.19+) — UI-optimised aggregate endpoints
           'GET /dashboard/vnb-overview': 'dashboard-api.vnbOverview',
           'GET /dashboard/redispatch-metering-cockpit': 'dashboard-api.redispatchMeteringCockpit',
@@ -2264,6 +2314,7 @@ module.exports = {
                 verification.scope === 'read-only' &&
                 !isReadMethod(req?.method) &&
                 !isReadOnlySidecarInvocation(req?.method, requestPath) &&
+                !isChatgptSidecarTicketInvocation(req?.method, requestPath) &&
                 !isOperationsRunbookInvocation(req?.method, requestPath)
               ) {
                 throw new Errors.MoleculerClientError(

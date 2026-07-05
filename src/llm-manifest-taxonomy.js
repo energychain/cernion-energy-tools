@@ -271,6 +271,7 @@ const OPENAPI_TAG_DOMAIN_MAP = {
   'Redispatch Settlement Sandbox': 'redispatch',
   'Redispatch Special Case Gate': 'redispatch',
   'Agent Sidecar': 'platform',
+  'ChatGPT Sidecar': 'platform',
   'Battery Redispatch Special Gate': 'redispatch',
   'Flexibility Conductor Role Model': 'grid-ops',
   'Gas Capacity Order Revision Gate': 'regulatory',
