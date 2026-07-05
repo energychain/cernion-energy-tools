@@ -9,7 +9,9 @@
  *   DELETE /api/chatgpt-sidecar/sessions/:sessionId   (authenticated Cernion side only)
  *   GET    /api/chatgpt-sidecar/s/:ticket/manifest
  *   POST   /api/chatgpt-sidecar/s/:ticket/ask
+ *   GET    /api/chatgpt-sidecar/s/:ticket/ask          (browser read-only facade)
  *   POST   /api/chatgpt-sidecar/s/:ticket/plan
+ *   GET    /api/chatgpt-sidecar/s/:ticket/plan         (browser read-only facade)
  *   POST   /api/chatgpt-sidecar/s/:ticket/datapoints   (draft_write only)
  *   GET    /api/chatgpt-sidecar/s/:ticket/metering
  *
@@ -51,6 +53,7 @@ const {
 
 const OPENAPI_TAG = 'ChatGPT Sidecar';
 const CREATOR_ROLE = 'chatgpt-sidecar-creator';
+const MAX_BROWSER_QUERY_LENGTH = 2000;
 
 function getAuthenticatedUserId(ctx) {
   return ctx?.meta?.apiToken?.userId || ctx?.meta?.authUser?.userId || null;
@@ -77,6 +80,158 @@ function generateDraftDatapointName(sessionId) {
     .slice(-8)
     .toLowerCase();
   return `cgs-draft-${shortSession}-${suffix}`;
+}
+
+function parseOptionalObject(value, fallback = {}) {
+  if (value == null || value === '') return fallback;
+  if (typeof value === 'object' && !Array.isArray(value)) return value;
+  if (typeof value !== 'string') return fallback;
+
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function normalizeBrowserText(value, fieldName) {
+  const normalized = String(value || '').trim();
+  if (normalized.length > MAX_BROWSER_QUERY_LENGTH) {
+    throw new MoleculerClientError(
+      `${fieldName} is too long for the browser-compatible ChatGPT Sidecar GET facade.`,
+      400,
+      'CHATGPT_SIDECAR_BROWSER_QUERY_TOO_LONG'
+    );
+  }
+  return normalized;
+}
+
+async function handleAsk(ctx, { browserFacade = false } = {}) {
+  const session = resolveActiveSessionOrFail(ctx.params.ticket);
+  const rawQuestion = ctx.params.question || ctx.params.query || ctx.params.q;
+  const question = browserFacade ? normalizeBrowserText(rawQuestion, 'query') : rawQuestion;
+  if (!question) {
+    throw new MoleculerClientError(
+      'question is required.',
+      400,
+      'CHATGPT_SIDECAR_QUESTION_REQUIRED'
+    );
+  }
+
+  const capability = ctx.params.capability || null;
+  if (capability && !session.capabilityProfile.includes(capability)) {
+    defaultStore.recordMeteringEvent(session.sessionId, 'blocked_policy_attempt', {
+      capability,
+      action: browserFacade ? 'browser_ask' : 'ask',
+    });
+    return {
+      success: false,
+      error: 'sidecar_policy_blocked',
+      reason: 'capability_not_granted',
+      capability,
+    };
+  }
+
+  defaultStore.recordMeteringEvent(session.sessionId, 'ask_call', {
+    capability,
+    transport: browserFacade ? 'browser_get' : 'post',
+  });
+
+  const context = parseOptionalObject(ctx.params.context);
+  const inputs = parseOptionalObject(ctx.params.inputs);
+  const ontologyEnabled = session.capabilityProfile.includes('ontology-guardrail');
+  const ontology = resolveOntologyContext({ ontologyEnabled, capability });
+  if (ontologyEnabled) {
+    defaultStore.recordMeteringEvent(session.sessionId, 'ontology_guardrail_used', {
+      capability,
+      supported: ontology?.supported || false,
+    });
+  }
+
+  const restPlan = compileReadOnlyExecutionPlan({
+    question,
+    context: { ...context, ...inputs, tenantId: session.tenantId },
+    broker: ctx.broker,
+  });
+
+  if (restPlan.ok) {
+    const answer = buildAskBlueprintAnswer(restPlan, { question, sessionId: null });
+    return { ...answer, ontology };
+  }
+
+  const result = await ctx.call('personal-agent.askCernionAgent', {
+    question,
+    sessionId: null,
+    context: { ...context, tenantId: session.tenantId },
+    inputs,
+    domain: 'auto',
+    mode: 'answer',
+    maxEvidence: 5,
+  });
+
+  return { ...result, ontology };
+}
+
+async function handlePlan(ctx, { browserFacade = false } = {}) {
+  const session = resolveActiveSessionOrFail(ctx.params.ticket);
+  const task = browserFacade
+    ? normalizeBrowserText(ctx.params.task || ctx.params.q, 'task')
+    : ctx.params.task;
+  if (!task || task.length < 3) {
+    throw new MoleculerClientError('task is required.', 400, 'CHATGPT_SIDECAR_TASK_REQUIRED');
+  }
+
+  const capability = ctx.params.capability || null;
+  if (capability && !session.capabilityProfile.includes(capability)) {
+    defaultStore.recordMeteringEvent(session.sessionId, 'blocked_policy_attempt', {
+      capability,
+      action: browserFacade ? 'browser_plan' : 'plan',
+    });
+    return {
+      success: false,
+      error: 'sidecar_policy_blocked',
+      reason: 'capability_not_granted',
+      capability,
+    };
+  }
+
+  defaultStore.recordMeteringEvent(session.sessionId, 'plan_call', {
+    capability,
+    transport: browserFacade ? 'browser_get' : 'post',
+  });
+
+  const context = parseOptionalObject(ctx.params.context);
+  const ontologyEnabled = session.capabilityProfile.includes('ontology-guardrail');
+  const ontology = resolveOntologyContext({ ontologyEnabled, capability });
+  if (ontologyEnabled) {
+    defaultStore.recordMeteringEvent(session.sessionId, 'ontology_guardrail_used', {
+      capability,
+      supported: ontology?.supported || false,
+    });
+  }
+
+  const recommendation = await ctx.call('capability-broker.recommend', {
+    mode: 'initial',
+    task,
+    knownContext: { ...context, tenantId: session.tenantId },
+  });
+
+  const restPlan = compileReadOnlyExecutionPlan({
+    question: task,
+    context: { ...context, tenantId: session.tenantId },
+    broker: ctx.broker,
+  });
+
+  return {
+    success: true,
+    recommendation,
+    restPlan: restPlan.ok
+      ? { resolved: restPlan.resolved, recommendedEndpoints: restPlan.recommendedEndpoints }
+      : { ok: false, reason: restPlan.reason },
+    ontology,
+    writeScope: session.writeScope,
+  };
 }
 
 // Fails closed: requires a real authenticated tenant, a non-read-only token
@@ -272,7 +427,9 @@ module.exports = {
           endpoints: {
             manifest: `GET /api/chatgpt-sidecar/s/${session.ticket}/manifest`,
             ask: `POST /api/chatgpt-sidecar/s/${session.ticket}/ask`,
+            browserAsk: `GET /api/chatgpt-sidecar/s/${session.ticket}/ask?query={urlencoded_question}&capability={optional_capability}`,
             plan: `POST /api/chatgpt-sidecar/s/${session.ticket}/plan`,
+            browserPlan: `GET /api/chatgpt-sidecar/s/${session.ticket}/plan?task={urlencoded_task}&capability={optional_capability}`,
             datapoints: `POST /api/chatgpt-sidecar/s/${session.ticket}/datapoints`,
             metering: `GET /api/chatgpt-sidecar/s/${session.ticket}/metering`,
           },
@@ -295,63 +452,30 @@ module.exports = {
         summary: 'Ask Cernion through the session-scoped evidence/capability facade',
       },
       async handler(ctx) {
-        const session = resolveActiveSessionOrFail(ctx.params.ticket);
-        const question = ctx.params.question || ctx.params.query;
-        if (!question) {
-          throw new MoleculerClientError(
-            'question is required.',
-            400,
-            'CHATGPT_SIDECAR_QUESTION_REQUIRED'
-          );
-        }
+        return handleAsk(ctx);
+      },
+    },
 
-        const capability = ctx.params.capability || null;
-        if (capability && !session.capabilityProfile.includes(capability)) {
-          defaultStore.recordMeteringEvent(session.sessionId, 'blocked_policy_attempt', {
-            capability,
-            action: 'ask',
-          });
-          return {
-            success: false,
-            error: 'sidecar_policy_blocked',
-            reason: 'capability_not_granted',
-            capability,
-          };
-        }
-
-        defaultStore.recordMeteringEvent(session.sessionId, 'ask_call', { capability });
-
-        const ontologyEnabled = session.capabilityProfile.includes('ontology-guardrail');
-        const ontology = resolveOntologyContext({ ontologyEnabled, capability });
-        if (ontologyEnabled) {
-          defaultStore.recordMeteringEvent(session.sessionId, 'ontology_guardrail_used', {
-            capability,
-            supported: ontology?.supported || false,
-          });
-        }
-
-        const restPlan = compileReadOnlyExecutionPlan({
-          question,
-          context: { ...ctx.params.context, ...ctx.params.inputs, tenantId: session.tenantId },
-          broker: ctx.broker,
-        });
-
-        if (restPlan.ok) {
-          const answer = buildAskBlueprintAnswer(restPlan, { question, sessionId: null });
-          return { ...answer, ontology };
-        }
-
-        const result = await ctx.call('personal-agent.askCernionAgent', {
-          question,
-          sessionId: null,
-          context: { ...ctx.params.context, tenantId: session.tenantId },
-          inputs: ctx.params.inputs,
-          domain: 'auto',
-          mode: 'answer',
-          maxEvidence: 5,
-        });
-
-        return { ...result, ontology };
+    browserAsk: {
+      rest: 'GET /s/:ticket/ask',
+      params: {
+        ticket: { type: 'string', min: 1 },
+        question: { type: 'string', optional: true },
+        query: { type: 'string', optional: true },
+        q: { type: 'string', optional: true },
+        context: { type: 'any', optional: true },
+        inputs: { type: 'any', optional: true },
+        capability: { type: 'string', optional: true },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Ask Cernion through a browser-compatible read-only GET facade',
+        description:
+          'For prompt-only ChatGPT.com usage where only URL reads are available. This ' +
+          'facade is read-only and delegates to the same session policy as POST ask.',
+      },
+      async handler(ctx) {
+        return handleAsk(ctx, { browserFacade: true });
       },
     },
 
@@ -368,53 +492,28 @@ module.exports = {
         summary: 'Resolve a request to a Blueprint/Capability Broker route (no execution)',
       },
       async handler(ctx) {
-        const session = resolveActiveSessionOrFail(ctx.params.ticket);
-        const capability = ctx.params.capability || null;
-        if (capability && !session.capabilityProfile.includes(capability)) {
-          defaultStore.recordMeteringEvent(session.sessionId, 'blocked_policy_attempt', {
-            capability,
-            action: 'plan',
-          });
-          return {
-            success: false,
-            error: 'sidecar_policy_blocked',
-            reason: 'capability_not_granted',
-            capability,
-          };
-        }
+        return handlePlan(ctx);
+      },
+    },
 
-        defaultStore.recordMeteringEvent(session.sessionId, 'plan_call', { capability });
-
-        const ontologyEnabled = session.capabilityProfile.includes('ontology-guardrail');
-        const ontology = resolveOntologyContext({ ontologyEnabled, capability });
-        if (ontologyEnabled) {
-          defaultStore.recordMeteringEvent(session.sessionId, 'ontology_guardrail_used', {
-            capability,
-            supported: ontology?.supported || false,
-          });
-        }
-
-        const recommendation = await ctx.call('capability-broker.recommend', {
-          mode: 'initial',
-          task: ctx.params.task,
-          knownContext: { ...ctx.params.context, tenantId: session.tenantId },
-        });
-
-        const restPlan = compileReadOnlyExecutionPlan({
-          question: ctx.params.task,
-          context: { ...ctx.params.context, tenantId: session.tenantId },
-          broker: ctx.broker,
-        });
-
-        return {
-          success: true,
-          recommendation,
-          restPlan: restPlan.ok
-            ? { resolved: restPlan.resolved, recommendedEndpoints: restPlan.recommendedEndpoints }
-            : { ok: false, reason: restPlan.reason },
-          ontology,
-          writeScope: session.writeScope,
-        };
+    browserPlan: {
+      rest: 'GET /s/:ticket/plan',
+      params: {
+        ticket: { type: 'string', min: 1 },
+        task: { type: 'string', optional: true },
+        q: { type: 'string', optional: true },
+        context: { type: 'any', optional: true },
+        capability: { type: 'string', optional: true },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Resolve a request through a browser-compatible read-only GET facade',
+        description:
+          'For prompt-only ChatGPT.com usage where only URL reads are available. This ' +
+          'facade is read-only and delegates to the same session policy as POST plan.',
+      },
+      async handler(ctx) {
+        return handlePlan(ctx, { browserFacade: true });
       },
     },
 

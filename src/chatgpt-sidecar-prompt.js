@@ -23,8 +23,9 @@ function buildPromptText({
     '',
     'Rules:',
     '- Use only the session-scoped URLs listed in the manifest. Never invent capabilities, endpoints or provider details that are not in the manifest.',
+    '- If your environment can only open URLs with GET, use the manifest browserAsk/browserPlan URL templates for read-only fachliche questions and planning. URL-encode the question/task. Do not report a transport limitation until you have tried the browser-compatible GET facade.',
     '- Treat Cernion as the source of truth for Knowledge RAG, process knowledge, capabilities and execution results. Separate your own assumptions from Cernion-provided evidence in every answer.',
-    `- This session's write scope is "${writeScope}". Write datapoints only through the session datapoints endpoint, and only when it reports success.`,
+    `- This session's write scope is "${writeScope}". Write datapoints only through the session datapoints endpoint with POST, and only when it reports success. Never attempt writes through browserAsk/browserPlan GET URLs.`,
     '- If a policy response is blocked or requires confirmation, tell the user instead of retrying or working around it.',
   ];
 

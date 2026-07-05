@@ -156,6 +156,8 @@ describe('chatgpt-sidecar service', () => {
     const ticket = ticketFrom(created);
     const manifest = await broker.call('chatgpt-sidecar.manifest', { ticket });
     expect(manifest.capabilityProfile).toEqual(['knowledge-rag']);
+    expect(manifest.endpoints.browserAsk).toContain(`GET /api/chatgpt-sidecar/s/${ticket}/ask`);
+    expect(manifest.endpoints.browserPlan).toContain(`GET /api/chatgpt-sidecar/s/${ticket}/plan`);
   });
 
   // ---------------------------------------------------------------------
@@ -218,6 +220,29 @@ describe('chatgpt-sidecar service', () => {
     expect(metering.counts.ask_call).toBe(1);
   });
 
+  it('browser ask provides a read-only GET facade for prompt-only ChatGPT.com usage', async () => {
+    const created = await createSession();
+    const ticket = ticketFrom(created);
+
+    const result = await broker.call('chatgpt-sidecar.browserAsk', {
+      ticket,
+      query: 'Welche PV-Anlage wurde 2015 in Mauer gebaut?',
+      context: JSON.stringify({ source: 'chatgpt.com' }),
+    });
+
+    expect(result.success).toBe(true);
+    const forwarded = calls.find((c) => c.action === 'personal-agent.askCernionAgent');
+    expect(forwarded).toBeTruthy();
+    expect(forwarded.params.question).toBe('Welche PV-Anlage wurde 2015 in Mauer gebaut?');
+    expect(forwarded.params.context).toMatchObject({
+      source: 'chatgpt.com',
+      tenantId: 'tenant-a',
+    });
+
+    const metering = await broker.call('chatgpt-sidecar.metering', { ticket });
+    expect(metering.counts.ask_call).toBe(1);
+  });
+
   it('ask blocks a capability that was not granted to the session, without calling downstream', async () => {
     const created = await createSession({ capabilityProfile: ['knowledge-rag'] });
     const ticket = ticketFrom(created);
@@ -247,6 +272,22 @@ describe('chatgpt-sidecar service', () => {
 
     expect(result.success).toBe(true);
     expect(calls.find((c) => c.action === 'capability-broker.recommend')).toBeTruthy();
+  });
+
+  it('browser plan provides a read-only GET facade for prompt-only ChatGPT.com usage', async () => {
+    const created = await createSession();
+    const ticket = ticketFrom(created);
+
+    const result = await broker.call('chatgpt-sidecar.browserPlan', {
+      ticket,
+      task: 'Finde passende Datenquellen fuer PV-Anlagenstammdaten in Mauer',
+    });
+
+    expect(result.success).toBe(true);
+    expect(calls.find((c) => c.action === 'capability-broker.recommend')).toBeTruthy();
+
+    const metering = await broker.call('chatgpt-sidecar.metering', { ticket });
+    expect(metering.counts.plan_call).toBe(1);
   });
 
   it('ask attaches ontology guardrail context and marks unsupported claims', async () => {
