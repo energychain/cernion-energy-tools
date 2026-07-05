@@ -536,6 +536,85 @@ const blueprintVarianceFixture = {
   },
 };
 
+const portfolioBlueprintFixture = {
+  ...blueprintVerifyFixture,
+  data: {
+    ...blueprintVerifyFixture.data,
+    seedId: 'stadtwerk-mauer-portfolio-market-value-readiness-v1',
+    processFamily: 'energy_market_portfolio_readiness',
+    controlCase: 'portfolio_market_value_readiness',
+    requiredEvidence: [
+      'portfolioScopeEvidence',
+      'generationProfileEvidence',
+      'priceCacheCoverage',
+      'marketValueRiskBoundary',
+      'nonAdviceGate',
+    ],
+    missingEvidence: [
+      {
+        missingDataPoint: 'priceCacheCoverage',
+        state: 'evidence_gap',
+        enablesDossierAddition: 'show price/cache evidence for market-value plausibility',
+      },
+    ],
+    demoProcessMatrixSync: {
+      slug: 'portfolio-market-value-readiness',
+      expectedSlug: 'portfolio-market-value-readiness',
+      synced: true,
+      roleLegendM: 'Mitwirkend',
+      rowCount: 5,
+      rowCountValid: true,
+      roleCellsClean: true,
+      dataClassesLimited: true,
+      forbiddenActionsStatus: 'no_market_action',
+      evidenceRequirements: [
+        'portfolioScopeEvidence',
+        'generationProfileEvidence',
+        'priceCacheCoverage',
+        'marketValueRiskBoundary',
+        'nonAdviceGate',
+      ],
+      rows: [
+        {
+          phase: 'plausibility',
+          roles: {
+            V: 'ROLE_PORTFOLIO_OWNER',
+            D: 'ROLE_ENERGY_MARKET_ANALYST',
+            M: 'ROLE_VDMI_GOVERNANCE',
+            I: 'ROLE_MANAGEMENT',
+          },
+          evidenceRequirements: ['generationProfileEvidence', 'priceCacheCoverage'],
+          status: 'review_ready',
+          gateOutcome: 'read_only_non_advice_review',
+        },
+      ],
+    },
+    forbiddenActions: ['trading.execute', 'investment-advice.publish', 'portfolio.persist'],
+    sourceActions: {
+      notCalled: ['external.connector.call', 'budibase.table.write', 'personal-agent.execute'],
+    },
+  },
+};
+
+const portfolioBacktestFixture = {
+  success: true,
+  portfolio: {
+    assetCount: 2,
+    generationMwh: 32.4,
+    marketValueEur: 2510.75,
+    captureRate: 0.91,
+    weightedMarketValueEurPerMwh: 77.49,
+    averageSpotPriceEurPerMwh: 85.15,
+    negativePriceHours: 2,
+  },
+  plausibility: {
+    specificYieldKwhPerKw: 946,
+    orientationYieldKwhPerKw: 980,
+    yieldRatio: 0.965,
+    generationCoverage: 0.82,
+  },
+};
+
 describe('Budibase Stadtwerk Mauer workbench manifest', () => {
   const expectedSectionIds = [
     'vdmi_profile_summary',
@@ -571,6 +650,11 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
     'blueprint_variance_forbidden_actions',
     'blueprint_variance_sync_focus',
     'blueprint_variance_matrix_focus',
+    'portfolio_market_value_seed_guard',
+    'portfolio_market_value_matrix',
+    'portfolio_market_value_backtest',
+    'portfolio_market_value_evidence',
+    'portfolio_market_value_boundaries',
     'action_button_contract',
     'action_button_guards',
     'vnb_delta_signal_queue_classifier',
@@ -665,6 +749,56 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
         .filter((section) => section.id.startsWith('blueprint_variance'))
         .every((section) => queries.some((query) => query.name === section.queryName))
     ).toBe(true);
+  });
+
+  it('adds the Portfolio Market Value Readiness panel from existing safe endpoints', () => {
+    const queries = manifest.queries.filter(
+      (query) =>
+        query.name.includes('PortfolioMarketValueReadiness') ||
+        query.name === 'runPortfolioMarketValueReadinessBacktestRows'
+    );
+    const paths = new Set(queries.map((query) => query.path));
+
+    expect(paths).toEqual(
+      new Set([
+        '/api/dashboard/stadtwerk-mauer-blueprint-pack-verify',
+        '/api/energy-market/portfolio-backtest',
+      ])
+    );
+    expect(
+      queries.every(
+        (query) =>
+          query.path !== '/api/dashboard/stadtwerk-mauer-portfolio-market-value-readiness'
+      )
+    ).toBe(true);
+    expect(
+      queries.some((query) =>
+        query.queryString?.includes('stadtwerk-mauer-portfolio-market-value-readiness-v1')
+      )
+    ).toBe(true);
+    expect(
+      manifest.sections
+        .filter((section) => section.id.startsWith('portfolio_market_value'))
+        .every((section) => queries.some((query) => query.name === section.queryName))
+    ).toBe(true);
+
+    const backtestQuery = queries.find(
+      (query) => query.name === 'runPortfolioMarketValueReadinessBacktestRows'
+    );
+    expect(backtestQuery).toMatchObject({
+      method: 'POST',
+      path: '/api/energy-market/portfolio-backtest',
+    });
+    expect(backtestQuery.body).toMatchObject({
+      region: 'Deutschland',
+      includeTimeseries: false,
+    });
+    expect(backtestQuery.body.assets).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ type: 'solar', postleitzahl: '69256' }),
+        expect.objectContaining({ type: 'biomass' }),
+      ])
+    );
   });
 
   it('declares a separate Workbench action-button manifest with only safe enabled actions', () => {
@@ -1043,6 +1177,88 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       matrixStatus: 'variance_matrix_ready',
       sourceClass: 'blueprint_selector_variance_matrix_focus',
     });
+  });
+
+  it('flattens Portfolio Market Value Readiness rows and no-call guards', () => {
+    const guardRows = runTransformer(
+      'getPortfolioMarketValueReadinessSeedGuardRows',
+      portfolioBlueprintFixture
+    );
+    expectScalarRows(guardRows);
+    expect(guardRows[0]).toMatchObject({
+      seedId: 'stadtwerk-mauer-portfolio-market-value-readiness-v1',
+      panelEnabled: true,
+      matrixRows: 5,
+      rolePair: 'ROLE_PORTFOLIO_OWNER / ROLE_ENERGY_MARKET_ANALYST',
+      sourceClass: 'portfolio_market_value_blueprint_guard',
+    });
+
+    const matrixRows = runTransformer(
+      'getPortfolioMarketValueReadinessMatrixRows',
+      portfolioBlueprintFixture
+    );
+    expectScalarRows(matrixRows);
+    expect(matrixRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'portfolio_matrix_sync_summary',
+          status: 'matrix_ready',
+          v: 'ROLE_PORTFOLIO_OWNER',
+          d: 'ROLE_ENERGY_MARKET_ANALYST',
+        }),
+        expect.objectContaining({
+          rowKey: 'portfolio_matrix_row_1',
+          phase: 'plausibility',
+          m: 'ROLE_VDMI_GOVERNANCE',
+          gateOutcome: 'read_only_non_advice_review',
+        }),
+      ])
+    );
+
+    const backtestRows = runTransformer(
+      'runPortfolioMarketValueReadinessBacktestRows',
+      portfolioBacktestFixture
+    );
+    expectScalarRows(backtestRows);
+    expect(backtestRows[0]).toMatchObject({
+      rowKey: 'portfolio_market_value_backtest',
+      assetCount: 2,
+      captureRate: 0.91,
+      specificYieldKwhPerKw: 946,
+      orientationYieldKwhPerKw: 980,
+      yieldRatio: 0.965,
+      generationCoverage: 0.82,
+      sourceClass: 'portfolio_market_value_backtest',
+    });
+    expect(backtestRows[0].nonAdviceBoundary).toContain('no trading');
+
+    const evidenceRows = runTransformer(
+      'getPortfolioMarketValueReadinessEvidenceRows',
+      portfolioBlueprintFixture
+    );
+    expectScalarRows(evidenceRows);
+    expect(evidenceRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          missingDataPoint: 'priceCacheCoverage',
+          enablesDossierAddition: 'show price/cache evidence for market-value plausibility',
+        }),
+      ])
+    );
+
+    const boundaryRows = runTransformer(
+      'getPortfolioMarketValueReadinessBoundaryRows',
+      portfolioBlueprintFixture
+    );
+    expectScalarRows(boundaryRows);
+    expect(boundaryRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ boundary: 'trading.execute', status: 'forbidden' }),
+        expect.objectContaining({ boundary: 'investment-advice.publish', status: 'forbidden' }),
+        expect.objectContaining({ boundary: 'budibase.table.write', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'personal-agent.execute', status: 'not_called' }),
+      ])
+    );
   });
 
   it('flattens VDMI profile rows for display-safe Budibase tables', () => {

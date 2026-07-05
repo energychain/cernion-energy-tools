@@ -4612,6 +4612,260 @@
       }
     },
     {
+      "name": "getPortfolioMarketValueReadinessSeedGuardRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-portfolio-market-value-readiness-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.data||{}; const v=d.validation||{}; const m=d.demoProcessMatrixSync||{}; const matrixReady=Boolean(m.synced&&m.rowCount===5&&m.rowCountValid&&m.roleCellsClean&&m.dataClassesLimited); const valid=Boolean(v.valid); const enabled=valid&&matrixReady; return [{rowKey:'portfolio_market_value_seed_guard',label:'Portfolio Market Value Readiness Guard',seedId:d.seedId||'stadtwerk-mauer-portfolio-market-value-readiness-v1',status:enabled?'panel_enabled':'panel_disabled_until_seed_matrix_ready',valid,matrixRows:Number(m.rowCount||0),matrixReady,panelEnabled:enabled,rolePair:'ROLE_PORTFOLIO_OWNER / ROLE_ENERGY_MARKET_ANALYST',safeNextAction:enabled?'run_synthetic_portfolio_backtest_review':'refresh_blueprint_verify_and_fix_seed_matrix_sync_first',sourceClass:'portfolio_market_value_blueprint_guard'}]",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "seedId": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "valid": {
+          "type": "boolean"
+        },
+        "matrixRows": {
+          "type": "number"
+        },
+        "matrixReady": {
+          "type": "boolean"
+        },
+        "panelEnabled": {
+          "type": "boolean"
+        },
+        "rolePair": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getPortfolioMarketValueReadinessMatrixRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-portfolio-market-value-readiness-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.data||{}; const m=d.demoProcessMatrixSync||{}; const cell=(value)=>String(value||''); const rows=(m.rows||[]).map((row,index)=>({rowKey:`portfolio_matrix_row_${index+1}`,phase:cell(row.phase||index+1),v:cell((row.roles||{}).V),d:cell((row.roles||{}).D),m:cell((row.roles||{}).M),i:cell((row.roles||{}).I),nachweise:(row.evidenceRequirements||[]).join(', '),status:cell(row.status),gateOutcome:cell(row.gateOutcome),sourceClass:'portfolio_market_value_matrix_row'})); const summary={rowKey:'portfolio_matrix_sync_summary',phase:'-',v:'ROLE_PORTFOLIO_OWNER',d:'ROLE_ENERGY_MARKET_ANALYST',m:'Mitwirkend',i:'Management',nachweise:(m.evidenceRequirements||[]).join(', '),status:m.synced&&m.rowCount===5?'matrix_ready':'matrix_sync_required',gateOutcome:m.forbiddenActionsStatus||'no_market_action',sourceClass:'portfolio_market_value_matrix_summary'}; return [summary].concat(rows)",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "phase": {
+          "type": "string"
+        },
+        "v": {
+          "type": "string"
+        },
+        "d": {
+          "type": "string"
+        },
+        "m": {
+          "type": "string"
+        },
+        "i": {
+          "type": "string"
+        },
+        "nachweise": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "gateOutcome": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "runPortfolioMarketValueReadinessBacktestRows",
+      "method": "POST",
+      "path": "/api/energy-market/portfolio-backtest",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "body": {
+        "assets": [
+          {
+            "mastrNumber": "SEE000000000387",
+            "type": "solar",
+            "capacityKw": 742.5,
+            "postleitzahl": "69256",
+            "commissioningDate": "2021-06-01"
+          },
+          {
+            "type": "biomass",
+            "capacityKw": 180,
+            "commissioningDate": "2019-03-15",
+            "timeseries": [
+              {
+                "timestamp": "2026-06-01T00:00:00Z",
+                "generationMwh": 0.13
+              }
+            ]
+          }
+        ],
+        "dateFrom": "2026-06-01",
+        "dateTo": "2026-06-07",
+        "resolution": "hourly",
+        "region": "Deutschland",
+        "includeTimeseries": false
+      },
+      "transformer": "const p=data.portfolio||data.summary||{}; const plaus=data.plausibility||data.plausibilitySummary||data.methodology||{}; const accepted=data.status&&data.status!=='completed'&&!p.assetCount; const row={rowKey:'portfolio_market_value_backtest',label:'Synthetic portfolio backtest',status:accepted?data.status:(data.success===false?'error':'ready_or_completed'),jobId:data.jobId||'',resultUrl:data.resultUrl||'',assetCount:Number(p.assetCount||0),generationMwh:Number(p.generationMwh||0),marketValueEur:Number(p.marketValueEur||0),captureRate:Number(p.captureRate||0),weightedMarketValueEurPerMwh:Number(p.weightedMarketValueEurPerMwh||0),averageSpotPriceEurPerMwh:Number(p.averageSpotPriceEurPerMwh||0),specificYieldKwhPerKw:Number(plaus.specificYieldKwhPerKw||p.specificYieldKwhPerKw||0),orientationYieldKwhPerKw:Number(plaus.orientationYieldKwhPerKw||p.orientationYieldKwhPerKw||0),yieldRatio:Number(plaus.yieldRatio||p.yieldRatio||0),generationCoverage:Number(plaus.generationCoverage||p.generationCoverage||0),negativePriceHours:Number(p.negativePriceHours||0),nonAdviceBoundary:'synthetic demo plausibility only; no trading, valuation commitment or investment advice',safeNextAction:accepted?'poll_existing_job_result_before_presenting_kpis':'inspect_plausibility_and_evidence_gaps_only',sourceClass:'portfolio_market_value_backtest'}; return [row]",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "jobId": {
+          "type": "string"
+        },
+        "resultUrl": {
+          "type": "string"
+        },
+        "assetCount": {
+          "type": "number"
+        },
+        "generationMwh": {
+          "type": "number"
+        },
+        "marketValueEur": {
+          "type": "number"
+        },
+        "captureRate": {
+          "type": "number"
+        },
+        "weightedMarketValueEurPerMwh": {
+          "type": "number"
+        },
+        "averageSpotPriceEurPerMwh": {
+          "type": "number"
+        },
+        "specificYieldKwhPerKw": {
+          "type": "number"
+        },
+        "orientationYieldKwhPerKw": {
+          "type": "number"
+        },
+        "yieldRatio": {
+          "type": "number"
+        },
+        "generationCoverage": {
+          "type": "number"
+        },
+        "negativePriceHours": {
+          "type": "number"
+        },
+        "nonAdviceBoundary": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getPortfolioMarketValueReadinessEvidenceRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-portfolio-market-value-readiness-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.data||{}; const missing=(d.missingEvidence||[]); if(!missing.length){return [{rowKey:'portfolio_evidence_ready',missingDataPoint:'none',status:'ready',enablesDossierAddition:'seed, matrix-sync and synthetic backtest evidence can be shown as a demo-readiness review',safeNextAction:'keep_review_read_only_and_non_advice',sourceClass:'portfolio_market_value_positive_follow_up'}];} return missing.map((row,index)=>({rowKey:row.missingDataPoint||`portfolio_gap_${index+1}`,missingDataPoint:row.missingDataPoint||'',status:row.state||'evidence_gap',enablesDossierAddition:row.enablesDossierAddition||'complete missing portfolio readiness evidence',safeNextAction:'provide_missing_synthetic_evidence_then_refresh_panel',sourceClass:'portfolio_market_value_positive_follow_up'}))",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "missingDataPoint": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "enablesDossierAddition": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getPortfolioMarketValueReadinessBoundaryRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-portfolio-market-value-readiness-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.data||{}; const forbidden=(d.forbiddenActions||[]).map((action,index)=>({rowKey:`portfolio_forbidden_${index+1}_${action}`,boundary:String(action),status:'forbidden',safeAlternative:'render_existing_read_model_or_synthetic_backtest_result_only',sourceClass:'portfolio_market_value_forbidden_action'})); const guards=((d.sourceActions||{}).notCalled||[]).map((action)=>({rowKey:`portfolio_not_called_${action}`,boundary:String(action),status:'not_called',safeAlternative:'generated_budibase_render_shell_only',sourceClass:'portfolio_market_value_no_call_guard'})); const defaults=['trading.execute','investment-advice.publish','portfolio.persist','external.connector.call','budibase.table.write','personal-agent.execute'].map((action)=>({rowKey:`portfolio_default_guard_${action}`,boundary:action,status:'not_called',safeAlternative:'synthetic_read_only_review_only',sourceClass:'portfolio_market_value_default_guard'})); return forbidden.concat(guards).concat(defaults)",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "boundary": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "safeAlternative": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
       "name": "getStadtwerkMauerTransferReadinessSummaryRows",
       "method": "GET",
       "path": "/api/dashboard/stadtwerk-mauer-transfer-readiness",
@@ -5658,6 +5912,36 @@
       "tableTitle": "Read-only Cross-System Variance Linkout"
     },
     {
+      "id": "portfolio_market_value_seed_guard",
+      "title": "Portfolio Market Value Readiness",
+      "queryName": "getPortfolioMarketValueReadinessSeedGuardRows",
+      "tableTitle": "Seed, Matrix and Visibility Guard"
+    },
+    {
+      "id": "portfolio_market_value_matrix",
+      "title": "Portfolio Demo Process Matrix",
+      "queryName": "getPortfolioMarketValueReadinessMatrixRows",
+      "tableTitle": "Portfolio Market Value Matrix Rows"
+    },
+    {
+      "id": "portfolio_market_value_backtest",
+      "title": "Portfolio Backtest Plausibility",
+      "queryName": "runPortfolioMarketValueReadinessBacktestRows",
+      "tableTitle": "Synthetic Backtest KPIs and Plausibility"
+    },
+    {
+      "id": "portfolio_market_value_evidence",
+      "title": "Portfolio Evidence Gaps",
+      "queryName": "getPortfolioMarketValueReadinessEvidenceRows",
+      "tableTitle": "Evidence Gaps and Positive Follow-ups"
+    },
+    {
+      "id": "portfolio_market_value_boundaries",
+      "title": "Portfolio Review Boundaries",
+      "queryName": "getPortfolioMarketValueReadinessBoundaryRows",
+      "tableTitle": "Non-advice and No-Call Guards"
+    },
+    {
       "id": "transfer_readiness_summary",
       "title": "Transfer Readiness",
       "queryName": "getStadtwerkMauerTransferReadinessSummaryRows",
@@ -5756,6 +6040,8 @@
     "Blueprint Seed Selector binds to the existing Blueprint-Pack verify and transfer-readiness facades for the two canonical Stadtwerk-Mauer seeds; Budibase renders selector, matrix, evidence, data-class, sync-status and cross-system variance linkout rows as scalar read-only cells.",
     "Transfer Readiness binds to a read-only dashboard facade that separates public context, synthetic seed values, sandbox runtime artifacts, tenant parameters, reusable Workbench elements and blocked production boundaries.",
     "VNB Delta / Signal Queue binds to existing classifier, queue, owner/deadline/evidence and leadership delta read models with synthetic caller-supplied signals; Budibase renders scalar operator rows and no-call guards only.",
+    "Portfolio Market Value Readiness binds Blueprint-Pack verify rows for stadtwerk-mauer-portfolio-market-value-readiness-v1 with a synthetic portfolio-backtest query; Budibase renders scalar demo-readiness, plausibility, evidence-gap and non-advice rows only.",
+    "Portfolio review rows stay read-only/generated: no portfolio persistence, trading, investment advice, external connector, billing, settlement, tariff, MaKo, device-control, Budibase table write or Personal-Agent execution is allowed.",
     "Budibase renders the workbench; Cernion remains the system of record and command gate."
   ]
 }

@@ -41,6 +41,7 @@ The workbench renders:
 - Evidence Freshness rows for the selected synthetic VNB signal from `GET /api/dashboard/evidence-freshness-guard`
 - Blueprint-Pack verify and Demo-Raum matrix-sync rows for `stadtwerk-mauer-substation-load-assessment-v1` from `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify`, backed by the existing operations-runbook verify contract
 - Blueprint seed selector, #382 matrix/evidence/sync rows and read-only cross-system variance linkout for `stadtwerk-mauer-cross-system-variance-evidence-matrix-v1`, composed from `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify`, `GET /api/dashboard/stadtwerk-mauer-transfer-readiness` and `GET /api/dashboard/cross-system-variance-matrix`
+- Portfolio Market Value Readiness rows for `stadtwerk-mauer-portfolio-market-value-readiness-v1`, composed from `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify` plus a synthetic `POST /api/energy-market/portfolio-backtest` query
 - Transfer Readiness rows from `GET /api/dashboard/stadtwerk-mauer-transfer-readiness`, separating public context, synthetic seed data, sandbox runtime artifacts, tenant parameters, reusable Blueprint/Workbench elements and blocked production boundaries
 - a scope-protected action query for `POST /api/operations-runbook/stadtwerk-mauer/e2e-smoke`
 
@@ -99,6 +100,14 @@ The Blueprint seed selector is read-only manifest/query state. It lists only the
 Stadtwerk-Mauer seeds, defaults the selected seed to the #382 cross-system variance evidence
 matrix, renders V/D/M/I/Nachweise cells as scalar columns, and keeps Landing-Registry /
 productive Demo-Raum sync blocked until explicit sync proof exists.
+The Portfolio Market Value Readiness panel is a generated read-only render slice. It combines
+Blueprint-Pack seed/matrix guard rows for the canonical portfolio seed with synthetic
+portfolio-backtest plausibility rows (`specificYieldKwhPerKw`, `orientationYieldKwhPerKw`,
+`yieldRatio`, `generationCoverage`), evidence gaps, safe next gates and non-advice/no-call
+boundaries. Budibase may render and refresh these rows, but it must not persist portfolios,
+trade, publish investment advice, call external connectors, write arbitrary tables, mutate
+production tenants, or perform MaKo, billing, settlement, tariff, device-control or Personal-Agent
+actions.
 The selected-target query is read-only: it maps a supported Hub or role target to scalar selected,
 focus and helper rows so Budibase can visibly focus a section without owning persistent state or
 mutating Cernion tenant data.
