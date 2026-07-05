@@ -1,9 +1,26 @@
 # ChatGPT Sidecar — Session Creation REST API Contract
 
-Issue: [energychain/cernion-energy-tools#388](https://github.com/energychain/cernion-energy-tools/issues/388)
-Status: First-card slice, implemented per
+Issues: [energychain/cernion-energy-tools#388](https://github.com/energychain/cernion-energy-tools/issues/388)
+(first slice), [#390](https://github.com/energychain/cernion-energy-tools/issues/390)
+(full-scope capability expansion).
+Status: implemented per
 [`chatgpt-sidecar-session-ticket-gate.md`](./chatgpt-sidecar-session-ticket-gate.md) and
 [`chatgpt-sidecar-oeo-trust-boundary.md`](./chatgpt-sidecar-oeo-trust-boundary.md).
+
+#390's product-cut questions (capability profile source of truth, full-scope
+definition, write-scope boundary) were resolved directly with the repo owner
+rather than via an async GitHub round-trip:
+- **Source of truth:** no per-tenant/user capability-entitlement store exists
+  in this codebase, so "full scope" means every `capability-catalog.js` entry
+  that resolves to a canonical taxonomy domain — not a tenant-differentiated
+  grant. The session creator still explicitly requests capabilities at
+  creation time (same trust model as #388), just from a much larger,
+  server-curated menu instead of a fixed 11-item list.
+- **Write scope:** write-classified capabilities also expand to the full
+  catalog, but `draft_write` remains the only class that mutates — expanding
+  the id space only changes which labels a `controlled_write` /
+  `process_execute` / `requires_confirmation` request may carry, not what
+  those requests are allowed to do.
 
 This document is the authoritative contract for **creating** a ChatGPT
 Sidecar session. It covers only `POST /api/chatgpt-sidecar/sessions` (and its
@@ -81,7 +98,10 @@ body — they come only from the authenticated caller's session/token.
 Any other value is rejected with `400 CHATGPT_SIDECAR_INVALID_TTL` and the
 response includes the allowed set.
 
-### Capability family enumeration (fixed allowlist, first slice)
+### Capability family enumeration
+
+The 11 fixed core handles from the #388 first slice remain valid session-level
+toggles:
 
 ```text
 knowledge-rag
@@ -97,9 +117,36 @@ ontology-guardrail
 draft-datapoints
 ```
 
+**#390 full-scope expansion:** `capabilityProfile` also accepts any capability
+id from `src/capability-catalog.js` (`CURATED_CAPABILITIES[].capability`) whose
+domain resolves to a canonical `llm-manifest-taxonomy` domain — currently all
+157 catalog entries qualify. A catalog capability whose domain does **not**
+resolve is excluded fail-closed (never silently granted), per
+`src/chatgpt-sidecar-session-policy.js`'s `FULL_CAPABILITY_CATALOG` builder.
+
+To request every available capability without enumerating ~168 ids by hand,
+pass the wildcard as the sole entry:
+
+```json
+{ "capabilityProfile": ["*"] }
+```
+
+This resolves server-side to the fixed core handles plus the full catalog —
+nothing more, and only at session-creation time (ChatGPT itself never sees or
+can request this parameter). Mixing `"*"` with other ids does **not** trigger
+the wildcard; it is only recognized as the sole array entry.
+
 These are **logical session capability names**, not raw endpoints or provider
 identifiers — the manifest returned by `GET /s/:ticket/manifest` exposes only
-this allowlist filtered to what the session was granted.
+the granted subset, grouped by canonical taxonomy domain under
+`capabilityDomains` (e.g. `grid-ops`, `redispatch`, `market-data`) alongside
+the existing flat `capabilityProfile` list.
+
+Granting a capability id only changes which label an `ask`/`plan`/`datapoints`
+call may carry — it does not add a new invocation pathway. Those three routes
+always call the same fixed, already-safe primitives regardless of which
+capability id was requested, so widening this id space does not loosen tenant,
+policy or write-scope authority.
 
 ### Write scope enumeration
 
@@ -110,6 +157,11 @@ controlled_write        (policy decision only — never mutates)
 process_execute         (policy decision only — never mutates)
 requires_confirmation   (policy decision only — never mutates)
 ```
+
+This is unchanged by the #390 capability expansion: any granted capability id
+— fixed handle or full-catalog id — can be attached to a `controlled_write` /
+`process_execute` / `requires_confirmation` request and receive a policy
+decision, but `draft_write` remains the only class that actually mutates.
 
 ## Response
 

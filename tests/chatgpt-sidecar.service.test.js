@@ -395,4 +395,64 @@ describe('chatgpt-sidecar service', () => {
       )
     ).rejects.toMatchObject({ code: 404, type: 'CHATGPT_SIDECAR_SESSION_NOT_FOUND' });
   });
+
+  // ---------------------------------------------------------------------
+  // #390: full-scope catalog expansion
+  // ---------------------------------------------------------------------
+
+  it('grants the full catalog via the "*" wildcard and groups it by domain in the manifest', async () => {
+    const created = await createSession({ capabilityProfile: ['*'] });
+    const ticket = ticketFrom(created);
+
+    expect(created.capabilities.length).toBeGreaterThan(100);
+
+    const manifest = await broker.call('chatgpt-sidecar.manifest', { ticket });
+    expect(Object.keys(manifest.capabilityDomains).length).toBeGreaterThan(1);
+    expect(manifest.capabilityDomains.platform).toEqual(
+      expect.arrayContaining(['knowledge-rag', 'draft-datapoints'])
+    );
+
+    const serialized = JSON.stringify(manifest);
+    expect(serialized).not.toMatch(/tenant-a|user-a/);
+  });
+
+  it('allows ask for a granted full-scope catalog capability id and blocks an ungranted one', async () => {
+    const { FULL_CAPABILITY_CATALOG } = require('../src/chatgpt-sidecar-session-policy');
+    const grantedId = FULL_CAPABILITY_CATALOG[0].id;
+    const ungrantedId = FULL_CAPABILITY_CATALOG[1].id;
+
+    const created = await createSession({ capabilityProfile: [grantedId] });
+    const ticket = ticketFrom(created);
+
+    const allowed = await broker.call('chatgpt-sidecar.ask', {
+      ticket,
+      question: 'Wie ist der aktuelle Evidenzstatus?',
+      capability: grantedId,
+    });
+    expect(allowed.success).not.toBe(false);
+    expect(calls.find((c) => c.action === 'personal-agent.askCernionAgent')).toBeTruthy();
+
+    const blocked = await broker.call('chatgpt-sidecar.ask', {
+      ticket,
+      question: 'Wie ist der aktuelle Evidenzstatus?',
+      capability: ungrantedId,
+    });
+    expect(blocked.success).toBe(false);
+    expect(blocked.reason).toBe('capability_not_granted');
+  });
+
+  it('never mutates beyond draft_write even when the granted capability set is the full catalog', async () => {
+    const created = await createSession({ capabilityProfile: ['*'] });
+    const ticket = ticketFrom(created);
+
+    const result = await broker.call('chatgpt-sidecar.datapoints', {
+      ticket,
+      writeClass: 'process_execute',
+      value: { status: 'draft' },
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.decision).toBe('requires_confirmation');
+    expect(calls.find((c) => c.action === 'datapoint.create')).toBeUndefined();
+  });
 });

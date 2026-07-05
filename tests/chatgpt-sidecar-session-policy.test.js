@@ -3,12 +3,15 @@
 const {
   CAPABILITY_FAMILIES,
   DEFAULT_CAPABILITY_PROFILE,
+  FULL_CAPABILITY_CATALOG,
   normalizeCapabilityProfile,
+  groupCapabilitiesByDomain,
   resolveWriteScope,
   evaluateWriteRequest,
   redactSessionForClient,
   resolveOntologyContext,
 } = require('../src/chatgpt-sidecar-session-policy');
+const { CANONICAL_DOMAINS } = require('../src/llm-manifest-taxonomy');
 
 describe('chatgpt-sidecar session policy', () => {
   it('filters capabilityProfile to the fixed allowlist and drops unknown values', () => {
@@ -101,6 +104,7 @@ describe('chatgpt-sidecar session policy', () => {
     const redacted = redactSessionForClient(session);
     expect(redacted).toEqual({
       capabilityProfile: ['knowledge-rag', 'ontology-guardrail'],
+      capabilityDomains: { platform: ['knowledge-rag', 'ontology-guardrail'] },
       writeScope: 'draft_write',
       expiresAt: '2026-01-01T00:00:00.000Z',
       ontologyEnabled: true,
@@ -150,5 +154,70 @@ describe('chatgpt-sidecar session policy', () => {
       'ontology-guardrail',
       'draft-datapoints',
     ]);
+  });
+
+  // -------------------------------------------------------------------
+  // #390: full-scope catalog expansion
+  // -------------------------------------------------------------------
+  describe('full-scope catalog expansion (#390)', () => {
+    it('builds a full capability catalog fully covered by canonical domains, never "unmapped"', () => {
+      expect(FULL_CAPABILITY_CATALOG.length).toBeGreaterThan(100);
+      for (const entry of FULL_CAPABILITY_CATALOG) {
+        expect(CANONICAL_DOMAINS).toContain(entry.canonicalDomain);
+      }
+    });
+
+    it('excludes a catalog capability whose domain has no canonical mapping (fail closed)', () => {
+      jest.resetModules();
+      jest.doMock('../src/capability-catalog', () => ({
+        CURATED_CAPABILITIES: [
+          { capability: 'known_good_capability', domain: 'redispatch', intent: 'x' },
+          { capability: 'orphaned_capability', domain: 'totally-unmapped-domain', intent: 'y' },
+        ],
+      }));
+
+      const {
+        FULL_CAPABILITY_CATALOG: rebuiltCatalog,
+      } = require('../src/chatgpt-sidecar-session-policy');
+      const ids = rebuiltCatalog.map((entry) => entry.id);
+      expect(ids).toContain('known_good_capability');
+      expect(ids).not.toContain('orphaned_capability');
+
+      jest.dontMock('../src/capability-catalog');
+      jest.resetModules();
+    });
+
+    it('accepts a real catalog capability id directly', () => {
+      const sampleId = FULL_CAPABILITY_CATALOG[0].id;
+      expect(normalizeCapabilityProfile([sampleId, 'not-a-real-id'])).toEqual([sampleId]);
+    });
+
+    it('resolves the "*" wildcard to the fixed core handles plus the full catalog, nothing more', () => {
+      const result = normalizeCapabilityProfile(['*']);
+      expect(result).toHaveLength(CAPABILITY_FAMILIES.length + FULL_CAPABILITY_CATALOG.length);
+      for (const core of CAPABILITY_FAMILIES) expect(result).toContain(core);
+      for (const entry of FULL_CAPABILITY_CATALOG) expect(result).toContain(entry.id);
+    });
+
+    it('does not treat "*" as a wildcard when mixed with other ids', () => {
+      const result = normalizeCapabilityProfile(['*', 'knowledge-rag']);
+      expect(result).toEqual(['knowledge-rag']);
+    });
+
+    it('groups granted capabilities by canonical domain for the manifest', () => {
+      const sample = FULL_CAPABILITY_CATALOG.find(
+        (entry) => entry.canonicalDomain === 'redispatch'
+      );
+      const grouped = groupCapabilitiesByDomain(['knowledge-rag', sample.id]);
+      expect(grouped.platform).toEqual(['knowledge-rag']);
+      expect(grouped.redispatch).toEqual([sample.id]);
+    });
+
+    it('marks an unsupported ontology claim for a granted catalog capability with no OEO mapping', () => {
+      const sampleId = FULL_CAPABILITY_CATALOG[0].id;
+      const context = resolveOntologyContext({ ontologyEnabled: true, capability: sampleId });
+      expect(context.supported).toBe(false);
+      expect(context.classification).toBe('unsupported_ontology_claim');
+    });
   });
 });
