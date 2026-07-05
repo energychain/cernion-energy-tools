@@ -42,6 +42,7 @@ The workbench renders:
 - Blueprint-Pack verify and Demo-Raum matrix-sync rows for `stadtwerk-mauer-substation-load-assessment-v1` from `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify`, backed by the existing operations-runbook verify contract
 - Blueprint seed selector, #382 matrix/evidence/sync rows and read-only cross-system variance linkout for `stadtwerk-mauer-cross-system-variance-evidence-matrix-v1`, composed from `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify`, `GET /api/dashboard/stadtwerk-mauer-transfer-readiness` and `GET /api/dashboard/cross-system-variance-matrix`
 - Portfolio Market Value Readiness rows for `stadtwerk-mauer-portfolio-market-value-readiness-v1`, composed from `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify` plus a synthetic `POST /api/energy-market/portfolio-backtest` query
+- Monitoring Non-Escalation rows for `stadtwerk-mauer-monitoring-non-escalation-status-v1`, composed from `GET /api/dashboard/monitoring-non-escalation` plus Blueprint-Pack verify rows
 - Transfer Readiness rows from `GET /api/dashboard/stadtwerk-mauer-transfer-readiness`, separating public context, synthetic seed data, sandbox runtime artifacts, tenant parameters, reusable Blueprint/Workbench elements and blocked production boundaries
 - a scope-protected action query for `POST /api/operations-runbook/stadtwerk-mauer/e2e-smoke`
 
@@ -108,6 +109,14 @@ boundaries. Budibase may render and refresh these rows, but it must not persist 
 trade, publish investment advice, call external connectors, write arbitrary tables, mutate
 production tenants, or perform MaKo, billing, settlement, tariff, device-control or Personal-Agent
 actions.
+The Monitoring Non-Escalation panel is a generated read-only render slice. It combines the
+existing `monitoring-non-escalation` evidence card with Blueprint-Pack seed/matrix guard rows
+for the canonical monitoring seed. Budibase renders scalar selected-signal status, rationale,
+source freshness, absent-blocker evidence, owner, next-check, positive follow-up and no-call
+rows only. It must not read mail, Teams, SharePoint or Outlook; create tickets, HITL tasks,
+webhooks, escalations or workflow runs; write Object Store/RAG/public context; call external
+connectors; or turn synthetic signal identifiers into real VNB/customer/meter/device-control
+state.
 The selected-target query is read-only: it maps a supported Hub or role target to scalar selected,
 focus and helper rows so Budibase can visibly focus a section without owning persistent state or
 mutating Cernion tenant data.

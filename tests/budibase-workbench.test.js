@@ -615,6 +615,120 @@ const portfolioBacktestFixture = {
   },
 };
 
+const monitoringNonEscalationFixture = {
+  capabilityKey: 'non_escalation_control_evidence',
+  safety: 'read_only',
+  status: 'non_escalation_evidence_complete',
+  signal: {
+    signalId: 'vnb-delta-demo-anschluss',
+    domain: 'grid_connection_capacity',
+    assetContext: 'smm-budibase-workbench',
+  },
+  checkedSource: {
+    sourceName: 'synthetic-vnb-delta-monitor',
+    sourceCheckedAt: '2026-06-28T08:35:00.000Z',
+    sourceCheckedAtValid: true,
+  },
+  novelty: 'unchanged',
+  absentBlocker: {
+    blockingFinding: 'none',
+    blockerAbsent: true,
+    classification: 'absent_blocker_documented',
+  },
+  evidenceItems: [
+    {
+      id: 'checked_source',
+      label: 'Checked source',
+      value: 'synthetic-vnb-delta-monitor',
+      evidenceStatus: 'provided',
+      sourceClass: 'monitoring_non_escalation_evidence',
+    },
+    {
+      id: 'blocking_finding',
+      label: 'Absent blocker evidence',
+      value: 'none',
+      evidenceStatus: 'provided',
+      sourceClass: 'monitoring_non_escalation_evidence',
+    },
+  ],
+  missingEvidence: [],
+  positiveFollowUps: [],
+  sourceActions: {
+    notCalled: [
+      'monitoring.scheduler.run',
+      'alerting.escalate',
+      'hitl.create',
+      'mail.send',
+      'workflow.execute',
+      'external.connector.call',
+      'object-store.write',
+      'rag.ingest',
+      'budibase.apply',
+      'personal-agent.execute',
+    ],
+  },
+  dossierEvidence: {
+    signalId: 'vnb-delta-demo-anschluss',
+    domain: 'grid_connection_capacity',
+    sourceName: 'synthetic-vnb-delta-monitor',
+    sourceCheckedAt: '2026-06-28T08:35:00.000Z',
+    novelty: 'unchanged',
+    blockerAbsent: true,
+    owner: 'ROLE_NETZFUEHRUNG',
+    nextCheckAt: '2026-07-03T12:00:00.000Z',
+    rationale:
+      'Synthetic demo signal has fresh source metadata, no documented blocker and a named next check owner.',
+  },
+};
+
+const monitoringBlueprintFixture = {
+  ...blueprintVerifyFixture,
+  data: {
+    ...blueprintVerifyFixture.data,
+    seedId: 'stadtwerk-mauer-monitoring-non-escalation-status-v1',
+    processFamily: 'vnb_signal_monitoring',
+    controlCase: 'monitoring_non_escalation_status',
+    requiredEvidence: [
+      'selectedSignalContext',
+      'sourceFreshnessEvidence',
+      'absentBlockerEvidence',
+      'ownerNextCheckEvidence',
+    ],
+    missingEvidence: [],
+    demoProcessMatrixSync: {
+      slug: 'monitoring-non-escalation-status',
+      expectedSlug: 'monitoring-non-escalation-status',
+      synced: true,
+      roleLegendM: 'Mitwirkend',
+      rowCount: 4,
+      rowCountValid: true,
+      roleCellsClean: true,
+      dataClassesLimited: true,
+      forbiddenActionsStatus: 'no_escalation_action',
+      evidenceRequirements: [
+        'selectedSignalContext',
+        'sourceFreshnessEvidence',
+        'absentBlockerEvidence',
+        'ownerNextCheckEvidence',
+      ],
+      rows: [
+        {
+          phase: 'non_escalation_review',
+          roles: {
+            V: 'ROLE_NETZFUEHRUNG',
+            D: 'ROLE_GOVERNANCE_OWNER',
+            M: 'ROLE_NETZPLANUNG',
+            I: 'ROLE_MANAGEMENT',
+          },
+          evidenceRequirements: ['sourceFreshnessEvidence', 'absentBlockerEvidence'],
+          status: 'review_ready',
+          gateOutcome: 'keep_non_escalated_until_next_check',
+        },
+      ],
+    },
+  },
+};
+
 describe('Budibase Stadtwerk Mauer workbench manifest', () => {
   const expectedSectionIds = [
     'vdmi_profile_summary',
@@ -655,6 +769,11 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
     'portfolio_market_value_backtest',
     'portfolio_market_value_evidence',
     'portfolio_market_value_boundaries',
+    'monitoring_non_escalation_status',
+    'monitoring_non_escalation_evidence',
+    'monitoring_non_escalation_seed_guard',
+    'monitoring_non_escalation_matrix',
+    'monitoring_non_escalation_boundaries',
     'action_button_contract',
     'action_button_guards',
     'vnb_delta_signal_queue_classifier',
@@ -799,6 +918,46 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
         expect.objectContaining({ type: 'biomass' }),
       ])
     );
+  });
+
+  it('adds the Monitoring Non-Escalation panel from existing safe endpoints', () => {
+    const queries = manifest.queries.filter((query) =>
+      query.name.includes('MonitoringNonEscalation')
+    );
+    const paths = new Set(queries.map((query) => query.path));
+
+    expect(paths).toEqual(
+      new Set([
+        '/api/dashboard/monitoring-non-escalation',
+        '/api/dashboard/stadtwerk-mauer-blueprint-pack-verify',
+      ])
+    );
+    expect(
+      queries.every(
+        (query) => query.path !== '/api/dashboard/stadtwerk-mauer-monitoring-non-escalation'
+      )
+    ).toBe(true);
+    expect(
+      queries.some((query) =>
+        query.queryString?.includes('stadtwerk-mauer-monitoring-non-escalation-status-v1')
+      )
+    ).toBe(true);
+    expect(
+      manifest.sections
+        .filter((section) => section.id.startsWith('monitoring_non_escalation'))
+        .every((section) => queries.some((query) => query.name === section.queryName))
+    ).toBe(true);
+
+    const statusQuery = queries.find(
+      (query) => query.name === 'getMonitoringNonEscalationStatusRows'
+    );
+    expect(statusQuery).toMatchObject({
+      method: 'GET',
+      path: '/api/dashboard/monitoring-non-escalation',
+    });
+    expect(statusQuery.queryString).toContain('signalId=vnb-delta-demo-anschluss');
+    expect(statusQuery.queryString).toContain('blockingFinding=none');
+    expect(statusQuery.queryString).toContain('owner=ROLE_NETZFUEHRUNG');
   });
 
   it('declares a separate Workbench action-button manifest with only safe enabled actions', () => {
@@ -1256,6 +1415,91 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
         expect.objectContaining({ boundary: 'trading.execute', status: 'forbidden' }),
         expect.objectContaining({ boundary: 'investment-advice.publish', status: 'forbidden' }),
         expect.objectContaining({ boundary: 'budibase.table.write', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'personal-agent.execute', status: 'not_called' }),
+      ])
+    );
+  });
+
+  it('flattens Monitoring Non-Escalation rows and no-call guards', () => {
+    const statusRows = runTransformer(
+      'getMonitoringNonEscalationStatusRows',
+      monitoringNonEscalationFixture
+    );
+    expectScalarRows(statusRows);
+    expect(statusRows[0]).toMatchObject({
+      rowKey: 'monitoring_non_escalation_status',
+      signalId: 'vnb-delta-demo-anschluss',
+      status: 'non_escalation_evidence_complete',
+      blockerAbsent: true,
+      owner: 'ROLE_NETZFUEHRUNG',
+      safeNextGate: 'keep_signal_non_escalated_until_next_check',
+      sourceClass: 'monitoring_non_escalation_status',
+    });
+    expect(statusRows[0].rationale).toContain('fresh source metadata');
+
+    const evidenceRows = runTransformer(
+      'getMonitoringNonEscalationEvidenceRows',
+      monitoringNonEscalationFixture
+    );
+    expectScalarRows(evidenceRows);
+    expect(evidenceRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'checked_source',
+          value: 'synthetic-vnb-delta-monitor',
+          sourceClass: 'monitoring_non_escalation_evidence',
+        }),
+        expect.objectContaining({
+          rowKey: 'blocking_finding',
+          status: 'provided',
+        }),
+      ])
+    );
+
+    const guardRows = runTransformer(
+      'getMonitoringNonEscalationSeedGuardRows',
+      monitoringBlueprintFixture
+    );
+    expectScalarRows(guardRows);
+    expect(guardRows[0]).toMatchObject({
+      seedId: 'stadtwerk-mauer-monitoring-non-escalation-status-v1',
+      panelEnabled: true,
+      matrixRows: 4,
+      sourceClass: 'monitoring_non_escalation_blueprint_guard',
+    });
+
+    const matrixRows = runTransformer(
+      'getMonitoringNonEscalationMatrixRows',
+      monitoringBlueprintFixture
+    );
+    expectScalarRows(matrixRows);
+    expect(matrixRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'monitoring_non_escalation_matrix_sync_summary',
+          status: 'matrix_ready',
+          v: 'ROLE_NETZFUEHRUNG',
+          d: 'ROLE_GOVERNANCE_OWNER',
+        }),
+        expect.objectContaining({
+          rowKey: 'monitoring_non_escalation_matrix_row_1',
+          phase: 'non_escalation_review',
+          m: 'ROLE_NETZPLANUNG',
+          gateOutcome: 'keep_non_escalated_until_next_check',
+        }),
+      ])
+    );
+
+    const boundaryRows = runTransformer(
+      'getMonitoringNonEscalationBoundaryRows',
+      monitoringNonEscalationFixture
+    );
+    expectScalarRows(boundaryRows);
+    expect(boundaryRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ boundary: 'alerting.escalate', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'hitl.create', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'external.connector.call', status: 'not_called' }),
         expect.objectContaining({ boundary: 'personal-agent.execute', status: 'not_called' }),
       ])
     );

@@ -4866,6 +4866,130 @@
       }
     },
     {
+      "name": "getMonitoringNonEscalationStatusRows",
+      "method": "GET",
+      "path": "/api/dashboard/monitoring-non-escalation",
+      "queryString": "signalId=vnb-delta-demo-anschluss&domain=grid_connection_capacity&assetContext=smm-budibase-workbench&sourceName=synthetic-vnb-delta-monitor&sourceCheckedAt=2026-06-28T08%3A35%3A00.000Z&novelty=unchanged&blockingFinding=none&nextCheckAt=2026-07-03T12%3A00%3A00.000Z&owner=ROLE_NETZFUEHRUNG&rationale=Synthetic%20demo%20signal%20has%20fresh%20source%20metadata%2C%20no%20documented%20blocker%20and%20a%20named%20next%20check%20owner.",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const s=data.signal||{}; const src=data.checkedSource||{}; const blocker=data.absentBlocker||{}; const ev=data.dossierEvidence||{}; return [{rowKey:'monitoring_non_escalation_status',label:'Monitoring Non-Escalation',signalId:s.signalId||'vnb-delta-demo-anschluss',domain:s.domain||'grid_connection_capacity',assetContext:s.assetContext||'smm-budibase-workbench',status:data.status||'',rationale:ev.rationale||data.rationale||'',sourceName:src.sourceName||'',sourceCheckedAt:src.sourceCheckedAt||'',novelty:data.novelty||'',blockerAbsent:Boolean(blocker.blockerAbsent),blockerClassification:blocker.classification||'',owner:ev.owner||'',nextCheckAt:ev.nextCheckAt||'',safeNextGate:data.status==='non_escalation_evidence_complete'?'keep_signal_non_escalated_until_next_check':'resolve_missing_non_escalation_evidence',sourceClass:'monitoring_non_escalation_status'}]",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "label": { "type": "string" },
+        "signalId": { "type": "string" },
+        "domain": { "type": "string" },
+        "assetContext": { "type": "string" },
+        "status": { "type": "string" },
+        "rationale": { "type": "string" },
+        "sourceName": { "type": "string" },
+        "sourceCheckedAt": { "type": "string" },
+        "novelty": { "type": "string" },
+        "blockerAbsent": { "type": "boolean" },
+        "blockerClassification": { "type": "string" },
+        "owner": { "type": "string" },
+        "nextCheckAt": { "type": "string" },
+        "safeNextGate": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getMonitoringNonEscalationEvidenceRows",
+      "method": "GET",
+      "path": "/api/dashboard/monitoring-non-escalation",
+      "queryString": "signalId=vnb-delta-demo-anschluss&domain=grid_connection_capacity&assetContext=smm-budibase-workbench&sourceName=synthetic-vnb-delta-monitor&sourceCheckedAt=2026-06-28T08%3A35%3A00.000Z&novelty=unchanged&blockingFinding=none&nextCheckAt=2026-07-03T12%3A00%3A00.000Z&owner=ROLE_NETZFUEHRUNG&rationale=Synthetic%20demo%20signal%20has%20fresh%20source%20metadata%2C%20no%20documented%20blocker%20and%20a%20named%20next%20check%20owner.",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const evidence=(data.evidenceItems||[]).map((row)=>({rowKey:row.id,label:row.label,status:row.evidenceStatus||'provided',value:String(row.value||''),enablesDossierAddition:'already_available_in_non_escalation_panel',safeNextAction:'keep_read_only_evidence_visible',sourceClass:row.sourceClass||'monitoring_non_escalation_evidence'})); const gaps=(data.positiveFollowUps||data.missingEvidence||[]).map((row,index)=>({rowKey:row.missingDataPoint||`non_escalation_gap_${index+1}`,label:row.label||row.missingDataPoint||'',status:row.state||'missing',value:'',enablesDossierAddition:row.enablesDossierAddition||'complete missing non-escalation evidence',safeNextAction:'supply_missing_evidence_then_refresh_panel',sourceClass:'monitoring_non_escalation_positive_follow_up'})); return evidence.concat(gaps)",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "label": { "type": "string" },
+        "status": { "type": "string" },
+        "value": { "type": "string" },
+        "enablesDossierAddition": { "type": "string" },
+        "safeNextAction": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getMonitoringNonEscalationSeedGuardRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-monitoring-non-escalation-status-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.data||{}; const v=d.validation||{}; const m=d.demoProcessMatrixSync||{}; const matrixReady=Boolean(m.synced&&m.rowCount===4&&m.rowCountValid&&m.roleCellsClean&&m.dataClassesLimited); const valid=Boolean(v.valid); const enabled=valid&&matrixReady; return [{rowKey:'monitoring_non_escalation_seed_guard',label:'Monitoring Non-Escalation Blueprint Guard',seedId:d.seedId||'stadtwerk-mauer-monitoring-non-escalation-status-v1',status:enabled?'panel_enabled':'panel_disabled_until_seed_matrix_ready',valid,matrixRows:Number(m.rowCount||0),matrixReady,panelEnabled:enabled,roleQuestion:'why_not_escalated_who_owns_next_check',safeNextAction:enabled?'render_selected_signal_non_escalation_panel':'refresh_blueprint_verify_and_fix_4_row_matrix_first',sourceClass:'monitoring_non_escalation_blueprint_guard'}]",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "label": { "type": "string" },
+        "seedId": { "type": "string" },
+        "status": { "type": "string" },
+        "valid": { "type": "boolean" },
+        "matrixRows": { "type": "number" },
+        "matrixReady": { "type": "boolean" },
+        "panelEnabled": { "type": "boolean" },
+        "roleQuestion": { "type": "string" },
+        "safeNextAction": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getMonitoringNonEscalationMatrixRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-monitoring-non-escalation-status-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.data||{}; const m=d.demoProcessMatrixSync||{}; const cell=(value)=>String(value||''); const rows=(m.rows||[]).map((row,index)=>({rowKey:`monitoring_non_escalation_matrix_row_${index+1}`,phase:cell(row.phase||index+1),v:cell((row.roles||{}).V),d:cell((row.roles||{}).D),m:cell((row.roles||{}).M),i:cell((row.roles||{}).I),nachweise:(row.evidenceRequirements||[]).join(', '),status:cell(row.status),gateOutcome:cell(row.gateOutcome),sourceClass:'monitoring_non_escalation_matrix_row'})); const summary={rowKey:'monitoring_non_escalation_matrix_sync_summary',phase:'-',v:'ROLE_NETZFUEHRUNG',d:'ROLE_GOVERNANCE_OWNER',m:'Mitwirkend',i:'ROLE_MANAGEMENT',nachweise:(m.evidenceRequirements||[]).join(', '),status:m.synced&&m.rowCount===4?'matrix_ready':'matrix_sync_required',gateOutcome:m.forbiddenActionsStatus||'no_escalation_action',sourceClass:'monitoring_non_escalation_matrix_summary'}; return [summary].concat(rows)",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "phase": { "type": "string" },
+        "v": { "type": "string" },
+        "d": { "type": "string" },
+        "m": { "type": "string" },
+        "i": { "type": "string" },
+        "nachweise": { "type": "string" },
+        "status": { "type": "string" },
+        "gateOutcome": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getMonitoringNonEscalationBoundaryRows",
+      "method": "GET",
+      "path": "/api/dashboard/monitoring-non-escalation",
+      "queryString": "signalId=vnb-delta-demo-anschluss&domain=grid_connection_capacity&assetContext=smm-budibase-workbench&sourceName=synthetic-vnb-delta-monitor&sourceCheckedAt=2026-06-28T08%3A35%3A00.000Z&novelty=unchanged&blockingFinding=none&nextCheckAt=2026-07-03T12%3A00%3A00.000Z&owner=ROLE_NETZFUEHRUNG&rationale=Synthetic%20demo%20signal%20has%20fresh%20source%20metadata%2C%20no%20documented%20blocker%20and%20a%20named%20next%20check%20owner.",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const guards=((data.sourceActions||{}).notCalled||[]).map((action)=>({rowKey:`monitoring_not_called_${action}`,boundary:String(action),status:'not_called',safeAlternative:'refresh_existing_read_model_only',sourceClass:'monitoring_non_escalation_no_call_guard'})); const defaults=['alerting.escalate','hitl.create','workflow.execute','external.connector.call','object-store.write','rag.ingest','budibase.table.write','personal-agent.execute'].map((action)=>({rowKey:`monitoring_default_guard_${action}`,boundary:action,status:'not_called',safeAlternative:'selected_signal_read_only_review_only',sourceClass:'monitoring_non_escalation_default_guard'})); return guards.concat(defaults)",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "boundary": { "type": "string" },
+        "status": { "type": "string" },
+        "safeAlternative": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
       "name": "getStadtwerkMauerTransferReadinessSummaryRows",
       "method": "GET",
       "path": "/api/dashboard/stadtwerk-mauer-transfer-readiness",
@@ -5940,6 +6064,36 @@
       "title": "Portfolio Review Boundaries",
       "queryName": "getPortfolioMarketValueReadinessBoundaryRows",
       "tableTitle": "Non-advice and No-Call Guards"
+    },
+    {
+      "id": "monitoring_non_escalation_status",
+      "title": "Monitoring Non-Escalation",
+      "queryName": "getMonitoringNonEscalationStatusRows",
+      "tableTitle": "Selected Signal Non-Escalation Status"
+    },
+    {
+      "id": "monitoring_non_escalation_evidence",
+      "title": "Monitoring Non-Escalation Evidence",
+      "queryName": "getMonitoringNonEscalationEvidenceRows",
+      "tableTitle": "Evidence and Positive Follow-ups"
+    },
+    {
+      "id": "monitoring_non_escalation_seed_guard",
+      "title": "Monitoring Blueprint Guard",
+      "queryName": "getMonitoringNonEscalationSeedGuardRows",
+      "tableTitle": "Seed Validity and Matrix Guard"
+    },
+    {
+      "id": "monitoring_non_escalation_matrix",
+      "title": "Monitoring Demo Process Matrix",
+      "queryName": "getMonitoringNonEscalationMatrixRows",
+      "tableTitle": "Monitoring Non-Escalation Matrix Rows"
+    },
+    {
+      "id": "monitoring_non_escalation_boundaries",
+      "title": "Monitoring No-Call Boundaries",
+      "queryName": "getMonitoringNonEscalationBoundaryRows",
+      "tableTitle": "Escalation and Connector Guards"
     },
     {
       "id": "transfer_readiness_summary",
