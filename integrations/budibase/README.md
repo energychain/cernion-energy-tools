@@ -43,6 +43,7 @@ The workbench renders:
 - Blueprint seed selector, #382 matrix/evidence/sync rows and read-only cross-system variance linkout for `stadtwerk-mauer-cross-system-variance-evidence-matrix-v1`, composed from `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify`, `GET /api/dashboard/stadtwerk-mauer-transfer-readiness` and `GET /api/dashboard/cross-system-variance-matrix`
 - Portfolio Market Value Readiness rows for `stadtwerk-mauer-portfolio-market-value-readiness-v1`, composed from `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify` plus a synthetic `POST /api/energy-market/portfolio-backtest` query
 - Monitoring Non-Escalation rows for `stadtwerk-mauer-monitoring-non-escalation-status-v1`, composed from `GET /api/dashboard/monitoring-non-escalation` plus Blueprint-Pack verify rows
+- Cost Review Committee Readiness rows for `stadtwerk-mauer-cost-review-committee-readiness-v1`, composed from `GET /api/dashboard/cost-review-committee-status` plus Blueprint-Pack verify rows
 - Transfer Readiness rows from `GET /api/dashboard/stadtwerk-mauer-transfer-readiness`, separating public context, synthetic seed data, sandbox runtime artifacts, tenant parameters, reusable Blueprint/Workbench elements and blocked production boundaries
 - a scope-protected action query for `POST /api/operations-runbook/stadtwerk-mauer/e2e-smoke`
 
@@ -117,6 +118,14 @@ rows only. It must not read mail, Teams, SharePoint or Outlook; create tickets, 
 webhooks, escalations or workflow runs; write Object Store/RAG/public context; call external
 connectors; or turn synthetic signal identifiers into real VNB/customer/meter/device-control
 state.
+The Cost Review Committee Readiness panel is a generated read-only render slice. It combines
+the existing `cost-review-committee-status` evidence card with Blueprint-Pack seed/matrix guard
+rows for the canonical cost-review seed. Budibase renders scalar owner, source, asset/value
+relevance, readiness, threshold, next-gate, evidence-gap, positive-follow-up and no-call rows
+only. It must not write ERP/SAP/accounting records, approve budgets, execute committee
+decisions, create workflow/HITL/mail actions, call external connectors, publish Demo-Raum or
+Landing Registry state, execute Rundeck, write arbitrary Budibase tables, mutate production
+tenants or use Personal-Agent shortcuts.
 The selected-target query is read-only: it maps a supported Hub or role target to scalar selected,
 focus and helper rows so Budibase can visibly focus a section without owning persistent state or
 mutating Cernion tenant data.

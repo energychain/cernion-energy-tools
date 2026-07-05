@@ -729,6 +729,110 @@ const monitoringBlueprintFixture = {
   },
 };
 
+const costReviewCommitteeFixture = {
+  capabilityKey: 'cost_review_committee_status',
+  safety: 'read_only',
+  status: 'committee_ready',
+  costReviewId: 'crcs:cost-review-committee-demo',
+  owner: 'ROLE_CONTROLLING',
+  reviewStatus: 'fachlich-geprueft',
+  dataOrigin: 'synthetic-cost-register',
+  assetRelevance: 'netzanschluss-portfolio',
+  revenueRelevance: 'municipal-value-context',
+  decisionReadiness: 'ready-for-committee-review',
+  escalationThreshold: 'abweichung-groesser-10p',
+  nextCommitteeGate: 'cost-review-board-2026-q3',
+  evidenceItems: [
+    {
+      id: 'owner',
+      label: 'Cost review owner',
+      value: 'ROLE_CONTROLLING',
+      evidenceStatus: 'provided',
+      sourceClass: 'governance_owner',
+    },
+    {
+      id: 'next_committee_gate',
+      label: 'Next committee gate',
+      value: 'cost-review-board-2026-q3',
+      evidenceStatus: 'provided',
+      sourceClass: 'committee_gate',
+    },
+  ],
+  missingEvidence: [],
+  positiveFollowUps: [],
+};
+
+const costReviewBlueprintFixture = {
+  ...blueprintVerifyFixture,
+  data: {
+    ...blueprintVerifyFixture.data,
+    seedId: 'stadtwerk-mauer-cost-review-committee-readiness-v1',
+    processFamily: 'investment_cost_review',
+    controlCase: 'cost_review_committee_readiness',
+    requiredEvidence: [
+      'costItemOwnerEvidence',
+      'dataOriginEvidence',
+      'assetRelevanceEvidence',
+      'revenueMunicipalValueEvidence',
+      'escalationThresholdEvidence',
+      'nextCommitteeGateEvidence',
+      'decisionReadinessMarker',
+    ],
+    missingEvidence: [
+      {
+        missingDataPoint: 'escalationThresholdEvidence',
+        state: 'evidence_gap',
+        enablesDossierAddition:
+          'Adds escalation-threshold comparison as review evidence without approving budget or committee action.',
+      },
+    ],
+    demoProcessMatrixSync: {
+      slug: 'cost-review-committee-readiness',
+      expectedSlug: 'cost-review-committee-readiness',
+      synced: true,
+      roleLegendM: 'Mitwirkend',
+      rowCount: 4,
+      rowCountValid: true,
+      roleCellsClean: true,
+      dataClassesLimited: true,
+      forbiddenActionsStatus: 'no_committee_action',
+      evidenceRequirements: [
+        'costItemOwnerEvidence',
+        'dataOriginEvidence',
+        'assetRelevanceEvidence',
+        'revenueMunicipalValueEvidence',
+        'escalationThresholdEvidence',
+        'nextCommitteeGateEvidence',
+        'decisionReadinessMarker',
+      ],
+      rows: [
+        {
+          phase: '1',
+          roles: {
+            V: 'ROLE_CONTROLLING',
+            D: 'ROLE_CERNION_GOVERNANCE',
+            M: 'ROLE_ASSET_PLANNING',
+            I: 'ROLE_COMMERCIAL_AUDIT',
+          },
+          evidenceRequirements: ['costItemOwnerEvidence', 'dataOriginEvidence'],
+          status: 'clarification',
+          gateOutcome: 'cost_item_scope_and_source_class_pending',
+        },
+      ],
+    },
+    forbiddenActions: [
+      'erp.write',
+      'sap.psp.write',
+      'accounting.post',
+      'budget.approve',
+      'committee.decision.execute',
+    ],
+    sourceActions: {
+      notCalled: ['workflow_create', 'mail_send', 'budibase_table_write', 'personal_agent_hardcoding'],
+    },
+  },
+};
+
 describe('Budibase Stadtwerk Mauer workbench manifest', () => {
   const expectedSectionIds = [
     'vdmi_profile_summary',
@@ -774,6 +878,11 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
     'monitoring_non_escalation_seed_guard',
     'monitoring_non_escalation_matrix',
     'monitoring_non_escalation_boundaries',
+    'cost_review_committee_status',
+    'cost_review_committee_evidence',
+    'cost_review_committee_seed_guard',
+    'cost_review_committee_matrix',
+    'cost_review_committee_boundaries',
     'action_button_contract',
     'action_button_guards',
     'vnb_delta_signal_queue_classifier',
@@ -958,6 +1067,46 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
     expect(statusQuery.queryString).toContain('signalId=vnb-delta-demo-anschluss');
     expect(statusQuery.queryString).toContain('blockingFinding=none');
     expect(statusQuery.queryString).toContain('owner=ROLE_NETZFUEHRUNG');
+  });
+
+  it('adds the Cost Review Committee Readiness panel from existing safe endpoints', () => {
+    const queries = manifest.queries.filter((query) =>
+      query.name.includes('CostReviewCommittee')
+    );
+    const paths = new Set(queries.map((query) => query.path));
+
+    expect(paths).toEqual(
+      new Set([
+        '/api/dashboard/cost-review-committee-status',
+        '/api/dashboard/stadtwerk-mauer-blueprint-pack-verify',
+      ])
+    );
+    expect(
+      queries.every(
+        (query) => query.path !== '/api/dashboard/stadtwerk-mauer-cost-review-committee-readiness'
+      )
+    ).toBe(true);
+    expect(
+      queries.some((query) =>
+        query.queryString?.includes('stadtwerk-mauer-cost-review-committee-readiness-v1')
+      )
+    ).toBe(true);
+    expect(
+      manifest.sections
+        .filter((section) => section.id.startsWith('cost_review_committee'))
+        .every((section) => queries.some((query) => query.name === section.queryName))
+    ).toBe(true);
+
+    const statusQuery = queries.find(
+      (query) => query.name === 'getCostReviewCommitteeStatusRows'
+    );
+    expect(statusQuery).toMatchObject({
+      method: 'GET',
+      path: '/api/dashboard/cost-review-committee-status',
+    });
+    expect(statusQuery.queryString).toContain('owner=ROLE_CONTROLLING');
+    expect(statusQuery.queryString).toContain('nextCommitteeGate=cost-review-board-2026-q3');
+    expect(statusQuery.queryString).toContain('decisionReadiness=ready-for-committee-review');
   });
 
   it('declares a separate Workbench action-button manifest with only safe enabled actions', () => {
@@ -1501,6 +1650,92 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
         expect.objectContaining({ boundary: 'hitl.create', status: 'not_called' }),
         expect.objectContaining({ boundary: 'external.connector.call', status: 'not_called' }),
         expect.objectContaining({ boundary: 'personal-agent.execute', status: 'not_called' }),
+      ])
+    );
+  });
+
+  it('flattens Cost Review Committee rows and no-call guards', () => {
+    const statusRows = runTransformer(
+      'getCostReviewCommitteeStatusRows',
+      costReviewCommitteeFixture
+    );
+    expectScalarRows(statusRows);
+    expect(statusRows[0]).toMatchObject({
+      rowKey: 'cost_review_committee_status',
+      status: 'committee_ready',
+      safety: 'read_only',
+      owner: 'ROLE_CONTROLLING',
+      nextCommitteeGate: 'cost-review-board-2026-q3',
+      safeNextGate: 'review_committee_package_without_budget_approval',
+      sourceClass: 'cost_review_committee_status',
+    });
+
+    const evidenceRows = runTransformer(
+      'getCostReviewCommitteeEvidenceRows',
+      costReviewCommitteeFixture
+    );
+    expectScalarRows(evidenceRows);
+    expect(evidenceRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'owner',
+          value: 'ROLE_CONTROLLING',
+          sourceClass: 'governance_owner',
+        }),
+        expect.objectContaining({
+          rowKey: 'next_committee_gate',
+          value: 'cost-review-board-2026-q3',
+          sourceClass: 'committee_gate',
+        }),
+      ])
+    );
+
+    const guardRows = runTransformer(
+      'getCostReviewCommitteeSeedGuardRows',
+      costReviewBlueprintFixture
+    );
+    expectScalarRows(guardRows);
+    expect(guardRows[0]).toMatchObject({
+      seedId: 'stadtwerk-mauer-cost-review-committee-readiness-v1',
+      panelEnabled: true,
+      matrixRows: 4,
+      sourceClass: 'cost_review_committee_blueprint_guard',
+    });
+
+    const matrixRows = runTransformer(
+      'getCostReviewCommitteeMatrixRows',
+      costReviewBlueprintFixture
+    );
+    expectScalarRows(matrixRows);
+    expect(matrixRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'cost_review_committee_matrix_sync_summary',
+          status: 'matrix_ready',
+          v: 'ROLE_CONTROLLING',
+          m: 'Mitwirkend',
+        }),
+        expect.objectContaining({
+          rowKey: 'cost_review_committee_matrix_row_1',
+          phase: '1',
+          m: 'ROLE_ASSET_PLANNING',
+          gateOutcome: 'cost_item_scope_and_source_class_pending',
+        }),
+      ])
+    );
+
+    const boundaryRows = runTransformer(
+      'getCostReviewCommitteeBoundaryRows',
+      costReviewBlueprintFixture
+    );
+    expectScalarRows(boundaryRows);
+    expect(boundaryRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ boundary: 'erp.write', status: 'forbidden' }),
+        expect.objectContaining({ boundary: 'budget.approve', status: 'forbidden' }),
+        expect.objectContaining({ boundary: 'committee.decision.execute', status: 'forbidden' }),
+        expect.objectContaining({ boundary: 'budibase_table_write', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'personal_agent_hardcoding', status: 'not_called' }),
       ])
     );
   });

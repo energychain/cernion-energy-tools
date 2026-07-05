@@ -4990,6 +4990,129 @@
       }
     },
     {
+      "name": "getCostReviewCommitteeStatusRows",
+      "method": "GET",
+      "path": "/api/dashboard/cost-review-committee-status",
+      "queryString": "reviewId=cost-review-committee-demo&owner=ROLE_CONTROLLING&reviewStatus=fachlich-geprueft&dataOrigin=synthetic-cost-register&assetRelevance=netzanschluss-portfolio&revenueRelevance=municipal-value-context&decisionReadiness=ready-for-committee-review&escalationThreshold=abweichung-groesser-10p&nextCommitteeGate=cost-review-board-2026-q3&amountClass=capex-medium&rationale=Synthetic%20cost%20item%20has%20owner%2C%20source%20class%2C%20asset%20relevance%20and%20committee%20gate%20markers.",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "return [{rowKey:'cost_review_committee_status',label:'Cost Review Committee Readiness',costReviewId:data.costReviewId||'',status:data.status||'',safety:data.safety||'read_only',owner:data.owner||'',reviewStatus:data.reviewStatus||'',decisionReadiness:data.decisionReadiness||'',assetRelevance:data.assetRelevance||'',revenueRelevance:data.revenueRelevance||'',escalationThreshold:data.escalationThreshold||'',nextCommitteeGate:data.nextCommitteeGate||'',missingCount:(data.missingEvidence||[]).length,safeNextGate:data.status==='committee_ready'?'review_committee_package_without_budget_approval':'resolve_cost_review_evidence_gaps_first',sourceClass:'cost_review_committee_status'}]",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "label": { "type": "string" },
+        "costReviewId": { "type": "string" },
+        "status": { "type": "string" },
+        "safety": { "type": "string" },
+        "owner": { "type": "string" },
+        "reviewStatus": { "type": "string" },
+        "decisionReadiness": { "type": "string" },
+        "assetRelevance": { "type": "string" },
+        "revenueRelevance": { "type": "string" },
+        "escalationThreshold": { "type": "string" },
+        "nextCommitteeGate": { "type": "string" },
+        "missingCount": { "type": "number" },
+        "safeNextGate": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getCostReviewCommitteeEvidenceRows",
+      "method": "GET",
+      "path": "/api/dashboard/cost-review-committee-status",
+      "queryString": "reviewId=cost-review-committee-demo&owner=ROLE_CONTROLLING&reviewStatus=fachlich-geprueft&dataOrigin=synthetic-cost-register&assetRelevance=netzanschluss-portfolio&revenueRelevance=municipal-value-context&decisionReadiness=ready-for-committee-review&escalationThreshold=abweichung-groesser-10p&nextCommitteeGate=cost-review-board-2026-q3&amountClass=capex-medium&rationale=Synthetic%20cost%20item%20has%20owner%2C%20source%20class%2C%20asset%20relevance%20and%20committee%20gate%20markers.",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const evidence=(data.evidenceItems||[]).map((row)=>({rowKey:row.id,label:row.label||row.id,status:row.evidenceStatus||'provided',value:String(row.value||''),enablesDossierAddition:'already_available_for_cost_review_committee_panel',safeNextAction:'keep_cost_review_read_only',sourceClass:row.sourceClass||'cost_review_committee_evidence'})); const gaps=(data.positiveFollowUps||data.missingEvidence||[]).map((row,index)=>({rowKey:row.missingDataPoint||`cost_review_gap_${index+1}`,label:row.label||row.missingDataPoint||'',status:row.state||'missing',value:'',enablesDossierAddition:row.enablesDossierAddition||'complete missing cost-review evidence',safeNextAction:'supply_missing_synthetic_evidence_then_refresh_panel',sourceClass:'cost_review_committee_positive_follow_up'})); return evidence.concat(gaps)",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "label": { "type": "string" },
+        "status": { "type": "string" },
+        "value": { "type": "string" },
+        "enablesDossierAddition": { "type": "string" },
+        "safeNextAction": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getCostReviewCommitteeSeedGuardRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-cost-review-committee-readiness-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.data||{}; const v=d.validation||{}; const m=d.demoProcessMatrixSync||{}; const matrixReady=Boolean(m.synced&&m.rowCount>=3&&m.rowCount<=5&&m.rowCountValid&&m.roleCellsClean&&m.dataClassesLimited); const valid=Boolean(v.valid); const enabled=valid&&matrixReady; return [{rowKey:'cost_review_committee_seed_guard',label:'Cost Review Committee Blueprint Guard',seedId:d.seedId||'stadtwerk-mauer-cost-review-committee-readiness-v1',status:enabled?'panel_enabled':'panel_disabled_until_seed_matrix_ready',valid,matrixRows:Number(m.rowCount||0),matrixReady,panelEnabled:enabled,roleQuestion:'is_cost_item_ready_for_committee_review',safeNextAction:enabled?'render_cost_review_readiness_panel':'refresh_blueprint_verify_and_fix_matrix_sync_first',sourceClass:'cost_review_committee_blueprint_guard'}]",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "label": { "type": "string" },
+        "seedId": { "type": "string" },
+        "status": { "type": "string" },
+        "valid": { "type": "boolean" },
+        "matrixRows": { "type": "number" },
+        "matrixReady": { "type": "boolean" },
+        "panelEnabled": { "type": "boolean" },
+        "roleQuestion": { "type": "string" },
+        "safeNextAction": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getCostReviewCommitteeMatrixRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-cost-review-committee-readiness-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.data||{}; const m=d.demoProcessMatrixSync||{}; const cell=(value)=>String(value||''); const rows=(m.rows||[]).map((row,index)=>({rowKey:`cost_review_committee_matrix_row_${index+1}`,phase:cell(row.phase||index+1),v:cell((row.roles||{}).V),d:cell((row.roles||{}).D),m:cell((row.roles||{}).M),i:cell((row.roles||{}).I),nachweise:(row.evidenceRequirements||[]).join(', '),status:cell(row.status),gateOutcome:cell(row.gateOutcome),sourceClass:'cost_review_committee_matrix_row'})); const summary={rowKey:'cost_review_committee_matrix_sync_summary',phase:'-',v:'ROLE_CONTROLLING',d:'ROLE_CERNION_GOVERNANCE',m:'Mitwirkend',i:'ROLE_MANAGEMENT',nachweise:(m.evidenceRequirements||[]).join(', '),status:m.synced&&m.rowCount>=3&&m.rowCount<=5?'matrix_ready':'matrix_sync_required',gateOutcome:m.forbiddenActionsStatus||'no_committee_action',sourceClass:'cost_review_committee_matrix_summary'}; return [summary].concat(rows)",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "phase": { "type": "string" },
+        "v": { "type": "string" },
+        "d": { "type": "string" },
+        "m": { "type": "string" },
+        "i": { "type": "string" },
+        "nachweise": { "type": "string" },
+        "status": { "type": "string" },
+        "gateOutcome": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getCostReviewCommitteeBoundaryRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-cost-review-committee-readiness-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.data||{}; const forbidden=(d.forbiddenActions||[]).map((action,index)=>({rowKey:`cost_review_forbidden_${index+1}_${action}`,boundary:String(action),status:'forbidden',safeAlternative:'render_existing_cost_review_read_model_only',sourceClass:'cost_review_committee_forbidden_action'})); const guards=((d.sourceActions||{}).notCalled||[]).map((action)=>({rowKey:`cost_review_not_called_${action}`,boundary:String(action),status:'not_called',safeAlternative:'generated_budibase_render_shell_only',sourceClass:'cost_review_committee_no_call_guard'})); const defaults=['erp.write','sap.psp.write','accounting.post','budget.approve','committee.decision.execute','workflow_create','mail_send','hitl_create','external_connector_call','budibase_table_write','rundeck_execute','personal_agent_hardcoding'].map((action)=>({rowKey:`cost_review_default_guard_${action}`,boundary:action,status:'not_called',safeAlternative:'synthetic_read_only_review_only',sourceClass:'cost_review_committee_default_guard'})); return forbidden.concat(guards).concat(defaults)",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "boundary": { "type": "string" },
+        "status": { "type": "string" },
+        "safeAlternative": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
       "name": "getStadtwerkMauerTransferReadinessSummaryRows",
       "method": "GET",
       "path": "/api/dashboard/stadtwerk-mauer-transfer-readiness",
@@ -6094,6 +6217,36 @@
       "title": "Monitoring No-Call Boundaries",
       "queryName": "getMonitoringNonEscalationBoundaryRows",
       "tableTitle": "Escalation and Connector Guards"
+    },
+    {
+      "id": "cost_review_committee_status",
+      "title": "Cost Review Committee Readiness",
+      "queryName": "getCostReviewCommitteeStatusRows",
+      "tableTitle": "Cost Review Status, Risk and Next Gate"
+    },
+    {
+      "id": "cost_review_committee_evidence",
+      "title": "Cost Review Evidence Gaps",
+      "queryName": "getCostReviewCommitteeEvidenceRows",
+      "tableTitle": "Evidence Rows and Positive Follow-ups"
+    },
+    {
+      "id": "cost_review_committee_seed_guard",
+      "title": "Cost Review Blueprint Guard",
+      "queryName": "getCostReviewCommitteeSeedGuardRows",
+      "tableTitle": "Seed Validity and Matrix Guard"
+    },
+    {
+      "id": "cost_review_committee_matrix",
+      "title": "Cost Review Demo Process Matrix",
+      "queryName": "getCostReviewCommitteeMatrixRows",
+      "tableTitle": "Cost Review Committee Matrix Rows"
+    },
+    {
+      "id": "cost_review_committee_boundaries",
+      "title": "Cost Review No-Call Boundaries",
+      "queryName": "getCostReviewCommitteeBoundaryRows",
+      "tableTitle": "ERP, Budget, Committee and Connector Guards"
     },
     {
       "id": "transfer_readiness_summary",
