@@ -55,6 +55,50 @@ const OPENAPI_TAG = 'ChatGPT Sidecar';
 const CREATOR_ROLE = 'chatgpt-sidecar-creator';
 const MAX_BROWSER_QUERY_LENGTH = 2000;
 
+function buildPositiveFollowUps(kind, details = {}) {
+  const followUps = {
+    capability_not_granted: [
+      {
+        missing: details.capability || 'requested capability',
+        enablesDossierAddition:
+          'An authenticated Cernion-side creator can provision a new scoped session that includes this capability.',
+      },
+      {
+        missing: 'safe browser query within the current capability profile',
+        enablesDossierAddition:
+          'Retry with one of the manifest-listed capability ids to stay inside this ticket scope.',
+      },
+    ],
+    expired_or_revoked_ticket: [
+      {
+        missing: 'active ChatGPT Sidecar session ticket',
+        enablesDossierAddition:
+          'Ask an authenticated Cernion-side creator to generate a fresh scoped session URL.',
+      },
+    ],
+    unsupported_browser_query: [
+      {
+        missing: 'shorter GET question or task',
+        enablesDossierAddition:
+          `Retry with a URL-encoded question/task up to ${MAX_BROWSER_QUERY_LENGTH} characters using the manifest template.`,
+      },
+    ],
+  };
+  return followUps[kind] || [];
+}
+
+function buildPolicyBlockedResponse({ reason, capability, action }) {
+  return {
+    success: false,
+    error: 'sidecar_policy_blocked',
+    reason,
+    capability,
+    action,
+    notAvailable: ['write_or_consequential_action', 'ungranted_capability'],
+    positiveFollowUps: buildPositiveFollowUps(reason, { capability }),
+  };
+}
+
 function getAuthenticatedUserId(ctx) {
   return ctx?.meta?.apiToken?.userId || ctx?.meta?.authUser?.userId || null;
 }
@@ -101,7 +145,8 @@ function normalizeBrowserText(value, fieldName) {
     throw new MoleculerClientError(
       `${fieldName} is too long for the browser-compatible ChatGPT Sidecar GET facade.`,
       400,
-      'CHATGPT_SIDECAR_BROWSER_QUERY_TOO_LONG'
+      'CHATGPT_SIDECAR_BROWSER_QUERY_TOO_LONG',
+      { positiveFollowUps: buildPositiveFollowUps('unsupported_browser_query') }
     );
   }
   return normalized;
@@ -125,12 +170,11 @@ async function handleAsk(ctx, { browserFacade = false } = {}) {
       capability,
       action: browserFacade ? 'browser_ask' : 'ask',
     });
-    return {
-      success: false,
-      error: 'sidecar_policy_blocked',
+    return buildPolicyBlockedResponse({
       reason: 'capability_not_granted',
       capability,
-    };
+      action: browserFacade ? 'browser_ask' : 'ask',
+    });
   }
 
   defaultStore.recordMeteringEvent(session.sessionId, 'ask_call', {
@@ -188,12 +232,11 @@ async function handlePlan(ctx, { browserFacade = false } = {}) {
       capability,
       action: browserFacade ? 'browser_plan' : 'plan',
     });
-    return {
-      success: false,
-      error: 'sidecar_policy_blocked',
+    return buildPolicyBlockedResponse({
       reason: 'capability_not_granted',
       capability,
-    };
+      action: browserFacade ? 'browser_plan' : 'plan',
+    });
   }
 
   defaultStore.recordMeteringEvent(session.sessionId, 'plan_call', {
@@ -432,6 +475,23 @@ module.exports = {
             browserPlan: `GET /api/chatgpt-sidecar/s/${session.ticket}/plan?task={urlencoded_task}&capability={optional_capability}`,
             datapoints: `POST /api/chatgpt-sidecar/s/${session.ticket}/datapoints`,
             metering: `GET /api/chatgpt-sidecar/s/${session.ticket}/metering`,
+          },
+          browserFacade: {
+            safety: 'read_only_non_consequential',
+            maxQueryLength: MAX_BROWSER_QUERY_LENGTH,
+            positiveFollowUps: {
+              expiredOrRevokedTicket: buildPositiveFollowUps('expired_or_revoked_ticket'),
+              unsupportedBrowserQuery: buildPositiveFollowUps('unsupported_browser_query'),
+            },
+            unavailableOperations: [
+              'datapoint_write_via_get',
+              'hitl_or_workflow_creation',
+              'mail_or_webhook',
+              'mako_billing_settlement_tariff',
+              'smgw_cls_device_control_dispatch',
+              'external_connector_call',
+              'public_context_or_production_mutation',
+            ],
           },
         };
       },

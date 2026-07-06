@@ -6543,6 +6543,26 @@
       }
     },
     "/api/chatgpt-sidecar/s/:ticket/ask": {
+      "get": {
+        "operationId": "chatgpt-sidecar_browserAsk",
+        "summary": "Ask Cernion through a browser-compatible read-only GET facade",
+        "tags": [
+          "ChatGPT Sidecar"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "For prompt-only ChatGPT.com usage where only URL reads are available. This facade is read-only and delegates to the same session policy as POST ask."
+      },
       "post": {
         "operationId": "chatgpt-sidecar_ask",
         "summary": "Ask Cernion through the session-scoped evidence/capability facade",
@@ -6564,6 +6584,26 @@
       }
     },
     "/api/chatgpt-sidecar/s/:ticket/plan": {
+      "get": {
+        "operationId": "chatgpt-sidecar_browserPlan",
+        "summary": "Resolve a request through a browser-compatible read-only GET facade",
+        "tags": [
+          "ChatGPT Sidecar"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "For prompt-only ChatGPT.com usage where only URL reads are available. This facade is read-only and delegates to the same session policy as POST plan."
+      },
       "post": {
         "operationId": "chatgpt-sidecar_plan",
         "summary": "Resolve a request to a Blueprint/Capability Broker route (no execution)",

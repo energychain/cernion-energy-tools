@@ -158,6 +158,13 @@ describe('chatgpt-sidecar service', () => {
     expect(manifest.capabilityProfile).toEqual(['knowledge-rag']);
     expect(manifest.endpoints.browserAsk).toContain(`GET /api/chatgpt-sidecar/s/${ticket}/ask`);
     expect(manifest.endpoints.browserPlan).toContain(`GET /api/chatgpt-sidecar/s/${ticket}/plan`);
+    expect(manifest.browserFacade).toMatchObject({
+      safety: 'read_only_non_consequential',
+      maxQueryLength: 2000,
+    });
+    expect(manifest.browserFacade.unavailableOperations).toEqual(
+      expect.arrayContaining(['hitl_or_workflow_creation', 'external_connector_call'])
+    );
   });
 
   // ---------------------------------------------------------------------
@@ -255,10 +262,41 @@ describe('chatgpt-sidecar service', () => {
 
     expect(result.success).toBe(false);
     expect(result.reason).toBe('capability_not_granted');
+    expect(result.positiveFollowUps).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          missing: 'datasource-mastr',
+          enablesDossierAddition: expect.stringContaining('scoped session'),
+        }),
+      ])
+    );
     expect(calls).toHaveLength(0);
 
     const metering = await broker.call('chatgpt-sidecar.metering', { ticket });
     expect(metering.counts.blocked_policy_attempt).toBe(1);
+  });
+
+  it('browser ask rejects overlong GET query text with prompt-safe follow-ups', async () => {
+    const created = await createSession();
+    const ticket = ticketFrom(created);
+
+    await expect(
+      broker.call('chatgpt-sidecar.browserAsk', {
+        ticket,
+        query: 'x'.repeat(2001),
+      })
+    ).rejects.toMatchObject({
+      code: 400,
+      type: 'CHATGPT_SIDECAR_BROWSER_QUERY_TOO_LONG',
+      data: {
+        positiveFollowUps: [
+          expect.objectContaining({
+            missing: 'shorter GET question or task',
+          }),
+        ],
+      },
+    });
+    expect(calls).toHaveLength(0);
   });
 
   it('plan resolves via the capability broker without executing anything', async () => {
@@ -480,6 +518,7 @@ describe('chatgpt-sidecar service', () => {
     });
     expect(blocked.success).toBe(false);
     expect(blocked.reason).toBe('capability_not_granted');
+    expect(blocked.notAvailable).toContain('ungranted_capability');
   });
 
   it('never mutates beyond draft_write even when the granted capability set is the full catalog', async () => {
