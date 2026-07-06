@@ -327,6 +327,32 @@ describe('token-manager.service', () => {
     expect(verified.legacy).toBe(true);
   });
 
+  it('rejects token creation with a stable 429 client error when the active-token limit is reached', async () => {
+    fs.writeFileSync(storageFile, '[]', 'utf8');
+
+    for (let index = 0; index < 10; index += 1) {
+      await broker.call('token-manager.create', {
+        name: `Limit Token ${index + 1}`,
+        scope: 'read-only',
+        tenantId: 'stadtwerk-a',
+        userId: `svc:limit-${index + 1}`,
+      });
+    }
+
+    await expect(
+      broker.call('token-manager.create', {
+        name: 'Limit Token 11',
+        scope: 'read-only',
+        tenantId: 'stadtwerk-a',
+        userId: 'svc:limit-11',
+      })
+    ).rejects.toMatchObject({
+      code: 429,
+      type: 'TOKEN_LIMIT_EXCEEDED',
+      message: 'Token limit reached (10). Revoke unused tokens first.',
+    });
+  });
+
   describe('createCli action (permanent CLI path)', () => {
     beforeAll(() => {
       // Start with empty storage so the token limit from earlier tests doesn't interfere.

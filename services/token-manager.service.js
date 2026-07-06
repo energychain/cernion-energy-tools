@@ -151,8 +151,10 @@ function doCreateToken({ name, tenantId, userId, scope: rawScope, scopes: extraS
   const tokens = this.loadTokens();
   const activeCount = tokens.filter((entry) => entry.active !== false).length;
   if (activeCount >= this.settings.maxTokensPerInstallation) {
-    throw new Error(
-      `Token limit reached (${this.settings.maxTokensPerInstallation}). Revoke unused tokens first.`
+    throw new Errors.MoleculerClientError(
+      `Token limit reached (${this.settings.maxTokensPerInstallation}). Revoke unused tokens first.`,
+      429,
+      'TOKEN_LIMIT_EXCEEDED'
     );
   }
 
