@@ -1526,6 +1526,8 @@ module.exports = {
             'dashboard-api.regulatorySignalProcessTranslatorStatus',
           'GET /dashboard/cost-review-committee-status':
             'dashboard-api.costReviewCommitteeStatus',
+          'GET /dashboard/redispatch-participation-readiness-status':
+            'dashboard-api.redispatchParticipationReadinessStatus',
           'GET /dashboard/steering-artifact-acceptance-gate':
             'dashboard-api.steeringArtifactAcceptanceGateStatus',
           'GET /dashboard/communication-break-process-risk':
