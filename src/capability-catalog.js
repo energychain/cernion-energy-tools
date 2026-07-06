@@ -8379,6 +8379,34 @@ const CURATED_CAPABILITIES = [
     routingPattern: 'redispatch_readiness_gate',
   },
   {
+    capability: 'redispatch_participation_readiness',
+    domain: 'redispatch',
+    abstractionLevel: 'deterministic_operational_readiness_gate',
+    intent: 'redispatch-participation-readiness.getStatus',
+    keywords: [
+      'redispatch participation readiness',
+      'redispatch participation',
+      'participation readiness',
+      'steuerbarkeit',
+      'steuerbarkeitsbewertung',
+      'virtuelles stadtwerk mauer',
+      'stadtwerk mauer redispatch',
+    ],
+    preferredActions: [
+      'redispatch-participation-readiness.getStatus',
+    ],
+    fallbackActions: ['redispatch-participation-readiness.getStatus'],
+    avoid: ['query.ask', 'query.askLearned'],
+    requiredInputs: [
+      { name: 'tenantId', label: 'Tenant-ID', type: 'string', required: false },
+    ],
+    risksAndNotes: [
+      'getStatus ist read-only und dossier-safe.',
+      'Keine echte Marktkommunikation, kein operativer Abruf und kein SMGW/CLS-Device-Control.',
+    ],
+    routingPattern: 'redispatch_participation_readiness',
+  },
+  {
     capability: 're4de_variable_grid_fee_layer3',
     domain: 're4de_grid_fees',
     abstractionLevel: 'deterministic_layer3_value_service',

@@ -1737,6 +1737,24 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  // ── Redispatch Participation Readiness
+  const redispatchParticipationReadinessSignals = [
+    'redispatch participation readiness',
+    'redispatch participation',
+    'participation readiness',
+    'steuerbarkeit',
+    'steuerbarkeitsbewertung',
+    'virtuelles stadtwerk mauer',
+    'stadtwerk mauer redispatch',
+  ];
+
+  if (redispatchParticipationReadinessSignals.some((signal) => haystack.includes(signal))) {
+    const rprCapability = findCapabilityByName('redispatch_participation_readiness');
+    if (rprCapability) {
+      return { capability: rprCapability, score: 122, usedFallback: false };
+    }
+  }
+
   // ── Gas Transformation Dataroom Status
   // Must run before Re4DE because both domains may mention "Datenraum" and evidence.
   const gasTransformationDataroomSignals = [

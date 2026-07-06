@@ -5428,6 +5428,127 @@
       }
     },
     {
+      "name": "getRedispatchParticipationStatusRows",
+      "method": "GET",
+      "path": "/api/dashboard/redispatch-participation-readiness-status",
+      "queryString": "tenantId=stadtwerk-mauer&syntheticRedispatchAssetPortfolio=synthetic-portfolio-mauer&installationGridLocationEvidence=mastr-and-osm-reviewed&remoteControlCommunicationTestEvidence=communication-test-success&forecastDispatchTestProof=test-dispatch-forecast-matching&readinessReviewDecision=redispatch-readiness-reviewed-by-ops-lead",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "return [{rowKey:'redispatch_participation_status',label:'Redispatch Participation Readiness',readinessId:data.readinessId||'',status:data.status||'',safety:data.safety||'read_only_blueprint_seed',syntheticRedispatchAssetPortfolio:data.syntheticRedispatchAssetPortfolio||'',installationGridLocationEvidence:data.installationGridLocationEvidence||'',remoteControlCommunicationTestEvidence:data.remoteControlCommunicationTestEvidence||'',forecastDispatchTestProof:data.forecastDispatchTestProof||'',readinessReviewDecision:data.readinessReviewDecision||'',missingCount:(data.missingEvidence||[]).length,safeNextGate:data.status==='ready_for_review'?'initiate_formal_redispatch_onboarding_process':'resolve_redispatch_participation_evidence_gaps_first',sourceClass:'redispatch_participation_readiness_status'}]",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "label": { "type": "string" },
+        "readinessId": { "type": "string" },
+        "status": { "type": "string" },
+        "safety": { "type": "string" },
+        "syntheticRedispatchAssetPortfolio": { "type": "string" },
+        "installationGridLocationEvidence": { "type": "string" },
+        "remoteControlCommunicationTestEvidence": { "type": "string" },
+        "forecastDispatchTestProof": { "type": "string" },
+        "readinessReviewDecision": { "type": "string" },
+        "missingCount": { "type": "number" },
+        "safeNextGate": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getRedispatchParticipationEvidenceRows",
+      "method": "GET",
+      "path": "/api/dashboard/redispatch-participation-readiness-status",
+      "queryString": "tenantId=stadtwerk-mauer&syntheticRedispatchAssetPortfolio=synthetic-portfolio-mauer&installationGridLocationEvidence=mastr-and-osm-reviewed&remoteControlCommunicationTestEvidence=communication-test-success&forecastDispatchTestProof=test-dispatch-forecast-matching&readinessReviewDecision=redispatch-readiness-reviewed-by-ops-lead",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const evidence=(data.evidenceItems||[]).map((row)=>({rowKey:row.id,label:row.label||row.id,status:row.evidenceStatus||'provided',value:String(row.value||''),enablesDossierAddition:'already_available_for_redispatch_participation_readiness_panel',safeNextAction:'keep_redispatch_participation_readiness_read_only',sourceClass:row.sourceClass||'redispatch_participation_readiness_evidence'})); const gaps=(data.positiveFollowUps||data.missingEvidence||[]).map((row,index)=>({rowKey:row.missingDataPoint||`redispatch_gap_${index+1}`,label:row.label||row.missingDataPoint||'',status:row.state||'missing',value:'',enablesDossierAddition:row.enablesDossierAddition||'complete missing redispatch evidence',safeNextAction:'supply_missing_synthetic_evidence_then_refresh_panel',sourceClass:'redispatch_participation_readiness_positive_follow_up'})); return evidence.concat(gaps)",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "label": { "type": "string" },
+        "status": { "type": "string" },
+        "value": { "type": "string" },
+        "enablesDossierAddition": { "type": "string" },
+        "safeNextAction": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getRedispatchParticipationSeedGuardRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-redispatch-participation-readiness-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.data||{}; const v=d.validation||{}; const m=d.demoProcessMatrixSync||{}; const matrixReady=Boolean(m.synced&&m.rowCount>=3&&m.rowCount<=5&&m.rowCountValid&&m.roleCellsClean&&m.dataClassesLimited); const valid=Boolean(v.valid); const enabled=valid&&matrixReady; return [{rowKey:'redispatch_participation_seed_guard',label:'Redispatch Participation Blueprint Guard',seedId:d.seedId||'stadtwerk-mauer-redispatch-participation-readiness-v1',status:enabled?'panel_enabled':'panel_disabled_until_seed_matrix_ready',valid,matrixRows:Number(m.rowCount||0),matrixReady,panelEnabled:enabled,roleQuestion:'is_redispatch_participation_ready_for_onboarding',safeNextAction:enabled?'render_redispatch_participation_readiness_panel':'refresh_blueprint_verify_and_fix_matrix_sync_first',sourceClass:'redispatch_participation_blueprint_guard'}]",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "label": { "type": "string" },
+        "seedId": { "type": "string" },
+        "status": { "type": "string" },
+        "valid": { "type": "boolean" },
+        "matrixRows": { "type": "number" },
+        "matrixReady": { "type": "boolean" },
+        "panelEnabled": { "type": "boolean" },
+        "roleQuestion": { "type": "string" },
+        "safeNextAction": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getRedispatchParticipationMatrixRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-redispatch-participation-readiness-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.data||{}; const m=d.demoProcessMatrixSync||{}; const cell=(value)=>String(value||''); const rows=(m.rows||[]).map((row,index)=>({rowKey:`redispatch_participation_matrix_row_${index+1}`,phase:cell(row.phase||index+1),v:cell((row.roles||{}).V),d:cell((row.roles||{}).D),m:cell((row.roles||{}).M),i:cell((row.roles||{}).I),nachweise:(row.evidenceRequirements||[]).join(', '),status:cell(row.status),gateOutcome:cell(row.gateOutcome),sourceClass:'redispatch_participation_matrix_row'})); const summary={rowKey:'redispatch_participation_matrix_sync_summary',phase:'-',v:'ROLE_GRID_OPERATIONS_LEAD',d:'ROLE_CERNION_GOVERNANCE',m:'Mitwirkend',i:'ROLE_REGULATORY_AFFAIRS',nachweise:(m.evidenceRequirements||[]).join(', '),status:m.synced&&m.rowCount>=3&&m.rowCount<=5?'matrix_ready':'matrix_sync_required',gateOutcome:m.forbiddenActionsStatus||'no_redispatch_action',sourceClass:'redispatch_participation_matrix_summary'}; return [summary].concat(rows)",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "phase": { "type": "string" },
+        "v": { "type": "string" },
+        "d": { "type": "string" },
+        "m": { "type": "string" },
+        "i": { "type": "string" },
+        "nachweise": { "type": "string" },
+        "status": { "type": "string" },
+        "gateOutcome": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getRedispatchParticipationBoundaryRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-redispatch-participation-readiness-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.data||{}; const forbidden=(d.forbiddenActions||[]).map((action,index)=>({rowKey:`redispatch_forbidden_${index+1}_${action}`,boundary:String(action),status:'forbidden',safeAlternative:'render_existing_redispatch_participation_read_model_only',sourceClass:'redispatch_participation_forbidden_action'})); const guards=((d.sourceActions||{}).notCalled||[]).map((action)=>({rowKey:`redispatch_not_called_${action}`,boundary:String(action),status:'not_called',safeAlternative:'generated_budibase_render_shell_only',sourceClass:'redispatch_participation_no_call_guard'})); const defaults=['redispatch_enrollment','dispatch_control','mako_write','billing','settlement','tariff_mutation','smgw_cls_device_control','external_connector_call','webhook','hitl_create','tenant_provisioning','rundeck_execution','public_context_mutation','production_mutation','personal_agent_hardcoding'].map((action)=>({rowKey:`redispatch_default_guard_${action}`,boundary:action,status:'not_called',safeAlternative:'synthetic_read_only_review_only',sourceClass:'redispatch_participation_default_guard'})); return forbidden.concat(guards).concat(defaults)",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "boundary": { "type": "string" },
+        "status": { "type": "string" },
+        "safeAlternative": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
       "name": "getStadtwerkMauerTransferReadinessSummaryRows",
       "method": "GET",
       "path": "/api/dashboard/stadtwerk-mauer-transfer-readiness",
@@ -6604,6 +6725,36 @@
       "title": "Cost Review No-Call Boundaries",
       "queryName": "getCostReviewCommitteeBoundaryRows",
       "tableTitle": "ERP, Budget, Committee and Connector Guards"
+    },
+    {
+      "id": "redispatch_participation_status",
+      "title": "Redispatch Participation Readiness",
+      "queryName": "getRedispatchParticipationStatusRows",
+      "tableTitle": "Redispatch Status, Portfolio and Next Gate"
+    },
+    {
+      "id": "redispatch_participation_evidence",
+      "title": "Redispatch Evidence Gaps",
+      "queryName": "getRedispatchParticipationEvidenceRows",
+      "tableTitle": "Evidence Rows and Positive Follow-ups"
+    },
+    {
+      "id": "redispatch_participation_seed_guard",
+      "title": "Redispatch Blueprint Guard",
+      "queryName": "getRedispatchParticipationSeedGuardRows",
+      "tableTitle": "Seed Validity and Matrix Guard"
+    },
+    {
+      "id": "redispatch_participation_matrix",
+      "title": "Redispatch Demo Process Matrix",
+      "queryName": "getRedispatchParticipationMatrixRows",
+      "tableTitle": "Redispatch Participation Matrix Rows"
+    },
+    {
+      "id": "redispatch_participation_boundaries",
+      "title": "Redispatch No-Call Boundaries",
+      "queryName": "getRedispatchParticipationBoundaryRows",
+      "tableTitle": "Mako, Billing, Settlement and Device-Control Guards"
     },
     {
       "id": "transfer_readiness_summary",

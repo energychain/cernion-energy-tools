@@ -13572,6 +13572,65 @@
         ]
       }
     },
+    "/api/dashboard-api/redispatch-participation-readiness-status": {
+      "get": {
+        "operationId": "dashboard-api_redispatchParticipationReadinessStatus",
+        "summary": "Redispatch participation readiness status -- read-only Workbench projection",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Redispatch participation readiness status"
+          }
+        },
+        "description": "Builds deterministic redispatch readiness evidence from supplied facts.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "tenantId",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "syntheticRedispatchAssetPortfolio",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "installationGridLocationEvidence",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "remoteControlCommunicationTestEvidence",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "forecastDispatchTestProof",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "readinessReviewDecision",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/api/dashboard-api/steering-artifact-acceptance-gate": {
       "get": {
         "operationId": "dashboard-api_steeringArtifactAcceptanceGateStatus",

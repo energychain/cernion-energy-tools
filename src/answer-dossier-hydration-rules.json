@@ -848,6 +848,90 @@
     "sourceIssue": 367
   },
   {
+    "id": "dashboard-api.redispatchParticipationReadinessStatus",
+    "action": "dashboard-api.redispatchParticipationReadinessStatus",
+    "label": "Redispatch Participation Readiness Board",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "tenantId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:tenantId|tenant|stadtwerk)[:= ]+([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "syntheticRedispatchAssetPortfolio": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:syntheticRedispatchAssetPortfolio|portfolio|assetPortfolio)[:= ]+([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "installationGridLocationEvidence": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:installationGridLocationEvidence|location|gridLocation)[:= ]+([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "remoteControlCommunicationTestEvidence": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:remoteControlCommunicationTestEvidence|communication|remoteControl)[:= ]+([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "forecastDispatchTestProof": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:forecastDispatchTestProof|forecast|dispatchTest)[:= ]+([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "readinessReviewDecision": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:readinessReviewDecision|decision|reviewDecision)[:= ]+([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "dossierEvidence.status"], "label": "Readiness Status", "maxLen": 80 },
+        { "paths": ["syntheticRedispatchAssetPortfolio", "dossierEvidence.syntheticRedispatchAssetPortfolio"], "label": "Portfolio", "maxLen": 100 },
+        { "paths": ["installationGridLocationEvidence", "dossierEvidence.installationGridLocationEvidence"], "label": "Grid Location", "maxLen": 100 },
+        { "paths": ["remoteControlCommunicationTestEvidence", "dossierEvidence.remoteControlCommunicationTestEvidence"], "label": "Communication", "maxLen": 100 },
+        { "paths": ["forecastDispatchTestProof", "dossierEvidence.forecastDispatchTestProof"], "label": "Forecast Proof", "maxLen": 100 },
+        { "paths": ["readinessReviewDecision", "dossierEvidence.readinessReviewDecision"], "label": "Review Decision", "maxLen": 100 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["positiveFollowUps.0.enablesDossierAddition", "dossierEvidence.positiveFollowUps.0.enablesDossierAddition"], "label": "Follow-up Enables", "maxLen": 160 },
+        { "paths": ["sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["timestamp"], "label": "Stand", "maxLen": 40 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "derived",
+    "timeoutMs": 7000,
+    "sourceIssue": 395
+  },
+  {
     "id": "dashboard-api.stadtwerkMauerSandboxRuntimeStatus",
     "action": "dashboard-api.stadtwerkMauerSandboxRuntimeStatus",
     "label": "Stadtwerk Mauer Sandbox Runtime",

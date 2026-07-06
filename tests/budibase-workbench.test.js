@@ -801,6 +801,96 @@ const monitoringBlueprintFixture = {
   },
 };
 
+const redispatchParticipationFixture = {
+  capabilityKey: 'redispatch_participation_readiness_status',
+  safety: 'read_only_blueprint_seed',
+  status: 'ready_for_review',
+  readinessId: 'rprs:redispatch-participation-demo',
+  syntheticRedispatchAssetPortfolio: 'synthetic-portfolio-mauer',
+  installationGridLocationEvidence: 'mastr-and-osm-reviewed',
+  remoteControlCommunicationTestEvidence: 'communication-test-success',
+  forecastDispatchTestProof: 'test-dispatch-forecast-matching',
+  readinessReviewDecision: 'redispatch-readiness-reviewed-by-ops-lead',
+  evidenceItems: [
+    {
+      id: 'syntheticRedispatchAssetPortfolio',
+      label: 'Synthetic Redispatch asset portfolio',
+      value: 'synthetic-portfolio-mauer',
+      evidenceStatus: 'provided',
+      sourceClass: 'synthetic_tenant_seed',
+    },
+    {
+      id: 'installationGridLocationEvidence',
+      label: 'Installation grid location evidence',
+      value: 'mastr-and-osm-reviewed',
+      evidenceStatus: 'provided',
+      sourceClass: 'synthetic_tenant_seed',
+    },
+  ],
+  missingEvidence: [],
+  positiveFollowUps: [],
+};
+
+const redispatchParticipationBlueprintFixture = {
+  ...blueprintVerifyFixture,
+  data: {
+    ...blueprintVerifyFixture.data,
+    seedId: 'stadtwerk-mauer-redispatch-participation-readiness-v1',
+    processFamily: 'redispatch_readiness',
+    controlCase: 'redispatch_participation_readiness',
+    requiredEvidence: [
+      'syntheticRedispatchAssetPortfolio',
+      'installationGridLocationEvidence',
+      'remoteControlCommunicationTestEvidence',
+      'forecastDispatchTestProof',
+      'readinessReviewDecision',
+    ],
+    missingEvidence: [],
+    demoProcessMatrixSync: {
+      slug: 'redispatch-participation-readiness',
+      expectedSlug: 'redispatch-participation-readiness',
+      synced: true,
+      roleLegendM: 'Mitwirkend',
+      rowCount: 4,
+      rowCountValid: true,
+      roleCellsClean: true,
+      dataClassesLimited: true,
+      forbiddenActionsStatus: 'no_redispatch_action',
+      evidenceRequirements: [
+        'syntheticRedispatchAssetPortfolio',
+        'installationGridLocationEvidence',
+        'remoteControlCommunicationTestEvidence',
+        'forecastDispatchTestProof',
+        'readinessReviewDecision',
+      ],
+      rows: [
+        {
+          phase: '1',
+          roles: {
+            V: 'ROLE_GRID_OPERATIONS_LEAD',
+            D: 'ROLE_CERNION_GOVERNANCE',
+            M: 'ROLE_ASSET_PLANNING_LEAD',
+            I: 'ROLE_REGULATORY_AFFAIRS',
+          },
+          evidenceRequirements: ['syntheticRedispatchAssetPortfolio', 'installationGridLocationEvidence'],
+          status: 'clarification',
+          gateOutcome: 'redispatch_portfolio_pending',
+        },
+      ],
+    },
+    forbiddenActions: [
+      'redispatch_enrollment',
+      'dispatch_control',
+      'mako_write',
+      'billing',
+      'settlement',
+    ],
+    sourceActions: {
+      notCalled: ['redispatch_enrollment', 'dispatch_control', 'mako_write', 'billing', 'settlement'],
+    },
+  },
+};
+
 const costReviewCommitteeFixture = {
   capabilityKey: 'cost_review_committee_status',
   safety: 'read_only',
@@ -1931,6 +2021,82 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
         expect.objectContaining({ boundary: 'budget.approve', status: 'forbidden' }),
         expect.objectContaining({ boundary: 'committee.decision.execute', status: 'forbidden' }),
         expect.objectContaining({ boundary: 'budibase_table_write', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'personal_agent_hardcoding', status: 'not_called' }),
+      ])
+    );
+  });
+
+  it('flattens Redispatch Participation rows and no-call guards', () => {
+    const statusRows = runTransformer(
+      'getRedispatchParticipationStatusRows',
+      redispatchParticipationFixture
+    );
+    expectScalarRows(statusRows);
+    expect(statusRows[0]).toMatchObject({
+      rowKey: 'redispatch_participation_status',
+      status: 'ready_for_review',
+      safety: 'read_only_blueprint_seed',
+      syntheticRedispatchAssetPortfolio: 'synthetic-portfolio-mauer',
+      sourceClass: 'redispatch_participation_readiness_status',
+    });
+
+    const evidenceRows = runTransformer(
+      'getRedispatchParticipationEvidenceRows',
+      redispatchParticipationFixture
+    );
+    expectScalarRows(evidenceRows);
+    expect(evidenceRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'syntheticRedispatchAssetPortfolio',
+          value: 'synthetic-portfolio-mauer',
+          sourceClass: 'synthetic_tenant_seed',
+        }),
+      ])
+    );
+
+    const guardRows = runTransformer(
+      'getRedispatchParticipationSeedGuardRows',
+      redispatchParticipationBlueprintFixture
+    );
+    expectScalarRows(guardRows);
+    expect(guardRows[0]).toMatchObject({
+      seedId: 'stadtwerk-mauer-redispatch-participation-readiness-v1',
+      panelEnabled: true,
+      matrixRows: 4,
+      sourceClass: 'redispatch_participation_blueprint_guard',
+    });
+
+    const matrixRows = runTransformer(
+      'getRedispatchParticipationMatrixRows',
+      redispatchParticipationBlueprintFixture
+    );
+    expectScalarRows(matrixRows);
+    expect(matrixRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'redispatch_participation_matrix_sync_summary',
+          status: 'matrix_ready',
+          v: 'ROLE_GRID_OPERATIONS_LEAD',
+          m: 'Mitwirkend',
+        }),
+        expect.objectContaining({
+          rowKey: 'redispatch_participation_matrix_row_1',
+          phase: '1',
+          gateOutcome: 'redispatch_portfolio_pending',
+        }),
+      ])
+    );
+
+    const boundaryRows = runTransformer(
+      'getRedispatchParticipationBoundaryRows',
+      redispatchParticipationBlueprintFixture
+    );
+    expectScalarRows(boundaryRows);
+    expect(boundaryRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ boundary: 'redispatch_enrollment', status: 'forbidden' }),
+        expect.objectContaining({ boundary: 'dispatch_control', status: 'forbidden' }),
         expect.objectContaining({ boundary: 'personal_agent_hardcoding', status: 'not_called' }),
       ])
     );

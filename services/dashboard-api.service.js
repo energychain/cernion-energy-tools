@@ -67,6 +67,7 @@ module.exports = {
       crossSystemVarianceMatrixStatus: 5 * 60 * 1000, // 5 min
       regulatorySignalProcessTranslatorStatus: 5 * 60 * 1000, // 5 min
       costReviewCommitteeStatus: 5 * 60 * 1000, // 5 min
+      redispatchParticipationReadinessStatus: 5 * 60 * 1000, // 5 min
       steeringArtifactAcceptanceGateStatus: 5 * 60 * 1000, // 5 min
       communicationBreakProcessRiskStatus: 5 * 60 * 1000, // 5 min
       noRegretMeasureProofGateStatus: 5 * 60 * 1000, // 5 min
@@ -2244,6 +2245,58 @@ module.exports = {
           this.settings.cacheTtlMs.costReviewCommitteeStatus,
           async () => ({
             ...this.buildCostReviewCommitteeStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // ── redispatchParticipationReadinessStatus ───────────────────────────
+    /**
+     * GET /api/dashboard/redispatch-participation-readiness-status
+     *
+     * Read-only dashboard presenter action for Redispatch participation readiness.
+     * Maps the 5 evidence requirements from stadtwerk-mauer-redispatch-participation-readiness-v1.json.
+     */
+    redispatchParticipationReadinessStatus: {
+      rest: 'GET /redispatch-participation-readiness-status',
+      params: {
+        tenantId: { type: 'string', optional: true, min: 1 },
+        syntheticRedispatchAssetPortfolio: { type: 'string', optional: true },
+        installationGridLocationEvidence: { type: 'string', optional: true },
+        remoteControlCommunicationTestEvidence: { type: 'string', optional: true },
+        forecastDispatchTestProof: { type: 'string', optional: true },
+        readinessReviewDecision: { type: 'string', optional: true },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Redispatch participation readiness status -- read-only Workbench projection',
+        description: 'Builds deterministic redispatch readiness evidence from supplied facts.',
+        responses: {
+          200: {
+            description: 'Read-only Redispatch participation readiness status',
+          },
+        },
+        parameters: [
+          { in: 'query', name: 'tenantId', schema: { type: 'string' } },
+          { in: 'query', name: 'syntheticRedispatchAssetPortfolio', schema: { type: 'string' } },
+          { in: 'query', name: 'installationGridLocationEvidence', schema: { type: 'string' } },
+          { in: 'query', name: 'remoteControlCommunicationTestEvidence', schema: { type: 'string' } },
+          { in: 'query', name: 'forecastDispatchTestProof', schema: { type: 'string' } },
+          { in: 'query', name: 'readinessReviewDecision', schema: { type: 'string' } },
+        ],
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const tenantId = params.tenantId || ctx.meta?.tenantId || 'stadtwerk-mauer';
+        const cacheKey = `redispatch-participation-readiness-status:${tenantId}:${params.syntheticRedispatchAssetPortfolio || 'no-portfolio'}:${params.installationGridLocationEvidence || 'no-loc'}:${params.remoteControlCommunicationTestEvidence || 'no-comm'}:${params.forecastDispatchTestProof || 'no-forecast'}:${params.readinessReviewDecision || 'no-decision'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.redispatchParticipationReadinessStatus,
+          async () => ({
+            ...this.buildRedispatchParticipationReadinessStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -15930,6 +15983,167 @@ module.exports = {
           decisionReadiness: params.decisionReadiness || null,
           escalationThreshold: params.escalationThreshold || null,
           nextCommitteeGate: params.nextCommitteeGate || null,
+          missingEvidence,
+          positiveFollowUps,
+          evidenceItems,
+          validationFindings,
+          dossierFacts,
+        },
+      };
+    },
+
+    buildRedispatchParticipationReadinessStatus(params = {}) {
+      const hasValue = (value) => value !== undefined && value !== null && String(value).trim() !== '';
+      const evidenceSpecs = [
+        {
+          id: 'syntheticRedispatchAssetPortfolio',
+          label: 'Synthetic Redispatch asset portfolio',
+          value: params.syntheticRedispatchAssetPortfolio,
+          sourceClass: 'synthetic_tenant_seed',
+          enablesDossierAddition: 'Adds concrete synthetic asset and portfolio context for a Redispatch readiness review once tenant-provided demo values exist.',
+        },
+        {
+          id: 'installationGridLocationEvidence',
+          label: 'Installation grid location evidence',
+          value: params.installationGridLocationEvidence,
+          sourceClass: 'synthetic_tenant_seed',
+          enablesDossierAddition: 'Adds MaStR, installation and grid-location review facts once tenant-provided demo evidence exists.',
+        },
+        {
+          id: 'remoteControlCommunicationTestEvidence',
+          label: 'Remote control communication test evidence',
+          value: params.remoteControlCommunicationTestEvidence,
+          sourceClass: 'synthetic_tenant_seed',
+          enablesDossierAddition: 'Adds remote-control and communication-test readiness proof as evidence only, never as a control action.',
+        },
+        {
+          id: 'forecastDispatchTestProof',
+          label: 'Forecast dispatch test proof',
+          value: params.forecastDispatchTestProof,
+          sourceClass: 'synthetic_tenant_seed',
+          enablesDossierAddition: 'Adds forecast or dispatch-test proof for the next safe review gate without claiming productive dispatch participation.',
+        },
+        {
+          id: 'readinessReviewDecision',
+          label: 'Readiness review decision',
+          value: params.readinessReviewDecision,
+          sourceClass: 'synthetic_tenant_seed',
+          enablesDossierAddition: 'Adds the ready-for-review or evidence-gap handoff once the synthetic review decision exists.',
+        },
+      ];
+
+      const evidenceItems = evidenceSpecs
+        .filter((spec) => hasValue(spec.value))
+        .map((spec) => ({
+          id: spec.id,
+          label: spec.label,
+          value: spec.value,
+          sourceClass: spec.sourceClass,
+          evidenceStatus: 'provided',
+        }));
+
+      const missingEvidence = evidenceSpecs
+        .filter((spec) => !hasValue(spec.value))
+        .map((spec) => ({
+          missingDataPoint: spec.id,
+          label: spec.label,
+          sourceClass: spec.sourceClass,
+          enablesDossierAddition: spec.enablesDossierAddition,
+        }));
+
+      const status =
+        missingEvidence.length === 0
+          ? 'ready_for_review'
+          : !hasValue(params.syntheticRedispatchAssetPortfolio)
+            ? 'needs_portfolio'
+            : !hasValue(params.installationGridLocationEvidence)
+              ? 'needs_location_evidence'
+              : !hasValue(params.remoteControlCommunicationTestEvidence)
+                ? 'needs_communication_evidence'
+                : !hasValue(params.forecastDispatchTestProof)
+                  ? 'needs_forecast_proof'
+                  : 'needs_readiness_decision';
+
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'redispatch_participation_readiness_status',
+      }));
+
+      const validationFindings = missingEvidence.map((item) => ({
+        code: `RPRS_${String(item.missingDataPoint).replace(/([A-Z])/g, '_$1').toUpperCase()}_MISSING`,
+        severity: ['syntheticRedispatchAssetPortfolio', 'installationGridLocationEvidence'].includes(
+          item.missingDataPoint
+        )
+          ? 'high'
+          : 'medium',
+        message: item.enablesDossierAddition,
+      }));
+
+      const providedRequiredEvidence = evidenceItems.filter((item) =>
+        evidenceSpecs.some((spec) => spec.id === item.id)
+      );
+
+      const dossierFacts = [
+        `Redispatch readiness Status: ${status}`,
+        `Provided Evidence: ${providedRequiredEvidence.length}/${evidenceSpecs.length}`,
+        `Open Gaps: ${missingEvidence.length}`,
+      ];
+
+      return {
+        readinessId: `rprs:${Buffer.from(
+          `${params.tenantId || 'stadtwerk-mauer'}:${params.syntheticRedispatchAssetPortfolio || ''}:${params.readinessReviewDecision || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 24)}`,
+        capabilityKey: 'redispatch_participation_readiness_status',
+        safety: 'read_only_blueprint_seed',
+        requestContext: {
+          tenantId: params.tenantId || 'stadtwerk-mauer',
+        },
+        status,
+        syntheticRedispatchAssetPortfolio: params.syntheticRedispatchAssetPortfolio || null,
+        installationGridLocationEvidence: params.installationGridLocationEvidence || null,
+        remoteControlCommunicationTestEvidence: params.remoteControlCommunicationTestEvidence || null,
+        forecastDispatchTestProof: params.forecastDispatchTestProof || null,
+        readinessReviewDecision: params.readinessReviewDecision || null,
+        evidenceItems,
+        missingEvidence,
+        positiveFollowUps,
+        validationFindings,
+        sourceActions: {
+          inspected: ['dashboard-api.redispatchParticipationReadinessStatus'],
+          referenced: [
+            'vdmi.dossier',
+            'vdmi.evidence',
+            'asset-context.read',
+            'interface-placeholder.requestEvidence',
+          ],
+          notCalled: [
+            'redispatch_enrollment',
+            'dispatch_control',
+            'mako_write',
+            'billing',
+            'settlement',
+            'tariff_mutation',
+            'smgw_cls_device_control',
+            'external_connector_call',
+            'webhook',
+            'hitl_create',
+            'tenant_provisioning',
+            'rundeck_execution',
+            'public_context_mutation',
+            'production_mutation',
+            'personal_agent_hardcoding'
+          ],
+        },
+        dossierEvidence: {
+          status,
+          syntheticRedispatchAssetPortfolio: params.syntheticRedispatchAssetPortfolio || null,
+          installationGridLocationEvidence: params.installationGridLocationEvidence || null,
+          remoteControlCommunicationTestEvidence: params.remoteControlCommunicationTestEvidence || null,
+          forecastDispatchTestProof: params.forecastDispatchTestProof || null,
+          readinessReviewDecision: params.readinessReviewDecision || null,
           missingEvidence,
           positiveFollowUps,
           evidenceItems,
