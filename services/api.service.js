@@ -1530,6 +1530,8 @@ module.exports = {
             'dashboard-api.redispatchParticipationReadinessStatus',
           'GET /dashboard/mastr-sync-gap-status':
             'dashboard-api.mastrSyncGapStatus',
+          'GET /dashboard/decommissioned-asset-reconciliation-status':
+            'dashboard-api.decommissionedAssetReconciliationStatus',
           'GET /dashboard/steering-artifact-acceptance-gate':
             'dashboard-api.steeringArtifactAcceptanceGateStatus',
           'GET /dashboard/communication-break-process-risk':

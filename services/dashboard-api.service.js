@@ -69,6 +69,7 @@ module.exports = {
       costReviewCommitteeStatus: 5 * 60 * 1000, // 5 min
       redispatchParticipationReadinessStatus: 5 * 60 * 1000, // 5 min
       mastrSyncGapStatus: 5 * 60 * 1000, // 5 min
+      decommissionedAssetReconciliationStatus: 5 * 60 * 1000, // 5 min
       steeringArtifactAcceptanceGateStatus: 5 * 60 * 1000, // 5 min
       communicationBreakProcessRiskStatus: 5 * 60 * 1000, // 5 min
       noRegretMeasureProofGateStatus: 5 * 60 * 1000, // 5 min
@@ -2348,6 +2349,56 @@ module.exports = {
           this.settings.cacheTtlMs.mastrSyncGapStatus,
           async () => ({
             ...this.buildMastrSyncGapStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // ── decommissionedAssetReconciliationStatus ───────────────────────────
+    /**
+     * GET /api/dashboard/decommissioned-asset-reconciliation-status
+     *
+     * Read-only dashboard presenter action for Decommissioned Asset Reconciliation.
+     * Maps the 4 evidence requirements from stadtwerk-mauer-decommissioned-asset-reconciliation-v1.json.
+     */
+    decommissionedAssetReconciliationStatus: {
+      rest: 'GET /decommissioned-asset-reconciliation-status',
+      params: {
+        tenantId: { type: 'string', optional: true, min: 1 },
+        gisDecommissionedAssetsEvidence: { type: 'string', optional: true },
+        sapAnlagenspiegelEvidence: { type: 'string', optional: true },
+        reconciliationDiscrepancyFeed: { type: 'string', optional: true },
+        reconciliationApprovalDecision: { type: 'string', optional: true },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Decommissioned Asset Reconciliation status -- read-only Workbench projection',
+        description: 'Builds deterministic Decommissioned Asset Reconciliation evidence from supplied facts.',
+        responses: {
+          200: {
+            description: 'Read-only Decommissioned Asset Reconciliation status',
+          },
+        },
+        parameters: [
+          { in: 'query', name: 'tenantId', schema: { type: 'string' } },
+          { in: 'query', name: 'gisDecommissionedAssetsEvidence', schema: { type: 'string' } },
+          { in: 'query', name: 'sapAnlagenspiegelEvidence', schema: { type: 'string' } },
+          { in: 'query', name: 'reconciliationDiscrepancyFeed', schema: { type: 'string' } },
+          { in: 'query', name: 'reconciliationApprovalDecision', schema: { type: 'string' } },
+        ],
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const tenantId = params.tenantId || ctx.meta?.tenantId || 'stadtwerk-mauer';
+        const cacheKey = `decommissioned-asset-reconciliation-status:${tenantId}:${params.gisDecommissionedAssetsEvidence || 'no-gis'}:${params.sapAnlagenspiegelEvidence || 'no-sap'}:${params.reconciliationDiscrepancyFeed || 'no-feed'}:${params.reconciliationApprovalDecision || 'no-reconcile'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.decommissionedAssetReconciliationStatus,
+          async () => ({
+            ...this.buildDecommissionedAssetReconciliationStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -16350,6 +16401,162 @@ module.exports = {
           mastrFreshnessEvidence: params.mastrFreshnessEvidence || null,
           redispatchStammdatenComparison: params.redispatchStammdatenComparison || null,
           syncGapAlertFeed: params.syncGapAlertFeed || null,
+          reconciliationApprovalDecision: params.reconciliationApprovalDecision || null,
+          missingEvidence,
+          positiveFollowUps,
+          evidenceItems,
+          validationFindings,
+          dossierFacts,
+        },
+      };
+    },
+
+    buildDecommissionedAssetReconciliationStatus(params = {}) {
+      const hasValue = (value) => value !== undefined && value !== null && String(value).trim() !== '';
+      const evidenceSpecs = [
+        {
+          id: 'gisDecommissionedAssetsEvidence',
+          label: 'GIS decommissioned assets evidence',
+          value: params.gisDecommissionedAssetsEvidence,
+          sourceClass: 'synthetic_tenant_seed',
+          enablesDossierAddition: 'Adds evidence of physically decommissioned assets from GIS/network registers.',
+        },
+        {
+          id: 'sapAnlagenspiegelEvidence',
+          label: 'SAP Anlagenspiegel evidence',
+          value: params.sapAnlagenspiegelEvidence,
+          sourceClass: 'synthetic_tenant_seed',
+          enablesDossierAddition: 'Adds commercial asset register entries and SAP Anlagenspiegel validation evidence.',
+        },
+        {
+          id: 'reconciliationDiscrepancyFeed',
+          label: 'Reconciliation discrepancy feed',
+          value: params.reconciliationDiscrepancyFeed,
+          sourceClass: 'synthetic_tenant_seed',
+          enablesDossierAddition: 'Adds active reconciliation discrepancy alerts and gap findings between physical and commercial states.',
+        },
+        {
+          id: 'reconciliationApprovalDecision',
+          label: 'Reconciliation approval decision',
+          value: params.reconciliationApprovalDecision,
+          sourceClass: 'synthetic_tenant_seed',
+          enablesDossierAddition: 'Adds the final decommissioning reconciliation sign-off and audit-trail logging.',
+        },
+      ];
+
+      const evidenceItems = evidenceSpecs
+        .filter((spec) => hasValue(spec.value))
+        .map((spec) => ({
+          id: spec.id,
+          label: spec.label,
+          value: spec.value,
+          sourceClass: spec.sourceClass,
+          evidenceStatus: 'provided',
+        }));
+
+      const missingEvidence = evidenceSpecs
+        .filter((spec) => !hasValue(spec.value))
+        .map((spec) => ({
+          missingDataPoint: spec.id,
+          label: spec.label,
+          sourceClass: spec.sourceClass,
+          enablesDossierAddition: spec.enablesDossierAddition,
+        }));
+
+      const status =
+        missingEvidence.length === 0
+          ? 'ready_for_review'
+          : !hasValue(params.gisDecommissionedAssetsEvidence)
+            ? 'needs_gis'
+            : !hasValue(params.sapAnlagenspiegelEvidence)
+              ? 'needs_sap'
+              : !hasValue(params.reconciliationDiscrepancyFeed)
+                ? 'needs_alerts'
+                : 'needs_reconciliation';
+
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'decommissioned_asset_reconciliation',
+      }));
+
+      const validationFindings = missingEvidence.map((item) => {
+        let code = 'DARS_RECONCILIATION_PENDING';
+        if (item.missingDataPoint === 'gisDecommissionedAssetsEvidence') {
+          code = 'DARS_GIS_MISSING';
+        } else if (item.missingDataPoint === 'sapAnlagenspiegelEvidence') {
+          code = 'DARS_BOOK_VALUE_MISMATCH';
+        }
+        return {
+          code,
+          severity: ['gisDecommissionedAssetsEvidence', 'sapAnlagenspiegelEvidence'].includes(item.missingDataPoint)
+            ? 'high'
+            : 'medium',
+          message: item.enablesDossierAddition,
+        };
+      });
+
+      const providedRequiredEvidence = evidenceItems.filter((item) =>
+        evidenceSpecs.some((spec) => spec.id === item.id)
+      );
+
+      const dossierFacts = [
+        `Decommissioned Asset Reconciliation Status: ${status}`,
+        `Provided Evidence: ${providedRequiredEvidence.length}/${evidenceSpecs.length}`,
+        `Open Gaps: ${missingEvidence.length}`,
+      ];
+
+      return {
+        readinessId: `dars:${Buffer.from(
+          `${params.tenantId || 'stadtwerk-mauer'}:${params.gisDecommissionedAssetsEvidence || ''}:${params.reconciliationApprovalDecision || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 24)}`,
+        capabilityKey: 'decommissioned_asset_reconciliation',
+        safety: 'read_only_blueprint_seed',
+        requestContext: {
+          tenantId: params.tenantId || 'stadtwerk-mauer',
+        },
+        status,
+        gisDecommissionedAssetsEvidence: params.gisDecommissionedAssetsEvidence || null,
+        sapAnlagenspiegelEvidence: params.sapAnlagenspiegelEvidence || null,
+        reconciliationDiscrepancyFeed: params.reconciliationDiscrepancyFeed || null,
+        reconciliationApprovalDecision: params.reconciliationApprovalDecision || null,
+        evidenceItems,
+        missingEvidence,
+        positiveFollowUps,
+        validationFindings,
+        sourceActions: {
+          inspected: ['dashboard-api.decommissionedAssetReconciliationStatus'],
+          referenced: [
+            'vdmi.dossier',
+            'vdmi.evidence',
+            'asset-context.read',
+            'interface-placeholder.requestEvidence',
+          ],
+          notCalled: [
+            'redispatch_enrollment',
+            'dispatch_control',
+            'mako_write',
+            'billing',
+            'settlement',
+            'tariff_mutation',
+            'smgw_cls_device_control',
+            'external_connector_call',
+            'webhook',
+            'hitl_create',
+            'tenant_provisioning',
+            'rundeck_execution',
+            'public_context_mutation',
+            'production_mutation',
+            'personal_agent_hardcoding',
+          ],
+        },
+        dossierEvidence: {
+          status,
+          gisDecommissionedAssetsEvidence: params.gisDecommissionedAssetsEvidence || null,
+          sapAnlagenspiegelEvidence: params.sapAnlagenspiegelEvidence || null,
+          reconciliationDiscrepancyFeed: params.reconciliationDiscrepancyFeed || null,
           reconciliationApprovalDecision: params.reconciliationApprovalDecision || null,
           missingEvidence,
           positiveFollowUps,

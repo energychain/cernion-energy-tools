@@ -13683,6 +13683,58 @@
         ]
       }
     },
+    "/api/dashboard-api/decommissioned-asset-reconciliation-status": {
+      "get": {
+        "operationId": "dashboard-api_decommissionedAssetReconciliationStatus",
+        "summary": "Decommissioned Asset Reconciliation status -- read-only Workbench projection",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Decommissioned Asset Reconciliation status"
+          }
+        },
+        "description": "Builds deterministic Decommissioned Asset Reconciliation evidence from supplied facts.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "tenantId",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "gisDecommissionedAssetsEvidence",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sapAnlagenspiegelEvidence",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "reconciliationDiscrepancyFeed",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "reconciliationApprovalDecision",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/api/dashboard-api/steering-artifact-acceptance-gate": {
       "get": {
         "operationId": "dashboard-api_steeringArtifactAcceptanceGateStatus",
@@ -67274,6 +67326,58 @@
           {
             "in": "query",
             "name": "syncGapAlertFeed",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "reconciliationApprovalDecision",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard/decommissioned-asset-reconciliation-status": {
+      "get": {
+        "operationId": "dashboard-api_decommissionedAssetReconciliationStatus",
+        "summary": "Decommissioned Asset Reconciliation status -- read-only Workbench projection",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Decommissioned Asset Reconciliation status"
+          }
+        },
+        "description": "Builds deterministic Decommissioned Asset Reconciliation evidence from supplied facts.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "tenantId",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "gisDecommissionedAssetsEvidence",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sapAnlagenspiegelEvidence",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "reconciliationDiscrepancyFeed",
             "schema": {
               "type": "string"
             }

@@ -995,6 +995,110 @@ const mastrSyncGapSeedGuardFixture = {
   }
 };
 
+const decommissionedAssetStatusFixture = {
+  readinessId: 'dars:decommissioned-asset-id',
+  status: 'ready_for_review',
+  safety: 'read_only_blueprint_seed',
+  gisDecommissionedAssetsEvidence: 'gis-decommissioned-ok',
+  sapAnlagenspiegelEvidence: 'sap-anlagenspiegel-complete',
+  reconciliationDiscrepancyFeed: 'discrepancy-feed-verified',
+  reconciliationApprovalDecision: 'reconciliation-signed-off-by-reconciliation-lead',
+  evidenceItems: [
+    {
+      id: 'gisDecommissionedAssetsEvidence',
+      label: 'GIS decommissioned assets evidence',
+      value: 'gis-decommissioned-ok',
+      sourceClass: 'synthetic_tenant_seed',
+      evidenceStatus: 'provided'
+    },
+    {
+      id: 'sapAnlagenspiegelEvidence',
+      label: 'SAP Anlagenspiegel evidence',
+      value: 'sap-anlagenspiegel-complete',
+      sourceClass: 'synthetic_tenant_seed',
+      evidenceStatus: 'provided'
+    },
+    {
+      id: 'reconciliationDiscrepancyFeed',
+      label: 'Reconciliation discrepancy feed',
+      value: 'discrepancy-feed-verified',
+      sourceClass: 'synthetic_tenant_seed',
+      evidenceStatus: 'provided'
+    },
+    {
+      id: 'reconciliationApprovalDecision',
+      label: 'Reconciliation approval decision',
+      value: 'reconciliation-signed-off-by-reconciliation-lead',
+      sourceClass: 'synthetic_tenant_seed',
+      evidenceStatus: 'provided'
+    }
+  ],
+  missingEvidence: [],
+  positiveFollowUps: [],
+  sourceActions: {
+    notCalled: [
+      'redispatch_enrollment',
+      'dispatch_control'
+    ]
+  }
+};
+
+const decommissionedAssetSeedGuardFixture = {
+  data: {
+    seedId: 'stadtwerk-mauer-decommissioned-asset-reconciliation-v1',
+    processFamily: 'decommissioned_asset_reconciliation',
+    controlCase: 'decommissioned_asset_reconciliation_status',
+    validation: {
+      valid: true
+    },
+    requiredEvidence: [
+      'gisDecommissionedAssetsEvidence',
+      'sapAnlagenspiegelEvidence',
+      'reconciliationDiscrepancyFeed',
+      'reconciliationApprovalDecision'
+    ],
+    missingEvidence: [],
+    demoProcessMatrixSync: {
+      slug: 'decommissioned-asset-reconciliation',
+      expectedSlug: 'decommissioned-asset-reconciliation',
+      synced: true,
+      roleLegendM: 'Mitwirkend',
+      rowCount: 4,
+      rowCountValid: true,
+      roleCellsClean: true,
+      dataClassesLimited: true,
+      forbiddenActionsStatus: 'no_decommission_action',
+      evidenceRequirements: [
+        'gisDecommissionedAssetsEvidence',
+        'sapAnlagenspiegelEvidence',
+        'reconciliationDiscrepancyFeed',
+        'reconciliationApprovalDecision'
+      ],
+      rows: [
+        {
+          phase: '1',
+          roles: {
+            V: 'ROLE_NETZPLANUNG',
+            D: 'ROLE_CERNION_GOVERNANCE',
+            M: 'ROLE_ANLAGENBUCHHALTUNG',
+            I: 'ROLE_ANLAGENBUCHHALTUNG'
+          },
+          evidenceRequirements: ['gisDecommissionedAssetsEvidence'],
+          status: 'ready_for_review',
+          gateOutcome: 'gis_decommissioned_assets_harvested'
+        }
+      ]
+    },
+    forbiddenActions: [
+      'redispatch_enrollment',
+      'dispatch_control'
+    ],
+    sourceActions: {
+      notCalled: ['redispatch_enrollment', 'dispatch_control']
+    }
+  }
+};
+
 const costReviewCommitteeFixture = {
   capabilityKey: 'cost_review_committee_status',
   safety: 'read_only',
@@ -2271,6 +2375,82 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
     const boundaryRows = runTransformer(
       'getMastrSyncGapBoundaryRows',
       mastrSyncGapSeedGuardFixture
+    );
+    expectScalarRows(boundaryRows);
+    expect(boundaryRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ boundary: 'redispatch_enrollment', status: 'forbidden' }),
+        expect.objectContaining({ boundary: 'dispatch_control', status: 'forbidden' }),
+        expect.objectContaining({ boundary: 'personal_agent_hardcoding', status: 'not_called' }),
+      ])
+    );
+  });
+
+  it('flattens Decommissioned Asset Reconciliation rows and no-call guards', () => {
+    const statusRows = runTransformer(
+      'getDecommissionedAssetStatusRows',
+      decommissionedAssetStatusFixture
+    );
+    expectScalarRows(statusRows);
+    expect(statusRows[0]).toMatchObject({
+      rowKey: 'decommissioned_asset_status',
+      status: 'ready_for_review',
+      safety: 'read_only_blueprint_seed',
+      gisDecommissionedAssetsEvidence: 'gis-decommissioned-ok',
+      sourceClass: 'decommissioned_asset_status',
+    });
+
+    const evidenceRows = runTransformer(
+      'getDecommissionedAssetEvidenceRows',
+      decommissionedAssetStatusFixture
+    );
+    expectScalarRows(evidenceRows);
+    expect(evidenceRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'gisDecommissionedAssetsEvidence',
+          value: 'gis-decommissioned-ok',
+          sourceClass: 'synthetic_tenant_seed',
+        }),
+      ])
+    );
+
+    const guardRows = runTransformer(
+      'getDecommissionedAssetSeedGuardRows',
+      decommissionedAssetSeedGuardFixture
+    );
+    expectScalarRows(guardRows);
+    expect(guardRows[0]).toMatchObject({
+      seedId: 'stadtwerk-mauer-decommissioned-asset-reconciliation-v1',
+      panelEnabled: true,
+      matrixRows: 4,
+      sourceClass: 'decommissioned_asset_blueprint_guard',
+    });
+
+    const matrixRows = runTransformer(
+      'getDecommissionedAssetMatrixRows',
+      decommissionedAssetSeedGuardFixture
+    );
+    expectScalarRows(matrixRows);
+    expect(matrixRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'decommissioned_asset_matrix_sync_summary',
+          status: 'matrix_ready',
+          v: 'ROLE_NETZPLANUNG',
+          m: 'Mitwirkend',
+        }),
+        expect.objectContaining({
+          rowKey: 'decommissioned_asset_matrix_row_1',
+          phase: '1',
+          gateOutcome: 'gis_decommissioned_assets_harvested',
+        }),
+      ])
+    );
+
+    const boundaryRows = runTransformer(
+      'getDecommissionedAssetBoundaryRows',
+      decommissionedAssetSeedGuardFixture
     );
     expectScalarRows(boundaryRows);
     expect(boundaryRows).toEqual(

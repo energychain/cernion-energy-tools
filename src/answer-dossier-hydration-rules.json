@@ -1007,6 +1007,81 @@
     "sourceIssue": 396
   },
   {
+    "id": "dashboard-api.decommissionedAssetReconciliationStatus",
+    "action": "dashboard-api.decommissionedAssetReconciliationStatus",
+    "label": "Decommissioned Asset Reconciliation Board",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "tenantId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:tenantId|tenant|stadtwerk)[:= ]+([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "gisDecommissionedAssetsEvidence": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:gisDecommissionedAssetsEvidence|gis|decommissioned)[:= ]+([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "sapAnlagenspiegelEvidence": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:sapAnlagenspiegelEvidence|sap|anlagenspiegel)[:= ]+([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "reconciliationDiscrepancyFeed": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:reconciliationDiscrepancyFeed|discrepancy|feed)[:= ]+([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "reconciliationApprovalDecision": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:reconciliationApprovalDecision|decision|reconciliation)[:= ]+([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "dossierEvidence.status"], "label": "Reconciliation Status", "maxLen": 80 },
+        { "paths": ["gisDecommissionedAssetsEvidence", "dossierEvidence.gisDecommissionedAssetsEvidence"], "label": "GIS Decommissioned", "maxLen": 100 },
+        { "paths": ["sapAnlagenspiegelEvidence", "dossierEvidence.sapAnlagenspiegelEvidence"], "label": "SAP Anlagenspiegel", "maxLen": 100 },
+        { "paths": ["reconciliationDiscrepancyFeed", "dossierEvidence.reconciliationDiscrepancyFeed"], "label": "Discrepancy Feed", "maxLen": 100 },
+        { "paths": ["reconciliationApprovalDecision", "dossierEvidence.reconciliationApprovalDecision"], "label": "Reconciliation Decision", "maxLen": 100 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["positiveFollowUps.0.enablesDossierAddition", "dossierEvidence.positiveFollowUps.0.enablesDossierAddition"], "label": "Follow-up Enables", "maxLen": 160 },
+        { "paths": ["sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["timestamp"], "label": "Stand", "maxLen": 40 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "derived",
+    "timeoutMs": 7000,
+    "sourceIssue": 397
+  },
+  {
     "id": "dashboard-api.stadtwerkMauerSandboxRuntimeStatus",
     "action": "dashboard-api.stadtwerkMauerSandboxRuntimeStatus",
     "label": "Stadtwerk Mauer Sandbox Runtime",

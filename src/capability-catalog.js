@@ -8955,6 +8955,33 @@ const CURATED_CAPABILITIES = [
     routingPattern: 'mastr_sync_gap_alerting',
   },
   {
+    capability: 'decommissioned_asset_reconciliation',
+    domain: 'redispatch',
+    abstractionLevel: 'read_only_blueprint_seed',
+    intent: 'dashboard-api.decommissionedAssetReconciliationStatus',
+    keywords: [
+      'decommissioned asset',
+      'decommissioned asset reconciliation',
+      'decommissioned-asset',
+      'gis reconciliation',
+      'sap reconciliation',
+      'book value mismatch',
+    ],
+    preferredActions: [
+      'dashboard-api.decommissionedAssetReconciliationStatus',
+    ],
+    fallbackActions: ['dashboard-api.decommissionedAssetReconciliationStatus'],
+    avoid: ['query.ask', 'query.askLearned'],
+    requiredInputs: [
+      { name: 'tenantId', label: 'Tenant-ID', type: 'string', required: false },
+    ],
+    risksAndNotes: [
+      'decommissionedAssetReconciliationStatus ist read-only und dossier-safe.',
+      'Keine echten GIS oder SAP API Calls, keine Datenmutation und kein Personal-Agent Hardcoding.',
+    ],
+    routingPattern: 'decommissioned_asset_reconciliation',
+  },
+  {
     capability: 'eeg_clawback_ewk_monitoring',
     domain: 'regulatory',
     abstractionLevel: 'domain_gap_marker',

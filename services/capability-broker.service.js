@@ -1748,7 +1748,10 @@ function findBestCapability(taskText, options = {}) {
     'stadtwerk mauer redispatch',
   ];
 
-  if (redispatchParticipationReadinessSignals.some((signal) => haystack.includes(signal))) {
+  if (
+    redispatchParticipationReadinessSignals.some((signal) => haystack.includes(signal)) &&
+    !/(speicher|batterie|bess)/i.test(haystack)
+  ) {
     const rprCapability = findCapabilityByName('redispatch_participation_readiness');
     if (rprCapability) {
       return { capability: rprCapability, score: 122, usedFallback: false };
@@ -1768,6 +1771,23 @@ function findBestCapability(taskText, options = {}) {
     const msgCapability = findCapabilityByName('mastr_sync_gap_alerting');
     if (msgCapability) {
       return { capability: msgCapability, score: 124, usedFallback: false };
+    }
+  }
+
+  // ── Decommissioned Asset Reconciliation
+  const decommissionedAssetReconciliationSignals = [
+    'decommissioned asset',
+    'decommissioned asset reconciliation',
+    'decommissioned-asset',
+    'gis reconciliation',
+    'sap reconciliation',
+    'book value mismatch',
+  ];
+
+  if (decommissionedAssetReconciliationSignals.some((signal) => haystack.includes(signal))) {
+    const darCapability = findCapabilityByName('decommissioned_asset_reconciliation');
+    if (darCapability) {
+      return { capability: darCapability, score: 126, usedFallback: false };
     }
   }
 
