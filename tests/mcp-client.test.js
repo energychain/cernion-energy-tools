@@ -79,7 +79,7 @@ describe('CernionMCPClient', () => {
       expect(result.data).toEqual({ ok: true });
     });
 
-    it('should prefer custom token over CERNION_TOKEN from environment', async () => {
+    it('should ignore custom token and use CERNION_TOKEN from environment', async () => {
       const connectSpy = jest.spyOn(CernionMCPClient.prototype, 'connect').mockResolvedValue(true);
       jest.spyOn(CernionMCPClient.prototype, 'callTool').mockResolvedValue({
         success: true,
@@ -89,8 +89,8 @@ describe('CernionMCPClient', () => {
 
       await CernionMCPClient.callWithNewSession('test_tool', {}, 'custom_token_abc');
 
-      // Instance was created with custom token
-      expect(connectSpy.mock.instances[0].token).toBe('custom_token_abc');
+      // customToken is kept for call-site compatibility, but MCP auth uses CERNION_TOKEN.
+      expect(connectSpy.mock.instances[0].token).toBe('test_token_123');
     });
 
     it('should use CERNION_TOKEN from environment when custom token is not provided', async () => {
