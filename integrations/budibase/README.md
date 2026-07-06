@@ -41,6 +41,7 @@ The workbench renders:
 - Evidence Freshness rows for the selected synthetic VNB signal from `GET /api/dashboard/evidence-freshness-guard`
 - Blueprint-Pack verify and Demo-Raum matrix-sync rows for `stadtwerk-mauer-substation-load-assessment-v1` from `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify`, backed by the existing operations-runbook verify contract
 - Blueprint seed selector, #382 matrix/evidence/sync rows and read-only cross-system variance linkout for `stadtwerk-mauer-cross-system-variance-evidence-matrix-v1`, composed from `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify`, `GET /api/dashboard/stadtwerk-mauer-transfer-readiness` and `GET /api/dashboard/cross-system-variance-matrix`
+- Cross-System Variance Landing-Registry Draft Sync rows for `stadtwerk-mauer-cross-system-variance-evidence-matrix-v1`, composed from existing read-only dashboard bricks: `GET /api/dashboard/stadtwerk-mauer-landing-registry-draft`, `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify`, `GET /api/dashboard/stadtwerk-mauer-transfer-readiness` and `GET /api/dashboard/cross-system-variance-matrix`
 - Portfolio Market Value Readiness rows for `stadtwerk-mauer-portfolio-market-value-readiness-v1`, composed from `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify` plus a synthetic `POST /api/energy-market/portfolio-backtest` query
 - Monitoring Non-Escalation rows for `stadtwerk-mauer-monitoring-non-escalation-status-v1`, composed from `GET /api/dashboard/monitoring-non-escalation` plus Blueprint-Pack verify rows
 - Cost Review Committee Readiness rows for `stadtwerk-mauer-cost-review-committee-readiness-v1`, composed from `GET /api/dashboard/cost-review-committee-status` plus Blueprint-Pack verify rows
@@ -102,6 +103,12 @@ The Blueprint seed selector is read-only manifest/query state. It lists only the
 Stadtwerk-Mauer seeds, defaults the selected seed to the #382 cross-system variance evidence
 matrix, renders V/D/M/I/Nachweise cells as scalar columns, and keeps Landing-Registry /
 productive Demo-Raum sync blocked until explicit sync proof exists.
+The Cross-System Variance Landing-Registry Draft Sync panel is a generated read-only render slice.
+It composes existing Landing-Registry draft, Blueprint-Pack verify, transfer-readiness and
+cross-system variance read models into scalar summary, draft-preview, matrix-sync, publication
+blocker, positive-follow-up and no-call guard rows. It does not write the Landing Registry,
+publish `cernion.de`, execute Rundeck, call external connectors, write Budibase or Cernion
+tables, mutate production tenants or add Personal-Agent shortcuts.
 The Portfolio Market Value Readiness panel is a generated read-only render slice. It combines
 Blueprint-Pack seed/matrix guard rows for the canonical portfolio seed with synthetic
 portfolio-backtest plausibility rows (`specificYieldKwhPerKw`, `orientationYieldKwhPerKw`,

@@ -536,6 +536,78 @@ const blueprintVarianceFixture = {
   },
 };
 
+const landingRegistryDraftFixture = {
+  capabilityKey: 'stadtwerk_mauer_landing_registry_draft',
+  safety: 'read_only_workbench_projection',
+  status: 'landing_registry_draft_ready',
+  tenantId: 'stadtwerk-mauer',
+  seedId: 'stadtwerk-mauer-cross-system-variance-evidence-matrix-v1',
+  found: true,
+  rowCount: 4,
+  draft: {
+    slug: 'cross-system-variance-evidence-matrix',
+    title: 'Cross-System Variance Evidence Matrix',
+    processFamily: 'vnb_data_quality_governance',
+    controlCase: 'cross_system_variance_evidence_matrix',
+    seedId: 'stadtwerk-mauer-cross-system-variance-evidence-matrix-v1',
+    roleHeaders: [
+      'Phase',
+      'V = Verantwortlich',
+      'D = Durchfuehrend',
+      'M = Mitwirkend',
+      'I = Informiert',
+      'Nachweise',
+    ],
+    rowCount: 4,
+    rows: [
+      {
+        phase: '1',
+        V: 'ROLE_ASSET_MDM_OWNER',
+        D: 'ROLE_CERNION_GOVERNANCE',
+        M: 'ROLE_CONTROLLING',
+        I: 'ROLE_COMMERCIAL_AUDIT',
+        evidenceRequirements: [
+          'sourceSystemEvidence',
+          'targetSystemEvidence',
+          'affectedObjectEvidence',
+        ],
+        gateOutcome: 'source_target_and_object_lineage_visible',
+        status: 'evidence_gap',
+        positiveFollowUp: 'Adds source, target and affected-object lineage.',
+      },
+    ],
+    syncProof: {
+      blueprintPack: { status: 'complete' },
+      landingRegistryDraft: { status: 'draft_ready' },
+      productiveDemoRoom: { status: 'pending' },
+    },
+    publicationBlockers: [
+      'productive_demo_room_publication_issue_missing',
+      'landing_registry_review_owner_missing',
+    ],
+    safetyBoundaries: ['landing-registry.write', 'cernion.de.publish'],
+    sourceActions: {
+      notCalled: ['landing-registry.write', 'cernion.de.publish', 'personal-agent.execute'],
+    },
+  },
+};
+
+const crossSystemVarianceMatrixFixture = {
+  status: 'evidence_gap',
+  positiveFollowUps: [
+    {
+      missingDataPoint: 'source_system',
+      label: 'Source system',
+      enablesDossierAddition: 'add source-system lineage for the variance',
+    },
+    {
+      missingDataPoint: 'owner',
+      label: 'Variance owner',
+      enablesDossierAddition: 'add accountable clarification owner',
+    },
+  ],
+};
+
 const portfolioBlueprintFixture = {
   ...blueprintVerifyFixture,
   data: {
@@ -868,6 +940,13 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
     'blueprint_variance_forbidden_actions',
     'blueprint_variance_sync_focus',
     'blueprint_variance_matrix_focus',
+    'landing_registry_draft_sync_summary',
+    'landing_registry_draft_preview',
+    'landing_registry_blueprint_validity',
+    'landing_registry_matrix_sync',
+    'landing_registry_publication_blockers',
+    'landing_registry_positive_followups',
+    'landing_registry_no_call_guards',
     'portfolio_market_value_seed_guard',
     'portfolio_market_value_matrix',
     'portfolio_market_value_backtest',
@@ -1485,6 +1564,123 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       matrixStatus: 'variance_matrix_ready',
       sourceClass: 'blueprint_selector_variance_matrix_focus',
     });
+
+    const draftSummaryRows = runTransformer(
+      'getLandingRegistryDraftSyncSummaryRows',
+      landingRegistryDraftFixture
+    );
+    expectScalarRows(draftSummaryRows);
+    expect(draftSummaryRows[0]).toMatchObject({
+      rowKey: 'landing_registry_draft_sync_summary',
+      draftDerivable: true,
+      draftStatus: 'draft_ready',
+      downstreamHandoff: 'complete -> draft_ready -> pending',
+      sourceClass: 'landing_registry_draft_sync_summary',
+    });
+
+    const draftPreviewRows = runTransformer(
+      'getLandingRegistryDraftPreviewRows',
+      landingRegistryDraftFixture
+    );
+    expectScalarRows(draftPreviewRows);
+    assertNoRawObjectText(draftPreviewRows);
+    expect(draftPreviewRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'landing_registry_draft_route',
+          m: 'Mitwirkend',
+          sourceClass: 'landing_registry_draft_preview_summary',
+        }),
+        expect.objectContaining({
+          rowKey: 'landing_registry_draft_row_1',
+          phase: '1',
+          v: 'ROLE_ASSET_MDM_OWNER',
+          d: 'ROLE_CERNION_GOVERNANCE',
+          m: 'ROLE_CONTROLLING',
+          i: 'ROLE_COMMERCIAL_AUDIT',
+          nachweise: 'sourceSystemEvidence, targetSystemEvidence, affectedObjectEvidence',
+        }),
+      ])
+    );
+    expect(draftPreviewRows[1]).not.toHaveProperty('V');
+
+    const draftValidityRows = runTransformer(
+      'getLandingRegistryDraftBlueprintValidityRows',
+      blueprintVarianceFixture
+    );
+    expectScalarRows(draftValidityRows);
+    expect(draftValidityRows[0]).toMatchObject({
+      valid: true,
+      rowCount: 4,
+      roleLegendM: 'Mitwirkend',
+      sourceClass: 'landing_registry_blueprint_validity',
+    });
+
+    const draftMatrixRows = runTransformer(
+      'getLandingRegistryDraftMatrixSyncRows',
+      blueprintVarianceFixture
+    );
+    expectScalarRows(draftMatrixRows);
+    expect(draftMatrixRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'landing_registry_matrix_sync_summary',
+          m: 'Mitwirkend',
+          status: 'sync_proof_required',
+        }),
+        expect.objectContaining({
+          rowKey: 'landing_registry_matrix_row_1',
+          phase: '1',
+          v: 'ROLE_VDMI_GOVERNANCE',
+          d: 'ROLE_DATENMANAGEMENT',
+          m: 'ROLE_NETZPLANUNG',
+          i: 'ROLE_MANAGEMENT',
+        }),
+      ])
+    );
+
+    const blockerRows = runTransformer(
+      'getLandingRegistryDraftPublicationBlockerRows',
+      landingRegistryDraftFixture
+    );
+    expectScalarRows(blockerRows);
+    expect(blockerRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          blocker: 'productive_demo_room_publication_issue_missing',
+          status: 'blocked',
+          productiveDemoRoomStatus: 'pending',
+        }),
+      ])
+    );
+
+    const followupRows = runTransformer(
+      'getLandingRegistryDraftVarianceFollowupRows',
+      crossSystemVarianceMatrixFixture
+    );
+    expectScalarRows(followupRows);
+    expect(followupRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          missingDataPoint: 'source_system',
+          enablesDossierAddition: 'add source-system lineage for the variance',
+        }),
+      ])
+    );
+
+    const noCallRows = runTransformer(
+      'getLandingRegistryDraftNoCallRows',
+      landingRegistryDraftFixture
+    );
+    expectScalarRows(noCallRows);
+    expect(noCallRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ boundary: 'landing-registry.write', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'cernion.de.publish', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'budibase.table.write', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'personal-agent.execute', status: 'not_called' }),
+      ])
+    );
   });
 
   it('flattens Portfolio Market Value Readiness rows and no-call guards', () => {
