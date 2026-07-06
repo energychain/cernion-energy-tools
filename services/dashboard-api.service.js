@@ -68,6 +68,7 @@ module.exports = {
       regulatorySignalProcessTranslatorStatus: 5 * 60 * 1000, // 5 min
       costReviewCommitteeStatus: 5 * 60 * 1000, // 5 min
       redispatchParticipationReadinessStatus: 5 * 60 * 1000, // 5 min
+      mastrSyncGapStatus: 5 * 60 * 1000, // 5 min
       steeringArtifactAcceptanceGateStatus: 5 * 60 * 1000, // 5 min
       communicationBreakProcessRiskStatus: 5 * 60 * 1000, // 5 min
       noRegretMeasureProofGateStatus: 5 * 60 * 1000, // 5 min
@@ -2297,6 +2298,56 @@ module.exports = {
           this.settings.cacheTtlMs.redispatchParticipationReadinessStatus,
           async () => ({
             ...this.buildRedispatchParticipationReadinessStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // ── mastrSyncGapStatus ───────────────────────────
+    /**
+     * GET /api/dashboard/mastr-sync-gap-status
+     *
+     * Read-only dashboard presenter action for MaStR Sync-Gap Alerting.
+     * Maps the 4 evidence requirements from stadtwerk-mauer-mastr-sync-gap-alerting-v1.json.
+     */
+    mastrSyncGapStatus: {
+      rest: 'GET /mastr-sync-gap-status',
+      params: {
+        tenantId: { type: 'string', optional: true, min: 1 },
+        mastrFreshnessEvidence: { type: 'string', optional: true },
+        redispatchStammdatenComparison: { type: 'string', optional: true },
+        syncGapAlertFeed: { type: 'string', optional: true },
+        reconciliationApprovalDecision: { type: 'string', optional: true },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'MaStR Sync-Gap alerting status -- read-only Workbench projection',
+        description: 'Builds deterministic MaStR sync gap alerting evidence from supplied facts.',
+        responses: {
+          200: {
+            description: 'Read-only MaStR Sync-Gap alerting status',
+          },
+        },
+        parameters: [
+          { in: 'query', name: 'tenantId', schema: { type: 'string' } },
+          { in: 'query', name: 'mastrFreshnessEvidence', schema: { type: 'string' } },
+          { in: 'query', name: 'redispatchStammdatenComparison', schema: { type: 'string' } },
+          { in: 'query', name: 'syncGapAlertFeed', schema: { type: 'string' } },
+          { in: 'query', name: 'reconciliationApprovalDecision', schema: { type: 'string' } },
+        ],
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const tenantId = params.tenantId || ctx.meta?.tenantId || 'stadtwerk-mauer';
+        const cacheKey = `mastr-sync-gap-status:${tenantId}:${params.mastrFreshnessEvidence || 'no-freshness'}:${params.redispatchStammdatenComparison || 'no-comp'}:${params.syncGapAlertFeed || 'no-alert'}:${params.reconciliationApprovalDecision || 'no-reconcile'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.mastrSyncGapStatus,
+          async () => ({
+            ...this.buildMastrSyncGapStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -16144,6 +16195,162 @@ module.exports = {
           remoteControlCommunicationTestEvidence: params.remoteControlCommunicationTestEvidence || null,
           forecastDispatchTestProof: params.forecastDispatchTestProof || null,
           readinessReviewDecision: params.readinessReviewDecision || null,
+          missingEvidence,
+          positiveFollowUps,
+          evidenceItems,
+          validationFindings,
+          dossierFacts,
+        },
+      };
+    },
+
+    buildMastrSyncGapStatus(params = {}) {
+      const hasValue = (value) => value !== undefined && value !== null && String(value).trim() !== '';
+      const evidenceSpecs = [
+        {
+          id: 'mastrFreshnessEvidence',
+          label: 'MaStR freshness evidence',
+          value: params.mastrFreshnessEvidence,
+          sourceClass: 'synthetic_tenant_seed',
+          enablesDossierAddition: 'Adds evidence of current MaStR data freshness harvest for the local network area.',
+        },
+        {
+          id: 'redispatchStammdatenComparison',
+          label: 'Redispatch Stammdaten comparison',
+          value: params.redispatchStammdatenComparison,
+          sourceClass: 'synthetic_tenant_seed',
+          enablesDossierAddition: 'Adds structured comparison data between Redispatch 2.0 master data and harvested MaStR records.',
+        },
+        {
+          id: 'syncGapAlertFeed',
+          label: 'Sync gap alert feed',
+          value: params.syncGapAlertFeed,
+          sourceClass: 'synthetic_tenant_seed',
+          enablesDossierAddition: 'Adds active sync gap alert feed items and priority-sorted alerting findings.',
+        },
+        {
+          id: 'reconciliationApprovalDecision',
+          label: 'Reconciliation approval decision',
+          value: params.reconciliationApprovalDecision,
+          sourceClass: 'synthetic_tenant_seed',
+          enablesDossierAddition: 'Adds the final manual reconciliation or verification sign-off.',
+        },
+      ];
+
+      const evidenceItems = evidenceSpecs
+        .filter((spec) => hasValue(spec.value))
+        .map((spec) => ({
+          id: spec.id,
+          label: spec.label,
+          value: spec.value,
+          sourceClass: spec.sourceClass,
+          evidenceStatus: 'provided',
+        }));
+
+      const missingEvidence = evidenceSpecs
+        .filter((spec) => !hasValue(spec.value))
+        .map((spec) => ({
+          missingDataPoint: spec.id,
+          label: spec.label,
+          sourceClass: spec.sourceClass,
+          enablesDossierAddition: spec.enablesDossierAddition,
+        }));
+
+      const status =
+        missingEvidence.length === 0
+          ? 'ready_for_review'
+          : !hasValue(params.mastrFreshnessEvidence)
+            ? 'needs_harvest'
+            : !hasValue(params.redispatchStammdatenComparison)
+              ? 'needs_comparison'
+              : !hasValue(params.syncGapAlertFeed)
+                ? 'needs_alerts'
+                : 'needs_reconciliation';
+
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'mastr_sync_gap_status',
+      }));
+
+      const validationFindings = missingEvidence.map((item) => {
+        let code = 'MSGA_DISCREPANCY';
+        if (item.missingDataPoint === 'syncGapAlertFeed') {
+          code = 'MSGA_MISSING_NETZNACHWEIS';
+        } else if (item.missingDataPoint === 'reconciliationApprovalDecision') {
+          code = 'MSGA_UNRESOLVED_STEUERBARKEIT';
+        }
+        return {
+          code,
+          severity: ['mastrFreshnessEvidence', 'redispatchStammdatenComparison'].includes(item.missingDataPoint)
+            ? 'high'
+            : 'medium',
+          message: item.enablesDossierAddition,
+        };
+      });
+
+      const providedRequiredEvidence = evidenceItems.filter((item) =>
+        evidenceSpecs.some((spec) => spec.id === item.id)
+      );
+
+      const dossierFacts = [
+        `MaStR Sync-Gap Status: ${status}`,
+        `Provided Evidence: ${providedRequiredEvidence.length}/${evidenceSpecs.length}`,
+        `Open Gaps: ${missingEvidence.length}`,
+      ];
+
+      return {
+        readinessId: `msga:${Buffer.from(
+          `${params.tenantId || 'stadtwerk-mauer'}:${params.mastrFreshnessEvidence || ''}:${params.reconciliationApprovalDecision || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 24)}`,
+        capabilityKey: 'mastr_sync_gap_status',
+        safety: 'read_only_blueprint_seed',
+        requestContext: {
+          tenantId: params.tenantId || 'stadtwerk-mauer',
+        },
+        status,
+        mastrFreshnessEvidence: params.mastrFreshnessEvidence || null,
+        redispatchStammdatenComparison: params.redispatchStammdatenComparison || null,
+        syncGapAlertFeed: params.syncGapAlertFeed || null,
+        reconciliationApprovalDecision: params.reconciliationApprovalDecision || null,
+        evidenceItems,
+        missingEvidence,
+        positiveFollowUps,
+        validationFindings,
+        sourceActions: {
+          inspected: ['dashboard-api.mastrSyncGapStatus'],
+          referenced: [
+            'vdmi.dossier',
+            'vdmi.evidence',
+            'asset-context.read',
+            'interface-placeholder.requestEvidence',
+          ],
+          notCalled: [
+            'redispatch_enrollment',
+            'dispatch_control',
+            'mako_write',
+            'billing',
+            'settlement',
+            'tariff_mutation',
+            'smgw_cls_device_control',
+            'external_connector_call',
+            'webhook',
+            'hitl_create',
+            'tenant_provisioning',
+            'rundeck_execution',
+            'public_context_mutation',
+            'production_mutation',
+            'personal_agent_hardcoding',
+          ],
+        },
+        dossierEvidence: {
+          status,
+          mastrFreshnessEvidence: params.mastrFreshnessEvidence || null,
+          redispatchStammdatenComparison: params.redispatchStammdatenComparison || null,
+          syncGapAlertFeed: params.syncGapAlertFeed || null,
+          reconciliationApprovalDecision: params.reconciliationApprovalDecision || null,
           missingEvidence,
           positiveFollowUps,
           evidenceItems,

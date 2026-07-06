@@ -13631,6 +13631,58 @@
         ]
       }
     },
+    "/api/dashboard-api/mastr-sync-gap-status": {
+      "get": {
+        "operationId": "dashboard-api_mastrSyncGapStatus",
+        "summary": "MaStR Sync-Gap alerting status -- read-only Workbench projection",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only MaStR Sync-Gap alerting status"
+          }
+        },
+        "description": "Builds deterministic MaStR sync gap alerting evidence from supplied facts.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "tenantId",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "mastrFreshnessEvidence",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "redispatchStammdatenComparison",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "syncGapAlertFeed",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "reconciliationApprovalDecision",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/api/dashboard-api/steering-artifact-acceptance-gate": {
       "get": {
         "operationId": "dashboard-api_steeringArtifactAcceptanceGateStatus",
@@ -67177,6 +67229,58 @@
           {
             "in": "query",
             "name": "readinessReviewDecision",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard/mastr-sync-gap-status": {
+      "get": {
+        "operationId": "dashboard-api_mastrSyncGapStatus",
+        "summary": "MaStR Sync-Gap alerting status -- read-only Workbench projection",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only MaStR Sync-Gap alerting status"
+          }
+        },
+        "description": "Builds deterministic MaStR sync gap alerting evidence from supplied facts.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "tenantId",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "mastrFreshnessEvidence",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "redispatchStammdatenComparison",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "syncGapAlertFeed",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "reconciliationApprovalDecision",
             "schema": {
               "type": "string"
             }

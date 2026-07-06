@@ -891,6 +891,110 @@ const redispatchParticipationBlueprintFixture = {
   },
 };
 
+const mastrSyncGapStatusFixture = {
+  readinessId: 'msga:mastr-sync-gap-alerting-id',
+  status: 'ready_for_review',
+  safety: 'read_only_blueprint_seed',
+  mastrFreshnessEvidence: 'harvest-freshness-ok',
+  redispatchStammdatenComparison: 'stammdaten-comparison-complete',
+  syncGapAlertFeed: 'sync-gap-active-alerts-verified',
+  reconciliationApprovalDecision: 'reconciliation-signed-off-by-ops-lead',
+  evidenceItems: [
+    {
+      id: 'mastrFreshnessEvidence',
+      label: 'MaStR freshness evidence',
+      value: 'harvest-freshness-ok',
+      sourceClass: 'synthetic_tenant_seed',
+      evidenceStatus: 'provided'
+    },
+    {
+      id: 'redispatchStammdatenComparison',
+      label: 'Redispatch Stammdaten comparison',
+      value: 'stammdaten-comparison-complete',
+      sourceClass: 'synthetic_tenant_seed',
+      evidenceStatus: 'provided'
+    },
+    {
+      id: 'syncGapAlertFeed',
+      label: 'Sync gap alert feed',
+      value: 'sync-gap-active-alerts-verified',
+      sourceClass: 'synthetic_tenant_seed',
+      evidenceStatus: 'provided'
+    },
+    {
+      id: 'reconciliationApprovalDecision',
+      label: 'Reconciliation approval decision',
+      value: 'reconciliation-signed-off-by-ops-lead',
+      sourceClass: 'synthetic_tenant_seed',
+      evidenceStatus: 'provided'
+    }
+  ],
+  missingEvidence: [],
+  positiveFollowUps: [],
+  sourceActions: {
+    notCalled: [
+      'redispatch_enrollment',
+      'dispatch_control'
+    ]
+  }
+};
+
+const mastrSyncGapSeedGuardFixture = {
+  data: {
+    seedId: 'stadtwerk-mauer-mastr-sync-gap-alerting-v1',
+    processFamily: 'mastr_sync_gap_alerting',
+    controlCase: 'mastr_sync_gap_alerting_status',
+    validation: {
+      valid: true
+    },
+    requiredEvidence: [
+      'mastrFreshnessEvidence',
+      'redispatchStammdatenComparison',
+      'syncGapAlertFeed',
+      'reconciliationApprovalDecision'
+    ],
+    missingEvidence: [],
+    demoProcessMatrixSync: {
+      slug: 'mastr-sync-gap-alerting',
+      expectedSlug: 'mastr-sync-gap-alerting',
+      synced: true,
+      roleLegendM: 'Mitwirkend',
+      rowCount: 4,
+      rowCountValid: true,
+      roleCellsClean: true,
+      dataClassesLimited: true,
+      forbiddenActionsStatus: 'no_mastr_action',
+      evidenceRequirements: [
+        'mastrFreshnessEvidence',
+        'redispatchStammdatenComparison',
+        'syncGapAlertFeed',
+        'reconciliationApprovalDecision'
+      ],
+      rows: [
+        {
+          phase: '1',
+          roles: {
+            V: 'ROLE_NETZBETRIEB',
+            D: 'ROLE_CERNION_GOVERNANCE',
+            M: 'ROLE_REDISPATCH_KOORDINATOR',
+            I: 'ROLE_REDISPATCH_KOORDINATOR'
+          },
+          evidenceRequirements: ['mastrFreshnessEvidence'],
+          status: 'ready_for_review',
+          gateOutcome: 'mastr_freshness_harvested'
+        }
+      ]
+    },
+    forbiddenActions: [
+      'redispatch_enrollment',
+      'dispatch_control'
+    ],
+    sourceActions: {
+      notCalled: ['redispatch_enrollment', 'dispatch_control']
+    }
+  }
+};
+
 const costReviewCommitteeFixture = {
   capabilityKey: 'cost_review_committee_status',
   safety: 'read_only',
@@ -2091,6 +2195,82 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
     const boundaryRows = runTransformer(
       'getRedispatchParticipationBoundaryRows',
       redispatchParticipationBlueprintFixture
+    );
+    expectScalarRows(boundaryRows);
+    expect(boundaryRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ boundary: 'redispatch_enrollment', status: 'forbidden' }),
+        expect.objectContaining({ boundary: 'dispatch_control', status: 'forbidden' }),
+        expect.objectContaining({ boundary: 'personal_agent_hardcoding', status: 'not_called' }),
+      ])
+    );
+  });
+
+  it('flattens MaStR Sync-Gap Alerting rows and no-call guards', () => {
+    const statusRows = runTransformer(
+      'getMastrSyncGapStatusRows',
+      mastrSyncGapStatusFixture
+    );
+    expectScalarRows(statusRows);
+    expect(statusRows[0]).toMatchObject({
+      rowKey: 'mastr_sync_gap_status',
+      status: 'ready_for_review',
+      safety: 'read_only_blueprint_seed',
+      mastrFreshnessEvidence: 'harvest-freshness-ok',
+      sourceClass: 'mastr_sync_gap_status',
+    });
+
+    const evidenceRows = runTransformer(
+      'getMastrSyncGapEvidenceRows',
+      mastrSyncGapStatusFixture
+    );
+    expectScalarRows(evidenceRows);
+    expect(evidenceRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'mastrFreshnessEvidence',
+          value: 'harvest-freshness-ok',
+          sourceClass: 'synthetic_tenant_seed',
+        }),
+      ])
+    );
+
+    const guardRows = runTransformer(
+      'getMastrSyncGapSeedGuardRows',
+      mastrSyncGapSeedGuardFixture
+    );
+    expectScalarRows(guardRows);
+    expect(guardRows[0]).toMatchObject({
+      seedId: 'stadtwerk-mauer-mastr-sync-gap-alerting-v1',
+      panelEnabled: true,
+      matrixRows: 4,
+      sourceClass: 'mastr_sync_gap_blueprint_guard',
+    });
+
+    const matrixRows = runTransformer(
+      'getMastrSyncGapMatrixRows',
+      mastrSyncGapSeedGuardFixture
+    );
+    expectScalarRows(matrixRows);
+    expect(matrixRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'mastr_sync_gap_matrix_sync_summary',
+          status: 'matrix_ready',
+          v: 'ROLE_NETZBETRIEB',
+          m: 'Mitwirkend',
+        }),
+        expect.objectContaining({
+          rowKey: 'mastr_sync_gap_matrix_row_1',
+          phase: '1',
+          gateOutcome: 'mastr_freshness_harvested',
+        }),
+      ])
+    );
+
+    const boundaryRows = runTransformer(
+      'getMastrSyncGapBoundaryRows',
+      mastrSyncGapSeedGuardFixture
     );
     expectScalarRows(boundaryRows);
     expect(boundaryRows).toEqual(

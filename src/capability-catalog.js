@@ -8929,6 +8929,32 @@ const CURATED_CAPABILITIES = [
     routingPattern: 'gasnetz_waermeplanung_assessment',
   },
   {
+    capability: 'mastr_sync_gap_alerting',
+    domain: 'redispatch',
+    abstractionLevel: 'read_only_blueprint_seed',
+    intent: 'dashboard-api.mastrSyncGapStatus',
+    keywords: [
+      'mastr sync gap',
+      'mastr sync gap alerting',
+      'mastr sync-gap',
+      'mastr monitoring',
+      'redispatch monitoring',
+    ],
+    preferredActions: [
+      'dashboard-api.mastrSyncGapStatus',
+    ],
+    fallbackActions: ['dashboard-api.mastrSyncGapStatus'],
+    avoid: ['query.ask', 'query.askLearned'],
+    requiredInputs: [
+      { name: 'tenantId', label: 'Tenant-ID', type: 'string', required: false },
+    ],
+    risksAndNotes: [
+      'mastrSyncGapStatus ist read-only und dossier-safe.',
+      'Keine echten MaStR API Calls, kein operativer Abruf und kein SMGW/CLS-Device-Control.',
+    ],
+    routingPattern: 'mastr_sync_gap_alerting',
+  },
+  {
     capability: 'eeg_clawback_ewk_monitoring',
     domain: 'regulatory',
     abstractionLevel: 'domain_gap_marker',

@@ -1528,6 +1528,8 @@ module.exports = {
             'dashboard-api.costReviewCommitteeStatus',
           'GET /dashboard/redispatch-participation-readiness-status':
             'dashboard-api.redispatchParticipationReadinessStatus',
+          'GET /dashboard/mastr-sync-gap-status':
+            'dashboard-api.mastrSyncGapStatus',
           'GET /dashboard/steering-artifact-acceptance-gate':
             'dashboard-api.steeringArtifactAcceptanceGateStatus',
           'GET /dashboard/communication-break-process-risk':

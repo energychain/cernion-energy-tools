@@ -1755,6 +1755,22 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  // ── MaStR Sync-Gap Alerting
+  const mastrSyncGapSignals = [
+    'mastr sync gap',
+    'mastr sync gap alerting',
+    'mastr sync-gap',
+    'mastr monitoring',
+    'redispatch monitoring',
+  ];
+
+  if (mastrSyncGapSignals.some((signal) => haystack.includes(signal))) {
+    const msgCapability = findCapabilityByName('mastr_sync_gap_alerting');
+    if (msgCapability) {
+      return { capability: msgCapability, score: 124, usedFallback: false };
+    }
+  }
+
   // ── Gas Transformation Dataroom Status
   // Must run before Re4DE because both domains may mention "Datenraum" and evidence.
   const gasTransformationDataroomSignals = [

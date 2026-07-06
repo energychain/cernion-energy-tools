@@ -5549,6 +5549,126 @@
       }
     },
     {
+      "name": "getMastrSyncGapStatusRows",
+      "method": "GET",
+      "path": "/api/dashboard/mastr-sync-gap-status",
+      "queryString": "tenantId=stadtwerk-mauer&mastrFreshnessEvidence=harvest-freshness-ok&redispatchStammdatenComparison=stammdaten-comparison-complete&syncGapAlertFeed=sync-gap-active-alerts-verified&reconciliationApprovalDecision=reconciliation-signed-off-by-ops-lead",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "return [{rowKey:'mastr_sync_gap_status',label:'MaStR Sync-Gap Alerting Status',readinessId:data.readinessId||'',status:data.status||'',safety:data.safety||'read_only_blueprint_seed',mastrFreshnessEvidence:data.mastrFreshnessEvidence||'',redispatchStammdatenComparison:data.redispatchStammdatenComparison||'',syncGapAlertFeed:data.syncGapAlertFeed||'',reconciliationApprovalDecision:data.reconciliationApprovalDecision||'',missingCount:(data.missingEvidence||[]).length,safeNextGate:data.status==='ready_for_review'?'trigger_sync_gap_reconciliation_workflow':'resolve_sync_gap_discrepancies_first',sourceClass:'mastr_sync_gap_status'}]",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "label": { "type": "string" },
+        "readinessId": { "type": "string" },
+        "status": { "type": "string" },
+        "safety": { "type": "string" },
+        "mastrFreshnessEvidence": { "type": "string" },
+        "redispatchStammdatenComparison": { "type": "string" },
+        "syncGapAlertFeed": { "type": "string" },
+        "reconciliationApprovalDecision": { "type": "string" },
+        "missingCount": { "type": "number" },
+        "safeNextGate": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getMastrSyncGapEvidenceRows",
+      "method": "GET",
+      "path": "/api/dashboard/mastr-sync-gap-status",
+      "queryString": "tenantId=stadtwerk-mauer&mastrFreshnessEvidence=harvest-freshness-ok&redispatchStammdatenComparison=stammdaten-comparison-complete&syncGapAlertFeed=sync-gap-active-alerts-verified&reconciliationApprovalDecision=reconciliation-signed-off-by-ops-lead",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const evidence=(data.evidenceItems||[]).map((row)=>({rowKey:row.id,label:row.label||row.id,status:row.evidenceStatus||'provided',value:String(row.value||''),enablesDossierAddition:'already_available_for_mastr_sync_gap_alerting_panel',safeNextAction:'keep_mastr_sync_gap_alerting_read_only',sourceClass:row.sourceClass||'mastr_sync_gap_evidence'})); const gaps=(data.positiveFollowUps||data.missingEvidence||[]).map((row,index)=>({rowKey:row.missingDataPoint||`mastr_sync_gap_gap_${index+1}`,label:row.label||row.missingDataPoint||'',status:row.state||'missing',value:'',enablesDossierAddition:row.enablesDossierAddition||'complete missing mastr sync gap evidence',safeNextAction:'supply_missing_synthetic_evidence_then_refresh_panel',sourceClass:'mastr_sync_gap_positive_follow_up'})); return evidence.concat(gaps)",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "label": { "type": "string" },
+        "status": { "type": "string" },
+        "value": { "type": "string" },
+        "enablesDossierAddition": { "type": "string" },
+        "safeNextAction": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getMastrSyncGapSeedGuardRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-mastr-sync-gap-alerting-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.data||{}; const v=d.validation||{}; const m=d.demoProcessMatrixSync||{}; const matrixReady=Boolean(m.synced&&m.rowCount>=3&&m.rowCount<=5&&m.rowCountValid&&m.roleCellsClean&&m.dataClassesLimited); const valid=Boolean(v.valid); const enabled=valid&&matrixReady; return [{rowKey:'mastr_sync_gap_seed_guard',label:'MaStR Sync-Gap Blueprint Guard',seedId:d.seedId||'stadtwerk-mauer-mastr-sync-gap-alerting-v1',status:enabled?'panel_enabled':'panel_disabled_until_seed_matrix_ready',valid,matrixRows:Number(m.rowCount||0),matrixReady,panelEnabled:enabled,roleQuestion:'is_mastr_sync_gap_alerting_ready_for_reconciliation',safeNextAction:enabled?'render_mastr_sync_gap_alerting_panel':'refresh_blueprint_verify_and_fix_matrix_sync_first',sourceClass:'mastr_sync_gap_blueprint_guard'}]",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "label": { "type": "string" },
+        "seedId": { "type": "string" },
+        "status": { "type": "string" },
+        "valid": { "type": "boolean" },
+        "matrixRows": { "type": "number" },
+        "matrixReady": { "type": "boolean" },
+        "panelEnabled": { "type": "boolean" },
+        "roleQuestion": { "type": "string" },
+        "safeNextAction": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getMastrSyncGapMatrixRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-mastr-sync-gap-alerting-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.data||{}; const m=d.demoProcessMatrixSync||{}; const cell=(value)=>String(value||''); const rows=(m.rows||[]).map((row,index)=>({rowKey:`mastr_sync_gap_matrix_row_${index+1}`,phase:cell(row.phase||index+1),v:cell((row.roles||{}).V),d:cell((row.roles||{}).D),m:cell((row.roles||{}).M),i:cell((row.roles||{}).I),nachweise:(row.evidenceRequirements||[]).join(', '),status:cell(row.status),gateOutcome:cell(row.gateOutcome),sourceClass:'mastr_sync_gap_matrix_row'})); const summary={rowKey:'mastr_sync_gap_matrix_sync_summary',phase:'-',v:'ROLE_NETZBETRIEB',d:'ROLE_CERNION_GOVERNANCE',m:'Mitwirkend',i:'ROLE_REDISPATCH_KOORDINATOR',nachweise:(m.evidenceRequirements||[]).join(', '),status:m.synced&&m.rowCount>=3&&m.rowCount<=5?'matrix_ready':'matrix_sync_required',gateOutcome:m.forbiddenActionsStatus||'no_mastr_action',sourceClass:'mastr_sync_gap_matrix_summary'}; return [summary].concat(rows)",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "phase": { "type": "string" },
+        "v": { "type": "string" },
+        "d": { "type": "string" },
+        "m": { "type": "string" },
+        "i": { "type": "string" },
+        "nachweise": { "type": "string" },
+        "status": { "type": "string" },
+        "gateOutcome": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getMastrSyncGapBoundaryRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-mastr-sync-gap-alerting-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.data||{}; const forbidden=(d.forbiddenActions||[]).map((action,index)=>({rowKey:`mastr_sync_gap_forbidden_${index+1}_${action}`,boundary:String(action),status:'forbidden',safeAlternative:'render_existing_mastr_sync_gap_read_model_only',sourceClass:'mastr_sync_gap_forbidden_action'})); const guards=((d.sourceActions||{}).notCalled||[]).map((action)=>({rowKey:`mastr_sync_gap_not_called_${action}`,boundary:String(action),status:'not_called',safeAlternative:'generated_budibase_render_shell_only',sourceClass:'mastr_sync_gap_no_call_guard'})); const defaults=['redispatch_enrollment','dispatch_control','mako_write','billing','settlement','tariff_mutation','smgw_cls_device_control','external_connector_call','webhook','hitl_create','tenant_provisioning','rundeck_execution','public_context_mutation','production_mutation','personal_agent_hardcoding'].map((action)=>({rowKey:`mastr_sync_gap_default_guard_${action}`,boundary:action,status:'not_called',safeAlternative:'synthetic_read_only_review_only',sourceClass:'mastr_sync_gap_default_guard'})); return forbidden.concat(guards).concat(defaults)",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "boundary": { "type": "string" },
+        "status": { "type": "string" },
+        "safeAlternative": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
       "name": "getStadtwerkMauerTransferReadinessSummaryRows",
       "method": "GET",
       "path": "/api/dashboard/stadtwerk-mauer-transfer-readiness",
@@ -6754,6 +6874,36 @@
       "id": "redispatch_participation_boundaries",
       "title": "Redispatch No-Call Boundaries",
       "queryName": "getRedispatchParticipationBoundaryRows",
+      "tableTitle": "Mako, Billing, Settlement and Device-Control Guards"
+    },
+    {
+      "id": "mastr_sync_gap_status",
+      "title": "MaStR Sync-Gap Alerting Status",
+      "queryName": "getMastrSyncGapStatusRows",
+      "tableTitle": "MaStR Status, Gaps and Next Gate"
+    },
+    {
+      "id": "mastr_sync_gap_evidence",
+      "title": "MaStR Sync-Gap Evidence Gaps",
+      "queryName": "getMastrSyncGapEvidenceRows",
+      "tableTitle": "Evidence Rows and Positive Follow-ups"
+    },
+    {
+      "id": "mastr_sync_gap_seed_guard",
+      "title": "MaStR Sync-Gap Blueprint Guard",
+      "queryName": "getMastrSyncGapSeedGuardRows",
+      "tableTitle": "Seed Validity and Matrix Guard"
+    },
+    {
+      "id": "mastr_sync_gap_matrix",
+      "title": "MaStR Sync-Gap Demo Process Matrix",
+      "queryName": "getMastrSyncGapMatrixRows",
+      "tableTitle": "MaStR Sync-Gap Matrix Rows"
+    },
+    {
+      "id": "mastr_sync_gap_boundaries",
+      "title": "MaStR Sync-Gap No-Call Boundaries",
+      "queryName": "getMastrSyncGapBoundaryRows",
       "tableTitle": "Mako, Billing, Settlement and Device-Control Guards"
     },
     {
