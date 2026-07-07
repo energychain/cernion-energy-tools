@@ -1585,6 +1585,86 @@ describe('VDMI Blueprint Pack seeds', () => {
     );
   });
 
+  test('keeps Decommissioned Asset Reconciliation sync proof tied to issue 397 seed hygiene', () => {
+    const seed = getVdmiBlueprintPackSeed(
+      'stadtwerk-mauer-decommissioned-asset-reconciliation-v1'
+    );
+
+    expect(seed.projectionHints.sourceIssue).toBe(397);
+    expect(seed.dataClasses.syntheticTenantSeed.examples).toEqual([
+      'synthetic decommissioned asset id',
+      'synthetic SAP Anlagenspiegel entry',
+      'synthetic reconciliation discrepancy marker',
+    ]);
+    expect(seed.dataClasses.syntheticTenantSeed.examples.join(' ')).not.toMatch(/Redispatch/i);
+
+    const matrixSync = buildDemoProcessMatrixSync(seed);
+    expect(matrixSync).toMatchObject({
+      slug: 'decommissioned-asset-reconciliation',
+      synced: true,
+      rowCount: 4,
+      rowCountValid: true,
+      roleLegendM: 'Mitwirkend',
+      roleCellsClean: true,
+      dataClassesLimited: true,
+      downstreamHandoff: {
+        blueprintPack: 'complete',
+        landingRegistry: 'pending',
+        productiveDemoRoom: 'pending',
+      },
+    });
+    expect(matrixSync.evidenceRequirements).toEqual([
+      'gisDecommissionedAssetsEvidence',
+      'sapAnlagenspiegelEvidence',
+      'reconciliationDiscrepancyFeed',
+      'reconciliationApprovalDecision',
+    ]);
+    expect(matrixSync.rows).toHaveLength(4);
+    expect(matrixSync.rows[0].roles).toEqual({
+      V: 'ROLE_NETZPLANUNG',
+      D: 'ROLE_CERNION_GOVERNANCE',
+      M: 'ROLE_ANLAGENBUCHHALTUNG',
+      I: 'ROLE_COMMERCIAL_AUDIT',
+    });
+
+    const draft = buildLandingRegistryDraftFromBlueprintSeed(seed);
+    expect(draft).toMatchObject({
+      slug: 'decommissioned-asset-reconciliation',
+      processFamily: 'decommissioned_asset_reconciliation',
+      controlCase: 'decommissioned_asset_reconciliation_status',
+      seedId: 'stadtwerk-mauer-decommissioned-asset-reconciliation-v1',
+      rowCount: 4,
+      syncProof: {
+        blueprintPack: expect.objectContaining({ status: 'complete' }),
+        landingRegistryDraft: expect.objectContaining({ status: 'draft_ready' }),
+        productiveDemoRoom: expect.objectContaining({ status: 'pending' }),
+      },
+    });
+    expect(draft.roleHeaders).toEqual([
+      'Phase',
+      'V = Verantwortlich',
+      'D = Durchfuehrend',
+      'M = Mitwirkend',
+      'I = Informiert',
+      'Nachweise',
+    ]);
+    expect(draft.publicationBlockers).toEqual(
+      expect.arrayContaining([
+        'productive_demo_room_publication_issue_missing',
+        'cernion_de_sitemap_canonical_update_pending',
+      ])
+    );
+    expect(draft.sourceActions.notCalled).toEqual(
+      expect.arrayContaining([
+        'cernion.de.publish',
+        'landing-registry.write',
+        'budibase.table.write',
+        'production_mutation',
+        'personal_agent_hardcoding',
+      ])
+    );
+  });
+
   test('maps missing evidence to clarification/workbench additions without execution', () => {
     const items = buildWorkbenchClarificationItems(stadtwerkMauerPvMissingNap);
 

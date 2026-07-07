@@ -9285,6 +9285,66 @@ describe('dashboard-api.service', () => {
         expect(result.data.brokerDossierHydration.exposed).toBe(false);
       });
 
+      it('returns Decommissioned Asset matrix facts and seed hygiene through the verify projection', async () => {
+        const result = await broker.call('dashboard-api.stadtwerkMauerBlueprintPackVerifyStatus', {
+          tenantId: 'stadtwerk-mauer',
+          seedId: 'stadtwerk-mauer-decommissioned-asset-reconciliation-v1',
+        });
+
+        expect(result.status).toBe('completed');
+        expect(result.summary.counts.requiredEvidence).toBe(4);
+        expect(result.summary.counts.demoProcessMatrixRows).toBe(4);
+        expect(result.data.processFamily).toBe('decommissioned_asset_reconciliation');
+        expect(result.data.controlCase).toBe('decommissioned_asset_reconciliation_status');
+        expect(result.data.syntheticTenantSeed.examples).toEqual([
+          'synthetic decommissioned asset id',
+          'synthetic SAP Anlagenspiegel entry',
+          'synthetic reconciliation discrepancy marker',
+        ]);
+        expect(result.data.syntheticTenantSeed.examples.join(' ')).not.toMatch(/Redispatch/i);
+        expect(result.data.requiredEvidence).toEqual([
+          'gisDecommissionedAssetsEvidence',
+          'sapAnlagenspiegelEvidence',
+          'reconciliationDiscrepancyFeed',
+          'reconciliationApprovalDecision',
+        ]);
+        expect(result.data.demoProcessMatrixSync).toMatchObject({
+          slug: 'decommissioned-asset-reconciliation',
+          expectedSlug: 'decommissioned-asset-reconciliation',
+          synced: true,
+          roleLegendM: 'Mitwirkend',
+          rowCount: 4,
+          rowCountValid: true,
+          roleCellsClean: true,
+          dataClassesLimited: true,
+        });
+        expect(result.data.demoProcessMatrixSync.downstreamHandoff).toMatchObject({
+          blueprintPack: 'complete',
+          landingRegistry: 'pending',
+          productiveDemoRoom: 'pending',
+        });
+        expect(result.data.demoProcessMatrixSync.rows[0]).toMatchObject({
+          phase: '1',
+          roles: {
+            V: 'ROLE_NETZPLANUNG',
+            D: 'ROLE_CERNION_GOVERNANCE',
+            M: 'ROLE_ANLAGENBUCHHALTUNG',
+            I: 'ROLE_COMMERCIAL_AUDIT',
+          },
+          evidenceRequirements: ['gisDecommissionedAssetsEvidence'],
+          dataClassRefs: ['syntheticTenantSeed'],
+          gateOutcome: 'gis_decommissioned_assets_harvested',
+        });
+        expect(result.data.sourceActions.notCalled).toEqual(
+          expect.arrayContaining([
+            'budibase.table.write',
+            'external.connector.call',
+            'public-context.mutate',
+            'personal-agent.execute',
+          ])
+        );
+      });
+
       it('returns substation load assessment matrix facts through the same verify projection', async () => {
         const result = await broker.call('dashboard-api.stadtwerkMauerBlueprintPackVerifyStatus', {
           tenantId: 'stadtwerk-mauer',
@@ -9431,6 +9491,66 @@ describe('dashboard-api.service', () => {
         expectScalarTableRows(result.reusableElementRows);
         expectScalarTableRows(result.disabledActionClassRows);
         expectScalarTableRows(result.safeNextGateRows);
+      });
+
+      it('represents Decommissioned Asset sync proof as pending downstream transfer readiness', async () => {
+        const result = await broker.call('dashboard-api.stadtwerkMauerTransferReadinessStatus', {
+          tenantId: 'stadtwerk-mauer',
+          seedId: 'stadtwerk-mauer-decommissioned-asset-reconciliation-v1',
+          caseId: 'smm-budibase-workbench',
+        });
+
+        expect(result.status).toBe('ready_for_onboarding_discussion');
+        expect(result.transferSummaryRows[0]).toMatchObject({
+          seedId: 'stadtwerk-mauer-decommissioned-asset-reconciliation-v1',
+          status: 'ready_for_onboarding_discussion',
+          safety: 'read_only_workbench_projection',
+        });
+        expect(result.dataClassRows).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              rowKey: 'synthetic_tenant_seed',
+              examples:
+                'synthetic decommissioned asset id, synthetic SAP Anlagenspiegel entry, synthetic reconciliation discrepancy marker',
+              transferState: 'replace_for_real_tenant',
+            }),
+          ])
+        );
+        expect(result.tenantParameterRows).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              rowKey: 'evidence_requirements',
+              currentDemoValue: expect.stringContaining('gisDecommissionedAssetsEvidence'),
+            }),
+          ])
+        );
+        expect(result.reusableElementRows).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              rowKey: 'blueprint_seed_contract',
+              sourceRef:
+                'src/vdmi-blueprint-pack-seeds/stadtwerk-mauer-decommissioned-asset-reconciliation-v1.json',
+              productionMutation: false,
+            }),
+          ])
+        );
+        expect(result.sourceActions.referenced).toEqual(
+          expect.arrayContaining([
+            'integrations/budibase/README.md',
+            'integrations/budibase/manifests/stadtwerk-mauer-workbench.json',
+            'integrations/budibase/scripts/apply-stadtwerk-mauer-workbench.js',
+            'src/vdmi-blueprint-pack-seeds/stadtwerk-mauer-decommissioned-asset-reconciliation-v1.json',
+          ])
+        );
+        expect(result.disabledActionClassRows.map((row) => row.boundary)).toEqual(
+          expect.arrayContaining([
+            'budibase.table.write',
+            'public-context.mutate',
+            'external_connector_call',
+            'production_mutation',
+            'personal_agent_hardcoding',
+          ])
+        );
       });
 
       it('binds the Budibase manifest to visible transfer-readiness tables', () => {
@@ -9619,6 +9739,67 @@ describe('dashboard-api.service', () => {
           exposed: false,
           reason: expect.stringContaining('dossier-facing capability is cut'),
         });
+      });
+
+      it('returns the Decommissioned Asset Landing-Registry draft sync proof from the canonical matrix', async () => {
+        const result = await broker.call('dashboard-api.stadtwerkMauerLandingRegistryDraftStatus', {
+          tenantId: 'stadtwerk-mauer',
+          seedId: 'stadtwerk-mauer-decommissioned-asset-reconciliation-v1',
+        });
+
+        expect(result.status).toBe('landing_registry_draft_ready');
+        expect(result.found).toBe(true);
+        expect(result.rowCount).toBe(4);
+        expect(result.roleHeaders).toEqual([
+          'Phase',
+          'V = Verantwortlich',
+          'D = Durchfuehrend',
+          'M = Mitwirkend',
+          'I = Informiert',
+          'Nachweise',
+        ]);
+        expect(result.draft).toMatchObject({
+          slug: 'decommissioned-asset-reconciliation',
+          processFamily: 'decommissioned_asset_reconciliation',
+          controlCase: 'decommissioned_asset_reconciliation_status',
+          seedId: 'stadtwerk-mauer-decommissioned-asset-reconciliation-v1',
+          canonicalSource:
+            'src/vdmi-blueprint-pack-seeds/stadtwerk-mauer-decommissioned-asset-reconciliation-v1.json',
+          rowCount: 4,
+        });
+        expect(result.draft.roleLegend.M).toBe('Mitwirkend');
+        expect(result.draft.rows).toHaveLength(4);
+        expect(result.draft.rows[0]).toMatchObject({
+          phase: '1',
+          V: 'ROLE_NETZPLANUNG',
+          D: 'ROLE_CERNION_GOVERNANCE',
+          M: 'ROLE_ANLAGENBUCHHALTUNG',
+          I: 'ROLE_COMMERCIAL_AUDIT',
+          evidenceRequirements: ['gisDecommissionedAssetsEvidence'],
+          gateOutcome: 'gis_decommissioned_assets_harvested',
+        });
+        expect(result.syncProof).toMatchObject({
+          blueprintPack: { status: 'complete' },
+          landingRegistryDraft: { status: 'draft_ready' },
+          productiveDemoRoom: { status: 'pending' },
+        });
+        expect(result.publicationBlockers).toEqual(
+          expect.arrayContaining([
+            'productive_demo_room_publication_issue_missing',
+            'landing_registry_review_owner_missing',
+            'cernion_de_sitemap_canonical_update_pending',
+          ])
+        );
+        expect(result.sourceActions.notCalled).toEqual(
+          expect.arrayContaining([
+            'cernion.de.publish',
+            'landing-registry.write',
+            'budibase.table.write',
+            'external.connector.call',
+            'personal-agent.execute',
+          ])
+        );
+        expect(result.brokerDossierHydration.exposed).toBe(false);
       });
     });
 

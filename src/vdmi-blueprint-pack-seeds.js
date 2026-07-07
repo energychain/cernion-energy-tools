@@ -10,6 +10,7 @@ const stadtwerkMauerGasTransformationDataroomReview = require('./vdmi-blueprint-
 const stadtwerkMauerCostReviewCommitteeReadiness = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-cost-review-committee-readiness-v1.json');
 const stadtwerkMauerMonitoringNonEscalationStatus = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-monitoring-non-escalation-status-v1.json');
 const stadtwerkMauerCrossSystemVarianceEvidenceMatrix = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-cross-system-variance-evidence-matrix-v1.json');
+const stadtwerkMauerDecommissionedAssetReconciliation = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-decommissioned-asset-reconciliation-v1.json');
 
 const REQUIRED_EVIDENCE = Object.freeze([
   'napReference',
@@ -108,6 +109,12 @@ const REQUIRED_CROSS_SYSTEM_VARIANCE_EVIDENCE = Object.freeze([
   'thresholdEvidence',
   'evidenceReference',
 ]);
+const REQUIRED_DECOMMISSIONED_ASSET_RECONCILIATION_EVIDENCE = Object.freeze([
+  'gisDecommissionedAssetsEvidence',
+  'sapAnlagenspiegelEvidence',
+  'reconciliationDiscrepancyFeed',
+  'reconciliationApprovalDecision',
+]);
 
 const REQUIRED_DATA_CLASSES = Object.freeze([
   'publicContextLayer',
@@ -158,6 +165,12 @@ const REQUIRED_CROSS_SYSTEM_VARIANCE_ROLE_IDS = Object.freeze([
   'ROLE_GOVERNANCE_OWNER',
   'ROLE_MANAGEMENT',
 ]);
+const REQUIRED_DECOMMISSIONED_ASSET_RECONCILIATION_ROLE_IDS = Object.freeze([
+  'ROLE_NETZPLANUNG',
+  'ROLE_ANLAGENBUCHHALTUNG',
+  'ROLE_CERNION_GOVERNANCE',
+  'ROLE_COMMERCIAL_AUDIT',
+]);
 const REQUIRED_MATRIX_ROLE_KEYS = Object.freeze(['v', 'd', 'm', 'i']);
 const MATRIX_HEADER_WORDS = Object.freeze([
   'Phase',
@@ -179,6 +192,7 @@ const SEEDS = Object.freeze([
   stadtwerkMauerCostReviewCommitteeReadiness,
   stadtwerkMauerMonitoringNonEscalationStatus,
   stadtwerkMauerCrossSystemVarianceEvidenceMatrix,
+  stadtwerkMauerDecommissionedAssetReconciliation,
 ]);
 
 const SEED_VALIDATION_REQUIREMENTS = Object.freeze({
@@ -231,6 +245,11 @@ const SEED_VALIDATION_REQUIREMENTS = Object.freeze({
     requiredEvidence: REQUIRED_CROSS_SYSTEM_VARIANCE_EVIDENCE,
     requiredRoleIds: REQUIRED_CROSS_SYSTEM_VARIANCE_ROLE_IDS,
     expectedMatrixSlug: 'cross-system-variance-evidence-matrix',
+  }),
+  [stadtwerkMauerDecommissionedAssetReconciliation.id]: Object.freeze({
+    requiredEvidence: REQUIRED_DECOMMISSIONED_ASSET_RECONCILIATION_EVIDENCE,
+    requiredRoleIds: REQUIRED_DECOMMISSIONED_ASSET_RECONCILIATION_ROLE_IDS,
+    expectedMatrixSlug: 'decommissioned-asset-reconciliation',
   }),
 });
 
@@ -630,6 +649,8 @@ module.exports = {
   REQUIRED_COST_REVIEW_COMMITTEE_READINESS_ROLE_IDS,
   REQUIRED_CROSS_SYSTEM_VARIANCE_EVIDENCE,
   REQUIRED_CROSS_SYSTEM_VARIANCE_ROLE_IDS,
+  REQUIRED_DECOMMISSIONED_ASSET_RECONCILIATION_EVIDENCE,
+  REQUIRED_DECOMMISSIONED_ASSET_RECONCILIATION_ROLE_IDS,
   REQUIRED_ENERGY_SHARING_COLLECTIVE_APPROVAL_EVIDENCE,
   REQUIRED_ENERGY_SHARING_COLLECTIVE_APPROVAL_ROLE_IDS,
   REQUIRED_EVIDENCE,
@@ -656,6 +677,7 @@ module.exports = {
   stadtwerkMauerConnectionDeadlineEvidenceQueue,
   stadtwerkMauerCostReviewCommitteeReadiness,
   stadtwerkMauerCrossSystemVarianceEvidenceMatrix,
+  stadtwerkMauerDecommissionedAssetReconciliation,
   stadtwerkMauerGasTransformationDataroomReview,
   stadtwerkMauerMonitoringNonEscalationStatus,
   stadtwerkMauerPortfolioMarketValueReadiness,

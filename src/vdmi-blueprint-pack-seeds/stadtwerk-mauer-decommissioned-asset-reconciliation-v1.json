@@ -19,7 +19,11 @@
     },
     "syntheticTenantSeed": {
       "description": "Invented demo assets, portfolios, evidence gaps, test markers, roles and process traces for stadtwerk-mauer.",
-      "examples": ["synthetic Redispatch portfolio id", "synthetic communication-test marker", "synthetic forecast proof"]
+      "examples": [
+        "synthetic decommissioned asset id",
+        "synthetic SAP Anlagenspiegel entry",
+        "synthetic reconciliation discrepancy marker"
+      ]
     },
     "sandboxRuntimeArtifact": {
       "description": "Resettable output from Cernion/Rundeck demo verification runs, separate from public context baselines.",
@@ -41,6 +45,11 @@
       "roleId": "ROLE_CERNION_GOVERNANCE",
       "relation": "durchfuehrend",
       "responsibility": "Orchestrates data comparison rules and calculates alignment between physical and commercial registers."
+    },
+    {
+      "roleId": "ROLE_COMMERCIAL_AUDIT",
+      "relation": "information",
+      "responsibility": "Receives reconciliation and publication-readiness evidence before downstream Demo-Raum review."
     }
   ],
   "evidenceRequirements": [
@@ -107,7 +116,7 @@
         "v": "ROLE_NETZPLANUNG",
         "d": "ROLE_CERNION_GOVERNANCE",
         "m": "ROLE_ANLAGENBUCHHALTUNG",
-        "i": "ROLE_ANLAGENBUCHHALTUNG",
+        "i": "ROLE_COMMERCIAL_AUDIT",
         "evidenceRequirements": [
           "gisDecommissionedAssetsEvidence"
         ],
@@ -123,7 +132,7 @@
         "v": "ROLE_NETZPLANUNG",
         "d": "ROLE_CERNION_GOVERNANCE",
         "m": "ROLE_ANLAGENBUCHHALTUNG",
-        "i": "ROLE_ANLAGENBUCHHALTUNG",
+        "i": "ROLE_COMMERCIAL_AUDIT",
         "evidenceRequirements": [
           "sapAnlagenspiegelEvidence"
         ],
@@ -139,7 +148,7 @@
         "v": "ROLE_NETZPLANUNG",
         "d": "ROLE_CERNION_GOVERNANCE",
         "m": "ROLE_ANLAGENBUCHHALTUNG",
-        "i": "ROLE_ANLAGENBUCHHALTUNG",
+        "i": "ROLE_COMMERCIAL_AUDIT",
         "evidenceRequirements": [
           "reconciliationDiscrepancyFeed"
         ],
@@ -156,7 +165,7 @@
         "v": "ROLE_NETZPLANUNG",
         "d": "ROLE_CERNION_GOVERNANCE",
         "m": "ROLE_ANLAGENBUCHHALTUNG",
-        "i": "ROLE_ANLAGENBUCHHALTUNG",
+        "i": "ROLE_COMMERCIAL_AUDIT",
         "evidenceRequirements": [
           "reconciliationApprovalDecision"
         ],
@@ -217,7 +226,7 @@
   "tenantProvisioningAllowed": false,
   "realWorldClaim": "synthetic_demo_only",
   "projectionHints": {
-    "sourceIssue": 351,
+    "sourceIssue": 397,
     "sourceTemplateId": "decommissioned-asset-reconciliation",
     "targetSurface": "stadtwerk_mauer_blueprint_pack_verify",
     "missingEvidenceToWorkbenchItem": true

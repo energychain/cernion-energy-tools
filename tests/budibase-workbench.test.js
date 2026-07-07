@@ -1081,7 +1081,7 @@ const decommissionedAssetSeedGuardFixture = {
             V: 'ROLE_NETZPLANUNG',
             D: 'ROLE_CERNION_GOVERNANCE',
             M: 'ROLE_ANLAGENBUCHHALTUNG',
-            I: 'ROLE_ANLAGENBUCHHALTUNG'
+            I: 'ROLE_COMMERCIAL_AUDIT'
           },
           evidenceRequirements: ['gisDecommissionedAssetsEvidence'],
           status: 'ready_for_review',

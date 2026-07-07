@@ -33446,7 +33446,9 @@ module.exports = {
           'blueprint_seed_contract',
           'VDMI Blueprint seed contract',
           'reuse_with_new_seed_values',
-          'src/vdmi-blueprint-pack-seeds/stadtwerk-mauer-pv-missing-nap-v1.json',
+          seed?.id
+            ? `src/vdmi-blueprint-pack-seeds/${seed.id}.json`
+            : 'src/vdmi-blueprint-pack-seeds',
         ],
         [
           'dashboard_read_models',
@@ -33545,7 +33547,9 @@ module.exports = {
             'integrations/budibase/README.md',
             'integrations/budibase/manifests/stadtwerk-mauer-workbench.json',
             'integrations/budibase/scripts/apply-stadtwerk-mauer-workbench.js',
-            'src/vdmi-blueprint-pack-seeds/stadtwerk-mauer-pv-missing-nap-v1.json',
+            seed?.id
+              ? `src/vdmi-blueprint-pack-seeds/${seed.id}.json`
+              : 'src/vdmi-blueprint-pack-seeds',
           ],
           notCalled: disabledActionClasses.concat([
             'hitl.create',
