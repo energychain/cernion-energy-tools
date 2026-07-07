@@ -1,8 +1,8 @@
 # UI Contract: Token Management Page
 
 > **Page ID:** `auth`
-> **Version:** 0.63.12
-> **Last updated:** 2026-06-19
+> **Version:** 0.63.13
+> **Last updated:** 2026-06-29
 
 ---
 
@@ -111,7 +111,7 @@ ck_abcdef1234567890...  [📋 Copy]
 | Token list empty           | "Noch kein Token erstellt" + "Token erstellen" CTA                    |
 | Duplicate name on create   | Inline error: "Ein Token mit diesem Namen existiert bereits"          |
 | Missing tenantId/userId    | Inline error from API validation; token is not created                |
-| Legacy token               | Show `legacy` badge and sunset/deprecation hint                       |
+| Legacy token               | Show `legacy` badge and sunset hint: `Sunset: 2026-12-31 23:59:59 GMT` |
 | Revoke own token           | Warning: "Du widerrufst deinen aktuellen Token — du wirst ausgeloggt" |
 | Full-access scope creation | Additional confirmation: "Full-Access gibt vollen Schreibzugriff"     |
 
@@ -119,14 +119,28 @@ ck_abcdef1234567890...  [📋 Copy]
 
 ## Änderungen seit letzter Version
 
+### v0.63.13 — Legacy/global Admin Token Sunset und Support-Runbook
+
+Issue #252 definiert den Product Cut fuer legacy `ck_` Tokens ohne `tenantId`/`userId`: sie bleiben bis `2026-12-31 23:59:59 GMT` kompatibel, werden aber als `legacy: true` angezeigt und muessen durch tenant-/user-gebundene Tokens ersetzt werden. Die UI erzeugt weiterhin keine ungebundenen Tokens und soll legacy/global Tokens nicht als Zielzustand bewerben.
+
+Bootstrap-/Support-Provisionierung bleibt lokal. Runbooks sollen das Support-Secret ueber Environment/TTY-Eingabe fuehren und nicht als `--support-token "<secret>"` in Befehle schreiben:
+
+```bash
+export CERNION_SUPPORT_TOKEN="$(op read 'op://Cernion/Support Token/credential')"
+read -rs CERNION_SUPPORT_TOKEN_INPUT
+export CERNION_SUPPORT_TOKEN_INPUT
+npm run token:create -- --tenant public --user svc:chat-ui --scope full-access --name "Chat UI"
+unset CERNION_SUPPORT_TOKEN_INPUT CERNION_SUPPORT_TOKEN
+```
+
 ### v0.63.12 — tenantId/userId Pflicht und Support-Bootstrap
 
 Neue Tokens muessen ueber `tenantId` und `userId` bzw. Service-Account gebunden sein. Auth-lose Token-Management-Requests werden am Gateway abgelehnt. Tenant-/User-/Initialtoken-Provisionierung fuer Bootstrap und Break-Glass erfolgt nicht ueber die UI, sondern lokal:
 
 ```bash
-npm run tenant:create -- --support-token "<secret>" --tenant public --name "Public Tenant"
-npm run user:create -- --support-token "<secret>" --tenant public --user thorsten --email thorsten@example.org
-npm run token:create -- --support-token "<secret>" --tenant public --user thorsten --scope full-access --name "Chat UI"
+npm run tenant:create -- --tenant public --name "Public Tenant"
+npm run user:create -- --tenant public --user svc:chat-ui --email bootstrap@example.org
+npm run token:create -- --tenant public --user svc:chat-ui --scope full-access --name "Chat UI"
 ```
 
 `CERNION_SUPPORT_TOKEN` ist kein API-Token und darf im UI nicht angezeigt, eingegeben, gespeichert oder rotiert werden.

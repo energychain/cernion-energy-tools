@@ -51,17 +51,18 @@ Regeln v0.48.0:
 Issue #157 haertet die Token-Provisionierung: neue `ck_`-Tokens muessen tenant- und user-gebunden sein. Initiale Tenant-, User- und Service-Token-Provisionierung laeuft lokal ueber ein explizites Support-Secret:
 
 ```bash
-CERNION_SUPPORT_TOKEN="<long-random-secret>" \
-  npm run tenant:create -- --support-token "<long-random-secret>" --tenant public --name "Public Tenant"
+export CERNION_SUPPORT_TOKEN="$(op read 'op://Cernion/Support Token/credential')"
+read -rs CERNION_SUPPORT_TOKEN_INPUT
+export CERNION_SUPPORT_TOKEN_INPUT
 
-CERNION_SUPPORT_TOKEN="<long-random-secret>" \
-  npm run user:create -- --support-token "<long-random-secret>" --tenant public --user thorsten --email thorsten@example.org
+npm run tenant:create -- --tenant public --name "Public Tenant"
+npm run user:create -- --tenant public --user svc:chat-ui --email bootstrap@example.org
+npm run token:create -- --tenant public --user svc:chat-ui --scope full-access --name "Chat UI"
 
-CERNION_SUPPORT_TOKEN="<long-random-secret>" \
-  npm run token:create -- --support-token "<long-random-secret>" --tenant public --user thorsten --scope full-access --name "Chat UI"
+unset CERNION_SUPPORT_TOKEN_INPUT CERNION_SUPPORT_TOKEN
 ```
 
-`CERNION_SUPPORT_TOKEN` ist kein normales `ck_`-API-Token. Es wird nicht ueber `/api/tokens*` erzeugt, gelistet, rotiert oder verifiziert und darf nicht in Records oder Logs geschrieben werden. `token:create` schreibt nur den SHA-256-Hash des erzeugten `ck_`-Tokens und gibt dessen Plaintext genau einmal auf stdout aus.
+`CERNION_SUPPORT_TOKEN` ist kein normales `ck_`-API-Token. Es wird nicht ueber `/api/tokens*` erzeugt, gelistet, rotiert oder verifiziert und darf nicht in Records oder Logs geschrieben werden. Der Abgleich erfolgt lokal gegen `CERNION_SUPPORT_TOKEN_INPUT` oder den kompatiblen `--support-token`-Parameter. Fuer Runbooks ist `CERNION_SUPPORT_TOKEN_INPUT` zu bevorzugen, weil `--support-token "<secret>"` in Shell History und Prozessargumenten landen kann. `token:create` schreibt nur den SHA-256-Hash des erzeugten `ck_`-Tokens und gibt dessen Plaintext genau einmal auf stdout aus.
 
 ## Beispiele IdP-Konfiguration
 
@@ -96,10 +97,20 @@ AUTH_SAML_CERT="-----BEGIN CERTIFICATE-----...-----END CERTIFICATE-----"
 
 ## Backward-Compatibility
 
-`ck_`-Tokens bleiben parallel aktiv (Übergangszeitraum 6 Monate). Antworten bei `ck_`-Authentifizierung enthalten:
+Tenant-/user-gebundene `ck_`-Tokens bleiben als API-Tokens aktiv. Legacy `ck_`-Tokens ohne `tenantId` oder `userId` sind nur noch Kompatibilitaets-Credentials und muessen vor dem Sunset ersetzt werden. Die Entscheidungskarte steht in [Legacy/Global Admin Token Sunset Decision](architecture/legacy-global-admin-token-sunset.md).
+
+Policy fuer Legacy/global Tokens (#252):
+
+- neue Tokens ohne `tenantId`/`userId` werden nicht mehr erzeugt;
+- bestehende legacy Tokens bleiben bis `2026-12-31 23:59:59 GMT` kompatibel, inklusive vorhandener `full-access` Tokens;
+- keine automatische Runtime-Einschraenkung in diesem Slice;
+- Migration: legacy Token inventarisieren, tenant-/user-gebundenen Ersatz minten, Verbraucher umstellen, danach legacy Token revoken;
+- nach dem Sunset ist eine separate Runtime-Aenderung mit Token-Manager/API-Tests erforderlich.
+
+Antworten bei `ck_`-Authentifizierung enthalten:
 
 - `Deprecation: true`
-- `Sunset: <http-date>`
+- `Sunset: Wed, 31 Dec 2026 23:59:59 GMT`
 
 ## Audit-Trail
 
