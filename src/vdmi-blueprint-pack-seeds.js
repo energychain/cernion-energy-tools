@@ -11,6 +11,7 @@ const stadtwerkMauerCostReviewCommitteeReadiness = require('./vdmi-blueprint-pac
 const stadtwerkMauerMonitoringNonEscalationStatus = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-monitoring-non-escalation-status-v1.json');
 const stadtwerkMauerCrossSystemVarianceEvidenceMatrix = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-cross-system-variance-evidence-matrix-v1.json');
 const stadtwerkMauerDecommissionedAssetReconciliation = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-decommissioned-asset-reconciliation-v1.json');
+const stadtwerkMauerMastrSyncGapAlerting = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-mastr-sync-gap-alerting-v1.json');
 
 const REQUIRED_EVIDENCE = Object.freeze([
   'napReference',
@@ -115,6 +116,12 @@ const REQUIRED_DECOMMISSIONED_ASSET_RECONCILIATION_EVIDENCE = Object.freeze([
   'reconciliationDiscrepancyFeed',
   'reconciliationApprovalDecision',
 ]);
+const REQUIRED_MASTR_SYNC_GAP_ALERTING_EVIDENCE = Object.freeze([
+  'mastrFreshnessEvidence',
+  'redispatchStammdatenComparison',
+  'syncGapAlertFeed',
+  'reconciliationApprovalDecision',
+]);
 
 const REQUIRED_DATA_CLASSES = Object.freeze([
   'publicContextLayer',
@@ -171,6 +178,11 @@ const REQUIRED_DECOMMISSIONED_ASSET_RECONCILIATION_ROLE_IDS = Object.freeze([
   'ROLE_CERNION_GOVERNANCE',
   'ROLE_COMMERCIAL_AUDIT',
 ]);
+const REQUIRED_MASTR_SYNC_GAP_ALERTING_ROLE_IDS = Object.freeze([
+  'ROLE_NETZBETRIEB',
+  'ROLE_REDISPATCH_KOORDINATOR',
+  'ROLE_CERNION_GOVERNANCE',
+]);
 const REQUIRED_MATRIX_ROLE_KEYS = Object.freeze(['v', 'd', 'm', 'i']);
 const MATRIX_HEADER_WORDS = Object.freeze([
   'Phase',
@@ -193,6 +205,7 @@ const SEEDS = Object.freeze([
   stadtwerkMauerMonitoringNonEscalationStatus,
   stadtwerkMauerCrossSystemVarianceEvidenceMatrix,
   stadtwerkMauerDecommissionedAssetReconciliation,
+  stadtwerkMauerMastrSyncGapAlerting,
 ]);
 
 const SEED_VALIDATION_REQUIREMENTS = Object.freeze({
@@ -250,6 +263,11 @@ const SEED_VALIDATION_REQUIREMENTS = Object.freeze({
     requiredEvidence: REQUIRED_DECOMMISSIONED_ASSET_RECONCILIATION_EVIDENCE,
     requiredRoleIds: REQUIRED_DECOMMISSIONED_ASSET_RECONCILIATION_ROLE_IDS,
     expectedMatrixSlug: 'decommissioned-asset-reconciliation',
+  }),
+  [stadtwerkMauerMastrSyncGapAlerting.id]: Object.freeze({
+    requiredEvidence: REQUIRED_MASTR_SYNC_GAP_ALERTING_EVIDENCE,
+    requiredRoleIds: REQUIRED_MASTR_SYNC_GAP_ALERTING_ROLE_IDS,
+    expectedMatrixSlug: 'mastr-sync-gap-alerting',
   }),
 });
 
@@ -457,6 +475,8 @@ function buildWorkbenchClarificationItems(seed) {
           ? 'ROLE_GOVERNANCE_OWNER'
         : selectedSeed.id === stadtwerkMauerCrossSystemVarianceEvidenceMatrix.id
           ? 'ROLE_GOVERNANCE_OWNER'
+        : selectedSeed.id === stadtwerkMauerMastrSyncGapAlerting.id
+          ? 'ROLE_REDISPATCH_KOORDINATOR'
         : selectedSeed.id === stadtwerkMauerCostReviewCommitteeReadiness.id
           ? 'ROLE_CONTROLLING'
         : selectedSeed.id === stadtwerkMauerConnectionDeadlineEvidenceQueue.id
@@ -656,6 +676,8 @@ module.exports = {
   REQUIRED_EVIDENCE,
   REQUIRED_GAS_TRANSFORMATION_DATAROOM_REVIEW_EVIDENCE,
   REQUIRED_GAS_TRANSFORMATION_DATAROOM_REVIEW_ROLE_IDS,
+  REQUIRED_MASTR_SYNC_GAP_ALERTING_EVIDENCE,
+  REQUIRED_MASTR_SYNC_GAP_ALERTING_ROLE_IDS,
   REQUIRED_MONITORING_NON_ESCALATION_STATUS_EVIDENCE,
   REQUIRED_MONITORING_NON_ESCALATION_STATUS_ROLE_IDS,
   REQUIRED_PORTFOLIO_MARKET_VALUE_READINESS_EVIDENCE,
@@ -679,6 +701,7 @@ module.exports = {
   stadtwerkMauerCrossSystemVarianceEvidenceMatrix,
   stadtwerkMauerDecommissionedAssetReconciliation,
   stadtwerkMauerGasTransformationDataroomReview,
+  stadtwerkMauerMastrSyncGapAlerting,
   stadtwerkMauerMonitoringNonEscalationStatus,
   stadtwerkMauerPortfolioMarketValueReadiness,
   validateVdmiBlueprintPackSeed,

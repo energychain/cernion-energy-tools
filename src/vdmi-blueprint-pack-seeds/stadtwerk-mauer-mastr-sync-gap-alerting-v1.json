@@ -41,6 +41,11 @@
       "roleId": "ROLE_CERNION_GOVERNANCE",
       "relation": "durchfuehrend",
       "responsibility": "Aggregates deterministic data comparison rows, identifies discrepancies, and formats the quality status."
+    },
+    {
+      "roleId": "ROLE_COMMERCIAL_AUDIT",
+      "relation": "information",
+      "responsibility": "Receives the read-only sync-gap evidence status for later governance and audit review without executing MaKo, billing or settlement actions."
     }
   ],
   "evidenceRequirements": [
@@ -107,7 +112,7 @@
         "v": "ROLE_NETZBETRIEB",
         "d": "ROLE_CERNION_GOVERNANCE",
         "m": "ROLE_REDISPATCH_KOORDINATOR",
-        "i": "ROLE_REDISPATCH_KOORDINATOR",
+        "i": "ROLE_COMMERCIAL_AUDIT",
         "evidenceRequirements": [
           "mastrFreshnessEvidence"
         ],
@@ -123,7 +128,7 @@
         "v": "ROLE_NETZBETRIEB",
         "d": "ROLE_CERNION_GOVERNANCE",
         "m": "ROLE_REDISPATCH_KOORDINATOR",
-        "i": "ROLE_REDISPATCH_KOORDINATOR",
+        "i": "ROLE_COMMERCIAL_AUDIT",
         "evidenceRequirements": [
           "redispatchStammdatenComparison"
         ],
@@ -139,7 +144,7 @@
         "v": "ROLE_NETZBETRIEB",
         "d": "ROLE_CERNION_GOVERNANCE",
         "m": "ROLE_REDISPATCH_KOORDINATOR",
-        "i": "ROLE_REDISPATCH_KOORDINATOR",
+        "i": "ROLE_COMMERCIAL_AUDIT",
         "evidenceRequirements": [
           "syncGapAlertFeed"
         ],
@@ -156,7 +161,7 @@
         "v": "ROLE_NETZBETRIEB",
         "d": "ROLE_CERNION_GOVERNANCE",
         "m": "ROLE_REDISPATCH_KOORDINATOR",
-        "i": "ROLE_REDISPATCH_KOORDINATOR",
+        "i": "ROLE_COMMERCIAL_AUDIT",
         "evidenceRequirements": [
           "reconciliationApprovalDecision"
         ],

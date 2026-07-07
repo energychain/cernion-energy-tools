@@ -8,6 +8,7 @@ const {
   REQUIRED_ENERGY_SHARING_COLLECTIVE_APPROVAL_EVIDENCE,
   REQUIRED_EVIDENCE,
   REQUIRED_GAS_TRANSFORMATION_DATAROOM_REVIEW_EVIDENCE,
+  REQUIRED_MASTR_SYNC_GAP_ALERTING_EVIDENCE,
   REQUIRED_MONITORING_NON_ESCALATION_STATUS_EVIDENCE,
   REQUIRED_PORTFOLIO_MARKET_VALUE_READINESS_EVIDENCE,
   REQUIRED_REDISPATCH_READINESS_EVIDENCE,
@@ -22,6 +23,7 @@ const {
   stadtwerkMauerCrossSystemVarianceEvidenceMatrix,
   stadtwerkMauerEnergySharingCollectiveApproval,
   stadtwerkMauerGasTransformationDataroomReview,
+  stadtwerkMauerMastrSyncGapAlerting,
   stadtwerkMauerMonitoringNonEscalationStatus,
   stadtwerkMauerPvMissingNap,
   stadtwerkMauerPortfolioMarketValueReadiness,
@@ -341,6 +343,74 @@ describe('VDMI Blueprint Pack seeds', () => {
         'budibase_table_write',
         'landing_registry_publication',
         'cernion_de_publication',
+        'public_context_mutation',
+        'production_mutation',
+        'personal_agent_hardcoding',
+      ])
+    );
+  });
+
+  test('exposes and validates MaStR Sync-Gap Alerting as a canonical Blueprint Pack seed', () => {
+    expect(stadtwerkMauerMastrSyncGapAlerting).toMatchObject({
+      id: 'stadtwerk-mauer-mastr-sync-gap-alerting-v1',
+      kind: 'vdmi_blueprint_pack_seed',
+      version: '1.0.0',
+      safetyClassification: 'read_only_blueprint_seed',
+      processFamily: 'mastr_sync_gap_alerting',
+      controlCase: 'mastr_sync_gap_alerting_status',
+      sourceTemplateId: 'mastr-sync-gap-alerting',
+      demoTenant: {
+        tenantId: 'stadtwerk-mauer',
+        classification: 'synthetic_demo_tenant',
+      },
+    });
+
+    expect(listVdmiBlueprintPackSeeds()).toContainEqual(
+      expect.objectContaining({
+        id: 'stadtwerk-mauer-mastr-sync-gap-alerting-v1',
+        demoTenantId: 'stadtwerk-mauer',
+      })
+    );
+    expect(getVdmiBlueprintPackSeed('stadtwerk-mauer-mastr-sync-gap-alerting-v1')).toBe(
+      stadtwerkMauerMastrSyncGapAlerting
+    );
+
+    const result = validateVdmiBlueprintPackSeed(stadtwerkMauerMastrSyncGapAlerting);
+    expect(result).toEqual({ valid: true, errors: [] });
+
+    const evidenceIds = stadtwerkMauerMastrSyncGapAlerting.evidenceRequirements.map(
+      (item) => item.id
+    );
+    expect(evidenceIds).toEqual(expect.arrayContaining(REQUIRED_MASTR_SYNC_GAP_ALERTING_EVIDENCE));
+    expect(stadtwerkMauerMastrSyncGapAlerting.roles).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ roleId: 'ROLE_NETZBETRIEB', relation: 'verantwortlich' }),
+        expect.objectContaining({ roleId: 'ROLE_CERNION_GOVERNANCE', relation: 'durchfuehrend' }),
+        expect.objectContaining({ roleId: 'ROLE_REDISPATCH_KOORDINATOR', relation: 'mitwirkend' }),
+        expect.objectContaining({ roleId: 'ROLE_COMMERCIAL_AUDIT', relation: 'information' }),
+      ])
+    );
+    expect(stadtwerkMauerMastrSyncGapAlerting.demoProcessMatrix).toMatchObject({
+      slug: 'mastr-sync-gap-alerting',
+      roleLegend: {
+        M: 'Mitwirkend',
+      },
+      downstreamHandoff: {
+        blueprintPack: 'complete',
+        landingRegistry: 'pending',
+        productiveDemoRoom: 'pending',
+      },
+    });
+    expect(stadtwerkMauerMastrSyncGapAlerting.demoProcessMatrix.rows).toHaveLength(4);
+    expect(stadtwerkMauerMastrSyncGapAlerting.forbiddenActions).toEqual(
+      expect.arrayContaining([
+        'mako_write',
+        'billing',
+        'settlement',
+        'tariff_mutation',
+        'smgw_cls_device_control',
+        'external_connector_call',
+        'hitl_create',
         'public_context_mutation',
         'production_mutation',
         'personal_agent_hardcoding',

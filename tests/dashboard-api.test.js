@@ -9345,6 +9345,63 @@ describe('dashboard-api.service', () => {
         );
       });
 
+      it('returns MaStR Sync-Gap matrix facts through the same verify projection', async () => {
+        const result = await broker.call('dashboard-api.stadtwerkMauerBlueprintPackVerifyStatus', {
+          tenantId: 'stadtwerk-mauer',
+          seedId: 'stadtwerk-mauer-mastr-sync-gap-alerting-v1',
+        });
+
+        expect(result.status).toBe('completed');
+        expect(result.summary.counts.seedsFound).toBe(1);
+        expect(result.summary.counts.requiredEvidence).toBe(4);
+        expect(result.summary.counts.demoProcessMatrixRows).toBe(4);
+        expect(result.data.seedFound).toBe(true);
+        expect(result.data.validation).toEqual({ valid: true, errors: [] });
+        expect(result.data.processFamily).toBe('mastr_sync_gap_alerting');
+        expect(result.data.controlCase).toBe('mastr_sync_gap_alerting_status');
+        expect(result.data.requiredEvidence).toEqual([
+          'mastrFreshnessEvidence',
+          'redispatchStammdatenComparison',
+          'syncGapAlertFeed',
+          'reconciliationApprovalDecision',
+        ]);
+        expect(result.data.demoProcessMatrixSync).toMatchObject({
+          slug: 'mastr-sync-gap-alerting',
+          expectedSlug: 'mastr-sync-gap-alerting',
+          synced: true,
+          roleLegendM: 'Mitwirkend',
+          rowCount: 4,
+          rowCountValid: true,
+          roleCellsClean: true,
+          dataClassesLimited: true,
+        });
+        expect(result.data.demoProcessMatrixSync.downstreamHandoff).toMatchObject({
+          blueprintPack: 'complete',
+          landingRegistry: 'pending',
+          productiveDemoRoom: 'pending',
+        });
+        expect(result.data.demoProcessMatrixSync.rows[2]).toMatchObject({
+          phase: '3',
+          roles: {
+            V: 'ROLE_NETZBETRIEB',
+            D: 'ROLE_CERNION_GOVERNANCE',
+            M: 'ROLE_REDISPATCH_KOORDINATOR',
+            I: 'ROLE_COMMERCIAL_AUDIT',
+          },
+          evidenceRequirements: ['syncGapAlertFeed'],
+          gateOutcome: 'sync_gap_alerts_pending',
+        });
+        expect(result.data.sourceActions.notCalled).toEqual(
+          expect.arrayContaining([
+            'tenant.provision',
+            'budibase.table.write',
+            'external.connector.call',
+            'public-context.mutate',
+            'personal-agent.execute',
+          ])
+        );
+      });
+
       it('returns substation load assessment matrix facts through the same verify projection', async () => {
         const result = await broker.call('dashboard-api.stadtwerkMauerBlueprintPackVerifyStatus', {
           tenantId: 'stadtwerk-mauer',
