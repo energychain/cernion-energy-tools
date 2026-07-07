@@ -111,7 +111,7 @@ ck_abcdef1234567890...  [📋 Copy]
 | Token list empty           | "Noch kein Token erstellt" + "Token erstellen" CTA                    |
 | Duplicate name on create   | Inline error: "Ein Token mit diesem Namen existiert bereits"          |
 | Missing tenantId/userId    | Inline error from API validation; token is not created                |
-| Legacy token               | Show `legacy` badge and sunset hint: `Sunset: 2026-12-31 23:59:59 GMT` |
+| Legacy token               | Show `legacy` badge and sunset hint: `Sunset: Thu, 31 Dec 2026 23:59:59 GMT` |
 | Revoke own token           | Warning: "Du widerrufst deinen aktuellen Token — du wirst ausgeloggt" |
 | Full-access scope creation | Additional confirmation: "Full-Access gibt vollen Schreibzugriff"     |
 
@@ -121,7 +121,7 @@ ck_abcdef1234567890...  [📋 Copy]
 
 ### v0.63.13 — Legacy/global Admin Token Sunset und Support-Runbook
 
-Issue #252 definiert den Product Cut fuer legacy `ck_` Tokens ohne `tenantId`/`userId`: sie bleiben bis `2026-12-31 23:59:59 GMT` kompatibel, werden aber als `legacy: true` angezeigt und muessen durch tenant-/user-gebundene Tokens ersetzt werden. Die UI erzeugt weiterhin keine ungebundenen Tokens und soll legacy/global Tokens nicht als Zielzustand bewerben.
+Issue #252 definiert den Product Cut fuer legacy `ck_` Tokens ohne `tenantId`/`userId`: sie bleiben bis `Thu, 31 Dec 2026 23:59:59 GMT` kompatibel, werden aber als `legacy: true` angezeigt und muessen durch tenant-/user-gebundene Tokens ersetzt werden. Die UI erzeugt weiterhin keine ungebundenen Tokens und soll legacy/global Tokens nicht als Zielzustand bewerben.
 
 Bootstrap-/Support-Provisionierung bleibt lokal. Runbooks sollen das Support-Secret ueber Environment/TTY-Eingabe fuehren und nicht als `--support-token "<secret>"` in Befehle schreiben:
 

@@ -102,7 +102,7 @@ Tenant-/user-gebundene `ck_`-Tokens bleiben als API-Tokens aktiv. Legacy `ck_`-T
 Policy fuer Legacy/global Tokens (#252):
 
 - neue Tokens ohne `tenantId`/`userId` werden nicht mehr erzeugt;
-- bestehende legacy Tokens bleiben bis `2026-12-31 23:59:59 GMT` kompatibel, inklusive vorhandener `full-access` Tokens;
+- bestehende legacy Tokens bleiben bis `Thu, 31 Dec 2026 23:59:59 GMT` kompatibel, inklusive vorhandener `full-access` Tokens;
 - keine automatische Runtime-Einschraenkung in diesem Slice;
 - Migration: legacy Token inventarisieren, tenant-/user-gebundenen Ersatz minten, Verbraucher umstellen, danach legacy Token revoken;
 - nach dem Sunset ist eine separate Runtime-Aenderung mit Token-Manager/API-Tests erforderlich.
@@ -110,7 +110,7 @@ Policy fuer Legacy/global Tokens (#252):
 Antworten bei `ck_`-Authentifizierung enthalten:
 
 - `Deprecation: true`
-- `Sunset: Wed, 31 Dec 2026 23:59:59 GMT`
+- `Sunset: Thu, 31 Dec 2026 23:59:59 GMT`
 
 ## Audit-Trail
 

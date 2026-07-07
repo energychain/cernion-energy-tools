@@ -3,7 +3,7 @@
 **Issue:** #252  
 **Status:** Product cut, no runtime restriction in this slice  
 **Decision date:** 2026-06-29  
-**Runtime sunset header:** `Sunset: Wed, 31 Dec 2026 23:59:59 GMT`
+**Runtime sunset header:** `Sunset: Thu, 31 Dec 2026 23:59:59 GMT`
 
 ## Decision
 
