@@ -106,8 +106,8 @@ FINDING_CODE_METADATA['MQ_ZERO_CAPACITY']
 
 ## Cluster Manifest
 
-### redispatch (13 capabilities · 2 recipes · 61 operations)
-capabilities: battery_redispatch_special_gate, decommissioned_asset_reconciliation, mastr_sync_gap_alerting, redispatch_asset_register, redispatch_call_data_quality_gate, redispatch_data_governance, redispatch_participation_readiness, redispatch_project_controlling_kpi_cockpit, redispatch_rcs_special_case_governance, redispatch_readiness_gate, redispatch_settlement_sandbox, redispatch_special_case_gate, settlement_a96_reconciliation
+### redispatch (14 capabilities · 2 recipes · 61 operations)
+capabilities: battery_redispatch_special_gate, decommissioned_asset_reconciliation, energy_sharing_collective_approval, mastr_sync_gap_alerting, redispatch_asset_register, redispatch_call_data_quality_gate, redispatch_data_governance, redispatch_participation_readiness, redispatch_project_controlling_kpi_cockpit, redispatch_rcs_special_case_governance, redispatch_readiness_gate, redispatch_settlement_sandbox, redispatch_special_case_gate, settlement_a96_reconciliation
 recipes:
   redispatch-forensic-audit "A VNB wants to compare Redispatch-relevant units against…"
   redispatch-settlement-audit "Check settlement readiness and financial risk exposure for…"
@@ -182,7 +182,7 @@ recipes:
   transformation-financing-scenario-view "Management needs one dossier-safe view over cashflow, gas…"
 resolve: GET /api/_agent/operations?domain=governance
 
-### platform (12 capabilities · 9 recipes · 404 operations)
+### platform (12 capabilities · 9 recipes · 405 operations)
 capabilities: datasource_registry_classification_governance, dr_readiness_evidence_gate, evidence_grounding_confidence_audit, evu_api_migration_diagnostics, file_ingest_monitor, hitl_role_based_evidence_request, live_update_stream_contract_status, receipt_grounded_presentation_contract, stadtwerk_mauer_e2e_process_demo, stadtwerk_mauer_external_interface_stubs, stadtwerk_mauer_mastr_data_overlay, stadtwerk_mauer_sandbox_runtime
 recipes:
   agentic-production-feedback-prompt "An engineering agent should receive a consistent, redacted…"
@@ -250,13 +250,13 @@ Agents resolving capabilities/recipes/operations do not need to read past this p
 - README.md: bdfc5d35a65796de3357f3ce717a61998325fa257776cbf17f7077893d0b23e7
 - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
 - src/cookbook-recipes.js: 9e48573ca263ef129bc3944a83b013cff25157e25afc703be0ada62d5af8163d
-- src/capability-catalog.js: ab6a7fc406a82e7c16d90c5ac16992a4cc12a180ac28aaaa1859767fb806bc9a
-- openapi-export.json: 0c175504a1f27c6a0c60419cc21836f3d35114444875638680d5b3ed8d95c8f4
+- src/capability-catalog.js: 25ff3f6e8d3a580999264a701c6d25256f9c96dcf328cda6031c633d2d9b472e
+- openapi-export.json: 8beae593f2b62a7d4f3170bd01c74d33e22f56d0819391df529bf755f3502cc6
 
 ## OpenAPI Surface (full contract, not embedded)
-- path_count: 978
-- operation_count: 1090
+- path_count: 980
+- operation_count: 1092
 - full_spec: openapi-export.json (repo root) or GET /api/openapi.json
 
 ## Integrity
-- llm_txt_sha256: be6ef57a82ffeda7015229b4df68b8e90526c1ff788a6998bfa0b6c6ab035244
+- llm_txt_sha256: 1f7fa877d2135a1b7c7c34811d8823bf9d4e08e500a807f40f42f7c5a4c64f06

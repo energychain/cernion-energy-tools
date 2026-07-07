@@ -70,6 +70,7 @@ module.exports = {
       redispatchParticipationReadinessStatus: 5 * 60 * 1000, // 5 min
       mastrSyncGapStatus: 5 * 60 * 1000, // 5 min
       decommissionedAssetReconciliationStatus: 5 * 60 * 1000, // 5 min
+      energySharingCollectiveApprovalStatus: 5 * 60 * 1000, // 5 min
       steeringArtifactAcceptanceGateStatus: 5 * 60 * 1000, // 5 min
       communicationBreakProcessRiskStatus: 5 * 60 * 1000, // 5 min
       noRegretMeasureProofGateStatus: 5 * 60 * 1000, // 5 min
@@ -2399,6 +2400,60 @@ module.exports = {
           this.settings.cacheTtlMs.decommissionedAssetReconciliationStatus,
           async () => ({
             ...this.buildDecommissionedAssetReconciliationStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // ── energySharingCollectiveApprovalStatus ─────────────────────────────
+    /**
+     * GET /api/dashboard/energy-sharing-collective-approval-status
+     *
+     * Read-only dashboard presenter action for Energy Sharing Collective Approval.
+     * Maps the 6 evidence requirements from stadtwerk-mauer-energy-sharing-collective-approval-v1.json.
+     */
+    energySharingCollectiveApprovalStatus: {
+      rest: 'GET /energy-sharing-collective-approval-status',
+      params: {
+        tenantId: { type: 'string', optional: true, min: 1 },
+        syntheticCollectiveBoundaryEvidence: { type: 'string', optional: true },
+        operatorParticipantBoundaryEvidence: { type: 'string', optional: true },
+        meteringConceptEvidence: { type: 'string', optional: true },
+        contractConsentMarketRoleEvidence: { type: 'string', optional: true },
+        allocationBillingSettlementGapEvidence: { type: 'string', optional: true },
+        approvalReadinessDecision: { type: 'string', optional: true },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Energy Sharing Collective Approval status -- read-only Workbench projection',
+        description: 'Builds deterministic Energy Sharing Collective Approval evidence from supplied facts.',
+        responses: {
+          200: {
+            description: 'Read-only Energy Sharing Collective Approval status',
+          },
+        },
+        parameters: [
+          { in: 'query', name: 'tenantId', schema: { type: 'string' } },
+          { in: 'query', name: 'syntheticCollectiveBoundaryEvidence', schema: { type: 'string' } },
+          { in: 'query', name: 'operatorParticipantBoundaryEvidence', schema: { type: 'string' } },
+          { in: 'query', name: 'meteringConceptEvidence', schema: { type: 'string' } },
+          { in: 'query', name: 'contractConsentMarketRoleEvidence', schema: { type: 'string' } },
+          { in: 'query', name: 'allocationBillingSettlementGapEvidence', schema: { type: 'string' } },
+          { in: 'query', name: 'approvalReadinessDecision', schema: { type: 'string' } },
+        ],
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const tenantId = params.tenantId || ctx.meta?.tenantId || 'stadtwerk-mauer';
+        const cacheKey = `energy-sharing-collective-approval-status:${tenantId}:${params.syntheticCollectiveBoundaryEvidence || 'no-boundary'}:${params.operatorParticipantBoundaryEvidence || 'no-participant'}:${params.meteringConceptEvidence || 'no-meter'}:${params.contractConsentMarketRoleEvidence || 'no-contract'}:${params.allocationBillingSettlementGapEvidence || 'no-billing-gap'}:${params.approvalReadinessDecision || 'no-decision'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.energySharingCollectiveApprovalStatus,
+          async () => ({
+            ...this.buildEnergySharingCollectiveApprovalStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -16558,6 +16613,190 @@ module.exports = {
           sapAnlagenspiegelEvidence: params.sapAnlagenspiegelEvidence || null,
           reconciliationDiscrepancyFeed: params.reconciliationDiscrepancyFeed || null,
           reconciliationApprovalDecision: params.reconciliationApprovalDecision || null,
+          missingEvidence,
+          positiveFollowUps,
+          evidenceItems,
+          validationFindings,
+          dossierFacts,
+        },
+      };
+    },
+
+    buildEnergySharingCollectiveApprovalStatus(params = {}) {
+      const hasValue = (value) => value !== undefined && value !== null && String(value).trim() !== '';
+      const evidenceSpecs = [
+        {
+          id: 'syntheticCollectiveBoundaryEvidence',
+          label: 'Synthetic collective boundary evidence',
+          value: params.syntheticCollectiveBoundaryEvidence,
+          sourceClass: 'synthetic_tenant_seed',
+          enablesDossierAddition: 'Adds the synthetic collective and pilot boundary as public-safe review material.',
+        },
+        {
+          id: 'operatorParticipantBoundaryEvidence',
+          label: 'Operator participant boundary evidence',
+          value: params.operatorParticipantBoundaryEvidence,
+          sourceClass: 'synthetic_tenant_seed',
+          enablesDossierAddition: 'Adds operator ownership, participant boundary and governance scope review evidence.',
+        },
+        {
+          id: 'meteringConceptEvidence',
+          label: 'Metering concept evidence',
+          value: params.meteringConceptEvidence,
+          sourceClass: 'synthetic_tenant_seed',
+          enablesDossierAddition: 'Adds the metering concept readiness statement without creating or changing metering assets.',
+        },
+        {
+          id: 'contractConsentMarketRoleEvidence',
+          label: 'Contract consent market role evidence',
+          value: params.contractConsentMarketRoleEvidence,
+          sourceClass: 'synthetic_tenant_seed',
+          enablesDossierAddition: 'Adds contract, consent and market-role review readiness without customer signing.',
+        },
+        {
+          id: 'allocationBillingSettlementGapEvidence',
+          label: 'Allocation billing settlement gap evidence',
+          value: params.allocationBillingSettlementGapEvidence,
+          sourceClass: 'synthetic_tenant_seed',
+          enablesDossierAddition: 'Adds allocation, A96, billing and settlement evidence-gap closure as review evidence.',
+        },
+        {
+          id: 'approvalReadinessDecision',
+          label: 'Approval readiness decision',
+          value: params.approvalReadinessDecision,
+          sourceClass: 'synthetic_tenant_seed',
+          enablesDossierAddition: 'Adds the ready-for-review or evidence-gap classification and next safe governance gate.',
+        },
+      ];
+
+      const evidenceItems = evidenceSpecs
+        .filter((spec) => hasValue(spec.value))
+        .map((spec) => ({
+          id: spec.id,
+          label: spec.label,
+          value: spec.value,
+          sourceClass: spec.sourceClass,
+          evidenceStatus: 'provided',
+        }));
+
+      const missingEvidence = evidenceSpecs
+        .filter((spec) => !hasValue(spec.value))
+        .map((spec) => ({
+          missingDataPoint: spec.id,
+          label: spec.label,
+          sourceClass: spec.sourceClass,
+          enablesDossierAddition: spec.enablesDossierAddition,
+        }));
+
+      const status =
+        missingEvidence.length === 0
+          ? 'ready_for_review'
+          : !hasValue(params.syntheticCollectiveBoundaryEvidence)
+            ? 'needs_boundary'
+            : !hasValue(params.operatorParticipantBoundaryEvidence)
+              ? 'needs_participant'
+              : !hasValue(params.meteringConceptEvidence)
+                ? 'needs_meter'
+                : !hasValue(params.contractConsentMarketRoleEvidence)
+                  ? 'needs_contract'
+                  : !hasValue(params.allocationBillingSettlementGapEvidence)
+                    ? 'needs_billing_gap'
+                    : 'needs_decision';
+
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'energy_sharing_collective_approval',
+      }));
+
+      const validationFindings = missingEvidence.map((item) => {
+        let code = 'ESCA_DECISION_PENDING';
+        if (item.missingDataPoint === 'syntheticCollectiveBoundaryEvidence') {
+          code = 'ESCA_BOUNDARY_MISSING';
+        } else if (item.missingDataPoint === 'operatorParticipantBoundaryEvidence') {
+          code = 'ESCA_PARTICIPANT_MISSING';
+        } else if (item.missingDataPoint === 'meteringConceptEvidence') {
+          code = 'ESCA_METER_MISSING';
+        } else if (item.missingDataPoint === 'contractConsentMarketRoleEvidence') {
+          code = 'ESCA_CONTRACT_MISSING';
+        } else if (item.missingDataPoint === 'allocationBillingSettlementGapEvidence') {
+          code = 'ESCA_BILLING_GAP_MISSING';
+        }
+        return {
+          code,
+          severity: ['syntheticCollectiveBoundaryEvidence', 'operatorParticipantBoundaryEvidence', 'meteringConceptEvidence'].includes(item.missingDataPoint)
+            ? 'high'
+            : 'medium',
+          message: item.enablesDossierAddition,
+        };
+      });
+
+      const providedRequiredEvidence = evidenceItems.filter((item) =>
+        evidenceSpecs.some((spec) => spec.id === item.id)
+      );
+
+      const dossierFacts = [
+        `Energy Sharing Collective Approval Status: ${status}`,
+        `Provided Evidence: ${providedRequiredEvidence.length}/${evidenceSpecs.length}`,
+        `Open Gaps: ${missingEvidence.length}`,
+      ];
+
+      return {
+        readinessId: `esca:${Buffer.from(
+          `${params.tenantId || 'stadtwerk-mauer'}:${params.syntheticCollectiveBoundaryEvidence || ''}:${params.approvalReadinessDecision || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 24)}`,
+        capabilityKey: 'energy_sharing_collective_approval',
+        safety: 'read_only_blueprint_seed',
+        requestContext: {
+          tenantId: params.tenantId || 'stadtwerk-mauer',
+        },
+        status,
+        syntheticCollectiveBoundaryEvidence: params.syntheticCollectiveBoundaryEvidence || null,
+        operatorParticipantBoundaryEvidence: params.operatorParticipantBoundaryEvidence || null,
+        meteringConceptEvidence: params.meteringConceptEvidence || null,
+        contractConsentMarketRoleEvidence: params.contractConsentMarketRoleEvidence || null,
+        allocationBillingSettlementGapEvidence: params.allocationBillingSettlementGapEvidence || null,
+        approvalReadinessDecision: params.approvalReadinessDecision || null,
+        evidenceItems,
+        missingEvidence,
+        positiveFollowUps,
+        validationFindings,
+        sourceActions: {
+          inspected: ['dashboard-api.energySharingCollectiveApprovalStatus'],
+          referenced: [
+            'vdmi.dossier',
+            'vdmi.evidence',
+            'asset-context.read',
+            'interface-placeholder.requestEvidence',
+          ],
+          notCalled: [
+            'redispatch_enrollment',
+            'dispatch_control',
+            'mako_write',
+            'billing',
+            'settlement',
+            'tariff_mutation',
+            'smgw_cls_device_control',
+            'external_connector_call',
+            'webhook',
+            'hitl_create',
+            'tenant_provisioning',
+            'rundeck_execution',
+            'public_context_mutation',
+            'production_mutation',
+            'personal_agent_hardcoding',
+          ],
+        },
+        dossierEvidence: {
+          status,
+          syntheticCollectiveBoundaryEvidence: params.syntheticCollectiveBoundaryEvidence || null,
+          operatorParticipantBoundaryEvidence: params.operatorParticipantBoundaryEvidence || null,
+          meteringConceptEvidence: params.meteringConceptEvidence || null,
+          contractConsentMarketRoleEvidence: params.contractConsentMarketRoleEvidence || null,
+          allocationBillingSettlementGapEvidence: params.allocationBillingSettlementGapEvidence || null,
+          approvalReadinessDecision: params.approvalReadinessDecision || null,
           missingEvidence,
           positiveFollowUps,
           evidenceItems,

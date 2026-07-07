@@ -1099,6 +1099,130 @@ const decommissionedAssetSeedGuardFixture = {
   }
 };
 
+const energySharingCollectiveApprovalStatusFixture = {
+  readinessId: 'esca:energy-sharing-collective-id',
+  status: 'ready_for_review',
+  safety: 'read_only_blueprint_seed',
+  syntheticCollectiveBoundaryEvidence: 'collective-boundary-ok',
+  operatorParticipantBoundaryEvidence: 'operator-participant-complete',
+  meteringConceptEvidence: 'metering-concept-verified',
+  contractConsentMarketRoleEvidence: 'contract-consent-signed-off',
+  allocationBillingSettlementGapEvidence: 'allocation-gap-closed',
+  approvalReadinessDecision: 'collective-approval-signed-off-by-product-owner',
+  evidenceItems: [
+    {
+      id: 'syntheticCollectiveBoundaryEvidence',
+      label: 'Synthetic collective boundary evidence',
+      value: 'collective-boundary-ok',
+      sourceClass: 'synthetic_tenant_seed',
+      evidenceStatus: 'provided'
+    },
+    {
+      id: 'operatorParticipantBoundaryEvidence',
+      label: 'Operator participant boundary evidence',
+      value: 'operator-participant-complete',
+      sourceClass: 'synthetic_tenant_seed',
+      evidenceStatus: 'provided'
+    },
+    {
+      id: 'meteringConceptEvidence',
+      label: 'Metering concept evidence',
+      value: 'metering-concept-verified',
+      sourceClass: 'synthetic_tenant_seed',
+      evidenceStatus: 'provided'
+    },
+    {
+      id: 'contractConsentMarketRoleEvidence',
+      label: 'Contract consent market role evidence',
+      value: 'contract-consent-signed-off',
+      sourceClass: 'synthetic_tenant_seed',
+      evidenceStatus: 'provided'
+    },
+    {
+      id: 'allocationBillingSettlementGapEvidence',
+      label: 'Allocation billing settlement gap evidence',
+      value: 'allocation-gap-closed',
+      sourceClass: 'synthetic_tenant_seed',
+      evidenceStatus: 'provided'
+    },
+    {
+      id: 'approvalReadinessDecision',
+      label: 'Approval readiness decision',
+      value: 'collective-approval-signed-off-by-product-owner',
+      sourceClass: 'synthetic_tenant_seed',
+      evidenceStatus: 'provided'
+    }
+  ],
+  missingEvidence: [],
+  positiveFollowUps: [],
+  sourceActions: {
+    notCalled: [
+      'redispatch_enrollment',
+      'dispatch_control'
+    ]
+  }
+};
+
+const energySharingCollectiveApprovalSeedGuardFixture = {
+  data: {
+    seedId: 'stadtwerk-mauer-energy-sharing-collective-approval-v1',
+    processFamily: 'energy_sharing_governance',
+    controlCase: 'energy_sharing_collective_approval',
+    validation: {
+      valid: true
+    },
+    requiredEvidence: [
+      'syntheticCollectiveBoundaryEvidence',
+      'operatorParticipantBoundaryEvidence',
+      'meteringConceptEvidence',
+      'contractConsentMarketRoleEvidence',
+      'allocationBillingSettlementGapEvidence',
+      'approvalReadinessDecision'
+    ],
+    missingEvidence: [],
+    demoProcessMatrixSync: {
+      slug: 'energy-sharing-collective-approval',
+      expectedSlug: 'energy-sharing-collective-approval',
+      synced: true,
+      roleLegendM: 'Mitwirkend',
+      rowCount: 5,
+      rowCountValid: true,
+      roleCellsClean: true,
+      dataClassesLimited: true,
+      forbiddenActionsStatus: 'no_energy_sharing_action',
+      evidenceRequirements: [
+        'syntheticCollectiveBoundaryEvidence',
+        'operatorParticipantBoundaryEvidence',
+        'meteringConceptEvidence',
+        'contractConsentMarketRoleEvidence',
+        'allocationBillingSettlementGapEvidence',
+        'approvalReadinessDecision'
+      ],
+      rows: [
+        {
+          phase: '1',
+          roles: {
+            V: 'ROLE_ENERGY_SHARING_PRODUCT_OWNER',
+            D: 'ROLE_CERNION_GOVERNANCE',
+            M: 'ROLE_LEGAL_REGULATORY_AFFAIRS',
+            I: 'ROLE_MANAGEMENT'
+          },
+          evidenceRequirements: ['syntheticCollectiveBoundaryEvidence'],
+          status: 'ready_for_review',
+          gateOutcome: 'synthetic_collective_review_case_identified'
+        }
+      ]
+    },
+    forbiddenActions: [
+      'redispatch_enrollment',
+      'dispatch_control'
+    ],
+    sourceActions: {
+      notCalled: ['redispatch_enrollment', 'dispatch_control']
+    }
+  }
+};
+
 const costReviewCommitteeFixture = {
   capabilityKey: 'cost_review_committee_status',
   safety: 'read_only',
@@ -2451,6 +2575,82 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
     const boundaryRows = runTransformer(
       'getDecommissionedAssetBoundaryRows',
       decommissionedAssetSeedGuardFixture
+    );
+    expectScalarRows(boundaryRows);
+    expect(boundaryRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ boundary: 'redispatch_enrollment', status: 'forbidden' }),
+        expect.objectContaining({ boundary: 'dispatch_control', status: 'forbidden' }),
+        expect.objectContaining({ boundary: 'personal_agent_hardcoding', status: 'not_called' }),
+      ])
+    );
+  });
+
+  it('flattens Energy Sharing Collective Approval rows and no-call guards', () => {
+    const statusRows = runTransformer(
+      'getEnergySharingCollectiveApprovalStatusRows',
+      energySharingCollectiveApprovalStatusFixture
+    );
+    expectScalarRows(statusRows);
+    expect(statusRows[0]).toMatchObject({
+      rowKey: 'energy_sharing_collective_approval_status',
+      status: 'ready_for_review',
+      safety: 'read_only_blueprint_seed',
+      syntheticCollectiveBoundaryEvidence: 'collective-boundary-ok',
+      sourceClass: 'energy_sharing_collective_approval_status',
+    });
+
+    const evidenceRows = runTransformer(
+      'getEnergySharingCollectiveApprovalEvidenceRows',
+      energySharingCollectiveApprovalStatusFixture
+    );
+    expectScalarRows(evidenceRows);
+    expect(evidenceRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'syntheticCollectiveBoundaryEvidence',
+          value: 'collective-boundary-ok',
+          sourceClass: 'synthetic_tenant_seed',
+        }),
+      ])
+    );
+
+    const guardRows = runTransformer(
+      'getEnergySharingCollectiveApprovalSeedGuardRows',
+      energySharingCollectiveApprovalSeedGuardFixture
+    );
+    expectScalarRows(guardRows);
+    expect(guardRows[0]).toMatchObject({
+      seedId: 'stadtwerk-mauer-energy-sharing-collective-approval-v1',
+      panelEnabled: true,
+      matrixRows: 5,
+      sourceClass: 'energy_sharing_collective_approval_blueprint_guard',
+    });
+
+    const matrixRows = runTransformer(
+      'getEnergySharingCollectiveApprovalMatrixRows',
+      energySharingCollectiveApprovalSeedGuardFixture
+    );
+    expectScalarRows(matrixRows);
+    expect(matrixRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'energy_sharing_collective_approval_matrix_sync_summary',
+          status: 'matrix_ready',
+          v: 'ROLE_ENERGY_SHARING_PRODUCT_OWNER',
+          m: 'Mitwirkend',
+        }),
+        expect.objectContaining({
+          rowKey: 'energy_sharing_collective_approval_matrix_row_1',
+          phase: '1',
+          gateOutcome: 'synthetic_collective_review_case_identified',
+        }),
+      ])
+    );
+
+    const boundaryRows = runTransformer(
+      'getEnergySharingCollectiveApprovalBoundaryRows',
+      energySharingCollectiveApprovalSeedGuardFixture
     );
     expectScalarRows(boundaryRows);
     expect(boundaryRows).toEqual(

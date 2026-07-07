@@ -13735,6 +13735,72 @@
         ]
       }
     },
+    "/api/dashboard-api/energy-sharing-collective-approval-status": {
+      "get": {
+        "operationId": "dashboard-api_energySharingCollectiveApprovalStatus",
+        "summary": "Energy Sharing Collective Approval status -- read-only Workbench projection",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Energy Sharing Collective Approval status"
+          }
+        },
+        "description": "Builds deterministic Energy Sharing Collective Approval evidence from supplied facts.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "tenantId",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "syntheticCollectiveBoundaryEvidence",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "operatorParticipantBoundaryEvidence",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "meteringConceptEvidence",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "contractConsentMarketRoleEvidence",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "allocationBillingSettlementGapEvidence",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "approvalReadinessDecision",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/api/dashboard-api/steering-artifact-acceptance-gate": {
       "get": {
         "operationId": "dashboard-api_steeringArtifactAcceptanceGateStatus",
@@ -67385,6 +67451,72 @@
           {
             "in": "query",
             "name": "reconciliationApprovalDecision",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard/energy-sharing-collective-approval-status": {
+      "get": {
+        "operationId": "dashboard-api_energySharingCollectiveApprovalStatus",
+        "summary": "Energy Sharing Collective Approval status -- read-only Workbench projection",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Energy Sharing Collective Approval status"
+          }
+        },
+        "description": "Builds deterministic Energy Sharing Collective Approval evidence from supplied facts.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "tenantId",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "syntheticCollectiveBoundaryEvidence",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "operatorParticipantBoundaryEvidence",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "meteringConceptEvidence",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "contractConsentMarketRoleEvidence",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "allocationBillingSettlementGapEvidence",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "approvalReadinessDecision",
             "schema": {
               "type": "string"
             }

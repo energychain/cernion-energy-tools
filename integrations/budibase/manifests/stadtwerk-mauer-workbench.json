@@ -5789,6 +5789,128 @@
       }
     },
     {
+      "name": "getEnergySharingCollectiveApprovalStatusRows",
+      "method": "GET",
+      "path": "/api/dashboard/energy-sharing-collective-approval-status",
+      "queryString": "tenantId=stadtwerk-mauer&syntheticCollectiveBoundaryEvidence=collective-boundary-ok&operatorParticipantBoundaryEvidence=operator-participant-complete&meteringConceptEvidence=metering-concept-verified&contractConsentMarketRoleEvidence=contract-consent-signed-off&allocationBillingSettlementGapEvidence=allocation-gap-closed&approvalReadinessDecision=collective-approval-signed-off-by-product-owner",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "return [{rowKey:'energy_sharing_collective_approval_status',label:'Energy Sharing Collective Approval Status',readinessId:data.readinessId||'',status:data.status||'',safety:data.safety||'read_only_blueprint_seed',syntheticCollectiveBoundaryEvidence:data.syntheticCollectiveBoundaryEvidence||'',operatorParticipantBoundaryEvidence:data.operatorParticipantBoundaryEvidence||'',meteringConceptEvidence:data.meteringConceptEvidence||'',contractConsentMarketRoleEvidence:data.contractConsentMarketRoleEvidence||'',allocationBillingSettlementGapEvidence:data.allocationBillingSettlementGapEvidence||'',approvalReadinessDecision:data.approvalReadinessDecision||'',missingCount:(data.missingEvidence||[]).length,safeNextGate:data.status==='ready_for_review'?'trigger_energy_sharing_approval_workflow':'resolve_energy_sharing_evidence_gaps_first',sourceClass:'energy_sharing_collective_approval_status'}]",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "label": { "type": "string" },
+        "readinessId": { "type": "string" },
+        "status": { "type": "string" },
+        "safety": { "type": "string" },
+        "syntheticCollectiveBoundaryEvidence": { "type": "string" },
+        "operatorParticipantBoundaryEvidence": { "type": "string" },
+        "meteringConceptEvidence": { "type": "string" },
+        "contractConsentMarketRoleEvidence": { "type": "string" },
+        "allocationBillingSettlementGapEvidence": { "type": "string" },
+        "approvalReadinessDecision": { "type": "string" },
+        "missingCount": { "type": "number" },
+        "safeNextGate": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getEnergySharingCollectiveApprovalEvidenceRows",
+      "method": "GET",
+      "path": "/api/dashboard/energy-sharing-collective-approval-status",
+      "queryString": "tenantId=stadtwerk-mauer&syntheticCollectiveBoundaryEvidence=collective-boundary-ok&operatorParticipantBoundaryEvidence=operator-participant-complete&meteringConceptEvidence=metering-concept-verified&contractConsentMarketRoleEvidence=contract-consent-signed-off&allocationBillingSettlementGapEvidence=allocation-gap-closed&approvalReadinessDecision=collective-approval-signed-off-by-product-owner",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const evidence=(data.evidenceItems||[]).map((row)=>({rowKey:row.id,label:row.label||row.id,status:row.evidenceStatus||'provided',value:String(row.value||''),enablesDossierAddition:'already_available_for_energy_sharing_panel',safeNextAction:'keep_energy_sharing_read_only',sourceClass:row.sourceClass||'energy_sharing_collective_approval_evidence'})); const gaps=(data.positiveFollowUps||data.missingEvidence||[]).map((row,index)=>({rowKey:row.missingDataPoint||`energy_sharing_collective_approval_gap_${index+1}`,label:row.label||row.missingDataPoint||'',status:row.state||'missing',value:'',enablesDossierAddition:row.enablesDossierAddition||'complete missing energy sharing evidence',safeNextAction:'supply_missing_synthetic_evidence_then_refresh_panel',sourceClass:'energy_sharing_collective_approval_positive_follow_up'})); return evidence.concat(gaps)",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "label": { "type": "string" },
+        "status": { "type": "string" },
+        "value": { "type": "string" },
+        "enablesDossierAddition": { "type": "string" },
+        "safeNextAction": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getEnergySharingCollectiveApprovalSeedGuardRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-energy-sharing-collective-approval-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.data||{}; const v=d.validation||{}; const m=d.demoProcessMatrixSync||{}; const matrixReady=Boolean(m.synced&&m.rowCount>=3&&m.rowCount<=5&&m.rowCountValid&&m.roleCellsClean&&m.dataClassesLimited); const valid=Boolean(v.valid); const enabled=valid&&matrixReady; return [{rowKey:'energy_sharing_collective_approval_seed_guard',label:'Energy Sharing Collective Approval Blueprint Guard',seedId:d.seedId||'stadtwerk-mauer-energy-sharing-collective-approval-v1',status:enabled?'panel_enabled':'panel_disabled_until_seed_matrix_ready',valid,matrixRows:Number(m.rowCount||0),matrixReady,panelEnabled:enabled,roleQuestion:'is_energy_sharing_collective_approval_ready_for_review',safeNextAction:enabled?'render_energy_sharing_collective_approval_panel':'refresh_blueprint_verify_and_fix_matrix_sync_first',sourceClass:'energy_sharing_collective_approval_blueprint_guard'}]",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "label": { "type": "string" },
+        "seedId": { "type": "string" },
+        "status": { "type": "string" },
+        "valid": { "type": "boolean" },
+        "matrixRows": { "type": "number" },
+        "matrixReady": { "type": "boolean" },
+        "panelEnabled": { "type": "boolean" },
+        "roleQuestion": { "type": "string" },
+        "safeNextAction": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getEnergySharingCollectiveApprovalMatrixRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-energy-sharing-collective-approval-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.data||{}; const m=d.demoProcessMatrixSync||{}; const cell=(value)=>String(value||''); const rows=(m.rows||[]).map((row,index)=>({rowKey:`energy_sharing_collective_approval_matrix_row_${index+1}`,phase:cell(row.phase||index+1),v:cell((row.roles||{}).V),d:cell((row.roles||{}).D),m:cell((row.roles||{}).M),i:cell((row.roles||{}).I),nachweise:(row.evidenceRequirements||[]).join(', '),status:cell(row.status),gateOutcome:cell(row.gateOutcome),sourceClass:'energy_sharing_collective_approval_matrix_row'})); const summary={rowKey:'energy_sharing_collective_approval_matrix_sync_summary',phase:'-',v:'ROLE_ENERGY_SHARING_PRODUCT_OWNER',d:'ROLE_CERNION_GOVERNANCE',m:'Mitwirkend',i:'ROLE_MANAGEMENT',nachweise:(m.evidenceRequirements||[]).join(', '),status:m.synced&&m.rowCount>=3&&m.rowCount<=5?'matrix_ready':'matrix_sync_required',gateOutcome:m.forbiddenActionsStatus||'no_energy_sharing_action',sourceClass:'energy_sharing_collective_approval_matrix_summary'}; return [summary].concat(rows)",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "phase": { "type": "string" },
+        "v": { "type": "string" },
+        "d": { "type": "string" },
+        "m": { "type": "string" },
+        "i": { "type": "string" },
+        "nachweise": { "type": "string" },
+        "status": { "type": "string" },
+        "gateOutcome": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getEnergySharingCollectiveApprovalBoundaryRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-energy-sharing-collective-approval-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.data||{}; const forbidden=(d.forbiddenActions||[]).map((action,index)=>({rowKey:`energy_sharing_collective_approval_forbidden_${index+1}_${action}`,boundary:String(action),status:'forbidden',safeAlternative:'render_existing_energy_sharing_collective_approval_read_model_only',sourceClass:'energy_sharing_collective_approval_forbidden_action'})); const guards=((d.sourceActions||{}).notCalled||[]).map((action)=>({rowKey:`energy_sharing_collective_approval_not_called_${action}`,boundary:String(action),status:'not_called',safeAlternative:'generated_budibase_render_shell_only',sourceClass:'energy_sharing_collective_approval_no_call_guard'})); const defaults=['redispatch_enrollment','dispatch_control','mako_write','billing','settlement','tariff_mutation','smgw_cls_device_control','external_connector_call','webhook','hitl_create','tenant_provisioning','rundeck_execution','public_context_mutation','production_mutation','personal_agent_hardcoding'].map((action)=>({rowKey:`energy_sharing_collective_approval_default_guard_${action}`,boundary:action,status:'not_called',safeAlternative:'synthetic_read_only_review_only',sourceClass:'energy_sharing_collective_approval_default_guard'})); return forbidden.concat(guards).concat(defaults)",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "boundary": { "type": "string" },
+        "status": { "type": "string" },
+        "safeAlternative": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
       "name": "getStadtwerkMauerTransferReadinessSummaryRows",
       "method": "GET",
       "path": "/api/dashboard/stadtwerk-mauer-transfer-readiness",
@@ -7054,6 +7176,36 @@
       "id": "decommissioned_asset_boundaries",
       "title": "Decommissioned Asset No-Call Boundaries",
       "queryName": "getDecommissionedAssetBoundaryRows",
+      "tableTitle": "Mako, Billing, Settlement and Device-Control Guards"
+    },
+    {
+      "id": "energy_sharing_collective_approval_status",
+      "title": "Energy Sharing Collective Approval Status",
+      "queryName": "getEnergySharingCollectiveApprovalStatusRows",
+      "tableTitle": "Energy Sharing Collective Approval Status, Gaps and Next Gate"
+    },
+    {
+      "id": "energy_sharing_collective_approval_evidence",
+      "title": "Energy Sharing Collective Approval Evidence Gaps",
+      "queryName": "getEnergySharingCollectiveApprovalEvidenceRows",
+      "tableTitle": "Evidence Rows and Positive Follow-ups"
+    },
+    {
+      "id": "energy_sharing_collective_approval_seed_guard",
+      "title": "Energy Sharing Collective Approval Blueprint Guard",
+      "queryName": "getEnergySharingCollectiveApprovalSeedGuardRows",
+      "tableTitle": "Seed Validity and Matrix Guard"
+    },
+    {
+      "id": "energy_sharing_collective_approval_matrix",
+      "title": "Energy Sharing Collective Approval Demo Process Matrix",
+      "queryName": "getEnergySharingCollectiveApprovalMatrixRows",
+      "tableTitle": "Energy Sharing Collective Approval Matrix Rows"
+    },
+    {
+      "id": "energy_sharing_collective_approval_boundaries",
+      "title": "Energy Sharing Collective Approval No-Call Boundaries",
+      "queryName": "getEnergySharingCollectiveApprovalBoundaryRows",
       "tableTitle": "Mako, Billing, Settlement and Device-Control Guards"
     },
     {

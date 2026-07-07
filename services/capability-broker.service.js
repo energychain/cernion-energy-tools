@@ -1791,6 +1791,22 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  // ── Energy Sharing Collective Approval
+  const energySharingCollectiveApprovalSignals = [
+    'energy sharing collective approval',
+    'collective approval',
+    'energy-sharing collective',
+    'energy sharing collective',
+    'collective approval status',
+  ];
+
+  if (energySharingCollectiveApprovalSignals.some((signal) => haystack.includes(signal))) {
+    const escaCapability = findCapabilityByName('energy_sharing_collective_approval');
+    if (escaCapability) {
+      return { capability: escaCapability, score: 128, usedFallback: false };
+    }
+  }
+
   // ── Gas Transformation Dataroom Status
   // Must run before Re4DE because both domains may mention "Datenraum" and evidence.
   const gasTransformationDataroomSignals = [

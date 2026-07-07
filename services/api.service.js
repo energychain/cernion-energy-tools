@@ -1532,6 +1532,8 @@ module.exports = {
             'dashboard-api.mastrSyncGapStatus',
           'GET /dashboard/decommissioned-asset-reconciliation-status':
             'dashboard-api.decommissionedAssetReconciliationStatus',
+          'GET /dashboard/energy-sharing-collective-approval-status':
+            'dashboard-api.energySharingCollectiveApprovalStatus',
           'GET /dashboard/steering-artifact-acceptance-gate':
             'dashboard-api.steeringArtifactAcceptanceGateStatus',
           'GET /dashboard/communication-break-process-risk':

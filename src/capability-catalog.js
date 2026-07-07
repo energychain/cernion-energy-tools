@@ -8982,6 +8982,32 @@ const CURATED_CAPABILITIES = [
     routingPattern: 'decommissioned_asset_reconciliation',
   },
   {
+    capability: 'energy_sharing_collective_approval',
+    domain: 'redispatch',
+    abstractionLevel: 'read_only_blueprint_seed',
+    intent: 'dashboard-api.energySharingCollectiveApprovalStatus',
+    keywords: [
+      'energy sharing collective approval',
+      'collective approval',
+      'energy-sharing collective',
+      'energy sharing collective',
+      'collective approval status',
+    ],
+    preferredActions: [
+      'dashboard-api.energySharingCollectiveApprovalStatus',
+    ],
+    fallbackActions: ['dashboard-api.energySharingCollectiveApprovalStatus'],
+    avoid: ['query.ask', 'query.askLearned'],
+    requiredInputs: [
+      { name: 'tenantId', label: 'Tenant-ID', type: 'string', required: false },
+    ],
+    risksAndNotes: [
+      'energySharingCollectiveApprovalStatus ist read-only und dossier-safe.',
+      'Keine echten Energy-Sharing API-Calls, keine Datenmutation, kein Personal-Agent Hardcoding.',
+    ],
+    routingPattern: 'energy_sharing_collective_approval',
+  },
+  {
     capability: 'eeg_clawback_ewk_monitoring',
     domain: 'regulatory',
     abstractionLevel: 'domain_gap_marker',
