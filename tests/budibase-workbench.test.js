@@ -900,7 +900,12 @@ const costReviewBlueprintFixture = {
       'committee.decision.execute',
     ],
     sourceActions: {
-      notCalled: ['workflow_create', 'mail_send', 'budibase_table_write', 'personal_agent_hardcoding'],
+      notCalled: [
+        'workflow_create',
+        'mail_send',
+        'budibase_table_write',
+        'personal_agent_hardcoding',
+      ],
     },
   },
 };
@@ -1074,8 +1079,7 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
     );
     expect(
       queries.every(
-        (query) =>
-          query.path !== '/api/dashboard/stadtwerk-mauer-portfolio-market-value-readiness'
+        (query) => query.path !== '/api/dashboard/stadtwerk-mauer-portfolio-market-value-readiness'
       )
     ).toBe(true);
     expect(
@@ -1149,9 +1153,7 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
   });
 
   it('adds the Cost Review Committee Readiness panel from existing safe endpoints', () => {
-    const queries = manifest.queries.filter((query) =>
-      query.name.includes('CostReviewCommittee')
-    );
+    const queries = manifest.queries.filter((query) => query.name.includes('CostReviewCommittee'));
     const paths = new Set(queries.map((query) => query.path));
 
     expect(paths).toEqual(
@@ -1176,9 +1178,7 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
         .every((section) => queries.some((query) => query.name === section.queryName))
     ).toBe(true);
 
-    const statusQuery = queries.find(
-      (query) => query.name === 'getCostReviewCommitteeStatusRows'
-    );
+    const statusQuery = queries.find((query) => query.name === 'getCostReviewCommitteeStatusRows');
     expect(statusQuery).toMatchObject({
       method: 'GET',
       path: '/api/dashboard/cost-review-committee-status',
@@ -1368,7 +1368,8 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
         expect.objectContaining({
           rowKey: 'matrix_row_1',
           phase: '1',
-          roles: 'V:ROLE_NETZPLANUNG | D:ROLE_GRID_OPERATOR | M:ROLE_ELECTRICIAN | I:ROLE_COMMERCIAL_AUDIT',
+          roles:
+            'V:ROLE_NETZPLANUNG | D:ROLE_GRID_OPERATOR | M:ROLE_ELECTRICIAN | I:ROLE_COMMERCIAL_AUDIT',
           evidenceRequirements: 'publicMunicipalityContext, napReference',
           dataClassRefs: 'publicContextLayer, syntheticTenantSeed',
           gateOutcome: 'missing_nap_clarification',
@@ -1439,10 +1440,7 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       }
     };
 
-    const selectorRows = runTransformer(
-      'getVdmiBlueprintSeedSelectorRows',
-      blueprintVerifyFixture
-    );
+    const selectorRows = runTransformer('getVdmiBlueprintSeedSelectorRows', blueprintVerifyFixture);
     expectScalarRows(selectorRows);
     assertNoRawObjectText(selectorRows);
     expect(selectorRows).toEqual(

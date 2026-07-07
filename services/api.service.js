@@ -1518,14 +1518,12 @@ module.exports = {
             'dashboard-api.controllabilityAssetHandoverStatus',
           'GET /dashboard/gremiencoach-workbook-readiness':
             'dashboard-api.gremiencoachWorkbookReadinessStatus',
-          'GET /dashboard/decision-readiness-matrix':
-            'dashboard-api.decisionReadinessMatrixStatus',
+          'GET /dashboard/decision-readiness-matrix': 'dashboard-api.decisionReadinessMatrixStatus',
           'GET /dashboard/cross-system-variance-matrix':
             'dashboard-api.crossSystemVarianceMatrixStatus',
           'GET /dashboard/regulatory-signal-process-translator':
             'dashboard-api.regulatorySignalProcessTranslatorStatus',
-          'GET /dashboard/cost-review-committee-status':
-            'dashboard-api.costReviewCommitteeStatus',
+          'GET /dashboard/cost-review-committee-status': 'dashboard-api.costReviewCommitteeStatus',
           'GET /dashboard/steering-artifact-acceptance-gate':
             'dashboard-api.steeringArtifactAcceptanceGateStatus',
           'GET /dashboard/communication-break-process-risk':
@@ -1618,8 +1616,7 @@ module.exports = {
             'dashboard-api.gasGridTransformationAssetCockpitStatus',
           'GET /dashboard/vnb-special-topic-workstate':
             'dashboard-api.vnbSpecialTopicWorkstateStatus',
-          'GET /dashboard/monitoring-non-escalation':
-            'dashboard-api.monitoringNonEscalationStatus',
+          'GET /dashboard/monitoring-non-escalation': 'dashboard-api.monitoringNonEscalationStatus',
           'GET /dashboard/leadership-delta-cockpit': 'dashboard-api.leadershipDeltaCockpitStatus',
           'GET /dashboard/netzsignal-delta-gating': 'dashboard-api.netzsignalDeltaGatingStatus',
           'POST /dashboard/vnb-delta-signal-classifier/classify':

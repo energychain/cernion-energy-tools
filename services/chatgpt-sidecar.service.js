@@ -79,8 +79,7 @@ function buildPositiveFollowUps(kind, details = {}) {
     unsupported_browser_query: [
       {
         missing: 'shorter GET question or task',
-        enablesDossierAddition:
-          `Retry with a URL-encoded question/task up to ${MAX_BROWSER_QUERY_LENGTH} characters using the manifest template.`,
+        enablesDossierAddition: `Retry with a URL-encoded question/task up to ${MAX_BROWSER_QUERY_LENGTH} characters using the manifest template.`,
       },
     ],
   };

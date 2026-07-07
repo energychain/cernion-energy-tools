@@ -1841,10 +1841,7 @@ const EVIDENCE_REGISTRY = Object.freeze({
       {
         id: 'process_role',
         label: 'Prozessrolle und Entscheidungsgrenze',
-        resolvedBy: [
-          'dashboard-api.gremiencoachWorkbookReadinessStatus',
-          'vdmi.dossier',
-        ],
+        resolvedBy: ['dashboard-api.gremiencoachWorkbookReadinessStatus', 'vdmi.dossier'],
         contextKeys: ['processRole', 'committeeContext', 'processHint'],
         optional: false,
       },
