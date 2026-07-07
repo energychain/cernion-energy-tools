@@ -919,6 +919,22 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes Bedeutungserhalt coordination prompts to the read-only meaning-preservation profile', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Erstelle eine bedeutungserhaltende Koordinationsschicht fuer ein Entscheidungsobjekt mit Bedeutungsverlust, Fachbereichsuebergabe, Owner, Frist, Nachweis und naechster Entscheidung.',
+    });
+
+    expect(result.capability).toBe('coordination_meaning_preservation_profile');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'coordination_meaning_preservation_profile'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.coordinationMeaningPreservationProfile');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes Gremiencoach workbook prompts to the read-only private-prep view', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Erstelle einen Gremiencoach fuer eine VNB Arbeitsmappe mit Claims, Evidenzluecken, Prozessbezug, Word PPT Excel Entwurf-Intents und No-Call Guardrails fuer private Gremienvorbereitung.',

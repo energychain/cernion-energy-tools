@@ -122,6 +122,35 @@ describe('T-EV-001 — evidence-planner: planEvidence() pure-function contract',
     expect(result.confidence).toBeGreaterThanOrEqual(1);
   });
 
+  it('plans coordination meaning preservation evidence as explicit handover-context gaps', () => {
+    const result = planEvidence(
+      { routeLabel: 'coordination_meaning_preservation_profile' },
+      {
+        sourceDomain: 'Netzbetrieb',
+        targetDomain: 'Planung',
+        regulatoryReference: '14a-readiness',
+        owner: 'netzplanung',
+      }
+    );
+
+    expect(result).not.toBeNull();
+    expect(result.registryKey).toBe('coordination_meaning_preservation_profile');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining(['regulatory_reference', 'owner'])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'commercial_effect',
+        'network_constraint',
+        'evidence_proof',
+        'deadline',
+        'next_decision',
+        'operational_risk',
+        'source_action_guards',
+      ])
+    );
+  });
+
   it('plans cost-review committee evidence as explicit dossier gaps', () => {
     const result = planEvidence(
       { routeLabel: 'cost_review_committee_status' },

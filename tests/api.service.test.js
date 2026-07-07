@@ -301,6 +301,7 @@ describe('API Gateway Service', () => {
       expect(schema.paths['/api/dashboard/redispatch-metering-cockpit']).toBeDefined();
       expect(schema.paths['/api/dashboard/load-profile-stream-monitor']).toBeDefined();
       expect(schema.paths['/api/dashboard/controllability-asset-handover']).toBeDefined();
+      expect(schema.paths['/api/dashboard/coordination-meaning-preservation-profile']).toBeDefined();
       expect(schema.paths['/api/dashboard/cost-review-committee-status']).toBeDefined();
       expect(schema.paths['/api/dashboard/cross-system-variance-matrix']).toBeDefined();
       expect(schema.paths['/api/dashboard/regulatory-signal-process-translator']).toBeDefined();
@@ -321,6 +322,7 @@ describe('API Gateway Service', () => {
       expect(schema.paths['/api/dashboard/redispatch-metering-cockpit'].get).toBeDefined();
       expect(schema.paths['/api/dashboard/load-profile-stream-monitor'].get).toBeDefined();
       expect(schema.paths['/api/dashboard/controllability-asset-handover'].get).toBeDefined();
+      expect(schema.paths['/api/dashboard/coordination-meaning-preservation-profile'].get).toBeDefined();
       expect(schema.paths['/api/dashboard/gremiencoach-workbook-readiness'].get).toBeDefined();
       expect(schema.paths['/api/dashboard/decision-readiness-matrix'].get).toBeDefined();
       expect(schema.paths['/api/dashboard/cross-system-variance-matrix'].get).toBeDefined();
@@ -349,6 +351,9 @@ describe('API Gateway Service', () => {
       expect(schema.paths['/api/dashboard/controllability-asset-handover'].get.tags).toContain(
         'Dashboard API'
       );
+      expect(
+        schema.paths['/api/dashboard/coordination-meaning-preservation-profile'].get.tags
+      ).toContain('Dashboard API');
       expect(schema.paths['/api/dashboard/gremiencoach-workbook-readiness'].get.tags).toContain(
         'Dashboard API'
       );
@@ -530,6 +535,9 @@ describe('API Gateway Service', () => {
       );
       expect(aliases['GET /dashboard/controllability-asset-handover']).toBe(
         'dashboard-api.controllabilityAssetHandoverStatus'
+      );
+      expect(aliases['GET /dashboard/coordination-meaning-preservation-profile']).toBe(
+        'dashboard-api.coordinationMeaningPreservationProfile'
       );
       expect(aliases['GET /dashboard/gremiencoach-workbook-readiness']).toBe(
         'dashboard-api.gremiencoachWorkbookReadinessStatus'

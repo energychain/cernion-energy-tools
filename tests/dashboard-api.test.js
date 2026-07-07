@@ -2244,6 +2244,67 @@ describe('dashboard-api.service', () => {
       });
     });
 
+    // ── coordinationMeaningPreservationProfile ─────────────────────────────
+
+    describe('coordinationMeaningPreservationProfile', () => {
+      it('reports decision-context gaps without calling Fachsystem or downstream actions', async () => {
+        const result = await broker.call('dashboard-api.coordinationMeaningPreservationProfile', {
+          caseId: 'case-402',
+          sourceDomain: 'Netzbetrieb',
+          targetDomain: 'Planung',
+          regulatoryReference: '14a-readiness',
+          networkConstraint: 'transformer-limit',
+        });
+
+        expect(result.capabilityKey).toBe('coordination_meaning_preservation_profile');
+        expect(result.status).toBe('needs_decision_context');
+        expect(result.coordinationLossClassification).toBe('decision_context_missing');
+        expect(result.preservedDimensions.map((item) => item.id)).toEqual(
+          expect.arrayContaining(['regulatory_reference', 'network_constraint'])
+        );
+        expect(result.missingDimensions.map((gap) => gap.missingDataPoint)).toEqual(
+          expect.arrayContaining(['commercial_effect', 'evidence_proof', 'owner', 'next_decision'])
+        );
+        expect(result.positiveFollowUps[0].category).toBe(
+          'coordination_meaning_preservation_profile'
+        );
+        expect(result.sourceActions.notCalled).toEqual(
+          expect.arrayContaining([
+            'external.connector.call',
+            'fachsystem.write',
+            'hitl.create',
+            'billing.release',
+            'mako.dispatch',
+            'device-control.execute',
+            'budibase.write',
+          ])
+        );
+        expect(result.safety).toBe('read_only');
+      });
+
+      it('returns meaning_preserved when all preservation dimensions are supplied', async () => {
+        const result = await broker.call('dashboard-api.coordinationMeaningPreservationProfile', {
+          caseId: 'case-402',
+          sourceDomain: 'EDM',
+          targetDomain: 'Abrechnung',
+          regulatoryReference: 'EnWG-42c',
+          commercialEffect: 'tariff-impact-reviewed',
+          networkConstraint: 'not-applicable',
+          evidenceProof: 'vdmi:evidence-402',
+          owner: 'Abrechnung',
+          deadline: '2026-08-01',
+          nextDecision: 'billing-boundary-review',
+          operationalRisk: 'low',
+        });
+
+        expect(result.status).toBe('meaning_preserved');
+        expect(result.coordinationLossClassification).toBe('meaning_preserved');
+        expect(result.missingDimensions).toEqual([]);
+        expect(result.dossierEvidence.dossierFacts).toContain('Preserved dimensions: 8/8');
+        expect(result.dossierEvidence.dossierFacts).toContain('Handover: EDM -> Abrechnung');
+      });
+    });
+
     // ── gremiencoachWorkbookReadinessStatus ────────────────────────────────
 
     describe('gremiencoachWorkbookReadinessStatus', () => {

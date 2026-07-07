@@ -237,6 +237,26 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasCoordinationMeaningPreservationSignal =
+    /(bedeutungserhalt|bedeutungserhaltende koordinationsschicht|bedeutungsverlust|coordination meaning preservation|meaning preservation)/i.test(
+      haystack
+    ) &&
+    /(fachbereichsuebergabe|fachbereichsübergabe|entscheidungsobjekt|koordinationsschicht|owner|frist|nachweis|naechste entscheidung|nächste entscheidung|handover decision context)/i.test(
+      haystack
+    ) &&
+    !/(billing release|settlement export|mako dispatch|geraetesteuerung|gerätesteuerung|device-control|hitl create|external connector call|budibase write)/i.test(
+      haystack
+    );
+
+  if (hasCoordinationMeaningPreservationSignal) {
+    const coordinationCapability = findCapabilityByName(
+      'coordination_meaning_preservation_profile'
+    );
+    if (coordinationCapability) {
+      return { capability: coordinationCapability, score: 139, usedFallback: false };
+    }
+  }
+
   const hasNovaDecisionLifecycleReadinessSignal =
     /\bnova\b/i.test(haystack) &&
     /(decision lifecycle|decision-lifecycle|entscheidungslifecycle|entscheidungslebenszyklus|decision source catalogue|source catalogue|hitl bridge|replay audit|tenant.?isolated sse|trl.?7.*decision|decision.*trl.?7|production readiness.*decision|decision.*production readiness)/i.test(

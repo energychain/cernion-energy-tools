@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 115 static rules', () => {
+    it('loads all 116 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(115);
+      expect(rules.length).toBe(116);
     });
 
-    it('compiles all 115 static rules without error', () => {
+    it('compiles all 116 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(115);
+      expect(rules.length).toBe(116);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -518,6 +518,41 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Asset: asset-194');
       expect(formatted).toContain('Owner: assetmanagement');
       expect(formatted).toContain('Leading Gap: feedback_capability');
+    });
+
+    it('dashboard-api.coordinationMeaningPreservationProfile is dossier-safe and formats meaning-preservation facts', () => {
+      const rule = getRule('dashboard-api.coordinationMeaningPreservationProfile');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Bedeutungserhalt Koordinationsschicht case=case-402 quelle=Netzbetrieb ziel=Planung owner=netzplanung entscheidung=capex-gate laden'
+        )
+      ).toEqual({
+        caseId: 'case-402',
+        sourceDomain: 'Netzbetrieb',
+        targetDomain: 'Planung',
+        owner: 'netzplanung',
+        nextDecision: 'capex-gate',
+      });
+
+      const formatted = rule.formatEvidence({
+        status: 'needs_decision_context',
+        coordinationLossClassification: 'decision_context_missing',
+        requestContext: { sourceDomain: 'Netzbetrieb', targetDomain: 'Planung' },
+        missingDimensions: [{ missingDataPoint: 'evidence_proof' }],
+        positiveFollowUps: [{ enablesDossierAddition: 'add Nachweisquelle' }],
+        sourceActions: { notCalled: ['external.connector.call'] },
+        timestamp: '2026-07-07T20:50:00.000Z',
+      });
+
+      expect(formatted).toContain('Meaning Status: needs_decision_context');
+      expect(formatted).toContain('Classification: decision_context_missing');
+      expect(formatted).toContain('Source: Netzbetrieb');
+      expect(formatted).toContain('Target: Planung');
+      expect(formatted).toContain('Leading Gap: evidence_proof');
+      expect(formatted).toContain('Side-Effect Guard: external.connector.call');
     });
 
     it('dashboard-api.decisionReadinessMatrixStatus is dossier-safe and formats decision facts', () => {

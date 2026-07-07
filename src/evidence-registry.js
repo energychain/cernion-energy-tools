@@ -1750,6 +1750,77 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  coordination_meaning_preservation_profile: {
+    sources: [
+      {
+        id: 'regulatory_reference',
+        label: 'Regulierungsbezug der Fachbereichsuebergabe',
+        resolvedBy: ['dashboard-api.coordinationMeaningPreservationProfile', 'vdmi.dossier'],
+        contextKeys: ['regulatoryReference'],
+        optional: false,
+      },
+      {
+        id: 'commercial_effect',
+        label: 'Kaufmaennische Auswirkung',
+        resolvedBy: ['dashboard-api.coordinationMeaningPreservationProfile', 'vdmi.dossier'],
+        contextKeys: ['commercialEffect'],
+        optional: false,
+      },
+      {
+        id: 'network_constraint',
+        label: 'Netzrestriktion / technische Grenze',
+        resolvedBy: ['dashboard-api.coordinationMeaningPreservationProfile', 'vdmi.dossier'],
+        contextKeys: ['networkConstraint'],
+        optional: false,
+      },
+      {
+        id: 'evidence_proof',
+        label: 'Nachweisquelle',
+        resolvedBy: [
+          'dashboard-api.coordinationMeaningPreservationProfile',
+          'interface-placeholder.requestEvidence',
+        ],
+        contextKeys: ['evidenceProof'],
+        optional: false,
+      },
+      {
+        id: 'owner',
+        label: 'Verantwortliche Rolle',
+        resolvedBy: ['dashboard-api.coordinationMeaningPreservationProfile', 'vdmi.dossier'],
+        contextKeys: ['owner'],
+        optional: false,
+      },
+      {
+        id: 'deadline',
+        label: 'Frist / Wiedervorlage',
+        resolvedBy: ['dashboard-api.coordinationMeaningPreservationProfile', 'vdmi.dossier'],
+        contextKeys: ['deadline'],
+        optional: false,
+      },
+      {
+        id: 'next_decision',
+        label: 'Naechster Entscheidungspunkt',
+        resolvedBy: ['dashboard-api.coordinationMeaningPreservationProfile', 'vdmi.dossier'],
+        contextKeys: ['nextDecision'],
+        optional: false,
+      },
+      {
+        id: 'operational_risk',
+        label: 'Operative Risikoauswirkung',
+        resolvedBy: ['dashboard-api.coordinationMeaningPreservationProfile', 'vdmi.dossier'],
+        contextKeys: ['operationalRisk'],
+        optional: false,
+      },
+      {
+        id: 'source_action_guards',
+        label: 'No-Call-Guards fuer Fachsysteme und Produktion',
+        resolvedBy: ['dashboard-api.coordinationMeaningPreservationProfile'],
+        contextKeys: ['sourceActions.notCalled'],
+        optional: false,
+      },
+    ],
+  },
+
   e2e_controllability_check_governance: {
     sources: [
       {

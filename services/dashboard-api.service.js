@@ -62,6 +62,7 @@ module.exports = {
       marketCommunicationEvidenceChainStatus: 5 * 60 * 1000, // 5 min
       e2eControllabilityGovernanceStatus: 5 * 60 * 1000, // 5 min
       controllabilityAssetHandoverStatus: 5 * 60 * 1000, // 5 min
+      coordinationMeaningPreservationProfile: 5 * 60 * 1000, // 5 min
       gremiencoachWorkbookReadinessStatus: 5 * 60 * 1000, // 5 min
       decisionReadinessMatrixStatus: 5 * 60 * 1000, // 5 min
       crossSystemVarianceMatrixStatus: 5 * 60 * 1000, // 5 min
@@ -1742,6 +1743,96 @@ module.exports = {
           this.settings.cacheTtlMs.controllabilityAssetHandoverStatus,
           async () => ({
             ...this.buildControllabilityAssetHandoverStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // ── coordinationMeaningPreservationProfile ───────────────────────────
+    /**
+     * GET /api/dashboard/coordination-meaning-preservation-profile?sourceDomain=...
+     *
+     * Read-only dossier-safe profile for preserving coordination meaning at
+     * handovers between specialist domains. It classifies missing owner,
+     * deadline, evidence, regulatory, commercial, network and decision context
+     * without integrating with or mutating Fachsysteme.
+     */
+    coordinationMeaningPreservationProfile: {
+      rest: 'GET /coordination-meaning-preservation-profile',
+      params: {
+        caseId: { type: 'string', optional: true, min: 1 },
+        sourceDomain: { type: 'string', optional: true, min: 1 },
+        targetDomain: { type: 'string', optional: true, min: 1 },
+        regulatoryReference: { type: 'string', optional: true, min: 1 },
+        commercialEffect: { type: 'string', optional: true, min: 1 },
+        networkConstraint: { type: 'string', optional: true, min: 1 },
+        evidenceProof: { type: 'string', optional: true, min: 1 },
+        owner: { type: 'string', optional: true, min: 1 },
+        deadline: { type: 'string', optional: true, min: 1 },
+        nextDecision: { type: 'string', optional: true, min: 1 },
+        operationalRisk: { type: 'string', optional: true, min: 1 },
+        handoverContext: { type: 'string', optional: true, min: 1 },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Coordination meaning preservation — read-only dossier-safe profile',
+        description:
+          'Builds a deterministic profile for preserving meaning at cross-domain handovers. ' +
+          'It reports preserved and missing dimensions such as regulatory reference, commercial ' +
+          'effect, network constraint, evidence proof, owner, deadline, next decision and operational ' +
+          'risk. The endpoint is read-only and does not mutate Fachsysteme, HITL, billing, settlement, ' +
+          'MaKo, tariff, device-control, Budibase or external connector state.',
+        parameters: [
+          { name: 'caseId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'sourceDomain', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'targetDomain', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'regulatoryReference', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'commercialEffect', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'networkConstraint', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'evidenceProof', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'owner', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'deadline', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'nextDecision', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'operationalRisk', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'handoverContext', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only coordination meaning preservation profile',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string' },
+                    coordinationLossClassification: { type: 'string' },
+                    preservedDimensions: { type: 'array' },
+                    missingDimensions: { type: 'array' },
+                    weakDimensions: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                    _errors: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `coordination-meaning-preservation-profile:${params.caseId || 'no-case'}:${params.sourceDomain || 'no-source'}:${params.targetDomain || 'no-target'}:${params.regulatoryReference || 'no-reg'}:${params.commercialEffect || 'no-commercial'}:${params.networkConstraint || 'no-network'}:${params.evidenceProof || 'no-proof'}:${params.owner || 'no-owner'}:${params.deadline || 'no-deadline'}:${params.nextDecision || 'no-decision'}:${params.operationalRisk || 'no-risk'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.coordinationMeaningPreservationProfile,
+          async () => ({
+            ...this.buildCoordinationMeaningPreservationProfile(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -14869,6 +14960,190 @@ module.exports = {
           nonExecutionReason: params.nonExecutionReason || null,
           blockingFindings,
           dossierFacts,
+        },
+      };
+    },
+
+    buildCoordinationMeaningPreservationProfile(params = {}) {
+      const hasValue = (value) => value !== undefined && value !== null && String(value) !== '';
+      const dimensionSpecs = [
+        {
+          id: 'regulatory_reference',
+          label: 'Regulatory reference',
+          value: params.regulatoryReference,
+          category: 'regulatory_context',
+          enablesDossierAddition: 'add Regulierungsbezug der Uebergabe',
+        },
+        {
+          id: 'commercial_effect',
+          label: 'Commercial effect',
+          value: params.commercialEffect,
+          category: 'commercial_context',
+          enablesDossierAddition: 'add kaufmaennische Auswirkung',
+        },
+        {
+          id: 'network_constraint',
+          label: 'Network constraint',
+          value: params.networkConstraint,
+          category: 'grid_context',
+          enablesDossierAddition: 'add Netzrestriktion / technische Grenze',
+        },
+        {
+          id: 'evidence_proof',
+          label: 'Evidence proof',
+          value: params.evidenceProof,
+          category: 'proof_context',
+          enablesDossierAddition: 'add Nachweisquelle',
+        },
+        {
+          id: 'owner',
+          label: 'Owner',
+          value: params.owner,
+          category: 'ownership_context',
+          enablesDossierAddition: 'add verantwortliche Rolle',
+        },
+        {
+          id: 'deadline',
+          label: 'Deadline',
+          value: params.deadline,
+          category: 'time_context',
+          enablesDossierAddition: 'add Frist / Wiedervorlage',
+        },
+        {
+          id: 'next_decision',
+          label: 'Next decision',
+          value: params.nextDecision,
+          category: 'decision_context',
+          enablesDossierAddition: 'add naechster Entscheidungspunkt',
+        },
+        {
+          id: 'operational_risk',
+          label: 'Operational risk',
+          value: params.operationalRisk,
+          category: 'risk_context',
+          enablesDossierAddition: 'add operative Risikoauswirkung',
+        },
+      ];
+
+      const preservedDimensions = dimensionSpecs
+        .filter((spec) => hasValue(spec.value))
+        .map((spec) => ({
+          id: spec.id,
+          label: spec.label,
+          value: spec.value,
+          category: spec.category,
+          evidenceStatus: 'provided',
+        }));
+      const missingDimensions = dimensionSpecs
+        .filter((spec) => !hasValue(spec.value))
+        .map((spec) => ({
+          missingDataPoint: spec.id,
+          label: spec.label,
+          category: spec.category,
+          enablesDossierAddition: spec.enablesDossierAddition,
+        }));
+      const weakDimensions = [];
+      const criticalMissing = missingDimensions.filter((item) =>
+        ['owner', 'deadline', 'next_decision', 'evidence_proof'].includes(item.missingDataPoint)
+      );
+      const coordinationLossClassification =
+        missingDimensions.length === 0
+          ? 'meaning_preserved'
+          : criticalMissing.length > 0
+            ? 'decision_context_missing'
+            : 'partial_context_loss';
+      const status =
+        coordinationLossClassification === 'meaning_preserved'
+          ? 'meaning_preserved'
+          : coordinationLossClassification === 'decision_context_missing'
+            ? 'needs_decision_context'
+            : 'partial_context_loss';
+      const positiveFollowUps = missingDimensions.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'coordination_meaning_preservation_profile',
+      }));
+      const validationFindings = missingDimensions.map((item) => ({
+        code: `CMPP_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
+        severity: ['owner', 'deadline', 'next_decision'].includes(item.missingDataPoint)
+          ? 'high'
+          : 'medium',
+        message: item.enablesDossierAddition,
+      }));
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Preserved dimensions: ${preservedDimensions.length}/${dimensionSpecs.length}`,
+        `Open meaning gaps: ${missingDimensions.length}`,
+      ];
+      if (params.sourceDomain || params.targetDomain) {
+        dossierFacts.push(
+          `Handover: ${params.sourceDomain || 'unknown'} -> ${params.targetDomain || 'unknown'}`
+        );
+      }
+      if (params.owner) dossierFacts.push(`Owner: ${params.owner}`);
+      if (params.nextDecision) dossierFacts.push(`Next Decision: ${params.nextDecision}`);
+
+      return {
+        profileId: `cmpp:${Buffer.from(
+          `${params.caseId || ''}:${params.sourceDomain || ''}:${params.targetDomain || ''}:${params.owner || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 24)}`,
+        capabilityKey: 'coordination_meaning_preservation_profile',
+        safety: 'read_only',
+        requestContext: {
+          caseId: params.caseId || null,
+          sourceDomain: params.sourceDomain || null,
+          targetDomain: params.targetDomain || null,
+          handoverContext: params.handoverContext || null,
+        },
+        status,
+        coordinationLossClassification,
+        preservedDimensions,
+        missingDimensions,
+        weakDimensions,
+        positiveFollowUps,
+        sourceActions: {
+          inspected: ['dashboard-api.coordinationMeaningPreservationProfile'],
+          referenced: ['vdmi.dossier', 'interface-placeholder.requestEvidence'],
+          notCalled: [
+            'external.connector.call',
+            'fachsystem.write',
+            'hitl.create',
+            'billing.release',
+            'settlement.prepareBilling',
+            'settlement.exportA96',
+            'mako.dispatch',
+            'tariff.mutate',
+            'device-control.execute',
+            'budibase.write',
+          ],
+        },
+        validationFindings,
+        dossierEvidence: {
+          status,
+          coordinationLossClassification,
+          sourceDomain: params.sourceDomain || null,
+          targetDomain: params.targetDomain || null,
+          preservedDimensions,
+          missingDimensions,
+          weakDimensions,
+          positiveFollowUps,
+          dossierFacts,
+          sourceActions: {
+            notCalled: [
+              'external.connector.call',
+              'fachsystem.write',
+              'hitl.create',
+              'billing.release',
+              'settlement.prepareBilling',
+              'settlement.exportA96',
+              'mako.dispatch',
+              'tariff.mutate',
+              'device-control.execute',
+              'budibase.write',
+            ],
+          },
         },
       };
     },
