@@ -1099,6 +1099,85 @@ const decommissionedAssetSeedGuardFixture = {
   }
 };
 
+const coordinationMeaningPreservationFixture = {
+  capabilityKey: 'coordination_meaning_preservation_profile',
+  safety: 'read_only',
+  status: 'needs_decision_context',
+  coordinationLossClassification: 'decision_context_missing',
+  requestContext: {
+    caseId: 'smm-budibase-workbench',
+    sourceDomain: 'Netzbetrieb',
+    targetDomain: 'Zielnetzplanung',
+    handoverContext: 'selected_case_context_loss_review',
+  },
+  preservedDimensions: [
+    {
+      id: 'regulatory_reference',
+      label: 'Regulatory reference',
+      value: '14a-redispatch-boundary',
+      category: 'regulatory_context',
+      evidenceStatus: 'provided',
+    },
+    {
+      id: 'network_constraint',
+      label: 'Network constraint',
+      value: 'nap-clarification-required',
+      category: 'grid_context',
+      evidenceStatus: 'provided',
+    },
+    {
+      id: 'owner',
+      label: 'Owner',
+      value: 'ROLE_NETZPLANUNG',
+      category: 'ownership_context',
+      evidenceStatus: 'provided',
+    },
+  ],
+  missingDimensions: [
+    {
+      missingDataPoint: 'commercial_effect',
+      label: 'Commercial effect',
+      category: 'commercial_context',
+      enablesDossierAddition: 'add kaufmaennische Auswirkung',
+    },
+    {
+      missingDataPoint: 'deadline',
+      label: 'Deadline',
+      category: 'time_context',
+      enablesDossierAddition: 'add Frist / Wiedervorlage',
+    },
+    {
+      missingDataPoint: 'next_decision',
+      label: 'Next decision',
+      category: 'decision_context',
+      enablesDossierAddition: 'add naechster Entscheidungspunkt',
+    },
+  ],
+  weakDimensions: [
+    {
+      id: 'evidence_proof',
+      label: 'Evidence proof',
+      category: 'proof_context',
+      enablesDossierAddition: 'strengthen Nachweisquelle',
+    },
+  ],
+  positiveFollowUps: [
+    {
+      missingDataPoint: 'commercial_effect',
+      enablesDossierAddition: 'add kaufmaennische Auswirkung',
+      category: 'coordination_meaning_preservation_profile',
+    },
+  ],
+  sourceActions: {
+    notCalled: [
+      'external.connector.call',
+      'hitl.create',
+      'budibase.write',
+      'device-control.execute',
+    ],
+  },
+};
+
 const energySharingCollectiveApprovalStatusFixture = {
   readinessId: 'esca:energy-sharing-collective-id',
   status: 'ready_for_review',
@@ -2582,6 +2661,118 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
         expect.objectContaining({ boundary: 'redispatch_enrollment', status: 'forbidden' }),
         expect.objectContaining({ boundary: 'dispatch_control', status: 'forbidden' }),
         expect.objectContaining({ boundary: 'personal_agent_hardcoding', status: 'not_called' }),
+      ])
+    );
+  });
+
+  it('flattens Coordination Meaning Preservation rows and no-call guards', () => {
+    const summaryRows = runTransformer(
+      'getCoordinationMeaningPreservationSummaryRows',
+      coordinationMeaningPreservationFixture
+    );
+    expectScalarRows(summaryRows);
+    expect(summaryRows[0]).toMatchObject({
+      rowKey: 'meaning_preservation_summary',
+      status: 'needs_decision_context',
+      classification: 'decision_context_missing',
+      caseId: 'smm-budibase-workbench',
+      roleTarget: 'ROLE_NETZPLANUNG',
+      sourceClass: 'coordination_meaning_preservation_summary',
+    });
+
+    const preservedRows = runTransformer(
+      'getCoordinationMeaningPreservationPreservedRows',
+      coordinationMeaningPreservationFixture
+    );
+    expectScalarRows(preservedRows);
+    expect(preservedRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'owner',
+          value: 'ROLE_NETZPLANUNG',
+          sourceClass: 'coordination_meaning_preserved_dimension',
+        }),
+      ])
+    );
+
+    const gapRows = runTransformer(
+      'getCoordinationMeaningPreservationGapRows',
+      coordinationMeaningPreservationFixture
+    );
+    expectScalarRows(gapRows);
+    expect(gapRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'deadline',
+          gapClass: 'missing',
+          enablesDossierAddition: 'add Frist / Wiedervorlage',
+        }),
+        expect.objectContaining({
+          rowKey: 'evidence_proof',
+          gapClass: 'weak',
+          sourceClass: 'coordination_meaning_weak_dimension',
+        }),
+      ])
+    );
+
+    const ownerDecisionRows = runTransformer(
+      'getCoordinationMeaningPreservationOwnerDecisionRows',
+      coordinationMeaningPreservationFixture
+    );
+    expectScalarRows(ownerDecisionRows);
+    expect(ownerDecisionRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ rowKey: 'meaning_owner', status: 'provided' }),
+        expect.objectContaining({ rowKey: 'meaning_deadline', status: 'missing' }),
+        expect.objectContaining({ rowKey: 'meaning_next_decision', status: 'missing' }),
+      ])
+    );
+
+    expectScalarRows(
+      runTransformer(
+        'getCoordinationMeaningPreservationFollowupRows',
+        coordinationMeaningPreservationFixture
+      )
+    );
+
+    const transferRows = runTransformer(
+      'getCoordinationMeaningPreservationTransferRows',
+      coordinationMeaningPreservationFixture
+    );
+    expectScalarRows(transferRows);
+    expect(transferRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ rowKey: 'tenant_id', value: 'stadtwerk-mauer' }),
+        expect.objectContaining({ rowKey: 'role_mapping', value: 'ROLE_NETZPLANUNG' }),
+        expect.objectContaining({
+          rowKey: 'allowed_command_scope',
+          value: 'read_only_verify_only_no_mutation',
+        }),
+      ])
+    );
+
+    const boundaryRows = runTransformer(
+      'getCoordinationMeaningPreservationGuardRows',
+      coordinationMeaningPreservationFixture
+    );
+    expectScalarRows(boundaryRows);
+    expect(boundaryRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ boundary: 'external.connector.call', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'budibase.write', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'personal-agent.hardcoding', status: 'not_called' }),
+      ])
+    );
+
+    expect(manifest.sections.map((section) => section.id)).toEqual(
+      expect.arrayContaining([
+        'meaning_preservation_summary',
+        'meaning_preservation_preserved_dimensions',
+        'meaning_preservation_gap_dimensions',
+        'meaning_preservation_owner_decision',
+        'meaning_preservation_followups',
+        'meaning_preservation_transfer_parameters',
+        'meaning_preservation_boundaries',
       ])
     );
   });

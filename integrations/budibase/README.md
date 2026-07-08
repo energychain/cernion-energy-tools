@@ -35,6 +35,7 @@ The workbench renders:
 - selected Zielnetzplanung item detail, context, evidence-gap, next-gate and safe-follow-up rows from `GET /api/dashboard/stadtwerk-mauer-grid-planning-selected-item-detail?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench&queueItemId=grid-planning:missing-nap-clarification`
 - Vertrieb/Key Account briefing rows from `GET /api/dashboard/stadtwerk-mauer-sales-workbench-briefing?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench&audience=vertrieb`
 - MaStR public-context revalidation rows, affected case, next evidence gate, safe verify actions and no-call boundaries from `GET /api/dashboard/stadtwerk-mauer-mastr-data-overlay?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench`
+- selected-case meaning-preservation rows for `ROLE_NETZPLANUNG` from `GET /api/dashboard/coordination-meaning-preservation-profile`, showing preserved dimensions, missing/weak context, owner/deadline/decision gaps, positive follow-ups, transfer parameters and no-call guards
 - municipal value peer-corridor evidence rows for `Mauer`, `Sandhausen` and `Wiesloch` from `GET /api/dashboard/municipal-energy-value-analysis`
 - VDMI profile, role model, evidence-gap, capability-projection and synthetic event preview rows from the existing read-only dashboard bricks: `GET /api/dashboard/stadtwerk-mauer-vdmi-profile`, `GET /api/dashboard/stadtwerk-mauer-capability-projection` and `GET /api/dashboard/stadtwerk-mauer-event-replay-preview`
 - VNB delta signal queue rows from existing read-only dashboard bricks: `GET /api/dashboard/cross-channel-vnb-signal-queue`, `POST /api/dashboard/vnb-delta-signal-classifier/classify`, `GET /api/dashboard/owner-deadline-evidence-gate` and `GET /api/dashboard/leadership-delta-cockpit`
@@ -140,6 +141,11 @@ The MaStR public-context revalidation rows are read-only: they separate MaStR/OS
 synthetic Stadtwerk-Mauer tenant seed and synthetic revalidation drill/runtime rows. Budibase may
 render refresh/verify hints, but it must not mutate MaStR, write arbitrary Cernion tables, execute
 production tenant actions or turn synthetic case evidence into official public-context changes.
+The selected-case meaning-preservation panel is read-only: it reuses the existing
+`coordination-meaning-preservation-profile` read model for the synthetic Stadtwerk-Mauer
+selected case and renders scalar preserved, missing, weak, owner/deadline/decision,
+transfer-parameter and no-call rows. Budibase must not persist handover state, create actions,
+write tables, call connectors, mutate production data or use Personal-Agent shortcuts.
 The municipal value peer-corridor rows are read-only: they reuse the existing municipal energy
 value dashboard model and render scalar presenter evidence for municipal budget effect,
 operator/private value, derived-load status, peer-corridor position, no-autarky guardrails and
