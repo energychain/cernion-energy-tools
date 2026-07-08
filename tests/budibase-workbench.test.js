@@ -21,6 +21,18 @@ function expectScalarRows(rows) {
   }
 }
 
+function expectRenderSafeScalarRows(rows) {
+  expectScalarRows(rows);
+  for (const row of rows) {
+    for (const value of Object.values(row)) {
+      if (typeof value === 'string') {
+        expect(value).not.toContain('[object Object]');
+        expect(value).not.toMatch(/^\s*[{[]/);
+      }
+    }
+  }
+}
+
 const profileFixture = {
   tenantId: 'stadtwerk-mauer',
   municipality: 'Mauer',
@@ -2670,7 +2682,7 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       'getCoordinationMeaningPreservationSummaryRows',
       coordinationMeaningPreservationFixture
     );
-    expectScalarRows(summaryRows);
+    expectRenderSafeScalarRows(summaryRows);
     expect(summaryRows[0]).toMatchObject({
       rowKey: 'meaning_preservation_summary',
       status: 'needs_decision_context',
@@ -2684,7 +2696,7 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       'getCoordinationMeaningPreservationPreservedRows',
       coordinationMeaningPreservationFixture
     );
-    expectScalarRows(preservedRows);
+    expectRenderSafeScalarRows(preservedRows);
     expect(preservedRows).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -2699,7 +2711,7 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       'getCoordinationMeaningPreservationGapRows',
       coordinationMeaningPreservationFixture
     );
-    expectScalarRows(gapRows);
+    expectRenderSafeScalarRows(gapRows);
     expect(gapRows).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -2719,7 +2731,7 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       'getCoordinationMeaningPreservationOwnerDecisionRows',
       coordinationMeaningPreservationFixture
     );
-    expectScalarRows(ownerDecisionRows);
+    expectRenderSafeScalarRows(ownerDecisionRows);
     expect(ownerDecisionRows).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ rowKey: 'meaning_owner', status: 'provided' }),
@@ -2728,7 +2740,7 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       ])
     );
 
-    expectScalarRows(
+    expectRenderSafeScalarRows(
       runTransformer(
         'getCoordinationMeaningPreservationFollowupRows',
         coordinationMeaningPreservationFixture
@@ -2739,7 +2751,7 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       'getCoordinationMeaningPreservationTransferRows',
       coordinationMeaningPreservationFixture
     );
-    expectScalarRows(transferRows);
+    expectRenderSafeScalarRows(transferRows);
     expect(transferRows).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ rowKey: 'tenant_id', value: 'stadtwerk-mauer' }),
@@ -2755,7 +2767,7 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       'getCoordinationMeaningPreservationGuardRows',
       coordinationMeaningPreservationFixture
     );
-    expectScalarRows(boundaryRows);
+    expectRenderSafeScalarRows(boundaryRows);
     expect(boundaryRows).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ boundary: 'external.connector.call', status: 'not_called' }),
@@ -2775,6 +2787,36 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
         'meaning_preservation_boundaries',
       ])
     );
+  });
+
+  it('keeps Coordination Meaning Preservation cells render-safe when upstream data is nested', () => {
+    const nestedFixture = JSON.parse(JSON.stringify(coordinationMeaningPreservationFixture));
+    nestedFixture.status = { code: 'needs_decision_context' };
+    nestedFixture.coordinationLossClassification = { code: 'decision_context_missing' };
+    nestedFixture.requestContext.caseId = { selectedCase: 'smm-budibase-workbench' };
+    nestedFixture.requestContext.sourceDomain = ['Netzbetrieb'];
+    nestedFixture.requestContext.targetDomain = { domain: 'Zielnetzplanung' };
+    nestedFixture.preservedDimensions[0].label = { label: 'Regulatory reference' };
+    nestedFixture.preservedDimensions[0].category = ['regulatory_context'];
+    nestedFixture.preservedDimensions[2].value = { role: 'ROLE_NETZPLANUNG' };
+    nestedFixture.missingDimensions[1].label = { label: 'Deadline' };
+    nestedFixture.missingDimensions[1].enablesDossierAddition = { followUp: 'add Frist' };
+    nestedFixture.weakDimensions[0].id = { dimension: 'evidence_proof' };
+    nestedFixture.positiveFollowUps[0].missingDataPoint = { gap: 'commercial_effect' };
+    nestedFixture.positiveFollowUps[0].enablesDossierAddition = { followUp: 'add kaufmaennische Auswirkung' };
+    nestedFixture.sourceActions.notCalled.push({ boundary: 'external.connector.call' });
+
+    [
+      'getCoordinationMeaningPreservationSummaryRows',
+      'getCoordinationMeaningPreservationPreservedRows',
+      'getCoordinationMeaningPreservationGapRows',
+      'getCoordinationMeaningPreservationOwnerDecisionRows',
+      'getCoordinationMeaningPreservationFollowupRows',
+      'getCoordinationMeaningPreservationTransferRows',
+      'getCoordinationMeaningPreservationGuardRows',
+    ].forEach((queryName) => {
+      expectRenderSafeScalarRows(runTransformer(queryName, nestedFixture));
+    });
   });
 
   it('flattens Energy Sharing Collective Approval rows and no-call guards', () => {
