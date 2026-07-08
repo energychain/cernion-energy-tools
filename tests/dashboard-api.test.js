@@ -9276,6 +9276,63 @@ describe('dashboard-api.service', () => {
         );
       });
 
+      it('verifies the Grid Connection Transformation Gate Blueprint seed read-only', async () => {
+        const result = await broker.call('dashboard-api.stadtwerkMauerBlueprintPackVerifyStatus', {
+          tenantId: 'stadtwerk-mauer',
+          seedId: 'stadtwerk-mauer-grid-connection-transformation-gate-v1',
+        });
+
+        expect(result.status).toBe('completed');
+        expect(result.riskClass).toBe('read_only');
+        expect(result.data.validation).toEqual({ valid: true, errors: [] });
+        expect(result.summary.counts.requiredEvidence).toBe(8);
+        expect(result.summary.counts.demoProcessMatrixRows).toBe(4);
+        expect(result.data.requiredEvidence).toEqual(
+          expect.arrayContaining([
+            'napMaloReferenceEvidence',
+            'divisionEvidence',
+            'transformationOptionEvidence',
+            'dataQualityEvidence',
+            'investmentPathEvidence',
+            'decommissionPathEvidence',
+            'ownerNextActionEvidence',
+            'sourceReferenceEvidence',
+          ])
+        );
+        expect(result.data.demoProcessMatrixSync).toMatchObject({
+          slug: 'grid-connection-transformation-gate',
+          expectedSlug: 'grid-connection-transformation-gate',
+          synced: true,
+          roleLegendM: 'Mitwirkend',
+          rowCount: 4,
+          rowCountValid: true,
+          roleCellsClean: true,
+          dataClassesLimited: true,
+          forbiddenActionsStatus: 'not_introduced',
+        });
+        expect(result.data.demoProcessMatrixSync.rows[2]).toMatchObject({
+          phase: '3',
+          roles: {
+            V: 'ROLE_NETZPLANUNG',
+            D: 'ROLE_CERNION_GOVERNANCE',
+            M: 'ROLE_ASSET_MANAGEMENT',
+            I: 'ROLE_ADMINISTRATOR',
+          },
+          evidenceRequirements: ['investmentPathEvidence', 'decommissionPathEvidence'],
+          gateOutcome: 'investment_and_decommission_path_review_only',
+        });
+        expect(result.data.sourceActions.notCalled).toEqual(
+          expect.arrayContaining([
+            'tenant.provision',
+            'seed.import',
+            'rundeck.execute',
+            'budibase.table.write',
+            'public-context.mutate',
+            'personal-agent.execute',
+          ])
+        );
+      });
+
       it('returns a blocked read-only state for unsupported seeds', async () => {
         const result = await broker.call('dashboard-api.stadtwerkMauerBlueprintPackVerifyStatus', {
           tenantId: 'stadtwerk-mauer',

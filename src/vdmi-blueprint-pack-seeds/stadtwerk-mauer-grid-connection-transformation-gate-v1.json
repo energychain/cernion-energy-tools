@@ -1,0 +1,307 @@
+{
+  "id": "stadtwerk-mauer-grid-connection-transformation-gate-v1",
+  "kind": "vdmi_blueprint_pack_seed",
+  "version": "1.0.0",
+  "safetyClassification": "read_only_blueprint_seed",
+  "title": "Stadtwerk Mauer Grid Connection Transformation Gate seed",
+  "processFamily": "grid_connection_transformation",
+  "controlCase": "grid_connection_transformation_gate",
+  "sourceApi": {
+    "operation": "GET /api/dashboard/grid-connection-transformation-gate",
+    "path": "/api/dashboard/grid-connection-transformation-gate",
+    "method": "GET",
+    "workbenchBrick": "grid_connection_transformation_gate",
+    "capability": "dashboard-api.gridConnectionTransformationGateStatus",
+    "readOnly": true,
+    "invocation": "source_hint_only",
+    "relatedContextBricks": [
+      "GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "GET /api/dashboard/stadtwerk-mauer-transfer-readiness",
+      "GET /api/dashboard/stadtwerk-mauer-case-detail",
+      "GET /api/dashboard/stadtwerk-mauer-role-workbench-catalog"
+    ]
+  },
+  "demoTenant": {
+    "tenantId": "stadtwerk-mauer",
+    "classification": "synthetic_demo_tenant",
+    "description": "Virtual Stadtwerk Mauer demo tenant; NAP, MaLo, transformation, path, owner and source-reference values are synthetic review facts unless explicitly marked as public read-only context."
+  },
+  "roleQuestion": {
+    "actor": "ROLE_NETZPLANUNG / Asset Management",
+    "answerableIn": "under_one_minute",
+    "question": "Is this NAP/MaLo transformation case review-ready, which evidence is missing, who owns the next gate, and what is explicitly not allowed yet?"
+  },
+  "dataClasses": {
+    "publicContextLayer": {
+      "description": "Read-only public or curated context such as municipality, OSM or MaStR baselines. Demo reset flows must not mutate this layer.",
+      "examples": ["public municipality context", "OSM grid context", "MaStR baseline reference"]
+    },
+    "syntheticTenantSeed": {
+      "description": "Invented Stadtwerk-Mauer NAP, MaLo, division, transformation option, path, owner, next action and source-reference review facts.",
+      "examples": ["synthetic NAP/MaLo link", "synthetic transformation option", "synthetic owner and next-gate marker"]
+    },
+    "sandboxRuntimeArtifact": {
+      "description": "Resettable output from Cernion/Rundeck or Workbench verification runs, separate from public context baselines.",
+      "examples": ["Blueprint-Pack verify proof", "Workbench matrix render artifact", "read-only transfer-readiness proof"]
+    }
+  },
+  "roles": [
+    {
+      "roleId": "ROLE_NETZPLANUNG",
+      "relation": "verantwortlich",
+      "responsibility": "Owns the grid-connection transformation gate, evidence intake and next-gate readiness review."
+    },
+    {
+      "roleId": "ROLE_CERNION_GOVERNANCE",
+      "relation": "durchfuehrend",
+      "responsibility": "Verifies the Blueprint-Pack seed, matrix sync, no-call boundary and source API hint without creating runtime records."
+    },
+    {
+      "roleId": "ROLE_ASSET_MANAGEMENT",
+      "relation": "mitwirkend",
+      "responsibility": "Contributes asset and decommission/reuse path context without changing Asset-MDM, GIS or ZNP records."
+    },
+    {
+      "roleId": "ROLE_ZIELNETZPLANUNG",
+      "relation": "mitwirkend",
+      "responsibility": "Contributes investment-path and target-grid planning context without committing network capacity or investment decisions."
+    },
+    {
+      "roleId": "ROLE_ADMINISTRATOR",
+      "relation": "information",
+      "responsibility": "Reviews visibility, matrix sync and governance status without using Budibase as a system of record."
+    },
+    {
+      "roleId": "ROLE_COMMERCIAL_AUDIT",
+      "relation": "information",
+      "responsibility": "Receives safe audit/no-call context without MaKo, billing, settlement, tariff or customer communication action."
+    }
+  ],
+  "evidenceRequirements": [
+    {
+      "id": "napMaloReferenceEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds the NAP/MaLo anchor once the synthetic transformation case reference is supplied."
+    },
+    {
+      "id": "divisionEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds the division/sparte classification so the dossier can frame the transformation path."
+    },
+    {
+      "id": "transformationOptionEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds the selected transformation option without committing a connection, grid-control or investment decision."
+    },
+    {
+      "id": "dataQualityEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "review",
+      "enablesDossierAddition": "Adds the data-quality status needed before Zielnetzplanung or asset path review can trust the case."
+    },
+    {
+      "id": "investmentPathEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "review",
+      "enablesDossierAddition": "Adds the investment-path evidence as a review fact without approving budget or committing capacity."
+    },
+    {
+      "id": "decommissionPathEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "review",
+      "enablesDossierAddition": "Adds the decommission/reuse path evidence without changing asset lifecycle state."
+    },
+    {
+      "id": "ownerNextActionEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "needs_owner",
+      "enablesDossierAddition": "Adds the accountable owner and next-gate action without creating a HITL ticket or workflow."
+    },
+    {
+      "id": "sourceReferenceEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds source references for the read-only dashboard brick and Blueprint verify proof."
+    }
+  ],
+  "demoProcessMatrix": {
+    "slug": "grid-connection-transformation-gate",
+    "title": "Grid Connection Transformation Gate",
+    "roleLegend": {
+      "V": "Verantwortlich",
+      "D": "Durchfuehrend",
+      "M": "Mitwirkend",
+      "I": "Informiert"
+    },
+    "headers": [
+      "Phase",
+      "V = Verantwortlich",
+      "D = Durchfuehrend",
+      "M = Mitwirkend",
+      "I = Informiert",
+      "Nachweise"
+    ],
+    "allowedDataClasses": [
+      "publicContextLayer",
+      "syntheticTenantSeed",
+      "sandboxRuntimeArtifact"
+    ],
+    "downstreamHandoff": {
+      "blueprintPack": "complete",
+      "landingRegistry": "pending",
+      "productiveDemoRoom": "pending",
+      "acceptanceNote": "Blueprint-Pack/Cernion-Energy-Tools matrix is canonical; Landing-Registry and productive Demo-Raum sync remain downstream proof steps."
+    },
+    "rows": [
+      {
+        "phase": "1",
+        "v": "ROLE_NETZPLANUNG",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_ASSET_MANAGEMENT",
+        "i": "ROLE_ADMINISTRATOR",
+        "evidenceRequirements": [
+          "napMaloReferenceEvidence",
+          "divisionEvidence",
+          "sourceReferenceEvidence"
+        ],
+        "dataClassRefs": [
+          "publicContextLayer",
+          "syntheticTenantSeed"
+        ],
+        "status": "evidence_gap",
+        "gateOutcome": "nap_malo_division_evidence_visible",
+        "enablesDossierAddition": "Adds the NAP/MaLo, division and source-reference intake rows before the transformation case can be reviewed."
+      },
+      {
+        "phase": "2",
+        "v": "ROLE_NETZPLANUNG",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_ZIELNETZPLANUNG",
+        "i": "ROLE_COMMERCIAL_AUDIT",
+        "evidenceRequirements": [
+          "dataQualityEvidence",
+          "transformationOptionEvidence"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed"
+        ],
+        "status": "review",
+        "gateOutcome": "data_quality_and_transformation_option_review_only",
+        "enablesDossierAddition": "Adds data-quality and transformation-option review facts without creating a grid-connection commitment."
+      },
+      {
+        "phase": "3",
+        "v": "ROLE_NETZPLANUNG",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_ASSET_MANAGEMENT",
+        "i": "ROLE_ADMINISTRATOR",
+        "evidenceRequirements": [
+          "investmentPathEvidence",
+          "decommissionPathEvidence"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed",
+          "sandboxRuntimeArtifact"
+        ],
+        "status": "review",
+        "gateOutcome": "investment_and_decommission_path_review_only",
+        "enablesDossierAddition": "Adds investment and decommission/reuse path evidence without budget approval, Asset-MDM writes or ZNP mutation."
+      },
+      {
+        "phase": "4",
+        "v": "ROLE_NETZPLANUNG",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_ASSET_MANAGEMENT",
+        "i": "ROLE_COMMERCIAL_AUDIT",
+        "evidenceRequirements": [
+          "ownerNextActionEvidence",
+          "sourceReferenceEvidence"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed",
+          "sandboxRuntimeArtifact"
+        ],
+        "status": "needs_owner",
+        "gateOutcome": "owner_next_gate_readiness_visible",
+        "enablesDossierAddition": "Adds owner and next-gate readiness rows while keeping public Demo-Raum publication and operational action pending."
+      }
+    ]
+  },
+  "decisionPolicy": {
+    "onMissingEvidence": "evidence_gap",
+    "onMissingOwner": "needs_owner",
+    "onReadyEvidence": "review_ready",
+    "allowedStates": ["clarification", "evidence_gap", "review", "needs_owner", "review_ready"],
+    "mustNotTrigger": [
+      "connection_commitment",
+      "asset_mdm_write",
+      "znp_write",
+      "gis_write",
+      "mastr_write",
+      "grid_control",
+      "budibase_table_write",
+      "mako_write",
+      "billing",
+      "settlement",
+      "tariff_mutation",
+      "workflow_create",
+      "hitl_create",
+      "webhook_send",
+      "device_control",
+      "smgw_cls_device_control",
+      "external_connector_call",
+      "public_context_mutation",
+      "production_mutation",
+      "personal_agent_hardcoding"
+    ]
+  },
+  "allowedCommandHints": [
+    {
+      "id": "inspect-grid-connection-transformation-gate-brick",
+      "kind": "source_api_reference",
+      "execution": "metadata_only",
+      "description": "References the existing read-only dashboard brick; this seed must not commit grid connection decisions, mutate planning systems or publish Demo-Raum content."
+    }
+  ],
+  "forbiddenActions": [
+    "connection_commitment",
+    "asset_mdm_write",
+    "znp_write",
+    "gis_write",
+    "mastr_write",
+    "grid_control",
+    "budibase_table_write",
+    "budget_approval",
+    "mako_write",
+    "billing",
+    "settlement",
+    "tariff_mutation",
+    "workflow_create",
+    "hitl_create",
+    "webhook_send",
+    "device_control",
+    "smgw_cls_device_control",
+    "external_connector_call",
+    "landing_registry_publication",
+    "cernion_de_publication",
+    "public_context_mutation",
+    "production_mutation",
+    "secret_key_handling",
+    "irreversible_tenant_mutation",
+    "personal_agent_hardcoding"
+  ],
+  "publicContextMutationAllowed": false,
+  "tenantProvisioningAllowed": false,
+  "realWorldClaim": "synthetic_demo_only"
+}

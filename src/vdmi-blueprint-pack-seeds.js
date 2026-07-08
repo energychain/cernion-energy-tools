@@ -12,6 +12,7 @@ const stadtwerkMauerMonitoringNonEscalationStatus = require('./vdmi-blueprint-pa
 const stadtwerkMauerCrossSystemVarianceEvidenceMatrix = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-cross-system-variance-evidence-matrix-v1.json');
 const stadtwerkMauerDecommissionedAssetReconciliation = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-decommissioned-asset-reconciliation-v1.json');
 const stadtwerkMauerMastrSyncGapAlerting = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-mastr-sync-gap-alerting-v1.json');
+const stadtwerkMauerGridConnectionTransformationGate = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-grid-connection-transformation-gate-v1.json');
 
 const REQUIRED_EVIDENCE = Object.freeze([
   'napReference',
@@ -122,6 +123,16 @@ const REQUIRED_MASTR_SYNC_GAP_ALERTING_EVIDENCE = Object.freeze([
   'syncGapAlertFeed',
   'reconciliationApprovalDecision',
 ]);
+const REQUIRED_GRID_CONNECTION_TRANSFORMATION_GATE_EVIDENCE = Object.freeze([
+  'napMaloReferenceEvidence',
+  'divisionEvidence',
+  'transformationOptionEvidence',
+  'dataQualityEvidence',
+  'investmentPathEvidence',
+  'decommissionPathEvidence',
+  'ownerNextActionEvidence',
+  'sourceReferenceEvidence',
+]);
 
 const REQUIRED_DATA_CLASSES = Object.freeze([
   'publicContextLayer',
@@ -183,6 +194,12 @@ const REQUIRED_MASTR_SYNC_GAP_ALERTING_ROLE_IDS = Object.freeze([
   'ROLE_REDISPATCH_KOORDINATOR',
   'ROLE_CERNION_GOVERNANCE',
 ]);
+const REQUIRED_GRID_CONNECTION_TRANSFORMATION_GATE_ROLE_IDS = Object.freeze([
+  'ROLE_NETZPLANUNG',
+  'ROLE_CERNION_GOVERNANCE',
+  'ROLE_ASSET_MANAGEMENT',
+  'ROLE_ADMINISTRATOR',
+]);
 const REQUIRED_MATRIX_ROLE_KEYS = Object.freeze(['v', 'd', 'm', 'i']);
 const MATRIX_HEADER_WORDS = Object.freeze([
   'Phase',
@@ -206,6 +223,7 @@ const SEEDS = Object.freeze([
   stadtwerkMauerCrossSystemVarianceEvidenceMatrix,
   stadtwerkMauerDecommissionedAssetReconciliation,
   stadtwerkMauerMastrSyncGapAlerting,
+  stadtwerkMauerGridConnectionTransformationGate,
 ]);
 
 const SEED_VALIDATION_REQUIREMENTS = Object.freeze({
@@ -268,6 +286,11 @@ const SEED_VALIDATION_REQUIREMENTS = Object.freeze({
     requiredEvidence: REQUIRED_MASTR_SYNC_GAP_ALERTING_EVIDENCE,
     requiredRoleIds: REQUIRED_MASTR_SYNC_GAP_ALERTING_ROLE_IDS,
     expectedMatrixSlug: 'mastr-sync-gap-alerting',
+  }),
+  [stadtwerkMauerGridConnectionTransformationGate.id]: Object.freeze({
+    requiredEvidence: REQUIRED_GRID_CONNECTION_TRANSFORMATION_GATE_EVIDENCE,
+    requiredRoleIds: REQUIRED_GRID_CONNECTION_TRANSFORMATION_GATE_ROLE_IDS,
+    expectedMatrixSlug: 'grid-connection-transformation-gate',
   }),
 });
 
@@ -678,6 +701,8 @@ module.exports = {
   REQUIRED_GAS_TRANSFORMATION_DATAROOM_REVIEW_ROLE_IDS,
   REQUIRED_MASTR_SYNC_GAP_ALERTING_EVIDENCE,
   REQUIRED_MASTR_SYNC_GAP_ALERTING_ROLE_IDS,
+  REQUIRED_GRID_CONNECTION_TRANSFORMATION_GATE_EVIDENCE,
+  REQUIRED_GRID_CONNECTION_TRANSFORMATION_GATE_ROLE_IDS,
   REQUIRED_MONITORING_NON_ESCALATION_STATUS_EVIDENCE,
   REQUIRED_MONITORING_NON_ESCALATION_STATUS_ROLE_IDS,
   REQUIRED_PORTFOLIO_MARKET_VALUE_READINESS_EVIDENCE,
@@ -702,6 +727,7 @@ module.exports = {
   stadtwerkMauerDecommissionedAssetReconciliation,
   stadtwerkMauerGasTransformationDataroomReview,
   stadtwerkMauerMastrSyncGapAlerting,
+  stadtwerkMauerGridConnectionTransformationGate,
   stadtwerkMauerMonitoringNonEscalationStatus,
   stadtwerkMauerPortfolioMarketValueReadiness,
   validateVdmiBlueprintPackSeed,

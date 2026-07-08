@@ -9,6 +9,7 @@ const {
   REQUIRED_EVIDENCE,
   REQUIRED_GAS_TRANSFORMATION_DATAROOM_REVIEW_EVIDENCE,
   REQUIRED_MASTR_SYNC_GAP_ALERTING_EVIDENCE,
+  REQUIRED_GRID_CONNECTION_TRANSFORMATION_GATE_EVIDENCE,
   REQUIRED_MONITORING_NON_ESCALATION_STATUS_EVIDENCE,
   REQUIRED_PORTFOLIO_MARKET_VALUE_READINESS_EVIDENCE,
   REQUIRED_REDISPATCH_READINESS_EVIDENCE,
@@ -24,6 +25,7 @@ const {
   stadtwerkMauerEnergySharingCollectiveApproval,
   stadtwerkMauerGasTransformationDataroomReview,
   stadtwerkMauerMastrSyncGapAlerting,
+  stadtwerkMauerGridConnectionTransformationGate,
   stadtwerkMauerMonitoringNonEscalationStatus,
   stadtwerkMauerPvMissingNap,
   stadtwerkMauerPortfolioMarketValueReadiness,
@@ -255,6 +257,72 @@ describe('VDMI Blueprint Pack seeds', () => {
     expect(getVdmiBlueprintPackSeed('stadtwerk-mauer-cross-system-variance-evidence-matrix-v1')).toBe(
       stadtwerkMauerCrossSystemVarianceEvidenceMatrix
     );
+  });
+
+  test('exposes the Grid Connection Transformation Gate seed as read-only metadata', () => {
+    expect(stadtwerkMauerGridConnectionTransformationGate).toMatchObject({
+      id: 'stadtwerk-mauer-grid-connection-transformation-gate-v1',
+      kind: 'vdmi_blueprint_pack_seed',
+      version: '1.0.0',
+      safetyClassification: 'read_only_blueprint_seed',
+      processFamily: 'grid_connection_transformation',
+      controlCase: 'grid_connection_transformation_gate',
+      sourceApi: {
+        operation: 'GET /api/dashboard/grid-connection-transformation-gate',
+        path: '/api/dashboard/grid-connection-transformation-gate',
+        method: 'GET',
+        workbenchBrick: 'grid_connection_transformation_gate',
+        capability: 'dashboard-api.gridConnectionTransformationGateStatus',
+        readOnly: true,
+        invocation: 'source_hint_only',
+      },
+      demoTenant: {
+        tenantId: 'stadtwerk-mauer',
+        classification: 'synthetic_demo_tenant',
+      },
+    });
+
+    expect(listVdmiBlueprintPackSeeds()).toContainEqual(
+      expect.objectContaining({
+        id: 'stadtwerk-mauer-grid-connection-transformation-gate-v1',
+        demoTenantId: 'stadtwerk-mauer',
+      })
+    );
+    expect(getVdmiBlueprintPackSeed('stadtwerk-mauer-grid-connection-transformation-gate-v1')).toBe(
+      stadtwerkMauerGridConnectionTransformationGate
+    );
+  });
+
+  test('validates Grid Connection Transformation Gate without planning or grid side effects', () => {
+    const result = validateVdmiBlueprintPackSeed(stadtwerkMauerGridConnectionTransformationGate);
+
+    expect(result).toEqual({ valid: true, errors: [] });
+    expect(stadtwerkMauerGridConnectionTransformationGate.evidenceRequirements.map((item) => item.id)).toEqual(
+      REQUIRED_GRID_CONNECTION_TRANSFORMATION_GATE_EVIDENCE
+    );
+    expect(stadtwerkMauerGridConnectionTransformationGate.forbiddenActions).toEqual(
+      expect.arrayContaining([
+        'connection_commitment',
+        'asset_mdm_write',
+        'znp_write',
+        'gis_write',
+        'mastr_write',
+        'grid_control',
+        'budibase_table_write',
+        'mako_write',
+        'billing',
+        'settlement',
+        'tariff_mutation',
+        'hitl_create',
+        'external_connector_call',
+        'public_context_mutation',
+        'production_mutation',
+        'personal_agent_hardcoding',
+      ])
+    );
+    expect(stadtwerkMauerGridConnectionTransformationGate.publicContextMutationAllowed).toBe(false);
+    expect(stadtwerkMauerGridConnectionTransformationGate.tenantProvisioningAllowed).toBe(false);
+    expect(stadtwerkMauerGridConnectionTransformationGate.realWorldClaim).toBe('synthetic_demo_only');
   });
 
   test('validates Cross-System Variance Evidence Matrix without system or finance side effects', () => {
@@ -932,6 +1000,60 @@ describe('VDMI Blueprint Pack seeds', () => {
         expect(REQUIRED_DATA_CLASSES).not.toContain(roleCell);
         expect(roleCell).not.toMatch(
           /Phase|Verantwortlich|Durchfuehrend|Mitwirkend|Informiert|Nachweise|source|target|revenue|amount|threshold|evidence/i
+        );
+      }
+    }
+  });
+
+  test('exposes a canonical Demo-Raum process matrix for Grid Connection Transformation Gate sync', () => {
+    const matrix = stadtwerkMauerGridConnectionTransformationGate.demoProcessMatrix;
+
+    expect(matrix.slug).toBe('grid-connection-transformation-gate');
+    expect(matrix.roleLegend.M).toBe('Mitwirkend');
+    expect(matrix.headers).toEqual([
+      'Phase',
+      'V = Verantwortlich',
+      'D = Durchfuehrend',
+      'M = Mitwirkend',
+      'I = Informiert',
+      'Nachweise',
+    ]);
+    expect(matrix.rows).toHaveLength(4);
+    expect(matrix.allowedDataClasses).toEqual(REQUIRED_DATA_CLASSES);
+    expect(matrix.downstreamHandoff).toMatchObject({
+      blueprintPack: 'complete',
+      landingRegistry: 'pending',
+      productiveDemoRoom: 'pending',
+    });
+    expect(matrix.rows[2]).toMatchObject({
+      phase: '3',
+      v: 'ROLE_NETZPLANUNG',
+      d: 'ROLE_CERNION_GOVERNANCE',
+      m: 'ROLE_ASSET_MANAGEMENT',
+      i: 'ROLE_ADMINISTRATOR',
+      evidenceRequirements: ['investmentPathEvidence', 'decommissionPathEvidence'],
+      gateOutcome: 'investment_and_decommission_path_review_only',
+    });
+
+    for (const row of matrix.rows) {
+      expect(row).toEqual(
+        expect.objectContaining({
+          phase: expect.any(String),
+          v: expect.stringMatching(/^ROLE_/),
+          d: expect.stringMatching(/^ROLE_/),
+          m: expect.stringMatching(/^ROLE_/),
+          i: expect.stringMatching(/^ROLE_/),
+          evidenceRequirements: expect.arrayContaining([expect.any(String)]),
+          dataClassRefs: expect.arrayContaining([expect.any(String)]),
+          gateOutcome: expect.any(String),
+          enablesDossierAddition: expect.any(String),
+        })
+      );
+
+      for (const roleCell of [row.v, row.d, row.m, row.i]) {
+        expect(REQUIRED_DATA_CLASSES).not.toContain(roleCell);
+        expect(roleCell).not.toMatch(
+          /Phase|Verantwortlich|Durchfuehrend|Mitwirkend|Informiert|Nachweise/
         );
       }
     }
