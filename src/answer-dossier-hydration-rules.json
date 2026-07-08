@@ -575,6 +575,64 @@
     "sourceIssue": 194
   },
   {
+    "id": "dashboard-api.controllabilityDataAlignmentStatus",
+    "action": "dashboard-api.controllabilityDataAlignmentStatus",
+    "label": "Controllability Data Alignment",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "checklistId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:checklist|checklistId|pruefliste|prüfliste)[:= ]+([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "assetId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:assetId|asset|anlage)[:= ]+([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "owner": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:owner|verantwortlich|verantwortlicher)[:= ]+([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "dossierEvidence.status"], "label": "Alignment Status", "maxLen": 90 },
+        { "paths": ["checklist.checklistId", "dossierEvidence.checklist.checklistId"], "label": "Checklist", "maxLen": 100 },
+        { "paths": ["safeNextGate", "dossierEvidence.safeNextGate"], "label": "Next Gate", "maxLen": 120 },
+        { "paths": ["owner", "dossierEvidence.owner"], "label": "Owner", "maxLen": 100 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["positiveFollowUps.0.enablesDossierAddition", "dossierEvidence.positiveFollowUps.0.enablesDossierAddition"], "label": "Follow-up Enables", "maxLen": 170 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["timestamp"], "label": "Stand", "maxLen": 40 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "derived",
+    "timeoutMs": 7000,
+    "sourceIssue": 407
+  },
+  {
     "id": "dashboard-api.coordinationMeaningPreservationProfile",
     "action": "dashboard-api.coordinationMeaningPreservationProfile",
     "label": "Coordination Meaning Preservation Profile",

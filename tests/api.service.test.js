@@ -536,6 +536,9 @@ describe('API Gateway Service', () => {
       expect(aliases['GET /dashboard/controllability-asset-handover']).toBe(
         'dashboard-api.controllabilityAssetHandoverStatus'
       );
+      expect(aliases['GET /dashboard/controllability-data-alignment']).toBe(
+        'dashboard-api.controllabilityDataAlignmentStatus'
+      );
       expect(aliases['GET /dashboard/coordination-meaning-preservation-profile']).toBe(
         'dashboard-api.coordinationMeaningPreservationProfile'
       );

@@ -919,6 +919,20 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes Steuerbarkeitscheck data-alignment prompts to the read-only alignment view', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Erstelle Steuerbarkeitscheck-Datenabgleich fuer Prueflistenabgleich, Redispatch Steuerbarkeit, Ausnahmeliste, Vorjahresvergleich und Steuertechnikstatus.',
+    });
+
+    expect(result.capability).toBe('controllability_data_alignment');
+    expect(result.recommendedCapabilities[0].capability).toBe('controllability_data_alignment');
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.controllabilityDataAlignmentStatus');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('grid-operations.executeControl');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes Bedeutungserhalt coordination prompts to the read-only meaning-preservation profile', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Erstelle eine bedeutungserhaltende Koordinationsschicht fuer ein Entscheidungsobjekt mit Bedeutungsverlust, Fachbereichsuebergabe, Owner, Frist, Nachweis und naechster Entscheidung.',

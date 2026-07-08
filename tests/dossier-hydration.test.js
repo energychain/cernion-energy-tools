@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 116 static rules', () => {
+    it('loads all 117 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(116);
+      expect(rules.length).toBe(117);
     });
 
-    it('compiles all 116 static rules without error', () => {
+    it('compiles all 117 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(116);
+      expect(rules.length).toBe(117);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -518,6 +518,42 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Asset: asset-194');
       expect(formatted).toContain('Owner: assetmanagement');
       expect(formatted).toContain('Leading Gap: feedback_capability');
+    });
+
+    it('dashboard-api.controllabilityDataAlignmentStatus is dossier-safe and formats alignment facts', () => {
+      const rule = getRule('dashboard-api.controllabilityDataAlignmentStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Steuerbarkeitscheck-Datenabgleich checklist=check-407 asset=asset-407 owner=netzplanung laden'
+        )
+      ).toEqual({
+        checklistId: 'check-407',
+        assetId: 'asset-407',
+        owner: 'netzplanung',
+      });
+
+      const formatted = rule.formatEvidence({
+        status: 'needs_control_technology_status',
+        checklist: { checklistId: 'check-407' },
+        safeNextGate: 'collect_control_technology_evidence',
+        owner: 'netzplanung',
+        missingEvidence: [{ missingDataPoint: 'control_technology_status' }],
+        positiveFollowUps: [
+          {
+            enablesDossierAddition: 'add Steuertechnik/CLS/iMSys readiness evidence',
+          },
+        ],
+        sourceActions: { notCalled: ['file.import'] },
+        timestamp: '2026-07-08T22:30:00.000Z',
+      });
+
+      expect(formatted).toContain('Alignment Status: needs_control_technology_status');
+      expect(formatted).toContain('Checklist: check-407');
+      expect(formatted).toContain('Next Gate: collect_control_technology_evidence');
+      expect(formatted).toContain('Leading Gap: control_technology_status');
     });
 
     it('dashboard-api.coordinationMeaningPreservationProfile is dossier-safe and formats meaning-preservation facts', () => {

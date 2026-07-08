@@ -347,6 +347,36 @@ describe('T-EV-001 — evidence-planner: planEvidence() pure-function contract',
     );
   });
 
+  it('plans controllability data alignment as checklist and match evidence', () => {
+    const result = planEvidence(
+      { routeLabel: 'controllability_data_alignment' },
+      {
+        checklistId: 'check-407',
+        assetMatch: 'matched',
+        controlTechStatus: 'missing',
+      }
+    );
+
+    expect(result).not.toBeNull();
+    expect(result.registryKey).toBe('controllability_data_alignment');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining([
+        'checklist_reference',
+        'asset_mastr_match',
+        'control_technology_status',
+      ])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'threshold_classification',
+        'testability',
+        'prior_year_comparison',
+        'owner_deadline',
+        'export_readiness',
+      ])
+    );
+  });
+
   it('plans Gremiencoach workbook readiness as private-prep evidence with guard gaps', () => {
     const result = planEvidence(
       { routeLabel: 'gremiencoach_workbook_readiness' },

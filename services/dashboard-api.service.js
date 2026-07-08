@@ -62,6 +62,7 @@ module.exports = {
       marketCommunicationEvidenceChainStatus: 5 * 60 * 1000, // 5 min
       e2eControllabilityGovernanceStatus: 5 * 60 * 1000, // 5 min
       controllabilityAssetHandoverStatus: 5 * 60 * 1000, // 5 min
+      controllabilityDataAlignmentStatus: 5 * 60 * 1000, // 5 min
       coordinationMeaningPreservationProfile: 5 * 60 * 1000, // 5 min
       gremiencoachWorkbookReadinessStatus: 5 * 60 * 1000, // 5 min
       decisionReadinessMatrixStatus: 5 * 60 * 1000, // 5 min
@@ -1743,6 +1744,100 @@ module.exports = {
           this.settings.cacheTtlMs.controllabilityAssetHandoverStatus,
           async () => ({
             ...this.buildControllabilityAssetHandoverStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // ── controllabilityDataAlignmentStatus ────────────────────────────────
+    /**
+     * GET /api/dashboard/controllability-data-alignment?checklistId=...
+     *
+     * Read-only dossier-safe status for recurring Steuerbarkeitscheck
+     * checklist reconciliation. It projects supplied/anonymized facts into
+     * evidence gaps and no-call guards without imports, writes or control.
+     */
+    controllabilityDataAlignmentStatus: {
+      rest: 'GET /controllability-data-alignment',
+      params: {
+        checklistId: { type: 'string', optional: true, min: 1 },
+        assetId: { type: 'string', optional: true, min: 1 },
+        mastrId: { type: 'string', optional: true, min: 1 },
+        assetMatch: { type: 'string', optional: true, min: 1 },
+        mastrMatch: { type: 'string', optional: true, min: 1 },
+        internalAssetMatch: { type: 'string', optional: true, min: 1 },
+        controlTechStatus: { type: 'string', optional: true, min: 1 },
+        thresholdClass: { type: 'string', optional: true, min: 1 },
+        testability: { type: 'string', optional: true, min: 1 },
+        exceptionReason: { type: 'string', optional: true, min: 1 },
+        priorYearComparison: { type: 'string', optional: true, min: 1 },
+        owner: { type: 'string', optional: true, min: 1 },
+        dueDate: { type: 'string', optional: true, min: 1 },
+        exportReadiness: { type: 'string', optional: true, min: 1 },
+        evidenceStatus: { type: 'string', optional: true, min: 1 },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Controllability data alignment — read-only dossier-safe status',
+        description:
+          'Builds a deterministic evidence/status view for recurring Steuerbarkeitscheck checklist reconciliation. ' +
+          'It compares supplied checklist, asset/MaStR/internal, control-tech, threshold, testability, exception, ' +
+          'prior-year, owner/deadline and export-readiness facts. The endpoint is read-only and does not import files, ' +
+          'mutate Asset-MDM, call MaStR/CLS/SMGW, create HITL items, execute tests, or affect MaKo, billing, settlement, tariffs or device control.',
+        parameters: [
+          { name: 'checklistId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'assetId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'mastrId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'assetMatch', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'mastrMatch', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'internalAssetMatch', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'controlTechStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'thresholdClass', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'testability', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'exceptionReason', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'priorYearComparison', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'owner', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'dueDate', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'exportReadiness', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'evidenceStatus', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only controllability data alignment status',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string' },
+                    checklist: { type: 'object' },
+                    alignmentRows: { type: 'array' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    safeNextGate: { type: 'string' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                    _errors: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `controllability-data-alignment:${params.checklistId || 'no-checklist'}:${params.assetId || 'no-asset'}:${params.mastrId || 'no-mastr'}:${params.assetMatch || 'no-asset-match'}:${params.mastrMatch || 'no-mastr-match'}:${params.controlTechStatus || 'no-control'}:${params.thresholdClass || 'no-threshold'}:${params.testability || 'no-testability'}:${params.exceptionReason || 'no-exception'}:${params.owner || 'no-owner'}:${params.dueDate || 'no-due-date'}:${params.exportReadiness || 'no-export'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.controllabilityDataAlignmentStatus,
+          async () => ({
+            ...this.buildControllabilityDataAlignmentStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -14958,6 +15053,224 @@ module.exports = {
           lineOwnerRole: params.lineOwnerRole || null,
           nextReportingCycle: params.nextReportingCycle || null,
           nonExecutionReason: params.nonExecutionReason || null,
+          blockingFindings,
+          dossierFacts,
+        },
+      };
+    },
+
+    buildControllabilityDataAlignmentStatus(params = {}) {
+      const normalize = (value) => (value == null ? '' : String(value).trim());
+      const valueOrNull = (value) => {
+        const normalized = normalize(value);
+        return normalized === '' ? null : normalized;
+      };
+      const hasValue = (value) => valueOrNull(value) !== null;
+      const dataMatchValue =
+        valueOrNull(params.assetMatch) ||
+        valueOrNull(params.mastrMatch) ||
+        valueOrNull(params.internalAssetMatch);
+      const exportReadiness = valueOrNull(params.exportReadiness) || valueOrNull(params.evidenceStatus);
+      const rowSpecs = [
+        {
+          id: 'checklist_reference',
+          label: 'External checklist reference',
+          value: params.checklistId,
+          evidenceClass: 'external_checklist_scope',
+          enablesDossierAddition: 'add anonymized checklist reference and scope',
+        },
+        {
+          id: 'asset_mastr_match',
+          label: 'Asset/MaStR/internal data match',
+          value: dataMatchValue,
+          evidenceClass: 'asset_master_data_alignment',
+          enablesDossierAddition: 'add asset, MaStR and internal master-data match evidence',
+        },
+        {
+          id: 'control_technology_status',
+          label: 'Control technology status',
+          value: params.controlTechStatus,
+          evidenceClass: 'controllability_technology',
+          enablesDossierAddition: 'add Steuertechnik/CLS/iMSys readiness evidence',
+        },
+        {
+          id: 'threshold_classification',
+          label: 'Threshold classification',
+          value: params.thresholdClass,
+          evidenceClass: 'regulatory_scope_classification',
+          enablesDossierAddition: 'add threshold and scope classification',
+        },
+        {
+          id: 'testability',
+          label: 'Testability',
+          value: params.testability,
+          evidenceClass: 'operational_testability',
+          enablesDossierAddition: 'add testability or non-testability evidence',
+        },
+        {
+          id: 'exception_reason',
+          label: 'Exception/risk rationale',
+          value: params.exceptionReason,
+          evidenceClass: 'defensible_exception_context',
+          enablesDossierAddition: 'add exception or risk rationale',
+          optionalWhen: () => normalize(params.testability).toLowerCase().includes('testable'),
+        },
+        {
+          id: 'prior_year_comparison',
+          label: 'Prior-year comparison',
+          value: params.priorYearComparison,
+          evidenceClass: 'year_over_year_delta',
+          enablesDossierAddition: 'add prior-year comparison and delta rationale',
+        },
+        {
+          id: 'owner_deadline',
+          label: 'Owner/deadline',
+          value: hasValue(params.owner) && hasValue(params.dueDate) ? `${params.owner} / ${params.dueDate}` : null,
+          evidenceClass: 'accountability_and_due_date',
+          enablesDossierAddition: 'add accountable owner and due date',
+        },
+        {
+          id: 'export_readiness',
+          label: 'Evidence export readiness',
+          value: exportReadiness,
+          evidenceClass: 'audit_package_readiness',
+          enablesDossierAddition: 'add evidence package/export readiness status',
+        },
+      ];
+      const alignmentRows = rowSpecs.map((spec) => ({
+        id: spec.id,
+        label: spec.label,
+        value: valueOrNull(spec.value),
+        evidenceClass: spec.evidenceClass,
+        evidenceStatus: valueOrNull(spec.value) ? 'provided' : spec.optionalWhen?.() ? 'not_required' : 'missing',
+      }));
+      const missingEvidence = rowSpecs
+        .filter((spec) => !valueOrNull(spec.value) && !spec.optionalWhen?.())
+        .map((spec) => ({
+          missingDataPoint: spec.id,
+          label: spec.label,
+          evidenceClass: spec.evidenceClass,
+          enablesDossierAddition: spec.enablesDossierAddition,
+        }));
+      const providedRows = alignmentRows.filter((row) => row.evidenceStatus === 'provided');
+      const normalizedControl = normalize(params.controlTechStatus).toLowerCase();
+      const normalizedTestability = normalize(params.testability).toLowerCase();
+      const normalizedThreshold = normalize(params.thresholdClass).toLowerCase();
+      const status =
+        missingEvidence.length === 0
+          ? 'ready_for_evidence_export'
+          : !dataMatchValue
+            ? 'needs_data_match'
+            : !hasValue(params.controlTechStatus)
+              ? 'needs_control_technology_status'
+              : !hasValue(params.testability)
+                ? 'needs_testability_classification'
+                : !hasValue(params.owner) || !hasValue(params.dueDate)
+                  ? 'needs_owner_deadline'
+                  : 'needs_alignment_evidence';
+      const safeNextGate =
+        status === 'ready_for_evidence_export'
+          ? 'export_dossier_package'
+          : normalizedThreshold.includes('above') && normalizedControl.includes('missing')
+            ? 'collect_control_technology_evidence'
+            : normalizedTestability.includes('not-testable') || normalizedTestability.includes('nicht')
+              ? 'document_non_testability_exception'
+              : 'complete_alignment_evidence';
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'controllability_data_alignment',
+      }));
+      const blockingFindings = missingEvidence.map((item) => ({
+        code: `CDA_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
+        severity: ['asset_mastr_match', 'control_technology_status', 'testability'].includes(
+          item.missingDataPoint
+        )
+          ? 'high'
+          : 'medium',
+        message: item.enablesDossierAddition,
+      }));
+      const checklist = {
+        checklistId: valueOrNull(params.checklistId),
+        assetId: valueOrNull(params.assetId),
+        mastrId: valueOrNull(params.mastrId),
+        assetMatch: valueOrNull(params.assetMatch),
+        mastrMatch: valueOrNull(params.mastrMatch),
+        internalAssetMatch: valueOrNull(params.internalAssetMatch),
+      };
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Provided alignment rows: ${providedRows.length}/${rowSpecs.length}`,
+        `Open gaps: ${missingEvidence.length}`,
+      ];
+      if (params.checklistId) dossierFacts.push(`Checklist: ${params.checklistId}`);
+      if (params.owner) dossierFacts.push(`Owner: ${params.owner}`);
+      if (safeNextGate) dossierFacts.push(`Next Gate: ${safeNextGate}`);
+
+      return {
+        alignmentId: `cda:${Buffer.from(
+          `${params.checklistId || ''}:${params.assetId || ''}:${params.mastrId || ''}:${params.owner || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 24)}`,
+        capabilityKey: 'controllability_data_alignment',
+        safety: 'read_only',
+        requestContext: {
+          checklistId: valueOrNull(params.checklistId),
+          owner: valueOrNull(params.owner),
+          dueDate: valueOrNull(params.dueDate),
+        },
+        status,
+        checklist,
+        thresholdClass: valueOrNull(params.thresholdClass),
+        testability: valueOrNull(params.testability),
+        exceptionReason: valueOrNull(params.exceptionReason),
+        priorYearComparison: valueOrNull(params.priorYearComparison),
+        owner: valueOrNull(params.owner),
+        dueDate: valueOrNull(params.dueDate),
+        exportReadiness,
+        safeNextGate,
+        alignmentRows,
+        missingEvidence,
+        positiveFollowUps,
+        blockingFindings,
+        sourceActions: {
+          inspected: ['dashboard-api.controllabilityDataAlignmentStatus'],
+          referenced: [
+            'assets.effective',
+            'mastr-quality.audit',
+            'redispatch-expost.audit',
+            'vdmi.dossier',
+            'interface-placeholder.requestEvidence',
+          ],
+          notCalled: [
+            'file.import',
+            'excel.parse',
+            'assets.applyOverride',
+            'mastr.liveLookup',
+            'cls.executeSwitching',
+            'grid-operations.executeControl',
+            'hitl.create',
+            'settlement.exportA96',
+            'settlement.prepareBilling',
+            'external.connector.call',
+          ],
+        },
+        validationFindings: blockingFindings,
+        dossierEvidence: {
+          status,
+          checklist,
+          thresholdClass: valueOrNull(params.thresholdClass),
+          testability: valueOrNull(params.testability),
+          exceptionReason: valueOrNull(params.exceptionReason),
+          priorYearComparison: valueOrNull(params.priorYearComparison),
+          owner: valueOrNull(params.owner),
+          dueDate: valueOrNull(params.dueDate),
+          exportReadiness,
+          safeNextGate,
+          alignmentRows,
+          missingEvidence,
+          positiveFollowUps,
           blockingFindings,
           dossierFacts,
         },

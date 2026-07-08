@@ -2060,6 +2060,97 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  controllability_data_alignment: {
+    sources: [
+      {
+        id: 'checklist_reference',
+        label: 'Externe Prueflisten-Referenz',
+        resolvedBy: ['dashboard-api.controllabilityDataAlignmentStatus'],
+        contextKeys: ['checklistId'],
+        optional: false,
+      },
+      {
+        id: 'asset_mastr_match',
+        label: 'Asset-/MaStR-/interner Datenabgleich',
+        resolvedBy: [
+          'dashboard-api.controllabilityDataAlignmentStatus',
+          'assets.effective',
+          'mastr-quality.audit',
+        ],
+        contextKeys: ['assetMatch', 'mastrMatch', 'internalAssetMatch', 'assetId', 'mastrId'],
+        optional: false,
+      },
+      {
+        id: 'control_technology_status',
+        label: 'Steuertechnikstatus',
+        resolvedBy: [
+          'dashboard-api.controllabilityDataAlignmentStatus',
+          'redispatch-expost.audit',
+          'grid-operations.controlMeasures',
+        ],
+        contextKeys: ['controlTechStatus'],
+        optional: false,
+      },
+      {
+        id: 'threshold_classification',
+        label: 'Schwellenwert-/Scope-Klassifikation',
+        resolvedBy: ['dashboard-api.controllabilityDataAlignmentStatus', 'vdmi.dossier'],
+        contextKeys: ['thresholdClass'],
+        optional: false,
+      },
+      {
+        id: 'testability',
+        label: 'Testbarkeit',
+        resolvedBy: [
+          'dashboard-api.controllabilityDataAlignmentStatus',
+          'redispatch-expost.audit',
+          'vdmi.dossier',
+        ],
+        contextKeys: ['testability'],
+        optional: false,
+      },
+      {
+        id: 'exception_reason',
+        label: 'Ausnahme-/Risikobegruendung',
+        resolvedBy: [
+          'dashboard-api.controllabilityDataAlignmentStatus',
+          'vdmi.dossier',
+          'interface-placeholder.requestEvidence',
+        ],
+        contextKeys: ['exceptionReason'],
+        optional: true,
+      },
+      {
+        id: 'prior_year_comparison',
+        label: 'Vorjahresvergleich',
+        resolvedBy: ['dashboard-api.controllabilityDataAlignmentStatus', 'vdmi.dossier'],
+        contextKeys: ['priorYearComparison'],
+        optional: false,
+      },
+      {
+        id: 'owner_deadline',
+        label: 'Owner und Frist',
+        resolvedBy: ['dashboard-api.controllabilityDataAlignmentStatus', 'vdmi.dossier'],
+        contextKeys: ['owner', 'dueDate'],
+        optional: false,
+      },
+      {
+        id: 'export_readiness',
+        label: 'Nachweispaket-/Exportbereitschaft',
+        resolvedBy: ['dashboard-api.controllabilityDataAlignmentStatus', 'vdmi.dossier'],
+        contextKeys: ['exportReadiness', 'evidenceStatus'],
+        optional: false,
+      },
+      {
+        id: 'no_call_guards',
+        label: 'No-Call-Guards fuer Import, Steuerung, HITL, MaKo und Settlement',
+        resolvedBy: ['dashboard-api.controllabilityDataAlignmentStatus'],
+        contextKeys: ['sourceActions.notCalled'],
+        optional: false,
+      },
+    ],
+  },
+
   liquidity_planning_governance_module: {
     sources: [
       {

@@ -12039,6 +12039,73 @@ describe('dashboard-api.service', () => {
         await expect(broker.call('dashboard-api.qualitySummary', {})).resolves.toBeDefined();
       });
     });
+
+    // ── controllabilityDataAlignmentStatus ────────────────────────────────
+
+    describe('controllabilityDataAlignmentStatus', () => {
+      it('reports explicit data-alignment gaps without imports or downstream actions', async () => {
+        const result = await broker.call('dashboard-api.controllabilityDataAlignmentStatus', {
+          checklistId: 'check-407',
+          assetId: 'asset-407',
+          mastrId: 'SEE-407',
+          assetMatch: 'matched',
+          controlTechStatus: 'missing',
+          thresholdClass: 'above-threshold',
+          testability: 'not-testable',
+          exceptionReason: 'fehlende-rueckmeldefaehigkeit',
+          owner: 'Netzplanung',
+        });
+
+        expect(result.status).toBe('needs_owner_deadline');
+        expect(result.checklist).toMatchObject({
+          checklistId: 'check-407',
+          assetId: 'asset-407',
+          mastrId: 'SEE-407',
+        });
+        expect(result.alignmentRows.map((row) => row.id)).toEqual(
+          expect.arrayContaining([
+            'checklist_reference',
+            'asset_mastr_match',
+            'control_technology_status',
+            'threshold_classification',
+            'testability',
+          ])
+        );
+        expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+          expect.arrayContaining(['prior_year_comparison', 'owner_deadline', 'export_readiness'])
+        );
+        expect(result.safeNextGate).toBe('collect_control_technology_evidence');
+        expect(result.positiveFollowUps[0].category).toBe('controllability_data_alignment');
+        expect(result.sourceActions.notCalled).toEqual(
+          expect.arrayContaining(['file.import', 'excel.parse', 'grid-operations.executeControl'])
+        );
+        expect(result.safety).toBe('read_only');
+      });
+
+      it('returns ready_for_evidence_export when all required alignment facts are supplied', async () => {
+        const result = await broker.call('dashboard-api.controllabilityDataAlignmentStatus', {
+          checklistId: 'check-407',
+          assetId: 'asset-407',
+          mastrId: 'SEE-407',
+          assetMatch: 'matched',
+          mastrMatch: 'matched',
+          internalAssetMatch: 'matched',
+          controlTechStatus: 'cls-ready',
+          thresholdClass: 'above-threshold',
+          testability: 'testable',
+          priorYearComparison: 'changed',
+          owner: 'Netzplanung',
+          dueDate: '2026-09-30',
+          exportReadiness: 'ready',
+        });
+
+        expect(result.status).toBe('ready_for_evidence_export');
+        expect(result.missingEvidence).toEqual([]);
+        expect(result.safeNextGate).toBe('export_dossier_package');
+        expect(result.dossierEvidence.dossierFacts).toContain('Provided alignment rows: 8/9');
+        expect(result.sourceActions.notCalled).toContain('external.connector.call');
+      });
+    });
   });
 
   // -- stadtwerkMauerCaseActionsStatus -----------------------------------

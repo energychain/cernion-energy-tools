@@ -309,6 +309,22 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasControllabilityDataAlignmentSpecificSignal =
+    /(steuerbarkeitscheck|redispatch steuerbarkeit|controllability)/i.test(haystack) &&
+    /(datenabgleich|prueflistenabgleich|prüflistenabgleich|ausnahmeliste|vorjahresvergleich|steuertechnikstatus|testbarkeit)/i.test(
+      haystack
+    ) &&
+    !/(abgabe.?cockpit|abgabeprojekt|submission cockpit|submission|handover|linienuebergabe|linienübergabe|billing|settlement|abrechnung|mako|steuerung ausfuehren|steuerung ausführen|device-control|smgw switch)/i.test(
+      haystack
+    );
+
+  if (hasControllabilityDataAlignmentSpecificSignal) {
+    const dataAlignmentCapability = findCapabilityByName('controllability_data_alignment');
+    if (dataAlignmentCapability) {
+      return { capability: dataAlignmentCapability, score: 139, usedFallback: false };
+    }
+  }
+
   const hasControllabilitySubmissionCockpitSpecificSignal =
     /(steuerbarkeitscheck|steuerbarkeitsnachweis|controllability)/i.test(haystack) &&
     /(abgabe.?cockpit|abgabeprojekt|submission cockpit|submission|quellenliste|datenabgleich|begruendungskatalog|begründungskatalog|assetgruppenstatus|naechster zyklus|nächster zyklus|abgabefrist)/i.test(

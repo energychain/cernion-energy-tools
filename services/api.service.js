@@ -1516,6 +1516,8 @@ module.exports = {
             'dashboard-api.e2eControllabilityGovernanceStatus',
           'GET /dashboard/controllability-asset-handover':
             'dashboard-api.controllabilityAssetHandoverStatus',
+          'GET /dashboard/controllability-data-alignment':
+            'dashboard-api.controllabilityDataAlignmentStatus',
           'GET /dashboard/coordination-meaning-preservation-profile':
             'dashboard-api.coordinationMeaningPreservationProfile',
           'GET /dashboard/gremiencoach-workbook-readiness':
