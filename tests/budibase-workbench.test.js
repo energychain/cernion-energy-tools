@@ -536,6 +536,124 @@ const blueprintVarianceFixture = {
   },
 };
 
+const blueprintGridTransformationFixture = {
+  ...blueprintVerifyFixture,
+  data: {
+    ...blueprintVerifyFixture.data,
+    seedId: 'stadtwerk-mauer-grid-connection-transformation-gate-v1',
+    processFamily: 'grid_connection_transformation',
+    controlCase: 'grid_connection_transformation_gate',
+    requiredEvidence: [
+      'napMaloReferenceEvidence',
+      'divisionEvidence',
+      'transformationOptionEvidence',
+      'dataQualityEvidence',
+      'investmentPathEvidence',
+      'decommissionPathEvidence',
+      'ownerNextActionEvidence',
+      'sourceReferenceEvidence',
+    ],
+    missingEvidence: [
+      {
+        missingDataPoint: 'divisionEvidence',
+        state: 'clarification',
+        enablesDossierAddition:
+          'Adds the division/sparte classification so the dossier can frame the transformation path.',
+      },
+      {
+        missingDataPoint: 'ownerNextActionEvidence',
+        state: 'needs_owner',
+        enablesDossierAddition:
+          'Adds the accountable owner and next-gate action without creating a HITL ticket or workflow.',
+      },
+    ],
+    demoProcessMatrixSync: {
+      slug: 'grid-connection-transformation-gate',
+      expectedSlug: 'grid-connection-transformation-gate',
+      synced: true,
+      roleLegendM: 'Mitwirkend',
+      rowCount: 4,
+      rowCountValid: true,
+      roleCellsClean: true,
+      dataClassesLimited: true,
+      forbiddenActionsStatus: 'not_introduced',
+      evidenceRequirements: [
+        'napMaloReferenceEvidence',
+        'divisionEvidence',
+        'sourceReferenceEvidence',
+        'dataQualityEvidence',
+        'transformationOptionEvidence',
+        'investmentPathEvidence',
+        'decommissionPathEvidence',
+        'ownerNextActionEvidence',
+      ],
+      dataClassRefs: ['publicContextLayer', 'syntheticTenantSeed', 'sandboxRuntimeArtifact'],
+      downstreamHandoff: {
+        blueprintPack: 'complete',
+        landingRegistry: 'pending',
+        productiveDemoRoom: 'pending',
+      },
+      rows: [
+        {
+          phase: '1',
+          roles: {
+            V: 'ROLE_NETZPLANUNG',
+            D: 'ROLE_CERNION_GOVERNANCE',
+            M: 'ROLE_ASSET_MANAGEMENT',
+            I: 'ROLE_ADMINISTRATOR',
+          },
+          evidenceRequirements: [
+            'napMaloReferenceEvidence',
+            'divisionEvidence',
+            'sourceReferenceEvidence',
+          ],
+          dataClassRefs: ['publicContextLayer', 'syntheticTenantSeed'],
+          status: 'evidence_gap',
+          gateOutcome: 'nap_malo_division_evidence_visible',
+          enablesDossierAddition:
+            'Adds the NAP/MaLo, division and source-reference intake rows before the transformation case can be reviewed.',
+        },
+      ],
+    },
+    forbiddenActions: [
+      'connection_commitment',
+      'asset_mdm_write',
+      'znp_write',
+      'budibase_table_write',
+      'device_control',
+      'personal_agent_hardcoding',
+    ],
+    sourceActions: {
+      notCalled: [
+        'hitl.create',
+        'assets.mutate',
+        'external.connector.call',
+        'personal-agent.execute',
+      ],
+    },
+  },
+};
+
+const gridTransformationGateFixture = {
+  status: 'review_ready',
+  gateStatus: 'ready_for_review',
+  readinessScore: 82,
+  complianceContext: {
+    meteringPointId: 'MaLo-SMM-406',
+  },
+  complianceEvidence: {
+    division: 'electricity',
+    transformationOption: 'h2_ready',
+    dataQualityStatus: 'verified',
+    investmentPath: 'capex_review_needed',
+    decommissionPath: 'reuse_check_pending',
+    owner: 'ROLE_NETZPLANUNG',
+    nextAction: 'verify_asset_znp_context',
+  },
+  sourceRefs: ['blueprint-pack-404', 'stadtwerk-mauer-workbench'],
+  missingEvidence: [],
+};
+
 const landingRegistryDraftFixture = {
   capabilityKey: 'stadtwerk_mauer_landing_registry_draft',
   safety: 'read_only_workbench_projection',
@@ -1545,6 +1663,7 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
         '/api/dashboard/stadtwerk-mauer-blueprint-pack-verify',
         '/api/dashboard/stadtwerk-mauer-transfer-readiness',
         '/api/dashboard/cross-system-variance-matrix',
+        '/api/dashboard/grid-connection-transformation-gate',
       ])
     );
     expect(
@@ -1553,8 +1672,18 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       )
     ).toBe(true);
     expect(
+      queries.some((query) =>
+        query.queryString?.includes('stadtwerk-mauer-grid-connection-transformation-gate-v1')
+      )
+    ).toBe(true);
+    expect(
       manifest.sections
         .filter((section) => section.id.startsWith('blueprint_variance'))
+        .every((section) => queries.some((query) => query.name === section.queryName))
+    ).toBe(true);
+    expect(
+      manifest.sections
+        .filter((section) => section.id.startsWith('blueprint_grid_transformation'))
         .every((section) => queries.some((query) => query.name === section.queryName))
     ).toBe(true);
   });
@@ -1955,9 +2084,16 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
         }),
         expect.objectContaining({
           availableSeedId: 'stadtwerk-mauer-cross-system-variance-evidence-matrix-v1',
-          selectedSeedId: 'stadtwerk-mauer-cross-system-variance-evidence-matrix-v1',
-          selected: true,
+          selectedSeedId: 'stadtwerk-mauer-grid-connection-transformation-gate-v1',
+          selected: false,
           controlCase: 'cross_system_variance_evidence_matrix',
+        }),
+        expect.objectContaining({
+          availableSeedId: 'stadtwerk-mauer-grid-connection-transformation-gate-v1',
+          selectedSeedId: 'stadtwerk-mauer-grid-connection-transformation-gate-v1',
+          selected: true,
+          processFamily: 'grid_connection_transformation',
+          controlCase: 'grid_connection_transformation_gate',
         }),
       ])
     );
@@ -2064,6 +2200,124 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       focusPath: '/api/dashboard/cross-system-variance-matrix',
       matrixStatus: 'variance_matrix_ready',
       sourceClass: 'blueprint_selector_variance_matrix_focus',
+    });
+
+    const gridSummaryRows = runTransformer(
+      'getVdmiBlueprintSelectorGridTransformationVerifySummaryRows',
+      blueprintGridTransformationFixture
+    );
+    expectScalarRows(gridSummaryRows);
+    expect(gridSummaryRows[0]).toMatchObject({
+      seedId: 'stadtwerk-mauer-grid-connection-transformation-gate-v1',
+      processFamily: 'grid_connection_transformation',
+      controlCase: 'grid_connection_transformation_gate',
+      sourceClass: 'vdmi_blueprint_pack_verify_selector',
+    });
+
+    const gridMatrixRows = runTransformer(
+      'getVdmiBlueprintSelectorGridTransformationMatrixRows',
+      blueprintGridTransformationFixture
+    );
+    expectScalarRows(gridMatrixRows);
+    assertNoRawObjectText(gridMatrixRows);
+    expect(gridMatrixRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'grid_transformation_matrix_sync_summary',
+          roleLegendM: 'Mitwirkend',
+          rowCount: 4,
+          downstreamHandoff: 'complete -> pending -> pending',
+        }),
+        expect.objectContaining({
+          rowKey: 'grid_transformation_matrix_row_1',
+          v: 'ROLE_NETZPLANUNG',
+          d: 'ROLE_CERNION_GOVERNANCE',
+          m: 'ROLE_ASSET_MANAGEMENT',
+          i: 'ROLE_ADMINISTRATOR',
+          nachweise:
+            'napMaloReferenceEvidence, divisionEvidence, sourceReferenceEvidence',
+        }),
+      ])
+    );
+    expect(gridMatrixRows[1]).not.toHaveProperty('roles');
+
+    const gridEvidenceRows = runTransformer(
+      'getVdmiBlueprintSelectorGridTransformationEvidenceRows',
+      blueprintGridTransformationFixture
+    );
+    expectScalarRows(gridEvidenceRows);
+    expect(gridEvidenceRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          evidenceId: 'divisionEvidence',
+          enablesDossierAddition: expect.stringContaining('division/sparte'),
+        }),
+        expect.objectContaining({
+          evidenceId: 'ownerNextActionEvidence',
+          enablesDossierAddition: expect.stringContaining('accountable owner'),
+        }),
+      ])
+    );
+
+    const gridDataClassRows = runTransformer(
+      'getVdmiBlueprintSelectorGridTransformationDataClassRows',
+      blueprintGridTransformationFixture
+    );
+    expectScalarRows(gridDataClassRows);
+    expect(gridDataClassRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ dataClass: 'public_context', mutable: false }),
+        expect.objectContaining({ dataClass: 'synthetic_seed', syntheticOnly: true }),
+      ])
+    );
+
+    const gridGuardRows = runTransformer(
+      'getVdmiBlueprintSelectorGridTransformationForbiddenActionRows',
+      blueprintGridTransformationFixture
+    );
+    expectScalarRows(gridGuardRows);
+    expect(gridGuardRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ action: 'budibase_table_write', status: 'forbidden' }),
+        expect.objectContaining({ action: 'personal-agent.execute', status: 'not_called' }),
+      ])
+    );
+
+    const gridSyncRows = runTransformer('getVdmiBlueprintSelectorGridTransformationSyncFocusRows', {
+      status: 'transfer_readiness_pending',
+      transferSummaryRows: [{ status: 'blocked', transferState: 'sync_proof_required' }],
+    });
+    expectScalarRows(gridSyncRows);
+    expect(gridSyncRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          selectedSeedId: 'stadtwerk-mauer-grid-connection-transformation-gate-v1',
+          focusPath: '/api/dashboard/grid-connection-transformation-gate',
+          syncStatus: 'sync_proof_required',
+        }),
+        expect.objectContaining({
+          rowKey: 'grid_transformation_demo_raum_sync_gate',
+          status: 'pending_downstream_sync_proof',
+        }),
+      ])
+    );
+
+    const gridFocusRows = runTransformer(
+      'getVdmiBlueprintSelectorGridTransformationFocusRows',
+      gridTransformationGateFixture
+    );
+    expectScalarRows(gridFocusRows);
+    assertNoRawObjectText(gridFocusRows);
+    expect(gridFocusRows[0]).toMatchObject({
+      meteringPointId: 'MaLo-SMM-406',
+      division: 'electricity',
+      transformationOption: 'h2_ready',
+      dataQualityStatus: 'verified',
+      investmentPath: 'capex_review_needed',
+      decommissionPath: 'reuse_check_pending',
+      owner: 'ROLE_NETZPLANUNG',
+      nextAction: 'verify_asset_znp_context',
+      sourceClass: 'grid_connection_transformation_gate_focus',
     });
 
     const draftSummaryRows = runTransformer(

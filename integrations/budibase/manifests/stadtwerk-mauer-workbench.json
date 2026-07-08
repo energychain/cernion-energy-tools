@@ -4235,7 +4235,7 @@
           "default": "stadtwerk-mauer"
         }
       ],
-      "transformer": "const selected='stadtwerk-mauer-cross-system-variance-evidence-matrix-v1'; const seeds=[{seedId:'stadtwerk-mauer-substation-load-assessment-v1',label:'Substation Load Assessment',selected:false,processFamily:'grid_planning',controlCase:'substation_load_assessment',verifyPath:'/api/dashboard/stadtwerk-mauer-blueprint-pack-verify?tenantId=stadtwerk-mauer&seedId=stadtwerk-mauer-substation-load-assessment-v1',safeNextAction:'refresh_read_only_verify_query',sourceClass:'blueprint_seed_selector'},{seedId:'stadtwerk-mauer-cross-system-variance-evidence-matrix-v1',label:'Cross-System Variance Evidence Matrix',selected:true,processFamily:'vnb_data_quality_governance',controlCase:'cross_system_variance_evidence_matrix',verifyPath:'/api/dashboard/stadtwerk-mauer-blueprint-pack-verify?tenantId=stadtwerk-mauer&seedId=stadtwerk-mauer-cross-system-variance-evidence-matrix-v1',safeNextAction:'inspect_matrix_verify_and_sync_status',sourceClass:'blueprint_seed_selector'}]; return seeds.map((seed,index)=>({rowKey:`seed_${index+1}`,availableSeedId:seed.seedId,selectedSeedId:selected,label:seed.label,selected:seed.selected,processFamily:seed.processFamily,controlCase:seed.controlCase,verifyPath:seed.verifyPath,safeNextAction:seed.safeNextAction,sourceClass:seed.sourceClass}))",
+      "transformer": "const selected='stadtwerk-mauer-grid-connection-transformation-gate-v1'; const seeds=[{seedId:'stadtwerk-mauer-substation-load-assessment-v1',label:'Substation Load Assessment',selected:false,processFamily:'grid_planning',controlCase:'substation_load_assessment',verifyPath:'/api/dashboard/stadtwerk-mauer-blueprint-pack-verify?tenantId=stadtwerk-mauer&seedId=stadtwerk-mauer-substation-load-assessment-v1',safeNextAction:'refresh_read_only_verify_query',sourceClass:'blueprint_seed_selector'},{seedId:'stadtwerk-mauer-cross-system-variance-evidence-matrix-v1',label:'Cross-System Variance Evidence Matrix',selected:false,processFamily:'vnb_data_quality_governance',controlCase:'cross_system_variance_evidence_matrix',verifyPath:'/api/dashboard/stadtwerk-mauer-blueprint-pack-verify?tenantId=stadtwerk-mauer&seedId=stadtwerk-mauer-cross-system-variance-evidence-matrix-v1',safeNextAction:'inspect_matrix_verify_and_sync_status',sourceClass:'blueprint_seed_selector'},{seedId:'stadtwerk-mauer-grid-connection-transformation-gate-v1',label:'Grid Connection Transformation Gate',selected:true,processFamily:'grid_connection_transformation',controlCase:'grid_connection_transformation_gate',verifyPath:'/api/dashboard/stadtwerk-mauer-blueprint-pack-verify?tenantId=stadtwerk-mauer&seedId=stadtwerk-mauer-grid-connection-transformation-gate-v1',safeNextAction:'inspect_grid_transformation_gate_rows',sourceClass:'blueprint_seed_selector'}]; return seeds.map((seed,index)=>({rowKey:`seed_${index+1}`,availableSeedId:seed.seedId,selectedSeedId:selected,label:seed.label,selected:seed.selected,processFamily:seed.processFamily,controlCase:seed.controlCase,verifyPath:seed.verifyPath,safeNextAction:seed.safeNextAction,sourceClass:seed.sourceClass}))",
       "schema": {
         "rowKey": {
           "type": "string"
@@ -4601,6 +4601,375 @@
           "type": "string"
         },
         "evidenceStatus": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getVdmiBlueprintSelectorGridTransformationVerifySummaryRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-grid-connection-transformation-gate-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.data||{}; const counts=(data.summary||{}).counts||{}; const v=d.validation||{}; return [{rowKey:'grid_transformation_blueprint_verify_summary',label:'Grid Connection Transformation Blueprint',seedId:d.seedId||'stadtwerk-mauer-grid-connection-transformation-gate-v1',tenantId:d.tenantId||data.tenantId||'stadtwerk-mauer',status:data.status||'unknown',valid:Boolean(v.valid),riskClass:data.riskClass||'read_only',processFamily:d.processFamily||'grid_connection_transformation',controlCase:d.controlCase||'grid_connection_transformation_gate',requiredEvidenceCount:counts.requiredEvidence||0,roleRelationCount:counts.roleRelations||0,forbiddenActionCount:counts.forbiddenActions||0,budibaseRenderTarget:d.budibaseRenderTarget||'budibase:stadtwerk-mauer-workbench',safeNextAction:(data.nextActions||[])[0]||'render_grid_transformation_verify_rows',sourceClass:'vdmi_blueprint_pack_verify_selector'}]",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "seedId": {
+          "type": "string"
+        },
+        "tenantId": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "valid": {
+          "type": "boolean"
+        },
+        "riskClass": {
+          "type": "string"
+        },
+        "processFamily": {
+          "type": "string"
+        },
+        "controlCase": {
+          "type": "string"
+        },
+        "requiredEvidenceCount": {
+          "type": "number"
+        },
+        "roleRelationCount": {
+          "type": "number"
+        },
+        "forbiddenActionCount": {
+          "type": "number"
+        },
+        "budibaseRenderTarget": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getVdmiBlueprintSelectorGridTransformationMatrixRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-grid-connection-transformation-gate-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.data||{}; const m=d.demoProcessMatrixSync||{}; const cell=(value)=>String(value||''); const base={seedId:d.seedId||'stadtwerk-mauer-grid-connection-transformation-gate-v1',slug:m.slug||'',synced:Boolean(m.synced),roleLegendM:m.roleLegendM||((m.roleLegend||{}).M)||'Mitwirkend',rowCount:m.rowCount||0,rowCountValid:Boolean(m.rowCountValid),roleCellsClean:Boolean(m.roleCellsClean),dataClassesLimited:Boolean(m.dataClassesLimited),downstreamHandoff:[m.downstreamHandoff&&m.downstreamHandoff.blueprintPack,m.downstreamHandoff&&m.downstreamHandoff.landingRegistry,m.downstreamHandoff&&m.downstreamHandoff.productiveDemoRoom].filter(Boolean).join(' -> ')}; const summary={rowKey:'grid_transformation_matrix_sync_summary',rowType:'sync_summary',phase:'-',v:'Verantwortlich',d:'Durchfuehrend',m:'Mitwirkend',i:'Informiert',nachweise:(m.evidenceRequirements||[]).join(', '),dataClassRefs:(m.dataClassRefs||[]).join(', '),status:m.synced?'synced':'sync_proof_required',gateOutcome:m.forbiddenActionsStatus||'not_introduced',enablesDossierAddition:`${base.slug} rows=${base.rowCount} M=${base.roleLegendM} handoff=${base.downstreamHandoff}`,sourceClass:'blueprint_selector_demo_process_matrix',...base}; const rows=(m.rows||[]).map((row,index)=>({rowKey:`grid_transformation_matrix_row_${row.phase||index+1}`,rowType:'process_row',phase:cell(row.phase||index+1),v:cell((row.roles||{}).V),d:cell((row.roles||{}).D),m:cell((row.roles||{}).M),i:cell((row.roles||{}).I),nachweise:(row.evidenceRequirements||[]).join(', '),dataClassRefs:(row.dataClassRefs||[]).join(', '),status:cell(row.status),gateOutcome:cell(row.gateOutcome),enablesDossierAddition:cell(row.enablesDossierAddition),sourceClass:'blueprint_selector_demo_process_matrix_row',...base})); return [summary].concat(rows)",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "rowType": {
+          "type": "string"
+        },
+        "seedId": {
+          "type": "string"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "synced": {
+          "type": "boolean"
+        },
+        "roleLegendM": {
+          "type": "string"
+        },
+        "rowCount": {
+          "type": "number"
+        },
+        "rowCountValid": {
+          "type": "boolean"
+        },
+        "roleCellsClean": {
+          "type": "boolean"
+        },
+        "dataClassesLimited": {
+          "type": "boolean"
+        },
+        "phase": {
+          "type": "string"
+        },
+        "v": {
+          "type": "string"
+        },
+        "d": {
+          "type": "string"
+        },
+        "m": {
+          "type": "string"
+        },
+        "i": {
+          "type": "string"
+        },
+        "nachweise": {
+          "type": "string"
+        },
+        "dataClassRefs": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "gateOutcome": {
+          "type": "string"
+        },
+        "enablesDossierAddition": {
+          "type": "string"
+        },
+        "downstreamHandoff": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getVdmiBlueprintSelectorGridTransformationEvidenceRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-grid-connection-transformation-gate-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.data||{}; const missing=new Map((d.missingEvidence||[]).map((row)=>[row.missingDataPoint,row])); return (d.requiredEvidence||[]).map((id,index)=>{const row=missing.get(id)||{}; return {rowKey:id||`grid_transformation_required_evidence_${index+1}`,seedId:d.seedId||'stadtwerk-mauer-grid-connection-transformation-gate-v1',evidenceId:String(id||''),required:true,state:row.state||'evidence_required',enablesDossierAddition:row.enablesDossierAddition||`complete grid transformation evidence row ${id}`,safeNextAction:'inspect_missing_grid_transformation_evidence_then_refresh_verify_panel',sourceClass:'blueprint_selector_required_evidence'};})",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "seedId": {
+          "type": "string"
+        },
+        "evidenceId": {
+          "type": "string"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "state": {
+          "type": "string"
+        },
+        "enablesDossierAddition": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getVdmiBlueprintSelectorGridTransformationDataClassRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-grid-connection-transformation-gate-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.data||{}; const rows=[['public_context_layer',d.publicContextLayer,'public_context','read_only_public_context'],['synthetic_tenant_seed',d.syntheticTenantSeed,'synthetic_seed','synthetic_demo_only'],['sandbox_runtime_artifacts',d.sandboxRuntimeArtifacts,'sandbox_runtime','resettable_runtime_output']]; return rows.map(([rowKey,row,dataClass,boundary])=>({rowKey,seedId:d.seedId||'stadtwerk-mauer-grid-connection-transformation-gate-v1',dataClass,present:Boolean(row&&row.present),mutable:Boolean(row&&row.mutable),syntheticOnly:Boolean(row&&row.syntheticOnly),resettable:Boolean(row&&row.resettable),ignoredByVerify:Boolean(row&&row.ignoredByVerify),description:(row&&row.description)||'',examples:((row&&row.examples)||[]).join(', '),boundary,sourceClass:'blueprint_selector_data_class'}))",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "seedId": {
+          "type": "string"
+        },
+        "dataClass": {
+          "type": "string"
+        },
+        "present": {
+          "type": "boolean"
+        },
+        "mutable": {
+          "type": "boolean"
+        },
+        "syntheticOnly": {
+          "type": "boolean"
+        },
+        "resettable": {
+          "type": "boolean"
+        },
+        "ignoredByVerify": {
+          "type": "boolean"
+        },
+        "description": {
+          "type": "string"
+        },
+        "examples": {
+          "type": "string"
+        },
+        "boundary": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getVdmiBlueprintSelectorGridTransformationForbiddenActionRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-grid-connection-transformation-gate-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.data||{}; const forbidden=(d.forbiddenActions||[]).map((action,index)=>({rowKey:`grid_transformation_forbidden_${index+1}_${action}`,seedId:d.seedId||'stadtwerk-mauer-grid-connection-transformation-gate-v1',action:String(action),status:'forbidden',safeAlternative:'render_grid_transformation_read_model_only',sourceClass:'blueprint_selector_forbidden_action'})); const guards=((d.sourceActions||{}).notCalled||[]).map((action)=>({rowKey:`grid_transformation_not_called_${action}`,seedId:d.seedId||'stadtwerk-mauer-grid-connection-transformation-gate-v1',action:String(action),status:'not_called',safeAlternative:'refresh_existing_cernion_read_model_only',sourceClass:'blueprint_selector_no_call_guard'})); return forbidden.concat(guards)",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "seedId": {
+          "type": "string"
+        },
+        "action": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "safeAlternative": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getVdmiBlueprintSelectorGridTransformationSyncFocusRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-transfer-readiness",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-grid-connection-transformation-gate-v1&caseId=smm-budibase-workbench",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const summary=(data.transferSummaryRows||[])[0]||{}; return [{rowKey:'grid_transformation_selected_seed_focus',label:'Selected Blueprint seed',selectedSeedId:'stadtwerk-mauer-grid-connection-transformation-gate-v1',status:summary.status||data.status||'readiness_unknown',syncStatus:summary.transferState||summary.status||'inspect_verify_output',focusPath:'/api/dashboard/grid-connection-transformation-gate',safeNextAction:'open_read_only_grid_transformation_gate_focus',sourceClass:'blueprint_selector_sync_focus'},{rowKey:'grid_transformation_demo_raum_sync_gate',label:'Demo-Raum sync gate',selectedSeedId:'stadtwerk-mauer-grid-connection-transformation-gate-v1',status:'pending_downstream_sync_proof',syncStatus:'blueprint_pack_canonical_landing_registry_and_productive_page_pending',focusPath:'/api/dashboard/grid-connection-transformation-gate',safeNextAction:'keep_landing_registry_and_productive_publish_blocked_until_proof_exists',sourceClass:'blueprint_selector_sync_focus'}]",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "selectedSeedId": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "syncStatus": {
+          "type": "string"
+        },
+        "focusPath": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getVdmiBlueprintSelectorGridTransformationFocusRows",
+      "method": "GET",
+      "path": "/api/dashboard/grid-connection-transformation-gate",
+      "queryString": "tenantId={{tenantId}}&caseId=smm-budibase-workbench&meteringPointId=MaLo-SMM-406&division=electricity&transformationOption=h2_ready&dataQualityStatus=verified&investmentPath=capex_review_needed&decommissionPath=reuse_check_pending&owner=ROLE_NETZPLANUNG&nextAction=verify_asset_znp_context&sourceRefs=blueprint-pack-404,stadtwerk-mauer-workbench",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const ev=data.complianceEvidence||{}; const ctx=data.complianceContext||data.requestContext||{}; const missing=(data.missingEvidence||[]).map((row)=>row.missingDataPoint||row.label).filter(Boolean).join(', '); return [{rowKey:'grid_transformation_case_focus',label:'Grid transformation case',status:data.status||'',gateStatus:data.gateStatus||'',readinessScore:Number(data.readinessScore||0),meteringPointId:ctx.meteringPointId||'',division:ev.division||'',transformationOption:ev.transformationOption||'',dataQualityStatus:ev.dataQualityStatus||'',investmentPath:ev.investmentPath||'',decommissionPath:ev.decommissionPath||'',owner:ev.owner||'',nextAction:ev.nextAction||'',sourceRefs:(data.sourceRefs||[]).join(', '),missingEvidence:missing,safeNextAction:'inspect_read_only_gate_status_and_missing_evidence',sourceClass:'grid_connection_transformation_gate_focus'}]",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "gateStatus": {
+          "type": "string"
+        },
+        "readinessScore": {
+          "type": "number"
+        },
+        "meteringPointId": {
+          "type": "string"
+        },
+        "division": {
+          "type": "string"
+        },
+        "transformationOption": {
+          "type": "string"
+        },
+        "dataQualityStatus": {
+          "type": "string"
+        },
+        "investmentPath": {
+          "type": "string"
+        },
+        "decommissionPath": {
+          "type": "string"
+        },
+        "owner": {
+          "type": "string"
+        },
+        "nextAction": {
+          "type": "string"
+        },
+        "sourceRefs": {
+          "type": "string"
+        },
+        "missingEvidence": {
           "type": "string"
         },
         "safeNextAction": {
@@ -7812,6 +8181,48 @@
       "tableTitle": "Read-only Cross-System Variance Linkout"
     },
     {
+      "id": "blueprint_grid_transformation_verify_summary",
+      "title": "Grid Transformation Verify Summary",
+      "queryName": "getVdmiBlueprintSelectorGridTransformationVerifySummaryRows",
+      "tableTitle": "Grid Transformation Verify Summary"
+    },
+    {
+      "id": "blueprint_grid_transformation_demo_process_matrix",
+      "title": "Grid Transformation Demo Process Matrix",
+      "queryName": "getVdmiBlueprintSelectorGridTransformationMatrixRows",
+      "tableTitle": "Grid Transformation Matrix Rows"
+    },
+    {
+      "id": "blueprint_grid_transformation_required_evidence",
+      "title": "Grid Transformation Evidence Gates",
+      "queryName": "getVdmiBlueprintSelectorGridTransformationEvidenceRows",
+      "tableTitle": "Grid Transformation Evidence Gates"
+    },
+    {
+      "id": "blueprint_grid_transformation_data_classes",
+      "title": "Grid Transformation Data Classes",
+      "queryName": "getVdmiBlueprintSelectorGridTransformationDataClassRows",
+      "tableTitle": "Grid Transformation Data Boundaries"
+    },
+    {
+      "id": "blueprint_grid_transformation_forbidden_actions",
+      "title": "Grid Transformation Guardrails",
+      "queryName": "getVdmiBlueprintSelectorGridTransformationForbiddenActionRows",
+      "tableTitle": "Grid Transformation No-Call Guards"
+    },
+    {
+      "id": "blueprint_grid_transformation_sync_focus",
+      "title": "Grid Transformation Demo-Raum Sync Focus",
+      "queryName": "getVdmiBlueprintSelectorGridTransformationSyncFocusRows",
+      "tableTitle": "Grid Transformation Sync State"
+    },
+    {
+      "id": "blueprint_grid_transformation_gate_focus",
+      "title": "Grid Transformation Gate Focus",
+      "queryName": "getVdmiBlueprintSelectorGridTransformationFocusRows",
+      "tableTitle": "NAP/MaLo Transformation Read Model"
+    },
+    {
       "id": "landing_registry_draft_sync_summary",
       "title": "Cross-System Variance Landing-Registry Draft Sync",
       "queryName": "getLandingRegistryDraftSyncSummaryRows",
@@ -8207,6 +8618,7 @@
     "Portfolio Market Value Readiness binds Blueprint-Pack verify rows for stadtwerk-mauer-portfolio-market-value-readiness-v1 with a synthetic portfolio-backtest query; Budibase renders scalar demo-readiness, plausibility, evidence-gap and non-advice rows only.",
     "Portfolio review rows stay read-only/generated: no portfolio persistence, trading, investment advice, external connector, billing, settlement, tariff, MaKo, device-control, Budibase table write or Personal-Agent execution is allowed.",
     "Meaning Preservation binds to the existing coordination-meaning-preservation-profile read model for the selected Stadtwerk-Mauer case; Budibase renders scalar preserved, missing, weak, owner/deadline/decision, transfer-parameter and no-call rows only.",
+    "Grid Connection Transformation Workbench panel binds the #404 Blueprint-Pack seed stadtwerk-mauer-grid-connection-transformation-gate-v1 to existing read-only verify, transfer-readiness and grid-connection-transformation-gate dashboard bricks; Budibase renders scalar NAP/MaLo, division, transformation option, data-quality, investment/decommission path, owner/next-action, evidence, sync and no-call rows only.",
     "Budibase renders the workbench; Cernion remains the system of record and command gate."
   ]
 }

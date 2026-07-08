@@ -42,6 +42,7 @@ The workbench renders:
 - Evidence Freshness rows for the selected synthetic VNB signal from `GET /api/dashboard/evidence-freshness-guard`
 - Blueprint-Pack verify and Demo-Raum matrix-sync rows for `stadtwerk-mauer-substation-load-assessment-v1` from `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify`, backed by the existing operations-runbook verify contract
 - Blueprint seed selector, #382 matrix/evidence/sync rows and read-only cross-system variance linkout for `stadtwerk-mauer-cross-system-variance-evidence-matrix-v1`, composed from `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify`, `GET /api/dashboard/stadtwerk-mauer-transfer-readiness` and `GET /api/dashboard/cross-system-variance-matrix`
+- Grid connection transformation selector/panel rows for `stadtwerk-mauer-grid-connection-transformation-gate-v1`, composed from `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify`, `GET /api/dashboard/stadtwerk-mauer-transfer-readiness` and `GET /api/dashboard/grid-connection-transformation-gate`
 - Cross-System Variance Landing-Registry Draft Sync rows for `stadtwerk-mauer-cross-system-variance-evidence-matrix-v1`, composed from existing read-only dashboard bricks: `GET /api/dashboard/stadtwerk-mauer-landing-registry-draft`, `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify`, `GET /api/dashboard/stadtwerk-mauer-transfer-readiness` and `GET /api/dashboard/cross-system-variance-matrix`
 - Portfolio Market Value Readiness rows for `stadtwerk-mauer-portfolio-market-value-readiness-v1`, composed from `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify` plus a synthetic `POST /api/energy-market/portfolio-backtest` query
 - Monitoring Non-Escalation rows for `stadtwerk-mauer-monitoring-non-escalation-status-v1`, composed from `GET /api/dashboard/monitoring-non-escalation` plus Blueprint-Pack verify rows
@@ -100,10 +101,13 @@ The Workbench landing query is read-only: it returns scalar first-screen status,
 and presenter walkthrough rows so the app opens as a demo surface instead of an internal build
 surface. It does not perform setup, reset, provisioning, Budibase table writes, runbook execution
 or production mutations.
-The Blueprint seed selector is read-only manifest/query state. It lists only the two canonical
-Stadtwerk-Mauer seeds, defaults the selected seed to the #382 cross-system variance evidence
-matrix, renders V/D/M/I/Nachweise cells as scalar columns, and keeps Landing-Registry /
-productive Demo-Raum sync blocked until explicit sync proof exists.
+The Blueprint seed selector is read-only manifest/query state. It lists the canonical
+Stadtwerk-Mauer seeds, defaults the selected seed to the #404 grid connection transformation
+gate, renders V/D/M/I/Nachweise cells as scalar columns, and keeps Landing-Registry /
+productive Demo-Raum sync blocked until explicit sync proof exists. The grid transformation
+panel composes existing read-only verify, transfer-readiness and grid-connection transformation
+dashboard bricks into scalar NAP/MaLo, division, transformation option, data-quality,
+investment/decommission path, owner, next-action, evidence-gap and no-call rows.
 The Cross-System Variance Landing-Registry Draft Sync panel is a generated read-only render slice.
 It composes existing Landing-Registry draft, Blueprint-Pack verify, transfer-readiness and
 cross-system variance read models into scalar summary, draft-preview, matrix-sync, publication
