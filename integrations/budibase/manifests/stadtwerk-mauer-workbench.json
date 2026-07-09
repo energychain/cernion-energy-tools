@@ -7794,6 +7794,139 @@
         "safeAlternative": { "type": "string" },
         "sourceClass": { "type": "string" }
       }
+    },
+    {
+      "name": "getConnectionDeadlineEvidenceQueueSeedSelectorRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-connection-deadline-evidence-queue-v1",
+      "parameters": [{ "name": "tenantId", "default": "stadtwerk-mauer" }],
+      "transformer": "const d=data.data||{}; const selected=d.seedId||'stadtwerk-mauer-connection-deadline-evidence-queue-v1'; const seeds=[{availableSeedId:'stadtwerk-mauer-gas-transformation-dataroom-review-v1',label:'Gas Transformation Dataroom Review',selected:false,controlCase:'gas_transformation_dataroom_status_review'},{availableSeedId:'stadtwerk-mauer-connection-deadline-evidence-queue-v1',label:'Anschlussfristen Evidence Queue',selected:true,controlCase:d.controlCase||'connection_deadline_evidence_queue'}]; return seeds.map((row)=>({...row,selectedSeedId:selected,tenantId:d.tenantId||data.tenantId||'stadtwerk-mauer',processFamily:row.availableSeedId===selected?(d.processFamily||'connection_deadline_governance'):'',roleQuestion:row.selected?'deadline-critical case, missing evidence, owner/contributor and next safe gate':'available canonical seed',sourceClass:'connection_deadline_blueprint_seed_selector'}))",
+      "schema": {
+        "availableSeedId": { "type": "string" },
+        "selectedSeedId": { "type": "string" },
+        "tenantId": { "type": "string" },
+        "label": { "type": "string" },
+        "selected": { "type": "boolean" },
+        "controlCase": { "type": "string" },
+        "processFamily": { "type": "string" },
+        "roleQuestion": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getConnectionDeadlineEvidenceQueueVerifySummaryRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-connection-deadline-evidence-queue-v1",
+      "parameters": [{ "name": "tenantId", "default": "stadtwerk-mauer" }],
+      "transformer": "const d=data.data||{}; const counts=(data.summary||{}).counts||{}; const v=d.validation||{}; return [{rowKey:'connection_deadline_verify_summary',label:'Anschlussfristen Blueprint verify',seedId:d.seedId||'stadtwerk-mauer-connection-deadline-evidence-queue-v1',tenantId:d.tenantId||data.tenantId||'stadtwerk-mauer',status:data.status||'unknown',valid:Boolean(v.valid),processFamily:d.processFamily||'connection_deadline_governance',controlCase:d.controlCase||'connection_deadline_evidence_queue',requiredEvidenceCount:counts.requiredEvidence||0,roleRelationCount:counts.roleRelations||0,forbiddenActionCount:counts.forbiddenActions||0,budibaseRenderTarget:d.budibaseRenderTarget||'budibase:stadtwerk-mauer-workbench:connection-deadline-evidence-queue-panel',safeNextGate:(data.nextActions||[])[0]||'render_connection_deadline_evidence_queue_panel',sourceClass:'connection_deadline_blueprint_verify'}]",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "label": { "type": "string" },
+        "seedId": { "type": "string" },
+        "tenantId": { "type": "string" },
+        "status": { "type": "string" },
+        "valid": { "type": "boolean" },
+        "processFamily": { "type": "string" },
+        "controlCase": { "type": "string" },
+        "requiredEvidenceCount": { "type": "number" },
+        "roleRelationCount": { "type": "number" },
+        "forbiddenActionCount": { "type": "number" },
+        "budibaseRenderTarget": { "type": "string" },
+        "safeNextGate": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getConnectionDeadlineEvidenceQueueMatrixRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-connection-deadline-evidence-queue-v1",
+      "parameters": [{ "name": "tenantId", "default": "stadtwerk-mauer" }],
+      "transformer": "const d=data.data||{}; const m=d.demoProcessMatrixSync||{}; const handoff=m.downstreamHandoff||{}; const base={seedId:d.seedId||'stadtwerk-mauer-connection-deadline-evidence-queue-v1',roleLegendM:m.roleLegendM||'Mitwirkend',rowCount:m.rowCount||0,rowCountValid:Boolean(m.rowCountValid),syncStatus:m.synced?'blueprint_pack_complete':'sync_proof_required',downstreamHandoff:[handoff.blueprintPack||'complete',handoff.landingRegistry||'pending',handoff.productiveDemoRoom||'pending'].join(' -> ')}; const summary={rowKey:'connection_deadline_matrix_sync_summary',phase:'sync',v:'ROLE_NETZPLANUNG',d:'ROLE_ANSCHLUSSWESEN',m:base.roleLegendM,i:'ROLE_MANAGEMENT',nachweise:(m.evidenceRequirements||[]).join(', '),status:base.syncStatus,safeNextGate:'keep_landing_registry_and_productive_page_pending_until_sync_proof',sourceClass:'connection_deadline_demo_process_matrix',...base}; const rows=(m.rows||[]).map((row,index)=>{const roles=row.roles||{}; return {rowKey:`connection_deadline_matrix_row_${row.phase||index+1}`,phase:row.phase||String(index+1),v:roles.V||row.v||'',d:roles.D||row.d||'',m:roles.M||row.m||'',i:roles.I||row.i||'',nachweise:(row.evidenceRequirements||[]).join(', '),status:row.status||'',safeNextGate:row.gateOutcome||row.enablesDossierAddition||'render_read_only_matrix_row',sourceClass:'connection_deadline_demo_process_matrix_row',...base};}); return [summary].concat(rows)",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "phase": { "type": "string" },
+        "v": { "type": "string" },
+        "d": { "type": "string" },
+        "m": { "type": "string" },
+        "i": { "type": "string" },
+        "nachweise": { "type": "string" },
+        "status": { "type": "string" },
+        "safeNextGate": { "type": "string" },
+        "seedId": { "type": "string" },
+        "roleLegendM": { "type": "string" },
+        "rowCount": { "type": "number" },
+        "rowCountValid": { "type": "boolean" },
+        "syncStatus": { "type": "string" },
+        "downstreamHandoff": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getConnectionDeadlineEvidenceQueueRequiredEvidenceRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-connection-deadline-evidence-queue-v1",
+      "parameters": [{ "name": "tenantId", "default": "stadtwerk-mauer" }],
+      "transformer": "const d=data.data||{}; const missing=new Map((d.missingEvidence||[]).map((row)=>[row.missingDataPoint,row])); return (d.requiredEvidence||[]).map((id,index)=>{const gap=missing.get(id)||{}; return {rowKey:id||`connection_deadline_evidence_${index+1}`,evidenceId:id,label:id,status:gap.state||'required',enablesDossierAddition:gap.enablesDossierAddition||`add ${id} to Anschlussfristen evidence queue`,safeNextGate:'complete_evidence_then_refresh_connection_deadline_panel',sourceClass:'connection_deadline_required_evidence'};})",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "evidenceId": { "type": "string" },
+        "label": { "type": "string" },
+        "status": { "type": "string" },
+        "enablesDossierAddition": { "type": "string" },
+        "safeNextGate": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getConnectionDeadlineEvidenceQueueFocusRows",
+      "method": "GET",
+      "path": "/api/dashboard/connection-deadline-evidence-queue",
+      "queryString": "tenantId={{tenantId}}&caseId=smm-connection-deadline-001&connectionType=pv&deadlineDate=2026-07-16&responsibleVnb=stadtwerk-mauer&technicalPlausibility=capacity-context-pending&owner=ROLE_NETZPLANUNG&nextGate=evidence-review&communicationContext=synthetic-note-draft&asOf=2026-07-09T00:00:00.000Z",
+      "parameters": [{ "name": "tenantId", "default": "stadtwerk-mauer" }],
+      "transformer": "const q=data.evidenceQueue||{}; const gaps=data.missingEvidence||[]; const followUps=data.positiveFollowUps||[]; const note=data.communicationNoteDraft||{}; const rows=[['case','Synthetic connection case',q.caseId||'missing','show bounded Anschlussfall intake'],['deadline_risk','Deadline risk',data.deadlineRisk||'unknown','review deadline-criticality without legal deadline calculation'],['responsible_vnb','Responsible VNB',q.responsibleVnb||'missing','add accountable VNB context'],['technical_plausibility','Technical plausibility',q.technicalPlausibility||'missing','add plausibility evidence without capacity reservation'],['owner_contributor','Owner / contributor',[q.owner||'missing',q.nextGate||'missing'].join(' / '),'add owner, contributor and next-gate readiness'],['missing_evidence','Missing evidence',gaps.map((gap)=>gap.missingDataPoint).join(', ')||'none','complete evidence then refresh read model'],['positive_followups','Positive follow-ups',followUps.map((gap)=>gap.enablesDossierAddition).join(' | ')||'none','add dossier-safe rows when evidence arrives'],['communication_note','Communication note draft',`${note.status||'context_missing'}; sent=${Boolean(note.sent)}`,'keep note draft-only; do not send communication'],['demo_raum_sync_status','Demo-Raum sync status','Blueprint-Pack complete / Landing-Registry pending / productive page pending','do not claim public sync before proof']]; return rows.map(([rowKey,label,value,safeNextGate])=>({rowKey,label,value:String(value||''),status:data.status||'read_only_review',safeNextGate,sourceClass:'connection_deadline_focus_row'}))",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "label": { "type": "string" },
+        "status": { "type": "string" },
+        "value": { "type": "string" },
+        "safeNextGate": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getConnectionDeadlineEvidenceQueueTransferRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-transfer-readiness",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-connection-deadline-evidence-queue-v1&caseId=smm-budibase-workbench",
+      "parameters": [{ "name": "tenantId", "default": "stadtwerk-mauer" }],
+      "transformer": "const rows=[...(data.summaryRows||[]),...(data.safeNextGateRows||[]),...(data.boundaryRows||[])]; const normalized=rows.length?rows:[{rowKey:'connection_deadline_transfer_pending',label:'Transfer readiness',status:data.status||'pending',value:'Landing-Registry and productive page sync proof pending',safeNextGate:'keep transfer blocked until explicit proof',sourceClass:'connection_deadline_transfer_readiness'}]; return normalized.map((row,index)=>({rowKey:row.rowKey||`connection_deadline_transfer_${index+1}`,label:row.label||row.category||'Transfer readiness',status:row.status||data.status||'pending',value:String(row.value||row.description||row.safeNextGate||row.boundary||''),safeNextGate:row.safeNextGate||row.nextGate||'refresh_transfer_readiness',sourceClass:row.sourceClass||'connection_deadline_transfer_readiness'}))",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "label": { "type": "string" },
+        "status": { "type": "string" },
+        "value": { "type": "string" },
+        "safeNextGate": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getConnectionDeadlineEvidenceQueueNoCallRows",
+      "method": "GET",
+      "path": "/api/dashboard/connection-deadline-evidence-queue",
+      "queryString": "tenantId={{tenantId}}&caseId=smm-connection-deadline-001&deadlineDate=2026-07-16&responsibleVnb=stadtwerk-mauer&owner=ROLE_NETZPLANUNG&asOf=2026-07-09T00:00:00.000Z",
+      "parameters": [{ "name": "tenantId", "default": "stadtwerk-mauer" }],
+      "transformer": "const notCalled=((data.sourceActions||{}).notCalled||[]); const fallback=['customer.communication.send','crm.update','grid-connection.reserveCapacity','deadline.legalCalculate','mako.dispatch','billing.release','settlement.export','tariff.mutate','device-control.execute','external.connector.call','budibase.table.write','personal-agent.execute']; return (notCalled.length?notCalled:fallback).map((action,index)=>({rowKey:`connection_deadline_no_call_${index+1}`,action:String(action),status:'not_called',safeAlternative:'render_existing_read_only_dashboard_rows_only',sourceClass:'connection_deadline_no_call_guard'}))",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "action": { "type": "string" },
+        "status": { "type": "string" },
+        "safeAlternative": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
     }
   ],
   "sections": [
@@ -8758,6 +8891,48 @@
       "tableTitle": "Gas Dataroom No-Call Guards"
     },
     {
+      "id": "connection_deadline_evidence_queue_seed_selector",
+      "title": "Anschlussfristen Evidence Queue Seed Selector",
+      "queryName": "getConnectionDeadlineEvidenceQueueSeedSelectorRows",
+      "tableTitle": "Anschlussfristen Evidence Queue Seed Selector"
+    },
+    {
+      "id": "connection_deadline_evidence_queue_verify_summary",
+      "title": "Anschlussfristen Verify Summary",
+      "queryName": "getConnectionDeadlineEvidenceQueueVerifySummaryRows",
+      "tableTitle": "Anschlussfristen Verify Summary"
+    },
+    {
+      "id": "connection_deadline_evidence_queue_demo_process_matrix",
+      "title": "Anschlussfristen Demo Process Matrix",
+      "queryName": "getConnectionDeadlineEvidenceQueueMatrixRows",
+      "tableTitle": "Anschlussfristen Demo Process Matrix"
+    },
+    {
+      "id": "connection_deadline_evidence_queue_required_evidence",
+      "title": "Anschlussfristen Evidence Gates",
+      "queryName": "getConnectionDeadlineEvidenceQueueRequiredEvidenceRows",
+      "tableTitle": "Anschlussfristen Evidence Gates"
+    },
+    {
+      "id": "connection_deadline_evidence_queue_focus",
+      "title": "Anschlussfristen Review Focus",
+      "queryName": "getConnectionDeadlineEvidenceQueueFocusRows",
+      "tableTitle": "Anschlussfristen Review Focus"
+    },
+    {
+      "id": "connection_deadline_evidence_queue_transfer_readiness",
+      "title": "Anschlussfristen Transfer Readiness",
+      "queryName": "getConnectionDeadlineEvidenceQueueTransferRows",
+      "tableTitle": "Anschlussfristen Transfer Readiness"
+    },
+    {
+      "id": "connection_deadline_evidence_queue_no_call_guards",
+      "title": "Anschlussfristen No-Call Guards",
+      "queryName": "getConnectionDeadlineEvidenceQueueNoCallRows",
+      "tableTitle": "Anschlussfristen No-Call Guards"
+    },
+    {
       "id": "e2e",
       "title": "E2E Demo Status",
       "queryName": "getStadtwerkMauerE2EProcessDemo",
@@ -8792,6 +8967,8 @@
     "VNB Delta / Signal Queue binds to existing classifier, queue, owner/deadline/evidence and leadership delta read models with synthetic caller-supplied signals; Budibase renders scalar operator rows and no-call guards only.",
     "Gas Transformation Dataroom binds to existing Blueprint-Pack verify, gas-transformation-dataroom and transfer-readiness read models for stadtwerk-mauer-gas-transformation-dataroom-review-v1.",
     "Gas Dataroom rows stay scalar/generated: Budibase renders room boundary, transformation paths, scenario references, EOG/KANU no-legal-decision boundary, evidence register, decision log, roadmap, owner, next action and Demo-Raum sync status without table writes or persistence actions.",
+    "Anschlussfristen Evidence Queue binds to existing Blueprint-Pack verify, connection-deadline-evidence-queue and transfer-readiness read models for stadtwerk-mauer-connection-deadline-evidence-queue-v1.",
+    "Anschlussfristen rows stay scalar/generated: Budibase renders synthetic connection case, deadline risk, owner/contributor, missing evidence, non-sending communication draft, next safe gate and Demo-Raum sync status without customer communication, capacity reservation, legal deadline calculation or table writes.",
     "Portfolio Market Value Readiness binds Blueprint-Pack verify rows for stadtwerk-mauer-portfolio-market-value-readiness-v1 with a synthetic portfolio-backtest query; Budibase renders scalar demo-readiness, plausibility, evidence-gap and non-advice rows only.",
     "Portfolio review rows stay read-only/generated: no portfolio persistence, trading, investment advice, external connector, billing, settlement, tariff, MaKo, device-control, Budibase table write or Personal-Agent execution is allowed.",
     "Meaning Preservation binds to the existing coordination-meaning-preservation-profile read model for the selected Stadtwerk-Mauer case; Budibase renders scalar preserved, missing, weak, owner/deadline/decision, transfer-parameter and no-call rows only.",

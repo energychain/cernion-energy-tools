@@ -48,6 +48,7 @@ The workbench renders:
 - Monitoring Non-Escalation rows for `stadtwerk-mauer-monitoring-non-escalation-status-v1`, composed from `GET /api/dashboard/monitoring-non-escalation` plus Blueprint-Pack verify rows
 - Cost Review Committee Readiness rows for `stadtwerk-mauer-cost-review-committee-readiness-v1`, composed from `GET /api/dashboard/cost-review-committee-status` plus Blueprint-Pack verify rows
 - Gas Transformation Dataroom Review rows for `stadtwerk-mauer-gas-transformation-dataroom-review-v1`, composed from `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify`, `GET /api/dashboard/gas-transformation-dataroom` and `GET /api/dashboard/stadtwerk-mauer-transfer-readiness`
+- Anschlussfristen Evidence Queue rows for `stadtwerk-mauer-connection-deadline-evidence-queue-v1`, composed from `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify`, `GET /api/dashboard/connection-deadline-evidence-queue` and `GET /api/dashboard/stadtwerk-mauer-transfer-readiness`
 - Transfer Readiness rows from `GET /api/dashboard/stadtwerk-mauer-transfer-readiness`, separating public context, synthetic seed data, sandbox runtime artifacts, tenant parameters, reusable Blueprint/Workbench elements and blocked production boundaries
 - a scope-protected action query for `POST /api/operations-runbook/stadtwerk-mauer/e2e-smoke`
 
@@ -147,6 +148,15 @@ decision-log, roadmap, owner, next-action, Demo-Raum sync and no-call rows only.
 Datenraum state, execute decommissioning, create legal/regulatory decisions, publish Demo-Raum or
 Landing Registry state, call external connectors, execute Rundeck, write arbitrary Budibase tables,
 mutate production tenants or use Personal-Agent shortcuts.
+The Anschlussfristen Evidence Queue panel is a generated read-only render slice. It combines
+Blueprint-Pack seed/matrix guard rows for the canonical connection-deadline seed with the existing
+`connection-deadline-evidence-queue` and transfer-readiness read models. Budibase renders scalar
+synthetic Anschlussfall, deadline-risk, owner/contributor, missing-evidence, next-gate,
+non-sending communication-note draft, Demo-Raum sync and no-call rows only. It must not send
+customer communication, write CRM/customer portal records, reserve capacity, approve/reject
+connections, calculate legally binding deadlines, execute MaKo/billing/settlement/tariff or
+device-control actions, call external connectors, write arbitrary Budibase tables, mutate
+production tenants or use Personal-Agent shortcuts.
 The selected-target query is read-only: it maps a supported Hub or role target to scalar selected,
 focus and helper rows so Budibase can visibly focus a section without owning persistent state or
 mutating Cernion tenant data.

@@ -774,6 +774,150 @@ const gasDataroomStatusFixture = {
   },
 };
 
+const connectionDeadlineBlueprintFixture = {
+  ...blueprintVerifyFixture,
+  summary: {
+    counts: {
+      requiredEvidence: 6,
+      roleRelations: 7,
+      forbiddenActions: 8,
+    },
+  },
+  data: {
+    ...blueprintVerifyFixture.data,
+    seedId: 'stadtwerk-mauer-connection-deadline-evidence-queue-v1',
+    processFamily: 'connection_deadline_governance',
+    controlCase: 'connection_deadline_evidence_queue',
+    requiredEvidence: [
+      'connectionCaseIntakeEvidence',
+      'deadlineRiskEvidence',
+      'technicalPlausibilityEvidence',
+      'clarificationOwnerEvidence',
+      'communicationNoteDraftEvidence',
+      'nextGateReadinessEvidence',
+    ],
+    missingEvidence: [
+      {
+        missingDataPoint: 'technicalPlausibilityEvidence',
+        state: 'clarification',
+        enablesDossierAddition: 'show technical plausibility marker without capacity reservation',
+      },
+    ],
+    demoProcessMatrixSync: {
+      slug: 'connection-deadline-evidence-queue',
+      expectedSlug: 'connection-deadline-evidence-queue',
+      synced: true,
+      roleLegendM: 'Mitwirkend',
+      rowCount: 4,
+      rowCountValid: true,
+      roleCellsClean: true,
+      dataClassesLimited: true,
+      forbiddenActionsStatus: 'not_introduced',
+      evidenceRequirements: [
+        'connectionCaseIntakeEvidence',
+        'deadlineRiskEvidence',
+        'technicalPlausibilityEvidence',
+        'nextGateReadinessEvidence',
+      ],
+      dataClassRefs: ['publicContextLayer', 'syntheticTenantSeed', 'sandboxRuntimeArtifact'],
+      downstreamHandoff: {
+        blueprintPack: 'complete',
+        landingRegistry: 'pending',
+        productiveDemoRoom: 'pending',
+      },
+      rows: [
+        {
+          phase: '1',
+          roles: {
+            V: 'ROLE_NETZPLANUNG',
+            D: 'ROLE_ANSCHLUSSWESEN',
+            M: 'ROLE_CERNION_GOVERNANCE',
+            I: 'ROLE_MANAGEMENT',
+          },
+          evidenceRequirements: ['connectionCaseIntakeEvidence'],
+          status: 'evidence_gap',
+          gateOutcome: 'synthetic_connection_case_identified',
+        },
+        {
+          phase: '2',
+          roles: {
+            V: 'ROLE_NETZPLANUNG',
+            D: 'ROLE_ANSCHLUSSWESEN',
+            M: 'ROLE_GRID_CAPACITY_PLANNING',
+            I: 'ROLE_MANAGEMENT',
+          },
+          evidenceRequirements: ['deadlineRiskEvidence', 'technicalPlausibilityEvidence'],
+          status: 'clarification',
+          gateOutcome: 'deadline_risk_and_plausibility_review_pending',
+        },
+      ],
+    },
+    forbiddenActions: [
+      'customer.communication.send',
+      'crm.update',
+      'grid-connection.reserveCapacity',
+      'deadline.legalCalculate',
+      'budibase.table.write',
+      'external.connector.call',
+      'personal-agent.execute',
+    ],
+    sourceActions: {
+      notCalled: [
+        'customer.communication.send',
+        'crm.update',
+        'grid-connection.reserveCapacity',
+        'deadline.legalCalculate',
+        'budibase.table.write',
+        'external.connector.call',
+        'personal-agent.execute',
+      ],
+    },
+  },
+};
+
+const connectionDeadlineStatusFixture = {
+  status: 'fristkritisch',
+  deadlineRisk: 'fristkritisch',
+  evidenceQueue: {
+    caseId: 'smm-connection-deadline-001',
+    connectionType: 'pv',
+    deadlineDate: '2026-07-16',
+    daysUntilDeadline: 7,
+    responsibleVnb: 'stadtwerk-mauer',
+    technicalPlausibility: 'capacity-context-pending',
+    owner: 'ROLE_NETZPLANUNG',
+    nextGate: 'evidence-review',
+    communicationSent: false,
+    connectionDecisionApplied: false,
+  },
+  missingEvidence: [
+    {
+      missingDataPoint: 'technical_plausibility',
+      enablesDossierAddition: 'adds technical-readiness evidence for gate advancement',
+    },
+  ],
+  positiveFollowUps: [
+    {
+      missingDataPoint: 'technical_plausibility',
+      enablesDossierAddition: 'adds technical-readiness evidence for gate advancement',
+    },
+  ],
+  communicationNoteDraft: {
+    status: 'draft_ready',
+    sent: false,
+  },
+  sourceActions: {
+    notCalled: [
+      'communication.send',
+      'crm.update',
+      'grid-connection.reserveCapacity',
+      'deadline.legalCalculate',
+      'external.connector.call',
+      'personal-agent.execute',
+    ],
+  },
+};
+
 const landingRegistryDraftFixture = {
   capabilityKey: 'stadtwerk_mauer_landing_registry_draft',
   safety: 'read_only_workbench_projection',
@@ -1715,6 +1859,13 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
     'gas_dataroom_focus',
     'gas_dataroom_transfer_readiness',
     'gas_dataroom_no_call_guards',
+    'connection_deadline_evidence_queue_seed_selector',
+    'connection_deadline_evidence_queue_verify_summary',
+    'connection_deadline_evidence_queue_demo_process_matrix',
+    'connection_deadline_evidence_queue_required_evidence',
+    'connection_deadline_evidence_queue_focus',
+    'connection_deadline_evidence_queue_transfer_readiness',
+    'connection_deadline_evidence_queue_no_call_guards',
   ];
 
   it('renders the VDMI profile and synthetic event preview as query-backed sections', () => {
@@ -1839,6 +1990,32 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
         .every((section) => queries.some((query) => query.name === section.queryName))
     ).toBe(true);
     expect(manifest.notes.join(' ')).toContain('Gas Transformation Dataroom binds');
+  });
+
+  it('adds the Anschlussfristen evidence queue panel from existing read-only bricks', () => {
+    const queries = manifest.queries.filter((query) =>
+      query.name.includes('ConnectionDeadlineEvidenceQueue')
+    );
+    const paths = new Set(queries.map((query) => query.path));
+
+    expect(paths).toEqual(
+      new Set([
+        '/api/dashboard/stadtwerk-mauer-blueprint-pack-verify',
+        '/api/dashboard/connection-deadline-evidence-queue',
+        '/api/dashboard/stadtwerk-mauer-transfer-readiness',
+      ])
+    );
+    expect(
+      queries.some((query) =>
+        query.queryString?.includes('stadtwerk-mauer-connection-deadline-evidence-queue-v1')
+      )
+    ).toBe(true);
+    expect(
+      manifest.sections
+        .filter((section) => section.id.startsWith('connection_deadline_evidence_queue'))
+        .every((section) => queries.some((query) => query.name === section.queryName))
+    ).toBe(true);
+    expect(manifest.notes.join(' ')).toContain('Anschlussfristen Evidence Queue binds');
   });
 
   it('adds the Portfolio Market Value Readiness panel from existing safe endpoints', () => {
@@ -2570,6 +2747,112 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
           action: 'gas-transformation.executeDecommissioning',
           status: 'not_called',
         }),
+        expect.objectContaining({ action: 'personal-agent.execute', status: 'not_called' }),
+      ])
+    );
+
+    const connectionSelectorRows = runTransformer(
+      'getConnectionDeadlineEvidenceQueueSeedSelectorRows',
+      connectionDeadlineBlueprintFixture
+    );
+    expectScalarRows(connectionSelectorRows);
+    assertNoRawObjectText(connectionSelectorRows);
+    expect(connectionSelectorRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          availableSeedId: 'stadtwerk-mauer-connection-deadline-evidence-queue-v1',
+          selectedSeedId: 'stadtwerk-mauer-connection-deadline-evidence-queue-v1',
+          selected: true,
+          controlCase: 'connection_deadline_evidence_queue',
+        }),
+      ])
+    );
+
+    const connectionMatrixRows = runTransformer(
+      'getConnectionDeadlineEvidenceQueueMatrixRows',
+      connectionDeadlineBlueprintFixture
+    );
+    expectScalarRows(connectionMatrixRows);
+    assertNoRawObjectText(connectionMatrixRows);
+    expect(connectionMatrixRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'connection_deadline_matrix_sync_summary',
+          roleLegendM: 'Mitwirkend',
+          rowCount: 4,
+          downstreamHandoff: 'complete -> pending -> pending',
+        }),
+        expect.objectContaining({
+          rowKey: 'connection_deadline_matrix_row_1',
+          phase: '1',
+          v: 'ROLE_NETZPLANUNG',
+          d: 'ROLE_ANSCHLUSSWESEN',
+          m: 'ROLE_CERNION_GOVERNANCE',
+          i: 'ROLE_MANAGEMENT',
+          nachweise: 'connectionCaseIntakeEvidence',
+        }),
+      ])
+    );
+
+    const connectionEvidenceRows = runTransformer(
+      'getConnectionDeadlineEvidenceQueueRequiredEvidenceRows',
+      connectionDeadlineBlueprintFixture
+    );
+    expectScalarRows(connectionEvidenceRows);
+    expect(connectionEvidenceRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          evidenceId: 'technicalPlausibilityEvidence',
+          enablesDossierAddition: 'show technical plausibility marker without capacity reservation',
+        }),
+      ])
+    );
+
+    const connectionFocusRows = runTransformer(
+      'getConnectionDeadlineEvidenceQueueFocusRows',
+      connectionDeadlineStatusFixture
+    );
+    expectScalarRows(connectionFocusRows);
+    assertNoRawObjectText(connectionFocusRows);
+    expect(connectionFocusRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'deadline_risk',
+          value: 'fristkritisch',
+        }),
+        expect.objectContaining({
+          rowKey: 'communication_note',
+          value: 'draft_ready; sent=false',
+        }),
+        expect.objectContaining({
+          rowKey: 'demo_raum_sync_status',
+          value: 'Blueprint-Pack complete / Landing-Registry pending / productive page pending',
+        }),
+      ])
+    );
+
+    const connectionTransferRows = runTransformer('getConnectionDeadlineEvidenceQueueTransferRows', {
+      status: 'transfer_blocked',
+    });
+    expectScalarRows(connectionTransferRows);
+    expect(connectionTransferRows[0]).toMatchObject({
+      rowKey: 'connection_deadline_transfer_pending',
+      value: 'Landing-Registry and productive page sync proof pending',
+    });
+
+    const connectionNoCallRows = runTransformer(
+      'getConnectionDeadlineEvidenceQueueNoCallRows',
+      connectionDeadlineStatusFixture
+    );
+    expectScalarRows(connectionNoCallRows);
+    expect(connectionNoCallRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ action: 'communication.send', status: 'not_called' }),
+        expect.objectContaining({
+          action: 'grid-connection.reserveCapacity',
+          status: 'not_called',
+        }),
+        expect.objectContaining({ action: 'deadline.legalCalculate', status: 'not_called' }),
         expect.objectContaining({ action: 'personal-agent.execute', status: 'not_called' }),
       ])
     );
