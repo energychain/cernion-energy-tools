@@ -1905,6 +1905,27 @@ describe('T-EV-006 — evidence-planner: Phase 4 registry shortcuts for all rout
     );
   });
 
+  it('direct_marketer_risk_gate: requires forecast, allocation and handover evidence', () => {
+    const plan = { routeKey: 'direct_marketer_risk_gate' };
+    const result = planEvidence(plan, {
+      caseId: 'case-411',
+      directMarketer: 'dm-partner',
+    });
+
+    expect(result.registryKey).toBe('direct_marketer_risk_gate');
+    expect(result.checkedSources).toEqual(expect.arrayContaining(['handover_context']));
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'forecast_quality',
+        'allocation_rules',
+        'balancing_schedule_impact',
+        'billing_settlement_status',
+        'role_deadline_ownership',
+        'evidence_status',
+      ])
+    );
+  });
+
   it('no_regret_measure_definition_gate: requires definition and review evidence', () => {
     const plan = { routeKey: 'no_regret_measure_definition_gate' };
     const result = planEvidence(plan, {

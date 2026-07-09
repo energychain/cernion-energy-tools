@@ -1481,6 +1481,26 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes Direktvermarkter risk prompts to the read-only risk gate', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe Direktvermarkter Risikogate fuer Energy Sharing Gemeinschaftsstrom: Prognose Allokation Bilanzkreis Fahrplan Abrechnung Rollen Frist und fehlende Nachweise vor Angebotsfreigabe.',
+    });
+
+    expect(result.capability).toBe('direct_marketer_risk_gate');
+    expect(result.recommendedCapabilities[0].capability).toBe('direct_marketer_risk_gate');
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.directMarketerRiskGateStatus');
+    expect(actionNames).not.toContain('market.executeTrade');
+    expect(actionNames).not.toContain('schedule.submit');
+    expect(actionNames).not.toContain('balancing-group.transfer');
+    expect(actionNames).not.toContain('contract.approve');
+    expect(actionNames).not.toContain('billing.release');
+    expect(actionNames).not.toContain('settlement.exportA96');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes No-Regret measure definition prompts to the read-only definition gate', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Pruefe No-Regret Massnahmen Definitionsgate fuer Transformationsprogramm Szenariowirkung Budgetwirkung regulatorische Anschlussfaehigkeit Priorisierungsrecht Datenqualitaet Kommunikationsregel und Review Gate.',

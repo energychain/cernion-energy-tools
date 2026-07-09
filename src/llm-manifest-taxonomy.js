@@ -47,6 +47,7 @@ const CAPABILITY_DOMAIN_MAP = {
   vnb_operations: 'grid-ops',
   // AGSI/ENTSO-E cross-commodity supply security briefing
   'market-operations': 'market-data',
+  market_operations: 'market-data',
   // A96 redispatch settlement reconciliation
   settlement: 'redispatch',
   // load-profile / metering stream monitoring is internal EDM data

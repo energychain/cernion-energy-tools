@@ -4114,6 +4114,82 @@ describe('dashboard-api.service', () => {
       });
     });
 
+    // -- directMarketerRiskGateStatus ---------------------------------------
+
+    describe('directMarketerRiskGateStatus', () => {
+      it('reports forecast and allocation gaps without market side effects', async () => {
+        const result = await broker.call('dashboard-api.directMarketerRiskGateStatus', {
+          caseId: 'case-411',
+          directMarketer: 'dm-partner',
+          roleOwner: 'Energy Services',
+        });
+
+        expect(result.status).toBe('needs_forecast_and_allocation_evidence');
+        expect(result.safety).toBe('read_only');
+        expect(result.handoverContext.caseId).toBe('case-411');
+        expect(result.marketEvidence.forecastQuality).toBeNull();
+        expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+          expect.arrayContaining([
+            'forecast_quality',
+            'allocation_rules',
+            'balancing_schedule_impact',
+            'billing_settlement_status',
+            'deadline',
+            'evidence_status',
+          ])
+        );
+        expect(result.positiveFollowUps[0].category).toBe('direct_marketer_risk_gate');
+        expect(result.sourceActions.notCalled).toEqual(
+          expect.arrayContaining([
+            'market.executeTrade',
+            'schedule.submit',
+            'balancing-group.transfer',
+            'direct-marketer.offer.approve',
+            'contract.approve',
+            'billing.release',
+            'settlement.prepareBilling',
+            'customer-communication.send',
+            'hitl.create',
+            'external.connector.call',
+            'personal-agent.execute',
+          ])
+        );
+        expect(result.decisionBoundary.productionMutation).toBe(false);
+      });
+
+      it('returns ready_for_direct_marketer_review for complete handover evidence', async () => {
+        const result = await broker.call('dashboard-api.directMarketerRiskGateStatus', {
+          caseId: 'case-ready-411',
+          projectId: 'energy-sharing-411',
+          communityModel: 'gemeinschaftsstrom',
+          directMarketer: 'dm-partner',
+          forecastQuality: 'validated',
+          forecastDeviationPct: '4.2',
+          allocationRules: 'documented',
+          balancingGroupImpact: 'bounded',
+          scheduleImpact: 'no-daily-submission-change',
+          billingStatus: 'ready',
+          settlementStatus: 'ready',
+          roleOwner: 'Energy Services',
+          deadline: '2026-09-30',
+          evidenceStatus: 'complete',
+          sourceEvidence: 'forecast:v1,allocation:v2',
+        });
+
+        expect(result.status).toBe('ready_for_direct_marketer_review');
+        expect(result.readinessScore).toBe(1);
+        expect(result.missingEvidence).toEqual([]);
+        expect(result.marketEvidence.forecastDeviationPct).toBe(4.2);
+        expect(result.marketEvidence.sourceEvidence).toEqual(
+          expect.arrayContaining(['forecast:v1', 'allocation:v2'])
+        );
+        expect(result.decisionBoundary.scheduleSubmitted).toBe(false);
+        expect(result.dossierEvidence.dossierFacts).toContain(
+          'Direct Marketer Risk Gate Status: ready_for_direct_marketer_review'
+        );
+      });
+    });
+
     // -- noRegretMeasureDefinitionGateStatus --------------------------------
 
     describe('noRegretMeasureDefinitionGateStatus', () => {

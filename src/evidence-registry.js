@@ -6088,6 +6088,60 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  direct_marketer_risk_gate: {
+    sources: [
+      {
+        id: 'handover_context',
+        label: 'Direktvermarkter handover context',
+        resolvedBy: ['dashboard-api.directMarketerRiskGateStatus', 'vdmi.dossier'],
+        contextKeys: ['caseId', 'projectId', 'communityModel', 'directMarketer'],
+        optional: false,
+      },
+      {
+        id: 'forecast_quality',
+        label: 'Forecast quality and deviation evidence',
+        resolvedBy: ['dashboard-api.directMarketerRiskGateStatus', 'forecast.generationForecast'],
+        contextKeys: ['forecastQuality', 'forecastDeviationPct'],
+        optional: false,
+      },
+      {
+        id: 'allocation_rules',
+        label: 'Allocation-rule clarity for producer and consumer quantities',
+        resolvedBy: ['dashboard-api.directMarketerRiskGateStatus', 'vdmi.dossier'],
+        contextKeys: ['allocationRules'],
+        optional: false,
+      },
+      {
+        id: 'balancing_schedule_impact',
+        label: 'Balancing-group and schedule impact',
+        resolvedBy: ['dashboard-api.directMarketerRiskGateStatus', 'market-communication.evidence'],
+        contextKeys: ['balancingGroupImpact', 'scheduleImpact'],
+        optional: false,
+      },
+      {
+        id: 'billing_settlement_status',
+        label: 'Billing and settlement readiness status',
+        resolvedBy: ['dashboard-api.directMarketerRiskGateStatus', 'settlement.readiness'],
+        contextKeys: ['billingStatus', 'settlementStatus'],
+        optional: false,
+      },
+      {
+        id: 'role_deadline_ownership',
+        label: 'Role owner and offer or contract-release deadline',
+        resolvedBy: ['dashboard-api.directMarketerRiskGateStatus', 'vdmi.dossier'],
+        contextKeys: ['roleOwner', 'deadline'],
+        optional: false,
+      },
+      {
+        id: 'evidence_status',
+        label: 'Handover evidence status and source references',
+        resolvedBy: ['dashboard-api.directMarketerRiskGateStatus', 'evidence-registry.lookup'],
+        contextKeys: ['evidenceStatus', 'sourceEvidence'],
+        optional: false,
+      },
+    ],
+  },
+
   no_regret_measure_definition_gate: {
     sources: [
       {

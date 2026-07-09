@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 117 static rules', () => {
+    it('loads all 118 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(117);
+      expect(rules.length).toBe(118);
     });
 
-    it('compiles all 117 static rules without error', () => {
+    it('compiles all 118 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(117);
+      expect(rules.length).toBe(118);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -2332,6 +2332,56 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Measure: measure-278');
       expect(formatted).toContain('Leading Gap: required_evidence');
       expect(formatted).toContain('Side-Effect Guard: investment.approve');
+    });
+
+    it('dashboard-api.directMarketerRiskGateStatus is dossier-safe and formats risk gate facts', () => {
+      const rule = getRule('dashboard-api.directMarketerRiskGateStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Direktvermarkter Risikogate case=case-411 direktvermarkter=dm-partner prognosequalitaet=validiert allokation=regelwerk-v1 owner=energy-services frist=2026-09-30 pruefen'
+        )
+      ).toEqual({
+        caseId: 'case-411',
+        directMarketer: 'dm-partner',
+        forecastQuality: 'validiert',
+        allocationRules: 'regelwerk-v1',
+        roleOwner: 'energy-services',
+        deadline: '2026-09-30',
+      });
+
+      const formatted = rule.formatEvidence({
+        capabilityKey: 'direct_marketer_risk_gate',
+        status: 'needs_forecast_and_allocation_evidence',
+        handoverContext: {
+          caseId: 'case-411',
+          directMarketer: 'dm-partner',
+        },
+        marketEvidence: {
+          forecastQuality: 'validiert',
+          allocationRules: 'regelwerk-v1',
+        },
+        roleDeadline: {
+          roleOwner: 'energy-services',
+          deadline: '2026-09-30',
+        },
+        missingEvidence: [{ missingDataPoint: 'balancing_schedule_impact' }],
+        positiveFollowUps: [
+          { enablesDossierAddition: 'add balancing-group and schedule-impact assessment' },
+        ],
+        sourceActions: {
+          notCalled: ['schedule.submit'],
+        },
+      });
+
+      expect(formatted).toContain('Capability: direct_marketer_risk_gate');
+      expect(formatted).toContain('Risk Gate Status: needs_forecast_and_allocation_evidence');
+      expect(formatted).toContain('Case: case-411');
+      expect(formatted).toContain('Direct Marketer: dm-partner');
+      expect(formatted).toContain('Leading Gap: balancing_schedule_impact');
+      expect(formatted).toContain('Side-Effect Guard: schedule.submit');
     });
 
     it('dashboard-api.noRegretMeasureDefinitionGateStatus is dossier-safe and formats definition facts', () => {

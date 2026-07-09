@@ -113,6 +113,7 @@ module.exports = {
       investmentWaterfallGovernanceStatus: 5 * 60 * 1000, // 5 min
       investmentBudgetCapExceptionGovernanceStatus: 5 * 60 * 1000, // 5 min
       investmentOwnerDeadlineBudgetGateStatus: 5 * 60 * 1000, // 5 min
+      directMarketerRiskGateStatus: 5 * 60 * 1000, // 5 min
       noRegretMeasureDefinitionGateStatus: 5 * 60 * 1000, // 5 min
       capacityContractRiskAssetCockpitStatus: 5 * 60 * 1000, // 5 min
       imsysTaf2ComplianceStatus: 5 * 60 * 1000, // 5 min
@@ -11623,6 +11624,88 @@ module.exports = {
           this.settings.cacheTtlMs.investmentOwnerDeadlineBudgetGateStatus,
           async () => ({
             ...this.buildInvestmentOwnerDeadlineBudgetGateStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- directMarketerRiskGateStatus --------------------------------------
+    /**
+     * GET /api/dashboard/direct-marketer-risk-gate
+     *
+     * Read-only dossier-safe evidence gate for supplied Direktvermarkter
+     * handover facts. It does not submit schedules, approve contracts, mutate
+     * market processes, create HITL tasks, or call external systems.
+     */
+    directMarketerRiskGateStatus: {
+      rest: 'GET /direct-marketer-risk-gate',
+      params: {
+        caseId: { type: 'string', optional: true, min: 1 },
+        projectId: { type: 'string', optional: true, min: 1 },
+        communityModel: { type: 'string', optional: true, min: 1 },
+        directMarketer: { type: 'string', optional: true, min: 1 },
+        forecastQuality: { type: 'string', optional: true, min: 1 },
+        forecastDeviationPct: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'number' }, { type: 'string', min: 1 }],
+        },
+        allocationRules: { type: 'string', optional: true, min: 1 },
+        balancingGroupImpact: { type: 'string', optional: true, min: 1 },
+        scheduleImpact: { type: 'string', optional: true, min: 1 },
+        billingStatus: { type: 'string', optional: true, min: 1 },
+        settlementStatus: { type: 'string', optional: true, min: 1 },
+        roleOwner: { type: 'string', optional: true, min: 1 },
+        deadline: { type: 'string', optional: true, min: 1 },
+        evidenceStatus: { type: 'string', optional: true, min: 1 },
+        sourceEvidence: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Direktvermarkter Risk Gate -- read-only dossier-safe status',
+        description:
+          'Returns deterministic dossier-safe risk/readiness evidence for a Direktvermarkter handover package across forecast quality, allocation rules, balancing-group/schedule impact, billing/settlement status, roles, deadlines and open evidence. ' +
+          'The endpoint is read-only and never submits schedules, approves offers/contracts, transfers balancing groups, mutates billing/settlement/tariff/customer data, creates HITL/workflow tasks, sends customer communication, calls webhooks, or contacts external Direktvermarkter systems.',
+        responses: {
+          200: {
+            description: 'Read-only Direktvermarkter risk-gate evidence',
+          },
+        },
+        parameters: [
+          { in: 'query', name: 'caseId', schema: { type: 'string' } },
+          { in: 'query', name: 'projectId', schema: { type: 'string' } },
+          { in: 'query', name: 'communityModel', schema: { type: 'string' } },
+          { in: 'query', name: 'directMarketer', schema: { type: 'string' } },
+          { in: 'query', name: 'forecastQuality', schema: { type: 'string' } },
+          { in: 'query', name: 'forecastDeviationPct', schema: { type: 'string' } },
+          { in: 'query', name: 'allocationRules', schema: { type: 'string' } },
+          { in: 'query', name: 'balancingGroupImpact', schema: { type: 'string' } },
+          { in: 'query', name: 'scheduleImpact', schema: { type: 'string' } },
+          { in: 'query', name: 'billingStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'settlementStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'roleOwner', schema: { type: 'string' } },
+          { in: 'query', name: 'deadline', schema: { type: 'string' } },
+          { in: 'query', name: 'evidenceStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceEvidence', schema: { type: 'string' } },
+        ],
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `direct-marketer-risk-gate:${JSON.stringify(params)}`;
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.directMarketerRiskGateStatus,
+          async () => ({
+            ...this.buildDirectMarketerRiskGateStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -41856,6 +41939,258 @@ module.exports = {
           nextActions,
           sourceDatapoints,
           sourceActions: { notCalled: sourceActions.notCalled },
+          dossierFacts,
+        },
+      };
+    },
+
+    buildDirectMarketerRiskGateStatus(params = {}) {
+      const toList = (value) => {
+        if (Array.isArray(value))
+          return value.map((item) => String(item || '').trim()).filter(Boolean);
+        if (value && typeof value === 'string')
+          return value
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean);
+        return [];
+      };
+      const isProvided = (value) =>
+        value !== undefined && value !== null && String(value).trim() !== '';
+      const toNumber = (value) => {
+        if (value === undefined || value === null || value === '') return null;
+        const normalized =
+          typeof value === 'string' ? value.replace(/\s/g, '').replace(',', '.') : value;
+        const parsed = Number(normalized);
+        return Number.isFinite(parsed) ? parsed : null;
+      };
+
+      const sourceEvidence = toList(params.sourceEvidence);
+      const forecastDeviationPct = toNumber(params.forecastDeviationPct);
+      const gapMap = {
+        handover_context: 'add case, project, community model or direct marketer context',
+        forecast_quality: 'add forecast-quality class and forecast deviation evidence',
+        allocation_rules: 'add allocation-rule clarity for producer/consumer quantities',
+        balancing_schedule_impact: 'add balancing-group and schedule-impact assessment',
+        billing_settlement_status: 'add billing and settlement readiness evidence',
+        role_owner: 'add accountable VNB/EVU role owner for the handover package',
+        deadline: 'add offer, review or contract-release deadline',
+        evidence_status: 'add handover evidence status and provenance references',
+      };
+      const missingEvidence = [];
+      const addGap = (missingDataPoint) => {
+        missingEvidence.push({
+          missingDataPoint,
+          status: 'missing',
+          enablesDossierAddition: gapMap[missingDataPoint],
+        });
+      };
+
+      if (
+        !isProvided(params.caseId) &&
+        !isProvided(params.projectId) &&
+        !isProvided(params.communityModel) &&
+        !isProvided(params.directMarketer)
+      )
+        addGap('handover_context');
+      if (!isProvided(params.forecastQuality) || forecastDeviationPct === null)
+        addGap('forecast_quality');
+      if (!isProvided(params.allocationRules)) addGap('allocation_rules');
+      if (!isProvided(params.balancingGroupImpact) || !isProvided(params.scheduleImpact))
+        addGap('balancing_schedule_impact');
+      if (!isProvided(params.billingStatus) || !isProvided(params.settlementStatus))
+        addGap('billing_settlement_status');
+      if (!isProvided(params.roleOwner)) addGap('role_owner');
+      if (!isProvided(params.deadline)) addGap('deadline');
+      if (!isProvided(params.evidenceStatus) && sourceEvidence.length === 0)
+        addGap('evidence_status');
+
+      let status = 'ready_for_direct_marketer_review';
+      if (missingEvidence.some((gap) => gap.missingDataPoint === 'handover_context')) {
+        status = 'needs_handover_context';
+      } else if (
+        missingEvidence.some((gap) =>
+          ['forecast_quality', 'allocation_rules'].includes(gap.missingDataPoint)
+        )
+      ) {
+        status = 'needs_forecast_and_allocation_evidence';
+      } else if (
+        missingEvidence.some((gap) => gap.missingDataPoint === 'balancing_schedule_impact')
+      ) {
+        status = 'needs_balancing_or_schedule_evidence';
+      } else if (
+        missingEvidence.some((gap) =>
+          ['billing_settlement_status', 'role_owner', 'deadline'].includes(
+            gap.missingDataPoint
+          )
+        )
+      ) {
+        status = 'needs_billing_or_role_evidence';
+      } else if (missingEvidence.length > 0) {
+        status = 'needs_handover_evidence';
+      }
+
+      const requiredCount = Object.keys(gapMap).length;
+      const readinessScore = Number(
+        ((requiredCount - missingEvidence.length) / requiredCount).toFixed(2)
+      );
+      const riskDimensions = [
+        {
+          id: 'forecast_quality',
+          label: 'Forecast Quality',
+          value: params.forecastQuality || null,
+          forecastDeviationPct,
+          status: isProvided(params.forecastQuality) && forecastDeviationPct !== null ? 'covered' : 'missing',
+        },
+        {
+          id: 'allocation_rules',
+          label: 'Allocation Rules',
+          value: params.allocationRules || null,
+          status: isProvided(params.allocationRules) ? 'covered' : 'missing',
+        },
+        {
+          id: 'balancing_schedule_impact',
+          label: 'Balancing Group / Schedule Impact',
+          value: {
+            balancingGroupImpact: params.balancingGroupImpact || null,
+            scheduleImpact: params.scheduleImpact || null,
+          },
+          status:
+            isProvided(params.balancingGroupImpact) && isProvided(params.scheduleImpact)
+              ? 'covered'
+              : 'missing',
+        },
+        {
+          id: 'billing_settlement_status',
+          label: 'Billing / Settlement Status',
+          value: {
+            billingStatus: params.billingStatus || null,
+            settlementStatus: params.settlementStatus || null,
+          },
+          status:
+            isProvided(params.billingStatus) && isProvided(params.settlementStatus)
+              ? 'covered'
+              : 'missing',
+        },
+        {
+          id: 'role_deadline_ownership',
+          label: 'Role / Deadline Ownership',
+          value: {
+            roleOwner: params.roleOwner || null,
+            deadline: params.deadline || null,
+          },
+          status: isProvided(params.roleOwner) && isProvided(params.deadline) ? 'covered' : 'missing',
+        },
+      ];
+      const handoverContext = {
+        caseId: params.caseId || null,
+        projectId: params.projectId || null,
+        communityModel: params.communityModel || null,
+        directMarketer: params.directMarketer || null,
+      };
+      const marketEvidence = {
+        forecastQuality: params.forecastQuality || null,
+        forecastDeviationPct,
+        allocationRules: params.allocationRules || null,
+        balancingGroupImpact: params.balancingGroupImpact || null,
+        scheduleImpact: params.scheduleImpact || null,
+        billingStatus: params.billingStatus || null,
+        settlementStatus: params.settlementStatus || null,
+        evidenceStatus: params.evidenceStatus || null,
+        sourceEvidence,
+      };
+      const roleDeadline = {
+        roleOwner: params.roleOwner || null,
+        deadline: params.deadline || null,
+      };
+      const positiveFollowUps = missingEvidence.map((gap) => ({
+        ...gap,
+        category: 'direct_marketer_risk_gate',
+      }));
+      const nextActions = positiveFollowUps.map((gap) => ({
+        action: 'requestEvidence',
+        missingDataPoint: gap.missingDataPoint,
+        owner: params.roleOwner || null,
+        description: gap.enablesDossierAddition,
+      }));
+      const sourceActions = {
+        inspected: ['dashboard-api.directMarketerRiskGateStatus'],
+        referenced: [
+          'vdmi.dossier',
+          'evidence-registry.lookup',
+          'market-communication.evidence',
+          'settlement.readiness',
+          'presentation.generate',
+        ],
+        notCalled: [
+          'market.executeTrade',
+          'schedule.submit',
+          'balancing-group.transfer',
+          'direct-marketer.offer.approve',
+          'contract.approve',
+          'billing.release',
+          'settlement.prepareBilling',
+          'settlement.exportA96',
+          'tariff.mutate',
+          'customer-communication.send',
+          'hitl.create',
+          'workflow.execute',
+          'webhook.emit',
+          'external.connector.call',
+          'device-control.execute',
+          'personal-agent.execute',
+        ],
+      };
+      const decisionBoundary = {
+        marketExecution: false,
+        scheduleSubmitted: false,
+        contractApproved: false,
+        balancingGroupTransferred: false,
+        billingReleased: false,
+        externalConnectorCalled: false,
+        productionMutation: false,
+      };
+      const dossierFacts = [
+        `Direct Marketer Risk Gate Status: ${status}`,
+        `Case: ${handoverContext.caseId || handoverContext.projectId || 'missing'}`,
+        `Direct Marketer: ${handoverContext.directMarketer || 'missing'}`,
+        `Forecast Quality: ${marketEvidence.forecastQuality || 'missing'}`,
+        `Allocation Rules: ${marketEvidence.allocationRules || 'missing'}`,
+        `Role Owner: ${roleDeadline.roleOwner || 'missing'}`,
+        `Open gaps: ${missingEvidence.length}`,
+      ];
+
+      return {
+        directMarketerRiskGateStatusId: `dmrg:${Buffer.from(
+          `${params.caseId || params.projectId || ''}:${params.directMarketer || ''}:${params.roleOwner || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 28)}`,
+        capabilityKey: 'direct_marketer_risk_gate',
+        safety: 'read_only',
+        status,
+        readinessScore,
+        handoverContext,
+        marketEvidence,
+        roleDeadline,
+        riskDimensions,
+        missingEvidence,
+        positiveFollowUps,
+        nextActions,
+        sourceActions,
+        decisionBoundary,
+        dossierEvidence: {
+          status,
+          readinessScore,
+          handoverContext,
+          marketEvidence,
+          roleDeadline,
+          riskDimensions,
+          missingEvidence,
+          positiveFollowUps,
+          nextActions,
+          sourceActions: { notCalled: sourceActions.notCalled },
+          decisionBoundary,
           dossierFacts,
         },
       };

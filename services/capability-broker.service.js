@@ -1621,6 +1621,39 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  // ── Direktvermarkter Risk Gate
+  // Handover/risk-gate wording around direct marketers must win over generic
+  // Energy-Sharing simulation matches.
+  const directMarketerRiskGateSignals = [
+    'direktvermarkter risikogate',
+    'direktvermarkter risiko gate',
+    'direktvermarktung risikogate',
+    'direct marketer risk gate',
+    'forecast allocation risk',
+    'prognose allokation risiko',
+    'bilanzkreis fahrplan risiko',
+    'bilanzkreis fahrplan',
+    'marktpartner review',
+    'market partner review',
+    'angebotsfreigabe direktvermarkter',
+    'vertragsfreigabe direktvermarkter',
+  ];
+  const hasDirectMarketerRiskGateCombo =
+    /(direktvermarkter|direktvermarktung|direct marketer)/i.test(haystack) &&
+    /(risikogate|risiko gate|risk gate|prognose|forecast|allokation|allocation|bilanzkreis|fahrplan|angebot|vertrag)/i.test(
+      haystack
+    );
+
+  if (
+    hasDirectMarketerRiskGateCombo ||
+    directMarketerRiskGateSignals.some((signal) => haystack.includes(signal))
+  ) {
+    const directMarketerCap = findCapabilityByName('direct_marketer_risk_gate');
+    if (directMarketerCap) {
+      return { capability: directMarketerCap, score: 124, usedFallback: false };
+    }
+  }
+
   // ── Energy Sharing Simulation Gate
   // Specific simulation/readiness wording must win over generic prosumer advisory.
   const energySharingSimulationSignals = [

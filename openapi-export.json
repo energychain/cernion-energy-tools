@@ -25701,6 +25701,128 @@
         ]
       }
     },
+    "/api/dashboard-api/direct-marketer-risk-gate": {
+      "get": {
+        "operationId": "dashboard-api_directMarketerRiskGateStatus",
+        "summary": "Direktvermarkter Risk Gate -- read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Direktvermarkter risk-gate evidence"
+          }
+        },
+        "description": "Returns deterministic dossier-safe risk/readiness evidence for a Direktvermarkter handover package across forecast quality, allocation rules, balancing-group/schedule impact, billing/settlement status, roles, deadlines and open evidence. The endpoint is read-only and never submits schedules, approves offers/contracts, transfers balancing groups, mutates billing/settlement/tariff/customer data, creates HITL/workflow tasks, sends customer communication, calls webhooks, or contacts external Direktvermarkter systems.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "caseId",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "projectId",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "communityModel",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "directMarketer",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "forecastQuality",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "forecastDeviationPct",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "allocationRules",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "balancingGroupImpact",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "scheduleImpact",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "billingStatus",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "settlementStatus",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "roleOwner",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "deadline",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "evidenceStatus",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sourceEvidence",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/api/dashboard-api/no-regret-measure-definition-gate": {
       "get": {
         "operationId": "dashboard-api_noRegretMeasureDefinitionGateStatus",
@@ -73821,6 +73943,128 @@
           {
             "in": "query",
             "name": "sourceActions",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard/direct-marketer-risk-gate": {
+      "get": {
+        "operationId": "dashboard-api_directMarketerRiskGateStatus",
+        "summary": "Direktvermarkter Risk Gate -- read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Direktvermarkter risk-gate evidence"
+          }
+        },
+        "description": "Returns deterministic dossier-safe risk/readiness evidence for a Direktvermarkter handover package across forecast quality, allocation rules, balancing-group/schedule impact, billing/settlement status, roles, deadlines and open evidence. The endpoint is read-only and never submits schedules, approves offers/contracts, transfers balancing groups, mutates billing/settlement/tariff/customer data, creates HITL/workflow tasks, sends customer communication, calls webhooks, or contacts external Direktvermarkter systems.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "caseId",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "projectId",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "communityModel",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "directMarketer",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "forecastQuality",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "forecastDeviationPct",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "allocationRules",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "balancingGroupImpact",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "scheduleImpact",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "billingStatus",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "settlementStatus",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "roleOwner",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "deadline",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "evidenceStatus",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sourceEvidence",
             "schema": {
               "type": "string"
             }

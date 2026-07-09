@@ -1624,6 +1624,8 @@ module.exports = {
             'dashboard-api.investmentBudgetCapExceptionGovernanceStatus',
           'GET /dashboard/investment-owner-deadline-budget-gate':
             'dashboard-api.investmentOwnerDeadlineBudgetGateStatus',
+          'GET /dashboard/direct-marketer-risk-gate':
+            'dashboard-api.directMarketerRiskGateStatus',
           'GET /dashboard/no-regret-measure-definition-gate':
             'dashboard-api.noRegretMeasureDefinitionGateStatus',
           'GET /dashboard/gas-grid-transformation-asset-cockpit':
