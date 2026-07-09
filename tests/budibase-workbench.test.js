@@ -918,6 +918,131 @@ const connectionDeadlineStatusFixture = {
   },
 };
 
+const investmentOwnerBudgetBlueprintFixture = {
+  ...blueprintVerifyFixture,
+  summary: {
+    counts: {
+      requiredEvidence: 8,
+      roleRelations: 6,
+      forbiddenActions: 12,
+    },
+  },
+  data: {
+    ...blueprintVerifyFixture.data,
+    seedId: 'stadtwerk-mauer-investment-owner-deadline-budget-gate-v1',
+    processFamily: 'investment_governance',
+    controlCase: 'investment_owner_deadline_budget_gate',
+    requiredEvidence: [
+      'investmentMeasureIdentityEvidence',
+      'accountableOwnerEvidence',
+      'deadlineEvidence',
+      'budgetEffectEvidence',
+      'approvalSourceEvidence',
+      'blockedDecisionEvidence',
+      'nextEscalationGateEvidence',
+      'readinessMarker',
+    ],
+    missingEvidence: [
+      {
+        missingDataPoint: 'budgetEffectEvidence',
+        state: 'budget_gap',
+        enablesDossierAddition: 'show budget effect without booking or approval',
+      },
+    ],
+    demoProcessMatrixSync: {
+      slug: 'investment-owner-deadline-budget-gate',
+      expectedSlug: 'investment-owner-deadline-budget-gate',
+      synced: true,
+      roleLegendM: 'Mitwirkend',
+      rowCount: 4,
+      rowCountValid: true,
+      roleCellsClean: true,
+      dataClassesLimited: true,
+      forbiddenActionsStatus: 'not_introduced',
+      evidenceRequirements: [
+        'investmentMeasureIdentityEvidence',
+        'accountableOwnerEvidence',
+        'deadlineEvidence',
+        'budgetEffectEvidence',
+        'blockedDecisionEvidence',
+        'readinessMarker',
+      ],
+      dataClassRefs: ['publicContextLayer', 'syntheticTenantSeed', 'sandboxRuntimeArtifact'],
+      downstreamHandoff: {
+        blueprintPack: 'complete',
+        landingRegistry: 'pending',
+        productiveDemoRoom: 'pending',
+      },
+      rows: [
+        {
+          phase: '1',
+          roles: {
+            V: 'ROLE_ASSET_MANAGEMENT',
+            D: 'ROLE_CONTROLLING',
+            M: 'ROLE_CERNION_GOVERNANCE',
+            I: 'ROLE_MANAGEMENT',
+          },
+          evidenceRequirements: ['investmentMeasureIdentityEvidence', 'accountableOwnerEvidence'],
+          status: 'owner_gap',
+          gateOutcome: 'measure_identity_and_owner_review_pending',
+        },
+        {
+          phase: '2',
+          roles: {
+            V: 'ROLE_ASSET_MANAGEMENT',
+            D: 'ROLE_CONTROLLING',
+            M: 'ROLE_GOVERNANCE_OWNER',
+            I: 'ROLE_COMMERCIAL_AUDIT',
+          },
+          evidenceRequirements: ['deadlineEvidence', 'budgetEffectEvidence'],
+          status: 'budget_gap',
+          gateOutcome: 'deadline_and_budget_effect_review_pending',
+        },
+      ],
+    },
+  },
+};
+
+const investmentOwnerBudgetStatusFixture = {
+  status: 'evidence_gap',
+  gate: {
+    measureId: 'smm-invest-owner-budget-001',
+    ownerRole: 'ROLE_ASSET_MANAGEMENT',
+    deadline: '2026-09-30',
+    budgetEffect: 'capex-review-needed',
+    approvalStatus: 'source-evidence-missing',
+    blockedDecision: 'committee-prep-release',
+    nextGate: 'investment-review-board-prep',
+  },
+  approvalSource: {
+    status: 'source-evidence-missing',
+  },
+  missingEvidence: [
+    {
+      missingDataPoint: 'budgetEffectEvidence',
+      enablesDossierAddition: 'adds budget effect evidence without booking or approval',
+    },
+  ],
+  positiveFollowUps: [
+    {
+      missingDataPoint: 'budgetEffectEvidence',
+      enablesDossierAddition: 'adds budget effect evidence without booking or approval',
+    },
+  ],
+  sourceActions: {
+    notCalled: [
+      'erp.write',
+      'sap.write',
+      'accounting.post',
+      'budget.approve',
+      'committee.execute',
+      'external.connector.call',
+      'budibase.table.write',
+      'personal-agent.execute',
+    ],
+  },
+};
+
 const landingRegistryDraftFixture = {
   capabilityKey: 'stadtwerk_mauer_landing_registry_draft',
   safety: 'read_only_workbench_projection',
@@ -1866,6 +1991,13 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
     'connection_deadline_evidence_queue_focus',
     'connection_deadline_evidence_queue_transfer_readiness',
     'connection_deadline_evidence_queue_no_call_guards',
+    'investment_owner_deadline_budget_gate_seed_selector',
+    'investment_owner_deadline_budget_gate_verify_summary',
+    'investment_owner_deadline_budget_gate_demo_process_matrix',
+    'investment_owner_deadline_budget_gate_required_evidence',
+    'investment_owner_deadline_budget_gate_focus',
+    'investment_owner_deadline_budget_gate_transfer_readiness',
+    'investment_owner_deadline_budget_gate_no_call_guards',
   ];
 
   it('renders the VDMI profile and synthetic event preview as query-backed sections', () => {
@@ -2016,6 +2148,32 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
         .every((section) => queries.some((query) => query.name === section.queryName))
     ).toBe(true);
     expect(manifest.notes.join(' ')).toContain('Anschlussfristen Evidence Queue binds');
+  });
+
+  it('adds the Investment Owner-Frist-Budget panel from existing read-only bricks', () => {
+    const queries = manifest.queries.filter((query) =>
+      query.name.includes('InvestmentOwnerDeadlineBudgetGate')
+    );
+    const paths = new Set(queries.map((query) => query.path));
+
+    expect(paths).toEqual(
+      new Set([
+        '/api/dashboard/stadtwerk-mauer-blueprint-pack-verify',
+        '/api/dashboard/investment-owner-deadline-budget-gate',
+        '/api/dashboard/stadtwerk-mauer-transfer-readiness',
+      ])
+    );
+    expect(
+      queries.some((query) =>
+        query.queryString?.includes('stadtwerk-mauer-investment-owner-deadline-budget-gate-v1')
+      )
+    ).toBe(true);
+    expect(
+      manifest.sections
+        .filter((section) => section.id.startsWith('investment_owner_deadline_budget_gate'))
+        .every((section) => queries.some((query) => query.name === section.queryName))
+    ).toBe(true);
+    expect(manifest.notes.join(' ')).toContain('Investment Owner-Frist-Budget Gate binds');
   });
 
   it('adds the Portfolio Market Value Readiness panel from existing safe endpoints', () => {
@@ -2853,6 +3011,110 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
           status: 'not_called',
         }),
         expect.objectContaining({ action: 'deadline.legalCalculate', status: 'not_called' }),
+        expect.objectContaining({ action: 'personal-agent.execute', status: 'not_called' }),
+      ])
+    );
+
+    const investmentSelectorRows = runTransformer(
+      'getInvestmentOwnerDeadlineBudgetGateSeedSelectorRows',
+      investmentOwnerBudgetBlueprintFixture
+    );
+    expectScalarRows(investmentSelectorRows);
+    assertNoRawObjectText(investmentSelectorRows);
+    expect(investmentSelectorRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          availableSeedId: 'stadtwerk-mauer-investment-owner-deadline-budget-gate-v1',
+          selectedSeedId: 'stadtwerk-mauer-investment-owner-deadline-budget-gate-v1',
+          selected: true,
+          controlCase: 'investment_owner_deadline_budget_gate',
+        }),
+      ])
+    );
+
+    const investmentMatrixRows = runTransformer(
+      'getInvestmentOwnerDeadlineBudgetGateMatrixRows',
+      investmentOwnerBudgetBlueprintFixture
+    );
+    expectScalarRows(investmentMatrixRows);
+    assertNoRawObjectText(investmentMatrixRows);
+    expect(investmentMatrixRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'investment_owner_budget_matrix_sync_summary',
+          roleLegendM: 'Mitwirkend',
+          rowCount: 4,
+          downstreamHandoff: 'complete -> pending -> pending',
+        }),
+        expect.objectContaining({
+          rowKey: 'investment_owner_budget_matrix_row_1',
+          phase: '1',
+          v: 'ROLE_ASSET_MANAGEMENT',
+          d: 'ROLE_CONTROLLING',
+          m: 'ROLE_CERNION_GOVERNANCE',
+          i: 'ROLE_MANAGEMENT',
+          nachweise: 'investmentMeasureIdentityEvidence, accountableOwnerEvidence',
+        }),
+      ])
+    );
+
+    const investmentEvidenceRows = runTransformer(
+      'getInvestmentOwnerDeadlineBudgetGateRequiredEvidenceRows',
+      investmentOwnerBudgetBlueprintFixture
+    );
+    expectScalarRows(investmentEvidenceRows);
+    expect(investmentEvidenceRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          evidenceId: 'budgetEffectEvidence',
+          enablesDossierAddition: 'show budget effect without booking or approval',
+        }),
+      ])
+    );
+
+    const investmentFocusRows = runTransformer(
+      'getInvestmentOwnerDeadlineBudgetGateFocusRows',
+      investmentOwnerBudgetStatusFixture
+    );
+    expectScalarRows(investmentFocusRows);
+    assertNoRawObjectText(investmentFocusRows);
+    expect(investmentFocusRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'measure_identity',
+          value: 'smm-invest-owner-budget-001',
+        }),
+        expect.objectContaining({
+          rowKey: 'budget_effect',
+          value: 'capex-review-needed',
+        }),
+        expect.objectContaining({
+          rowKey: 'demo_raum_sync_status',
+          value: 'Blueprint-Pack complete / Landing-Registry pending / productive page pending',
+        }),
+      ])
+    );
+
+    const investmentTransferRows = runTransformer(
+      'getInvestmentOwnerDeadlineBudgetGateTransferRows',
+      { status: 'transfer_blocked' }
+    );
+    expectScalarRows(investmentTransferRows);
+    expect(investmentTransferRows[0]).toMatchObject({
+      rowKey: 'investment_owner_budget_transfer_pending',
+      value: 'Landing-Registry and productive page sync proof pending',
+    });
+
+    const investmentNoCallRows = runTransformer(
+      'getInvestmentOwnerDeadlineBudgetGateNoCallRows',
+      investmentOwnerBudgetStatusFixture
+    );
+    expectScalarRows(investmentNoCallRows);
+    expect(investmentNoCallRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ action: 'budget.approve', status: 'not_called' }),
+        expect.objectContaining({ action: 'committee.execute', status: 'not_called' }),
+        expect.objectContaining({ action: 'budibase.table.write', status: 'not_called' }),
         expect.objectContaining({ action: 'personal-agent.execute', status: 'not_called' }),
       ])
     );

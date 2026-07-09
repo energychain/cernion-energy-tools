@@ -8,6 +8,7 @@ const {
   REQUIRED_ENERGY_SHARING_COLLECTIVE_APPROVAL_EVIDENCE,
   REQUIRED_EVIDENCE,
   REQUIRED_GAS_TRANSFORMATION_DATAROOM_REVIEW_EVIDENCE,
+  REQUIRED_INVESTMENT_OWNER_DEADLINE_BUDGET_GATE_EVIDENCE,
   REQUIRED_MASTR_SYNC_GAP_ALERTING_EVIDENCE,
   REQUIRED_GRID_CONNECTION_TRANSFORMATION_GATE_EVIDENCE,
   REQUIRED_MONITORING_NON_ESCALATION_STATUS_EVIDENCE,
@@ -26,6 +27,7 @@ const {
   stadtwerkMauerGasTransformationDataroomReview,
   stadtwerkMauerMastrSyncGapAlerting,
   stadtwerkMauerGridConnectionTransformationGate,
+  stadtwerkMauerInvestmentOwnerDeadlineBudgetGate,
   stadtwerkMauerMonitoringNonEscalationStatus,
   stadtwerkMauerPvMissingNap,
   stadtwerkMauerPortfolioMarketValueReadiness,
@@ -323,6 +325,75 @@ describe('VDMI Blueprint Pack seeds', () => {
     expect(stadtwerkMauerGridConnectionTransformationGate.publicContextMutationAllowed).toBe(false);
     expect(stadtwerkMauerGridConnectionTransformationGate.tenantProvisioningAllowed).toBe(false);
     expect(stadtwerkMauerGridConnectionTransformationGate.realWorldClaim).toBe('synthetic_demo_only');
+  });
+
+  test('exposes and validates Investment Owner-Frist-Budget Gate as a canonical Blueprint Pack seed', () => {
+    expect(stadtwerkMauerInvestmentOwnerDeadlineBudgetGate).toMatchObject({
+      id: 'stadtwerk-mauer-investment-owner-deadline-budget-gate-v1',
+      kind: 'vdmi_blueprint_pack_seed',
+      version: '1.0.0',
+      safetyClassification: 'read_only_blueprint_seed',
+      processFamily: 'investment_governance',
+      controlCase: 'investment_owner_deadline_budget_gate',
+      sourceApi: {
+        operation: 'GET /api/dashboard/investment-owner-deadline-budget-gate',
+        path: '/api/dashboard/investment-owner-deadline-budget-gate',
+        method: 'GET',
+        workbenchBrick: 'investment_owner_deadline_budget_gate',
+        capability: 'dashboard-api.investmentOwnerDeadlineBudgetGateStatus',
+        readOnly: true,
+        invocation: 'source_hint_only',
+      },
+      demoTenant: {
+        tenantId: 'stadtwerk-mauer',
+        classification: 'synthetic_demo_tenant',
+      },
+    });
+
+    expect(listVdmiBlueprintPackSeeds()).toContainEqual(
+      expect.objectContaining({
+        id: 'stadtwerk-mauer-investment-owner-deadline-budget-gate-v1',
+        demoTenantId: 'stadtwerk-mauer',
+      })
+    );
+    expect(
+      getVdmiBlueprintPackSeed('stadtwerk-mauer-investment-owner-deadline-budget-gate-v1')
+    ).toBe(stadtwerkMauerInvestmentOwnerDeadlineBudgetGate);
+
+    const result = validateVdmiBlueprintPackSeed(stadtwerkMauerInvestmentOwnerDeadlineBudgetGate);
+    expect(result).toEqual({ valid: true, errors: [] });
+    expect(stadtwerkMauerInvestmentOwnerDeadlineBudgetGate.evidenceRequirements.map((item) => item.id)).toEqual(
+      REQUIRED_INVESTMENT_OWNER_DEADLINE_BUDGET_GATE_EVIDENCE
+    );
+    expect(stadtwerkMauerInvestmentOwnerDeadlineBudgetGate.demoProcessMatrix).toMatchObject({
+      slug: 'investment-owner-deadline-budget-gate',
+      roleLegend: {
+        M: 'Mitwirkend',
+      },
+      downstreamHandoff: {
+        blueprintPack: 'complete',
+        landingRegistry: 'pending',
+        productiveDemoRoom: 'pending',
+      },
+    });
+    expect(stadtwerkMauerInvestmentOwnerDeadlineBudgetGate.demoProcessMatrix.rows).toHaveLength(4);
+    expect(stadtwerkMauerInvestmentOwnerDeadlineBudgetGate.forbiddenActions).toEqual(
+      expect.arrayContaining([
+        'erp_write',
+        'sap_write',
+        'accounting_write',
+        'budget_approval',
+        'committee_execution',
+        'treasury_transfer',
+        'workflow_create',
+        'hitl_create',
+        'mail_send',
+        'external_connector_call',
+        'budibase_table_write',
+        'production_mutation',
+        'personal_agent_hardcoding',
+      ])
+    );
   });
 
   test('validates Cross-System Variance Evidence Matrix without system or finance side effects', () => {
@@ -1965,6 +2036,36 @@ describe('VDMI Blueprint Pack seeds', () => {
         state: 'review',
         execution: 'none',
         enablesDossierAddition: expect.stringContaining('not as an escalation decision'),
+      })
+    );
+  });
+
+  test('maps Investment Owner-Frist-Budget Gate missing evidence to non-executing workbench additions', () => {
+    const items = buildWorkbenchClarificationItems(stadtwerkMauerInvestmentOwnerDeadlineBudgetGate);
+
+    expect(items).toHaveLength(REQUIRED_INVESTMENT_OWNER_DEADLINE_BUDGET_GATE_EVIDENCE.length);
+    expect(items).toContainEqual(
+      expect.objectContaining({
+        evidenceId: 'accountableOwnerEvidence',
+        state: 'owner_gap',
+        roleHint: 'ROLE_ASSET_MANAGEMENT',
+        execution: 'none',
+        enablesDossierAddition: expect.stringContaining('without assigning live workflow ownership'),
+      })
+    );
+    expect(items).toContainEqual(
+      expect.objectContaining({
+        evidenceId: 'budgetEffectEvidence',
+        state: 'budget_gap',
+        execution: 'none',
+        enablesDossierAddition: expect.stringContaining('without booking, reserving or approving budget'),
+      })
+    );
+    expect(items).toContainEqual(
+      expect.objectContaining({
+        evidenceId: 'nextEscalationGateEvidence',
+        state: 'next_gate_gap',
+        execution: 'none',
       })
     );
   });

@@ -13,6 +13,7 @@ const stadtwerkMauerCrossSystemVarianceEvidenceMatrix = require('./vdmi-blueprin
 const stadtwerkMauerDecommissionedAssetReconciliation = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-decommissioned-asset-reconciliation-v1.json');
 const stadtwerkMauerMastrSyncGapAlerting = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-mastr-sync-gap-alerting-v1.json');
 const stadtwerkMauerGridConnectionTransformationGate = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-grid-connection-transformation-gate-v1.json');
+const stadtwerkMauerInvestmentOwnerDeadlineBudgetGate = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-investment-owner-deadline-budget-gate-v1.json');
 
 const REQUIRED_EVIDENCE = Object.freeze([
   'napReference',
@@ -133,6 +134,16 @@ const REQUIRED_GRID_CONNECTION_TRANSFORMATION_GATE_EVIDENCE = Object.freeze([
   'ownerNextActionEvidence',
   'sourceReferenceEvidence',
 ]);
+const REQUIRED_INVESTMENT_OWNER_DEADLINE_BUDGET_GATE_EVIDENCE = Object.freeze([
+  'investmentMeasureIdentityEvidence',
+  'accountableOwnerEvidence',
+  'deadlineEvidence',
+  'budgetEffectEvidence',
+  'approvalSourceEvidence',
+  'blockedDecisionEvidence',
+  'nextEscalationGateEvidence',
+  'readinessMarker',
+]);
 
 const REQUIRED_DATA_CLASSES = Object.freeze([
   'publicContextLayer',
@@ -200,6 +211,12 @@ const REQUIRED_GRID_CONNECTION_TRANSFORMATION_GATE_ROLE_IDS = Object.freeze([
   'ROLE_ASSET_MANAGEMENT',
   'ROLE_ADMINISTRATOR',
 ]);
+const REQUIRED_INVESTMENT_OWNER_DEADLINE_BUDGET_GATE_ROLE_IDS = Object.freeze([
+  'ROLE_ASSET_MANAGEMENT',
+  'ROLE_CONTROLLING',
+  'ROLE_GOVERNANCE_OWNER',
+  'ROLE_CERNION_GOVERNANCE',
+]);
 const REQUIRED_MATRIX_ROLE_KEYS = Object.freeze(['v', 'd', 'm', 'i']);
 const MATRIX_HEADER_WORDS = Object.freeze([
   'Phase',
@@ -224,6 +241,7 @@ const SEEDS = Object.freeze([
   stadtwerkMauerDecommissionedAssetReconciliation,
   stadtwerkMauerMastrSyncGapAlerting,
   stadtwerkMauerGridConnectionTransformationGate,
+  stadtwerkMauerInvestmentOwnerDeadlineBudgetGate,
 ]);
 
 const SEED_VALIDATION_REQUIREMENTS = Object.freeze({
@@ -291,6 +309,11 @@ const SEED_VALIDATION_REQUIREMENTS = Object.freeze({
     requiredEvidence: REQUIRED_GRID_CONNECTION_TRANSFORMATION_GATE_EVIDENCE,
     requiredRoleIds: REQUIRED_GRID_CONNECTION_TRANSFORMATION_GATE_ROLE_IDS,
     expectedMatrixSlug: 'grid-connection-transformation-gate',
+  }),
+  [stadtwerkMauerInvestmentOwnerDeadlineBudgetGate.id]: Object.freeze({
+    requiredEvidence: REQUIRED_INVESTMENT_OWNER_DEADLINE_BUDGET_GATE_EVIDENCE,
+    requiredRoleIds: REQUIRED_INVESTMENT_OWNER_DEADLINE_BUDGET_GATE_ROLE_IDS,
+    expectedMatrixSlug: 'investment-owner-deadline-budget-gate',
   }),
 });
 
@@ -504,6 +527,8 @@ function buildWorkbenchClarificationItems(seed) {
           ? 'ROLE_CONTROLLING'
         : selectedSeed.id === stadtwerkMauerConnectionDeadlineEvidenceQueue.id
           ? 'ROLE_ANSCHLUSSWESEN'
+        : selectedSeed.id === stadtwerkMauerInvestmentOwnerDeadlineBudgetGate.id
+          ? 'ROLE_ASSET_MANAGEMENT'
         : selectedSeed.id === stadtwerkMauerEnergySharingCollectiveApproval.id
           ? 'ROLE_ENERGY_SHARING_PRODUCT_OWNER'
         : selectedSeed.id === stadtwerkMauerSubstationLoadAssessment.id
@@ -703,6 +728,8 @@ module.exports = {
   REQUIRED_MASTR_SYNC_GAP_ALERTING_ROLE_IDS,
   REQUIRED_GRID_CONNECTION_TRANSFORMATION_GATE_EVIDENCE,
   REQUIRED_GRID_CONNECTION_TRANSFORMATION_GATE_ROLE_IDS,
+  REQUIRED_INVESTMENT_OWNER_DEADLINE_BUDGET_GATE_EVIDENCE,
+  REQUIRED_INVESTMENT_OWNER_DEADLINE_BUDGET_GATE_ROLE_IDS,
   REQUIRED_MONITORING_NON_ESCALATION_STATUS_EVIDENCE,
   REQUIRED_MONITORING_NON_ESCALATION_STATUS_ROLE_IDS,
   REQUIRED_PORTFOLIO_MARKET_VALUE_READINESS_EVIDENCE,
@@ -728,6 +755,7 @@ module.exports = {
   stadtwerkMauerGasTransformationDataroomReview,
   stadtwerkMauerMastrSyncGapAlerting,
   stadtwerkMauerGridConnectionTransformationGate,
+  stadtwerkMauerInvestmentOwnerDeadlineBudgetGate,
   stadtwerkMauerMonitoringNonEscalationStatus,
   stadtwerkMauerPortfolioMarketValueReadiness,
   validateVdmiBlueprintPackSeed,

@@ -49,6 +49,7 @@ The workbench renders:
 - Cost Review Committee Readiness rows for `stadtwerk-mauer-cost-review-committee-readiness-v1`, composed from `GET /api/dashboard/cost-review-committee-status` plus Blueprint-Pack verify rows
 - Gas Transformation Dataroom Review rows for `stadtwerk-mauer-gas-transformation-dataroom-review-v1`, composed from `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify`, `GET /api/dashboard/gas-transformation-dataroom` and `GET /api/dashboard/stadtwerk-mauer-transfer-readiness`
 - Anschlussfristen Evidence Queue rows for `stadtwerk-mauer-connection-deadline-evidence-queue-v1`, composed from `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify`, `GET /api/dashboard/connection-deadline-evidence-queue` and `GET /api/dashboard/stadtwerk-mauer-transfer-readiness`
+- Investment Owner-Frist-Budget Gate rows for `stadtwerk-mauer-investment-owner-deadline-budget-gate-v1`, composed from `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify`, `GET /api/dashboard/investment-owner-deadline-budget-gate` and `GET /api/dashboard/stadtwerk-mauer-transfer-readiness`
 - Transfer Readiness rows from `GET /api/dashboard/stadtwerk-mauer-transfer-readiness`, separating public context, synthetic seed data, sandbox runtime artifacts, tenant parameters, reusable Blueprint/Workbench elements and blocked production boundaries
 - a scope-protected action query for `POST /api/operations-runbook/stadtwerk-mauer/e2e-smoke`
 
@@ -157,6 +158,14 @@ customer communication, write CRM/customer portal records, reserve capacity, app
 connections, calculate legally binding deadlines, execute MaKo/billing/settlement/tariff or
 device-control actions, call external connectors, write arbitrary Budibase tables, mutate
 production tenants or use Personal-Agent shortcuts.
+The Investment Owner-Frist-Budget Gate panel is a generated read-only render slice. It combines
+Blueprint-Pack seed/matrix guard rows for the canonical investment owner/deadline/budget seed with
+the existing `investment-owner-deadline-budget-gate` and transfer-readiness read models. Budibase
+renders scalar measure identity, accountable owner, deadline, budget effect, approval/source
+evidence, blocked decision, next escalation gate, Demo-Raum sync and no-call rows only. It must not
+write ERP/SAP/accounting records, approve or reserve budget, execute committee decisions, transfer
+treasury funds, create workflow/HITL/mail/webhook actions, call external connectors, write arbitrary
+Budibase tables, mutate production tenants, publish Demo-Raum or use Personal-Agent shortcuts.
 The selected-target query is read-only: it maps a supported Hub or role target to scalar selected,
 focus and helper rows so Budibase can visibly focus a section without owning persistent state or
 mutating Cernion tenant data.
