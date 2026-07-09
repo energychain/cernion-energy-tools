@@ -654,6 +654,126 @@ const gridTransformationGateFixture = {
   missingEvidence: [],
 };
 
+const gasDataroomBlueprintFixture = {
+  ...blueprintVerifyFixture,
+  summary: {
+    counts: {
+      requiredEvidence: 6,
+      roleRelations: 4,
+      forbiddenActions: 5,
+    },
+  },
+  data: {
+    ...blueprintVerifyFixture.data,
+    seedId: 'stadtwerk-mauer-gas-transformation-dataroom-review-v1',
+    processFamily: 'gas_transformation_dataroom_review',
+    controlCase: 'gas_transformation_dataroom_status_review',
+    requiredEvidence: [
+      'roomMandateBoundaryEvidence',
+      'transformationPathEvidence',
+      'scenarioReferenceEvidence',
+      'eogKanuBoundaryEvidence',
+      'evidenceRegisterSnapshot',
+      'decisionRoadmapEvidence',
+    ],
+    missingEvidence: [
+      {
+        missingDataPoint: 'evidenceRegisterSnapshot',
+        state: 'evidence_gap',
+        enablesDossierAddition: 'show gas dataroom evidence-register gaps',
+      },
+    ],
+    demoProcessMatrixSync: {
+      slug: 'gas-transformation-dataroom-review',
+      expectedSlug: 'gas-transformation-dataroom-review',
+      synced: true,
+      roleLegendM: 'Mitwirkend',
+      rowCount: 5,
+      rowCountValid: true,
+      roleCellsClean: true,
+      dataClassesLimited: true,
+      forbiddenActionsStatus: 'not_introduced',
+      evidenceRequirements: [
+        'roomMandateBoundaryEvidence',
+        'transformationPathEvidence',
+        'scenarioReferenceEvidence',
+        'evidenceRegisterSnapshot',
+      ],
+      dataClassRefs: ['publicContextLayer', 'syntheticTenantSeed'],
+      downstreamHandoff: {
+        blueprintPack: 'complete',
+        landingRegistry: 'pending',
+        productiveDemoRoom: 'pending',
+      },
+      rows: [
+        {
+          phase: '1',
+          roles: {
+            V: 'ROLE_NETZSTRATEGIE',
+            D: 'ROLE_ASSET_STRATEGY',
+            M: 'ROLE_REGULATORY_AFFAIRS',
+            I: 'ROLE_MANAGEMENT',
+          },
+          evidenceRequirements: ['roomMandateBoundaryEvidence', 'transformationPathEvidence'],
+          status: 'room_boundary_review',
+          gateOutcome: 'review_gate_pending',
+          enablesDossierAddition: 'Adds gas dataroom boundary and path evidence.',
+        },
+      ],
+    },
+    forbiddenActions: [
+      'gas-transformation.executeDecommissioning',
+      'landing-registry.publish',
+      'budibase.table.write',
+      'external.connector.call',
+      'personal-agent.execute',
+    ],
+    sourceActions: {
+      notCalled: [
+        'gas-transformation.executeDecommissioning',
+        'landing-registry.publish',
+        'budibase.table.write',
+        'external.connector.call',
+        'personal-agent.execute',
+      ],
+    },
+  },
+};
+
+const gasDataroomStatusFixture = {
+  status: 'review_ready_with_gaps',
+  roomId: 'smm-gas-dataroom',
+  summary: {
+    status: 'review_ready_with_gaps',
+    transformationPaths: 'H2-ready corridor, decommissioning reserve',
+    legalBoundary: 'EOG/KANU context only; no legal decision',
+    owner: 'ROLE_NETZSTRATEGIE',
+    nextAction: 'clarify evidence-register owner',
+  },
+  roomProfile: { roomId: 'smm-gas-dataroom' },
+  mandateBoundary: { status: 'synthetic workbench review only' },
+  transformationPaths: [
+    { pathId: 'h2-ready-corridor', label: 'H2-ready corridor' },
+    { pathId: 'decommissioning-reserve', label: 'Decommissioning reserve' },
+  ],
+  scenarioReferences: [{ referenceId: 'KANU-2026', label: 'KANU scenario reference' }],
+  evidenceRegister: { status: 'partial_register' },
+  decisionLog: { status: 'decision_log_open' },
+  roadmap: { status: 'roadmap_review_pending' },
+  owner: { role: 'ROLE_NETZSTRATEGIE' },
+  nextAction: 'complete missing evidence-register snapshot',
+  sourceReferences: [{ id: 'blueprint-pack', label: 'Blueprint-Pack seed #366' }],
+  missingEvidence: [{ missingDataPoint: 'evidenceRegisterSnapshot' }],
+  sourceActions: {
+    notCalled: [
+      'budibase.table.write',
+      'gas-transformation.executeDecommissioning',
+      'external.connector.call',
+      'personal-agent.execute',
+    ],
+  },
+};
+
 const landingRegistryDraftFixture = {
   capabilityKey: 'stadtwerk_mauer_landing_registry_draft',
   safety: 'read_only_workbench_projection',
@@ -1588,6 +1708,13 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
     'vnb_delta_signal_queue_safe_next_actions',
     'vnb_delta_signal_queue_leadership',
     'vnb_delta_signal_queue_boundaries',
+    'gas_dataroom_seed_selector',
+    'gas_dataroom_verify_summary',
+    'gas_dataroom_demo_process_matrix',
+    'gas_dataroom_required_evidence',
+    'gas_dataroom_focus',
+    'gas_dataroom_transfer_readiness',
+    'gas_dataroom_no_call_guards',
   ];
 
   it('renders the VDMI profile and synthetic event preview as query-backed sections', () => {
@@ -1686,6 +1813,32 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
         .filter((section) => section.id.startsWith('blueprint_grid_transformation'))
         .every((section) => queries.some((query) => query.name === section.queryName))
     ).toBe(true);
+  });
+
+  it('adds the gas transformation dataroom panel from existing read-only bricks', () => {
+    const queries = manifest.queries.filter((query) =>
+      query.name.includes('GasTransformationDataroom')
+    );
+    const paths = new Set(queries.map((query) => query.path));
+
+    expect(paths).toEqual(
+      new Set([
+        '/api/dashboard/stadtwerk-mauer-blueprint-pack-verify',
+        '/api/dashboard/gas-transformation-dataroom',
+        '/api/dashboard/stadtwerk-mauer-transfer-readiness',
+      ])
+    );
+    expect(
+      queries.some((query) =>
+        query.queryString?.includes('stadtwerk-mauer-gas-transformation-dataroom-review-v1')
+      )
+    ).toBe(true);
+    expect(
+      manifest.sections
+        .filter((section) => section.id.startsWith('gas_dataroom'))
+        .every((section) => queries.some((query) => query.name === section.queryName))
+    ).toBe(true);
+    expect(manifest.notes.join(' ')).toContain('Gas Transformation Dataroom binds');
   });
 
   it('adds the Portfolio Market Value Readiness panel from existing safe endpoints', () => {
@@ -2319,6 +2472,107 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       nextAction: 'verify_asset_znp_context',
       sourceClass: 'grid_connection_transformation_gate_focus',
     });
+
+    const gasSelectorRows = runTransformer(
+      'getGasTransformationDataroomSeedSelectorRows',
+      gasDataroomBlueprintFixture
+    );
+    expectScalarRows(gasSelectorRows);
+    assertNoRawObjectText(gasSelectorRows);
+    expect(gasSelectorRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          availableSeedId: 'stadtwerk-mauer-gas-transformation-dataroom-review-v1',
+          selectedSeedId: 'stadtwerk-mauer-gas-transformation-dataroom-review-v1',
+          selected: true,
+          controlCase: 'gas_transformation_dataroom_status_review',
+        }),
+      ])
+    );
+
+    const gasMatrixRows = runTransformer(
+      'getGasTransformationDataroomMatrixRows',
+      gasDataroomBlueprintFixture
+    );
+    expectScalarRows(gasMatrixRows);
+    assertNoRawObjectText(gasMatrixRows);
+    expect(gasMatrixRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'gas_dataroom_matrix_sync_summary',
+          roleLegendM: 'Mitwirkend',
+          rowCount: 5,
+          downstreamHandoff: 'complete -> pending -> pending',
+        }),
+        expect.objectContaining({
+          rowKey: 'gas_dataroom_matrix_row_1',
+          phase: '1',
+          v: 'ROLE_NETZSTRATEGIE',
+          d: 'ROLE_ASSET_STRATEGY',
+          m: 'ROLE_REGULATORY_AFFAIRS',
+          i: 'ROLE_MANAGEMENT',
+          nachweise: 'roomMandateBoundaryEvidence, transformationPathEvidence',
+        }),
+      ])
+    );
+
+    const gasEvidenceRows = runTransformer(
+      'getGasTransformationDataroomRequiredEvidenceRows',
+      gasDataroomBlueprintFixture
+    );
+    expectScalarRows(gasEvidenceRows);
+    expect(gasEvidenceRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          evidenceId: 'evidenceRegisterSnapshot',
+          enablesDossierAddition: 'show gas dataroom evidence-register gaps',
+        }),
+      ])
+    );
+
+    const gasFocusRows = runTransformer(
+      'getGasTransformationDataroomFocusRows',
+      gasDataroomStatusFixture
+    );
+    expectScalarRows(gasFocusRows);
+    assertNoRawObjectText(gasFocusRows);
+    expect(gasFocusRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'eog_kanu_boundary',
+          value: 'EOG/KANU context only; no legal decision',
+        }),
+        expect.objectContaining({
+          rowKey: 'demo_raum_sync_status',
+          value: 'Blueprint-Pack complete / Landing-Registry pending / productive page pending',
+        }),
+      ])
+    );
+
+    const gasTransferRows = runTransformer('getGasTransformationDataroomTransferRows', {
+      status: 'transfer_blocked',
+    });
+    expectScalarRows(gasTransferRows);
+    expect(gasTransferRows[0]).toMatchObject({
+      rowKey: 'gas_dataroom_transfer_pending',
+      value: 'Landing-Registry and productive page sync proof pending',
+    });
+
+    const gasNoCallRows = runTransformer(
+      'getGasTransformationDataroomNoCallRows',
+      gasDataroomStatusFixture
+    );
+    expectScalarRows(gasNoCallRows);
+    expect(gasNoCallRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ action: 'budibase.table.write', status: 'not_called' }),
+        expect.objectContaining({
+          action: 'gas-transformation.executeDecommissioning',
+          status: 'not_called',
+        }),
+        expect.objectContaining({ action: 'personal-agent.execute', status: 'not_called' }),
+      ])
+    );
 
     const draftSummaryRows = runTransformer(
       'getLandingRegistryDraftSyncSummaryRows',

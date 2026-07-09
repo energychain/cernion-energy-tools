@@ -7661,6 +7661,139 @@
           "type": "string"
         }
       }
+    },
+    {
+      "name": "getGasTransformationDataroomSeedSelectorRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-gas-transformation-dataroom-review-v1",
+      "parameters": [{ "name": "tenantId", "default": "stadtwerk-mauer" }],
+      "transformer": "const d=data.data||{}; const selected=d.seedId||'stadtwerk-mauer-gas-transformation-dataroom-review-v1'; const seeds=[{availableSeedId:'stadtwerk-mauer-substation-load-assessment-v1',label:'Substation Load Assessment',selected:false,controlCase:'substation_load_assessment'},{availableSeedId:'stadtwerk-mauer-cross-system-variance-evidence-matrix-v1',label:'Cross-System Variance Evidence Matrix',selected:false,controlCase:'cross_system_variance_evidence_matrix'},{availableSeedId:'stadtwerk-mauer-gas-transformation-dataroom-review-v1',label:'Gas Transformation Dataroom Review',selected:true,controlCase:d.controlCase||'gas_transformation_dataroom_status_review'}]; return seeds.map((row)=>({...row,selectedSeedId:selected,tenantId:d.tenantId||data.tenantId||'stadtwerk-mauer',processFamily:row.availableSeedId===selected?(d.processFamily||'gas_transformation_dataroom_review'):'',roleQuestion:row.selected?'review-ready evidence, missing proof, contributor and next safe gate':'available canonical seed',sourceClass:'gas_dataroom_blueprint_seed_selector'}))",
+      "schema": {
+        "availableSeedId": { "type": "string" },
+        "selectedSeedId": { "type": "string" },
+        "tenantId": { "type": "string" },
+        "label": { "type": "string" },
+        "selected": { "type": "boolean" },
+        "controlCase": { "type": "string" },
+        "processFamily": { "type": "string" },
+        "roleQuestion": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getGasTransformationDataroomVerifySummaryRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-gas-transformation-dataroom-review-v1",
+      "parameters": [{ "name": "tenantId", "default": "stadtwerk-mauer" }],
+      "transformer": "const d=data.data||{}; const counts=(data.summary||{}).counts||{}; const v=d.validation||{}; return [{rowKey:'gas_dataroom_verify_summary',label:'Gas dataroom Blueprint verify',seedId:d.seedId||'stadtwerk-mauer-gas-transformation-dataroom-review-v1',tenantId:d.tenantId||data.tenantId||'stadtwerk-mauer',status:data.status||'unknown',valid:Boolean(v.valid),processFamily:d.processFamily||'gas_transformation_dataroom_review',controlCase:d.controlCase||'gas_transformation_dataroom_status_review',requiredEvidenceCount:counts.requiredEvidence||0,roleRelationCount:counts.roleRelations||0,forbiddenActionCount:counts.forbiddenActions||0,budibaseRenderTarget:d.budibaseRenderTarget||'budibase:stadtwerk-mauer-workbench',safeNextGate:(data.nextActions||[])[0]||'render_gas_dataroom_review_panel',sourceClass:'gas_dataroom_blueprint_verify'}]",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "label": { "type": "string" },
+        "seedId": { "type": "string" },
+        "tenantId": { "type": "string" },
+        "status": { "type": "string" },
+        "valid": { "type": "boolean" },
+        "processFamily": { "type": "string" },
+        "controlCase": { "type": "string" },
+        "requiredEvidenceCount": { "type": "number" },
+        "roleRelationCount": { "type": "number" },
+        "forbiddenActionCount": { "type": "number" },
+        "budibaseRenderTarget": { "type": "string" },
+        "safeNextGate": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getGasTransformationDataroomMatrixRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-gas-transformation-dataroom-review-v1",
+      "parameters": [{ "name": "tenantId", "default": "stadtwerk-mauer" }],
+      "transformer": "const d=data.data||{}; const m=d.demoProcessMatrixSync||{}; const handoff=m.downstreamHandoff||{}; const base={seedId:d.seedId||'stadtwerk-mauer-gas-transformation-dataroom-review-v1',roleLegendM:m.roleLegendM||'Mitwirkend',rowCount:m.rowCount||0,rowCountValid:Boolean(m.rowCountValid),syncStatus:m.synced?'blueprint_pack_complete':'sync_proof_required',downstreamHandoff:[handoff.blueprintPack||'complete',handoff.landingRegistry||'pending',handoff.productiveDemoRoom||'pending'].join(' -> ')}; const summary={rowKey:'gas_dataroom_matrix_sync_summary',phase:'sync',v:'ROLE_NETZSTRATEGIE',d:'ROLE_CERNION_GOVERNANCE',m:base.roleLegendM,i:'ROLE_MANAGEMENT',nachweise:(m.evidenceRequirements||[]).join(', '),status:base.syncStatus,safeNextGate:'keep_landing_registry_and_productive_page_pending_until_sync_proof',sourceClass:'gas_dataroom_demo_process_matrix',...base}; const rows=(m.rows||[]).map((row,index)=>({rowKey:`gas_dataroom_matrix_row_${row.phase||index+1}`,phase:row.phase||String(index+1),v:(row.roles||{}).V||'',d:(row.roles||{}).D||'',m:(row.roles||{}).M||'',i:(row.roles||{}).I||'',nachweise:(row.evidenceRequirements||[]).join(', '),status:row.status||'',safeNextGate:row.gateOutcome||row.enablesDossierAddition||'render_read_only_matrix_row',sourceClass:'gas_dataroom_demo_process_matrix_row',...base})); return [summary].concat(rows)",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "phase": { "type": "string" },
+        "v": { "type": "string" },
+        "d": { "type": "string" },
+        "m": { "type": "string" },
+        "i": { "type": "string" },
+        "nachweise": { "type": "string" },
+        "status": { "type": "string" },
+        "safeNextGate": { "type": "string" },
+        "seedId": { "type": "string" },
+        "roleLegendM": { "type": "string" },
+        "rowCount": { "type": "number" },
+        "rowCountValid": { "type": "boolean" },
+        "syncStatus": { "type": "string" },
+        "downstreamHandoff": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getGasTransformationDataroomRequiredEvidenceRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-gas-transformation-dataroom-review-v1",
+      "parameters": [{ "name": "tenantId", "default": "stadtwerk-mauer" }],
+      "transformer": "const d=data.data||{}; const missing=new Map((d.missingEvidence||[]).map((row)=>[row.missingDataPoint,row])); return (d.requiredEvidence||[]).map((id,index)=>{const gap=missing.get(id)||{}; return {rowKey:id||`gas_dataroom_evidence_${index+1}`,evidenceId:id,label:id,status:gap.state||'required',enablesDossierAddition:gap.enablesDossierAddition||`add ${id} to gas dataroom review evidence`,safeNextGate:'complete_evidence_then_refresh_gas_dataroom_panel',sourceClass:'gas_dataroom_required_evidence'};})",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "evidenceId": { "type": "string" },
+        "label": { "type": "string" },
+        "status": { "type": "string" },
+        "enablesDossierAddition": { "type": "string" },
+        "safeNextGate": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getGasTransformationDataroomFocusRows",
+      "method": "GET",
+      "path": "/api/dashboard/gas-transformation-dataroom",
+      "queryString": "tenantId={{tenantId}}&roomId=smm-gas-dataroom&mandateId=smm-budibase-workbench",
+      "parameters": [{ "name": "tenantId", "default": "stadtwerk-mauer" }],
+      "transformer": "const s=data.summary||{}; const profile=data.roomProfile||{}; const boundary=data.mandateBoundary||{}; const paths=data.transformationPaths||[]; const scenario=data.scenarioReferences||[]; const evidence=data.evidenceRegister||{}; const decision=data.decisionLog||{}; const roadmap=data.roadmap||{}; const owner=data.owner||data.reviewOwner||{}; const missing=data.missingEvidence||data.evidenceGaps||[]; const rows=[['room_mandate_boundary','Room / mandate boundary',profile.roomId||data.roomId||'smm-gas-dataroom',boundary.summary||boundary.status||s.mandateBoundary||'read_only_review_boundary'],['transformation_paths','Transformation paths',paths.map((p)=>p.label||p.pathId||p.name||p.status).filter(Boolean).join(', ')||s.transformationPaths||'not_rendered_yet','compare paths without decommissioning execution'],['scenario_references','Scenario references',scenario.map((p)=>p.label||p.referenceId||p.name).filter(Boolean).join(', ')||s.scenarioReferences||'scenario evidence pending','explain EOG/KANU boundary when evidence arrives'],['eog_kanu_boundary','EOG/KANU / no legal decision',data.legalDecisionBoundary||data.eogKanuBoundary||s.legalBoundary||'no legal or regulatory decision made by Budibase','keep legal/regulatory decision outside Workbench'],['evidence_register','Evidence register',evidence.status||evidence.summary||`${missing.length} missing evidence item(s)`,'complete register gaps before review-ready claim'],['decision_log_roadmap','Decision log / roadmap',decision.status||roadmap.status||s.roadmapStatus||'roadmap evidence pending','add owner and dated next action'],['owner_next_action','Owner / next action',owner.label||owner.role||s.owner||'ROLE_NETZSTRATEGIE',data.nextAction||s.nextAction||'refresh read-only gas dataroom status'],['source_references','Source references',(data.sourceReferences||data.sources||[]).map((p)=>p.label||p.url||p.id).filter(Boolean).join(', ')||'Blueprint-Pack + dashboard read model','keep sources inspectable as scalar rows'],['demo_raum_sync_status','Demo-Raum sync status','Blueprint-Pack complete / Landing-Registry pending / productive page pending','do not claim public sync before proof']]; return rows.map(([rowKey,label,value,safeNextGate])=>({rowKey,label,value:String(value||''),status:data.status||s.status||'read_only_review',safeNextGate,sourceClass:'gas_dataroom_focus_row'}))",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "label": { "type": "string" },
+        "status": { "type": "string" },
+        "value": { "type": "string" },
+        "safeNextGate": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getGasTransformationDataroomTransferRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-transfer-readiness",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-gas-transformation-dataroom-review-v1&caseId=smm-budibase-workbench",
+      "parameters": [{ "name": "tenantId", "default": "stadtwerk-mauer" }],
+      "transformer": "const rows=[...(data.summaryRows||[]),...(data.safeNextGateRows||[]),...(data.boundaryRows||[])]; const normalized=rows.length?rows:[{rowKey:'gas_dataroom_transfer_pending',label:'Transfer readiness',status:data.status||'pending',value:'Landing-Registry and productive page sync proof pending',safeNextGate:'keep transfer blocked until explicit proof',sourceClass:'gas_dataroom_transfer_readiness'}]; return normalized.map((row,index)=>({rowKey:row.rowKey||`gas_dataroom_transfer_${index+1}`,label:row.label||row.category||'Transfer readiness',status:row.status||data.status||'pending',value:String(row.value||row.description||row.safeNextGate||row.boundary||''),safeNextGate:row.safeNextGate||row.nextGate||'refresh_transfer_readiness',sourceClass:row.sourceClass||'gas_dataroom_transfer_readiness'}))",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "label": { "type": "string" },
+        "status": { "type": "string" },
+        "value": { "type": "string" },
+        "safeNextGate": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getGasTransformationDataroomNoCallRows",
+      "method": "GET",
+      "path": "/api/dashboard/gas-transformation-dataroom",
+      "queryString": "tenantId={{tenantId}}&roomId=smm-gas-dataroom&mandateId=smm-budibase-workbench",
+      "parameters": [{ "name": "tenantId", "default": "stadtwerk-mauer" }],
+      "transformer": "const notCalled=((data.sourceActions||{}).notCalled||[]); const fallback=['budibase.table.write','rundeck.execute','gas-transformation.executeDecommissioning','external.connector.call','hitl.create','mako.dispatch','settlement.export','device-control.execute','personal-agent.execute']; return (notCalled.length?notCalled:fallback).map((action,index)=>({rowKey:`gas_dataroom_no_call_${index+1}`,action:String(action),status:'not_called',safeAlternative:'render_existing_read_only_dashboard_rows_only',sourceClass:'gas_dataroom_no_call_guard'}))",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "action": { "type": "string" },
+        "status": { "type": "string" },
+        "safeAlternative": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
     }
   ],
   "sections": [
@@ -8583,6 +8716,48 @@
       "tableTitle": "Synthetic Source and No-Call Guards"
     },
     {
+      "id": "gas_dataroom_seed_selector",
+      "title": "Gas Dataroom Seed Selector",
+      "queryName": "getGasTransformationDataroomSeedSelectorRows",
+      "tableTitle": "Gas Dataroom Seed Selector"
+    },
+    {
+      "id": "gas_dataroom_verify_summary",
+      "title": "Gas Dataroom Verify Summary",
+      "queryName": "getGasTransformationDataroomVerifySummaryRows",
+      "tableTitle": "Gas Dataroom Verify Summary"
+    },
+    {
+      "id": "gas_dataroom_demo_process_matrix",
+      "title": "Gas Dataroom Demo Process Matrix",
+      "queryName": "getGasTransformationDataroomMatrixRows",
+      "tableTitle": "Gas Dataroom Demo Process Matrix"
+    },
+    {
+      "id": "gas_dataroom_required_evidence",
+      "title": "Gas Dataroom Evidence Gates",
+      "queryName": "getGasTransformationDataroomRequiredEvidenceRows",
+      "tableTitle": "Gas Dataroom Evidence Gates"
+    },
+    {
+      "id": "gas_dataroom_focus",
+      "title": "Gas Dataroom Review Focus",
+      "queryName": "getGasTransformationDataroomFocusRows",
+      "tableTitle": "Gas Dataroom Review Focus"
+    },
+    {
+      "id": "gas_dataroom_transfer_readiness",
+      "title": "Gas Dataroom Transfer Readiness",
+      "queryName": "getGasTransformationDataroomTransferRows",
+      "tableTitle": "Gas Dataroom Transfer Readiness"
+    },
+    {
+      "id": "gas_dataroom_no_call_guards",
+      "title": "Gas Dataroom No-Call Guards",
+      "queryName": "getGasTransformationDataroomNoCallRows",
+      "tableTitle": "Gas Dataroom No-Call Guards"
+    },
+    {
       "id": "e2e",
       "title": "E2E Demo Status",
       "queryName": "getStadtwerkMauerE2EProcessDemo",
@@ -8615,6 +8790,8 @@
     "Blueprint Seed Selector binds to the existing Blueprint-Pack verify and transfer-readiness facades for the two canonical Stadtwerk-Mauer seeds; Budibase renders selector, matrix, evidence, data-class, sync-status and cross-system variance linkout rows as scalar read-only cells.",
     "Transfer Readiness binds to a read-only dashboard facade that separates public context, synthetic seed values, sandbox runtime artifacts, tenant parameters, reusable Workbench elements and blocked production boundaries.",
     "VNB Delta / Signal Queue binds to existing classifier, queue, owner/deadline/evidence and leadership delta read models with synthetic caller-supplied signals; Budibase renders scalar operator rows and no-call guards only.",
+    "Gas Transformation Dataroom binds to existing Blueprint-Pack verify, gas-transformation-dataroom and transfer-readiness read models for stadtwerk-mauer-gas-transformation-dataroom-review-v1.",
+    "Gas Dataroom rows stay scalar/generated: Budibase renders room boundary, transformation paths, scenario references, EOG/KANU no-legal-decision boundary, evidence register, decision log, roadmap, owner, next action and Demo-Raum sync status without table writes or persistence actions.",
     "Portfolio Market Value Readiness binds Blueprint-Pack verify rows for stadtwerk-mauer-portfolio-market-value-readiness-v1 with a synthetic portfolio-backtest query; Budibase renders scalar demo-readiness, plausibility, evidence-gap and non-advice rows only.",
     "Portfolio review rows stay read-only/generated: no portfolio persistence, trading, investment advice, external connector, billing, settlement, tariff, MaKo, device-control, Budibase table write or Personal-Agent execution is allowed.",
     "Meaning Preservation binds to the existing coordination-meaning-preservation-profile read model for the selected Stadtwerk-Mauer case; Budibase renders scalar preserved, missing, weak, owner/deadline/decision, transfer-parameter and no-call rows only.",
