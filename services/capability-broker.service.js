@@ -10,8 +10,16 @@ const {
   listCompiledDomainRoutes,
   findRuntimeCapability,
 } = require('../src/domain-routes-registry');
+const { rankOperations } = require('../src/operation-capability-index');
 
 const MODES = new Set(['initial', 'next_step', 'repair', 'compare']);
+
+function buildOperationCandidateInputs(knownContext = {}, resolvedParams = {}) {
+  return {
+    ...(knownContext && typeof knownContext === 'object' ? knownContext : {}),
+    ...(resolvedParams && typeof resolvedParams === 'object' ? resolvedParams : {}),
+  };
+}
 
 function normalizeRequestSchemaVersion(schemaVersion, warnings) {
   if (!schemaVersion) {
@@ -3330,6 +3338,12 @@ module.exports = {
           ctx.params.knownContext && typeof ctx.params.knownContext === 'object'
             ? ctx.params.knownContext
             : {};
+        const operationCandidates = rankOperations(taskText, {
+          capability: capability.capability,
+          domain: capability.domain,
+          limit: 5,
+          extractedInputs: buildOperationCandidateInputs(knownContext, resolvedParams),
+        });
 
         const recommendedPlan = preferredActionPath.map((action, index) => ({
           step: index + 1,
@@ -3393,6 +3407,7 @@ module.exports = {
             : 0,
           preferredActionCount: preferredActionPath.length,
           discoveredActionCount: discovered.length,
+          operationCandidateCount: operationCandidates.length,
           finalConfidence: Number(confidence.toFixed(2)),
         };
 
@@ -3423,6 +3438,7 @@ module.exports = {
             },
           ],
           recommendedPlan,
+          operationCandidates,
           requiredInputs,
           doNotUse,
           risksAndNotes: capability.risksAndNotes,
@@ -3440,6 +3456,32 @@ module.exports = {
           schemaVersion: BROKER_SCHEMA_VERSION,
           capabilities: CURATED_CAPABILITIES,
           globalDoNotUse: GLOBAL_DO_NOT_USE,
+        };
+      },
+    },
+
+    queryOperationIndex: {
+      params: {
+        question: { type: 'string', min: 3 },
+        capability: { type: 'string', optional: true },
+        domain: { type: 'string', optional: true },
+        limit: { type: 'number', optional: true, positive: true, integer: true, default: 5 },
+        extractedInputs: { type: 'object', optional: true, default: {} },
+        includeNonAgentable: { type: 'boolean', optional: true, default: false },
+      },
+      handler(ctx) {
+        const candidates = rankOperations(ctx.params.question, {
+          capability: ctx.params.capability || null,
+          domain: ctx.params.domain || null,
+          limit: ctx.params.limit,
+          extractedInputs: ctx.params.extractedInputs || {},
+          includeNonAgentable: ctx.params.includeNonAgentable,
+        });
+
+        return {
+          schemaVersion: BROKER_SCHEMA_VERSION,
+          question: ctx.params.question,
+          candidates,
         };
       },
     },

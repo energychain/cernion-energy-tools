@@ -941,7 +941,7 @@ function scoreOpenApiFallbackOperation(operation, { question, capability }) {
   return score;
 }
 
-function selectOpenApiFallbackOperation(broker, { question, capability }) {
+function selectLocalOpenApiFallbackOperation(broker, { question, capability }) {
   if (!capability || capability === 'knowledge-rag') return null;
   const candidates = buildOpenApiFallbackOperationIndex(broker)
     .map((operation) => ({
@@ -960,6 +960,59 @@ function selectOpenApiFallbackOperation(broker, { question, capability }) {
       score: candidate.score,
     })),
   };
+}
+
+async function selectOpenApiFallbackOperation(ctx, { question, capability, context, inputs }) {
+  if (!capability || capability === 'knowledge-rag') return null;
+
+  const localOperations = buildOpenApiFallbackOperationIndex(ctx.broker);
+  const operationById = new Map(
+    localOperations.flatMap((operation) => [
+      [operation.operationId, operation],
+      [operation.actionRef, operation],
+    ])
+  );
+
+  try {
+    const ranked = await ctx.call('capability-broker.queryOperationIndex', {
+      question,
+      capability,
+      limit: 5,
+      extractedInputs: {
+        ...(context && typeof context === 'object' ? context : {}),
+        ...(inputs && typeof inputs === 'object' ? inputs : {}),
+      },
+    });
+    const candidates = Array.isArray(ranked?.candidates) ? ranked.candidates : [];
+    const selected = candidates.find((candidate) => {
+      if (candidate.recommendedExecutionMode !== 'direct') return false;
+      if (candidate.consequenceLevel && candidate.consequenceLevel !== 'none') return false;
+      return operationById.has(candidate.operationId) || operationById.has(candidate.action);
+    });
+    if (!selected) return null;
+
+    const operation = operationById.get(selected.operationId) || operationById.get(selected.action);
+    return {
+      ...operation,
+      score: selected.score,
+      confidence: selected.confidence,
+      querySignalScore: selected.querySignalScore,
+      alternatives: candidates
+        .filter((candidate) => candidate.operationId !== selected.operationId)
+        .slice(0, 4)
+        .map((candidate) => ({
+          operationId: candidate.operationId,
+          actionRef: candidate.action,
+          path: candidate.path,
+          score: candidate.score,
+          confidence: candidate.confidence,
+          operationKind: candidate.operationKind,
+          recommendedExecutionMode: candidate.recommendedExecutionMode,
+        })),
+    };
+  } catch (error) {
+    return selectLocalOpenApiFallbackOperation(ctx.broker, { question, capability });
+  }
 }
 
 function resolveCountryCode(question, context = {}, inputs = {}) {
@@ -1299,7 +1352,12 @@ function buildOpenApiFallbackResponse({ question, capability, operation, params,
 }
 
 async function tryBuildOpenApiFallbackAnswer(ctx, { question, capability, context, inputs }) {
-  const operation = selectOpenApiFallbackOperation(ctx.broker, { question, capability });
+  const operation = await selectOpenApiFallbackOperation(ctx, {
+    question,
+    capability,
+    context,
+    inputs,
+  });
   if (!operation) return null;
 
   const resolved = resolveOpenApiFallbackParams(operation, { question, context, inputs });
