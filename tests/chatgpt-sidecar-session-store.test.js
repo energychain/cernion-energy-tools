@@ -81,7 +81,24 @@ describe('chatgpt-sidecar session store', () => {
     expect(summary).not.toHaveProperty('userId');
   });
 
-  it('persists sessions, revocation and metering across store instances', () => {
+  it('records turn metadata without exposing tenant or user identifiers', () => {
+    const { session } = store.createSession({ tenantId: 't', ttl: '1h', capabilityProfile: [] });
+    const turn = store.recordTurn(session.sessionId, {
+      turnId: 'cgs_turn_test',
+      parentTurnId: null,
+      operation: 'ask',
+      transport: 'browser_get',
+      promptHash: 'abc123',
+      resolvedQuestion: 'Welche Daten liegen vor?',
+    });
+
+    expect(turn.turnId).toBe('cgs_turn_test');
+    const turns = store.getTurns(session.sessionId);
+    expect(turns).toEqual([expect.objectContaining({ turnId: 'cgs_turn_test' })]);
+    expect(JSON.stringify(turns)).not.toMatch(/tenant|user/);
+  });
+
+  it('persists sessions, revocation, metering and turns across store instances', () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'chatgpt-sidecar-store-'));
     const filePath = path.join(dir, 'sessions.json');
     const persistentStore = createFileBackedSessionStore({ filePath });
@@ -97,6 +114,12 @@ describe('chatgpt-sidecar session store', () => {
     });
     persistentStore.recordMeteringEvent(session.sessionId, 'session_created', {});
     persistentStore.recordMeteringEvent(session.sessionId, 'manifest_read', {});
+    persistentStore.recordTurn(session.sessionId, {
+      turnId: 'cgs_turn_persisted',
+      operation: 'ask',
+      transport: 'post',
+      promptHash: 'abc123',
+    });
 
     const rehydratedStore = createFileBackedSessionStore({ filePath });
     expect(rehydratedStore.resolveByTicket(session.ticket).status).toBe('active');
@@ -104,6 +127,9 @@ describe('chatgpt-sidecar session store', () => {
       session_created: 1,
       manifest_read: 1,
     });
+    expect(rehydratedStore.getTurns(session.sessionId)).toEqual([
+      expect.objectContaining({ turnId: 'cgs_turn_persisted' }),
+    ]);
 
     rehydratedStore.revoke(session.sessionId, { tenantId: 'tenant-a' });
     const afterRevokeRestart = createFileBackedSessionStore({ filePath });

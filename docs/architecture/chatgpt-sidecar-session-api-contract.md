@@ -194,6 +194,46 @@ new query URL from the manifest template. This is a prompt-only Safe Browsing
 compatibility measure; it does not expose tenant/user identity, session id,
 POST routes, write endpoints or provider credentials.
 
+### Ask/plan response contract
+
+`ask`, `browserAsk`, `plan` and `browserPlan` preserve their existing payload
+fields and add a stable prompt-only response envelope:
+
+```json
+{
+  "success": true,
+  "shortAnswer": "Cernion evidence answer",
+  "answer": "Cernion evidence answer",
+  "turnId": "cgs_turn_<uuid>",
+  "resolvedQuestion": "Welche Daten liegen vor?",
+  "followUpContext": {
+    "turnId": "cgs_turn_<uuid>",
+    "parentTurnId": "cgs_turn_<previous-uuid-or-null>",
+    "resolvedQuestion": "Welche Daten liegen vor?",
+    "capability": "knowledge-rag",
+    "transport": "browser_get",
+    "confidence": "high",
+    "promptOnly": {
+      "statefulContextAvailable": true,
+      "requiresConcreteNextCall": true
+    }
+  },
+  "responseContract": {
+    "schemaVersion": "cernion.chatgpt-sidecar.response.v1",
+    "turnIdField": "turnId",
+    "resolvedQuestionField": "resolvedQuestion",
+    "followUpContextField": "followUpContext"
+  }
+}
+```
+
+The server records each turn under the opaque session ticket so later calls
+can pass `parentTurnId` and preserve conversational context. This improves
+grounding and follow-up interpretation for prompt-only usage, but it does
+not remove the transport boundary: a new free-form ChatGPT user question
+still has to reach Cernion through a concrete browser URL, a Custom GPT
+Action or an MCP/App tool call.
+
 ### Error responses
 
 | Status | Code | Cause |

@@ -133,6 +133,139 @@ function buildBrowserUrlTemplates(baseUrl, ticket) {
   };
 }
 
+function buildResponseContract() {
+  return {
+    schemaVersion: 'cernion.chatgpt-sidecar.response.v1',
+    turnIdField: 'turnId',
+    resolvedQuestionField: 'resolvedQuestion',
+    answerField: 'answer',
+    summaryField: 'shortAnswer',
+    confidenceField: 'confidence',
+    evidenceField: 'evidence',
+    followUpContextField: 'followUpContext',
+    promptOnlyTransportBoundary:
+      'A prompt-only browser client still needs a concrete URL, Action or MCP tool call to send each new free-form user question to Cernion.',
+  };
+}
+
+function generateTurnId() {
+  return `cgs_turn_${crypto.randomUUID()}`;
+}
+
+function resolveParentTurnId(ctx, context = {}, inputs = {}) {
+  const candidates = [
+    ctx?.params?.parentTurnId,
+    context?.parentTurnId,
+    context?.turnId,
+    inputs?.parentTurnId,
+    inputs?.turnId,
+  ];
+  for (const candidate of candidates) {
+    if (typeof candidate === 'string' && candidate.trim()) return candidate.trim();
+  }
+  return null;
+}
+
+function resolveAnswerText(result) {
+  if (typeof result?.answer === 'string' && result.answer.trim()) return result.answer;
+  if (typeof result?.shortAnswer === 'string' && result.shortAnswer.trim()) return result.shortAnswer;
+  if (typeof result?.groundingAnswer === 'string' && result.groundingAnswer.trim()) {
+    return result.groundingAnswer;
+  }
+  return null;
+}
+
+function buildFollowUpContext({
+  turnId,
+  parentTurnId,
+  resolvedQuestion,
+  capability,
+  transport,
+  result,
+  ontology,
+  restPlan,
+}) {
+  return {
+    turnId,
+    parentTurnId,
+    resolvedQuestion,
+    capability: capability || null,
+    transport,
+    confidence: result?.confidence || null,
+    ontology: ontology
+      ? {
+          supported: ontology.supported || false,
+          mode: ontology.mode || null,
+          fallbackReason: ontology.fallbackReason || null,
+        }
+      : null,
+    restPlan: restPlan
+      ? {
+          ok: !!restPlan.ok,
+          reason: restPlan.reason || null,
+          resolved: restPlan.resolved || null,
+        }
+      : null,
+    promptOnly: {
+      statefulContextAvailable: true,
+      requiresConcreteNextCall: true,
+      instruction:
+        'Use this context to interpret follow-ups, but the next free-form user question must still be transported by a concrete URL, Action or MCP tool call.',
+    },
+  };
+}
+
+function attachTurnContract({
+  session,
+  ctx,
+  operation,
+  transport,
+  promptText,
+  result,
+  context = {},
+  inputs = {},
+  capability = null,
+  ontology = null,
+  restPlan = null,
+}) {
+  const turnId = generateTurnId();
+  const parentTurnId = resolveParentTurnId(ctx, context, inputs);
+  const resolvedQuestion =
+    result?.resolvedQuestion || result?.question || result?.task || promptText || null;
+  const answer = resolveAnswerText(result);
+  const followUpContext = buildFollowUpContext({
+    turnId,
+    parentTurnId,
+    resolvedQuestion,
+    capability,
+    transport,
+    result,
+    ontology,
+    restPlan,
+  });
+  const wrapped = {
+    ...result,
+    turnId,
+    resolvedQuestion,
+    followUpContext,
+    responseContract: buildResponseContract(),
+  };
+  if (answer && !wrapped.answer) wrapped.answer = answer;
+
+  defaultStore.recordTurn(session.sessionId, {
+    turnId,
+    parentTurnId,
+    operation,
+    transport,
+    capability,
+    promptHash: shortHash(promptText),
+    resolvedQuestion,
+    confidence: result?.confidence || null,
+  });
+
+  return wrapped;
+}
+
 function resolveInitialQuestion(metadata) {
   const candidates = [
     metadata?.initialQuestion,
@@ -238,7 +371,19 @@ async function handleAsk(ctx, { browserFacade = false } = {}) {
 
   if (restPlan.ok) {
     const answer = buildAskBlueprintAnswer(restPlan, { question, sessionId: null });
-    return { ...answer, ontology };
+    return attachTurnContract({
+      session,
+      ctx,
+      operation: 'ask',
+      transport: browserFacade ? 'browser_get' : 'post',
+      promptText: question,
+      result: { ...answer, ontology },
+      context,
+      inputs,
+      capability,
+      ontology,
+      restPlan,
+    });
   }
 
   const result = await ctx.call('personal-agent.askCernionAgent', {
@@ -251,7 +396,19 @@ async function handleAsk(ctx, { browserFacade = false } = {}) {
     maxEvidence: 5,
   });
 
-  return { ...result, ontology };
+  return attachTurnContract({
+    session,
+    ctx,
+    operation: 'ask',
+    transport: browserFacade ? 'browser_get' : 'post',
+    promptText: question,
+    result: { ...result, ontology },
+    context,
+    inputs,
+    capability,
+    ontology,
+    restPlan,
+  });
 }
 
 async function handlePlan(ctx, { browserFacade = false } = {}) {
@@ -303,15 +460,27 @@ async function handlePlan(ctx, { browserFacade = false } = {}) {
     broker: ctx.broker,
   });
 
-  return {
-    success: true,
-    recommendation,
-    restPlan: restPlan.ok
-      ? { resolved: restPlan.resolved, recommendedEndpoints: restPlan.recommendedEndpoints }
-      : { ok: false, reason: restPlan.reason },
+  return attachTurnContract({
+    session,
+    ctx,
+    operation: 'plan',
+    transport: browserFacade ? 'browser_get' : 'post',
+    promptText: task,
+    context,
+    capability,
     ontology,
-    writeScope: session.writeScope,
-  };
+    restPlan,
+    result: {
+      success: true,
+      task,
+      recommendation,
+      restPlan: restPlan.ok
+        ? { resolved: restPlan.resolved, recommendedEndpoints: restPlan.recommendedEndpoints }
+        : { ok: false, reason: restPlan.reason },
+      ontology,
+      writeScope: session.writeScope,
+    },
+  });
 }
 
 // Fails closed: requires a real authenticated tenant, a non-read-only token
@@ -540,6 +709,16 @@ module.exports = {
               'public_context_or_production_mutation',
             ],
           },
+          responseContract: buildResponseContract(),
+          conversation: {
+            stateful: true,
+            turnState: 'server_recorded',
+            turnIdField: 'turnId',
+            parentTurnIdField: 'parentTurnId',
+            followUpContextField: 'followUpContext',
+            promptOnlyTransportBoundary:
+              'Server-side turn state helps resolve context after a call, but it does not let a prompt-only browser client send arbitrary new follow-up text without a concrete URL, Action or MCP tool call.',
+          },
         };
       },
     },
@@ -553,6 +732,7 @@ module.exports = {
         context: { type: 'object', optional: true, default: {} },
         inputs: { type: 'object', optional: true, default: {} },
         capability: { type: 'string', optional: true },
+        parentTurnId: { type: 'string', optional: true },
       },
       openapi: {
         tags: [OPENAPI_TAG],
@@ -573,6 +753,7 @@ module.exports = {
         context: { type: 'any', optional: true },
         inputs: { type: 'any', optional: true },
         capability: { type: 'string', optional: true },
+        parentTurnId: { type: 'string', optional: true },
       },
       openapi: {
         tags: [OPENAPI_TAG],
@@ -593,6 +774,7 @@ module.exports = {
         task: { type: 'string', min: 3 },
         context: { type: 'object', optional: true, default: {} },
         capability: { type: 'string', optional: true },
+        parentTurnId: { type: 'string', optional: true },
       },
       openapi: {
         tags: [OPENAPI_TAG],
@@ -611,6 +793,7 @@ module.exports = {
         q: { type: 'string', optional: true },
         context: { type: 'any', optional: true },
         capability: { type: 'string', optional: true },
+        parentTurnId: { type: 'string', optional: true },
       },
       openapi: {
         tags: [OPENAPI_TAG],

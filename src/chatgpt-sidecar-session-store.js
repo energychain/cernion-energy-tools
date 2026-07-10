@@ -88,6 +88,7 @@ function createInMemorySessionStore() {
       baseUrl: baseUrl || null,
       meteringEvents: [],
       meteringCounts: {},
+      turns: [],
     };
 
     byTicket.set(ticket, session);
@@ -128,6 +129,20 @@ function createInMemorySessionStore() {
     return event;
   }
 
+  function recordTurn(sessionId, turn = {}) {
+    const session = byId.get(sessionId);
+    if (!session) return null;
+    const event = { at: new Date().toISOString(), ...turn };
+    if (!Array.isArray(session.turns)) session.turns = [];
+    session.turns.push(event);
+    return event;
+  }
+
+  function getTurns(sessionId) {
+    const session = byId.get(sessionId);
+    return session && Array.isArray(session.turns) ? [...session.turns] : null;
+  }
+
   // Redacted summary: counts only, no raw tenant/user/credential detail —
   // safe to expose through the ticket-scoped GET metering endpoint.
   function getMeteringSummary(sessionId) {
@@ -161,6 +176,7 @@ function createInMemorySessionStore() {
       metadata: { ...(session.metadata || {}) },
       meteringEvents: Array.isArray(session.meteringEvents) ? [...session.meteringEvents] : [],
       meteringCounts: { ...(session.meteringCounts || {}) },
+      turns: Array.isArray(session.turns) ? [...session.turns] : [],
     };
     byTicket.set(normalized.ticket, normalized);
     byId.set(normalized.sessionId, normalized);
@@ -173,6 +189,8 @@ function createInMemorySessionStore() {
     getById,
     revoke,
     recordMeteringEvent,
+    recordTurn,
+    getTurns,
     getMeteringSummary,
     _getInternalEvents,
     _allSessions,
@@ -230,6 +248,12 @@ function createFileBackedSessionStore({
       if (event) persist();
       return event;
     },
+    recordTurn(sessionId, turn) {
+      const event = memory.recordTurn(sessionId, turn);
+      if (event) persist();
+      return event;
+    },
+    getTurns: memory.getTurns,
     getMeteringSummary: memory.getMeteringSummary,
     _getInternalEvents: memory._getInternalEvents,
     _filePath: filePath,

@@ -162,6 +162,16 @@ describe('chatgpt-sidecar service', () => {
       safety: 'read_only_non_consequential',
       maxQueryLength: 2000,
     });
+    expect(manifest.responseContract).toMatchObject({
+      schemaVersion: 'cernion.chatgpt-sidecar.response.v1',
+      turnIdField: 'turnId',
+      followUpContextField: 'followUpContext',
+    });
+    expect(manifest.conversation).toMatchObject({
+      stateful: true,
+      turnState: 'server_recorded',
+      parentTurnIdField: 'parentTurnId',
+    });
     expect(manifest.browserFacade.unavailableOperations).toEqual(
       expect.arrayContaining(['hitl_or_workflow_creation', 'external_connector_call'])
     );
@@ -240,6 +250,22 @@ describe('chatgpt-sidecar service', () => {
     });
 
     expect(result.success).toBe(true);
+    expect(result.turnId).toMatch(/^cgs_turn_/);
+    expect(result.resolvedQuestion).toBe(
+      'Welche Prozessschritte fehlen fuer die Gremienfreigabe?'
+    );
+    expect(result.answer).toBe('Cernion evidence answer');
+    expect(result.responseContract.schemaVersion).toBe('cernion.chatgpt-sidecar.response.v1');
+    expect(result.followUpContext).toMatchObject({
+      turnId: result.turnId,
+      parentTurnId: null,
+      resolvedQuestion: 'Welche Prozessschritte fehlen fuer die Gremienfreigabe?',
+      transport: 'post',
+      promptOnly: {
+        statefulContextAvailable: true,
+        requiresConcreteNextCall: true,
+      },
+    });
     expect(calls.find((c) => c.action === 'personal-agent.askCernionAgent')).toBeTruthy();
 
     const metering = await broker.call('chatgpt-sidecar.metering', { ticket });
@@ -254,9 +280,16 @@ describe('chatgpt-sidecar service', () => {
       ticket,
       query: 'Welche PV-Anlage wurde 2015 in Mauer gebaut?',
       context: JSON.stringify({ source: 'chatgpt.com' }),
+      parentTurnId: 'cgs_turn_previous',
     });
 
     expect(result.success).toBe(true);
+    expect(result.turnId).toMatch(/^cgs_turn_/);
+    expect(result.followUpContext).toMatchObject({
+      parentTurnId: 'cgs_turn_previous',
+      transport: 'browser_get',
+      resolvedQuestion: 'Welche PV-Anlage wurde 2015 in Mauer gebaut?',
+    });
     const forwarded = calls.find((c) => c.action === 'personal-agent.askCernionAgent');
     expect(forwarded).toBeTruthy();
     expect(forwarded.params.question).toBe('Welche PV-Anlage wurde 2015 in Mauer gebaut?');
@@ -328,6 +361,13 @@ describe('chatgpt-sidecar service', () => {
     });
 
     expect(result.success).toBe(true);
+    expect(result.turnId).toMatch(/^cgs_turn_/);
+    expect(result.resolvedQuestion).toBe('Redispatch Produktivreife pruefen');
+    expect(result.responseContract.schemaVersion).toBe('cernion.chatgpt-sidecar.response.v1');
+    expect(result.followUpContext).toMatchObject({
+      turnId: result.turnId,
+      transport: 'post',
+    });
     expect(calls.find((c) => c.action === 'capability-broker.recommend')).toBeTruthy();
   });
 
