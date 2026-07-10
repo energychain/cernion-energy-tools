@@ -792,7 +792,7 @@ function getActionOpenApiText(action) {
 }
 
 function isReadOnlyFallbackOperation(operation) {
-  if (!operation || UNSAFE_OPERATION_PATTERN.test(operation.searchText)) return false;
+  if (!operation || UNSAFE_OPERATION_PATTERN.test(operation.policyText || operation.searchText)) return false;
   if (operation.method === 'GET') return true;
   return (
     operation.method === 'POST' &&
@@ -827,6 +827,18 @@ function buildOpenApiFallbackOperationIndex(broker) {
       paramsSchema: entry.action?.params || null,
       requestBody: entry.action?.openapi?.requestBody || null,
       summary: entry.action?.openapi?.summary || entry.action?.description || null,
+      policyText: normalizeSearchText(
+        [
+          entry.serviceName,
+          entry.actionName,
+          entry.actionRef,
+          rest.method,
+          rest.path,
+          entry.action?.openapi?.summary,
+        ]
+          .filter(Boolean)
+          .join(' ')
+      ),
       searchText: normalizeSearchText(searchText),
     };
     if (isReadOnlyFallbackOperation(operation)) operations.push(operation);
