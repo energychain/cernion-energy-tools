@@ -50,6 +50,7 @@ The workbench renders:
 - Gas Transformation Dataroom Review rows for `stadtwerk-mauer-gas-transformation-dataroom-review-v1`, composed from `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify`, `GET /api/dashboard/gas-transformation-dataroom` and `GET /api/dashboard/stadtwerk-mauer-transfer-readiness`
 - Anschlussfristen Evidence Queue rows for `stadtwerk-mauer-connection-deadline-evidence-queue-v1`, composed from `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify`, `GET /api/dashboard/connection-deadline-evidence-queue` and `GET /api/dashboard/stadtwerk-mauer-transfer-readiness`
 - Investment Owner-Frist-Budget Gate rows for `stadtwerk-mauer-investment-owner-deadline-budget-gate-v1`, composed from `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify`, `GET /api/dashboard/investment-owner-deadline-budget-gate` and `GET /api/dashboard/stadtwerk-mauer-transfer-readiness`
+- Direct Marketer Demo-Raum Sync-Proof rows for `stadtwerk-mauer-direct-marketer-risk-gate-v1`, composed from `GET /api/dashboard/stadtwerk-mauer-landing-registry-draft`, `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify`, `GET /api/dashboard/stadtwerk-mauer-transfer-readiness` and `GET /api/dashboard/direct-marketer-risk-gate`
 - Transfer Readiness rows from `GET /api/dashboard/stadtwerk-mauer-transfer-readiness`, separating public context, synthetic seed data, sandbox runtime artifacts, tenant parameters, reusable Blueprint/Workbench elements and blocked production boundaries
 - a scope-protected action query for `POST /api/operations-runbook/stadtwerk-mauer/e2e-smoke`
 
@@ -166,6 +167,16 @@ evidence, blocked decision, next escalation gate, Demo-Raum sync and no-call row
 write ERP/SAP/accounting records, approve or reserve budget, execute committee decisions, transfer
 treasury funds, create workflow/HITL/mail/webhook actions, call external connectors, write arbitrary
 Budibase tables, mutate production tenants, publish Demo-Raum or use Personal-Agent shortcuts.
+The Direct Marketer Demo-Raum Sync-Proof panel is a generated read-only render slice. It composes
+the existing Landing-Registry draft, Blueprint-Pack verify, transfer-readiness and
+direct-marketer risk-gate read models for the fixed canonical seed
+`stadtwerk-mauer-direct-marketer-risk-gate-v1`. Budibase renders scalar Blueprint-Pack validity,
+matrix row count, `M = Mitwirkend`, Landing-Registry derivability, draft preview, publication
+blocker, positive-follow-up, safe-next-inspection and no-call rows only. It must not write the
+Landing Registry, publish `cernion.de`, submit schedules, transfer balancing groups, approve
+offers/contracts, contact customers, call external direct-marketer connectors, execute MaKo,
+billing, settlement, tariff, SMGW/CLS or device-control actions, execute Rundeck, write arbitrary
+Budibase tables, mutate production tenants or use Personal-Agent shortcuts.
 The selected-target query is read-only: it maps a supported Hub or role target to scalar selected,
 focus and helper rows so Budibase can visibly focus a section without owning persistent state or
 mutating Cernion tenant data.

@@ -1167,6 +1167,63 @@ const directMarketerRiskGateStatusFixture = {
   },
 };
 
+const directMarketerLandingRegistryDraftFixture = {
+  capabilityKey: 'stadtwerk_mauer_landing_registry_draft',
+  safety: 'read_only_workbench_projection',
+  status: 'landing_registry_draft_ready',
+  tenantId: 'stadtwerk-mauer',
+  seedId: 'stadtwerk-mauer-direct-marketer-risk-gate-v1',
+  found: true,
+  rowCount: 5,
+  draft: {
+    slug: 'direct-marketer-risk-gate',
+    title: 'Direct Marketer Risk Gate',
+    processFamily: 'market_partner_readiness',
+    controlCase: 'direct_marketer_risk_gate',
+    seedId: 'stadtwerk-mauer-direct-marketer-risk-gate-v1',
+    roleHeaders: [
+      'Phase',
+      'V = Verantwortlich',
+      'D = Durchfuehrend',
+      'M = Mitwirkend',
+      'I = Informiert',
+      'Nachweise',
+    ],
+    rowCount: 5,
+    rows: [
+      {
+        phase: '1',
+        V: 'ROLE_MARKET_OPERATIONS',
+        D: 'ROLE_ENERGY_SHARING_LEAD',
+        M: 'ROLE_CERNION_GOVERNANCE',
+        I: 'ROLE_MANAGEMENT',
+        evidenceRequirements: ['syntheticHandoverScopeEvidence'],
+        gateOutcome: 'synthetic_handover_scope_review_pending',
+        status: 'handover_scope_gap',
+        positiveFollowUp: 'Adds synthetic handover scope evidence.',
+      },
+    ],
+    syncProof: {
+      blueprintPack: { status: 'complete' },
+      landingRegistryDraft: { status: 'draft_ready' },
+      productiveDemoRoom: { status: 'pending' },
+    },
+    publicationBlockers: [
+      'productive_demo_room_publication_issue_missing',
+      'direct_marketer_publication_review_owner_missing',
+    ],
+    safetyBoundaries: ['landing-registry.write', 'cernion.de.publish'],
+    sourceActions: {
+      notCalled: [
+        'landing-registry.write',
+        'cernion.de.publish',
+        'market.execute',
+        'personal-agent.execute',
+      ],
+    },
+  },
+};
+
 const landingRegistryDraftFixture = {
   capabilityKey: 'stadtwerk_mauer_landing_registry_draft',
   safety: 'read_only_workbench_projection',
@@ -2311,6 +2368,7 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
         '/api/dashboard/stadtwerk-mauer-blueprint-pack-verify',
         '/api/dashboard/direct-marketer-risk-gate',
         '/api/dashboard/stadtwerk-mauer-transfer-readiness',
+        '/api/dashboard/stadtwerk-mauer-landing-registry-draft',
       ])
     );
     expect(
@@ -3358,6 +3416,92 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       rowKey: 'direct_marketer_risk_gate_transfer_pending',
       value: 'Landing-Registry and productive page sync proof pending',
     });
+
+    const directMarketerSyncSummaryRows = runTransformer(
+      'getDirectMarketerRiskGateSyncProofSummaryRows',
+      directMarketerLandingRegistryDraftFixture
+    );
+    expectScalarRows(directMarketerSyncSummaryRows);
+    assertNoRawObjectText(directMarketerSyncSummaryRows);
+    expect(directMarketerSyncSummaryRows[0]).toMatchObject({
+      rowKey: 'direct_marketer_sync_proof_summary',
+      renderTarget: 'budibase:stadtwerk-mauer-workbench:direct-marketer-risk-gate-sync-proof-panel',
+      seedId: 'stadtwerk-mauer-direct-marketer-risk-gate-v1',
+      draftDerivable: true,
+      draftStatus: 'draft_ready',
+      downstreamHandoff: 'complete -> draft_ready -> pending',
+      rowCount: 5,
+    });
+
+    const directMarketerDraftRows = runTransformer(
+      'getDirectMarketerRiskGateDraftPreviewRows',
+      directMarketerLandingRegistryDraftFixture
+    );
+    expectScalarRows(directMarketerDraftRows);
+    assertNoRawObjectText(directMarketerDraftRows);
+    expect(directMarketerDraftRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'direct_marketer_draft_preview_summary',
+          m: 'Mitwirkend',
+          sourceClass: 'direct_marketer_risk_gate_draft_preview_summary',
+        }),
+        expect.objectContaining({
+          rowKey: 'direct_marketer_draft_row_1',
+          phase: '1',
+          v: 'ROLE_MARKET_OPERATIONS',
+          d: 'ROLE_ENERGY_SHARING_LEAD',
+          m: 'ROLE_CERNION_GOVERNANCE',
+          i: 'ROLE_MANAGEMENT',
+          nachweise: 'syntheticHandoverScopeEvidence',
+        }),
+      ])
+    );
+    expect(directMarketerDraftRows[1]).not.toHaveProperty('V');
+
+    const directMarketerBlockerRows = runTransformer(
+      'getDirectMarketerRiskGatePublicationBlockerRows',
+      directMarketerLandingRegistryDraftFixture
+    );
+    expectScalarRows(directMarketerBlockerRows);
+    expect(directMarketerBlockerRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          blocker: 'productive_demo_room_publication_issue_missing',
+          status: 'blocked',
+          productiveDemoRoomStatus: 'pending',
+        }),
+      ])
+    );
+
+    const directMarketerFollowupRows = runTransformer(
+      'getDirectMarketerRiskGatePositiveFollowupRows',
+      directMarketerRiskGateStatusFixture
+    );
+    expectScalarRows(directMarketerFollowupRows);
+    expect(directMarketerFollowupRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          missingDataPoint: 'forecastQualityEvidence',
+          enablesDossierAddition: 'add forecast-quality evidence',
+        }),
+      ])
+    );
+
+    const directMarketerSyncNoCallRows = runTransformer(
+      'getDirectMarketerRiskGateSyncProofNoCallRows',
+      directMarketerLandingRegistryDraftFixture
+    );
+    expectScalarRows(directMarketerSyncNoCallRows);
+    expect(directMarketerSyncNoCallRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ boundary: 'landing-registry.write', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'cernion.de.publish', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'market.execute', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'budibase.table.write', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'personal-agent.execute', status: 'not_called' }),
+      ])
+    );
 
     const directMarketerNoCallRows = runTransformer(
       'getDirectMarketerRiskGateNoCallRows',
