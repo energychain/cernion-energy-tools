@@ -58,6 +58,94 @@ describe('chatgpt-sidecar service', () => {
     broker.createService({
       name: 'energy-market',
       actions: {
+        prices: {
+          rest: 'POST /prices',
+          params: {
+            market: { type: 'enum', values: ['day-ahead', 'intraday', 'futures'] },
+            region: { type: 'string' },
+            startDate: { type: 'string', optional: true },
+            endDate: { type: 'string', optional: true },
+          },
+          openapi: {
+            summary: 'Day-ahead and wholesale electricity prices by bidding zone',
+            tags: ['Energy Market', 'ENTSO-E'],
+            description:
+              'Get hourly electricity market prices for a market such as day-ahead and a region such as DE-LU.',
+            requestBody: {
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    required: ['market', 'region'],
+                    properties: {
+                      market: { type: 'string', example: 'day-ahead' },
+                      region: { type: 'string', example: 'DE-LU' },
+                      startDate: { type: 'string', example: '2026-07-10' },
+                      endDate: { type: 'string', example: '2026-07-11' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          handler(ctx) {
+            calls.push({ action: 'energy-market.prices', params: ctx.params });
+            return {
+              success: true,
+              data: {
+                market: ctx.params.market,
+                region: ctx.params.region,
+                prices: [
+                  { timestamp: '2026-07-10T12:00:00+02:00', priceEURMWh: 78.4 },
+                  { timestamp: '2026-07-10T13:00:00+02:00', priceEURMWh: 62.1 },
+                ],
+              },
+            };
+          },
+        },
+        co2Intensity: {
+          rest: 'POST /co2-intensity',
+          params: {
+            location: { type: 'string' },
+            timestamp: { type: 'string', optional: true },
+            forecast: { type: 'boolean', optional: true, default: false },
+          },
+          openapi: {
+            summary: 'CO2 intensity of electricity generation for a location',
+            tags: ['Energy Market', 'ENTSO-E', 'CO2'],
+            description:
+              'Get current or forecast CO2 intensity values for electricity generation at a location.',
+            requestBody: {
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    required: ['location'],
+                    properties: {
+                      location: { type: 'string', example: 'Mauer, Baden-Württemberg, Germany' },
+                      timestamp: { type: 'string' },
+                      forecast: { type: 'boolean', example: true },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          handler(ctx) {
+            calls.push({ action: 'energy-market.co2Intensity', params: ctx.params });
+            return {
+              success: true,
+              data: {
+                location: ctx.params.location,
+                forecast: ctx.params.forecast,
+                values: [
+                  { timestamp: '2026-07-10T12:00:00+02:00', gCO2kWh: 390 },
+                  { timestamp: '2026-07-10T13:00:00+02:00', gCO2kWh: 360 },
+                ],
+              },
+            };
+          },
+        },
         installations: {
           handler(ctx) {
             calls.push({ action: 'energy-market.installations', params: ctx.params });
@@ -747,6 +835,70 @@ describe('chatgpt-sidecar service', () => {
         country: 'DE',
       },
     });
+  });
+
+  it('routes datasource-entsoe day-ahead price questions to energy-market.prices', async () => {
+    const created = await createSession({
+      capabilityProfile: ['knowledge-rag', 'datasource-entsoe'],
+    });
+    const ticket = ticketFrom(created);
+
+    const result = await broker.call('chatgpt-sidecar.ask', {
+      ticket,
+      question:
+        'Für die deutsche Gebotszone DE-LU: Gib die Day-Ahead-Strompreise stündlich für Freitag, 10.07.2026, ab der aktuellen Stunde in Europe/Berlin bis Samstag, 11.07.2026, 23:59 Europe/Berlin aus.',
+      capability: 'datasource-entsoe',
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.responseKind || result.capabilityGrounding?.reason).toBe('openapi_semantic_router');
+    expect(result.capabilityGrounding).toMatchObject({
+      requestedCapability: 'datasource-entsoe',
+      status: 'fallback',
+      reason: 'openapi_semantic_router',
+      resolvedOperationId: 'energy-market_prices',
+      resolvedPath: '/api/energy-market/prices',
+    });
+    expect(calls.find((c) => c.action === 'energy-market.prices')).toMatchObject({
+      params: {
+        market: 'day-ahead',
+        region: 'DE-LU',
+        startDate: '2026-07-10',
+        endDate: '2026-07-11',
+      },
+    });
+    expect(calls.find((c) => c.action === 'energy-market.installations')).toBeFalsy();
+  });
+
+  it('parses key-value location parameters for datasource-entsoe CO2 intensity fallback', async () => {
+    const created = await createSession({
+      capabilityProfile: ['knowledge-rag', 'datasource-entsoe'],
+    });
+    const ticket = ticketFrom(created);
+
+    const result = await broker.call('chatgpt-sidecar.ask', {
+      ticket,
+      question:
+        'CO2-Intensität der Stromerzeugung, hourly forecast, location=Mauer Baden-Württemberg Germany, forecast=true, resolution=hourly, Zeitraum 2026-07-10 bis 2026-07-11 Europe/Berlin. Verwende energy-market.co2Intensity.',
+      capability: 'datasource-entsoe',
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.capabilityGrounding).toMatchObject({
+      requestedCapability: 'datasource-entsoe',
+      status: 'fallback',
+      reason: 'openapi_semantic_router',
+      resolvedOperationId: 'energy-market_co2Intensity',
+      resolvedPath: '/api/energy-market/co2-intensity',
+    });
+    expect(result.shortAnswer).not.toContain('Pflichtparameter');
+    expect(calls.find((c) => c.action === 'energy-market.co2Intensity')).toMatchObject({
+      params: {
+        location: 'Mauer Baden-Württemberg Germany',
+        forecast: true,
+      },
+    });
+    expect(calls.find((c) => c.action === 'energy-market.installations')).toBeFalsy();
   });
 
   it('does not execute an OpenAPI fallback from capability alone without question evidence', async () => {

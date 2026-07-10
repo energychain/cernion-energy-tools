@@ -664,6 +664,7 @@ async function tryBuildDatasourceMastrAnswer(ctx, { question, context, inputs })
 function normalizeSearchText(value) {
   return String(value || '')
     .toLowerCase()
+    .replace(/₂/g, '2')
     .normalize('NFKD')
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/ä/g, 'ae')
@@ -688,11 +689,26 @@ function tokenizeSearchText(value) {
     current: ['aktuell', 'latest'],
     pv: ['solar', 'photovoltaik', 'mastr'],
     photovoltaik: ['pv', 'solar', 'mastr'],
+    strompreis: ['price', 'prices', 'day', 'ahead', 'market'],
+    strompreise: ['price', 'prices', 'day', 'ahead', 'market'],
+    preis: ['price', 'prices', 'market'],
+    preise: ['price', 'prices', 'market'],
+    day: ['ahead', 'price', 'prices'],
+    ahead: ['day', 'price', 'prices'],
+    co2: ['carbon', 'intensity', 'emission'],
+    emission: ['co2', 'carbon', 'intensity'],
+    emissionen: ['co2', 'carbon', 'intensity'],
+    intensitaet: ['intensity', 'co2'],
+    grunstromindex: ['co2', 'intensity', 'forecast'],
   };
   for (const token of Array.from(tokens)) {
     for (const expanded of expansions[token] || []) tokens.add(expanded);
   }
   return tokens;
+}
+
+function compactIdentifier(value) {
+  return normalizeSearchText(value).replace(/[^a-z0-9]+/g, '');
 }
 
 function parseRestDefinition(rest) {
@@ -822,6 +838,19 @@ function scoreOpenApiFallbackOperation(operation, { question, capability }) {
   const queryTokens = tokenizeSearchText(`${question} ${capability || ''}`);
   const serviceHints = CAPABILITY_SERVICE_HINTS[capability] || [];
   const normalizedQuestion = normalizeSearchText(question);
+  const compactQuestion = compactIdentifier(question);
+  const priceCue =
+    /day.ahead|dayahead|strompreis|strompreise|preis|preise|price|prices|marktpreis|boersenpreis|borsenpreis|de.lu|delu/.test(
+      normalizedQuestion
+    );
+  const co2Cue =
+    /\bco2\b|co2intensity|co2.intensity|co2.intensitaet|emission|emissionen|carbon|grunstromindex|gru?nstromindex/.test(
+      normalizedQuestion
+    );
+  const installationCue =
+    /mastr|anlage|anlagen|installiert|installation|installations|pv|photovoltaik|solar|zubau/.test(
+      normalizedQuestion
+    );
   const singleCountryCue = /deutschland|deutsche|germany|\bde\b/.test(normalizedQuestion);
   const crossCountryCue =
     /laendervergleich|landervergleich|countries|multi.country|cross.border/.test(normalizedQuestion) ||
@@ -838,6 +867,35 @@ function scoreOpenApiFallbackOperation(operation, { question, capability }) {
   }
 
   if (capability && operation.searchText.includes(normalizeSearchText(capability))) score += 30;
+
+  const explicitIdentifiers = [
+    operation.actionRef,
+    operation.operationId,
+    operation.path,
+    operation.actionName,
+    operation.searchText,
+  ]
+    .filter(Boolean)
+    .map(compactIdentifier)
+    .filter((identifier) => identifier.length >= 5);
+  if (explicitIdentifiers.some((identifier) => compactQuestion.includes(identifier))) score += 240;
+
+  if (operation.serviceName === 'energy-market') {
+    if (operation.actionName === 'prices') {
+      if (priceCue) score += 180;
+      if (/day.ahead|dayahead/.test(normalizedQuestion)) score += 50;
+      if (/de.lu|delu/.test(normalizedQuestion)) score += 30;
+    }
+    if (operation.actionName === 'co2Intensity') {
+      if (co2Cue) score += 190;
+      if (/forecast|prognose|hourly|stundlich|stuendlich/.test(normalizedQuestion)) score += 30;
+    }
+    if (operation.actionName === 'installations') {
+      if (!installationCue && (priceCue || co2Cue)) score -= 180;
+      if (installationCue) score += 35;
+    }
+  }
+
   if (
     /gasspeicher|gas storage|gas/i.test(normalizedQuestion) &&
     operation.serviceName === 'gas-storage'
@@ -918,35 +976,130 @@ function resolveCountryCode(question, context = {}, inputs = {}) {
 
 function actionRequiresParam(operation, paramName) {
   const schema = operation?.paramsSchema?.[paramName];
-  if (!schema) return false;
-  if (typeof schema === 'string') return true;
-  return schema.optional !== true;
+  if (schema) {
+    if (typeof schema === 'string') return true;
+    if (schema.optional !== true) return true;
+  }
+  const bodySchema = operation?.requestBody?.content?.['application/json']?.schema;
+  return Array.isArray(bodySchema?.required) && bodySchema.required.includes(paramName);
+}
+
+function getOpenApiFallbackParamSchema(operation) {
+  const bodySchema = operation?.requestBody?.content?.['application/json']?.schema;
+  return {
+    ...(bodySchema?.properties || {}),
+    ...(operation?.paramsSchema || {}),
+  };
+}
+
+function coerceOpenApiParamValue(value, schema = {}) {
+  if (value === undefined || value === null) return value;
+  const type = typeof schema === 'object' ? schema.type : null;
+  if (type === 'boolean') {
+    if (typeof value === 'boolean') return value;
+    if (/^(true|1|yes|ja)$/i.test(String(value).trim())) return true;
+    if (/^(false|0|no|nein)$/i.test(String(value).trim())) return false;
+  }
+  if (type === 'number' || type === 'integer') {
+    const number = Number(String(value).replace(',', '.'));
+    if (Number.isFinite(number)) return number;
+  }
+  return typeof value === 'string' ? value.trim() : value;
+}
+
+function extractKeyValueParams(...sources) {
+  const params = {};
+  const text = sources
+    .filter((source) => source !== undefined && source !== null)
+    .map((source) => (typeof source === 'string' ? source : JSON.stringify(source)))
+    .join('\n');
+  const pattern =
+    /\b([A-Za-z][A-Za-z0-9_-]*)\s*(?:=|:)\s*(?:"([^"]+)"|'([^']+)'|([^,;\n]+))/g;
+  let match;
+  while ((match = pattern.exec(text))) {
+    const key = match[1];
+    const rawValue = match[2] ?? match[3] ?? match[4] ?? '';
+    const value = String(rawValue)
+      .replace(/[.)\]]+$/g, '')
+      .trim();
+    if (value) params[key] = value;
+  }
+  return params;
+}
+
+function resolveDateFromQuestion(question, kind) {
+  const text = String(question || '');
+  const dates = [
+    ...Array.from(text.matchAll(/\b(20\d{2}-\d{2}-\d{2})\b/g)).map((match) => match[1]),
+    ...Array.from(text.matchAll(/\b(\d{1,2})\.(\d{1,2})\.(20\d{2})\b/g)).map((match) => {
+      const day = match[1].padStart(2, '0');
+      const month = match[2].padStart(2, '0');
+      return `${match[3]}-${month}-${day}`;
+    }),
+  ];
+  if (kind === 'endDate') return dates[1] || null;
+  return dates[0] || null;
 }
 
 function resolveOpenApiFallbackParams(operation, { question, context, inputs }) {
   const params = {};
   const missing = [];
+  const schemaByParam = getOpenApiFallbackParamSchema(operation);
+  const explicitParams = extractKeyValueParams(question, context, inputs);
 
   if (
-    operation.paramsSchema?.country ||
-    operation.requestBody?.content?.['application/json']?.schema?.properties?.country
+    schemaByParam.country
   ) {
     const country = resolveCountryCode(question, context, inputs);
     if (country) params.country = country;
     else if (actionRequiresParam(operation, 'country')) missing.push('country');
   }
 
-  for (const [key, schema] of Object.entries(operation.paramsSchema || {})) {
+  for (const [key, schema] of Object.entries(schemaByParam)) {
     if (params[key] !== undefined) continue;
-    const provided = inputs[key] ?? context[key];
+    const provided = inputs[key] ?? context[key] ?? explicitParams[key];
     if (provided !== undefined && provided !== null && provided !== '') {
-      params[key] = provided;
+      params[key] = coerceOpenApiParamValue(provided, schema);
       continue;
     }
-    if (typeof schema === 'object' && schema.default !== undefined) params[key] = schema.default;
-    if (typeof schema === 'object' && schema.type === 'boolean' && params[key] === undefined) {
-      params[key] = false;
+    if (key === 'market' && /day.ahead|dayahead/i.test(normalizeSearchText(question))) {
+      params[key] = 'day-ahead';
+      continue;
     }
+    if (key === 'region') {
+      const regionMatch = String(question || '').match(/\b[A-Z]{2}-[A-Z]{2}\b/);
+      if (regionMatch) {
+        params[key] = regionMatch[0];
+        continue;
+      }
+    }
+    if (key === 'location') {
+      const explicitLocation = explicitParams.location || explicitParams.ort;
+      if (explicitLocation) {
+        params[key] = explicitLocation;
+        continue;
+      }
+    }
+    if (key === 'forecast' && /forecast|prognose/i.test(question)) {
+      params[key] = true;
+      continue;
+    }
+    if (key === 'startDate' || key === 'date') {
+      const date = resolveDateFromQuestion(question, 'startDate');
+      if (date) {
+        params[key] = date;
+        continue;
+      }
+    }
+    if (key === 'endDate') {
+      const date = resolveDateFromQuestion(question, 'endDate');
+      if (date) {
+        params[key] = date;
+        continue;
+      }
+    }
+    if (typeof schema === 'object' && schema.default !== undefined) params[key] = schema.default;
+    if (typeof schema === 'object' && schema.type === 'boolean' && params[key] === undefined) params[key] = false;
     if (actionRequiresParam(operation, key) && params[key] === undefined) missing.push(key);
   }
 
