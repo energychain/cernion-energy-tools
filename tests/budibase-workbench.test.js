@@ -2803,7 +2803,9 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
     nestedFixture.missingDimensions[1].enablesDossierAddition = { followUp: 'add Frist' };
     nestedFixture.weakDimensions[0].id = { dimension: 'evidence_proof' };
     nestedFixture.positiveFollowUps[0].missingDataPoint = { gap: 'commercial_effect' };
-    nestedFixture.positiveFollowUps[0].enablesDossierAddition = { followUp: 'add kaufmaennische Auswirkung' };
+    nestedFixture.positiveFollowUps[0].enablesDossierAddition = {
+      followUp: 'add kaufmaennische Auswirkung',
+    };
     nestedFixture.sourceActions.notCalled.push({ boundary: 'external.connector.call' });
 
     [
@@ -2816,6 +2818,17 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       'getCoordinationMeaningPreservationGuardRows',
     ].forEach((queryName) => {
       expectRenderSafeScalarRows(runTransformer(queryName, nestedFixture));
+    });
+
+    const preservedNestedFixture = JSON.parse(JSON.stringify(nestedFixture));
+    preservedNestedFixture.status = { code: 'meaning_preserved' };
+    const [summaryRow] = runTransformer(
+      'getCoordinationMeaningPreservationSummaryRows',
+      preservedNestedFixture
+    );
+    expect(summaryRow).toMatchObject({
+      status: 'meaning_preserved',
+      safeNextAction: 'handover_context_ready_for_review',
     });
   });
 
