@@ -30,7 +30,19 @@
       "netzanschluss",
       "netzanschlussprüfung",
       "validierung",
-      "validieren"
+      "validieren",
+      "lastgang",
+      "lastdaten",
+      "stromlast",
+      "stromlastdaten",
+      "zeitreihe",
+      "zeitreihendaten",
+      "stromverbrauch",
+      "verbrauchsdaten",
+      "messlokation",
+      "melo",
+      "gemeindeübergabepunkt",
+      "netzübergabepunkt"
     ],
     "priorityBoost": 5
   },

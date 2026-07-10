@@ -37,6 +37,15 @@ const INPUT_REF_RE = /\{\{\s*inputs\.([a-zA-Z0-9_]+)\s*\}\}/g;
 const POSTAL_CODE_RE = /\b\d{5}\b/;
 const YEAR_RE = /\b(20\d{2}|19\d{2})\b/;
 
+function normalizeSignalText(value) {
+  return String(value || '')
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function isPlainObject(value) {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
@@ -67,6 +76,16 @@ function deriveInputHintsFromQuestion(question) {
   if (year) hints.commissioningYear = Number(year);
 
   return hints;
+}
+
+function blueprintHasNegativeSignal(blueprint, question, context = {}) {
+  const negativeSignals = blueprint?.routing?.negativeSignals;
+  if (!Array.isArray(negativeSignals) || negativeSignals.length === 0) return false;
+  const haystack = normalizeSignalText(`${question || ''} ${JSON.stringify(context || {})}`);
+  return negativeSignals.some((signal) => {
+    const normalized = normalizeSignalText(signal);
+    return normalized && haystack.includes(normalized);
+  });
 }
 
 // Resolves canonical inputs from the caller-supplied context against the
@@ -276,6 +295,13 @@ function compileReadOnlyExecutionPlan({ question, context = {}, broker }) {
     : findSingleStructuredInputBlueprint(planningContext, broker);
   if (!blueprint) {
     return { ok: false, reason: 'no_blueprint_match' };
+  }
+  if (blueprintHasNegativeSignal(blueprint, question, planningContext)) {
+    return {
+      ok: false,
+      reason: 'blueprint_negative_signal',
+      blueprintId: blueprint.id,
+    };
   }
 
   const { canonicalInputs, missing } = resolveCanonicalInputs(blueprint, planningContext);
