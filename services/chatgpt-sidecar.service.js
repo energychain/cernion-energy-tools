@@ -883,11 +883,13 @@ function scoreOpenApiFallbackOperation(operation, { question, capability }) {
   if (operation.serviceName === 'energy-market') {
     if (operation.actionName === 'prices') {
       if (priceCue) score += 180;
+      if (co2Cue && !priceCue) score -= 120;
       if (/day.ahead|dayahead/.test(normalizedQuestion)) score += 50;
       if (/de.lu|delu/.test(normalizedQuestion)) score += 30;
     }
     if (operation.actionName === 'co2Intensity') {
       if (co2Cue) score += 190;
+      if (priceCue && !co2Cue) score -= 220;
       if (/forecast|prognose|hourly|stundlich|stuendlich/.test(normalizedQuestion)) score += 30;
     }
     if (operation.actionName === 'installations') {
