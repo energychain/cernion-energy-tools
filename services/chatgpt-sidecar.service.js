@@ -718,7 +718,30 @@ function normalizeRestPath(serviceName, path) {
 }
 
 function getActionEntriesFromBroker(broker) {
-  const entries = [];
+  const entriesByRef = new Map();
+  const registerEntry = ({ serviceName, actionName, action }) => {
+    if (!serviceName || String(serviceName).startsWith('$') || !actionName || !action) return;
+    const localActionName = String(actionName).split('.').pop();
+    const actionRef = `${serviceName}.${localActionName}`;
+    entriesByRef.set(actionRef, {
+      serviceName,
+      actionName: localActionName,
+      actionRef,
+      action,
+    });
+  };
+
+  for (const localService of broker?.services || []) {
+    const schemaActions = localService?.schema?.actions || {};
+    for (const [actionName, action] of Object.entries(schemaActions)) {
+      registerEntry({
+        serviceName: localService.name,
+        actionName,
+        action,
+      });
+    }
+  }
+
   const services = broker?.registry?.getServiceList
     ? broker.registry.getServiceList({ withActions: true, onlyAvailable: true })
     : [];
@@ -726,16 +749,18 @@ function getActionEntriesFromBroker(broker) {
   for (const service of services || []) {
     const actions = service.actions || {};
     for (const [actionName, action] of Object.entries(actions)) {
-      entries.push({
+      const localActionName = String(actionName).split('.').pop();
+      const actionRef = `${service.name}.${localActionName}`;
+      if (entriesByRef.has(actionRef)) continue;
+      registerEntry({
         serviceName: service.name,
-        actionName,
-        actionRef: action.name || `${service.name}.${actionName}`,
+        actionName: localActionName,
         action,
       });
     }
   }
 
-  return entries;
+  return Array.from(entriesByRef.values());
 }
 
 function getActionOpenApiText(action) {
