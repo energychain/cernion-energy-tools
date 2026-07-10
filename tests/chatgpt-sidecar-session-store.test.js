@@ -4,6 +4,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const {
+  createDefaultSessionStore,
   createFileBackedSessionStore,
   createInMemorySessionStore,
   TTL_OPTIONS,
@@ -134,5 +135,35 @@ describe('chatgpt-sidecar session store', () => {
     rehydratedStore.revoke(session.sessionId, { tenantId: 'tenant-a' });
     const afterRevokeRestart = createFileBackedSessionStore({ filePath });
     expect(afterRevokeRestart.resolveByTicket(session.ticket).status).toBe('not_found');
+  });
+
+  it('defaults to a file-backed store outside test mode unless memory is explicit', () => {
+    const previousNodeEnv = process.env.NODE_ENV;
+    const previousMode = process.env.CHATGPT_SIDECAR_SESSION_STORE;
+    const previousPath = process.env.CHATGPT_SIDECAR_SESSION_STORE_PATH;
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'chatgpt-sidecar-default-store-'));
+    const filePath = path.join(dir, 'sessions.json');
+
+    try {
+      process.env.NODE_ENV = 'development';
+      delete process.env.CHATGPT_SIDECAR_SESSION_STORE;
+      process.env.CHATGPT_SIDECAR_SESSION_STORE_PATH = filePath;
+
+      const fileBacked = createDefaultSessionStore();
+      expect(fileBacked._filePath).toBe(filePath);
+
+      process.env.CHATGPT_SIDECAR_SESSION_STORE = 'memory';
+      const memoryBacked = createDefaultSessionStore();
+      expect(memoryBacked._filePath).toBeUndefined();
+    } finally {
+      if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = previousNodeEnv;
+
+      if (previousMode === undefined) delete process.env.CHATGPT_SIDECAR_SESSION_STORE;
+      else process.env.CHATGPT_SIDECAR_SESSION_STORE = previousMode;
+
+      if (previousPath === undefined) delete process.env.CHATGPT_SIDECAR_SESSION_STORE_PATH;
+      else process.env.CHATGPT_SIDECAR_SESSION_STORE_PATH = previousPath;
+    }
   });
 });

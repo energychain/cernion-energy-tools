@@ -284,7 +284,7 @@ function createDefaultSessionStore() {
   }
   if (
     process.env.CHATGPT_SIDECAR_SESSION_STORE === 'file' ||
-    process.env.NODE_ENV === 'production'
+    process.env.NODE_ENV !== 'test'
   ) {
     return createFileBackedSessionStore();
   }
@@ -293,7 +293,8 @@ function createDefaultSessionStore() {
 
 // Process-wide default instance for the running service. Production uses a
 // durable file-backed store so expiry, revocation and metering survive PM2
-// restarts; tests/dev can still use the in-memory implementation explicitly.
+// restarts even when PM2 does not set NODE_ENV=production. Tests keep the
+// in-memory implementation unless CHATGPT_SIDECAR_SESSION_STORE=file is set.
 const defaultStore = createDefaultSessionStore();
 
 module.exports = {
