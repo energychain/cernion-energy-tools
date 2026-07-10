@@ -2672,4 +2672,43 @@ describe('Capability Broker Service', () => {
 
     expect(result.capability).not.toBe('znp_production_readiness_evidence_gate');
   });
+
+  describe('operation capability index integration', () => {
+    it('adds ranked operation candidates to ordinary recommendations', async () => {
+      const result = await broker.call('capability-broker.recommend', {
+        task: 'What is the current German gas storage fill level?',
+      });
+
+      expect(result.operationCandidates.length).toBeGreaterThan(0);
+      expect(result.operationCandidates[0]).toMatchObject({
+        operationId: 'gas-storage_countryStorage',
+        action: 'gas-storage.countryStorage',
+        recommendedExecutionMode: 'direct',
+      });
+      expect(result.scoringBreakdown.operationCandidateCount).toBe(
+        result.operationCandidates.length
+      );
+    });
+
+    it('does not surface operation candidates from capability bias alone', async () => {
+      const result = await broker.call('capability-broker.queryOperationIndex', {
+        question: 'Wie ist der aktuelle Prozessstatus?',
+        capability: 'datasource-gas-storage',
+      });
+
+      expect(result.candidates).toHaveLength(0);
+    });
+
+    it('surfaces write/process/admin operations rather than hiding them', async () => {
+      const result = await broker.call('capability-broker.queryOperationIndex', {
+        question: 'Create a full backup snapshot of all data stores',
+      });
+
+      expect(result.candidates[0]).toMatchObject({
+        operationId: 'backup-orchestrator_snapshot',
+        operationKind: 'admin',
+        recommendedExecutionMode: 'confirm',
+      });
+    });
+  });
 });
