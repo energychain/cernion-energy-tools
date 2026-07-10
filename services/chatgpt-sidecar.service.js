@@ -133,6 +133,32 @@ function buildBrowserUrlTemplates(baseUrl, ticket) {
   };
 }
 
+function buildPythonClientHints(baseUrl, ticket) {
+  const prefix = normalizeBaseUrl(baseUrl);
+  return {
+    usage: 'python_read_only_http_client_when_browser_navigation_blocks_dynamic_get_urls',
+    askBaseUrl: `${prefix}/api/chatgpt-sidecar/s/${ticket}/ask`,
+    planBaseUrl: `${prefix}/api/chatgpt-sidecar/s/${ticket}/plan`,
+    queryEncoding: 'Use urllib.parse.urlencode for query/task plus optional capability and parentTurnId.',
+    timeoutSeconds: 30,
+    responseFields: {
+      answer: 'Use answer first, then shortAnswer, then groundingAnswer.',
+      evidence: 'Use evidence/citations as Cernion-provided grounding.',
+      turnId: 'Persist for the next follow-up call.',
+      resolvedQuestion: 'Use to make the interpreted user request explicit.',
+      followUpContext: 'Use for conversational continuity; pass followUpContext.turnId as parentTurnId on the next Cernion call.',
+    },
+    example: [
+      'import json, urllib.parse, urllib.request',
+      'params = {"query": current_question}',
+      'if parent_turn_id: params["parentTurnId"] = parent_turn_id',
+      'url = ask_base_url + "?" + urllib.parse.urlencode(params)',
+      'with urllib.request.urlopen(url, timeout=30) as response:',
+      '    payload = json.loads(response.read().decode("utf-8"))',
+    ].join('\n'),
+  };
+}
+
 function buildResponseContract() {
   return {
     schemaVersion: 'cernion.chatgpt-sidecar.response.v1',
@@ -695,6 +721,7 @@ module.exports = {
             safety: 'read_only_non_consequential',
             maxQueryLength: MAX_BROWSER_QUERY_LENGTH,
             ...buildBrowserUrlTemplates(session.baseUrl, session.ticket),
+            pythonClient: buildPythonClientHints(session.baseUrl, session.ticket),
             positiveFollowUps: {
               expiredOrRevokedTicket: buildPositiveFollowUps('expired_or_revoked_ticket'),
               unsupportedBrowserQuery: buildPositiveFollowUps('unsupported_browser_query'),

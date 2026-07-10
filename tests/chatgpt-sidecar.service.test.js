@@ -162,6 +162,17 @@ describe('chatgpt-sidecar service', () => {
       safety: 'read_only_non_consequential',
       maxQueryLength: 2000,
     });
+    expect(manifest.browserFacade.pythonClient).toMatchObject({
+      usage: 'python_read_only_http_client_when_browser_navigation_blocks_dynamic_get_urls',
+      askBaseUrl: expect.stringContaining(`/api/chatgpt-sidecar/s/${ticket}/ask`),
+      planBaseUrl: expect.stringContaining(`/api/chatgpt-sidecar/s/${ticket}/plan`),
+      timeoutSeconds: 30,
+    });
+    expect(manifest.browserFacade.pythonClient.example).toContain('urllib.parse.urlencode');
+    expect(manifest.browserFacade.pythonClient.responseFields).toMatchObject({
+      turnId: expect.stringContaining('next follow-up'),
+      followUpContext: expect.stringContaining('parentTurnId'),
+    });
     expect(manifest.responseContract).toMatchObject({
       schemaVersion: 'cernion.chatgpt-sidecar.response.v1',
       turnIdField: 'turnId',
@@ -188,6 +199,9 @@ describe('chatgpt-sidecar service', () => {
       `https://api.cernion.test/api/chatgpt-sidecar/s/${ticket}/ask?query=CO2+Emission+fuer+Mauer`
     );
     expect(created.promptText).toContain(created.initialAskUrl);
+    expect(created.promptText).toContain('Python/Data Analysis with outbound HTTPS');
+    expect(created.promptText).toContain('urllib.parse.urlencode');
+    expect(created.promptText).toContain('parentTurnId');
 
     const manifest = await broker.call('chatgpt-sidecar.manifest', { ticket });
     expect(manifest.initialAskUrl).toBe(created.initialAskUrl);

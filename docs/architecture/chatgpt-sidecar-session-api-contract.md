@@ -234,6 +234,34 @@ not remove the transport boundary: a new free-form ChatGPT user question
 still has to reach Cernion through a concrete browser URL, a Custom GPT
 Action or an MCP/App tool call.
 
+### Python/Data Analysis fallback
+
+Some ChatGPT sessions can construct and fetch dynamic URLs through the
+Python/Data Analysis runtime even when browser navigation blocks the same
+derived API URL. The manifest therefore exposes a read-only `pythonClient`
+hint under `browserFacade`:
+
+```json
+{
+  "pythonClient": {
+    "usage": "python_read_only_http_client_when_browser_navigation_blocks_dynamic_get_urls",
+    "askBaseUrl": "https://cernion.example.com/api/chatgpt-sidecar/s/<opaque-ticket>/ask",
+    "planBaseUrl": "https://cernion.example.com/api/chatgpt-sidecar/s/<opaque-ticket>/plan",
+    "queryEncoding": "Use urllib.parse.urlencode for query/task plus optional capability and parentTurnId.",
+    "responseFields": {
+      "answer": "Use answer first, then shortAnswer, then groundingAnswer.",
+      "turnId": "Persist for the next follow-up call.",
+      "followUpContext": "Use for conversational continuity; pass followUpContext.turnId as parentTurnId on the next Cernion call."
+    }
+  }
+}
+```
+
+This remains a prompt-only fallback, not a guaranteed tool channel:
+availability depends on the ChatGPT environment having Python/Data Analysis
+and outbound HTTPS enabled. The fallback is strictly read-only and uses the
+same ticket-scoped `ask`/`plan` GET facades as browser usage.
+
 ### Error responses
 
 | Status | Code | Cause |
