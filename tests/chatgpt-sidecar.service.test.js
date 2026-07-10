@@ -167,6 +167,25 @@ describe('chatgpt-sidecar service', () => {
     );
   });
 
+  it('generated prompt includes a concrete initial ask URL from solution metadata', async () => {
+    const created = await createSession({
+      baseUrl: 'https://api.cernion.test/',
+      metadata: { useCase: 'CO2 Emission fuer Mauer' },
+    });
+    const ticket = ticketFrom(created);
+
+    expect(created.initialAskUrl).toBe(
+      `https://api.cernion.test/api/chatgpt-sidecar/s/${ticket}/ask?query=CO2+Emission+fuer+Mauer`
+    );
+    expect(created.promptText).toContain(created.initialAskUrl);
+
+    const manifest = await broker.call('chatgpt-sidecar.manifest', { ticket });
+    expect(manifest.initialAskUrl).toBe(created.initialAskUrl);
+    expect(manifest.browserFacade.browserAskUrlTemplate).toBe(
+      `https://api.cernion.test/api/chatgpt-sidecar/s/${ticket}/ask?query={urlencoded_question}&capability={optional_capability}`
+    );
+  });
+
   // ---------------------------------------------------------------------
   // TTL expiry -> 410
   // ---------------------------------------------------------------------

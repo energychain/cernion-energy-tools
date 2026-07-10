@@ -10,6 +10,7 @@
 
 function buildPromptText({
   manifestUrl,
+  initialAskUrl,
   expiresAt,
   capabilityProfile,
   writeScope,
@@ -19,6 +20,9 @@ function buildPromptText({
     'You are working inside a Cernion Fach-Sidecar session.',
     '',
     `Start by reading the manifest: ${manifestUrl}`,
+    initialAskUrl
+      ? `For the initial task, open this exact browser-safe ask URL before constructing any other URL: ${initialAskUrl}`
+      : 'If no exact ask URL is provided, ask the user to generate a prompt with an initial task/question instead of inventing a query URL.',
     `This session expires at ${expiresAt}. Do not continue after expiry — ask the user to generate a new prompt/session instead.`,
     '',
     'Rules:',

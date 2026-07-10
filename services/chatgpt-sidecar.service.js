@@ -107,9 +107,46 @@ function getAuthTokenScope(ctx) {
   return ctx?.meta?.apiToken?.scope || (ctx?.meta?.authSession ? 'session' : null);
 }
 
+function normalizeBaseUrl(baseUrl) {
+  return baseUrl ? String(baseUrl).replace(/\/+$/, '') : '';
+}
+
 function buildManifestUrl(baseUrl, ticket) {
-  const prefix = baseUrl ? String(baseUrl).replace(/\/+$/, '') : '';
+  const prefix = normalizeBaseUrl(baseUrl);
   return `${prefix}/api/chatgpt-sidecar/s/${ticket}/manifest`;
+}
+
+function buildBrowserAskUrl(baseUrl, ticket, question, capability = null) {
+  if (!question) return null;
+  const prefix = normalizeBaseUrl(baseUrl);
+  const params = new URLSearchParams({ query: question });
+  if (capability) params.set('capability', capability);
+  return `${prefix}/api/chatgpt-sidecar/s/${ticket}/ask?${params.toString()}`;
+}
+
+function buildBrowserUrlTemplates(baseUrl, ticket) {
+  const prefix = normalizeBaseUrl(baseUrl);
+  return {
+    manifestUrl: `${prefix}/api/chatgpt-sidecar/s/${ticket}/manifest`,
+    browserAskUrlTemplate: `${prefix}/api/chatgpt-sidecar/s/${ticket}/ask?query={urlencoded_question}&capability={optional_capability}`,
+    browserPlanUrlTemplate: `${prefix}/api/chatgpt-sidecar/s/${ticket}/plan?task={urlencoded_task}&capability={optional_capability}`,
+  };
+}
+
+function resolveInitialQuestion(metadata) {
+  const candidates = [
+    metadata?.initialQuestion,
+    metadata?.question,
+    metadata?.query,
+    metadata?.useCase,
+    metadata?.task,
+  ];
+  for (const candidate of candidates) {
+    if (typeof candidate === 'string' && candidate.trim()) {
+      return candidate.trim();
+    }
+  }
+  return null;
 }
 
 function shortHash(text) {
@@ -397,8 +434,11 @@ module.exports = {
         });
 
         const manifestUrl = buildManifestUrl(session.baseUrl, session.ticket);
+        const initialQuestion = resolveInitialQuestion(session.metadata);
+        const initialAskUrl = buildBrowserAskUrl(session.baseUrl, session.ticket, initialQuestion);
         const promptText = buildPromptText({
           manifestUrl,
+          initialAskUrl,
           expiresAt: session.expiresAt,
           capabilityProfile: session.capabilityProfile,
           writeScope: session.writeScope,
@@ -409,6 +449,7 @@ module.exports = {
           success: true,
           sessionId: session.sessionId,
           ticketUrl: manifestUrl,
+          initialAskUrl,
           expiresAt: session.expiresAt,
           promptText,
           capabilities: session.capabilityProfile,
@@ -467,6 +508,11 @@ module.exports = {
           success: true,
           schemaVersion: 'cernion.chatgpt-sidecar.v1',
           ...redacted,
+          initialAskUrl: buildBrowserAskUrl(
+            session.baseUrl,
+            session.ticket,
+            resolveInitialQuestion(session.metadata)
+          ),
           endpoints: {
             manifest: `GET /api/chatgpt-sidecar/s/${session.ticket}/manifest`,
             ask: `POST /api/chatgpt-sidecar/s/${session.ticket}/ask`,
@@ -479,6 +525,7 @@ module.exports = {
           browserFacade: {
             safety: 'read_only_non_consequential',
             maxQueryLength: MAX_BROWSER_QUERY_LENGTH,
+            ...buildBrowserUrlTemplates(session.baseUrl, session.ticket),
             positiveFollowUps: {
               expiredOrRevokedTicket: buildPositiveFollowUps('expired_or_revoked_ticket'),
               unsupportedBrowserQuery: buildPositiveFollowUps('unsupported_browser_query'),

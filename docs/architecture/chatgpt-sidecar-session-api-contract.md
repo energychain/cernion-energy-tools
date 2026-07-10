@@ -170,6 +170,7 @@ decision, but `draft_write` remains the only class that actually mutates.
   "success": true,
   "sessionId": "cgs_9e33a964-cff7-4cf9-a788-a0823df85edf",
   "ticketUrl": "https://cernion.example.com/api/chatgpt-sidecar/s/<opaque-ticket>/manifest",
+  "initialAskUrl": "https://cernion.example.com/api/chatgpt-sidecar/s/<opaque-ticket>/ask?query=<encoded-initial-task>",
   "expiresAt": "2026-07-05T15:33:04.483Z",
   "promptText": "You are working inside a Cernion Fach-Sidecar session...",
   "capabilities": ["knowledge-rag", "datasource-mastr", "ontology-guardrail"],
@@ -183,6 +184,15 @@ sent to ChatGPT and never appears inside `promptText`, the ticket URL, the
 manifest, or metering responses. The opaque ticket embedded in `ticketUrl`
 carries no encoded tenant/user data — it is a 256-bit random value used only
 as a server-side lookup key.
+
+When the creator sends a prompt-generator task in `metadata.useCase`
+(`metadata.initialQuestion`, `metadata.question`, `metadata.query` and
+`metadata.task` are also accepted), the response also includes
+`initialAskUrl`. The generated `promptText` repeats this exact URL so
+ChatGPT.com can follow a browser-discovered link instead of constructing a
+new query URL from the manifest template. This is a prompt-only Safe Browsing
+compatibility measure; it does not expose tenant/user identity, session id,
+POST routes, write endpoints or provider credentials.
 
 ### Error responses
 
@@ -213,5 +223,7 @@ ChatGPT (or a Custom GPT) never calls `/sessions`. It is given `promptText`
 and starts from the `ticketUrl` (`GET /s/:ticket/manifest`). Every
 `/s/:ticket/*` route resolves the ticket against the server-side session
 store and requires **no Cernion authentication of its own** — the ticket is
-the credential. See `services/chatgpt-sidecar.service.js` for the full
+the credential. For prompt-only browser sessions the manifest also includes
+absolute browser URL templates and, when present, the concrete `initialAskUrl`
+for the first task. See `services/chatgpt-sidecar.service.js` for the full
 facade contract (`manifest`, `ask`, `plan`, `datapoints`, `metering`).
