@@ -2,9 +2,9 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.67.8",
-  "sourceOpenApiHash": "ca0435eadff3eb2113161f5789c16ea07ec226c4a8a937fa8d9080450aac0e8d",
+  "sourceOpenApiHash": "c76397f83407db74c35bf2185f495f6d07d747ec7b2bea72350423f2aff561f6",
   "coverage": {
-    "rawOperationCount": 1100,
+    "rawOperationCount": 1101,
     "operationCount": 848,
     "agentableCount": 846,
     "nonAgentableCount": 2,
@@ -15468,104 +15468,6 @@
       "aliases": []
     },
     {
-      "operationId": "dashboard-api_energySidecarRouteRegistryStatus",
-      "method": "GET",
-      "path": "/api/dashboard-api/energy-sidecar-route-registry",
-      "service": "dashboard-api",
-      "action": "dashboard-api.energySidecarRouteRegistryStatus",
-      "summary": "Energy Sidecar Route Registry -- read-only advisory evidence",
-      "tags": [
-        "Dashboard API"
-      ],
-      "uiPage": null,
-      "oeoClass": null,
-      "operationKind": "dashboard_read",
-      "consequenceLevel": "none",
-      "recommendedExecutionMode": "direct",
-      "agentable": true,
-      "nonAgentableReason": null,
-      "capabilityCandidates": [
-        "energy_sidecar_route_registry"
-      ],
-      "domains": [
-        "platform"
-      ],
-      "dataSources": [],
-      "entityTypes": [],
-      "requiredScopes": [
-        "dashboard-api:read"
-      ],
-      "tenantScoped": true,
-      "writesTo": [],
-      "sideEffects": [],
-      "idempotency": "idempotent",
-      "rollbackHint": null,
-      "parameters": {
-        "required": [],
-        "optional": [
-          {
-            "name": "intent",
-            "in": "query",
-            "type": "string",
-            "description": null,
-            "extractionHint": null
-          },
-          {
-            "name": "domain",
-            "in": "query",
-            "type": "string",
-            "description": null,
-            "extractionHint": null
-          },
-          {
-            "name": "requiredInput",
-            "in": "query",
-            "type": "string",
-            "description": null,
-            "extractionHint": null
-          },
-          {
-            "name": "tenantId",
-            "in": "query",
-            "type": "string",
-            "description": null,
-            "extractionHint": "tenant_id"
-          },
-          {
-            "name": "includeFallbacks",
-            "in": "query",
-            "type": "boolean",
-            "description": null,
-            "extractionHint": null
-          }
-        ]
-      },
-      "rankingSignals": {
-        "positiveKeywords": [
-          "dashboard",
-          "energy",
-          "sidecar",
-          "route",
-          "registry",
-          "status",
-          "read",
-          "only",
-          "advisory",
-          "evidence"
-        ],
-        "negativeCues": [],
-        "examples": [
-          "Show me energy sidecar route registry -- read-only advisory evidence"
-        ],
-        "synonyms": [
-          "agent infrastructure",
-          "system"
-        ],
-        "curated": false
-      },
-      "aliases": []
-    },
-    {
       "operationId": "dashboard-api_anschlusskapazitaetEvidenceQueueStatus",
       "method": "GET",
       "path": "/api/dashboard/anschlusskapazitaet-evidence-queue",
@@ -20106,6 +20008,106 @@
       },
       "aliases": [
         "GET /api/dashboard-api/energy-sharing-simulation-gate"
+      ]
+    },
+    {
+      "operationId": "dashboard-api_energySidecarRouteRegistryStatus",
+      "method": "GET",
+      "path": "/api/dashboard/energy-sidecar-route-registry",
+      "service": "dashboard",
+      "action": null,
+      "summary": "Energy Sidecar Route Registry -- read-only advisory evidence",
+      "tags": [
+        "Dashboard API"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "dashboard_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "dashboard.dashboard-api_energy_sidecar_route_registry_status"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "dashboard:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [],
+        "optional": [
+          {
+            "name": "intent",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "domain",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "requiredInput",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "tenantId",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": "tenant_id"
+          },
+          {
+            "name": "includeFallbacks",
+            "in": "query",
+            "type": "boolean",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "dashboard",
+          "energy",
+          "sidecar",
+          "route",
+          "registry",
+          "status",
+          "read",
+          "only",
+          "advisory",
+          "evidence"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me energy sidecar route registry -- read-only advisory evidence"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": [
+        "GET /api/dashboard-api/energy-sidecar-route-registry"
       ]
     },
     {
