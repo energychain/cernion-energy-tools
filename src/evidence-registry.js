@@ -109,6 +109,39 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  energy_sidecar_route_registry: {
+    sources: [
+      {
+        id: 'routing_intent',
+        label: 'Fachfrage oder Routing-Intent',
+        resolvedBy: ['dashboard-api.energySidecarRouteRegistryStatus'],
+        contextKeys: ['intent', 'question', 'routingIntent'],
+        optional: true,
+      },
+      {
+        id: 'routing_domain',
+        label: 'Energiewirtschaftliche Domain',
+        resolvedBy: ['dashboard-api.energySidecarRouteRegistryStatus'],
+        contextKeys: ['domain', 'routingDomain'],
+        optional: true,
+      },
+      {
+        id: 'source_registry',
+        label: 'Quelle der Routenentscheidung',
+        resolvedBy: ['dashboard-api.energySidecarRouteRegistryStatus', 'operation-capability-index.rankOperations'],
+        contextKeys: ['sourceRegistry', 'operationCapabilityIndex'],
+        optional: false,
+      },
+      {
+        id: 'no_call_guard',
+        label: 'Nachweis, dass empfohlene Endpunkte nicht ausgefuehrt wurden',
+        resolvedBy: ['dashboard-api.energySidecarRouteRegistryStatus'],
+        contextKeys: ['noCallGuards', 'sourceActions.notCalled'],
+        optional: false,
+      },
+    ],
+  },
+
   vnb_special_topic_workstate: {
     sources: [
       {

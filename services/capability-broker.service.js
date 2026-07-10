@@ -1791,6 +1791,20 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  // ── Energy Sidecar Route Registry
+  // Route-audit prompts may mention Redispatch/MaStR/MaKo domains, but the
+  // asked-for capability is the advisory registry, not the downstream route.
+  if (
+    /(route.?registry|routing.?audit|route.?audit|deterministisches energie.?routing|deterministische energie.?routing|fach.?sidecar.?routing|endpoint evidence boundary|fallback route|welcher endpoint|welche capability)/i.test(
+      haystack
+    )
+  ) {
+    const routeRegistryCap = findCapabilityByName('energy_sidecar_route_registry');
+    if (routeRegistryCap) {
+      return { capability: routeRegistryCap, score: 124, usedFallback: false };
+    }
+  }
+
   // ── Redispatch Readiness Gate
   // 'Produktivreife' can otherwise be captured by broad VDMI asset-validation signals.
   const redispatchReadinessGateSignals = [

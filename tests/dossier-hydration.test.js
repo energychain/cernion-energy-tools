@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 118 static rules', () => {
+    it('loads all 119 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(118);
+      expect(rules.length).toBe(119);
     });
 
-    it('compiles all 118 static rules without error', () => {
+    it('compiles all 119 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(118);
+      expect(rules.length).toBe(119);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -2332,6 +2332,49 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Measure: measure-278');
       expect(formatted).toContain('Leading Gap: required_evidence');
       expect(formatted).toContain('Side-Effect Guard: investment.approve');
+    });
+
+    it('dashboard-api.energySidecarRouteRegistryStatus is dossier-safe and formats route facts', () => {
+      const rule = getRule('dashboard-api.energySidecarRouteRegistryStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Route Registry intent=redispatch-readiness-route-audit domain=redispatch input=processId pruefen'
+        )
+      ).toEqual({
+        intent: 'redispatch-readiness-route-audit',
+        domain: 'redispatch',
+        requiredInput: 'processId',
+      });
+
+      const formatted = rule.formatEvidence({
+        capabilityKey: 'energy_sidecar_route_registry',
+        status: 'route_registry_ready',
+        routeCount: 1,
+        rows: [
+          {
+            routeKey: 'redispatch_readiness_evidence',
+            preferredAction: 'redispatch-readiness-gate.getStatus',
+            sourceRegistry: 'capability-catalog',
+            evidenceStatus: 'route_grounded',
+          },
+        ],
+        missingEvidence: [],
+        positiveFollowUps: [
+          { enablesDossierAddition: 'add deterministic route recommendation' },
+        ],
+        sourceActions: {
+          notCalled: ['recommendedEndpoint.execute'],
+        },
+      });
+
+      expect(formatted).toContain('Capability: energy_sidecar_route_registry');
+      expect(formatted).toContain('Route Registry Status: route_registry_ready');
+      expect(formatted).toContain('First Route: redispatch_readiness_evidence');
+      expect(formatted).toContain('Preferred Action: redispatch-readiness-gate.getStatus');
+      expect(formatted).toContain('Side-Effect Guard: recommendedEndpoint.execute');
     });
 
     it('dashboard-api.directMarketerRiskGateStatus is dossier-safe and formats risk gate facts', () => {

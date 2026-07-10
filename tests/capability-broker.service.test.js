@@ -1501,6 +1501,24 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes deterministic Fach-Sidecar routing prompts to the read-only route registry', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe deterministisches Energie Routing fuer Fach-Sidecar Route Audit: welcher Endpoint und welche Capability sind fuer Redispatch Readiness zustaendig, welche Evidence Boundary und Fallback Route gelten?',
+    });
+
+    expect(result.capability).toBe('energy_sidecar_route_registry');
+    expect(result.recommendedCapabilities[0].capability).toBe('energy_sidecar_route_registry');
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.energySidecarRouteRegistryStatus');
+    expect(actionNames).not.toContain('personal-agent.execute');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('workflow.execute');
+    expect(actionNames).not.toContain('billing.release');
+    expect(actionNames).not.toContain('settlement.prepareBilling');
+    expect(actionNames).not.toContain('device-control.execute');
+  });
+
   it('routes No-Regret measure definition prompts to the read-only definition gate', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Pruefe No-Regret Massnahmen Definitionsgate fuer Transformationsprogramm Szenariowirkung Budgetwirkung regulatorische Anschlussfaehigkeit Priorisierungsrecht Datenqualitaet Kommunikationsregel und Review Gate.',

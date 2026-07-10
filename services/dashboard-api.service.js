@@ -39,6 +39,9 @@ const {
   stadtwerkMauerPvMissingNap,
   validateVdmiBlueprintPackSeed,
 } = require('../src/vdmi-blueprint-pack-seeds');
+const {
+  buildEnergySidecarRouteRegistryStatus,
+} = require('../src/energy-sidecar-route-registry');
 
 const OPENAPI_TAG = 'Dashboard API';
 const ACTION_MQ_LIST = 'mastr-quality.list';
@@ -152,6 +155,7 @@ module.exports = {
       stadtwerkMauerBlueprintPackVerifyStatus: 5 * 60 * 1000, // 5 min
       stadtwerkMauerTransferReadinessStatus: 5 * 60 * 1000, // 5 min
       stadtwerkMauerLandingRegistryDraftStatus: 5 * 60 * 1000, // 5 min
+      energySidecarRouteRegistryStatus: 5 * 60 * 1000, // 5 min
       fnavFastTrackContractGateStatus: 5 * 60 * 1000, // 5 min
       crossChannelVnbSignalQueueStatus: 5 * 60 * 1000, // 5 min
       crossDomainSpecialTopicsQueueStatus: 5 * 60 * 1000, // 5 min
@@ -9263,6 +9267,58 @@ module.exports = {
           async () => ({
             ...this.buildStadtwerkMauerLandingRegistryDraftStatus({ tenantId, seedId }),
             timestamp: new Date().toISOString(),
+          })
+        );
+      },
+    },
+
+    // -- energySidecarRouteRegistryStatus ---------------------------------
+    /**
+     * GET /api/dashboard/energy-sidecar-route-registry
+     *
+     * Read-only advisory route-registry evidence for Fach-Sidecars. It
+     * recommends existing Cernion read-only routes and exposes why a route is
+     * grounded or incomplete, but never executes the recommended endpoint.
+     */
+    energySidecarRouteRegistryStatus: {
+      rest: 'GET /energy-sidecar-route-registry',
+      params: {
+        intent: { type: 'string', optional: true, min: 1 },
+        domain: { type: 'string', optional: true, min: 1 },
+        requiredInput: { type: 'string', optional: true, min: 1 },
+        tenantId: { type: 'string', optional: true, min: 1 },
+        includeFallbacks: { type: 'boolean', optional: true, convert: true, default: false },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Energy Sidecar Route Registry -- read-only advisory evidence',
+        description:
+          'Returns deterministic dossier-safe route-registry rows for Fach-Sidecar routing/audit questions. ' +
+          'The endpoint recommends existing read-only Cernion actions/endpoints, source registry boundaries, required inputs, fallback routes and no-call guards. ' +
+          'It is advisory/read-only and never executes the recommended downstream endpoint, calls external connectors, creates HITL/workflows, sends webhooks/mail, mutates public context, or performs MaKo/billing/settlement/tariff/device-control actions.',
+        parameters: [
+          { name: 'intent', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'domain', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'requiredInput', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'tenantId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'includeFallbacks', in: 'query', required: false, schema: { type: 'boolean' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only route-registry evidence',
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `energy-sidecar-route-registry:${JSON.stringify(params)}`;
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.energySidecarRouteRegistryStatus,
+          async () => ({
+            ...buildEnergySidecarRouteRegistryStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
           })
         );
       },

@@ -152,6 +152,7 @@ const CAPABILITY_DOMAIN_MAP = {
   market_communication: 'market-data',
   // agent's own answer-evidence/dossier-quality infrastructure
   answer_evidence: 'platform',
+  'energy-routing': 'platform',
   compliance: 'regulatory',
   // demo-sandbox lifecycle/runtime boundary, not production tenant lifecycle
   sandbox_governance: 'platform',

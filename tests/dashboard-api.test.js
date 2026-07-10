@@ -4114,6 +4114,69 @@ describe('dashboard-api.service', () => {
       });
     });
 
+    // -- energySidecarRouteRegistryStatus ----------------------------------
+
+    describe('energySidecarRouteRegistryStatus', () => {
+      it('returns grounded read-only route rows without executing recommended endpoints', async () => {
+        const result = await broker.call('dashboard-api.energySidecarRouteRegistryStatus', {
+          intent: 'redispatch readiness route audit',
+          domain: 'redispatch',
+          requiredInput: 'processId',
+          includeFallbacks: true,
+        });
+
+        expect(result.status).toBe('route_registry_ready');
+        expect(result.safety).toBe('read_only');
+        expect(result.capabilityKey).toBe('energy_sidecar_route_registry');
+        expect(result.rows).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              routeKey: 'redispatch_readiness_evidence',
+              preferredAction: 'redispatch-readiness-gate.getStatus',
+              preferredEndpoint: '/api/redispatch-readiness-gate/status',
+              evidenceStatus: 'route_grounded',
+              safety: 'read_only',
+            }),
+          ])
+        );
+        expect(result.sourceActions.notCalled).toEqual(
+          expect.arrayContaining([
+            'recommendedEndpoint.execute',
+            'external.connector.call',
+            'hitl.create',
+            'workflow.execute',
+            'billing.release',
+            'settlement.prepareBilling',
+            'device-control.execute',
+            'personal-agent.execute',
+          ])
+        );
+        expect(result.decisionBoundary.recommendedEndpointExecuted).toBe(false);
+        expect(result.decisionBoundary.productionMutation).toBe(false);
+      });
+
+      it('surfaces missing-route context as positive follow-ups and scalar dossier rows', async () => {
+        const result = await broker.call('dashboard-api.energySidecarRouteRegistryStatus', {
+          intent: 'unknown hydrogen billing switch action',
+          domain: 'unsupported-domain',
+        });
+
+        expect(result.status).toBe('needs_route_context');
+        expect(result.rows[0]).toEqual(
+          expect.objectContaining({
+            routeKey: 'unsupported_domain_fallback',
+            evidenceStatus: 'unsupported_or_ambiguous_route',
+            preferredAction: 'interface-placeholder.requestEvidence',
+          })
+        );
+        expect(result.positiveFollowUps[0].category).toBe('energy_sidecar_route_registry');
+        expect(result.dossierEvidence.rows[0]).not.toHaveProperty('operationEvidence');
+        expect(result.dossierEvidence.rows[0].noCallGuards).toEqual(
+          expect.arrayContaining(['recommendedEndpoint.execute'])
+        );
+      });
+    });
+
     // -- directMarketerRiskGateStatus ---------------------------------------
 
     describe('directMarketerRiskGateStatus', () => {
