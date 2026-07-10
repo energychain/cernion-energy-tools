@@ -234,6 +234,46 @@ not remove the transport boundary: a new free-form ChatGPT user question
 still has to reach Cernion through a concrete browser URL, a Custom GPT
 Action or an MCP/App tool call.
 
+### Explicit capability grounding
+
+The optional `capability` parameter is a hard grounding boundary for
+`ask`/`browserAsk`, not just a ranking hint. If ChatGPT calls:
+
+```http
+GET /api/chatgpt-sidecar/s/<ticket>/ask?query=...&capability=datasource-mastr
+```
+
+the Sidecar may still ask downstream Cernion services to retrieve evidence,
+but the final response must not silently reinterpret generic Knowledge-RAG
+hits as evidence for that capability. If the downstream result only contains
+generic fallback evidence while capability-specific datapoints/objects are
+missing, the Sidecar returns a successful no-evidence answer with:
+
+```json
+{
+  "confidence": "low",
+  "evidence": [],
+  "capabilityGrounding": {
+    "requestedCapability": "datasource-mastr",
+    "mode": "hard",
+    "status": "missing",
+    "reason": "no_capability_evidence",
+    "genericFallbackSuppressed": true
+  },
+  "processContext": [
+    "datapoints:missing",
+    "objects:missing",
+    "capability_evidence:missing",
+    "generic_fallback:suppressed"
+  ]
+}
+```
+
+`knowledge-rag` remains the explicit capability for Knowledge-RAG answers.
+For other capabilities, a fallback to generic Knowledge-RAG is only suitable
+when no capability was pinned or a future API version explicitly requests
+such fallback behavior.
+
 ### Python/Data Analysis fallback
 
 Some ChatGPT sessions can construct and fetch dynamic URLs through the

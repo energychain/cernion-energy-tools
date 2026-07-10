@@ -18,6 +18,33 @@ describe('chatgpt-sidecar service', () => {
         askCernionAgent: {
           handler(ctx) {
             calls.push({ action: 'personal-agent.askCernionAgent', params: ctx.params });
+            if (ctx.params.question.includes('PV-Leistung wurde im Jahr 2025')) {
+              return {
+                success: true,
+                shortAnswer: 'Generischer Gesetzgeber-Fallback',
+                confidence: 'medium',
+                evidence: [
+                  {
+                    source: 'Gesetzgeber',
+                    value: '§ 4 Ausbaupfad mit allgemeinen Leistungszielen.',
+                    metadata: { documentType: 'Gesetz' },
+                  },
+                ],
+                evidenceBySource: {
+                  knowledge: { status: 'available', hits: [{ id: 'law-1' }] },
+                  datapoints: { status: 'missing', hits: [] },
+                  objects: { status: 'missing', hits: [] },
+                  planning: { status: 'available', hits: [{ id: 'planner-signal' }] },
+                },
+                processContext: [
+                  'search:all',
+                  'knowledge:available',
+                  'datapoints:missing',
+                  'objects:missing',
+                  'planner:available',
+                ],
+              };
+            }
             return {
               success: true,
               shortAnswer: 'Cernion evidence answer',
@@ -314,6 +341,50 @@ describe('chatgpt-sidecar service', () => {
 
     const metering = await broker.call('chatgpt-sidecar.metering', { ticket });
     expect(metering.counts.ask_call).toBe(1);
+  });
+
+  it('suppresses generic fallback evidence when an explicit non-knowledge capability has no grounding', async () => {
+    const created = await createSession();
+    const ticket = ticketFrom(created);
+
+    const result = await broker.call('chatgpt-sidecar.browserAsk', {
+      ticket,
+      query: 'Welche PV-Leistung wurde im Jahr 2025 zusätzlich installiert?',
+      capability: 'datasource-mastr',
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.shortAnswer).toContain('datasource-mastr');
+    expect(result.shortAnswer).toContain('keine belastbare Capability-Evidence');
+    expect(result.confidence).toBe('low');
+    expect(result.evidence).toEqual([]);
+    expect(result.capabilityGrounding).toMatchObject({
+      requestedCapability: 'datasource-mastr',
+      mode: 'hard',
+      status: 'missing',
+      reason: 'no_capability_evidence',
+      genericFallbackSuppressed: true,
+      fallbackEvidenceCount: 1,
+    });
+    expect(result.processContext).toEqual(
+      expect.arrayContaining([
+        'datapoints:missing',
+        'objects:missing',
+        'capability:datasource-mastr',
+        'capability_evidence:missing',
+        'generic_fallback:suppressed',
+      ])
+    );
+    expect(result.followUpContext).toMatchObject({
+      capability: 'datasource-mastr',
+      confidence: 'low',
+    });
+
+    const forwarded = calls.find((c) => c.action === 'personal-agent.askCernionAgent');
+    expect(forwarded.params.context).toMatchObject({
+      requestedCapability: 'datasource-mastr',
+      capabilityGrounding: 'hard',
+    });
   });
 
   it('ask blocks a capability that was not granted to the session, without calling downstream', async () => {

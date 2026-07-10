@@ -201,6 +201,125 @@ function resolveAnswerText(result) {
   return null;
 }
 
+function statusFromEvidenceBucket(bucket) {
+  if (!bucket || typeof bucket !== 'object') return null;
+  if (typeof bucket.status === 'string') return bucket.status;
+  if (Array.isArray(bucket.hits)) return bucket.hits.length > 0 ? 'available' : 'missing';
+  return null;
+}
+
+function processContextHas(result, expected) {
+  return Array.isArray(result?.processContext) && result.processContext.includes(expected);
+}
+
+function evidenceBucketHasHits(bucket) {
+  return !!bucket && Array.isArray(bucket.hits) && bucket.hits.length > 0;
+}
+
+function capabilityMatchesEvidenceItem(item, capability) {
+  if (!item || !capability) return false;
+  const candidates = [
+    item.capability,
+    item.sourceCapability,
+    item.routeCapability,
+    item.metadata?.capability,
+    item.metadata?.sourceCapability,
+    item.metadata?.routeCapability,
+    item.metadata?.capabilityId,
+  ];
+  return candidates.some((candidate) => candidate === capability);
+}
+
+function hasCapabilitySpecificEvidence(result, capability) {
+  if (!capability) return true;
+  if (result?.capability === capability || result?.requestedCapability === capability) return true;
+  if (Array.isArray(result?.evidence) && result.evidence.some((item) => capabilityMatchesEvidenceItem(item, capability))) {
+    return true;
+  }
+
+  const evidenceBySource = result?.evidenceBySource || {};
+  const datapoints = evidenceBySource.datapoints;
+  const objects = evidenceBySource.objects;
+  return evidenceBucketHasHits(datapoints) || evidenceBucketHasHits(objects);
+}
+
+function shouldSuppressGenericFallbackForCapability(result, capability) {
+  if (!capability || capability === 'knowledge-rag') return false;
+  if (hasCapabilitySpecificEvidence(result, capability)) return false;
+
+  const evidenceBySource = result?.evidenceBySource || {};
+  const datapointStatus =
+    statusFromEvidenceBucket(evidenceBySource.datapoints) ||
+    (processContextHas(result, 'datapoints:missing') ? 'missing' : null);
+  const objectStatus =
+    statusFromEvidenceBucket(evidenceBySource.objects) ||
+    (processContextHas(result, 'objects:missing') ? 'missing' : null);
+  const knowledgeStatus =
+    statusFromEvidenceBucket(evidenceBySource.knowledge) ||
+    (processContextHas(result, 'knowledge:available') ? 'available' : null);
+
+  return (
+    datapointStatus === 'missing' &&
+    objectStatus === 'missing' &&
+    ['available', 'timeout', 'unavailable'].includes(knowledgeStatus)
+  );
+}
+
+function buildNoCapabilityEvidenceResponse({ question, capability, result }) {
+  const fallbackEvidenceCount = Array.isArray(result?.evidence) ? result.evidence.length : 0;
+  const processContext = Array.from(
+    new Set([
+      ...(Array.isArray(result?.processContext) ? result.processContext : []),
+      `capability:${capability}`,
+      'capability_evidence:missing',
+      'generic_fallback:suppressed',
+    ])
+  );
+  const shortAnswer =
+    `Für die explizit angeforderte Capability "${capability}" konnte Cernion keine belastbare Capability-Evidence ermitteln. ` +
+    'Generische Knowledge-/RAG-Treffer wurden nicht als Antwortgrundlage verwendet.';
+
+  return {
+    success: true,
+    question,
+    shortAnswer,
+    groundingAnswer: [
+      'GROUNDING ANSWER FUER COPILOT',
+      shortAnswer,
+      `BENUTZERFRAGE: ${question}`,
+      `REQUESTED CAPABILITY: ${capability}`,
+      'REASON: no_capability_evidence',
+      'ANTWORTREGEL: Sage klar, dass fuer diese explizit angeforderte Cernion-Capability keine belastbare Evidence vorliegt. Erfinde keine Daten und verwende unterdrueckte generische RAG-Treffer nicht als Nachweis.',
+    ].join('\n'),
+    confidence: 'low',
+    evidence: [],
+    evidenceBySource: result?.evidenceBySource || null,
+    capabilityGrounding: {
+      requestedCapability: capability,
+      mode: 'hard',
+      status: 'missing',
+      reason: 'no_capability_evidence',
+      genericFallbackSuppressed: true,
+      fallbackEvidenceCount,
+    },
+    processContext,
+    risks: [
+      `Keine belastbare Evidence fuer die explizit angeforderte Capability "${capability}" gefunden.`,
+      fallbackEvidenceCount > 0
+        ? 'Generische Fallback-Treffer wurden unterdrueckt, damit ChatGPT sie nicht als Capability-Nachweis ausgibt.'
+        : null,
+    ].filter(Boolean),
+    openQuestions: [
+      'Welche konkrete Cernion-Datenquelle, Objekt-ID, Kommune, Anlage oder Zeitreihe soll fuer diese Capability geprueft werden?',
+    ],
+    recommendedNextSteps: [
+      'Capability-spezifische Evidenzquelle pruefen oder eine Session/Action mit passender Datenroute bereitstellen.',
+    ],
+    allowedActions: ['explain', 'retrieve_evidence', 'prepare_intent'],
+    forbiddenActions: ['execute', 'confirm', 'delete', 'override', 'sign', 'nominate'],
+  };
+}
+
 function buildFollowUpContext({
   turnId,
   parentTurnId,
@@ -415,12 +534,20 @@ async function handleAsk(ctx, { browserFacade = false } = {}) {
   const result = await ctx.call('personal-agent.askCernionAgent', {
     question,
     sessionId: null,
-    context: { ...context, tenantId: session.tenantId },
+    context: {
+      ...context,
+      tenantId: session.tenantId,
+      requestedCapability: capability,
+      capabilityGrounding: capability ? 'hard' : null,
+    },
     inputs,
     domain: 'auto',
     mode: 'answer',
     maxEvidence: 5,
   });
+  const groundedResult = shouldSuppressGenericFallbackForCapability(result, capability)
+    ? buildNoCapabilityEvidenceResponse({ question, capability, result })
+    : result;
 
   return attachTurnContract({
     session,
@@ -428,7 +555,7 @@ async function handleAsk(ctx, { browserFacade = false } = {}) {
     operation: 'ask',
     transport: browserFacade ? 'browser_get' : 'post',
     promptText: question,
-    result: { ...result, ontology },
+    result: { ...groundedResult, ontology },
     context,
     inputs,
     capability,
