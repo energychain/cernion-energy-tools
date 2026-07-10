@@ -103,6 +103,55 @@ describe('chatgpt-sidecar service', () => {
       },
     });
     broker.createService({
+      name: 'gas-storage',
+      actions: {
+        countryStorage: {
+          rest: 'POST /country-storage',
+          params: {
+            country: { type: 'string', min: 2, max: 2 },
+            includeOperators: { type: 'boolean', optional: true, default: false },
+            includeFacilities: { type: 'boolean', optional: true, default: false },
+          },
+          openapi: {
+            summary:
+              'Current gas storage data for European countries (fill level, injection/withdrawal)',
+            tags: ['Gas Storage (AGSI)'],
+            description:
+              'Get current gas storage fill level, percentage and working gas capacity for European countries.',
+            requestBody: {
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    required: ['country'],
+                    properties: {
+                      country: { type: 'string', example: 'DE' },
+                      includeOperators: { type: 'boolean', example: false },
+                      includeFacilities: { type: 'boolean', example: false },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          handler(ctx) {
+            calls.push({ action: 'gas-storage.countryStorage', params: ctx.params });
+            return {
+              success: true,
+              data: {
+                country: ctx.params.country,
+                gasInStorage: 104.2,
+                gasInStoragePercentage: 43.45,
+                workingGasVolume: 239.8,
+                trend: 'rising',
+                updatedAt: '2026-07-10T06:00:00Z',
+              },
+            };
+          },
+        },
+      },
+    });
+    broker.createService({
       name: 'capability-broker',
       actions: {
         recommend: {
@@ -587,6 +636,97 @@ describe('chatgpt-sidecar service', () => {
     expect(result.openQuestions[0]).toContain('Mauer');
     expect(calls.find((c) => c.action === 'energy-market.installations')).toBeFalsy();
     expect(calls.find((c) => c.action === 'personal-agent.askCernionAgent')).toBeFalsy();
+  });
+
+  it('uses the read-only OpenAPI fallback for explicit gas storage capability questions', async () => {
+    const created = await createSession({
+      capabilityProfile: ['knowledge-rag', 'datasource-gas-storage'],
+    });
+    const ticket = ticketFrom(created);
+
+    const result = await broker.call('chatgpt-sidecar.ask', {
+      ticket,
+      question: 'Kannst Du mir sagen, wie voll die Gasspeicher aktuell in Deutschland sind?',
+      capability: 'datasource-gas-storage',
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.shortAnswer).toContain('gas-storage.countryStorage');
+    expect(result.shortAnswer).toContain('43,45 %');
+    expect(result.confidence).toBe('medium');
+    expect(result.capabilityGrounding).toMatchObject({
+      requestedCapability: 'datasource-gas-storage',
+      mode: 'hard',
+      status: 'fallback',
+      reason: 'openapi_semantic_router',
+      fallbackSource: 'openapi_semantic_router',
+      notDedicatedCapabilityRoute: true,
+      resolvedOperationId: 'gas-storage_countryStorage',
+      resolvedPath: '/api/gas-storage/country-storage',
+      method: 'POST',
+      action: 'gas-storage.countryStorage',
+    });
+    expect(result.processContext).toEqual(
+      expect.arrayContaining([
+        'capability:datasource-gas-storage',
+        'capability_evidence:fallback',
+        'fallback:openapi_semantic_router',
+        'source:gas-storage.countryStorage',
+        'not_dedicated_capability_route:true',
+      ])
+    );
+    expect(result.evidence[0]).toMatchObject({
+      source: 'gas-storage.countryStorage',
+      capability: 'datasource-gas-storage',
+      metadata: {
+        fallbackSource: 'openapi_semantic_router',
+        notDedicatedCapabilityRoute: true,
+        operationId: 'gas-storage_countryStorage',
+        path: '/api/gas-storage/country-storage',
+        method: 'POST',
+        params: {
+          country: 'DE',
+          includeOperators: false,
+          includeFacilities: false,
+        },
+      },
+    });
+    expect(calls.find((c) => c.action === 'gas-storage.countryStorage')).toMatchObject({
+      params: {
+        country: 'DE',
+        includeOperators: false,
+        includeFacilities: false,
+      },
+    });
+    expect(calls.find((c) => c.action === 'personal-agent.askCernionAgent')).toBeFalsy();
+
+    const metering = await broker.call('chatgpt-sidecar.metering', { ticket });
+    expect(metering.recentTurns[0]).toMatchObject({
+      capability: 'datasource-gas-storage',
+      responseKind: 'openapi_semantic_router',
+      confidence: 'medium',
+      capabilityGrounding: expect.objectContaining({
+        status: 'fallback',
+        reason: 'openapi_semantic_router',
+      }),
+    });
+  });
+
+  it('does not execute an OpenAPI fallback from capability alone without question evidence', async () => {
+    const created = await createSession({
+      capabilityProfile: ['knowledge-rag', 'datasource-gas-storage'],
+    });
+    const ticket = ticketFrom(created);
+
+    const result = await broker.call('chatgpt-sidecar.ask', {
+      ticket,
+      question: 'Wie ist der aktuelle Prozessstatus?',
+      capability: 'datasource-gas-storage',
+    });
+
+    expect(result.success).toBe(true);
+    expect(calls.find((c) => c.action === 'gas-storage.countryStorage')).toBeFalsy();
+    expect(calls.find((c) => c.action === 'personal-agent.askCernionAgent')).toBeTruthy();
   });
 
   it('ask blocks a capability that was not granted to the session, without calling downstream', async () => {

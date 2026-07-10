@@ -281,6 +281,55 @@ For other capabilities, a fallback to generic Knowledge-RAG is only suitable
 when no capability was pinned or a future API version explicitly requests
 such fallback behavior.
 
+### OpenAPI semantic fallback router
+
+When a non-`knowledge-rag` capability is explicitly pinned but no dedicated
+Sidecar resolver exists, the Sidecar may use a controlled read-only OpenAPI
+fallback before returning `no_capability_evidence`.
+
+The fallback builds an operation index from broker actions with REST/OpenAPI
+metadata and selects only safe operations:
+
+- `GET` operations are eligible unless their operation text contains an
+  unsafe verb such as create, update, delete, execute, confirm or token.
+- `POST` operations are eligible only for explicitly read-only data services
+  such as `gas-storage`, `energy-market`, `entsoe`, `oep`, `osm-geo` and
+  related datasource services.
+- The router scores the user question plus requested capability against
+  operation id, path, tags, summary, description and parameter metadata.
+- Required parameters are resolved deterministically from `inputs`, `context`
+  and common domain cues, for example `Deutschland` -> `country: "DE"`.
+
+Responses produced by this route are deliberately marked as fallback evidence,
+not as a dedicated capability route:
+
+```json
+{
+  "confidence": "medium",
+  "capabilityGrounding": {
+    "requestedCapability": "datasource-gas-storage",
+    "mode": "hard",
+    "status": "fallback",
+    "reason": "openapi_semantic_router",
+    "fallbackSource": "openapi_semantic_router",
+    "notDedicatedCapabilityRoute": true,
+    "resolvedOperationId": "gas-storage_countryStorage",
+    "resolvedPath": "/api/gas-storage/country-storage",
+    "method": "POST"
+  },
+  "processContext": [
+    "capability:datasource-gas-storage",
+    "capability_evidence:fallback",
+    "fallback:openapi_semantic_router",
+    "not_dedicated_capability_route:true"
+  ]
+}
+```
+
+This keeps ChatGPT usable for newly exposed datasource endpoints without
+relabeling generic RAG as source-specific evidence. Recurring high-value
+fallback routes should still become dedicated capability resolvers.
+
 ### Python/Data Analysis fallback
 
 Some ChatGPT sessions can construct and fetch dynamic URLs through the

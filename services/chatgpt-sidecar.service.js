@@ -55,6 +55,27 @@ const {
 const OPENAPI_TAG = 'ChatGPT Sidecar';
 const CREATOR_ROLE = 'chatgpt-sidecar-creator';
 const MAX_BROWSER_QUERY_LENGTH = 2000;
+const OPENAPI_FALLBACK_SOURCE = 'openapi_semantic_router';
+const UNSAFE_OPERATION_PATTERN =
+  /\b(create|update|delete|remove|restore|execute|confirm|approve|reject|promote|rollback|deactivate|mutate|write|draft|token|backup|reload|sync|scan|start|stop|restart|send|email|webhook|subscribe|unsubscribe|login|logout|refresh)\b/i;
+const READ_ONLY_FALLBACK_POST_SERVICES = new Set([
+  'assets',
+  'energy-market',
+  'entsoe',
+  'gas-storage',
+  'german-grid',
+  'oep',
+  'osm-geo',
+  'residual-load',
+]);
+const CAPABILITY_SERVICE_HINTS = {
+  'datasource-gas-storage': ['gas-storage'],
+  'datasource-mastr': ['energy-market', 'assets'],
+  'datasource-entsoe': ['entsoe', 'energy-market'],
+  'datasource-osm': ['osm-geo'],
+  'datasource-oep': ['oep'],
+  'energy-market': ['energy-market', 'entsoe', 'gas-storage', 'residual-load'],
+};
 
 function buildPositiveFollowUps(kind, details = {}) {
   const followUps = {
@@ -640,6 +661,424 @@ async function tryBuildDatasourceMastrAnswer(ctx, { question, context, inputs })
   return buildMastrInstallationsResponse({ question, scope, payload });
 }
 
+function normalizeSearchText(value) {
+  return String(value || '')
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/ä/g, 'ae')
+    .replace(/ö/g, 'oe')
+    .replace(/ü/g, 'ue')
+    .replace(/ß/g, 'ss');
+}
+
+function tokenizeSearchText(value) {
+  const base = normalizeSearchText(value);
+  const tokens = new Set(base.split(/[^a-z0-9]+/).filter((token) => token.length >= 2));
+  const expansions = {
+    deutschland: ['de', 'germany', 'german'],
+    germany: ['de', 'deutschland', 'german'],
+    deutsch: ['de', 'germany', 'german'],
+    gasspeicher: ['gas', 'storage', 'agsi', 'speicher', 'fuellstand'],
+    gas: ['gasspeicher', 'storage', 'agsi'],
+    speicher: ['storage', 'gasspeicher'],
+    fuellstand: ['fill', 'level', 'percentage', 'storage'],
+    fullstand: ['fill', 'level', 'percentage', 'storage'],
+    aktuell: ['current', 'latest'],
+    current: ['aktuell', 'latest'],
+    pv: ['solar', 'photovoltaik', 'mastr'],
+    photovoltaik: ['pv', 'solar', 'mastr'],
+  };
+  for (const token of Array.from(tokens)) {
+    for (const expanded of expansions[token] || []) tokens.add(expanded);
+  }
+  return tokens;
+}
+
+function parseRestDefinition(rest) {
+  if (!rest) return null;
+  if (typeof rest === 'string') {
+    const match = rest.trim().match(/^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\s+(.+)$/i);
+    if (match) return { method: match[1].toUpperCase(), path: match[2].trim() };
+    return { method: 'POST', path: rest.trim() };
+  }
+  if (typeof rest === 'object') {
+    const method = String(rest.method || rest.type || 'POST').toUpperCase();
+    const path = rest.path || rest.url || rest.fullPath;
+    return path ? { method, path: String(path).trim() } : null;
+  }
+  return null;
+}
+
+function normalizeRestPath(serviceName, path) {
+  const normalized = String(path || '').startsWith('/') ? String(path) : `/${path}`;
+  if (normalized.startsWith('/api/')) return normalized;
+  if (normalized.startsWith(`/${serviceName}/`)) return `/api${normalized}`;
+  return `/api/${serviceName}${normalized}`;
+}
+
+function getActionEntriesFromBroker(broker) {
+  const entries = [];
+  const services = broker?.registry?.getServiceList
+    ? broker.registry.getServiceList({ withActions: true, onlyAvailable: true })
+    : [];
+
+  for (const service of services || []) {
+    const actions = service.actions || {};
+    for (const [actionName, action] of Object.entries(actions)) {
+      entries.push({
+        serviceName: service.name,
+        actionName,
+        actionRef: action.name || `${service.name}.${actionName}`,
+        action,
+      });
+    }
+  }
+
+  return entries;
+}
+
+function getActionOpenApiText(action) {
+  const openapi = action?.openapi || {};
+  return [
+    action?.description,
+    openapi.summary,
+    openapi.description,
+    Array.isArray(openapi.tags) ? openapi.tags.join(' ') : null,
+  ]
+    .filter(Boolean)
+    .join(' ');
+}
+
+function isReadOnlyFallbackOperation(operation) {
+  if (!operation || UNSAFE_OPERATION_PATTERN.test(operation.searchText)) return false;
+  if (operation.method === 'GET') return true;
+  return (
+    operation.method === 'POST' &&
+    READ_ONLY_FALLBACK_POST_SERVICES.has(operation.serviceName)
+  );
+}
+
+function buildOpenApiFallbackOperationIndex(broker) {
+  const operations = [];
+  for (const entry of getActionEntriesFromBroker(broker)) {
+    const rest = parseRestDefinition(entry.action?.rest);
+    if (!rest?.path) continue;
+    const searchText = [
+      entry.serviceName,
+      entry.actionName,
+      entry.actionRef,
+      rest.method,
+      rest.path,
+      getActionOpenApiText(entry.action),
+      JSON.stringify(entry.action?.params || {}),
+      JSON.stringify(entry.action?.openapi?.requestBody || {}),
+    ]
+      .filter(Boolean)
+      .join(' ');
+    const operation = {
+      serviceName: entry.serviceName,
+      actionName: entry.actionName,
+      actionRef: entry.actionRef,
+      operationId: entry.actionRef.replace(/\./g, '_'),
+      method: rest.method,
+      path: normalizeRestPath(entry.serviceName, rest.path),
+      paramsSchema: entry.action?.params || null,
+      requestBody: entry.action?.openapi?.requestBody || null,
+      summary: entry.action?.openapi?.summary || entry.action?.description || null,
+      searchText: normalizeSearchText(searchText),
+    };
+    if (isReadOnlyFallbackOperation(operation)) operations.push(operation);
+  }
+  return operations;
+}
+
+function scoreOpenApiFallbackOperation(operation, { question, capability }) {
+  const queryTokens = tokenizeSearchText(`${question} ${capability || ''}`);
+  const serviceHints = CAPABILITY_SERVICE_HINTS[capability] || [];
+  let score = serviceHints.includes(operation.serviceName) ? 100 : 0;
+
+  for (const token of queryTokens) {
+    if (operation.searchText.includes(token)) score += token.length > 3 ? 8 : 3;
+  }
+
+  if (capability && operation.searchText.includes(normalizeSearchText(capability))) score += 30;
+  if (
+    /gasspeicher|gas storage|gas/i.test(normalizeSearchText(question)) &&
+    operation.serviceName === 'gas-storage'
+  ) {
+    score += 50;
+  }
+  if (
+    /deutschland|germany|de\b/i.test(normalizeSearchText(question)) &&
+    /country/i.test(operation.actionName)
+  ) {
+    score += 25;
+  }
+  if (
+    /fuellstand|fullstand|fill|level|speicher/i.test(normalizeSearchText(question)) &&
+    /storage/i.test(operation.searchText)
+  ) {
+    score += 25;
+  }
+  return score;
+}
+
+function selectOpenApiFallbackOperation(broker, { question, capability }) {
+  if (!capability || capability === 'knowledge-rag') return null;
+  const candidates = buildOpenApiFallbackOperationIndex(broker)
+    .map((operation) => ({
+      ...operation,
+      score: scoreOpenApiFallbackOperation(operation, { question, capability }),
+    }))
+    .sort((a, b) => b.score - a.score);
+  const selected = candidates[0];
+  if (!selected || selected.score < 120) return null;
+  return {
+    ...selected,
+    alternatives: candidates.slice(1, 4).map((candidate) => ({
+      operationId: candidate.operationId,
+      actionRef: candidate.actionRef,
+      path: candidate.path,
+      score: candidate.score,
+    })),
+  };
+}
+
+function resolveCountryCode(question, context = {}, inputs = {}) {
+  const explicit = firstString(
+    inputs.country,
+    context.country,
+    inputs.countryCode,
+    context.countryCode
+  );
+  if (explicit && /^[a-z]{2}$/i.test(explicit.trim())) return explicit.trim().toUpperCase();
+
+  const text = normalizeSearchText(
+    `${question} ${JSON.stringify(context)} ${JSON.stringify(inputs)}`
+  );
+  const countryMap = [
+    [/deutschland|germany|\bde\b/, 'DE'],
+    [/frankreich|france|\bfr\b/, 'FR'],
+    [/italien|italy|\bit\b/, 'IT'],
+    [/oesterreich|osterreich|austria|\bat\b/, 'AT'],
+    [/niederlande|netherlands|\bnl\b/, 'NL'],
+    [/belgien|belgium|\bbe\b/, 'BE'],
+    [/spanien|spain|\bes\b/, 'ES'],
+    [/polen|poland|\bpl\b/, 'PL'],
+  ];
+  const match = countryMap.find(([pattern]) => pattern.test(text));
+  return match ? match[1] : null;
+}
+
+function actionRequiresParam(operation, paramName) {
+  const schema = operation?.paramsSchema?.[paramName];
+  if (!schema) return false;
+  if (typeof schema === 'string') return true;
+  return schema.optional !== true;
+}
+
+function resolveOpenApiFallbackParams(operation, { question, context, inputs }) {
+  const params = {};
+  const missing = [];
+
+  if (
+    operation.paramsSchema?.country ||
+    operation.requestBody?.content?.['application/json']?.schema?.properties?.country
+  ) {
+    const country = resolveCountryCode(question, context, inputs);
+    if (country) params.country = country;
+    else if (actionRequiresParam(operation, 'country')) missing.push('country');
+  }
+
+  for (const [key, schema] of Object.entries(operation.paramsSchema || {})) {
+    if (params[key] !== undefined) continue;
+    const provided = inputs[key] ?? context[key];
+    if (provided !== undefined && provided !== null && provided !== '') {
+      params[key] = provided;
+      continue;
+    }
+    if (typeof schema === 'object' && schema.default !== undefined) params[key] = schema.default;
+    if (typeof schema === 'object' && schema.type === 'boolean' && params[key] === undefined) {
+      params[key] = false;
+    }
+    if (actionRequiresParam(operation, key) && params[key] === undefined) missing.push(key);
+  }
+
+  return { params, missing: Array.from(new Set(missing)) };
+}
+
+function unwrapDataPayload(payload) {
+  if (payload && typeof payload === 'object' && payload.data && typeof payload.data === 'object') {
+    return payload.data;
+  }
+  return payload;
+}
+
+function formatPercentageValue(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return null;
+  return `${number.toLocaleString('de-DE', { maximumFractionDigits: 2 })} %`;
+}
+
+function formatTwhValue(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return null;
+  return `${number.toLocaleString('de-DE', { maximumFractionDigits: 2 })} TWh`;
+}
+
+function buildOpenApiFallbackAnswerText({ operation, payload, params }) {
+  const data = unwrapDataPayload(payload) || {};
+  if (operation.actionRef === 'gas-storage.countryStorage') {
+    const fill =
+      data.gasInStoragePercentage ??
+      data.fillLevelPercentage ??
+      data.fillPercentage ??
+      data.percentage ??
+      data.full;
+    const gas = data.gasInStorage ?? data.workingGasInStorage ?? data.storageTwh;
+    const capacity = data.fullCapacity ?? data.workingGasVolume ?? data.capacity;
+    const date = data.updatedAt || data.timestamp || data.date || data.gasDayStart || null;
+    const parts = [
+      `Cernion hat per OpenAPI-Fallback ${operation.actionRef} fuer ${params.country || data.country || 'das angefragte Land'} ausgefuehrt.`,
+      fill != null ? `Der gemeldete Fuellstand betraegt ${formatPercentageValue(fill) || fill}.` : null,
+      gas != null ? `Gas im Speicher: ${formatTwhValue(gas) || gas}.` : null,
+      capacity != null ? `Arbeitsgas-/Kapazitaetswert: ${formatTwhValue(capacity) || capacity}.` : null,
+      date ? `Zeitstempel/Stand: ${date}.` : null,
+    ].filter(Boolean);
+    return parts.join(' ');
+  }
+
+  return `Cernion hat per OpenAPI-Fallback ${operation.actionRef} ausgefuehrt und eine read-only Antwort erhalten.`;
+}
+
+function buildOpenApiMissingInputResponse({ question, capability, operation, missing }) {
+  const shortAnswer =
+    `Cernion hat einen read-only OpenAPI-Fallback fuer "${capability}" gefunden (${operation.actionRef}), ` +
+    `kann ihn aber ohne folgende Pflichtparameter nicht belastbar ausfuehren: ${missing.join(', ')}.`;
+  return {
+    success: true,
+    question,
+    shortAnswer,
+    confidence: 'low',
+    evidence: [],
+    capabilityGrounding: {
+      requestedCapability: capability,
+      mode: 'hard',
+      status: 'missing_required_input',
+      reason: 'openapi_fallback_missing_input',
+      fallbackSource: OPENAPI_FALLBACK_SOURCE,
+      notDedicatedCapabilityRoute: true,
+      resolvedOperationId: operation.operationId,
+      resolvedPath: operation.path,
+      method: operation.method,
+      missing,
+    },
+    processContext: [
+      `capability:${capability}`,
+      `fallback:${OPENAPI_FALLBACK_SOURCE}`,
+      'capability_fallback:missing_required_input',
+      `source:${operation.actionRef}`,
+    ],
+    openQuestions: [`Bitte folgende Parameter nachreichen: ${missing.join(', ')}.`],
+    recommendedNextSteps: ['Frage mit den fehlenden Parametern wiederholen.'],
+    allowedActions: ['explain', 'retrieve_evidence', 'prepare_intent'],
+    forbiddenActions: ['execute', 'confirm', 'delete', 'override', 'sign', 'nominate'],
+  };
+}
+
+function buildOpenApiFallbackResponse({ question, capability, operation, params, payload }) {
+  const shortAnswer = buildOpenApiFallbackAnswerText({ operation, payload, params });
+  const data = unwrapDataPayload(payload);
+  return {
+    success: true,
+    question,
+    shortAnswer,
+    confidence: data ? 'medium' : 'low',
+    evidence: [
+      {
+        source: operation.actionRef,
+        capability,
+        value: shortAnswer,
+        metadata: {
+          fallbackSource: OPENAPI_FALLBACK_SOURCE,
+          notDedicatedCapabilityRoute: true,
+          operationId: operation.operationId,
+          path: operation.path,
+          method: operation.method,
+          params,
+          data,
+        },
+      },
+    ],
+    evidenceBySource: {
+      openapiFallback: {
+        source: operation.actionRef,
+        status: data ? 'available' : 'missing',
+        hits: data ? [{ operationId: operation.operationId, path: operation.path }] : [],
+      },
+    },
+    capabilityGrounding: {
+      requestedCapability: capability,
+      mode: 'hard',
+      status: data ? 'fallback' : 'missing',
+      reason: OPENAPI_FALLBACK_SOURCE,
+      fallbackSource: OPENAPI_FALLBACK_SOURCE,
+      notDedicatedCapabilityRoute: true,
+      resolvedOperationId: operation.operationId,
+      resolvedPath: operation.path,
+      method: operation.method,
+      action: operation.actionRef,
+      score: operation.score,
+      alternatives: operation.alternatives,
+    },
+    processContext: [
+      `capability:${capability}`,
+      'capability_evidence:fallback',
+      `fallback:${OPENAPI_FALLBACK_SOURCE}`,
+      `source:${operation.actionRef}`,
+      'not_dedicated_capability_route:true',
+    ],
+    risks: [
+      'Diese Antwort stammt aus einem generischen read-only OpenAPI-Fallback, nicht aus einer dedizierten Capability-Route.',
+    ],
+    openQuestions: [],
+    recommendedNextSteps: ['Bei wiederkehrendem Bedarf eine dedizierte Capability-Route fuer diese Datenquelle ergaenzen.'],
+    allowedActions: ['explain', 'retrieve_evidence', 'prepare_intent'],
+    forbiddenActions: ['execute', 'confirm', 'delete', 'override', 'sign', 'nominate'],
+  };
+}
+
+async function tryBuildOpenApiFallbackAnswer(ctx, { question, capability, context, inputs }) {
+  const operation = selectOpenApiFallbackOperation(ctx.broker, { question, capability });
+  if (!operation) return null;
+
+  const resolved = resolveOpenApiFallbackParams(operation, { question, context, inputs });
+  if (resolved.missing.length > 0) {
+    return buildOpenApiMissingInputResponse({
+      question,
+      capability,
+      operation,
+      missing: resolved.missing,
+    });
+  }
+
+  const payload = await ctx.call(operation.actionRef, resolved.params, {
+    meta: {
+      cernionToken: ctx.meta?.cernionToken || ctx.meta?.apiToken?.token || null,
+      chatgptSidecarFallback: OPENAPI_FALLBACK_SOURCE,
+    },
+  });
+
+  return buildOpenApiFallbackResponse({
+    question,
+    capability,
+    operation,
+    params: resolved.params,
+    payload,
+  });
+}
+
 function generateTurnId() {
   return `cgs_turn_${crypto.randomUUID()}`;
 }
@@ -1052,6 +1491,28 @@ async function handleAsk(ctx, { browserFacade = false } = {}) {
       transport: browserFacade ? 'browser_get' : 'post',
       promptText: question,
       result: { ...answer, ontology },
+      context,
+      inputs,
+      capability,
+      ontology,
+      restPlan,
+    });
+  }
+
+  const openApiFallbackResult = await tryBuildOpenApiFallbackAnswer(ctx, {
+    question,
+    capability,
+    context,
+    inputs,
+  });
+  if (openApiFallbackResult) {
+    return attachTurnContract({
+      session,
+      ctx,
+      operation: 'ask',
+      transport: browserFacade ? 'browser_get' : 'post',
+      promptText: question,
+      result: { ...openApiFallbackResult, ontology },
       context,
       inputs,
       capability,
