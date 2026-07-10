@@ -56,6 +56,53 @@ describe('chatgpt-sidecar service', () => {
       },
     });
     broker.createService({
+      name: 'energy-market',
+      actions: {
+        installations: {
+          handler(ctx) {
+            calls.push({ action: 'energy-market.installations', params: ctx.params });
+            if (ctx.params.postleitzahl === '69256' && ctx.params.installationType === 'solar') {
+              return {
+                success: true,
+                data: {
+                  installations: [
+                    {
+                      mastrNummer: 'SEE968420564550',
+                      name: 'Bauhof',
+                      bruttoleistung: 19.7,
+                      inbetriebnahmedatum: '2009-11-11T00:00:00.000Z',
+                      ort: 'Mauer',
+                      gemeinde: 'Mauer',
+                      postleitzahl: '69256',
+                      netzbetreiberpruefungStatus: 2954,
+                    },
+                    {
+                      mastrNummer: 'SEE988684464915',
+                      name: 'PV-Anlage, IB',
+                      bruttoleistung: 11.375,
+                      inbetriebnahmedatum: '1965-06-04T00:00:00.000Z',
+                      ort: 'Mauer',
+                      gemeinde: 'Mauer',
+                      postleitzahl: '69256',
+                      netzbetreiberpruefungStatus: 2955,
+                    },
+                  ],
+                  stats: { count: 2, totalCapacity: 31.075, avgCapacity: 15.5375 },
+                },
+              };
+            }
+            return {
+              success: true,
+              data: {
+                installations: [],
+                stats: { count: 0, totalCapacity: 0, avgCapacity: 0 },
+              },
+            };
+          },
+        },
+      },
+    });
+    broker.createService({
       name: 'capability-broker',
       actions: {
         recommend: {
@@ -439,6 +486,61 @@ describe('chatgpt-sidecar service', () => {
       requestedCapability: 'datasource-mastr',
       capabilityGrounding: 'hard',
     });
+  });
+
+  it('answers datasource-mastr PV capacity questions through the deterministic MaStR route when postal code is known', async () => {
+    const created = await createSession();
+    const ticket = ticketFrom(created);
+
+    const result = await broker.call('chatgpt-sidecar.ask', {
+      ticket,
+      question: 'Kannst Du mir sagen, wieviel PV Leistung in 69256 Mauer installiert ist?',
+      capability: 'datasource-mastr',
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.shortAnswer).toContain('31,1 kW');
+    expect(result.confidence).toBe('high');
+    expect(result.capabilityGrounding).toMatchObject({
+      requestedCapability: 'datasource-mastr',
+      status: 'available',
+      reason: 'capability_evidence_available',
+    });
+    expect(result.evidence[0]).toMatchObject({
+      source: 'energy-market.installations',
+      capability: 'datasource-mastr',
+    });
+    expect(result.evidence[0].metadata.examples).toHaveLength(2);
+    expect(calls.find((c) => c.action === 'energy-market.installations')).toMatchObject({
+      params: {
+        installationType: 'solar',
+        postleitzahl: '69256',
+        operationalStatus: '35',
+      },
+    });
+    expect(calls.find((c) => c.action === 'personal-agent.askCernionAgent')).toBeFalsy();
+  });
+
+  it('returns a precise missing postal code response for datasource-mastr municipality-only questions', async () => {
+    const created = await createSession();
+    const ticket = ticketFrom(created);
+
+    const result = await broker.call('chatgpt-sidecar.ask', {
+      ticket,
+      question: 'Kannst Du mir sagen, wieviel PV Leistung in Mauer installiert ist?',
+      capability: 'datasource-mastr',
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.shortAnswer).toContain('Postleitzahl');
+    expect(result.capabilityGrounding).toMatchObject({
+      requestedCapability: 'datasource-mastr',
+      status: 'missing_required_input',
+      reason: 'postal_code_required',
+    });
+    expect(result.openQuestions[0]).toContain('Mauer');
+    expect(calls.find((c) => c.action === 'energy-market.installations')).toBeFalsy();
+    expect(calls.find((c) => c.action === 'personal-agent.askCernionAgent')).toBeFalsy();
   });
 
   it('ask blocks a capability that was not granted to the session, without calling downstream', async () => {

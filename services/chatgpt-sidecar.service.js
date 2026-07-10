@@ -303,12 +303,14 @@ function buildActionOpenApiSchema(baseUrl, session) {
             },
             context: {
               type: 'object',
-              description: 'Optional compact context extracted from the conversation.',
+              description:
+                'Optional compact context extracted from the conversation. For MaStR questions pass postalCode/postleitzahl and municipality when known.',
               additionalProperties: true,
             },
             inputs: {
               type: 'object',
-              description: 'Optional structured inputs extracted from the user request.',
+              description:
+                'Optional structured inputs extracted from the user request. For datasource-mastr use postalCode/postleitzahl, municipality, installationType, commissioningYear and operationalStatus.',
               additionalProperties: true,
             },
           },
@@ -368,6 +370,274 @@ function buildResponseContract() {
     promptOnlyTransportBoundary:
       'A prompt-only browser client still needs a concrete URL, Action or MCP tool call to send each new free-form user question to Cernion.',
   };
+}
+
+function firstString(...values) {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim()) return value.trim();
+    if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+  }
+  return null;
+}
+
+function extractPostalCodeFromValue(value) {
+  const match = String(value || '').match(/\b\d{5}\b/);
+  return match ? match[0] : null;
+}
+
+function extractYearFromQuestion(question) {
+  const match = String(question || '').match(/\b(19|20)\d{2}\b/);
+  return match ? Number(match[0]) : null;
+}
+
+function extractMunicipalityFromQuestion(question) {
+  const text = String(question || '').trim();
+  const match = text.match(
+    /\b(?:in|für|fuer|von|ort|gemeinde|kommune)\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]{2,}(?:\s+[A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]{2,}){0,2})\b/
+  );
+  if (!match) return null;
+  return match[1]
+    .replace(/\b(?:installiert|zusätzlich|zusaetzlich|gebaut|ermitteln|ist|sind)\b.*$/i, '')
+    .trim();
+}
+
+function resolveMastrInstallationType(question, context = {}, inputs = {}) {
+  const explicit = firstString(
+    inputs.installationType,
+    inputs.type,
+    context.installationType,
+    context.type
+  );
+  if (explicit) return explicit;
+  const haystack = String(question || '').toLowerCase();
+  if (/\b(pv|photovoltaik|solar)\b/.test(haystack)) return 'solar';
+  if (/\b(speicher|batterie|bess)\b/.test(haystack)) return 'storage';
+  if (/\bwind\b/.test(haystack)) return 'wind';
+  if (/\b(biomasse|biogas)\b/.test(haystack)) return 'biomass';
+  if (/\b(wasser|hydro)\b/.test(haystack)) return 'hydro';
+  return null;
+}
+
+function resolveMastrScope(question, context = {}, inputs = {}) {
+  const postalCode =
+    extractPostalCodeFromValue(
+      firstString(
+        inputs.postalCode,
+        inputs.postleitzahl,
+        inputs.plz,
+        context.postalCode,
+        context.postleitzahl,
+        context.plz
+      )
+    ) || extractPostalCodeFromValue(question);
+  const municipality =
+    firstString(
+      inputs.municipality,
+      inputs.gemeinde,
+      inputs.city,
+      context.municipality,
+      context.gemeinde,
+      context.city
+    ) || extractMunicipalityFromQuestion(question);
+  const commissioningYear =
+    Number(inputs.commissioningYear || context.commissioningYear || 0) ||
+    extractYearFromQuestion(question);
+  return {
+    postalCode,
+    municipality,
+    commissioningYear,
+    installationType: resolveMastrInstallationType(question, context, inputs),
+  };
+}
+
+function normalizeInstallationsPayload(payload) {
+  if (Array.isArray(payload?.installations)) return payload.installations;
+  if (Array.isArray(payload?.data?.installations)) return payload.data.installations;
+  if (Array.isArray(payload?.data?.results)) return payload.data.results;
+  return [];
+}
+
+function normalizeInstallationStats(payload, installations) {
+  const stats = payload?.stats || payload?.data?.stats || {};
+  const count = Number(stats.count ?? stats.total ?? installations.length) || installations.length;
+  const totalCapacity =
+    Number(stats.totalCapacity ?? stats.totalCapacityKW ?? stats.totalCapacityKw) ||
+    installations.reduce(
+      (sum, installation) =>
+        sum + Number(installation.bruttoleistung || installation.Bruttoleistung || installation.capacityKW || installation.capacityKw || 0),
+      0
+    );
+  return {
+    count,
+    totalCapacity,
+    avgCapacity: count > 0 ? totalCapacity / count : 0,
+  };
+}
+
+function formatKwValue(value) {
+  const numeric = Number(value) || 0;
+  if (Math.abs(numeric) >= 1000) {
+    return `${(numeric / 1000).toLocaleString('de-DE', { maximumFractionDigits: 3 })} MW`;
+  }
+  return `${numeric.toLocaleString('de-DE', { maximumFractionDigits: 1 })} kW`;
+}
+
+function buildMastrEvidenceItems(installations, scope, stats) {
+  const topInstallations = installations
+    .slice()
+    .sort(
+      (a, b) =>
+        Number(b.bruttoleistung || b.Bruttoleistung || b.capacityKW || b.capacityKw || 0) -
+        Number(a.bruttoleistung || a.Bruttoleistung || a.capacityKW || a.capacityKw || 0)
+    )
+    .slice(0, 5);
+  return [
+    {
+      source: 'energy-market.installations',
+      capability: 'datasource-mastr',
+      value: `MaStR ${scope.installationType || 'all'} ${scope.postalCode || scope.municipality || ''}: ${stats.count} Anlagen, ${formatKwValue(stats.totalCapacity)} Bruttoleistung.`,
+      metadata: {
+        postleitzahl: scope.postalCode,
+        municipality: scope.municipality,
+        installationType: scope.installationType,
+        commissioningYear: scope.commissioningYear || null,
+        count: stats.count,
+        totalCapacityKw: stats.totalCapacity,
+        examples: topInstallations.map((installation) => ({
+          mastrNummer: installation.mastrNummer || installation.EinheitMastrNummer || null,
+          name: installation.name || installation.EinheitName || null,
+          bruttoleistungKw: Number(
+            installation.bruttoleistung || installation.Bruttoleistung || installation.capacityKW || installation.capacityKw || 0
+          ),
+          inbetriebnahmedatum:
+            installation.inbetriebnahmedatum || installation.Inbetriebnahmedatum || installation.commissioningDate || null,
+          ort: installation.ort || installation.gemeinde || null,
+          postleitzahl: installation.postleitzahl || null,
+          netzbetreiberpruefungStatus: installation.netzbetreiberpruefungStatus ?? null,
+        })),
+      },
+    },
+  ];
+}
+
+function buildMastrMissingPostalCodeResponse({ question, scope, warning }) {
+  const municipalityText = scope.municipality ? ` fuer "${scope.municipality}"` : '';
+  const shortAnswer =
+    `Für die MaStR-Capability brauche ich eine exakte 5-stellige Postleitzahl${municipalityText}, ` +
+    'weil der produktive MaStR-Datenpfad nicht sicher nach freiem Ortsnamen filtert.';
+  return {
+    success: true,
+    question,
+    answer: shortAnswer,
+    shortAnswer,
+    confidence: 'low',
+    evidence: [],
+    evidenceBySource: {
+      datasourceMastr: {
+        source: 'energy-market.installations',
+        status: 'missing_required_input',
+        requiredInput: 'postleitzahl',
+        trace: { warning: warning || null, municipality: scope.municipality || null },
+      },
+    },
+    capabilityGrounding: {
+      requestedCapability: 'datasource-mastr',
+      mode: 'hard',
+      status: 'missing_required_input',
+      reason: 'postal_code_required',
+      genericFallbackSuppressed: true,
+    },
+    processContext: [
+      'capability:datasource-mastr',
+      'mastr:postleitzahl:missing',
+      'generic_fallback:suppressed',
+    ],
+    openQuestions: [
+      scope.municipality
+        ? `Welche PLZ soll fuer ${scope.municipality} verwendet werden?`
+        : 'Welche 5-stellige PLZ soll fuer die MaStR-Abfrage verwendet werden?',
+    ],
+    recommendedNextSteps: [
+      'Die Frage mit PLZ wiederholen, z.B. "PV-Leistung in 69256 Mauer".',
+    ],
+    allowedActions: ['explain', 'retrieve_evidence', 'prepare_intent'],
+    forbiddenActions: ['execute', 'confirm', 'delete', 'override', 'sign', 'nominate'],
+  };
+}
+
+function buildMastrInstallationsResponse({ question, scope, payload }) {
+  const installations = normalizeInstallationsPayload(payload);
+  const stats = normalizeInstallationStats(payload, installations);
+  const locationLabel = [scope.postalCode, scope.municipality].filter(Boolean).join(' ').trim();
+  const typeLabel = scope.installationType === 'solar' ? 'PV-Anlagen' : 'Anlagen';
+  const yearText = scope.commissioningYear ? ` mit Inbetriebnahmejahr ${scope.commissioningYear}` : '';
+  const shortAnswer =
+    installations.length > 0
+      ? `Für ${locationLabel || 'den angefragten Standort'} weist die MaStR-Abfrage ${stats.count.toLocaleString('de-DE')} ${typeLabel}${yearText} mit zusammen ${formatKwValue(stats.totalCapacity)} Bruttoleistung aus.`
+      : `Für ${locationLabel || 'den angefragten Standort'} lieferte die MaStR-Abfrage keine passenden ${typeLabel}${yearText}.`;
+  const evidence = buildMastrEvidenceItems(installations, scope, stats);
+  return {
+    success: true,
+    question,
+    answer: shortAnswer,
+    shortAnswer,
+    confidence: installations.length > 0 ? 'high' : 'low',
+    evidence,
+    evidenceBySource: {
+      datasourceMastr: {
+        source: 'energy-market.installations',
+        status: installations.length > 0 ? 'available' : 'missing',
+        hits: evidence,
+        trace: {
+          requestedParams: {
+            installationType: scope.installationType || 'all',
+            postleitzahl: scope.postalCode || null,
+            commissioningYear: scope.commissioningYear || null,
+          },
+          hitCount: installations.length,
+        },
+      },
+    },
+    capabilityGrounding: {
+      requestedCapability: 'datasource-mastr',
+      mode: 'hard',
+      status: installations.length > 0 ? 'available' : 'missing',
+      reason: installations.length > 0 ? 'capability_evidence_available' : 'no_matching_mastr_installations',
+      genericFallbackSuppressed: true,
+    },
+    processContext: [
+      'capability:datasource-mastr',
+      installations.length > 0 ? 'capability_evidence:available' : 'capability_evidence:missing',
+      'source:energy-market.installations',
+    ],
+    openQuestions: installations.length > 0 ? [] : ['Soll ein anderer Anlagenstatus oder eine andere PLZ geprueft werden?'],
+    recommendedNextSteps: installations.length > 0 ? [] : ['MaStR-Abfrage mit anderem Scope wiederholen.'],
+    allowedActions: ['explain', 'retrieve_evidence', 'prepare_intent'],
+    forbiddenActions: ['execute', 'confirm', 'delete', 'override', 'sign', 'nominate'],
+  };
+}
+
+async function tryBuildDatasourceMastrAnswer(ctx, { question, context, inputs }) {
+  const scope = resolveMastrScope(question, context, inputs);
+  if (!scope.installationType && !/mastr|anlage|leistung|installiert|zubau|pv|solar/i.test(question)) {
+    return null;
+  }
+
+  if (!scope.postalCode) {
+    if (!scope.municipality) return null;
+    return buildMastrMissingPostalCodeResponse({ question, scope });
+  }
+
+  const payload = await ctx.call('energy-market.installations', {
+    installationType: scope.installationType || 'all',
+    postleitzahl: scope.postalCode,
+    commissioningYear: scope.commissioningYear || undefined,
+    operationalStatus: firstString(inputs.operationalStatus, context.operationalStatus) || '35',
+    includeNapData: false,
+    limit: 'all',
+  });
+
+  return buildMastrInstallationsResponse({ question, scope, payload });
 }
 
 function generateTurnId() {
@@ -725,6 +995,25 @@ async function handleAsk(ctx, { browserFacade = false } = {}) {
       ontology,
       restPlan,
     });
+  }
+
+  if (capability === 'datasource-mastr') {
+    const mastrResult = await tryBuildDatasourceMastrAnswer(ctx, { question, context, inputs });
+    if (mastrResult) {
+      return attachTurnContract({
+        session,
+        ctx,
+        operation: 'ask',
+        transport: browserFacade ? 'browser_get' : 'post',
+        promptText: question,
+        result: { ...mastrResult, ontology },
+        context,
+        inputs,
+        capability,
+        ontology,
+        restPlan,
+      });
+    }
   }
 
   const result = await ctx.call('personal-agent.askCernionAgent', {
