@@ -12,6 +12,7 @@
  *   GET    /api/chatgpt-sidecar/s/:ticket/ask          (browser read-only facade)
  *   POST   /api/chatgpt-sidecar/s/:ticket/plan
  *   GET    /api/chatgpt-sidecar/s/:ticket/plan         (browser read-only facade)
+ *   GET    /api/chatgpt-sidecar/s/:ticket/action-openapi.json
  *   POST   /api/chatgpt-sidecar/s/:ticket/datapoints   (draft_write only)
  *   GET    /api/chatgpt-sidecar/s/:ticket/metering
  *
@@ -116,6 +117,11 @@ function buildManifestUrl(baseUrl, ticket) {
   return `${prefix}/api/chatgpt-sidecar/s/${ticket}/manifest`;
 }
 
+function buildActionOpenApiUrl(baseUrl, ticket) {
+  const prefix = normalizeBaseUrl(baseUrl);
+  return `${prefix}/api/chatgpt-sidecar/s/${ticket}/action-openapi.json`;
+}
+
 function buildBrowserAskUrl(baseUrl, ticket, question, capability = null) {
   if (!question) return null;
   const prefix = normalizeBaseUrl(baseUrl);
@@ -156,6 +162,196 @@ function buildPythonClientHints(baseUrl, ticket) {
       'with urllib.request.urlopen(url, timeout=30) as response:',
       '    payload = json.loads(response.read().decode("utf-8"))',
     ].join('\n'),
+  };
+}
+
+function buildActionSetup(baseUrl, ticket) {
+  const schemaUrl = buildActionOpenApiUrl(baseUrl, ticket);
+  return {
+    recommended: true,
+    mode: 'custom_gpt_action',
+    schemaUrl,
+    authentication: {
+      type: 'none_ticket_scoped',
+      instruction:
+        'Set Authentication to None in the GPT Action. The opaque session ticket is already embedded in the imported schema paths and expires with the Sidecar session.',
+    },
+    steps: [
+      'Open ChatGPT and create or edit a Custom GPT.',
+      'Go to Configure -> Actions -> Create new action.',
+      `Import the schema from this URL: ${schemaUrl}`,
+      'Set Authentication to None.',
+      'Save the GPT and test the askCernion action with a short Cernion question.',
+      'Use the Prompt-only section below only when a Custom GPT Action cannot be configured.',
+    ],
+    operations: [
+      {
+        operationId: 'askCernion',
+        purpose: 'Free-form fachliche Cernion question with optional capability and parentTurnId.',
+      },
+      {
+        operationId: 'planCernion',
+        purpose: 'Read-only planning/routing request without execution.',
+      },
+    ],
+    promptOnlyFallback:
+      'Prompt-only remains available for environments where the user cannot create or edit a Custom GPT, but it depends on browser/Python transport and is less reliable for free follow-ups.',
+  };
+}
+
+function buildActionOpenApiSchema(baseUrl, session) {
+  const prefix = normalizeBaseUrl(baseUrl || session.baseUrl);
+  const capabilityEnum = session.capabilityProfile.filter(
+    (capability) => capability !== 'draft-datapoints'
+  );
+  const askPath = `/api/chatgpt-sidecar/s/${session.ticket}/ask`;
+  const planPath = `/api/chatgpt-sidecar/s/${session.ticket}/plan`;
+  const capabilitySchema =
+    capabilityEnum.length > 0
+      ? {
+          type: 'string',
+          enum: capabilityEnum,
+          description:
+            'Optional Cernion capability id. When provided, Cernion treats it as a hard grounding boundary.',
+        }
+      : {
+          type: 'string',
+          description: 'Optional Cernion capability id granted by this Sidecar session.',
+        };
+
+  return {
+    openapi: '3.1.0',
+    info: {
+      title: 'Cernion ChatGPT Sidecar Action',
+      version: '1.0.0',
+      description:
+        'Session-scoped read-only Custom GPT Action for Cernion evidence questions and planning. The opaque session ticket is embedded in the paths and expires with the Sidecar session.',
+    },
+    servers: prefix ? [{ url: prefix }] : [{ url: '/' }],
+    paths: {
+      [askPath]: {
+        post: {
+          operationId: 'askCernion',
+          summary: 'Ask Cernion with session-scoped evidence grounding',
+          description:
+            'Use for free-form user follow-up questions. Pass parentTurnId from the previous Cernion response when available.',
+          'x-openai-isConsequential': false,
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/AskCernionRequest' },
+              },
+            },
+          },
+          responses: {
+            200: {
+              description: 'Cernion Sidecar answer with turn and grounding metadata.',
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/CernionSidecarResponse' },
+                },
+              },
+            },
+          },
+        },
+      },
+      [planPath]: {
+        post: {
+          operationId: 'planCernion',
+          summary: 'Plan a read-only Cernion route without execution',
+          description:
+            'Use for capability/routing planning. This operation does not execute consequential actions.',
+          'x-openai-isConsequential': false,
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/PlanCernionRequest' },
+              },
+            },
+          },
+          responses: {
+            200: {
+              description: 'Cernion Sidecar plan with turn metadata.',
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/CernionSidecarResponse' },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    components: {
+      schemas: {
+        AskCernionRequest: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['question'],
+          properties: {
+            question: {
+              type: 'string',
+              minLength: 3,
+              description: 'The current user question to answer through Cernion.',
+            },
+            capability: capabilitySchema,
+            parentTurnId: {
+              type: 'string',
+              description: 'Previous Cernion response turnId, if this is a follow-up.',
+            },
+            context: {
+              type: 'object',
+              description: 'Optional compact context extracted from the conversation.',
+              additionalProperties: true,
+            },
+            inputs: {
+              type: 'object',
+              description: 'Optional structured inputs extracted from the user request.',
+              additionalProperties: true,
+            },
+          },
+        },
+        PlanCernionRequest: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['task'],
+          properties: {
+            task: {
+              type: 'string',
+              minLength: 3,
+              description: 'The planning or routing task to resolve through Cernion.',
+            },
+            capability: capabilitySchema,
+            parentTurnId: {
+              type: 'string',
+              description: 'Previous Cernion response turnId, if this is a follow-up.',
+            },
+            context: {
+              type: 'object',
+              description: 'Optional compact context extracted from the conversation.',
+              additionalProperties: true,
+            },
+          },
+        },
+        CernionSidecarResponse: {
+          type: 'object',
+          additionalProperties: true,
+          properties: {
+            success: { type: 'boolean' },
+            answer: { type: 'string' },
+            shortAnswer: { type: 'string' },
+            confidence: { type: 'string' },
+            evidence: { type: 'array', items: { type: 'object', additionalProperties: true } },
+            turnId: { type: 'string' },
+            resolvedQuestion: { type: 'string' },
+            followUpContext: { type: 'object', additionalProperties: true },
+            responseContract: { type: 'object', additionalProperties: true },
+          },
+        },
+      },
+    },
   };
 }
 
@@ -756,6 +952,8 @@ module.exports = {
         });
 
         const manifestUrl = buildManifestUrl(session.baseUrl, session.ticket);
+        const actionOpenApiUrl = buildActionOpenApiUrl(session.baseUrl, session.ticket);
+        const actionSetup = buildActionSetup(session.baseUrl, session.ticket);
         const initialQuestion = resolveInitialQuestion(session.metadata);
         const initialAskUrl = buildBrowserAskUrl(session.baseUrl, session.ticket, initialQuestion);
         const promptText = buildPromptText({
@@ -771,6 +969,8 @@ module.exports = {
           success: true,
           sessionId: session.sessionId,
           ticketUrl: manifestUrl,
+          actionOpenApiUrl,
+          actionSetup,
           initialAskUrl,
           expiresAt: session.expiresAt,
           promptText,
@@ -817,7 +1017,7 @@ module.exports = {
             name: 'ticket',
             in: 'path',
             required: true,
-            schema: { type: 'string' },
+            schema: { type: 'string', example: 'opaque-ticket' },
             description: 'Opaque ChatGPT Sidecar session ticket.',
           },
         ],
@@ -841,9 +1041,12 @@ module.exports = {
             browserAsk: `GET /api/chatgpt-sidecar/s/${session.ticket}/ask?query={urlencoded_question}&capability={optional_capability}`,
             plan: `POST /api/chatgpt-sidecar/s/${session.ticket}/plan`,
             browserPlan: `GET /api/chatgpt-sidecar/s/${session.ticket}/plan?task={urlencoded_task}&capability={optional_capability}`,
+            actionOpenApi: `GET /api/chatgpt-sidecar/s/${session.ticket}/action-openapi.json`,
             datapoints: `POST /api/chatgpt-sidecar/s/${session.ticket}/datapoints`,
             metering: `GET /api/chatgpt-sidecar/s/${session.ticket}/metering`,
           },
+          primaryIntegration: 'custom_gpt_action',
+          actionSetup: buildActionSetup(session.baseUrl, session.ticket),
           browserFacade: {
             safety: 'read_only_non_consequential',
             maxQueryLength: MAX_BROWSER_QUERY_LENGTH,
@@ -874,6 +1077,31 @@ module.exports = {
               'Server-side turn state helps resolve context after a call, but it does not let a prompt-only browser client send arbitrary new follow-up text without a concrete URL, Action or MCP tool call.',
           },
         };
+      },
+    },
+
+    actionOpenApi: {
+      rest: 'GET /s/:ticket/action-openapi.json',
+      params: { ticket: { type: 'string', min: 1 } },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Read the session-scoped Custom GPT Action OpenAPI schema',
+        description:
+          'Returns a minimal ticket-scoped OpenAPI schema for Custom GPT Actions. The schema intentionally exposes only read-only ask/plan operations.',
+        parameters: [
+          {
+            name: 'ticket',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'opaque-ticket' },
+            description: 'Opaque ChatGPT Sidecar session ticket.',
+          },
+        ],
+      },
+      handler(ctx) {
+        const session = resolveActiveSessionOrFail(ctx.params.ticket);
+        defaultStore.recordMeteringEvent(session.sessionId, 'action_openapi_read', {});
+        return buildActionOpenApiSchema(session.baseUrl, session);
       },
     },
 

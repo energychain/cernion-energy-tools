@@ -6535,7 +6535,42 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "example": "opaque-ticket"
+            },
+            "description": "Opaque ChatGPT Sidecar session ticket."
+          }
+        ]
+      }
+    },
+    "/api/chatgpt-sidecar/s/:ticket/action-openapi.json": {
+      "get": {
+        "operationId": "chatgpt-sidecar_actionOpenApi",
+        "summary": "Read the session-scoped Custom GPT Action OpenAPI schema",
+        "tags": [
+          "ChatGPT Sidecar"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns a minimal ticket-scoped OpenAPI schema for Custom GPT Actions. The schema intentionally exposes only read-only ask/plan operations.",
+        "parameters": [
+          {
+            "name": "ticket",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "opaque-ticket"
             },
             "description": "Opaque ChatGPT Sidecar session ticket."
           }

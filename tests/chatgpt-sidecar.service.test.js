@@ -165,6 +165,12 @@ describe('chatgpt-sidecar service', () => {
     const serialized = JSON.stringify(created);
     expect(serialized).not.toMatch(/tenant-a|user-a/);
     expect(serialized).not.toMatch(/\bck_/);
+    expect(created.actionOpenApiUrl).toContain('/api/chatgpt-sidecar/s/');
+    expect(created.actionSetup).toMatchObject({
+      recommended: true,
+      mode: 'custom_gpt_action',
+      authentication: { type: 'none_ticket_scoped' },
+    });
 
     const ticket = ticketFrom(created);
     const manifest = await broker.call('chatgpt-sidecar.manifest', { ticket });
@@ -185,6 +191,25 @@ describe('chatgpt-sidecar service', () => {
     expect(manifest.capabilityProfile).toEqual(['knowledge-rag']);
     expect(manifest.endpoints.browserAsk).toContain(`GET /api/chatgpt-sidecar/s/${ticket}/ask`);
     expect(manifest.endpoints.browserPlan).toContain(`GET /api/chatgpt-sidecar/s/${ticket}/plan`);
+    expect(manifest.endpoints.actionOpenApi).toBe(
+      `GET /api/chatgpt-sidecar/s/${ticket}/action-openapi.json`
+    );
+    expect(manifest.primaryIntegration).toBe('custom_gpt_action');
+    expect(manifest.actionSetup).toMatchObject({
+      recommended: true,
+      mode: 'custom_gpt_action',
+      schemaUrl: expect.stringContaining(`/api/chatgpt-sidecar/s/${ticket}/action-openapi.json`),
+      authentication: {
+        type: 'none_ticket_scoped',
+      },
+    });
+    expect(manifest.actionSetup.steps.join('\n')).toContain('Actions -> Create new action');
+    expect(manifest.actionSetup.operations).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ operationId: 'askCernion' }),
+        expect.objectContaining({ operationId: 'planCernion' }),
+      ])
+    );
     expect(manifest.browserFacade).toMatchObject({
       safety: 'read_only_non_consequential',
       maxQueryLength: 2000,
@@ -213,6 +238,35 @@ describe('chatgpt-sidecar service', () => {
     expect(manifest.browserFacade.unavailableOperations).toEqual(
       expect.arrayContaining(['hitl_or_workflow_creation', 'external_connector_call'])
     );
+  });
+
+  it('serves a minimal session-scoped Custom GPT Action OpenAPI schema', async () => {
+    const created = await createSession({ baseUrl: 'https://api.cernion.test/' });
+    const ticket = ticketFrom(created);
+
+    const schema = await broker.call('chatgpt-sidecar.actionOpenApi', { ticket });
+
+    expect(schema.openapi).toBe('3.1.0');
+    expect(schema.servers).toEqual([{ url: 'https://api.cernion.test' }]);
+    expect(Object.keys(schema.paths).sort()).toEqual([
+      `/api/chatgpt-sidecar/s/${ticket}/ask`,
+      `/api/chatgpt-sidecar/s/${ticket}/plan`,
+    ]);
+    expect(schema.paths[`/api/chatgpt-sidecar/s/${ticket}/ask`].post).toMatchObject({
+      operationId: 'askCernion',
+      'x-openai-isConsequential': false,
+    });
+    expect(schema.paths[`/api/chatgpt-sidecar/s/${ticket}/plan`].post).toMatchObject({
+      operationId: 'planCernion',
+      'x-openai-isConsequential': false,
+    });
+    expect(
+      schema.components.schemas.AskCernionRequest.properties.capability.enum
+    ).toEqual(expect.arrayContaining(['knowledge-rag', 'datasource-mastr']));
+    expect(JSON.stringify(schema)).not.toMatch(/tenant-a|user-a|sessionId|datapoints/);
+
+    const metering = await broker.call('chatgpt-sidecar.metering', { ticket });
+    expect(metering.counts.action_openapi_read).toBe(1);
   });
 
   it('generated prompt includes a concrete initial ask URL from solution metadata', async () => {

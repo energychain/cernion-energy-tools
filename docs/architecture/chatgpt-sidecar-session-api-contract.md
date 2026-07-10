@@ -170,9 +170,16 @@ decision, but `draft_write` remains the only class that actually mutates.
   "success": true,
   "sessionId": "cgs_9e33a964-cff7-4cf9-a788-a0823df85edf",
   "ticketUrl": "https://cernion.example.com/api/chatgpt-sidecar/s/<opaque-ticket>/manifest",
+  "actionOpenApiUrl": "https://cernion.example.com/api/chatgpt-sidecar/s/<opaque-ticket>/action-openapi.json",
   "initialAskUrl": "https://cernion.example.com/api/chatgpt-sidecar/s/<opaque-ticket>/ask?query=<encoded-initial-task>",
   "expiresAt": "2026-07-05T15:33:04.483Z",
   "promptText": "You are working inside a Cernion Fach-Sidecar session...",
+  "actionSetup": {
+    "recommended": true,
+    "mode": "custom_gpt_action",
+    "schemaUrl": "https://cernion.example.com/api/chatgpt-sidecar/s/<opaque-ticket>/action-openapi.json",
+    "authentication": { "type": "none_ticket_scoped" }
+  },
   "capabilities": ["knowledge-rag", "datasource-mastr", "ontology-guardrail"],
   "writeScope": "draft_write"
 }
@@ -301,6 +308,55 @@ This remains a prompt-only fallback, not a guaranteed tool channel:
 availability depends on the ChatGPT environment having Python/Data Analysis
 and outbound HTTPS enabled. The fallback is strictly read-only and uses the
 same ticket-scoped `ask`/`plan` GET facades as browser usage.
+
+### Custom GPT Action setup
+
+The preferred ChatGPT integration is a **Custom GPT Action**, with Prompt-only
+kept as a fallback. A user cannot install an Action by pasting instructions
+into a normal ChatGPT chat; they must create or edit a GPT and configure an
+Action in the GPT Builder. Cernion therefore returns `actionSetup` and
+`actionOpenApiUrl` next to the prompt data so the Solution page can show the
+Action path first and the Prompt-only fallback below it.
+
+The session-scoped schema is available at:
+
+```http
+GET /api/chatgpt-sidecar/s/<opaque-ticket>/action-openapi.json
+```
+
+It is intentionally small and embeds the opaque ticket directly into the
+operation paths. This lets ChatGPT Actions call Cernion with structured JSON
+for free-form follow-ups without asking the model to construct ticket URLs or
+without relying on Python/Data Analysis network availability.
+
+First-cut operations:
+
+| Operation | Method/path | Purpose |
+|-----------|-------------|---------|
+| `askCernion` | `POST /api/chatgpt-sidecar/s/<ticket>/ask` | Free-form Cernion question with optional `capability`, `parentTurnId`, `context` and `inputs`. |
+| `planCernion` | `POST /api/chatgpt-sidecar/s/<ticket>/plan` | Read-only planning/routing request with optional `capability`, `parentTurnId` and `context`. |
+
+The schema sets `x-openai-isConsequential: false` on both operations and does
+not include `datapoints`, `execute`, HITL, external connector or production
+mutation routes. Draft datapoint writes remain available only through the
+existing ticket endpoint and policy gate, not through the first Custom GPT
+Action schema.
+
+GPT Builder instructions shown by `actionSetup.steps`:
+
+1. Open ChatGPT and create or edit a Custom GPT.
+2. Go to `Configure -> Actions -> Create new action`.
+3. Import the schema from `actionSetup.schemaUrl`.
+4. Set Authentication to `None`.
+5. Save the GPT and test `askCernion` with a short Cernion question.
+6. Use the Prompt-only section only when a Custom GPT Action cannot be
+   configured.
+
+`Authentication = None` is deliberate for this slice: the opaque Sidecar
+ticket is already embedded in the imported schema paths and expires with the
+session TTL. This has the same shareability risk as Prompt-only ticket URLs,
+but avoids asking non-technical users to configure an additional custom
+header or bearer secret for the Action.
 
 ### Error responses
 

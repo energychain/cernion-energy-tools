@@ -585,7 +585,9 @@ function isChatgptSidecarTicketInvocation(method, requestPath) {
   const pathOnly = String(requestPath || '').split('?')[0];
   return (
     (m === 'POST' || m === 'GET') &&
-    /^\/api\/chatgpt-sidecar\/s\/[^/]+\/(manifest|ask|plan|datapoints|metering)$/.test(pathOnly)
+    /^\/api\/chatgpt-sidecar\/s\/[^/]+\/(manifest|ask|plan|datapoints|metering|action-openapi\.json)$/.test(
+      pathOnly
+    )
   );
 }
 
@@ -1499,6 +1501,7 @@ module.exports = {
           'POST /chatgpt-sidecar/s/:ticket/ask': 'chatgpt-sidecar.ask',
           'GET /chatgpt-sidecar/s/:ticket/plan': 'chatgpt-sidecar.browserPlan',
           'POST /chatgpt-sidecar/s/:ticket/plan': 'chatgpt-sidecar.plan',
+          'GET /chatgpt-sidecar/s/:ticket/action-openapi.json': 'chatgpt-sidecar.actionOpenApi',
           'POST /chatgpt-sidecar/s/:ticket/datapoints': 'chatgpt-sidecar.datapoints',
           'GET /chatgpt-sidecar/s/:ticket/metering': 'chatgpt-sidecar.metering',
           // Dashboard API (v0.19+) — UI-optimised aggregate endpoints
