@@ -1468,12 +1468,20 @@ function shouldSuppressGenericFallbackForCapability(result, capability) {
     (processContextHas(result, 'objects:missing') ? 'missing' : null);
   const knowledgeStatus =
     statusFromEvidenceBucket(evidenceBySource.knowledge) ||
-    (processContextHas(result, 'knowledge:available') ? 'available' : null);
+    (processContextHas(result, 'knowledge:available')
+      ? 'available'
+      : processContextHas(result, 'knowledge:missing')
+        ? 'missing'
+        : null);
+  const plannerStatus =
+    statusFromEvidenceBucket(evidenceBySource.planning) ||
+    (processContextHas(result, 'planner:available') ? 'available' : null);
 
   return (
     datapointStatus === 'missing' &&
     objectStatus === 'missing' &&
-    ['available', 'timeout', 'unavailable'].includes(knowledgeStatus)
+    (['available', 'timeout', 'unavailable', 'missing'].includes(knowledgeStatus) ||
+      plannerStatus === 'available')
   );
 }
 

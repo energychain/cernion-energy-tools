@@ -45,6 +45,28 @@ describe('chatgpt-sidecar service', () => {
                 ],
               };
             }
+            if (ctx.params.question.includes('zeitaufgelöste Stromlastdaten')) {
+              return {
+                success: true,
+                shortAnswer:
+                  'Generischer Planner-Fallback mit MaStR- und VNBdigital-Schnellcheck.',
+                confidence: 'medium',
+                evidence: [],
+                evidenceBySource: {
+                  knowledge: { status: 'missing', hits: [] },
+                  datapoints: { status: 'missing', hits: [] },
+                  objects: { status: 'missing', hits: [] },
+                  planning: { status: 'available', hits: [{ id: 'planner-signal' }] },
+                },
+                processContext: [
+                  'search:all',
+                  'knowledge:missing',
+                  'datapoints:missing',
+                  'objects:missing',
+                  'planner:available',
+                ],
+              };
+            }
             return {
               success: true,
               shortAnswer: 'Cernion evidence answer',
@@ -944,6 +966,38 @@ describe('chatgpt-sidecar service', () => {
     expect(result.success).toBe(true);
     expect(calls.find((c) => c.action === 'gas-storage.countryStorage')).toBeFalsy();
     expect(calls.find((c) => c.action === 'personal-agent.askCernionAgent')).toBeTruthy();
+  });
+
+  it('suppresses generic planner fallback for explicit VNB load-timeseries capability requests', async () => {
+    const created = await createSession({
+      capabilityProfile: ['knowledge-rag', 'datasource-vnb-digital'],
+    });
+    const ticket = ticketFrom(created);
+
+    const result = await broker.call('chatgpt-sidecar.ask', {
+      ticket,
+      question:
+        'Für Wiesloch 69168 benötige ich zeitaufgelöste Stromlastdaten und Stromverbrauch als 15-Minuten-Zeitreihe zur Prüfung lokaler PV-Überschüsse.',
+      capability: 'datasource-vnb-digital',
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.confidence).toBe('low');
+    expect(result.shortAnswer).toContain('keine belastbare Capability-Evidence');
+    expect(result.shortAnswer).not.toContain('Generischer Planner-Fallback');
+    expect(result.capabilityGrounding).toMatchObject({
+      requestedCapability: 'datasource-vnb-digital',
+      status: 'missing',
+      reason: 'no_capability_evidence',
+      genericFallbackSuppressed: true,
+    });
+    expect(result.processContext).toEqual(
+      expect.arrayContaining([
+        'capability:datasource-vnb-digital',
+        'capability_evidence:missing',
+        'generic_fallback:suppressed',
+      ])
+    );
   });
 
   it('ask blocks a capability that was not granted to the session, without calling downstream', async () => {
