@@ -1,0 +1,336 @@
+{
+  "id": "stadtwerk-mauer-direct-marketer-risk-gate-v1",
+  "kind": "vdmi_blueprint_pack_seed",
+  "version": "1.0.0",
+  "safetyClassification": "read_only_blueprint_seed",
+  "title": "Stadtwerk Mauer Direct Marketer Risk Gate seed",
+  "processFamily": "market_partner_readiness",
+  "controlCase": "direct_marketer_risk_gate",
+  "sourceApi": {
+    "operation": "GET /api/dashboard/direct-marketer-risk-gate",
+    "path": "/api/dashboard/direct-marketer-risk-gate",
+    "method": "GET",
+    "workbenchBrick": "direct_marketer_risk_gate",
+    "capability": "dashboard-api.directMarketerRiskGateStatus",
+    "readOnly": true,
+    "invocation": "source_hint_only"
+  },
+  "demoTenant": {
+    "tenantId": "stadtwerk-mauer",
+    "classification": "synthetic_demo_tenant",
+    "description": "Virtual Stadtwerk Mauer demo tenant; market-partner handover, forecast, allocation, billing/status, owner/deadline and evidence markers are synthetic review data."
+  },
+  "roleQuestion": {
+    "actor": "Market Operations / Commercial Audit / Energy Sharing Lead",
+    "answerableIn": "under_one_minute",
+    "question": "Is this synthetic handover package risk-calculable for a Direktvermarkter, what evidence is missing, who owns the next clarification, and which non-executing review gate is safe?"
+  },
+  "dataClasses": {
+    "publicContextLayer": {
+      "description": "Read-only market-partner, energy-sharing or benchmark context already blended into the virtual Stadtwerk. Demo reset flows must not mutate this layer.",
+      "examples": [
+        "public Direktvermarkter review boundary",
+        "market-partner readiness benchmark",
+        "non-executing schedule-impact context"
+      ]
+    },
+    "syntheticTenantSeed": {
+      "description": "Invented demo handover package, forecast quality, allocation rule, billing/status, owner/deadline and evidence markers for stadtwerk-mauer.",
+      "examples": [
+        "synthetic handover package",
+        "synthetic forecast-quality marker",
+        "synthetic allocation and billing status"
+      ]
+    },
+    "sandboxRuntimeArtifact": {
+      "description": "Resettable output from Cernion/Rundeck demo verification runs, separate from public context baselines.",
+      "examples": [
+        "Workbench verify trace",
+        "matrix-sync render artifact",
+        "read-model refresh proof"
+      ]
+    }
+  },
+  "roles": [
+    {
+      "roleId": "ROLE_MARKET_OPERATIONS",
+      "relation": "verantwortlich",
+      "responsibility": "Owns the synthetic Direktvermarkter handover review and decides whether the evidence package is ready for non-executing market-partner review."
+    },
+    {
+      "roleId": "ROLE_ENERGY_SHARING_LEAD",
+      "relation": "durchfuehrend",
+      "responsibility": "Checks forecast quality, allocation rule and generation/consumption basis without submitting schedules or market messages."
+    },
+    {
+      "roleId": "ROLE_COMMERCIAL_AUDIT",
+      "relation": "mitwirkend",
+      "responsibility": "Verifies billing, settlement-status and commercial boundary evidence without accounting, billing or settlement effects."
+    },
+    {
+      "roleId": "ROLE_CERNION_GOVERNANCE",
+      "relation": "mitwirkend",
+      "responsibility": "Verifies the Blueprint-Pack seed, matrix sync and read-only dashboard brick reference."
+    },
+    {
+      "roleId": "ROLE_GRID_OPERATIONS_LEAD",
+      "relation": "information",
+      "responsibility": "Receives balancing-group and schedule-impact context without grid, Redispatch or device-control action."
+    },
+    {
+      "roleId": "ROLE_MANAGEMENT",
+      "relation": "information",
+      "responsibility": "Receives readiness, gap and next-gate context without offer, contract or customer-communication approval."
+    }
+  ],
+  "evidenceRequirements": [
+    {
+      "id": "syntheticHandoverScopeEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "handover_scope_gap",
+      "enablesDossierAddition": "Adds the synthetic project, handover boundary and Direktvermarkter review scope without claiming a real market partner package."
+    },
+    {
+      "id": "forecastQualityEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "forecast_quality_gap",
+      "enablesDossierAddition": "Adds forecast quality, deviation and generation/consumption basis for risk calculation evidence."
+    },
+    {
+      "id": "allocationRuleEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "allocation_rule_gap",
+      "enablesDossierAddition": "Adds allocation-rule evidence so balancing-group and schedule-impact review can be explained."
+    },
+    {
+      "id": "balancingGroupScheduleImpactEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "schedule_impact_gap",
+      "enablesDossierAddition": "Adds balancing-group and schedule-impact context without submission, transfer or market execution."
+    },
+    {
+      "id": "billingSettlementStatusEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "billing_settlement_gap",
+      "enablesDossierAddition": "Adds billing and settlement status evidence as review context without MaKo, billing or settlement mutation."
+    },
+    {
+      "id": "ownerDeadlineEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "owner_deadline_gap",
+      "enablesDossierAddition": "Adds accountable owner and deadline evidence for the next clarification without creating workflow or HITL tasks."
+    },
+    {
+      "id": "riskGateReadinessEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "risk_gate_readiness_gap",
+      "enablesDossierAddition": "Adds risk-gate readiness, missing-evidence summary and the next non-executing review gate."
+    }
+  ],
+  "demoProcessMatrix": {
+    "slug": "direct-marketer-risk-gate",
+    "title": "Direct Marketer Risk Gate review",
+    "roleLegend": {
+      "V": "Verantwortlich",
+      "D": "Durchfuehrend",
+      "M": "Mitwirkend",
+      "I": "Informiert"
+    },
+    "headers": [
+      "Phase",
+      "V = Verantwortlich",
+      "D = Durchfuehrend",
+      "M = Mitwirkend",
+      "I = Informiert",
+      "Nachweise"
+    ],
+    "allowedDataClasses": [
+      "publicContextLayer",
+      "syntheticTenantSeed",
+      "sandboxRuntimeArtifact"
+    ],
+    "downstreamHandoff": {
+      "blueprintPack": "complete",
+      "landingRegistry": "pending",
+      "productiveDemoRoom": "pending",
+      "acceptanceNote": "Blueprint-Pack/Cernion-Energy-Tools matrix is canonical; Landing-Registry and productive Demo-Raum sync remain downstream proof steps."
+    },
+    "rows": [
+      {
+        "phase": "1",
+        "v": "ROLE_MARKET_OPERATIONS",
+        "d": "ROLE_ENERGY_SHARING_LEAD",
+        "m": "ROLE_CERNION_GOVERNANCE",
+        "i": "ROLE_MANAGEMENT",
+        "evidenceRequirements": [
+          "syntheticHandoverScopeEvidence"
+        ],
+        "dataClassRefs": [
+          "publicContextLayer",
+          "syntheticTenantSeed"
+        ],
+        "status": "handover_scope_gap",
+        "gateOutcome": "synthetic_handover_scope_review_pending",
+        "enablesDossierAddition": "Adds project identity, handover boundary and Direktvermarkter review scope."
+      },
+      {
+        "phase": "2",
+        "v": "ROLE_MARKET_OPERATIONS",
+        "d": "ROLE_ENERGY_SHARING_LEAD",
+        "m": "ROLE_CERNION_GOVERNANCE",
+        "i": "ROLE_COMMERCIAL_AUDIT",
+        "evidenceRequirements": [
+          "forecastQualityEvidence"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed"
+        ],
+        "status": "forecast_quality_gap",
+        "gateOutcome": "forecast_quality_review_pending",
+        "enablesDossierAddition": "Adds forecast quality, deviation and generation/consumption basis."
+      },
+      {
+        "phase": "3",
+        "v": "ROLE_MARKET_OPERATIONS",
+        "d": "ROLE_ENERGY_SHARING_LEAD",
+        "m": "ROLE_GRID_OPERATIONS_LEAD",
+        "i": "ROLE_COMMERCIAL_AUDIT",
+        "evidenceRequirements": [
+          "allocationRuleEvidence",
+          "balancingGroupScheduleImpactEvidence"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed",
+          "sandboxRuntimeArtifact"
+        ],
+        "status": "allocation_rule_gap",
+        "gateOutcome": "allocation_and_schedule_impact_review_pending",
+        "enablesDossierAddition": "Adds allocation, balancing-group and schedule-impact review context without execution."
+      },
+      {
+        "phase": "4",
+        "v": "ROLE_MARKET_OPERATIONS",
+        "d": "ROLE_COMMERCIAL_AUDIT",
+        "m": "ROLE_ENERGY_SHARING_LEAD",
+        "i": "ROLE_MANAGEMENT",
+        "evidenceRequirements": [
+          "billingSettlementStatusEvidence",
+          "ownerDeadlineEvidence"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed"
+        ],
+        "status": "billing_settlement_gap",
+        "gateOutcome": "billing_status_owner_deadline_review_pending",
+        "enablesDossierAddition": "Adds billing/status, owner and deadline evidence without MaKo, billing, settlement or workflow creation."
+      },
+      {
+        "phase": "5",
+        "v": "ROLE_MARKET_OPERATIONS",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_COMMERCIAL_AUDIT",
+        "i": "ROLE_MANAGEMENT",
+        "evidenceRequirements": [
+          "riskGateReadinessEvidence"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed",
+          "sandboxRuntimeArtifact"
+        ],
+        "status": "risk_gate_readiness_gap",
+        "gateOutcome": "ready_for_non_executing_direct_marketer_review_or_evidence_gap",
+        "enablesDossierAddition": "Adds readiness, missing-evidence summary and next non-executing review gate while keeping Demo-Raum publication pending."
+      }
+    ]
+  },
+  "decisionPolicy": {
+    "onMissingEvidence": "evidence_gap",
+    "onMissingOwner": "owner_deadline_gap",
+    "allowedStates": [
+      "handover_scope_gap",
+      "forecast_quality_gap",
+      "allocation_rule_gap",
+      "schedule_impact_gap",
+      "billing_settlement_gap",
+      "owner_deadline_gap",
+      "risk_gate_readiness_gap",
+      "risk_calculable",
+      "evidence_gap"
+    ],
+    "mustNotTrigger": [
+      "market_execution",
+      "schedule_submission",
+      "balancing_group_transfer",
+      "offer_approval",
+      "contract_approval",
+      "customer_communication",
+      "mako_write",
+      "billing",
+      "settlement",
+      "tariff_mutation",
+      "workflow_create",
+      "hitl_create",
+      "mail_send",
+      "webhook_send",
+      "smgw_cls_device_control",
+      "external_connector_call",
+      "public_context_mutation",
+      "production_mutation"
+    ]
+  },
+  "allowedCommandHints": [
+    {
+      "kind": "workbench_hint",
+      "id": "api:direct-marketer-risk-gate",
+      "label": "Direct Marketer Risk Gate",
+      "execution": "metadata_only",
+      "safeNextAction": "refresh_read_model"
+    },
+    {
+      "kind": "verification_hint",
+      "id": "blueprint-pack:verify-direct-marketer-risk-gate-matrix",
+      "label": "Verify Direct Marketer Risk Gate matrix seed",
+      "execution": "metadata_only",
+      "safeNextAction": "verify_seed_matrix"
+    },
+    {
+      "kind": "inspection_hint",
+      "id": "workbench:inspect-direct-marketer-risk-gaps",
+      "label": "Inspect direct marketer risk evidence gaps",
+      "execution": "metadata_only",
+      "safeNextAction": "inspect_evidence_gaps"
+    }
+  ],
+  "forbiddenActions": [
+    "market_execution",
+    "schedule_submission",
+    "balancing_group_transfer",
+    "offer_approval",
+    "contract_approval",
+    "customer_communication",
+    "workflow_create",
+    "mail_send",
+    "webhook_send",
+    "mako_write",
+    "billing",
+    "settlement",
+    "tariff_mutation",
+    "smgw_cls_device_control",
+    "external_connector_call",
+    "hitl_create",
+    "budibase_table_write",
+    "public_context_mutation",
+    "production_mutation",
+    "personal_agent_hardcoding"
+  ],
+  "publicContextMutationAllowed": false,
+  "tenantProvisioningAllowed": false,
+  "realWorldClaim": "synthetic_demo_only"
+}

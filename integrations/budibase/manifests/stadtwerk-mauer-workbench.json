@@ -8060,6 +8060,115 @@
         "safeAlternative": { "type": "string" },
         "sourceClass": { "type": "string" }
       }
+    },
+    {
+      "name": "getDirectMarketerRiskGateSeedSelectorRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-direct-marketer-risk-gate-v1",
+      "parameters": [{ "name": "tenantId", "default": "stadtwerk-mauer" }],
+      "transformer": "const d=data.data||{}; const selected=d.seedId||'stadtwerk-mauer-direct-marketer-risk-gate-v1'; const seeds=[{availableSeedId:'stadtwerk-mauer-direct-marketer-risk-gate-v1',label:'Direct Marketer Risk Gate',selected:true,controlCase:d.controlCase||'direct_marketer_risk_gate'},{availableSeedId:'stadtwerk-mauer-investment-owner-deadline-budget-gate-v1',label:'Investment Owner-Frist-Budget Gate',selected:false,controlCase:'investment_owner_deadline_budget_gate'}]; return seeds.map((row)=>({...row,selectedSeedId:selected,tenantId:d.tenantId||data.tenantId||'stadtwerk-mauer',processFamily:row.availableSeedId===selected?(d.processFamily||'market_partner_readiness'):'',roleQuestion:row.selected?'risk-calculable handover package, missing evidence, owner and next non-executing gate':'available canonical seed',sourceClass:'direct_marketer_risk_gate_blueprint_seed_selector'}))",
+      "schema": {
+        "availableSeedId": { "type": "string" },
+        "selectedSeedId": { "type": "string" },
+        "tenantId": { "type": "string" },
+        "label": { "type": "string" },
+        "selected": { "type": "boolean" },
+        "controlCase": { "type": "string" },
+        "processFamily": { "type": "string" },
+        "roleQuestion": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getDirectMarketerRiskGateMatrixRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-direct-marketer-risk-gate-v1",
+      "parameters": [{ "name": "tenantId", "default": "stadtwerk-mauer" }],
+      "transformer": "const d=data.data||{}; const m=d.demoProcessMatrixSync||{}; const handoff=m.downstreamHandoff||{}; const base={seedId:d.seedId||'stadtwerk-mauer-direct-marketer-risk-gate-v1',roleLegendM:m.roleLegendM||'Mitwirkend',rowCount:m.rowCount||0,rowCountValid:Boolean(m.rowCountValid),syncStatus:m.synced?'blueprint_pack_complete':'sync_proof_required',downstreamHandoff:[handoff.blueprintPack||'complete',handoff.landingRegistry||'pending',handoff.productiveDemoRoom||'pending'].join(' -> ')}; const summary={rowKey:'direct_marketer_risk_gate_matrix_sync_summary',phase:'sync',v:'ROLE_MARKET_OPERATIONS',d:'ROLE_ENERGY_SHARING_LEAD',m:base.roleLegendM,i:'ROLE_MANAGEMENT',nachweise:(m.evidenceRequirements||[]).join(', '),status:base.syncStatus,safeNextGate:'keep_landing_registry_and_productive_page_pending_until_sync_proof',sourceClass:'direct_marketer_risk_gate_demo_process_matrix',...base}; const rows=(m.rows||[]).map((row,index)=>{const roles=row.roles||{}; return {rowKey:`direct_marketer_risk_gate_matrix_row_${row.phase||index+1}`,phase:row.phase||String(index+1),v:roles.V||row.v||'',d:roles.D||row.d||'',m:roles.M||row.m||'',i:roles.I||row.i||'',nachweise:(row.evidenceRequirements||[]).join(', '),status:row.status||'',safeNextGate:row.gateOutcome||row.enablesDossierAddition||'render_read_only_matrix_row',sourceClass:'direct_marketer_risk_gate_demo_process_matrix_row',...base};}); return [summary].concat(rows)",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "phase": { "type": "string" },
+        "v": { "type": "string" },
+        "d": { "type": "string" },
+        "m": { "type": "string" },
+        "i": { "type": "string" },
+        "nachweise": { "type": "string" },
+        "status": { "type": "string" },
+        "safeNextGate": { "type": "string" },
+        "seedId": { "type": "string" },
+        "roleLegendM": { "type": "string" },
+        "rowCount": { "type": "number" },
+        "rowCountValid": { "type": "boolean" },
+        "syncStatus": { "type": "string" },
+        "downstreamHandoff": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getDirectMarketerRiskGateRequiredEvidenceRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-direct-marketer-risk-gate-v1",
+      "parameters": [{ "name": "tenantId", "default": "stadtwerk-mauer" }],
+      "transformer": "const d=data.data||{}; const missing=new Map((d.missingEvidence||[]).map((row)=>[row.missingDataPoint,row])); return (d.requiredEvidence||[]).map((id,index)=>{const gap=missing.get(id)||{}; return {rowKey:id||`direct_marketer_risk_gate_evidence_${index+1}`,evidenceId:id,label:id,status:gap.state||'required',enablesDossierAddition:gap.enablesDossierAddition||`add ${id} to direct marketer risk gate`,safeNextGate:'complete_evidence_then_refresh_direct_marketer_risk_gate_panel',sourceClass:'direct_marketer_risk_gate_required_evidence'};})",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "evidenceId": { "type": "string" },
+        "label": { "type": "string" },
+        "status": { "type": "string" },
+        "enablesDossierAddition": { "type": "string" },
+        "safeNextGate": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getDirectMarketerRiskGateFocusRows",
+      "method": "GET",
+      "path": "/api/dashboard/direct-marketer-risk-gate",
+      "queryString": "tenantId={{tenantId}}&caseId=smm-direct-marketer-risk-001&projectId=smm-market-handover-001&communityModel=synthetic-energy-sharing-cluster&directMarketer=synthetic-direct-marketer-review&forecastQuality=quality-reviewed&forecastDeviationPct=7.5&allocationRules=allocation-rule-reviewed&balancingGroupImpact=review-only&scheduleImpact=no-submission&billingStatus=source-evidence-present&settlementStatus=not-executed-review-only&roleOwner=ROLE_MARKET_OPERATIONS&deadline=2026-10-15&evidenceStatus=risk-calculable&sourceEvidence=forecast,allocation,billing,owner",
+      "parameters": [{ "name": "tenantId", "default": "stadtwerk-mauer" }],
+      "transformer": "const gate=data.gate||data.riskGate||data.summary||{}; const gaps=data.missingEvidence||data.evidenceGaps||[]; const followUps=data.positiveFollowUps||[]; const rows=[['project_identity','Synthetic handover package',gate.projectId||data.projectId||'smm-market-handover-001','show bounded handover scope'],['forecast_quality','Forecast quality / deviation',[gate.forecastQuality||data.forecastQuality||'quality-reviewed',gate.forecastDeviationPct||data.forecastDeviationPct||'7.5'].join(' / '),'add forecast-quality evidence'],['allocation_schedule','Allocation / schedule impact',[gate.allocationRules||data.allocationRules||'allocation-rule-reviewed',gate.scheduleImpact||data.scheduleImpact||'no-submission'].join(' / '),'add allocation and schedule-impact review evidence'],['billing_status','Billing / settlement status',[gate.billingStatus||data.billingStatus||'source-evidence-present',gate.settlementStatus||data.settlementStatus||'not-executed-review-only'].join(' / '),'add commercial status evidence without billing or settlement'],['owner_deadline','Owner / deadline',[gate.roleOwner||data.roleOwner||'ROLE_MARKET_OPERATIONS',gate.deadline||data.deadline||'2026-10-15'].join(' / '),'add accountability evidence'],['readiness_next_gate','Readiness / next safe gate',gate.nextGate||data.nextGate||data.status||'risk-calculable','refresh non-executing review gate only'],['missing_evidence','Missing evidence',gaps.map((gap)=>gap.missingDataPoint||gap.id).filter(Boolean).join(', ')||'none','complete evidence then refresh read model'],['positive_followups','Positive follow-ups',followUps.map((gap)=>gap.enablesDossierAddition||gap.action).filter(Boolean).join(' | ')||'none','add dossier-safe rows when evidence arrives'],['demo_raum_sync_status','Demo-Raum sync status','Blueprint-Pack complete / Landing-Registry pending / productive page pending','do not claim public sync before proof']]; return rows.map(([rowKey,label,value,safeNextGate])=>({rowKey,label,value:String(value||''),status:data.status||gate.status||'read_only_review',safeNextGate,sourceClass:'direct_marketer_risk_gate_focus_row'}))",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "label": { "type": "string" },
+        "status": { "type": "string" },
+        "value": { "type": "string" },
+        "safeNextGate": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getDirectMarketerRiskGateTransferRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-transfer-readiness",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-direct-marketer-risk-gate-v1&caseId=smm-budibase-workbench",
+      "parameters": [{ "name": "tenantId", "default": "stadtwerk-mauer" }],
+      "transformer": "const rows=[...(data.summaryRows||[]),...(data.safeNextGateRows||[]),...(data.boundaryRows||[])]; const normalized=rows.length?rows:[{rowKey:'direct_marketer_risk_gate_transfer_pending',label:'Transfer readiness',status:data.status||'pending',value:'Landing-Registry and productive page sync proof pending',safeNextGate:'keep transfer blocked until explicit proof',sourceClass:'direct_marketer_risk_gate_transfer_readiness'}]; return normalized.map((row,index)=>({rowKey:row.rowKey||`direct_marketer_risk_gate_transfer_${index+1}`,label:row.label||row.category||'Transfer readiness',status:row.status||data.status||'pending',value:String(row.value||row.description||row.safeNextGate||row.boundary||''),safeNextGate:row.safeNextGate||row.nextGate||'refresh_transfer_readiness',sourceClass:row.sourceClass||'direct_marketer_risk_gate_transfer_readiness'}))",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "label": { "type": "string" },
+        "status": { "type": "string" },
+        "value": { "type": "string" },
+        "safeNextGate": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getDirectMarketerRiskGateNoCallRows",
+      "method": "GET",
+      "path": "/api/dashboard/direct-marketer-risk-gate",
+      "queryString": "tenantId={{tenantId}}&caseId=smm-direct-marketer-risk-001&projectId=smm-market-handover-001&forecastQuality=quality-reviewed&allocationRules=allocation-rule-reviewed&billingStatus=source-evidence-present&roleOwner=ROLE_MARKET_OPERATIONS&evidenceStatus=risk-calculable",
+      "parameters": [{ "name": "tenantId", "default": "stadtwerk-mauer" }],
+      "transformer": "const notCalled=((data.sourceActions||{}).notCalled||[]); const fallback=['market.execute','schedule.submit','balancing-group.transfer','offer.approve','contract.approve','customer.communication.send','mako.write','billing.run','settlement.run','tariff.mutate','workflow.create','hitl.create','mail.send','webhook.send','external.connector.call','budibase.table.write','personal-agent.execute']; return (notCalled.length?notCalled:fallback).map((action,index)=>({rowKey:`direct_marketer_risk_gate_no_call_${index+1}`,action:String(action),status:'not_called',safeAlternative:'render_existing_read_only_dashboard_rows_only',sourceClass:'direct_marketer_risk_gate_no_call_guard'}))",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "action": { "type": "string" },
+        "status": { "type": "string" },
+        "safeAlternative": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
     }
   ],
   "sections": [
@@ -9108,6 +9217,42 @@
       "tableTitle": "Investment Owner-Frist-Budget No-Call Guards"
     },
     {
+      "id": "direct_marketer_risk_gate_seed_selector",
+      "title": "Direct Marketer Risk Gate Seed Selector",
+      "queryName": "getDirectMarketerRiskGateSeedSelectorRows",
+      "tableTitle": "Direct Marketer Risk Gate Seed Selector"
+    },
+    {
+      "id": "direct_marketer_risk_gate_demo_process_matrix",
+      "title": "Direct Marketer Risk Gate Demo Process Matrix",
+      "queryName": "getDirectMarketerRiskGateMatrixRows",
+      "tableTitle": "Direct Marketer Risk Gate Demo Process Matrix"
+    },
+    {
+      "id": "direct_marketer_risk_gate_required_evidence",
+      "title": "Direct Marketer Risk Gate Evidence Gates",
+      "queryName": "getDirectMarketerRiskGateRequiredEvidenceRows",
+      "tableTitle": "Direct Marketer Risk Gate Evidence Gates"
+    },
+    {
+      "id": "direct_marketer_risk_gate_focus",
+      "title": "Direct Marketer Risk Gate Review Focus",
+      "queryName": "getDirectMarketerRiskGateFocusRows",
+      "tableTitle": "Direct Marketer Risk Gate Review Focus"
+    },
+    {
+      "id": "direct_marketer_risk_gate_transfer_readiness",
+      "title": "Direct Marketer Risk Gate Transfer Readiness",
+      "queryName": "getDirectMarketerRiskGateTransferRows",
+      "tableTitle": "Direct Marketer Risk Gate Transfer Readiness"
+    },
+    {
+      "id": "direct_marketer_risk_gate_no_call_guards",
+      "title": "Direct Marketer Risk Gate No-Call Guards",
+      "queryName": "getDirectMarketerRiskGateNoCallRows",
+      "tableTitle": "Direct Marketer Risk Gate No-Call Guards"
+    },
+    {
       "id": "e2e",
       "title": "E2E Demo Status",
       "queryName": "getStadtwerkMauerE2EProcessDemo",
@@ -9146,6 +9291,8 @@
     "Anschlussfristen rows stay scalar/generated: Budibase renders synthetic connection case, deadline risk, owner/contributor, missing evidence, non-sending communication draft, next safe gate and Demo-Raum sync status without customer communication, capacity reservation, legal deadline calculation or table writes.",
     "Investment Owner-Frist-Budget Gate binds to existing Blueprint-Pack verify, investment-owner-deadline-budget-gate and transfer-readiness read models for stadtwerk-mauer-investment-owner-deadline-budget-gate-v1.",
     "Investment Owner-Frist-Budget rows stay scalar/generated: Budibase renders synthetic investment measure, accountable owner, deadline, budget effect, approval/source evidence, blocked decision, next escalation gate, Demo-Raum sync status and no-call guards without ERP/SAP/accounting write, budget approval, committee execution, workflow/HITL/mail/webhook creation, external connector calls, Budibase table writes or Personal-Agent shortcuts.",
+    "Direct Marketer Risk Gate binds to existing Blueprint-Pack verify, direct-marketer-risk-gate and transfer-readiness read models for stadtwerk-mauer-direct-marketer-risk-gate-v1.",
+    "Direct Marketer rows stay scalar/generated: Budibase renders synthetic handover package, forecast quality/deviation, allocation and schedule impact, billing/settlement status, owner/deadline, readiness, Demo-Raum sync status and no-call guards without market execution, schedule submission, balancing-group transfer, offer/contract approval, customer communication, MaKo, billing, settlement, tariff mutation, workflow/HITL/mail/webhook creation, external connector calls, Budibase table writes or Personal-Agent shortcuts.",
     "Portfolio Market Value Readiness binds Blueprint-Pack verify rows for stadtwerk-mauer-portfolio-market-value-readiness-v1 with a synthetic portfolio-backtest query; Budibase renders scalar demo-readiness, plausibility, evidence-gap and non-advice rows only.",
     "Portfolio review rows stay read-only/generated: no portfolio persistence, trading, investment advice, external connector, billing, settlement, tariff, MaKo, device-control, Budibase table write or Personal-Agent execution is allowed.",
     "Meaning Preservation binds to the existing coordination-meaning-preservation-profile read model for the selected Stadtwerk-Mauer case; Budibase renders scalar preserved, missing, weak, owner/deadline/decision, transfer-parameter and no-call rows only.",

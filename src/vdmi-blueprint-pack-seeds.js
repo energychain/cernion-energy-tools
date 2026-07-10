@@ -14,6 +14,7 @@ const stadtwerkMauerDecommissionedAssetReconciliation = require('./vdmi-blueprin
 const stadtwerkMauerMastrSyncGapAlerting = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-mastr-sync-gap-alerting-v1.json');
 const stadtwerkMauerGridConnectionTransformationGate = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-grid-connection-transformation-gate-v1.json');
 const stadtwerkMauerInvestmentOwnerDeadlineBudgetGate = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-investment-owner-deadline-budget-gate-v1.json');
+const stadtwerkMauerDirectMarketerRiskGate = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-direct-marketer-risk-gate-v1.json');
 
 const REQUIRED_EVIDENCE = Object.freeze([
   'napReference',
@@ -144,6 +145,15 @@ const REQUIRED_INVESTMENT_OWNER_DEADLINE_BUDGET_GATE_EVIDENCE = Object.freeze([
   'nextEscalationGateEvidence',
   'readinessMarker',
 ]);
+const REQUIRED_DIRECT_MARKETER_RISK_GATE_EVIDENCE = Object.freeze([
+  'syntheticHandoverScopeEvidence',
+  'forecastQualityEvidence',
+  'allocationRuleEvidence',
+  'balancingGroupScheduleImpactEvidence',
+  'billingSettlementStatusEvidence',
+  'ownerDeadlineEvidence',
+  'riskGateReadinessEvidence',
+]);
 
 const REQUIRED_DATA_CLASSES = Object.freeze([
   'publicContextLayer',
@@ -217,6 +227,12 @@ const REQUIRED_INVESTMENT_OWNER_DEADLINE_BUDGET_GATE_ROLE_IDS = Object.freeze([
   'ROLE_GOVERNANCE_OWNER',
   'ROLE_CERNION_GOVERNANCE',
 ]);
+const REQUIRED_DIRECT_MARKETER_RISK_GATE_ROLE_IDS = Object.freeze([
+  'ROLE_MARKET_OPERATIONS',
+  'ROLE_ENERGY_SHARING_LEAD',
+  'ROLE_COMMERCIAL_AUDIT',
+  'ROLE_CERNION_GOVERNANCE',
+]);
 const REQUIRED_MATRIX_ROLE_KEYS = Object.freeze(['v', 'd', 'm', 'i']);
 const MATRIX_HEADER_WORDS = Object.freeze([
   'Phase',
@@ -242,6 +258,7 @@ const SEEDS = Object.freeze([
   stadtwerkMauerMastrSyncGapAlerting,
   stadtwerkMauerGridConnectionTransformationGate,
   stadtwerkMauerInvestmentOwnerDeadlineBudgetGate,
+  stadtwerkMauerDirectMarketerRiskGate,
 ]);
 
 const SEED_VALIDATION_REQUIREMENTS = Object.freeze({
@@ -314,6 +331,11 @@ const SEED_VALIDATION_REQUIREMENTS = Object.freeze({
     requiredEvidence: REQUIRED_INVESTMENT_OWNER_DEADLINE_BUDGET_GATE_EVIDENCE,
     requiredRoleIds: REQUIRED_INVESTMENT_OWNER_DEADLINE_BUDGET_GATE_ROLE_IDS,
     expectedMatrixSlug: 'investment-owner-deadline-budget-gate',
+  }),
+  [stadtwerkMauerDirectMarketerRiskGate.id]: Object.freeze({
+    requiredEvidence: REQUIRED_DIRECT_MARKETER_RISK_GATE_EVIDENCE,
+    requiredRoleIds: REQUIRED_DIRECT_MARKETER_RISK_GATE_ROLE_IDS,
+    expectedMatrixSlug: 'direct-marketer-risk-gate',
   }),
 });
 
@@ -529,6 +551,8 @@ function buildWorkbenchClarificationItems(seed) {
           ? 'ROLE_ANSCHLUSSWESEN'
         : selectedSeed.id === stadtwerkMauerInvestmentOwnerDeadlineBudgetGate.id
           ? 'ROLE_ASSET_MANAGEMENT'
+        : selectedSeed.id === stadtwerkMauerDirectMarketerRiskGate.id
+          ? 'ROLE_MARKET_OPERATIONS'
         : selectedSeed.id === stadtwerkMauerEnergySharingCollectiveApproval.id
           ? 'ROLE_ENERGY_SHARING_PRODUCT_OWNER'
         : selectedSeed.id === stadtwerkMauerSubstationLoadAssessment.id
@@ -719,6 +743,8 @@ module.exports = {
   REQUIRED_CROSS_SYSTEM_VARIANCE_ROLE_IDS,
   REQUIRED_DECOMMISSIONED_ASSET_RECONCILIATION_EVIDENCE,
   REQUIRED_DECOMMISSIONED_ASSET_RECONCILIATION_ROLE_IDS,
+  REQUIRED_DIRECT_MARKETER_RISK_GATE_EVIDENCE,
+  REQUIRED_DIRECT_MARKETER_RISK_GATE_ROLE_IDS,
   REQUIRED_ENERGY_SHARING_COLLECTIVE_APPROVAL_EVIDENCE,
   REQUIRED_ENERGY_SHARING_COLLECTIVE_APPROVAL_ROLE_IDS,
   REQUIRED_EVIDENCE,
@@ -752,6 +778,7 @@ module.exports = {
   stadtwerkMauerCostReviewCommitteeReadiness,
   stadtwerkMauerCrossSystemVarianceEvidenceMatrix,
   stadtwerkMauerDecommissionedAssetReconciliation,
+  stadtwerkMauerDirectMarketerRiskGate,
   stadtwerkMauerGasTransformationDataroomReview,
   stadtwerkMauerMastrSyncGapAlerting,
   stadtwerkMauerGridConnectionTransformationGate,

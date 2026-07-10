@@ -5,6 +5,7 @@ const {
   REQUIRED_CONNECTION_DEADLINE_EVIDENCE,
   REQUIRED_COST_REVIEW_COMMITTEE_READINESS_EVIDENCE,
   REQUIRED_CROSS_SYSTEM_VARIANCE_EVIDENCE,
+  REQUIRED_DIRECT_MARKETER_RISK_GATE_EVIDENCE,
   REQUIRED_ENERGY_SHARING_COLLECTIVE_APPROVAL_EVIDENCE,
   REQUIRED_EVIDENCE,
   REQUIRED_GAS_TRANSFORMATION_DATAROOM_REVIEW_EVIDENCE,
@@ -23,6 +24,7 @@ const {
   stadtwerkMauerConnectionDeadlineEvidenceQueue,
   stadtwerkMauerCostReviewCommitteeReadiness,
   stadtwerkMauerCrossSystemVarianceEvidenceMatrix,
+  stadtwerkMauerDirectMarketerRiskGate,
   stadtwerkMauerEnergySharingCollectiveApproval,
   stadtwerkMauerGasTransformationDataroomReview,
   stadtwerkMauerMastrSyncGapAlerting,
@@ -388,6 +390,76 @@ describe('VDMI Blueprint Pack seeds', () => {
         'workflow_create',
         'hitl_create',
         'mail_send',
+        'external_connector_call',
+        'budibase_table_write',
+        'production_mutation',
+        'personal_agent_hardcoding',
+      ])
+    );
+  });
+
+  test('exposes and validates Direct Marketer Risk Gate as a canonical Blueprint Pack seed', () => {
+    expect(stadtwerkMauerDirectMarketerRiskGate).toMatchObject({
+      id: 'stadtwerk-mauer-direct-marketer-risk-gate-v1',
+      kind: 'vdmi_blueprint_pack_seed',
+      version: '1.0.0',
+      safetyClassification: 'read_only_blueprint_seed',
+      processFamily: 'market_partner_readiness',
+      controlCase: 'direct_marketer_risk_gate',
+      sourceApi: {
+        operation: 'GET /api/dashboard/direct-marketer-risk-gate',
+        path: '/api/dashboard/direct-marketer-risk-gate',
+        method: 'GET',
+        workbenchBrick: 'direct_marketer_risk_gate',
+        capability: 'dashboard-api.directMarketerRiskGateStatus',
+        readOnly: true,
+        invocation: 'source_hint_only',
+      },
+      demoTenant: {
+        tenantId: 'stadtwerk-mauer',
+        classification: 'synthetic_demo_tenant',
+      },
+    });
+
+    expect(listVdmiBlueprintPackSeeds()).toContainEqual(
+      expect.objectContaining({
+        id: 'stadtwerk-mauer-direct-marketer-risk-gate-v1',
+        demoTenantId: 'stadtwerk-mauer',
+      })
+    );
+    expect(getVdmiBlueprintPackSeed('stadtwerk-mauer-direct-marketer-risk-gate-v1')).toBe(
+      stadtwerkMauerDirectMarketerRiskGate
+    );
+
+    const result = validateVdmiBlueprintPackSeed(stadtwerkMauerDirectMarketerRiskGate);
+    expect(result).toEqual({ valid: true, errors: [] });
+    expect(stadtwerkMauerDirectMarketerRiskGate.evidenceRequirements.map((item) => item.id)).toEqual(
+      REQUIRED_DIRECT_MARKETER_RISK_GATE_EVIDENCE
+    );
+    expect(stadtwerkMauerDirectMarketerRiskGate.demoProcessMatrix).toMatchObject({
+      slug: 'direct-marketer-risk-gate',
+      roleLegend: {
+        M: 'Mitwirkend',
+      },
+      downstreamHandoff: {
+        blueprintPack: 'complete',
+        landingRegistry: 'pending',
+        productiveDemoRoom: 'pending',
+      },
+    });
+    expect(stadtwerkMauerDirectMarketerRiskGate.demoProcessMatrix.rows).toHaveLength(5);
+    expect(stadtwerkMauerDirectMarketerRiskGate.forbiddenActions).toEqual(
+      expect.arrayContaining([
+        'market_execution',
+        'schedule_submission',
+        'balancing_group_transfer',
+        'offer_approval',
+        'contract_approval',
+        'customer_communication',
+        'mako_write',
+        'billing',
+        'settlement',
+        'tariff_mutation',
         'external_connector_call',
         'budibase_table_write',
         'production_mutation',

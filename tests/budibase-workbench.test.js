@@ -1043,6 +1043,130 @@ const investmentOwnerBudgetStatusFixture = {
   },
 };
 
+const directMarketerRiskGateBlueprintFixture = {
+  ...blueprintVerifyFixture,
+  summary: {
+    counts: {
+      requiredEvidence: 7,
+      roleRelations: 6,
+      forbiddenActions: 15,
+    },
+  },
+  data: {
+    ...blueprintVerifyFixture.data,
+    seedId: 'stadtwerk-mauer-direct-marketer-risk-gate-v1',
+    processFamily: 'market_partner_readiness',
+    controlCase: 'direct_marketer_risk_gate',
+    requiredEvidence: [
+      'syntheticHandoverScopeEvidence',
+      'forecastQualityEvidence',
+      'allocationRuleEvidence',
+      'balancingGroupScheduleImpactEvidence',
+      'billingSettlementStatusEvidence',
+      'ownerDeadlineEvidence',
+      'riskGateReadinessEvidence',
+    ],
+    missingEvidence: [
+      {
+        missingDataPoint: 'forecastQualityEvidence',
+        state: 'forecast_quality_gap',
+        enablesDossierAddition: 'add forecast-quality evidence',
+      },
+    ],
+    demoProcessMatrixSync: {
+      slug: 'direct-marketer-risk-gate',
+      expectedSlug: 'direct-marketer-risk-gate',
+      synced: true,
+      roleLegendM: 'Mitwirkend',
+      rowCount: 5,
+      rowCountValid: true,
+      roleCellsClean: true,
+      dataClassesLimited: true,
+      forbiddenActionsStatus: 'not_introduced',
+      evidenceRequirements: [
+        'syntheticHandoverScopeEvidence',
+        'forecastQualityEvidence',
+        'allocationRuleEvidence',
+        'balancingGroupScheduleImpactEvidence',
+        'billingSettlementStatusEvidence',
+        'ownerDeadlineEvidence',
+        'riskGateReadinessEvidence',
+      ],
+      dataClassRefs: ['publicContextLayer', 'syntheticTenantSeed', 'sandboxRuntimeArtifact'],
+      downstreamHandoff: {
+        blueprintPack: 'complete',
+        landingRegistry: 'pending',
+        productiveDemoRoom: 'pending',
+      },
+      rows: [
+        {
+          phase: '1',
+          roles: {
+            V: 'ROLE_MARKET_OPERATIONS',
+            D: 'ROLE_ENERGY_SHARING_LEAD',
+            M: 'ROLE_CERNION_GOVERNANCE',
+            I: 'ROLE_MANAGEMENT',
+          },
+          evidenceRequirements: ['syntheticHandoverScopeEvidence'],
+          status: 'handover_scope_gap',
+          gateOutcome: 'synthetic_handover_scope_review_pending',
+        },
+        {
+          phase: '2',
+          roles: {
+            V: 'ROLE_MARKET_OPERATIONS',
+            D: 'ROLE_ENERGY_SHARING_LEAD',
+            M: 'ROLE_CERNION_GOVERNANCE',
+            I: 'ROLE_COMMERCIAL_AUDIT',
+          },
+          evidenceRequirements: ['forecastQualityEvidence'],
+          status: 'forecast_quality_gap',
+          gateOutcome: 'forecast_quality_review_pending',
+        },
+      ],
+    },
+  },
+};
+
+const directMarketerRiskGateStatusFixture = {
+  status: 'risk_calculable',
+  gate: {
+    projectId: 'smm-market-handover-001',
+    forecastQuality: 'quality-reviewed',
+    forecastDeviationPct: '7.5',
+    allocationRules: 'allocation-rule-reviewed',
+    scheduleImpact: 'no-submission',
+    billingStatus: 'source-evidence-present',
+    settlementStatus: 'not-executed-review-only',
+    roleOwner: 'ROLE_MARKET_OPERATIONS',
+    deadline: '2026-10-15',
+    nextGate: 'direct-marketer-review-package',
+  },
+  missingEvidence: [],
+  positiveFollowUps: [
+    {
+      missingDataPoint: 'forecastQualityEvidence',
+      enablesDossierAddition: 'add forecast-quality evidence',
+    },
+  ],
+  sourceActions: {
+    notCalled: [
+      'market.execute',
+      'schedule.submit',
+      'balancing-group.transfer',
+      'offer.approve',
+      'contract.approve',
+      'customer.communication.send',
+      'mako.write',
+      'billing.run',
+      'settlement.run',
+      'external.connector.call',
+      'budibase.table.write',
+      'personal-agent.execute',
+    ],
+  },
+};
+
 const landingRegistryDraftFixture = {
   capabilityKey: 'stadtwerk_mauer_landing_registry_draft',
   safety: 'read_only_workbench_projection',
@@ -2176,6 +2300,32 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
     expect(manifest.notes.join(' ')).toContain('Investment Owner-Frist-Budget Gate binds');
   });
 
+  it('adds the Direct Marketer Risk Gate panel from existing read-only bricks', () => {
+    const queries = manifest.queries.filter((query) =>
+      query.name.includes('DirectMarketerRiskGate')
+    );
+    const paths = new Set(queries.map((query) => query.path));
+
+    expect(paths).toEqual(
+      new Set([
+        '/api/dashboard/stadtwerk-mauer-blueprint-pack-verify',
+        '/api/dashboard/direct-marketer-risk-gate',
+        '/api/dashboard/stadtwerk-mauer-transfer-readiness',
+      ])
+    );
+    expect(
+      queries.some((query) =>
+        query.queryString?.includes('stadtwerk-mauer-direct-marketer-risk-gate-v1')
+      )
+    ).toBe(true);
+    expect(
+      manifest.sections
+        .filter((section) => section.id.startsWith('direct_marketer_risk_gate'))
+        .every((section) => queries.some((query) => query.name === section.queryName))
+    ).toBe(true);
+    expect(manifest.notes.join(' ')).toContain('Direct Marketer Risk Gate binds');
+  });
+
   it('adds the Portfolio Market Value Readiness panel from existing safe endpoints', () => {
     const queries = manifest.queries.filter(
       (query) =>
@@ -3114,6 +3264,111 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       expect.arrayContaining([
         expect.objectContaining({ action: 'budget.approve', status: 'not_called' }),
         expect.objectContaining({ action: 'committee.execute', status: 'not_called' }),
+        expect.objectContaining({ action: 'budibase.table.write', status: 'not_called' }),
+        expect.objectContaining({ action: 'personal-agent.execute', status: 'not_called' }),
+      ])
+    );
+
+    const directMarketerSelectorRows = runTransformer(
+      'getDirectMarketerRiskGateSeedSelectorRows',
+      directMarketerRiskGateBlueprintFixture
+    );
+    expectScalarRows(directMarketerSelectorRows);
+    assertNoRawObjectText(directMarketerSelectorRows);
+    expect(directMarketerSelectorRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          availableSeedId: 'stadtwerk-mauer-direct-marketer-risk-gate-v1',
+          selectedSeedId: 'stadtwerk-mauer-direct-marketer-risk-gate-v1',
+          selected: true,
+          controlCase: 'direct_marketer_risk_gate',
+        }),
+      ])
+    );
+
+    const directMarketerMatrixRows = runTransformer(
+      'getDirectMarketerRiskGateMatrixRows',
+      directMarketerRiskGateBlueprintFixture
+    );
+    expectScalarRows(directMarketerMatrixRows);
+    assertNoRawObjectText(directMarketerMatrixRows);
+    expect(directMarketerMatrixRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'direct_marketer_risk_gate_matrix_sync_summary',
+          roleLegendM: 'Mitwirkend',
+          rowCount: 5,
+          downstreamHandoff: 'complete -> pending -> pending',
+        }),
+        expect.objectContaining({
+          rowKey: 'direct_marketer_risk_gate_matrix_row_1',
+          phase: '1',
+          v: 'ROLE_MARKET_OPERATIONS',
+          d: 'ROLE_ENERGY_SHARING_LEAD',
+          m: 'ROLE_CERNION_GOVERNANCE',
+          i: 'ROLE_MANAGEMENT',
+          nachweise: 'syntheticHandoverScopeEvidence',
+        }),
+      ])
+    );
+
+    const directMarketerEvidenceRows = runTransformer(
+      'getDirectMarketerRiskGateRequiredEvidenceRows',
+      directMarketerRiskGateBlueprintFixture
+    );
+    expectScalarRows(directMarketerEvidenceRows);
+    expect(directMarketerEvidenceRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          evidenceId: 'forecastQualityEvidence',
+          enablesDossierAddition: 'add forecast-quality evidence',
+        }),
+      ])
+    );
+
+    const directMarketerFocusRows = runTransformer(
+      'getDirectMarketerRiskGateFocusRows',
+      directMarketerRiskGateStatusFixture
+    );
+    expectScalarRows(directMarketerFocusRows);
+    assertNoRawObjectText(directMarketerFocusRows);
+    expect(directMarketerFocusRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'project_identity',
+          value: 'smm-market-handover-001',
+        }),
+        expect.objectContaining({
+          rowKey: 'billing_status',
+          value: 'source-evidence-present / not-executed-review-only',
+        }),
+        expect.objectContaining({
+          rowKey: 'demo_raum_sync_status',
+          value: 'Blueprint-Pack complete / Landing-Registry pending / productive page pending',
+        }),
+      ])
+    );
+
+    const directMarketerTransferRows = runTransformer(
+      'getDirectMarketerRiskGateTransferRows',
+      { status: 'transfer_blocked' }
+    );
+    expectScalarRows(directMarketerTransferRows);
+    expect(directMarketerTransferRows[0]).toMatchObject({
+      rowKey: 'direct_marketer_risk_gate_transfer_pending',
+      value: 'Landing-Registry and productive page sync proof pending',
+    });
+
+    const directMarketerNoCallRows = runTransformer(
+      'getDirectMarketerRiskGateNoCallRows',
+      directMarketerRiskGateStatusFixture
+    );
+    expectScalarRows(directMarketerNoCallRows);
+    expect(directMarketerNoCallRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ action: 'market.execute', status: 'not_called' }),
+        expect.objectContaining({ action: 'schedule.submit', status: 'not_called' }),
+        expect.objectContaining({ action: 'balancing-group.transfer', status: 'not_called' }),
         expect.objectContaining({ action: 'budibase.table.write', status: 'not_called' }),
         expect.objectContaining({ action: 'personal-agent.execute', status: 'not_called' }),
       ])
