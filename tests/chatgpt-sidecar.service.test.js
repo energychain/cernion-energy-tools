@@ -519,6 +519,52 @@ describe('chatgpt-sidecar service', () => {
       },
     });
     expect(calls.find((c) => c.action === 'personal-agent.askCernionAgent')).toBeFalsy();
+
+    const metering = await broker.call('chatgpt-sidecar.metering', { ticket });
+    expect(metering.recentTurns).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          operation: 'ask',
+          capability: 'datasource-mastr',
+          queryPreview: expect.stringContaining('69256 Mauer'),
+          answerPreview: expect.stringContaining('31,1 kW'),
+          responseKind: 'capability_evidence_available',
+          confidence: 'high',
+          capabilityGrounding: expect.objectContaining({
+            status: 'available',
+            reason: 'capability_evidence_available',
+          }),
+          restPlan: null,
+        }),
+      ])
+    );
+  });
+
+  it('prioritizes explicit datasource-mastr execution over matching blueprint hints', async () => {
+    const created = await createSession();
+    const ticket = ticketFrom(created);
+
+    const result = await broker.call('chatgpt-sidecar.ask', {
+      ticket,
+      question: 'Welche PV-Anlagen in 69256 Mauer gibt es?',
+      capability: 'datasource-mastr',
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.shortAnswer).toContain('31,1 kW');
+    expect(result.shortAnswer).not.toContain('Recommended');
+    expect(result.processContext).toEqual(
+      expect.arrayContaining(['capability:datasource-mastr', 'source:energy-market.installations'])
+    );
+    expect(calls.find((c) => c.action === 'energy-market.installations')).toBeTruthy();
+    expect(calls.find((c) => c.action === 'personal-agent.askCernionAgent')).toBeFalsy();
+
+    const metering = await broker.call('chatgpt-sidecar.metering', { ticket });
+    expect(metering.recentTurns[0]).toMatchObject({
+      capability: 'datasource-mastr',
+      responseKind: 'capability_evidence_available',
+      restPlan: null,
+    });
   });
 
   it('returns a precise missing postal code response for datasource-mastr municipality-only questions', async () => {

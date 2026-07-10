@@ -143,17 +143,35 @@ function createInMemorySessionStore() {
     return session && Array.isArray(session.turns) ? [...session.turns] : null;
   }
 
-  // Redacted summary: counts only, no raw tenant/user/credential detail —
-  // safe to expose through the ticket-scoped GET metering endpoint.
+  // Redacted summary: no raw tenant/user/credential detail. Recent turns are
+  // ticket-scoped diagnostics for ChatGPT Action debugging.
   function getMeteringSummary(sessionId) {
     const session = byId.get(sessionId);
     if (!session) return null;
+    const recentTurns = Array.isArray(session.turns)
+      ? session.turns.slice(-10).map((turn) => ({
+          at: turn.at,
+          turnId: turn.turnId,
+          parentTurnId: turn.parentTurnId || null,
+          operation: turn.operation || null,
+          transport: turn.transport || null,
+          capability: turn.capability || null,
+          promptHash: turn.promptHash || null,
+          queryPreview: turn.queryPreview || null,
+          answerPreview: turn.answerPreview || null,
+          confidence: turn.confidence || null,
+          responseKind: turn.responseKind || null,
+          capabilityGrounding: turn.capabilityGrounding || null,
+          restPlan: turn.restPlan || null,
+        }))
+      : [];
     return {
       sessionCreatedAt: session.createdAt,
       expiresAt: session.expiresAt,
       revokedAt: session.revokedAt,
       counts: { ...session.meteringCounts },
       eventCount: session.meteringEvents.length,
+      recentTurns,
     };
   }
 

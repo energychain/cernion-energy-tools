@@ -870,8 +870,26 @@ function attachTurnContract({
     transport,
     capability,
     promptHash: shortHash(promptText),
-    resolvedQuestion,
+    queryPreview: redactedPreview(resolvedQuestion),
+    answerPreview: redactedPreview(answer || result?.shortAnswer || result?.groundingAnswer),
     confidence: result?.confidence || null,
+    responseKind: resolveResponseKind(result, restPlan),
+    capabilityGrounding: result?.capabilityGrounding
+      ? {
+          requestedCapability: result.capabilityGrounding.requestedCapability || null,
+          status: result.capabilityGrounding.status || null,
+          reason: result.capabilityGrounding.reason || null,
+          genericFallbackSuppressed: !!result.capabilityGrounding.genericFallbackSuppressed,
+        }
+      : null,
+    restPlan: restPlan
+      ? {
+          ok: !!restPlan.ok,
+          reason: restPlan.reason || null,
+          blueprintId: restPlan.blueprintId || restPlan.blueprint?.id || null,
+          resolved: restPlan.resolved || null,
+        }
+      : null,
   });
 
   return wrapped;
@@ -896,6 +914,32 @@ function resolveInitialQuestion(metadata) {
 function shortHash(text) {
   if (!text) return null;
   return crypto.createHash('sha256').update(String(text)).digest('hex').slice(0, 16);
+}
+
+function redactedPreview(value, maxLength = 220) {
+  const text = String(value || '')
+    .replace(/\b[A-Za-z0-9_-]{24,}\b/g, '[redacted-token]')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (text.length <= maxLength) return text || null;
+  return `${text.slice(0, maxLength - 1)}…`;
+}
+
+function resolveResponseKind(result, restPlan = null) {
+  if (result?.capabilityGrounding?.reason) return result.capabilityGrounding.reason;
+  if (Array.isArray(result?.processContext)) {
+    if (result.processContext.includes('source:energy-market.installations')) {
+      return 'mastr_installations';
+    }
+    if (result.processContext.includes('generic_fallback:suppressed')) {
+      return 'generic_fallback_suppressed';
+    }
+  }
+  if (restPlan?.ok || result?.restPlan || result?.blueprint || result?.blueprintId) {
+    return 'blueprint_plan';
+  }
+  if (Array.isArray(result?.evidence) && result.evidence.length > 0) return 'evidence_answer';
+  return result?.success === false ? 'error' : 'answer';
 }
 
 function generateDraftDatapointName(sessionId) {
@@ -974,6 +1018,25 @@ async function handleAsk(ctx, { browserFacade = false } = {}) {
     });
   }
 
+  if (capability === 'datasource-mastr') {
+    const mastrResult = await tryBuildDatasourceMastrAnswer(ctx, { question, context, inputs });
+    if (mastrResult) {
+      return attachTurnContract({
+        session,
+        ctx,
+        operation: 'ask',
+        transport: browserFacade ? 'browser_get' : 'post',
+        promptText: question,
+        result: { ...mastrResult, ontology },
+        context,
+        inputs,
+        capability,
+        ontology,
+        restPlan: null,
+      });
+    }
+  }
+
   const restPlan = compileReadOnlyExecutionPlan({
     question,
     context: { ...context, ...inputs, tenantId: session.tenantId },
@@ -995,25 +1058,6 @@ async function handleAsk(ctx, { browserFacade = false } = {}) {
       ontology,
       restPlan,
     });
-  }
-
-  if (capability === 'datasource-mastr') {
-    const mastrResult = await tryBuildDatasourceMastrAnswer(ctx, { question, context, inputs });
-    if (mastrResult) {
-      return attachTurnContract({
-        session,
-        ctx,
-        operation: 'ask',
-        transport: browserFacade ? 'browser_get' : 'post',
-        promptText: question,
-        result: { ...mastrResult, ontology },
-        context,
-        inputs,
-        capability,
-        ontology,
-        restPlan,
-      });
-    }
   }
 
   const result = await ctx.call('personal-agent.askCernionAgent', {
