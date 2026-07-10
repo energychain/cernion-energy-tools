@@ -1021,17 +1021,25 @@ function coerceOpenApiParamValue(value, schema = {}) {
   return typeof value === 'string' ? value.trim() : value;
 }
 
-function extractKeyValueParams(...sources) {
+function extractKeyValueParams(allowedKeys, ...sources) {
   const params = {};
+  const canonicalKeys = Array.isArray(allowedKeys) ? allowedKeys.filter(Boolean) : [];
+  if (canonicalKeys.length === 0) return params;
+  const keyByLower = new Map(canonicalKeys.map((key) => [String(key).toLowerCase(), key]));
+  const keyPattern = canonicalKeys
+    .map((key) => String(key).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+    .join('|');
   const text = sources
     .filter((source) => source !== undefined && source !== null)
     .map((source) => (typeof source === 'string' ? source : JSON.stringify(source)))
     .join('\n');
-  const pattern =
-    /\b([A-Za-z][A-Za-z0-9_-]*)\s*(?:=|:)\s*(?:"([^"]+)"|'([^']+)'|([^,;\n]+))/g;
+  const pattern = new RegExp(
+    `\\b(${keyPattern})\\s*(?:=|:)\\s*(?:"([^"]+)"|'([^']+)'|([^,;\\n]+))`,
+    'gi'
+  );
   let match;
   while ((match = pattern.exec(text))) {
-    const key = match[1];
+    const key = keyByLower.get(String(match[1]).toLowerCase()) || match[1];
     const rawValue = match[2] ?? match[3] ?? match[4] ?? '';
     const value = String(rawValue)
       .replace(/[.)\]]+$/g, '')
@@ -1059,7 +1067,7 @@ function resolveOpenApiFallbackParams(operation, { question, context, inputs }) 
   const params = {};
   const missing = [];
   const schemaByParam = getOpenApiFallbackParamSchema(operation);
-  const explicitParams = extractKeyValueParams(question, context, inputs);
+  const explicitParams = extractKeyValueParams(Object.keys(schemaByParam), question, context, inputs);
 
   if (
     schemaByParam.country

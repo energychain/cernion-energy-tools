@@ -901,6 +901,34 @@ describe('chatgpt-sidecar service', () => {
     expect(calls.find((c) => c.action === 'energy-market.installations')).toBeFalsy();
   });
 
+  it('ignores prose colons before quoted CO2 location parameters', async () => {
+    const created = await createSession({
+      capabilityProfile: ['knowledge-rag', 'datasource-entsoe'],
+    });
+    const ticket = ticketFrom(created);
+
+    const result = await broker.call('chatgpt-sidecar.ask', {
+      ticket,
+      question:
+        "Führe ausschließlich Schritt 4 des empfohlenen Plans aus: energy-market.co2Intensity. Parameter: location='Mauer, Baden-Württemberg, Deutschland', forecast=true, resolution='hourly', startDate='2026-07-10', endDate='2026-07-11'.",
+      capability: 'datasource-entsoe',
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.capabilityGrounding).toMatchObject({
+      status: 'fallback',
+      reason: 'openapi_semantic_router',
+      resolvedOperationId: 'energy-market_co2Intensity',
+    });
+    expect(result.shortAnswer).not.toContain('Pflichtparameter');
+    expect(calls.find((c) => c.action === 'energy-market.co2Intensity')).toMatchObject({
+      params: {
+        location: 'Mauer, Baden-Württemberg, Deutschland',
+        forecast: true,
+      },
+    });
+  });
+
   it('does not execute an OpenAPI fallback from capability alone without question evidence', async () => {
     const created = await createSession({
       capabilityProfile: ['knowledge-rag', 'datasource-gas-storage'],
