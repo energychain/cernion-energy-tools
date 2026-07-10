@@ -139,12 +139,20 @@ describe('chatgpt-sidecar service', () => {
             return {
               success: true,
               data: {
-                country: ctx.params.country,
-                gasInStorage: 104.2,
-                gasInStoragePercentage: 43.45,
-                workingGasVolume: 239.8,
-                trend: 'rising',
-                updatedAt: '2026-07-10T06:00:00Z',
+                country: 'Germany',
+                code: ctx.params.country,
+                date: '2026-07-08',
+                storage: {
+                  gasInStorage: 107.222,
+                  workingGasVolume: 246.7926,
+                  fillPercentage: 43.45,
+                  trend: 0.13,
+                },
+                operations: {
+                  injection: 356.65,
+                  withdrawal: 26.6,
+                },
+                updatedAt: '2026-07-09 18:20:02',
               },
             };
           },
@@ -709,6 +717,35 @@ describe('chatgpt-sidecar service', () => {
         status: 'fallback',
         reason: 'openapi_semantic_router',
       }),
+    });
+  });
+
+  it('keeps single-country gas storage validation on countryStorage instead of compareCountries', async () => {
+    const created = await createSession({
+      capabilityProfile: ['knowledge-rag', 'datasource-gas-storage'],
+    });
+    const ticket = ticketFrom(created);
+
+    const result = await broker.call('chatgpt-sidecar.ask', {
+      ticket,
+      question:
+        'Prüfe den aktuellsten verfügbaren Füllstand der deutschen Erdgasspeicher und vergleiche ihn ausdrücklich mit 43,45 % zum Datenstand 8. Juli 2026.',
+      capability: 'datasource-gas-storage',
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.shortAnswer).toContain('gas-storage.countryStorage');
+    expect(result.shortAnswer).toContain('43,45 %');
+    expect(result.shortAnswer).not.toContain('[object Object]');
+    expect(result.capabilityGrounding).toMatchObject({
+      reason: 'openapi_semantic_router',
+      resolvedOperationId: 'gas-storage_countryStorage',
+      resolvedPath: '/api/gas-storage/country-storage',
+    });
+    expect(calls.find((c) => c.action === 'gas-storage.countryStorage')).toMatchObject({
+      params: {
+        country: 'DE',
+      },
     });
   });
 

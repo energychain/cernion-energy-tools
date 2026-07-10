@@ -821,6 +821,16 @@ function buildOpenApiFallbackOperationIndex(broker) {
 function scoreOpenApiFallbackOperation(operation, { question, capability }) {
   const queryTokens = tokenizeSearchText(`${question} ${capability || ''}`);
   const serviceHints = CAPABILITY_SERVICE_HINTS[capability] || [];
+  const normalizedQuestion = normalizeSearchText(question);
+  const singleCountryCue = /deutschland|deutsche|germany|\bde\b/.test(normalizedQuestion);
+  const crossCountryCue =
+    /laendervergleich|landervergleich|countries|multi.country|cross.border/.test(normalizedQuestion) ||
+    /(frankreich|france|\bfr\b|italien|italy|\bit\b|niederlande|netherlands|\bnl\b|oesterreich|osterreich|austria|\bat\b)/.test(
+      normalizedQuestion
+    );
+  const trendCue = /trend|tendenz|veraenderung|veranderung|vortag|entwicklung|histor/i.test(
+    normalizedQuestion
+  );
   let score = serviceHints.includes(operation.serviceName) ? 100 : 0;
 
   for (const token of queryTokens) {
@@ -829,22 +839,32 @@ function scoreOpenApiFallbackOperation(operation, { question, capability }) {
 
   if (capability && operation.searchText.includes(normalizeSearchText(capability))) score += 30;
   if (
-    /gasspeicher|gas storage|gas/i.test(normalizeSearchText(question)) &&
+    /gasspeicher|gas storage|gas/i.test(normalizedQuestion) &&
     operation.serviceName === 'gas-storage'
   ) {
     score += 50;
   }
   if (
-    /deutschland|germany|de\b/i.test(normalizeSearchText(question)) &&
+    /deutschland|germany|de\b/i.test(normalizedQuestion) &&
     /country/i.test(operation.actionName)
   ) {
     score += 25;
   }
   if (
-    /fuellstand|fullstand|fill|level|speicher/i.test(normalizeSearchText(question)) &&
+    /fuellstand|fullstand|fill|level|speicher/i.test(normalizedQuestion) &&
     /storage/i.test(operation.searchText)
   ) {
     score += 25;
+  }
+  if (operation.serviceName === 'gas-storage' && operation.actionName === 'countryStorage') {
+    if (singleCountryCue) score += 80;
+    if (/fuellstand|fullstand|fill|level|speicher/i.test(normalizedQuestion)) score += 40;
+  }
+  if (operation.serviceName === 'gas-storage' && operation.actionName === 'compareCountries' && !crossCountryCue) {
+    score -= 120;
+  }
+  if (operation.serviceName === 'gas-storage' && operation.actionName === 'storageTrend' && !trendCue) {
+    score -= 60;
   }
   return score;
 }
@@ -883,7 +903,7 @@ function resolveCountryCode(question, context = {}, inputs = {}) {
     `${question} ${JSON.stringify(context)} ${JSON.stringify(inputs)}`
   );
   const countryMap = [
-    [/deutschland|germany|\bde\b/, 'DE'],
+    [/deutschland|deutsch|deutsche|deutschen|germany|\bde\b/, 'DE'],
     [/frankreich|france|\bfr\b/, 'FR'],
     [/italien|italy|\bit\b/, 'IT'],
     [/oesterreich|osterreich|austria|\bat\b/, 'AT'],
@@ -952,23 +972,52 @@ function formatTwhValue(value) {
   return `${number.toLocaleString('de-DE', { maximumFractionDigits: 2 })} TWh`;
 }
 
+function firstFiniteNumber(...values) {
+  for (const value of values) {
+    const number = Number(value);
+    if (Number.isFinite(number)) return number;
+  }
+  return null;
+}
+
 function buildOpenApiFallbackAnswerText({ operation, payload, params }) {
   const data = unwrapDataPayload(payload) || {};
   if (operation.actionRef === 'gas-storage.countryStorage') {
-    const fill =
+    const storage = data.storage && typeof data.storage === 'object' ? data.storage : {};
+    const operations = data.operations && typeof data.operations === 'object' ? data.operations : {};
+    const fill = firstFiniteNumber(
       data.gasInStoragePercentage ??
       data.fillLevelPercentage ??
       data.fillPercentage ??
       data.percentage ??
-      data.full;
-    const gas = data.gasInStorage ?? data.workingGasInStorage ?? data.storageTwh;
-    const capacity = data.fullCapacity ?? data.workingGasVolume ?? data.capacity;
+      data.full,
+      storage.fillPercentage,
+      storage.gasInStoragePercentage
+    );
+    const gas = firstFiniteNumber(
+      data.gasInStorage,
+      data.workingGasInStorage,
+      data.storageTwh,
+      storage.gasInStorage
+    );
+    const capacity = firstFiniteNumber(
+      data.fullCapacity,
+      data.workingGasVolume,
+      data.capacity?.workingGasVolume,
+      storage.workingGasVolume
+    );
+    const trend = firstFiniteNumber(data.trend, storage.trend);
+    const injection = firstFiniteNumber(data.injection, operations.injection);
+    const withdrawal = firstFiniteNumber(data.withdrawal, operations.withdrawal);
     const date = data.updatedAt || data.timestamp || data.date || data.gasDayStart || null;
     const parts = [
-      `Cernion hat per OpenAPI-Fallback ${operation.actionRef} fuer ${params.country || data.country || 'das angefragte Land'} ausgefuehrt.`,
+      `Cernion hat per OpenAPI-Fallback ${operation.actionRef} fuer ${params.country || data.code || data.country || 'das angefragte Land'} ausgefuehrt.`,
       fill != null ? `Der gemeldete Fuellstand betraegt ${formatPercentageValue(fill) || fill}.` : null,
       gas != null ? `Gas im Speicher: ${formatTwhValue(gas) || gas}.` : null,
       capacity != null ? `Arbeitsgas-/Kapazitaetswert: ${formatTwhValue(capacity) || capacity}.` : null,
+      trend != null ? `Veraenderung/Tendenz: ${trend.toLocaleString('de-DE', { maximumFractionDigits: 2 })} Prozentpunkte.` : null,
+      injection != null ? `Einspeicherung: ${formatTwhValue(injection) || injection}.` : null,
+      withdrawal != null ? `Ausspeicherung: ${formatTwhValue(withdrawal) || withdrawal}.` : null,
       date ? `Zeitstempel/Stand: ${date}.` : null,
     ].filter(Boolean);
     return parts.join(' ');
