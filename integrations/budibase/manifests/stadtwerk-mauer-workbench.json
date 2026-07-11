@@ -7667,18 +7667,41 @@
       "method": "GET",
       "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
       "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-gas-transformation-dataroom-review-v1",
-      "parameters": [{ "name": "tenantId", "default": "stadtwerk-mauer" }],
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
       "transformer": "const d=data.data||{}; const selected=d.seedId||'stadtwerk-mauer-gas-transformation-dataroom-review-v1'; const seeds=[{availableSeedId:'stadtwerk-mauer-substation-load-assessment-v1',label:'Substation Load Assessment',selected:false,controlCase:'substation_load_assessment'},{availableSeedId:'stadtwerk-mauer-cross-system-variance-evidence-matrix-v1',label:'Cross-System Variance Evidence Matrix',selected:false,controlCase:'cross_system_variance_evidence_matrix'},{availableSeedId:'stadtwerk-mauer-gas-transformation-dataroom-review-v1',label:'Gas Transformation Dataroom Review',selected:true,controlCase:d.controlCase||'gas_transformation_dataroom_status_review'}]; return seeds.map((row)=>({...row,selectedSeedId:selected,tenantId:d.tenantId||data.tenantId||'stadtwerk-mauer',processFamily:row.availableSeedId===selected?(d.processFamily||'gas_transformation_dataroom_review'):'',roleQuestion:row.selected?'review-ready evidence, missing proof, contributor and next safe gate':'available canonical seed',sourceClass:'gas_dataroom_blueprint_seed_selector'}))",
       "schema": {
-        "availableSeedId": { "type": "string" },
-        "selectedSeedId": { "type": "string" },
-        "tenantId": { "type": "string" },
-        "label": { "type": "string" },
-        "selected": { "type": "boolean" },
-        "controlCase": { "type": "string" },
-        "processFamily": { "type": "string" },
-        "roleQuestion": { "type": "string" },
-        "sourceClass": { "type": "string" }
+        "availableSeedId": {
+          "type": "string"
+        },
+        "selectedSeedId": {
+          "type": "string"
+        },
+        "tenantId": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "selected": {
+          "type": "boolean"
+        },
+        "controlCase": {
+          "type": "string"
+        },
+        "processFamily": {
+          "type": "string"
+        },
+        "roleQuestion": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
       }
     },
     {
@@ -7686,23 +7709,56 @@
       "method": "GET",
       "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
       "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-gas-transformation-dataroom-review-v1",
-      "parameters": [{ "name": "tenantId", "default": "stadtwerk-mauer" }],
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
       "transformer": "const d=data.data||{}; const counts=(data.summary||{}).counts||{}; const v=d.validation||{}; return [{rowKey:'gas_dataroom_verify_summary',label:'Gas dataroom Blueprint verify',seedId:d.seedId||'stadtwerk-mauer-gas-transformation-dataroom-review-v1',tenantId:d.tenantId||data.tenantId||'stadtwerk-mauer',status:data.status||'unknown',valid:Boolean(v.valid),processFamily:d.processFamily||'gas_transformation_dataroom_review',controlCase:d.controlCase||'gas_transformation_dataroom_status_review',requiredEvidenceCount:counts.requiredEvidence||0,roleRelationCount:counts.roleRelations||0,forbiddenActionCount:counts.forbiddenActions||0,budibaseRenderTarget:d.budibaseRenderTarget||'budibase:stadtwerk-mauer-workbench',safeNextGate:(data.nextActions||[])[0]||'render_gas_dataroom_review_panel',sourceClass:'gas_dataroom_blueprint_verify'}]",
       "schema": {
-        "rowKey": { "type": "string" },
-        "label": { "type": "string" },
-        "seedId": { "type": "string" },
-        "tenantId": { "type": "string" },
-        "status": { "type": "string" },
-        "valid": { "type": "boolean" },
-        "processFamily": { "type": "string" },
-        "controlCase": { "type": "string" },
-        "requiredEvidenceCount": { "type": "number" },
-        "roleRelationCount": { "type": "number" },
-        "forbiddenActionCount": { "type": "number" },
-        "budibaseRenderTarget": { "type": "string" },
-        "safeNextGate": { "type": "string" },
-        "sourceClass": { "type": "string" }
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "seedId": {
+          "type": "string"
+        },
+        "tenantId": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "valid": {
+          "type": "boolean"
+        },
+        "processFamily": {
+          "type": "string"
+        },
+        "controlCase": {
+          "type": "string"
+        },
+        "requiredEvidenceCount": {
+          "type": "number"
+        },
+        "roleRelationCount": {
+          "type": "number"
+        },
+        "forbiddenActionCount": {
+          "type": "number"
+        },
+        "budibaseRenderTarget": {
+          "type": "string"
+        },
+        "safeNextGate": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
       }
     },
     {
@@ -7710,25 +7766,62 @@
       "method": "GET",
       "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
       "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-gas-transformation-dataroom-review-v1",
-      "parameters": [{ "name": "tenantId", "default": "stadtwerk-mauer" }],
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
       "transformer": "const d=data.data||{}; const m=d.demoProcessMatrixSync||{}; const handoff=m.downstreamHandoff||{}; const base={seedId:d.seedId||'stadtwerk-mauer-gas-transformation-dataroom-review-v1',roleLegendM:m.roleLegendM||'Mitwirkend',rowCount:m.rowCount||0,rowCountValid:Boolean(m.rowCountValid),syncStatus:m.synced?'blueprint_pack_complete':'sync_proof_required',downstreamHandoff:[handoff.blueprintPack||'complete',handoff.landingRegistry||'pending',handoff.productiveDemoRoom||'pending'].join(' -> ')}; const summary={rowKey:'gas_dataroom_matrix_sync_summary',phase:'sync',v:'ROLE_NETZSTRATEGIE',d:'ROLE_CERNION_GOVERNANCE',m:base.roleLegendM,i:'ROLE_MANAGEMENT',nachweise:(m.evidenceRequirements||[]).join(', '),status:base.syncStatus,safeNextGate:'keep_landing_registry_and_productive_page_pending_until_sync_proof',sourceClass:'gas_dataroom_demo_process_matrix',...base}; const rows=(m.rows||[]).map((row,index)=>({rowKey:`gas_dataroom_matrix_row_${row.phase||index+1}`,phase:row.phase||String(index+1),v:(row.roles||{}).V||'',d:(row.roles||{}).D||'',m:(row.roles||{}).M||'',i:(row.roles||{}).I||'',nachweise:(row.evidenceRequirements||[]).join(', '),status:row.status||'',safeNextGate:row.gateOutcome||row.enablesDossierAddition||'render_read_only_matrix_row',sourceClass:'gas_dataroom_demo_process_matrix_row',...base})); return [summary].concat(rows)",
       "schema": {
-        "rowKey": { "type": "string" },
-        "phase": { "type": "string" },
-        "v": { "type": "string" },
-        "d": { "type": "string" },
-        "m": { "type": "string" },
-        "i": { "type": "string" },
-        "nachweise": { "type": "string" },
-        "status": { "type": "string" },
-        "safeNextGate": { "type": "string" },
-        "seedId": { "type": "string" },
-        "roleLegendM": { "type": "string" },
-        "rowCount": { "type": "number" },
-        "rowCountValid": { "type": "boolean" },
-        "syncStatus": { "type": "string" },
-        "downstreamHandoff": { "type": "string" },
-        "sourceClass": { "type": "string" }
+        "rowKey": {
+          "type": "string"
+        },
+        "phase": {
+          "type": "string"
+        },
+        "v": {
+          "type": "string"
+        },
+        "d": {
+          "type": "string"
+        },
+        "m": {
+          "type": "string"
+        },
+        "i": {
+          "type": "string"
+        },
+        "nachweise": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "safeNextGate": {
+          "type": "string"
+        },
+        "seedId": {
+          "type": "string"
+        },
+        "roleLegendM": {
+          "type": "string"
+        },
+        "rowCount": {
+          "type": "number"
+        },
+        "rowCountValid": {
+          "type": "boolean"
+        },
+        "syncStatus": {
+          "type": "string"
+        },
+        "downstreamHandoff": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
       }
     },
     {
@@ -7736,16 +7829,35 @@
       "method": "GET",
       "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
       "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-gas-transformation-dataroom-review-v1",
-      "parameters": [{ "name": "tenantId", "default": "stadtwerk-mauer" }],
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
       "transformer": "const d=data.data||{}; const missing=new Map((d.missingEvidence||[]).map((row)=>[row.missingDataPoint,row])); return (d.requiredEvidence||[]).map((id,index)=>{const gap=missing.get(id)||{}; return {rowKey:id||`gas_dataroom_evidence_${index+1}`,evidenceId:id,label:id,status:gap.state||'required',enablesDossierAddition:gap.enablesDossierAddition||`add ${id} to gas dataroom review evidence`,safeNextGate:'complete_evidence_then_refresh_gas_dataroom_panel',sourceClass:'gas_dataroom_required_evidence'};})",
       "schema": {
-        "rowKey": { "type": "string" },
-        "evidenceId": { "type": "string" },
-        "label": { "type": "string" },
-        "status": { "type": "string" },
-        "enablesDossierAddition": { "type": "string" },
-        "safeNextGate": { "type": "string" },
-        "sourceClass": { "type": "string" }
+        "rowKey": {
+          "type": "string"
+        },
+        "evidenceId": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "enablesDossierAddition": {
+          "type": "string"
+        },
+        "safeNextGate": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
       }
     },
     {
@@ -7753,15 +7865,32 @@
       "method": "GET",
       "path": "/api/dashboard/gas-transformation-dataroom",
       "queryString": "tenantId={{tenantId}}&roomId=smm-gas-dataroom&mandateId=smm-budibase-workbench",
-      "parameters": [{ "name": "tenantId", "default": "stadtwerk-mauer" }],
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
       "transformer": "const s=data.summary||{}; const profile=data.roomProfile||{}; const boundary=data.mandateBoundary||{}; const paths=data.transformationPaths||[]; const scenario=data.scenarioReferences||[]; const evidence=data.evidenceRegister||{}; const decision=data.decisionLog||{}; const roadmap=data.roadmap||{}; const owner=data.owner||data.reviewOwner||{}; const missing=data.missingEvidence||data.evidenceGaps||[]; const rows=[['room_mandate_boundary','Room / mandate boundary',profile.roomId||data.roomId||'smm-gas-dataroom',boundary.summary||boundary.status||s.mandateBoundary||'read_only_review_boundary'],['transformation_paths','Transformation paths',paths.map((p)=>p.label||p.pathId||p.name||p.status).filter(Boolean).join(', ')||s.transformationPaths||'not_rendered_yet','compare paths without decommissioning execution'],['scenario_references','Scenario references',scenario.map((p)=>p.label||p.referenceId||p.name).filter(Boolean).join(', ')||s.scenarioReferences||'scenario evidence pending','explain EOG/KANU boundary when evidence arrives'],['eog_kanu_boundary','EOG/KANU / no legal decision',data.legalDecisionBoundary||data.eogKanuBoundary||s.legalBoundary||'no legal or regulatory decision made by Budibase','keep legal/regulatory decision outside Workbench'],['evidence_register','Evidence register',evidence.status||evidence.summary||`${missing.length} missing evidence item(s)`,'complete register gaps before review-ready claim'],['decision_log_roadmap','Decision log / roadmap',decision.status||roadmap.status||s.roadmapStatus||'roadmap evidence pending','add owner and dated next action'],['owner_next_action','Owner / next action',owner.label||owner.role||s.owner||'ROLE_NETZSTRATEGIE',data.nextAction||s.nextAction||'refresh read-only gas dataroom status'],['source_references','Source references',(data.sourceReferences||data.sources||[]).map((p)=>p.label||p.url||p.id).filter(Boolean).join(', ')||'Blueprint-Pack + dashboard read model','keep sources inspectable as scalar rows'],['demo_raum_sync_status','Demo-Raum sync status','Blueprint-Pack complete / Landing-Registry pending / productive page pending','do not claim public sync before proof']]; return rows.map(([rowKey,label,value,safeNextGate])=>({rowKey,label,value:String(value||''),status:data.status||s.status||'read_only_review',safeNextGate,sourceClass:'gas_dataroom_focus_row'}))",
       "schema": {
-        "rowKey": { "type": "string" },
-        "label": { "type": "string" },
-        "status": { "type": "string" },
-        "value": { "type": "string" },
-        "safeNextGate": { "type": "string" },
-        "sourceClass": { "type": "string" }
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "safeNextGate": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
       }
     },
     {
@@ -7769,15 +7898,32 @@
       "method": "GET",
       "path": "/api/dashboard/stadtwerk-mauer-transfer-readiness",
       "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-gas-transformation-dataroom-review-v1&caseId=smm-budibase-workbench",
-      "parameters": [{ "name": "tenantId", "default": "stadtwerk-mauer" }],
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
       "transformer": "const rows=[...(data.summaryRows||[]),...(data.safeNextGateRows||[]),...(data.boundaryRows||[])]; const normalized=rows.length?rows:[{rowKey:'gas_dataroom_transfer_pending',label:'Transfer readiness',status:data.status||'pending',value:'Landing-Registry and productive page sync proof pending',safeNextGate:'keep transfer blocked until explicit proof',sourceClass:'gas_dataroom_transfer_readiness'}]; return normalized.map((row,index)=>({rowKey:row.rowKey||`gas_dataroom_transfer_${index+1}`,label:row.label||row.category||'Transfer readiness',status:row.status||data.status||'pending',value:String(row.value||row.description||row.safeNextGate||row.boundary||''),safeNextGate:row.safeNextGate||row.nextGate||'refresh_transfer_readiness',sourceClass:row.sourceClass||'gas_dataroom_transfer_readiness'}))",
       "schema": {
-        "rowKey": { "type": "string" },
-        "label": { "type": "string" },
-        "status": { "type": "string" },
-        "value": { "type": "string" },
-        "safeNextGate": { "type": "string" },
-        "sourceClass": { "type": "string" }
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "safeNextGate": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
       }
     },
     {
@@ -7785,14 +7931,29 @@
       "method": "GET",
       "path": "/api/dashboard/gas-transformation-dataroom",
       "queryString": "tenantId={{tenantId}}&roomId=smm-gas-dataroom&mandateId=smm-budibase-workbench",
-      "parameters": [{ "name": "tenantId", "default": "stadtwerk-mauer" }],
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
       "transformer": "const notCalled=((data.sourceActions||{}).notCalled||[]); const fallback=['budibase.table.write','rundeck.execute','gas-transformation.executeDecommissioning','external.connector.call','hitl.create','mako.dispatch','settlement.export','device-control.execute','personal-agent.execute']; return (notCalled.length?notCalled:fallback).map((action,index)=>({rowKey:`gas_dataroom_no_call_${index+1}`,action:String(action),status:'not_called',safeAlternative:'render_existing_read_only_dashboard_rows_only',sourceClass:'gas_dataroom_no_call_guard'}))",
       "schema": {
-        "rowKey": { "type": "string" },
-        "action": { "type": "string" },
-        "status": { "type": "string" },
-        "safeAlternative": { "type": "string" },
-        "sourceClass": { "type": "string" }
+        "rowKey": {
+          "type": "string"
+        },
+        "action": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "safeAlternative": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
       }
     },
     {
@@ -7800,18 +7961,41 @@
       "method": "GET",
       "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
       "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-connection-deadline-evidence-queue-v1",
-      "parameters": [{ "name": "tenantId", "default": "stadtwerk-mauer" }],
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
       "transformer": "const d=data.data||{}; const selected=d.seedId||'stadtwerk-mauer-connection-deadline-evidence-queue-v1'; const seeds=[{availableSeedId:'stadtwerk-mauer-gas-transformation-dataroom-review-v1',label:'Gas Transformation Dataroom Review',selected:false,controlCase:'gas_transformation_dataroom_status_review'},{availableSeedId:'stadtwerk-mauer-connection-deadline-evidence-queue-v1',label:'Anschlussfristen Evidence Queue',selected:true,controlCase:d.controlCase||'connection_deadline_evidence_queue'}]; return seeds.map((row)=>({...row,selectedSeedId:selected,tenantId:d.tenantId||data.tenantId||'stadtwerk-mauer',processFamily:row.availableSeedId===selected?(d.processFamily||'connection_deadline_governance'):'',roleQuestion:row.selected?'deadline-critical case, missing evidence, owner/contributor and next safe gate':'available canonical seed',sourceClass:'connection_deadline_blueprint_seed_selector'}))",
       "schema": {
-        "availableSeedId": { "type": "string" },
-        "selectedSeedId": { "type": "string" },
-        "tenantId": { "type": "string" },
-        "label": { "type": "string" },
-        "selected": { "type": "boolean" },
-        "controlCase": { "type": "string" },
-        "processFamily": { "type": "string" },
-        "roleQuestion": { "type": "string" },
-        "sourceClass": { "type": "string" }
+        "availableSeedId": {
+          "type": "string"
+        },
+        "selectedSeedId": {
+          "type": "string"
+        },
+        "tenantId": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "selected": {
+          "type": "boolean"
+        },
+        "controlCase": {
+          "type": "string"
+        },
+        "processFamily": {
+          "type": "string"
+        },
+        "roleQuestion": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
       }
     },
     {
@@ -7819,23 +8003,56 @@
       "method": "GET",
       "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
       "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-connection-deadline-evidence-queue-v1",
-      "parameters": [{ "name": "tenantId", "default": "stadtwerk-mauer" }],
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
       "transformer": "const d=data.data||{}; const counts=(data.summary||{}).counts||{}; const v=d.validation||{}; return [{rowKey:'connection_deadline_verify_summary',label:'Anschlussfristen Blueprint verify',seedId:d.seedId||'stadtwerk-mauer-connection-deadline-evidence-queue-v1',tenantId:d.tenantId||data.tenantId||'stadtwerk-mauer',status:data.status||'unknown',valid:Boolean(v.valid),processFamily:d.processFamily||'connection_deadline_governance',controlCase:d.controlCase||'connection_deadline_evidence_queue',requiredEvidenceCount:counts.requiredEvidence||0,roleRelationCount:counts.roleRelations||0,forbiddenActionCount:counts.forbiddenActions||0,budibaseRenderTarget:d.budibaseRenderTarget||'budibase:stadtwerk-mauer-workbench:connection-deadline-evidence-queue-panel',safeNextGate:(data.nextActions||[])[0]||'render_connection_deadline_evidence_queue_panel',sourceClass:'connection_deadline_blueprint_verify'}]",
       "schema": {
-        "rowKey": { "type": "string" },
-        "label": { "type": "string" },
-        "seedId": { "type": "string" },
-        "tenantId": { "type": "string" },
-        "status": { "type": "string" },
-        "valid": { "type": "boolean" },
-        "processFamily": { "type": "string" },
-        "controlCase": { "type": "string" },
-        "requiredEvidenceCount": { "type": "number" },
-        "roleRelationCount": { "type": "number" },
-        "forbiddenActionCount": { "type": "number" },
-        "budibaseRenderTarget": { "type": "string" },
-        "safeNextGate": { "type": "string" },
-        "sourceClass": { "type": "string" }
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "seedId": {
+          "type": "string"
+        },
+        "tenantId": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "valid": {
+          "type": "boolean"
+        },
+        "processFamily": {
+          "type": "string"
+        },
+        "controlCase": {
+          "type": "string"
+        },
+        "requiredEvidenceCount": {
+          "type": "number"
+        },
+        "roleRelationCount": {
+          "type": "number"
+        },
+        "forbiddenActionCount": {
+          "type": "number"
+        },
+        "budibaseRenderTarget": {
+          "type": "string"
+        },
+        "safeNextGate": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
       }
     },
     {
@@ -7843,25 +8060,62 @@
       "method": "GET",
       "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
       "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-connection-deadline-evidence-queue-v1",
-      "parameters": [{ "name": "tenantId", "default": "stadtwerk-mauer" }],
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
       "transformer": "const d=data.data||{}; const m=d.demoProcessMatrixSync||{}; const handoff=m.downstreamHandoff||{}; const base={seedId:d.seedId||'stadtwerk-mauer-connection-deadline-evidence-queue-v1',roleLegendM:m.roleLegendM||'Mitwirkend',rowCount:m.rowCount||0,rowCountValid:Boolean(m.rowCountValid),syncStatus:m.synced?'blueprint_pack_complete':'sync_proof_required',downstreamHandoff:[handoff.blueprintPack||'complete',handoff.landingRegistry||'pending',handoff.productiveDemoRoom||'pending'].join(' -> ')}; const summary={rowKey:'connection_deadline_matrix_sync_summary',phase:'sync',v:'ROLE_NETZPLANUNG',d:'ROLE_ANSCHLUSSWESEN',m:base.roleLegendM,i:'ROLE_MANAGEMENT',nachweise:(m.evidenceRequirements||[]).join(', '),status:base.syncStatus,safeNextGate:'keep_landing_registry_and_productive_page_pending_until_sync_proof',sourceClass:'connection_deadline_demo_process_matrix',...base}; const rows=(m.rows||[]).map((row,index)=>{const roles=row.roles||{}; return {rowKey:`connection_deadline_matrix_row_${row.phase||index+1}`,phase:row.phase||String(index+1),v:roles.V||row.v||'',d:roles.D||row.d||'',m:roles.M||row.m||'',i:roles.I||row.i||'',nachweise:(row.evidenceRequirements||[]).join(', '),status:row.status||'',safeNextGate:row.gateOutcome||row.enablesDossierAddition||'render_read_only_matrix_row',sourceClass:'connection_deadline_demo_process_matrix_row',...base};}); return [summary].concat(rows)",
       "schema": {
-        "rowKey": { "type": "string" },
-        "phase": { "type": "string" },
-        "v": { "type": "string" },
-        "d": { "type": "string" },
-        "m": { "type": "string" },
-        "i": { "type": "string" },
-        "nachweise": { "type": "string" },
-        "status": { "type": "string" },
-        "safeNextGate": { "type": "string" },
-        "seedId": { "type": "string" },
-        "roleLegendM": { "type": "string" },
-        "rowCount": { "type": "number" },
-        "rowCountValid": { "type": "boolean" },
-        "syncStatus": { "type": "string" },
-        "downstreamHandoff": { "type": "string" },
-        "sourceClass": { "type": "string" }
+        "rowKey": {
+          "type": "string"
+        },
+        "phase": {
+          "type": "string"
+        },
+        "v": {
+          "type": "string"
+        },
+        "d": {
+          "type": "string"
+        },
+        "m": {
+          "type": "string"
+        },
+        "i": {
+          "type": "string"
+        },
+        "nachweise": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "safeNextGate": {
+          "type": "string"
+        },
+        "seedId": {
+          "type": "string"
+        },
+        "roleLegendM": {
+          "type": "string"
+        },
+        "rowCount": {
+          "type": "number"
+        },
+        "rowCountValid": {
+          "type": "boolean"
+        },
+        "syncStatus": {
+          "type": "string"
+        },
+        "downstreamHandoff": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
       }
     },
     {
@@ -7869,16 +8123,35 @@
       "method": "GET",
       "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
       "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-connection-deadline-evidence-queue-v1",
-      "parameters": [{ "name": "tenantId", "default": "stadtwerk-mauer" }],
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
       "transformer": "const d=data.data||{}; const missing=new Map((d.missingEvidence||[]).map((row)=>[row.missingDataPoint,row])); return (d.requiredEvidence||[]).map((id,index)=>{const gap=missing.get(id)||{}; return {rowKey:id||`connection_deadline_evidence_${index+1}`,evidenceId:id,label:id,status:gap.state||'required',enablesDossierAddition:gap.enablesDossierAddition||`add ${id} to Anschlussfristen evidence queue`,safeNextGate:'complete_evidence_then_refresh_connection_deadline_panel',sourceClass:'connection_deadline_required_evidence'};})",
       "schema": {
-        "rowKey": { "type": "string" },
-        "evidenceId": { "type": "string" },
-        "label": { "type": "string" },
-        "status": { "type": "string" },
-        "enablesDossierAddition": { "type": "string" },
-        "safeNextGate": { "type": "string" },
-        "sourceClass": { "type": "string" }
+        "rowKey": {
+          "type": "string"
+        },
+        "evidenceId": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "enablesDossierAddition": {
+          "type": "string"
+        },
+        "safeNextGate": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
       }
     },
     {
@@ -7886,15 +8159,32 @@
       "method": "GET",
       "path": "/api/dashboard/connection-deadline-evidence-queue",
       "queryString": "tenantId={{tenantId}}&caseId=smm-connection-deadline-001&connectionType=pv&deadlineDate=2026-07-16&responsibleVnb=stadtwerk-mauer&technicalPlausibility=capacity-context-pending&owner=ROLE_NETZPLANUNG&nextGate=evidence-review&communicationContext=synthetic-note-draft&asOf=2026-07-09T00:00:00.000Z",
-      "parameters": [{ "name": "tenantId", "default": "stadtwerk-mauer" }],
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
       "transformer": "const q=data.evidenceQueue||{}; const gaps=data.missingEvidence||[]; const followUps=data.positiveFollowUps||[]; const note=data.communicationNoteDraft||{}; const rows=[['case','Synthetic connection case',q.caseId||'missing','show bounded Anschlussfall intake'],['deadline_risk','Deadline risk',data.deadlineRisk||'unknown','review deadline-criticality without legal deadline calculation'],['responsible_vnb','Responsible VNB',q.responsibleVnb||'missing','add accountable VNB context'],['technical_plausibility','Technical plausibility',q.technicalPlausibility||'missing','add plausibility evidence without capacity reservation'],['owner_contributor','Owner / contributor',[q.owner||'missing',q.nextGate||'missing'].join(' / '),'add owner, contributor and next-gate readiness'],['missing_evidence','Missing evidence',gaps.map((gap)=>gap.missingDataPoint).join(', ')||'none','complete evidence then refresh read model'],['positive_followups','Positive follow-ups',followUps.map((gap)=>gap.enablesDossierAddition).join(' | ')||'none','add dossier-safe rows when evidence arrives'],['communication_note','Communication note draft',`${note.status||'context_missing'}; sent=${Boolean(note.sent)}`,'keep note draft-only; do not send communication'],['demo_raum_sync_status','Demo-Raum sync status','Blueprint-Pack complete / Landing-Registry pending / productive page pending','do not claim public sync before proof']]; return rows.map(([rowKey,label,value,safeNextGate])=>({rowKey,label,value:String(value||''),status:data.status||'read_only_review',safeNextGate,sourceClass:'connection_deadline_focus_row'}))",
       "schema": {
-        "rowKey": { "type": "string" },
-        "label": { "type": "string" },
-        "status": { "type": "string" },
-        "value": { "type": "string" },
-        "safeNextGate": { "type": "string" },
-        "sourceClass": { "type": "string" }
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "safeNextGate": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
       }
     },
     {
@@ -7902,15 +8192,32 @@
       "method": "GET",
       "path": "/api/dashboard/stadtwerk-mauer-transfer-readiness",
       "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-connection-deadline-evidence-queue-v1&caseId=smm-budibase-workbench",
-      "parameters": [{ "name": "tenantId", "default": "stadtwerk-mauer" }],
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
       "transformer": "const rows=[...(data.summaryRows||[]),...(data.safeNextGateRows||[]),...(data.boundaryRows||[])]; const normalized=rows.length?rows:[{rowKey:'connection_deadline_transfer_pending',label:'Transfer readiness',status:data.status||'pending',value:'Landing-Registry and productive page sync proof pending',safeNextGate:'keep transfer blocked until explicit proof',sourceClass:'connection_deadline_transfer_readiness'}]; return normalized.map((row,index)=>({rowKey:row.rowKey||`connection_deadline_transfer_${index+1}`,label:row.label||row.category||'Transfer readiness',status:row.status||data.status||'pending',value:String(row.value||row.description||row.safeNextGate||row.boundary||''),safeNextGate:row.safeNextGate||row.nextGate||'refresh_transfer_readiness',sourceClass:row.sourceClass||'connection_deadline_transfer_readiness'}))",
       "schema": {
-        "rowKey": { "type": "string" },
-        "label": { "type": "string" },
-        "status": { "type": "string" },
-        "value": { "type": "string" },
-        "safeNextGate": { "type": "string" },
-        "sourceClass": { "type": "string" }
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "safeNextGate": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
       }
     },
     {
@@ -7918,14 +8225,29 @@
       "method": "GET",
       "path": "/api/dashboard/connection-deadline-evidence-queue",
       "queryString": "tenantId={{tenantId}}&caseId=smm-connection-deadline-001&deadlineDate=2026-07-16&responsibleVnb=stadtwerk-mauer&owner=ROLE_NETZPLANUNG&asOf=2026-07-09T00:00:00.000Z",
-      "parameters": [{ "name": "tenantId", "default": "stadtwerk-mauer" }],
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
       "transformer": "const notCalled=((data.sourceActions||{}).notCalled||[]); const fallback=['customer.communication.send','crm.update','grid-connection.reserveCapacity','deadline.legalCalculate','mako.dispatch','billing.release','settlement.export','tariff.mutate','device-control.execute','external.connector.call','budibase.table.write','personal-agent.execute']; return (notCalled.length?notCalled:fallback).map((action,index)=>({rowKey:`connection_deadline_no_call_${index+1}`,action:String(action),status:'not_called',safeAlternative:'render_existing_read_only_dashboard_rows_only',sourceClass:'connection_deadline_no_call_guard'}))",
       "schema": {
-        "rowKey": { "type": "string" },
-        "action": { "type": "string" },
-        "status": { "type": "string" },
-        "safeAlternative": { "type": "string" },
-        "sourceClass": { "type": "string" }
+        "rowKey": {
+          "type": "string"
+        },
+        "action": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "safeAlternative": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
       }
     },
     {
@@ -7933,18 +8255,41 @@
       "method": "GET",
       "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
       "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-investment-owner-deadline-budget-gate-v1",
-      "parameters": [{ "name": "tenantId", "default": "stadtwerk-mauer" }],
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
       "transformer": "const d=data.data||{}; const selected=d.seedId||'stadtwerk-mauer-investment-owner-deadline-budget-gate-v1'; const seeds=[{availableSeedId:'stadtwerk-mauer-connection-deadline-evidence-queue-v1',label:'Anschlussfristen Evidence Queue',selected:false,controlCase:'connection_deadline_evidence_queue'},{availableSeedId:'stadtwerk-mauer-investment-owner-deadline-budget-gate-v1',label:'Investment Owner-Frist-Budget Gate',selected:true,controlCase:d.controlCase||'investment_owner_deadline_budget_gate'}]; return seeds.map((row)=>({...row,selectedSeedId:selected,tenantId:d.tenantId||data.tenantId||'stadtwerk-mauer',processFamily:row.availableSeedId===selected?(d.processFamily||'investment_governance'):'',roleQuestion:row.selected?'measure, owner, deadline, budget effect, blocked decision and next safe gate':'available canonical seed',sourceClass:'investment_owner_budget_blueprint_seed_selector'}))",
       "schema": {
-        "availableSeedId": { "type": "string" },
-        "selectedSeedId": { "type": "string" },
-        "tenantId": { "type": "string" },
-        "label": { "type": "string" },
-        "selected": { "type": "boolean" },
-        "controlCase": { "type": "string" },
-        "processFamily": { "type": "string" },
-        "roleQuestion": { "type": "string" },
-        "sourceClass": { "type": "string" }
+        "availableSeedId": {
+          "type": "string"
+        },
+        "selectedSeedId": {
+          "type": "string"
+        },
+        "tenantId": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "selected": {
+          "type": "boolean"
+        },
+        "controlCase": {
+          "type": "string"
+        },
+        "processFamily": {
+          "type": "string"
+        },
+        "roleQuestion": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
       }
     },
     {
@@ -7952,23 +8297,56 @@
       "method": "GET",
       "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
       "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-investment-owner-deadline-budget-gate-v1",
-      "parameters": [{ "name": "tenantId", "default": "stadtwerk-mauer" }],
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
       "transformer": "const d=data.data||{}; const counts=(data.summary||{}).counts||{}; const v=d.validation||{}; return [{rowKey:'investment_owner_budget_verify_summary',label:'Investment Owner-Frist-Budget Blueprint verify',seedId:d.seedId||'stadtwerk-mauer-investment-owner-deadline-budget-gate-v1',tenantId:d.tenantId||data.tenantId||'stadtwerk-mauer',status:data.status||'unknown',valid:Boolean(v.valid),processFamily:d.processFamily||'investment_governance',controlCase:d.controlCase||'investment_owner_deadline_budget_gate',requiredEvidenceCount:counts.requiredEvidence||0,roleRelationCount:counts.roleRelations||0,forbiddenActionCount:counts.forbiddenActions||0,budibaseRenderTarget:d.budibaseRenderTarget||'budibase:stadtwerk-mauer-workbench:investment-owner-deadline-budget-gate-panel',safeNextGate:(data.nextActions||[])[0]||'render_investment_owner_deadline_budget_panel',sourceClass:'investment_owner_budget_blueprint_verify'}]",
       "schema": {
-        "rowKey": { "type": "string" },
-        "label": { "type": "string" },
-        "seedId": { "type": "string" },
-        "tenantId": { "type": "string" },
-        "status": { "type": "string" },
-        "valid": { "type": "boolean" },
-        "processFamily": { "type": "string" },
-        "controlCase": { "type": "string" },
-        "requiredEvidenceCount": { "type": "number" },
-        "roleRelationCount": { "type": "number" },
-        "forbiddenActionCount": { "type": "number" },
-        "budibaseRenderTarget": { "type": "string" },
-        "safeNextGate": { "type": "string" },
-        "sourceClass": { "type": "string" }
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "seedId": {
+          "type": "string"
+        },
+        "tenantId": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "valid": {
+          "type": "boolean"
+        },
+        "processFamily": {
+          "type": "string"
+        },
+        "controlCase": {
+          "type": "string"
+        },
+        "requiredEvidenceCount": {
+          "type": "number"
+        },
+        "roleRelationCount": {
+          "type": "number"
+        },
+        "forbiddenActionCount": {
+          "type": "number"
+        },
+        "budibaseRenderTarget": {
+          "type": "string"
+        },
+        "safeNextGate": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
       }
     },
     {
@@ -7976,25 +8354,62 @@
       "method": "GET",
       "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
       "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-investment-owner-deadline-budget-gate-v1",
-      "parameters": [{ "name": "tenantId", "default": "stadtwerk-mauer" }],
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
       "transformer": "const d=data.data||{}; const m=d.demoProcessMatrixSync||{}; const handoff=m.downstreamHandoff||{}; const base={seedId:d.seedId||'stadtwerk-mauer-investment-owner-deadline-budget-gate-v1',roleLegendM:m.roleLegendM||'Mitwirkend',rowCount:m.rowCount||0,rowCountValid:Boolean(m.rowCountValid),syncStatus:m.synced?'blueprint_pack_complete':'sync_proof_required',downstreamHandoff:[handoff.blueprintPack||'complete',handoff.landingRegistry||'pending',handoff.productiveDemoRoom||'pending'].join(' -> ')}; const summary={rowKey:'investment_owner_budget_matrix_sync_summary',phase:'sync',v:'ROLE_ASSET_MANAGEMENT',d:'ROLE_CONTROLLING',m:base.roleLegendM,i:'ROLE_MANAGEMENT',nachweise:(m.evidenceRequirements||[]).join(', '),status:base.syncStatus,safeNextGate:'keep_landing_registry_and_productive_page_pending_until_sync_proof',sourceClass:'investment_owner_budget_demo_process_matrix',...base}; const rows=(m.rows||[]).map((row,index)=>{const roles=row.roles||{}; return {rowKey:`investment_owner_budget_matrix_row_${row.phase||index+1}`,phase:row.phase||String(index+1),v:roles.V||row.v||'',d:roles.D||row.d||'',m:roles.M||row.m||'',i:roles.I||row.i||'',nachweise:(row.evidenceRequirements||[]).join(', '),status:row.status||'',safeNextGate:row.gateOutcome||row.enablesDossierAddition||'render_read_only_matrix_row',sourceClass:'investment_owner_budget_demo_process_matrix_row',...base};}); return [summary].concat(rows)",
       "schema": {
-        "rowKey": { "type": "string" },
-        "phase": { "type": "string" },
-        "v": { "type": "string" },
-        "d": { "type": "string" },
-        "m": { "type": "string" },
-        "i": { "type": "string" },
-        "nachweise": { "type": "string" },
-        "status": { "type": "string" },
-        "safeNextGate": { "type": "string" },
-        "seedId": { "type": "string" },
-        "roleLegendM": { "type": "string" },
-        "rowCount": { "type": "number" },
-        "rowCountValid": { "type": "boolean" },
-        "syncStatus": { "type": "string" },
-        "downstreamHandoff": { "type": "string" },
-        "sourceClass": { "type": "string" }
+        "rowKey": {
+          "type": "string"
+        },
+        "phase": {
+          "type": "string"
+        },
+        "v": {
+          "type": "string"
+        },
+        "d": {
+          "type": "string"
+        },
+        "m": {
+          "type": "string"
+        },
+        "i": {
+          "type": "string"
+        },
+        "nachweise": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "safeNextGate": {
+          "type": "string"
+        },
+        "seedId": {
+          "type": "string"
+        },
+        "roleLegendM": {
+          "type": "string"
+        },
+        "rowCount": {
+          "type": "number"
+        },
+        "rowCountValid": {
+          "type": "boolean"
+        },
+        "syncStatus": {
+          "type": "string"
+        },
+        "downstreamHandoff": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
       }
     },
     {
@@ -8002,16 +8417,35 @@
       "method": "GET",
       "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
       "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-investment-owner-deadline-budget-gate-v1",
-      "parameters": [{ "name": "tenantId", "default": "stadtwerk-mauer" }],
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
       "transformer": "const d=data.data||{}; const missing=new Map((d.missingEvidence||[]).map((row)=>[row.missingDataPoint,row])); return (d.requiredEvidence||[]).map((id,index)=>{const gap=missing.get(id)||{}; return {rowKey:id||`investment_owner_budget_evidence_${index+1}`,evidenceId:id,label:id,status:gap.state||'required',enablesDossierAddition:gap.enablesDossierAddition||`add ${id} to investment owner/deadline/budget gate`,safeNextGate:'complete_evidence_then_refresh_investment_owner_budget_panel',sourceClass:'investment_owner_budget_required_evidence'};})",
       "schema": {
-        "rowKey": { "type": "string" },
-        "evidenceId": { "type": "string" },
-        "label": { "type": "string" },
-        "status": { "type": "string" },
-        "enablesDossierAddition": { "type": "string" },
-        "safeNextGate": { "type": "string" },
-        "sourceClass": { "type": "string" }
+        "rowKey": {
+          "type": "string"
+        },
+        "evidenceId": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "enablesDossierAddition": {
+          "type": "string"
+        },
+        "safeNextGate": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
       }
     },
     {
@@ -8019,15 +8453,32 @@
       "method": "GET",
       "path": "/api/dashboard/investment-owner-deadline-budget-gate",
       "queryString": "tenantId={{tenantId}}&measureId=smm-invest-owner-budget-001&ownerRole=ROLE_ASSET_MANAGEMENT&deadline=2026-09-30&budgetEffect=capex-review-needed&approvalStatus=source-evidence-missing&blockedDecision=committee-prep-release&nextGate=investment-review-board-prep&caseId=smm-budibase-workbench",
-      "parameters": [{ "name": "tenantId", "default": "stadtwerk-mauer" }],
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
       "transformer": "const gate=data.gate||data.investmentGate||data.summary||{}; const gaps=data.missingEvidence||data.evidenceGaps||[]; const followUps=data.positiveFollowUps||[]; const source=data.approvalSource||data.sourceEvidence||{}; const rows=[['measure_identity','Synthetic investment measure',gate.measureId||data.measureId||'smm-invest-owner-budget-001','show bounded investment measure identity'],['owner_deadline','Owner / deadline',[gate.ownerRole||data.ownerRole||'ROLE_ASSET_MANAGEMENT',gate.deadline||data.deadline||'2026-09-30'].join(' / '),'add accountable owner and due-date evidence'],['budget_effect','Budget effect',gate.budgetEffect||data.budgetEffect||'capex-review-needed','show budget-effect marker without booking or approval'],['approval_source','Approval / source evidence',source.status||gate.approvalStatus||data.approvalStatus||'source-evidence-missing','add source evidence without committee execution'],['blocked_decision','Blocked decision',gate.blockedDecision||data.blockedDecision||'committee-prep-release','keep decision blocked until evidence is complete'],['next_escalation_gate','Next safe gate',gate.nextGate||data.nextGate||'investment-review-board-prep','refresh review-readiness only'],['missing_evidence','Missing evidence',gaps.map((gap)=>gap.missingDataPoint||gap.id).filter(Boolean).join(', ')||'none','complete evidence then refresh read model'],['positive_followups','Positive follow-ups',followUps.map((gap)=>gap.enablesDossierAddition||gap.action).filter(Boolean).join(' | ')||'none','add dossier-safe rows when evidence arrives'],['demo_raum_sync_status','Demo-Raum sync status','Blueprint-Pack complete / Landing-Registry pending / productive page pending','do not claim public sync before proof']]; return rows.map(([rowKey,label,value,safeNextGate])=>({rowKey,label,value:String(value||''),status:data.status||gate.status||'read_only_review',safeNextGate,sourceClass:'investment_owner_budget_focus_row'}))",
       "schema": {
-        "rowKey": { "type": "string" },
-        "label": { "type": "string" },
-        "status": { "type": "string" },
-        "value": { "type": "string" },
-        "safeNextGate": { "type": "string" },
-        "sourceClass": { "type": "string" }
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "safeNextGate": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
       }
     },
     {
@@ -8035,15 +8486,32 @@
       "method": "GET",
       "path": "/api/dashboard/stadtwerk-mauer-transfer-readiness",
       "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-investment-owner-deadline-budget-gate-v1&caseId=smm-budibase-workbench",
-      "parameters": [{ "name": "tenantId", "default": "stadtwerk-mauer" }],
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
       "transformer": "const rows=[...(data.summaryRows||[]),...(data.safeNextGateRows||[]),...(data.boundaryRows||[])]; const normalized=rows.length?rows:[{rowKey:'investment_owner_budget_transfer_pending',label:'Transfer readiness',status:data.status||'pending',value:'Landing-Registry and productive page sync proof pending',safeNextGate:'keep transfer blocked until explicit proof',sourceClass:'investment_owner_budget_transfer_readiness'}]; return normalized.map((row,index)=>({rowKey:row.rowKey||`investment_owner_budget_transfer_${index+1}`,label:row.label||row.category||'Transfer readiness',status:row.status||data.status||'pending',value:String(row.value||row.description||row.safeNextGate||row.boundary||''),safeNextGate:row.safeNextGate||row.nextGate||'refresh_transfer_readiness',sourceClass:row.sourceClass||'investment_owner_budget_transfer_readiness'}))",
       "schema": {
-        "rowKey": { "type": "string" },
-        "label": { "type": "string" },
-        "status": { "type": "string" },
-        "value": { "type": "string" },
-        "safeNextGate": { "type": "string" },
-        "sourceClass": { "type": "string" }
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "safeNextGate": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
       }
     },
     {
@@ -8051,14 +8519,29 @@
       "method": "GET",
       "path": "/api/dashboard/investment-owner-deadline-budget-gate",
       "queryString": "tenantId={{tenantId}}&measureId=smm-invest-owner-budget-001&ownerRole=ROLE_ASSET_MANAGEMENT&deadline=2026-09-30&budgetEffect=capex-review-needed&approvalStatus=source-evidence-missing&caseId=smm-budibase-workbench",
-      "parameters": [{ "name": "tenantId", "default": "stadtwerk-mauer" }],
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
       "transformer": "const notCalled=((data.sourceActions||{}).notCalled||[]); const fallback=['erp.write','sap.write','accounting.post','budget.approve','committee.execute','treasury.transfer','workflow.create','mail.send','webhook.send','external.connector.call','budibase.table.write','personal-agent.execute']; return (notCalled.length?notCalled:fallback).map((action,index)=>({rowKey:`investment_owner_budget_no_call_${index+1}`,action:String(action),status:'not_called',safeAlternative:'render_existing_read_only_dashboard_rows_only',sourceClass:'investment_owner_budget_no_call_guard'}))",
       "schema": {
-        "rowKey": { "type": "string" },
-        "action": { "type": "string" },
-        "status": { "type": "string" },
-        "safeAlternative": { "type": "string" },
-        "sourceClass": { "type": "string" }
+        "rowKey": {
+          "type": "string"
+        },
+        "action": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "safeAlternative": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
       }
     },
     {
@@ -8066,18 +8549,41 @@
       "method": "GET",
       "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
       "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-direct-marketer-risk-gate-v1",
-      "parameters": [{ "name": "tenantId", "default": "stadtwerk-mauer" }],
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
       "transformer": "const d=data.data||{}; const selected=d.seedId||'stadtwerk-mauer-direct-marketer-risk-gate-v1'; const seeds=[{availableSeedId:'stadtwerk-mauer-direct-marketer-risk-gate-v1',label:'Direct Marketer Risk Gate',selected:true,controlCase:d.controlCase||'direct_marketer_risk_gate'},{availableSeedId:'stadtwerk-mauer-investment-owner-deadline-budget-gate-v1',label:'Investment Owner-Frist-Budget Gate',selected:false,controlCase:'investment_owner_deadline_budget_gate'}]; return seeds.map((row)=>({...row,selectedSeedId:selected,tenantId:d.tenantId||data.tenantId||'stadtwerk-mauer',processFamily:row.availableSeedId===selected?(d.processFamily||'market_partner_readiness'):'',roleQuestion:row.selected?'risk-calculable handover package, missing evidence, owner and next non-executing gate':'available canonical seed',sourceClass:'direct_marketer_risk_gate_blueprint_seed_selector'}))",
       "schema": {
-        "availableSeedId": { "type": "string" },
-        "selectedSeedId": { "type": "string" },
-        "tenantId": { "type": "string" },
-        "label": { "type": "string" },
-        "selected": { "type": "boolean" },
-        "controlCase": { "type": "string" },
-        "processFamily": { "type": "string" },
-        "roleQuestion": { "type": "string" },
-        "sourceClass": { "type": "string" }
+        "availableSeedId": {
+          "type": "string"
+        },
+        "selectedSeedId": {
+          "type": "string"
+        },
+        "tenantId": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "selected": {
+          "type": "boolean"
+        },
+        "controlCase": {
+          "type": "string"
+        },
+        "processFamily": {
+          "type": "string"
+        },
+        "roleQuestion": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
       }
     },
     {
@@ -8085,25 +8591,62 @@
       "method": "GET",
       "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
       "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-direct-marketer-risk-gate-v1",
-      "parameters": [{ "name": "tenantId", "default": "stadtwerk-mauer" }],
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
       "transformer": "const d=data.data||{}; const m=d.demoProcessMatrixSync||{}; const handoff=m.downstreamHandoff||{}; const base={seedId:d.seedId||'stadtwerk-mauer-direct-marketer-risk-gate-v1',roleLegendM:m.roleLegendM||'Mitwirkend',rowCount:m.rowCount||0,rowCountValid:Boolean(m.rowCountValid),syncStatus:m.synced?'blueprint_pack_complete':'sync_proof_required',downstreamHandoff:[handoff.blueprintPack||'complete',handoff.landingRegistry||'pending',handoff.productiveDemoRoom||'pending'].join(' -> ')}; const summary={rowKey:'direct_marketer_risk_gate_matrix_sync_summary',phase:'sync',v:'ROLE_MARKET_OPERATIONS',d:'ROLE_ENERGY_SHARING_LEAD',m:base.roleLegendM,i:'ROLE_MANAGEMENT',nachweise:(m.evidenceRequirements||[]).join(', '),status:base.syncStatus,safeNextGate:'keep_landing_registry_and_productive_page_pending_until_sync_proof',sourceClass:'direct_marketer_risk_gate_demo_process_matrix',...base}; const rows=(m.rows||[]).map((row,index)=>{const roles=row.roles||{}; return {rowKey:`direct_marketer_risk_gate_matrix_row_${row.phase||index+1}`,phase:row.phase||String(index+1),v:roles.V||row.v||'',d:roles.D||row.d||'',m:roles.M||row.m||'',i:roles.I||row.i||'',nachweise:(row.evidenceRequirements||[]).join(', '),status:row.status||'',safeNextGate:row.gateOutcome||row.enablesDossierAddition||'render_read_only_matrix_row',sourceClass:'direct_marketer_risk_gate_demo_process_matrix_row',...base};}); return [summary].concat(rows)",
       "schema": {
-        "rowKey": { "type": "string" },
-        "phase": { "type": "string" },
-        "v": { "type": "string" },
-        "d": { "type": "string" },
-        "m": { "type": "string" },
-        "i": { "type": "string" },
-        "nachweise": { "type": "string" },
-        "status": { "type": "string" },
-        "safeNextGate": { "type": "string" },
-        "seedId": { "type": "string" },
-        "roleLegendM": { "type": "string" },
-        "rowCount": { "type": "number" },
-        "rowCountValid": { "type": "boolean" },
-        "syncStatus": { "type": "string" },
-        "downstreamHandoff": { "type": "string" },
-        "sourceClass": { "type": "string" }
+        "rowKey": {
+          "type": "string"
+        },
+        "phase": {
+          "type": "string"
+        },
+        "v": {
+          "type": "string"
+        },
+        "d": {
+          "type": "string"
+        },
+        "m": {
+          "type": "string"
+        },
+        "i": {
+          "type": "string"
+        },
+        "nachweise": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "safeNextGate": {
+          "type": "string"
+        },
+        "seedId": {
+          "type": "string"
+        },
+        "roleLegendM": {
+          "type": "string"
+        },
+        "rowCount": {
+          "type": "number"
+        },
+        "rowCountValid": {
+          "type": "boolean"
+        },
+        "syncStatus": {
+          "type": "string"
+        },
+        "downstreamHandoff": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
       }
     },
     {
@@ -8111,16 +8654,35 @@
       "method": "GET",
       "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
       "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-direct-marketer-risk-gate-v1",
-      "parameters": [{ "name": "tenantId", "default": "stadtwerk-mauer" }],
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
       "transformer": "const d=data.data||{}; const missing=new Map((d.missingEvidence||[]).map((row)=>[row.missingDataPoint,row])); return (d.requiredEvidence||[]).map((id,index)=>{const gap=missing.get(id)||{}; return {rowKey:id||`direct_marketer_risk_gate_evidence_${index+1}`,evidenceId:id,label:id,status:gap.state||'required',enablesDossierAddition:gap.enablesDossierAddition||`add ${id} to direct marketer risk gate`,safeNextGate:'complete_evidence_then_refresh_direct_marketer_risk_gate_panel',sourceClass:'direct_marketer_risk_gate_required_evidence'};})",
       "schema": {
-        "rowKey": { "type": "string" },
-        "evidenceId": { "type": "string" },
-        "label": { "type": "string" },
-        "status": { "type": "string" },
-        "enablesDossierAddition": { "type": "string" },
-        "safeNextGate": { "type": "string" },
-        "sourceClass": { "type": "string" }
+        "rowKey": {
+          "type": "string"
+        },
+        "evidenceId": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "enablesDossierAddition": {
+          "type": "string"
+        },
+        "safeNextGate": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
       }
     },
     {
@@ -8128,15 +8690,32 @@
       "method": "GET",
       "path": "/api/dashboard/direct-marketer-risk-gate",
       "queryString": "tenantId={{tenantId}}&caseId=smm-direct-marketer-risk-001&projectId=smm-market-handover-001&communityModel=synthetic-energy-sharing-cluster&directMarketer=synthetic-direct-marketer-review&forecastQuality=quality-reviewed&forecastDeviationPct=7.5&allocationRules=allocation-rule-reviewed&balancingGroupImpact=review-only&scheduleImpact=no-submission&billingStatus=source-evidence-present&settlementStatus=not-executed-review-only&roleOwner=ROLE_MARKET_OPERATIONS&deadline=2026-10-15&evidenceStatus=risk-calculable&sourceEvidence=forecast,allocation,billing,owner",
-      "parameters": [{ "name": "tenantId", "default": "stadtwerk-mauer" }],
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
       "transformer": "const gate=data.gate||data.riskGate||data.summary||{}; const gaps=data.missingEvidence||data.evidenceGaps||[]; const followUps=data.positiveFollowUps||[]; const rows=[['project_identity','Synthetic handover package',gate.projectId||data.projectId||'smm-market-handover-001','show bounded handover scope'],['forecast_quality','Forecast quality / deviation',[gate.forecastQuality||data.forecastQuality||'quality-reviewed',gate.forecastDeviationPct||data.forecastDeviationPct||'7.5'].join(' / '),'add forecast-quality evidence'],['allocation_schedule','Allocation / schedule impact',[gate.allocationRules||data.allocationRules||'allocation-rule-reviewed',gate.scheduleImpact||data.scheduleImpact||'no-submission'].join(' / '),'add allocation and schedule-impact review evidence'],['billing_status','Billing / settlement status',[gate.billingStatus||data.billingStatus||'source-evidence-present',gate.settlementStatus||data.settlementStatus||'not-executed-review-only'].join(' / '),'add commercial status evidence without billing or settlement'],['owner_deadline','Owner / deadline',[gate.roleOwner||data.roleOwner||'ROLE_MARKET_OPERATIONS',gate.deadline||data.deadline||'2026-10-15'].join(' / '),'add accountability evidence'],['readiness_next_gate','Readiness / next safe gate',gate.nextGate||data.nextGate||data.status||'risk-calculable','refresh non-executing review gate only'],['missing_evidence','Missing evidence',gaps.map((gap)=>gap.missingDataPoint||gap.id).filter(Boolean).join(', ')||'none','complete evidence then refresh read model'],['positive_followups','Positive follow-ups',followUps.map((gap)=>gap.enablesDossierAddition||gap.action).filter(Boolean).join(' | ')||'none','add dossier-safe rows when evidence arrives'],['demo_raum_sync_status','Demo-Raum sync status','Blueprint-Pack complete / Landing-Registry pending / productive page pending','do not claim public sync before proof']]; return rows.map(([rowKey,label,value,safeNextGate])=>({rowKey,label,value:String(value||''),status:data.status||gate.status||'read_only_review',safeNextGate,sourceClass:'direct_marketer_risk_gate_focus_row'}))",
       "schema": {
-        "rowKey": { "type": "string" },
-        "label": { "type": "string" },
-        "status": { "type": "string" },
-        "value": { "type": "string" },
-        "safeNextGate": { "type": "string" },
-        "sourceClass": { "type": "string" }
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "safeNextGate": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
       }
     },
     {
@@ -8144,15 +8723,32 @@
       "method": "GET",
       "path": "/api/dashboard/stadtwerk-mauer-transfer-readiness",
       "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-direct-marketer-risk-gate-v1&caseId=smm-budibase-workbench",
-      "parameters": [{ "name": "tenantId", "default": "stadtwerk-mauer" }],
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
       "transformer": "const rows=[...(data.summaryRows||[]),...(data.safeNextGateRows||[]),...(data.boundaryRows||[])]; const normalized=rows.length?rows:[{rowKey:'direct_marketer_risk_gate_transfer_pending',label:'Transfer readiness',status:data.status||'pending',value:'Landing-Registry and productive page sync proof pending',safeNextGate:'keep transfer blocked until explicit proof',sourceClass:'direct_marketer_risk_gate_transfer_readiness'}]; return normalized.map((row,index)=>({rowKey:row.rowKey||`direct_marketer_risk_gate_transfer_${index+1}`,label:row.label||row.category||'Transfer readiness',status:row.status||data.status||'pending',value:String(row.value||row.description||row.safeNextGate||row.boundary||''),safeNextGate:row.safeNextGate||row.nextGate||'refresh_transfer_readiness',sourceClass:row.sourceClass||'direct_marketer_risk_gate_transfer_readiness'}))",
       "schema": {
-        "rowKey": { "type": "string" },
-        "label": { "type": "string" },
-        "status": { "type": "string" },
-        "value": { "type": "string" },
-        "safeNextGate": { "type": "string" },
-        "sourceClass": { "type": "string" }
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "safeNextGate": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
       }
     },
     {
@@ -8160,59 +8756,539 @@
       "method": "GET",
       "path": "/api/dashboard/stadtwerk-mauer-landing-registry-draft",
       "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-direct-marketer-risk-gate-v1",
-      "parameters": [{ "name": "tenantId", "default": "stadtwerk-mauer" }],
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
       "transformer": "const d=data.draft||{}; const sync=d.syncProof||data.syncProof||{}; const status=(node)=>node&&node.status?String(node.status):''; return [{rowKey:'direct_marketer_sync_proof_summary',renderTarget:'budibase:stadtwerk-mauer-workbench:direct-marketer-risk-gate-sync-proof-panel',label:'Direct Marketer Demo-Raum sync proof',tenantId:data.tenantId||'stadtwerk-mauer',seedId:data.seedId||d.seedId||'stadtwerk-mauer-direct-marketer-risk-gate-v1',status:data.status||'unknown',draftDerivable:Boolean(data.found&&d.slug),draftStatus:status(sync.landingRegistryDraft)||'draft_unknown',blueprintPackStatus:status(sync.blueprintPack)||'unknown',productiveDemoRoomStatus:status(sync.productiveDemoRoom)||'blocked',downstreamHandoff:[status(sync.blueprintPack)||'blueprint_pack',status(sync.landingRegistryDraft)||'landing_registry_draft',status(sync.productiveDemoRoom)||'productive_page_blocked'].join(' -> '),rowCount:Number(data.rowCount||d.rowCount||0),safeNextAction:'refresh_read_only_sync_queries_and_inspect_blockers_only',sourceClass:'direct_marketer_risk_gate_sync_proof_summary'}]",
-      "schema": { "rowKey": { "type": "string" }, "renderTarget": { "type": "string" }, "label": { "type": "string" }, "tenantId": { "type": "string" }, "seedId": { "type": "string" }, "status": { "type": "string" }, "draftDerivable": { "type": "boolean" }, "draftStatus": { "type": "string" }, "blueprintPackStatus": { "type": "string" }, "productiveDemoRoomStatus": { "type": "string" }, "downstreamHandoff": { "type": "string" }, "rowCount": { "type": "number" }, "safeNextAction": { "type": "string" }, "sourceClass": { "type": "string" } }
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "tenantId": {
+          "type": "string"
+        },
+        "seedId": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "draftDerivable": {
+          "type": "boolean"
+        },
+        "draftStatus": {
+          "type": "string"
+        },
+        "blueprintPackStatus": {
+          "type": "string"
+        },
+        "productiveDemoRoomStatus": {
+          "type": "string"
+        },
+        "downstreamHandoff": {
+          "type": "string"
+        },
+        "rowCount": {
+          "type": "number"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
     },
     {
       "name": "getDirectMarketerRiskGateDraftPreviewRows",
       "method": "GET",
       "path": "/api/dashboard/stadtwerk-mauer-landing-registry-draft",
       "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-direct-marketer-risk-gate-v1",
-      "parameters": [{ "name": "tenantId", "default": "stadtwerk-mauer" }],
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
       "transformer": "const d=data.draft||{}; const cell=(value)=>String(value||''); const rows=(d.rows||[]).map((row,index)=>({rowKey:'direct_marketer_draft_row_'+(index+1),renderTarget:'budibase:stadtwerk-mauer-workbench:direct-marketer-risk-gate-sync-proof-panel',seedId:data.seedId||d.seedId||'stadtwerk-mauer-direct-marketer-risk-gate-v1',slug:d.slug||'direct-marketer-risk-gate',title:d.title||'Direct Marketer Risk Gate',phase:cell(row.phase||index+1),v:cell(row.V),d:cell(row.D),m:cell(row.M),i:cell(row.I),nachweise:(row.evidenceRequirements||[]).join(', '),status:cell(row.status),gateOutcome:cell(row.gateOutcome),positiveFollowUp:cell(row.positiveFollowUp),sourceClass:'direct_marketer_risk_gate_draft_preview_row'})); const summary={rowKey:'direct_marketer_draft_preview_summary',renderTarget:'budibase:stadtwerk-mauer-workbench:direct-marketer-risk-gate-sync-proof-panel',seedId:data.seedId||d.seedId||'stadtwerk-mauer-direct-marketer-risk-gate-v1',slug:d.slug||'direct-marketer-risk-gate',title:d.title||'Direct Marketer Risk Gate',phase:'-',v:'-',d:'-',m:'Mitwirkend',i:'-',nachweise:(d.roleHeaders||[]).join(', '),status:data.status||'unknown',gateOutcome:'draft_preview_read_only',positiveFollowUp:'create separate approved publication issue before any productive Demo-Raum publication',sourceClass:'direct_marketer_risk_gate_draft_preview_summary'}; return [summary].concat(rows)",
-      "schema": { "rowKey": { "type": "string" }, "renderTarget": { "type": "string" }, "seedId": { "type": "string" }, "slug": { "type": "string" }, "title": { "type": "string" }, "phase": { "type": "string" }, "v": { "type": "string" }, "d": { "type": "string" }, "m": { "type": "string" }, "i": { "type": "string" }, "nachweise": { "type": "string" }, "status": { "type": "string" }, "gateOutcome": { "type": "string" }, "positiveFollowUp": { "type": "string" }, "sourceClass": { "type": "string" } }
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "seedId": {
+          "type": "string"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "phase": {
+          "type": "string"
+        },
+        "v": {
+          "type": "string"
+        },
+        "d": {
+          "type": "string"
+        },
+        "m": {
+          "type": "string"
+        },
+        "i": {
+          "type": "string"
+        },
+        "nachweise": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "gateOutcome": {
+          "type": "string"
+        },
+        "positiveFollowUp": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
     },
     {
       "name": "getDirectMarketerRiskGatePublicationBlockerRows",
       "method": "GET",
       "path": "/api/dashboard/stadtwerk-mauer-landing-registry-draft",
       "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-direct-marketer-risk-gate-v1",
-      "parameters": [{ "name": "tenantId", "default": "stadtwerk-mauer" }],
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
       "transformer": "const d=data.draft||{}; const sync=d.syncProof||data.syncProof||{}; const blockers=d.publicationBlockers||data.publicationBlockers||[]; const rows=blockers.map((blocker,index)=>({rowKey:'direct_marketer_publication_blocker_'+(index+1),renderTarget:'budibase:stadtwerk-mauer-workbench:direct-marketer-risk-gate-sync-proof-panel',blocker:String(blocker),status:'blocked',blueprintPackStatus:((sync.blueprintPack||{}).status)||'',landingRegistryDraftStatus:((sync.landingRegistryDraft||{}).status)||'',productiveDemoRoomStatus:((sync.productiveDemoRoom||{}).status)||'',safeNextAction:'resolve_blocker_in_separate_approved_publication_or_sync_proof_issue',sourceClass:'direct_marketer_risk_gate_publication_blocker'})); return rows.length?rows:[{rowKey:'direct_marketer_publication_blocker_required',renderTarget:'budibase:stadtwerk-mauer-workbench:direct-marketer-risk-gate-sync-proof-panel',blocker:'productive_demo_room_publication_issue_required',status:'blocked',blueprintPackStatus:((sync.blueprintPack||{}).status)||'',landingRegistryDraftStatus:((sync.landingRegistryDraft||{}).status)||'',productiveDemoRoomStatus:((sync.productiveDemoRoom||{}).status)||'pending',safeNextAction:'keep_productive_publication_blocked_until_separate_approval',sourceClass:'direct_marketer_risk_gate_publication_blocker'}]",
-      "schema": { "rowKey": { "type": "string" }, "renderTarget": { "type": "string" }, "blocker": { "type": "string" }, "status": { "type": "string" }, "blueprintPackStatus": { "type": "string" }, "landingRegistryDraftStatus": { "type": "string" }, "productiveDemoRoomStatus": { "type": "string" }, "safeNextAction": { "type": "string" }, "sourceClass": { "type": "string" } }
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "blocker": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "blueprintPackStatus": {
+          "type": "string"
+        },
+        "landingRegistryDraftStatus": {
+          "type": "string"
+        },
+        "productiveDemoRoomStatus": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
     },
     {
       "name": "getDirectMarketerRiskGatePositiveFollowupRows",
       "method": "GET",
       "path": "/api/dashboard/direct-marketer-risk-gate",
       "queryString": "tenantId={{tenantId}}&caseId=smm-direct-marketer-risk-001&projectId=smm-market-handover-001&forecastQuality=quality-reviewed&allocationRules=allocation-rule-reviewed&billingStatus=source-evidence-present&roleOwner=ROLE_MARKET_OPERATIONS&evidenceStatus=risk-calculable",
-      "parameters": [{ "name": "tenantId", "default": "stadtwerk-mauer" }],
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
       "transformer": "const rows=(data.positiveFollowUps&&data.positiveFollowUps.length?data.positiveFollowUps:data.missingEvidence||[]).map((row,index)=>({rowKey:row.missingDataPoint||'direct_marketer_followup_'+(index+1),renderTarget:'budibase:stadtwerk-mauer-workbench:direct-marketer-risk-gate-sync-proof-panel',missingDataPoint:row.missingDataPoint||'',label:row.label||row.missingDataPoint||'',status:data.status||'evidence_gap',enablesDossierAddition:row.enablesDossierAddition||'add missing direct marketer risk-gate evidence to strengthen sync proof',safeNextAction:'supply_evidence_then_refresh_read_only_direct_marketer_rows',sourceClass:'direct_marketer_risk_gate_positive_followup'})); return rows.length?rows:[{rowKey:'direct_marketer_followup_none',renderTarget:'budibase:stadtwerk-mauer-workbench:direct-marketer-risk-gate-sync-proof-panel',missingDataPoint:'none',label:'No open direct marketer follow-up',status:data.status||'ready',enablesDossierAddition:'sync-proof panel can show complete direct marketer evidence context',safeNextAction:'keep_publication_as_separate_issue',sourceClass:'direct_marketer_risk_gate_positive_followup'}]",
-      "schema": { "rowKey": { "type": "string" }, "renderTarget": { "type": "string" }, "missingDataPoint": { "type": "string" }, "label": { "type": "string" }, "status": { "type": "string" }, "enablesDossierAddition": { "type": "string" }, "safeNextAction": { "type": "string" }, "sourceClass": { "type": "string" } }
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "missingDataPoint": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "enablesDossierAddition": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
     },
     {
       "name": "getDirectMarketerRiskGateSyncProofNoCallRows",
       "method": "GET",
       "path": "/api/dashboard/stadtwerk-mauer-landing-registry-draft",
       "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-direct-marketer-risk-gate-v1",
-      "parameters": [{ "name": "tenantId", "default": "stadtwerk-mauer" }],
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
       "transformer": "const d=data.draft||{}; const notCalled=((d.sourceActions||data.sourceActions||{}).notCalled)||[]; const boundaries=d.safetyBoundaries||[]; const defaults=['landing-registry.write','cernion.de.publish','market.execute','schedule.submit','balancing-group.transfer','offer.approve','contract.approve','customer.communication.send','external.connector.call','mako.write','billing.run','settlement.run','tariff.mutate','smgw.cls.control','device-control.execute','webhook.send','hitl.create','workflow.create','mail.send','budibase.table.write','rundeck.execute','personal-agent.execute']; const all=[...new Set(notCalled.concat(boundaries).concat(defaults))]; return all.map((action,index)=>({rowKey:'direct_marketer_sync_proof_no_call_'+(index+1)+'_'+String(action).replace(/[^a-zA-Z0-9]+/g,'_'),renderTarget:'budibase:stadtwerk-mauer-workbench:direct-marketer-risk-gate-sync-proof-panel',boundary:String(action),status:notCalled.includes(action)||defaults.includes(action)?'not_called':'forbidden',safeAlternative:'refresh_existing_read_only_dashboard_queries_only',sourceClass:'direct_marketer_risk_gate_sync_proof_no_call_guard'}))",
-      "schema": { "rowKey": { "type": "string" }, "renderTarget": { "type": "string" }, "boundary": { "type": "string" }, "status": { "type": "string" }, "safeAlternative": { "type": "string" }, "sourceClass": { "type": "string" } }
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "boundary": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "safeAlternative": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
     },
     {
       "name": "getDirectMarketerRiskGateNoCallRows",
       "method": "GET",
       "path": "/api/dashboard/direct-marketer-risk-gate",
       "queryString": "tenantId={{tenantId}}&caseId=smm-direct-marketer-risk-001&projectId=smm-market-handover-001&forecastQuality=quality-reviewed&allocationRules=allocation-rule-reviewed&billingStatus=source-evidence-present&roleOwner=ROLE_MARKET_OPERATIONS&evidenceStatus=risk-calculable",
-      "parameters": [{ "name": "tenantId", "default": "stadtwerk-mauer" }],
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
       "transformer": "const notCalled=((data.sourceActions||{}).notCalled||[]); const fallback=['market.execute','schedule.submit','balancing-group.transfer','offer.approve','contract.approve','customer.communication.send','mako.write','billing.run','settlement.run','tariff.mutate','workflow.create','hitl.create','mail.send','webhook.send','external.connector.call','budibase.table.write','personal-agent.execute']; return (notCalled.length?notCalled:fallback).map((action,index)=>({rowKey:`direct_marketer_risk_gate_no_call_${index+1}`,action:String(action),status:'not_called',safeAlternative:'render_existing_read_only_dashboard_rows_only',sourceClass:'direct_marketer_risk_gate_no_call_guard'}))",
       "schema": {
-        "rowKey": { "type": "string" },
-        "action": { "type": "string" },
-        "status": { "type": "string" },
-        "safeAlternative": { "type": "string" },
-        "sourceClass": { "type": "string" }
+        "rowKey": {
+          "type": "string"
+        },
+        "action": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "safeAlternative": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getInterconnectionReleaseFileSummaryRows",
+      "method": "GET",
+      "path": "/api/dashboard/interconnection-release-file",
+      "queryString": "tenantId={{tenantId}}&caseId=smm-koppelpunkt-release-demo&koppelpunktId=KP-SYN-MAUER-01&marketPartnerId=MP-SYN-MAUER-01&timeseriesId=TS-SYN-MAUER-01&mappingVersion=v1&sourceSystem=a2mdm-demo&approvalStatus=approved&owner=marktkommunikation&nextChangeGate=2026-Q3&includeFallbacks=true",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const subject=data.subject||{}; const rows=data.summaryRows||[]; const value=(key,fallback)=>String(((rows.find((row)=>row.key===key)||{}).value)||fallback||''); return [{rowKey:'release_file_summary',renderTarget:'budibase:stadtwerk-mauer-workbench:interconnection-release-file-panel',roleTarget:'ROLE_MARKTKOMMUNIKATION',caseId:String(subject.caseId||'smm-koppelpunkt-release-demo'),status:String(data.status||'unknown'),safety:String(data.safety||'read_only'),syntheticDemoLabel:data.syntheticDemo?'synthetic_demo':'synthetic_default_parameters',summary:value('status',data.status),approvalOwner:value('owner','marktkommunikation'),mappingVersion:value('mapping_version',subject.mappingVersion||'v1'),nextChangeGate:value('next_change_gate','2026-Q3'),evidenceBasis:value('evidence_basis','request_provided_read_model'),safeNextAction:'refresh_read_only_freigabeakte_rows_only',sourceClass:'interconnection_release_file_summary'}]",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "caseId": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "safety": {
+          "type": "string"
+        },
+        "syntheticDemoLabel": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "approvalOwner": {
+          "type": "string"
+        },
+        "mappingVersion": {
+          "type": "string"
+        },
+        "nextChangeGate": {
+          "type": "string"
+        },
+        "evidenceBasis": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getInterconnectionReleaseFileMappingRows",
+      "method": "GET",
+      "path": "/api/dashboard/interconnection-release-file",
+      "queryString": "tenantId={{tenantId}}&caseId=smm-koppelpunkt-release-demo&koppelpunktId=KP-SYN-MAUER-01&marketPartnerId=MP-SYN-MAUER-01&timeseriesId=TS-SYN-MAUER-01&mappingVersion=v1&sourceSystem=a2mdm-demo&approvalStatus=approved&owner=marktkommunikation&nextChangeGate=2026-Q3&includeFallbacks=true",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const subject=data.subject||{}; const rows=(data.mappingRows||[]); const fallback=[['koppelpunkt','Koppelpunkt',subject.koppelpunktId],['market_partner','Marktpartner',subject.marketPartnerId],['timeseries','Zeitreihe',subject.timeseriesId]]; const source=rows.length?rows:fallback.map(([key,label,value])=>({key,label,value,evidenceStatus:'synthetic_demo_evidence'})); return source.map((row,index)=>({rowKey:'release_file_mapping_'+(row.key||index+1),renderTarget:'budibase:stadtwerk-mauer-workbench:interconnection-release-file-panel',label:String(row.label||row.key||''),value:String(row.value||''),evidenceStatus:String(row.evidenceStatus||'synthetic_demo_evidence'),mappingVersion:String(subject.mappingVersion||'v1'),sourceClass:'interconnection_release_file_mapping'}))",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "evidenceStatus": {
+          "type": "string"
+        },
+        "mappingVersion": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getInterconnectionReleaseFileEvidenceRows",
+      "method": "GET",
+      "path": "/api/dashboard/interconnection-release-file",
+      "queryString": "tenantId={{tenantId}}&caseId=smm-koppelpunkt-release-demo&koppelpunktId=KP-SYN-MAUER-01&marketPartnerId=MP-SYN-MAUER-01&timeseriesId=TS-SYN-MAUER-01&mappingVersion=v1&sourceSystem=a2mdm-demo&approvalStatus=approved&owner=marktkommunikation&nextChangeGate=2026-Q3&includeFallbacks=true",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const rows=data.evidenceRows||[]; const source=rows.length?rows:[{sourceSystem:'a2mdm-demo',sourceReference:'KP-SYN-MAUER-01:MP-SYN-MAUER-01:TS-SYN-MAUER-01',mappingVersion:'v1',evidenceStatus:'synthetic_demo_evidence',confidence:'medium'}]; return source.map((row,index)=>({rowKey:'release_file_evidence_'+(index+1),renderTarget:'budibase:stadtwerk-mauer-workbench:interconnection-release-file-panel',sourceSystem:String(row.sourceSystem||'a2mdm-demo'),sourceReference:String(row.sourceReference||''),mappingVersion:String(row.mappingVersion||'v1'),evidenceStatus:String(row.evidenceStatus||'synthetic_demo_evidence'),confidence:String(row.confidence||''),sourceClass:'interconnection_release_file_evidence'}))",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "sourceSystem": {
+          "type": "string"
+        },
+        "sourceReference": {
+          "type": "string"
+        },
+        "mappingVersion": {
+          "type": "string"
+        },
+        "evidenceStatus": {
+          "type": "string"
+        },
+        "confidence": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getInterconnectionReleaseFileApprovalRows",
+      "method": "GET",
+      "path": "/api/dashboard/interconnection-release-file",
+      "queryString": "tenantId={{tenantId}}&caseId=smm-koppelpunkt-release-demo&koppelpunktId=KP-SYN-MAUER-01&marketPartnerId=MP-SYN-MAUER-01&timeseriesId=TS-SYN-MAUER-01&mappingVersion=v1&sourceSystem=a2mdm-demo&approvalStatus=approved&owner=marktkommunikation&nextChangeGate=2026-Q3&includeFallbacks=true",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const rows=data.approvalRows||[]; const source=rows.length?rows:[{owner:'marktkommunikation',approvalStatus:'approved',reviewerRole:'marktkommunikation',openCheck:'none'}]; return source.map((row,index)=>({rowKey:'release_file_approval_'+(index+1),renderTarget:'budibase:stadtwerk-mauer-workbench:interconnection-release-file-panel',owner:String(row.owner||'marktkommunikation'),approvalStatus:String(row.approvalStatus||''),reviewerRole:String(row.reviewerRole||''),openCheck:String(row.openCheck||'none'),decisionBoundary:'display_only_no_approval_execution',sourceClass:'interconnection_release_file_approval'}))",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "owner": {
+          "type": "string"
+        },
+        "approvalStatus": {
+          "type": "string"
+        },
+        "reviewerRole": {
+          "type": "string"
+        },
+        "openCheck": {
+          "type": "string"
+        },
+        "decisionBoundary": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getInterconnectionReleaseFileProcessImpactRows",
+      "method": "GET",
+      "path": "/api/dashboard/interconnection-release-file",
+      "queryString": "tenantId={{tenantId}}&caseId=smm-koppelpunkt-release-demo&koppelpunktId=KP-SYN-MAUER-01&marketPartnerId=MP-SYN-MAUER-01&timeseriesId=TS-SYN-MAUER-01&mappingVersion=v1&sourceSystem=a2mdm-demo&approvalStatus=approved&owner=marktkommunikation&nextChangeGate=2026-Q3&includeFallbacks=true",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const rows=data.processImpactRows||[]; return rows.map((row,index)=>({rowKey:'release_file_process_impact_'+(row.processFamily||index+1),renderTarget:'budibase:stadtwerk-mauer-workbench:interconnection-release-file-panel',processFamily:String(row.processFamily||''),impact:String(row.impact||'descriptive_only'),boundary:String(row.boundary||''),safeNextAction:'review_impact_descriptively_without_downstream_execution',sourceClass:'interconnection_release_file_process_impact'}))",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "processFamily": {
+          "type": "string"
+        },
+        "impact": {
+          "type": "string"
+        },
+        "boundary": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getInterconnectionReleaseFileMissingEvidenceRows",
+      "method": "GET",
+      "path": "/api/dashboard/interconnection-release-file",
+      "queryString": "tenantId={{tenantId}}&caseId=smm-koppelpunkt-release-demo&koppelpunktId=KP-SYN-MAUER-01&marketPartnerId=MP-SYN-MAUER-01&timeseriesId=TS-SYN-MAUER-01&mappingVersion=v1&sourceSystem=a2mdm-demo&approvalStatus=approved&owner=marktkommunikation&nextChangeGate=2026-Q3&includeFallbacks=true",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const gaps=data.missingEvidence||[]; const followUps=data.positiveFollowUps||[]; const rows=(followUps.length?followUps:gaps).map((row,index)=>({rowKey:String(row.missingDataPoint||row.key||'release_file_missing_'+(index+1)),renderTarget:'budibase:stadtwerk-mauer-workbench:interconnection-release-file-panel',missingDataPoint:String(row.missingDataPoint||row.key||''),label:String(row.label||row.missingDataPoint||row.key||''),status:String(row.status||data.status||'evidence_gap'),enablesDossierAddition:String(row.enablesDossierAddition||'add missing Freigabeakte evidence to strengthen the Workbench panel'),safeNextAction:'supply_evidence_then_refresh_read_only_freigabeakte_rows',sourceClass:'interconnection_release_file_positive_followup'})); return rows.length?rows:[{rowKey:'release_file_missing_none',renderTarget:'budibase:stadtwerk-mauer-workbench:interconnection-release-file-panel',missingDataPoint:'none',label:'No missing Freigabeakte evidence in synthetic default demo',status:String(data.status||'ready'),enablesDossierAddition:'summary, mapping, evidence, approval and next-gate rows can stay complete',safeNextAction:'keep_refresh_read_only',sourceClass:'interconnection_release_file_positive_followup'}]",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "missingDataPoint": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "enablesDossierAddition": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getInterconnectionReleaseFileNoCallRows",
+      "method": "GET",
+      "path": "/api/dashboard/interconnection-release-file",
+      "queryString": "tenantId={{tenantId}}&caseId=smm-koppelpunkt-release-demo&koppelpunktId=KP-SYN-MAUER-01&marketPartnerId=MP-SYN-MAUER-01&timeseriesId=TS-SYN-MAUER-01&mappingVersion=v1&sourceSystem=a2mdm-demo&approvalStatus=approved&owner=marktkommunikation&nextChangeGate=2026-Q3&includeFallbacks=true",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const notCalled=((data.sourceActions||{}).notCalled)||[]; const fallback=['mapping.write','mapping.releaseExecute','mako.submit','billing.release','settlement.prepareBilling','settlement.exportA96','tariff.mutate','hitl.create','workflow.execute','webhook.emit','mail.send','device-control.execute','smgw-cls.execute','external.connector.call','budibase.table.write','personal-agent.execute','production.mutate']; return (notCalled.length?notCalled:fallback).map((action,index)=>({rowKey:'release_file_no_call_'+(index+1)+'_'+String(action).replace(/[^a-zA-Z0-9]+/g,'_'),renderTarget:'budibase:stadtwerk-mauer-workbench:interconnection-release-file-panel',boundary:String(action),status:'not_called',safeAlternative:'render_existing_read_only_interconnection_release_file_rows_only',sourceClass:'interconnection_release_file_no_call_guard'}))",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "boundary": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "safeAlternative": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
       }
     }
   ],
@@ -9328,6 +10404,48 @@
       "tableTitle": "Direct Marketer Risk Gate No-Call Guards"
     },
     {
+      "id": "interconnection_release_file_summary",
+      "title": "Koppelpunkt Freigabeakte Summary",
+      "queryName": "getInterconnectionReleaseFileSummaryRows",
+      "tableTitle": "Freigabeakte Status, Owner and Next Gate"
+    },
+    {
+      "id": "interconnection_release_file_mapping",
+      "title": "Koppelpunkt Freigabeakte Mapping",
+      "queryName": "getInterconnectionReleaseFileMappingRows",
+      "tableTitle": "Koppelpunkt, Marktpartner and Zeitreihe"
+    },
+    {
+      "id": "interconnection_release_file_evidence",
+      "title": "Koppelpunkt Freigabeakte Evidence",
+      "queryName": "getInterconnectionReleaseFileEvidenceRows",
+      "tableTitle": "Evidence Source and Version"
+    },
+    {
+      "id": "interconnection_release_file_approval",
+      "title": "Koppelpunkt Freigabeakte Approval",
+      "queryName": "getInterconnectionReleaseFileApprovalRows",
+      "tableTitle": "Approval Owner and Review Status"
+    },
+    {
+      "id": "interconnection_release_file_process_impact",
+      "title": "Koppelpunkt Freigabeakte Process Impact",
+      "queryName": "getInterconnectionReleaseFileProcessImpactRows",
+      "tableTitle": "Affected Downstream Processes"
+    },
+    {
+      "id": "interconnection_release_file_missing_evidence",
+      "title": "Koppelpunkt Freigabeakte Follow-ups",
+      "queryName": "getInterconnectionReleaseFileMissingEvidenceRows",
+      "tableTitle": "Missing Evidence and Enabled Additions"
+    },
+    {
+      "id": "interconnection_release_file_no_call_guards",
+      "title": "Koppelpunkt Freigabeakte No-Call Guards",
+      "queryName": "getInterconnectionReleaseFileNoCallRows",
+      "tableTitle": "Forbidden and Not-Called Boundaries"
+    },
+    {
       "id": "e2e",
       "title": "E2E Demo Status",
       "queryName": "getStadtwerkMauerE2EProcessDemo",
@@ -9373,6 +10491,8 @@
     "Portfolio review rows stay read-only/generated: no portfolio persistence, trading, investment advice, external connector, billing, settlement, tariff, MaKo, device-control, Budibase table write or Personal-Agent execution is allowed.",
     "Meaning Preservation binds to the existing coordination-meaning-preservation-profile read model for the selected Stadtwerk-Mauer case; Budibase renders scalar preserved, missing, weak, owner/deadline/decision, transfer-parameter and no-call rows only.",
     "Grid Connection Transformation Workbench panel binds the #404 Blueprint-Pack seed stadtwerk-mauer-grid-connection-transformation-gate-v1 to existing read-only verify, transfer-readiness and grid-connection-transformation-gate dashboard bricks; Budibase renders scalar NAP/MaLo, division, transformation option, data-quality, investment/decommission path, owner/next-action, evidence, sync and no-call rows only.",
-    "Budibase renders the workbench; Cernion remains the system of record and command gate."
+    "Budibase renders the workbench; Cernion remains the system of record and command gate.",
+    "Koppelpunkt Freigabeakte binds to the existing interconnection-release-file read model with explicit synthetic default parameters for ROLE_MARKTKOMMUNIKATION.",
+    "Koppelpunkt Freigabeakte rows stay scalar/generated: Budibase renders summary, mapping subject, evidence source/version, approval owner/status, process-impact, missing-evidence, next-gate and no-call guard rows only, without A2MDM writes, release workflow execution, MaKo, billing, settlement, tariff, device-control, Budibase table writes or Personal-Agent shortcuts."
   ]
 }

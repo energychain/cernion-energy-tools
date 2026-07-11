@@ -1224,6 +1224,97 @@ const directMarketerLandingRegistryDraftFixture = {
   },
 };
 
+const interconnectionReleaseFileFixture = {
+  releaseFileStatusId: 'irf:c3RhZHR3ZXJrLW1hdWVyOnNtbS1r',
+  capabilityKey: 'interconnection_release_file',
+  safety: 'read_only',
+  found: true,
+  status: 'reviewable_release_file',
+  syntheticDemo: false,
+  subject: {
+    caseId: 'smm-koppelpunkt-release-demo',
+    koppelpunktId: 'KP-SYN-MAUER-01',
+    marketPartnerId: 'MP-SYN-MAUER-01',
+    timeseriesId: 'TS-SYN-MAUER-01',
+    mappingVersion: 'v1',
+    tenantId: 'stadtwerk-mauer',
+  },
+  summaryRows: [
+    { key: 'status', label: 'Release-file status', value: 'reviewable_release_file' },
+    { key: 'case_id', label: 'Case', value: 'smm-koppelpunkt-release-demo' },
+    { key: 'owner', label: 'Approval owner', value: 'marktkommunikation' },
+    { key: 'mapping_version', label: 'Mapping version', value: 'v1' },
+    { key: 'next_change_gate', label: 'Next change gate', value: '2026-Q3' },
+    { key: 'evidence_basis', label: 'Evidence basis', value: 'request_provided_read_model' },
+  ],
+  mappingRows: [
+    {
+      key: 'koppelpunkt',
+      label: 'Koppelpunkt',
+      value: 'KP-SYN-MAUER-01',
+      evidenceStatus: 'synthetic_demo_evidence',
+    },
+    {
+      key: 'market_partner',
+      label: 'Marktpartner',
+      value: 'MP-SYN-MAUER-01',
+      evidenceStatus: 'synthetic_demo_evidence',
+    },
+    {
+      key: 'timeseries',
+      label: 'Zeitreihe',
+      value: 'TS-SYN-MAUER-01',
+      evidenceStatus: 'synthetic_demo_evidence',
+    },
+  ],
+  evidenceRows: [
+    {
+      sourceSystem: 'a2mdm-demo',
+      sourceReference: 'KP-SYN-MAUER-01:MP-SYN-MAUER-01:TS-SYN-MAUER-01',
+      mappingVersion: 'v1',
+      evidenceStatus: 'synthetic_demo_evidence',
+      confidence: 'medium',
+    },
+  ],
+  approvalRows: [
+    {
+      owner: 'marktkommunikation',
+      approvalStatus: 'approved',
+      reviewerRole: 'marktkommunikation',
+      openCheck: 'none',
+    },
+  ],
+  processImpactRows: [
+    {
+      processFamily: 'market_communication',
+      impact: 'descriptive_only',
+      boundary: 'no MaKo message submission or partner master-data mutation',
+    },
+    {
+      processFamily: 'metering',
+      impact: 'descriptive_only',
+      boundary: 'no MeLo/MaLo write and no meter operation',
+    },
+  ],
+  missingEvidence: [],
+  positiveFollowUps: [],
+  sourceActions: {
+    notCalled: [
+      'mapping.write',
+      'mapping.releaseExecute',
+      'mako.submit',
+      'billing.release',
+      'settlement.prepareBilling',
+      'settlement.exportA96',
+      'tariff.mutate',
+      'device-control.execute',
+      'budibase.table.write',
+      'personal-agent.execute',
+      'production.mutate',
+    ],
+  },
+};
+
 const landingRegistryDraftFixture = {
   capabilityKey: 'stadtwerk_mauer_landing_registry_draft',
   safety: 'read_only_workbench_projection',
@@ -3515,6 +3606,113 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
         expect.objectContaining({ action: 'balancing-group.transfer', status: 'not_called' }),
         expect.objectContaining({ action: 'budibase.table.write', status: 'not_called' }),
         expect.objectContaining({ action: 'personal-agent.execute', status: 'not_called' }),
+      ])
+    );
+
+    const releaseFileSummaryRows = runTransformer(
+      'getInterconnectionReleaseFileSummaryRows',
+      interconnectionReleaseFileFixture
+    );
+    expectScalarRows(releaseFileSummaryRows);
+    assertNoRawObjectText(releaseFileSummaryRows);
+    expect(releaseFileSummaryRows[0]).toMatchObject({
+      renderTarget: 'budibase:stadtwerk-mauer-workbench:interconnection-release-file-panel',
+      roleTarget: 'ROLE_MARKTKOMMUNIKATION',
+      caseId: 'smm-koppelpunkt-release-demo',
+      status: 'reviewable_release_file',
+      safety: 'read_only',
+      syntheticDemoLabel: 'synthetic_default_parameters',
+      approvalOwner: 'marktkommunikation',
+      mappingVersion: 'v1',
+      nextChangeGate: '2026-Q3',
+    });
+
+    const releaseFileMappingRows = runTransformer(
+      'getInterconnectionReleaseFileMappingRows',
+      interconnectionReleaseFileFixture
+    );
+    expectScalarRows(releaseFileMappingRows);
+    assertNoRawObjectText(releaseFileMappingRows);
+    expect(releaseFileMappingRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          label: 'Koppelpunkt',
+          value: 'KP-SYN-MAUER-01',
+          evidenceStatus: 'synthetic_demo_evidence',
+        }),
+        expect.objectContaining({
+          label: 'Marktpartner',
+          value: 'MP-SYN-MAUER-01',
+        }),
+        expect.objectContaining({
+          label: 'Zeitreihe',
+          value: 'TS-SYN-MAUER-01',
+        }),
+      ])
+    );
+
+    const releaseFileEvidenceRows = runTransformer(
+      'getInterconnectionReleaseFileEvidenceRows',
+      interconnectionReleaseFileFixture
+    );
+    expectScalarRows(releaseFileEvidenceRows);
+    assertNoRawObjectText(releaseFileEvidenceRows);
+    expect(releaseFileEvidenceRows[0]).toMatchObject({
+      sourceSystem: 'a2mdm-demo',
+      mappingVersion: 'v1',
+      evidenceStatus: 'synthetic_demo_evidence',
+    });
+
+    const releaseFileApprovalRows = runTransformer(
+      'getInterconnectionReleaseFileApprovalRows',
+      interconnectionReleaseFileFixture
+    );
+    expectScalarRows(releaseFileApprovalRows);
+    expect(releaseFileApprovalRows[0]).toMatchObject({
+      owner: 'marktkommunikation',
+      approvalStatus: 'approved',
+      decisionBoundary: 'display_only_no_approval_execution',
+    });
+
+    const releaseFileProcessRows = runTransformer(
+      'getInterconnectionReleaseFileProcessImpactRows',
+      interconnectionReleaseFileFixture
+    );
+    expectScalarRows(releaseFileProcessRows);
+    assertNoRawObjectText(releaseFileProcessRows);
+    expect(releaseFileProcessRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          processFamily: 'market_communication',
+          impact: 'descriptive_only',
+        }),
+      ])
+    );
+
+    const releaseFileFollowupRows = runTransformer(
+      'getInterconnectionReleaseFileMissingEvidenceRows',
+      interconnectionReleaseFileFixture
+    );
+    expectScalarRows(releaseFileFollowupRows);
+    expect(releaseFileFollowupRows[0]).toMatchObject({
+      missingDataPoint: 'none',
+      label: 'No missing Freigabeakte evidence in synthetic default demo',
+      enablesDossierAddition:
+        'summary, mapping, evidence, approval and next-gate rows can stay complete',
+    });
+
+    const releaseFileNoCallRows = runTransformer(
+      'getInterconnectionReleaseFileNoCallRows',
+      interconnectionReleaseFileFixture
+    );
+    expectScalarRows(releaseFileNoCallRows);
+    expect(releaseFileNoCallRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ boundary: 'mapping.write', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'mako.submit', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'billing.release', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'budibase.table.write', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'personal-agent.execute', status: 'not_called' }),
       ])
     );
 

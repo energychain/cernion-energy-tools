@@ -51,6 +51,7 @@ The workbench renders:
 - Anschlussfristen Evidence Queue rows for `stadtwerk-mauer-connection-deadline-evidence-queue-v1`, composed from `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify`, `GET /api/dashboard/connection-deadline-evidence-queue` and `GET /api/dashboard/stadtwerk-mauer-transfer-readiness`
 - Investment Owner-Frist-Budget Gate rows for `stadtwerk-mauer-investment-owner-deadline-budget-gate-v1`, composed from `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify`, `GET /api/dashboard/investment-owner-deadline-budget-gate` and `GET /api/dashboard/stadtwerk-mauer-transfer-readiness`
 - Direct Marketer Demo-Raum Sync-Proof rows for `stadtwerk-mauer-direct-marketer-risk-gate-v1`, composed from `GET /api/dashboard/stadtwerk-mauer-landing-registry-draft`, `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify`, `GET /api/dashboard/stadtwerk-mauer-transfer-readiness` and `GET /api/dashboard/direct-marketer-risk-gate`
+- Koppelpunkt Freigabeakte rows for `ROLE_MARKTKOMMUNIKATION`, composed from the existing read-only `GET /api/dashboard/interconnection-release-file` brick with explicit synthetic default parameters from the #419 smoke
 - Transfer Readiness rows from `GET /api/dashboard/stadtwerk-mauer-transfer-readiness`, separating public context, synthetic seed data, sandbox runtime artifacts, tenant parameters, reusable Blueprint/Workbench elements and blocked production boundaries
 - a scope-protected action query for `POST /api/operations-runbook/stadtwerk-mauer/e2e-smoke`
 
@@ -177,6 +178,15 @@ Landing Registry, publish `cernion.de`, submit schedules, transfer balancing gro
 offers/contracts, contact customers, call external direct-marketer connectors, execute MaKo,
 billing, settlement, tariff, SMGW/CLS or device-control actions, execute Rundeck, write arbitrary
 Budibase tables, mutate production tenants or use Personal-Agent shortcuts.
+The Koppelpunkt Freigabeakte panel is a generated read-only render slice. It composes the existing
+`interconnection-release-file` read model with fixed synthetic demo parameters
+(`KP-SYN-MAUER-01`, `MP-SYN-MAUER-01`, `TS-SYN-MAUER-01`, `mappingVersion=v1`) for
+`ROLE_MARKTKOMMUNIKATION`. Budibase renders scalar summary, mapping subject, evidence
+source/version, approval owner/status, affected downstream process, missing-evidence,
+safe-next-gate and no-call rows only. It must not write A2MDM or mapping state, execute a
+Freigabe workflow, submit MaKo messages, run billing/settlement/tariff/device-control actions,
+call external connectors, write arbitrary Budibase tables, mutate production tenants or use
+Personal-Agent shortcuts.
 The selected-target query is read-only: it maps a supported Hub or role target to scalar selected,
 focus and helper rows so Budibase can visibly focus a section without owning persistent state or
 mutating Cernion tenant data.
