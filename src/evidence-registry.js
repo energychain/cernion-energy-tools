@@ -142,6 +142,53 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  interconnection_release_file: {
+    sources: [
+      {
+        id: 'mapping_subject',
+        label: 'Koppelpunkt / Marktpartner / Zeitreihen Mapping-Subjekt',
+        resolvedBy: ['dashboard-api.interconnectionReleaseFileStatus'],
+        contextKeys: ['koppelpunktId', 'marketPartnerId', 'timeseriesId'],
+        optional: false,
+      },
+      {
+        id: 'mapping_version',
+        label: 'Versionierter Mapping-Stand',
+        resolvedBy: ['dashboard-api.interconnectionReleaseFileStatus'],
+        contextKeys: ['mappingVersion'],
+        optional: false,
+      },
+      {
+        id: 'evidence_source_version',
+        label: 'Evidenzquelle und Quellen-Version',
+        resolvedBy: ['dashboard-api.interconnectionReleaseFileStatus'],
+        contextKeys: ['sourceSystem', 'sourceVersion', 'evidenceStatus'],
+        optional: false,
+      },
+      {
+        id: 'approval_owner_status',
+        label: 'Freigabe-Owner und Freigabestatus',
+        resolvedBy: ['dashboard-api.interconnectionReleaseFileStatus'],
+        contextKeys: ['owner', 'approvalStatus'],
+        optional: false,
+      },
+      {
+        id: 'process_impact_boundary',
+        label: 'Deskriptive Prozesswirkung und No-Call-Grenze',
+        resolvedBy: ['dashboard-api.interconnectionReleaseFileStatus'],
+        contextKeys: ['affectedProcess', 'processImpactRows', 'noCallGuards'],
+        optional: false,
+      },
+      {
+        id: 'next_change_gate',
+        label: 'Naechstes Aenderungsgate',
+        resolvedBy: ['dashboard-api.interconnectionReleaseFileStatus'],
+        contextKeys: ['nextChangeGate'],
+        optional: true,
+      },
+    ],
+  },
+
   vnb_special_topic_workstate: {
     sources: [
       {

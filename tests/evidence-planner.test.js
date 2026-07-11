@@ -347,6 +347,36 @@ describe('T-EV-001 — evidence-planner: planEvidence() pure-function contract',
     );
   });
 
+  it('plans interconnection release-file evidence as mapping subject and approval evidence', () => {
+    const result = planEvidence(
+      { routeLabel: 'interconnection_release_file' },
+      {
+        koppelpunktId: 'KP-419',
+        marketPartnerId: 'MP-419',
+        mappingVersion: 'v2',
+        owner: 'marktkommunikation',
+      }
+    );
+
+    expect(result).not.toBeNull();
+    expect(result.registryKey).toBe('interconnection_release_file');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining(['mapping_subject', 'mapping_version', 'approval_owner_status'])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining(['evidence_source_version', 'process_impact_boundary'])
+    );
+    expect(result.requiredSources.map((source) => source.id)).toEqual(
+      expect.arrayContaining([
+        'mapping_subject',
+        'mapping_version',
+        'evidence_source_version',
+        'approval_owner_status',
+        'process_impact_boundary',
+      ])
+    );
+  });
+
   it('plans controllability data alignment as checklist and match evidence', () => {
     const result = planEvidence(
       { routeLabel: 'controllability_data_alignment' },

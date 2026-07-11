@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 119 static rules', () => {
+    it('loads all 120 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(119);
+      expect(rules.length).toBe(120);
     });
 
-    it('compiles all 119 static rules without error', () => {
+    it('compiles all 120 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(119);
+      expect(rules.length).toBe(120);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -2375,6 +2375,57 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('First Route: redispatch_readiness_evidence');
       expect(formatted).toContain('Preferred Action: redispatch-readiness-gate.getStatus');
       expect(formatted).toContain('Side-Effect Guard: recommendedEndpoint.execute');
+    });
+
+    it('dashboard-api.interconnectionReleaseFileStatus is dossier-safe and formats release-file facts', () => {
+      const rule = getRule('dashboard-api.interconnectionReleaseFileStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Koppelpunkt Freigabeakte case=case-419 koppelpunkt=KP-419 marktpartner=MP-419 zeitreihe=TS-419 version=v2 owner=marktkommunikation pruefen'
+        )
+      ).toEqual({
+        caseId: 'case-419',
+        koppelpunktId: 'KP-419',
+        marketPartnerId: 'MP-419',
+        timeseriesId: 'TS-419',
+        mappingVersion: 'v2',
+        owner: 'marktkommunikation',
+      });
+
+      const formatted = rule.formatEvidence({
+        capabilityKey: 'interconnection_release_file',
+        status: 'needs_release_evidence',
+        subject: {
+          caseId: 'case-419',
+          koppelpunktId: 'KP-419',
+          marketPartnerId: 'MP-419',
+          timeseriesId: 'TS-419',
+          mappingVersion: 'v2',
+        },
+        approvalRows: [{ owner: 'marktkommunikation' }],
+        missingEvidence: [{ missingDataPoint: 'evidence_source_version' }],
+        positiveFollowUps: [
+          {
+            enablesDossierAddition: 'add source system and version carrying the mapping evidence',
+          },
+        ],
+        sourceActions: {
+          notCalled: ['mapping.write'],
+        },
+      });
+
+      expect(formatted).toContain('Capability: interconnection_release_file');
+      expect(formatted).toContain('Release File Status: needs_release_evidence');
+      expect(formatted).toContain('Koppelpunkt: KP-419');
+      expect(formatted).toContain('Market Partner: MP-419');
+      expect(formatted).toContain('Timeseries: TS-419');
+      expect(formatted).toContain('Mapping Version: v2');
+      expect(formatted).toContain('Approval Owner: marktkommunikation');
+      expect(formatted).toContain('Leading Gap: evidence_source_version');
+      expect(formatted).toContain('Side-Effect Guard: mapping.write');
     });
 
     it('dashboard-api.directMarketerRiskGateStatus is dossier-safe and formats risk gate facts', () => {

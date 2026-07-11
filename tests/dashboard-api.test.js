@@ -4177,6 +4177,104 @@ describe('dashboard-api.service', () => {
       });
     });
 
+    // -- interconnectionReleaseFileStatus ----------------------------------
+
+    describe('interconnectionReleaseFileStatus', () => {
+      it('returns read-only release-file rows with no-call guards', async () => {
+        const result = await broker.call('dashboard-api.interconnectionReleaseFileStatus', {
+          caseId: 'case-419',
+          koppelpunktId: 'KP-419',
+          marketPartnerId: 'MP-419',
+          timeseriesId: 'TS-419',
+          mappingVersion: 'v2',
+          sourceSystem: 'a2mdm-export',
+          evidenceStatus: 'complete',
+          approvalStatus: 'approved',
+          owner: 'marktkommunikation',
+          nextChangeGate: '2026-Q3',
+          affectedProcess: 'mako,billing',
+          includeFallbacks: true,
+        });
+
+        expect(result.status).toBe('release_file_ready');
+        expect(result.safety).toBe('read_only');
+        expect(result.capabilityKey).toBe('interconnection_release_file');
+        expect(result.syntheticDemo).toBe(false);
+        expect(result.subject).toEqual(
+          expect.objectContaining({
+            caseId: 'case-419',
+            koppelpunktId: 'KP-419',
+            marketPartnerId: 'MP-419',
+            timeseriesId: 'TS-419',
+            mappingVersion: 'v2',
+          })
+        );
+        expect(result.mappingRows).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ key: 'koppelpunkt', value: 'KP-419' }),
+            expect.objectContaining({ key: 'market_partner', value: 'MP-419' }),
+            expect.objectContaining({ key: 'timeseries', value: 'TS-419' }),
+          ])
+        );
+        expect(result.sourceActions.notCalled).toEqual(
+          expect.arrayContaining([
+            'mapping.write',
+            'mapping.releaseExecute',
+            'mako.submit',
+            'billing.release',
+            'settlement.prepareBilling',
+            'tariff.mutate',
+            'hitl.create',
+            'workflow.execute',
+            'device-control.execute',
+            'external.connector.call',
+            'budibase.table.write',
+            'personal-agent.execute',
+          ])
+        );
+        expect(result.decisionBoundary.mappingWritten).toBe(false);
+        expect(result.decisionBoundary.downstreamProcessExecuted).toBe(false);
+        expect(result.decisionBoundary.productionMutation).toBe(false);
+        expect(result.dossierEvidence.evidenceRows[0]).toEqual(
+          expect.objectContaining({
+            sourceSystem: 'a2mdm-export',
+            mappingVersion: 'v2',
+            evidenceStatus: 'source_versioned',
+          })
+        );
+      });
+
+      it('labels synthetic demo evidence and turns missing release data into positive follow-ups', async () => {
+        const result = await broker.call('dashboard-api.interconnectionReleaseFileStatus', {});
+
+        expect(result.status).toBe('needs_release_evidence');
+        expect(result.syntheticDemo).toBe(true);
+        expect(result.summaryRows).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              key: 'evidence_basis',
+              value: 'synthetic_demo_read_model',
+            }),
+          ])
+        );
+        expect(result.missingEvidence).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ missingDataPoint: 'koppelpunkt_id' }),
+            expect.objectContaining({ missingDataPoint: 'mapping_version' }),
+            expect.objectContaining({ missingDataPoint: 'approval_owner' }),
+          ])
+        );
+        expect(result.positiveFollowUps[0]).toEqual(
+          expect.objectContaining({
+            category: 'interconnection_release_file',
+            enablesDossierAddition: expect.stringContaining('Koppelpunkt identifier'),
+          })
+        );
+        expect(result.dossierEvidence.summaryRows).toBeDefined();
+        expect(result.dossierEvidence).not.toHaveProperty('cache');
+      });
+    });
+
     // -- directMarketerRiskGateStatus ---------------------------------------
 
     describe('directMarketerRiskGateStatus', () => {

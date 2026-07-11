@@ -1519,6 +1519,28 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('device-control.execute');
   });
 
+  it('routes Koppelpunkt Freigabeakte prompts to the read-only release-file status', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe Koppelpunkt Freigabeakte fuer Marktpartner-Zuordnung, Zeitreihen-Zuordnung, Mapping-Freigabe, Owner, Evidence Source Version und naechstes Aenderungsgate.',
+    });
+
+    expect(result.capability).toBe('interconnection_release_file');
+    expect(result.recommendedCapabilities[0].capability).toBe('interconnection_release_file');
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.interconnectionReleaseFileStatus');
+    expect(actionNames).not.toContain('mapping.write');
+    expect(actionNames).not.toContain('mapping.releaseExecute');
+    expect(actionNames).not.toContain('mako.submit');
+    expect(actionNames).not.toContain('billing.release');
+    expect(actionNames).not.toContain('settlement.prepareBilling');
+    expect(actionNames).not.toContain('tariff.mutate');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('workflow.execute');
+    expect(actionNames).not.toContain('device-control.execute');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes No-Regret measure definition prompts to the read-only definition gate', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Pruefe No-Regret Massnahmen Definitionsgate fuer Transformationsprogramm Szenariowirkung Budgetwirkung regulatorische Anschlussfaehigkeit Priorisierungsrecht Datenqualitaet Kommunikationsregel und Review Gate.',

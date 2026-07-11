@@ -2992,6 +2992,73 @@
     "sourceIssue": 418
   },
   {
+    "id": "dashboard-api.interconnectionReleaseFileStatus",
+    "action": "dashboard-api.interconnectionReleaseFileStatus",
+    "label": "Koppelpunkt Freigabeakte",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "caseId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:case|caseId|fall)[:= ]+([a-zA-Z0-9_.:@-]+)", "group": 1 }
+      },
+      "koppelpunktId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:koppelpunktId|koppelpunkt|kp)[:=]+([a-zA-Z0-9_.:@-]+)", "group": 1 }
+      },
+      "marketPartnerId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:marketPartnerId|marktpartner|mp)[:=]+([a-zA-Z0-9_.:@-]+)", "group": 1 }
+      },
+      "timeseriesId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:timeseriesId|zeitreihe|zeitreihenId|ts)[:=]+([a-zA-Z0-9_.:@-]+)", "group": 1 }
+      },
+      "mappingVersion": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:mappingVersion|mapping-version|version)[:= ]+([a-zA-Z0-9_.:@-]+)", "group": 1 }
+      },
+      "owner": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:owner|freigabeOwner|verantwortlich)[:= ]+([a-zA-Z0-9_.:@-]+)", "group": 1 }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["capabilityKey", "dossierEvidence.capabilityKey"], "label": "Capability", "maxLen": 100 },
+        { "paths": ["status", "dossierEvidence.status"], "label": "Release File Status", "maxLen": 120 },
+        { "paths": ["subject.caseId", "dossierEvidence.subject.caseId"], "label": "Case", "maxLen": 120 },
+        { "paths": ["subject.koppelpunktId", "dossierEvidence.subject.koppelpunktId"], "label": "Koppelpunkt", "maxLen": 120 },
+        { "paths": ["subject.marketPartnerId", "dossierEvidence.subject.marketPartnerId"], "label": "Market Partner", "maxLen": 120 },
+        { "paths": ["subject.timeseriesId", "dossierEvidence.subject.timeseriesId"], "label": "Timeseries", "maxLen": 120 },
+        { "paths": ["subject.mappingVersion", "dossierEvidence.subject.mappingVersion"], "label": "Mapping Version", "maxLen": 120 },
+        { "paths": ["approvalRows.0.owner", "dossierEvidence.approvalRows.0.owner"], "label": "Approval Owner", "maxLen": 120 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 120 },
+        { "paths": ["positiveFollowUps.0.enablesDossierAddition", "dossierEvidence.positiveFollowUps.0.enablesDossierAddition"], "label": "Follow-up Enables", "maxLen": 180 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 140 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "derived",
+    "timeoutMs": 7000,
+    "sourceIssue": 419
+  },
+  {
     "id": "dashboard-api.directMarketerRiskGateStatus",
     "action": "dashboard-api.directMarketerRiskGateStatus",
     "label": "Direktvermarkter Risk Gate",

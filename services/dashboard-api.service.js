@@ -42,6 +42,9 @@ const {
 const {
   buildEnergySidecarRouteRegistryStatus,
 } = require('../src/energy-sidecar-route-registry');
+const {
+  buildInterconnectionReleaseFileStatus,
+} = require('../src/interconnection-release-file');
 
 const OPENAPI_TAG = 'Dashboard API';
 const ACTION_MQ_LIST = 'mastr-quality.list';
@@ -156,6 +159,7 @@ module.exports = {
       stadtwerkMauerTransferReadinessStatus: 5 * 60 * 1000, // 5 min
       stadtwerkMauerLandingRegistryDraftStatus: 5 * 60 * 1000, // 5 min
       energySidecarRouteRegistryStatus: 5 * 60 * 1000, // 5 min
+      interconnectionReleaseFileStatus: 5 * 60 * 1000, // 5 min
       fnavFastTrackContractGateStatus: 5 * 60 * 1000, // 5 min
       crossChannelVnbSignalQueueStatus: 5 * 60 * 1000, // 5 min
       crossDomainSpecialTopicsQueueStatus: 5 * 60 * 1000, // 5 min
@@ -9317,6 +9321,77 @@ module.exports = {
           this.settings.cacheTtlMs.energySidecarRouteRegistryStatus,
           async () => ({
             ...buildEnergySidecarRouteRegistryStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- interconnectionReleaseFileStatus ---------------------------------
+    /**
+     * GET /api/dashboard/interconnection-release-file
+     *
+     * Read-only Koppelpunkt / Marktpartner / Zeitreihen Freigabeakte evidence.
+     * It exposes deterministic dossier rows and process-impact boundaries but
+     * never writes mappings, executes release workflows or triggers downstream
+     * MaKo/billing/settlement/tariff/device-control actions.
+     */
+    interconnectionReleaseFileStatus: {
+      rest: 'GET /interconnection-release-file',
+      params: {
+        caseId: { type: 'string', optional: true, min: 1 },
+        koppelpunktId: { type: 'string', optional: true, min: 1 },
+        marketPartnerId: { type: 'string', optional: true, min: 1 },
+        timeseriesId: { type: 'string', optional: true, min: 1 },
+        mappingVersion: { type: 'string', optional: true, min: 1 },
+        sourceSystem: { type: 'string', optional: true, min: 1 },
+        evidenceStatus: { type: 'string', optional: true, min: 1 },
+        approvalStatus: { type: 'string', optional: true, min: 1 },
+        owner: { type: 'string', optional: true, min: 1 },
+        reviewerRole: { type: 'string', optional: true, min: 1 },
+        affectedProcess: { type: 'string', optional: true, min: 1 },
+        nextChangeGate: { type: 'string', optional: true, min: 1 },
+        tenantId: { type: 'string', optional: true, min: 1 },
+        includeFallbacks: { type: 'boolean', optional: true, convert: true, default: false },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Koppelpunkt Freigabeakte -- read-only evidence/gate status',
+        description:
+          'Returns deterministic dossier-safe Freigabeakte rows for Koppelpunkt, Marktpartner and Zeitreihen mapping decisions. ' +
+          'The endpoint reports release status, evidence source/version, owner, downstream process impacts, missing evidence, positive follow-ups and no-call guards. ' +
+          'It is advisory/read-only and never writes mappings, executes Freigabe workflows, creates HITL tickets, sends mail/webhooks, calls external connectors, mutates Budibase tables, or performs MaKo/billing/settlement/tariff/device-control actions.',
+        parameters: [
+          { name: 'caseId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'koppelpunktId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'marketPartnerId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'timeseriesId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'mappingVersion', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'sourceSystem', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'evidenceStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'approvalStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'owner', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'affectedProcess', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'nextChangeGate', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'tenantId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'includeFallbacks', in: 'query', required: false, schema: { type: 'boolean' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only interconnection release-file evidence',
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const tenantId = params.tenantId || ctx.meta?.tenantId || 'public';
+        const cacheKey = `interconnection-release-file:${tenantId}:${JSON.stringify(params)}`;
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.interconnectionReleaseFileStatus,
+          async () => ({
+            ...buildInterconnectionReleaseFileStatus({ ...params, tenantId }),
             timestamp: new Date().toISOString(),
             _errors: [],
           })

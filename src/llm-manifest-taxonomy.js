@@ -148,6 +148,8 @@ const CAPABILITY_DOMAIN_MAP = {
   re4de_grid_fees: 'regulatory',
   water_pricing_governance: 'regulatory',
   grid_connection_commercial_gate: 'grid-planning',
+  // A2MDM mapping/release evidence is decision-governance unless a read/write asset store is added.
+  a2mdm: 'governance',
   // market communication/messaging evidence chain
   market_communication: 'market-data',
   // agent's own answer-evidence/dossier-quality infrastructure

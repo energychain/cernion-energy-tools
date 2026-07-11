@@ -2334,6 +2334,20 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasInterconnectionReleaseFileSignal =
+    /(koppelpunkt|marktpartner|zeitreihe|zeitreihen|mapping)/i.test(haystack) &&
+    /(freigabeakte|freigabe|release file|release-file|interconnection release)/i.test(haystack) &&
+    !/(mapping schreiben|mapping write|freigabe ausfuehren|freigabe ausführen|release execute|mako submit|billing release|settlement export|geraetesteuerung|gerätsteuerung|device-control|hitl create|workflow execute)/i.test(
+      haystack
+    );
+
+  if (hasInterconnectionReleaseFileSignal) {
+    const interconnectionReleaseCapability = findCapabilityByName('interconnection_release_file');
+    if (interconnectionReleaseCapability) {
+      return { capability: interconnectionReleaseCapability, score: 128, usedFallback: false };
+    }
+  }
+
   if (
     vdmiAssetValidationSignals.some((signal) => haystack.includes(signal)) ||
     hasVdmiAssetValidationCombo

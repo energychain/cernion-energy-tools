@@ -23269,6 +23269,127 @@
         ]
       }
     },
+    "/api/dashboard-api/interconnection-release-file": {
+      "get": {
+        "operationId": "dashboard-api_interconnectionReleaseFileStatus",
+        "summary": "Koppelpunkt Freigabeakte -- read-only evidence/gate status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only interconnection release-file evidence"
+          }
+        },
+        "description": "Returns deterministic dossier-safe Freigabeakte rows for Koppelpunkt, Marktpartner and Zeitreihen mapping decisions. The endpoint reports release status, evidence source/version, owner, downstream process impacts, missing evidence, positive follow-ups and no-call guards. It is advisory/read-only and never writes mappings, executes Freigabe workflows, creates HITL tickets, sends mail/webhooks, calls external connectors, mutates Budibase tables, or performs MaKo/billing/settlement/tariff/device-control actions.",
+        "parameters": [
+          {
+            "name": "caseId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "koppelpunktId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "marketPartnerId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "timeseriesId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mappingVersion",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sourceSystem",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "evidenceStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "approvalStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "owner",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "affectedProcess",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "nextChangeGate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "includeFallbacks",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ]
+      }
+    },
     "/api/dashboard-api/stadtwerk-mauer-administrator-inventory": {
       "get": {
         "operationId": "dashboard-api_stadtwerkMauerAdministratorInventoryStatus",
@@ -71915,6 +72036,127 @@
           },
           {
             "name": "requiredInput",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "includeFallbacks",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard/interconnection-release-file": {
+      "get": {
+        "operationId": "dashboard-api_interconnectionReleaseFileStatus",
+        "summary": "Koppelpunkt Freigabeakte -- read-only evidence/gate status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only interconnection release-file evidence"
+          }
+        },
+        "description": "Returns deterministic dossier-safe Freigabeakte rows for Koppelpunkt, Marktpartner and Zeitreihen mapping decisions. The endpoint reports release status, evidence source/version, owner, downstream process impacts, missing evidence, positive follow-ups and no-call guards. It is advisory/read-only and never writes mappings, executes Freigabe workflows, creates HITL tickets, sends mail/webhooks, calls external connectors, mutates Budibase tables, or performs MaKo/billing/settlement/tariff/device-control actions.",
+        "parameters": [
+          {
+            "name": "caseId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "koppelpunktId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "marketPartnerId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "timeseriesId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mappingVersion",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sourceSystem",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "evidenceStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "approvalStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "owner",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "affectedProcess",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "nextChangeGate",
             "in": "query",
             "required": false,
             "schema": {
