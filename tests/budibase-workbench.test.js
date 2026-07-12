@@ -2270,6 +2270,11 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
     'investment_owner_deadline_budget_gate_focus',
     'investment_owner_deadline_budget_gate_transfer_readiness',
     'investment_owner_deadline_budget_gate_no_call_guards',
+    'selected_case_context_binding',
+    'selected_case_read_model_bindings',
+    'selected_case_evidence_trace_artifacts',
+    'selected_case_next_gate_actions',
+    'selected_case_context_no_call_guards',
   ];
 
   it('renders the VDMI profile and synthetic event preview as query-backed sections', () => {
@@ -4586,6 +4591,159 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       expect.arrayContaining([
         expect.objectContaining({ boundary: 'mail.connector.ingest', status: 'not_called' }),
         expect.objectContaining({ boundary: 'suppliedInputOnly', status: 'true' }),
+      ])
+    );
+  });
+
+  it('adds a manifest-only selected-case context binding panel with scalar rows', () => {
+    const paths = new Set(
+      manifest.queries
+        .filter((query) =>
+          [
+            'getSelectedCaseContextBindingRows',
+            'getSelectedCaseReadModelBindingRows',
+            'getSelectedCaseEvidenceTraceArtifactRows',
+            'getSelectedCaseNextGateActionBindingRows',
+            'getSelectedCaseContextNoCallRows',
+          ].includes(query.name)
+        )
+        .map((query) => query.path)
+    );
+
+    expect(paths).toEqual(
+      new Set([
+        '/api/dashboard/stadtwerk-mauer-workbench-selected-target',
+        '/api/dashboard/stadtwerk-mauer-workbench-hub',
+        '/api/dashboard/stadtwerk-mauer-case-detail',
+        '/api/dashboard/stadtwerk-mauer-case-actions',
+      ])
+    );
+    expect(manifest.notes.join('\n')).toContain(
+      'no new backend endpoint, Capability Broker route or Hydration Registry rule'
+    );
+
+    const selectedTargetFixture = {
+      tenantId: 'stadtwerk-mauer',
+      caseId: 'smm-budibase-workbench',
+      requestedTargetId: 'selected-case-detail',
+      selectedTargetId: 'selected-case-detail',
+      selectedTitle: 'Selected Case Detail',
+      selectedRows: [{ valueLabel: 'Selected Case Detail' }],
+    };
+    const contextRows = runTransformer(
+      'getSelectedCaseContextBindingRows',
+      selectedTargetFixture
+    );
+    expectScalarRows(contextRows);
+    expect(contextRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'case_id',
+          value: 'smm-budibase-workbench',
+          role: 'ROLE_NETZPLANUNG',
+          seedId: 'stadtwerk-mauer-pv-missing-nap-v1',
+          sourceClass: 'selected_case_context_binding',
+        }),
+        expect.objectContaining({
+          rowKey: 'target',
+          value: 'selected-case-detail',
+        }),
+      ])
+    );
+
+    const bindingRows = runTransformer('getSelectedCaseReadModelBindingRows', {
+      caseId: 'smm-budibase-workbench',
+      targetRows: [
+        {
+          routeKey: 'selected-case-detail',
+          status: 'ready',
+        },
+      ],
+    });
+    expectScalarRows(bindingRows);
+    expect(bindingRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'case_detail',
+          queryName: 'getStadtwerkMauerCaseDetail',
+          safeNextAction: 'refresh_existing_cernion_read_query_only',
+        }),
+        expect.objectContaining({
+          rowKey: 'demo_raum_sync',
+          intentionallyUnavailable: 'only visible for canonical Blueprint-Pack matrix seeds',
+        }),
+      ])
+    );
+
+    const detailRows = runTransformer('getSelectedCaseEvidenceTraceArtifactRows', {
+      evidenceRows: [
+        {
+          evidenceId: 'napReference',
+          label: 'NAP reference',
+          status: 'missing',
+          enablesDossierAddition: 'show NAP reference evidence',
+        },
+      ],
+      traceRows: [{ traceId: 'trace:selected-case', status: 'available' }],
+      artifactRows: [{ artifactId: 'artifact:blueprint', status: 'available' }],
+    });
+    expectScalarRows(detailRows);
+    expect(detailRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: 'evidence', rowKey: 'napReference' }),
+        expect.objectContaining({ kind: 'trace', rowKey: 'trace:selected-case' }),
+        expect.objectContaining({ kind: 'artifact', rowKey: 'artifact:blueprint' }),
+      ])
+    );
+
+    const actionRows = runTransformer('getSelectedCaseNextGateActionBindingRows', {
+      nextGateRows: [
+        {
+          gateId: 'blueprint-verify',
+          label: 'Blueprint verify',
+          status: 'visible',
+          safeNextAction: 'refresh verify rows',
+        },
+      ],
+      actionRows: [
+        {
+          actionId: 'verify_blueprint_seed',
+          label: 'Verify Blueprint seed',
+          enabled: true,
+          enabledLabel: 'enabled_safe_verify',
+          riskClass: 'verify_only',
+        },
+      ],
+    });
+    expectScalarRows(actionRows);
+    expect(actionRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: 'next_gate', enabled: false }),
+        expect.objectContaining({
+          actionId: 'verify_blueprint_seed',
+          enabled: true,
+          riskClass: 'verify_only',
+        }),
+      ])
+    );
+
+    const guardRows = runTransformer('getSelectedCaseContextNoCallRows', {
+      sourceActions: { notCalled: ['personal-agent.execute'] },
+      forbiddenActionRows: [{ boundary: 'budibase.table.write' }],
+    });
+    expectScalarRows(guardRows);
+    expect(guardRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          boundary: 'personal-agent.execute',
+          status: 'not_called',
+          disabled: true,
+        }),
+        expect.objectContaining({
+          boundary: 'budibase.table.write',
+          status: 'not_called',
+          disabled: true,
+        }),
       ])
     );
   });

@@ -52,6 +52,7 @@ The workbench renders:
 - Investment Owner-Frist-Budget Gate rows for `stadtwerk-mauer-investment-owner-deadline-budget-gate-v1`, composed from `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify`, `GET /api/dashboard/investment-owner-deadline-budget-gate` and `GET /api/dashboard/stadtwerk-mauer-transfer-readiness`
 - Direct Marketer Demo-Raum Sync-Proof rows for `stadtwerk-mauer-direct-marketer-risk-gate-v1`, composed from `GET /api/dashboard/stadtwerk-mauer-landing-registry-draft`, `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify`, `GET /api/dashboard/stadtwerk-mauer-transfer-readiness` and `GET /api/dashboard/direct-marketer-risk-gate`
 - Koppelpunkt Freigabeakte rows for `ROLE_MARKTKOMMUNIKATION`, composed from the existing read-only `GET /api/dashboard/interconnection-release-file` brick with explicit synthetic default parameters from the #419 smoke
+- Selected-case context binding rows for `ROLE_NETZPLANUNG`, defaulting to `tenantId=stadtwerk-mauer`, `caseId=smm-budibase-workbench`, `target=selected-case-detail` and `seedId=stadtwerk-mauer-pv-missing-nap-v1`, composed from existing selected-target, Hub, case-detail, case-actions, Blueprint-Pack verify and transfer-readiness read models
 - Transfer Readiness rows from `GET /api/dashboard/stadtwerk-mauer-transfer-readiness`, separating public context, synthetic seed data, sandbox runtime artifacts, tenant parameters, reusable Blueprint/Workbench elements and blocked production boundaries
 - a scope-protected action query for `POST /api/operations-runbook/stadtwerk-mauer/e2e-smoke`
 
@@ -187,6 +188,14 @@ safe-next-gate and no-call rows only. It must not write A2MDM or mapping state, 
 Freigabe workflow, submit MaKo messages, run billing/settlement/tariff/device-control actions,
 call external connectors, write arbitrary Budibase tables, mutate production tenants or use
 Personal-Agent shortcuts.
+The Selected-Case Context Binding panel is generated Budibase manifest composition, not a new
+Cernion service. It binds the synthetic default Stadtwerk Mauer case to existing read-only
+dashboard bricks and renders scalar context, bound read-model, evidence/trace/artifact,
+next-gate/action and no-call guard rows. Because this slice introduces no new backend capability,
+it does not add a Capability Broker route or Hydration Registry rule. Budibase may refresh the
+existing read queries, but it must not persist selection state, import/reset seeds, write
+Landing-Registry or Cernion tables, execute Rundeck, create HITL/workflow actions, call external
+connectors, mutate production tenants or use Personal-Agent shortcuts.
 The selected-target query is read-only: it maps a supported Hub or role target to scalar selected,
 focus and helper rows so Budibase can visibly focus a section without owning persistent state or
 mutating Cernion tenant data.

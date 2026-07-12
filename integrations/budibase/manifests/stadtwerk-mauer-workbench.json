@@ -9290,6 +9290,154 @@
           "type": "string"
         }
       }
+    },
+    {
+      "name": "getSelectedCaseContextBindingRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-workbench-selected-target",
+      "queryString": "tenantId={{tenantId}}&caseId={{caseId}}&targetId={{targetId}}",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "caseId",
+          "default": "smm-budibase-workbench"
+        },
+        {
+          "name": "targetId",
+          "default": "selected-case-detail"
+        }
+      ],
+      "transformer": "const selected=(data.selectedRows||[])[0]||{}; const rows=[['tenant_id','Tenant','tenantId',data.tenantId||'stadtwerk-mauer','public_context_layer'],['case_id','Selected case','caseId',data.caseId||'smm-budibase-workbench','synthetic_tenant_seed'],['target','Selected target','target',data.selectedTargetId||data.requestedTargetId||'selected-case-detail','synthetic_tenant_seed'],['role','Acceptance role','role','ROLE_NETZPLANUNG','synthetic_tenant_seed'],['seed_id','Blueprint seed','seedId','stadtwerk-mauer-pv-missing-nap-v1','synthetic_tenant_seed'],['data_class','Data class','dataClass','public_context_layer + synthetic_tenant_seed + sandbox_runtime_artifact','renderer_binding_metadata'],['source_class','Source class','sourceClass','generated_budibase_manifest_query_composition','renderer_binding_metadata'],['selected_title','Selected title','selectedTitle',data.selectedTitle||selected.valueLabel||'Selected Case Detail','renderer_binding_metadata']]; return rows.map(([rowKey,label,field,value,dataClass])=>({rowKey,renderTarget:'budibase:stadtwerk-mauer-workbench:selected-case-context-binding-panel',label,field,value:String(value||''),status:'bound',caseId:String(data.caseId||'smm-budibase-workbench'),role:'ROLE_NETZPLANUNG',seedId:'stadtwerk-mauer-pv-missing-nap-v1',dataClass,sourceClass:'selected_case_context_binding'}))",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "renderTarget": { "type": "string" },
+        "label": { "type": "string" },
+        "field": { "type": "string" },
+        "value": { "type": "string" },
+        "status": { "type": "string" },
+        "caseId": { "type": "string" },
+        "role": { "type": "string" },
+        "seedId": { "type": "string" },
+        "dataClass": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getSelectedCaseReadModelBindingRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-workbench-hub",
+      "queryString": "tenantId={{tenantId}}&caseId={{caseId}}",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "caseId",
+          "default": "smm-budibase-workbench"
+        }
+      ],
+      "transformer": "const targetRows=data.targetRows||[]; const targetMap=new Map(targetRows.map((row)=>[row.routeKey||row.targetId||row.sectionKey,row])); const planned=[['selected_target','Selected target','getStadtwerkMauerWorkbenchSelectedTarget','selected-case-detail'],['case_detail','Case detail and evidence','getStadtwerkMauerCaseDetail','selected-case-detail'],['case_actions','Safe action readback','getStadtwerkMauerCaseActions','selected-case-actions'],['blueprint_verify','Blueprint-Pack verify','getVdmiBlueprintPackVerify','blueprint-pack'],['transfer_readiness','Transfer readiness','getStadtwerkMauerTransferReadinessSummaryRows','transfer-readiness'],['grid_planning_detail','Grid-planning selected item','getStadtwerkMauerGridPlanningSelectedItemDetail','grid-planning'],['sales_briefing','Sales briefing','getStadtwerkMauerSalesWorkbenchBriefing','sales-workbench'],['demo_raum_sync','Demo-Raum sync readback','getVdmiBlueprintPackVerify','blueprint-pack']]; return planned.map(([rowKey,label,queryName,routeKey])=>{const match=targetMap.get(routeKey)||{}; const available=rowKey==='demo_raum_sync'?'available_when_seed_has_canonical_matrix_status':(match.status||match.readinessLabel||'bound_to_existing_read_model'); return {rowKey,renderTarget:'budibase:stadtwerk-mauer-workbench:selected-case-context-binding-panel',label,queryName,targetRoute:routeKey,status:String(available),selectedCaseId:String(data.caseId||'smm-budibase-workbench'),role:'ROLE_NETZPLANUNG',safeNextAction:'refresh_existing_cernion_read_query_only',intentionallyUnavailable:rowKey==='demo_raum_sync'?'only visible for canonical Blueprint-Pack matrix seeds':'',sourceClass:'selected_case_read_model_binding'};})",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "renderTarget": { "type": "string" },
+        "label": { "type": "string" },
+        "queryName": { "type": "string" },
+        "targetRoute": { "type": "string" },
+        "status": { "type": "string" },
+        "selectedCaseId": { "type": "string" },
+        "role": { "type": "string" },
+        "safeNextAction": { "type": "string" },
+        "intentionallyUnavailable": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getSelectedCaseEvidenceTraceArtifactRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-case-detail",
+      "queryString": "tenantId={{tenantId}}&caseId={{caseId}}",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "caseId",
+          "default": "smm-budibase-workbench"
+        }
+      ],
+      "transformer": "const flatten=(rows,kind)=>rows.map((row,index)=>({rowKey:String(row.rowKey||row.evidenceId||row.traceId||row.artifactId||kind+'_'+(index+1)),renderTarget:'budibase:stadtwerk-mauer-workbench:selected-case-context-binding-panel',kind,label:String(row.label||row.title||row.evidenceId||row.traceId||row.artifactId||kind),status:String(row.status||row.state||row.availability||'available'),sourceRef:String(row.sourceRef||row.source||row.id||''),enablesDossierAddition:String(row.enablesDossierAddition||row.followUp||''),safeNextAction:'inspect_selected_case_readback_only',sourceClass:'selected_case_'+kind+'_binding'})); const evidence=flatten(data.evidenceRows||data.requiredEvidenceRows||[], 'evidence'); const traces=flatten(data.traceRows||data.traces||[], 'trace'); const artifacts=flatten(data.artifactRows||data.artifacts||[], 'artifact'); const rows=evidence.concat(traces,artifacts); return rows.length?rows:[{rowKey:'selected_case_readback_unavailable',renderTarget:'budibase:stadtwerk-mauer-workbench:selected-case-context-binding-panel',kind:'unavailable',label:'Selected-case evidence, trace or artifact rows are not returned by this read model yet',status:'intentionally_unavailable',sourceRef:'',enablesDossierAddition:'add selected-case evidence, trace or artifact readback once the read model exposes scalar rows',safeNextAction:'keep_other_bound_read_models_visible',sourceClass:'selected_case_unavailable_binding'}]",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "renderTarget": { "type": "string" },
+        "kind": { "type": "string" },
+        "label": { "type": "string" },
+        "status": { "type": "string" },
+        "sourceRef": { "type": "string" },
+        "enablesDossierAddition": { "type": "string" },
+        "safeNextAction": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getSelectedCaseNextGateActionBindingRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-case-actions",
+      "queryString": "tenantId={{tenantId}}&caseId={{caseId}}",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "caseId",
+          "default": "smm-budibase-workbench"
+        }
+      ],
+      "transformer": "const next=(data.nextGateRows||data.nextGates||[]).map((row,index)=>({rowKey:String(row.rowKey||row.gateId||'next_gate_'+(index+1)),renderTarget:'budibase:stadtwerk-mauer-workbench:selected-case-context-binding-panel',kind:'next_gate',label:String(row.label||row.title||row.gateId||'Next visible gate'),status:String(row.status||row.state||'visible'),actionId:'',enabled:false,enabledLabel:'read_only_gate',riskClass:'read_only_workbench_projection',safeNextAction:String(row.safeNextAction||row.enablesDossierAddition||'inspect_next_gate_read_model'),sourceClass:'selected_case_next_gate_binding'})); const actions=(data.actionRows||data.buttonRows||data.actions||[]).map((row,index)=>({rowKey:String(row.actionId||row.rowKey||'safe_action_'+(index+1)),renderTarget:'budibase:stadtwerk-mauer-workbench:selected-case-context-binding-panel',kind:'safe_read_or_verify_action',label:String(row.label||row.title||row.actionId||'Safe read action'),status:String(row.status||'available'),actionId:String(row.actionId||row.rowKey||''),enabled:Boolean(row.enabled),enabledLabel:String(row.enabledLabel|| (row.enabled?'enabled_safe_read':'disabled_guarded')),riskClass:String(row.riskClass||row.safety||'read_only_or_verify_only'),safeNextAction:String(row.safeNextAction||row.expectedResult||'refresh_existing_read_query_only'),sourceClass:'selected_case_action_binding'})); return next.concat(actions)",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "renderTarget": { "type": "string" },
+        "kind": { "type": "string" },
+        "label": { "type": "string" },
+        "status": { "type": "string" },
+        "actionId": { "type": "string" },
+        "enabled": { "type": "boolean" },
+        "enabledLabel": { "type": "string" },
+        "riskClass": { "type": "string" },
+        "safeNextAction": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getSelectedCaseContextNoCallRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-case-actions",
+      "queryString": "tenantId={{tenantId}}&caseId={{caseId}}",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "caseId",
+          "default": "smm-budibase-workbench"
+        }
+      ],
+      "transformer": "const notCalled=((data.sourceActions||{}).notCalled)||[]; const forbidden=(data.forbiddenActionRows||data.guardRows||[]).map((row)=>row.boundary||row.action||row.actionId).filter(Boolean); const fallback=['budibase.table.write','tenant.provision','seed.import','seed.reset','landing-registry.write','cernion.de.publish','mako.submit','billing.release','settlement.prepareBilling','tariff.mutate','device-control.execute','smgw-cls.execute','hitl.create','workflow.execute','external.connector.call','rundeck.execute','personal-agent.execute','production.mutate']; const unique=[...new Set(notCalled.concat(forbidden).concat(fallback))]; return unique.map((action,index)=>({rowKey:'selected_case_no_call_'+(index+1)+'_'+String(action).replace(/[^a-zA-Z0-9]+/g,'_'),renderTarget:'budibase:stadtwerk-mauer-workbench:selected-case-context-binding-panel',boundary:String(action),status:'not_called',disabled:true,safeAlternative:'render_or_refresh_existing_read_only_cernion_query_only',sourceClass:'selected_case_context_no_call_guard'}))",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "renderTarget": { "type": "string" },
+        "boundary": { "type": "string" },
+        "status": { "type": "string" },
+        "disabled": { "type": "boolean" },
+        "safeAlternative": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
     }
   ],
   "sections": [
@@ -10446,6 +10594,36 @@
       "tableTitle": "Forbidden and Not-Called Boundaries"
     },
     {
+      "id": "selected_case_context_binding",
+      "title": "Selected-Case Context Binding",
+      "queryName": "getSelectedCaseContextBindingRows",
+      "tableTitle": "Selected Context"
+    },
+    {
+      "id": "selected_case_read_model_bindings",
+      "title": "Selected-Case Read Model Bindings",
+      "queryName": "getSelectedCaseReadModelBindingRows",
+      "tableTitle": "Bound Read Models"
+    },
+    {
+      "id": "selected_case_evidence_trace_artifacts",
+      "title": "Selected-Case Evidence / Trace / Artifacts",
+      "queryName": "getSelectedCaseEvidenceTraceArtifactRows",
+      "tableTitle": "Evidence, Trace and Artifact Readback"
+    },
+    {
+      "id": "selected_case_next_gate_actions",
+      "title": "Selected-Case Next Gate and Safe Actions",
+      "queryName": "getSelectedCaseNextGateActionBindingRows",
+      "tableTitle": "Next Gate and Safe Read Actions"
+    },
+    {
+      "id": "selected_case_context_no_call_guards",
+      "title": "Selected-Case Context No-Call Guards",
+      "queryName": "getSelectedCaseContextNoCallRows",
+      "tableTitle": "Disabled Consequential Boundaries"
+    },
+    {
       "id": "e2e",
       "title": "E2E Demo Status",
       "queryName": "getStadtwerkMauerE2EProcessDemo",
@@ -10493,6 +10671,8 @@
     "Grid Connection Transformation Workbench panel binds the #404 Blueprint-Pack seed stadtwerk-mauer-grid-connection-transformation-gate-v1 to existing read-only verify, transfer-readiness and grid-connection-transformation-gate dashboard bricks; Budibase renders scalar NAP/MaLo, division, transformation option, data-quality, investment/decommission path, owner/next-action, evidence, sync and no-call rows only.",
     "Budibase renders the workbench; Cernion remains the system of record and command gate.",
     "Koppelpunkt Freigabeakte binds to the existing interconnection-release-file read model with explicit synthetic default parameters for ROLE_MARKTKOMMUNIKATION.",
-    "Koppelpunkt Freigabeakte rows stay scalar/generated: Budibase renders summary, mapping subject, evidence source/version, approval owner/status, process-impact, missing-evidence, next-gate and no-call guard rows only, without A2MDM writes, release workflow execution, MaKo, billing, settlement, tariff, device-control, Budibase table writes or Personal-Agent shortcuts."
+    "Koppelpunkt Freigabeakte rows stay scalar/generated: Budibase renders summary, mapping subject, evidence source/version, approval owner/status, process-impact, missing-evidence, next-gate and no-call guard rows only, without A2MDM writes, release workflow execution, MaKo, billing, settlement, tariff, device-control, Budibase table writes or Personal-Agent shortcuts.",
+    "Selected-Case Context Binding is manifest-only composition over existing read-only Stadtwerk Mauer dashboard bricks; no new backend endpoint, Capability Broker route or Hydration Registry rule is introduced.",
+    "Selected-Case Context Binding defaults to ROLE_NETZPLANUNG, case smm-budibase-workbench and seed stadtwerk-mauer-pv-missing-nap-v1, then renders selected context, read-model availability, evidence/trace/artifact readback, next-gate/action binding and no-call guard rows as scalar Budibase cells only."
   ]
 }
