@@ -1051,6 +1051,82 @@ describe('API Gateway Service', () => {
       });
     });
 
+    it('should preserve authenticated tenant context on the /v1 chat completions facade', async () => {
+      const v1Route = ApiService.settings.routes.find((r) => r.path === '/v1');
+      const chunks = [];
+      const brokerCall = jest.fn(async (action, params, opts) => {
+        if (action === 'token-manager.verify') {
+          expect(params).toMatchObject({
+            token: 'ck_route_success',
+            method: 'POST',
+            path: '/v1/chat/completions',
+            trackUsage: true,
+          });
+          return {
+            valid: true,
+            tokenId: 'token-421',
+            name: 'FacadeSmoke',
+            scope: 'full-access',
+            scopes: ['full-access'],
+            tenantId: 'tenant-route-421',
+            userId: 'user-route-421',
+          };
+        }
+        if (action === 'openai-compatible.chatCompletions') {
+          expect(opts.meta).toMatchObject({
+            tenantId: 'tenant-route-421',
+            authUser: {
+              authType: 'legacy-token',
+              userId: 'user-route-421',
+              tenantId: 'tenant-route-421',
+            },
+          });
+          return {
+            id: 'chatcmpl_test',
+            object: 'chat.completion',
+            created: 1,
+            model: 'cernion-agent-mvp',
+            choices: [{ index: 0, message: { role: 'assistant', content: 'OK' } }],
+            usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+          };
+        }
+        throw new Error(`Unexpected action ${action}`);
+      });
+      const res = {
+        statusCode: null,
+        headers: {},
+        setHeader(name, value) {
+          this.headers[name] = value;
+        },
+        writeHead(status) {
+          this.statusCode = status;
+        },
+        end(payload) {
+          chunks.push(payload);
+        },
+      };
+
+      await v1Route.aliases['POST /chat/completions'].call(
+        { broker: { call: brokerCall, emit: jest.fn() }, logger: { debug: jest.fn() } },
+        {
+          headers: { authorization: 'Bearer ck_route_success' },
+          method: 'POST',
+          body: { model: 'cernion-agent-mvp', messages: [{ role: 'user', content: 'Hallo' }] },
+        },
+        res
+      );
+
+      expect(res.statusCode).toBe(200);
+      expect(JSON.parse(chunks.join('')).choices[0].message.content).toBe('OK');
+      expect(brokerCall).toHaveBeenCalledWith(
+        'openai-compatible.chatCompletions',
+        expect.objectContaining({ model: 'cernion-agent-mvp' }),
+        expect.objectContaining({
+          meta: expect.objectContaining({ tenantId: 'tenant-route-421' }),
+        })
+      );
+    });
+
     it('should extract token from URL params with precedence over bearer token', async () => {
       const apiRoute = ApiService.settings.routes.find((r) => r.path === '/api');
       const ctx = { meta: {} };
