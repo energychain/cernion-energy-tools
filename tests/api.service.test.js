@@ -13,6 +13,7 @@ const NbpMonitorService = require('../services/nbp-monitor.service');
 const KnowledgeRagService = require('../services/knowledge-rag.service');
 const FinanceAgentService = require('../services/finance-agent.service');
 const PersonalAgentService = require('../services/personal-agent.service');
+const OpenAICompatibleService = require('../services/openai-compatible.service');
 const CommunityService = require('../services/community.service');
 const AgentPersonaService = require('../services/agent-persona.service');
 const ObservabilityService = require('../services/observability.service');
@@ -79,6 +80,7 @@ describe('API Gateway Service', () => {
       },
     });
     broker.createService(PersonalAgentService);
+    broker.createService(OpenAICompatibleService);
     broker.createService({
       ...AgentPersonaService,
       settings: {
@@ -292,6 +294,15 @@ describe('API Gateway Service', () => {
       );
     });
 
+    it('should document the OpenAI-compatible chat completions facade', async () => {
+      const schema = await broker.call('api.openapi');
+
+      expect(schema.tags.some((tag) => tag.name === 'OpenAI Compatible')).toBe(true);
+      expect(schema.paths['/v1/chat/completions']).toBeDefined();
+      expect(schema.paths['/v1/chat/completions'].post.operationId).toBe('createChatCompletion');
+      expect(schema.paths['/v1/chat/completions'].post.tags).toContain('OpenAI Compatible');
+    });
+
     it('should include CYA, Cookbook, Dashboard API, and MaStR Quality routes', async () => {
       const schema = await broker.call('api.openapi');
 
@@ -301,7 +312,9 @@ describe('API Gateway Service', () => {
       expect(schema.paths['/api/dashboard/redispatch-metering-cockpit']).toBeDefined();
       expect(schema.paths['/api/dashboard/load-profile-stream-monitor']).toBeDefined();
       expect(schema.paths['/api/dashboard/controllability-asset-handover']).toBeDefined();
-      expect(schema.paths['/api/dashboard/coordination-meaning-preservation-profile']).toBeDefined();
+      expect(
+        schema.paths['/api/dashboard/coordination-meaning-preservation-profile']
+      ).toBeDefined();
       expect(schema.paths['/api/dashboard/cost-review-committee-status']).toBeDefined();
       expect(schema.paths['/api/dashboard/cross-system-variance-matrix']).toBeDefined();
       expect(schema.paths['/api/dashboard/regulatory-signal-process-translator']).toBeDefined();
@@ -322,7 +335,9 @@ describe('API Gateway Service', () => {
       expect(schema.paths['/api/dashboard/redispatch-metering-cockpit'].get).toBeDefined();
       expect(schema.paths['/api/dashboard/load-profile-stream-monitor'].get).toBeDefined();
       expect(schema.paths['/api/dashboard/controllability-asset-handover'].get).toBeDefined();
-      expect(schema.paths['/api/dashboard/coordination-meaning-preservation-profile'].get).toBeDefined();
+      expect(
+        schema.paths['/api/dashboard/coordination-meaning-preservation-profile'].get
+      ).toBeDefined();
       expect(schema.paths['/api/dashboard/gremiencoach-workbook-readiness'].get).toBeDefined();
       expect(schema.paths['/api/dashboard/decision-readiness-matrix'].get).toBeDefined();
       expect(schema.paths['/api/dashboard/cross-system-variance-matrix'].get).toBeDefined();
@@ -993,6 +1008,47 @@ describe('API Gateway Service', () => {
       const apiRoute = ApiService.settings.routes.find((r) => r.path === '/api');
       expect(apiRoute.onError).toBeDefined();
       expect(typeof apiRoute.onError).toBe('function');
+    });
+
+    it('should expose /v1/chat/completions outside the /api route', () => {
+      const v1Route = ApiService.settings.routes.find((r) => r.path === '/v1');
+      expect(v1Route).toBeDefined();
+      expect(v1Route.aliases['POST /chat/completions']).toBeInstanceOf(Function);
+      expect(v1Route.bodyParsers.json.limit).toBe('1MB');
+    });
+
+    it('should return OpenAI-style auth errors on the /v1 chat completions facade', async () => {
+      const v1Route = ApiService.settings.routes.find((r) => r.path === '/v1');
+      const chunks = [];
+      const res = {
+        statusCode: null,
+        headers: {},
+        setHeader(name, value) {
+          this.headers[name] = value;
+        },
+        writeHead(status) {
+          this.statusCode = status;
+        },
+        end(payload) {
+          chunks.push(payload);
+        },
+      };
+
+      await v1Route.aliases['POST /chat/completions'].call(
+        { broker, logger: { debug: jest.fn(), warn: jest.fn() } },
+        {
+          headers: {},
+          method: 'POST',
+          body: { model: 'cernion-agent-mvp', messages: [{ role: 'user', content: 'Hallo' }] },
+        },
+        res
+      );
+
+      expect(res.statusCode).toBe(401);
+      expect(JSON.parse(chunks.join('')).error).toMatchObject({
+        type: 'authentication_error',
+        code: 'authentication_required',
+      });
     });
 
     it('should extract token from URL params with precedence over bearer token', async () => {

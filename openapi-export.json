@@ -73,6 +73,10 @@
       "description": "Interactive personal chat orchestration (v0.52). Builds deterministic L0-L4 context stacks with strict token budgeting. Layer 4 is transient and never persisted."
     },
     {
+      "name": "OpenAI Compatible",
+      "description": "Inbound OpenAI-compatible facade for authenticated Cernion advisory completions."
+    },
+    {
       "name": "Actor Personas",
       "description": "Tenant-scoped actor persona registry for HITL routing, notification ownership, and persona-aware inbox delivery."
     },
@@ -61832,6 +61836,128 @@
             }
           }
         ]
+      }
+    },
+    "/v1/chat/completions": {
+      "post": {
+        "operationId": "createChatCompletion",
+        "summary": "Create a non-streaming OpenAI-compatible Cernion chat completion",
+        "tags": [
+          "OpenAI Compatible"
+        ],
+        "responses": {
+          "200": {
+            "description": "OpenAI-compatible chat completion response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "object",
+                    "created",
+                    "model",
+                    "choices",
+                    "usage"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "object": {
+                      "type": "string",
+                      "enum": [
+                        "chat.completion"
+                      ]
+                    },
+                    "created": {
+                      "type": "integer"
+                    },
+                    "model": {
+                      "type": "string"
+                    },
+                    "choices": {
+                      "type": "array"
+                    },
+                    "usage": {
+                      "type": "object"
+                    },
+                    "cernion": {
+                      "type": "object",
+                      "additionalProperties": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Inbound OpenAI-compatible facade over existing authenticated Cernion advisory actions. It supports only non-streaming chat completions and treats system/developer messages as prompt context, not authorization.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "examples": {
+                "minimal": {
+                  "value": {
+                    "model": "cernion-agent-mvp",
+                    "messages": [
+                      {
+                        "role": "user",
+                        "content": "Welche Cernion Evidenz ist fuer diesen Vorgang relevant?"
+                      }
+                    ]
+                  }
+                }
+              },
+              "schema": {
+                "type": "object",
+                "required": [
+                  "messages"
+                ],
+                "properties": {
+                  "model": {
+                    "type": "string",
+                    "default": "cernion-agent-mvp"
+                  },
+                  "messages": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "role",
+                        "content"
+                      ],
+                      "properties": {
+                        "role": {
+                          "type": "string"
+                        },
+                        "content": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "temperature": {
+                    "type": "number"
+                  },
+                  "max_tokens": {
+                    "type": "integer"
+                  },
+                  "metadata": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "stream": {
+                    "type": "boolean",
+                    "default": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-ui-page": "agent"
       }
     },
     "/api/openapi.json": {

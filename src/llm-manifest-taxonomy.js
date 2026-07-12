@@ -238,6 +238,7 @@ const OPENAPI_TAG_DOMAIN_MAP = {
   'OEP (Open Energy Platform)': 'market-data',
   'OSM Geo (OpenStreetMap)': 'grid-ops',
   'Personal Agent': 'platform',
+  'OpenAI Compatible': 'platform',
   Presentation: 'platform',
   'Query Tools': 'platform',
   Copilot: 'platform',
