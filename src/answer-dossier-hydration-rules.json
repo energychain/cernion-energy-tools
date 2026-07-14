@@ -9197,5 +9197,84 @@
     "evidenceQuality": "validated",
     "timeoutMs": 7000,
     "sourceIssue": 386
+  },
+  {
+    "id": "dashboard-api.a2mdmDecisionObjectStatus",
+    "action": "dashboard-api.a2mdmDecisionObjectStatus",
+    "label": "A2MDM Decision Object Meaning Preservation",
+    "description": "Read-only A2MDM decision-object projection for meaning-preserving handover context.",
+    "intents": [
+      "a2mdm_decision_object_meaning_preservation",
+      "a2mdm_decision_object",
+      "meaning_preserving_decision_object"
+    ],
+    "safety": {
+      "readOnly": true,
+      "allowsMutation": false,
+      "hitlRequired": false,
+      "consequential": false
+    },
+    "paramTemplate": {
+      "caseId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:caseId|case-id|case|fall)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      },
+      "subject": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:subject|gegenstand)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      },
+      "ownerRole": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:ownerRole|owner|rolle)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      },
+      "nextGate": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:nextGate|next-gate|gate)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["capabilityKey", "dossierEvidence.capabilityKey"], "label": "Capability", "maxLen": 120 },
+        { "paths": ["status", "dossierEvidence.status"], "label": "Status", "maxLen": 120 },
+        { "paths": ["decisionObjectId", "dossierEvidence.decisionObjectId"], "label": "Decision Object", "maxLen": 140 },
+        { "paths": ["subject", "dossierEvidence.decisionRows.0.value"], "label": "Subject", "maxLen": 160 },
+        { "paths": ["businessIntent", "dossierEvidence.decisionRows.1.value"], "label": "Business Intent", "maxLen": 160 },
+        { "paths": ["technicalConstraint", "dossierEvidence.decisionRows.2.value"], "label": "Technical Constraint", "maxLen": 160 },
+        { "paths": ["regulatoryReference", "dossierEvidence.decisionRows.3.value"], "label": "Regulatory Reference", "maxLen": 140 },
+        { "paths": ["evidenceSource", "dossierEvidence.decisionRows.4.value"], "label": "Evidence Source", "maxLen": 140 },
+        { "paths": ["ownerRole", "dossierEvidence.decisionRows.5.value"], "label": "Owner", "maxLen": 120 },
+        { "paths": ["riskLevel", "dossierEvidence.decisionRows.6.value"], "label": "Risk", "maxLen": 80 },
+        { "paths": ["decisionThreshold", "dossierEvidence.decisionRows.7.value"], "label": "Threshold", "maxLen": 160 },
+        { "paths": ["nextGate", "dossierEvidence.decisionRows.8.value"], "label": "Next Gate", "maxLen": 120 },
+        { "paths": ["missingInputs.0.missingDataPoint", "dossierEvidence.missingInputs.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 120 },
+        { "paths": ["positiveFollowUps.0.enablesDossierAddition", "dossierEvidence.positiveFollowUps.0.enablesDossierAddition"], "label": "Positive Follow-up", "maxLen": 180 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 423
   }
 ]

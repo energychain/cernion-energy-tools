@@ -6662,6 +6662,67 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  a2mdm_decision_object_meaning_preservation: {
+    sources: [
+      {
+        id: 'business_intent',
+        label: 'Business intent / kaufmaennische Absicht',
+        resolvedBy: ['dashboard-api.a2mdmDecisionObjectStatus', 'vdmi.dossier'],
+        contextKeys: ['businessIntent'],
+        optional: false,
+      },
+      {
+        id: 'technical_constraint',
+        label: 'Technische Restriktion',
+        resolvedBy: ['dashboard-api.a2mdmDecisionObjectStatus', 'vdmi.dossier'],
+        contextKeys: ['technicalConstraint'],
+        optional: false,
+      },
+      {
+        id: 'regulatory_reference',
+        label: 'Regulierungsbezug',
+        resolvedBy: ['dashboard-api.a2mdmDecisionObjectStatus', 'vdmi.dossier'],
+        contextKeys: ['regulatoryReference'],
+        optional: false,
+      },
+      {
+        id: 'evidence_source',
+        label: 'Evidenzquelle / Provenienz',
+        resolvedBy: ['dashboard-api.a2mdmDecisionObjectStatus', 'vdmi.dossier'],
+        contextKeys: ['evidenceSource'],
+        optional: false,
+      },
+      {
+        id: 'owner_role',
+        label: 'Owner role',
+        resolvedBy: ['dashboard-api.a2mdmDecisionObjectStatus', 'vdmi.dossier'],
+        contextKeys: ['ownerRole'],
+        optional: false,
+      },
+      {
+        id: 'risk_level',
+        label: 'Risiko-Level',
+        resolvedBy: ['dashboard-api.a2mdmDecisionObjectStatus', 'vdmi.dossier'],
+        contextKeys: ['riskLevel'],
+        optional: false,
+      },
+      {
+        id: 'decision_threshold',
+        label: 'Entscheidungsschwelle',
+        resolvedBy: ['dashboard-api.a2mdmDecisionObjectStatus', 'vdmi.dossier'],
+        contextKeys: ['decisionThreshold'],
+        optional: false,
+      },
+      {
+        id: 'next_gate',
+        label: 'Naechstes Gate',
+        resolvedBy: ['dashboard-api.a2mdmDecisionObjectStatus', 'vdmi.dossier'],
+        contextKeys: ['nextGate'],
+        optional: false,
+      },
+    ],
+  },
+
   decision_readiness_matrix: {
     sources: [
       {

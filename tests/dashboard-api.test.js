@@ -2305,6 +2305,71 @@ describe('dashboard-api.service', () => {
       });
     });
 
+    // -- a2mdmDecisionObjectStatus ----------------------------------------
+
+    describe('a2mdmDecisionObjectStatus', () => {
+      it('reports missing decision-object context without triggering downstream actions', async () => {
+        const result = await broker.call('dashboard-api.a2mdmDecisionObjectStatus', {
+          caseId: 'case-423',
+          subject: 'Flexible Netzanschluss Freigabe',
+          technicalConstraint: 'transformer-limit',
+          regulatoryReference: 'EnWG-14a-context',
+        });
+
+        expect(result.capabilityKey).toBe('a2mdm_decision_object_meaning_preservation');
+        expect(result.status).toBe('needs_decision_context');
+        expect(result.safety).toBe('read_only_decision_context_projection');
+        expect(result.decisionRows.every((row) => row.scalar === true)).toBe(true);
+        expect(result.missingInputs.map((gap) => gap.missingDataPoint)).toEqual(
+          expect.arrayContaining([
+            'business_intent',
+            'evidence_source',
+            'owner_role',
+            'risk_level',
+            'decision_threshold',
+            'next_gate',
+          ])
+        );
+        expect(result.positiveFollowUps[0].category).toBe(
+          'a2mdm_decision_object_meaning_preservation'
+        );
+        expect(result.sourceActions.notCalled).toEqual(
+          expect.arrayContaining([
+            'a2mdm.persist',
+            'budibase.table.write',
+            'mako.dispatch',
+            'billing.release',
+            'settlement.prepareBilling',
+            'device-control.execute',
+            'hitl.create',
+            'external.connector.call',
+            'personal-agent.execute',
+          ])
+        );
+      });
+
+      it('returns decision_context_preserved for a complete synthetic decision object', async () => {
+        const result = await broker.call('dashboard-api.a2mdmDecisionObjectStatus', {
+          caseId: 'case-423-complete',
+          subject: 'Stadtwerk Mauer flexible connection release',
+          businessIntent: 'reserve-capacity-after-evidence-review',
+          technicalConstraint: 'nvp-capacity-window-q3',
+          regulatoryReference: 'EnWG-14a-context',
+          evidenceSource: 'vdmi:release-file-seed-v1',
+          ownerRole: 'Netzplanung',
+          riskLevel: 'medium',
+          decisionThreshold: 'all-release-evidence-present',
+          nextGate: 'human-release-review',
+        });
+
+        expect(result.status).toBe('decision_context_preserved');
+        expect(result.missingInputs).toEqual([]);
+        expect(result.dossierEvidence.dossierFacts).toContain('Open missing inputs: 0');
+        expect(result.dossierEvidence.dossierFacts).toContain('Owner: Netzplanung');
+        expect(result.sourceActions.notCalled).toContain('landing-registry.publish');
+      });
+    });
+
     // ── gremiencoachWorkbookReadinessStatus ────────────────────────────────
 
     describe('gremiencoachWorkbookReadinessStatus', () => {

@@ -949,6 +949,22 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes A2MDM decision-object prompts to the read-only meaning-preserving projection', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Erstelle A2MDM Entscheidungsobjekt fuer Bedeutungserhalt mit Business Intent, technischer Restriktion, Regulierungsbezug, Evidenzquelle, Owner, Risiko, Entscheidungsschwelle und Next Gate.',
+    });
+
+    expect(result.capability).toBe('a2mdm_decision_object_meaning_preservation');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'a2mdm_decision_object_meaning_preservation'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.a2mdmDecisionObjectStatus');
+    expect(actionNames).not.toContain('a2mdm.persist');
+    expect(actionNames).not.toContain('budibase.table.write');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes Gremiencoach workbook prompts to the read-only private-prep view', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Erstelle einen Gremiencoach fuer eine VNB Arbeitsmappe mit Claims, Evidenzluecken, Prozessbezug, Word PPT Excel Entwurf-Intents und No-Call Guardrails fuer private Gremienvorbereitung.',

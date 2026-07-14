@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 120 static rules', () => {
+    it('loads all 121 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(120);
+      expect(rules.length).toBe(121);
     });
 
-    it('compiles all 120 static rules without error', () => {
+    it('compiles all 121 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(120);
+      expect(rules.length).toBe(121);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -122,6 +122,7 @@ describe('dossier-hydration-registry (unit)', () => {
         'dashboard-api.vnbDeltaSignalClassifierStatus',
         'dashboard-api.evidenceFreshnessGuardStatus',
         'dashboard-api.gremiencoachWorkbookReadinessStatus',
+        'dashboard-api.a2mdmDecisionObjectStatus',
       ];
       for (const action of expected) {
         expect(getRule(action)).not.toBeNull();
@@ -624,6 +625,50 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Measure: grid-study');
       expect(formatted).toContain('Row Status: evidence_gap');
       expect(formatted).toContain('Leading Gap: budget_status');
+    });
+
+    it('dashboard-api.a2mdmDecisionObjectStatus is dossier-safe and formats scalar decision-object facts', () => {
+      const rule = getRule('dashboard-api.a2mdmDecisionObjectStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte A2MDM Entscheidungsobjekt case=case-423 owner=netzplanung gate=freigabe-review laden'
+        )
+      ).toEqual({
+        caseId: 'case-423',
+        ownerRole: 'netzplanung',
+        nextGate: 'freigabe-review',
+      });
+
+      const formatted = rule.formatEvidence({
+        status: 'needs_decision_context',
+        decisionObjectId: 'a2mdm-do:test',
+        subject: 'Flexible Netzanschluss Freigabe',
+        businessIntent: 'reserve-capacity-after-review',
+        technicalConstraint: 'nvp-capacity-window',
+        regulatoryReference: 'EnWG-14a-context',
+        evidenceSource: 'vdmi:release-file',
+        ownerRole: 'Netzplanung',
+        riskLevel: 'medium',
+        decisionThreshold: 'all-evidence-present',
+        nextGate: 'human-release-review',
+        missingInputs: [{ missingDataPoint: 'risk_level' }],
+        positiveFollowUps: [
+          {
+            enablesDossierAddition: 'add risk classification for human review',
+          },
+        ],
+        sourceActions: { notCalled: ['a2mdm.persist'] },
+      });
+
+      expect(formatted).toContain('Status: needs_decision_context');
+      expect(formatted).toContain('Decision Object: a2mdm-do:test');
+      expect(formatted).toContain('Business Intent: reserve-capacity-after-review');
+      expect(formatted).toContain('Leading Gap: risk_level');
+      expect(formatted).toContain('Side-Effect Guard: a2mdm.persist');
+      expect(formatted).not.toContain('[object Object]');
     });
 
     it('dashboard-api.crossSystemVarianceMatrixStatus is dossier-safe and formats variance facts', () => {

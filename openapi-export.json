@@ -13055,6 +13055,152 @@
         ]
       }
     },
+    "/api/dashboard-api/a2mdm-decision-object": {
+      "get": {
+        "operationId": "dashboard-api_a2mdmDecisionObjectStatus",
+        "summary": "A2MDM decision object - read-only meaning preservation projection",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only A2MDM decision-object context",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "capabilityKey": {
+                      "type": "string"
+                    },
+                    "decisionObjectId": {
+                      "type": "string"
+                    },
+                    "decisionRows": {
+                      "type": "array"
+                    },
+                    "missingInputs": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "noCallGuards": {
+                      "type": "array"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "_errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Builds a deterministic, dossier-safe A2MDM decision-object projection for a synthetic Stadtwerk Mauer handover case. The endpoint preserves scalar decision context across system boundaries and exposes missing-input follow-ups. It is read-only and does not create A2MDM persistence, workflow, HITL, Budibase, Landing Registry, MaKo, billing, settlement, tariff, device-control, SMGW/CLS or external connector actions.",
+        "parameters": [
+          {
+            "name": "caseId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "subject",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "businessIntent",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "technicalConstraint",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "regulatoryReference",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "evidenceSource",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ownerRole",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "riskLevel",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "decisionThreshold",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "nextGate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/api/dashboard-api/gremiencoach-workbook-readiness": {
       "get": {
         "operationId": "dashboard-api_gremiencoachWorkbookReadinessStatus",

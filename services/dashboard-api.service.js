@@ -160,6 +160,7 @@ module.exports = {
       stadtwerkMauerLandingRegistryDraftStatus: 5 * 60 * 1000, // 5 min
       energySidecarRouteRegistryStatus: 5 * 60 * 1000, // 5 min
       interconnectionReleaseFileStatus: 5 * 60 * 1000, // 5 min
+      a2mdmDecisionObjectStatus: 5 * 60 * 1000, // 5 min
       fnavFastTrackContractGateStatus: 5 * 60 * 1000, // 5 min
       crossChannelVnbSignalQueueStatus: 5 * 60 * 1000, // 5 min
       crossDomainSpecialTopicsQueueStatus: 5 * 60 * 1000, // 5 min
@@ -1937,6 +1938,90 @@ module.exports = {
           this.settings.cacheTtlMs.coordinationMeaningPreservationProfile,
           async () => ({
             ...this.buildCoordinationMeaningPreservationProfile(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- a2mdmDecisionObjectStatus ----------------------------------------
+    /**
+     * GET /api/dashboard/a2mdm-decision-object?caseId=...
+     *
+     * Read-only meaning-preserving A2MDM decision-object projection. It keeps
+     * subject, intent, technical constraint, regulatory reference, evidence,
+     * owner, risk, threshold and next gate visible without creating an A2MDM
+     * system of record, workflow, connector or write path.
+     */
+    a2mdmDecisionObjectStatus: {
+      rest: 'GET /a2mdm-decision-object',
+      params: {
+        caseId: { type: 'string', optional: true, min: 1 },
+        subject: { type: 'string', optional: true, min: 1 },
+        businessIntent: { type: 'string', optional: true, min: 1 },
+        technicalConstraint: { type: 'string', optional: true, min: 1 },
+        regulatoryReference: { type: 'string', optional: true, min: 1 },
+        evidenceSource: { type: 'string', optional: true, min: 1 },
+        ownerRole: { type: 'string', optional: true, min: 1 },
+        riskLevel: { type: 'string', optional: true, min: 1 },
+        decisionThreshold: { type: 'string', optional: true, min: 1 },
+        nextGate: { type: 'string', optional: true, min: 1 },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'A2MDM decision object - read-only meaning preservation projection',
+        description:
+          'Builds a deterministic, dossier-safe A2MDM decision-object projection for a synthetic Stadtwerk Mauer handover case. ' +
+          'The endpoint preserves scalar decision context across system boundaries and exposes missing-input follow-ups. ' +
+          'It is read-only and does not create A2MDM persistence, workflow, HITL, Budibase, Landing Registry, MaKo, billing, settlement, tariff, device-control, SMGW/CLS or external connector actions.',
+        parameters: [
+          { name: 'caseId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'subject', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'businessIntent', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'technicalConstraint', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'regulatoryReference', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'evidenceSource', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'ownerRole', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'riskLevel', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'decisionThreshold', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'nextGate', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only A2MDM decision-object context',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string' },
+                    capabilityKey: { type: 'string' },
+                    decisionObjectId: { type: 'string' },
+                    decisionRows: { type: 'array' },
+                    missingInputs: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    noCallGuards: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                    _errors: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `a2mdm-decision-object:${JSON.stringify(params)}`;
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.a2mdmDecisionObjectStatus,
+          async () => ({
+            ...this.buildA2mdmDecisionObjectStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -15671,6 +15756,188 @@ module.exports = {
               'budibase.write',
             ],
           },
+        },
+      };
+    },
+
+    buildA2mdmDecisionObjectStatus(params = {}) {
+      const hasValue = (value) => value !== undefined && value !== null && String(value) !== '';
+      const fields = [
+        {
+          id: 'subject',
+          label: 'Subject',
+          value: params.subject || 'Stadtwerk Mauer Anschluss-/Steuerbarkeitsfreigabe',
+          category: 'decision_subject',
+          required: true,
+          enablesDossierAddition: 'add a clearer decision subject row',
+        },
+        {
+          id: 'business_intent',
+          label: 'Business intent',
+          value: params.businessIntent,
+          category: 'business_meaning',
+          required: true,
+          enablesDossierAddition: 'add business purpose and commercial intent context',
+        },
+        {
+          id: 'technical_constraint',
+          label: 'Technical constraint',
+          value: params.technicalConstraint,
+          category: 'technical_meaning',
+          required: true,
+          enablesDossierAddition: 'add technical feasibility and constraint context',
+        },
+        {
+          id: 'regulatory_reference',
+          label: 'Regulatory reference',
+          value: params.regulatoryReference,
+          category: 'regulatory_meaning',
+          required: true,
+          enablesDossierAddition: 'add regulatory-context display without legal interpretation',
+        },
+        {
+          id: 'evidence_source',
+          label: 'Evidence source',
+          value: params.evidenceSource,
+          category: 'provenance',
+          required: true,
+          enablesDossierAddition: 'add provenance and source-version evidence',
+        },
+        {
+          id: 'owner_role',
+          label: 'Owner role',
+          value: params.ownerRole,
+          category: 'ownership',
+          required: true,
+          enablesDossierAddition: 'add accountable owner role for handover readiness',
+        },
+        {
+          id: 'risk_level',
+          label: 'Risk level',
+          value: params.riskLevel,
+          category: 'risk',
+          required: true,
+          enablesDossierAddition: 'add risk classification for human review',
+        },
+        {
+          id: 'decision_threshold',
+          label: 'Decision threshold',
+          value: params.decisionThreshold,
+          category: 'threshold',
+          required: true,
+          enablesDossierAddition: 'add threshold criteria without approving the decision',
+        },
+        {
+          id: 'next_gate',
+          label: 'Next gate',
+          value: params.nextGate,
+          category: 'next_gate',
+          required: true,
+          enablesDossierAddition: 'add next safe gate for dossier review',
+        },
+      ];
+      const decisionRows = fields.map((field) => ({
+        rowId: field.id,
+        label: field.label,
+        value: hasValue(field.value) ? String(field.value) : 'missing',
+        category: field.category,
+        evidenceStatus: hasValue(field.value) ? 'provided' : 'missing',
+        scalar: true,
+      }));
+      const missingInputs = fields
+        .filter((field) => field.required && !hasValue(field.value))
+        .map((field) => ({
+          missingDataPoint: field.id,
+          label: field.label,
+          category: field.category,
+          enablesDossierAddition: field.enablesDossierAddition,
+        }));
+      const positiveFollowUps = missingInputs.map((gap) => ({
+        missingDataPoint: gap.missingDataPoint,
+        enablesDossierAddition: gap.enablesDossierAddition,
+        category: 'a2mdm_decision_object_meaning_preservation',
+      }));
+      const noCallGuards = [
+        'a2mdm.persist',
+        'a2mdm.workflow.start',
+        'budibase.table.write',
+        'landing-registry.publish',
+        'mako.dispatch',
+        'billing.release',
+        'settlement.prepareBilling',
+        'tariff.mutate',
+        'device-control.execute',
+        'smgw.cls.execute',
+        'hitl.create',
+        'workflow.execute',
+        'external.connector.call',
+        'personal-agent.execute',
+      ];
+      const status =
+        missingInputs.length === 0 ? 'decision_context_preserved' : 'needs_decision_context';
+      const caseId = params.caseId || 'stadtwerk-mauer-a2mdm-decision-seed';
+      const decisionObjectId = `a2mdm-do:${Buffer.from(
+        `${caseId}:${params.subject || 'stadtwerk-mauer'}:${params.ownerRole || ''}:${params.nextGate || ''}`
+      )
+        .toString('base64url')
+        .slice(0, 28)}`;
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Decision Object: ${decisionObjectId}`,
+        `Subject: ${decisionRows.find((row) => row.rowId === 'subject')?.value || 'missing'}`,
+        `Provided meaning rows: ${decisionRows.length - missingInputs.length}/${decisionRows.length}`,
+        `Open missing inputs: ${missingInputs.length}`,
+      ];
+      if (params.ownerRole) dossierFacts.push(`Owner: ${params.ownerRole}`);
+      if (params.nextGate) dossierFacts.push(`Next Gate: ${params.nextGate}`);
+
+      return {
+        decisionObjectId,
+        caseId,
+        capabilityKey: 'a2mdm_decision_object_meaning_preservation',
+        safety: 'read_only_decision_context_projection',
+        status,
+        subject: decisionRows.find((row) => row.rowId === 'subject')?.value || null,
+        businessIntent: params.businessIntent || null,
+        technicalConstraint: params.technicalConstraint || null,
+        regulatoryReference: params.regulatoryReference || null,
+        evidenceSource: params.evidenceSource || null,
+        ownerRole: params.ownerRole || null,
+        riskLevel: params.riskLevel || null,
+        decisionThreshold: params.decisionThreshold || null,
+        nextGate: params.nextGate || null,
+        decisionRows,
+        missingInputs,
+        positiveFollowUps,
+        noCallGuards,
+        sourceActions: {
+          inspected: ['dashboard-api.a2mdmDecisionObjectStatus'],
+          referenced: [
+            'dashboard-api.stadtwerkMauerCaseDetailStatus',
+            'dashboard-api.interconnectionReleaseFileStatus',
+            'dashboard-api.controllabilityAssetHandoverStatus',
+            'vdmi.dossier',
+          ],
+          notCalled: noCallGuards,
+        },
+        validationFindings: missingInputs.map((gap) => ({
+          code: `A2MDM_DO_${String(gap.missingDataPoint).toUpperCase()}_MISSING`,
+          severity: ['owner_role', 'decision_threshold', 'next_gate'].includes(gap.missingDataPoint)
+            ? 'high'
+            : 'medium',
+          message: gap.enablesDossierAddition,
+        })),
+        dossierEvidence: {
+          capabilityKey: 'a2mdm_decision_object_meaning_preservation',
+          status,
+          decisionObjectId,
+          caseId,
+          decisionRows,
+          missingInputs,
+          positiveFollowUps,
+          noCallGuards,
+          dossierFacts,
+          sourceActions: { notCalled: noCallGuards },
         },
       };
     },

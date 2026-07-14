@@ -245,6 +245,27 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasA2mdmDecisionObjectSignal =
+    /\ba2mdm\b/i.test(haystack) &&
+    /(entscheidungsobjekt|decision object|bedeutungserhalt|meaning preservation|entscheidungskontext)/i.test(
+      haystack
+    ) &&
+    /(business intent|geschaeftlicher zweck|geschäftlicher zweck|technical constraint|technische restriktion|regulierungsbezug|regulatory reference|evidenzquelle|evidence source|entscheidungsschwelle|decision threshold|next gate)/i.test(
+      haystack
+    ) &&
+    !/(a2mdm persist|a2mdm write|workflow start|budibase table write|mako dispatch|billing release|settlement export|geraetesteuerung|gerätesteuerung|device-control|hitl create|external connector call)/i.test(
+      haystack
+    );
+
+  if (hasA2mdmDecisionObjectSignal) {
+    const a2mdmDecisionObjectCapability = findCapabilityByName(
+      'a2mdm_decision_object_meaning_preservation'
+    );
+    if (a2mdmDecisionObjectCapability) {
+      return { capability: a2mdmDecisionObjectCapability, score: 140, usedFallback: false };
+    }
+  }
+
   const hasCoordinationMeaningPreservationSignal =
     /(bedeutungserhalt|bedeutungserhaltende koordinationsschicht|bedeutungsverlust|coordination meaning preservation|meaning preservation)/i.test(
       haystack
