@@ -251,12 +251,12 @@ Agents resolving capabilities/recipes/operations do not need to read past this p
 - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
 - src/cookbook-recipes.js: 9e48573ca263ef129bc3944a83b013cff25157e25afc703be0ada62d5af8163d
 - src/capability-catalog.js: b9fa91c95a1f029620fb0513b4453677cb2b61b64ca87549fe353262287ab1a8
-- openapi-export.json: f55f72fa9c5a710ad177f61543278633d795f234081dae114a42e2cb8a1c46fa
+- openapi-export.json: 73118cbcae83b98d2507de0192b7c1cd7014f740cb12908e43988f9056549404
 
 ## OpenAPI Surface (full contract, not embedded)
-- path_count: 993
-- operation_count: 1105
+- path_count: 994
+- operation_count: 1106
 - full_spec: openapi-export.json (repo root) or GET /api/openapi.json
 
 ## Integrity
-- llm_txt_sha256: df5a9beec26b0ca03bf1763936da5b5a5210e85d0ecac6355f89574a7000b30c
+- llm_txt_sha256: 74f5299510240b78c13a617c4aff564ca3af4d8666c8c65bf841f38792a778c0

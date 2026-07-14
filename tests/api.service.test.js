@@ -315,6 +315,7 @@ describe('API Gateway Service', () => {
       expect(
         schema.paths['/api/dashboard/coordination-meaning-preservation-profile']
       ).toBeDefined();
+      expect(schema.paths['/api/dashboard/a2mdm-decision-object']).toBeDefined();
       expect(schema.paths['/api/dashboard/cost-review-committee-status']).toBeDefined();
       expect(schema.paths['/api/dashboard/cross-system-variance-matrix']).toBeDefined();
       expect(schema.paths['/api/dashboard/regulatory-signal-process-translator']).toBeDefined();
@@ -338,6 +339,7 @@ describe('API Gateway Service', () => {
       expect(
         schema.paths['/api/dashboard/coordination-meaning-preservation-profile'].get
       ).toBeDefined();
+      expect(schema.paths['/api/dashboard/a2mdm-decision-object'].get).toBeDefined();
       expect(schema.paths['/api/dashboard/gremiencoach-workbook-readiness'].get).toBeDefined();
       expect(schema.paths['/api/dashboard/decision-readiness-matrix'].get).toBeDefined();
       expect(schema.paths['/api/dashboard/cross-system-variance-matrix'].get).toBeDefined();
@@ -559,6 +561,9 @@ describe('API Gateway Service', () => {
       );
       expect(aliases['GET /dashboard/coordination-meaning-preservation-profile']).toBe(
         'dashboard-api.coordinationMeaningPreservationProfile'
+      );
+      expect(aliases['GET /dashboard/a2mdm-decision-object']).toBe(
+        'dashboard-api.a2mdmDecisionObjectStatus'
       );
       expect(aliases['GET /dashboard/gremiencoach-workbook-readiness']).toBe(
         'dashboard-api.gremiencoachWorkbookReadinessStatus'

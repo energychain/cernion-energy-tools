@@ -1769,6 +1769,7 @@ module.exports = {
             'dashboard-api.controllabilityDataAlignmentStatus',
           'GET /dashboard/coordination-meaning-preservation-profile':
             'dashboard-api.coordinationMeaningPreservationProfile',
+          'GET /dashboard/a2mdm-decision-object': 'dashboard-api.a2mdmDecisionObjectStatus',
           'GET /dashboard/gremiencoach-workbook-readiness':
             'dashboard-api.gremiencoachWorkbookReadinessStatus',
           'GET /dashboard/decision-readiness-matrix': 'dashboard-api.decisionReadinessMatrixStatus',
