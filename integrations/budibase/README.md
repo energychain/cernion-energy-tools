@@ -52,6 +52,7 @@ The workbench renders:
 - Investment Owner-Frist-Budget Gate rows for `stadtwerk-mauer-investment-owner-deadline-budget-gate-v1`, composed from `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify`, `GET /api/dashboard/investment-owner-deadline-budget-gate` and `GET /api/dashboard/stadtwerk-mauer-transfer-readiness`
 - Direct Marketer Demo-Raum Sync-Proof rows for `stadtwerk-mauer-direct-marketer-risk-gate-v1`, composed from `GET /api/dashboard/stadtwerk-mauer-landing-registry-draft`, `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify`, `GET /api/dashboard/stadtwerk-mauer-transfer-readiness` and `GET /api/dashboard/direct-marketer-risk-gate`
 - Koppelpunkt Freigabeakte rows for `ROLE_MARKTKOMMUNIKATION`, composed from the existing read-only `GET /api/dashboard/interconnection-release-file` brick with explicit synthetic default parameters from the #419 smoke
+- A2MDM decision-object rows for `ROLE_GOVERNANCE_OWNER`, composed from the existing read-only `GET /api/dashboard/a2mdm-decision-object` projection with deterministic #423 synthetic defaults and selected-case binding shown only as a context hint until #422 visible-demo apply is unblocked
 - Selected-case context binding rows for `ROLE_NETZPLANUNG`, defaulting to `tenantId=stadtwerk-mauer`, `caseId=smm-budibase-workbench`, `target=selected-case-detail` and `seedId=stadtwerk-mauer-pv-missing-nap-v1`, composed from existing selected-target, Hub, case-detail, case-actions, Blueprint-Pack verify and transfer-readiness read models
 - Transfer Readiness rows from `GET /api/dashboard/stadtwerk-mauer-transfer-readiness`, separating public context, synthetic seed data, sandbox runtime artifacts, tenant parameters, reusable Blueprint/Workbench elements and blocked production boundaries
 - a scope-protected action query for `POST /api/operations-runbook/stadtwerk-mauer/e2e-smoke`
@@ -188,6 +189,15 @@ safe-next-gate and no-call rows only. It must not write A2MDM or mapping state, 
 Freigabe workflow, submit MaKo messages, run billing/settlement/tariff/device-control actions,
 call external connectors, write arbitrary Budibase tables, mutate production tenants or use
 Personal-Agent shortcuts.
+The A2MDM Decision Object panel is a generated read-only render slice. It composes the existing
+`a2mdm-decision-object` projection with deterministic #423 synthetic defaults for
+`ROLE_GOVERNANCE_OWNER`; selected-case binding is only a context hint until #422 visible-demo
+apply is unblocked. Budibase renders scalar summary, subject, business intent, technical
+constraint, regulatory reference, evidence source, owner role, risk level, decision threshold,
+next gate, missing-input, positive-follow-up and no-call rows only. It must not write A2MDM
+source-of-truth state, create workflows/HITL, call external connectors, perform MaKo, billing,
+settlement, tariff, device-control, SMGW/CLS, Landing-Registry or production publication actions,
+write arbitrary Budibase tables, mutate production tenants or use Personal-Agent shortcuts.
 The Selected-Case Context Binding panel is generated Budibase manifest composition, not a new
 Cernion service. It binds the synthetic default Stadtwerk Mauer case to existing read-only
 dashboard bricks and renders scalar context, bound read-model, evidence/trace/artifact,

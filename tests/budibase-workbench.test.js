@@ -21,6 +21,14 @@ function expectScalarRows(rows) {
   }
 }
 
+function expectNoRawObjectText(rows) {
+  for (const row of rows) {
+    for (const value of Object.values(row)) {
+      expect(String(value)).not.toContain('[object Object]');
+    }
+  }
+}
+
 const profileFixture = {
   tenantId: 'stadtwerk-mauer',
   municipality: 'Mauer',
@@ -1955,6 +1963,156 @@ const coordinationMeaningPreservationFixture = {
       'device-control.execute',
     ],
   },
+};
+
+const a2mdmDecisionObjectFixture = {
+  decisionObjectId: 'a2mdm-do:test',
+  caseId: 'smm-a2mdm-decision-object-demo',
+  capabilityKey: 'a2mdm_decision_object_meaning_preservation',
+  safety: 'read_only_decision_context_projection',
+  status: 'decision_context_preserved',
+  subject: 'Flexible Netzanschluss Freigabe',
+  businessIntent: 'reserve-capacity-after-evidence-review',
+  technicalConstraint: 'nvp-capacity-window-q3',
+  regulatoryReference: 'EnWG-14a-context',
+  evidenceSource: 'vdmi:release-file-seed-v1',
+  ownerRole: 'ROLE_GOVERNANCE_OWNER',
+  riskLevel: 'medium',
+  decisionThreshold: 'all-release-evidence-present',
+  nextGate: 'human-release-review',
+  decisionRows: [
+    {
+      rowId: 'subject',
+      label: 'Subject',
+      value: 'Flexible Netzanschluss Freigabe',
+      category: 'subject',
+      evidenceStatus: 'provided',
+      scalar: true,
+    },
+    {
+      rowId: 'business_intent',
+      label: 'Business intent',
+      value: 'reserve-capacity-after-evidence-review',
+      category: 'intent',
+      evidenceStatus: 'provided',
+      scalar: true,
+    },
+    {
+      rowId: 'technical_constraint',
+      label: 'Technical constraint',
+      value: 'nvp-capacity-window-q3',
+      category: 'technical_constraint',
+      evidenceStatus: 'provided',
+      scalar: true,
+    },
+    {
+      rowId: 'regulatory_reference',
+      label: 'Regulatory reference',
+      value: 'EnWG-14a-context',
+      category: 'regulatory',
+      evidenceStatus: 'provided',
+      scalar: true,
+    },
+    {
+      rowId: 'evidence_source',
+      label: 'Evidence source',
+      value: 'vdmi:release-file-seed-v1',
+      category: 'evidence',
+      evidenceStatus: 'provided',
+      scalar: true,
+    },
+    {
+      rowId: 'owner_role',
+      label: 'Owner role',
+      value: 'ROLE_GOVERNANCE_OWNER',
+      category: 'owner',
+      evidenceStatus: 'provided',
+      scalar: true,
+    },
+    {
+      rowId: 'risk_level',
+      label: 'Risk level',
+      value: 'medium',
+      category: 'risk',
+      evidenceStatus: 'provided',
+      scalar: true,
+    },
+    {
+      rowId: 'decision_threshold',
+      label: 'Decision threshold',
+      value: 'all-release-evidence-present',
+      category: 'threshold',
+      evidenceStatus: 'provided',
+      scalar: true,
+    },
+    {
+      rowId: 'next_gate',
+      label: 'Next gate',
+      value: 'human-release-review',
+      category: 'next_gate',
+      evidenceStatus: 'provided',
+      scalar: true,
+    },
+  ],
+  missingInputs: [],
+  positiveFollowUps: [],
+  noCallGuards: [
+    'a2mdm.persist',
+    'a2mdm.workflow.start',
+    'budibase.table.write',
+    'landing-registry.publish',
+    'mako.dispatch',
+    'billing.release',
+    'settlement.prepareBilling',
+    'tariff.mutate',
+    'device-control.execute',
+    'smgw.cls.execute',
+    'hitl.create',
+    'workflow.execute',
+    'external.connector.call',
+    'personal-agent.execute',
+  ],
+  sourceActions: {
+    notCalled: [
+      'a2mdm.persist',
+      'budibase.table.write',
+      'landing-registry.publish',
+      'personal-agent.execute',
+    ],
+  },
+};
+
+const a2mdmDecisionObjectMissingFixture = {
+  ...a2mdmDecisionObjectFixture,
+  status: 'needs_decision_context',
+  businessIntent: null,
+  ownerRole: null,
+  decisionRows: a2mdmDecisionObjectFixture.decisionRows.map((row) =>
+    ['business_intent', 'owner_role'].includes(row.rowId)
+      ? { ...row, value: 'missing', evidenceStatus: 'missing' }
+      : row
+  ),
+  missingInputs: [
+    {
+      missingDataPoint: 'business_intent',
+      label: 'Business intent',
+      category: 'intent',
+      enablesDossierAddition: 'add business intent before release review',
+    },
+    {
+      missingDataPoint: 'owner_role',
+      label: 'Owner role',
+      category: 'owner',
+      enablesDossierAddition: 'add accountable owner for human review',
+    },
+  ],
+  positiveFollowUps: [
+    {
+      missingDataPoint: 'business_intent',
+      enablesDossierAddition: 'add business intent before release review',
+      category: 'a2mdm_decision_object_meaning_preservation',
+    },
+  ],
 };
 
 const energySharingCollectiveApprovalStatusFixture = {
@@ -4430,6 +4588,117 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
         'meaning_preservation_boundaries',
       ])
     );
+  });
+
+  it('flattens A2MDM Decision Object rows and no-call guards', () => {
+    const summaryRows = runTransformer(
+      'getA2mdmDecisionObjectSummaryRows',
+      a2mdmDecisionObjectFixture
+    );
+    expectScalarRows(summaryRows);
+    expectNoRawObjectText(summaryRows);
+    expect(summaryRows[0]).toMatchObject({
+      rowKey: 'a2mdm_decision_object_summary',
+      renderTarget: 'budibase:stadtwerk-mauer-workbench:a2mdm-decision-object-panel',
+      roleTarget: 'ROLE_GOVERNANCE_OWNER',
+      status: 'decision_context_preserved',
+      safety: 'read_only_decision_context_projection',
+      subject: 'Flexible Netzanschluss Freigabe',
+      nextGate: 'human-release-review',
+      selectedCaseBinding: 'context_hint_only_until_422_visible_demo_unblocked',
+      sourceClass: 'a2mdm_decision_object_summary',
+    });
+
+    const decisionRows = runTransformer(
+      'getA2mdmDecisionObjectDecisionRows',
+      a2mdmDecisionObjectFixture
+    );
+    expectScalarRows(decisionRows);
+    expectNoRawObjectText(decisionRows);
+    expect(decisionRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'a2mdm_decision_subject',
+          value: 'Flexible Netzanschluss Freigabe',
+          scalarLabel: 'scalar',
+        }),
+        expect.objectContaining({
+          rowKey: 'a2mdm_decision_owner_role',
+          value: 'ROLE_GOVERNANCE_OWNER',
+        }),
+        expect.objectContaining({
+          rowKey: 'a2mdm_decision_decision_threshold',
+          value: 'all-release-evidence-present',
+        }),
+      ])
+    );
+
+    const missingRows = runTransformer(
+      'getA2mdmDecisionObjectMissingInputRows',
+      a2mdmDecisionObjectMissingFixture
+    );
+    expectScalarRows(missingRows);
+    expectNoRawObjectText(missingRows);
+    expect(missingRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          missingDataPoint: 'business_intent',
+          enablesDossierAddition: 'add business intent before release review',
+        }),
+        expect.objectContaining({
+          missingDataPoint: 'owner_role',
+          safeNextAction: 'supply_context_then_refresh_read_only_a2mdm_panel',
+        }),
+      ])
+    );
+
+    const completeMissingRows = runTransformer(
+      'getA2mdmDecisionObjectMissingInputRows',
+      a2mdmDecisionObjectFixture
+    );
+    expectScalarRows(completeMissingRows);
+    expect(completeMissingRows[0]).toMatchObject({
+      missingDataPoint: 'none',
+      label: 'No missing A2MDM decision-object inputs in synthetic default demo',
+    });
+
+    const followupRows = runTransformer(
+      'getA2mdmDecisionObjectPositiveFollowupRows',
+      a2mdmDecisionObjectMissingFixture
+    );
+    expectScalarRows(followupRows);
+    expect(followupRows[0]).toMatchObject({
+      missingDataPoint: 'business_intent',
+      category: 'a2mdm_decision_object_meaning_preservation',
+      safeNextAction: 'add_evidence_then_refresh_read_only_panel',
+    });
+
+    const noCallRows = runTransformer(
+      'getA2mdmDecisionObjectNoCallRows',
+      a2mdmDecisionObjectFixture
+    );
+    expectScalarRows(noCallRows);
+    expectNoRawObjectText(noCallRows);
+    expect(noCallRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ boundary: 'a2mdm.persist', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'budibase.table.write', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'landing-registry.publish', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'personal-agent.execute', status: 'not_called' }),
+      ])
+    );
+
+    expect(manifest.sections.map((section) => section.id)).toEqual(
+      expect.arrayContaining([
+        'a2mdm_decision_object_summary',
+        'a2mdm_decision_object_rows',
+        'a2mdm_decision_object_missing_inputs',
+        'a2mdm_decision_object_followups',
+        'a2mdm_decision_object_no_call_guards',
+      ])
+    );
+
+    expect(manifest.notes.join(' ')).toContain('A2MDM Decision Object panel binds');
   });
 
   it('flattens Energy Sharing Collective Approval rows and no-call guards', () => {
