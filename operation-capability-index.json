@@ -2,22 +2,22 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.67.8",
-  "sourceOpenApiHash": "96c1847e186d1689af17851d5d9aa63016532d89f4d234559e7ab23f63dc547d",
+  "sourceOpenApiHash": "73118cbcae83b98d2507de0192b7c1cd7014f740cb12908e43988f9056549404",
   "coverage": {
-    "rawOperationCount": 1103,
-    "operationCount": 849,
-    "agentableCount": 847,
+    "rawOperationCount": 1106,
+    "operationCount": 851,
+    "agentableCount": 849,
     "nonAgentableCount": 2,
     "byOperationKind": {
       "data_read": 379,
       "admin": 8,
-      "object_store_write": 221,
+      "object_store_write": 222,
       "process_step": 20,
       "process_start": 38,
       "advisory_plan": 39,
       "draft_write": 10,
       "external_effect": 4,
-      "dashboard_read": 123,
+      "dashboard_read": 124,
       "internal": 7
     }
   },
@@ -15466,6 +15466,143 @@
         "curated": false
       },
       "aliases": []
+    },
+    {
+      "operationId": "dashboard-api_a2mdmDecisionObjectStatus",
+      "method": "GET",
+      "path": "/api/dashboard/a2mdm-decision-object",
+      "service": "dashboard",
+      "action": null,
+      "summary": "A2MDM decision object - read-only meaning preservation projection",
+      "tags": [
+        "Dashboard API"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "dashboard_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "dashboard.dashboard-api_a2mdm_decision_object_status"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "dashboard:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [],
+        "optional": [
+          {
+            "name": "caseId",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "subject",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "businessIntent",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "technicalConstraint",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "regulatoryReference",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": "geo_coordinate"
+          },
+          {
+            "name": "evidenceSource",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "ownerRole",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "riskLevel",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "decisionThreshold",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "nextGate",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "dashboard",
+          "a2mdm",
+          "decision",
+          "object",
+          "status",
+          "a2",
+          "mdm",
+          "read",
+          "only",
+          "meaning",
+          "preservation",
+          "projection"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me a2mdm decision object - read-only meaning preservation projection"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": [
+        "GET /api/dashboard-api/a2mdm-decision-object"
+      ]
     },
     {
       "operationId": "dashboard-api_anschlusskapazitaetEvidenceQueueStatus",
@@ -56442,6 +56579,7 @@
         "legal_clarification_operating_model",
         "anschlusskapazitaet_evidence_queue",
         "connection_deadline_evidence_queue",
+        "a2mdm_decision_object_meaning_preservation",
         "coordination_meaning_preservation_profile",
         "controllability_asset_handover",
         "gremiencoach_workbook_readiness",
@@ -75069,6 +75207,7 @@
         "communication_break_process_risk",
         "steering_artifact_acceptance_gate",
         "no_regret_measure_proof_gate",
+        "a2mdm_decision_object_meaning_preservation",
         "coordination_meaning_preservation_profile",
         "controllability_asset_handover",
         "stadtwerk_mauer_sandbox_runtime",
@@ -79612,6 +79751,116 @@
           "Netzplanung",
           "Zielnetzplanung",
           "investment planning"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "createChatCompletion",
+      "method": "POST",
+      "path": "/v1/chat/completions",
+      "service": "unknown",
+      "action": null,
+      "summary": "Create a non-streaming OpenAI-compatible Cernion chat completion",
+      "tags": [
+        "OpenAI Compatible"
+      ],
+      "uiPage": "agent",
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "unknown.create_chat_completion"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "unknown:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "unknown"
+      ],
+      "sideEffects": [
+        "creates_or_modifies_stored_object"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "parameters": {
+        "required": [
+          {
+            "name": "messages",
+            "in": "body",
+            "type": "array",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": [
+          {
+            "name": "model",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "temperature",
+            "in": "body",
+            "type": "number",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "max_tokens",
+            "in": "body",
+            "type": "integer",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "metadata",
+            "in": "body",
+            "type": "object",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "stream",
+            "in": "body",
+            "type": "boolean",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "create",
+          "chat",
+          "completion",
+          "non",
+          "streaming",
+          "open",
+          "ai",
+          "compatible",
+          "cernion",
+          "unknown"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please create a non-streaming openai-compatible cernion chat completion"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
         ],
         "curated": false
       },
