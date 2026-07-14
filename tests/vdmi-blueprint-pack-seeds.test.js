@@ -8,6 +8,7 @@ const {
   REQUIRED_DIRECT_MARKETER_RISK_GATE_EVIDENCE,
   REQUIRED_ENERGY_SHARING_COLLECTIVE_APPROVAL_EVIDENCE,
   REQUIRED_EVIDENCE,
+  REQUIRED_FLEXIBLE_GRID_CONNECTION_RELEASE_FILE_EVIDENCE,
   REQUIRED_GAS_TRANSFORMATION_DATAROOM_REVIEW_EVIDENCE,
   REQUIRED_INVESTMENT_OWNER_DEADLINE_BUDGET_GATE_EVIDENCE,
   REQUIRED_MASTR_SYNC_GAP_ALERTING_EVIDENCE,
@@ -26,6 +27,7 @@ const {
   stadtwerkMauerCrossSystemVarianceEvidenceMatrix,
   stadtwerkMauerDirectMarketerRiskGate,
   stadtwerkMauerEnergySharingCollectiveApproval,
+  stadtwerkMauerFlexibleGridConnectionReleaseFile,
   stadtwerkMauerGasTransformationDataroomReview,
   stadtwerkMauerMastrSyncGapAlerting,
   stadtwerkMauerGridConnectionTransformationGate,
@@ -260,6 +262,98 @@ describe('VDMI Blueprint Pack seeds', () => {
     );
     expect(getVdmiBlueprintPackSeed('stadtwerk-mauer-cross-system-variance-evidence-matrix-v1')).toBe(
       stadtwerkMauerCrossSystemVarianceEvidenceMatrix
+    );
+  });
+
+  test('exposes the Flexible Grid-Connection Release File seed as read-only metadata', () => {
+    expect(stadtwerkMauerFlexibleGridConnectionReleaseFile).toMatchObject({
+      id: 'stadtwerk-mauer-flexible-grid-connection-release-file-v1',
+      kind: 'vdmi_blueprint_pack_seed',
+      version: '1.0.0',
+      safetyClassification: 'read_only_blueprint_seed',
+      processFamily: 'flexible_grid_connection_release',
+      controlCase: 'flexible_connection_release_file_review',
+      demoTenant: {
+        tenantId: 'stadtwerk-mauer',
+        classification: 'synthetic_demo_tenant',
+      },
+    });
+
+    expect(listVdmiBlueprintPackSeeds()).toContainEqual(
+      expect.objectContaining({
+        id: 'stadtwerk-mauer-flexible-grid-connection-release-file-v1',
+        demoTenantId: 'stadtwerk-mauer',
+      })
+    );
+    expect(getVdmiBlueprintPackSeed('stadtwerk-mauer-flexible-grid-connection-release-file-v1')).toBe(
+      stadtwerkMauerFlexibleGridConnectionReleaseFile
+    );
+  });
+
+  test('validates Flexible Grid-Connection Release File without release or publication side effects', () => {
+    const result = validateVdmiBlueprintPackSeed(stadtwerkMauerFlexibleGridConnectionReleaseFile);
+    expect(result).toEqual({ valid: true, errors: [] });
+
+    const evidenceIds = stadtwerkMauerFlexibleGridConnectionReleaseFile.evidenceRequirements.map(
+      (item) => item.id
+    );
+    expect(evidenceIds).toEqual(
+      expect.arrayContaining(REQUIRED_FLEXIBLE_GRID_CONNECTION_RELEASE_FILE_EVIDENCE)
+    );
+    for (const item of stadtwerkMauerFlexibleGridConnectionReleaseFile.evidenceRequirements) {
+      expect(item.dataClass).toBe('syntheticTenantSeed');
+      expect(item.enablesDossierAddition).toEqual(expect.any(String));
+    }
+
+    expect(stadtwerkMauerFlexibleGridConnectionReleaseFile.sourceApis.map((api) => api.path)).toEqual(
+      expect.arrayContaining([
+        '/api/dashboard/anschlusskapazitaet-evidence-queue',
+        '/api/dashboard/connection-deadline-evidence-queue',
+        '/api/dashboard/grid-connection-transformation-gate',
+        '/api/dashboard/grossspeicher-anschluss-readiness-gate',
+        '/api/dashboard/tech-commercial-offer-cockpit',
+        '/api/dashboard/capacity-contract-risk-asset-cockpit',
+        '/api/dashboard/stadtwerk-mauer-case-detail',
+        '/api/dashboard/stadtwerk-mauer-blueprint-pack-verify',
+        '/api/dashboard/stadtwerk-mauer-transfer-readiness',
+      ])
+    );
+    expect(stadtwerkMauerFlexibleGridConnectionReleaseFile.sourceApis).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          readOnly: true,
+          invocation: 'source_hint_only',
+        }),
+      ])
+    );
+    expect(stadtwerkMauerFlexibleGridConnectionReleaseFile.forbiddenActions).toEqual(
+      expect.arrayContaining([
+        'capacity_reservation',
+        'connection_approval',
+        'connection_rejection',
+        'contract_creation',
+        'mako_write',
+        'billing',
+        'settlement',
+        'tariff_mutation',
+        'smgw_cls_device_control',
+        'external_connector_call',
+        'workflow_create',
+        'mail_send',
+        'webhook_send',
+        'hitl_create',
+        'budibase_table_write',
+        'landing_registry_publication',
+        'cernion_de_publication',
+        'public_context_mutation',
+        'production_mutation',
+        'personal_agent_hardcoding',
+      ])
+    );
+    expect(stadtwerkMauerFlexibleGridConnectionReleaseFile.publicContextMutationAllowed).toBe(false);
+    expect(stadtwerkMauerFlexibleGridConnectionReleaseFile.tenantProvisioningAllowed).toBe(false);
+    expect(stadtwerkMauerFlexibleGridConnectionReleaseFile.realWorldClaim).toBe(
+      'synthetic_demo_only'
     );
   });
 
@@ -872,6 +966,62 @@ describe('VDMI Blueprint Pack seeds', () => {
       i: 'ROLE_COMMERCIAL_AUDIT',
       evidenceRequirements: ['clarificationOwnerEvidence', 'communicationNoteDraftEvidence'],
       gateOutcome: 'clarification_owner_and_non_sending_note_available',
+    });
+
+    for (const row of matrix.rows) {
+      expect(row).toEqual(
+        expect.objectContaining({
+          phase: expect.any(String),
+          v: expect.stringMatching(/^ROLE_/),
+          d: expect.stringMatching(/^ROLE_/),
+          m: expect.stringMatching(/^ROLE_/),
+          i: expect.stringMatching(/^ROLE_/),
+          evidenceRequirements: expect.arrayContaining([expect.any(String)]),
+          dataClassRefs: expect.arrayContaining([expect.any(String)]),
+          gateOutcome: expect.any(String),
+          enablesDossierAddition: expect.any(String),
+        })
+      );
+
+      for (const roleCell of [row.v, row.d, row.m, row.i]) {
+        expect(REQUIRED_DATA_CLASSES).not.toContain(roleCell);
+        expect(roleCell).not.toMatch(
+          /Phase|Verantwortlich|Durchfuehrend|Mitwirkend|Informiert|Nachweise/
+        );
+      }
+    }
+  });
+
+  test('exposes a canonical Demo-Raum process matrix for Flexible Grid-Connection Release File sync', () => {
+    const matrix = stadtwerkMauerFlexibleGridConnectionReleaseFile.demoProcessMatrix;
+    const sync = buildDemoProcessMatrixSync(stadtwerkMauerFlexibleGridConnectionReleaseFile);
+    const draft = buildLandingRegistryDraftFromBlueprintSeed(
+      stadtwerkMauerFlexibleGridConnectionReleaseFile
+    );
+
+    expect(matrix.slug).toBe('flexible-grid-connection-release-file');
+    expect(matrix.roleLegend.M).toBe('Mitwirkend');
+    expect(matrix.rows).toHaveLength(5);
+    expect(matrix.allowedDataClasses).toEqual(REQUIRED_DATA_CLASSES);
+    expect(sync).toMatchObject({
+      slug: 'flexible-grid-connection-release-file',
+      synced: true,
+      rowCount: 5,
+      rowCountValid: true,
+      roleCellsClean: true,
+      dataClassesLimited: true,
+    });
+    expect(draft).toMatchObject({
+      slug: 'flexible-grid-connection-release-file',
+      seedId: 'stadtwerk-mauer-flexible-grid-connection-release-file-v1',
+      syncProof: {
+        blueprintPack: {
+          status: 'complete',
+        },
+        productiveDemoRoom: {
+          status: 'pending',
+        },
+      },
     });
 
     for (const row of matrix.rows) {
@@ -2108,6 +2258,28 @@ describe('VDMI Blueprint Pack seeds', () => {
         state: 'review',
         execution: 'none',
         enablesDossierAddition: expect.stringContaining('not as an escalation decision'),
+      })
+    );
+  });
+
+  test('maps Flexible Grid-Connection Release File evidence to non-executing workbench additions', () => {
+    const items = buildWorkbenchClarificationItems(stadtwerkMauerFlexibleGridConnectionReleaseFile);
+
+    expect(items).toHaveLength(REQUIRED_FLEXIBLE_GRID_CONNECTION_RELEASE_FILE_EVIDENCE.length);
+    expect(items).toContainEqual(
+      expect.objectContaining({
+        evidenceId: 'connectionRequestId',
+        state: 'evidence_gap',
+        roleHint: 'ROLE_ANSCHLUSSWESEN',
+        execution: 'none',
+      })
+    );
+    expect(items).toContainEqual(
+      expect.objectContaining({
+        evidenceId: 'nextGate',
+        state: 'clarification',
+        execution: 'none',
+        enablesDossierAddition: expect.stringContaining('next safe Workbench inspection gate'),
       })
     );
   });

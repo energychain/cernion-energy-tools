@@ -15,6 +15,7 @@ const stadtwerkMauerMastrSyncGapAlerting = require('./vdmi-blueprint-pack-seeds/
 const stadtwerkMauerGridConnectionTransformationGate = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-grid-connection-transformation-gate-v1.json');
 const stadtwerkMauerInvestmentOwnerDeadlineBudgetGate = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-investment-owner-deadline-budget-gate-v1.json');
 const stadtwerkMauerDirectMarketerRiskGate = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-direct-marketer-risk-gate-v1.json');
+const stadtwerkMauerFlexibleGridConnectionReleaseFile = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-flexible-grid-connection-release-file-v1.json');
 
 const REQUIRED_EVIDENCE = Object.freeze([
   'napReference',
@@ -154,6 +155,18 @@ const REQUIRED_DIRECT_MARKETER_RISK_GATE_EVIDENCE = Object.freeze([
   'ownerDeadlineEvidence',
   'riskGateReadinessEvidence',
 ]);
+const REQUIRED_FLEXIBLE_GRID_CONNECTION_RELEASE_FILE_EVIDENCE = Object.freeze([
+  'connectionRequestId',
+  'gridConnectionPointRef',
+  'requestedCapacityKw',
+  'flexibilityConditionRef',
+  'gridRestrictionEvidenceRef',
+  'reservationStatus',
+  'ownerRole',
+  'deadlineDate',
+  'contractBoundaryStatus',
+  'nextGate',
+]);
 
 const REQUIRED_DATA_CLASSES = Object.freeze([
   'publicContextLayer',
@@ -233,6 +246,12 @@ const REQUIRED_DIRECT_MARKETER_RISK_GATE_ROLE_IDS = Object.freeze([
   'ROLE_COMMERCIAL_AUDIT',
   'ROLE_CERNION_GOVERNANCE',
 ]);
+const REQUIRED_FLEXIBLE_GRID_CONNECTION_RELEASE_FILE_ROLE_IDS = Object.freeze([
+  'ROLE_NETZPLANUNG',
+  'ROLE_ANSCHLUSSWESEN',
+  'ROLE_GRID_OPERATIONS',
+  'ROLE_COMMERCIAL_GOVERNANCE',
+]);
 const REQUIRED_MATRIX_ROLE_KEYS = Object.freeze(['v', 'd', 'm', 'i']);
 const MATRIX_HEADER_WORDS = Object.freeze([
   'Phase',
@@ -259,6 +278,7 @@ const SEEDS = Object.freeze([
   stadtwerkMauerGridConnectionTransformationGate,
   stadtwerkMauerInvestmentOwnerDeadlineBudgetGate,
   stadtwerkMauerDirectMarketerRiskGate,
+  stadtwerkMauerFlexibleGridConnectionReleaseFile,
 ]);
 
 const SEED_VALIDATION_REQUIREMENTS = Object.freeze({
@@ -336,6 +356,11 @@ const SEED_VALIDATION_REQUIREMENTS = Object.freeze({
     requiredEvidence: REQUIRED_DIRECT_MARKETER_RISK_GATE_EVIDENCE,
     requiredRoleIds: REQUIRED_DIRECT_MARKETER_RISK_GATE_ROLE_IDS,
     expectedMatrixSlug: 'direct-marketer-risk-gate',
+  }),
+  [stadtwerkMauerFlexibleGridConnectionReleaseFile.id]: Object.freeze({
+    requiredEvidence: REQUIRED_FLEXIBLE_GRID_CONNECTION_RELEASE_FILE_EVIDENCE,
+    requiredRoleIds: REQUIRED_FLEXIBLE_GRID_CONNECTION_RELEASE_FILE_ROLE_IDS,
+    expectedMatrixSlug: 'flexible-grid-connection-release-file',
   }),
 });
 
@@ -553,6 +578,8 @@ function buildWorkbenchClarificationItems(seed) {
           ? 'ROLE_ASSET_MANAGEMENT'
         : selectedSeed.id === stadtwerkMauerDirectMarketerRiskGate.id
           ? 'ROLE_MARKET_OPERATIONS'
+        : selectedSeed.id === stadtwerkMauerFlexibleGridConnectionReleaseFile.id
+          ? 'ROLE_ANSCHLUSSWESEN'
         : selectedSeed.id === stadtwerkMauerEnergySharingCollectiveApproval.id
           ? 'ROLE_ENERGY_SHARING_PRODUCT_OWNER'
         : selectedSeed.id === stadtwerkMauerSubstationLoadAssessment.id
@@ -748,6 +775,8 @@ module.exports = {
   REQUIRED_ENERGY_SHARING_COLLECTIVE_APPROVAL_EVIDENCE,
   REQUIRED_ENERGY_SHARING_COLLECTIVE_APPROVAL_ROLE_IDS,
   REQUIRED_EVIDENCE,
+  REQUIRED_FLEXIBLE_GRID_CONNECTION_RELEASE_FILE_EVIDENCE,
+  REQUIRED_FLEXIBLE_GRID_CONNECTION_RELEASE_FILE_ROLE_IDS,
   REQUIRED_GAS_TRANSFORMATION_DATAROOM_REVIEW_EVIDENCE,
   REQUIRED_GAS_TRANSFORMATION_DATAROOM_REVIEW_ROLE_IDS,
   REQUIRED_MASTR_SYNC_GAP_ALERTING_EVIDENCE,
@@ -779,6 +808,7 @@ module.exports = {
   stadtwerkMauerCrossSystemVarianceEvidenceMatrix,
   stadtwerkMauerDecommissionedAssetReconciliation,
   stadtwerkMauerDirectMarketerRiskGate,
+  stadtwerkMauerFlexibleGridConnectionReleaseFile,
   stadtwerkMauerGasTransformationDataroomReview,
   stadtwerkMauerMastrSyncGapAlerting,
   stadtwerkMauerGridConnectionTransformationGate,

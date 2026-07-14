@@ -1,0 +1,394 @@
+{
+  "id": "stadtwerk-mauer-flexible-grid-connection-release-file-v1",
+  "kind": "vdmi_blueprint_pack_seed",
+  "version": "1.0.0",
+  "safetyClassification": "read_only_blueprint_seed",
+  "title": "Stadtwerk Mauer Flexible Grid-Connection Release File seed",
+  "processFamily": "flexible_grid_connection_release",
+  "controlCase": "flexible_connection_release_file_review",
+  "sourceTemplateId": "flexible-grid-connection-release-file",
+  "sourceApis": [
+    {
+      "operation": "GET /api/dashboard/anschlusskapazitaet-evidence-queue",
+      "path": "/api/dashboard/anschlusskapazitaet-evidence-queue",
+      "method": "GET",
+      "workbenchBrick": "anschlusskapazitaet_evidence_queue",
+      "readOnly": true,
+      "invocation": "source_hint_only"
+    },
+    {
+      "operation": "GET /api/dashboard/connection-deadline-evidence-queue",
+      "path": "/api/dashboard/connection-deadline-evidence-queue",
+      "method": "GET",
+      "workbenchBrick": "connection_deadline_evidence_queue",
+      "readOnly": true,
+      "invocation": "source_hint_only"
+    },
+    {
+      "operation": "GET /api/dashboard/grid-connection-transformation-gate",
+      "path": "/api/dashboard/grid-connection-transformation-gate",
+      "method": "GET",
+      "workbenchBrick": "grid_connection_transformation_gate",
+      "readOnly": true,
+      "invocation": "source_hint_only"
+    },
+    {
+      "operation": "GET /api/dashboard/grossspeicher-anschluss-readiness-gate",
+      "path": "/api/dashboard/grossspeicher-anschluss-readiness-gate",
+      "method": "GET",
+      "workbenchBrick": "grossspeicher_anschluss_readiness_gate",
+      "readOnly": true,
+      "invocation": "source_hint_only"
+    },
+    {
+      "operation": "GET /api/dashboard/tech-commercial-offer-cockpit",
+      "path": "/api/dashboard/tech-commercial-offer-cockpit",
+      "method": "GET",
+      "workbenchBrick": "tech_commercial_offer_cockpit",
+      "readOnly": true,
+      "invocation": "source_hint_only"
+    },
+    {
+      "operation": "GET /api/dashboard/capacity-contract-risk-asset-cockpit",
+      "path": "/api/dashboard/capacity-contract-risk-asset-cockpit",
+      "method": "GET",
+      "workbenchBrick": "capacity_contract_risk_asset_cockpit",
+      "readOnly": true,
+      "invocation": "source_hint_only"
+    },
+    {
+      "operation": "GET /api/dashboard/stadtwerk-mauer-case-detail",
+      "path": "/api/dashboard/stadtwerk-mauer-case-detail",
+      "method": "GET",
+      "workbenchBrick": "stadtwerk_mauer_case_detail",
+      "readOnly": true,
+      "invocation": "source_hint_only"
+    },
+    {
+      "operation": "GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "method": "GET",
+      "workbenchBrick": "stadtwerk_mauer_blueprint_pack_verify",
+      "readOnly": true,
+      "invocation": "source_hint_only"
+    },
+    {
+      "operation": "GET /api/dashboard/stadtwerk-mauer-transfer-readiness",
+      "path": "/api/dashboard/stadtwerk-mauer-transfer-readiness",
+      "method": "GET",
+      "workbenchBrick": "stadtwerk_mauer_transfer_readiness",
+      "readOnly": true,
+      "invocation": "source_hint_only"
+    }
+  ],
+  "demoTenant": {
+    "tenantId": "stadtwerk-mauer",
+    "classification": "synthetic_demo_tenant",
+    "description": "Virtual Stadtwerk Mauer demo tenant; flexible grid-connection release-file values are synthetic unless explicitly marked as public context."
+  },
+  "dataClasses": {
+    "publicContextLayer": {
+      "description": "Read-only MaStR, OSM, NVP/grid-location or comparable public context already blended into the virtual Stadtwerk. Demo reset flows must not mutate this layer.",
+      "examples": ["MaStR installation context", "OSM/grid-location context", "public grid-connection point hint"]
+    },
+    "syntheticTenantSeed": {
+      "description": "Invented demo connection cases, requested capacity, release-file owners, review deadlines, reservation states and evidence gaps for stadtwerk-mauer.",
+      "examples": ["synthetic connection request id", "synthetic requested capacity", "synthetic owner/deadline"]
+    },
+    "sandboxRuntimeArtifact": {
+      "description": "Resettable output from Cernion/Rundeck demo verification runs, separate from public context baselines.",
+      "examples": ["Workbench verify trace", "release-file render artifact"]
+    }
+  },
+  "roles": [
+    {
+      "roleId": "ROLE_NETZPLANUNG",
+      "relation": "verantwortlich",
+      "responsibility": "Owns technical capacity, NVP and grid restriction evidence for the release-file review."
+    },
+    {
+      "roleId": "ROLE_ANSCHLUSSWESEN",
+      "relation": "durchfuehrend",
+      "responsibility": "Maintains the connection intake, deadline, owner and applicant-facing release-file boundary."
+    },
+    {
+      "roleId": "ROLE_GRID_OPERATIONS",
+      "relation": "mitwirkend",
+      "responsibility": "Contributes flexibility condition and operational grid restriction evidence without executing switching or control actions."
+    },
+    {
+      "roleId": "ROLE_COMMERCIAL_GOVERNANCE",
+      "relation": "information",
+      "responsibility": "Reviews contract/commercial boundary and is informed about missing evidence before any human release decision."
+    }
+  ],
+  "evidenceRequirements": [
+    {
+      "id": "connectionRequestId",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds the synthetic release-file subject and connection object under review."
+    },
+    {
+      "id": "gridConnectionPointRef",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds the NVP or grid-connection point reference for technical reviewability."
+    },
+    {
+      "id": "requestedCapacityKw",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds the requested capacity scalar without approving or reserving capacity."
+    },
+    {
+      "id": "flexibilityConditionRef",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds the flexibility condition reference needed for conditional technical review."
+    },
+    {
+      "id": "gridRestrictionEvidenceRef",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds grid restriction evidence for reviewability without executing operational control."
+    },
+    {
+      "id": "reservationStatus",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds conditional release or evidence-gap clarity without creating a reservation."
+    },
+    {
+      "id": "ownerRole",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds accountable review handover ownership."
+    },
+    {
+      "id": "deadlineDate",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds the review deadline and escalation context without sending workflow or mail."
+    },
+    {
+      "id": "contractBoundaryStatus",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds commercial boundary reviewability without creating a contract, billing or MaKo action."
+    },
+    {
+      "id": "nextGate",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds the next safe Workbench inspection gate without approving or rejecting the connection."
+    }
+  ],
+  "demoProcessMatrix": {
+    "slug": "flexible-grid-connection-release-file",
+    "title": "Flexible Netzanschluss Freigabeakte",
+    "roleLegend": {
+      "V": "Verantwortlich",
+      "D": "Durchfuehrend",
+      "M": "Mitwirkend",
+      "I": "Informiert"
+    },
+    "headers": [
+      "Phase",
+      "V = Verantwortlich",
+      "D = Durchfuehrend",
+      "M = Mitwirkend",
+      "I = Informiert",
+      "Nachweise"
+    ],
+    "allowedDataClasses": [
+      "publicContextLayer",
+      "syntheticTenantSeed",
+      "sandboxRuntimeArtifact"
+    ],
+    "downstreamHandoff": {
+      "blueprintPack": "complete",
+      "landingRegistry": "pending",
+      "productiveDemoRoom": "pending",
+      "acceptanceNote": "Blueprint-Pack/Cernion-Energy-Tools matrix is canonical; Landing-Registry and productive Demo-Raum sync remain downstream proof steps."
+    },
+    "rows": [
+      {
+        "phase": "1",
+        "v": "ROLE_NETZPLANUNG",
+        "d": "ROLE_ANSCHLUSSWESEN",
+        "m": "ROLE_GRID_OPERATIONS",
+        "i": "ROLE_COMMERCIAL_GOVERNANCE",
+        "evidenceRequirements": [
+          "connectionRequestId",
+          "gridConnectionPointRef",
+          "requestedCapacityKw"
+        ],
+        "dataClassRefs": [
+          "publicContextLayer",
+          "syntheticTenantSeed"
+        ],
+        "status": "evidence_gap",
+        "gateOutcome": "release_file_subject_identified",
+        "enablesDossierAddition": "Adds connection subject, NVP and capacity scalars for release-file review."
+      },
+      {
+        "phase": "2",
+        "v": "ROLE_NETZPLANUNG",
+        "d": "ROLE_GRID_OPERATIONS",
+        "m": "ROLE_ANSCHLUSSWESEN",
+        "i": "ROLE_COMMERCIAL_GOVERNANCE",
+        "evidenceRequirements": [
+          "flexibilityConditionRef",
+          "gridRestrictionEvidenceRef"
+        ],
+        "dataClassRefs": [
+          "publicContextLayer",
+          "syntheticTenantSeed"
+        ],
+        "status": "needs_technical_evidence",
+        "gateOutcome": "technical_restriction_review_pending",
+        "enablesDossierAddition": "Adds technical restriction and flexibility-condition evidence for reviewability."
+      },
+      {
+        "phase": "3",
+        "v": "ROLE_NETZPLANUNG",
+        "d": "ROLE_ANSCHLUSSWESEN",
+        "m": "ROLE_GRID_OPERATIONS",
+        "i": "ROLE_COMMERCIAL_GOVERNANCE",
+        "evidenceRequirements": [
+          "reservationStatus"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed",
+          "sandboxRuntimeArtifact"
+        ],
+        "status": "clarification",
+        "gateOutcome": "conditional_release_boundary_visible",
+        "enablesDossierAddition": "Adds reservation or release status as a review marker, never as automatic approval."
+      },
+      {
+        "phase": "4",
+        "v": "ROLE_COMMERCIAL_GOVERNANCE",
+        "d": "ROLE_ANSCHLUSSWESEN",
+        "m": "ROLE_NETZPLANUNG",
+        "i": "ROLE_GRID_OPERATIONS",
+        "evidenceRequirements": [
+          "ownerRole",
+          "deadlineDate",
+          "contractBoundaryStatus"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed"
+        ],
+        "status": "needs_contract_boundary",
+        "gateOutcome": "owner_deadline_contract_boundary_recorded",
+        "enablesDossierAddition": "Adds accountable owner, deadline and commercial boundary without contract creation."
+      },
+      {
+        "phase": "5",
+        "v": "ROLE_NETZPLANUNG",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_ANSCHLUSSWESEN",
+        "i": "ROLE_COMMERCIAL_GOVERNANCE",
+        "evidenceRequirements": [
+          "nextGate"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed",
+          "sandboxRuntimeArtifact"
+        ],
+        "status": "review_gate",
+        "gateOutcome": "ready_for_human_release_review_or_evidence_followup",
+        "enablesDossierAddition": "Adds the next safe Workbench review gate without approving or rejecting the connection."
+      }
+    ]
+  },
+  "decisionPolicy": {
+    "onMissingEvidence": "evidence_gap",
+    "onMissingReviewDecision": "clarification",
+    "allowedStates": [
+      "evidence_gap",
+      "needs_technical_evidence",
+      "clarification",
+      "needs_contract_boundary",
+      "review_gate"
+    ],
+    "mustNotTrigger": [
+      "capacity_reservation",
+      "connection_approval",
+      "connection_rejection",
+      "contract_creation",
+      "mako_write",
+      "billing",
+      "settlement",
+      "tariff_mutation",
+      "smgw_cls_device_control",
+      "external_connector_call",
+      "hitl_create",
+      "workflow_create",
+      "mail_send",
+      "webhook_send",
+      "production_mutation",
+      "public_context_mutation"
+    ]
+  },
+  "allowedCommandHints": [
+    {
+      "kind": "workbench_hint",
+      "id": "budibase:stadtwerk-mauer-workbench:flexible-grid-connection-release-file-panel",
+      "label": "Future Workbench release-file panel",
+      "execution": "metadata_only"
+    }
+  ],
+  "forbiddenActions": [
+    "capacity_reservation",
+    "connection_approval",
+    "connection_rejection",
+    "contract_creation",
+    "contract_send",
+    "mako_write",
+    "billing",
+    "settlement",
+    "tariff_mutation",
+    "smgw_cls_device_control",
+    "device_control",
+    "external_connector_call",
+    "workflow_create",
+    "mail_send",
+    "webhook_send",
+    "hitl_create",
+    "budibase_table_write",
+    "landing_registry_publication",
+    "cernion_de_publication",
+    "seed_import",
+    "seed_reset",
+    "seed_delete",
+    "tenant_provisioning",
+    "rundeck_execution",
+    "public_context_mutation",
+    "production_mutation",
+    "secret_key_handling",
+    "personal_agent_hardcoding"
+  ],
+  "publicContextMutationAllowed": false,
+  "tenantProvisioningAllowed": false,
+  "realWorldClaim": "synthetic_demo_only",
+  "projectionHints": {
+    "sourceIssue": 424,
+    "sourceTemplateId": "flexible-grid-connection-release-file",
+    "targetSurface": "stadtwerk_mauer_blueprint_pack_verify",
+    "futureBudibaseRenderTarget": "budibase:stadtwerk-mauer-workbench:flexible-grid-connection-release-file-panel",
+    "missingEvidenceToWorkbenchItem": true
+  }
+}
