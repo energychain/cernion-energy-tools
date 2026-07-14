@@ -4701,6 +4701,85 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
     expect(manifest.notes.join(' ')).toContain('A2MDM Decision Object panel binds');
   });
 
+  it('renders Safe-Action Catalog operation-boundary rows from scalar metadata', () => {
+    const catalogRows = runTransformer('getStadtwerkMauerSafeActionCatalogRows', {
+      tenantId: 'stadtwerk-mauer',
+      caseId: 'smm-budibase-workbench',
+      actionRows: [
+        {
+          actionId: 'refresh_read_model',
+          label: 'Refresh selected-case read model',
+          enabled: true,
+        },
+      ],
+    });
+    expectScalarRows(catalogRows);
+    expectNoRawObjectText(catalogRows);
+    expect(catalogRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          actionId: 'refresh_read_model',
+          operationId: 'dashboard-api_stadtwerkMauerCaseDetailStatus',
+          operationKind: 'dashboard_read',
+          consequenceLevel: 'none',
+          recommendedExecutionMode: 'direct',
+          enabledLabel: 'enabled_read_only',
+        }),
+        expect.objectContaining({
+          actionId: 'add_sandbox_annotation',
+          operationId: 'dashboard-api_stadtwerkMauerCaseAnnotationCommand',
+          operationKind: 'process_start',
+          consequenceLevel: 'high',
+          recommendedExecutionMode: 'confirm',
+          enabledLabel: 'disabled_confirm_required',
+          missingRequiredParameters: 'actorLabel, note, reason, idempotencyKey',
+        }),
+        expect.objectContaining({
+          actionId: 'run_rundeck_job',
+          operationId: 'operations-runbook_stadtwerkMauerE2eSmoke',
+          enabledLabel: 'disabled_consequential',
+          disabledReason: 'direct Rundeck execution is forbidden from Budibase',
+        }),
+      ])
+    );
+
+    const followupRows = runTransformer('getStadtwerkMauerSafeActionCatalogFollowupRows', {});
+    expectScalarRows(followupRows);
+    expect(followupRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          missingDataPoint: 'blueprint_seed',
+          enablesDossierAddition: 'enables Blueprint verify row and matrix/evidence sync review',
+        }),
+        expect.objectContaining({
+          missingDataPoint: 'runbook_wrapper_approval',
+          safeNextAction: 'split_separate_approved_runbook_wrapper_issue',
+        }),
+      ])
+    );
+
+    const guardRows = runTransformer('getStadtwerkMauerSafeActionCatalogNoCallRows', {});
+    expectScalarRows(guardRows);
+    expectNoRawObjectText(guardRows);
+    expect(guardRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ boundary: 'rundeck.execute', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'operations-runbook.execute-direct', disabled: true }),
+        expect.objectContaining({ boundary: 'budibase.table.write', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'personal-agent.execute', status: 'not_called' }),
+      ])
+    );
+
+    expect(manifest.sections.map((section) => section.id)).toEqual(
+      expect.arrayContaining([
+        'safe_action_catalog',
+        'safe_action_catalog_followups',
+        'safe_action_catalog_no_call_guards',
+      ])
+    );
+    expect(manifest.notes.join(' ')).toContain('Safe-Action Catalog binds');
+  });
+
   it('flattens Energy Sharing Collective Approval rows and no-call guards', () => {
     const statusRows = runTransformer(
       'getEnergySharingCollectiveApprovalStatusRows',

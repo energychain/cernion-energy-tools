@@ -1351,6 +1351,147 @@
       }
     },
     {
+      "name": "getStadtwerkMauerSafeActionCatalogRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-case-actions",
+      "queryString": "tenantId={{tenantId}}&caseId={{caseId}}",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "caseId",
+          "default": "smm-budibase-workbench"
+        }
+      ],
+      "transformer": "const tenantId=data.tenantId||'stadtwerk-mauer'; const caseId=data.caseId||'smm-budibase-workbench'; const operationIndex={refresh_read_model:{operationId:'dashboard-api_stadtwerkMauerCaseDetailStatus',operationKind:'dashboard_read',consequenceLevel:'none',recommendedExecutionMode:'direct',requiredScopes:'dashboard:read',tenantScoped:'true',missingRequiredParameters:'',sourceEndpoint:'GET /api/dashboard/stadtwerk-mauer-case-detail',nextGate:'inspect refreshed selected-case evidence and trace rows'},verify_blueprint_seed:{operationId:'dashboard-api_stadtwerkMauerBlueprintPackVerifyStatus',operationKind:'dashboard_read',consequenceLevel:'none',recommendedExecutionMode:'direct',requiredScopes:'dashboard:read',tenantScoped:'true',missingRequiredParameters:'seedId if a non-default Blueprint-Pack seed is selected',sourceEndpoint:'GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify',nextGate:'resolve missing Blueprint-Pack evidence before sync proof'},validate_evidence_completeness:{operationId:'dashboard-api_stadtwerkMauerTransferReadinessStatus',operationKind:'dashboard_read',consequenceLevel:'none',recommendedExecutionMode:'direct',requiredScopes:'dashboard:read',tenantScoped:'true',missingRequiredParameters:'seedId when validating a non-default transfer seed',sourceEndpoint:'GET /api/dashboard/stadtwerk-mauer-transfer-readiness',nextGate:'complete missing evidence before any transfer claim'},add_sandbox_annotation:{operationId:'dashboard-api_stadtwerkMauerCaseAnnotationCommand',operationKind:'process_start',consequenceLevel:'high',recommendedExecutionMode:'confirm',requiredScopes:'dashboard:write, tenant:stadtwerk-mauer:sandbox',tenantScoped:'true',missingRequiredParameters:'actorLabel, note, reason, idempotencyKey',sourceEndpoint:'POST /api/dashboard/stadtwerk-mauer-case-annotations',nextGate:'keep disabled until curated sandbox command audit is approved'},run_rundeck_job:{operationId:'operations-runbook_stadtwerkMauerE2eSmoke',operationKind:'process_start',consequenceLevel:'high',recommendedExecutionMode:'confirm',requiredScopes:'operations-runbook:execute',tenantScoped:'true',missingRequiredParameters:'approved runbook wrapper, idempotencyKey, operator confirmation',sourceEndpoint:'/api/operations-runbook/stadtwerk-mauer/e2e-smoke',nextGate:'split a separate approved runbook wrapper issue before execution'}}; const defaults=[{actionId:'refresh_read_model',label:'Refresh selected-case read model',enabled:true,enabledLabel:'enabled_read_only'},{actionId:'verify_blueprint_seed',label:'Verify selected Blueprint seed',enabled:true,enabledLabel:'enabled_verify_only'},{actionId:'validate_evidence_completeness',label:'Validate evidence completeness',enabled:true,enabledLabel:'enabled_verify_only'},{actionId:'add_sandbox_annotation',label:'Add sandbox annotation',enabled:false,enabledLabel:'disabled_confirm_required',disabledReason:'sandbox annotation is visible for boundary review only in this slice'},{actionId:'run_rundeck_job',label:'Run Rundeck job',enabled:false,enabledLabel:'disabled_consequential',disabledReason:'direct Rundeck execution is forbidden from Budibase'}]; const byId=new Map([...(data.actionRows||[]),...(data.buttonRows||[]),...(data.actions||[])].filter((row)=>row&&row.actionId).map((row)=>[row.actionId,row])); return defaults.map((base,rowIndex)=>{const row={...base,...(byId.get(base.actionId)||{})}; const op=operationIndex[row.actionId]||{}; const enabled=Boolean(row.enabled); return {rowKey:`safe_action_catalog_${rowIndex+1}_${row.actionId}`,renderTarget:'budibase:stadtwerk-mauer-workbench:safe-action-catalog-panel',actionId:String(row.actionId),label:String(row.label||row.actionId),sourceEndpoint:String(op.sourceEndpoint||row.sourceEndpoint||row.path||''),operationId:String(op.operationId||''),operationKind:String(op.operationKind||''),consequenceLevel:String(op.consequenceLevel||''),recommendedExecutionMode:String(op.recommendedExecutionMode||''),requiredScopes:String(op.requiredScopes||row.requiredScope||''),tenantScoped:String(op.tenantScoped||'true'),missingRequiredParameters:String(op.missingRequiredParameters||''),enabledLabel:String(row.enabledLabel||(enabled?'enabled':'disabled')),disabledReason:String(row.disabledReason||''),nextGate:String(row.nextGate||op.nextGate||''),noCallGuard:enabled?'render_or_refresh_existing_read_query_only; no Budibase write, external connector, HITL, device-control, Personal-Agent or Rundeck execution':'disabled row only; no operational call',caseId:String(caseId),tenantId:String(tenantId),sourceClass:'operation_capability_index_safe_action_catalog'};})",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "actionId": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "sourceEndpoint": {
+          "type": "string"
+        },
+        "operationId": {
+          "type": "string"
+        },
+        "operationKind": {
+          "type": "string"
+        },
+        "consequenceLevel": {
+          "type": "string"
+        },
+        "recommendedExecutionMode": {
+          "type": "string"
+        },
+        "requiredScopes": {
+          "type": "string"
+        },
+        "tenantScoped": {
+          "type": "string"
+        },
+        "missingRequiredParameters": {
+          "type": "string"
+        },
+        "enabledLabel": {
+          "type": "string"
+        },
+        "disabledReason": {
+          "type": "string"
+        },
+        "nextGate": {
+          "type": "string"
+        },
+        "noCallGuard": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getStadtwerkMauerSafeActionCatalogFollowupRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-case-actions",
+      "queryString": "tenantId={{tenantId}}&caseId={{caseId}}",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "caseId",
+          "default": "smm-budibase-workbench"
+        }
+      ],
+      "transformer": "const rows=[{missingDataPoint:'selected_case_id',label:'Selected case id',enablesDossierAddition:'enables selected-case detail refresh and action review',safeNextAction:'refresh_existing_case_detail_read_query'},{missingDataPoint:'blueprint_seed',label:'Blueprint-Pack seed',enablesDossierAddition:'enables Blueprint verify row and matrix/evidence sync review',safeNextAction:'refresh_existing_blueprint_verify_query'},{missingDataPoint:'transfer_readiness_evidence',label:'Transfer-readiness evidence',enablesDossierAddition:'enables transfer-readiness validation row',safeNextAction:'refresh_existing_transfer_readiness_query'},{missingDataPoint:'sandbox_annotation_audit_context',label:'Sandbox annotation audit context',enablesDossierAddition:'enables explain/confirm-only sandbox command review, not direct execution',safeNextAction:'keep_disabled_until_command_guard_is_approved'},{missingDataPoint:'runbook_wrapper_approval',label:'Curated runbook wrapper approval',enablesDossierAddition:'enables a future approved operations-runbook wrapper issue, not direct Rundeck execution',safeNextAction:'split_separate_approved_runbook_wrapper_issue'}]; return rows.map((row,index)=>({rowKey:`safe_action_catalog_followup_${index+1}_${row.missingDataPoint}`,renderTarget:'budibase:stadtwerk-mauer-workbench:safe-action-catalog-panel',category:'workbench_safe_action_governance',...row,status:'positive_followup_only',sourceClass:'operation_capability_index_safe_action_followup'}))",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "missingDataPoint": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "enablesDossierAddition": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getStadtwerkMauerSafeActionCatalogNoCallRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-case-actions",
+      "queryString": "tenantId={{tenantId}}&caseId={{caseId}}",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "caseId",
+          "default": "smm-budibase-workbench"
+        }
+      ],
+      "transformer": "const boundaries=['rundeck.execute','operations-runbook.execute-direct','budibase.table.write','cernion.table.write','tenant.provision','seed.reset','external.connector.call','mako.submit','billing.release','settlement.prepareBilling','tariff.mutate','device-control.execute','smgw-cls.execute','hitl.create','workflow.execute','personal-agent.execute','production.mutate']; return boundaries.map((boundary,index)=>({rowKey:`safe_action_catalog_no_call_${index+1}_${boundary.replace(/[^a-zA-Z0-9]+/g,'_')}`,renderTarget:'budibase:stadtwerk-mauer-workbench:safe-action-catalog-panel',boundary,status:'not_called',disabled:true,safeAlternative:boundary==='rundeck.execute'||boundary==='operations-runbook.execute-direct'?'show disabled operation-boundary row and require curated /api/operations-runbook/** wrapper in a separate approved slice':'render existing read-only/verify Workbench rows only',sourceClass:'operation_capability_index_safe_action_no_call_guard'}))",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "boundary": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "disabled": {
+          "type": "boolean"
+        },
+        "safeAlternative": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
       "name": "getStadtwerkMauerProcessActionRows",
       "method": "GET",
       "path": "/api/dashboard/stadtwerk-mauer-case-actions",
@@ -9855,6 +9996,24 @@
       "tableTitle": "Action Button No-Call Guards"
     },
     {
+      "id": "safe_action_catalog",
+      "title": "Safe-Action Catalog",
+      "queryName": "getStadtwerkMauerSafeActionCatalogRows",
+      "tableTitle": "Operation Boundary and Execution Mode"
+    },
+    {
+      "id": "safe_action_catalog_followups",
+      "title": "Safe-Action Catalog Follow-ups",
+      "queryName": "getStadtwerkMauerSafeActionCatalogFollowupRows",
+      "tableTitle": "Missing Parameters and Safe Next Gates"
+    },
+    {
+      "id": "safe_action_catalog_no_call_guards",
+      "title": "Safe-Action Catalog No-Call Guards",
+      "queryName": "getStadtwerkMauerSafeActionCatalogNoCallRows",
+      "tableTitle": "Disabled Consequential Boundaries"
+    },
+    {
       "id": "process_panel_actions",
       "title": "Demo Process Panel",
       "queryName": "getStadtwerkMauerProcessActionRows",
@@ -10992,6 +11151,8 @@
     "Selected-Case Context Binding is manifest-only composition over existing read-only Stadtwerk Mauer dashboard bricks; no new backend endpoint, Capability Broker route or Hydration Registry rule is introduced.",
     "Selected-Case Context Binding defaults to ROLE_NETZPLANUNG, case smm-budibase-workbench and seed stadtwerk-mauer-pv-missing-nap-v1, then renders selected context, read-model availability, evidence/trace/artifact readback, next-gate/action binding and no-call guard rows as scalar Budibase cells only.",
     "A2MDM Decision Object panel binds the existing #423 a2mdm-decision-object read model with deterministic synthetic defaults for ROLE_GOVERNANCE_OWNER; selected-case binding remains a context hint until #422 visible-demo apply is unblocked.",
-    "A2MDM Decision Object rows stay scalar/generated: Budibase renders summary, subject, business intent, technical constraint, regulatory reference, evidence source, owner role, risk level, threshold, next gate, missing inputs, positive follow-ups and no-call guards only, without A2MDM persistence, workflow/HITL, MaKo, billing, settlement, tariff, device-control, Landing-Registry, production publication, Budibase table writes or Personal-Agent shortcuts."
+    "A2MDM Decision Object rows stay scalar/generated: Budibase renders summary, subject, business intent, technical constraint, regulatory reference, evidence source, owner role, risk level, threshold, next gate, missing inputs, positive follow-ups and no-call guards only, without A2MDM persistence, workflow/HITL, MaKo, billing, settlement, tariff, device-control, Landing-Registry, production publication, Budibase table writes or Personal-Agent shortcuts.",
+    "Safe-Action Catalog binds existing Stadtwerk-Mauer selected-case action rows to committed Operation Capability Index operation ids; Budibase renders operationKind, consequenceLevel, recommendedExecutionMode, scopes, tenant boundary, missing parameters, disabled reasons, next gates and no-call guards as scalar explanation rows only.",
+    "Safe-Action Catalog rows keep disabled consequential operations visible but non-executable: direct Rundeck, operations-runbook execution, Budibase/Cernion writes, MaKo, billing, settlement, tariff, SMGW/CLS/device-control, HITL/workflow, external connector, production mutation and Personal-Agent execution remain not-called boundaries."
   ]
 }

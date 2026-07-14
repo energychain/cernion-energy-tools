@@ -30,6 +30,7 @@ The workbench renders:
 - sandbox annotation command/readback rows from `POST /api/dashboard/stadtwerk-mauer-case-annotations` and `GET /api/dashboard/stadtwerk-mauer-case-detail?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench`
 - selected-case action rows from `GET /api/dashboard/stadtwerk-mauer-case-actions?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench`
 - curated action-button contract rows from `GET /api/dashboard/stadtwerk-mauer-case-actions?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench`, backed by `integrations/budibase/manifests/workbench-action-manifest-stadtwerk-mauer.json`
+- safe-action catalog rows from `GET /api/dashboard/stadtwerk-mauer-case-actions?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench`, annotated with committed Operation Capability Index operation ids and scalar operation-boundary metadata
 - demo process-panel rows, last-result rows, required evidence rows and runbook-boundary rows from `GET /api/dashboard/stadtwerk-mauer-case-actions?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench`
 - role workbench catalog/open-target rows from `GET /api/dashboard/stadtwerk-mauer-role-workbench-catalog?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench`
 - selected Zielnetzplanung item detail, context, evidence-gap, next-gate and safe-follow-up rows from `GET /api/dashboard/stadtwerk-mauer-grid-planning-selected-item-detail?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench&queueItemId=grid-planning:missing-nap-clarification`
@@ -87,6 +88,12 @@ The curated action-button contract is the first reusable Workbench button manife
 shown only as guarded/disabled in this slice, and consequential classes such as direct Rundeck,
 Budibase table writes, provisioning, settlement, HITL, device-control, external connectors and
 Personal-Agent execution remain forbidden no-call guards.
+The Safe-Action Catalog explains those rows with Operation Capability Index metadata. It maps the
+first curated actions to scalar `operationId`, `operationKind`, `consequenceLevel`,
+`recommendedExecutionMode`, scope, tenant-boundary, missing-parameter, enabled/disabled,
+next-gate and no-call fields. Disabled consequential placeholders stay visible for governance
+review, but Budibase does not execute Rundeck, operations-runbook jobs, sandbox commands,
+external connectors, HITL/workflow, MaKo, billing, settlement, tariff or device-control actions.
 The demo process panel uses the same read-only endpoint to render scalar process actions,
 last known results, required evidence and Budibase/Cernion/Rundeck boundary rows. Unsafe
 operational actions are visible as disabled rows only; Budibase does not execute Rundeck jobs
