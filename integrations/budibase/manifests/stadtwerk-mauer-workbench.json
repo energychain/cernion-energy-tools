@@ -4612,6 +4612,321 @@
       }
     },
     {
+      "name": "getLandingRegistryDraftSyncSummaryRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-landing-registry-draft",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-cross-system-variance-evidence-matrix-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.draft||{}; const sync=d.syncProof||data.syncProof||{}; const status=(node)=>node&&node.status?String(node.status):''; return [{rowKey:'landing_registry_draft_sync_summary',label:'Landing-Registry draft sync proof',tenantId:data.tenantId||'stadtwerk-mauer',seedId:data.seedId||d.seedId||'stadtwerk-mauer-cross-system-variance-evidence-matrix-v1',status:data.status||'unknown',draftDerivable:Boolean(data.found&&d.slug),draftStatus:status(sync.landingRegistryDraft)||'draft_unknown',blueprintPackStatus:status(sync.blueprintPack)||'unknown',productiveDemoRoomStatus:status(sync.productiveDemoRoom)||'blocked',downstreamHandoff:[status(sync.blueprintPack)||'blueprint_pack',status(sync.landingRegistryDraft)||'landing_registry_draft',status(sync.productiveDemoRoom)||'productive_page_blocked'].join(' -> '),rowCount:Number(data.rowCount||d.rowCount||0),safeNextAction:'inspect_draft_rows_and_publication_blockers_without_publishing',sourceClass:'landing_registry_draft_sync_summary'}]",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "tenantId": {
+          "type": "string"
+        },
+        "seedId": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "draftDerivable": {
+          "type": "boolean"
+        },
+        "draftStatus": {
+          "type": "string"
+        },
+        "blueprintPackStatus": {
+          "type": "string"
+        },
+        "productiveDemoRoomStatus": {
+          "type": "string"
+        },
+        "downstreamHandoff": {
+          "type": "string"
+        },
+        "rowCount": {
+          "type": "number"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getLandingRegistryDraftPreviewRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-landing-registry-draft",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-cross-system-variance-evidence-matrix-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.draft||{}; const cell=(value)=>String(value||''); const rows=(d.rows||[]).map((row,index)=>({rowKey:`landing_registry_draft_row_${index+1}`,seedId:data.seedId||d.seedId||'stadtwerk-mauer-cross-system-variance-evidence-matrix-v1',slug:d.slug||'',title:d.title||'',phase:cell(row.phase||index+1),v:cell(row.V),d:cell(row.D),m:cell(row.M),i:cell(row.I),nachweise:(row.evidenceRequirements||[]).join(', '),status:cell(row.status),gateOutcome:cell(row.gateOutcome),positiveFollowUp:cell(row.positiveFollowUp),sourceClass:'landing_registry_draft_row_preview'})); const summary={rowKey:'landing_registry_draft_route',seedId:data.seedId||d.seedId||'stadtwerk-mauer-cross-system-variance-evidence-matrix-v1',slug:d.slug||'',title:d.title||'',phase:'-',v:'-',d:'-',m:'Mitwirkend',i:'-',nachweise:(d.roleHeaders||[]).join(', '),status:data.status||'unknown',gateOutcome:'draft_preview_read_only',positiveFollowUp:'complete review owner and publication proof in later approved issues before any productive publication',sourceClass:'landing_registry_draft_preview_summary'}; return [summary].concat(rows)",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "seedId": {
+          "type": "string"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "phase": {
+          "type": "string"
+        },
+        "v": {
+          "type": "string"
+        },
+        "d": {
+          "type": "string"
+        },
+        "m": {
+          "type": "string"
+        },
+        "i": {
+          "type": "string"
+        },
+        "nachweise": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "gateOutcome": {
+          "type": "string"
+        },
+        "positiveFollowUp": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getLandingRegistryDraftBlueprintValidityRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-cross-system-variance-evidence-matrix-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.data||{}; const counts=(data.summary||{}).counts||{}; const v=d.validation||{}; const m=d.demoProcessMatrixSync||{}; return [{rowKey:'landing_registry_blueprint_validity',label:'Blueprint-Pack validity for Landing-Registry draft',seedId:d.seedId||'stadtwerk-mauer-cross-system-variance-evidence-matrix-v1',status:data.status||'unknown',valid:Boolean(v.valid),validationErrors:(v.errors||[]).join(', '),rowCount:Number(m.rowCount||counts.demoProcessMatrixRows||0),roleLegendM:m.roleLegendM||'Mitwirkend',rowCountValid:Boolean(m.rowCountValid),roleCellsClean:Boolean(m.roleCellsClean),dataClassesLimited:Boolean(m.dataClassesLimited),safeNextAction:Boolean(v.valid)?'render_landing_registry_draft_sync_rows':'fix_blueprint_pack_seed_before_rendering_draft_sync',sourceClass:'landing_registry_blueprint_validity'}]",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "seedId": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "valid": {
+          "type": "boolean"
+        },
+        "validationErrors": {
+          "type": "string"
+        },
+        "rowCount": {
+          "type": "number"
+        },
+        "roleLegendM": {
+          "type": "string"
+        },
+        "rowCountValid": {
+          "type": "boolean"
+        },
+        "roleCellsClean": {
+          "type": "boolean"
+        },
+        "dataClassesLimited": {
+          "type": "boolean"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getLandingRegistryDraftMatrixSyncRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-cross-system-variance-evidence-matrix-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.data||{}; const m=d.demoProcessMatrixSync||{}; const cell=(value)=>String(value||''); const rows=(m.rows||[]).map((row,index)=>({rowKey:`landing_registry_matrix_row_${index+1}`,phase:cell(row.phase||index+1),v:cell((row.roles||{}).V),d:cell((row.roles||{}).D),m:cell((row.roles||{}).M),i:cell((row.roles||{}).I),nachweise:(row.evidenceRequirements||[]).join(', '),status:cell(row.status),gateOutcome:cell(row.gateOutcome),sourceClass:'landing_registry_demo_process_matrix_row'})); const summary={rowKey:'landing_registry_matrix_sync_summary',phase:'-',v:'-',d:'-',m:m.roleLegendM||'Mitwirkend',i:'-',nachweise:(m.evidenceRequirements||[]).join(', '),status:m.synced?'sync_proof_available':'sync_proof_required',gateOutcome:[m.downstreamHandoff&&m.downstreamHandoff.blueprintPack,m.downstreamHandoff&&m.downstreamHandoff.landingRegistry,m.downstreamHandoff&&m.downstreamHandoff.productiveDemoRoom].filter(Boolean).join(' -> ')||'blueprint_pack_to_landing_registry_to_productive_page',sourceClass:'landing_registry_demo_process_matrix_summary'}; return [summary].concat(rows)",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "phase": {
+          "type": "string"
+        },
+        "v": {
+          "type": "string"
+        },
+        "d": {
+          "type": "string"
+        },
+        "m": {
+          "type": "string"
+        },
+        "i": {
+          "type": "string"
+        },
+        "nachweise": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "gateOutcome": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getLandingRegistryDraftPublicationBlockerRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-landing-registry-draft",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-cross-system-variance-evidence-matrix-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.draft||{}; const sync=d.syncProof||data.syncProof||{}; const blockers=d.publicationBlockers||data.publicationBlockers||[]; const rows=blockers.map((blocker,index)=>({rowKey:`publication_blocker_${index+1}`,blocker:String(blocker),status:'blocked',blueprintPackStatus:((sync.blueprintPack||{}).status)||'',landingRegistryDraftStatus:((sync.landingRegistryDraft||{}).status)||'',productiveDemoRoomStatus:((sync.productiveDemoRoom||{}).status)||'',safeNextAction:'resolve_blocker_in_separate_approved_publication_or_review_issue',sourceClass:'landing_registry_publication_blocker'})); return rows.length?rows:[{rowKey:'publication_blocker_none',blocker:'none',status:'ready_for_review_not_publication',blueprintPackStatus:((sync.blueprintPack||{}).status)||'',landingRegistryDraftStatus:((sync.landingRegistryDraft||{}).status)||'',productiveDemoRoomStatus:((sync.productiveDemoRoom||{}).status)||'',safeNextAction:'keep_publication_blocked_until_separate_publication_issue',sourceClass:'landing_registry_publication_blocker'}]",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "blocker": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "blueprintPackStatus": {
+          "type": "string"
+        },
+        "landingRegistryDraftStatus": {
+          "type": "string"
+        },
+        "productiveDemoRoomStatus": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getLandingRegistryDraftVarianceFollowupRows",
+      "method": "GET",
+      "path": "/api/dashboard/cross-system-variance-matrix",
+      "queryString": "tenantId={{tenantId}}&caseId=smm-budibase-workbench",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const rows=(data.positiveFollowUps&&data.positiveFollowUps.length?data.positiveFollowUps:data.missingEvidence||[]).map((row,index)=>({rowKey:row.missingDataPoint||`variance_followup_${index+1}`,missingDataPoint:row.missingDataPoint||'',label:row.label||row.missingDataPoint||'',status:data.status||'evidence_gap',enablesDossierAddition:row.enablesDossierAddition||'add missing variance evidence to strengthen the draft sync proof',safeNextAction:'supply_evidence_then_refresh_read_only_variance_and_landing_registry_rows',sourceClass:'landing_registry_variance_positive_followup'})); return rows.length?rows:[{rowKey:'variance_followup_none',missingDataPoint:'none',label:'No open variance follow-up',status:data.status||'ready',enablesDossierAddition:'draft sync proof can show complete variance evidence context',safeNextAction:'keep_publication_as_separate_issue',sourceClass:'landing_registry_variance_positive_followup'}]",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "missingDataPoint": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "enablesDossierAddition": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getLandingRegistryDraftNoCallRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-landing-registry-draft",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-cross-system-variance-evidence-matrix-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.draft||{}; const notCalled=((d.sourceActions||data.sourceActions||{}).notCalled)||[]; const boundaries=d.safetyBoundaries||[]; const defaults=['landing-registry.write','cernion.de.publish','budibase.table.write','operations-runbook.execute','external.connector.call','hitl.create','settlement.export','device-control.execute','personal-agent.execute']; const all=[...new Set(notCalled.concat(boundaries).concat(defaults))]; return all.map((action,index)=>({rowKey:`landing_registry_no_call_${index+1}_${String(action).replace(/[^a-zA-Z0-9]+/g,'_')}`,boundary:String(action),status:notCalled.includes(action)||defaults.includes(action)?'not_called':'forbidden',safeAlternative:'render_existing_read_only_dashboard_query_only',sourceClass:'landing_registry_draft_no_call_guard'}))",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "boundary": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "safeAlternative": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
       "name": "getPortfolioMarketValueReadinessSeedGuardRows",
       "method": "GET",
       "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
@@ -6157,6 +6472,48 @@
       "title": "Variance Matrix Focus",
       "queryName": "getVdmiBlueprintSelectorVarianceMatrixFocusRows",
       "tableTitle": "Read-only Cross-System Variance Linkout"
+    },
+    {
+      "id": "landing_registry_draft_sync_summary",
+      "title": "Cross-System Variance Landing-Registry Draft Sync",
+      "queryName": "getLandingRegistryDraftSyncSummaryRows",
+      "tableTitle": "Draft Derivation and Handoff State"
+    },
+    {
+      "id": "landing_registry_draft_preview",
+      "title": "Landing-Registry Draft Preview",
+      "queryName": "getLandingRegistryDraftPreviewRows",
+      "tableTitle": "Draft Rows and Presentation Columns"
+    },
+    {
+      "id": "landing_registry_blueprint_validity",
+      "title": "Landing-Registry Blueprint Validity",
+      "queryName": "getLandingRegistryDraftBlueprintValidityRows",
+      "tableTitle": "Blueprint-Pack Validity for Draft Sync"
+    },
+    {
+      "id": "landing_registry_matrix_sync",
+      "title": "Landing-Registry Matrix Sync",
+      "queryName": "getLandingRegistryDraftMatrixSyncRows",
+      "tableTitle": "Blueprint-Pack to Landing-Registry Matrix Rows"
+    },
+    {
+      "id": "landing_registry_publication_blockers",
+      "title": "Landing-Registry Publication Blockers",
+      "queryName": "getLandingRegistryDraftPublicationBlockerRows",
+      "tableTitle": "Downstream Publication Blockers"
+    },
+    {
+      "id": "landing_registry_positive_followups",
+      "title": "Landing-Registry Positive Follow-ups",
+      "queryName": "getLandingRegistryDraftVarianceFollowupRows",
+      "tableTitle": "Evidence Gaps and Enabled Additions"
+    },
+    {
+      "id": "landing_registry_no_call_guards",
+      "title": "Landing-Registry No-Call Guards",
+      "queryName": "getLandingRegistryDraftNoCallRows",
+      "tableTitle": "Forbidden and Not-Called Boundaries"
     },
     {
       "id": "portfolio_market_value_seed_guard",
