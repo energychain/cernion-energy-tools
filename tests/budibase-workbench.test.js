@@ -5150,4 +5150,155 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       ])
     );
   });
+
+  it('adds the flexible grid-connection release-file selector and sync panel from existing read-only bricks', () => {
+    const names = [
+      'getFlexibleGridConnectionReleaseFileSeedSelectorRows',
+      'getFlexibleGridConnectionReleaseFileVerifyRows',
+      'getFlexibleGridConnectionReleaseFileMatrixRows',
+      'getFlexibleGridConnectionReleaseFileEvidenceRows',
+      'getFlexibleGridConnectionReleaseFileFocusRows',
+      'getFlexibleGridConnectionReleaseFileTransferRows',
+      'getFlexibleGridConnectionReleaseFileNoCallRows',
+    ];
+    const queries = manifest.queries.filter((query) => names.includes(query.name));
+    expect(queries).toHaveLength(names.length);
+    expect(new Set(queries.map((query) => query.path))).toEqual(
+      new Set([
+        '/api/dashboard/stadtwerk-mauer-blueprint-pack-verify',
+        '/api/dashboard/stadtwerk-mauer-transfer-readiness',
+        '/api/dashboard/anschlusskapazitaet-evidence-queue',
+      ])
+    );
+    expect(
+      queries.filter((query) => query.path.includes('blueprint-pack-verify')).every((query) =>
+        query.queryString.includes('stadtwerk-mauer-flexible-grid-connection-release-file-v1')
+      )
+    ).toBe(true);
+    expect(
+      manifest.sections
+        .filter((section) => section.id.startsWith('flexible_grid_connection_release'))
+        .map((section) => section.queryName)
+    ).toEqual(expect.arrayContaining(names));
+    expect(manifest.notes.join(' ')).toContain('Flexible Grid-Connection Release File binds');
+  });
+
+  it('renders scalar flexible release-file rows and explicit no-call guards', () => {
+    const blueprint = {
+      status: 'completed',
+      tenantId: 'stadtwerk-mauer',
+      summary: { counts: { requiredEvidence: 10, demoProcessMatrixRows: 5, forbiddenActions: 28 } },
+      data: {
+        seedId: 'stadtwerk-mauer-flexible-grid-connection-release-file-v1',
+        tenantId: 'stadtwerk-mauer',
+        processFamily: 'flexible_grid_connection_release',
+        controlCase: 'flexible_connection_release_file_review',
+        validation: { valid: true },
+        requiredEvidence: [
+          'connectionRequestId',
+          'gridConnectionPointRef',
+          'requestedCapacityKw',
+          'flexibilityConditionRef',
+          'gridRestrictionEvidenceRef',
+          'reservationStatus',
+          'ownerRole',
+          'deadlineDate',
+          'contractBoundaryStatus',
+          'nextGate',
+        ],
+        missingEvidence: [{
+          missingDataPoint: 'gridRestrictionEvidenceRef',
+          state: 'evidence_gap',
+          enablesDossierAddition: 'Adds grid restriction evidence for reviewability.',
+        }],
+        demoProcessMatrixSync: {
+          synced: true,
+          roleLegendM: 'Mitwirkend',
+          rowCount: 5,
+          rowCountValid: true,
+          evidenceRequirements: ['connectionRequestId', 'gridRestrictionEvidenceRef'],
+          downstreamHandoff: {
+            blueprintPack: 'complete',
+            landingRegistry: 'pending',
+            productiveDemoRoom: 'pending',
+          },
+          rows: [{
+            phase: '2',
+            roles: {
+              V: 'ROLE_NETZPLANUNG',
+              D: 'ROLE_GRID_OPERATIONS',
+              M: 'ROLE_ANSCHLUSSWESEN',
+              I: 'ROLE_COMMERCIAL_GOVERNANCE',
+            },
+            evidenceRequirements: ['flexibilityConditionRef', 'gridRestrictionEvidenceRef'],
+            status: 'needs_technical_evidence',
+            gateOutcome: 'technical_restriction_review_pending',
+          }],
+        },
+      },
+    };
+    const capacity = {
+      status: 'ready_for_review',
+      evidenceQueue: {
+        connectionRequestId: 'SMM-FLEX-001',
+        netzverknuepfungspunktHint: 'NVP-SYN-MAUER-04',
+        capacityAssumptionKw: 850,
+        gridRestrictionHint: 'conditional-capacity-window',
+        fnavOptionMarker: 'flexibility-condition-review-only',
+        capacityReserved: false,
+        connectionDecisionApplied: false,
+        owner: 'ROLE_NETZPLANUNG',
+        dueDate: '2026-08-15',
+        nextGate: 'human-release-file-review',
+      },
+      missingEvidence: [],
+      sourceActions: { notCalled: ['grid-connection.reserveCapacity'] },
+    };
+    for (const [name, fixture] of [
+      ['getFlexibleGridConnectionReleaseFileSeedSelectorRows', blueprint],
+      ['getFlexibleGridConnectionReleaseFileVerifyRows', blueprint],
+      ['getFlexibleGridConnectionReleaseFileMatrixRows', blueprint],
+      ['getFlexibleGridConnectionReleaseFileEvidenceRows', blueprint],
+      ['getFlexibleGridConnectionReleaseFileFocusRows', capacity],
+      ['getFlexibleGridConnectionReleaseFileTransferRows', { status: 'transfer_blocked' }],
+      ['getFlexibleGridConnectionReleaseFileNoCallRows', capacity],
+    ]) {
+      const rows = runTransformer(name, fixture);
+      expectScalarRows(rows);
+      expectNoRawObjectText(rows);
+    }
+    expect(runTransformer('getFlexibleGridConnectionReleaseFileMatrixRows', blueprint)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'flex_release_matrix_sync',
+          roleLegendM: 'Mitwirkend',
+          rowCount: 5,
+          downstreamHandoff: 'complete -> pending -> pending',
+        }),
+        expect.objectContaining({
+          rowKey: 'flex_release_matrix_2',
+          v: 'ROLE_NETZPLANUNG',
+          d: 'ROLE_GRID_OPERATIONS',
+          m: 'ROLE_ANSCHLUSSWESEN',
+          i: 'ROLE_COMMERCIAL_GOVERNANCE',
+        }),
+      ])
+    );
+    expect(runTransformer('getFlexibleGridConnectionReleaseFileFocusRows', capacity)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ rowKey: 'connection_capacity', value: 'NVP-SYN-MAUER-04 / 850 kW' }),
+        expect.objectContaining({ rowKey: 'reservation_release_boundary', value: 'capacityReserved=false; decisionApplied=false' }),
+        expect.objectContaining({ rowKey: 'contract_boundary', value: 'review_marker_only_no_contract_creation' }),
+      ])
+    );
+    expect(runTransformer('getFlexibleGridConnectionReleaseFileNoCallRows', capacity)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ boundary: 'rundeck.execute', status: 'not_called', disabled: true }),
+        expect.objectContaining({ boundary: 'mako.write', status: 'not_called', disabled: true }),
+        expect.objectContaining({ boundary: 'landing-registry.write', status: 'not_called', disabled: true }),
+        expect.objectContaining({ boundary: 'personal-agent.execute', status: 'not_called', disabled: true }),
+      ])
+    );
+  });
+
 });

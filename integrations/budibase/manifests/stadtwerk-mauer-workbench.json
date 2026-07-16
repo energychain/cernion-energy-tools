@@ -9866,6 +9866,327 @@
           "type": "string"
         }
       }
+    },
+    {
+      "name": "getFlexibleGridConnectionReleaseFileSeedSelectorRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-flexible-grid-connection-release-file-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.data||{}; const selected=d.seedId||'stadtwerk-mauer-flexible-grid-connection-release-file-v1'; return [{rowKey:'flex_release_seed',availableSeedId:'stadtwerk-mauer-flexible-grid-connection-release-file-v1',selectedSeedId:selected,tenantId:d.tenantId||data.tenantId||'stadtwerk-mauer',label:'Flexible Netzanschluss Freigabeakte',selected:true,roleTarget:'ROLE_NETZPLANUNG',processFamily:d.processFamily||'flexible_grid_connection_release',controlCase:d.controlCase||'flexible_connection_release_file_review',caseId:'smm-flex-release-001',dataClass:'synthetic_demo_tenant',sourceClass:'flexible_grid_connection_release_seed_selector'}]",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "availableSeedId": {
+          "type": "string"
+        },
+        "selectedSeedId": {
+          "type": "string"
+        },
+        "tenantId": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "selected": {
+          "type": "boolean"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "processFamily": {
+          "type": "string"
+        },
+        "controlCase": {
+          "type": "string"
+        },
+        "caseId": {
+          "type": "string"
+        },
+        "dataClass": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getFlexibleGridConnectionReleaseFileVerifyRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-flexible-grid-connection-release-file-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.data||{}; const counts=(data.summary||{}).counts||{}; const v=d.validation||{}; return [{rowKey:'flex_release_verify',label:'Blueprint-Pack verification',seedId:d.seedId||'stadtwerk-mauer-flexible-grid-connection-release-file-v1',tenantId:d.tenantId||data.tenantId||'stadtwerk-mauer',status:data.status||'unknown',valid:Boolean(v.valid),processFamily:d.processFamily||'flexible_grid_connection_release',controlCase:d.controlCase||'flexible_connection_release_file_review',requiredEvidenceCount:Number(counts.requiredEvidence||0),matrixRowCount:Number(counts.demoProcessMatrixRows||0),forbiddenActionCount:Number(counts.forbiddenActions||0),safeNextGate:(data.nextActions||[])[0]||'refresh_read_only_release_file_rows',sourceClass:'flexible_grid_connection_release_verify'}]",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "seedId": {
+          "type": "string"
+        },
+        "tenantId": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "valid": {
+          "type": "boolean"
+        },
+        "processFamily": {
+          "type": "string"
+        },
+        "controlCase": {
+          "type": "string"
+        },
+        "requiredEvidenceCount": {
+          "type": "number"
+        },
+        "matrixRowCount": {
+          "type": "number"
+        },
+        "forbiddenActionCount": {
+          "type": "number"
+        },
+        "safeNextGate": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getFlexibleGridConnectionReleaseFileMatrixRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-flexible-grid-connection-release-file-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.data||{}; const m=d.demoProcessMatrixSync||{}; const handoff=m.downstreamHandoff||{}; const base={seedId:d.seedId||'stadtwerk-mauer-flexible-grid-connection-release-file-v1',roleLegendM:String(m.roleLegendM||'Mitwirkend'),rowCount:Number(m.rowCount||0),rowCountValid:Boolean(m.rowCountValid),syncStatus:m.synced?'blueprint_pack_complete':'sync_proof_required',downstreamHandoff:[handoff.blueprintPack||'complete',handoff.landingRegistry||'pending',handoff.productiveDemoRoom||'pending'].join(' -> ')}; const summary={rowKey:'flex_release_matrix_sync',phase:'sync',v:'ROLE_NETZPLANUNG',d:'ROLE_ANSCHLUSSWESEN',m:base.roleLegendM,i:'ROLE_COMMERCIAL_GOVERNANCE',nachweise:(m.evidenceRequirements||[]).map(String).join(', '),status:base.syncStatus,safeNextGate:'keep_landing_registry_and_productive_demo_room_blocked_until_sync_proof',sourceClass:'flexible_grid_connection_release_matrix_sync',...base}; const rows=(m.rows||[]).map((row,index)=>{const roles=row.roles||{}; return {rowKey:'flex_release_matrix_'+String(row.phase||index+1),phase:String(row.phase||index+1),v:String(roles.V||row.v||''),d:String(roles.D||row.d||''),m:String(roles.M||row.m||''),i:String(roles.I||row.i||''),nachweise:(row.evidenceRequirements||[]).map(String).join(', '),status:String(row.status||''),safeNextGate:String(row.gateOutcome||row.enablesDossierAddition||'refresh_read_only_matrix'),sourceClass:'flexible_grid_connection_release_matrix_row',...base};}); return [summary].concat(rows)",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "phase": {
+          "type": "string"
+        },
+        "v": {
+          "type": "string"
+        },
+        "d": {
+          "type": "string"
+        },
+        "m": {
+          "type": "string"
+        },
+        "i": {
+          "type": "string"
+        },
+        "nachweise": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "safeNextGate": {
+          "type": "string"
+        },
+        "seedId": {
+          "type": "string"
+        },
+        "roleLegendM": {
+          "type": "string"
+        },
+        "rowCount": {
+          "type": "number"
+        },
+        "rowCountValid": {
+          "type": "boolean"
+        },
+        "syncStatus": {
+          "type": "string"
+        },
+        "downstreamHandoff": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getFlexibleGridConnectionReleaseFileEvidenceRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-flexible-grid-connection-release-file-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.data||{}; const gaps=new Map((d.missingEvidence||[]).map((row)=>[String(row.missingDataPoint),row])); const required=d.requiredEvidence||[]; return required.map((id,index)=>{const key=String(id||'evidence_'+(index+1)); const gap=gaps.get(key)||{}; return {rowKey:'flex_release_evidence_'+key,evidenceId:key,label:key,status:String(gap.state||'available_for_review'),present:!gaps.has(key),dataClass:'synthetic_tenant_seed',enablesDossierAddition:String(gap.enablesDossierAddition||'evidence available for read-only release-file review'),safeNextGate:gaps.has(key)?'supply_evidence_then_refresh_read_only_rows':'keep_for_human_release_review',sourceClass:'flexible_grid_connection_release_evidence'};})",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "evidenceId": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "present": {
+          "type": "boolean"
+        },
+        "dataClass": {
+          "type": "string"
+        },
+        "enablesDossierAddition": {
+          "type": "string"
+        },
+        "safeNextGate": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getFlexibleGridConnectionReleaseFileFocusRows",
+      "method": "GET",
+      "path": "/api/dashboard/anschlusskapazitaet-evidence-queue",
+      "queryString": "tenantId={{tenantId}}&connectionRequestId=SMM-FLEX-001&netzverknuepfungspunktHint=NVP-SYN-MAUER-04&capacityAssumptionKw=850&gridRestrictionHint=conditional-capacity-window&futureDemandContext=flexible-load-window&legalQuestionMarker=human-review-required&fnavOptionMarker=flexibility-condition-review-only&evidenceStatus=partial&owner=ROLE_NETZPLANUNG&dueDate=2026-08-15&nextGate=human-release-file-review",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const q=data.evidenceQueue||{}; const missing=data.missingEvidence||[]; const rows=[['case_summary','Synthetic release-file case',[q.connectionRequestId||'SMM-FLEX-001','stadtwerk-mauer'].join(' / '),'refresh read-only case rows'],['connection_capacity','NVP / requested capacity',[q.netzverknuepfungspunktHint||'missing',String(q.capacityAssumptionKw??'missing')+' kW'].join(' / '),'verify capacity evidence without reservation'],['restriction_flexibility','Restriction / flexibility condition',[q.gridRestrictionHint||'missing',q.fnavOptionMarker||'missing'].join(' / '),'review technical evidence without device control'],['reservation_release_boundary','Reservation / release boundary','capacityReserved='+Boolean(q.capacityReserved)+'; decisionApplied='+Boolean(q.connectionDecisionApplied),'human review marker only; do not reserve, approve or reject'],['owner_deadline','Owner / deadline',[q.owner||'missing',q.dueDate||'missing'].join(' / '),'complete accountable review handover'],['contract_boundary','Contract boundary','review_marker_only_no_contract_creation','keep contract, MaKo, billing and settlement blocked'],['missing_evidence','Missing evidence',missing.map((row)=>String(row.missingDataPoint||'')).filter(Boolean).join(', ')||'none','supply evidence then refresh read-only rows'],['next_gate','Next safe gate',q.nextGate||'human-release-file-review','verify Blueprint seed or continue human evidence review']]; return rows.map(([rowKey,label,value,safeNextGate])=>({rowKey,label,value:String(value),status:String(data.status||'read_only_review'),safeNextGate,caseId:'smm-flex-release-001',roleTarget:'ROLE_NETZPLANUNG',sourceClass:'flexible_grid_connection_release_focus'}))",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "safeNextGate": {
+          "type": "string"
+        },
+        "caseId": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getFlexibleGridConnectionReleaseFileTransferRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-transfer-readiness",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-flexible-grid-connection-release-file-v1&caseId=smm-flex-release-001",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const rows=[...(data.transferSummaryRows||[]),...(data.dataClassRows||[]),...(data.safeNextGateRows||[]),...(data.boundaryRows||[])]; const source=rows.length?rows:[{rowKey:'flex_release_transfer_pending',label:'Transfer readiness',status:data.status||'pending',description:'Blueprint-Pack canonical; Landing-Registry and productive Demo-Raum pending',safeNextAction:'keep downstream publication blocked'}]; return source.map((row,index)=>({rowKey:String(row.rowKey||'flex_release_transfer_'+(index+1)),label:String(row.label||row.category||'Transfer readiness'),status:String(row.status||row.transferState||data.status||'pending'),value:String(row.value||row.description||row.examples||row.boundary||row.safeNextGate||''),dataClass:String(row.category||row.sourceClass||'transfer_readiness'),productionBlocked:Boolean(row.productionBlocked),safeNextGate:String(row.safeNextAction||row.safeNextGate||row.nextGate||'refresh_transfer_readiness'),sourceClass:String(row.sourceClass||'flexible_grid_connection_release_transfer')}))",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "dataClass": {
+          "type": "string"
+        },
+        "productionBlocked": {
+          "type": "boolean"
+        },
+        "safeNextGate": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getFlexibleGridConnectionReleaseFileNoCallRows",
+      "method": "GET",
+      "path": "/api/dashboard/anschlusskapazitaet-evidence-queue",
+      "queryString": "tenantId={{tenantId}}&connectionRequestId=SMM-FLEX-001&netzverknuepfungspunktHint=NVP-SYN-MAUER-04&capacityAssumptionKw=850&gridRestrictionHint=conditional-capacity-window&owner=ROLE_NETZPLANUNG&dueDate=2026-08-15&nextGate=human-release-file-review",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const notCalled=((data.sourceActions||{}).notCalled)||[]; const guards=['capacity.reserve','connection.approve','connection.reject','contract.create','mako.write','billing.run','settlement.run','tariff.mutate','device-control.execute','smgw-cls.execute','hitl.create','workflow.create','external.connector.call','rundeck.execute','budibase.table.write','cernion.table.write','production.mutate','landing-registry.write','cernion.de.publish','secret.handle','personal-agent.execute']; return [...new Set(notCalled.map(String).concat(guards))].map((action,index)=>({rowKey:'flex_release_no_call_'+String(index+1),boundary:String(action),status:'not_called',disabled:true,safeAlternative:'refresh_existing_read_only_dashboard_rows_or_verify_blueprint_seed',sourceClass:'flexible_grid_connection_release_no_call_guard'}))",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "boundary": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "disabled": {
+          "type": "boolean"
+        },
+        "safeAlternative": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
     }
   ],
   "sections": [
@@ -11100,6 +11421,48 @@
       "tableTitle": "Disabled Consequential Boundaries"
     },
     {
+      "id": "flexible_grid_connection_release_selector",
+      "title": "Flexible Grid-Connection Release File Selector",
+      "queryName": "getFlexibleGridConnectionReleaseFileSeedSelectorRows",
+      "tableTitle": "Selected Blueprint Seed"
+    },
+    {
+      "id": "flexible_grid_connection_release_verify",
+      "title": "Flexible Grid-Connection Blueprint Verify",
+      "queryName": "getFlexibleGridConnectionReleaseFileVerifyRows",
+      "tableTitle": "Blueprint Verification"
+    },
+    {
+      "id": "flexible_grid_connection_release_matrix_sync",
+      "title": "Flexible Grid-Connection Matrix Sync",
+      "queryName": "getFlexibleGridConnectionReleaseFileMatrixRows",
+      "tableTitle": "Canonical V/D/M/I Matrix"
+    },
+    {
+      "id": "flexible_grid_connection_release_evidence",
+      "title": "Flexible Grid-Connection Evidence Gates",
+      "queryName": "getFlexibleGridConnectionReleaseFileEvidenceRows",
+      "tableTitle": "Required and Missing Evidence"
+    },
+    {
+      "id": "flexible_grid_connection_release_focus",
+      "title": "Flexible Grid-Connection Release Review",
+      "queryName": "getFlexibleGridConnectionReleaseFileFocusRows",
+      "tableTitle": "Capacity, Restriction and Release Boundaries"
+    },
+    {
+      "id": "flexible_grid_connection_release_transfer",
+      "title": "Flexible Grid-Connection Transfer Readiness",
+      "queryName": "getFlexibleGridConnectionReleaseFileTransferRows",
+      "tableTitle": "Transfer and Data-Class Boundaries"
+    },
+    {
+      "id": "flexible_grid_connection_release_no_calls",
+      "title": "Flexible Grid-Connection No-Call Guards",
+      "queryName": "getFlexibleGridConnectionReleaseFileNoCallRows",
+      "tableTitle": "Disabled Consequential Actions"
+    },
+    {
       "id": "e2e",
       "title": "E2E Demo Status",
       "queryName": "getStadtwerkMauerE2EProcessDemo",
@@ -11153,6 +11516,8 @@
     "A2MDM Decision Object panel binds the existing #423 a2mdm-decision-object read model with deterministic synthetic defaults for ROLE_GOVERNANCE_OWNER; selected-case binding remains a context hint until #422 visible-demo apply is unblocked.",
     "A2MDM Decision Object rows stay scalar/generated: Budibase renders summary, subject, business intent, technical constraint, regulatory reference, evidence source, owner role, risk level, threshold, next gate, missing inputs, positive follow-ups and no-call guards only, without A2MDM persistence, workflow/HITL, MaKo, billing, settlement, tariff, device-control, Landing-Registry, production publication, Budibase table writes or Personal-Agent shortcuts.",
     "Safe-Action Catalog binds existing Stadtwerk-Mauer selected-case action rows to committed Operation Capability Index operation ids; Budibase renders operationKind, consequenceLevel, recommendedExecutionMode, scopes, tenant boundary, missing parameters, disabled reasons, next gates and no-call guards as scalar explanation rows only.",
-    "Safe-Action Catalog rows keep disabled consequential operations visible but non-executable: direct Rundeck, operations-runbook execution, Budibase/Cernion writes, MaKo, billing, settlement, tariff, SMGW/CLS/device-control, HITL/workflow, external connector, production mutation and Personal-Agent execution remain not-called boundaries."
+    "Safe-Action Catalog rows keep disabled consequential operations visible but non-executable: direct Rundeck, operations-runbook execution, Budibase/Cernion writes, MaKo, billing, settlement, tariff, SMGW/CLS/device-control, HITL/workflow, external connector, production mutation and Personal-Agent execution remain not-called boundaries.",
+    "Flexible Grid-Connection Release File binds the canonical stadtwerk-mauer-flexible-grid-connection-release-file-v1 matrix to existing Blueprint-Pack verify, transfer-readiness and Anschlusskapazitaet evidence-queue read models; no new backend endpoint is introduced.",
+    "Flexible release-file rows stay scalar/generated and synthetic: Budibase renders case, NVP/capacity, restriction/flexibility, reservation/release and contract review boundaries, owner/deadline, missing evidence, next gate and no-call guards without arbitrary writes, approval/rejection, reservation, contract creation, Rundeck, MaKo, billing, settlement, tariff, device control, HITL/workflow, external connectors, production mutation, Landing-Registry publication, secrets or Personal-Agent shortcuts."
   ]
 }
