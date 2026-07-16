@@ -8,9 +8,64 @@ uses its own env-only credential:
 > [`RUNBOOK.md`](./RUNBOOK.md) — it covers the local-only vs. shared/team profile, RBAC,
 > user/global tool-server registration, session/credential lifecycle, and the smoke checklist.
 
+- `cernion-sidecar-bridge.js` — OpenAI-compatible provider bridge for one configured Cernion
+  Sidecar session (`/v1/models`, `/v1/chat/completions`, `/health`).
 - `cernion-openapi-tool-server.js` — read-only Evidence Lookup (delegates to the Agent Sidecar).
 - `cernion-process-intake-tool-server.js` — **draft-only** Process Intake preview (delegates to
   the existing Process Intake action). **This is not a production write path.**
+
+## OpenAI-compatible Sidecar bridge
+
+The bridge lets an existing Open WebUI instance use a single, explicit Cernion Sidecar session as
+an OpenAI-compatible chat provider. Open WebUI remains only the interchangeable frontend;
+Cernion remains authoritative for capability routing, policy, evidence, lifecycle and all
+write-boundary decisions.
+
+Start the bridge after generating or receiving a Sidecar session manifest:
+
+```bash
+CERNION_SIDECAR_MANIFEST_URL='https://.../manifest.json' \
+CERNION_SIDECAR_ASK_URL='https://.../ask' \
+CERNION_SIDECAR_PLAN_URL='https://.../plan' \
+CERNION_SIDECAR_EXPIRES_AT='2026-07-16T12:00:00.000Z' \
+CERNION_OPEN_WEBUI_MODEL_ID='cernion-dev-sidecar' \
+CERNION_SIDECAR_TOKEN='<session token if required>' \
+node integrations/open-webui/cernion-sidecar-bridge.js
+```
+
+It listens on `127.0.0.1:8087` by default. Configure Open WebUI as an OpenAI-compatible provider
+with base URL `http://127.0.0.1:8087/v1` and any placeholder API key. The bridge exposes:
+
+- `GET /health` — reports configured/missing/expired state without returning session secrets
+- `GET /v1/models` — returns the configured model id
+- `POST /v1/chat/completions` — forwards the last user message to the configured Sidecar `ask` or
+  `plan` URL and returns an OpenAI-style chat completion
+
+Session lifecycle and routing rules:
+
+- Missing session config fails closed with HTTP 503.
+- Expired sessions fail closed with HTTP 410 and recovery guidance to generate a new Sidecar
+  session; the bridge never guesses replacement URLs.
+- Latest `turnId` is stored per Open WebUI conversation id (`metadata.chat_id`,
+  `metadata.conversation_id`, compatible aliases, or headers) and sent as `parentTurnId` only for
+  that conversation.
+- Planning uses explicit planning words (`Plan`, `Planung`, `Vorgehen`, `Roadmap`, `Schritte`,
+  `Blueprint`) or `metadata.sidecarMode: "plan"`; domain words such as `Zielnetzplanung` stay on
+  the `ask` path.
+
+Local disposable demo stack:
+
+```bash
+CERNION_SIDECAR_MANIFEST_URL='https://.../manifest.json' \
+CERNION_SIDECAR_ASK_URL='https://.../ask' \
+CERNION_SIDECAR_PLAN_URL='https://.../plan' \
+CERNION_SIDECAR_EXPIRES_AT='2026-07-16T12:00:00.000Z' \
+docker compose -f integrations/open-webui/docker-compose.yml up
+```
+
+`WEBUI_AUTH=False` in the compose file is for loopback-only local testing. Do not expose that
+Open WebUI instance on a shared network or the public internet without authentication and separate
+Dev/Production credentials.
 
 ## Read-only Evidence tool server
 
@@ -125,7 +180,7 @@ To smoke locally started services instead:
 
 ```bash
 OPEN_WEBUI_SMOKE_USE_MOCKS=0 \
-OPEN_WEBUI_BRIDGE_BASE_URL=http://127.0.0.1:3900 \
+OPEN_WEBUI_BRIDGE_BASE_URL=http://127.0.0.1:8087 \
 OPEN_WEBUI_TOOLSERVER_BASE_URL=http://127.0.0.1:3910 \
 node integrations/open-webui/smoke-test.js
 ```
@@ -141,9 +196,11 @@ Optional smoke overrides:
 ## Verification
 
 ```bash
+node --check integrations/open-webui/cernion-sidecar-bridge.js
 node --check integrations/open-webui/cernion-openapi-tool-server.js
 node --check integrations/open-webui/cernion-process-intake-tool-server.js
-node --test integrations/open-webui/cernion-process-intake-tool-server.test.js integrations/open-webui/cernion-openapi-tool-server.test.js integrations/open-webui/smoke-test.test.js
+node --test integrations/open-webui/cernion-sidecar-bridge.test.js integrations/open-webui/cernion-process-intake-tool-server.test.js integrations/open-webui/cernion-openapi-tool-server.test.js integrations/open-webui/smoke-test.test.js
+docker compose -f integrations/open-webui/docker-compose.yml config
 node integrations/open-webui/smoke-test.js
 ```
 
