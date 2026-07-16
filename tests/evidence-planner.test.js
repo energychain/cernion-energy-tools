@@ -122,6 +122,35 @@ describe('T-EV-001 — evidence-planner: planEvidence() pure-function contract',
     expect(result.confidence).toBeGreaterThanOrEqual(1);
   });
 
+  it('plans coordination meaning preservation evidence as explicit handover-context gaps', () => {
+    const result = planEvidence(
+      { routeLabel: 'coordination_meaning_preservation_profile' },
+      {
+        sourceDomain: 'Netzbetrieb',
+        targetDomain: 'Planung',
+        regulatoryReference: '14a-readiness',
+        owner: 'netzplanung',
+      }
+    );
+
+    expect(result).not.toBeNull();
+    expect(result.registryKey).toBe('coordination_meaning_preservation_profile');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining(['regulatory_reference', 'owner'])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'commercial_effect',
+        'network_constraint',
+        'evidence_proof',
+        'deadline',
+        'next_decision',
+        'operational_risk',
+        'source_action_guards',
+      ])
+    );
+  });
+
   it('plans cost-review committee evidence as explicit dossier gaps', () => {
     const result = planEvidence(
       { routeLabel: 'cost_review_committee_status' },
@@ -314,6 +343,66 @@ describe('T-EV-001 — evidence-planner: planEvidence() pure-function contract',
         'check_result',
         'next_reporting_cycle',
         'handover_decision',
+      ])
+    );
+  });
+
+  it('plans interconnection release-file evidence as mapping subject and approval evidence', () => {
+    const result = planEvidence(
+      { routeLabel: 'interconnection_release_file' },
+      {
+        koppelpunktId: 'KP-419',
+        marketPartnerId: 'MP-419',
+        mappingVersion: 'v2',
+        owner: 'marktkommunikation',
+      }
+    );
+
+    expect(result).not.toBeNull();
+    expect(result.registryKey).toBe('interconnection_release_file');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining(['mapping_subject', 'mapping_version', 'approval_owner_status'])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining(['evidence_source_version', 'process_impact_boundary'])
+    );
+    expect(result.requiredSources.map((source) => source.id)).toEqual(
+      expect.arrayContaining([
+        'mapping_subject',
+        'mapping_version',
+        'evidence_source_version',
+        'approval_owner_status',
+        'process_impact_boundary',
+      ])
+    );
+  });
+
+  it('plans controllability data alignment as checklist and match evidence', () => {
+    const result = planEvidence(
+      { routeLabel: 'controllability_data_alignment' },
+      {
+        checklistId: 'check-407',
+        assetMatch: 'matched',
+        controlTechStatus: 'missing',
+      }
+    );
+
+    expect(result).not.toBeNull();
+    expect(result.registryKey).toBe('controllability_data_alignment');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining([
+        'checklist_reference',
+        'asset_mastr_match',
+        'control_technology_status',
+      ])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'threshold_classification',
+        'testability',
+        'prior_year_comparison',
+        'owner_deadline',
+        'export_readiness',
       ])
     );
   });
@@ -1842,6 +1931,27 @@ describe('T-EV-006 — evidence-planner: Phase 4 registry shortcuts for all rout
         'blocked_follow_up_decision',
         'next_escalation_step',
         'source_datapoints',
+      ])
+    );
+  });
+
+  it('direct_marketer_risk_gate: requires forecast, allocation and handover evidence', () => {
+    const plan = { routeKey: 'direct_marketer_risk_gate' };
+    const result = planEvidence(plan, {
+      caseId: 'case-411',
+      directMarketer: 'dm-partner',
+    });
+
+    expect(result.registryKey).toBe('direct_marketer_risk_gate');
+    expect(result.checkedSources).toEqual(expect.arrayContaining(['handover_context']));
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'forecast_quality',
+        'allocation_rules',
+        'balancing_schedule_impact',
+        'billing_settlement_status',
+        'role_deadline_ownership',
+        'evidence_status',
       ])
     );
   });

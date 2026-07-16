@@ -1,0 +1,230 @@
+{
+  "id": "stadtwerk-mauer-mastr-sync-gap-alerting-v1",
+  "kind": "vdmi_blueprint_pack_seed",
+  "version": "1.0.0",
+  "safetyClassification": "read_only_blueprint_seed",
+  "title": "Stadtwerk Mauer MaStR Sync-Gap Alerting Status seed",
+  "processFamily": "mastr_sync_gap_alerting",
+  "controlCase": "mastr_sync_gap_alerting_status",
+  "sourceTemplateId": "mastr-sync-gap-alerting",
+  "demoTenant": {
+    "tenantId": "stadtwerk-mauer",
+    "classification": "synthetic_demo_tenant",
+    "description": "Virtual Stadtwerk Mauer demo tenant; MaStR sync gap alerting values are synthetic unless explicitly marked as public context."
+  },
+  "dataClasses": {
+    "publicContextLayer": {
+      "description": "Read-only MaStR, OSM, grid-location or comparable public context already blended into the virtual Stadtwerk. Demo reset flows must not mutate this layer.",
+      "examples": ["MaStR installation context", "OSM/grid-location context"]
+    },
+    "syntheticTenantSeed": {
+      "description": "Invented demo assets, portfolios, evidence gaps, test markers, roles and process traces for stadtwerk-mauer.",
+      "examples": ["synthetic Redispatch portfolio id", "synthetic communication-test marker", "synthetic forecast proof"]
+    },
+    "sandboxRuntimeArtifact": {
+      "description": "Resettable output from Cernion/Rundeck demo verification runs, separate from public context baselines.",
+      "examples": ["Workbench verify trace", "readiness-gate render artifact"]
+    }
+  },
+  "roles": [
+    {
+      "roleId": "ROLE_NETZBETRIEB",
+      "relation": "verantwortlich",
+      "responsibility": "Responsible for overall network operations and ensuring MaStR master data alignment with local installations."
+    },
+    {
+      "roleId": "ROLE_REDISPATCH_KOORDINATOR",
+      "relation": "mitwirkend",
+      "responsibility": "Coordinates the synchronization gap analysis between Redispatch 2.0 master databases and MaStR feeds."
+    },
+    {
+      "roleId": "ROLE_CERNION_GOVERNANCE",
+      "relation": "durchfuehrend",
+      "responsibility": "Aggregates deterministic data comparison rows, identifies discrepancies, and formats the quality status."
+    },
+    {
+      "roleId": "ROLE_COMMERCIAL_AUDIT",
+      "relation": "information",
+      "responsibility": "Receives the read-only sync-gap evidence status for later governance and audit review without executing MaKo, billing or settlement actions."
+    }
+  ],
+  "evidenceRequirements": [
+    {
+      "id": "mastrFreshnessEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds evidence of current MaStR data freshness harvest for the local network area."
+    },
+    {
+      "id": "redispatchStammdatenComparison",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds structured comparison data between Redispatch 2.0 master data and harvested MaStR records."
+    },
+    {
+      "id": "syncGapAlertFeed",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds active sync gap alert feed items and priority-sorted alerting findings."
+    },
+    {
+      "id": "reconciliationApprovalDecision",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds the final manual reconciliation or verification sign-off."
+    }
+  ],
+  "demoProcessMatrix": {
+    "slug": "mastr-sync-gap-alerting",
+    "title": "MaStR Sync-Gap Alerting & Monitoring",
+    "roleLegend": {
+      "V": "Verantwortlich",
+      "D": "Durchfuehrend",
+      "M": "Mitwirkend",
+      "I": "Informiert"
+    },
+    "headers": [
+      "Phase",
+      "V = Verantwortlich",
+      "D = Durchfuehrend",
+      "M = Mitwirkend",
+      "I = Informiert",
+      "Nachweise"
+    ],
+    "allowedDataClasses": [
+      "publicContextLayer",
+      "syntheticTenantSeed",
+      "sandboxRuntimeArtifact"
+    ],
+    "downstreamHandoff": {
+      "blueprintPack": "complete",
+      "landingRegistry": "pending",
+      "productiveDemoRoom": "pending",
+      "acceptanceNote": "Blueprint-Pack/Cernion-Energy-Tools matrix is canonical; Landing-Registry and productive Demo-Raum sync remain downstream proof steps."
+    },
+    "rows": [
+      {
+        "phase": "1",
+        "v": "ROLE_NETZBETRIEB",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_REDISPATCH_KOORDINATOR",
+        "i": "ROLE_COMMERCIAL_AUDIT",
+        "evidenceRequirements": [
+          "mastrFreshnessEvidence"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed"
+        ],
+        "status": "ready_for_review",
+        "gateOutcome": "mastr_freshness_harvested",
+        "enablesDossierAddition": "Adds current MaStR harvest feed items."
+      },
+      {
+        "phase": "2",
+        "v": "ROLE_NETZBETRIEB",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_REDISPATCH_KOORDINATOR",
+        "i": "ROLE_COMMERCIAL_AUDIT",
+        "evidenceRequirements": [
+          "redispatchStammdatenComparison"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed"
+        ],
+        "status": "needs_portfolio",
+        "gateOutcome": "mastr_redispatch_comparison_pending",
+        "enablesDossierAddition": "Adds delta analysis comparison between MaStR and local database master records."
+      },
+      {
+        "phase": "3",
+        "v": "ROLE_NETZBETRIEB",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_REDISPATCH_KOORDINATOR",
+        "i": "ROLE_COMMERCIAL_AUDIT",
+        "evidenceRequirements": [
+          "syncGapAlertFeed"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed",
+          "sandboxRuntimeArtifact"
+        ],
+        "status": "evidence_gap",
+        "gateOutcome": "sync_gap_alerts_pending",
+        "enablesDossierAddition": "Adds delta discrepancies and alert classification findings."
+      },
+      {
+        "phase": "4",
+        "v": "ROLE_NETZBETRIEB",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_REDISPATCH_KOORDINATOR",
+        "i": "ROLE_COMMERCIAL_AUDIT",
+        "evidenceRequirements": [
+          "reconciliationApprovalDecision"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed",
+          "sandboxRuntimeArtifact"
+        ],
+        "status": "clarification",
+        "gateOutcome": "reconciliation_pending",
+        "enablesDossierAddition": "Adds final operator reconciliation decision."
+      }
+    ]
+  },
+  "decisionPolicy": {
+    "onMissingEvidence": "evidence_gap",
+    "onMissingReviewDecision": "clarification",
+    "allowedStates": ["clarification", "evidence_gap", "ready_for_review", "needs_portfolio"],
+    "mustNotTrigger": [
+      "redispatch_enrollment",
+      "dispatch_control",
+      "mako_write",
+      "billing",
+      "settlement",
+      "tariff_mutation",
+      "smgw_cls_device_control",
+      "external_connector_call",
+      "hitl_create",
+      "production_mutation",
+      "public_context_mutation"
+    ]
+  },
+  "allowedCommandHints": [
+    {
+      "kind": "workbench_hint",
+      "id": "budibase:stadtwerk-mauer-workbench",
+      "label": "Cernion Stadtwerk Mauer Workbench",
+      "execution": "metadata_only"
+    }
+  ],
+  "forbiddenActions": [
+    "redispatch_enrollment",
+    "dispatch_control",
+    "mako_write",
+    "billing",
+    "settlement",
+    "tariff_mutation",
+    "smgw_cls_device_control",
+    "external_connector_call",
+    "webhook",
+    "hitl_create",
+    "tenant_provisioning",
+    "rundeck_execution",
+    "public_context_mutation",
+    "production_mutation",
+    "personal_agent_hardcoding"
+  ],
+  "publicContextMutationAllowed": false,
+  "tenantProvisioningAllowed": false,
+  "realWorldClaim": "synthetic_demo_only",
+  "projectionHints": {
+    "sourceIssue": 351,
+    "sourceTemplateId": "mastr-sync-gap-alerting",
+    "targetSurface": "stadtwerk_mauer_blueprint_pack_verify",
+    "missingEvidenceToWorkbenchItem": true
+  }
+}

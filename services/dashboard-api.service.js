@@ -39,6 +39,12 @@ const {
   stadtwerkMauerPvMissingNap,
   validateVdmiBlueprintPackSeed,
 } = require('../src/vdmi-blueprint-pack-seeds');
+const {
+  buildEnergySidecarRouteRegistryStatus,
+} = require('../src/energy-sidecar-route-registry');
+const {
+  buildInterconnectionReleaseFileStatus,
+} = require('../src/interconnection-release-file');
 
 const OPENAPI_TAG = 'Dashboard API';
 const ACTION_MQ_LIST = 'mastr-quality.list';
@@ -62,11 +68,17 @@ module.exports = {
       marketCommunicationEvidenceChainStatus: 5 * 60 * 1000, // 5 min
       e2eControllabilityGovernanceStatus: 5 * 60 * 1000, // 5 min
       controllabilityAssetHandoverStatus: 5 * 60 * 1000, // 5 min
+      controllabilityDataAlignmentStatus: 5 * 60 * 1000, // 5 min
+      coordinationMeaningPreservationProfile: 5 * 60 * 1000, // 5 min
       gremiencoachWorkbookReadinessStatus: 5 * 60 * 1000, // 5 min
       decisionReadinessMatrixStatus: 5 * 60 * 1000, // 5 min
       crossSystemVarianceMatrixStatus: 5 * 60 * 1000, // 5 min
       regulatorySignalProcessTranslatorStatus: 5 * 60 * 1000, // 5 min
       costReviewCommitteeStatus: 5 * 60 * 1000, // 5 min
+      redispatchParticipationReadinessStatus: 5 * 60 * 1000, // 5 min
+      mastrSyncGapStatus: 5 * 60 * 1000, // 5 min
+      decommissionedAssetReconciliationStatus: 5 * 60 * 1000, // 5 min
+      energySharingCollectiveApprovalStatus: 5 * 60 * 1000, // 5 min
       steeringArtifactAcceptanceGateStatus: 5 * 60 * 1000, // 5 min
       communicationBreakProcessRiskStatus: 5 * 60 * 1000, // 5 min
       noRegretMeasureProofGateStatus: 5 * 60 * 1000, // 5 min
@@ -107,6 +119,7 @@ module.exports = {
       investmentWaterfallGovernanceStatus: 5 * 60 * 1000, // 5 min
       investmentBudgetCapExceptionGovernanceStatus: 5 * 60 * 1000, // 5 min
       investmentOwnerDeadlineBudgetGateStatus: 5 * 60 * 1000, // 5 min
+      directMarketerRiskGateStatus: 5 * 60 * 1000, // 5 min
       noRegretMeasureDefinitionGateStatus: 5 * 60 * 1000, // 5 min
       capacityContractRiskAssetCockpitStatus: 5 * 60 * 1000, // 5 min
       imsysTaf2ComplianceStatus: 5 * 60 * 1000, // 5 min
@@ -145,6 +158,9 @@ module.exports = {
       stadtwerkMauerBlueprintPackVerifyStatus: 5 * 60 * 1000, // 5 min
       stadtwerkMauerTransferReadinessStatus: 5 * 60 * 1000, // 5 min
       stadtwerkMauerLandingRegistryDraftStatus: 5 * 60 * 1000, // 5 min
+      energySidecarRouteRegistryStatus: 5 * 60 * 1000, // 5 min
+      interconnectionReleaseFileStatus: 5 * 60 * 1000, // 5 min
+      a2mdmDecisionObjectStatus: 5 * 60 * 1000, // 5 min
       fnavFastTrackContractGateStatus: 5 * 60 * 1000, // 5 min
       crossChannelVnbSignalQueueStatus: 5 * 60 * 1000, // 5 min
       crossDomainSpecialTopicsQueueStatus: 5 * 60 * 1000, // 5 min
@@ -1745,6 +1761,274 @@ module.exports = {
       },
     },
 
+    // ── controllabilityDataAlignmentStatus ────────────────────────────────
+    /**
+     * GET /api/dashboard/controllability-data-alignment?checklistId=...
+     *
+     * Read-only dossier-safe status for recurring Steuerbarkeitscheck
+     * checklist reconciliation. It projects supplied/anonymized facts into
+     * evidence gaps and no-call guards without imports, writes or control.
+     */
+    controllabilityDataAlignmentStatus: {
+      rest: 'GET /controllability-data-alignment',
+      params: {
+        checklistId: { type: 'string', optional: true, min: 1 },
+        assetId: { type: 'string', optional: true, min: 1 },
+        mastrId: { type: 'string', optional: true, min: 1 },
+        assetMatch: { type: 'string', optional: true, min: 1 },
+        mastrMatch: { type: 'string', optional: true, min: 1 },
+        internalAssetMatch: { type: 'string', optional: true, min: 1 },
+        controlTechStatus: { type: 'string', optional: true, min: 1 },
+        thresholdClass: { type: 'string', optional: true, min: 1 },
+        testability: { type: 'string', optional: true, min: 1 },
+        exceptionReason: { type: 'string', optional: true, min: 1 },
+        priorYearComparison: { type: 'string', optional: true, min: 1 },
+        owner: { type: 'string', optional: true, min: 1 },
+        dueDate: { type: 'string', optional: true, min: 1 },
+        exportReadiness: { type: 'string', optional: true, min: 1 },
+        evidenceStatus: { type: 'string', optional: true, min: 1 },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Controllability data alignment — read-only dossier-safe status',
+        description:
+          'Builds a deterministic evidence/status view for recurring Steuerbarkeitscheck checklist reconciliation. ' +
+          'It compares supplied checklist, asset/MaStR/internal, control-tech, threshold, testability, exception, ' +
+          'prior-year, owner/deadline and export-readiness facts. The endpoint is read-only and does not import files, ' +
+          'mutate Asset-MDM, call MaStR/CLS/SMGW, create HITL items, execute tests, or affect MaKo, billing, settlement, tariffs or device control.',
+        parameters: [
+          { name: 'checklistId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'assetId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'mastrId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'assetMatch', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'mastrMatch', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'internalAssetMatch', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'controlTechStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'thresholdClass', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'testability', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'exceptionReason', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'priorYearComparison', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'owner', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'dueDate', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'exportReadiness', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'evidenceStatus', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only controllability data alignment status',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string' },
+                    checklist: { type: 'object' },
+                    alignmentRows: { type: 'array' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    safeNextGate: { type: 'string' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                    _errors: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `controllability-data-alignment:${params.checklistId || 'no-checklist'}:${params.assetId || 'no-asset'}:${params.mastrId || 'no-mastr'}:${params.assetMatch || 'no-asset-match'}:${params.mastrMatch || 'no-mastr-match'}:${params.controlTechStatus || 'no-control'}:${params.thresholdClass || 'no-threshold'}:${params.testability || 'no-testability'}:${params.exceptionReason || 'no-exception'}:${params.owner || 'no-owner'}:${params.dueDate || 'no-due-date'}:${params.exportReadiness || 'no-export'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.controllabilityDataAlignmentStatus,
+          async () => ({
+            ...this.buildControllabilityDataAlignmentStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // ── coordinationMeaningPreservationProfile ───────────────────────────
+    /**
+     * GET /api/dashboard/coordination-meaning-preservation-profile?sourceDomain=...
+     *
+     * Read-only dossier-safe profile for preserving coordination meaning at
+     * handovers between specialist domains. It classifies missing owner,
+     * deadline, evidence, regulatory, commercial, network and decision context
+     * without integrating with or mutating Fachsysteme.
+     */
+    coordinationMeaningPreservationProfile: {
+      rest: 'GET /coordination-meaning-preservation-profile',
+      params: {
+        caseId: { type: 'string', optional: true, min: 1 },
+        sourceDomain: { type: 'string', optional: true, min: 1 },
+        targetDomain: { type: 'string', optional: true, min: 1 },
+        regulatoryReference: { type: 'string', optional: true, min: 1 },
+        commercialEffect: { type: 'string', optional: true, min: 1 },
+        networkConstraint: { type: 'string', optional: true, min: 1 },
+        evidenceProof: { type: 'string', optional: true, min: 1 },
+        owner: { type: 'string', optional: true, min: 1 },
+        deadline: { type: 'string', optional: true, min: 1 },
+        nextDecision: { type: 'string', optional: true, min: 1 },
+        operationalRisk: { type: 'string', optional: true, min: 1 },
+        handoverContext: { type: 'string', optional: true, min: 1 },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Coordination meaning preservation — read-only dossier-safe profile',
+        description:
+          'Builds a deterministic profile for preserving meaning at cross-domain handovers. ' +
+          'It reports preserved and missing dimensions such as regulatory reference, commercial ' +
+          'effect, network constraint, evidence proof, owner, deadline, next decision and operational ' +
+          'risk. The endpoint is read-only and does not mutate Fachsysteme, HITL, billing, settlement, ' +
+          'MaKo, tariff, device-control, Budibase or external connector state.',
+        parameters: [
+          { name: 'caseId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'sourceDomain', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'targetDomain', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'regulatoryReference', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'commercialEffect', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'networkConstraint', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'evidenceProof', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'owner', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'deadline', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'nextDecision', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'operationalRisk', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'handoverContext', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only coordination meaning preservation profile',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string' },
+                    coordinationLossClassification: { type: 'string' },
+                    preservedDimensions: { type: 'array' },
+                    missingDimensions: { type: 'array' },
+                    weakDimensions: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                    _errors: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `coordination-meaning-preservation-profile:${params.caseId || 'no-case'}:${params.sourceDomain || 'no-source'}:${params.targetDomain || 'no-target'}:${params.regulatoryReference || 'no-reg'}:${params.commercialEffect || 'no-commercial'}:${params.networkConstraint || 'no-network'}:${params.evidenceProof || 'no-proof'}:${params.owner || 'no-owner'}:${params.deadline || 'no-deadline'}:${params.nextDecision || 'no-decision'}:${params.operationalRisk || 'no-risk'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.coordinationMeaningPreservationProfile,
+          async () => ({
+            ...this.buildCoordinationMeaningPreservationProfile(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- a2mdmDecisionObjectStatus ----------------------------------------
+    /**
+     * GET /api/dashboard/a2mdm-decision-object?caseId=...
+     *
+     * Read-only meaning-preserving A2MDM decision-object projection. It keeps
+     * subject, intent, technical constraint, regulatory reference, evidence,
+     * owner, risk, threshold and next gate visible without creating an A2MDM
+     * system of record, workflow, connector or write path.
+     */
+    a2mdmDecisionObjectStatus: {
+      rest: 'GET /a2mdm-decision-object',
+      params: {
+        caseId: { type: 'string', optional: true, min: 1 },
+        subject: { type: 'string', optional: true, min: 1 },
+        businessIntent: { type: 'string', optional: true, min: 1 },
+        technicalConstraint: { type: 'string', optional: true, min: 1 },
+        regulatoryReference: { type: 'string', optional: true, min: 1 },
+        evidenceSource: { type: 'string', optional: true, min: 1 },
+        ownerRole: { type: 'string', optional: true, min: 1 },
+        riskLevel: { type: 'string', optional: true, min: 1 },
+        decisionThreshold: { type: 'string', optional: true, min: 1 },
+        nextGate: { type: 'string', optional: true, min: 1 },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'A2MDM decision object - read-only meaning preservation projection',
+        description:
+          'Builds a deterministic, dossier-safe A2MDM decision-object projection for a synthetic Stadtwerk Mauer handover case. ' +
+          'The endpoint preserves scalar decision context across system boundaries and exposes missing-input follow-ups. ' +
+          'It is read-only and does not create A2MDM persistence, workflow, HITL, Budibase, Landing Registry, MaKo, billing, settlement, tariff, device-control, SMGW/CLS or external connector actions.',
+        parameters: [
+          { name: 'caseId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'subject', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'businessIntent', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'technicalConstraint', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'regulatoryReference', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'evidenceSource', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'ownerRole', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'riskLevel', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'decisionThreshold', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'nextGate', in: 'query', required: false, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only A2MDM decision-object context',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string' },
+                    capabilityKey: { type: 'string' },
+                    decisionObjectId: { type: 'string' },
+                    decisionRows: { type: 'array' },
+                    missingInputs: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    noCallGuards: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    safety: { type: 'string' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                    _errors: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `a2mdm-decision-object:${JSON.stringify(params)}`;
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.a2mdmDecisionObjectStatus,
+          async () => ({
+            ...this.buildA2mdmDecisionObjectStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
     // ── gremiencoachWorkbookReadinessStatus ───────────────────────────────
     /**
      * GET /api/dashboard/gremiencoach-workbook-readiness?workbookId=...
@@ -2244,6 +2528,212 @@ module.exports = {
           this.settings.cacheTtlMs.costReviewCommitteeStatus,
           async () => ({
             ...this.buildCostReviewCommitteeStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // ── redispatchParticipationReadinessStatus ───────────────────────────
+    /**
+     * GET /api/dashboard/redispatch-participation-readiness-status
+     *
+     * Read-only dashboard presenter action for Redispatch participation readiness.
+     * Maps the 5 evidence requirements from stadtwerk-mauer-redispatch-participation-readiness-v1.json.
+     */
+    redispatchParticipationReadinessStatus: {
+      rest: 'GET /redispatch-participation-readiness-status',
+      params: {
+        tenantId: { type: 'string', optional: true, min: 1 },
+        syntheticRedispatchAssetPortfolio: { type: 'string', optional: true },
+        installationGridLocationEvidence: { type: 'string', optional: true },
+        remoteControlCommunicationTestEvidence: { type: 'string', optional: true },
+        forecastDispatchTestProof: { type: 'string', optional: true },
+        readinessReviewDecision: { type: 'string', optional: true },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Redispatch participation readiness status -- read-only Workbench projection',
+        description: 'Builds deterministic redispatch readiness evidence from supplied facts.',
+        responses: {
+          200: {
+            description: 'Read-only Redispatch participation readiness status',
+          },
+        },
+        parameters: [
+          { in: 'query', name: 'tenantId', schema: { type: 'string' } },
+          { in: 'query', name: 'syntheticRedispatchAssetPortfolio', schema: { type: 'string' } },
+          { in: 'query', name: 'installationGridLocationEvidence', schema: { type: 'string' } },
+          { in: 'query', name: 'remoteControlCommunicationTestEvidence', schema: { type: 'string' } },
+          { in: 'query', name: 'forecastDispatchTestProof', schema: { type: 'string' } },
+          { in: 'query', name: 'readinessReviewDecision', schema: { type: 'string' } },
+        ],
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const tenantId = params.tenantId || ctx.meta?.tenantId || 'stadtwerk-mauer';
+        const cacheKey = `redispatch-participation-readiness-status:${tenantId}:${params.syntheticRedispatchAssetPortfolio || 'no-portfolio'}:${params.installationGridLocationEvidence || 'no-loc'}:${params.remoteControlCommunicationTestEvidence || 'no-comm'}:${params.forecastDispatchTestProof || 'no-forecast'}:${params.readinessReviewDecision || 'no-decision'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.redispatchParticipationReadinessStatus,
+          async () => ({
+            ...this.buildRedispatchParticipationReadinessStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // ── mastrSyncGapStatus ───────────────────────────
+    /**
+     * GET /api/dashboard/mastr-sync-gap-status
+     *
+     * Read-only dashboard presenter action for MaStR Sync-Gap Alerting.
+     * Maps the 4 evidence requirements from stadtwerk-mauer-mastr-sync-gap-alerting-v1.json.
+     */
+    mastrSyncGapStatus: {
+      rest: 'GET /mastr-sync-gap-status',
+      params: {
+        tenantId: { type: 'string', optional: true, min: 1 },
+        mastrFreshnessEvidence: { type: 'string', optional: true },
+        redispatchStammdatenComparison: { type: 'string', optional: true },
+        syncGapAlertFeed: { type: 'string', optional: true },
+        reconciliationApprovalDecision: { type: 'string', optional: true },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'MaStR Sync-Gap alerting status -- read-only Workbench projection',
+        description: 'Builds deterministic MaStR sync gap alerting evidence from supplied facts.',
+        responses: {
+          200: {
+            description: 'Read-only MaStR Sync-Gap alerting status',
+          },
+        },
+        parameters: [
+          { in: 'query', name: 'tenantId', schema: { type: 'string' } },
+          { in: 'query', name: 'mastrFreshnessEvidence', schema: { type: 'string' } },
+          { in: 'query', name: 'redispatchStammdatenComparison', schema: { type: 'string' } },
+          { in: 'query', name: 'syncGapAlertFeed', schema: { type: 'string' } },
+          { in: 'query', name: 'reconciliationApprovalDecision', schema: { type: 'string' } },
+        ],
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const tenantId = params.tenantId || ctx.meta?.tenantId || 'stadtwerk-mauer';
+        const cacheKey = `mastr-sync-gap-status:${tenantId}:${params.mastrFreshnessEvidence || 'no-freshness'}:${params.redispatchStammdatenComparison || 'no-comp'}:${params.syncGapAlertFeed || 'no-alert'}:${params.reconciliationApprovalDecision || 'no-reconcile'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.mastrSyncGapStatus,
+          async () => ({
+            ...this.buildMastrSyncGapStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // ── decommissionedAssetReconciliationStatus ───────────────────────────
+    /**
+     * GET /api/dashboard/decommissioned-asset-reconciliation-status
+     *
+     * Read-only dashboard presenter action for Decommissioned Asset Reconciliation.
+     * Maps the 4 evidence requirements from stadtwerk-mauer-decommissioned-asset-reconciliation-v1.json.
+     */
+    decommissionedAssetReconciliationStatus: {
+      rest: 'GET /decommissioned-asset-reconciliation-status',
+      params: {
+        tenantId: { type: 'string', optional: true, min: 1 },
+        gisDecommissionedAssetsEvidence: { type: 'string', optional: true },
+        sapAnlagenspiegelEvidence: { type: 'string', optional: true },
+        reconciliationDiscrepancyFeed: { type: 'string', optional: true },
+        reconciliationApprovalDecision: { type: 'string', optional: true },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Decommissioned Asset Reconciliation status -- read-only Workbench projection',
+        description: 'Builds deterministic Decommissioned Asset Reconciliation evidence from supplied facts.',
+        responses: {
+          200: {
+            description: 'Read-only Decommissioned Asset Reconciliation status',
+          },
+        },
+        parameters: [
+          { in: 'query', name: 'tenantId', schema: { type: 'string' } },
+          { in: 'query', name: 'gisDecommissionedAssetsEvidence', schema: { type: 'string' } },
+          { in: 'query', name: 'sapAnlagenspiegelEvidence', schema: { type: 'string' } },
+          { in: 'query', name: 'reconciliationDiscrepancyFeed', schema: { type: 'string' } },
+          { in: 'query', name: 'reconciliationApprovalDecision', schema: { type: 'string' } },
+        ],
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const tenantId = params.tenantId || ctx.meta?.tenantId || 'stadtwerk-mauer';
+        const cacheKey = `decommissioned-asset-reconciliation-status:${tenantId}:${params.gisDecommissionedAssetsEvidence || 'no-gis'}:${params.sapAnlagenspiegelEvidence || 'no-sap'}:${params.reconciliationDiscrepancyFeed || 'no-feed'}:${params.reconciliationApprovalDecision || 'no-reconcile'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.decommissionedAssetReconciliationStatus,
+          async () => ({
+            ...this.buildDecommissionedAssetReconciliationStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // ── energySharingCollectiveApprovalStatus ─────────────────────────────
+    /**
+     * GET /api/dashboard/energy-sharing-collective-approval-status
+     *
+     * Read-only dashboard presenter action for Energy Sharing Collective Approval.
+     * Maps the 6 evidence requirements from stadtwerk-mauer-energy-sharing-collective-approval-v1.json.
+     */
+    energySharingCollectiveApprovalStatus: {
+      rest: 'GET /energy-sharing-collective-approval-status',
+      params: {
+        tenantId: { type: 'string', optional: true, min: 1 },
+        syntheticCollectiveBoundaryEvidence: { type: 'string', optional: true },
+        operatorParticipantBoundaryEvidence: { type: 'string', optional: true },
+        meteringConceptEvidence: { type: 'string', optional: true },
+        contractConsentMarketRoleEvidence: { type: 'string', optional: true },
+        allocationBillingSettlementGapEvidence: { type: 'string', optional: true },
+        approvalReadinessDecision: { type: 'string', optional: true },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Energy Sharing Collective Approval status -- read-only Workbench projection',
+        description: 'Builds deterministic Energy Sharing Collective Approval evidence from supplied facts.',
+        responses: {
+          200: {
+            description: 'Read-only Energy Sharing Collective Approval status',
+          },
+        },
+        parameters: [
+          { in: 'query', name: 'tenantId', schema: { type: 'string' } },
+          { in: 'query', name: 'syntheticCollectiveBoundaryEvidence', schema: { type: 'string' } },
+          { in: 'query', name: 'operatorParticipantBoundaryEvidence', schema: { type: 'string' } },
+          { in: 'query', name: 'meteringConceptEvidence', schema: { type: 'string' } },
+          { in: 'query', name: 'contractConsentMarketRoleEvidence', schema: { type: 'string' } },
+          { in: 'query', name: 'allocationBillingSettlementGapEvidence', schema: { type: 'string' } },
+          { in: 'query', name: 'approvalReadinessDecision', schema: { type: 'string' } },
+        ],
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const tenantId = params.tenantId || ctx.meta?.tenantId || 'stadtwerk-mauer';
+        const cacheKey = `energy-sharing-collective-approval-status:${tenantId}:${params.syntheticCollectiveBoundaryEvidence || 'no-boundary'}:${params.operatorParticipantBoundaryEvidence || 'no-participant'}:${params.meteringConceptEvidence || 'no-meter'}:${params.contractConsentMarketRoleEvidence || 'no-contract'}:${params.allocationBillingSettlementGapEvidence || 'no-billing-gap'}:${params.approvalReadinessDecision || 'no-decision'}`;
+
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.energySharingCollectiveApprovalStatus,
+          async () => ({
+            ...this.buildEnergySharingCollectiveApprovalStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -8871,6 +9361,129 @@ module.exports = {
       },
     },
 
+    // -- energySidecarRouteRegistryStatus ---------------------------------
+    /**
+     * GET /api/dashboard/energy-sidecar-route-registry
+     *
+     * Read-only advisory route-registry evidence for Fach-Sidecars. It
+     * recommends existing Cernion read-only routes and exposes why a route is
+     * grounded or incomplete, but never executes the recommended endpoint.
+     */
+    energySidecarRouteRegistryStatus: {
+      rest: 'GET /energy-sidecar-route-registry',
+      params: {
+        intent: { type: 'string', optional: true, min: 1 },
+        domain: { type: 'string', optional: true, min: 1 },
+        requiredInput: { type: 'string', optional: true, min: 1 },
+        tenantId: { type: 'string', optional: true, min: 1 },
+        includeFallbacks: { type: 'boolean', optional: true, convert: true, default: false },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Energy Sidecar Route Registry -- read-only advisory evidence',
+        description:
+          'Returns deterministic dossier-safe route-registry rows for Fach-Sidecar routing/audit questions. ' +
+          'The endpoint recommends existing read-only Cernion actions/endpoints, source registry boundaries, required inputs, fallback routes and no-call guards. ' +
+          'It is advisory/read-only and never executes the recommended downstream endpoint, calls external connectors, creates HITL/workflows, sends webhooks/mail, mutates public context, or performs MaKo/billing/settlement/tariff/device-control actions.',
+        parameters: [
+          { name: 'intent', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'domain', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'requiredInput', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'tenantId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'includeFallbacks', in: 'query', required: false, schema: { type: 'boolean' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only route-registry evidence',
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `energy-sidecar-route-registry:${JSON.stringify(params)}`;
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.energySidecarRouteRegistryStatus,
+          async () => ({
+            ...buildEnergySidecarRouteRegistryStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- interconnectionReleaseFileStatus ---------------------------------
+    /**
+     * GET /api/dashboard/interconnection-release-file
+     *
+     * Read-only Koppelpunkt / Marktpartner / Zeitreihen Freigabeakte evidence.
+     * It exposes deterministic dossier rows and process-impact boundaries but
+     * never writes mappings, executes release workflows or triggers downstream
+     * MaKo/billing/settlement/tariff/device-control actions.
+     */
+    interconnectionReleaseFileStatus: {
+      rest: 'GET /interconnection-release-file',
+      params: {
+        caseId: { type: 'string', optional: true, min: 1 },
+        koppelpunktId: { type: 'string', optional: true, min: 1 },
+        marketPartnerId: { type: 'string', optional: true, min: 1 },
+        timeseriesId: { type: 'string', optional: true, min: 1 },
+        mappingVersion: { type: 'string', optional: true, min: 1 },
+        sourceSystem: { type: 'string', optional: true, min: 1 },
+        evidenceStatus: { type: 'string', optional: true, min: 1 },
+        approvalStatus: { type: 'string', optional: true, min: 1 },
+        owner: { type: 'string', optional: true, min: 1 },
+        reviewerRole: { type: 'string', optional: true, min: 1 },
+        affectedProcess: { type: 'string', optional: true, min: 1 },
+        nextChangeGate: { type: 'string', optional: true, min: 1 },
+        tenantId: { type: 'string', optional: true, min: 1 },
+        includeFallbacks: { type: 'boolean', optional: true, convert: true, default: false },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Koppelpunkt Freigabeakte -- read-only evidence/gate status',
+        description:
+          'Returns deterministic dossier-safe Freigabeakte rows for Koppelpunkt, Marktpartner and Zeitreihen mapping decisions. ' +
+          'The endpoint reports release status, evidence source/version, owner, downstream process impacts, missing evidence, positive follow-ups and no-call guards. ' +
+          'It is advisory/read-only and never writes mappings, executes Freigabe workflows, creates HITL tickets, sends mail/webhooks, calls external connectors, mutates Budibase tables, or performs MaKo/billing/settlement/tariff/device-control actions.',
+        parameters: [
+          { name: 'caseId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'koppelpunktId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'marketPartnerId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'timeseriesId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'mappingVersion', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'sourceSystem', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'evidenceStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'approvalStatus', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'owner', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'affectedProcess', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'nextChangeGate', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'tenantId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'includeFallbacks', in: 'query', required: false, schema: { type: 'boolean' } },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only interconnection release-file evidence',
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const tenantId = params.tenantId || ctx.meta?.tenantId || 'public';
+        const cacheKey = `interconnection-release-file:${tenantId}:${JSON.stringify(params)}`;
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.interconnectionReleaseFileStatus,
+          async () => ({
+            ...buildInterconnectionReleaseFileStatus({ ...params, tenantId }),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
     // -- stadtwerkMauerAdministratorInventoryStatus ----------------------
     /**
      * GET /api/dashboard/stadtwerk-mauer-administrator-inventory
@@ -11227,6 +11840,88 @@ module.exports = {
           this.settings.cacheTtlMs.investmentOwnerDeadlineBudgetGateStatus,
           async () => ({
             ...this.buildInvestmentOwnerDeadlineBudgetGateStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
+
+    // -- directMarketerRiskGateStatus --------------------------------------
+    /**
+     * GET /api/dashboard/direct-marketer-risk-gate
+     *
+     * Read-only dossier-safe evidence gate for supplied Direktvermarkter
+     * handover facts. It does not submit schedules, approve contracts, mutate
+     * market processes, create HITL tasks, or call external systems.
+     */
+    directMarketerRiskGateStatus: {
+      rest: 'GET /direct-marketer-risk-gate',
+      params: {
+        caseId: { type: 'string', optional: true, min: 1 },
+        projectId: { type: 'string', optional: true, min: 1 },
+        communityModel: { type: 'string', optional: true, min: 1 },
+        directMarketer: { type: 'string', optional: true, min: 1 },
+        forecastQuality: { type: 'string', optional: true, min: 1 },
+        forecastDeviationPct: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'number' }, { type: 'string', min: 1 }],
+        },
+        allocationRules: { type: 'string', optional: true, min: 1 },
+        balancingGroupImpact: { type: 'string', optional: true, min: 1 },
+        scheduleImpact: { type: 'string', optional: true, min: 1 },
+        billingStatus: { type: 'string', optional: true, min: 1 },
+        settlementStatus: { type: 'string', optional: true, min: 1 },
+        roleOwner: { type: 'string', optional: true, min: 1 },
+        deadline: { type: 'string', optional: true, min: 1 },
+        evidenceStatus: { type: 'string', optional: true, min: 1 },
+        sourceEvidence: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Direktvermarkter Risk Gate -- read-only dossier-safe status',
+        description:
+          'Returns deterministic dossier-safe risk/readiness evidence for a Direktvermarkter handover package across forecast quality, allocation rules, balancing-group/schedule impact, billing/settlement status, roles, deadlines and open evidence. ' +
+          'The endpoint is read-only and never submits schedules, approves offers/contracts, transfers balancing groups, mutates billing/settlement/tariff/customer data, creates HITL/workflow tasks, sends customer communication, calls webhooks, or contacts external Direktvermarkter systems.',
+        responses: {
+          200: {
+            description: 'Read-only Direktvermarkter risk-gate evidence',
+          },
+        },
+        parameters: [
+          { in: 'query', name: 'caseId', schema: { type: 'string' } },
+          { in: 'query', name: 'projectId', schema: { type: 'string' } },
+          { in: 'query', name: 'communityModel', schema: { type: 'string' } },
+          { in: 'query', name: 'directMarketer', schema: { type: 'string' } },
+          { in: 'query', name: 'forecastQuality', schema: { type: 'string' } },
+          { in: 'query', name: 'forecastDeviationPct', schema: { type: 'string' } },
+          { in: 'query', name: 'allocationRules', schema: { type: 'string' } },
+          { in: 'query', name: 'balancingGroupImpact', schema: { type: 'string' } },
+          { in: 'query', name: 'scheduleImpact', schema: { type: 'string' } },
+          { in: 'query', name: 'billingStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'settlementStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'roleOwner', schema: { type: 'string' } },
+          { in: 'query', name: 'deadline', schema: { type: 'string' } },
+          { in: 'query', name: 'evidenceStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'sourceEvidence', schema: { type: 'string' } },
+        ],
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `direct-marketer-risk-gate:${JSON.stringify(params)}`;
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.directMarketerRiskGateStatus,
+          async () => ({
+            ...this.buildDirectMarketerRiskGateStatus(params),
             timestamp: new Date().toISOString(),
             _errors: [],
           })
@@ -14663,6 +15358,590 @@ module.exports = {
       };
     },
 
+    buildControllabilityDataAlignmentStatus(params = {}) {
+      const normalize = (value) => (value == null ? '' : String(value).trim());
+      const valueOrNull = (value) => {
+        const normalized = normalize(value);
+        return normalized === '' ? null : normalized;
+      };
+      const hasValue = (value) => valueOrNull(value) !== null;
+      const dataMatchValue =
+        valueOrNull(params.assetMatch) ||
+        valueOrNull(params.mastrMatch) ||
+        valueOrNull(params.internalAssetMatch);
+      const exportReadiness = valueOrNull(params.exportReadiness) || valueOrNull(params.evidenceStatus);
+      const rowSpecs = [
+        {
+          id: 'checklist_reference',
+          label: 'External checklist reference',
+          value: params.checklistId,
+          evidenceClass: 'external_checklist_scope',
+          enablesDossierAddition: 'add anonymized checklist reference and scope',
+        },
+        {
+          id: 'asset_mastr_match',
+          label: 'Asset/MaStR/internal data match',
+          value: dataMatchValue,
+          evidenceClass: 'asset_master_data_alignment',
+          enablesDossierAddition: 'add asset, MaStR and internal master-data match evidence',
+        },
+        {
+          id: 'control_technology_status',
+          label: 'Control technology status',
+          value: params.controlTechStatus,
+          evidenceClass: 'controllability_technology',
+          enablesDossierAddition: 'add Steuertechnik/CLS/iMSys readiness evidence',
+        },
+        {
+          id: 'threshold_classification',
+          label: 'Threshold classification',
+          value: params.thresholdClass,
+          evidenceClass: 'regulatory_scope_classification',
+          enablesDossierAddition: 'add threshold and scope classification',
+        },
+        {
+          id: 'testability',
+          label: 'Testability',
+          value: params.testability,
+          evidenceClass: 'operational_testability',
+          enablesDossierAddition: 'add testability or non-testability evidence',
+        },
+        {
+          id: 'exception_reason',
+          label: 'Exception/risk rationale',
+          value: params.exceptionReason,
+          evidenceClass: 'defensible_exception_context',
+          enablesDossierAddition: 'add exception or risk rationale',
+          optionalWhen: () => normalize(params.testability).toLowerCase().includes('testable'),
+        },
+        {
+          id: 'prior_year_comparison',
+          label: 'Prior-year comparison',
+          value: params.priorYearComparison,
+          evidenceClass: 'year_over_year_delta',
+          enablesDossierAddition: 'add prior-year comparison and delta rationale',
+        },
+        {
+          id: 'owner_deadline',
+          label: 'Owner/deadline',
+          value: hasValue(params.owner) && hasValue(params.dueDate) ? `${params.owner} / ${params.dueDate}` : null,
+          evidenceClass: 'accountability_and_due_date',
+          enablesDossierAddition: 'add accountable owner and due date',
+        },
+        {
+          id: 'export_readiness',
+          label: 'Evidence export readiness',
+          value: exportReadiness,
+          evidenceClass: 'audit_package_readiness',
+          enablesDossierAddition: 'add evidence package/export readiness status',
+        },
+      ];
+      const alignmentRows = rowSpecs.map((spec) => ({
+        id: spec.id,
+        label: spec.label,
+        value: valueOrNull(spec.value),
+        evidenceClass: spec.evidenceClass,
+        evidenceStatus: valueOrNull(spec.value) ? 'provided' : spec.optionalWhen?.() ? 'not_required' : 'missing',
+      }));
+      const missingEvidence = rowSpecs
+        .filter((spec) => !valueOrNull(spec.value) && !spec.optionalWhen?.())
+        .map((spec) => ({
+          missingDataPoint: spec.id,
+          label: spec.label,
+          evidenceClass: spec.evidenceClass,
+          enablesDossierAddition: spec.enablesDossierAddition,
+        }));
+      const providedRows = alignmentRows.filter((row) => row.evidenceStatus === 'provided');
+      const normalizedControl = normalize(params.controlTechStatus).toLowerCase();
+      const normalizedTestability = normalize(params.testability).toLowerCase();
+      const normalizedThreshold = normalize(params.thresholdClass).toLowerCase();
+      const status =
+        missingEvidence.length === 0
+          ? 'ready_for_evidence_export'
+          : !dataMatchValue
+            ? 'needs_data_match'
+            : !hasValue(params.controlTechStatus)
+              ? 'needs_control_technology_status'
+              : !hasValue(params.testability)
+                ? 'needs_testability_classification'
+                : !hasValue(params.owner) || !hasValue(params.dueDate)
+                  ? 'needs_owner_deadline'
+                  : 'needs_alignment_evidence';
+      const safeNextGate =
+        status === 'ready_for_evidence_export'
+          ? 'export_dossier_package'
+          : normalizedThreshold.includes('above') && normalizedControl.includes('missing')
+            ? 'collect_control_technology_evidence'
+            : normalizedTestability.includes('not-testable') || normalizedTestability.includes('nicht')
+              ? 'document_non_testability_exception'
+              : 'complete_alignment_evidence';
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'controllability_data_alignment',
+      }));
+      const blockingFindings = missingEvidence.map((item) => ({
+        code: `CDA_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
+        severity: ['asset_mastr_match', 'control_technology_status', 'testability'].includes(
+          item.missingDataPoint
+        )
+          ? 'high'
+          : 'medium',
+        message: item.enablesDossierAddition,
+      }));
+      const checklist = {
+        checklistId: valueOrNull(params.checklistId),
+        assetId: valueOrNull(params.assetId),
+        mastrId: valueOrNull(params.mastrId),
+        assetMatch: valueOrNull(params.assetMatch),
+        mastrMatch: valueOrNull(params.mastrMatch),
+        internalAssetMatch: valueOrNull(params.internalAssetMatch),
+      };
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Provided alignment rows: ${providedRows.length}/${rowSpecs.length}`,
+        `Open gaps: ${missingEvidence.length}`,
+      ];
+      if (params.checklistId) dossierFacts.push(`Checklist: ${params.checklistId}`);
+      if (params.owner) dossierFacts.push(`Owner: ${params.owner}`);
+      if (safeNextGate) dossierFacts.push(`Next Gate: ${safeNextGate}`);
+
+      return {
+        alignmentId: `cda:${Buffer.from(
+          `${params.checklistId || ''}:${params.assetId || ''}:${params.mastrId || ''}:${params.owner || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 24)}`,
+        capabilityKey: 'controllability_data_alignment',
+        safety: 'read_only',
+        requestContext: {
+          checklistId: valueOrNull(params.checklistId),
+          owner: valueOrNull(params.owner),
+          dueDate: valueOrNull(params.dueDate),
+        },
+        status,
+        checklist,
+        thresholdClass: valueOrNull(params.thresholdClass),
+        testability: valueOrNull(params.testability),
+        exceptionReason: valueOrNull(params.exceptionReason),
+        priorYearComparison: valueOrNull(params.priorYearComparison),
+        owner: valueOrNull(params.owner),
+        dueDate: valueOrNull(params.dueDate),
+        exportReadiness,
+        safeNextGate,
+        alignmentRows,
+        missingEvidence,
+        positiveFollowUps,
+        blockingFindings,
+        sourceActions: {
+          inspected: ['dashboard-api.controllabilityDataAlignmentStatus'],
+          referenced: [
+            'assets.effective',
+            'mastr-quality.audit',
+            'redispatch-expost.audit',
+            'vdmi.dossier',
+            'interface-placeholder.requestEvidence',
+          ],
+          notCalled: [
+            'file.import',
+            'excel.parse',
+            'assets.applyOverride',
+            'mastr.liveLookup',
+            'cls.executeSwitching',
+            'grid-operations.executeControl',
+            'hitl.create',
+            'settlement.exportA96',
+            'settlement.prepareBilling',
+            'external.connector.call',
+          ],
+        },
+        validationFindings: blockingFindings,
+        dossierEvidence: {
+          status,
+          checklist,
+          thresholdClass: valueOrNull(params.thresholdClass),
+          testability: valueOrNull(params.testability),
+          exceptionReason: valueOrNull(params.exceptionReason),
+          priorYearComparison: valueOrNull(params.priorYearComparison),
+          owner: valueOrNull(params.owner),
+          dueDate: valueOrNull(params.dueDate),
+          exportReadiness,
+          safeNextGate,
+          alignmentRows,
+          missingEvidence,
+          positiveFollowUps,
+          blockingFindings,
+          dossierFacts,
+        },
+      };
+    },
+
+    buildCoordinationMeaningPreservationProfile(params = {}) {
+      const hasValue = (value) => value !== undefined && value !== null && String(value) !== '';
+      const dimensionSpecs = [
+        {
+          id: 'regulatory_reference',
+          label: 'Regulatory reference',
+          value: params.regulatoryReference,
+          category: 'regulatory_context',
+          enablesDossierAddition: 'add Regulierungsbezug der Uebergabe',
+        },
+        {
+          id: 'commercial_effect',
+          label: 'Commercial effect',
+          value: params.commercialEffect,
+          category: 'commercial_context',
+          enablesDossierAddition: 'add kaufmaennische Auswirkung',
+        },
+        {
+          id: 'network_constraint',
+          label: 'Network constraint',
+          value: params.networkConstraint,
+          category: 'grid_context',
+          enablesDossierAddition: 'add Netzrestriktion / technische Grenze',
+        },
+        {
+          id: 'evidence_proof',
+          label: 'Evidence proof',
+          value: params.evidenceProof,
+          category: 'proof_context',
+          enablesDossierAddition: 'add Nachweisquelle',
+        },
+        {
+          id: 'owner',
+          label: 'Owner',
+          value: params.owner,
+          category: 'ownership_context',
+          enablesDossierAddition: 'add verantwortliche Rolle',
+        },
+        {
+          id: 'deadline',
+          label: 'Deadline',
+          value: params.deadline,
+          category: 'time_context',
+          enablesDossierAddition: 'add Frist / Wiedervorlage',
+        },
+        {
+          id: 'next_decision',
+          label: 'Next decision',
+          value: params.nextDecision,
+          category: 'decision_context',
+          enablesDossierAddition: 'add naechster Entscheidungspunkt',
+        },
+        {
+          id: 'operational_risk',
+          label: 'Operational risk',
+          value: params.operationalRisk,
+          category: 'risk_context',
+          enablesDossierAddition: 'add operative Risikoauswirkung',
+        },
+      ];
+
+      const preservedDimensions = dimensionSpecs
+        .filter((spec) => hasValue(spec.value))
+        .map((spec) => ({
+          id: spec.id,
+          label: spec.label,
+          value: spec.value,
+          category: spec.category,
+          evidenceStatus: 'provided',
+        }));
+      const missingDimensions = dimensionSpecs
+        .filter((spec) => !hasValue(spec.value))
+        .map((spec) => ({
+          missingDataPoint: spec.id,
+          label: spec.label,
+          category: spec.category,
+          enablesDossierAddition: spec.enablesDossierAddition,
+        }));
+      const weakDimensions = [];
+      const criticalMissing = missingDimensions.filter((item) =>
+        ['owner', 'deadline', 'next_decision', 'evidence_proof'].includes(item.missingDataPoint)
+      );
+      const coordinationLossClassification =
+        missingDimensions.length === 0
+          ? 'meaning_preserved'
+          : criticalMissing.length > 0
+            ? 'decision_context_missing'
+            : 'partial_context_loss';
+      const status =
+        coordinationLossClassification === 'meaning_preserved'
+          ? 'meaning_preserved'
+          : coordinationLossClassification === 'decision_context_missing'
+            ? 'needs_decision_context'
+            : 'partial_context_loss';
+      const positiveFollowUps = missingDimensions.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'coordination_meaning_preservation_profile',
+      }));
+      const validationFindings = missingDimensions.map((item) => ({
+        code: `CMPP_${String(item.missingDataPoint).toUpperCase()}_MISSING`,
+        severity: ['owner', 'deadline', 'next_decision'].includes(item.missingDataPoint)
+          ? 'high'
+          : 'medium',
+        message: item.enablesDossierAddition,
+      }));
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Preserved dimensions: ${preservedDimensions.length}/${dimensionSpecs.length}`,
+        `Open meaning gaps: ${missingDimensions.length}`,
+      ];
+      if (params.sourceDomain || params.targetDomain) {
+        dossierFacts.push(
+          `Handover: ${params.sourceDomain || 'unknown'} -> ${params.targetDomain || 'unknown'}`
+        );
+      }
+      if (params.owner) dossierFacts.push(`Owner: ${params.owner}`);
+      if (params.nextDecision) dossierFacts.push(`Next Decision: ${params.nextDecision}`);
+
+      return {
+        profileId: `cmpp:${Buffer.from(
+          `${params.caseId || ''}:${params.sourceDomain || ''}:${params.targetDomain || ''}:${params.owner || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 24)}`,
+        capabilityKey: 'coordination_meaning_preservation_profile',
+        safety: 'read_only',
+        requestContext: {
+          caseId: params.caseId || null,
+          sourceDomain: params.sourceDomain || null,
+          targetDomain: params.targetDomain || null,
+          handoverContext: params.handoverContext || null,
+        },
+        status,
+        coordinationLossClassification,
+        preservedDimensions,
+        missingDimensions,
+        weakDimensions,
+        positiveFollowUps,
+        sourceActions: {
+          inspected: ['dashboard-api.coordinationMeaningPreservationProfile'],
+          referenced: ['vdmi.dossier', 'interface-placeholder.requestEvidence'],
+          notCalled: [
+            'external.connector.call',
+            'fachsystem.write',
+            'hitl.create',
+            'billing.release',
+            'settlement.prepareBilling',
+            'settlement.exportA96',
+            'mako.dispatch',
+            'tariff.mutate',
+            'device-control.execute',
+            'budibase.write',
+          ],
+        },
+        validationFindings,
+        dossierEvidence: {
+          status,
+          coordinationLossClassification,
+          sourceDomain: params.sourceDomain || null,
+          targetDomain: params.targetDomain || null,
+          preservedDimensions,
+          missingDimensions,
+          weakDimensions,
+          positiveFollowUps,
+          dossierFacts,
+          sourceActions: {
+            notCalled: [
+              'external.connector.call',
+              'fachsystem.write',
+              'hitl.create',
+              'billing.release',
+              'settlement.prepareBilling',
+              'settlement.exportA96',
+              'mako.dispatch',
+              'tariff.mutate',
+              'device-control.execute',
+              'budibase.write',
+            ],
+          },
+        },
+      };
+    },
+
+    buildA2mdmDecisionObjectStatus(params = {}) {
+      const hasValue = (value) => value !== undefined && value !== null && String(value) !== '';
+      const fields = [
+        {
+          id: 'subject',
+          label: 'Subject',
+          value: params.subject || 'Stadtwerk Mauer Anschluss-/Steuerbarkeitsfreigabe',
+          category: 'decision_subject',
+          required: true,
+          enablesDossierAddition: 'add a clearer decision subject row',
+        },
+        {
+          id: 'business_intent',
+          label: 'Business intent',
+          value: params.businessIntent,
+          category: 'business_meaning',
+          required: true,
+          enablesDossierAddition: 'add business purpose and commercial intent context',
+        },
+        {
+          id: 'technical_constraint',
+          label: 'Technical constraint',
+          value: params.technicalConstraint,
+          category: 'technical_meaning',
+          required: true,
+          enablesDossierAddition: 'add technical feasibility and constraint context',
+        },
+        {
+          id: 'regulatory_reference',
+          label: 'Regulatory reference',
+          value: params.regulatoryReference,
+          category: 'regulatory_meaning',
+          required: true,
+          enablesDossierAddition: 'add regulatory-context display without legal interpretation',
+        },
+        {
+          id: 'evidence_source',
+          label: 'Evidence source',
+          value: params.evidenceSource,
+          category: 'provenance',
+          required: true,
+          enablesDossierAddition: 'add provenance and source-version evidence',
+        },
+        {
+          id: 'owner_role',
+          label: 'Owner role',
+          value: params.ownerRole,
+          category: 'ownership',
+          required: true,
+          enablesDossierAddition: 'add accountable owner role for handover readiness',
+        },
+        {
+          id: 'risk_level',
+          label: 'Risk level',
+          value: params.riskLevel,
+          category: 'risk',
+          required: true,
+          enablesDossierAddition: 'add risk classification for human review',
+        },
+        {
+          id: 'decision_threshold',
+          label: 'Decision threshold',
+          value: params.decisionThreshold,
+          category: 'threshold',
+          required: true,
+          enablesDossierAddition: 'add threshold criteria without approving the decision',
+        },
+        {
+          id: 'next_gate',
+          label: 'Next gate',
+          value: params.nextGate,
+          category: 'next_gate',
+          required: true,
+          enablesDossierAddition: 'add next safe gate for dossier review',
+        },
+      ];
+      const decisionRows = fields.map((field) => ({
+        rowId: field.id,
+        label: field.label,
+        value: hasValue(field.value) ? String(field.value) : 'missing',
+        category: field.category,
+        evidenceStatus: hasValue(field.value) ? 'provided' : 'missing',
+        scalar: true,
+      }));
+      const missingInputs = fields
+        .filter((field) => field.required && !hasValue(field.value))
+        .map((field) => ({
+          missingDataPoint: field.id,
+          label: field.label,
+          category: field.category,
+          enablesDossierAddition: field.enablesDossierAddition,
+        }));
+      const positiveFollowUps = missingInputs.map((gap) => ({
+        missingDataPoint: gap.missingDataPoint,
+        enablesDossierAddition: gap.enablesDossierAddition,
+        category: 'a2mdm_decision_object_meaning_preservation',
+      }));
+      const noCallGuards = [
+        'a2mdm.persist',
+        'a2mdm.workflow.start',
+        'budibase.table.write',
+        'landing-registry.publish',
+        'mako.dispatch',
+        'billing.release',
+        'settlement.prepareBilling',
+        'tariff.mutate',
+        'device-control.execute',
+        'smgw.cls.execute',
+        'hitl.create',
+        'workflow.execute',
+        'external.connector.call',
+        'personal-agent.execute',
+      ];
+      const status =
+        missingInputs.length === 0 ? 'decision_context_preserved' : 'needs_decision_context';
+      const caseId = params.caseId || 'stadtwerk-mauer-a2mdm-decision-seed';
+      const decisionObjectId = `a2mdm-do:${Buffer.from(
+        `${caseId}:${params.subject || 'stadtwerk-mauer'}:${params.ownerRole || ''}:${params.nextGate || ''}`
+      )
+        .toString('base64url')
+        .slice(0, 28)}`;
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Decision Object: ${decisionObjectId}`,
+        `Subject: ${decisionRows.find((row) => row.rowId === 'subject')?.value || 'missing'}`,
+        `Provided meaning rows: ${decisionRows.length - missingInputs.length}/${decisionRows.length}`,
+        `Open missing inputs: ${missingInputs.length}`,
+      ];
+      if (params.ownerRole) dossierFacts.push(`Owner: ${params.ownerRole}`);
+      if (params.nextGate) dossierFacts.push(`Next Gate: ${params.nextGate}`);
+
+      return {
+        decisionObjectId,
+        caseId,
+        capabilityKey: 'a2mdm_decision_object_meaning_preservation',
+        safety: 'read_only_decision_context_projection',
+        status,
+        subject: decisionRows.find((row) => row.rowId === 'subject')?.value || null,
+        businessIntent: params.businessIntent || null,
+        technicalConstraint: params.technicalConstraint || null,
+        regulatoryReference: params.regulatoryReference || null,
+        evidenceSource: params.evidenceSource || null,
+        ownerRole: params.ownerRole || null,
+        riskLevel: params.riskLevel || null,
+        decisionThreshold: params.decisionThreshold || null,
+        nextGate: params.nextGate || null,
+        decisionRows,
+        missingInputs,
+        positiveFollowUps,
+        noCallGuards,
+        sourceActions: {
+          inspected: ['dashboard-api.a2mdmDecisionObjectStatus'],
+          referenced: [
+            'dashboard-api.stadtwerkMauerCaseDetailStatus',
+            'dashboard-api.interconnectionReleaseFileStatus',
+            'dashboard-api.controllabilityAssetHandoverStatus',
+            'vdmi.dossier',
+          ],
+          notCalled: noCallGuards,
+        },
+        validationFindings: missingInputs.map((gap) => ({
+          code: `A2MDM_DO_${String(gap.missingDataPoint).toUpperCase()}_MISSING`,
+          severity: ['owner_role', 'decision_threshold', 'next_gate'].includes(gap.missingDataPoint)
+            ? 'high'
+            : 'medium',
+          message: gap.enablesDossierAddition,
+        })),
+        dossierEvidence: {
+          capabilityKey: 'a2mdm_decision_object_meaning_preservation',
+          status,
+          decisionObjectId,
+          caseId,
+          decisionRows,
+          missingInputs,
+          positiveFollowUps,
+          noCallGuards,
+          dossierFacts,
+          sourceActions: { notCalled: noCallGuards },
+        },
+      };
+    },
+
     buildGremiencoachWorkbookReadinessStatus(params = {}) {
       const hasValue = (value) => value !== undefined && value !== null && String(value) !== '';
       const workbook = {
@@ -15930,6 +17209,663 @@ module.exports = {
           decisionReadiness: params.decisionReadiness || null,
           escalationThreshold: params.escalationThreshold || null,
           nextCommitteeGate: params.nextCommitteeGate || null,
+          missingEvidence,
+          positiveFollowUps,
+          evidenceItems,
+          validationFindings,
+          dossierFacts,
+        },
+      };
+    },
+
+    buildRedispatchParticipationReadinessStatus(params = {}) {
+      const hasValue = (value) => value !== undefined && value !== null && String(value).trim() !== '';
+      const evidenceSpecs = [
+        {
+          id: 'syntheticRedispatchAssetPortfolio',
+          label: 'Synthetic Redispatch asset portfolio',
+          value: params.syntheticRedispatchAssetPortfolio,
+          sourceClass: 'synthetic_tenant_seed',
+          enablesDossierAddition: 'Adds concrete synthetic asset and portfolio context for a Redispatch readiness review once tenant-provided demo values exist.',
+        },
+        {
+          id: 'installationGridLocationEvidence',
+          label: 'Installation grid location evidence',
+          value: params.installationGridLocationEvidence,
+          sourceClass: 'synthetic_tenant_seed',
+          enablesDossierAddition: 'Adds MaStR, installation and grid-location review facts once tenant-provided demo evidence exists.',
+        },
+        {
+          id: 'remoteControlCommunicationTestEvidence',
+          label: 'Remote control communication test evidence',
+          value: params.remoteControlCommunicationTestEvidence,
+          sourceClass: 'synthetic_tenant_seed',
+          enablesDossierAddition: 'Adds remote-control and communication-test readiness proof as evidence only, never as a control action.',
+        },
+        {
+          id: 'forecastDispatchTestProof',
+          label: 'Forecast dispatch test proof',
+          value: params.forecastDispatchTestProof,
+          sourceClass: 'synthetic_tenant_seed',
+          enablesDossierAddition: 'Adds forecast or dispatch-test proof for the next safe review gate without claiming productive dispatch participation.',
+        },
+        {
+          id: 'readinessReviewDecision',
+          label: 'Readiness review decision',
+          value: params.readinessReviewDecision,
+          sourceClass: 'synthetic_tenant_seed',
+          enablesDossierAddition: 'Adds the ready-for-review or evidence-gap handoff once the synthetic review decision exists.',
+        },
+      ];
+
+      const evidenceItems = evidenceSpecs
+        .filter((spec) => hasValue(spec.value))
+        .map((spec) => ({
+          id: spec.id,
+          label: spec.label,
+          value: spec.value,
+          sourceClass: spec.sourceClass,
+          evidenceStatus: 'provided',
+        }));
+
+      const missingEvidence = evidenceSpecs
+        .filter((spec) => !hasValue(spec.value))
+        .map((spec) => ({
+          missingDataPoint: spec.id,
+          label: spec.label,
+          sourceClass: spec.sourceClass,
+          enablesDossierAddition: spec.enablesDossierAddition,
+        }));
+
+      const status =
+        missingEvidence.length === 0
+          ? 'ready_for_review'
+          : !hasValue(params.syntheticRedispatchAssetPortfolio)
+            ? 'needs_portfolio'
+            : !hasValue(params.installationGridLocationEvidence)
+              ? 'needs_location_evidence'
+              : !hasValue(params.remoteControlCommunicationTestEvidence)
+                ? 'needs_communication_evidence'
+                : !hasValue(params.forecastDispatchTestProof)
+                  ? 'needs_forecast_proof'
+                  : 'needs_readiness_decision';
+
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'redispatch_participation_readiness_status',
+      }));
+
+      const validationFindings = missingEvidence.map((item) => ({
+        code: `RPRS_${String(item.missingDataPoint).replace(/([A-Z])/g, '_$1').toUpperCase()}_MISSING`,
+        severity: ['syntheticRedispatchAssetPortfolio', 'installationGridLocationEvidence'].includes(
+          item.missingDataPoint
+        )
+          ? 'high'
+          : 'medium',
+        message: item.enablesDossierAddition,
+      }));
+
+      const providedRequiredEvidence = evidenceItems.filter((item) =>
+        evidenceSpecs.some((spec) => spec.id === item.id)
+      );
+
+      const dossierFacts = [
+        `Redispatch readiness Status: ${status}`,
+        `Provided Evidence: ${providedRequiredEvidence.length}/${evidenceSpecs.length}`,
+        `Open Gaps: ${missingEvidence.length}`,
+      ];
+
+      return {
+        readinessId: `rprs:${Buffer.from(
+          `${params.tenantId || 'stadtwerk-mauer'}:${params.syntheticRedispatchAssetPortfolio || ''}:${params.readinessReviewDecision || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 24)}`,
+        capabilityKey: 'redispatch_participation_readiness_status',
+        safety: 'read_only_blueprint_seed',
+        requestContext: {
+          tenantId: params.tenantId || 'stadtwerk-mauer',
+        },
+        status,
+        syntheticRedispatchAssetPortfolio: params.syntheticRedispatchAssetPortfolio || null,
+        installationGridLocationEvidence: params.installationGridLocationEvidence || null,
+        remoteControlCommunicationTestEvidence: params.remoteControlCommunicationTestEvidence || null,
+        forecastDispatchTestProof: params.forecastDispatchTestProof || null,
+        readinessReviewDecision: params.readinessReviewDecision || null,
+        evidenceItems,
+        missingEvidence,
+        positiveFollowUps,
+        validationFindings,
+        sourceActions: {
+          inspected: ['dashboard-api.redispatchParticipationReadinessStatus'],
+          referenced: [
+            'vdmi.dossier',
+            'vdmi.evidence',
+            'asset-context.read',
+            'interface-placeholder.requestEvidence',
+          ],
+          notCalled: [
+            'redispatch_enrollment',
+            'dispatch_control',
+            'mako_write',
+            'billing',
+            'settlement',
+            'tariff_mutation',
+            'smgw_cls_device_control',
+            'external_connector_call',
+            'webhook',
+            'hitl_create',
+            'tenant_provisioning',
+            'rundeck_execution',
+            'public_context_mutation',
+            'production_mutation',
+            'personal_agent_hardcoding'
+          ],
+        },
+        dossierEvidence: {
+          status,
+          syntheticRedispatchAssetPortfolio: params.syntheticRedispatchAssetPortfolio || null,
+          installationGridLocationEvidence: params.installationGridLocationEvidence || null,
+          remoteControlCommunicationTestEvidence: params.remoteControlCommunicationTestEvidence || null,
+          forecastDispatchTestProof: params.forecastDispatchTestProof || null,
+          readinessReviewDecision: params.readinessReviewDecision || null,
+          missingEvidence,
+          positiveFollowUps,
+          evidenceItems,
+          validationFindings,
+          dossierFacts,
+        },
+      };
+    },
+
+    buildMastrSyncGapStatus(params = {}) {
+      const hasValue = (value) => value !== undefined && value !== null && String(value).trim() !== '';
+      const evidenceSpecs = [
+        {
+          id: 'mastrFreshnessEvidence',
+          label: 'MaStR freshness evidence',
+          value: params.mastrFreshnessEvidence,
+          sourceClass: 'synthetic_tenant_seed',
+          enablesDossierAddition: 'Adds evidence of current MaStR data freshness harvest for the local network area.',
+        },
+        {
+          id: 'redispatchStammdatenComparison',
+          label: 'Redispatch Stammdaten comparison',
+          value: params.redispatchStammdatenComparison,
+          sourceClass: 'synthetic_tenant_seed',
+          enablesDossierAddition: 'Adds structured comparison data between Redispatch 2.0 master data and harvested MaStR records.',
+        },
+        {
+          id: 'syncGapAlertFeed',
+          label: 'Sync gap alert feed',
+          value: params.syncGapAlertFeed,
+          sourceClass: 'synthetic_tenant_seed',
+          enablesDossierAddition: 'Adds active sync gap alert feed items and priority-sorted alerting findings.',
+        },
+        {
+          id: 'reconciliationApprovalDecision',
+          label: 'Reconciliation approval decision',
+          value: params.reconciliationApprovalDecision,
+          sourceClass: 'synthetic_tenant_seed',
+          enablesDossierAddition: 'Adds the final manual reconciliation or verification sign-off.',
+        },
+      ];
+
+      const evidenceItems = evidenceSpecs
+        .filter((spec) => hasValue(spec.value))
+        .map((spec) => ({
+          id: spec.id,
+          label: spec.label,
+          value: spec.value,
+          sourceClass: spec.sourceClass,
+          evidenceStatus: 'provided',
+        }));
+
+      const missingEvidence = evidenceSpecs
+        .filter((spec) => !hasValue(spec.value))
+        .map((spec) => ({
+          missingDataPoint: spec.id,
+          label: spec.label,
+          sourceClass: spec.sourceClass,
+          enablesDossierAddition: spec.enablesDossierAddition,
+        }));
+
+      const status =
+        missingEvidence.length === 0
+          ? 'ready_for_review'
+          : !hasValue(params.mastrFreshnessEvidence)
+            ? 'needs_harvest'
+            : !hasValue(params.redispatchStammdatenComparison)
+              ? 'needs_comparison'
+              : !hasValue(params.syncGapAlertFeed)
+                ? 'needs_alerts'
+                : 'needs_reconciliation';
+
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'mastr_sync_gap_status',
+      }));
+
+      const validationFindings = missingEvidence.map((item) => {
+        let code = 'MSGA_DISCREPANCY';
+        if (item.missingDataPoint === 'syncGapAlertFeed') {
+          code = 'MSGA_MISSING_NETZNACHWEIS';
+        } else if (item.missingDataPoint === 'reconciliationApprovalDecision') {
+          code = 'MSGA_UNRESOLVED_STEUERBARKEIT';
+        }
+        return {
+          code,
+          severity: ['mastrFreshnessEvidence', 'redispatchStammdatenComparison'].includes(item.missingDataPoint)
+            ? 'high'
+            : 'medium',
+          message: item.enablesDossierAddition,
+        };
+      });
+
+      const providedRequiredEvidence = evidenceItems.filter((item) =>
+        evidenceSpecs.some((spec) => spec.id === item.id)
+      );
+
+      const dossierFacts = [
+        `MaStR Sync-Gap Status: ${status}`,
+        `Provided Evidence: ${providedRequiredEvidence.length}/${evidenceSpecs.length}`,
+        `Open Gaps: ${missingEvidence.length}`,
+      ];
+
+      return {
+        readinessId: `msga:${Buffer.from(
+          `${params.tenantId || 'stadtwerk-mauer'}:${params.mastrFreshnessEvidence || ''}:${params.reconciliationApprovalDecision || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 24)}`,
+        capabilityKey: 'mastr_sync_gap_status',
+        safety: 'read_only_blueprint_seed',
+        requestContext: {
+          tenantId: params.tenantId || 'stadtwerk-mauer',
+        },
+        status,
+        mastrFreshnessEvidence: params.mastrFreshnessEvidence || null,
+        redispatchStammdatenComparison: params.redispatchStammdatenComparison || null,
+        syncGapAlertFeed: params.syncGapAlertFeed || null,
+        reconciliationApprovalDecision: params.reconciliationApprovalDecision || null,
+        evidenceItems,
+        missingEvidence,
+        positiveFollowUps,
+        validationFindings,
+        sourceActions: {
+          inspected: ['dashboard-api.mastrSyncGapStatus'],
+          referenced: [
+            'vdmi.dossier',
+            'vdmi.evidence',
+            'asset-context.read',
+            'interface-placeholder.requestEvidence',
+          ],
+          notCalled: [
+            'redispatch_enrollment',
+            'dispatch_control',
+            'mako_write',
+            'billing',
+            'settlement',
+            'tariff_mutation',
+            'smgw_cls_device_control',
+            'external_connector_call',
+            'webhook',
+            'hitl_create',
+            'tenant_provisioning',
+            'rundeck_execution',
+            'public_context_mutation',
+            'production_mutation',
+            'personal_agent_hardcoding',
+          ],
+        },
+        dossierEvidence: {
+          status,
+          mastrFreshnessEvidence: params.mastrFreshnessEvidence || null,
+          redispatchStammdatenComparison: params.redispatchStammdatenComparison || null,
+          syncGapAlertFeed: params.syncGapAlertFeed || null,
+          reconciliationApprovalDecision: params.reconciliationApprovalDecision || null,
+          missingEvidence,
+          positiveFollowUps,
+          evidenceItems,
+          validationFindings,
+          dossierFacts,
+        },
+      };
+    },
+
+    buildDecommissionedAssetReconciliationStatus(params = {}) {
+      const hasValue = (value) => value !== undefined && value !== null && String(value).trim() !== '';
+      const evidenceSpecs = [
+        {
+          id: 'gisDecommissionedAssetsEvidence',
+          label: 'GIS decommissioned assets evidence',
+          value: params.gisDecommissionedAssetsEvidence,
+          sourceClass: 'synthetic_tenant_seed',
+          enablesDossierAddition: 'Adds evidence of physically decommissioned assets from GIS/network registers.',
+        },
+        {
+          id: 'sapAnlagenspiegelEvidence',
+          label: 'SAP Anlagenspiegel evidence',
+          value: params.sapAnlagenspiegelEvidence,
+          sourceClass: 'synthetic_tenant_seed',
+          enablesDossierAddition: 'Adds commercial asset register entries and SAP Anlagenspiegel validation evidence.',
+        },
+        {
+          id: 'reconciliationDiscrepancyFeed',
+          label: 'Reconciliation discrepancy feed',
+          value: params.reconciliationDiscrepancyFeed,
+          sourceClass: 'synthetic_tenant_seed',
+          enablesDossierAddition: 'Adds active reconciliation discrepancy alerts and gap findings between physical and commercial states.',
+        },
+        {
+          id: 'reconciliationApprovalDecision',
+          label: 'Reconciliation approval decision',
+          value: params.reconciliationApprovalDecision,
+          sourceClass: 'synthetic_tenant_seed',
+          enablesDossierAddition: 'Adds the final decommissioning reconciliation sign-off and audit-trail logging.',
+        },
+      ];
+
+      const evidenceItems = evidenceSpecs
+        .filter((spec) => hasValue(spec.value))
+        .map((spec) => ({
+          id: spec.id,
+          label: spec.label,
+          value: spec.value,
+          sourceClass: spec.sourceClass,
+          evidenceStatus: 'provided',
+        }));
+
+      const missingEvidence = evidenceSpecs
+        .filter((spec) => !hasValue(spec.value))
+        .map((spec) => ({
+          missingDataPoint: spec.id,
+          label: spec.label,
+          sourceClass: spec.sourceClass,
+          enablesDossierAddition: spec.enablesDossierAddition,
+        }));
+
+      const status =
+        missingEvidence.length === 0
+          ? 'ready_for_review'
+          : !hasValue(params.gisDecommissionedAssetsEvidence)
+            ? 'needs_gis'
+            : !hasValue(params.sapAnlagenspiegelEvidence)
+              ? 'needs_sap'
+              : !hasValue(params.reconciliationDiscrepancyFeed)
+                ? 'needs_alerts'
+                : 'needs_reconciliation';
+
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'decommissioned_asset_reconciliation',
+      }));
+
+      const validationFindings = missingEvidence.map((item) => {
+        let code = 'DARS_RECONCILIATION_PENDING';
+        if (item.missingDataPoint === 'gisDecommissionedAssetsEvidence') {
+          code = 'DARS_GIS_MISSING';
+        } else if (item.missingDataPoint === 'sapAnlagenspiegelEvidence') {
+          code = 'DARS_BOOK_VALUE_MISMATCH';
+        }
+        return {
+          code,
+          severity: ['gisDecommissionedAssetsEvidence', 'sapAnlagenspiegelEvidence'].includes(item.missingDataPoint)
+            ? 'high'
+            : 'medium',
+          message: item.enablesDossierAddition,
+        };
+      });
+
+      const providedRequiredEvidence = evidenceItems.filter((item) =>
+        evidenceSpecs.some((spec) => spec.id === item.id)
+      );
+
+      const dossierFacts = [
+        `Decommissioned Asset Reconciliation Status: ${status}`,
+        `Provided Evidence: ${providedRequiredEvidence.length}/${evidenceSpecs.length}`,
+        `Open Gaps: ${missingEvidence.length}`,
+      ];
+
+      return {
+        readinessId: `dars:${Buffer.from(
+          `${params.tenantId || 'stadtwerk-mauer'}:${params.gisDecommissionedAssetsEvidence || ''}:${params.reconciliationApprovalDecision || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 24)}`,
+        capabilityKey: 'decommissioned_asset_reconciliation',
+        safety: 'read_only_blueprint_seed',
+        requestContext: {
+          tenantId: params.tenantId || 'stadtwerk-mauer',
+        },
+        status,
+        gisDecommissionedAssetsEvidence: params.gisDecommissionedAssetsEvidence || null,
+        sapAnlagenspiegelEvidence: params.sapAnlagenspiegelEvidence || null,
+        reconciliationDiscrepancyFeed: params.reconciliationDiscrepancyFeed || null,
+        reconciliationApprovalDecision: params.reconciliationApprovalDecision || null,
+        evidenceItems,
+        missingEvidence,
+        positiveFollowUps,
+        validationFindings,
+        sourceActions: {
+          inspected: ['dashboard-api.decommissionedAssetReconciliationStatus'],
+          referenced: [
+            'vdmi.dossier',
+            'vdmi.evidence',
+            'asset-context.read',
+            'interface-placeholder.requestEvidence',
+          ],
+          notCalled: [
+            'redispatch_enrollment',
+            'dispatch_control',
+            'mako_write',
+            'billing',
+            'settlement',
+            'tariff_mutation',
+            'smgw_cls_device_control',
+            'external_connector_call',
+            'webhook',
+            'hitl_create',
+            'tenant_provisioning',
+            'rundeck_execution',
+            'public_context_mutation',
+            'production_mutation',
+            'personal_agent_hardcoding',
+          ],
+        },
+        dossierEvidence: {
+          status,
+          gisDecommissionedAssetsEvidence: params.gisDecommissionedAssetsEvidence || null,
+          sapAnlagenspiegelEvidence: params.sapAnlagenspiegelEvidence || null,
+          reconciliationDiscrepancyFeed: params.reconciliationDiscrepancyFeed || null,
+          reconciliationApprovalDecision: params.reconciliationApprovalDecision || null,
+          missingEvidence,
+          positiveFollowUps,
+          evidenceItems,
+          validationFindings,
+          dossierFacts,
+        },
+      };
+    },
+
+    buildEnergySharingCollectiveApprovalStatus(params = {}) {
+      const hasValue = (value) => value !== undefined && value !== null && String(value).trim() !== '';
+      const evidenceSpecs = [
+        {
+          id: 'syntheticCollectiveBoundaryEvidence',
+          label: 'Synthetic collective boundary evidence',
+          value: params.syntheticCollectiveBoundaryEvidence,
+          sourceClass: 'synthetic_tenant_seed',
+          enablesDossierAddition: 'Adds the synthetic collective and pilot boundary as public-safe review material.',
+        },
+        {
+          id: 'operatorParticipantBoundaryEvidence',
+          label: 'Operator participant boundary evidence',
+          value: params.operatorParticipantBoundaryEvidence,
+          sourceClass: 'synthetic_tenant_seed',
+          enablesDossierAddition: 'Adds operator ownership, participant boundary and governance scope review evidence.',
+        },
+        {
+          id: 'meteringConceptEvidence',
+          label: 'Metering concept evidence',
+          value: params.meteringConceptEvidence,
+          sourceClass: 'synthetic_tenant_seed',
+          enablesDossierAddition: 'Adds the metering concept readiness statement without creating or changing metering assets.',
+        },
+        {
+          id: 'contractConsentMarketRoleEvidence',
+          label: 'Contract consent market role evidence',
+          value: params.contractConsentMarketRoleEvidence,
+          sourceClass: 'synthetic_tenant_seed',
+          enablesDossierAddition: 'Adds contract, consent and market-role review readiness without customer signing.',
+        },
+        {
+          id: 'allocationBillingSettlementGapEvidence',
+          label: 'Allocation billing settlement gap evidence',
+          value: params.allocationBillingSettlementGapEvidence,
+          sourceClass: 'synthetic_tenant_seed',
+          enablesDossierAddition: 'Adds allocation, A96, billing and settlement evidence-gap closure as review evidence.',
+        },
+        {
+          id: 'approvalReadinessDecision',
+          label: 'Approval readiness decision',
+          value: params.approvalReadinessDecision,
+          sourceClass: 'synthetic_tenant_seed',
+          enablesDossierAddition: 'Adds the ready-for-review or evidence-gap classification and next safe governance gate.',
+        },
+      ];
+
+      const evidenceItems = evidenceSpecs
+        .filter((spec) => hasValue(spec.value))
+        .map((spec) => ({
+          id: spec.id,
+          label: spec.label,
+          value: spec.value,
+          sourceClass: spec.sourceClass,
+          evidenceStatus: 'provided',
+        }));
+
+      const missingEvidence = evidenceSpecs
+        .filter((spec) => !hasValue(spec.value))
+        .map((spec) => ({
+          missingDataPoint: spec.id,
+          label: spec.label,
+          sourceClass: spec.sourceClass,
+          enablesDossierAddition: spec.enablesDossierAddition,
+        }));
+
+      const status =
+        missingEvidence.length === 0
+          ? 'ready_for_review'
+          : !hasValue(params.syntheticCollectiveBoundaryEvidence)
+            ? 'needs_boundary'
+            : !hasValue(params.operatorParticipantBoundaryEvidence)
+              ? 'needs_participant'
+              : !hasValue(params.meteringConceptEvidence)
+                ? 'needs_meter'
+                : !hasValue(params.contractConsentMarketRoleEvidence)
+                  ? 'needs_contract'
+                  : !hasValue(params.allocationBillingSettlementGapEvidence)
+                    ? 'needs_billing_gap'
+                    : 'needs_decision';
+
+      const positiveFollowUps = missingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'energy_sharing_collective_approval',
+      }));
+
+      const validationFindings = missingEvidence.map((item) => {
+        let code = 'ESCA_DECISION_PENDING';
+        if (item.missingDataPoint === 'syntheticCollectiveBoundaryEvidence') {
+          code = 'ESCA_BOUNDARY_MISSING';
+        } else if (item.missingDataPoint === 'operatorParticipantBoundaryEvidence') {
+          code = 'ESCA_PARTICIPANT_MISSING';
+        } else if (item.missingDataPoint === 'meteringConceptEvidence') {
+          code = 'ESCA_METER_MISSING';
+        } else if (item.missingDataPoint === 'contractConsentMarketRoleEvidence') {
+          code = 'ESCA_CONTRACT_MISSING';
+        } else if (item.missingDataPoint === 'allocationBillingSettlementGapEvidence') {
+          code = 'ESCA_BILLING_GAP_MISSING';
+        }
+        return {
+          code,
+          severity: ['syntheticCollectiveBoundaryEvidence', 'operatorParticipantBoundaryEvidence', 'meteringConceptEvidence'].includes(item.missingDataPoint)
+            ? 'high'
+            : 'medium',
+          message: item.enablesDossierAddition,
+        };
+      });
+
+      const providedRequiredEvidence = evidenceItems.filter((item) =>
+        evidenceSpecs.some((spec) => spec.id === item.id)
+      );
+
+      const dossierFacts = [
+        `Energy Sharing Collective Approval Status: ${status}`,
+        `Provided Evidence: ${providedRequiredEvidence.length}/${evidenceSpecs.length}`,
+        `Open Gaps: ${missingEvidence.length}`,
+      ];
+
+      return {
+        readinessId: `esca:${Buffer.from(
+          `${params.tenantId || 'stadtwerk-mauer'}:${params.syntheticCollectiveBoundaryEvidence || ''}:${params.approvalReadinessDecision || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 24)}`,
+        capabilityKey: 'energy_sharing_collective_approval',
+        safety: 'read_only_blueprint_seed',
+        requestContext: {
+          tenantId: params.tenantId || 'stadtwerk-mauer',
+        },
+        status,
+        syntheticCollectiveBoundaryEvidence: params.syntheticCollectiveBoundaryEvidence || null,
+        operatorParticipantBoundaryEvidence: params.operatorParticipantBoundaryEvidence || null,
+        meteringConceptEvidence: params.meteringConceptEvidence || null,
+        contractConsentMarketRoleEvidence: params.contractConsentMarketRoleEvidence || null,
+        allocationBillingSettlementGapEvidence: params.allocationBillingSettlementGapEvidence || null,
+        approvalReadinessDecision: params.approvalReadinessDecision || null,
+        evidenceItems,
+        missingEvidence,
+        positiveFollowUps,
+        validationFindings,
+        sourceActions: {
+          inspected: ['dashboard-api.energySharingCollectiveApprovalStatus'],
+          referenced: [
+            'vdmi.dossier',
+            'vdmi.evidence',
+            'asset-context.read',
+            'interface-placeholder.requestEvidence',
+          ],
+          notCalled: [
+            'redispatch_enrollment',
+            'dispatch_control',
+            'mako_write',
+            'billing',
+            'settlement',
+            'tariff_mutation',
+            'smgw_cls_device_control',
+            'external_connector_call',
+            'webhook',
+            'hitl_create',
+            'tenant_provisioning',
+            'rundeck_execution',
+            'public_context_mutation',
+            'production_mutation',
+            'personal_agent_hardcoding',
+          ],
+        },
+        dossierEvidence: {
+          status,
+          syntheticCollectiveBoundaryEvidence: params.syntheticCollectiveBoundaryEvidence || null,
+          operatorParticipantBoundaryEvidence: params.operatorParticipantBoundaryEvidence || null,
+          meteringConceptEvidence: params.meteringConceptEvidence || null,
+          contractConsentMarketRoleEvidence: params.contractConsentMarketRoleEvidence || null,
+          allocationBillingSettlementGapEvidence: params.allocationBillingSettlementGapEvidence || null,
+          approvalReadinessDecision: params.approvalReadinessDecision || null,
           missingEvidence,
           positiveFollowUps,
           evidenceItems,
@@ -32579,7 +34515,9 @@ module.exports = {
           'blueprint_seed_contract',
           'VDMI Blueprint seed contract',
           'reuse_with_new_seed_values',
-          'src/vdmi-blueprint-pack-seeds/stadtwerk-mauer-pv-missing-nap-v1.json',
+          seed?.id
+            ? `src/vdmi-blueprint-pack-seeds/${seed.id}.json`
+            : 'src/vdmi-blueprint-pack-seeds',
         ],
         [
           'dashboard_read_models',
@@ -32678,7 +34616,9 @@ module.exports = {
             'integrations/budibase/README.md',
             'integrations/budibase/manifests/stadtwerk-mauer-workbench.json',
             'integrations/budibase/scripts/apply-stadtwerk-mauer-workbench.js',
-            'src/vdmi-blueprint-pack-seeds/stadtwerk-mauer-pv-missing-nap-v1.json',
+            seed?.id
+              ? `src/vdmi-blueprint-pack-seeds/${seed.id}.json`
+              : 'src/vdmi-blueprint-pack-seeds',
           ],
           notCalled: disabledActionClasses.concat([
             'hitl.create',
@@ -40397,6 +42337,258 @@ module.exports = {
           nextActions,
           sourceDatapoints,
           sourceActions: { notCalled: sourceActions.notCalled },
+          dossierFacts,
+        },
+      };
+    },
+
+    buildDirectMarketerRiskGateStatus(params = {}) {
+      const toList = (value) => {
+        if (Array.isArray(value))
+          return value.map((item) => String(item || '').trim()).filter(Boolean);
+        if (value && typeof value === 'string')
+          return value
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean);
+        return [];
+      };
+      const isProvided = (value) =>
+        value !== undefined && value !== null && String(value).trim() !== '';
+      const toNumber = (value) => {
+        if (value === undefined || value === null || value === '') return null;
+        const normalized =
+          typeof value === 'string' ? value.replace(/\s/g, '').replace(',', '.') : value;
+        const parsed = Number(normalized);
+        return Number.isFinite(parsed) ? parsed : null;
+      };
+
+      const sourceEvidence = toList(params.sourceEvidence);
+      const forecastDeviationPct = toNumber(params.forecastDeviationPct);
+      const gapMap = {
+        handover_context: 'add case, project, community model or direct marketer context',
+        forecast_quality: 'add forecast-quality class and forecast deviation evidence',
+        allocation_rules: 'add allocation-rule clarity for producer/consumer quantities',
+        balancing_schedule_impact: 'add balancing-group and schedule-impact assessment',
+        billing_settlement_status: 'add billing and settlement readiness evidence',
+        role_owner: 'add accountable VNB/EVU role owner for the handover package',
+        deadline: 'add offer, review or contract-release deadline',
+        evidence_status: 'add handover evidence status and provenance references',
+      };
+      const missingEvidence = [];
+      const addGap = (missingDataPoint) => {
+        missingEvidence.push({
+          missingDataPoint,
+          status: 'missing',
+          enablesDossierAddition: gapMap[missingDataPoint],
+        });
+      };
+
+      if (
+        !isProvided(params.caseId) &&
+        !isProvided(params.projectId) &&
+        !isProvided(params.communityModel) &&
+        !isProvided(params.directMarketer)
+      )
+        addGap('handover_context');
+      if (!isProvided(params.forecastQuality) || forecastDeviationPct === null)
+        addGap('forecast_quality');
+      if (!isProvided(params.allocationRules)) addGap('allocation_rules');
+      if (!isProvided(params.balancingGroupImpact) || !isProvided(params.scheduleImpact))
+        addGap('balancing_schedule_impact');
+      if (!isProvided(params.billingStatus) || !isProvided(params.settlementStatus))
+        addGap('billing_settlement_status');
+      if (!isProvided(params.roleOwner)) addGap('role_owner');
+      if (!isProvided(params.deadline)) addGap('deadline');
+      if (!isProvided(params.evidenceStatus) && sourceEvidence.length === 0)
+        addGap('evidence_status');
+
+      let status = 'ready_for_direct_marketer_review';
+      if (missingEvidence.some((gap) => gap.missingDataPoint === 'handover_context')) {
+        status = 'needs_handover_context';
+      } else if (
+        missingEvidence.some((gap) =>
+          ['forecast_quality', 'allocation_rules'].includes(gap.missingDataPoint)
+        )
+      ) {
+        status = 'needs_forecast_and_allocation_evidence';
+      } else if (
+        missingEvidence.some((gap) => gap.missingDataPoint === 'balancing_schedule_impact')
+      ) {
+        status = 'needs_balancing_or_schedule_evidence';
+      } else if (
+        missingEvidence.some((gap) =>
+          ['billing_settlement_status', 'role_owner', 'deadline'].includes(
+            gap.missingDataPoint
+          )
+        )
+      ) {
+        status = 'needs_billing_or_role_evidence';
+      } else if (missingEvidence.length > 0) {
+        status = 'needs_handover_evidence';
+      }
+
+      const requiredCount = Object.keys(gapMap).length;
+      const readinessScore = Number(
+        ((requiredCount - missingEvidence.length) / requiredCount).toFixed(2)
+      );
+      const riskDimensions = [
+        {
+          id: 'forecast_quality',
+          label: 'Forecast Quality',
+          value: params.forecastQuality || null,
+          forecastDeviationPct,
+          status: isProvided(params.forecastQuality) && forecastDeviationPct !== null ? 'covered' : 'missing',
+        },
+        {
+          id: 'allocation_rules',
+          label: 'Allocation Rules',
+          value: params.allocationRules || null,
+          status: isProvided(params.allocationRules) ? 'covered' : 'missing',
+        },
+        {
+          id: 'balancing_schedule_impact',
+          label: 'Balancing Group / Schedule Impact',
+          value: {
+            balancingGroupImpact: params.balancingGroupImpact || null,
+            scheduleImpact: params.scheduleImpact || null,
+          },
+          status:
+            isProvided(params.balancingGroupImpact) && isProvided(params.scheduleImpact)
+              ? 'covered'
+              : 'missing',
+        },
+        {
+          id: 'billing_settlement_status',
+          label: 'Billing / Settlement Status',
+          value: {
+            billingStatus: params.billingStatus || null,
+            settlementStatus: params.settlementStatus || null,
+          },
+          status:
+            isProvided(params.billingStatus) && isProvided(params.settlementStatus)
+              ? 'covered'
+              : 'missing',
+        },
+        {
+          id: 'role_deadline_ownership',
+          label: 'Role / Deadline Ownership',
+          value: {
+            roleOwner: params.roleOwner || null,
+            deadline: params.deadline || null,
+          },
+          status: isProvided(params.roleOwner) && isProvided(params.deadline) ? 'covered' : 'missing',
+        },
+      ];
+      const handoverContext = {
+        caseId: params.caseId || null,
+        projectId: params.projectId || null,
+        communityModel: params.communityModel || null,
+        directMarketer: params.directMarketer || null,
+      };
+      const marketEvidence = {
+        forecastQuality: params.forecastQuality || null,
+        forecastDeviationPct,
+        allocationRules: params.allocationRules || null,
+        balancingGroupImpact: params.balancingGroupImpact || null,
+        scheduleImpact: params.scheduleImpact || null,
+        billingStatus: params.billingStatus || null,
+        settlementStatus: params.settlementStatus || null,
+        evidenceStatus: params.evidenceStatus || null,
+        sourceEvidence,
+      };
+      const roleDeadline = {
+        roleOwner: params.roleOwner || null,
+        deadline: params.deadline || null,
+      };
+      const positiveFollowUps = missingEvidence.map((gap) => ({
+        ...gap,
+        category: 'direct_marketer_risk_gate',
+      }));
+      const nextActions = positiveFollowUps.map((gap) => ({
+        action: 'requestEvidence',
+        missingDataPoint: gap.missingDataPoint,
+        owner: params.roleOwner || null,
+        description: gap.enablesDossierAddition,
+      }));
+      const sourceActions = {
+        inspected: ['dashboard-api.directMarketerRiskGateStatus'],
+        referenced: [
+          'vdmi.dossier',
+          'evidence-registry.lookup',
+          'market-communication.evidence',
+          'settlement.readiness',
+          'presentation.generate',
+        ],
+        notCalled: [
+          'market.executeTrade',
+          'schedule.submit',
+          'balancing-group.transfer',
+          'direct-marketer.offer.approve',
+          'contract.approve',
+          'billing.release',
+          'settlement.prepareBilling',
+          'settlement.exportA96',
+          'tariff.mutate',
+          'customer-communication.send',
+          'hitl.create',
+          'workflow.execute',
+          'webhook.emit',
+          'external.connector.call',
+          'device-control.execute',
+          'personal-agent.execute',
+        ],
+      };
+      const decisionBoundary = {
+        marketExecution: false,
+        scheduleSubmitted: false,
+        contractApproved: false,
+        balancingGroupTransferred: false,
+        billingReleased: false,
+        externalConnectorCalled: false,
+        productionMutation: false,
+      };
+      const dossierFacts = [
+        `Direct Marketer Risk Gate Status: ${status}`,
+        `Case: ${handoverContext.caseId || handoverContext.projectId || 'missing'}`,
+        `Direct Marketer: ${handoverContext.directMarketer || 'missing'}`,
+        `Forecast Quality: ${marketEvidence.forecastQuality || 'missing'}`,
+        `Allocation Rules: ${marketEvidence.allocationRules || 'missing'}`,
+        `Role Owner: ${roleDeadline.roleOwner || 'missing'}`,
+        `Open gaps: ${missingEvidence.length}`,
+      ];
+
+      return {
+        directMarketerRiskGateStatusId: `dmrg:${Buffer.from(
+          `${params.caseId || params.projectId || ''}:${params.directMarketer || ''}:${params.roleOwner || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 28)}`,
+        capabilityKey: 'direct_marketer_risk_gate',
+        safety: 'read_only',
+        status,
+        readinessScore,
+        handoverContext,
+        marketEvidence,
+        roleDeadline,
+        riskDimensions,
+        missingEvidence,
+        positiveFollowUps,
+        nextActions,
+        sourceActions,
+        decisionBoundary,
+        dossierEvidence: {
+          status,
+          readinessScore,
+          handoverContext,
+          marketEvidence,
+          roleDeadline,
+          riskDimensions,
+          missingEvidence,
+          positiveFollowUps,
+          nextActions,
+          sourceActions: { notCalled: sourceActions.notCalled },
+          decisionBoundary,
           dossierFacts,
         },
       };

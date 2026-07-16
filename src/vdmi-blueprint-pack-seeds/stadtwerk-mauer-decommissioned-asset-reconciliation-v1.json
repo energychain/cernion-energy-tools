@@ -1,0 +1,234 @@
+{
+  "id": "stadtwerk-mauer-decommissioned-asset-reconciliation-v1",
+  "kind": "vdmi_blueprint_pack_seed",
+  "version": "1.0.0",
+  "safetyClassification": "read_only_blueprint_seed",
+  "title": "Stadtwerk Mauer Decommissioned Asset Reconciliation Status seed",
+  "processFamily": "decommissioned_asset_reconciliation",
+  "controlCase": "decommissioned_asset_reconciliation_status",
+  "sourceTemplateId": "decommissioned-asset-reconciliation",
+  "demoTenant": {
+    "tenantId": "stadtwerk-mauer",
+    "classification": "synthetic_demo_tenant",
+    "description": "Virtual Stadtwerk Mauer demo tenant; decommissioned asset reconciliation values are synthetic unless explicitly marked as public context."
+  },
+  "dataClasses": {
+    "publicContextLayer": {
+      "description": "Read-only MaStR, OSM, grid-location or comparable public context already blended into the virtual Stadtwerk. Demo reset flows must not mutate this layer.",
+      "examples": ["MaStR installation context", "OSM/grid-location context"]
+    },
+    "syntheticTenantSeed": {
+      "description": "Invented demo assets, portfolios, evidence gaps, test markers, roles and process traces for stadtwerk-mauer.",
+      "examples": [
+        "synthetic decommissioned asset id",
+        "synthetic SAP Anlagenspiegel entry",
+        "synthetic reconciliation discrepancy marker"
+      ]
+    },
+    "sandboxRuntimeArtifact": {
+      "description": "Resettable output from Cernion/Rundeck demo verification runs, separate from public context baselines.",
+      "examples": ["Workbench verify trace", "readiness-gate render artifact"]
+    }
+  },
+  "roles": [
+    {
+      "roleId": "ROLE_NETZPLANUNG",
+      "relation": "verantwortlich",
+      "responsibility": "Responsible for network planning, GIS registers, and confirming the physical decommissioning of assets."
+    },
+    {
+      "roleId": "ROLE_ANLAGENBUCHHALTUNG",
+      "relation": "mitwirkend",
+      "responsibility": "Maintains the commercial asset register and SAP Anlagenspiegel for assets and depreciation tracking."
+    },
+    {
+      "roleId": "ROLE_CERNION_GOVERNANCE",
+      "relation": "durchfuehrend",
+      "responsibility": "Orchestrates data comparison rules and calculates alignment between physical and commercial registers."
+    },
+    {
+      "roleId": "ROLE_COMMERCIAL_AUDIT",
+      "relation": "information",
+      "responsibility": "Receives reconciliation and publication-readiness evidence before downstream Demo-Raum review."
+    }
+  ],
+  "evidenceRequirements": [
+    {
+      "id": "gisDecommissionedAssetsEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds evidence of physically decommissioned assets from GIS/network registers."
+    },
+    {
+      "id": "sapAnlagenspiegelEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds commercial asset register entries and SAP Anlagenspiegel validation evidence."
+    },
+    {
+      "id": "reconciliationDiscrepancyFeed",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds active reconciliation discrepancy alerts and gap findings between physical and commercial states."
+    },
+    {
+      "id": "reconciliationApprovalDecision",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds the final decommissioning reconciliation sign-off and audit-trail logging."
+    }
+  ],
+  "demoProcessMatrix": {
+    "slug": "decommissioned-asset-reconciliation",
+    "title": "Decommissioned Asset Reconciliation & Audit-Trace",
+    "roleLegend": {
+      "V": "Verantwortlich",
+      "D": "Durchfuehrend",
+      "M": "Mitwirkend",
+      "I": "Informiert"
+    },
+    "headers": [
+      "Phase",
+      "V = Verantwortlich",
+      "D = Durchfuehrend",
+      "M = Mitwirkend",
+      "I = Informiert",
+      "Nachweise"
+    ],
+    "allowedDataClasses": [
+      "publicContextLayer",
+      "syntheticTenantSeed",
+      "sandboxRuntimeArtifact"
+    ],
+    "downstreamHandoff": {
+      "blueprintPack": "complete",
+      "landingRegistry": "pending",
+      "productiveDemoRoom": "pending",
+      "acceptanceNote": "Blueprint-Pack/Cernion-Energy-Tools matrix is canonical; Landing-Registry and productive Demo-Raum sync remain downstream proof steps."
+    },
+    "rows": [
+      {
+        "phase": "1",
+        "v": "ROLE_NETZPLANUNG",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_ANLAGENBUCHHALTUNG",
+        "i": "ROLE_COMMERCIAL_AUDIT",
+        "evidenceRequirements": [
+          "gisDecommissionedAssetsEvidence"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed"
+        ],
+        "status": "ready_for_review",
+        "gateOutcome": "gis_decommissioned_assets_harvested",
+        "enablesDossierAddition": "Adds physically decommissioned asset logs."
+      },
+      {
+        "phase": "2",
+        "v": "ROLE_NETZPLANUNG",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_ANLAGENBUCHHALTUNG",
+        "i": "ROLE_COMMERCIAL_AUDIT",
+        "evidenceRequirements": [
+          "sapAnlagenspiegelEvidence"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed"
+        ],
+        "status": "needs_portfolio",
+        "gateOutcome": "sap_anlagenspiegel_reconciliation_pending",
+        "enablesDossierAddition": "Adds commercial register audit logs."
+      },
+      {
+        "phase": "3",
+        "v": "ROLE_NETZPLANUNG",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_ANLAGENBUCHHALTUNG",
+        "i": "ROLE_COMMERCIAL_AUDIT",
+        "evidenceRequirements": [
+          "reconciliationDiscrepancyFeed"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed",
+          "sandboxRuntimeArtifact"
+        ],
+        "status": "evidence_gap",
+        "gateOutcome": "reconciliation_gaps_pending",
+        "enablesDossierAddition": "Adds discrepancy findings and audit-trace alerting."
+      },
+      {
+        "phase": "4",
+        "v": "ROLE_NETZPLANUNG",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_ANLAGENBUCHHALTUNG",
+        "i": "ROLE_COMMERCIAL_AUDIT",
+        "evidenceRequirements": [
+          "reconciliationApprovalDecision"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed",
+          "sandboxRuntimeArtifact"
+        ],
+        "status": "clarification",
+        "gateOutcome": "decommissioning_verification_pending",
+        "enablesDossierAddition": "Adds final decommissioned asset reconciliation and audit approval."
+      }
+    ]
+  },
+  "decisionPolicy": {
+    "onMissingEvidence": "evidence_gap",
+    "onMissingReviewDecision": "clarification",
+    "allowedStates": ["clarification", "evidence_gap", "ready_for_review", "needs_portfolio"],
+    "mustNotTrigger": [
+      "redispatch_enrollment",
+      "dispatch_control",
+      "mako_write",
+      "billing",
+      "settlement",
+      "tariff_mutation",
+      "smgw_cls_device_control",
+      "external_connector_call",
+      "hitl_create",
+      "production_mutation",
+      "public_context_mutation"
+    ]
+  },
+  "allowedCommandHints": [
+    {
+      "kind": "workbench_hint",
+      "id": "budibase:stadtwerk-mauer-workbench",
+      "label": "Cernion Stadtwerk Mauer Workbench",
+      "execution": "metadata_only"
+    }
+  ],
+  "forbiddenActions": [
+    "redispatch_enrollment",
+    "dispatch_control",
+    "mako_write",
+    "billing",
+    "settlement",
+    "tariff_mutation",
+    "smgw_cls_device_control",
+    "external_connector_call",
+    "webhook",
+    "hitl_create",
+    "tenant_provisioning",
+    "rundeck_execution",
+    "public_context_mutation",
+    "production_mutation",
+    "personal_agent_hardcoding"
+  ],
+  "publicContextMutationAllowed": false,
+  "tenantProvisioningAllowed": false,
+  "realWorldClaim": "synthetic_demo_only",
+  "projectionHints": {
+    "sourceIssue": 397,
+    "sourceTemplateId": "decommissioned-asset-reconciliation",
+    "targetSurface": "stadtwerk_mauer_blueprint_pack_verify",
+    "missingEvidenceToWorkbenchItem": true
+  }
+}

@@ -30,21 +30,31 @@ The workbench renders:
 - sandbox annotation command/readback rows from `POST /api/dashboard/stadtwerk-mauer-case-annotations` and `GET /api/dashboard/stadtwerk-mauer-case-detail?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench`
 - selected-case action rows from `GET /api/dashboard/stadtwerk-mauer-case-actions?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench`
 - curated action-button contract rows from `GET /api/dashboard/stadtwerk-mauer-case-actions?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench`, backed by `integrations/budibase/manifests/workbench-action-manifest-stadtwerk-mauer.json`
+- safe-action catalog rows from `GET /api/dashboard/stadtwerk-mauer-case-actions?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench`, annotated with committed Operation Capability Index operation ids and scalar operation-boundary metadata
 - demo process-panel rows, last-result rows, required evidence rows and runbook-boundary rows from `GET /api/dashboard/stadtwerk-mauer-case-actions?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench`
 - role workbench catalog/open-target rows from `GET /api/dashboard/stadtwerk-mauer-role-workbench-catalog?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench`
 - selected Zielnetzplanung item detail, context, evidence-gap, next-gate and safe-follow-up rows from `GET /api/dashboard/stadtwerk-mauer-grid-planning-selected-item-detail?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench&queueItemId=grid-planning:missing-nap-clarification`
 - Vertrieb/Key Account briefing rows from `GET /api/dashboard/stadtwerk-mauer-sales-workbench-briefing?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench&audience=vertrieb`
 - MaStR public-context revalidation rows, affected case, next evidence gate, safe verify actions and no-call boundaries from `GET /api/dashboard/stadtwerk-mauer-mastr-data-overlay?tenantId=stadtwerk-mauer&caseId=smm-budibase-workbench`
+- selected-case meaning-preservation rows for `ROLE_NETZPLANUNG` from `GET /api/dashboard/coordination-meaning-preservation-profile`, showing preserved dimensions, missing/weak context, owner/deadline/decision gaps, positive follow-ups, transfer parameters and no-call guards
 - municipal value peer-corridor evidence rows for `Mauer`, `Sandhausen` and `Wiesloch` from `GET /api/dashboard/municipal-energy-value-analysis`
 - VDMI profile, role model, evidence-gap, capability-projection and synthetic event preview rows from the existing read-only dashboard bricks: `GET /api/dashboard/stadtwerk-mauer-vdmi-profile`, `GET /api/dashboard/stadtwerk-mauer-capability-projection` and `GET /api/dashboard/stadtwerk-mauer-event-replay-preview`
 - VNB delta signal queue rows from existing read-only dashboard bricks: `GET /api/dashboard/cross-channel-vnb-signal-queue`, `POST /api/dashboard/vnb-delta-signal-classifier/classify`, `GET /api/dashboard/owner-deadline-evidence-gate` and `GET /api/dashboard/leadership-delta-cockpit`
 - Evidence Freshness rows for the selected synthetic VNB signal from `GET /api/dashboard/evidence-freshness-guard`
 - Blueprint-Pack verify and Demo-Raum matrix-sync rows for `stadtwerk-mauer-substation-load-assessment-v1` from `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify`, backed by the existing operations-runbook verify contract
 - Blueprint seed selector, #382 matrix/evidence/sync rows and read-only cross-system variance linkout for `stadtwerk-mauer-cross-system-variance-evidence-matrix-v1`, composed from `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify`, `GET /api/dashboard/stadtwerk-mauer-transfer-readiness` and `GET /api/dashboard/cross-system-variance-matrix`
+- Grid connection transformation selector/panel rows for `stadtwerk-mauer-grid-connection-transformation-gate-v1`, composed from `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify`, `GET /api/dashboard/stadtwerk-mauer-transfer-readiness` and `GET /api/dashboard/grid-connection-transformation-gate`
 - Cross-System Variance Landing-Registry Draft Sync rows for `stadtwerk-mauer-cross-system-variance-evidence-matrix-v1`, composed from existing read-only dashboard bricks: `GET /api/dashboard/stadtwerk-mauer-landing-registry-draft`, `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify`, `GET /api/dashboard/stadtwerk-mauer-transfer-readiness` and `GET /api/dashboard/cross-system-variance-matrix`
 - Portfolio Market Value Readiness rows for `stadtwerk-mauer-portfolio-market-value-readiness-v1`, composed from `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify` plus a synthetic `POST /api/energy-market/portfolio-backtest` query
 - Monitoring Non-Escalation rows for `stadtwerk-mauer-monitoring-non-escalation-status-v1`, composed from `GET /api/dashboard/monitoring-non-escalation` plus Blueprint-Pack verify rows
 - Cost Review Committee Readiness rows for `stadtwerk-mauer-cost-review-committee-readiness-v1`, composed from `GET /api/dashboard/cost-review-committee-status` plus Blueprint-Pack verify rows
+- Gas Transformation Dataroom Review rows for `stadtwerk-mauer-gas-transformation-dataroom-review-v1`, composed from `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify`, `GET /api/dashboard/gas-transformation-dataroom` and `GET /api/dashboard/stadtwerk-mauer-transfer-readiness`
+- Anschlussfristen Evidence Queue rows for `stadtwerk-mauer-connection-deadline-evidence-queue-v1`, composed from `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify`, `GET /api/dashboard/connection-deadline-evidence-queue` and `GET /api/dashboard/stadtwerk-mauer-transfer-readiness`
+- Investment Owner-Frist-Budget Gate rows for `stadtwerk-mauer-investment-owner-deadline-budget-gate-v1`, composed from `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify`, `GET /api/dashboard/investment-owner-deadline-budget-gate` and `GET /api/dashboard/stadtwerk-mauer-transfer-readiness`
+- Direct Marketer Demo-Raum Sync-Proof rows for `stadtwerk-mauer-direct-marketer-risk-gate-v1`, composed from `GET /api/dashboard/stadtwerk-mauer-landing-registry-draft`, `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify`, `GET /api/dashboard/stadtwerk-mauer-transfer-readiness` and `GET /api/dashboard/direct-marketer-risk-gate`
+- Koppelpunkt Freigabeakte rows for `ROLE_MARKTKOMMUNIKATION`, composed from the existing read-only `GET /api/dashboard/interconnection-release-file` brick with explicit synthetic default parameters from the #419 smoke
+- A2MDM decision-object rows for `ROLE_GOVERNANCE_OWNER`, composed from the existing read-only `GET /api/dashboard/a2mdm-decision-object` projection with deterministic #423 synthetic defaults and selected-case binding shown only as a context hint until #422 visible-demo apply is unblocked
+- Selected-case context binding rows for `ROLE_NETZPLANUNG`, defaulting to `tenantId=stadtwerk-mauer`, `caseId=smm-budibase-workbench`, `target=selected-case-detail` and `seedId=stadtwerk-mauer-pv-missing-nap-v1`, composed from existing selected-target, Hub, case-detail, case-actions, Blueprint-Pack verify and transfer-readiness read models
 - Transfer Readiness rows from `GET /api/dashboard/stadtwerk-mauer-transfer-readiness`, separating public context, synthetic seed data, sandbox runtime artifacts, tenant parameters, reusable Blueprint/Workbench elements and blocked production boundaries
 - a scope-protected action query for `POST /api/operations-runbook/stadtwerk-mauer/e2e-smoke`
 
@@ -78,6 +88,12 @@ The curated action-button contract is the first reusable Workbench button manife
 shown only as guarded/disabled in this slice, and consequential classes such as direct Rundeck,
 Budibase table writes, provisioning, settlement, HITL, device-control, external connectors and
 Personal-Agent execution remain forbidden no-call guards.
+The Safe-Action Catalog explains those rows with Operation Capability Index metadata. It maps the
+first curated actions to scalar `operationId`, `operationKind`, `consequenceLevel`,
+`recommendedExecutionMode`, scope, tenant-boundary, missing-parameter, enabled/disabled,
+next-gate and no-call fields. Disabled consequential placeholders stay visible for governance
+review, but Budibase does not execute Rundeck, operations-runbook jobs, sandbox commands,
+external connectors, HITL/workflow, MaKo, billing, settlement, tariff or device-control actions.
 The demo process panel uses the same read-only endpoint to render scalar process actions,
 last known results, required evidence and Budibase/Cernion/Rundeck boundary rows. Unsafe
 operational actions are visible as disabled rows only; Budibase does not execute Rundeck jobs
@@ -99,10 +115,13 @@ The Workbench landing query is read-only: it returns scalar first-screen status,
 and presenter walkthrough rows so the app opens as a demo surface instead of an internal build
 surface. It does not perform setup, reset, provisioning, Budibase table writes, runbook execution
 or production mutations.
-The Blueprint seed selector is read-only manifest/query state. It lists only the two canonical
-Stadtwerk-Mauer seeds, defaults the selected seed to the #382 cross-system variance evidence
-matrix, renders V/D/M/I/Nachweise cells as scalar columns, and keeps Landing-Registry /
-productive Demo-Raum sync blocked until explicit sync proof exists.
+The Blueprint seed selector is read-only manifest/query state. It lists the canonical
+Stadtwerk-Mauer seeds, defaults the selected seed to the #404 grid connection transformation
+gate, renders V/D/M/I/Nachweise cells as scalar columns, and keeps Landing-Registry /
+productive Demo-Raum sync blocked until explicit sync proof exists. The grid transformation
+panel composes existing read-only verify, transfer-readiness and grid-connection transformation
+dashboard bricks into scalar NAP/MaLo, division, transformation option, data-quality,
+investment/decommission path, owner, next-action, evidence-gap and no-call rows.
 The Cross-System Variance Landing-Registry Draft Sync panel is a generated read-only render slice.
 It composes existing Landing-Registry draft, Blueprint-Pack verify, transfer-readiness and
 cross-system variance read models into scalar summary, draft-preview, matrix-sync, publication
@@ -133,6 +152,67 @@ only. It must not write ERP/SAP/accounting records, approve budgets, execute com
 decisions, create workflow/HITL/mail actions, call external connectors, publish Demo-Raum or
 Landing Registry state, execute Rundeck, write arbitrary Budibase tables, mutate production
 tenants or use Personal-Agent shortcuts.
+The Gas Transformation Dataroom panel is a generated read-only render slice. It combines
+Blueprint-Pack seed/matrix guard rows for the canonical gas dataroom seed with the existing
+`gas-transformation-dataroom` and transfer-readiness read models. Budibase renders scalar room
+boundary, transformation path, scenario-reference, EOG/KANU/no-legal-decision, evidence-register,
+decision-log, roadmap, owner, next-action, Demo-Raum sync and no-call rows only. It must not write
+Datenraum state, execute decommissioning, create legal/regulatory decisions, publish Demo-Raum or
+Landing Registry state, call external connectors, execute Rundeck, write arbitrary Budibase tables,
+mutate production tenants or use Personal-Agent shortcuts.
+The Anschlussfristen Evidence Queue panel is a generated read-only render slice. It combines
+Blueprint-Pack seed/matrix guard rows for the canonical connection-deadline seed with the existing
+`connection-deadline-evidence-queue` and transfer-readiness read models. Budibase renders scalar
+synthetic Anschlussfall, deadline-risk, owner/contributor, missing-evidence, next-gate,
+non-sending communication-note draft, Demo-Raum sync and no-call rows only. It must not send
+customer communication, write CRM/customer portal records, reserve capacity, approve/reject
+connections, calculate legally binding deadlines, execute MaKo/billing/settlement/tariff or
+device-control actions, call external connectors, write arbitrary Budibase tables, mutate
+production tenants or use Personal-Agent shortcuts.
+The Investment Owner-Frist-Budget Gate panel is a generated read-only render slice. It combines
+Blueprint-Pack seed/matrix guard rows for the canonical investment owner/deadline/budget seed with
+the existing `investment-owner-deadline-budget-gate` and transfer-readiness read models. Budibase
+renders scalar measure identity, accountable owner, deadline, budget effect, approval/source
+evidence, blocked decision, next escalation gate, Demo-Raum sync and no-call rows only. It must not
+write ERP/SAP/accounting records, approve or reserve budget, execute committee decisions, transfer
+treasury funds, create workflow/HITL/mail/webhook actions, call external connectors, write arbitrary
+Budibase tables, mutate production tenants, publish Demo-Raum or use Personal-Agent shortcuts.
+The Direct Marketer Demo-Raum Sync-Proof panel is a generated read-only render slice. It composes
+the existing Landing-Registry draft, Blueprint-Pack verify, transfer-readiness and
+direct-marketer risk-gate read models for the fixed canonical seed
+`stadtwerk-mauer-direct-marketer-risk-gate-v1`. Budibase renders scalar Blueprint-Pack validity,
+matrix row count, `M = Mitwirkend`, Landing-Registry derivability, draft preview, publication
+blocker, positive-follow-up, safe-next-inspection and no-call rows only. It must not write the
+Landing Registry, publish `cernion.de`, submit schedules, transfer balancing groups, approve
+offers/contracts, contact customers, call external direct-marketer connectors, execute MaKo,
+billing, settlement, tariff, SMGW/CLS or device-control actions, execute Rundeck, write arbitrary
+Budibase tables, mutate production tenants or use Personal-Agent shortcuts.
+The Koppelpunkt Freigabeakte panel is a generated read-only render slice. It composes the existing
+`interconnection-release-file` read model with fixed synthetic demo parameters
+(`KP-SYN-MAUER-01`, `MP-SYN-MAUER-01`, `TS-SYN-MAUER-01`, `mappingVersion=v1`) for
+`ROLE_MARKTKOMMUNIKATION`. Budibase renders scalar summary, mapping subject, evidence
+source/version, approval owner/status, affected downstream process, missing-evidence,
+safe-next-gate and no-call rows only. It must not write A2MDM or mapping state, execute a
+Freigabe workflow, submit MaKo messages, run billing/settlement/tariff/device-control actions,
+call external connectors, write arbitrary Budibase tables, mutate production tenants or use
+Personal-Agent shortcuts.
+The A2MDM Decision Object panel is a generated read-only render slice. It composes the existing
+`a2mdm-decision-object` projection with deterministic #423 synthetic defaults for
+`ROLE_GOVERNANCE_OWNER`; selected-case binding is only a context hint until #422 visible-demo
+apply is unblocked. Budibase renders scalar summary, subject, business intent, technical
+constraint, regulatory reference, evidence source, owner role, risk level, decision threshold,
+next gate, missing-input, positive-follow-up and no-call rows only. It must not write A2MDM
+source-of-truth state, create workflows/HITL, call external connectors, perform MaKo, billing,
+settlement, tariff, device-control, SMGW/CLS, Landing-Registry or production publication actions,
+write arbitrary Budibase tables, mutate production tenants or use Personal-Agent shortcuts.
+The Selected-Case Context Binding panel is generated Budibase manifest composition, not a new
+Cernion service. It binds the synthetic default Stadtwerk Mauer case to existing read-only
+dashboard bricks and renders scalar context, bound read-model, evidence/trace/artifact,
+next-gate/action and no-call guard rows. Because this slice introduces no new backend capability,
+it does not add a Capability Broker route or Hydration Registry rule. Budibase may refresh the
+existing read queries, but it must not persist selection state, import/reset seeds, write
+Landing-Registry or Cernion tables, execute Rundeck, create HITL/workflow actions, call external
+connectors, mutate production tenants or use Personal-Agent shortcuts.
 The selected-target query is read-only: it maps a supported Hub or role target to scalar selected,
 focus and helper rows so Budibase can visibly focus a section without owning persistent state or
 mutating Cernion tenant data.
@@ -140,6 +220,11 @@ The MaStR public-context revalidation rows are read-only: they separate MaStR/OS
 synthetic Stadtwerk-Mauer tenant seed and synthetic revalidation drill/runtime rows. Budibase may
 render refresh/verify hints, but it must not mutate MaStR, write arbitrary Cernion tables, execute
 production tenant actions or turn synthetic case evidence into official public-context changes.
+The selected-case meaning-preservation panel is read-only: it reuses the existing
+`coordination-meaning-preservation-profile` read model for the synthetic Stadtwerk-Mauer
+selected case and renders scalar preserved, missing, weak, owner/deadline/decision,
+transfer-parameter and no-call rows. Budibase must not persist handover state, create actions,
+write tables, call connectors, mutate production data or use Personal-Agent shortcuts.
 The municipal value peer-corridor rows are read-only: they reuse the existing municipal energy
 value dashboard model and render scalar presenter evidence for municipal budget effect,
 operator/private value, derived-load status, peer-corridor position, no-autarky guardrails and

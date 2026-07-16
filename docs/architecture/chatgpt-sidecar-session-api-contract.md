@@ -170,8 +170,16 @@ decision, but `draft_write` remains the only class that actually mutates.
   "success": true,
   "sessionId": "cgs_9e33a964-cff7-4cf9-a788-a0823df85edf",
   "ticketUrl": "https://cernion.example.com/api/chatgpt-sidecar/s/<opaque-ticket>/manifest",
+  "actionOpenApiUrl": "https://cernion.example.com/api/chatgpt-sidecar/s/<opaque-ticket>/action-openapi.json",
+  "initialAskUrl": "https://cernion.example.com/api/chatgpt-sidecar/s/<opaque-ticket>/ask?query=<encoded-initial-task>",
   "expiresAt": "2026-07-05T15:33:04.483Z",
   "promptText": "You are working inside a Cernion Fach-Sidecar session...",
+  "actionSetup": {
+    "recommended": true,
+    "mode": "custom_gpt_action",
+    "schemaUrl": "https://cernion.example.com/api/chatgpt-sidecar/s/<opaque-ticket>/action-openapi.json",
+    "authentication": { "type": "none_ticket_scoped" }
+  },
   "capabilities": ["knowledge-rag", "datasource-mastr", "ontology-guardrail"],
   "writeScope": "draft_write"
 }
@@ -183,6 +191,221 @@ sent to ChatGPT and never appears inside `promptText`, the ticket URL, the
 manifest, or metering responses. The opaque ticket embedded in `ticketUrl`
 carries no encoded tenant/user data — it is a 256-bit random value used only
 as a server-side lookup key.
+
+When the creator sends a prompt-generator task in `metadata.useCase`
+(`metadata.initialQuestion`, `metadata.question`, `metadata.query` and
+`metadata.task` are also accepted), the response also includes
+`initialAskUrl`. The generated `promptText` repeats this exact URL so
+ChatGPT.com can follow a browser-discovered link instead of constructing a
+new query URL from the manifest template. This is a prompt-only Safe Browsing
+compatibility measure; it does not expose tenant/user identity, session id,
+POST routes, write endpoints or provider credentials.
+
+### Ask/plan response contract
+
+`ask`, `browserAsk`, `plan` and `browserPlan` preserve their existing payload
+fields and add a stable prompt-only response envelope:
+
+```json
+{
+  "success": true,
+  "shortAnswer": "Cernion evidence answer",
+  "answer": "Cernion evidence answer",
+  "turnId": "cgs_turn_<uuid>",
+  "resolvedQuestion": "Welche Daten liegen vor?",
+  "followUpContext": {
+    "turnId": "cgs_turn_<uuid>",
+    "parentTurnId": "cgs_turn_<previous-uuid-or-null>",
+    "resolvedQuestion": "Welche Daten liegen vor?",
+    "capability": "knowledge-rag",
+    "transport": "browser_get",
+    "confidence": "high",
+    "promptOnly": {
+      "statefulContextAvailable": true,
+      "requiresConcreteNextCall": true
+    }
+  },
+  "responseContract": {
+    "schemaVersion": "cernion.chatgpt-sidecar.response.v1",
+    "turnIdField": "turnId",
+    "resolvedQuestionField": "resolvedQuestion",
+    "followUpContextField": "followUpContext"
+  }
+}
+```
+
+The server records each turn under the opaque session ticket so later calls
+can pass `parentTurnId` and preserve conversational context. This improves
+grounding and follow-up interpretation for prompt-only usage, but it does
+not remove the transport boundary: a new free-form ChatGPT user question
+still has to reach Cernion through a concrete browser URL, a Custom GPT
+Action or an MCP/App tool call.
+
+### Explicit capability grounding
+
+The optional `capability` parameter is a hard grounding boundary for
+`ask`/`browserAsk`, not just a ranking hint. If ChatGPT calls:
+
+```http
+GET /api/chatgpt-sidecar/s/<ticket>/ask?query=...&capability=datasource-mastr
+```
+
+the Sidecar may still ask downstream Cernion services to retrieve evidence,
+but the final response must not silently reinterpret generic Knowledge-RAG
+hits as evidence for that capability. If the downstream result only contains
+generic fallback evidence while capability-specific datapoints/objects are
+missing, the Sidecar returns a successful no-evidence answer with:
+
+```json
+{
+  "confidence": "low",
+  "evidence": [],
+  "capabilityGrounding": {
+    "requestedCapability": "datasource-mastr",
+    "mode": "hard",
+    "status": "missing",
+    "reason": "no_capability_evidence",
+    "genericFallbackSuppressed": true
+  },
+  "processContext": [
+    "datapoints:missing",
+    "objects:missing",
+    "capability_evidence:missing",
+    "generic_fallback:suppressed"
+  ]
+}
+```
+
+`knowledge-rag` remains the explicit capability for Knowledge-RAG answers.
+For other capabilities, a fallback to generic Knowledge-RAG is only suitable
+when no capability was pinned or a future API version explicitly requests
+such fallback behavior.
+
+### OpenAPI semantic fallback router
+
+When a non-`knowledge-rag` capability is explicitly pinned but no dedicated
+Sidecar resolver exists, the Sidecar may use a controlled read-only OpenAPI
+fallback before returning `no_capability_evidence`.
+
+The fallback builds an operation index from broker actions with REST/OpenAPI
+metadata and selects only safe operations:
+
+- `GET` operations are eligible unless their operation text contains an
+  unsafe verb such as create, update, delete, execute, confirm or token.
+- `POST` operations are eligible only for explicitly read-only data services
+  such as `gas-storage`, `energy-market`, `entsoe`, `oep`, `osm-geo` and
+  related datasource services.
+- The router scores the user question plus requested capability against
+  operation id, path, tags, summary, description and parameter metadata.
+- Required parameters are resolved deterministically from `inputs`, `context`
+  and common domain cues, for example `Deutschland` -> `country: "DE"`.
+
+Responses produced by this route are deliberately marked as fallback evidence,
+not as a dedicated capability route:
+
+```json
+{
+  "confidence": "medium",
+  "capabilityGrounding": {
+    "requestedCapability": "datasource-gas-storage",
+    "mode": "hard",
+    "status": "fallback",
+    "reason": "openapi_semantic_router",
+    "fallbackSource": "openapi_semantic_router",
+    "notDedicatedCapabilityRoute": true,
+    "resolvedOperationId": "gas-storage_countryStorage",
+    "resolvedPath": "/api/gas-storage/country-storage",
+    "method": "POST"
+  },
+  "processContext": [
+    "capability:datasource-gas-storage",
+    "capability_evidence:fallback",
+    "fallback:openapi_semantic_router",
+    "not_dedicated_capability_route:true"
+  ]
+}
+```
+
+This keeps ChatGPT usable for newly exposed datasource endpoints without
+relabeling generic RAG as source-specific evidence. Recurring high-value
+fallback routes should still become dedicated capability resolvers.
+
+### Python/Data Analysis fallback
+
+Some ChatGPT sessions can construct and fetch dynamic URLs through the
+Python/Data Analysis runtime even when browser navigation blocks the same
+derived API URL. The manifest therefore exposes a read-only `pythonClient`
+hint under `browserFacade`:
+
+```json
+{
+  "pythonClient": {
+    "usage": "python_read_only_http_client_when_browser_navigation_blocks_dynamic_get_urls",
+    "askBaseUrl": "https://cernion.example.com/api/chatgpt-sidecar/s/<opaque-ticket>/ask",
+    "planBaseUrl": "https://cernion.example.com/api/chatgpt-sidecar/s/<opaque-ticket>/plan",
+    "queryEncoding": "Use urllib.parse.urlencode for query/task plus optional capability and parentTurnId.",
+    "responseFields": {
+      "answer": "Use answer first, then shortAnswer, then groundingAnswer.",
+      "turnId": "Persist for the next follow-up call.",
+      "followUpContext": "Use for conversational continuity; pass followUpContext.turnId as parentTurnId on the next Cernion call."
+    }
+  }
+}
+```
+
+This remains a prompt-only fallback, not a guaranteed tool channel:
+availability depends on the ChatGPT environment having Python/Data Analysis
+and outbound HTTPS enabled. The fallback is strictly read-only and uses the
+same ticket-scoped `ask`/`plan` GET facades as browser usage.
+
+### Custom GPT Action setup
+
+The preferred ChatGPT integration is a **Custom GPT Action**, with Prompt-only
+kept as a fallback. A user cannot install an Action by pasting instructions
+into a normal ChatGPT chat; they must create or edit a GPT and configure an
+Action in the GPT Builder. Cernion therefore returns `actionSetup` and
+`actionOpenApiUrl` next to the prompt data so the Solution page can show the
+Action path first and the Prompt-only fallback below it.
+
+The session-scoped schema is available at:
+
+```http
+GET /api/chatgpt-sidecar/s/<opaque-ticket>/action-openapi.json
+```
+
+It is intentionally small and embeds the opaque ticket directly into the
+operation paths. This lets ChatGPT Actions call Cernion with structured JSON
+for free-form follow-ups without asking the model to construct ticket URLs or
+without relying on Python/Data Analysis network availability.
+
+First-cut operations:
+
+| Operation | Method/path | Purpose |
+|-----------|-------------|---------|
+| `askCernion` | `POST /api/chatgpt-sidecar/s/<ticket>/ask` | Free-form Cernion question with optional `capability`, `parentTurnId`, `context` and `inputs`. |
+| `planCernion` | `POST /api/chatgpt-sidecar/s/<ticket>/plan` | Read-only planning/routing request with optional `capability`, `parentTurnId` and `context`. |
+
+The schema sets `x-openai-isConsequential: false` on both operations and does
+not include `datapoints`, `execute`, HITL, external connector or production
+mutation routes. Draft datapoint writes remain available only through the
+existing ticket endpoint and policy gate, not through the first Custom GPT
+Action schema.
+
+GPT Builder instructions shown by `actionSetup.steps`:
+
+1. Open ChatGPT and create or edit a Custom GPT.
+2. Go to `Configure -> Actions -> Create new action`.
+3. Import the schema from `actionSetup.schemaUrl`.
+4. Set Authentication to `None`.
+5. Save the GPT and test `askCernion` with a short Cernion question.
+6. Use the Prompt-only section only when a Custom GPT Action cannot be
+   configured.
+
+`Authentication = None` is deliberate for this slice: the opaque Sidecar
+ticket is already embedded in the imported schema paths and expires with the
+session TTL. This has the same shareability risk as Prompt-only ticket URLs,
+but avoids asking non-technical users to configure an additional custom
+header or bearer secret for the Action.
 
 ### Error responses
 
@@ -213,5 +436,7 @@ ChatGPT (or a Custom GPT) never calls `/sessions`. It is given `promptText`
 and starts from the `ticketUrl` (`GET /s/:ticket/manifest`). Every
 `/s/:ticket/*` route resolves the ticket against the server-side session
 store and requires **no Cernion authentication of its own** — the ticket is
-the credential. See `services/chatgpt-sidecar.service.js` for the full
+the credential. For prompt-only browser sessions the manifest also includes
+absolute browser URL templates and, when present, the concrete `initialAskUrl`
+for the first task. See `services/chatgpt-sidecar.service.js` for the full
 facade contract (`manifest`, `ask`, `plan`, `datapoints`, `metering`).

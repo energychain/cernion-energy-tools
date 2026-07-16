@@ -116,8 +116,11 @@ Existing components to reuse:
 
 New components should stay small:
 
-- `src/chatgpt-sidecar-session-store.js`: interface plus in-memory test store
-  for create/get/revoke/expire/meter events.
+- `src/chatgpt-sidecar-session-store.js`: interface plus default file-backed
+  runtime store and in-memory test store for create/get/revoke/expire/meter
+  events. Non-test runtimes persist tickets, metering and turn summaries under
+  `data/chatgpt-sidecar-sessions/sessions.json` unless
+  `CHATGPT_SIDECAR_SESSION_STORE=memory` is explicitly set.
 - `src/chatgpt-sidecar-session-policy.js`: ticket, capability, write-scope and
   redaction decisions.
 - `src/chatgpt-sidecar-prompt.js`: backend-generated prompt text from redacted
@@ -134,7 +137,9 @@ Scope:
 - `POST /api/chatgpt-sidecar/sessions`
 - `GET /api/chatgpt-sidecar/s/:ticket/manifest`
 - `POST /api/chatgpt-sidecar/s/:ticket/ask`
+- `GET /api/chatgpt-sidecar/s/:ticket/ask?query=...`
 - `POST /api/chatgpt-sidecar/s/:ticket/plan`
+- `GET /api/chatgpt-sidecar/s/:ticket/plan?task=...`
 - `POST /api/chatgpt-sidecar/s/:ticket/datapoints`
 - `GET /api/chatgpt-sidecar/s/:ticket/metering`
 
@@ -144,6 +149,10 @@ Constraints:
 - Prompt text includes only the manifest URL, capability contract and expiry
   behavior.
 - `ask` and `plan` reuse existing sidecar/personal-agent/capability broker paths.
+- Browser `GET` ask/plan routes are read-only prompt-only facades over the
+  same policy gates. They accept bounded URL query text, return policy-blocked
+  responses with positive follow-ups, and must not expose POST write handles as
+  browser actions.
 - `datapoints` supports only `draft_write`, with provenance:
   `origin=chatgpt_sidecar`, `sessionId`, capability, prompt/user message hash,
   timestamp and policy result.
@@ -158,8 +167,11 @@ Focused tests before any smoke:
 - TTL expiry returns `410 Gone`.
 - Unknown and revoked tickets fail hard without identity leakage.
 - Manifest contains only the session capability allowlist.
+- Manifest exposes browser `GET` templates, max query length, unavailable
+  operations, and prompt-safe follow-ups without leaking credentials.
 - Prompt text and manifest do not contain raw tenant ID, user ID, bearer token,
   provider credential, `ck_` token or raw internal endpoint topology.
+- Browser `GET` ask/plan reject overlong query text before downstream calls.
 - Blocked write attempt increments blocked-policy metering.
 - Allowed draft datapoint carries server-side tenant/user/session provenance.
 - Metering increments for session creation, manifest read, ask, plan,

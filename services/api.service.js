@@ -506,6 +506,7 @@ function classifyEndpointClass(method, requestPath) {
   const pathOnly = String(requestPath || '').split('?')[0];
 
   if (
+    pathOnly === '/v1/chat/completions' ||
     pathOnly === '/api/personal-agent/chat' ||
     pathOnly === '/api/copilot/ask-cernion-agent' ||
     pathOnly === '/api/copilot/answer-dossier' || // v0.63.0 #220
@@ -551,6 +552,215 @@ async function emitRateQuotaEvents(broker, tenantId, events, extra = {}) {
   }
 }
 
+function buildOpenAiErrorBody(err) {
+  const provided = err?.data?.openai?.error;
+  if (provided?.message) {
+    return { error: provided };
+  }
+  const status = resolveHttpStatus(err);
+  return {
+    error: {
+      message: sanitizeErrorMessage(err?.message || 'Request failed.'),
+      type: status === 401 ? 'authentication_error' : 'invalid_request_error',
+      code: err?.type || err?.code || 'request_failed',
+    },
+  };
+}
+
+async function buildOpenAiFacadeMeta(service, req) {
+  const authHeader = req?.headers?.authorization || req?.headers?.Authorization;
+  const bearerToken =
+    authHeader && authHeader.startsWith('Bearer ') ? authHeader.substring(7).trim() : null;
+  const tokenToUse = bearerToken || '';
+
+  if (!tokenToUse) {
+    throw new Errors.MoleculerClientError('Authentication required.', 401, 'AUTH_REQUIRED', {
+      openai: {
+        error: {
+          message: 'Authentication required.',
+          type: 'authentication_error',
+          code: 'authentication_required',
+        },
+      },
+    });
+  }
+
+  if (!tokenToUse.startsWith('ck_') && !tokenToUse.startsWith('csess_')) {
+    throw new Errors.MoleculerClientError(
+      'Valid Cernion API or session token required.',
+      401,
+      'AUTH_REQUIRED',
+      {
+        openai: {
+          error: {
+            message: 'Valid Cernion API or session token required.',
+            type: 'authentication_error',
+            code: 'authentication_required',
+          },
+        },
+      }
+    );
+  }
+
+  const meta = {
+    $gateway: true,
+    requestHeaders: req?.headers || {},
+  };
+
+  if (tokenToUse.startsWith('ck_')) {
+    const verification = await service.broker.call('token-manager.verify', {
+      token: tokenToUse,
+      method: req?.method || 'POST',
+      path: '/v1/chat/completions',
+      trackUsage: true,
+    });
+
+    if (!verification?.valid) {
+      throw new Errors.MoleculerClientError(
+        'Invalid or revoked API token.',
+        401,
+        'INVALID_API_TOKEN',
+        {
+          openai: {
+            error: {
+              message: 'Invalid or revoked API token.',
+              type: 'authentication_error',
+              code: 'invalid_api_token',
+            },
+          },
+        }
+      );
+    }
+
+    const roles = mapRolesFromLegacyToken(verification.scope, verification.scopes);
+    enforceRbacForPath(roles, req?.method || 'POST', '/api/copilot/ask-cernion-agent');
+    addLegacyTokenDeprecationHeaders({ meta });
+    meta.apiToken = {
+      id: verification.tokenId,
+      name: verification.name,
+      scope: verification.scope,
+      scopes: verification.scopes || [],
+      tenantId: verification.tenantId || null,
+      userId: verification.userId || null,
+      legacy: Boolean(verification.legacy),
+    };
+    meta.authUser = {
+      authType: 'legacy-token',
+      userId: verification.userId || verification.tokenId || null,
+      tenantId: verification.tenantId || null,
+      groups: [],
+      idpClaims: null,
+      roles,
+    };
+    if (verification.tenantId) meta.tenantId = verification.tenantId;
+  } else {
+    const verification = await service.broker.call('auth.verify', {
+      token: tokenToUse,
+      trackUsage: true,
+    });
+
+    if (!verification?.valid) {
+      throw new Errors.MoleculerClientError(
+        'Invalid or expired session token.',
+        401,
+        'INVALID_SESSION_TOKEN',
+        {
+          openai: {
+            error: {
+              message: 'Invalid or expired session token.',
+              type: 'authentication_error',
+              code: 'invalid_session_token',
+            },
+          },
+        }
+      );
+    }
+
+    const roles = Array.isArray(verification.roles) ? verification.roles : [];
+    enforceRbacForPath(roles, req?.method || 'POST', '/api/copilot/ask-cernion-agent');
+    meta.authSession = {
+      id: verification.sessionId,
+      expiresAt: verification.expiresAt || null,
+    };
+    meta.authUser = {
+      authType: 'session',
+      userId: verification.userId || null,
+      tenantId: verification.tenantId || null,
+      groups: Array.isArray(verification.groups) ? verification.groups : [],
+      idpClaims: verification.idpClaims || null,
+      roles,
+    };
+    if (verification.tenantId) meta.tenantId = verification.tenantId;
+  }
+
+  const headerTenantId = req?.headers?.['x-tenant-id'] || req?.headers?.['X-Tenant-Id'] || null;
+  if (!meta.tenantId && headerTenantId) {
+    validateTenantId(headerTenantId);
+    if (!isTenantAllowed(headerTenantId)) {
+      throw new Errors.MoleculerClientError(
+        `Tenant '${headerTenantId}' is not allowed in this installation.`,
+        403,
+        'TENANT_NOT_ALLOWED'
+      );
+    }
+    meta.tenantId = headerTenantId;
+  }
+
+  return meta;
+}
+
+async function handleOpenAiChatCompletions(req, res) {
+  try {
+    const meta = await buildOpenAiFacadeMeta(this, req);
+    const tenantIdForQuota = meta.tenantId || 'default';
+    const rateLimit = rateQuotaStore.acquireRateLimitToken({
+      tenantId: tenantIdForQuota,
+      endpointClass: 'compute',
+    });
+    await emitRateQuotaEvents(this.broker, tenantIdForQuota, rateLimit.newEvents || [], {
+      endpointClass: 'compute',
+      requestPath: '/v1/chat/completions',
+    });
+    if (!rateLimit.allowed) {
+      throw new Errors.MoleculerClientError(
+        'Rate limit exceeded for tenant.',
+        429,
+        'RATE_LIMIT_EXCEEDED',
+        {
+          responseHeaders: rateLimit.responseHeaders,
+          openai: {
+            error: {
+              message: 'Rate limit exceeded for tenant.',
+              type: 'rate_limit_error',
+              code: 'rate_limit_exceeded',
+            },
+          },
+        }
+      );
+    }
+
+    const response = await this.broker.call(
+      'openai-compatible.chatCompletions',
+      req?.body || req?.$params || {},
+      { meta }
+    );
+    for (const [headerName, headerValue] of Object.entries(rateLimit.responseHeaders || {})) {
+      if (headerValue != null) res.setHeader(headerName, String(headerValue));
+    }
+    res.setHeader(CONTENT_TYPE_HEADER, CONTENT_TYPE_JSON);
+    res.writeHead(200);
+    res.end(JSON.stringify(response));
+  } catch (err) {
+    const errorHeaders = err?.data?.responseHeaders || {};
+    for (const [headerName, headerValue] of Object.entries(errorHeaders)) {
+      if (headerValue != null) res.setHeader(headerName, String(headerValue));
+    }
+    res.setHeader(CONTENT_TYPE_HEADER, CONTENT_TYPE_JSON);
+    res.writeHead(resolveHttpStatus(err));
+    res.end(JSON.stringify(buildOpenAiErrorBody(err)));
+  }
+}
+
 function requiresHitlApproverRole(method, requestPath) {
   const m = String(method || '').toUpperCase();
   const pathOnly = String(requestPath || '').split('?')[0];
@@ -585,7 +795,9 @@ function isChatgptSidecarTicketInvocation(method, requestPath) {
   const pathOnly = String(requestPath || '').split('?')[0];
   return (
     (m === 'POST' || m === 'GET') &&
-    /^\/api\/chatgpt-sidecar\/s\/[^/]+\/(manifest|ask|plan|datapoints|metering)$/.test(pathOnly)
+    /^\/api\/chatgpt-sidecar\/s\/[^/]+\/(manifest|ask|plan|datapoints|metering|action-openapi\.json)$/.test(
+      pathOnly
+    )
   );
 }
 
@@ -714,6 +926,11 @@ module.exports = {
             'Interactive personal chat orchestration (v0.52). ' +
             'Builds deterministic L0-L4 context stacks with strict token budgeting. ' +
             'Layer 4 is transient and never persisted.',
+        },
+        {
+          name: 'OpenAI Compatible',
+          description:
+            'Inbound OpenAI-compatible facade for authenticated Cernion advisory completions.',
         },
         {
           name: 'Actor Personas',
@@ -1097,6 +1314,37 @@ module.exports = {
                 })
               );
             }
+          },
+        },
+      },
+      // OpenAI-compatible inbound facade (not under /api by design)
+      {
+        path: '/v1',
+
+        whitelist: [],
+
+        use: [],
+
+        mergeParams: true,
+
+        authentication: false,
+
+        authorization: false,
+
+        autoAliases: true,
+
+        aliases: {
+          'POST /chat/completions': handleOpenAiChatCompletions,
+        },
+
+        bodyParsers: {
+          json: {
+            strict: false,
+            limit: '1MB',
+          },
+          urlencoded: {
+            extended: true,
+            limit: '1MB',
           },
         },
       },
@@ -1499,6 +1747,7 @@ module.exports = {
           'POST /chatgpt-sidecar/s/:ticket/ask': 'chatgpt-sidecar.ask',
           'GET /chatgpt-sidecar/s/:ticket/plan': 'chatgpt-sidecar.browserPlan',
           'POST /chatgpt-sidecar/s/:ticket/plan': 'chatgpt-sidecar.plan',
+          'GET /chatgpt-sidecar/s/:ticket/action-openapi.json': 'chatgpt-sidecar.actionOpenApi',
           'POST /chatgpt-sidecar/s/:ticket/datapoints': 'chatgpt-sidecar.datapoints',
           'GET /chatgpt-sidecar/s/:ticket/metering': 'chatgpt-sidecar.metering',
           // Dashboard API (v0.19+) — UI-optimised aggregate endpoints
@@ -1516,16 +1765,26 @@ module.exports = {
             'dashboard-api.e2eControllabilityGovernanceStatus',
           'GET /dashboard/controllability-asset-handover':
             'dashboard-api.controllabilityAssetHandoverStatus',
+          'GET /dashboard/controllability-data-alignment':
+            'dashboard-api.controllabilityDataAlignmentStatus',
+          'GET /dashboard/coordination-meaning-preservation-profile':
+            'dashboard-api.coordinationMeaningPreservationProfile',
+          'GET /dashboard/a2mdm-decision-object': 'dashboard-api.a2mdmDecisionObjectStatus',
           'GET /dashboard/gremiencoach-workbook-readiness':
             'dashboard-api.gremiencoachWorkbookReadinessStatus',
-          'GET /dashboard/decision-readiness-matrix':
-            'dashboard-api.decisionReadinessMatrixStatus',
+          'GET /dashboard/decision-readiness-matrix': 'dashboard-api.decisionReadinessMatrixStatus',
           'GET /dashboard/cross-system-variance-matrix':
             'dashboard-api.crossSystemVarianceMatrixStatus',
           'GET /dashboard/regulatory-signal-process-translator':
             'dashboard-api.regulatorySignalProcessTranslatorStatus',
-          'GET /dashboard/cost-review-committee-status':
-            'dashboard-api.costReviewCommitteeStatus',
+          'GET /dashboard/cost-review-committee-status': 'dashboard-api.costReviewCommitteeStatus',
+          'GET /dashboard/redispatch-participation-readiness-status':
+            'dashboard-api.redispatchParticipationReadinessStatus',
+          'GET /dashboard/mastr-sync-gap-status': 'dashboard-api.mastrSyncGapStatus',
+          'GET /dashboard/decommissioned-asset-reconciliation-status':
+            'dashboard-api.decommissionedAssetReconciliationStatus',
+          'GET /dashboard/energy-sharing-collective-approval-status':
+            'dashboard-api.energySharingCollectiveApprovalStatus',
           'GET /dashboard/steering-artifact-acceptance-gate':
             'dashboard-api.steeringArtifactAcceptanceGateStatus',
           'GET /dashboard/communication-break-process-risk':
@@ -1590,6 +1849,10 @@ module.exports = {
             'dashboard-api.stadtwerkMauerTransferReadinessStatus',
           'GET /dashboard/stadtwerk-mauer-landing-registry-draft':
             'dashboard-api.stadtwerkMauerLandingRegistryDraftStatus',
+          'GET /dashboard/energy-sidecar-route-registry':
+            'dashboard-api.energySidecarRouteRegistryStatus',
+          'GET /dashboard/interconnection-release-file':
+            'dashboard-api.interconnectionReleaseFileStatus',
           'GET /dashboard/fnav-fast-track-contract-gate':
             'dashboard-api.fnavFastTrackContractGateStatus',
           'GET /dashboard/cross-channel-vnb-signal-queue':
@@ -1612,14 +1875,14 @@ module.exports = {
             'dashboard-api.investmentBudgetCapExceptionGovernanceStatus',
           'GET /dashboard/investment-owner-deadline-budget-gate':
             'dashboard-api.investmentOwnerDeadlineBudgetGateStatus',
+          'GET /dashboard/direct-marketer-risk-gate': 'dashboard-api.directMarketerRiskGateStatus',
           'GET /dashboard/no-regret-measure-definition-gate':
             'dashboard-api.noRegretMeasureDefinitionGateStatus',
           'GET /dashboard/gas-grid-transformation-asset-cockpit':
             'dashboard-api.gasGridTransformationAssetCockpitStatus',
           'GET /dashboard/vnb-special-topic-workstate':
             'dashboard-api.vnbSpecialTopicWorkstateStatus',
-          'GET /dashboard/monitoring-non-escalation':
-            'dashboard-api.monitoringNonEscalationStatus',
+          'GET /dashboard/monitoring-non-escalation': 'dashboard-api.monitoringNonEscalationStatus',
           'GET /dashboard/leadership-delta-cockpit': 'dashboard-api.leadershipDeltaCockpitStatus',
           'GET /dashboard/netzsignal-delta-gating': 'dashboard-api.netzsignalDeltaGatingStatus',
           'POST /dashboard/vnb-delta-signal-classifier/classify':
@@ -2672,6 +2935,7 @@ module.exports = {
           'knowledge-rag': 'Knowledge RAG',
           'finance-agent': 'Finance Agent',
           'personal-agent': 'Personal Agent',
+          'openai-compatible': 'OpenAI Compatible',
           'agent-persona': 'Actor Personas',
           'mastr-quality': 'MaStR Data Quality',
           hitl: 'HITL',
@@ -2686,6 +2950,7 @@ module.exports = {
         const normalizeApiPath = (routePath) => {
           const asString = String(routePath || '').trim();
           if (!asString) return '/api';
+          if (asString.startsWith('/v1/')) return asString;
 
           const prefixed = asString.startsWith('/api')
             ? asString
@@ -2964,6 +3229,7 @@ module.exports = {
                   path.startsWith('/datasource-cache') ||
                   path.startsWith('/datasource-discovery') ||
                   path.startsWith('/tokens') ||
+                  path.startsWith('/v1') ||
                   path.startsWith('/nbp-monitor') ||
                   path.startsWith('/vnb-monitor') ||
                   path.startsWith('/jobs');
@@ -2998,6 +3264,17 @@ module.exports = {
           const action = actionRegistry.get(aliasTarget);
           const serviceName = String(aliasTarget).split('.')[0] || 'api';
           upsertOperation(fullPath, method, aliasTarget, action, serviceName);
+        }
+
+        const openAiChatAction = actionRegistry.get('openai-compatible.chatCompletions');
+        if (openAiChatAction) {
+          upsertOperation(
+            '/v1/chat/completions',
+            'post',
+            'openai-compatible.chatCompletions',
+            openAiChatAction,
+            'openai-compatible'
+          );
         }
 
         // Build the OpenAPI schema

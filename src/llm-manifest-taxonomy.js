@@ -47,6 +47,7 @@ const CAPABILITY_DOMAIN_MAP = {
   vnb_operations: 'grid-ops',
   // AGSI/ENTSO-E cross-commodity supply security briefing
   'market-operations': 'market-data',
+  market_operations: 'market-data',
   // A96 redispatch settlement reconciliation
   settlement: 'redispatch',
   // load-profile / metering stream monitoring is internal EDM data
@@ -113,6 +114,7 @@ const CAPABILITY_DOMAIN_MAP = {
   process_governance: 'governance',
   governance_decision_closure: 'governance',
   governance_management: 'governance',
+  coordination_governance: 'governance',
   cross_domain_management: 'governance',
   vnb_data_quality_governance: 'governance',
   vnb_governance: 'governance',
@@ -146,10 +148,13 @@ const CAPABILITY_DOMAIN_MAP = {
   re4de_grid_fees: 'regulatory',
   water_pricing_governance: 'regulatory',
   grid_connection_commercial_gate: 'grid-planning',
+  // A2MDM mapping/release evidence is decision-governance unless a read/write asset store is added.
+  a2mdm: 'governance',
   // market communication/messaging evidence chain
   market_communication: 'market-data',
   // agent's own answer-evidence/dossier-quality infrastructure
   answer_evidence: 'platform',
+  'energy-routing': 'platform',
   compliance: 'regulatory',
   // demo-sandbox lifecycle/runtime boundary, not production tenant lifecycle
   sandbox_governance: 'platform',
@@ -233,6 +238,7 @@ const OPENAPI_TAG_DOMAIN_MAP = {
   'OEP (Open Energy Platform)': 'market-data',
   'OSM Geo (OpenStreetMap)': 'grid-ops',
   'Personal Agent': 'platform',
+  'OpenAI Compatible': 'platform',
   Presentation: 'platform',
   'Query Tools': 'platform',
   Copilot: 'platform',

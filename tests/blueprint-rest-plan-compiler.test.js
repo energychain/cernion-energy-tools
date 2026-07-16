@@ -21,7 +21,10 @@ const {
 const ASSET_SELECTION_BLUEPRINT = {
   id: 'mastr-asset-service-selection-v1',
   version: '1.0.0',
-  routing: { restPlanOnly: true },
+  routing: {
+    restPlanOnly: true,
+    negativeSignals: ['lastdaten', 'stromlastdaten', 'zeitreihe', 'stromverbrauch'],
+  },
   inputs: {
     assetType: {
       type: 'string',
@@ -504,6 +507,27 @@ describe('compileReadOnlyExecutionPlan', () => {
 
     expect(result).toEqual({ ok: false, reason: 'no_blueprint_match' });
     expect(mockLoadBlueprint).not.toHaveBeenCalled();
+  });
+
+  test('refuses asset-list blueprint when a matched question asks for load timeseries data', () => {
+    mockDetectBlueprintIntent.mockReturnValue({
+      blueprintId: 'mastr-asset-service-selection-v1',
+      score: 6,
+    });
+    mockLoadBlueprint.mockReturnValue(ASSET_SELECTION_BLUEPRINT);
+
+    const result = compileReadOnlyExecutionPlan({
+      question:
+        'Für Wiesloch 69168 benötige ich zeitaufgelöste Stromlastdaten und Stromverbrauch als 15-Minuten-Zeitreihe zur Prüfung lokaler PV-Überschüsse.',
+      context: { location: '69168' },
+      broker: ASSETS_BROKER,
+    });
+
+    expect(result).toEqual({
+      ok: false,
+      reason: 'blueprint_negative_signal',
+      blueprintId: 'mastr-asset-service-selection-v1',
+    });
   });
 
   test('policy guardrail: refuses to emit a plan for a non-GET (side-effecting) action', () => {

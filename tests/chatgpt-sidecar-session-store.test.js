@@ -4,6 +4,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const {
+  createDefaultSessionStore,
   createFileBackedSessionStore,
   createInMemorySessionStore,
   TTL_OPTIONS,
@@ -81,7 +82,24 @@ describe('chatgpt-sidecar session store', () => {
     expect(summary).not.toHaveProperty('userId');
   });
 
-  it('persists sessions, revocation and metering across store instances', () => {
+  it('records turn metadata without exposing tenant or user identifiers', () => {
+    const { session } = store.createSession({ tenantId: 't', ttl: '1h', capabilityProfile: [] });
+    const turn = store.recordTurn(session.sessionId, {
+      turnId: 'cgs_turn_test',
+      parentTurnId: null,
+      operation: 'ask',
+      transport: 'browser_get',
+      promptHash: 'abc123',
+      resolvedQuestion: 'Welche Daten liegen vor?',
+    });
+
+    expect(turn.turnId).toBe('cgs_turn_test');
+    const turns = store.getTurns(session.sessionId);
+    expect(turns).toEqual([expect.objectContaining({ turnId: 'cgs_turn_test' })]);
+    expect(JSON.stringify(turns)).not.toMatch(/tenant|user/);
+  });
+
+  it('persists sessions, revocation, metering and turns across store instances', () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'chatgpt-sidecar-store-'));
     const filePath = path.join(dir, 'sessions.json');
     const persistentStore = createFileBackedSessionStore({ filePath });
@@ -97,6 +115,12 @@ describe('chatgpt-sidecar session store', () => {
     });
     persistentStore.recordMeteringEvent(session.sessionId, 'session_created', {});
     persistentStore.recordMeteringEvent(session.sessionId, 'manifest_read', {});
+    persistentStore.recordTurn(session.sessionId, {
+      turnId: 'cgs_turn_persisted',
+      operation: 'ask',
+      transport: 'post',
+      promptHash: 'abc123',
+    });
 
     const rehydratedStore = createFileBackedSessionStore({ filePath });
     expect(rehydratedStore.resolveByTicket(session.ticket).status).toBe('active');
@@ -104,9 +128,42 @@ describe('chatgpt-sidecar session store', () => {
       session_created: 1,
       manifest_read: 1,
     });
+    expect(rehydratedStore.getTurns(session.sessionId)).toEqual([
+      expect.objectContaining({ turnId: 'cgs_turn_persisted' }),
+    ]);
 
     rehydratedStore.revoke(session.sessionId, { tenantId: 'tenant-a' });
     const afterRevokeRestart = createFileBackedSessionStore({ filePath });
     expect(afterRevokeRestart.resolveByTicket(session.ticket).status).toBe('not_found');
+  });
+
+  it('defaults to a file-backed store outside test mode unless memory is explicit', () => {
+    const previousNodeEnv = process.env.NODE_ENV;
+    const previousMode = process.env.CHATGPT_SIDECAR_SESSION_STORE;
+    const previousPath = process.env.CHATGPT_SIDECAR_SESSION_STORE_PATH;
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'chatgpt-sidecar-default-store-'));
+    const filePath = path.join(dir, 'sessions.json');
+
+    try {
+      process.env.NODE_ENV = 'development';
+      delete process.env.CHATGPT_SIDECAR_SESSION_STORE;
+      process.env.CHATGPT_SIDECAR_SESSION_STORE_PATH = filePath;
+
+      const fileBacked = createDefaultSessionStore();
+      expect(fileBacked._filePath).toBe(filePath);
+
+      process.env.CHATGPT_SIDECAR_SESSION_STORE = 'memory';
+      const memoryBacked = createDefaultSessionStore();
+      expect(memoryBacked._filePath).toBeUndefined();
+    } finally {
+      if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = previousNodeEnv;
+
+      if (previousMode === undefined) delete process.env.CHATGPT_SIDECAR_SESSION_STORE;
+      else process.env.CHATGPT_SIDECAR_SESSION_STORE = previousMode;
+
+      if (previousPath === undefined) delete process.env.CHATGPT_SIDECAR_SESSION_STORE_PATH;
+      else process.env.CHATGPT_SIDECAR_SESSION_STORE_PATH = previousPath;
+    }
   });
 });

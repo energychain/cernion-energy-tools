@@ -88,6 +88,7 @@ function createInMemorySessionStore() {
       baseUrl: baseUrl || null,
       meteringEvents: [],
       meteringCounts: {},
+      turns: [],
     };
 
     byTicket.set(ticket, session);
@@ -128,17 +129,49 @@ function createInMemorySessionStore() {
     return event;
   }
 
-  // Redacted summary: counts only, no raw tenant/user/credential detail —
-  // safe to expose through the ticket-scoped GET metering endpoint.
+  function recordTurn(sessionId, turn = {}) {
+    const session = byId.get(sessionId);
+    if (!session) return null;
+    const event = { at: new Date().toISOString(), ...turn };
+    if (!Array.isArray(session.turns)) session.turns = [];
+    session.turns.push(event);
+    return event;
+  }
+
+  function getTurns(sessionId) {
+    const session = byId.get(sessionId);
+    return session && Array.isArray(session.turns) ? [...session.turns] : null;
+  }
+
+  // Redacted summary: no raw tenant/user/credential detail. Recent turns are
+  // ticket-scoped diagnostics for ChatGPT Action debugging.
   function getMeteringSummary(sessionId) {
     const session = byId.get(sessionId);
     if (!session) return null;
+    const recentTurns = Array.isArray(session.turns)
+      ? session.turns.slice(-10).map((turn) => ({
+          at: turn.at,
+          turnId: turn.turnId,
+          parentTurnId: turn.parentTurnId || null,
+          operation: turn.operation || null,
+          transport: turn.transport || null,
+          capability: turn.capability || null,
+          promptHash: turn.promptHash || null,
+          queryPreview: turn.queryPreview || null,
+          answerPreview: turn.answerPreview || null,
+          confidence: turn.confidence || null,
+          responseKind: turn.responseKind || null,
+          capabilityGrounding: turn.capabilityGrounding || null,
+          restPlan: turn.restPlan || null,
+        }))
+      : [];
     return {
       sessionCreatedAt: session.createdAt,
       expiresAt: session.expiresAt,
       revokedAt: session.revokedAt,
       counts: { ...session.meteringCounts },
       eventCount: session.meteringEvents.length,
+      recentTurns,
     };
   }
 
@@ -161,6 +194,7 @@ function createInMemorySessionStore() {
       metadata: { ...(session.metadata || {}) },
       meteringEvents: Array.isArray(session.meteringEvents) ? [...session.meteringEvents] : [],
       meteringCounts: { ...(session.meteringCounts || {}) },
+      turns: Array.isArray(session.turns) ? [...session.turns] : [],
     };
     byTicket.set(normalized.ticket, normalized);
     byId.set(normalized.sessionId, normalized);
@@ -173,6 +207,8 @@ function createInMemorySessionStore() {
     getById,
     revoke,
     recordMeteringEvent,
+    recordTurn,
+    getTurns,
     getMeteringSummary,
     _getInternalEvents,
     _allSessions,
@@ -230,6 +266,12 @@ function createFileBackedSessionStore({
       if (event) persist();
       return event;
     },
+    recordTurn(sessionId, turn) {
+      const event = memory.recordTurn(sessionId, turn);
+      if (event) persist();
+      return event;
+    },
+    getTurns: memory.getTurns,
     getMeteringSummary: memory.getMeteringSummary,
     _getInternalEvents: memory._getInternalEvents,
     _filePath: filePath,
@@ -242,7 +284,7 @@ function createDefaultSessionStore() {
   }
   if (
     process.env.CHATGPT_SIDECAR_SESSION_STORE === 'file' ||
-    process.env.NODE_ENV === 'production'
+    process.env.NODE_ENV !== 'test'
   ) {
     return createFileBackedSessionStore();
   }
@@ -251,7 +293,8 @@ function createDefaultSessionStore() {
 
 // Process-wide default instance for the running service. Production uses a
 // durable file-backed store so expiry, revocation and metering survive PM2
-// restarts; tests/dev can still use the in-memory implementation explicitly.
+// restarts even when PM2 does not set NODE_ENV=production. Tests keep the
+// in-memory implementation unless CHATGPT_SIDECAR_SESSION_STORE=file is set.
 const defaultStore = createDefaultSessionStore();
 
 module.exports = {

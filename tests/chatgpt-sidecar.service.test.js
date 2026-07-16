@@ -18,11 +18,252 @@ describe('chatgpt-sidecar service', () => {
         askCernionAgent: {
           handler(ctx) {
             calls.push({ action: 'personal-agent.askCernionAgent', params: ctx.params });
+            if (ctx.params.question.includes('PV-Leistung wurde im Jahr 2025')) {
+              return {
+                success: true,
+                shortAnswer: 'Generischer Gesetzgeber-Fallback',
+                confidence: 'medium',
+                evidence: [
+                  {
+                    source: 'Gesetzgeber',
+                    value: '§ 4 Ausbaupfad mit allgemeinen Leistungszielen.',
+                    metadata: { documentType: 'Gesetz' },
+                  },
+                ],
+                evidenceBySource: {
+                  knowledge: { status: 'available', hits: [{ id: 'law-1' }] },
+                  datapoints: { status: 'missing', hits: [] },
+                  objects: { status: 'missing', hits: [] },
+                  planning: { status: 'available', hits: [{ id: 'planner-signal' }] },
+                },
+                processContext: [
+                  'search:all',
+                  'knowledge:available',
+                  'datapoints:missing',
+                  'objects:missing',
+                  'planner:available',
+                ],
+              };
+            }
+            if (ctx.params.question.includes('zeitaufgelöste Stromlastdaten')) {
+              return {
+                success: true,
+                shortAnswer:
+                  'Generischer Planner-Fallback mit MaStR- und VNBdigital-Schnellcheck.',
+                confidence: 'medium',
+                evidence: [],
+                evidenceBySource: {
+                  knowledge: { status: 'missing', hits: [] },
+                  datapoints: { status: 'missing', hits: [] },
+                  objects: { status: 'missing', hits: [] },
+                  planning: { status: 'available', hits: [{ id: 'planner-signal' }] },
+                },
+                processContext: [
+                  'search:all',
+                  'knowledge:missing',
+                  'datapoints:missing',
+                  'objects:missing',
+                  'planner:available',
+                ],
+              };
+            }
             return {
               success: true,
               shortAnswer: 'Cernion evidence answer',
               evidence: [],
               forbiddenActions: ['execute', 'approve', 'delete'],
+            };
+          },
+        },
+      },
+    });
+    broker.createService({
+      name: 'energy-market',
+      actions: {
+        prices: {
+          rest: 'POST /prices',
+          params: {
+            market: { type: 'enum', values: ['day-ahead', 'intraday', 'futures'] },
+            region: { type: 'string' },
+            startDate: { type: 'string', optional: true },
+            endDate: { type: 'string', optional: true },
+          },
+          openapi: {
+            summary: 'Day-ahead and wholesale electricity prices by bidding zone',
+            tags: ['Energy Market', 'ENTSO-E'],
+            description:
+              'Get hourly electricity market prices for a market such as day-ahead and a region such as DE-LU.',
+            requestBody: {
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    required: ['market', 'region'],
+                    properties: {
+                      market: { type: 'string', example: 'day-ahead' },
+                      region: { type: 'string', example: 'DE-LU' },
+                      startDate: { type: 'string', example: '2026-07-10' },
+                      endDate: { type: 'string', example: '2026-07-11' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          handler(ctx) {
+            calls.push({ action: 'energy-market.prices', params: ctx.params });
+            return {
+              success: true,
+              data: {
+                market: ctx.params.market,
+                region: ctx.params.region,
+                prices: [
+                  { timestamp: '2026-07-10T12:00:00+02:00', priceEURMWh: 78.4 },
+                  { timestamp: '2026-07-10T13:00:00+02:00', priceEURMWh: 62.1 },
+                ],
+              },
+            };
+          },
+        },
+        co2Intensity: {
+          rest: 'POST /co2-intensity',
+          params: {
+            location: { type: 'string' },
+            timestamp: { type: 'string', optional: true },
+            forecast: { type: 'boolean', optional: true, default: false },
+          },
+          openapi: {
+            summary: 'CO2 intensity of electricity generation for a location',
+            tags: ['Energy Market', 'ENTSO-E', 'CO2'],
+            description:
+              'Get current or forecast CO2 intensity values for electricity generation at a location.',
+            requestBody: {
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    required: ['location'],
+                    properties: {
+                      location: { type: 'string', example: 'Mauer, Baden-Württemberg, Germany' },
+                      timestamp: { type: 'string' },
+                      forecast: { type: 'boolean', example: true },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          handler(ctx) {
+            calls.push({ action: 'energy-market.co2Intensity', params: ctx.params });
+            return {
+              success: true,
+              data: {
+                location: ctx.params.location,
+                forecast: ctx.params.forecast,
+                values: [
+                  { timestamp: '2026-07-10T12:00:00+02:00', gCO2kWh: 390 },
+                  { timestamp: '2026-07-10T13:00:00+02:00', gCO2kWh: 360 },
+                ],
+              },
+            };
+          },
+        },
+        installations: {
+          handler(ctx) {
+            calls.push({ action: 'energy-market.installations', params: ctx.params });
+            if (ctx.params.postleitzahl === '69256' && ctx.params.installationType === 'solar') {
+              return {
+                success: true,
+                data: {
+                  installations: [
+                    {
+                      mastrNummer: 'SEE968420564550',
+                      name: 'Bauhof',
+                      bruttoleistung: 19.7,
+                      inbetriebnahmedatum: '2009-11-11T00:00:00.000Z',
+                      ort: 'Mauer',
+                      gemeinde: 'Mauer',
+                      postleitzahl: '69256',
+                      netzbetreiberpruefungStatus: 2954,
+                    },
+                    {
+                      mastrNummer: 'SEE988684464915',
+                      name: 'PV-Anlage, IB',
+                      bruttoleistung: 11.375,
+                      inbetriebnahmedatum: '1965-06-04T00:00:00.000Z',
+                      ort: 'Mauer',
+                      gemeinde: 'Mauer',
+                      postleitzahl: '69256',
+                      netzbetreiberpruefungStatus: 2955,
+                    },
+                  ],
+                  stats: { count: 2, totalCapacity: 31.075, avgCapacity: 15.5375 },
+                },
+              };
+            }
+            return {
+              success: true,
+              data: {
+                installations: [],
+                stats: { count: 0, totalCapacity: 0, avgCapacity: 0 },
+              },
+            };
+          },
+        },
+      },
+    });
+    broker.createService({
+      name: 'gas-storage',
+      actions: {
+        countryStorage: {
+          rest: 'POST /country-storage',
+          params: {
+            country: { type: 'string', min: 2, max: 2 },
+            includeOperators: { type: 'boolean', optional: true, default: false },
+            includeFacilities: { type: 'boolean', optional: true, default: false },
+          },
+          openapi: {
+            summary:
+              'Current gas storage data for European countries (fill level, injection/withdrawal)',
+            tags: ['Gas Storage (AGSI)'],
+            description:
+              'Get current gas storage fill level, percentage and working gas capacity for European countries.',
+            requestBody: {
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    required: ['country'],
+                    properties: {
+                      country: { type: 'string', example: 'DE' },
+                      includeOperators: { type: 'boolean', example: false },
+                      includeFacilities: { type: 'boolean', example: false },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          handler(ctx) {
+            calls.push({ action: 'gas-storage.countryStorage', params: ctx.params });
+            return {
+              success: true,
+              data: {
+                country: 'Germany',
+                code: ctx.params.country,
+                date: '2026-07-08',
+                storage: {
+                  gasInStorage: 107.222,
+                  workingGasVolume: 246.7926,
+                  fillPercentage: 43.45,
+                  trend: 0.13,
+                },
+                operations: {
+                  injection: 356.65,
+                  withdrawal: 26.6,
+                },
+                updatedAt: '2026-07-09 18:20:02',
+              },
             };
           },
         },
@@ -138,6 +379,12 @@ describe('chatgpt-sidecar service', () => {
     const serialized = JSON.stringify(created);
     expect(serialized).not.toMatch(/tenant-a|user-a/);
     expect(serialized).not.toMatch(/\bck_/);
+    expect(created.actionOpenApiUrl).toContain('/api/chatgpt-sidecar/s/');
+    expect(created.actionSetup).toMatchObject({
+      recommended: true,
+      mode: 'custom_gpt_action',
+      authentication: { type: 'none_ticket_scoped' },
+    });
 
     const ticket = ticketFrom(created);
     const manifest = await broker.call('chatgpt-sidecar.manifest', { ticket });
@@ -158,6 +405,104 @@ describe('chatgpt-sidecar service', () => {
     expect(manifest.capabilityProfile).toEqual(['knowledge-rag']);
     expect(manifest.endpoints.browserAsk).toContain(`GET /api/chatgpt-sidecar/s/${ticket}/ask`);
     expect(manifest.endpoints.browserPlan).toContain(`GET /api/chatgpt-sidecar/s/${ticket}/plan`);
+    expect(manifest.endpoints.actionOpenApi).toBe(
+      `GET /api/chatgpt-sidecar/s/${ticket}/action-openapi.json`
+    );
+    expect(manifest.primaryIntegration).toBe('custom_gpt_action');
+    expect(manifest.actionSetup).toMatchObject({
+      recommended: true,
+      mode: 'custom_gpt_action',
+      schemaUrl: expect.stringContaining(`/api/chatgpt-sidecar/s/${ticket}/action-openapi.json`),
+      authentication: {
+        type: 'none_ticket_scoped',
+      },
+    });
+    expect(manifest.actionSetup.steps.join('\n')).toContain('Actions -> Create new action');
+    expect(manifest.actionSetup.operations).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ operationId: 'askCernion' }),
+        expect.objectContaining({ operationId: 'planCernion' }),
+      ])
+    );
+    expect(manifest.browserFacade).toMatchObject({
+      safety: 'read_only_non_consequential',
+      maxQueryLength: 2000,
+    });
+    expect(manifest.browserFacade.pythonClient).toMatchObject({
+      usage: 'python_read_only_http_client_when_browser_navigation_blocks_dynamic_get_urls',
+      askBaseUrl: expect.stringContaining(`/api/chatgpt-sidecar/s/${ticket}/ask`),
+      planBaseUrl: expect.stringContaining(`/api/chatgpt-sidecar/s/${ticket}/plan`),
+      timeoutSeconds: 30,
+    });
+    expect(manifest.browserFacade.pythonClient.example).toContain('urllib.parse.urlencode');
+    expect(manifest.browserFacade.pythonClient.responseFields).toMatchObject({
+      turnId: expect.stringContaining('next follow-up'),
+      followUpContext: expect.stringContaining('parentTurnId'),
+    });
+    expect(manifest.responseContract).toMatchObject({
+      schemaVersion: 'cernion.chatgpt-sidecar.response.v1',
+      turnIdField: 'turnId',
+      followUpContextField: 'followUpContext',
+    });
+    expect(manifest.conversation).toMatchObject({
+      stateful: true,
+      turnState: 'server_recorded',
+      parentTurnIdField: 'parentTurnId',
+    });
+    expect(manifest.browserFacade.unavailableOperations).toEqual(
+      expect.arrayContaining(['hitl_or_workflow_creation', 'external_connector_call'])
+    );
+  });
+
+  it('serves a minimal session-scoped Custom GPT Action OpenAPI schema', async () => {
+    const created = await createSession({ baseUrl: 'https://api.cernion.test/' });
+    const ticket = ticketFrom(created);
+
+    const schema = await broker.call('chatgpt-sidecar.actionOpenApi', { ticket });
+
+    expect(schema.openapi).toBe('3.1.0');
+    expect(schema.servers).toEqual([{ url: 'https://api.cernion.test' }]);
+    expect(Object.keys(schema.paths).sort()).toEqual([
+      `/api/chatgpt-sidecar/s/${ticket}/ask`,
+      `/api/chatgpt-sidecar/s/${ticket}/plan`,
+    ]);
+    expect(schema.paths[`/api/chatgpt-sidecar/s/${ticket}/ask`].post).toMatchObject({
+      operationId: 'askCernion',
+      'x-openai-isConsequential': false,
+    });
+    expect(schema.paths[`/api/chatgpt-sidecar/s/${ticket}/plan`].post).toMatchObject({
+      operationId: 'planCernion',
+      'x-openai-isConsequential': false,
+    });
+    expect(
+      schema.components.schemas.AskCernionRequest.properties.capability.enum
+    ).toEqual(expect.arrayContaining(['knowledge-rag', 'datasource-mastr']));
+    expect(JSON.stringify(schema)).not.toMatch(/tenant-a|user-a|sessionId|datapoints/);
+
+    const metering = await broker.call('chatgpt-sidecar.metering', { ticket });
+    expect(metering.counts.action_openapi_read).toBe(1);
+  });
+
+  it('generated prompt includes a concrete initial ask URL from solution metadata', async () => {
+    const created = await createSession({
+      baseUrl: 'https://api.cernion.test/',
+      metadata: { useCase: 'CO2 Emission fuer Mauer' },
+    });
+    const ticket = ticketFrom(created);
+
+    expect(created.initialAskUrl).toBe(
+      `https://api.cernion.test/api/chatgpt-sidecar/s/${ticket}/ask?query=CO2+Emission+fuer+Mauer`
+    );
+    expect(created.promptText).toContain(created.initialAskUrl);
+    expect(created.promptText).toContain('Python/Data Analysis with outbound HTTPS');
+    expect(created.promptText).toContain('urllib.parse.urlencode');
+    expect(created.promptText).toContain('parentTurnId');
+
+    const manifest = await broker.call('chatgpt-sidecar.manifest', { ticket });
+    expect(manifest.initialAskUrl).toBe(created.initialAskUrl);
+    expect(manifest.browserFacade.browserAskUrlTemplate).toBe(
+      `https://api.cernion.test/api/chatgpt-sidecar/s/${ticket}/ask?query={urlencoded_question}&capability={optional_capability}`
+    );
   });
 
   // ---------------------------------------------------------------------
@@ -214,6 +559,22 @@ describe('chatgpt-sidecar service', () => {
     });
 
     expect(result.success).toBe(true);
+    expect(result.turnId).toMatch(/^cgs_turn_/);
+    expect(result.resolvedQuestion).toBe(
+      'Welche Prozessschritte fehlen fuer die Gremienfreigabe?'
+    );
+    expect(result.answer).toBe('Cernion evidence answer');
+    expect(result.responseContract.schemaVersion).toBe('cernion.chatgpt-sidecar.response.v1');
+    expect(result.followUpContext).toMatchObject({
+      turnId: result.turnId,
+      parentTurnId: null,
+      resolvedQuestion: 'Welche Prozessschritte fehlen fuer die Gremienfreigabe?',
+      transport: 'post',
+      promptOnly: {
+        statefulContextAvailable: true,
+        requiresConcreteNextCall: true,
+      },
+    });
     expect(calls.find((c) => c.action === 'personal-agent.askCernionAgent')).toBeTruthy();
 
     const metering = await broker.call('chatgpt-sidecar.metering', { ticket });
@@ -228,9 +589,16 @@ describe('chatgpt-sidecar service', () => {
       ticket,
       query: 'Welche PV-Anlage wurde 2015 in Mauer gebaut?',
       context: JSON.stringify({ source: 'chatgpt.com' }),
+      parentTurnId: 'cgs_turn_previous',
     });
 
     expect(result.success).toBe(true);
+    expect(result.turnId).toMatch(/^cgs_turn_/);
+    expect(result.followUpContext).toMatchObject({
+      parentTurnId: 'cgs_turn_previous',
+      transport: 'browser_get',
+      resolvedQuestion: 'Welche PV-Anlage wurde 2015 in Mauer gebaut?',
+    });
     const forwarded = calls.find((c) => c.action === 'personal-agent.askCernionAgent');
     expect(forwarded).toBeTruthy();
     expect(forwarded.params.question).toBe('Welche PV-Anlage wurde 2015 in Mauer gebaut?');
@@ -241,6 +609,395 @@ describe('chatgpt-sidecar service', () => {
 
     const metering = await broker.call('chatgpt-sidecar.metering', { ticket });
     expect(metering.counts.ask_call).toBe(1);
+  });
+
+  it('suppresses generic fallback evidence when an explicit non-knowledge capability has no grounding', async () => {
+    const created = await createSession();
+    const ticket = ticketFrom(created);
+
+    const result = await broker.call('chatgpt-sidecar.browserAsk', {
+      ticket,
+      query: 'Welche PV-Leistung wurde im Jahr 2025 zusätzlich installiert?',
+      capability: 'datasource-mastr',
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.shortAnswer).toContain('datasource-mastr');
+    expect(result.shortAnswer).toContain('keine belastbare Capability-Evidence');
+    expect(result.confidence).toBe('low');
+    expect(result.evidence).toEqual([]);
+    expect(result.capabilityGrounding).toMatchObject({
+      requestedCapability: 'datasource-mastr',
+      mode: 'hard',
+      status: 'missing',
+      reason: 'no_capability_evidence',
+      genericFallbackSuppressed: true,
+      fallbackEvidenceCount: 1,
+    });
+    expect(result.processContext).toEqual(
+      expect.arrayContaining([
+        'datapoints:missing',
+        'objects:missing',
+        'capability:datasource-mastr',
+        'capability_evidence:missing',
+        'generic_fallback:suppressed',
+      ])
+    );
+    expect(result.followUpContext).toMatchObject({
+      capability: 'datasource-mastr',
+      confidence: 'low',
+    });
+
+    const forwarded = calls.find((c) => c.action === 'personal-agent.askCernionAgent');
+    expect(forwarded.params.context).toMatchObject({
+      requestedCapability: 'datasource-mastr',
+      capabilityGrounding: 'hard',
+    });
+  });
+
+  it('answers datasource-mastr PV capacity questions through the deterministic MaStR route when postal code is known', async () => {
+    const created = await createSession();
+    const ticket = ticketFrom(created);
+
+    const result = await broker.call('chatgpt-sidecar.ask', {
+      ticket,
+      question: 'Kannst Du mir sagen, wieviel PV Leistung in 69256 Mauer installiert ist?',
+      capability: 'datasource-mastr',
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.shortAnswer).toContain('31,1 kW');
+    expect(result.confidence).toBe('high');
+    expect(result.capabilityGrounding).toMatchObject({
+      requestedCapability: 'datasource-mastr',
+      status: 'available',
+      reason: 'capability_evidence_available',
+    });
+    expect(result.evidence[0]).toMatchObject({
+      source: 'energy-market.installations',
+      capability: 'datasource-mastr',
+    });
+    expect(result.evidence[0].metadata.examples).toHaveLength(2);
+    expect(calls.find((c) => c.action === 'energy-market.installations')).toMatchObject({
+      params: {
+        installationType: 'solar',
+        postleitzahl: '69256',
+        operationalStatus: '35',
+      },
+    });
+    expect(calls.find((c) => c.action === 'personal-agent.askCernionAgent')).toBeFalsy();
+
+    const metering = await broker.call('chatgpt-sidecar.metering', { ticket });
+    expect(metering.recentTurns).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          operation: 'ask',
+          capability: 'datasource-mastr',
+          queryPreview: expect.stringContaining('69256 Mauer'),
+          answerPreview: expect.stringContaining('31,1 kW'),
+          responseKind: 'capability_evidence_available',
+          confidence: 'high',
+          capabilityGrounding: expect.objectContaining({
+            status: 'available',
+            reason: 'capability_evidence_available',
+          }),
+          restPlan: null,
+        }),
+      ])
+    );
+  });
+
+  it('prioritizes explicit datasource-mastr execution over matching blueprint hints', async () => {
+    const created = await createSession();
+    const ticket = ticketFrom(created);
+
+    const result = await broker.call('chatgpt-sidecar.ask', {
+      ticket,
+      question: 'Welche PV-Anlagen in 69256 Mauer gibt es?',
+      capability: 'datasource-mastr',
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.shortAnswer).toContain('31,1 kW');
+    expect(result.shortAnswer).not.toContain('Recommended');
+    expect(result.processContext).toEqual(
+      expect.arrayContaining(['capability:datasource-mastr', 'source:energy-market.installations'])
+    );
+    expect(calls.find((c) => c.action === 'energy-market.installations')).toBeTruthy();
+    expect(calls.find((c) => c.action === 'personal-agent.askCernionAgent')).toBeFalsy();
+
+    const metering = await broker.call('chatgpt-sidecar.metering', { ticket });
+    expect(metering.recentTurns[0]).toMatchObject({
+      capability: 'datasource-mastr',
+      responseKind: 'capability_evidence_available',
+      restPlan: null,
+    });
+  });
+
+  it('returns a precise missing postal code response for datasource-mastr municipality-only questions', async () => {
+    const created = await createSession();
+    const ticket = ticketFrom(created);
+
+    const result = await broker.call('chatgpt-sidecar.ask', {
+      ticket,
+      question: 'Kannst Du mir sagen, wieviel PV Leistung in Mauer installiert ist?',
+      capability: 'datasource-mastr',
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.shortAnswer).toContain('Postleitzahl');
+    expect(result.capabilityGrounding).toMatchObject({
+      requestedCapability: 'datasource-mastr',
+      status: 'missing_required_input',
+      reason: 'postal_code_required',
+    });
+    expect(result.openQuestions[0]).toContain('Mauer');
+    expect(calls.find((c) => c.action === 'energy-market.installations')).toBeFalsy();
+    expect(calls.find((c) => c.action === 'personal-agent.askCernionAgent')).toBeFalsy();
+  });
+
+  it('uses the read-only OpenAPI fallback for explicit gas storage capability questions', async () => {
+    const created = await createSession({
+      capabilityProfile: ['knowledge-rag', 'datasource-gas-storage'],
+    });
+    const ticket = ticketFrom(created);
+
+    const result = await broker.call('chatgpt-sidecar.ask', {
+      ticket,
+      question: 'Kannst Du mir sagen, wie voll die Gasspeicher aktuell in Deutschland sind?',
+      capability: 'datasource-gas-storage',
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.shortAnswer).toContain('gas-storage.countryStorage');
+    expect(result.shortAnswer).toContain('43,45 %');
+    expect(result.confidence).toBe('medium');
+    expect(result.capabilityGrounding).toMatchObject({
+      requestedCapability: 'datasource-gas-storage',
+      mode: 'hard',
+      status: 'fallback',
+      reason: 'openapi_semantic_router',
+      fallbackSource: 'openapi_semantic_router',
+      notDedicatedCapabilityRoute: true,
+      resolvedOperationId: 'gas-storage_countryStorage',
+      resolvedPath: '/api/gas-storage/country-storage',
+      method: 'POST',
+      action: 'gas-storage.countryStorage',
+    });
+    expect(result.processContext).toEqual(
+      expect.arrayContaining([
+        'capability:datasource-gas-storage',
+        'capability_evidence:fallback',
+        'fallback:openapi_semantic_router',
+        'source:gas-storage.countryStorage',
+        'not_dedicated_capability_route:true',
+      ])
+    );
+    expect(result.evidence[0]).toMatchObject({
+      source: 'gas-storage.countryStorage',
+      capability: 'datasource-gas-storage',
+      metadata: {
+        fallbackSource: 'openapi_semantic_router',
+        notDedicatedCapabilityRoute: true,
+        operationId: 'gas-storage_countryStorage',
+        path: '/api/gas-storage/country-storage',
+        method: 'POST',
+        params: {
+          country: 'DE',
+          includeOperators: false,
+          includeFacilities: false,
+        },
+      },
+    });
+    expect(calls.find((c) => c.action === 'gas-storage.countryStorage')).toMatchObject({
+      params: {
+        country: 'DE',
+        includeOperators: false,
+        includeFacilities: false,
+      },
+    });
+    expect(calls.find((c) => c.action === 'personal-agent.askCernionAgent')).toBeFalsy();
+
+    const metering = await broker.call('chatgpt-sidecar.metering', { ticket });
+    expect(metering.recentTurns[0]).toMatchObject({
+      capability: 'datasource-gas-storage',
+      responseKind: 'openapi_semantic_router',
+      confidence: 'medium',
+      capabilityGrounding: expect.objectContaining({
+        status: 'fallback',
+        reason: 'openapi_semantic_router',
+      }),
+    });
+  });
+
+  it('keeps single-country gas storage validation on countryStorage instead of compareCountries', async () => {
+    const created = await createSession({
+      capabilityProfile: ['knowledge-rag', 'datasource-gas-storage'],
+    });
+    const ticket = ticketFrom(created);
+
+    const result = await broker.call('chatgpt-sidecar.ask', {
+      ticket,
+      question:
+        'Prüfe den aktuellsten verfügbaren Füllstand der deutschen Erdgasspeicher und vergleiche ihn ausdrücklich mit 43,45 % zum Datenstand 8. Juli 2026.',
+      capability: 'datasource-gas-storage',
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.shortAnswer).toContain('gas-storage.countryStorage');
+    expect(result.shortAnswer).toContain('43,45 %');
+    expect(result.shortAnswer).not.toContain('[object Object]');
+    expect(result.capabilityGrounding).toMatchObject({
+      reason: 'openapi_semantic_router',
+      resolvedOperationId: 'gas-storage_countryStorage',
+      resolvedPath: '/api/gas-storage/country-storage',
+    });
+    expect(calls.find((c) => c.action === 'gas-storage.countryStorage')).toMatchObject({
+      params: {
+        country: 'DE',
+      },
+    });
+  });
+
+  it('routes datasource-entsoe day-ahead price questions to energy-market.prices', async () => {
+    const created = await createSession({
+      capabilityProfile: ['knowledge-rag', 'datasource-entsoe'],
+    });
+    const ticket = ticketFrom(created);
+
+    const result = await broker.call('chatgpt-sidecar.ask', {
+      ticket,
+      question:
+        'Für die deutsche Gebotszone DE-LU: Gib die Day-Ahead-Strompreise stündlich für Freitag, 10.07.2026, ab der aktuellen Stunde in Europe/Berlin bis Samstag, 11.07.2026, 23:59 Europe/Berlin aus.',
+      capability: 'datasource-entsoe',
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.responseKind || result.capabilityGrounding?.reason).toBe('openapi_semantic_router');
+    expect(result.capabilityGrounding).toMatchObject({
+      requestedCapability: 'datasource-entsoe',
+      status: 'fallback',
+      reason: 'openapi_semantic_router',
+      resolvedOperationId: 'energy-market_prices',
+      resolvedPath: '/api/energy-market/prices',
+    });
+    expect(calls.find((c) => c.action === 'energy-market.prices')).toMatchObject({
+      params: {
+        market: 'day-ahead',
+        region: 'DE-LU',
+        startDate: '2026-07-10',
+        endDate: '2026-07-11',
+      },
+    });
+    expect(calls.find((c) => c.action === 'energy-market.installations')).toBeFalsy();
+  });
+
+  it('parses key-value location parameters for datasource-entsoe CO2 intensity fallback', async () => {
+    const created = await createSession({
+      capabilityProfile: ['knowledge-rag', 'datasource-entsoe'],
+    });
+    const ticket = ticketFrom(created);
+
+    const result = await broker.call('chatgpt-sidecar.ask', {
+      ticket,
+      question:
+        'CO2-Intensität der Stromerzeugung, hourly forecast, location=Mauer Baden-Württemberg Germany, forecast=true, resolution=hourly, Zeitraum 2026-07-10 bis 2026-07-11 Europe/Berlin. Verwende energy-market.co2Intensity.',
+      capability: 'datasource-entsoe',
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.capabilityGrounding).toMatchObject({
+      requestedCapability: 'datasource-entsoe',
+      status: 'fallback',
+      reason: 'openapi_semantic_router',
+      resolvedOperationId: 'energy-market_co2Intensity',
+      resolvedPath: '/api/energy-market/co2-intensity',
+    });
+    expect(result.shortAnswer).not.toContain('Pflichtparameter');
+    expect(calls.find((c) => c.action === 'energy-market.co2Intensity')).toMatchObject({
+      params: {
+        location: 'Mauer Baden-Württemberg Germany',
+        forecast: true,
+      },
+    });
+    expect(calls.find((c) => c.action === 'energy-market.installations')).toBeFalsy();
+  });
+
+  it('ignores prose colons before quoted CO2 location parameters', async () => {
+    const created = await createSession({
+      capabilityProfile: ['knowledge-rag', 'datasource-entsoe'],
+    });
+    const ticket = ticketFrom(created);
+
+    const result = await broker.call('chatgpt-sidecar.ask', {
+      ticket,
+      question:
+        "Führe ausschließlich Schritt 4 des empfohlenen Plans aus: energy-market.co2Intensity. Parameter: location='Mauer, Baden-Württemberg, Deutschland', forecast=true, resolution='hourly', startDate='2026-07-10', endDate='2026-07-11'.",
+      capability: 'datasource-entsoe',
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.capabilityGrounding).toMatchObject({
+      status: 'fallback',
+      reason: 'openapi_semantic_router',
+      resolvedOperationId: 'energy-market_co2Intensity',
+    });
+    expect(result.shortAnswer).not.toContain('Pflichtparameter');
+    expect(calls.find((c) => c.action === 'energy-market.co2Intensity')).toMatchObject({
+      params: {
+        location: 'Mauer, Baden-Württemberg, Deutschland',
+        forecast: true,
+      },
+    });
+  });
+
+  it('does not execute an OpenAPI fallback from capability alone without question evidence', async () => {
+    const created = await createSession({
+      capabilityProfile: ['knowledge-rag', 'datasource-gas-storage'],
+    });
+    const ticket = ticketFrom(created);
+
+    const result = await broker.call('chatgpt-sidecar.ask', {
+      ticket,
+      question: 'Wie ist der aktuelle Prozessstatus?',
+      capability: 'datasource-gas-storage',
+    });
+
+    expect(result.success).toBe(true);
+    expect(calls.find((c) => c.action === 'gas-storage.countryStorage')).toBeFalsy();
+    expect(calls.find((c) => c.action === 'personal-agent.askCernionAgent')).toBeTruthy();
+  });
+
+  it('suppresses generic planner fallback for explicit VNB load-timeseries capability requests', async () => {
+    const created = await createSession({
+      capabilityProfile: ['knowledge-rag', 'datasource-vnb-digital'],
+    });
+    const ticket = ticketFrom(created);
+
+    const result = await broker.call('chatgpt-sidecar.ask', {
+      ticket,
+      question:
+        'Für Wiesloch 69168 benötige ich zeitaufgelöste Stromlastdaten und Stromverbrauch als 15-Minuten-Zeitreihe zur Prüfung lokaler PV-Überschüsse.',
+      capability: 'datasource-vnb-digital',
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.confidence).toBe('low');
+    expect(result.shortAnswer).toContain('keine belastbare Capability-Evidence');
+    expect(result.shortAnswer).not.toContain('Generischer Planner-Fallback');
+    expect(result.capabilityGrounding).toMatchObject({
+      requestedCapability: 'datasource-vnb-digital',
+      status: 'missing',
+      reason: 'no_capability_evidence',
+      genericFallbackSuppressed: true,
+    });
+    expect(result.processContext).toEqual(
+      expect.arrayContaining([
+        'capability:datasource-vnb-digital',
+        'capability_evidence:missing',
+        'generic_fallback:suppressed',
+      ])
+    );
   });
 
   it('ask blocks a capability that was not granted to the session, without calling downstream', async () => {
@@ -255,10 +1012,41 @@ describe('chatgpt-sidecar service', () => {
 
     expect(result.success).toBe(false);
     expect(result.reason).toBe('capability_not_granted');
+    expect(result.positiveFollowUps).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          missing: 'datasource-mastr',
+          enablesDossierAddition: expect.stringContaining('scoped session'),
+        }),
+      ])
+    );
     expect(calls).toHaveLength(0);
 
     const metering = await broker.call('chatgpt-sidecar.metering', { ticket });
     expect(metering.counts.blocked_policy_attempt).toBe(1);
+  });
+
+  it('browser ask rejects overlong GET query text with prompt-safe follow-ups', async () => {
+    const created = await createSession();
+    const ticket = ticketFrom(created);
+
+    await expect(
+      broker.call('chatgpt-sidecar.browserAsk', {
+        ticket,
+        query: 'x'.repeat(2001),
+      })
+    ).rejects.toMatchObject({
+      code: 400,
+      type: 'CHATGPT_SIDECAR_BROWSER_QUERY_TOO_LONG',
+      data: {
+        positiveFollowUps: [
+          expect.objectContaining({
+            missing: 'shorter GET question or task',
+          }),
+        ],
+      },
+    });
+    expect(calls).toHaveLength(0);
   });
 
   it('plan resolves via the capability broker without executing anything', async () => {
@@ -271,6 +1059,13 @@ describe('chatgpt-sidecar service', () => {
     });
 
     expect(result.success).toBe(true);
+    expect(result.turnId).toMatch(/^cgs_turn_/);
+    expect(result.resolvedQuestion).toBe('Redispatch Produktivreife pruefen');
+    expect(result.responseContract.schemaVersion).toBe('cernion.chatgpt-sidecar.response.v1');
+    expect(result.followUpContext).toMatchObject({
+      turnId: result.turnId,
+      transport: 'post',
+    });
     expect(calls.find((c) => c.action === 'capability-broker.recommend')).toBeTruthy();
   });
 
@@ -480,6 +1275,7 @@ describe('chatgpt-sidecar service', () => {
     });
     expect(blocked.success).toBe(false);
     expect(blocked.reason).toBe('capability_not_granted');
+    expect(blocked.notAvailable).toContain('ungranted_capability');
   });
 
   it('never mutates beyond draft_write even when the granted capability set is the full catalog', async () => {

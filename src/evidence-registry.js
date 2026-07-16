@@ -109,6 +109,86 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  energy_sidecar_route_registry: {
+    sources: [
+      {
+        id: 'routing_intent',
+        label: 'Fachfrage oder Routing-Intent',
+        resolvedBy: ['dashboard-api.energySidecarRouteRegistryStatus'],
+        contextKeys: ['intent', 'question', 'routingIntent'],
+        optional: true,
+      },
+      {
+        id: 'routing_domain',
+        label: 'Energiewirtschaftliche Domain',
+        resolvedBy: ['dashboard-api.energySidecarRouteRegistryStatus'],
+        contextKeys: ['domain', 'routingDomain'],
+        optional: true,
+      },
+      {
+        id: 'source_registry',
+        label: 'Quelle der Routenentscheidung',
+        resolvedBy: ['dashboard-api.energySidecarRouteRegistryStatus', 'operation-capability-index.rankOperations'],
+        contextKeys: ['sourceRegistry', 'operationCapabilityIndex'],
+        optional: false,
+      },
+      {
+        id: 'no_call_guard',
+        label: 'Nachweis, dass empfohlene Endpunkte nicht ausgefuehrt wurden',
+        resolvedBy: ['dashboard-api.energySidecarRouteRegistryStatus'],
+        contextKeys: ['noCallGuards', 'sourceActions.notCalled'],
+        optional: false,
+      },
+    ],
+  },
+
+  interconnection_release_file: {
+    sources: [
+      {
+        id: 'mapping_subject',
+        label: 'Koppelpunkt / Marktpartner / Zeitreihen Mapping-Subjekt',
+        resolvedBy: ['dashboard-api.interconnectionReleaseFileStatus'],
+        contextKeys: ['koppelpunktId', 'marketPartnerId', 'timeseriesId'],
+        optional: false,
+      },
+      {
+        id: 'mapping_version',
+        label: 'Versionierter Mapping-Stand',
+        resolvedBy: ['dashboard-api.interconnectionReleaseFileStatus'],
+        contextKeys: ['mappingVersion'],
+        optional: false,
+      },
+      {
+        id: 'evidence_source_version',
+        label: 'Evidenzquelle und Quellen-Version',
+        resolvedBy: ['dashboard-api.interconnectionReleaseFileStatus'],
+        contextKeys: ['sourceSystem', 'sourceVersion', 'evidenceStatus'],
+        optional: false,
+      },
+      {
+        id: 'approval_owner_status',
+        label: 'Freigabe-Owner und Freigabestatus',
+        resolvedBy: ['dashboard-api.interconnectionReleaseFileStatus'],
+        contextKeys: ['owner', 'approvalStatus'],
+        optional: false,
+      },
+      {
+        id: 'process_impact_boundary',
+        label: 'Deskriptive Prozesswirkung und No-Call-Grenze',
+        resolvedBy: ['dashboard-api.interconnectionReleaseFileStatus'],
+        contextKeys: ['affectedProcess', 'processImpactRows', 'noCallGuards'],
+        optional: false,
+      },
+      {
+        id: 'next_change_gate',
+        label: 'Naechstes Aenderungsgate',
+        resolvedBy: ['dashboard-api.interconnectionReleaseFileStatus'],
+        contextKeys: ['nextChangeGate'],
+        optional: true,
+      },
+    ],
+  },
+
   vnb_special_topic_workstate: {
     sources: [
       {
@@ -1750,6 +1830,77 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  coordination_meaning_preservation_profile: {
+    sources: [
+      {
+        id: 'regulatory_reference',
+        label: 'Regulierungsbezug der Fachbereichsuebergabe',
+        resolvedBy: ['dashboard-api.coordinationMeaningPreservationProfile', 'vdmi.dossier'],
+        contextKeys: ['regulatoryReference'],
+        optional: false,
+      },
+      {
+        id: 'commercial_effect',
+        label: 'Kaufmaennische Auswirkung',
+        resolvedBy: ['dashboard-api.coordinationMeaningPreservationProfile', 'vdmi.dossier'],
+        contextKeys: ['commercialEffect'],
+        optional: false,
+      },
+      {
+        id: 'network_constraint',
+        label: 'Netzrestriktion / technische Grenze',
+        resolvedBy: ['dashboard-api.coordinationMeaningPreservationProfile', 'vdmi.dossier'],
+        contextKeys: ['networkConstraint'],
+        optional: false,
+      },
+      {
+        id: 'evidence_proof',
+        label: 'Nachweisquelle',
+        resolvedBy: [
+          'dashboard-api.coordinationMeaningPreservationProfile',
+          'interface-placeholder.requestEvidence',
+        ],
+        contextKeys: ['evidenceProof'],
+        optional: false,
+      },
+      {
+        id: 'owner',
+        label: 'Verantwortliche Rolle',
+        resolvedBy: ['dashboard-api.coordinationMeaningPreservationProfile', 'vdmi.dossier'],
+        contextKeys: ['owner'],
+        optional: false,
+      },
+      {
+        id: 'deadline',
+        label: 'Frist / Wiedervorlage',
+        resolvedBy: ['dashboard-api.coordinationMeaningPreservationProfile', 'vdmi.dossier'],
+        contextKeys: ['deadline'],
+        optional: false,
+      },
+      {
+        id: 'next_decision',
+        label: 'Naechster Entscheidungspunkt',
+        resolvedBy: ['dashboard-api.coordinationMeaningPreservationProfile', 'vdmi.dossier'],
+        contextKeys: ['nextDecision'],
+        optional: false,
+      },
+      {
+        id: 'operational_risk',
+        label: 'Operative Risikoauswirkung',
+        resolvedBy: ['dashboard-api.coordinationMeaningPreservationProfile', 'vdmi.dossier'],
+        contextKeys: ['operationalRisk'],
+        optional: false,
+      },
+      {
+        id: 'source_action_guards',
+        label: 'No-Call-Guards fuer Fachsysteme und Produktion',
+        resolvedBy: ['dashboard-api.coordinationMeaningPreservationProfile'],
+        contextKeys: ['sourceActions.notCalled'],
+        optional: false,
+      },
+    ],
+  },
+
   e2e_controllability_check_governance: {
     sources: [
       {
@@ -1984,6 +2135,97 @@ const EVIDENCE_REGISTRY = Object.freeze({
         label: 'Uebergabeentscheidung',
         resolvedBy: ['dashboard-api.controllabilityAssetHandoverStatus', 'vdmi.dossier'],
         contextKeys: ['handoverDecision'],
+        optional: false,
+      },
+    ],
+  },
+
+  controllability_data_alignment: {
+    sources: [
+      {
+        id: 'checklist_reference',
+        label: 'Externe Prueflisten-Referenz',
+        resolvedBy: ['dashboard-api.controllabilityDataAlignmentStatus'],
+        contextKeys: ['checklistId'],
+        optional: false,
+      },
+      {
+        id: 'asset_mastr_match',
+        label: 'Asset-/MaStR-/interner Datenabgleich',
+        resolvedBy: [
+          'dashboard-api.controllabilityDataAlignmentStatus',
+          'assets.effective',
+          'mastr-quality.audit',
+        ],
+        contextKeys: ['assetMatch', 'mastrMatch', 'internalAssetMatch', 'assetId', 'mastrId'],
+        optional: false,
+      },
+      {
+        id: 'control_technology_status',
+        label: 'Steuertechnikstatus',
+        resolvedBy: [
+          'dashboard-api.controllabilityDataAlignmentStatus',
+          'redispatch-expost.audit',
+          'grid-operations.controlMeasures',
+        ],
+        contextKeys: ['controlTechStatus'],
+        optional: false,
+      },
+      {
+        id: 'threshold_classification',
+        label: 'Schwellenwert-/Scope-Klassifikation',
+        resolvedBy: ['dashboard-api.controllabilityDataAlignmentStatus', 'vdmi.dossier'],
+        contextKeys: ['thresholdClass'],
+        optional: false,
+      },
+      {
+        id: 'testability',
+        label: 'Testbarkeit',
+        resolvedBy: [
+          'dashboard-api.controllabilityDataAlignmentStatus',
+          'redispatch-expost.audit',
+          'vdmi.dossier',
+        ],
+        contextKeys: ['testability'],
+        optional: false,
+      },
+      {
+        id: 'exception_reason',
+        label: 'Ausnahme-/Risikobegruendung',
+        resolvedBy: [
+          'dashboard-api.controllabilityDataAlignmentStatus',
+          'vdmi.dossier',
+          'interface-placeholder.requestEvidence',
+        ],
+        contextKeys: ['exceptionReason'],
+        optional: true,
+      },
+      {
+        id: 'prior_year_comparison',
+        label: 'Vorjahresvergleich',
+        resolvedBy: ['dashboard-api.controllabilityDataAlignmentStatus', 'vdmi.dossier'],
+        contextKeys: ['priorYearComparison'],
+        optional: false,
+      },
+      {
+        id: 'owner_deadline',
+        label: 'Owner und Frist',
+        resolvedBy: ['dashboard-api.controllabilityDataAlignmentStatus', 'vdmi.dossier'],
+        contextKeys: ['owner', 'dueDate'],
+        optional: false,
+      },
+      {
+        id: 'export_readiness',
+        label: 'Nachweispaket-/Exportbereitschaft',
+        resolvedBy: ['dashboard-api.controllabilityDataAlignmentStatus', 'vdmi.dossier'],
+        contextKeys: ['exportReadiness', 'evidenceStatus'],
+        optional: false,
+      },
+      {
+        id: 'no_call_guards',
+        label: 'No-Call-Guards fuer Import, Steuerung, HITL, MaKo und Settlement',
+        resolvedBy: ['dashboard-api.controllabilityDataAlignmentStatus'],
+        contextKeys: ['sourceActions.notCalled'],
         optional: false,
       },
     ],
@@ -5926,6 +6168,60 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  direct_marketer_risk_gate: {
+    sources: [
+      {
+        id: 'handover_context',
+        label: 'Direktvermarkter handover context',
+        resolvedBy: ['dashboard-api.directMarketerRiskGateStatus', 'vdmi.dossier'],
+        contextKeys: ['caseId', 'projectId', 'communityModel', 'directMarketer'],
+        optional: false,
+      },
+      {
+        id: 'forecast_quality',
+        label: 'Forecast quality and deviation evidence',
+        resolvedBy: ['dashboard-api.directMarketerRiskGateStatus', 'forecast.generationForecast'],
+        contextKeys: ['forecastQuality', 'forecastDeviationPct'],
+        optional: false,
+      },
+      {
+        id: 'allocation_rules',
+        label: 'Allocation-rule clarity for producer and consumer quantities',
+        resolvedBy: ['dashboard-api.directMarketerRiskGateStatus', 'vdmi.dossier'],
+        contextKeys: ['allocationRules'],
+        optional: false,
+      },
+      {
+        id: 'balancing_schedule_impact',
+        label: 'Balancing-group and schedule impact',
+        resolvedBy: ['dashboard-api.directMarketerRiskGateStatus', 'market-communication.evidence'],
+        contextKeys: ['balancingGroupImpact', 'scheduleImpact'],
+        optional: false,
+      },
+      {
+        id: 'billing_settlement_status',
+        label: 'Billing and settlement readiness status',
+        resolvedBy: ['dashboard-api.directMarketerRiskGateStatus', 'settlement.readiness'],
+        contextKeys: ['billingStatus', 'settlementStatus'],
+        optional: false,
+      },
+      {
+        id: 'role_deadline_ownership',
+        label: 'Role owner and offer or contract-release deadline',
+        resolvedBy: ['dashboard-api.directMarketerRiskGateStatus', 'vdmi.dossier'],
+        contextKeys: ['roleOwner', 'deadline'],
+        optional: false,
+      },
+      {
+        id: 'evidence_status',
+        label: 'Handover evidence status and source references',
+        resolvedBy: ['dashboard-api.directMarketerRiskGateStatus', 'evidence-registry.lookup'],
+        contextKeys: ['evidenceStatus', 'sourceEvidence'],
+        optional: false,
+      },
+    ],
+  },
+
   no_regret_measure_definition_gate: {
     sources: [
       {
@@ -6361,6 +6657,67 @@ const EVIDENCE_REGISTRY = Object.freeze({
         label: 'Next 90-day validation step',
         resolvedBy: ['dashboard-api.layer0AuditDrilldownNoteStatus', 'vdmi.dossier'],
         contextKeys: ['next90DayFocus'],
+        optional: false,
+      },
+    ],
+  },
+
+  a2mdm_decision_object_meaning_preservation: {
+    sources: [
+      {
+        id: 'business_intent',
+        label: 'Business intent / kaufmaennische Absicht',
+        resolvedBy: ['dashboard-api.a2mdmDecisionObjectStatus', 'vdmi.dossier'],
+        contextKeys: ['businessIntent'],
+        optional: false,
+      },
+      {
+        id: 'technical_constraint',
+        label: 'Technische Restriktion',
+        resolvedBy: ['dashboard-api.a2mdmDecisionObjectStatus', 'vdmi.dossier'],
+        contextKeys: ['technicalConstraint'],
+        optional: false,
+      },
+      {
+        id: 'regulatory_reference',
+        label: 'Regulierungsbezug',
+        resolvedBy: ['dashboard-api.a2mdmDecisionObjectStatus', 'vdmi.dossier'],
+        contextKeys: ['regulatoryReference'],
+        optional: false,
+      },
+      {
+        id: 'evidence_source',
+        label: 'Evidenzquelle / Provenienz',
+        resolvedBy: ['dashboard-api.a2mdmDecisionObjectStatus', 'vdmi.dossier'],
+        contextKeys: ['evidenceSource'],
+        optional: false,
+      },
+      {
+        id: 'owner_role',
+        label: 'Owner role',
+        resolvedBy: ['dashboard-api.a2mdmDecisionObjectStatus', 'vdmi.dossier'],
+        contextKeys: ['ownerRole'],
+        optional: false,
+      },
+      {
+        id: 'risk_level',
+        label: 'Risiko-Level',
+        resolvedBy: ['dashboard-api.a2mdmDecisionObjectStatus', 'vdmi.dossier'],
+        contextKeys: ['riskLevel'],
+        optional: false,
+      },
+      {
+        id: 'decision_threshold',
+        label: 'Entscheidungsschwelle',
+        resolvedBy: ['dashboard-api.a2mdmDecisionObjectStatus', 'vdmi.dossier'],
+        contextKeys: ['decisionThreshold'],
+        optional: false,
+      },
+      {
+        id: 'next_gate',
+        label: 'Naechstes Gate',
+        resolvedBy: ['dashboard-api.a2mdmDecisionObjectStatus', 'vdmi.dossier'],
+        contextKeys: ['nextGate'],
         optional: false,
       },
     ],

@@ -73,6 +73,10 @@
       "description": "Interactive personal chat orchestration (v0.52). Builds deterministic L0-L4 context stacks with strict token budgeting. Layer 4 is transient and never persisted."
     },
     {
+      "name": "OpenAI Compatible",
+      "description": "Inbound OpenAI-compatible facade for authenticated Cernion advisory completions."
+    },
+    {
       "name": "Actor Personas",
       "description": "Tenant-scoped actor persona registry for HITL routing, notification ownership, and persona-aware inbox delivery."
     },
@@ -6535,7 +6539,42 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "example": "opaque-ticket"
+            },
+            "description": "Opaque ChatGPT Sidecar session ticket."
+          }
+        ]
+      }
+    },
+    "/api/chatgpt-sidecar/s/:ticket/action-openapi.json": {
+      "get": {
+        "operationId": "chatgpt-sidecar_actionOpenApi",
+        "summary": "Read the session-scoped Custom GPT Action OpenAPI schema",
+        "tags": [
+          "ChatGPT Sidecar"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns a minimal ticket-scoped OpenAPI schema for Custom GPT Actions. The schema intentionally exposes only read-only ask/plan operations.",
+        "parameters": [
+          {
+            "name": "ticket",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "opaque-ticket"
             },
             "description": "Opaque ChatGPT Sidecar session ticket."
           }
@@ -6543,6 +6582,26 @@
       }
     },
     "/api/chatgpt-sidecar/s/:ticket/ask": {
+      "get": {
+        "operationId": "chatgpt-sidecar_browserAsk",
+        "summary": "Ask Cernion through a browser-compatible read-only GET facade",
+        "tags": [
+          "ChatGPT Sidecar"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "For prompt-only ChatGPT.com usage where only URL reads are available. This facade is read-only and delegates to the same session policy as POST ask."
+      },
       "post": {
         "operationId": "chatgpt-sidecar_ask",
         "summary": "Ask Cernion through the session-scoped evidence/capability facade",
@@ -6564,6 +6623,26 @@
       }
     },
     "/api/chatgpt-sidecar/s/:ticket/plan": {
+      "get": {
+        "operationId": "chatgpt-sidecar_browserPlan",
+        "summary": "Resolve a request through a browser-compatible read-only GET facade",
+        "tags": [
+          "ChatGPT Sidecar"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "For prompt-only ChatGPT.com usage where only URL reads are available. This facade is read-only and delegates to the same session policy as POST plan."
+      },
       "post": {
         "operationId": "chatgpt-sidecar_plan",
         "summary": "Resolve a request to a Blueprint/Capability Broker route (no execution)",
@@ -12634,6 +12713,494 @@
         ]
       }
     },
+    "/api/dashboard-api/controllability-data-alignment": {
+      "get": {
+        "operationId": "dashboard-api_controllabilityDataAlignmentStatus",
+        "summary": "Controllability data alignment — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only controllability data alignment status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "checklist": {
+                      "type": "object"
+                    },
+                    "alignmentRows": {
+                      "type": "array"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "safeNextGate": {
+                      "type": "string"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "_errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Builds a deterministic evidence/status view for recurring Steuerbarkeitscheck checklist reconciliation. It compares supplied checklist, asset/MaStR/internal, control-tech, threshold, testability, exception, prior-year, owner/deadline and export-readiness facts. The endpoint is read-only and does not import files, mutate Asset-MDM, call MaStR/CLS/SMGW, create HITL items, execute tests, or affect MaKo, billing, settlement, tariffs or device control.",
+        "parameters": [
+          {
+            "name": "checklistId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "assetId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mastrId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "assetMatch",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mastrMatch",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "internalAssetMatch",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "controlTechStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "thresholdClass",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "testability",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "exceptionReason",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "priorYearComparison",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "owner",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dueDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "exportReadiness",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "evidenceStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard-api/coordination-meaning-preservation-profile": {
+      "get": {
+        "operationId": "dashboard-api_coordinationMeaningPreservationProfile",
+        "summary": "Coordination meaning preservation — read-only dossier-safe profile",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only coordination meaning preservation profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "coordinationLossClassification": {
+                      "type": "string"
+                    },
+                    "preservedDimensions": {
+                      "type": "array"
+                    },
+                    "missingDimensions": {
+                      "type": "array"
+                    },
+                    "weakDimensions": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "_errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Builds a deterministic profile for preserving meaning at cross-domain handovers. It reports preserved and missing dimensions such as regulatory reference, commercial effect, network constraint, evidence proof, owner, deadline, next decision and operational risk. The endpoint is read-only and does not mutate Fachsysteme, HITL, billing, settlement, MaKo, tariff, device-control, Budibase or external connector state.",
+        "parameters": [
+          {
+            "name": "caseId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sourceDomain",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "targetDomain",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "regulatoryReference",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "commercialEffect",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "networkConstraint",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "evidenceProof",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "owner",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "deadline",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "nextDecision",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "operationalRisk",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "handoverContext",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard-api/a2mdm-decision-object": {
+      "get": {
+        "operationId": "dashboard-api_a2mdmDecisionObjectStatus",
+        "summary": "A2MDM decision object - read-only meaning preservation projection",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only A2MDM decision-object context",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "capabilityKey": {
+                      "type": "string"
+                    },
+                    "decisionObjectId": {
+                      "type": "string"
+                    },
+                    "decisionRows": {
+                      "type": "array"
+                    },
+                    "missingInputs": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "noCallGuards": {
+                      "type": "array"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "_errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Builds a deterministic, dossier-safe A2MDM decision-object projection for a synthetic Stadtwerk Mauer handover case. The endpoint preserves scalar decision context across system boundaries and exposes missing-input follow-ups. It is read-only and does not create A2MDM persistence, workflow, HITL, Budibase, Landing Registry, MaKo, billing, settlement, tariff, device-control, SMGW/CLS or external connector actions.",
+        "parameters": [
+          {
+            "name": "caseId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "subject",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "businessIntent",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "technicalConstraint",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "regulatoryReference",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "evidenceSource",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ownerRole",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "riskLevel",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "decisionThreshold",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "nextGate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/api/dashboard-api/gremiencoach-workbook-readiness": {
       "get": {
         "operationId": "dashboard-api_gremiencoachWorkbookReadinessStatus",
@@ -13527,6 +14094,235 @@
                   "type": "string"
                 }
               ]
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard-api/redispatch-participation-readiness-status": {
+      "get": {
+        "operationId": "dashboard-api_redispatchParticipationReadinessStatus",
+        "summary": "Redispatch participation readiness status -- read-only Workbench projection",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Redispatch participation readiness status"
+          }
+        },
+        "description": "Builds deterministic redispatch readiness evidence from supplied facts.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "tenantId",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "syntheticRedispatchAssetPortfolio",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "installationGridLocationEvidence",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "remoteControlCommunicationTestEvidence",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "forecastDispatchTestProof",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "readinessReviewDecision",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard-api/mastr-sync-gap-status": {
+      "get": {
+        "operationId": "dashboard-api_mastrSyncGapStatus",
+        "summary": "MaStR Sync-Gap alerting status -- read-only Workbench projection",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only MaStR Sync-Gap alerting status"
+          }
+        },
+        "description": "Builds deterministic MaStR sync gap alerting evidence from supplied facts.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "tenantId",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "mastrFreshnessEvidence",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "redispatchStammdatenComparison",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "syncGapAlertFeed",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "reconciliationApprovalDecision",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard-api/decommissioned-asset-reconciliation-status": {
+      "get": {
+        "operationId": "dashboard-api_decommissionedAssetReconciliationStatus",
+        "summary": "Decommissioned Asset Reconciliation status -- read-only Workbench projection",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Decommissioned Asset Reconciliation status"
+          }
+        },
+        "description": "Builds deterministic Decommissioned Asset Reconciliation evidence from supplied facts.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "tenantId",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "gisDecommissionedAssetsEvidence",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sapAnlagenspiegelEvidence",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "reconciliationDiscrepancyFeed",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "reconciliationApprovalDecision",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard-api/energy-sharing-collective-approval-status": {
+      "get": {
+        "operationId": "dashboard-api_energySharingCollectiveApprovalStatus",
+        "summary": "Energy Sharing Collective Approval status -- read-only Workbench projection",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Energy Sharing Collective Approval status"
+          }
+        },
+        "description": "Builds deterministic Energy Sharing Collective Approval evidence from supplied facts.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "tenantId",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "syntheticCollectiveBoundaryEvidence",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "operatorParticipantBoundaryEvidence",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "meteringConceptEvidence",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "contractConsentMarketRoleEvidence",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "allocationBillingSettlementGapEvidence",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "approvalReadinessDecision",
+            "schema": {
+              "type": "string"
             }
           }
         ]
@@ -22566,6 +23362,184 @@
         ]
       }
     },
+    "/api/dashboard-api/energy-sidecar-route-registry": {
+      "get": {
+        "operationId": "dashboard-api_energySidecarRouteRegistryStatus",
+        "summary": "Energy Sidecar Route Registry -- read-only advisory evidence",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only route-registry evidence"
+          }
+        },
+        "description": "Returns deterministic dossier-safe route-registry rows for Fach-Sidecar routing/audit questions. The endpoint recommends existing read-only Cernion actions/endpoints, source registry boundaries, required inputs, fallback routes and no-call guards. It is advisory/read-only and never executes the recommended downstream endpoint, calls external connectors, creates HITL/workflows, sends webhooks/mail, mutates public context, or performs MaKo/billing/settlement/tariff/device-control actions.",
+        "parameters": [
+          {
+            "name": "intent",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "domain",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "requiredInput",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "includeFallbacks",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard-api/interconnection-release-file": {
+      "get": {
+        "operationId": "dashboard-api_interconnectionReleaseFileStatus",
+        "summary": "Koppelpunkt Freigabeakte -- read-only evidence/gate status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only interconnection release-file evidence"
+          }
+        },
+        "description": "Returns deterministic dossier-safe Freigabeakte rows for Koppelpunkt, Marktpartner and Zeitreihen mapping decisions. The endpoint reports release status, evidence source/version, owner, downstream process impacts, missing evidence, positive follow-ups and no-call guards. It is advisory/read-only and never writes mappings, executes Freigabe workflows, creates HITL tickets, sends mail/webhooks, calls external connectors, mutates Budibase tables, or performs MaKo/billing/settlement/tariff/device-control actions.",
+        "parameters": [
+          {
+            "name": "caseId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "koppelpunktId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "marketPartnerId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "timeseriesId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mappingVersion",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sourceSystem",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "evidenceStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "approvalStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "owner",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "affectedProcess",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "nextChangeGate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "includeFallbacks",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ]
+      }
+    },
     "/api/dashboard-api/stadtwerk-mauer-administrator-inventory": {
       "get": {
         "operationId": "dashboard-api_stadtwerkMauerAdministratorInventoryStatus",
@@ -25083,6 +26057,128 @@
           {
             "in": "query",
             "name": "sourceActions",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard-api/direct-marketer-risk-gate": {
+      "get": {
+        "operationId": "dashboard-api_directMarketerRiskGateStatus",
+        "summary": "Direktvermarkter Risk Gate -- read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Direktvermarkter risk-gate evidence"
+          }
+        },
+        "description": "Returns deterministic dossier-safe risk/readiness evidence for a Direktvermarkter handover package across forecast quality, allocation rules, balancing-group/schedule impact, billing/settlement status, roles, deadlines and open evidence. The endpoint is read-only and never submits schedules, approves offers/contracts, transfers balancing groups, mutates billing/settlement/tariff/customer data, creates HITL/workflow tasks, sends customer communication, calls webhooks, or contacts external Direktvermarkter systems.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "caseId",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "projectId",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "communityModel",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "directMarketer",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "forecastQuality",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "forecastDeviationPct",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "allocationRules",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "balancingGroupImpact",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "scheduleImpact",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "billingStatus",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "settlementStatus",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "roleOwner",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "deadline",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "evidenceStatus",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sourceEvidence",
             "schema": {
               "type": "string"
             }
@@ -60888,6 +61984,128 @@
         ]
       }
     },
+    "/v1/chat/completions": {
+      "post": {
+        "operationId": "createChatCompletion",
+        "summary": "Create a non-streaming OpenAI-compatible Cernion chat completion",
+        "tags": [
+          "OpenAI Compatible"
+        ],
+        "responses": {
+          "200": {
+            "description": "OpenAI-compatible chat completion response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "object",
+                    "created",
+                    "model",
+                    "choices",
+                    "usage"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "object": {
+                      "type": "string",
+                      "enum": [
+                        "chat.completion"
+                      ]
+                    },
+                    "created": {
+                      "type": "integer"
+                    },
+                    "model": {
+                      "type": "string"
+                    },
+                    "choices": {
+                      "type": "array"
+                    },
+                    "usage": {
+                      "type": "object"
+                    },
+                    "cernion": {
+                      "type": "object",
+                      "additionalProperties": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Inbound OpenAI-compatible facade over existing authenticated Cernion advisory actions. It supports only non-streaming chat completions and treats system/developer messages as prompt context, not authorization.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "examples": {
+                "minimal": {
+                  "value": {
+                    "model": "cernion-agent-mvp",
+                    "messages": [
+                      {
+                        "role": "user",
+                        "content": "Welche Cernion Evidenz ist fuer diesen Vorgang relevant?"
+                      }
+                    ]
+                  }
+                }
+              },
+              "schema": {
+                "type": "object",
+                "required": [
+                  "messages"
+                ],
+                "properties": {
+                  "model": {
+                    "type": "string",
+                    "default": "cernion-agent-mvp"
+                  },
+                  "messages": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "role",
+                        "content"
+                      ],
+                      "properties": {
+                        "role": {
+                          "type": "string"
+                        },
+                        "content": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "temperature": {
+                    "type": "number"
+                  },
+                  "max_tokens": {
+                    "type": "integer"
+                  },
+                  "metadata": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "stream": {
+                    "type": "boolean",
+                    "default": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-ui-page": "agent"
+      }
+    },
     "/api/openapi.json": {
       "get": {
         "operationId": "api_openapi",
@@ -66128,6 +67346,494 @@
         ]
       }
     },
+    "/api/dashboard/controllability-data-alignment": {
+      "get": {
+        "operationId": "dashboard-api_controllabilityDataAlignmentStatus",
+        "summary": "Controllability data alignment — read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only controllability data alignment status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "checklist": {
+                      "type": "object"
+                    },
+                    "alignmentRows": {
+                      "type": "array"
+                    },
+                    "missingEvidence": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "safeNextGate": {
+                      "type": "string"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "_errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Builds a deterministic evidence/status view for recurring Steuerbarkeitscheck checklist reconciliation. It compares supplied checklist, asset/MaStR/internal, control-tech, threshold, testability, exception, prior-year, owner/deadline and export-readiness facts. The endpoint is read-only and does not import files, mutate Asset-MDM, call MaStR/CLS/SMGW, create HITL items, execute tests, or affect MaKo, billing, settlement, tariffs or device control.",
+        "parameters": [
+          {
+            "name": "checklistId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "assetId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mastrId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "assetMatch",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mastrMatch",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "internalAssetMatch",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "controlTechStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "thresholdClass",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "testability",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "exceptionReason",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "priorYearComparison",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "owner",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dueDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "exportReadiness",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "evidenceStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard/coordination-meaning-preservation-profile": {
+      "get": {
+        "operationId": "dashboard-api_coordinationMeaningPreservationProfile",
+        "summary": "Coordination meaning preservation — read-only dossier-safe profile",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only coordination meaning preservation profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "coordinationLossClassification": {
+                      "type": "string"
+                    },
+                    "preservedDimensions": {
+                      "type": "array"
+                    },
+                    "missingDimensions": {
+                      "type": "array"
+                    },
+                    "weakDimensions": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "_errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Builds a deterministic profile for preserving meaning at cross-domain handovers. It reports preserved and missing dimensions such as regulatory reference, commercial effect, network constraint, evidence proof, owner, deadline, next decision and operational risk. The endpoint is read-only and does not mutate Fachsysteme, HITL, billing, settlement, MaKo, tariff, device-control, Budibase or external connector state.",
+        "parameters": [
+          {
+            "name": "caseId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sourceDomain",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "targetDomain",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "regulatoryReference",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "commercialEffect",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "networkConstraint",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "evidenceProof",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "owner",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "deadline",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "nextDecision",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "operationalRisk",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "handoverContext",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard/a2mdm-decision-object": {
+      "get": {
+        "operationId": "dashboard-api_a2mdmDecisionObjectStatus",
+        "summary": "A2MDM decision object - read-only meaning preservation projection",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only A2MDM decision-object context",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "capabilityKey": {
+                      "type": "string"
+                    },
+                    "decisionObjectId": {
+                      "type": "string"
+                    },
+                    "decisionRows": {
+                      "type": "array"
+                    },
+                    "missingInputs": {
+                      "type": "array"
+                    },
+                    "positiveFollowUps": {
+                      "type": "array"
+                    },
+                    "noCallGuards": {
+                      "type": "array"
+                    },
+                    "sourceActions": {
+                      "type": "object"
+                    },
+                    "dossierEvidence": {
+                      "type": "object"
+                    },
+                    "safety": {
+                      "type": "string"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "_errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Builds a deterministic, dossier-safe A2MDM decision-object projection for a synthetic Stadtwerk Mauer handover case. The endpoint preserves scalar decision context across system boundaries and exposes missing-input follow-ups. It is read-only and does not create A2MDM persistence, workflow, HITL, Budibase, Landing Registry, MaKo, billing, settlement, tariff, device-control, SMGW/CLS or external connector actions.",
+        "parameters": [
+          {
+            "name": "caseId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "subject",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "businessIntent",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "technicalConstraint",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "regulatoryReference",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "evidenceSource",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ownerRole",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "riskLevel",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "decisionThreshold",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "nextGate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/api/dashboard/gremiencoach-workbook-readiness": {
       "get": {
         "operationId": "dashboard-api_gremiencoachWorkbookReadinessStatus",
@@ -67021,6 +68727,235 @@
                   "type": "string"
                 }
               ]
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard/redispatch-participation-readiness-status": {
+      "get": {
+        "operationId": "dashboard-api_redispatchParticipationReadinessStatus",
+        "summary": "Redispatch participation readiness status -- read-only Workbench projection",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Redispatch participation readiness status"
+          }
+        },
+        "description": "Builds deterministic redispatch readiness evidence from supplied facts.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "tenantId",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "syntheticRedispatchAssetPortfolio",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "installationGridLocationEvidence",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "remoteControlCommunicationTestEvidence",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "forecastDispatchTestProof",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "readinessReviewDecision",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard/mastr-sync-gap-status": {
+      "get": {
+        "operationId": "dashboard-api_mastrSyncGapStatus",
+        "summary": "MaStR Sync-Gap alerting status -- read-only Workbench projection",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only MaStR Sync-Gap alerting status"
+          }
+        },
+        "description": "Builds deterministic MaStR sync gap alerting evidence from supplied facts.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "tenantId",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "mastrFreshnessEvidence",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "redispatchStammdatenComparison",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "syncGapAlertFeed",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "reconciliationApprovalDecision",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard/decommissioned-asset-reconciliation-status": {
+      "get": {
+        "operationId": "dashboard-api_decommissionedAssetReconciliationStatus",
+        "summary": "Decommissioned Asset Reconciliation status -- read-only Workbench projection",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Decommissioned Asset Reconciliation status"
+          }
+        },
+        "description": "Builds deterministic Decommissioned Asset Reconciliation evidence from supplied facts.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "tenantId",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "gisDecommissionedAssetsEvidence",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sapAnlagenspiegelEvidence",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "reconciliationDiscrepancyFeed",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "reconciliationApprovalDecision",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard/energy-sharing-collective-approval-status": {
+      "get": {
+        "operationId": "dashboard-api_energySharingCollectiveApprovalStatus",
+        "summary": "Energy Sharing Collective Approval status -- read-only Workbench projection",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Energy Sharing Collective Approval status"
+          }
+        },
+        "description": "Builds deterministic Energy Sharing Collective Approval evidence from supplied facts.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "tenantId",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "syntheticCollectiveBoundaryEvidence",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "operatorParticipantBoundaryEvidence",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "meteringConceptEvidence",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "contractConsentMarketRoleEvidence",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "allocationBillingSettlementGapEvidence",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "approvalReadinessDecision",
+            "schema": {
+              "type": "string"
             }
           }
         ]
@@ -70487,6 +72422,184 @@
         ]
       }
     },
+    "/api/dashboard/energy-sidecar-route-registry": {
+      "get": {
+        "operationId": "dashboard-api_energySidecarRouteRegistryStatus",
+        "summary": "Energy Sidecar Route Registry -- read-only advisory evidence",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only route-registry evidence"
+          }
+        },
+        "description": "Returns deterministic dossier-safe route-registry rows for Fach-Sidecar routing/audit questions. The endpoint recommends existing read-only Cernion actions/endpoints, source registry boundaries, required inputs, fallback routes and no-call guards. It is advisory/read-only and never executes the recommended downstream endpoint, calls external connectors, creates HITL/workflows, sends webhooks/mail, mutates public context, or performs MaKo/billing/settlement/tariff/device-control actions.",
+        "parameters": [
+          {
+            "name": "intent",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "domain",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "requiredInput",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "includeFallbacks",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard/interconnection-release-file": {
+      "get": {
+        "operationId": "dashboard-api_interconnectionReleaseFileStatus",
+        "summary": "Koppelpunkt Freigabeakte -- read-only evidence/gate status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only interconnection release-file evidence"
+          }
+        },
+        "description": "Returns deterministic dossier-safe Freigabeakte rows for Koppelpunkt, Marktpartner and Zeitreihen mapping decisions. The endpoint reports release status, evidence source/version, owner, downstream process impacts, missing evidence, positive follow-ups and no-call guards. It is advisory/read-only and never writes mappings, executes Freigabe workflows, creates HITL tickets, sends mail/webhooks, calls external connectors, mutates Budibase tables, or performs MaKo/billing/settlement/tariff/device-control actions.",
+        "parameters": [
+          {
+            "name": "caseId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "koppelpunktId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "marketPartnerId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "timeseriesId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mappingVersion",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sourceSystem",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "evidenceStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "approvalStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "owner",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "affectedProcess",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "nextChangeGate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "includeFallbacks",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ]
+      }
+    },
     "/api/dashboard/fnav-fast-track-contract-gate": {
       "get": {
         "operationId": "dashboard-api_fnavFastTrackContractGateStatus",
@@ -72639,6 +74752,128 @@
           {
             "in": "query",
             "name": "sourceActions",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/dashboard/direct-marketer-risk-gate": {
+      "get": {
+        "operationId": "dashboard-api_directMarketerRiskGateStatus",
+        "summary": "Direktvermarkter Risk Gate -- read-only dossier-safe status",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Direktvermarkter risk-gate evidence"
+          }
+        },
+        "description": "Returns deterministic dossier-safe risk/readiness evidence for a Direktvermarkter handover package across forecast quality, allocation rules, balancing-group/schedule impact, billing/settlement status, roles, deadlines and open evidence. The endpoint is read-only and never submits schedules, approves offers/contracts, transfers balancing groups, mutates billing/settlement/tariff/customer data, creates HITL/workflow tasks, sends customer communication, calls webhooks, or contacts external Direktvermarkter systems.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "caseId",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "projectId",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "communityModel",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "directMarketer",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "forecastQuality",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "forecastDeviationPct",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "allocationRules",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "balancingGroupImpact",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "scheduleImpact",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "billingStatus",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "settlementStatus",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "roleOwner",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "deadline",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "evidenceStatus",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sourceEvidence",
             "schema": {
               "type": "string"
             }

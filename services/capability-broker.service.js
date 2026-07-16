@@ -10,8 +10,16 @@ const {
   listCompiledDomainRoutes,
   findRuntimeCapability,
 } = require('../src/domain-routes-registry');
+const { rankOperations } = require('../src/operation-capability-index');
 
 const MODES = new Set(['initial', 'next_step', 'repair', 'compare']);
+
+function buildOperationCandidateInputs(knownContext = {}, resolvedParams = {}) {
+  return {
+    ...(knownContext && typeof knownContext === 'object' ? knownContext : {}),
+    ...(resolvedParams && typeof resolvedParams === 'object' ? resolvedParams : {}),
+  };
+}
 
 function normalizeRequestSchemaVersion(schemaVersion, warnings) {
   if (!schemaVersion) {
@@ -237,6 +245,47 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasA2mdmDecisionObjectSignal =
+    /\ba2mdm\b/i.test(haystack) &&
+    /(entscheidungsobjekt|decision object|bedeutungserhalt|meaning preservation|entscheidungskontext)/i.test(
+      haystack
+    ) &&
+    /(business intent|geschaeftlicher zweck|geschäftlicher zweck|technical constraint|technische restriktion|regulierungsbezug|regulatory reference|evidenzquelle|evidence source|entscheidungsschwelle|decision threshold|next gate)/i.test(
+      haystack
+    ) &&
+    !/(a2mdm persist|a2mdm write|workflow start|budibase table write|mako dispatch|billing release|settlement export|geraetesteuerung|gerätesteuerung|device-control|hitl create|external connector call)/i.test(
+      haystack
+    );
+
+  if (hasA2mdmDecisionObjectSignal) {
+    const a2mdmDecisionObjectCapability = findCapabilityByName(
+      'a2mdm_decision_object_meaning_preservation'
+    );
+    if (a2mdmDecisionObjectCapability) {
+      return { capability: a2mdmDecisionObjectCapability, score: 140, usedFallback: false };
+    }
+  }
+
+  const hasCoordinationMeaningPreservationSignal =
+    /(bedeutungserhalt|bedeutungserhaltende koordinationsschicht|bedeutungsverlust|coordination meaning preservation|meaning preservation)/i.test(
+      haystack
+    ) &&
+    /(fachbereichsuebergabe|fachbereichsübergabe|entscheidungsobjekt|koordinationsschicht|owner|frist|nachweis|naechste entscheidung|nächste entscheidung|handover decision context)/i.test(
+      haystack
+    ) &&
+    !/(billing release|settlement export|mako dispatch|geraetesteuerung|gerätesteuerung|device-control|hitl create|external connector call|budibase write)/i.test(
+      haystack
+    );
+
+  if (hasCoordinationMeaningPreservationSignal) {
+    const coordinationCapability = findCapabilityByName(
+      'coordination_meaning_preservation_profile'
+    );
+    if (coordinationCapability) {
+      return { capability: coordinationCapability, score: 139, usedFallback: false };
+    }
+  }
+
   const hasNovaDecisionLifecycleReadinessSignal =
     /\bnova\b/i.test(haystack) &&
     /(decision lifecycle|decision-lifecycle|entscheidungslifecycle|entscheidungslebenszyklus|decision source catalogue|source catalogue|hitl bridge|replay audit|tenant.?isolated sse|trl.?7.*decision|decision.*trl.?7|production readiness.*decision|decision.*production readiness)/i.test(
@@ -286,6 +335,22 @@ function findBestCapability(taskText, options = {}) {
     const drCapability = findCapabilityByName('dr_readiness_evidence_gate');
     if (drCapability) {
       return { capability: drCapability, score: 138, usedFallback: false };
+    }
+  }
+
+  const hasControllabilityDataAlignmentSpecificSignal =
+    /(steuerbarkeitscheck|redispatch steuerbarkeit|controllability)/i.test(haystack) &&
+    /(datenabgleich|prueflistenabgleich|prüflistenabgleich|ausnahmeliste|vorjahresvergleich|steuertechnikstatus|testbarkeit)/i.test(
+      haystack
+    ) &&
+    !/(abgabe.?cockpit|abgabeprojekt|submission cockpit|submission|handover|linienuebergabe|linienübergabe|billing|settlement|abrechnung|mako|steuerung ausfuehren|steuerung ausführen|device-control|smgw switch)/i.test(
+      haystack
+    );
+
+  if (hasControllabilityDataAlignmentSpecificSignal) {
+    const dataAlignmentCapability = findCapabilityByName('controllability_data_alignment');
+    if (dataAlignmentCapability) {
+      return { capability: dataAlignmentCapability, score: 139, usedFallback: false };
     }
   }
 
@@ -1585,6 +1650,39 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  // ── Direktvermarkter Risk Gate
+  // Handover/risk-gate wording around direct marketers must win over generic
+  // Energy-Sharing simulation matches.
+  const directMarketerRiskGateSignals = [
+    'direktvermarkter risikogate',
+    'direktvermarkter risiko gate',
+    'direktvermarktung risikogate',
+    'direct marketer risk gate',
+    'forecast allocation risk',
+    'prognose allokation risiko',
+    'bilanzkreis fahrplan risiko',
+    'bilanzkreis fahrplan',
+    'marktpartner review',
+    'market partner review',
+    'angebotsfreigabe direktvermarkter',
+    'vertragsfreigabe direktvermarkter',
+  ];
+  const hasDirectMarketerRiskGateCombo =
+    /(direktvermarkter|direktvermarktung|direct marketer)/i.test(haystack) &&
+    /(risikogate|risiko gate|risk gate|prognose|forecast|allokation|allocation|bilanzkreis|fahrplan|angebot|vertrag)/i.test(
+      haystack
+    );
+
+  if (
+    hasDirectMarketerRiskGateCombo ||
+    directMarketerRiskGateSignals.some((signal) => haystack.includes(signal))
+  ) {
+    const directMarketerCap = findCapabilityByName('direct_marketer_risk_gate');
+    if (directMarketerCap) {
+      return { capability: directMarketerCap, score: 124, usedFallback: false };
+    }
+  }
+
   // ── Energy Sharing Simulation Gate
   // Specific simulation/readiness wording must win over generic prosumer advisory.
   const energySharingSimulationSignals = [
@@ -1714,6 +1812,20 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  // ── Energy Sidecar Route Registry
+  // Route-audit prompts may mention Redispatch/MaStR/MaKo domains, but the
+  // asked-for capability is the advisory registry, not the downstream route.
+  if (
+    /(route.?registry|routing.?audit|route.?audit|deterministisches energie.?routing|deterministische energie.?routing|fach.?sidecar.?routing|endpoint evidence boundary|fallback route|welcher endpoint|welche capability)/i.test(
+      haystack
+    )
+  ) {
+    const routeRegistryCap = findCapabilityByName('energy_sidecar_route_registry');
+    if (routeRegistryCap) {
+      return { capability: routeRegistryCap, score: 124, usedFallback: false };
+    }
+  }
+
   // ── Redispatch Readiness Gate
   // 'Produktivreife' can otherwise be captured by broad VDMI asset-validation signals.
   const redispatchReadinessGateSignals = [
@@ -1734,6 +1846,76 @@ function findBestCapability(taskText, options = {}) {
     const rrgCapability = findCapabilityByName('redispatch_readiness_gate');
     if (rrgCapability) {
       return { capability: rrgCapability, score: 122, usedFallback: false };
+    }
+  }
+
+  // ── Redispatch Participation Readiness
+  const redispatchParticipationReadinessSignals = [
+    'redispatch participation readiness',
+    'redispatch participation',
+    'participation readiness',
+    'steuerbarkeit',
+    'steuerbarkeitsbewertung',
+    'virtuelles stadtwerk mauer',
+    'stadtwerk mauer redispatch',
+  ];
+
+  if (
+    redispatchParticipationReadinessSignals.some((signal) => haystack.includes(signal)) &&
+    !/(speicher|batterie|bess)/i.test(haystack)
+  ) {
+    const rprCapability = findCapabilityByName('redispatch_participation_readiness');
+    if (rprCapability) {
+      return { capability: rprCapability, score: 122, usedFallback: false };
+    }
+  }
+
+  // ── MaStR Sync-Gap Alerting
+  const mastrSyncGapSignals = [
+    'mastr sync gap',
+    'mastr sync gap alerting',
+    'mastr sync-gap',
+    'mastr monitoring',
+    'redispatch monitoring',
+  ];
+
+  if (mastrSyncGapSignals.some((signal) => haystack.includes(signal))) {
+    const msgCapability = findCapabilityByName('mastr_sync_gap_alerting');
+    if (msgCapability) {
+      return { capability: msgCapability, score: 124, usedFallback: false };
+    }
+  }
+
+  // ── Decommissioned Asset Reconciliation
+  const decommissionedAssetReconciliationSignals = [
+    'decommissioned asset',
+    'decommissioned asset reconciliation',
+    'decommissioned-asset',
+    'gis reconciliation',
+    'sap reconciliation',
+    'book value mismatch',
+  ];
+
+  if (decommissionedAssetReconciliationSignals.some((signal) => haystack.includes(signal))) {
+    const darCapability = findCapabilityByName('decommissioned_asset_reconciliation');
+    if (darCapability) {
+      return { capability: darCapability, score: 126, usedFallback: false };
+    }
+  }
+
+  // ── Energy Sharing Collective Approval
+  const energySharingCollectiveApprovalSignals = [
+    'energy sharing collective approval',
+    'collective approval',
+    'energy-sharing collective',
+    'energy sharing collective',
+    'collective approval status',
+  ];
+
+  if (energySharingCollectiveApprovalSignals.some((signal) => haystack.includes(signal))) {
+    const escaCapability = findCapabilityByName('energy_sharing_collective_approval');
+    if (escaCapability) {
+      return { capability: escaCapability, score: 128, usedFallback: false };
     }
   }
 
@@ -2170,6 +2352,20 @@ function findBestCapability(taskText, options = {}) {
     const gremiencoachCapability = findCapabilityByName('gremiencoach_workbook_readiness');
     if (gremiencoachCapability) {
       return { capability: gremiencoachCapability, score: 127, usedFallback: false };
+    }
+  }
+
+  const hasInterconnectionReleaseFileSignal =
+    /(koppelpunkt|marktpartner|zeitreihe|zeitreihen|mapping)/i.test(haystack) &&
+    /(freigabeakte|freigabe|release file|release-file|interconnection release)/i.test(haystack) &&
+    !/(mapping schreiben|mapping write|freigabe ausfuehren|freigabe ausführen|release execute|mako submit|billing release|settlement export|geraetesteuerung|gerätsteuerung|device-control|hitl create|workflow execute)/i.test(
+      haystack
+    );
+
+  if (hasInterconnectionReleaseFileSignal) {
+    const interconnectionReleaseCapability = findCapabilityByName('interconnection_release_file');
+    if (interconnectionReleaseCapability) {
+      return { capability: interconnectionReleaseCapability, score: 128, usedFallback: false };
     }
   }
 
@@ -3191,6 +3387,12 @@ module.exports = {
           ctx.params.knownContext && typeof ctx.params.knownContext === 'object'
             ? ctx.params.knownContext
             : {};
+        const operationCandidates = rankOperations(taskText, {
+          capability: capability.capability,
+          domain: capability.domain,
+          limit: 5,
+          extractedInputs: buildOperationCandidateInputs(knownContext, resolvedParams),
+        });
 
         const recommendedPlan = preferredActionPath.map((action, index) => ({
           step: index + 1,
@@ -3254,6 +3456,7 @@ module.exports = {
             : 0,
           preferredActionCount: preferredActionPath.length,
           discoveredActionCount: discovered.length,
+          operationCandidateCount: operationCandidates.length,
           finalConfidence: Number(confidence.toFixed(2)),
         };
 
@@ -3284,6 +3487,7 @@ module.exports = {
             },
           ],
           recommendedPlan,
+          operationCandidates,
           requiredInputs,
           doNotUse,
           risksAndNotes: capability.risksAndNotes,
@@ -3301,6 +3505,32 @@ module.exports = {
           schemaVersion: BROKER_SCHEMA_VERSION,
           capabilities: CURATED_CAPABILITIES,
           globalDoNotUse: GLOBAL_DO_NOT_USE,
+        };
+      },
+    },
+
+    queryOperationIndex: {
+      params: {
+        question: { type: 'string', min: 3 },
+        capability: { type: 'string', optional: true },
+        domain: { type: 'string', optional: true },
+        limit: { type: 'number', optional: true, positive: true, integer: true, default: 5 },
+        extractedInputs: { type: 'object', optional: true, default: {} },
+        includeNonAgentable: { type: 'boolean', optional: true, default: false },
+      },
+      handler(ctx) {
+        const candidates = rankOperations(ctx.params.question, {
+          capability: ctx.params.capability || null,
+          domain: ctx.params.domain || null,
+          limit: ctx.params.limit,
+          extractedInputs: ctx.params.extractedInputs || {},
+          includeNonAgentable: ctx.params.includeNonAgentable,
+        });
+
+        return {
+          schemaVersion: BROKER_SCHEMA_VERSION,
+          question: ctx.params.question,
+          candidates,
         };
       },
     },

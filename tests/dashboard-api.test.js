@@ -2244,6 +2244,132 @@ describe('dashboard-api.service', () => {
       });
     });
 
+    // ── coordinationMeaningPreservationProfile ─────────────────────────────
+
+    describe('coordinationMeaningPreservationProfile', () => {
+      it('reports decision-context gaps without calling Fachsystem or downstream actions', async () => {
+        const result = await broker.call('dashboard-api.coordinationMeaningPreservationProfile', {
+          caseId: 'case-402',
+          sourceDomain: 'Netzbetrieb',
+          targetDomain: 'Planung',
+          regulatoryReference: '14a-readiness',
+          networkConstraint: 'transformer-limit',
+        });
+
+        expect(result.capabilityKey).toBe('coordination_meaning_preservation_profile');
+        expect(result.status).toBe('needs_decision_context');
+        expect(result.coordinationLossClassification).toBe('decision_context_missing');
+        expect(result.preservedDimensions.map((item) => item.id)).toEqual(
+          expect.arrayContaining(['regulatory_reference', 'network_constraint'])
+        );
+        expect(result.missingDimensions.map((gap) => gap.missingDataPoint)).toEqual(
+          expect.arrayContaining(['commercial_effect', 'evidence_proof', 'owner', 'next_decision'])
+        );
+        expect(result.positiveFollowUps[0].category).toBe(
+          'coordination_meaning_preservation_profile'
+        );
+        expect(result.sourceActions.notCalled).toEqual(
+          expect.arrayContaining([
+            'external.connector.call',
+            'fachsystem.write',
+            'hitl.create',
+            'billing.release',
+            'mako.dispatch',
+            'device-control.execute',
+            'budibase.write',
+          ])
+        );
+        expect(result.safety).toBe('read_only');
+      });
+
+      it('returns meaning_preserved when all preservation dimensions are supplied', async () => {
+        const result = await broker.call('dashboard-api.coordinationMeaningPreservationProfile', {
+          caseId: 'case-402',
+          sourceDomain: 'EDM',
+          targetDomain: 'Abrechnung',
+          regulatoryReference: 'EnWG-42c',
+          commercialEffect: 'tariff-impact-reviewed',
+          networkConstraint: 'not-applicable',
+          evidenceProof: 'vdmi:evidence-402',
+          owner: 'Abrechnung',
+          deadline: '2026-08-01',
+          nextDecision: 'billing-boundary-review',
+          operationalRisk: 'low',
+        });
+
+        expect(result.status).toBe('meaning_preserved');
+        expect(result.coordinationLossClassification).toBe('meaning_preserved');
+        expect(result.missingDimensions).toEqual([]);
+        expect(result.dossierEvidence.dossierFacts).toContain('Preserved dimensions: 8/8');
+        expect(result.dossierEvidence.dossierFacts).toContain('Handover: EDM -> Abrechnung');
+      });
+    });
+
+    // -- a2mdmDecisionObjectStatus ----------------------------------------
+
+    describe('a2mdmDecisionObjectStatus', () => {
+      it('reports missing decision-object context without triggering downstream actions', async () => {
+        const result = await broker.call('dashboard-api.a2mdmDecisionObjectStatus', {
+          caseId: 'case-423',
+          subject: 'Flexible Netzanschluss Freigabe',
+          technicalConstraint: 'transformer-limit',
+          regulatoryReference: 'EnWG-14a-context',
+        });
+
+        expect(result.capabilityKey).toBe('a2mdm_decision_object_meaning_preservation');
+        expect(result.status).toBe('needs_decision_context');
+        expect(result.safety).toBe('read_only_decision_context_projection');
+        expect(result.decisionRows.every((row) => row.scalar === true)).toBe(true);
+        expect(result.missingInputs.map((gap) => gap.missingDataPoint)).toEqual(
+          expect.arrayContaining([
+            'business_intent',
+            'evidence_source',
+            'owner_role',
+            'risk_level',
+            'decision_threshold',
+            'next_gate',
+          ])
+        );
+        expect(result.positiveFollowUps[0].category).toBe(
+          'a2mdm_decision_object_meaning_preservation'
+        );
+        expect(result.sourceActions.notCalled).toEqual(
+          expect.arrayContaining([
+            'a2mdm.persist',
+            'budibase.table.write',
+            'mako.dispatch',
+            'billing.release',
+            'settlement.prepareBilling',
+            'device-control.execute',
+            'hitl.create',
+            'external.connector.call',
+            'personal-agent.execute',
+          ])
+        );
+      });
+
+      it('returns decision_context_preserved for a complete synthetic decision object', async () => {
+        const result = await broker.call('dashboard-api.a2mdmDecisionObjectStatus', {
+          caseId: 'case-423-complete',
+          subject: 'Stadtwerk Mauer flexible connection release',
+          businessIntent: 'reserve-capacity-after-evidence-review',
+          technicalConstraint: 'nvp-capacity-window-q3',
+          regulatoryReference: 'EnWG-14a-context',
+          evidenceSource: 'vdmi:release-file-seed-v1',
+          ownerRole: 'Netzplanung',
+          riskLevel: 'medium',
+          decisionThreshold: 'all-release-evidence-present',
+          nextGate: 'human-release-review',
+        });
+
+        expect(result.status).toBe('decision_context_preserved');
+        expect(result.missingInputs).toEqual([]);
+        expect(result.dossierEvidence.dossierFacts).toContain('Open missing inputs: 0');
+        expect(result.dossierEvidence.dossierFacts).toContain('Owner: Netzplanung');
+        expect(result.sourceActions.notCalled).toContain('landing-registry.publish');
+      });
+    });
+
     // ── gremiencoachWorkbookReadinessStatus ────────────────────────────────
 
     describe('gremiencoachWorkbookReadinessStatus', () => {
@@ -4049,6 +4175,243 @@ describe('dashboard-api.service', () => {
         );
         expect(result.dossierEvidence.sourceDatapoints).toEqual(
           expect.arrayContaining(['psp:4711', 'capex:42'])
+        );
+      });
+    });
+
+    // -- energySidecarRouteRegistryStatus ----------------------------------
+
+    describe('energySidecarRouteRegistryStatus', () => {
+      it('returns grounded read-only route rows without executing recommended endpoints', async () => {
+        const result = await broker.call('dashboard-api.energySidecarRouteRegistryStatus', {
+          intent: 'redispatch readiness route audit',
+          domain: 'redispatch',
+          requiredInput: 'processId',
+          includeFallbacks: true,
+        });
+
+        expect(result.status).toBe('route_registry_ready');
+        expect(result.safety).toBe('read_only');
+        expect(result.capabilityKey).toBe('energy_sidecar_route_registry');
+        expect(result.rows).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              routeKey: 'redispatch_readiness_evidence',
+              preferredAction: 'redispatch-readiness-gate.getStatus',
+              preferredEndpoint: '/api/redispatch-readiness-gate/status',
+              evidenceStatus: 'route_grounded',
+              safety: 'read_only',
+            }),
+          ])
+        );
+        expect(result.sourceActions.notCalled).toEqual(
+          expect.arrayContaining([
+            'recommendedEndpoint.execute',
+            'external.connector.call',
+            'hitl.create',
+            'workflow.execute',
+            'billing.release',
+            'settlement.prepareBilling',
+            'device-control.execute',
+            'personal-agent.execute',
+          ])
+        );
+        expect(result.decisionBoundary.recommendedEndpointExecuted).toBe(false);
+        expect(result.decisionBoundary.productionMutation).toBe(false);
+      });
+
+      it('surfaces missing-route context as positive follow-ups and scalar dossier rows', async () => {
+        const result = await broker.call('dashboard-api.energySidecarRouteRegistryStatus', {
+          intent: 'unknown hydrogen billing switch action',
+          domain: 'unsupported-domain',
+        });
+
+        expect(result.status).toBe('needs_route_context');
+        expect(result.rows[0]).toEqual(
+          expect.objectContaining({
+            routeKey: 'unsupported_domain_fallback',
+            evidenceStatus: 'unsupported_or_ambiguous_route',
+            preferredAction: 'interface-placeholder.requestEvidence',
+          })
+        );
+        expect(result.positiveFollowUps[0].category).toBe('energy_sidecar_route_registry');
+        expect(result.dossierEvidence.rows[0]).not.toHaveProperty('operationEvidence');
+        expect(result.dossierEvidence.rows[0].noCallGuards).toEqual(
+          expect.arrayContaining(['recommendedEndpoint.execute'])
+        );
+      });
+    });
+
+    // -- interconnectionReleaseFileStatus ----------------------------------
+
+    describe('interconnectionReleaseFileStatus', () => {
+      it('returns read-only release-file rows with no-call guards', async () => {
+        const result = await broker.call('dashboard-api.interconnectionReleaseFileStatus', {
+          caseId: 'case-419',
+          koppelpunktId: 'KP-419',
+          marketPartnerId: 'MP-419',
+          timeseriesId: 'TS-419',
+          mappingVersion: 'v2',
+          sourceSystem: 'a2mdm-export',
+          evidenceStatus: 'complete',
+          approvalStatus: 'approved',
+          owner: 'marktkommunikation',
+          nextChangeGate: '2026-Q3',
+          affectedProcess: 'mako,billing',
+          includeFallbacks: true,
+        });
+
+        expect(result.status).toBe('release_file_ready');
+        expect(result.safety).toBe('read_only');
+        expect(result.capabilityKey).toBe('interconnection_release_file');
+        expect(result.syntheticDemo).toBe(false);
+        expect(result.subject).toEqual(
+          expect.objectContaining({
+            caseId: 'case-419',
+            koppelpunktId: 'KP-419',
+            marketPartnerId: 'MP-419',
+            timeseriesId: 'TS-419',
+            mappingVersion: 'v2',
+          })
+        );
+        expect(result.mappingRows).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ key: 'koppelpunkt', value: 'KP-419' }),
+            expect.objectContaining({ key: 'market_partner', value: 'MP-419' }),
+            expect.objectContaining({ key: 'timeseries', value: 'TS-419' }),
+          ])
+        );
+        expect(result.sourceActions.notCalled).toEqual(
+          expect.arrayContaining([
+            'mapping.write',
+            'mapping.releaseExecute',
+            'mako.submit',
+            'billing.release',
+            'settlement.prepareBilling',
+            'tariff.mutate',
+            'hitl.create',
+            'workflow.execute',
+            'device-control.execute',
+            'external.connector.call',
+            'budibase.table.write',
+            'personal-agent.execute',
+          ])
+        );
+        expect(result.decisionBoundary.mappingWritten).toBe(false);
+        expect(result.decisionBoundary.downstreamProcessExecuted).toBe(false);
+        expect(result.decisionBoundary.productionMutation).toBe(false);
+        expect(result.dossierEvidence.evidenceRows[0]).toEqual(
+          expect.objectContaining({
+            sourceSystem: 'a2mdm-export',
+            mappingVersion: 'v2',
+            evidenceStatus: 'source_versioned',
+          })
+        );
+      });
+
+      it('labels synthetic demo evidence and turns missing release data into positive follow-ups', async () => {
+        const result = await broker.call('dashboard-api.interconnectionReleaseFileStatus', {});
+
+        expect(result.status).toBe('needs_release_evidence');
+        expect(result.syntheticDemo).toBe(true);
+        expect(result.summaryRows).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              key: 'evidence_basis',
+              value: 'synthetic_demo_read_model',
+            }),
+          ])
+        );
+        expect(result.missingEvidence).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ missingDataPoint: 'koppelpunkt_id' }),
+            expect.objectContaining({ missingDataPoint: 'mapping_version' }),
+            expect.objectContaining({ missingDataPoint: 'approval_owner' }),
+          ])
+        );
+        expect(result.positiveFollowUps[0]).toEqual(
+          expect.objectContaining({
+            category: 'interconnection_release_file',
+            enablesDossierAddition: expect.stringContaining('Koppelpunkt identifier'),
+          })
+        );
+        expect(result.dossierEvidence.summaryRows).toBeDefined();
+        expect(result.dossierEvidence).not.toHaveProperty('cache');
+      });
+    });
+
+    // -- directMarketerRiskGateStatus ---------------------------------------
+
+    describe('directMarketerRiskGateStatus', () => {
+      it('reports forecast and allocation gaps without market side effects', async () => {
+        const result = await broker.call('dashboard-api.directMarketerRiskGateStatus', {
+          caseId: 'case-411',
+          directMarketer: 'dm-partner',
+          roleOwner: 'Energy Services',
+        });
+
+        expect(result.status).toBe('needs_forecast_and_allocation_evidence');
+        expect(result.safety).toBe('read_only');
+        expect(result.handoverContext.caseId).toBe('case-411');
+        expect(result.marketEvidence.forecastQuality).toBeNull();
+        expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+          expect.arrayContaining([
+            'forecast_quality',
+            'allocation_rules',
+            'balancing_schedule_impact',
+            'billing_settlement_status',
+            'deadline',
+            'evidence_status',
+          ])
+        );
+        expect(result.positiveFollowUps[0].category).toBe('direct_marketer_risk_gate');
+        expect(result.sourceActions.notCalled).toEqual(
+          expect.arrayContaining([
+            'market.executeTrade',
+            'schedule.submit',
+            'balancing-group.transfer',
+            'direct-marketer.offer.approve',
+            'contract.approve',
+            'billing.release',
+            'settlement.prepareBilling',
+            'customer-communication.send',
+            'hitl.create',
+            'external.connector.call',
+            'personal-agent.execute',
+          ])
+        );
+        expect(result.decisionBoundary.productionMutation).toBe(false);
+      });
+
+      it('returns ready_for_direct_marketer_review for complete handover evidence', async () => {
+        const result = await broker.call('dashboard-api.directMarketerRiskGateStatus', {
+          caseId: 'case-ready-411',
+          projectId: 'energy-sharing-411',
+          communityModel: 'gemeinschaftsstrom',
+          directMarketer: 'dm-partner',
+          forecastQuality: 'validated',
+          forecastDeviationPct: '4.2',
+          allocationRules: 'documented',
+          balancingGroupImpact: 'bounded',
+          scheduleImpact: 'no-daily-submission-change',
+          billingStatus: 'ready',
+          settlementStatus: 'ready',
+          roleOwner: 'Energy Services',
+          deadline: '2026-09-30',
+          evidenceStatus: 'complete',
+          sourceEvidence: 'forecast:v1,allocation:v2',
+        });
+
+        expect(result.status).toBe('ready_for_direct_marketer_review');
+        expect(result.readinessScore).toBe(1);
+        expect(result.missingEvidence).toEqual([]);
+        expect(result.marketEvidence.forecastDeviationPct).toBe(4.2);
+        expect(result.marketEvidence.sourceEvidence).toEqual(
+          expect.arrayContaining(['forecast:v1', 'allocation:v2'])
+        );
+        expect(result.decisionBoundary.scheduleSubmitted).toBe(false);
+        expect(result.dossierEvidence.dossierFacts).toContain(
+          'Direct Marketer Risk Gate Status: ready_for_direct_marketer_review'
         );
       });
     });
@@ -9215,6 +9578,63 @@ describe('dashboard-api.service', () => {
         );
       });
 
+      it('verifies the Grid Connection Transformation Gate Blueprint seed read-only', async () => {
+        const result = await broker.call('dashboard-api.stadtwerkMauerBlueprintPackVerifyStatus', {
+          tenantId: 'stadtwerk-mauer',
+          seedId: 'stadtwerk-mauer-grid-connection-transformation-gate-v1',
+        });
+
+        expect(result.status).toBe('completed');
+        expect(result.riskClass).toBe('read_only');
+        expect(result.data.validation).toEqual({ valid: true, errors: [] });
+        expect(result.summary.counts.requiredEvidence).toBe(8);
+        expect(result.summary.counts.demoProcessMatrixRows).toBe(4);
+        expect(result.data.requiredEvidence).toEqual(
+          expect.arrayContaining([
+            'napMaloReferenceEvidence',
+            'divisionEvidence',
+            'transformationOptionEvidence',
+            'dataQualityEvidence',
+            'investmentPathEvidence',
+            'decommissionPathEvidence',
+            'ownerNextActionEvidence',
+            'sourceReferenceEvidence',
+          ])
+        );
+        expect(result.data.demoProcessMatrixSync).toMatchObject({
+          slug: 'grid-connection-transformation-gate',
+          expectedSlug: 'grid-connection-transformation-gate',
+          synced: true,
+          roleLegendM: 'Mitwirkend',
+          rowCount: 4,
+          rowCountValid: true,
+          roleCellsClean: true,
+          dataClassesLimited: true,
+          forbiddenActionsStatus: 'not_introduced',
+        });
+        expect(result.data.demoProcessMatrixSync.rows[2]).toMatchObject({
+          phase: '3',
+          roles: {
+            V: 'ROLE_NETZPLANUNG',
+            D: 'ROLE_CERNION_GOVERNANCE',
+            M: 'ROLE_ASSET_MANAGEMENT',
+            I: 'ROLE_ADMINISTRATOR',
+          },
+          evidenceRequirements: ['investmentPathEvidence', 'decommissionPathEvidence'],
+          gateOutcome: 'investment_and_decommission_path_review_only',
+        });
+        expect(result.data.sourceActions.notCalled).toEqual(
+          expect.arrayContaining([
+            'tenant.provision',
+            'seed.import',
+            'rundeck.execute',
+            'budibase.table.write',
+            'public-context.mutate',
+            'personal-agent.execute',
+          ])
+        );
+      });
+
       it('returns a blocked read-only state for unsupported seeds', async () => {
         const result = await broker.call('dashboard-api.stadtwerkMauerBlueprintPackVerifyStatus', {
           tenantId: 'stadtwerk-mauer',
@@ -9283,6 +9703,123 @@ describe('dashboard-api.service', () => {
           ])
         );
         expect(result.data.brokerDossierHydration.exposed).toBe(false);
+      });
+
+      it('returns Decommissioned Asset matrix facts and seed hygiene through the verify projection', async () => {
+        const result = await broker.call('dashboard-api.stadtwerkMauerBlueprintPackVerifyStatus', {
+          tenantId: 'stadtwerk-mauer',
+          seedId: 'stadtwerk-mauer-decommissioned-asset-reconciliation-v1',
+        });
+
+        expect(result.status).toBe('completed');
+        expect(result.summary.counts.requiredEvidence).toBe(4);
+        expect(result.summary.counts.demoProcessMatrixRows).toBe(4);
+        expect(result.data.processFamily).toBe('decommissioned_asset_reconciliation');
+        expect(result.data.controlCase).toBe('decommissioned_asset_reconciliation_status');
+        expect(result.data.syntheticTenantSeed.examples).toEqual([
+          'synthetic decommissioned asset id',
+          'synthetic SAP Anlagenspiegel entry',
+          'synthetic reconciliation discrepancy marker',
+        ]);
+        expect(result.data.syntheticTenantSeed.examples.join(' ')).not.toMatch(/Redispatch/i);
+        expect(result.data.requiredEvidence).toEqual([
+          'gisDecommissionedAssetsEvidence',
+          'sapAnlagenspiegelEvidence',
+          'reconciliationDiscrepancyFeed',
+          'reconciliationApprovalDecision',
+        ]);
+        expect(result.data.demoProcessMatrixSync).toMatchObject({
+          slug: 'decommissioned-asset-reconciliation',
+          expectedSlug: 'decommissioned-asset-reconciliation',
+          synced: true,
+          roleLegendM: 'Mitwirkend',
+          rowCount: 4,
+          rowCountValid: true,
+          roleCellsClean: true,
+          dataClassesLimited: true,
+        });
+        expect(result.data.demoProcessMatrixSync.downstreamHandoff).toMatchObject({
+          blueprintPack: 'complete',
+          landingRegistry: 'pending',
+          productiveDemoRoom: 'pending',
+        });
+        expect(result.data.demoProcessMatrixSync.rows[0]).toMatchObject({
+          phase: '1',
+          roles: {
+            V: 'ROLE_NETZPLANUNG',
+            D: 'ROLE_CERNION_GOVERNANCE',
+            M: 'ROLE_ANLAGENBUCHHALTUNG',
+            I: 'ROLE_COMMERCIAL_AUDIT',
+          },
+          evidenceRequirements: ['gisDecommissionedAssetsEvidence'],
+          dataClassRefs: ['syntheticTenantSeed'],
+          gateOutcome: 'gis_decommissioned_assets_harvested',
+        });
+        expect(result.data.sourceActions.notCalled).toEqual(
+          expect.arrayContaining([
+            'budibase.table.write',
+            'external.connector.call',
+            'public-context.mutate',
+            'personal-agent.execute',
+          ])
+        );
+      });
+
+      it('returns MaStR Sync-Gap matrix facts through the same verify projection', async () => {
+        const result = await broker.call('dashboard-api.stadtwerkMauerBlueprintPackVerifyStatus', {
+          tenantId: 'stadtwerk-mauer',
+          seedId: 'stadtwerk-mauer-mastr-sync-gap-alerting-v1',
+        });
+
+        expect(result.status).toBe('completed');
+        expect(result.summary.counts.seedsFound).toBe(1);
+        expect(result.summary.counts.requiredEvidence).toBe(4);
+        expect(result.summary.counts.demoProcessMatrixRows).toBe(4);
+        expect(result.data.seedFound).toBe(true);
+        expect(result.data.validation).toEqual({ valid: true, errors: [] });
+        expect(result.data.processFamily).toBe('mastr_sync_gap_alerting');
+        expect(result.data.controlCase).toBe('mastr_sync_gap_alerting_status');
+        expect(result.data.requiredEvidence).toEqual([
+          'mastrFreshnessEvidence',
+          'redispatchStammdatenComparison',
+          'syncGapAlertFeed',
+          'reconciliationApprovalDecision',
+        ]);
+        expect(result.data.demoProcessMatrixSync).toMatchObject({
+          slug: 'mastr-sync-gap-alerting',
+          expectedSlug: 'mastr-sync-gap-alerting',
+          synced: true,
+          roleLegendM: 'Mitwirkend',
+          rowCount: 4,
+          rowCountValid: true,
+          roleCellsClean: true,
+          dataClassesLimited: true,
+        });
+        expect(result.data.demoProcessMatrixSync.downstreamHandoff).toMatchObject({
+          blueprintPack: 'complete',
+          landingRegistry: 'pending',
+          productiveDemoRoom: 'pending',
+        });
+        expect(result.data.demoProcessMatrixSync.rows[2]).toMatchObject({
+          phase: '3',
+          roles: {
+            V: 'ROLE_NETZBETRIEB',
+            D: 'ROLE_CERNION_GOVERNANCE',
+            M: 'ROLE_REDISPATCH_KOORDINATOR',
+            I: 'ROLE_COMMERCIAL_AUDIT',
+          },
+          evidenceRequirements: ['syncGapAlertFeed'],
+          gateOutcome: 'sync_gap_alerts_pending',
+        });
+        expect(result.data.sourceActions.notCalled).toEqual(
+          expect.arrayContaining([
+            'tenant.provision',
+            'budibase.table.write',
+            'external.connector.call',
+            'public-context.mutate',
+            'personal-agent.execute',
+          ])
+        );
       });
 
       it('returns substation load assessment matrix facts through the same verify projection', async () => {
@@ -9431,6 +9968,66 @@ describe('dashboard-api.service', () => {
         expectScalarTableRows(result.reusableElementRows);
         expectScalarTableRows(result.disabledActionClassRows);
         expectScalarTableRows(result.safeNextGateRows);
+      });
+
+      it('represents Decommissioned Asset sync proof as pending downstream transfer readiness', async () => {
+        const result = await broker.call('dashboard-api.stadtwerkMauerTransferReadinessStatus', {
+          tenantId: 'stadtwerk-mauer',
+          seedId: 'stadtwerk-mauer-decommissioned-asset-reconciliation-v1',
+          caseId: 'smm-budibase-workbench',
+        });
+
+        expect(result.status).toBe('ready_for_onboarding_discussion');
+        expect(result.transferSummaryRows[0]).toMatchObject({
+          seedId: 'stadtwerk-mauer-decommissioned-asset-reconciliation-v1',
+          status: 'ready_for_onboarding_discussion',
+          safety: 'read_only_workbench_projection',
+        });
+        expect(result.dataClassRows).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              rowKey: 'synthetic_tenant_seed',
+              examples:
+                'synthetic decommissioned asset id, synthetic SAP Anlagenspiegel entry, synthetic reconciliation discrepancy marker',
+              transferState: 'replace_for_real_tenant',
+            }),
+          ])
+        );
+        expect(result.tenantParameterRows).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              rowKey: 'evidence_requirements',
+              currentDemoValue: expect.stringContaining('gisDecommissionedAssetsEvidence'),
+            }),
+          ])
+        );
+        expect(result.reusableElementRows).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              rowKey: 'blueprint_seed_contract',
+              sourceRef:
+                'src/vdmi-blueprint-pack-seeds/stadtwerk-mauer-decommissioned-asset-reconciliation-v1.json',
+              productionMutation: false,
+            }),
+          ])
+        );
+        expect(result.sourceActions.referenced).toEqual(
+          expect.arrayContaining([
+            'integrations/budibase/README.md',
+            'integrations/budibase/manifests/stadtwerk-mauer-workbench.json',
+            'integrations/budibase/scripts/apply-stadtwerk-mauer-workbench.js',
+            'src/vdmi-blueprint-pack-seeds/stadtwerk-mauer-decommissioned-asset-reconciliation-v1.json',
+          ])
+        );
+        expect(result.disabledActionClassRows.map((row) => row.boundary)).toEqual(
+          expect.arrayContaining([
+            'budibase.table.write',
+            'public-context.mutate',
+            'external_connector_call',
+            'production_mutation',
+            'personal_agent_hardcoding',
+          ])
+        );
       });
 
       it('binds the Budibase manifest to visible transfer-readiness tables', () => {
@@ -9619,6 +10216,67 @@ describe('dashboard-api.service', () => {
           exposed: false,
           reason: expect.stringContaining('dossier-facing capability is cut'),
         });
+      });
+
+      it('returns the Decommissioned Asset Landing-Registry draft sync proof from the canonical matrix', async () => {
+        const result = await broker.call('dashboard-api.stadtwerkMauerLandingRegistryDraftStatus', {
+          tenantId: 'stadtwerk-mauer',
+          seedId: 'stadtwerk-mauer-decommissioned-asset-reconciliation-v1',
+        });
+
+        expect(result.status).toBe('landing_registry_draft_ready');
+        expect(result.found).toBe(true);
+        expect(result.rowCount).toBe(4);
+        expect(result.roleHeaders).toEqual([
+          'Phase',
+          'V = Verantwortlich',
+          'D = Durchfuehrend',
+          'M = Mitwirkend',
+          'I = Informiert',
+          'Nachweise',
+        ]);
+        expect(result.draft).toMatchObject({
+          slug: 'decommissioned-asset-reconciliation',
+          processFamily: 'decommissioned_asset_reconciliation',
+          controlCase: 'decommissioned_asset_reconciliation_status',
+          seedId: 'stadtwerk-mauer-decommissioned-asset-reconciliation-v1',
+          canonicalSource:
+            'src/vdmi-blueprint-pack-seeds/stadtwerk-mauer-decommissioned-asset-reconciliation-v1.json',
+          rowCount: 4,
+        });
+        expect(result.draft.roleLegend.M).toBe('Mitwirkend');
+        expect(result.draft.rows).toHaveLength(4);
+        expect(result.draft.rows[0]).toMatchObject({
+          phase: '1',
+          V: 'ROLE_NETZPLANUNG',
+          D: 'ROLE_CERNION_GOVERNANCE',
+          M: 'ROLE_ANLAGENBUCHHALTUNG',
+          I: 'ROLE_COMMERCIAL_AUDIT',
+          evidenceRequirements: ['gisDecommissionedAssetsEvidence'],
+          gateOutcome: 'gis_decommissioned_assets_harvested',
+        });
+        expect(result.syncProof).toMatchObject({
+          blueprintPack: { status: 'complete' },
+          landingRegistryDraft: { status: 'draft_ready' },
+          productiveDemoRoom: { status: 'pending' },
+        });
+        expect(result.publicationBlockers).toEqual(
+          expect.arrayContaining([
+            'productive_demo_room_publication_issue_missing',
+            'landing_registry_review_owner_missing',
+            'cernion_de_sitemap_canonical_update_pending',
+          ])
+        );
+        expect(result.sourceActions.notCalled).toEqual(
+          expect.arrayContaining([
+            'cernion.de.publish',
+            'landing-registry.write',
+            'budibase.table.write',
+            'external.connector.call',
+            'personal-agent.execute',
+          ])
+        );
+        expect(result.brokerDossierHydration.exposed).toBe(false);
       });
     });
 
@@ -11681,6 +12339,73 @@ describe('dashboard-api.service', () => {
 
       it('accepts request without gridOperatorId (all operators)', async () => {
         await expect(broker.call('dashboard-api.qualitySummary', {})).resolves.toBeDefined();
+      });
+    });
+
+    // ── controllabilityDataAlignmentStatus ────────────────────────────────
+
+    describe('controllabilityDataAlignmentStatus', () => {
+      it('reports explicit data-alignment gaps without imports or downstream actions', async () => {
+        const result = await broker.call('dashboard-api.controllabilityDataAlignmentStatus', {
+          checklistId: 'check-407',
+          assetId: 'asset-407',
+          mastrId: 'SEE-407',
+          assetMatch: 'matched',
+          controlTechStatus: 'missing',
+          thresholdClass: 'above-threshold',
+          testability: 'not-testable',
+          exceptionReason: 'fehlende-rueckmeldefaehigkeit',
+          owner: 'Netzplanung',
+        });
+
+        expect(result.status).toBe('needs_owner_deadline');
+        expect(result.checklist).toMatchObject({
+          checklistId: 'check-407',
+          assetId: 'asset-407',
+          mastrId: 'SEE-407',
+        });
+        expect(result.alignmentRows.map((row) => row.id)).toEqual(
+          expect.arrayContaining([
+            'checklist_reference',
+            'asset_mastr_match',
+            'control_technology_status',
+            'threshold_classification',
+            'testability',
+          ])
+        );
+        expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+          expect.arrayContaining(['prior_year_comparison', 'owner_deadline', 'export_readiness'])
+        );
+        expect(result.safeNextGate).toBe('collect_control_technology_evidence');
+        expect(result.positiveFollowUps[0].category).toBe('controllability_data_alignment');
+        expect(result.sourceActions.notCalled).toEqual(
+          expect.arrayContaining(['file.import', 'excel.parse', 'grid-operations.executeControl'])
+        );
+        expect(result.safety).toBe('read_only');
+      });
+
+      it('returns ready_for_evidence_export when all required alignment facts are supplied', async () => {
+        const result = await broker.call('dashboard-api.controllabilityDataAlignmentStatus', {
+          checklistId: 'check-407',
+          assetId: 'asset-407',
+          mastrId: 'SEE-407',
+          assetMatch: 'matched',
+          mastrMatch: 'matched',
+          internalAssetMatch: 'matched',
+          controlTechStatus: 'cls-ready',
+          thresholdClass: 'above-threshold',
+          testability: 'testable',
+          priorYearComparison: 'changed',
+          owner: 'Netzplanung',
+          dueDate: '2026-09-30',
+          exportReadiness: 'ready',
+        });
+
+        expect(result.status).toBe('ready_for_evidence_export');
+        expect(result.missingEvidence).toEqual([]);
+        expect(result.safeNextGate).toBe('export_dossier_package');
+        expect(result.dossierEvidence.dossierFacts).toContain('Provided alignment rows: 8/9');
+        expect(result.sourceActions.notCalled).toContain('external.connector.call');
       });
     });
   });
