@@ -38,7 +38,7 @@ async function fetchJson(layer, url, options = {}) {
   let body;
   try {
     body = text ? JSON.parse(text) : {};
-  } catch (err) {
+  } catch {
     throw new SmokeFailure(
       layer,
       `Expected JSON from ${url}, got ${response.status}: ${text.slice(0, 160)}`
@@ -69,10 +69,18 @@ function validateHealth(layer, body) {
 function validateModels(body) {
   assertObject('bridge-models-shape', body, 'models response');
   if (body.object !== 'list') {
-    throw new SmokeFailure('bridge-models-shape', 'models response must use OpenAI list shape', body);
+    throw new SmokeFailure(
+      'bridge-models-shape',
+      'models response must use OpenAI list shape',
+      body
+    );
   }
   if (!Array.isArray(body.data) || body.data.length === 0) {
-    throw new SmokeFailure('bridge-models-shape', 'models response must include a non-empty data array', body);
+    throw new SmokeFailure(
+      'bridge-models-shape',
+      'models response must include a non-empty data array',
+      body
+    );
   }
   for (const model of body.data) {
     if (!model || typeof model.id !== 'string' || !model.id.trim()) {
@@ -84,7 +92,11 @@ function validateModels(body) {
 function validateChatCompletion(body) {
   assertObject('bridge-chat-shape', body, 'chat completion response');
   if (body.object !== 'chat.completion') {
-    throw new SmokeFailure('bridge-chat-shape', 'chat completion must use object=chat.completion', body);
+    throw new SmokeFailure(
+      'bridge-chat-shape',
+      'chat completion must use object=chat.completion',
+      body
+    );
   }
   if (typeof body.id !== 'string' || !body.id.trim()) {
     throw new SmokeFailure('bridge-chat-shape', 'chat completion must include a string id', body);
@@ -94,7 +106,11 @@ function validateChatCompletion(body) {
   }
   const message = body.choices[0]?.message;
   if (!message || message.role !== 'assistant' || typeof message.content !== 'string') {
-    throw new SmokeFailure('bridge-chat-shape', 'first choice must include assistant message content', body);
+    throw new SmokeFailure(
+      'bridge-chat-shape',
+      'first choice must include assistant message content',
+      body
+    );
   }
   assertObject('bridge-chat-shape', body.usage, 'chat completion usage');
 }
@@ -102,9 +118,25 @@ function validateChatCompletion(body) {
 function validateOpenApi(body) {
   assertObject('toolserver-openapi', body, 'OpenAPI response');
   if (typeof body.openapi !== 'string' || !body.openapi.startsWith('3.')) {
-    throw new SmokeFailure('toolserver-openapi', 'OpenAPI response must declare an OpenAPI 3.x version', body);
+    throw new SmokeFailure(
+      'toolserver-openapi',
+      'OpenAPI response must declare an OpenAPI 3.x version',
+      body
+    );
   }
   assertObject('toolserver-openapi', body.paths, 'OpenAPI paths');
+  const operation = body.paths['/tools/cernion-evidence-lookup']?.post;
+  if (
+    !operation ||
+    operation.operationId !== 'cernionEvidenceLookup' ||
+    operation.readOnly !== true
+  ) {
+    throw new SmokeFailure(
+      'toolserver-openapi',
+      'OpenAPI must expose the cernionEvidenceLookup operation with readOnly=true',
+      body
+    );
+  }
 }
 
 function validateReadOnlyToolResponse(body) {
@@ -151,10 +183,10 @@ async function checkBridge(baseUrl, options = {}) {
 
 async function checkToolserver(baseUrl, options = {}) {
   const method = (options.toolMethod || 'POST').toUpperCase();
-  const toolPath = options.toolPath || '/tools/read-only-status';
+  const toolPath = options.toolPath || '/tools/cernion-evidence-lookup';
   const toolBody = options.toolBody || {
+    question: 'Open WebUI smoke test: return a safe read-only evidence readiness answer.',
     tenantId: 'smoke-local',
-    mode: 'read_only',
   };
 
   const health = await fetchJson('toolserver-health', joinUrl(baseUrl, '/health'));
@@ -220,12 +252,13 @@ function createMockServer(kind) {
         openapi: '3.0.3',
         info: { title: 'Cernion Open WebUI Local Toolserver', version: '0.0.0-smoke' },
         paths: {
-          '/tools/read-only-status': {
+          '/tools/cernion-evidence-lookup': {
             post: {
-              operationId: 'readOnlyStatus',
-              summary: 'Read local smoke status',
-              'x-cernion-safety': 'read_only',
-              responses: { 200: { description: 'read-only status' } },
+              operationId: 'cernionEvidenceLookup',
+              summary: 'Look up Cernion evidence',
+              readOnly: true,
+              'x-cernion-side-effects': 'none',
+              responses: { 200: { description: 'read-only evidence answer' } },
             },
           },
         },
@@ -233,12 +266,16 @@ function createMockServer(kind) {
       return;
     }
 
-    if (kind === 'toolserver' && req.method === 'POST' && req.url === '/tools/read-only-status') {
+    if (
+      kind === 'toolserver' &&
+      req.method === 'POST' &&
+      req.url === '/tools/cernion-evidence-lookup'
+    ) {
       send(200, {
-        status: 'ok',
-        safety: 'read_only',
+        success: true,
+        answer: 'local read-only evidence smoke ready',
         readOnly: true,
-        checkedAt: '1970-01-01T00:00:00.000Z',
+        sideEffects: 'none',
       });
       return;
     }
