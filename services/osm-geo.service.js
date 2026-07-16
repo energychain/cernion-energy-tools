@@ -14,7 +14,7 @@
 
 const CernionMCPClient = require('../src/mcp-client');
 
-const DEFAULT_MCP_TIMEOUT_MS = 15000;
+const DEFAULT_MCP_TIMEOUT_MS = 60000;
 
 function _mcpTimeoutMs() {
   const configured = Number(process.env.OSM_GEO_MCP_TIMEOUT_MS);
