@@ -9,7 +9,8 @@ const DEFAULT_MODEL_ID = 'cernion-sidecar-session';
 const MAX_BODY_BYTES = 64 * 1024;
 const DEFAULT_TIMEOUT_MS = 30_000;
 const REQUIRED_CONFIG = ['manifestUrl', 'askUrl', 'planUrl', 'expiresAt'];
-const PLANNING_PATTERN = /(^|[^\p{L}\p{N}])(plan|planung|planen|plane|vorgehen|roadmap|schritte|blueprint)([^\p{L}\p{N}]|$)/iu;
+const PLANNING_PATTERN =
+  /(^|[^\p{L}\p{N}])(plan|planung|planen|plane|vorgehen|roadmap|schritte|blueprint)([^\p{L}\p{N}]|$)/iu;
 
 function buildConfigFromEnv(env = process.env) {
   return {
@@ -21,7 +22,12 @@ function buildConfigFromEnv(env = process.env) {
     expiresAt: env.CERNION_SIDECAR_EXPIRES_AT || '',
     modelId: env.CERNION_OPEN_WEBUI_MODEL_ID || DEFAULT_MODEL_ID,
     token: env.CERNION_SIDECAR_TOKEN || '',
-    timeoutMs: clampNumber(env.CERNION_OPEN_WEBUI_BRIDGE_TIMEOUT_MS, 1_000, 60_000, DEFAULT_TIMEOUT_MS),
+    timeoutMs: clampNumber(
+      env.CERNION_OPEN_WEBUI_BRIDGE_TIMEOUT_MS,
+      1_000,
+      60_000,
+      DEFAULT_TIMEOUT_MS
+    ),
   };
 }
 
@@ -198,7 +204,12 @@ function normalizeAnswer(upstream) {
     typeof answer === 'string' && answer.trim()
       ? answer
       : 'Cernion did not return an expected answer field for this Sidecar response.';
-  const evidence = firstDefined(source?.evidence, source?.sources, upstream?.evidence, upstream?.sources);
+  const evidence = firstDefined(
+    source?.evidence,
+    source?.sources,
+    upstream?.evidence,
+    upstream?.sources
+  );
   const resolvedQuestion = firstDefined(source?.resolvedQuestion, upstream?.resolvedQuestion);
   const confidence = firstDefined(source?.confidence, upstream?.confidence);
   const turnId = firstDefined(
@@ -208,7 +219,12 @@ function normalizeAnswer(upstream) {
     upstream?.followUpContext?.turnId
   );
   const followUpContext = firstDefined(source?.followUpContext, upstream?.followUpContext);
-  const ontology = firstDefined(source?.ontology, source?.ontologyStatus, upstream?.ontology, upstream?.ontologyStatus);
+  const ontology = firstDefined(
+    source?.ontology,
+    source?.ontologyStatus,
+    upstream?.ontology,
+    upstream?.ontologyStatus
+  );
   const sections = [content];
   if (Array.isArray(evidence) && evidence.length) {
     sections.push(
@@ -346,7 +362,11 @@ function createBridgeServer(options = {}) {
     try {
       body = await readJsonBody(req);
     } catch (error) {
-      sendJson(res, error.code === 'BODY_TOO_LARGE' ? 413 : 400, openAiError('invalid_request_error', error.message));
+      sendJson(
+        res,
+        error.code === 'BODY_TOO_LARGE' ? 413 : 400,
+        openAiError('invalid_request_error', error.message)
+      );
       return;
     }
 
@@ -375,12 +395,22 @@ function createBridgeServer(options = {}) {
       });
       const normalized = normalizeAnswer(upstream);
       if (normalized.turnId) turnState.set(conversationId, normalized.turnId);
-      sendJson(res, 200, chatCompletionBody({ modelId: config.modelId || DEFAULT_MODEL_ID, content: normalized.content }));
+      sendJson(
+        res,
+        200,
+        chatCompletionBody({
+          modelId: config.modelId || DEFAULT_MODEL_ID,
+          content: normalized.content,
+        })
+      );
     } catch (error) {
       sendJson(
         res,
         error.name === 'AbortError' ? 504 : 502,
-        openAiError('sidecar_upstream_error', 'Cernion Sidecar request failed. Check the configured session URL, token scope and expiry.')
+        openAiError(
+          'sidecar_upstream_error',
+          'Cernion Sidecar request failed. Check the configured session URL, token scope and expiry.'
+        )
       );
     }
   });
@@ -391,7 +421,9 @@ if (require.main === module) {
   const server = createBridgeServer(config);
   server.listen(config.port, config.host, () => {
     // eslint-disable-next-line no-console
-    console.log(`Cernion Open WebUI Sidecar bridge listening on http://${config.host}:${config.port}`);
+    console.log(
+      `Cernion Open WebUI Sidecar bridge listening on http://${config.host}:${config.port}`
+    );
   });
 }
 
