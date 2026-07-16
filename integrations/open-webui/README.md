@@ -4,6 +4,10 @@ This directory contains two independent, dependency-light OpenAPI tool servers a
 harness for the first one. Each server exposes exactly one Open WebUI-importable operation and
 uses its own env-only credential:
 
+> **Deployment and safety:** before running this beyond a disposable local demo, read
+> [`RUNBOOK.md`](./RUNBOOK.md) — it covers the local-only vs. shared/team profile, RBAC,
+> user/global tool-server registration, session/credential lifecycle, and the smoke checklist.
+
 - `cernion-openapi-tool-server.js` — read-only Evidence Lookup (delegates to the Agent Sidecar).
 - `cernion-process-intake-tool-server.js` — **draft-only** Process Intake preview (delegates to
   the existing Process Intake action). **This is not a production write path.**
