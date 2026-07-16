@@ -420,7 +420,6 @@ if (require.main === module) {
   const config = buildConfigFromEnv(process.env);
   const server = createBridgeServer(config);
   server.listen(config.port, config.host, () => {
-    // eslint-disable-next-line no-console
     console.log(
       `Cernion Open WebUI Sidecar bridge listening on http://${config.host}:${config.port}`
     );
