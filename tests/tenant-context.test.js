@@ -145,6 +145,7 @@ describe('Token Manager Integration — tenantId', () => {
     const svc = Object.create(tokenManagerService);
     svc.settings = { ...tokenManagerService.settings, storageFile };
     svc.logger = { warn: jest.fn(), debug: jest.fn(), info: jest.fn() };
+    svc._doCreateToken = tokenManagerService.methods._doCreateToken.bind(svc);
     svc.loadTokens = tokenManagerService.methods.loadTokens.bind(svc);
     svc.saveTokens = tokenManagerService.methods.saveTokens.bind(svc);
     return svc;

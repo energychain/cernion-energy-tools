@@ -57,16 +57,6 @@ function latestReleaseHeading(changelogText) {
   return match ? match[1] : 'unknown';
 }
 
-function truncateOneLine(text, maxLen) {
-  const oneLine = String(text || '')
-    .replace(/\s+/g, ' ')
-    .trim();
-  if (oneLine.length <= maxLen) return oneLine;
-  const cut = oneLine.slice(0, maxLen - 1);
-  const lastSpace = cut.lastIndexOf(' ');
-  return `${(lastSpace > 0 ? cut.slice(0, lastSpace) : cut).trim()}…`;
-}
-
 function summarizeOpenApi(spec) {
   const paths = Object.keys(spec.paths || {}).sort();
   const operations = [];
@@ -170,7 +160,7 @@ function renderClusterManifest(buckets) {
     const recipeLines = bucket.recipes
       .slice()
       .sort((a, b) => a.id.localeCompare(b.id))
-      .map((r) => `  ${r.id} "${truncateOneLine(r.problem, 60)}"`)
+      .map((r) => `  ${r.id}`)
       .join('\n');
     const dedupedOps = dedupeOperations(bucket.operations);
 
