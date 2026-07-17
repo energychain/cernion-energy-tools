@@ -2,20 +2,21 @@
 'use strict';
 
 const http = require('node:http');
+const { readJsonBody } = require('./http-json');
 
 const DEFAULT_HOST = '127.0.0.1';
 const DEFAULT_PORT = 8087;
 const DEFAULT_MODEL_ID = 'cernion-sidecar-session';
 const MAX_BODY_BYTES = 64 * 1024;
 const DEFAULT_TIMEOUT_MS = 30_000;
+const DEFAULT_TURN_STATE_MAX_ENTRIES = 1_000;
+const DEFAULT_TURN_STATE_TTL_MS = 30 * 60 * 1_000;
 const REQUIRED_CONFIG = ['manifestUrl', 'askUrl', 'planUrl', 'expiresAt'];
-const PLANNING_PATTERN =
-  /(^|[^\p{L}\p{N}])(plan|planung|planen|plane|vorgehen|roadmap|schritte|blueprint)([^\p{L}\p{N}]|$)/iu;
 
 function buildConfigFromEnv(env = process.env) {
   return {
     host: env.CERNION_OPEN_WEBUI_BRIDGE_HOST || DEFAULT_HOST,
-    port: Number(env.CERNION_OPEN_WEBUI_BRIDGE_PORT || DEFAULT_PORT),
+    port: clampInteger(env.CERNION_OPEN_WEBUI_BRIDGE_PORT, 1, 65_535, DEFAULT_PORT),
     manifestUrl: env.CERNION_SIDECAR_MANIFEST_URL || '',
     askUrl: env.CERNION_SIDECAR_ASK_URL || '',
     planUrl: env.CERNION_SIDECAR_PLAN_URL || '',
@@ -28,12 +29,30 @@ function buildConfigFromEnv(env = process.env) {
       60_000,
       DEFAULT_TIMEOUT_MS
     ),
+    turnStateMaxEntries: clampInteger(
+      env.CERNION_OPEN_WEBUI_TURN_STATE_MAX_ENTRIES,
+      1,
+      10_000,
+      DEFAULT_TURN_STATE_MAX_ENTRIES
+    ),
+    turnStateTtlMs: clampNumber(
+      env.CERNION_OPEN_WEBUI_TURN_STATE_TTL_MS,
+      1_000,
+      24 * 60 * 60 * 1_000,
+      DEFAULT_TURN_STATE_TTL_MS
+    ),
   };
 }
 
 function clampNumber(value, min, max, fallback) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(max, Math.max(min, parsed));
+}
+
+function clampInteger(value, min, max, fallback) {
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed)) return fallback;
   return Math.min(max, Math.max(min, parsed));
 }
 
@@ -50,37 +69,6 @@ function isPlainObject(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
   const prototype = Object.getPrototypeOf(value);
   return prototype === Object.prototype || prototype === null;
-}
-
-function readJsonBody(req) {
-  return new Promise((resolve, reject) => {
-    let size = 0;
-    const chunks = [];
-    let rejected = false;
-    req.on('data', (chunk) => {
-      if (rejected) return;
-      size += chunk.length;
-      if (size > MAX_BODY_BYTES) {
-        rejected = true;
-        const error = new Error('request body too large');
-        error.code = 'BODY_TOO_LARGE';
-        reject(error);
-        return;
-      }
-      chunks.push(chunk);
-    });
-    req.on('end', () => {
-      if (size > MAX_BODY_BYTES) return;
-      try {
-        resolve(JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}'));
-      } catch {
-        const error = new Error('request body must be valid JSON');
-        error.code = 'INVALID_JSON';
-        reject(error);
-      }
-    });
-    req.on('error', reject);
-  });
 }
 
 function validateHttpUrl(url, field) {
@@ -141,10 +129,12 @@ function healthBody(config, now = Date.now()) {
   };
 }
 
-function isPlanningRequest(question, metadata = {}) {
-  if (metadata.sidecarMode === 'plan') return true;
-  if (metadata.sidecarMode === 'ask') return false;
-  return PLANNING_PATTERN.test(String(question || ''));
+function transportModeFrom(body, req) {
+  const metadata = isPlainObject(body.metadata) ? body.metadata : {};
+  const requestedMode = firstDefined(metadata.sidecarMode, req.headers['x-cernion-sidecar-mode']);
+  if (requestedMode === undefined || requestedMode === null || requestedMode === '') return 'ask';
+  if (requestedMode === 'ask' || requestedMode === 'plan') return requestedMode;
+  return null;
 }
 
 function extractQuestion(body) {
@@ -181,11 +171,51 @@ function conversationIdFrom(body, req) {
     req.headers['x-cernion-conversation-id'],
   ];
   const value = candidates.find((entry) => typeof entry === 'string' && entry.trim());
-  return value ? value.trim().slice(0, 200) : 'default';
+  return value ? value.trim().slice(0, 200) : null;
 }
 
 function firstDefined(...values) {
   return values.find((value) => value !== undefined && value !== null);
+}
+
+function createTurnState(options = {}) {
+  const maxEntries = clampInteger(options.maxEntries, 1, 10_000, DEFAULT_TURN_STATE_MAX_ENTRIES);
+  const ttlMs = clampNumber(options.ttlMs, 1, 24 * 60 * 60 * 1_000, DEFAULT_TURN_STATE_TTL_MS);
+  const now = options.now || Date.now;
+  const entries = new Map();
+
+  const pruneExpired = () => {
+    const currentTime = now();
+    for (const [conversationId, entry] of entries) {
+      if (entry.expiresAt <= currentTime) entries.delete(conversationId);
+    }
+  };
+
+  return {
+    get(conversationId) {
+      if (!conversationId) return undefined;
+      const entry = entries.get(conversationId);
+      if (!entry) return undefined;
+      if (entry.expiresAt <= now()) {
+        entries.delete(conversationId);
+        return undefined;
+      }
+      entries.delete(conversationId);
+      entries.set(conversationId, entry);
+      return entry.turnId;
+    },
+    set(conversationId, turnId) {
+      if (!conversationId || !turnId) return;
+      pruneExpired();
+      entries.delete(conversationId);
+      entries.set(conversationId, { turnId, expiresAt: now() + ttlMs });
+      while (entries.size > maxEntries) entries.delete(entries.keys().next().value);
+    },
+    get size() {
+      pruneExpired();
+      return entries.size;
+    },
+  };
 }
 
 function normalizeAnswer(upstream) {
@@ -268,22 +298,68 @@ async function callSidecar({ config, url, payload, fetchImpl }) {
       signal: controller.signal,
     });
     const text = await response.text();
-    let body = {};
-    try {
-      body = text ? JSON.parse(text) : {};
-    } catch {
-      body = { raw: text.slice(0, 500) };
-    }
     if (!response.ok) {
       const error = new Error(`Sidecar returned HTTP ${response.status}`);
       error.status = response.status;
-      error.body = body;
       throw error;
     }
-    return body;
+    try {
+      return text ? JSON.parse(text) : {};
+    } catch {
+      return { raw: text.slice(0, 500) };
+    }
   } finally {
     clearTimeout(timer);
   }
+}
+
+function upstreamFailure(error) {
+  if (error.name === 'AbortError') {
+    return {
+      status: 504,
+      body: openAiError(
+        'sidecar_upstream_timeout',
+        'The Cernion Sidecar request timed out. Retry the request.'
+      ),
+    };
+  }
+  if (error.status === 410) {
+    return {
+      status: 410,
+      body: openAiError(
+        'sidecar_session_expired',
+        'The Cernion Sidecar session has expired. Generate a new Sidecar session and update the bridge environment variables.',
+        'new_session_required'
+      ),
+    };
+  }
+  if (error.status === 401) {
+    return {
+      status: 401,
+      body: openAiError(
+        'sidecar_authentication_error',
+        'The Cernion Sidecar rejected the configured session credential.',
+        'session_authentication_required'
+      ),
+    };
+  }
+  if (error.status === 403) {
+    return {
+      status: 403,
+      body: openAiError(
+        'sidecar_authorization_error',
+        'The configured Cernion Sidecar session is not permitted to perform this request.',
+        'session_scope_insufficient'
+      ),
+    };
+  }
+  return {
+    status: 502,
+    body: openAiError(
+      'sidecar_upstream_error',
+      'Cernion Sidecar request failed. Check the configured session URL, token scope and expiry.'
+    ),
+  };
 }
 
 function chatCompletionBody({ modelId, content }) {
@@ -306,7 +382,11 @@ function chatCompletionBody({ modelId, content }) {
 function createBridgeServer(options = {}) {
   const config = { ...buildConfigFromEnv({}), ...options };
   const fetchImpl = options.fetchImpl || fetch;
-  const turnState = options.turnState || new Map();
+  const turnState = createTurnState({
+    maxEntries: config.turnStateMaxEntries,
+    ttlMs: config.turnStateTtlMs,
+    now: options.now,
+  });
 
   return http.createServer(async (req, res) => {
     const path = new URL(req.url, 'http://127.0.0.1').pathname;
@@ -360,7 +440,7 @@ function createBridgeServer(options = {}) {
 
     let body;
     try {
-      body = await readJsonBody(req);
+      body = await readJsonBody(req, { maxBytes: MAX_BODY_BYTES });
     } catch (error) {
       sendJson(
         res,
@@ -376,20 +456,30 @@ function createBridgeServer(options = {}) {
       return;
     }
 
-    const metadata = isPlainObject(body.metadata) ? body.metadata : {};
+    const transportMode = transportModeFrom(body, req);
+    if (!transportMode) {
+      sendJson(
+        res,
+        400,
+        openAiError(
+          'invalid_request_error',
+          'metadata.sidecarMode or x-cernion-sidecar-mode must be "ask" or "plan".'
+        )
+      );
+      return;
+    }
+
     const conversationId = conversationIdFrom(body, req);
     const parentTurnId = turnState.get(conversationId);
-    const usePlan = isPlanningRequest(question, metadata);
     const payload = {
-      question,
+      [transportMode === 'plan' ? 'task' : 'question']: question,
       ...(parentTurnId ? { parentTurnId } : {}),
-      ...(isPlainObject(metadata) ? { metadata } : {}),
     };
 
     try {
       const upstream = await callSidecar({
         config,
-        url: usePlan ? config.planUrl : config.askUrl,
+        url: transportMode === 'plan' ? config.planUrl : config.askUrl,
         payload,
         fetchImpl,
       });
@@ -404,14 +494,8 @@ function createBridgeServer(options = {}) {
         })
       );
     } catch (error) {
-      sendJson(
-        res,
-        error.name === 'AbortError' ? 504 : 502,
-        openAiError(
-          'sidecar_upstream_error',
-          'Cernion Sidecar request failed. Check the configured session URL, token scope and expiry.'
-        )
-      );
+      const failure = upstreamFailure(error);
+      sendJson(res, failure.status, failure.body);
     }
   });
 }
@@ -429,7 +513,8 @@ if (require.main === module) {
 module.exports = {
   buildConfigFromEnv,
   createBridgeServer,
+  createTurnState,
   healthBody,
-  isPlanningRequest,
   normalizeAnswer,
+  transportModeFrom,
 };

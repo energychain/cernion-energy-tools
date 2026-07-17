@@ -14,10 +14,12 @@ services:
       CERNION_SIDECAR_PLAN_URL: ${CERNION_SIDECAR_PLAN_URL:?set a Sidecar plan URL}
       CERNION_SIDECAR_EXPIRES_AT: ${CERNION_SIDECAR_EXPIRES_AT:?set the Sidecar expiry timestamp}
       CERNION_SIDECAR_TOKEN: ${CERNION_SIDECAR_TOKEN:-}
+      CERNION_OPEN_WEBUI_TURN_STATE_MAX_ENTRIES: ${CERNION_OPEN_WEBUI_TURN_STATE_MAX_ENTRIES:-1000}
+      CERNION_OPEN_WEBUI_TURN_STATE_TTL_MS: ${CERNION_OPEN_WEBUI_TURN_STATE_TTL_MS:-1800000}
     ports:
-      - "127.0.0.1:8087:8087"
+      - '127.0.0.1:8087:8087'
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8087/health"]
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:8087/health']
       interval: 10s
       timeout: 3s
       retries: 3
@@ -26,14 +28,14 @@ services:
     image: ghcr.io/open-webui/open-webui:main
     depends_on:
       cernion-sidecar-bridge:
-        condition: service_started
+        condition: service_healthy
     environment:
       OPENAI_API_BASE_URLS: http://cernion-sidecar-bridge:8087/v1
       OPENAI_API_KEYS: local-cernion-placeholder
       DEFAULT_MODELS: ${CERNION_OPEN_WEBUI_MODEL_ID:-cernion-dev-sidecar}
       WEBUI_AUTH: ${WEBUI_AUTH:-False}
     ports:
-      - "127.0.0.1:3000:8080"
+      - '127.0.0.1:3000:8080'
     volumes:
       - open-webui-data:/app/backend/data
 

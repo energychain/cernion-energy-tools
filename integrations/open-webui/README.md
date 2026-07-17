@@ -27,7 +27,7 @@ Start the bridge after generating or receiving a Sidecar session manifest:
 CERNION_SIDECAR_MANIFEST_URL='https://.../manifest.json' \
 CERNION_SIDECAR_ASK_URL='https://.../ask' \
 CERNION_SIDECAR_PLAN_URL='https://.../plan' \
-CERNION_SIDECAR_EXPIRES_AT='2026-07-16T12:00:00.000Z' \
+CERNION_SIDECAR_EXPIRES_AT='2999-01-01T00:00:00.000Z' \
 CERNION_OPEN_WEBUI_MODEL_ID='cernion-dev-sidecar' \
 CERNION_SIDECAR_TOKEN='<session token if required>' \
 node integrations/open-webui/cernion-sidecar-bridge.js
@@ -46,12 +46,18 @@ Session lifecycle and routing rules:
 - Missing session config fails closed with HTTP 503.
 - Expired sessions fail closed with HTTP 410 and recovery guidance to generate a new Sidecar
   session; the bridge never guesses replacement URLs.
-- Latest `turnId` is stored per Open WebUI conversation id (`metadata.chat_id`,
+- Latest `turnId` is stored only when Open WebUI supplies a conversation id (`metadata.chat_id`,
   `metadata.conversation_id`, compatible aliases, or headers) and sent as `parentTurnId` only for
-  that conversation.
-- Planning uses explicit planning words (`Plan`, `Planung`, `Vorgehen`, `Roadmap`, `Schritte`,
-  `Blueprint`) or `metadata.sidecarMode: "plan"`; domain words such as `Zielnetzplanung` stay on
-  the `ask` path.
+  that conversation. Requests without an id do not share fallback state. The in-process store is
+  bounded by LRU eviction and TTL expiry (`CERNION_OPEN_WEBUI_TURN_STATE_MAX_ENTRIES`, default
+  `1000`; `CERNION_OPEN_WEBUI_TURN_STATE_TTL_MS`, default `1800000`).
+- Routing is transport-explicit: `metadata.sidecarMode: "plan"` (or the
+  `x-cernion-sidecar-mode: plan` header) selects `plan`; `ask` is the default. Prompt words and
+  domain terms never select a transport. Unknown explicit modes fail closed with HTTP 400.
+- The `ask` transport sends `{ "question": "..." }`; the `plan` transport sends
+  `{ "task": "..." }`, plus `parentTurnId` only when isolated conversation state exists.
+- Upstream `410`, `401`, and `403` retain their HTTP semantics with sanitized error bodies; other
+  upstream failures are mapped to `502` and timeouts to `504`.
 
 Local disposable demo stack:
 
@@ -59,13 +65,18 @@ Local disposable demo stack:
 CERNION_SIDECAR_MANIFEST_URL='https://.../manifest.json' \
 CERNION_SIDECAR_ASK_URL='https://.../ask' \
 CERNION_SIDECAR_PLAN_URL='https://.../plan' \
-CERNION_SIDECAR_EXPIRES_AT='2026-07-16T12:00:00.000Z' \
+CERNION_SIDECAR_EXPIRES_AT='2999-01-01T00:00:00.000Z' \
 docker compose -f integrations/open-webui/docker-compose.yml up
 ```
 
 `WEBUI_AUTH=False` in the compose file is for loopback-only local testing. Do not expose that
 Open WebUI instance on a shared network or the public internet without authentication and separate
 Dev/Production credentials.
+
+The bridge currently returns non-streaming OpenAI chat completions and keeps bounded turn state in
+one process. Before a shared or multi-replica deployment, add/verify streaming semantics and use
+sticky routing or an external tenant-scoped state store; the TTL/LRU store is local hardening, not
+a distributed-session design.
 
 ## Read-only Evidence tool server
 

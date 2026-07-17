@@ -6,7 +6,7 @@ const test = require('node:test');
 const {
   buildConfigFromEnv,
   createBridgeServer,
-  isPlanningRequest,
+  createTurnState,
 } = require('./cernion-sidecar-bridge');
 
 async function listen(server) {
@@ -51,22 +51,28 @@ function completeConfig(overrides = {}) {
   };
 }
 
-test('buildConfigFromEnv reads runtime session URLs, model id and expiry without logging secrets', () => {
+test('buildConfigFromEnv reads and bounds runtime configuration without logging secrets', () => {
   const config = buildConfigFromEnv({
+    CERNION_OPEN_WEBUI_BRIDGE_PORT: 'invalid',
     CERNION_SIDECAR_MANIFEST_URL: 'https://sidecar.example/manifest',
     CERNION_SIDECAR_ASK_URL: 'https://sidecar.example/ask',
     CERNION_SIDECAR_PLAN_URL: 'https://sidecar.example/plan',
     CERNION_SIDECAR_EXPIRES_AT: '2999-01-01T00:00:00.000Z',
     CERNION_OPEN_WEBUI_MODEL_ID: 'cernion-dev',
     CERNION_SIDECAR_TOKEN: 'do-not-leak',
+    CERNION_OPEN_WEBUI_TURN_STATE_MAX_ENTRIES: '999999',
+    CERNION_OPEN_WEBUI_TURN_STATE_TTL_MS: '500',
   });
 
+  assert.equal(config.port, 8087);
   assert.equal(config.manifestUrl, 'https://sidecar.example/manifest');
   assert.equal(config.askUrl, 'https://sidecar.example/ask');
   assert.equal(config.planUrl, 'https://sidecar.example/plan');
   assert.equal(config.expiresAt, '2999-01-01T00:00:00.000Z');
   assert.equal(config.modelId, 'cernion-dev');
   assert.equal(config.token, 'do-not-leak');
+  assert.equal(config.turnStateMaxEntries, 10_000);
+  assert.equal(config.turnStateTtlMs, 1_000);
 });
 
 test('health reports missing configuration without exposing credentials', async () => {
@@ -145,26 +151,24 @@ test('conversation turn state is isolated per Open WebUI conversation id', async
   }
 });
 
-test('ask/plan routing uses explicit planning terms and does not misroute Zielnetzplanung', async () => {
-  assert.equal(isPlanningRequest('Bitte erstelle einen Plan für die Prüfung'), true);
-  assert.equal(isPlanningRequest('Was ist bei Zielnetzplanung fachlich zu beachten?'), false);
-
+test('transport routing is explicit and plan uses the Sidecar {task} contract', async () => {
   const calls = [];
   const server = await listen(
     createBridgeServer({
       ...completeConfig(),
-      fetchImpl: async (url) => {
-        calls.push(url);
+      fetchImpl: async (url, options) => {
+        calls.push({ url, payload: JSON.parse(options.body) });
         return jsonResponse({ answer: 'ok', turnId: `turn-${calls.length}` });
       },
     })
   );
   try {
+    const question = 'Bitte erstelle einen Plan für die Zielnetzplanung';
     await jsonRequest(server.baseUrl, '/v1/chat/completions', {
       method: 'POST',
       body: JSON.stringify({
         model: 'cernion-dev-sidecar',
-        messages: [{ role: 'user', content: 'Was ist bei Zielnetzplanung fachlich zu beachten?' }],
+        messages: [{ role: 'user', content: question }],
       }),
     });
     await jsonRequest(server.baseUrl, '/v1/chat/completions', {
@@ -172,13 +176,123 @@ test('ask/plan routing uses explicit planning terms and does not misroute Zielne
       body: JSON.stringify({
         model: 'cernion-dev-sidecar',
         metadata: { sidecarMode: 'plan' },
-        messages: [{ role: 'user', content: 'Was ist bei Zielnetzplanung fachlich zu beachten?' }],
+        messages: [{ role: 'user', content: question }],
       }),
     });
 
-    assert.equal(calls[0], 'https://sidecar.example/session/ask');
-    assert.equal(calls[1], 'https://sidecar.example/session/plan');
+    assert.deepEqual(calls[0], {
+      url: 'https://sidecar.example/session/ask',
+      payload: { question },
+    });
+    assert.deepEqual(calls[1], {
+      url: 'https://sidecar.example/session/plan',
+      payload: { task: question },
+    });
   } finally {
     await server.close();
+  }
+});
+
+test('requests without a conversation id never share implicit turn state', async () => {
+  const payloads = [];
+  const server = await listen(
+    createBridgeServer({
+      ...completeConfig(),
+      fetchImpl: async (_url, options) => {
+        payloads.push(JSON.parse(options.body));
+        return jsonResponse({ answer: 'ok', turnId: `turn-${payloads.length}` });
+      },
+    })
+  );
+  try {
+    for (const question of ['First anonymous chat', 'Different anonymous chat']) {
+      const result = await jsonRequest(server.baseUrl, '/v1/chat/completions', {
+        method: 'POST',
+        body: JSON.stringify({
+          messages: [{ role: 'user', content: question }],
+        }),
+      });
+      assert.equal(result.response.status, 200);
+    }
+
+    assert.deepEqual(payloads, [
+      { question: 'First anonymous chat' },
+      { question: 'Different anonymous chat' },
+    ]);
+  } finally {
+    await server.close();
+  }
+});
+
+test('turn state expires by TTL and evicts the least-recently-used conversation', () => {
+  let now = 1_000;
+  const state = createTurnState({ maxEntries: 2, ttlMs: 100, now: () => now });
+
+  state.set('chat-a', 'turn-a');
+  state.set('chat-b', 'turn-b');
+  assert.equal(state.get('chat-a'), 'turn-a');
+  state.set('chat-c', 'turn-c');
+
+  assert.equal(state.get('chat-b'), undefined);
+  assert.equal(state.get('chat-a'), 'turn-a');
+  assert.equal(state.get('chat-c'), 'turn-c');
+  assert.equal(state.size, 2);
+
+  now += 101;
+  assert.equal(state.get('chat-a'), undefined);
+  assert.equal(state.get('chat-c'), undefined);
+  assert.equal(state.size, 0);
+});
+
+test('invalid explicit transport mode fails before any upstream call', async () => {
+  let calls = 0;
+  const server = await listen(
+    createBridgeServer({
+      ...completeConfig(),
+      fetchImpl: async () => {
+        calls += 1;
+        return jsonResponse({ answer: 'unexpected' });
+      },
+    })
+  );
+  try {
+    const { response, body } = await jsonRequest(server.baseUrl, '/v1/chat/completions', {
+      method: 'POST',
+      body: JSON.stringify({
+        metadata: { sidecarMode: 'automatic' },
+        messages: [{ role: 'user', content: 'Question' }],
+      }),
+    });
+    assert.equal(response.status, 400);
+    assert.equal(body.error.type, 'invalid_request_error');
+    assert.equal(calls, 0);
+  } finally {
+    await server.close();
+  }
+});
+
+test('upstream session and authorization failures preserve safe status semantics', async () => {
+  for (const [status, type] of [
+    [410, 'sidecar_session_expired'],
+    [401, 'sidecar_authentication_error'],
+    [403, 'sidecar_authorization_error'],
+  ]) {
+    const server = await listen(
+      createBridgeServer({
+        ...completeConfig(),
+        fetchImpl: async () => jsonResponse({ detail: `private-upstream-${status}` }, status),
+      })
+    );
+    try {
+      const { response, body } = await jsonRequest(server.baseUrl, '/v1/chat/completions', {
+        method: 'POST',
+        body: JSON.stringify({ messages: [{ role: 'user', content: 'Question' }] }),
+      });
+      assert.equal(response.status, status);
+      assert.equal(body.error.type, type);
+      assert.doesNotMatch(JSON.stringify(body), /private-upstream/);
+    } finally {
+      await server.close();
+    }
   }
 });
