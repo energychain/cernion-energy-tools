@@ -48,7 +48,11 @@ describe('Energy Market Service', () => {
             if (!objectStoreData.has(id)) {
               throw new MoleculerClientError('Not found', 404, 'OBJECT_NOT_FOUND');
             }
-            return { namespace: ctx.params.namespace, key: ctx.params.key, payload: objectStoreData.get(id) };
+            return {
+              namespace: ctx.params.namespace,
+              key: ctx.params.key,
+              payload: objectStoreData.get(id),
+            };
           },
         },
         put: {
@@ -1511,8 +1515,18 @@ describe('Energy Market Service', () => {
       expect(result.portfolio.captureRate).toBe(-0.7144);
       expect(result.monthly).toHaveLength(1);
       expect(result.timeseries).toEqual([
-        { timestamp: '2026-06-29T00:00:00.000Z', generationMwh: 0.75, priceEurPerMwh: 100, marketValueEur: 75 },
-        { timestamp: '2026-06-29T01:00:00.000Z', generationMwh: 2.75, priceEurPerMwh: -50, marketValueEur: -137.5 },
+        {
+          timestamp: '2026-06-29T00:00:00.000Z',
+          generationMwh: 0.75,
+          priceEurPerMwh: 100,
+          marketValueEur: 75,
+        },
+        {
+          timestamp: '2026-06-29T01:00:00.000Z',
+          generationMwh: 2.75,
+          priceEurPerMwh: -50,
+          marketValueEur: -137.5,
+        },
       ]);
 
       expect(result.assets[0]).toMatchObject({
@@ -1558,7 +1572,14 @@ describe('Energy Market Service', () => {
         dateTo: '2026-06-29',
         resolution: 'daily',
         includeTimeseries: true,
-        assets: [{ mastrNumber: 'SEE123456789012', type: 'solar', capacityKw: 742.5, commissioningDate: '2020-06-01' }],
+        assets: [
+          {
+            mastrNumber: 'SEE123456789012',
+            type: 'solar',
+            capacityKw: 742.5,
+            commissioningDate: '2020-06-01',
+          },
+        ],
       });
 
       expect(result.success).toBe(true);
@@ -1581,7 +1602,12 @@ describe('Energy Market Service', () => {
         captureRate: 1.1,
       });
       expect(result.timeseries).toEqual([
-        { timestamp: '2026-06-29T00:00:00Z', generationMwh: 2, priceEurPerMwh: 100, marketValueEur: 220 },
+        {
+          timestamp: '2026-06-29T00:00:00Z',
+          generationMwh: 2,
+          priceEurPerMwh: 100,
+          marketValueEur: 220,
+        },
       ]);
     });
 
@@ -1688,7 +1714,9 @@ describe('Energy Market Service', () => {
       });
 
       expect(result.success).toBe(true);
-      const priceCalls = callWithNewSession.mock.calls.filter((c) => c[0] === 'entsoe_day_ahead_prices');
+      const priceCalls = callWithNewSession.mock.calls.filter(
+        (c) => c[0] === 'entsoe_day_ahead_prices'
+      );
       expect(priceCalls).toHaveLength(0);
       expect(result.portfolio.averageSpotPriceEurPerMwh).toBe(100);
     });
@@ -1714,8 +1742,14 @@ describe('Energy Market Service', () => {
       expect(cached).toBeDefined();
       expect(Array.isArray(cached.prices)).toBe(true);
       expect(cached.prices).toHaveLength(2);
-      expect(cached.prices[0]).toMatchObject({ timestamp: '2026-06-28T00:00:00.000Z', priceEurMwh: 90 });
-      expect(cached.prices[1]).toMatchObject({ timestamp: '2026-06-28T01:00:00.000Z', priceEurMwh: 110 });
+      expect(cached.prices[0]).toMatchObject({
+        timestamp: '2026-06-28T00:00:00.000Z',
+        priceEurMwh: 90,
+      });
+      expect(cached.prices[1]).toMatchObject({
+        timestamp: '2026-06-28T01:00:00.000Z',
+        priceEurMwh: 110,
+      });
     });
 
     it('serves MaStR generation batches from object-store cache without calling MCP', async () => {
@@ -1736,7 +1770,14 @@ describe('Energy Market Service', () => {
       const result = await broker.call('energy-market.portfolioBacktest', {
         dateFrom: '2026-06-01',
         dateTo: '2026-06-01',
-        assets: [{ mastrNumber: 'SEE999000111', type: 'solar', capacityKw: 500, commissioningDate: '2020-01-01' }],
+        assets: [
+          {
+            mastrNumber: 'SEE999000111',
+            type: 'solar',
+            capacityKw: 500,
+            commissioningDate: '2020-01-01',
+          },
+        ],
       });
 
       expect(result.success).toBe(true);
@@ -1763,7 +1804,14 @@ describe('Energy Market Service', () => {
       await broker.call('energy-market.portfolioBacktest', {
         dateFrom: '2026-06-01',
         dateTo: '2026-06-01',
-        assets: [{ mastrNumber: 'SEE999000222', type: 'solar', capacityKw: 500, commissioningDate: '2020-01-01' }],
+        assets: [
+          {
+            mastrNumber: 'SEE999000222',
+            type: 'solar',
+            capacityKw: 500,
+            commissioningDate: '2020-01-01',
+          },
+        ],
       });
 
       await new Promise((r) => setTimeout(r, 10));
@@ -1772,7 +1820,10 @@ describe('Energy Market Service', () => {
       expect(cached).toBeDefined();
       expect(Array.isArray(cached.forecasts)).toBe(true);
       expect(cached.forecasts).toHaveLength(2);
-      expect(cached.forecasts[0]).toMatchObject({ timestamp: '2026-06-01T00:00:00.000Z', generationMwh: 0.4 });
+      expect(cached.forecasts[0]).toMatchObject({
+        timestamp: '2026-06-01T00:00:00.000Z',
+        generationMwh: 0.4,
+      });
     });
 
     it('attaches plausibility block to portfolio and each asset', async () => {
@@ -1822,7 +1873,9 @@ describe('Energy Market Service', () => {
 
       // Methodology block enrichment
       expect(result.methodology.commissioningDatePolicy).toContain('commissioning_date_missing');
-      expect(result.methodology.generationModel).toContain('mastr_generation_forecast_historical_mode');
+      expect(result.methodology.generationModel).toContain(
+        'mastr_generation_forecast_historical_mode'
+      );
       expect(result.methodology.orientationYieldBasis).toContain('950');
     });
 
@@ -1839,7 +1892,11 @@ describe('Energy Market Service', () => {
 
       const result = await broker.call(
         'energy-market.portfolioBacktest',
-        { dateFrom: '2026-06-29', dateTo: '2026-06-29', assets: [{ type: 'storage', capacityKw: 1 }] },
+        {
+          dateFrom: '2026-06-29',
+          dateTo: '2026-06-29',
+          assets: [{ type: 'storage', capacityKw: 1 }],
+        },
         { meta: { $gateway: true } }
       );
 

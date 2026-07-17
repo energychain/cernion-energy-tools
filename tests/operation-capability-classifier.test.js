@@ -65,7 +65,11 @@ describe('operation-capability-classifier', () => {
 
     it('classifies a GET tagged for the dashboard as dashboard_read', () => {
       const result = classifyOperation(
-        buildOp({ path: '/api/dashboard-api/overview', operationId: 'dashboard-api_overview', tags: ['Dashboard API'] })
+        buildOp({
+          path: '/api/dashboard-api/overview',
+          operationId: 'dashboard-api_overview',
+          tags: ['Dashboard API'],
+        })
       );
       expect(result.operationKind).toBe('dashboard_read');
     });
@@ -207,7 +211,9 @@ describe('operation-capability-classifier', () => {
     });
 
     it('classifies system-internal spec endpoints as internal and non-agentable', () => {
-      const result = classifyOperation(buildOp({ path: '/api/openapi.json', method: 'GET', operationId: 'openapi_json' }));
+      const result = classifyOperation(
+        buildOp({ path: '/api/openapi.json', method: 'GET', operationId: 'openapi_json' })
+      );
       expect(result.operationKind).toBe('internal');
       expect(result.agentable).toBe(false);
       expect(result.nonAgentableReason).toEqual(expect.any(String));

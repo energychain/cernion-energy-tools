@@ -74,8 +74,7 @@ const ROUTE_SEEDS = Object.freeze([
     requiredInputs: ['caseId'],
     tenantScopeBoundary: 'tenant_read_context_only',
     fallbackRoute: 'evidence-chain overview with explicit missing case context',
-    positiveFollowUp:
-      'case id enables dossier-ready market-communication evidence-chain filtering',
+    positiveFollowUp: 'case id enables dossier-ready market-communication evidence-chain filtering',
   },
   {
     routeKey: 'vdmi_workbench_projection',
@@ -88,8 +87,7 @@ const ROUTE_SEEDS = Object.freeze([
     requiredInputs: ['targetId'],
     tenantScopeBoundary: 'generated_workbench_projection_only',
     fallbackRoute: 'workbench projection route list with no live Budibase edit',
-    positiveFollowUp:
-      'target id enables a deterministic generated-workbench projection check',
+    positiveFollowUp: 'target id enables a deterministic generated-workbench projection check',
   },
 ]);
 
@@ -171,7 +169,9 @@ function buildRouteRow(seed, params) {
     intentFamily: seed.intentFamily,
     preferredAction: seed.preferredAction,
     preferredEndpoint: seed.preferredEndpoint,
-    sourceRegistry: candidate ? `${seed.sourceRegistry}+operation-capability-index` : seed.sourceRegistry,
+    sourceRegistry: candidate
+      ? `${seed.sourceRegistry}+operation-capability-index`
+      : seed.sourceRegistry,
     requiredInputs: [...seed.requiredInputs],
     tenantScopeBoundary: seed.tenantScopeBoundary,
     evidenceStatus,

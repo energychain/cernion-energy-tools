@@ -337,7 +337,8 @@ test('upstream policy rejection (409) normalizes without leaking credentials', a
         return jsonResponse(
           {
             name: 'MoleculerClientError',
-            message: 'operationFamily "vdmi" is reserved for a dedicated, validated prepare* action.',
+            message:
+              'operationFamily "vdmi" is reserved for a dedicated, validated prepare* action.',
             code: 409,
             type: 'PROCESS_INTAKE_RESERVED_OPERATION_FAMILY',
             data: { operationFamily: 'vdmi', token: secret },
