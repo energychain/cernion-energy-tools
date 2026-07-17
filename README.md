@@ -10,6 +10,20 @@
 [![Release](https://github.com/energychain/cernion-energy-tools/actions/workflows/release.yml/badge.svg)](https://github.com/energychain/cernion-energy-tools/actions/workflows/release.yml)
 [![codecov](https://codecov.io/gh/energychain/cernion-energy-tools/branch/main/graph/badge.svg)](https://codecov.io/gh/energychain/cernion-energy-tools)
 
+## OpenAI Build Week: AgentOps Receipt
+
+The Build Week Developer Tools extension is **AgentOps Receipt**: a one-command QA smoke
+harness for governed tool-using agents. It verifies read-only Sidecar policy, right-tool/right-schema
+receipt planning, evidence requirements and safe failure cases without live credentials or customer data.
+
+```bash
+node --test tests/agentops-receipt-smoke.test.js
+node tools/agentops-receipt/smoke.js
+```
+
+See [`docs/build-week-agentops-receipt.md`](docs/build-week-agentops-receipt.md) for the judge-facing
+quick start, safety boundaries and demo script.
+
 ## What This Repository Is
 
 Cernion Energy Tools is the backend runtime behind [cernion.de](https://cernion.de/):
