@@ -153,25 +153,27 @@ describe('blindflug-radar service', () => {
   });
 
   it('creates signals and confidence-threshold proposals from Redispatch+MaStR+findings', async () => {
+    const daysAgoIso = (days) => new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+
     znpProjects.push({ projectId: 'proj-1' });
     redispatchAudits.push(
       {
         id: 'rd-1',
-        createdAt: '2026-03-01T00:00:00.000Z',
+        createdAt: daysAgoIso(90),
         gridOperator: { mastrId: 'SNB1', name: 'Grid One' },
         riskAssessment: { riskLevel: 'high', estimatedLostCompensationEur: 1800000 },
         settlementReadiness: { readinessPercent: 61 },
       },
       {
         id: 'rd-2',
-        createdAt: '2026-03-20T00:00:00.000Z',
+        createdAt: daysAgoIso(60),
         gridOperator: { mastrId: 'SNB1', name: 'Grid One' },
         riskAssessment: { riskLevel: 'high', estimatedLostCompensationEur: 1700000 },
         settlementReadiness: { readinessPercent: 63 },
       },
       {
         id: 'rd-3',
-        createdAt: '2026-04-10T00:00:00.000Z',
+        createdAt: daysAgoIso(30),
         gridOperator: { mastrId: 'SNB1', name: 'Grid One' },
         riskAssessment: { riskLevel: 'high', estimatedLostCompensationEur: 1900000 },
         settlementReadiness: { readinessPercent: 60 },
@@ -181,15 +183,15 @@ describe('blindflug-radar service', () => {
     mastrWatches.push({ watchId: 'watch-1', name: 'Nord' });
     mastrDeltasByWatch.set('watch-1', [
       {
-        timestamp: '2026-03-15T00:00:00.000Z',
+        timestamp: daysAgoIso(90),
         summary: { added: 1, changed: 5, removed: 1 },
       },
       {
-        timestamp: '2026-04-18T00:00:00.000Z',
+        timestamp: daysAgoIso(60),
         summary: { added: 0, changed: 4, removed: 2 },
       },
       {
-        timestamp: '2026-04-29T00:00:00.000Z',
+        timestamp: daysAgoIso(30),
         summary: { added: 0, changed: 3, removed: 1 },
       },
     ]);
@@ -197,21 +199,21 @@ describe('blindflug-radar service', () => {
     qualityAudits.push(
       {
         id: 'mq-1',
-        createdAt: '2026-03-12T00:00:00.000Z',
+        createdAt: daysAgoIso(90),
         gridOperator: { mastrId: 'SNB1', name: 'Grid One' },
         qualityScore: 71,
         findingsCount: { info: 2, warning: 4, error: 1 },
       },
       {
         id: 'mq-2',
-        createdAt: '2026-04-11T00:00:00.000Z',
+        createdAt: daysAgoIso(60),
         gridOperator: { mastrId: 'SNB1', name: 'Grid One' },
         qualityScore: 70,
         findingsCount: { info: 2, warning: 3, error: 2 },
       },
       {
         id: 'mq-3',
-        createdAt: '2026-04-27T00:00:00.000Z',
+        createdAt: daysAgoIso(30),
         gridOperator: { mastrId: 'SNB1', name: 'Grid One' },
         qualityScore: 68,
         findingsCount: { info: 1, warning: 2, error: 1 },
