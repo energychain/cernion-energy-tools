@@ -662,6 +662,51 @@ const gridTransformationGateFixture = {
   missingEvidence: [],
 };
 
+const gridTransformationAutomationDecisionValueFixture = {
+  capabilityKey: 'automation_requirements_decision_value',
+  safety: 'read_only',
+  status: 'ready_for_requirements_review',
+  readinessScore: 1,
+  requirementContext: {
+    requirementId: 'grid-connection-transformation-gate',
+    requestTitle: 'Legacy-ERP Grid Connection Transformation Gate Overlay',
+    requestType: 'regulatory_decision_evidence_layer',
+    processArea: 'grid_connection_transformation',
+    decisionOwner: 'ROLE_NETZPLANUNG',
+    targetGate: 'grid_connection_transformation_gate',
+  },
+  decisionEvidence: {
+    sourceSystem: 'sap_is_u_s4hana_reference_only',
+    movingDataFlow: 'scada_gis_mds_to_evidence_layer_read_only',
+    manualEffort: 'shadow_it_excel_macro_replacement',
+    controlPoint: 'netzplanung_review_gate',
+    decisionValue: 'close_14a_agnes_ramen_energy_sharing_gap_without_erp_customizing',
+    followUpProcess: 'dossier_and_evidence_anchor_update',
+    dataQuality: 'verified',
+    rollbackOrStopCriterion: 'keep_read_only_and_blocked_if_evidence_missing',
+  },
+  missingEvidence: [],
+  positiveFollowUps: [],
+  sourceActions: {
+    inspected: ['dashboard-api.automationRequirementsDecisionValueStatus'],
+    notCalled: [
+      'powerbi.createDashboard',
+      'power-automate.createFlow',
+      'office.connector.call',
+      'workflow.create',
+      'ticket.create',
+      'hitl.create',
+      'vdmi.create',
+      'vdmi.update',
+      'sap.write',
+      'erp.write',
+      'external.connector.call',
+      'budibase.table.write',
+      'personal-agent.execute',
+    ],
+  },
+};
+
 const gasDataroomBlueprintFixture = {
   ...blueprintVerifyFixture,
   summary: {
@@ -2509,6 +2554,7 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
         '/api/dashboard/stadtwerk-mauer-transfer-readiness',
         '/api/dashboard/cross-system-variance-matrix',
         '/api/dashboard/grid-connection-transformation-gate',
+        '/api/dashboard/automation-requirements-decision-value',
       ])
     );
     expect(
@@ -3269,6 +3315,38 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       nextAction: 'verify_asset_znp_context',
       sourceClass: 'grid_connection_transformation_gate_focus',
     });
+
+    const gridAutomationDecisionValueRows = runTransformer(
+      'getVdmiBlueprintSelectorGridTransformationAutomationDecisionValueSummaryRows',
+      gridTransformationAutomationDecisionValueFixture
+    );
+    expectScalarRows(gridAutomationDecisionValueRows);
+    assertNoRawObjectText(gridAutomationDecisionValueRows);
+    expect(gridAutomationDecisionValueRows[0]).toMatchObject({
+      status: 'ready_for_requirements_review',
+      readinessScore: 1,
+      requirementId: 'grid-connection-transformation-gate',
+      processArea: 'grid_connection_transformation',
+      decisionOwner: 'ROLE_NETZPLANUNG',
+      targetGate: 'grid_connection_transformation_gate',
+      sourceSystem: 'sap_is_u_s4hana_reference_only',
+      decisionValue: 'close_14a_agnes_ramen_energy_sharing_gap_without_erp_customizing',
+      missingEvidence: '',
+      sourceClass: 'grid_connection_transformation_automation_decision_value_summary',
+    });
+
+    const gridAutomationDecisionValueGuardRows = runTransformer(
+      'getVdmiBlueprintSelectorGridTransformationAutomationDecisionValueNoCallGuardRows',
+      gridTransformationAutomationDecisionValueFixture
+    );
+    expectScalarRows(gridAutomationDecisionValueGuardRows);
+    expect(gridAutomationDecisionValueGuardRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ action: 'sap.write', status: 'not_called' }),
+        expect.objectContaining({ action: 'erp.write', status: 'not_called' }),
+        expect.objectContaining({ action: 'personal-agent.execute', status: 'not_called' }),
+      ])
+    );
 
     const gasSelectorRows = runTransformer(
       'getGasTransformationDataroomSeedSelectorRows',
