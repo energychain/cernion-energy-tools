@@ -666,7 +666,7 @@ const gridTransformationAutomationDecisionValueFixture = {
   capabilityKey: 'automation_requirements_decision_value',
   safety: 'read_only',
   status: 'ready_for_requirements_review',
-  readinessScore: 1,
+  readinessScore: 0.87,
   requirementContext: {
     requirementId: 'grid-connection-transformation-gate',
     requestTitle: 'Legacy-ERP Grid Connection Transformation Gate Overlay',
@@ -685,23 +685,29 @@ const gridTransformationAutomationDecisionValueFixture = {
     dataQuality: 'verified',
     rollbackOrStopCriterion: 'keep_read_only_and_blocked_if_evidence_missing',
   },
-  missingEvidence: [],
-  positiveFollowUps: [],
+  missingEvidence: [
+    { missingDataPoint: 'source_snapshot_ref' },
+    { missingDataPoint: 'evidence_ref' },
+  ],
+  positiveFollowUps: [
+    { missingDataPoint: 'source_snapshot_ref' },
+    { missingDataPoint: 'evidence_ref' },
+  ],
   sourceActions: {
     inspected: ['dashboard-api.automationRequirementsDecisionValueStatus'],
     notCalled: [
       'powerbi.createDashboard',
       'power-automate.createFlow',
       'office.connector.call',
+      'mail.send',
+      'teams.postMessage',
+      'loop.update',
       'workflow.create',
       'ticket.create',
       'hitl.create',
       'vdmi.create',
       'vdmi.update',
-      'sap.write',
-      'erp.write',
       'external.connector.call',
-      'budibase.table.write',
       'personal-agent.execute',
     ],
   },
@@ -3324,14 +3330,14 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
     assertNoRawObjectText(gridAutomationDecisionValueRows);
     expect(gridAutomationDecisionValueRows[0]).toMatchObject({
       status: 'ready_for_requirements_review',
-      readinessScore: 1,
+      readinessScore: 0.87,
       requirementId: 'grid-connection-transformation-gate',
       processArea: 'grid_connection_transformation',
       decisionOwner: 'ROLE_NETZPLANUNG',
       targetGate: 'grid_connection_transformation_gate',
       sourceSystem: 'sap_is_u_s4hana_reference_only',
       decisionValue: 'close_14a_agnes_ramen_energy_sharing_gap_without_erp_customizing',
-      missingEvidence: '',
+      missingEvidence: 'source_snapshot_ref, evidence_ref',
       sourceClass: 'grid_connection_transformation_automation_decision_value_summary',
     });
 
@@ -3342,8 +3348,9 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
     expectScalarRows(gridAutomationDecisionValueGuardRows);
     expect(gridAutomationDecisionValueGuardRows).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ action: 'sap.write', status: 'not_called' }),
-        expect.objectContaining({ action: 'erp.write', status: 'not_called' }),
+        expect.objectContaining({ action: 'mail.send', status: 'not_called' }),
+        expect.objectContaining({ action: 'teams.postMessage', status: 'not_called' }),
+        expect.objectContaining({ action: 'loop.update', status: 'not_called' }),
         expect.objectContaining({ action: 'personal-agent.execute', status: 'not_called' }),
       ])
     );
