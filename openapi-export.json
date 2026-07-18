@@ -16110,6 +16110,18 @@
                     "positiveFollowUps": {
                       "type": "array"
                     },
+                    "extendedEvidenceItems": {
+                      "type": "array"
+                    },
+                    "extendedMissingEvidence": {
+                      "type": "array"
+                    },
+                    "extendedPositiveFollowUps": {
+                      "type": "array"
+                    },
+                    "portfolioEvidenceScore": {
+                      "type": "number"
+                    },
                     "sourceActions": {
                       "type": "object"
                     },
@@ -16135,7 +16147,7 @@
             }
           }
         },
-        "description": "Classifies Energy-Sharing candidates as learning pilot, simulation-ready, billing-near-ready or blocked by missing evidence. The endpoint is read-only and does not run allocation, settlement/A96 export, MaKo dispatch, billing, tariff mutation, HITL, external connector, customer communication or Personal Agent execution.",
+        "description": "Classifies Energy-Sharing candidates as learning pilot, simulation-ready, billing-near-ready or blocked by missing evidence. The endpoint is read-only and does not run allocation, settlement/A96 export, MaKo dispatch, billing, tariff mutation, HITL, external connector, customer communication or Personal Agent execution. It also projects extended portfolio evidence (generation/consumption MaLo, supplier/direct-marketer, balance group, metering concept, iMSys, 15-minute values, residual-supply contract, participation window, eligibility, exception rate and economics threshold) as review-only gaps that do not affect the core gate classification.",
         "parameters": [
           {
             "name": "communityId",
@@ -16251,6 +16263,118 @@
           },
           {
             "name": "sourceArtifacts",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "generationMaloEvidenceRef",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "consumptionMaloEvidenceRef",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "supplierEvidenceRef",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "directMarketerEvidenceRef",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "balanceGroupEvidenceRef",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "meteringConceptEvidenceRef",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "imsysStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "quarterHourValuesReadiness",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "residualSupplyContractEvidenceRef",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "participationStartDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "participationEndDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "eligibilityEvidenceRef",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "exceptionRateEvidenceRef",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "economicsThresholdRef",
             "in": "query",
             "required": false,
             "schema": {
@@ -70743,6 +70867,18 @@
                     "positiveFollowUps": {
                       "type": "array"
                     },
+                    "extendedEvidenceItems": {
+                      "type": "array"
+                    },
+                    "extendedMissingEvidence": {
+                      "type": "array"
+                    },
+                    "extendedPositiveFollowUps": {
+                      "type": "array"
+                    },
+                    "portfolioEvidenceScore": {
+                      "type": "number"
+                    },
                     "sourceActions": {
                       "type": "object"
                     },
@@ -70768,7 +70904,7 @@
             }
           }
         },
-        "description": "Classifies Energy-Sharing candidates as learning pilot, simulation-ready, billing-near-ready or blocked by missing evidence. The endpoint is read-only and does not run allocation, settlement/A96 export, MaKo dispatch, billing, tariff mutation, HITL, external connector, customer communication or Personal Agent execution.",
+        "description": "Classifies Energy-Sharing candidates as learning pilot, simulation-ready, billing-near-ready or blocked by missing evidence. The endpoint is read-only and does not run allocation, settlement/A96 export, MaKo dispatch, billing, tariff mutation, HITL, external connector, customer communication or Personal Agent execution. It also projects extended portfolio evidence (generation/consumption MaLo, supplier/direct-marketer, balance group, metering concept, iMSys, 15-minute values, residual-supply contract, participation window, eligibility, exception rate and economics threshold) as review-only gaps that do not affect the core gate classification.",
         "parameters": [
           {
             "name": "communityId",
@@ -70884,6 +71020,118 @@
           },
           {
             "name": "sourceArtifacts",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "generationMaloEvidenceRef",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "consumptionMaloEvidenceRef",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "supplierEvidenceRef",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "directMarketerEvidenceRef",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "balanceGroupEvidenceRef",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "meteringConceptEvidenceRef",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "imsysStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "quarterHourValuesReadiness",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "residualSupplyContractEvidenceRef",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "participationStartDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "participationEndDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "eligibilityEvidenceRef",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "exceptionRateEvidenceRef",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "economicsThresholdRef",
             "in": "query",
             "required": false,
             "schema": {

@@ -5301,6 +5301,121 @@ describe('dashboard-api.service', () => {
         );
         expect(result.sourceActions.notCalled).toContain('energy-sharing-allocation.allocate');
       });
+
+      it('keeps the core gate backwards compatible when portfolio evidence (issue #446) is not supplied', async () => {
+        const result = await broker.call('dashboard-api.energySharingSimulationGateStatus', {
+          communityId: 'es-230',
+          gridOperatorId: 'vnb-230',
+          participantCount: '42',
+          participantEvidenceRef: 'participants-v2',
+          maloStatus: 'ready',
+          meteringReadiness: 'ready',
+          marketRoleReadiness: 'ready',
+          dataBasis: 'inhouse-imsys-mscons',
+          a96EvidenceRef: 'a96-ready',
+          settlementEvidenceRef: 'settlement-ready',
+          contractEvidenceRef: 'contracts-ready',
+          economicsAssumptionRef: 'economics-v1',
+          owner: 'energy-sharing-owner',
+          escalationContact: 'billing-lead',
+        });
+
+        expect(result.gateStatus).toBe('billing_near_ready');
+        expect(result.simulationStage).toBe('billing_near_ready');
+        expect(result.missingEvidence).toEqual([]);
+        expect(result.extendedMissingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+          expect.arrayContaining([
+            'generation_consumption_malo',
+            'supplier_direct_marketer',
+            'balance_group_reference',
+            'metering_concept',
+            'imsys_status',
+            'quarter_hour_values',
+            'residual_supply_contract',
+            'participation_window',
+            'eligibility_evidence',
+            'exception_rate_evidence',
+            'economics_threshold',
+          ])
+        );
+        expect(result.extendedEvidenceItems).toEqual([]);
+        expect(result.portfolioEvidenceScore).toBe(0);
+      });
+
+      it('reports portfolio evidence (generation/consumption MaLo, supplier, balance group, metering concept, iMSys, 15-minute values, residual supply, participation window, eligibility, exception rate, economics threshold) as provided when supplied, without changing the core gate', async () => {
+        const result = await broker.call('dashboard-api.energySharingSimulationGateStatus', {
+          communityId: 'es-231',
+          gridOperatorId: 'vnb-231',
+          participantCount: '7',
+          participantEvidenceRef: 'participants-v3',
+          dataBasis: 'forecast',
+          owner: 'product-owner',
+          escalationContact: 'marktrolle-team',
+          generationMaloEvidenceRef: 'gen-malo-1',
+          consumptionMaloEvidenceRef: 'cons-malo-1',
+          supplierEvidenceRef: 'supplier-1',
+          balanceGroupEvidenceRef: 'bk-1',
+          meteringConceptEvidenceRef: 'messkonzept-1',
+          imsysStatus: 'ready',
+          quarterHourValuesReadiness: 'ready',
+          residualSupplyContractEvidenceRef: 'reststrom-1',
+          participationStartDate: '2026-08-01',
+          eligibilityEvidenceRef: 'berechtigung-1',
+          exceptionRateEvidenceRef: 'klaerfallquote-1',
+          economicsThresholdRef: 'threshold-1',
+        });
+
+        // Core gate classification is unaffected by portfolio evidence.
+        expect(result.gateStatus).toBe('learning_pilot');
+        expect(result.simulationStage).toBe('learning_pilot');
+
+        expect(result.extendedMissingEvidence).toEqual([]);
+        expect(result.portfolioEvidenceScore).toBe(1);
+        expect(result.extendedEvidenceItems.map((item) => item.id)).toEqual(
+          expect.arrayContaining([
+            'generation_consumption_malo',
+            'supplier_direct_marketer',
+            'balance_group_reference',
+            'metering_concept',
+            'imsys_status',
+            'quarter_hour_values',
+            'residual_supply_contract',
+            'participation_window',
+            'eligibility_evidence',
+            'exception_rate_evidence',
+            'economics_threshold',
+          ])
+        );
+        expect(result.extendedPositiveFollowUps).toEqual([]);
+      });
+
+      it('never calls allocation, billing, settlement, MaKo, contract signing, onboarding, workflow or connector actions for portfolio evidence gaps', async () => {
+        const result = await broker.call('dashboard-api.energySharingSimulationGateStatus', {
+          communityId: 'es-232',
+          gridOperatorId: 'vnb-232',
+        });
+
+        expect(result.extendedPositiveFollowUps[0].category).toBe(
+          'energy_sharing_portfolio_evidence'
+        );
+        expect(result.sourceActions.notCalled).toEqual(
+          expect.arrayContaining([
+            'energy-sharing.createProject',
+            'energy-sharing-allocation.allocate',
+            'settlement.exportA96',
+            'mako.dispatch',
+            'billing.release',
+            'tariff.mutate',
+            'hitl.create',
+            'external.connector.call',
+            'personal-agent.execute',
+            'supplier-connector.call',
+            'direct-marketer-connector.call',
+            'imsys-connector.sync',
+          ])
+        );
+        expect(result.safety).toBe('read_only');
+      });
     });
 
     // -- energySharing42cCutoverReadinessStatus -----------------------------

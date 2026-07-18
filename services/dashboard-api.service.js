@@ -3877,6 +3877,15 @@ module.exports = {
      * candidate as learning/simulation/billing-near readiness from supplied
      * evidence refs and never creates projects, allocations, settlement exports,
      * MaKo messages, HITL tasks, billing artefacts or customer communication.
+     *
+     * Also projects extended multi-site portfolio readiness evidence (issue #446):
+     * generation/consumption MaLo, supplier/direct-marketer, balance group,
+     * metering concept, iMSys status, 15-minute values, residual-supply contract,
+     * participation window, eligibility and exception-rate evidence, and an
+     * economics-threshold reference. These surface as separate
+     * extendedEvidenceItems/extendedMissingEvidence review-only gaps and do not
+     * change gateStatus/simulationStage/readinessScore or the core evidenceItems/
+     * missingEvidence shape.
      */
     energySharingSimulationGateStatus: {
       rest: 'GET /energy-sharing-simulation-gate',
@@ -3907,13 +3916,28 @@ module.exports = {
             { type: 'string', min: 1 },
           ],
         },
+        generationMaloEvidenceRef: { type: 'string', optional: true, min: 1 },
+        consumptionMaloEvidenceRef: { type: 'string', optional: true, min: 1 },
+        supplierEvidenceRef: { type: 'string', optional: true, min: 1 },
+        directMarketerEvidenceRef: { type: 'string', optional: true, min: 1 },
+        balanceGroupEvidenceRef: { type: 'string', optional: true, min: 1 },
+        meteringConceptEvidenceRef: { type: 'string', optional: true, min: 1 },
+        imsysStatus: { type: 'string', optional: true, min: 1 },
+        quarterHourValuesReadiness: { type: 'string', optional: true, min: 1 },
+        residualSupplyContractEvidenceRef: { type: 'string', optional: true, min: 1 },
+        participationStartDate: { type: 'string', optional: true, min: 1 },
+        participationEndDate: { type: 'string', optional: true, min: 1 },
+        eligibilityEvidenceRef: { type: 'string', optional: true, min: 1 },
+        exceptionRateEvidenceRef: { type: 'string', optional: true, min: 1 },
+        economicsThresholdRef: { type: 'string', optional: true, min: 1 },
       },
       openapi: {
         tags: [OPENAPI_TAG],
         summary: 'Energy-Sharing simulation gate - read-only dossier-safe status',
         description:
           'Classifies Energy-Sharing candidates as learning pilot, simulation-ready, billing-near-ready or blocked by missing evidence. ' +
-          'The endpoint is read-only and does not run allocation, settlement/A96 export, MaKo dispatch, billing, tariff mutation, HITL, external connector, customer communication or Personal Agent execution.',
+          'The endpoint is read-only and does not run allocation, settlement/A96 export, MaKo dispatch, billing, tariff mutation, HITL, external connector, customer communication or Personal Agent execution. ' +
+          'It also projects extended portfolio evidence (generation/consumption MaLo, supplier/direct-marketer, balance group, metering concept, iMSys, 15-minute values, residual-supply contract, participation window, eligibility, exception rate and economics threshold) as review-only gaps that do not affect the core gate classification.',
         parameters: [
           { name: 'communityId', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'gridOperatorId', in: 'query', required: false, schema: { type: 'string' } },
@@ -3945,6 +3969,75 @@ module.exports = {
           { name: 'owner', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'escalationContact', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'sourceArtifacts', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'generationMaloEvidenceRef',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'consumptionMaloEvidenceRef',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
+          { name: 'supplierEvidenceRef', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'directMarketerEvidenceRef',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'balanceGroupEvidenceRef',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'meteringConceptEvidenceRef',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
+          { name: 'imsysStatus', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'quarterHourValuesReadiness',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'residualSupplyContractEvidenceRef',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'participationStartDate',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
+          { name: 'participationEndDate', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'eligibilityEvidenceRef',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'exceptionRateEvidenceRef',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'economicsThresholdRef',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
         ],
         responses: {
           200: {
@@ -3959,6 +4052,10 @@ module.exports = {
                     readinessScore: { type: 'number' },
                     missingEvidence: { type: 'array' },
                     positiveFollowUps: { type: 'array' },
+                    extendedEvidenceItems: { type: 'array' },
+                    extendedMissingEvidence: { type: 'array' },
+                    extendedPositiveFollowUps: { type: 'array' },
+                    portfolioEvidenceScore: { type: 'number' },
                     sourceActions: { type: 'object' },
                     dossierEvidence: { type: 'object' },
                     safety: { type: 'string' },
@@ -3973,7 +4070,24 @@ module.exports = {
       },
       async handler(ctx) {
         const params = { ...ctx.params };
-        const cacheKey = `energy-sharing-simulation-gate:${params.communityId || 'no-community'}:${params.gridOperatorId || 'no-grid'}:${params.participantCount || 'no-participants'}:${params.maloStatus || 'no-malo'}:${params.meteringReadiness || 'no-metering'}:${params.marketRoleReadiness || 'no-market-role'}:${params.dataBasis || 'no-data-basis'}:${params.a96EvidenceRef || 'no-a96'}:${params.settlementEvidenceRef || 'no-settlement'}:${params.contractEvidenceRef || 'no-contract'}:${params.economicsAssumptionRef || 'no-economics'}`;
+        const cacheKey = `energy-sharing-simulation-gate:${params.communityId || 'no-community'}:${params.gridOperatorId || 'no-grid'}:${params.participantCount || 'no-participants'}:${params.maloStatus || 'no-malo'}:${params.meteringReadiness || 'no-metering'}:${params.marketRoleReadiness || 'no-market-role'}:${params.dataBasis || 'no-data-basis'}:${params.a96EvidenceRef || 'no-a96'}:${params.settlementEvidenceRef || 'no-settlement'}:${params.contractEvidenceRef || 'no-contract'}:${params.economicsAssumptionRef || 'no-economics'}:${JSON.stringify(
+          {
+            generationMaloEvidenceRef: params.generationMaloEvidenceRef || null,
+            consumptionMaloEvidenceRef: params.consumptionMaloEvidenceRef || null,
+            supplierEvidenceRef: params.supplierEvidenceRef || null,
+            directMarketerEvidenceRef: params.directMarketerEvidenceRef || null,
+            balanceGroupEvidenceRef: params.balanceGroupEvidenceRef || null,
+            meteringConceptEvidenceRef: params.meteringConceptEvidenceRef || null,
+            imsysStatus: params.imsysStatus || null,
+            quarterHourValuesReadiness: params.quarterHourValuesReadiness || null,
+            residualSupplyContractEvidenceRef: params.residualSupplyContractEvidenceRef || null,
+            participationStartDate: params.participationStartDate || null,
+            participationEndDate: params.participationEndDate || null,
+            eligibilityEvidenceRef: params.eligibilityEvidenceRef || null,
+            exceptionRateEvidenceRef: params.exceptionRateEvidenceRef || null,
+            economicsThresholdRef: params.economicsThresholdRef || null,
+          }
+        )}`;
 
         return this.cacheGetOrFetch(
           cacheKey,
@@ -20553,7 +20667,215 @@ module.exports = {
               ? 'ready'
               : 'missing_evidence',
         },
+        maloPortfolioReadiness: {
+          generationMaloEvidenceRef: params.generationMaloEvidenceRef || null,
+          consumptionMaloEvidenceRef: params.consumptionMaloEvidenceRef || null,
+          status:
+            params.generationMaloEvidenceRef && params.consumptionMaloEvidenceRef
+              ? 'ready'
+              : 'missing_evidence',
+        },
+        supplierModelReadiness: {
+          supplierEvidenceRef: params.supplierEvidenceRef || null,
+          directMarketerEvidenceRef: params.directMarketerEvidenceRef || null,
+          status:
+            params.supplierEvidenceRef || params.directMarketerEvidenceRef
+              ? 'ready'
+              : 'missing_evidence',
+        },
+        balanceGroupEvidenceReadiness: {
+          balanceGroupEvidenceRef: params.balanceGroupEvidenceRef || null,
+          status: params.balanceGroupEvidenceRef ? 'ready' : 'missing_evidence',
+        },
+        meteringConceptReadiness: {
+          meteringConceptEvidenceRef: params.meteringConceptEvidenceRef || null,
+          imsysStatus: params.imsysStatus || null,
+          quarterHourValuesReadiness: params.quarterHourValuesReadiness || null,
+          status:
+            params.meteringConceptEvidenceRef &&
+            isReady(params.imsysStatus) &&
+            isReady(params.quarterHourValuesReadiness)
+              ? 'ready'
+              : 'missing_evidence',
+        },
+        residualSupplyReadiness: {
+          residualSupplyContractEvidenceRef: params.residualSupplyContractEvidenceRef || null,
+          status: params.residualSupplyContractEvidenceRef ? 'ready' : 'missing_evidence',
+        },
+        participationWindowReadiness: {
+          participationStartDate: params.participationStartDate || null,
+          participationEndDate: params.participationEndDate || null,
+          status: params.participationStartDate ? 'ready' : 'missing_evidence',
+        },
+        eligibilityReadiness: {
+          eligibilityEvidenceRef: params.eligibilityEvidenceRef || null,
+          status: params.eligibilityEvidenceRef ? 'ready' : 'missing_evidence',
+        },
+        exceptionRateReadiness: {
+          exceptionRateEvidenceRef: params.exceptionRateEvidenceRef || null,
+          status: params.exceptionRateEvidenceRef ? 'ready' : 'missing_evidence',
+        },
+        economicsThresholdReadiness: {
+          economicsThresholdRef: params.economicsThresholdRef || null,
+          status: params.economicsThresholdRef ? 'ready' : 'missing_evidence',
+        },
       };
+
+      // Extended portfolio evidence (issue #446): generation/consumption MaLo,
+      // supplier/direct-marketer, balance group, metering concept, iMSys,
+      // 15-minute values, residual-supply contract, participation window,
+      // eligibility, exception rate and economics threshold. These are
+      // review-only gaps kept separate from evidenceSpecs/gateStatus so the
+      // existing four-state classification and evidenceItems/missingEvidence
+      // shape stay backwards compatible for current callers.
+      const extendedEvidenceSpecs = [
+        {
+          id: 'generation_consumption_malo',
+          label: 'Generation and consumption MaLo evidence',
+          value: params.generationMaloEvidenceRef && params.consumptionMaloEvidenceRef,
+          displayValue: [params.generationMaloEvidenceRef, params.consumptionMaloEvidenceRef]
+            .filter(Boolean)
+            .join(' / '),
+          readinessBlock: 'maloPortfolio',
+          sourceClass: 'malo_evidence',
+          enablesDossierAddition:
+            'add generation (Erzeugung) and consumption (Verbrauch) MaLo evidence references to confirm the portfolio scope',
+        },
+        {
+          id: 'supplier_direct_marketer',
+          label: 'Supplier or direct-marketer evidence',
+          value: params.supplierEvidenceRef || params.directMarketerEvidenceRef,
+          displayValue: [params.supplierEvidenceRef, params.directMarketerEvidenceRef]
+            .filter(Boolean)
+            .join(' / '),
+          readinessBlock: 'supplierModel',
+          sourceClass: 'supplier_evidence',
+          enablesDossierAddition:
+            'add supplier or direct-marketer evidence reference to confirm which delivery model applies',
+        },
+        {
+          id: 'balance_group_reference',
+          label: 'Balance-group (Bilanzkreis) evidence reference',
+          value: params.balanceGroupEvidenceRef,
+          displayValue: params.balanceGroupEvidenceRef,
+          readinessBlock: 'balanceGroup',
+          sourceClass: 'balance_group_evidence',
+          enablesDossierAddition:
+            'add a balance-group evidence reference in addition to the market-role readiness flag',
+        },
+        {
+          id: 'metering_concept',
+          label: 'Metering concept (Messkonzept) evidence',
+          value: params.meteringConceptEvidenceRef,
+          displayValue: params.meteringConceptEvidenceRef,
+          readinessBlock: 'meteringConcept',
+          sourceClass: 'metering_concept_evidence',
+          enablesDossierAddition:
+            'add metering-concept evidence documenting how shared quantities are measured and split',
+        },
+        {
+          id: 'imsys_status',
+          label: 'iMSys status',
+          value: isReady(params.imsysStatus),
+          displayValue: params.imsysStatus,
+          readinessBlock: 'meteringConcept',
+          sourceClass: 'imsys_evidence',
+          enablesDossierAddition: 'add iMSys rollout status distinct from generic metering readiness',
+        },
+        {
+          id: 'quarter_hour_values',
+          label: '15-minute value (Viertelstundenwerte) readiness',
+          value: isReady(params.quarterHourValuesReadiness),
+          displayValue: params.quarterHourValuesReadiness,
+          readinessBlock: 'meteringConcept',
+          sourceClass: 'quarter_hour_value_evidence',
+          enablesDossierAddition: 'add 15-minute value availability evidence for the candidate MaLos',
+        },
+        {
+          id: 'residual_supply_contract',
+          label: 'Residual-supply contract (Reststromvertrag) evidence',
+          value: params.residualSupplyContractEvidenceRef,
+          displayValue: params.residualSupplyContractEvidenceRef,
+          readinessBlock: 'residualSupply',
+          sourceClass: 'residual_supply_evidence',
+          enablesDossierAddition:
+            'add residual-supply contract evidence covering the non-shared quantity',
+        },
+        {
+          id: 'participation_window',
+          label: 'Participation start/exit date (Teilnahme-/Austrittsdatum)',
+          value: params.participationStartDate,
+          displayValue: [params.participationStartDate, params.participationEndDate]
+            .filter(Boolean)
+            .join(' - '),
+          readinessBlock: 'participationWindow',
+          sourceClass: 'participation_window_evidence',
+          enablesDossierAddition:
+            'add a participation start date (and exit date if known) for the candidate',
+        },
+        {
+          id: 'eligibility_evidence',
+          label: 'Eligibility (Berechtigung) evidence',
+          value: params.eligibilityEvidenceRef,
+          displayValue: params.eligibilityEvidenceRef,
+          readinessBlock: 'eligibility',
+          sourceClass: 'eligibility_evidence',
+          enablesDossierAddition:
+            'add eligibility evidence confirming the participant/operator is entitled to share energy',
+        },
+        {
+          id: 'exception_rate_evidence',
+          label: 'Exception-rate (Klaerfallquote) evidence',
+          value: params.exceptionRateEvidenceRef,
+          displayValue: params.exceptionRateEvidenceRef,
+          readinessBlock: 'exceptionRate',
+          sourceClass: 'exception_rate_evidence',
+          enablesDossierAddition:
+            'add an exception/clearing-case rate evidence reference for the candidate data basis',
+        },
+        {
+          id: 'economics_threshold',
+          label: 'Economics threshold (Wirtschaftlichkeitsschwellen) reference',
+          value: params.economicsThresholdRef,
+          displayValue: params.economicsThresholdRef,
+          readinessBlock: 'economicsThreshold',
+          sourceClass: 'economics_threshold_evidence',
+          enablesDossierAddition:
+            'add an explicit economics-threshold reference distinct from general economics assumptions',
+        },
+      ];
+
+      const extendedEvidenceItems = extendedEvidenceSpecs
+        .filter((spec) => normalizeStatus(spec.value) === 'ready')
+        .map((spec) => ({
+          id: spec.id,
+          label: spec.label,
+          value: spec.displayValue || spec.value,
+          readinessBlock: spec.readinessBlock,
+          sourceClass: spec.sourceClass,
+          evidenceStatus: 'provided',
+        }));
+      const extendedMissingEvidence = extendedEvidenceSpecs
+        .filter((spec) => normalizeStatus(spec.value) !== 'ready')
+        .map((spec) => ({
+          missingDataPoint: spec.id,
+          label: spec.label,
+          status: normalizeStatus(spec.value),
+          value: spec.displayValue || spec.value || null,
+          readinessBlock: spec.readinessBlock,
+          sourceClass: spec.sourceClass,
+          enablesDossierAddition: spec.enablesDossierAddition,
+        }));
+      const extendedPositiveFollowUps = extendedMissingEvidence.map((item) => ({
+        missingDataPoint: item.missingDataPoint,
+        status: item.status,
+        value: item.value,
+        enablesDossierAddition: item.enablesDossierAddition,
+        category: 'energy_sharing_portfolio_evidence',
+      }));
+      const portfolioEvidenceScore = Number(
+        (extendedEvidenceItems.length / extendedEvidenceSpecs.length).toFixed(2)
+      );
 
       const evidenceItems = evidenceSpecs
         .filter((spec) => normalizeStatus(spec.value) === 'ready')
@@ -20644,6 +20966,9 @@ module.exports = {
           'hitl.create',
           'external.connector.call',
           'personal-agent.execute',
+          'supplier-connector.call',
+          'direct-marketer-connector.call',
+          'imsys-connector.sync',
         ],
       };
       const dossierFacts = [
@@ -20651,6 +20976,8 @@ module.exports = {
         `Simulation Stage: ${simulationStage}`,
         `Provided Energy-Sharing gate evidence: ${evidenceItems.length}/${evidenceSpecs.length}`,
         `Open gaps: ${missingEvidence.length}`,
+        `Provided portfolio evidence: ${extendedEvidenceItems.length}/${extendedEvidenceSpecs.length}`,
+        `Open portfolio evidence gaps: ${extendedMissingEvidence.length}`,
       ];
       if (params.communityId) dossierFacts.push(`Community: ${params.communityId}`);
       if (params.gridOperatorId) dossierFacts.push(`Grid Operator: ${params.gridOperatorId}`);
@@ -20673,6 +21000,10 @@ module.exports = {
         evidenceItems,
         missingEvidence,
         positiveFollowUps,
+        extendedEvidenceItems,
+        extendedMissingEvidence,
+        extendedPositiveFollowUps,
+        portfolioEvidenceScore,
         sourceArtifacts,
         sourceActions,
         validationFindings: missingEvidence,
@@ -20688,6 +21019,10 @@ module.exports = {
           evidenceItems,
           missingEvidence,
           positiveFollowUps,
+          extendedEvidenceItems,
+          extendedMissingEvidence,
+          extendedPositiveFollowUps,
+          portfolioEvidenceScore,
           sourceArtifacts,
           sourceActions: {
             notCalled: sourceActions.notCalled,
