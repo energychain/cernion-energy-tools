@@ -141,7 +141,7 @@ It is designed to be understandable without a live energy-data tenant and reusab
 After this path is pushed to GitHub, use:
 
 ```text
-https://github.com/energychain/cernion-energy-tools/tree/main/tools/agentic-qa-harness
-https://github.com/energychain/cernion-energy-tools/blob/main/tools/agentic-qa-harness/reports/agentic-qa-smoke.md
-https://api.cernion.de/api/docs/
+https://github.com/energychain/cernion-energy-tools/tree/hackathon/agentic-qa-harness/tools/agentic-qa-harness
+https://github.com/energychain/cernion-energy-tools/blob/hackathon/agentic-qa-harness/tools/agentic-qa-harness/reports/agentic-qa-smoke.md
+https://api.cernion.de/api/docs
 ```
