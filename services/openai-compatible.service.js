@@ -25,6 +25,17 @@ function compactString(value, maxLength = 4000) {
   return `${text.slice(0, Math.max(0, maxLength - 1)).trim()}…`;
 }
 
+// Preserve Markdown structure in user-facing assistant replies. Input/context
+// strings are deliberately compacted above, but collapsing output whitespace
+// would turn headings, paragraphs and lists into an unreadable single line.
+function compactMarkdown(value, maxLength = 6000) {
+  const text = String(value == null ? '' : value)
+    .replace(/\r\n?/g, '\n')
+    .trim();
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, Math.max(0, maxLength - 1)).trimEnd()}…`;
+}
+
 function normalizeContent(content) {
   if (typeof content === 'string') return content;
   if (Array.isArray(content)) {
@@ -130,7 +141,7 @@ function buildConversationContext(messages, latestUserIndex) {
 // The fallback below only guards against a malformed/incomplete result.
 function buildAssistantContent(result) {
   const reply = result?.reply;
-  if (typeof reply === 'string' && reply.trim()) return compactString(reply, 6000);
+  if (typeof reply === 'string' && reply.trim()) return compactMarkdown(reply, 6000);
   return 'Cernion was unable to generate an answer for this request.';
 }
 

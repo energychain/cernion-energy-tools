@@ -64,6 +64,36 @@ describe('OpenAI Compatible Service', () => {
     expect(result.cernion.sourceAction).toBe('personal-agent.chat');
   });
 
+  it('preserves Markdown paragraphs, headings and lists in the finished reply', async () => {
+    const markdownReply = [
+      '## Energy Sharing beitreten',
+      '',
+      'Typische Schritte:',
+      '',
+      '1. **Initiative finden**',
+      '2. **Teilnahmebedingungen prüfen**',
+      '',
+      '> Rechtliche Pflichten hängen vom konkreten Modell ab.',
+    ].join('\n');
+    const ctx = {
+      params: {
+        messages: [{ role: 'user', content: 'Wie kann ich teilnehmen?' }],
+      },
+      meta: { authUser: { userId: 'tester', roles: ['full-access'] } },
+      call: jest.fn().mockResolvedValue({
+        success: true,
+        sessionId: 'session-markdown',
+        chatMode: CHAT_MODES.CONSULTATION,
+        reply: markdownReply,
+      }),
+    };
+
+    const result = await handler(ctx);
+
+    expect(result.choices[0].message.content).toBe(markdownReply);
+    expect(result.choices[0].message.content).toContain('\n\n1. **Initiative finden**');
+  });
+
   it('single-turn: uses the only user message as message with empty bounded context', async () => {
     const ctx = {
       params: {
