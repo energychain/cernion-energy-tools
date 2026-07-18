@@ -709,7 +709,47 @@ async function buildOpenAiFacadeMeta(service, req) {
   return meta;
 }
 
+// Buffered OpenAI-compatible SSE re-framing of a completed chat.completion
+// object into the standard three-frame chat.completion.chunk sequence
+// (role delta, content delta, terminal finish_reason) followed by [DONE].
+// This is NOT genuine token-by-token streaming: the full advisory result is
+// already computed by openai-compatible.chatCompletions before any frame is
+// written, matching the advisory/non-consequential safety boundary of that
+// action (see services/openai-compatible.service.js).
+function buildOpenAiStreamChunks(response) {
+  const id = response?.id || `chatcmpl_${crypto.randomUUID().replace(/-/g, '')}`;
+  const created = Number.isInteger(response?.created)
+    ? response.created
+    : Math.floor(Date.now() / 1000);
+  const model = response?.model || 'cernion-agent-mvp';
+  const choice = Array.isArray(response?.choices) ? response.choices[0] : null;
+  const content = typeof choice?.message?.content === 'string' ? choice.message.content : '';
+  const finishReason = choice?.finish_reason || 'stop';
+  const base = { id, object: 'chat.completion.chunk', created, model };
+
+  return [
+    { ...base, choices: [{ index: 0, delta: { role: 'assistant' }, finish_reason: null }] },
+    { ...base, choices: [{ index: 0, delta: { content }, finish_reason: null }] },
+    { ...base, choices: [{ index: 0, delta: {}, finish_reason: finishReason }] },
+  ];
+}
+
+function writeOpenAiChatCompletionStream(res, response) {
+  res.setHeader(CONTENT_TYPE_HEADER, 'text/event-stream; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.writeHead(200);
+  for (const chunk of buildOpenAiStreamChunks(response)) {
+    res.write(`data: ${JSON.stringify(chunk)}\n\n`);
+  }
+  res.write('data: [DONE]\n\n');
+  res.end();
+}
+
 async function handleOpenAiChatCompletions(req, res) {
+  const requestBody = req?.body || req?.$params || {};
+  const wantsStream = requestBody?.stream === true;
   try {
     const meta = await buildOpenAiFacadeMeta(this, req);
     const tenantIdForQuota = meta.tenantId || 'default';
@@ -739,13 +779,15 @@ async function handleOpenAiChatCompletions(req, res) {
       );
     }
 
-    const response = await this.broker.call(
-      'openai-compatible.chatCompletions',
-      req?.body || req?.$params || {},
-      { meta }
-    );
+    const response = await this.broker.call('openai-compatible.chatCompletions', requestBody, {
+      meta,
+    });
     for (const [headerName, headerValue] of Object.entries(rateLimit.responseHeaders || {})) {
       if (headerValue != null) res.setHeader(headerName, String(headerValue));
+    }
+    if (wantsStream) {
+      writeOpenAiChatCompletionStream(res, response);
+      return;
     }
     res.setHeader(CONTENT_TYPE_HEADER, CONTENT_TYPE_JSON);
     res.writeHead(200);
@@ -759,6 +801,29 @@ async function handleOpenAiChatCompletions(req, res) {
     res.writeHead(resolveHttpStatus(err));
     res.end(JSON.stringify(buildOpenAiErrorBody(err)));
   }
+}
+
+// Static OpenAPI-compatible model catalog for GET /v1/models. Intentionally
+// unauthenticated: OpenWebUI (and similar clients) call model discovery before
+// a user has necessarily supplied a working token, and the catalog is fixed,
+// non-tenant, non-secret metadata — the same shape every caller gets. Actual
+// completions still require a valid Cernion token via handleOpenAiChatCompletions.
+const OPENAI_MODEL_CATALOG = Object.freeze({
+  object: 'list',
+  data: [
+    Object.freeze({
+      id: 'cernion-agent-mvp',
+      object: 'model',
+      created: 1700000000,
+      owned_by: 'cernion',
+    }),
+  ],
+});
+
+function handleOpenAiModels(req, res) {
+  res.setHeader(CONTENT_TYPE_HEADER, CONTENT_TYPE_JSON);
+  res.writeHead(200);
+  res.end(JSON.stringify(OPENAI_MODEL_CATALOG));
 }
 
 function requiresHitlApproverRole(method, requestPath) {
@@ -1335,6 +1400,8 @@ module.exports = {
 
         aliases: {
           'POST /chat/completions': handleOpenAiChatCompletions,
+          // Unauthenticated by design — see OPENAI_MODEL_CATALOG comment above.
+          'GET /models': handleOpenAiModels,
         },
 
         bodyParsers: {

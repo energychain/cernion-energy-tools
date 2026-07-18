@@ -119,10 +119,13 @@ module.exports = {
       openapi: {
         operationId: 'createChatCompletion',
         tags: ['OpenAI Compatible'],
-        summary: 'Create a non-streaming OpenAI-compatible Cernion chat completion',
+        summary: 'Create an OpenAI-compatible Cernion chat completion',
         description:
           'Inbound OpenAI-compatible facade over existing authenticated Cernion advisory actions. ' +
-          'It supports only non-streaming chat completions and treats system/developer messages as prompt context, not authorization.',
+          'It treats system/developer messages as prompt context, not authorization. ' +
+          'When stream=true, the gateway (services/api.service.js) obtains the full advisory result ' +
+          'from this action first and then emits it as buffered chat.completion.chunk SSE frames — ' +
+          'this is not genuine token-by-token streaming.',
         requestBody: {
           required: true,
           content: {
@@ -192,14 +195,11 @@ module.exports = {
         if (!ctx.meta?.authUser && !ctx.meta?.apiToken && !ctx.meta?.authSession) {
           throw openAiError('Authentication required.', 401, 'authentication_required');
         }
-        if (ctx.params.stream === true) {
-          throw openAiError(
-            'stream=true is not supported by this MVP facade.',
-            400,
-            'stream_not_supported'
-          );
-        }
-
+        // stream is accepted but ignored here: this action always computes the full
+        // advisory result and returns a normal chat.completion object. The HTTP
+        // gateway (handleOpenAiChatCompletions in services/api.service.js) is
+        // responsible for re-framing that object as buffered SSE chunks when the
+        // caller requested stream=true — this action must stay transport-agnostic.
         const requestedModel = String(ctx.params.model || FACADE_MODEL).trim() || FACADE_MODEL;
         if (!SUPPORTED_MODELS.has(requestedModel)) {
           throw openAiError(

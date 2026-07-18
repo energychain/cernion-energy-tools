@@ -60,29 +60,25 @@ describe('OpenAI Compatible Service', () => {
     expect(result.cernion.safety).toBe('advisory_compute_non_consequential');
   });
 
-  it('rejects streaming in the MVP with an OpenAI-compatible error payload', async () => {
+  it('accepts stream=true and still returns a normal buffered chat.completion object', async () => {
     const ctx = {
       params: {
         stream: true,
         messages: [{ role: 'user', content: 'Hallo' }],
       },
       meta: { authUser: { userId: 'tester', roles: ['full-access'] } },
-      call: jest.fn(),
+      call: jest.fn().mockResolvedValue({
+        success: true,
+        sessionId: 'session-stream',
+        shortAnswer: 'Cernion advisory answer.',
+      }),
     };
 
-    await expect(handler(ctx)).rejects.toMatchObject({
-      code: 400,
-      type: 'stream_not_supported',
-      data: {
-        openai: {
-          error: {
-            type: 'invalid_request_error',
-            code: 'stream_not_supported',
-          },
-        },
-      },
-    });
-    expect(ctx.call).not.toHaveBeenCalled();
+    const result = await handler(ctx);
+
+    expect(ctx.call).toHaveBeenCalledWith('personal-agent.askCernionAgent', expect.any(Object));
+    expect(result.object).toBe('chat.completion');
+    expect(result.choices[0].message.content).toBe('Cernion advisory answer.');
   });
 
   it('requires at least one user message', async () => {
@@ -97,6 +93,31 @@ describe('OpenAI Compatible Service', () => {
     await expect(handler(ctx)).rejects.toMatchObject({
       code: 400,
       type: 'user_message_required',
+    });
+    expect(ctx.call).not.toHaveBeenCalled();
+  });
+
+  it('rejects an unsupported model with an OpenAI-compatible error payload', async () => {
+    const ctx = {
+      params: {
+        model: 'gpt-5-turbo-not-real',
+        messages: [{ role: 'user', content: 'Hallo' }],
+      },
+      meta: { authUser: { userId: 'tester', roles: ['full-access'] } },
+      call: jest.fn(),
+    };
+
+    await expect(handler(ctx)).rejects.toMatchObject({
+      code: 400,
+      type: 'model_not_supported',
+      data: {
+        openai: {
+          error: {
+            type: 'invalid_request_error',
+            code: 'model_not_supported',
+          },
+        },
+      },
     });
     expect(ctx.call).not.toHaveBeenCalled();
   });
