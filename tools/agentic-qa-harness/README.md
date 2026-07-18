@@ -73,7 +73,23 @@ tools/agentic-qa-harness/
 ├── reports/
 │   ├── agentic-qa-smoke.json
 │   └── agentic-qa-smoke.md
+├── media/
+│   ├── 01-title-agentic-qa-harness.png
+│   ├── 02-blackbox-architecture.png
+│   ├── 03-smoke-result.png
+│   ├── 04-governance-checks.png
+│   └── 05-try-it-out.png
 └── smoke.js
+```
+
+## Project media gallery
+
+The `media/` folder contains five Devpost-ready PNG images in 3:2 format, each below the 5 MB limit. They cover the project title, architecture, smoke-test output, governance checks, and try-it-out commands.
+
+Regenerate them with:
+
+```bash
+uv run --with pillow python tools/agentic-qa-harness/media/generate-gallery.py
 ```
 
 ## How it works
