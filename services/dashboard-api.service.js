@@ -180,6 +180,7 @@ module.exports = {
       liveUpdateStreamContractStatus: 5 * 60 * 1000, // 5 min
       smgwConnectorReadinessStatus: 5 * 60 * 1000, // 5 min
       municipalEnergyValueAnalysisStatus: 5 * 60 * 1000, // 5 min
+      modelViabilityEvidenceGateStatus: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
       observabilityMini: 60 * 1000, // 1 min
@@ -13649,6 +13650,149 @@ module.exports = {
         });
       },
     },
+
+    // ── modelViabilityEvidenceGateStatus ──────────────────────────────────
+    /**
+     * GET /api/dashboard/model-viability-evidence-gate?candidateId=...
+     *
+     * Read-only dossier-safe evidence gate for a single supplied operating-model
+     * candidate (e.g. section-42c community, supplier/service model, multi-site
+     * balance-group model, flexible-connection logic). Normalizes caller-supplied
+     * process-cost, exception-case, liquidity-impact, data-maturity and
+     * governance-effort evidence into comparable dimension rows without ranking
+     * candidates, computing economics, or issuing a legal/regulatory, tariff,
+     * contract, billing/settlement, MaKo, workflow/HITL, connector, market
+     * communication, device-control or Personal-Agent action.
+     */
+    modelViabilityEvidenceGateStatus: {
+      rest: 'GET /model-viability-evidence-gate',
+      params: {
+        candidateId: { type: 'string', optional: true, min: 1 },
+        candidateName: { type: 'string', optional: true, min: 1 },
+        modelType: { type: 'string', optional: true, min: 1 },
+        scope: { type: 'string', optional: true, min: 1 },
+        evidenceSnapshotRef: { type: 'string', optional: true, min: 1 },
+        processCostBand: { type: 'string', optional: true, min: 1 },
+        processCostReference: { type: 'string', optional: true, min: 1 },
+        exceptionCaseRateBand: { type: 'string', optional: true, min: 1 },
+        exceptionCaseOwner: { type: 'string', optional: true, min: 1 },
+        liquidityImpactBand: { type: 'string', optional: true, min: 1 },
+        liquidityImpactReference: { type: 'string', optional: true, min: 1 },
+        dataMaturityMetering: { type: 'string', optional: true, min: 1 },
+        dataMaturityRoles: { type: 'string', optional: true, min: 1 },
+        dataMaturityTimeSeries: { type: 'string', optional: true, min: 1 },
+        dataMaturitySourceFreshness: { type: 'string', optional: true, min: 1 },
+        governanceEffortBand: { type: 'string', optional: true, min: 1 },
+        governanceDecisionOwner: { type: 'string', optional: true, min: 1 },
+        nextReviewGate: { type: 'string', optional: true, min: 1 },
+        assumptionOnlyDimensions: {
+          type: 'multi',
+          optional: true,
+          rules: [
+            { type: 'array', items: 'string' },
+            { type: 'string', min: 1 },
+          ],
+        },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Model Viability Evidence Gate — read-only single-candidate evidence view',
+        description:
+          'Builds a deterministic, dossier-safe evidence view for one supplied operating-model ' +
+          'candidate. Normalizes process-cost, exception-case, liquidity-impact, data-maturity and ' +
+          'governance-effort evidence into comparable dimension rows with provided/assumption_only/' +
+          'missing status. Read-only: does not rank models, compute economics, or issue a legal, ' +
+          'regulatory, tariff, contract, allocation, onboarding, billing, settlement, MaKo/A96, ' +
+          'finance, procurement, workflow, HITL, connector, market-communication, device-control or ' +
+          'Personal-Agent action.',
+        parameters: [
+          { name: 'candidateId', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'candidateName', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'modelType', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'scope', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'evidenceSnapshotRef', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'processCostBand', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'processCostReference', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'exceptionCaseRateBand', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'exceptionCaseOwner', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'liquidityImpactBand', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'liquidityImpactReference',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
+          { name: 'dataMaturityMetering', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'dataMaturityRoles', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'dataMaturityTimeSeries',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'dataMaturitySourceFreshness',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
+          { name: 'governanceEffortBand', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'governanceDecisionOwner',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
+          { name: 'nextReviewGate', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'assumptionOnlyDimensions',
+            in: 'query',
+            required: false,
+            schema: { oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }] },
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Read-only single-candidate model viability evidence view',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    capabilityKey: { type: 'string' },
+                    safety: { type: 'string' },
+                    status: { type: 'string' },
+                    readinessScore: { type: 'number' },
+                    candidateContext: { type: 'object' },
+                    rows: { type: 'array' },
+                    missingEvidence: { type: 'array' },
+                    positiveFollowUps: { type: 'array' },
+                    decisionBoundaries: { type: 'array' },
+                    sourceActions: { type: 'object' },
+                    dossierEvidence: { type: 'object' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                    _errors: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const params = { ...ctx.params };
+        const cacheKey = `model-viability-evidence-gate:${JSON.stringify(params)}`;
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.modelViabilityEvidenceGateStatus,
+          async () => ({
+            ...this.buildModelViabilityEvidenceGateStatus(params),
+            timestamp: new Date().toISOString(),
+            _errors: [],
+          })
+        );
+      },
+    },
   },
 
   methods: {
@@ -16435,6 +16579,262 @@ module.exports = {
           status,
           rows: classifiedRows,
           readinessCounts,
+          missingEvidence,
+          positiveFollowUps,
+          decisionBoundaries,
+          dossierFacts,
+        },
+      };
+    },
+
+    buildModelViabilityEvidenceGateStatus(params = {}) {
+      const isProvided = (value) =>
+        value !== undefined && value !== null && String(value).trim() !== '';
+      const toList = (value) => {
+        if (Array.isArray(value))
+          return value.map((item) => String(item || '').trim()).filter(Boolean);
+        if (value == null || value === '') return [];
+        return String(value)
+          .split(',')
+          .map((item) => item.trim())
+          .filter(Boolean);
+      };
+      const assumptionOnlyDimensions = new Set(toList(params.assumptionOnlyDimensions));
+
+      const candidateContext = {
+        candidateId: params.candidateId || null,
+        candidateName: params.candidateName || null,
+        modelType: params.modelType || null,
+        scope: params.scope || null,
+        evidenceSnapshotRef: params.evidenceSnapshotRef || null,
+      };
+
+      const dimensionSpecs = [
+        {
+          id: 'candidate_identity',
+          label: 'Candidate/model identity and scope',
+          values: {
+            candidateName: params.candidateName || params.candidateId || null,
+            modelType: params.modelType || null,
+            scope: params.scope || null,
+          },
+          provided:
+            isProvided(params.candidateName || params.candidateId) &&
+            isProvided(params.modelType) &&
+            isProvided(params.scope),
+          enablesDossierAddition:
+            'add candidate identity, model type and scope for a comparable evidence row',
+        },
+        {
+          id: 'evidence_snapshot',
+          label: 'Evidence snapshot reference',
+          values: { evidenceSnapshotRef: params.evidenceSnapshotRef || null },
+          provided: isProvided(params.evidenceSnapshotRef),
+          enablesDossierAddition: 'add an evidence snapshot reference for traceability',
+        },
+        {
+          id: 'process_cost',
+          label: 'Process-cost band/reference',
+          values: {
+            processCostBand: params.processCostBand || null,
+            processCostReference: params.processCostReference || null,
+          },
+          provided: isProvided(params.processCostBand),
+          enablesDossierAddition:
+            'add a supplied process-cost band or reference for the candidate model',
+        },
+        {
+          id: 'exception_case_rate',
+          label: 'Exception-case rate/band and owner',
+          values: {
+            exceptionCaseRateBand: params.exceptionCaseRateBand || null,
+            exceptionCaseOwner: params.exceptionCaseOwner || null,
+          },
+          provided: isProvided(params.exceptionCaseRateBand) && isProvided(params.exceptionCaseOwner),
+          enablesDossierAddition:
+            'add exception-case rate/band evidence and an accountable owner',
+        },
+        {
+          id: 'liquidity_impact',
+          label: 'Liquidity-impact band/reference',
+          values: {
+            liquidityImpactBand: params.liquidityImpactBand || null,
+            liquidityImpactReference: params.liquidityImpactReference || null,
+          },
+          provided: isProvided(params.liquidityImpactBand),
+          enablesDossierAddition: 'add a supplied liquidity-impact band or reference',
+        },
+        {
+          id: 'data_maturity_metering',
+          label: 'Data maturity — metering',
+          values: { dataMaturityMetering: params.dataMaturityMetering || null },
+          provided: isProvided(params.dataMaturityMetering),
+          enablesDossierAddition: 'add metering data-maturity evidence',
+        },
+        {
+          id: 'data_maturity_roles',
+          label: 'Data maturity — roles',
+          values: { dataMaturityRoles: params.dataMaturityRoles || null },
+          provided: isProvided(params.dataMaturityRoles),
+          enablesDossierAddition: 'add role data-maturity evidence',
+        },
+        {
+          id: 'data_maturity_time_series',
+          label: 'Data maturity — time series',
+          values: { dataMaturityTimeSeries: params.dataMaturityTimeSeries || null },
+          provided: isProvided(params.dataMaturityTimeSeries),
+          enablesDossierAddition: 'add time-series data-maturity evidence',
+        },
+        {
+          id: 'data_maturity_source_freshness',
+          label: 'Data maturity — source freshness',
+          values: { dataMaturitySourceFreshness: params.dataMaturitySourceFreshness || null },
+          provided: isProvided(params.dataMaturitySourceFreshness),
+          enablesDossierAddition: 'add source-freshness evidence for the underlying data',
+        },
+        {
+          id: 'governance_effort',
+          label: 'Governance-effort band, decision owner and next review gate',
+          values: {
+            governanceEffortBand: params.governanceEffortBand || null,
+            governanceDecisionOwner: params.governanceDecisionOwner || null,
+            nextReviewGate: params.nextReviewGate || null,
+          },
+          provided:
+            isProvided(params.governanceEffortBand) &&
+            isProvided(params.governanceDecisionOwner) &&
+            isProvided(params.nextReviewGate),
+          enablesDossierAddition:
+            'add governance-effort band, decision owner and next review gate',
+        },
+      ];
+
+      const rows = dimensionSpecs.map((spec) => ({
+        dimensionId: spec.id,
+        label: spec.label,
+        values: spec.values,
+        evidenceStatus: !spec.provided
+          ? 'missing'
+          : assumptionOnlyDimensions.has(spec.id)
+            ? 'assumption_only'
+            : 'provided',
+      }));
+
+      const missingEvidence = rows
+        .filter((row) => row.evidenceStatus === 'missing')
+        .map((row) => {
+          const spec = dimensionSpecs.find((item) => item.id === row.dimensionId);
+          return {
+            missingDataPoint: row.dimensionId,
+            label: row.label,
+            enablesDossierAddition: spec.enablesDossierAddition,
+          };
+        });
+
+      const positiveFollowUps = rows
+        .filter((row) => row.evidenceStatus !== 'provided')
+        .map((row) => {
+          const spec = dimensionSpecs.find((item) => item.id === row.dimensionId);
+          return {
+            missingDataPoint: row.dimensionId,
+            evidenceStatus: row.evidenceStatus,
+            enablesDossierAddition: spec.enablesDossierAddition,
+            category: 'model_viability_evidence_gate',
+          };
+        });
+
+      const providedCount = rows.filter((row) => row.evidenceStatus === 'provided').length;
+      const assumptionOnlyCount = rows.filter(
+        (row) => row.evidenceStatus === 'assumption_only'
+      ).length;
+
+      const status = rows.some((row) => row.evidenceStatus === 'missing')
+        ? 'blocked_missing_evidence'
+        : assumptionOnlyCount > 0
+          ? 'assumption_heavy'
+          : 'ready_for_management_review';
+
+      const readinessScore = Number((providedCount / rows.length).toFixed(2));
+
+      const decisionBoundaries = [
+        {
+          boundary:
+            'This is a normalized evidence view, not a viability verdict, legal interpretation, regulatory approval or business-case result.',
+        },
+        {
+          boundary:
+            'No model ranking, weighted scoring, economics calculation or winner selection is produced; one candidate is evaluated per request.',
+        },
+        {
+          boundary:
+            'No tariff, contract, allocation, onboarding, billing, settlement, MaKo/A96, finance, procurement, workflow, HITL, connector, market-communication or device-control action is called.',
+        },
+      ];
+
+      const dossierFacts = [
+        `Status: ${status}`,
+        `Provided dimensions: ${providedCount}/${rows.length}`,
+        `Assumption-only dimensions: ${assumptionOnlyCount}`,
+        `Missing dimensions: ${missingEvidence.length}`,
+      ];
+      if (candidateContext.candidateName || candidateContext.candidateId) {
+        dossierFacts.push(
+          `Candidate: ${candidateContext.candidateName || candidateContext.candidateId}`
+        );
+      }
+      if (candidateContext.modelType) dossierFacts.push(`Model type: ${candidateContext.modelType}`);
+
+      return {
+        modelViabilityGateId: `mveg:${Buffer.from(
+          `${candidateContext.candidateId || ''}:${candidateContext.candidateName || ''}:${candidateContext.modelType || ''}:${candidateContext.evidenceSnapshotRef || ''}`
+        )
+          .toString('base64url')
+          .slice(0, 24)}`,
+        capabilityKey: 'model_viability_evidence_gate',
+        safety: 'read_only',
+        requestContext: candidateContext,
+        status,
+        readinessScore,
+        candidateContext,
+        rows,
+        missingEvidence,
+        positiveFollowUps,
+        decisionBoundaries,
+        dossierFacts,
+        sourceActions: {
+          inspected: ['dashboard-api.modelViabilityEvidenceGateStatus'],
+          referenced: [
+            'vdmi.dossier',
+            'presentation.generate',
+            'decision_readiness_matrix',
+            'energy_sharing_simulation_gate',
+            'automation_requirements_decision_value',
+            'liquidity_planning_governance_module',
+          ],
+          notCalled: [
+            'tariff.mutate',
+            'contract.create',
+            'energy-sharing-allocation.allocate',
+            'onboarding.create',
+            'billing.release',
+            'settlement.exportA96',
+            'mako.dispatch',
+            'finance.book',
+            'procurement.create',
+            'workflow.execute',
+            'hitl.create',
+            'external.connector.call',
+            'market-communication.send',
+            'device-control.execute',
+            'personal-agent.execute',
+          ],
+        },
+        dossierEvidence: {
+          capabilityKey: 'model_viability_evidence_gate',
+          status,
+          readinessScore,
+          candidateContext,
+          rows,
           missingEvidence,
           positiveFollowUps,
           decisionBoundaries,

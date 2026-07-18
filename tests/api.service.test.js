@@ -787,6 +787,9 @@ describe('API Gateway Service', () => {
       expect(aliases['GET /dashboard/automation-requirements-decision-value']).toBe(
         'dashboard-api.automationRequirementsDecisionValueStatus'
       );
+      expect(aliases['GET /dashboard/model-viability-evidence-gate']).toBe(
+        'dashboard-api.modelViabilityEvidenceGateStatus'
+      );
       expect(aliases['GET /dashboard/smart-meter-off-balancing-purpose-lock']).toBe(
         'dashboard-api.smartMeterOffBalancingPurposeLockStatus'
       );

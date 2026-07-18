@@ -1893,6 +1893,8 @@ module.exports = {
           'GET /dashboard/smgw-connector-readiness': 'dashboard-api.smgwConnectorReadinessStatus',
           'GET /dashboard/municipal-energy-value-analysis':
             'dashboard-api.municipalEnergyValueAnalysisStatus',
+          'GET /dashboard/model-viability-evidence-gate':
+            'dashboard-api.modelViabilityEvidenceGateStatus',
           'POST /stadtwerk-mauer-sandbox-runtime/events':
             'stadtwerk-mauer-sandbox-runtime.ingestEvent',
           'POST /stadtwerk-mauer-sandbox-runtime/reset': 'stadtwerk-mauer-sandbox-runtime.reset',

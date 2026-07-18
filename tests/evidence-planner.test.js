@@ -1142,6 +1142,34 @@ describe('T-EV-001 — evidence-planner: planEvidence() pure-function contract',
     );
   });
 
+  it('plans Model Viability Evidence Gate as candidate, cost, exception, liquidity, data-maturity and governance evidence', () => {
+    const result = planEvidence(
+      { routeLabel: 'model_viability_evidence_gate' },
+      {
+        candidateId: 'mvg:section-42c',
+        candidateName: 'Section 42c Community',
+        modelType: 'section_42c_community',
+        scope: 'pilot-region-west',
+        processCostBand: 'medium',
+        exceptionCaseRateBand: 'low',
+      }
+    );
+
+    expect(result).not.toBeNull();
+    expect(result.registryKey).toBe('model_viability_evidence_gate');
+    expect(result.checkedSources).toEqual(
+      expect.arrayContaining(['candidate_identity', 'process_cost', 'exception_case_rate'])
+    );
+    expect(result.gaps.map((gap) => gap.id)).toEqual(
+      expect.arrayContaining([
+        'evidence_snapshot',
+        'liquidity_impact',
+        'data_maturity_metering',
+        'governance_effort',
+      ])
+    );
+  });
+
   it('plans iMSys Schedule Value Chain as metering, forecast and handover evidence', () => {
     const result = planEvidence(
       { routeLabel: 'imsys_schedule_value_chain_readiness' },

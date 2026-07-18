@@ -686,6 +686,24 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  const hasModelViabilityEvidenceGateSpecificSignal =
+    /(model viability|model_viability_evidence_gate|modellviabilitaet|modellviabilität|operating model candidate|betriebsmodell.?kandidat|section 42c community|§42c community|supplier service model|lieferanten.?dienstleistungsmodell|multi-site balance group|multi site bilanzkreis|flexible connection logic|flexible anschlusslogik)/i.test(
+      haystack
+    ) &&
+    /(process cost|prozesskosten|exception case|klaerfallquote|klärfallquote|liquidity impact|liquiditaetswirkung|liquiditätswirkung|data maturity|datenreife|governance effort|governance aufwand|evidence gate|evidenzgate)/i.test(
+      haystack
+    ) &&
+    !/(model ranking|modell.?ranking|portfolio cockpit|viability score|business case ergebnis|geschaeftsfall ergebnis|tarif mutieren|vertrag abschliessen|vertrag abschließen|billing ausfuehren|billing ausführen|settlement ausfuehren|settlement ausführen|mako dispatch|workflow ausfuehren|workflow ausführen|hitl create|external connector|personal-agent execute)/i.test(
+      haystack
+    );
+
+  if (hasModelViabilityEvidenceGateSpecificSignal) {
+    const modelViabilityCapability = findCapabilityByName('model_viability_evidence_gate');
+    if (modelViabilityCapability) {
+      return { capability: modelViabilityCapability, score: 144, usedFallback: false };
+    }
+  }
+
   const hasAutomationExecutionIntent =
     /(bot.?run|rpa.?execute|automation ausfuehren|automation ausführen|workflow execute|workflow ausfuehren|workflow ausführen|sende marktkommunikation|market.?communication send|external connector)/i.test(
       haystack
