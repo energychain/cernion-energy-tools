@@ -779,8 +779,15 @@ async function handleOpenAiChatCompletions(req, res) {
       );
     }
 
+    // The outer request is a REST-gateway call, but the OpenAI facade must
+    // synchronously return a finished completion. Propagating `$gateway: true`
+    // into personal-agent.chat would activate its generic 202/job wrapper and
+    // yield only a queued-job descriptor (without `reply`). Keep all verified
+    // auth/tenant fields while marking this nested broker path as internal.
+    const synchronousMeta = { ...meta };
+    delete synchronousMeta.$gateway;
     const response = await this.broker.call('openai-compatible.chatCompletions', requestBody, {
-      meta,
+      meta: synchronousMeta,
     });
     for (const [headerName, headerValue] of Object.entries(rateLimit.responseHeaders || {})) {
       if (headerValue != null) res.setHeader(headerName, String(headerValue));

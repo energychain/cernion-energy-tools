@@ -1086,6 +1086,10 @@ describe('API Gateway Service', () => {
               tenantId: 'tenant-route-421',
             },
           });
+          // The nested facade call must be synchronous. Forwarding the outer
+          // REST marker would make personal-agent.chat return a queued job
+          // descriptor instead of a completed reply.
+          expect(opts.meta.$gateway).toBeUndefined();
           return {
             id: 'chatcmpl_test',
             object: 'chat.completion',
