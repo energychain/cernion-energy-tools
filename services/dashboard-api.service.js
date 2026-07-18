@@ -20969,6 +20969,9 @@ module.exports = {
           'supplier-connector.call',
           'direct-marketer-connector.call',
           'imsys-connector.sync',
+          'energy-sharing.contract.sign',
+          'tenant.provision',
+          'workflow.execute',
         ],
       };
       const dossierFacts = [

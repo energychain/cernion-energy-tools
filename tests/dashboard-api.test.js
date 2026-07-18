@@ -5412,6 +5412,9 @@ describe('dashboard-api.service', () => {
             'supplier-connector.call',
             'direct-marketer-connector.call',
             'imsys-connector.sync',
+            'energy-sharing.contract.sign',
+            'tenant.provision',
+            'workflow.execute',
           ])
         );
         expect(result.safety).toBe('read_only');
