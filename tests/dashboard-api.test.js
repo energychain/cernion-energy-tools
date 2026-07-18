@@ -5235,6 +5235,49 @@ describe('dashboard-api.service', () => {
     // -- energySharingSimulationGateStatus ----------------------------------
 
     describe('energySharingSimulationGateStatus', () => {
+      const NO_CALL_GUARDS = [
+        'energy-sharing-allocation.allocate', // allocation
+        'billing.release', // billing
+        'settlement.exportA96', // settlement
+        'mako.dispatch', // MaKo
+        'energy-sharing.contract.sign', // contract signing
+        'energy-sharing.onboarding.start', // onboarding
+        'workflow.execute', // workflow
+        'external.connector.call', // connector
+      ];
+
+      const FULL_EVIDENCE_PARAMS = {
+        communityId: 'es-230',
+        gridOperatorId: 'vnb-230',
+        participantCount: '42',
+        participantEvidenceRef: 'participants-v2',
+        maloStatus: 'ready',
+        meteringReadiness: 'ready',
+        marketRoleReadiness: 'ready',
+        dataBasis: 'inhouse-imsys-mscons',
+        a96EvidenceRef: 'a96-ready',
+        settlementEvidenceRef: 'settlement-ready',
+        contractEvidenceRef: 'contracts-ready',
+        economicsAssumptionRef: 'economics-v1',
+        generationMaloCount: '30',
+        consumptionMaloCount: '12',
+        maloInventoryEvidenceRef: 'malo-inventory-v1',
+        supplierOrDirectMarketerEvidenceRef: 'supplier-evidence-v1',
+        meteringConceptEvidenceRef: 'metering-concept-v1',
+        imsysStatus: 'ready',
+        fifteenMinuteValuesReadiness: 'ready',
+        dataBasisFreshnessRef: 'data-basis-freshness-v1',
+        residualSupplyContractEvidenceRef: 'residual-supply-v1',
+        participationStartDate: '2026-08-01',
+        participationEndDate: '2027-08-01',
+        eligibilityEvidenceRef: 'eligibility-v1',
+        exceptionRateEvidenceRef: 'exception-rate-v1',
+        economicsThresholdRef: 'economics-threshold-v1',
+        owner: 'energy-sharing-owner',
+        escalationContact: 'billing-lead',
+        sourceArtifacts: ['vdmi:es-230', 'settlement:a96-230'],
+      };
+
       it('keeps forecast candidates in learning-pilot mode without executing Energy-Sharing actions', async () => {
         const result = await broker.call('dashboard-api.energySharingSimulationGateStatus', {
           communityId: 'es-230',
@@ -5255,25 +5298,74 @@ describe('dashboard-api.service', () => {
             'settlement_a96_evidence',
             'contract_evidence',
             'economics_assumption',
+            'malo_inventory_evidence',
+            'supplier_direct_marketer_evidence',
+            'metering_concept_data_quality_evidence',
+            'residual_supply_contract_evidence',
+            'participation_eligibility_evidence',
+            'exception_rate_economics_threshold_evidence',
           ])
         );
         expect(result.positiveFollowUps[0].category).toBe('energy_sharing_simulation_gate');
-        expect(result.sourceActions.notCalled).toEqual(
-          expect.arrayContaining([
-            'energy-sharing-allocation.allocate',
-            'settlement.exportA96',
-            'mako.dispatch',
-            'billing.release',
-            'tariff.mutate',
-            'hitl.create',
-            'external.connector.call',
-            'personal-agent.execute',
-          ])
-        );
+        expect(result.sourceActions.notCalled).toEqual(expect.arrayContaining(NO_CALL_GUARDS));
         expect(result.safety).toBe('read_only');
       });
 
-      it('returns billing_near_ready only with inhouse metering, market-role, A96, contract and economics evidence', async () => {
+      it('returns billing_near_ready only when all evidence, including the new evidence categories, is supplied', async () => {
+        const result = await broker.call(
+          'dashboard-api.energySharingSimulationGateStatus',
+          FULL_EVIDENCE_PARAMS
+        );
+
+        expect(result.gateStatus).toBe('billing_near_ready');
+        expect(result.simulationStage).toBe('billing_near_ready');
+        expect(result.missingEvidence).toEqual([]);
+        expect(result.readinessBlocks.settlementReadiness.status).toBe('ready');
+        expect(result.readinessBlocks.maloInventoryReadiness.status).toBe('ready');
+        expect(result.readinessBlocks.supplierDirectMarketerReadiness.status).toBe('ready');
+        expect(result.readinessBlocks.meteringConceptDataQualityReadiness.status).toBe('ready');
+        expect(result.readinessBlocks.residualSupplyReadiness.status).toBe('ready');
+        expect(result.readinessBlocks.participationEligibilityReadiness.status).toBe('ready');
+        expect(result.readinessBlocks.exceptionRateEconomicsThresholdReadiness.status).toBe(
+          'ready'
+        );
+        expect(result.dossierEvidence.dossierFacts).toContain(
+          'Provided Energy-Sharing gate evidence: 15/15'
+        );
+        expect(result.sourceActions.notCalled).toEqual(expect.arrayContaining(NO_CALL_GUARDS));
+      });
+
+      it('classifies each new evidence category as missing when omitted individually', async () => {
+        const base = {
+          ...FULL_EVIDENCE_PARAMS,
+        };
+
+        const casesById = {
+          malo_inventory_evidence: 'maloInventoryEvidenceRef',
+          supplier_direct_marketer_evidence: 'supplierOrDirectMarketerEvidenceRef',
+          metering_concept_data_quality_evidence: 'meteringConceptEvidenceRef',
+          residual_supply_contract_evidence: 'residualSupplyContractEvidenceRef',
+          participation_eligibility_evidence: 'eligibilityEvidenceRef',
+          exception_rate_economics_threshold_evidence: 'economicsThresholdRef',
+        };
+
+        for (const [missingDataPoint, omittedParam] of Object.entries(casesById)) {
+          const params = { ...base };
+          delete params[omittedParam];
+
+          const result = await broker.call(
+            'dashboard-api.energySharingSimulationGateStatus',
+            params
+          );
+
+          expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toContain(
+            missingDataPoint
+          );
+          expect(result.gateStatus).not.toBe('billing_near_ready');
+        }
+      });
+
+      it('stays backwards compatible for callers that only supply the original evidence fields', async () => {
         const result = await broker.call('dashboard-api.energySharingSimulationGateStatus', {
           communityId: 'es-230',
           gridOperatorId: 'vnb-230',
@@ -5292,14 +5384,43 @@ describe('dashboard-api.service', () => {
           sourceArtifacts: ['vdmi:es-230', 'settlement:a96-230'],
         });
 
-        expect(result.gateStatus).toBe('billing_near_ready');
-        expect(result.simulationStage).toBe('billing_near_ready');
-        expect(result.missingEvidence).toEqual([]);
+        // Original response fields remain present and correctly shaped.
+        expect(result.safety).toBe('read_only');
+        expect(result.capabilityKey).toBe('energy_sharing_simulation_gate');
+        expect([
+          'learning_pilot',
+          'simulation_ready',
+          'billing_near_ready',
+          'blocked_before_operational_rollout',
+        ]).toContain(result.simulationStage);
         expect(result.readinessBlocks.settlementReadiness.status).toBe('ready');
-        expect(result.dossierEvidence.dossierFacts).toContain(
-          'Provided Energy-Sharing gate evidence: 9/9'
+        expect(result.readinessBlocks.participantReadiness.status).toBe('ready');
+        expect(Array.isArray(result.evidenceItems)).toBe(true);
+        expect(Array.isArray(result.missingEvidence)).toBe(true);
+        expect(Array.isArray(result.positiveFollowUps)).toBe(true);
+
+        // The new evidence categories are surfaced as open gaps rather than
+        // breaking or being silently ignored for a caller that never supplied them.
+        expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+          expect.arrayContaining([
+            'malo_inventory_evidence',
+            'supplier_direct_marketer_evidence',
+            'metering_concept_data_quality_evidence',
+            'residual_supply_contract_evidence',
+            'participation_eligibility_evidence',
+            'exception_rate_economics_threshold_evidence',
+          ])
         );
-        expect(result.sourceActions.notCalled).toContain('energy-sharing-allocation.allocate');
+        expect(result.gateStatus).not.toBe('billing_near_ready');
+      });
+
+      it('never calls allocation, billing, settlement, MaKo, contract signing, onboarding, workflow or connector actions', async () => {
+        const result = await broker.call(
+          'dashboard-api.energySharingSimulationGateStatus',
+          FULL_EVIDENCE_PARAMS
+        );
+
+        expect(result.sourceActions.notCalled).toEqual(expect.arrayContaining(NO_CALL_GUARDS));
       });
     });
 
