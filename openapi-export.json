@@ -62560,7 +62560,7 @@
     "/v1/chat/completions": {
       "post": {
         "operationId": "createChatCompletion",
-        "summary": "Create a non-streaming OpenAI-compatible Cernion chat completion",
+        "summary": "Create an OpenAI-compatible Cernion Personal Agent chat completion",
         "tags": [
           "OpenAI Compatible"
         ],
@@ -62611,7 +62611,7 @@
             }
           }
         },
-        "description": "Inbound OpenAI-compatible facade over existing authenticated Cernion advisory actions. It supports only non-streaming chat completions and treats system/developer messages as prompt context, not authorization.",
+        "description": "Inbound OpenAI-compatible facade over the authenticated Cernion Personal Agent (personal-agent.chat), synthesized internally with Gemini. Returns a complete, polished answer for the caller, not an evidence/grounding packet for a downstream Copilot. Always runs in consultation mode (no execution, no consequential process action) — this is a hard, non-negotiable safety boundary and cannot be overridden by request metadata. It treats system/developer messages and prior turns as non-authoritative prompt context, never as authorization; tenant identity and authorization always come from the caller session, not the request body. When stream=true, the gateway (services/api.service.js) obtains the full result from this action first and then emits it as buffered chat.completion.chunk SSE frames — this is not genuine token-by-token streaming.",
         "requestBody": {
           "required": true,
           "content": {

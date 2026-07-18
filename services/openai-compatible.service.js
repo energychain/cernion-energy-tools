@@ -1,15 +1,9 @@
 const crypto = require('crypto');
 const { Errors } = require('moleculer');
+const { CHAT_MODES } = require('../src/personal-agent-routing');
 
 const FACADE_MODEL = 'cernion-agent-mvp';
 const SUPPORTED_MODELS = new Set([FACADE_MODEL, 'cernion-agent', 'gpt-4o-mini', 'gpt-4o']);
-const ROLE_LABELS = {
-  system: 'System context',
-  developer: 'Developer context',
-  user: 'User',
-  assistant: 'Assistant',
-  tool: 'Tool',
-};
 
 function openAiError(message, statusCode = 400, code = 'invalid_request_error') {
   return new Errors.MoleculerClientError(message, statusCode, code, {
@@ -78,24 +72,66 @@ function normalizeMessages(rawMessages) {
   return messages;
 }
 
-function buildQuestion(messages) {
-  return messages
-    .map((message) => `${ROLE_LABELS[message.role] || message.role}: ${message.content}`)
-    .join('\n\n');
+// Bounds for the structured conversation context we attach alongside `question`.
+// These are deliberately small: this is a hint for genuine follow-ups, not a
+// second retrieval query, so it must never be able to out-weigh the latest
+// user message when Cernion evidence retrieval runs.
+const MAX_PRIOR_TURNS = 6;
+const MAX_PROMPT_HINTS = 4;
+const CONTEXT_HINT_MAX_LENGTH = 400;
+
+// Locate the newest user turn by role, not by array position: OpenWebUI always
+// appends chronologically, but scanning from the end keeps this correct even if
+// a client ever appends trailing system/developer messages after the question.
+function findLatestUserMessageIndex(messages) {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    if (messages[index].role === 'user') return index;
+  }
+  return -1;
 }
 
+// Splits everything except the latest user message into two bounded, structured
+// buckets instead of concatenating raw history into the retrieval query:
+//  - promptHints: system/developer content, kept only as non-authoritative hints
+//    (never authorization or tenant identity — that comes from ctx.meta).
+//  - priorTurns: earlier user/assistant turns, for genuine follow-up questions,
+//    truncated and capped so an old topic can never dominate the new one.
+function buildConversationContext(messages, latestUserIndex) {
+  const promptHints = [];
+  const priorTurns = [];
+
+  messages.forEach((message, index) => {
+    if (index === latestUserIndex) return;
+    if (message.role === 'system' || message.role === 'developer') {
+      promptHints.push({
+        role: message.role,
+        content: compactString(message.content, CONTEXT_HINT_MAX_LENGTH),
+      });
+    } else if (
+      index < latestUserIndex &&
+      (message.role === 'user' || message.role === 'assistant')
+    ) {
+      priorTurns.push({
+        role: message.role,
+        content: compactString(message.content, CONTEXT_HINT_MAX_LENGTH),
+      });
+    }
+  });
+
+  return {
+    promptHints: promptHints.slice(-MAX_PROMPT_HINTS),
+    priorTurns: priorTurns.slice(-MAX_PRIOR_TURNS),
+  };
+}
+
+// The outward OpenAI answer is always the finished, user-facing reply from
+// personal-agent.chat (result.reply) — never groundingAnswer or
+// consultingBrief, which are Copilot-composition inputs, not user answers.
+// The fallback below only guards against a malformed/incomplete result.
 function buildAssistantContent(result) {
-  const candidates = [
-    result?.shortAnswer,
-    result?.groundingAnswer,
-    result?.consultingBrief,
-    result?.reply,
-    result?.answer,
-    result?.message,
-  ];
-  const content = candidates.find((value) => typeof value === 'string' && value.trim());
-  if (content) return compactString(content, 6000);
-  return compactString(JSON.stringify(result || {}), 6000) || 'Cernion returned no answer text.';
+  const reply = result?.reply;
+  if (typeof reply === 'string' && reply.trim()) return compactString(reply, 6000);
+  return 'Cernion was unable to generate an answer for this request.';
 }
 
 function estimateTokens(text) {
@@ -119,13 +155,18 @@ module.exports = {
       openapi: {
         operationId: 'createChatCompletion',
         tags: ['OpenAI Compatible'],
-        summary: 'Create an OpenAI-compatible Cernion chat completion',
+        summary: 'Create an OpenAI-compatible Cernion Personal Agent chat completion',
         description:
-          'Inbound OpenAI-compatible facade over existing authenticated Cernion advisory actions. ' +
-          'It treats system/developer messages as prompt context, not authorization. ' +
-          'When stream=true, the gateway (services/api.service.js) obtains the full advisory result ' +
-          'from this action first and then emits it as buffered chat.completion.chunk SSE frames — ' +
-          'this is not genuine token-by-token streaming.',
+          'Inbound OpenAI-compatible facade over the authenticated Cernion Personal Agent ' +
+          '(personal-agent.chat), synthesized internally with Gemini. Returns a complete, ' +
+          'polished answer for the caller, not an evidence/grounding packet for a downstream ' +
+          'Copilot. Always runs in consultation mode (no execution, no consequential process ' +
+          'action) — this is a hard, non-negotiable safety boundary and cannot be overridden by ' +
+          'request metadata. It treats system/developer messages and prior turns as non-authoritative ' +
+          'prompt context, never as authorization; tenant identity and authorization always come from ' +
+          'the caller session, not the request body. When stream=true, the gateway ' +
+          '(services/api.service.js) obtains the full result from this action first and then emits it ' +
+          'as buffered chat.completion.chunk SSE frames — this is not genuine token-by-token streaming.',
         requestBody: {
           required: true,
           content: {
@@ -210,27 +251,39 @@ module.exports = {
         }
 
         const messages = normalizeMessages(ctx.params.messages);
-        const question = buildQuestion(messages);
+        // The latest user message is the retrieval question. Older turns (including
+        // prior assistant output and unrelated earlier topics) are never concatenated
+        // into it — see buildConversationContext for how they are bounded instead.
+        const latestUserIndex = findLatestUserMessageIndex(messages);
+        const question = messages[latestUserIndex].content;
+        const { promptHints, priorTurns } = buildConversationContext(messages, latestUserIndex);
         const metadata =
           ctx.params.metadata && typeof ctx.params.metadata === 'object' ? ctx.params.metadata : {};
 
-        const result = await ctx.call('personal-agent.askCernionAgent', {
-          question,
+        const result = await ctx.call('personal-agent.chat', {
+          message: question,
           sessionId:
             typeof metadata.sessionId === 'string' && metadata.sessionId.trim()
               ? metadata.sessionId.trim()
               : undefined,
-          context: {
+          // Hard safety boundary, non-negotiable: this facade only ever runs the
+          // Personal Agent in consultation mode (no execution, no consequential
+          // process action). It is forced here and is never read from request
+          // metadata, so a caller cannot switch it to execution mode.
+          chatMode: CHAT_MODES.CONSULTATION,
+          knownContext: {
             ...(metadata.context && typeof metadata.context === 'object' ? metadata.context : {}),
+            // Non-authoritative hints only. Tenant identity and execution
+            // authorization always come from ctx.meta, never from here.
             openAiFacade: {
               model: requestedModel,
               roles: [...new Set(messages.map((message) => message.role))],
+              promptHints,
+              priorTurns,
             },
           },
-          inputs: metadata.inputs && typeof metadata.inputs === 'object' ? metadata.inputs : {},
-          domain: typeof metadata.domain === 'string' ? metadata.domain : 'auto',
-          mode: typeof metadata.mode === 'string' ? metadata.mode : 'answer',
-          maxEvidence: Number.isInteger(metadata.maxEvidence) ? metadata.maxEvidence : 5,
+          toolContext:
+            metadata.inputs && typeof metadata.inputs === 'object' ? metadata.inputs : undefined,
         });
 
         const content = buildAssistantContent(result);
@@ -259,8 +312,8 @@ module.exports = {
           },
           cernion: {
             facade: 'openai-compatible-chat-completions',
-            sourceAction: 'personal-agent.askCernionAgent',
-            safety: 'advisory_compute_non_consequential',
+            sourceAction: 'personal-agent.chat',
+            safety: 'consultation_mode_forced_non_consequential',
             tenantId: ctx.meta.tenantId || ctx.meta.authUser?.tenantId || null,
             sessionId: result?.sessionId || null,
             result,
