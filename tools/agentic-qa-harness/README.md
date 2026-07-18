@@ -144,6 +144,14 @@ Cernion Energy Tools is the larger existing reference platform. This hackathon a
 
 It is designed to be understandable without a live energy-data tenant and reusable beyond the Cernion domain.
 
+## How Codex and GPT-5.6 were used
+
+Codex was used as a development and review assistant during the OpenAI Build Week submission workflow. It helped inspect the judge-facing artifact, review whether the README, smoke runner, synthetic fixtures, generated reports, media gallery, and testing path were understandable, and connect the implementation details to the final Developer Tools submission narrative.
+
+GPT-5.6 was used as a planning and writing assistant for the project story, risk framing, video narrative, LinkedIn copy, and Devpost-facing explanations. The human authors selected the project name, edited the positioning, reviewed the claims, and kept the submitted artifact limited to a safe, runnable developer-tool scope.
+
+The final artifact remains intentionally small and reproducible: synthetic fixtures, an offline smoke runner, Markdown/JSON QA receipts, and a focused Node.js test.
+
 ## Safety boundaries
 
 - Uses synthetic fixtures only.
