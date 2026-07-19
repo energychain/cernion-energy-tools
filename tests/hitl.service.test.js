@@ -841,7 +841,11 @@ describe('hitl service', () => {
 
     test('markWorkflowCompleted returns not_configured advisory and still completes when no rules are supplied (existing behavior preserved)', async () => {
       const created = await createItem('tenant-plausibility-default');
-      await broker.call('hitl.approve', { id: created.item.id }, tenantMeta('tenant-plausibility-default'));
+      await broker.call(
+        'hitl.approve',
+        { id: created.item.id },
+        tenantMeta('tenant-plausibility-default')
+      );
 
       const completed = await broker.call(
         'hitl.markWorkflowCompleted',
@@ -867,7 +871,11 @@ describe('hitl service', () => {
 
     test('markWorkflowCompleted still emits hitl.workflow.completed exactly once when plausibility hints fire', async () => {
       const created = await createItem('tenant-plausibility-event');
-      await broker.call('hitl.approve', { id: created.item.id }, tenantMeta('tenant-plausibility-event'));
+      await broker.call(
+        'hitl.approve',
+        { id: created.item.id },
+        tenantMeta('tenant-plausibility-event')
+      );
 
       const before = emitted.filter((e) => e.eventName === 'hitl.workflow.completed').length;
 
@@ -875,7 +883,9 @@ describe('hitl service', () => {
         'hitl.markWorkflowCompleted',
         {
           id: created.item.id,
-          plausibilityRules: [{ ruleId: 'summary_required', type: 'required', fieldKey: 'summary' }],
+          plausibilityRules: [
+            { ruleId: 'summary_required', type: 'required', fieldKey: 'summary' },
+          ],
           completionFields: {},
         },
         tenantMeta('tenant-plausibility-event')
@@ -887,7 +897,11 @@ describe('hitl service', () => {
 
     test('no sensitive completionFields content leaks into the response, audit trail, or emitted event', async () => {
       const created = await createItem('tenant-plausibility-sensitive');
-      await broker.call('hitl.approve', { id: created.item.id }, tenantMeta('tenant-plausibility-sensitive'));
+      await broker.call(
+        'hitl.approve',
+        { id: created.item.id },
+        tenantMeta('tenant-plausibility-sensitive')
+      );
 
       const secret = 'Kunde Max Mustermann IBAN-DE00-SECRET-9999';
       const completed = await broker.call(
@@ -895,7 +909,9 @@ describe('hitl service', () => {
         {
           id: created.item.id,
           completionNotes: 'ok',
-          plausibilityRules: [{ ruleId: 'summary_required', type: 'required', fieldKey: 'summary' }],
+          plausibilityRules: [
+            { ruleId: 'summary_required', type: 'required', fieldKey: 'summary' },
+          ],
           completionFields: { summary: secret },
         },
         tenantMeta('tenant-plausibility-sensitive')

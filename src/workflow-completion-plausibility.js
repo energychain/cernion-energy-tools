@@ -52,7 +52,13 @@ const EMPTY_RESULT_COUNTS = Object.freeze({
 });
 
 function isPlainObject(value) {
-  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+  if (!value || typeof value !== 'object') return false;
+  try {
+    const prototype = Object.getPrototypeOf(value);
+    return prototype === Object.prototype || prototype === null;
+  } catch {
+    return false;
+  }
 }
 
 function isValidFieldKey(key) {
@@ -79,7 +85,11 @@ function toFiniteNumber(value) {
 }
 
 function allowedKeys(rule, keys) {
-  return Object.keys(rule).every((key) => keys.includes(key));
+  try {
+    return Reflect.ownKeys(rule).every((key) => typeof key === 'string' && keys.includes(key));
+  } catch {
+    return false;
+  }
 }
 
 // Fails closed (returns false, never throws) on any unexpected shape.
@@ -203,8 +213,12 @@ function evaluateWorkflowCompletionPlausibility({ rules, fields } = {}) {
     if (hint) hints.push(hint);
   }
 
-  const missingRequired = hints.filter((hint) => hint.category === CATEGORY.MISSING_REQUIRED).length;
-  const implausibleValue = hints.filter((hint) => hint.category === CATEGORY.IMPLAUSIBLE_VALUE).length;
+  const missingRequired = hints.filter(
+    (hint) => hint.category === CATEGORY.MISSING_REQUIRED
+  ).length;
+  const implausibleValue = hints.filter(
+    (hint) => hint.category === CATEGORY.IMPLAUSIBLE_VALUE
+  ).length;
 
   return {
     status: hints.length > 0 ? STATUS.HINTS_FOUND : STATUS.OK,

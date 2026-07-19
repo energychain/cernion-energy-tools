@@ -198,6 +198,60 @@ describe('workflow-completion-plausibility', () => {
       expect(result.status).toBe(STATUS.CHECK_UNAVAILABLE);
     });
 
+    test.each([
+      [
+        'Date instance',
+        Object.assign(new Date('2026-07-19T00:00:00.000Z'), {
+          ruleId: 'r1',
+          type: 'required',
+          fieldKey: 'summary',
+        }),
+      ],
+      [
+        'custom-prototype object',
+        Object.assign(Object.create({ inheritedCheck: () => true }), {
+          ruleId: 'r1',
+          type: 'required',
+          fieldKey: 'summary',
+        }),
+      ],
+    ])('%s is not accepted as a plain rule object', (_label, rule) => {
+      const result = evaluateWorkflowCompletionPlausibility({
+        rules: [rule],
+        fields: { summary: 'x' },
+      });
+      expect(result.status).toBe(STATUS.CHECK_UNAVAILABLE);
+    });
+
+    test('rule with a non-enumerable extra key fails closed', () => {
+      const rule = { ruleId: 'r1', type: 'required', fieldKey: 'summary' };
+      Object.defineProperty(rule, 'check', {
+        value: () => true,
+        enumerable: false,
+      });
+
+      const result = evaluateWorkflowCompletionPlausibility({
+        rules: [rule],
+        fields: { summary: 'x' },
+      });
+      expect(result.status).toBe(STATUS.CHECK_UNAVAILABLE);
+    });
+
+    test('rule with a symbol key fails closed', () => {
+      const rule = {
+        ruleId: 'r1',
+        type: 'required',
+        fieldKey: 'summary',
+        [Symbol('check')]: () => true,
+      };
+
+      const result = evaluateWorkflowCompletionPlausibility({
+        rules: [rule],
+        fields: { summary: 'x' },
+      });
+      expect(result.status).toBe(STATUS.CHECK_UNAVAILABLE);
+    });
+
     test('fieldKey with invalid characters (traversal/injection attempt) fails closed', () => {
       const result = evaluateWorkflowCompletionPlausibility({
         rules: [{ ruleId: 'r1', type: 'required', fieldKey: '__proto__.polluted' }],
@@ -216,9 +270,7 @@ describe('workflow-completion-plausibility', () => {
 
     test('less_than_or_equal referencing itself fails closed', () => {
       const result = evaluateWorkflowCompletionPlausibility({
-        rules: [
-          { ruleId: 'r1', type: 'less_than_or_equal', fieldKey: 'x', relatedFieldKey: 'x' },
-        ],
+        rules: [{ ruleId: 'r1', type: 'less_than_or_equal', fieldKey: 'x', relatedFieldKey: 'x' }],
         fields: { x: 1 },
       });
       expect(result.status).toBe(STATUS.CHECK_UNAVAILABLE);
