@@ -6,6 +6,9 @@ PouchDB.plugin(require('pouchdb-find'));
 const { MoleculerClientError } = require('moleculer').Errors;
 const { getTenantId } = require('../src/tenant-context');
 const { hasFullAccessPrincipal, callerHasAnyRole } = require('../src/auth-role-helpers');
+const {
+  evaluateWorkflowCompletionPlausibility,
+} = require('../src/workflow-completion-plausibility');
 
 const OPENAPI_TAG = 'HITL';
 const DOC_PREFIX = 'hi:';
@@ -734,12 +737,70 @@ module.exports = {
       },
     },
 
+    completionPlausibility: {
+      rest: 'POST /items/:id/completion-plausibility',
+      params: {
+        id: { type: 'string' },
+        rules: { type: 'array', optional: true, default: [], items: 'object' },
+        fields: { type: 'object', optional: true, default: {} },
+      },
+      openapi: {
+        summary: 'Preview pre-completion plausibility hints for a HITL item (read-only, advisory)',
+        tags: [OPENAPI_TAG],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: '00000000-0000-4000-8000-000000000001' },
+          },
+        ],
+        requestBody: {
+          required: false,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  rules: {
+                    type: 'array',
+                    items: { type: 'object' },
+                    example: [{ ruleId: 'summary_required', type: 'required', fieldKey: 'summary' }],
+                  },
+                  fields: { type: 'object', example: { summary: 'ok' } },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const tenantId = getTenantId(ctx);
+        const item = await this.getItemById(ctx.params.id, tenantId);
+
+        const result = evaluateWorkflowCompletionPlausibility({
+          rules: ctx.params.rules,
+          fields: ctx.params.fields,
+        });
+
+        return {
+          success: true,
+          itemId: item.id,
+          status: result.status,
+          hints: result.hints,
+          counts: result.counts,
+        };
+      },
+    },
+
     markWorkflowCompleted: {
       rest: 'POST /items/:id/mark-completed',
       params: {
         id: { type: 'string' },
         completionNotes: { type: 'string', optional: true },
         handoffPersonaId: { type: 'string', optional: true },
+        plausibilityRules: { type: 'array', optional: true, default: [], items: 'object' },
+        completionFields: { type: 'object', optional: true, default: {} },
       },
       openapi: {
         summary: 'Mark HITL workflow as completed',
@@ -761,6 +822,12 @@ module.exports = {
                 properties: {
                   completionNotes: { type: 'string', example: 'Workflow completed with approval' },
                   handoffPersonaId: { type: 'string', example: 'tenant-a/persona-b' },
+                  plausibilityRules: {
+                    type: 'array',
+                    items: { type: 'object' },
+                    example: [{ ruleId: 'summary_required', type: 'required', fieldKey: 'summary' }],
+                  },
+                  completionFields: { type: 'object', example: { summary: 'ok' } },
                 },
               },
               examples: {
@@ -787,6 +854,11 @@ module.exports = {
           );
         }
 
+        const plausibility = evaluateWorkflowCompletionPlausibility({
+          rules: ctx.params.plausibilityRules,
+          fields: ctx.params.completionFields,
+        });
+
         const completedAt = nowIso();
         const auditEntry = {
           at: completedAt,
@@ -794,6 +866,10 @@ module.exports = {
           actor: this.buildInterventionActor(ctx).actor || 'system',
           notes: ctx.params.completionNotes || null,
           handoffPersonaId: ctx.params.handoffPersonaId || null,
+          plausibility: {
+            status: plausibility.status,
+            counts: plausibility.counts,
+          },
         };
 
         const updated = {
@@ -816,7 +892,15 @@ module.exports = {
           interventionCount: (updated.agent_interventions || []).length,
         });
 
-        return { success: true, item: this.toPublic(updated) };
+        return {
+          success: true,
+          item: this.toPublic(updated),
+          plausibility: {
+            status: plausibility.status,
+            hints: plausibility.hints,
+            counts: plausibility.counts,
+          },
+        };
       },
     },
   },

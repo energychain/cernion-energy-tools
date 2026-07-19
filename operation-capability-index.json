@@ -2,11 +2,11 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.67.8",
-  "sourceOpenApiHash": "73118cbcae83b98d2507de0192b7c1cd7014f740cb12908e43988f9056549404",
+  "sourceOpenApiHash": "b1b08f8e27ce239d025f4e215fe2e7477786ca9eb0f21427eb1a9782546b9e49",
   "coverage": {
-    "rawOperationCount": 1106,
-    "operationCount": 851,
-    "agentableCount": 849,
+    "rawOperationCount": 1107,
+    "operationCount": 852,
+    "agentableCount": 850,
     "nonAgentableCount": 2,
     "byOperationKind": {
       "data_read": 379,
@@ -14,7 +14,7 @@
       "object_store_write": 222,
       "process_step": 20,
       "process_start": 38,
-      "advisory_plan": 39,
+      "advisory_plan": 40,
       "draft_write": 10,
       "external_effect": 4,
       "dashboard_read": 124,
@@ -54957,6 +54957,93 @@
       "aliases": []
     },
     {
+      "operationId": "hitl_completionPlausibility",
+      "method": "POST",
+      "path": "/api/hitl/items/:id/completion-plausibility",
+      "service": "hitl",
+      "action": "hitl.completionPlausibility",
+      "summary": "Preview pre-completion plausibility hints for a HITL item (read-only, advisory)",
+      "tags": [
+        "HITL"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "advisory_plan",
+      "consequenceLevel": "low",
+      "recommendedExecutionMode": "explain_only",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "hitl.completion_plausibility"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "HitlResource"
+      ],
+      "requiredScopes": [
+        "hitl:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [
+          {
+            "name": "id",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": "entity_id"
+          }
+        ],
+        "optional": [
+          {
+            "name": "rules",
+            "in": "body",
+            "type": "array",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "fields",
+            "in": "body",
+            "type": "object",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "hitl",
+          "completion",
+          "plausibility",
+          "preview",
+          "pre",
+          "hints",
+          "item",
+          "(read",
+          "only,",
+          "advisory)"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please preview pre-completion plausibility hints for a hitl item (read-only, advisory)"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
       "operationId": "hitl_escalate",
       "method": "POST",
       "path": "/api/hitl/items/:id/escalate",
@@ -55094,6 +55181,20 @@
             "name": "handoffPersonaId",
             "in": "body",
             "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "plausibilityRules",
+            "in": "body",
+            "type": "array",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "completionFields",
+            "in": "body",
+            "type": "object",
             "description": null,
             "extractionHint": null
           }
