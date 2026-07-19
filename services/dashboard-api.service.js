@@ -10639,13 +10639,37 @@ module.exports = {
           optional: true,
           rules: [{ type: 'string' }, { type: 'array' }],
         },
+        // -- FCA/fNAV lifecycle evidence (additive, caller-supplied, read-only) --
+        connectionRequestRef: { type: 'string', optional: true, min: 1 },
+        gridConnectionPoint: { type: 'string', optional: true, min: 1 },
+        capacityOfferRef: { type: 'string', optional: true, min: 1 },
+        capacityOfferVersion: { type: 'string', optional: true, min: 1 },
+        capacityOfferDate: { type: 'string', optional: true, min: 1 },
+        restrictionProfileRef: { type: 'string', optional: true, min: 1 },
+        restrictionProfileVersion: { type: 'string', optional: true, min: 1 },
+        contractRef: { type: 'string', optional: true, min: 1 },
+        contractVersion: { type: 'string', optional: true, min: 1 },
+        contractReviewStatus: { type: 'string', optional: true, min: 1 },
+        operatingEventRef: { type: 'string', optional: true, min: 1 },
+        operatingEventType: { type: 'string', optional: true, min: 1 },
+        operatingEventTimestamp: { type: 'string', optional: true, min: 1 },
+        curtailmentMeasurementEvidenceRef: { type: 'string', optional: true, min: 1 },
+        redispatchRelevanceRef: { type: 'string', optional: true, min: 1 },
+        redispatchStatusRef: { type: 'string', optional: true, min: 1 },
+        compensationStatusRef: { type: 'string', optional: true, min: 1 },
+        evidenceOwner: { type: 'string', optional: true, min: 1 },
+        nextReviewGate: { type: 'string', optional: true, min: 1 },
+        evidenceSourceTimestamp: { type: 'string', optional: true, min: 1 },
       },
       openapi: {
         tags: [OPENAPI_TAG],
         summary: 'fNAV fast-track contract gate -- read-only decision readiness',
         description:
           'Projects fNAV fast-track request, network-signal, metering/control, commercial, contract, legal and owner evidence into a dossier-safe gate status. ' +
-          'The endpoint is read-only and never creates contracts, HITL items, MaKo, billing, settlement, tariff, control, SMGW/CLS or external actions.',
+          'The endpoint is read-only and never creates contracts, HITL items, MaKo, billing, settlement, tariff, control, SMGW/CLS or external actions. ' +
+          'It additionally projects caller-supplied FCA/fNAV lifecycle evidence (connection request, capacity offer, restriction profile, contract, ' +
+          'at most one operating-event snapshot, curtailment/measurement evidence, and Redispatch/compensation evidence markers) as review-only, ' +
+          'non-consequential display fields.',
         parameters: [
           { name: 'gateId', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'gridOperatorId', in: 'query', required: false, schema: { type: 'string' } },
@@ -10674,6 +10698,26 @@ module.exports = {
           { in: 'query', name: 'escalationOwner', schema: { type: 'string' } },
           { in: 'query', name: 'vdmiProcessId', schema: { type: 'string' } },
           { in: 'query', name: 'sourceRef', schema: { type: 'string' } },
+          { in: 'query', name: 'connectionRequestRef', schema: { type: 'string' } },
+          { in: 'query', name: 'gridConnectionPoint', schema: { type: 'string' } },
+          { in: 'query', name: 'capacityOfferRef', schema: { type: 'string' } },
+          { in: 'query', name: 'capacityOfferVersion', schema: { type: 'string' } },
+          { in: 'query', name: 'capacityOfferDate', schema: { type: 'string' } },
+          { in: 'query', name: 'restrictionProfileRef', schema: { type: 'string' } },
+          { in: 'query', name: 'restrictionProfileVersion', schema: { type: 'string' } },
+          { in: 'query', name: 'contractRef', schema: { type: 'string' } },
+          { in: 'query', name: 'contractVersion', schema: { type: 'string' } },
+          { in: 'query', name: 'contractReviewStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'operatingEventRef', schema: { type: 'string' } },
+          { in: 'query', name: 'operatingEventType', schema: { type: 'string' } },
+          { in: 'query', name: 'operatingEventTimestamp', schema: { type: 'string' } },
+          { in: 'query', name: 'curtailmentMeasurementEvidenceRef', schema: { type: 'string' } },
+          { in: 'query', name: 'redispatchRelevanceRef', schema: { type: 'string' } },
+          { in: 'query', name: 'redispatchStatusRef', schema: { type: 'string' } },
+          { in: 'query', name: 'compensationStatusRef', schema: { type: 'string' } },
+          { in: 'query', name: 'evidenceOwner', schema: { type: 'string' } },
+          { in: 'query', name: 'nextReviewGate', schema: { type: 'string' } },
+          { in: 'query', name: 'evidenceSourceTimestamp', schema: { type: 'string' } },
         ],
         responses: {
           200: {
@@ -10697,6 +10741,7 @@ module.exports = {
                     positiveFollowUps: { type: 'array' },
                     sourceActions: { type: 'object' },
                     dossierEvidence: { type: 'object' },
+                    lifecycleEvidence: { type: 'object' },
                     safety: { type: 'string' },
                     timestamp: { type: 'string', format: 'date-time' },
                   },
@@ -39405,6 +39450,187 @@ module.exports = {
         `Request Type: ${params.requestType || 'unknown'}`,
         `Open gaps: ${evidenceGaps.length}`,
       ];
+
+      // -- FCA/fNAV lifecycle evidence (additive, caller-supplied, read-only) --
+      // Narrow, non-consequential projection of one supplied FCA/fNAV case across
+      // request, offer, restriction, contract and at most one operating-event
+      // snapshot. Never affects decisionReadiness/status above; scalar and
+      // reference values only, no service calls, persistence or hydration.
+      const hasEvidenceValue = (value) => value !== undefined && value !== null && String(value).trim() !== '';
+      const lifecycleRowStatus = (values) => {
+        const provided = values.filter(hasEvidenceValue).length;
+        if (provided === 0) return 'missing';
+        if (provided === values.length) return 'provided';
+        return 'partial';
+      };
+      const lifecycleRowSpecs = [
+        {
+          code: 'connection_request',
+          label: 'Connection Request',
+          values: {
+            connectionRequestRef: params.connectionRequestRef ?? null,
+            gridConnectionPoint: params.gridConnectionPoint ?? null,
+          },
+          enablesDossierAddition:
+            'add connection request/case reference and grid connection point evidence',
+        },
+        {
+          code: 'capacity_offer',
+          label: 'Capacity Offer',
+          values: {
+            capacityOfferRef: params.capacityOfferRef ?? null,
+            capacityOfferVersion: params.capacityOfferVersion ?? null,
+            capacityOfferDate: params.capacityOfferDate ?? null,
+            firmCapacityKW: params.firmCapacityKW ?? null,
+            flexibleCapacityKW: params.flexibleCapacityKW ?? null,
+          },
+          enablesDossierAddition:
+            'add capacity-offer reference, offer version/date and offered firm/flexible capacity evidence',
+        },
+        {
+          code: 'restriction_profile',
+          label: 'Restriction Profile',
+          values: {
+            restrictionProfileRef: params.restrictionProfileRef ?? null,
+            restrictionProfileVersion: params.restrictionProfileVersion ?? null,
+            curtailmentWindow: params.curtailmentWindow ?? null,
+          },
+          enablesDossierAddition:
+            'add restriction-profile reference/version and curtailment window evidence',
+        },
+        {
+          code: 'contract_lifecycle',
+          label: 'Contract Lifecycle',
+          values: {
+            contractRef: params.contractRef ?? null,
+            contractVersion: params.contractVersion ?? null,
+            contractReviewStatus: params.contractReviewStatus ?? null,
+          },
+          enablesDossierAddition:
+            'add contract reference, contract version and review status evidence',
+        },
+        {
+          code: 'curtailment_measurement_evidence',
+          label: 'Curtailment/Measurement Evidence',
+          values: {
+            curtailmentMeasurementEvidenceRef: params.curtailmentMeasurementEvidenceRef ?? null,
+          },
+          enablesDossierAddition: 'add curtailment/measurement evidence reference',
+        },
+        {
+          code: 'redispatch_compensation_markers',
+          label: 'Redispatch/Compensation Evidence Markers',
+          values: {
+            redispatchRelevanceRef: params.redispatchRelevanceRef ?? null,
+            redispatchStatusRef: params.redispatchStatusRef ?? null,
+            compensationStatusRef: params.compensationStatusRef ?? null,
+          },
+          enablesDossierAddition:
+            'add Redispatch relevance/status and compensation-status evidence markers (markers only, not a classification or calculation)',
+        },
+        {
+          code: 'evidence_governance',
+          label: 'Evidence Governance',
+          values: {
+            evidenceOwner: params.evidenceOwner ?? null,
+            nextReviewGate: params.nextReviewGate ?? null,
+            evidenceSourceTimestamp: params.evidenceSourceTimestamp ?? null,
+          },
+          enablesDossierAddition: 'add evidence owner, next review gate and source timestamp',
+        },
+      ];
+      const lifecycleRows = lifecycleRowSpecs.map((spec) => ({
+        code: spec.code,
+        label: spec.label,
+        values: spec.values,
+        evidenceStatus: lifecycleRowStatus(Object.values(spec.values)),
+        enablesDossierAddition: spec.enablesDossierAddition,
+      }));
+      const operatingEventValues = {
+        operatingEventRef: params.operatingEventRef ?? null,
+        operatingEventType: params.operatingEventType ?? null,
+        operatingEventTimestamp: params.operatingEventTimestamp ?? null,
+      };
+      const operatingEventStatus = lifecycleRowStatus(Object.values(operatingEventValues));
+      const operatingEventRow = {
+        code: 'operating_event',
+        label: 'Operating Event (optional, at most one snapshot per request)',
+        values: operatingEventValues,
+        evidenceStatus: operatingEventStatus,
+        optional: true,
+        enablesDossierAddition:
+          'add the single supplied operating-event reference, type and timestamp',
+      };
+      const lifecycleMissingEvidence = lifecycleRows
+        .filter((row) => row.evidenceStatus !== 'provided')
+        .map((row) => ({
+          missingDataPoint: row.code,
+          status: row.evidenceStatus,
+          enablesDossierAddition: row.enablesDossierAddition,
+        }));
+      // The operating-event snapshot is optional (at most one per request), so a
+      // fully unsupplied snapshot is not a gap -- only a partially supplied one is.
+      if (operatingEventStatus === 'partial') {
+        lifecycleMissingEvidence.push({
+          missingDataPoint: operatingEventRow.code,
+          status: operatingEventStatus,
+          enablesDossierAddition: operatingEventRow.enablesDossierAddition,
+        });
+      }
+      const lifecyclePositiveFollowUps = lifecycleMissingEvidence.map((gap) => ({
+        missingDataPoint: gap.missingDataPoint,
+        status: gap.status,
+        enablesDossierAddition: gap.enablesDossierAddition,
+        category: 'fca_fnav_lifecycle_evidence',
+      }));
+      const lifecycleEvidence = {
+        capabilityKey: 'fnav_fast_track_contract_gate',
+        gateId,
+        rows: [...lifecycleRows, operatingEventRow],
+        operatingEvent: operatingEventRow,
+        evidenceStatus: {
+          provided: lifecycleRows.filter((row) => row.evidenceStatus === 'provided').length,
+          required: lifecycleRows.length,
+        },
+        missingEvidence: lifecycleMissingEvidence,
+        positiveFollowUps: lifecyclePositiveFollowUps,
+        sourceActions: {
+          referenced: [
+            'fnav-commercial-hedging.createContract',
+            'fnav-commercial-hedging.createScenario',
+            'redispatch-expost.stepCurtailmentCorrelation',
+            'grid-connection.stepCapacity',
+            'grid-connection.fnavValidate',
+          ],
+          notCalled: [
+            'contract.approve',
+            'contract.release',
+            'capacity.allocate',
+            'grid-connection.mutate',
+            'grid-connection.approve',
+            'curtailment.dispatch',
+            'device-control.execute',
+            'smgw.connector.call',
+            'cls.control.execute',
+            'redispatch.execute',
+            'redispatch.classify',
+            'compensation.calculate',
+            'settlement.prepareBilling',
+            'mako.dispatch',
+            'a96.dispatch',
+            'workflow.create',
+            'hitl.create',
+            'external.connector.call',
+            'personal-agent.execute',
+          ],
+        },
+        notice:
+          'Evidence markers only: no capacity allocation, connection approval, contract action, ' +
+          'curtailment/dispatch/device control, Redispatch execution/classification, compensation ' +
+          'calculation, settlement, MaKo/A96, workflow/HITL, connector or Personal-Agent execution ' +
+          'is performed by this projection.',
+      };
+
       return {
         capabilityKey: 'fnav_fast_track_contract_gate',
         safety: 'read_only',
@@ -39443,6 +39669,7 @@ module.exports = {
         positiveFollowUps,
         sourceActions,
         sourceDatapoints: signals,
+        lifecycleEvidence,
         dossierEvidence: {
           capabilityKey: 'fnav_fast_track_contract_gate',
           gateId,
