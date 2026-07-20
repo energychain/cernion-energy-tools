@@ -53,6 +53,7 @@ const READ_ONLY_QUERY_SERVICES = new Set([
   'oep',
   'osm-geo',
   'residual-load',
+  'tabular',
 ]);
 
 // Verbs whose presence in summary/description/operationId signal a real
@@ -237,6 +238,8 @@ function structuredTextBlob(op) {
 
 function isReadOnlyQueryOperation(op, serviceName) {
   if (op.method === 'GET') return true;
+  // executePlan runs a bounded in-memory analysis and never mutates source data.
+  if (op.method === 'POST' && serviceName === 'tabular') return true;
   if (MUTATING_VERB_PATTERN.test(structuredTextBlob(op))) return false;
   if (op.method === 'POST' && READ_ONLY_QUERY_SERVICES.has(serviceName)) return true;
   if (op.method === 'POST' && QUERY_VERB_PATTERN.test((op.summary || '').trim())) return true;

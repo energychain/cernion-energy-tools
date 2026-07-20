@@ -85,6 +85,21 @@ describe('operation-capability-classifier', () => {
       expect(result.recommendedExecutionMode).toBe('direct');
     });
 
+    it('keeps deterministic tabular plan execution read-only despite the execute verb', () => {
+      const result = classifyOperation(
+        buildOp({
+          path: '/api/tabular/execute-plan',
+          method: 'POST',
+          operationId: 'tabular_executePlan',
+          summary: 'Execute a validated tabular plan deterministically',
+          tags: ['Tabular Intelligence'],
+        })
+      );
+      expect(result.operationKind).toBe('data_read');
+      expect(result.sideEffects).toEqual([]);
+      expect(result.requiredScopes).toEqual(['tabular:read']);
+    });
+
     // Regression test: "start"/"stop" and other generic English words
     // appearing inside prose parameter documentation (not the operation's
     // own summary/tags/operationId/path) must not misclassify an otherwise
