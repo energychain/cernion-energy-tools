@@ -39542,7 +39542,7 @@ module.exports = {
       const lifecycleRows = lifecycleRowSpecs.map((spec) => ({
         code: spec.code,
         label: spec.label,
-        values: spec.values,
+        ...spec.values,
         evidenceStatus: lifecycleRowStatus(Object.values(spec.values)),
         enablesDossierAddition: spec.enablesDossierAddition,
       }));
@@ -39555,7 +39555,7 @@ module.exports = {
       const operatingEventRow = {
         code: 'operating_event',
         label: 'Operating Event (optional, at most one snapshot per request)',
-        values: operatingEventValues,
+        ...operatingEventValues,
         evidenceStatus: operatingEventStatus,
         optional: true,
         enablesDossierAddition:

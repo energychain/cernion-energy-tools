@@ -3456,7 +3456,22 @@ describe('dashboard-api.service', () => {
           operatingEventTimestamp: '2026-06-20T08:00:00Z',
         });
 
-        expectScalarTableRows(result.lifecycleEvidence.rows.map((row) => row.values));
+        expectScalarTableRows(result.lifecycleEvidence.rows);
+        expect(result.lifecycleEvidence.rows).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              code: 'connection_request',
+              connectionRequestRef: 'creq-2203',
+              gridConnectionPoint: 'napp-09.1',
+            }),
+            expect.objectContaining({
+              code: 'operating_event',
+              operatingEventRef: 'evt-503',
+              operatingEventType: 'curtailment_order',
+              operatingEventTimestamp: '2026-06-20T08:00:00Z',
+            }),
+          ])
+        );
       });
 
       it('never calls contract, capacity-allocation, grid-mutation, curtailment/dispatch, Redispatch/compensation/settlement, MaKo/A96, workflow/HITL, connector or Personal-Agent actions', async () => {
