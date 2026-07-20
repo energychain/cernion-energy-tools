@@ -3345,7 +3345,9 @@ describe('dashboard-api.service', () => {
         });
 
         const { lifecycleEvidence } = result;
-        expect(lifecycleEvidence.evidenceStatus.provided).toBe(lifecycleEvidence.evidenceStatus.required);
+        expect(lifecycleEvidence.evidenceStatus.provided).toBe(
+          lifecycleEvidence.evidenceStatus.required
+        );
         expect(lifecycleEvidence.missingEvidence).toEqual([]);
         expect(lifecycleEvidence.positiveFollowUps).toEqual([]);
         for (const row of lifecycleEvidence.rows) {
@@ -3376,9 +3378,7 @@ describe('dashboard-api.service', () => {
         });
 
         const { lifecycleEvidence } = result;
-        const rowByCode = Object.fromEntries(
-          lifecycleEvidence.rows.map((row) => [row.code, row])
-        );
+        const rowByCode = Object.fromEntries(lifecycleEvidence.rows.map((row) => [row.code, row]));
         expect(rowByCode.connection_request.evidenceStatus).toBe('partial');
         expect(rowByCode.capacity_offer.evidenceStatus).toBe('partial');
         expect(rowByCode.restriction_profile.evidenceStatus).toBe('missing');
@@ -3399,7 +3399,9 @@ describe('dashboard-api.service', () => {
             'evidence_governance',
           ])
         );
-        expect(lifecycleEvidence.positiveFollowUps.length).toBe(lifecycleEvidence.missingEvidence.length);
+        expect(lifecycleEvidence.positiveFollowUps.length).toBe(
+          lifecycleEvidence.missingEvidence.length
+        );
         for (const followUp of lifecycleEvidence.positiveFollowUps) {
           expect(followUp.category).toBe('fca_fnav_lifecycle_evidence');
         }
@@ -3440,7 +3442,9 @@ describe('dashboard-api.service', () => {
           operatingEventTimestamp: '2026-06-15T12:00:00Z',
         });
         expect(fullEvent.lifecycleEvidence.operatingEvent.evidenceStatus).toBe('provided');
-        expect(fullEvent.lifecycleEvidence.rows.filter((row) => row.code === 'operating_event').length).toBe(1);
+        expect(
+          fullEvent.lifecycleEvidence.rows.filter((row) => row.code === 'operating_event').length
+        ).toBe(1);
       });
 
       it('keeps lifecycle evidence rows scalar-safe (dossier-display-only values)', async () => {
