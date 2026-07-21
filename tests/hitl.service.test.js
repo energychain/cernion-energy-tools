@@ -721,6 +721,224 @@ describe('hitl service', () => {
     }
   });
 
+  // ── Pre-completion plausibility hints (#452) ────────────────────────────
+  describe('completion plausibility', () => {
+    test('preview action is read-only and returns missing_required/implausible_value hints', async () => {
+      const created = await createItem('tenant-plausibility-preview', {
+        kind: 'plausibility-preview-test',
+      });
+      await broker.call(
+        'hitl.approve',
+        { id: created.item.id },
+        tenantMeta('tenant-plausibility-preview')
+      );
+
+      const preview = await broker.call(
+        'hitl.completionPlausibility',
+        {
+          id: created.item.id,
+          rules: [
+            { ruleId: 'summary_required', type: 'required', fieldKey: 'summary' },
+            { ruleId: 'qty_range', type: 'number_range', fieldKey: 'quantity', min: 0, max: 10 },
+          ],
+          fields: { quantity: 999 },
+        },
+        tenantMeta('tenant-plausibility-preview')
+      );
+
+      expect(preview.success).toBe(true);
+      expect(preview.status).toBe('hints_found');
+      expect(preview.counts).toEqual({ missingRequired: 1, implausibleValue: 1, total: 2 });
+      expect(preview.hints.map((h) => h.category).sort()).toEqual(
+        ['implausible_value', 'missing_required'].sort()
+      );
+
+      // Preview must be strictly read-only: no state change, no extra event, workflow untouched.
+      const reloaded = await broker.call(
+        'hitl.get',
+        { id: created.item.id },
+        tenantMeta('tenant-plausibility-preview')
+      );
+      expect(reloaded.item.workflowCompletionState).toBe('pending');
+      expect(reloaded.item.workflowCompletedAt).toBeNull();
+      expect(reloaded.item.workflowAuditTrail).toHaveLength(1); // resolution entry only
+      expect(emitted.some((e) => e.eventName === 'hitl.workflow.completed')).toBe(false);
+    });
+
+    test('preview returns explicit not_configured when no rules/fields are supplied', async () => {
+      const created = await createItem('tenant-plausibility-unconfigured');
+
+      const preview = await broker.call(
+        'hitl.completionPlausibility',
+        { id: created.item.id },
+        tenantMeta('tenant-plausibility-unconfigured')
+      );
+
+      expect(preview.status).toBe('not_configured');
+      expect(preview.hints).toEqual([]);
+    });
+
+    test('preview returns check_unavailable for malformed rules and never throws', async () => {
+      const created = await createItem('tenant-plausibility-malformed');
+
+      const preview = await broker.call(
+        'hitl.completionPlausibility',
+        {
+          id: created.item.id,
+          rules: [{ ruleId: 'bad', type: 'unsupported_type', fieldKey: 'x' }],
+          fields: { x: 1 },
+        },
+        tenantMeta('tenant-plausibility-malformed')
+      );
+
+      expect(preview.status).toBe('check_unavailable');
+      expect(preview.hints).toEqual([]);
+    });
+
+    test('markWorkflowCompleted runs the evaluator before its write and includes an advisory result, without blocking completion', async () => {
+      const created = await createItem('tenant-plausibility-complete', {
+        kind: 'plausibility-complete-test',
+      });
+      await broker.call(
+        'hitl.approve',
+        { id: created.item.id },
+        tenantMeta('tenant-plausibility-complete')
+      );
+
+      const completed = await broker.call(
+        'hitl.markWorkflowCompleted',
+        {
+          id: created.item.id,
+          plausibilityRules: [
+            { ruleId: 'summary_required', type: 'required', fieldKey: 'summary' },
+          ],
+          completionFields: {},
+        },
+        tenantMeta('tenant-plausibility-complete')
+      );
+
+      // Advisory in v1: completion still succeeds even though the hint fired.
+      expect(completed.item.workflowCompletionState).toBe('completed');
+      expect(completed.plausibility.status).toBe('hints_found');
+      expect(completed.plausibility.counts).toEqual({
+        missingRequired: 1,
+        implausibleValue: 0,
+        total: 1,
+      });
+      expect(completed.plausibility.hints[0]).toMatchObject({
+        category: 'missing_required',
+        fieldKey: 'summary',
+      });
+
+      // Only aggregate bounded status/counts are persisted to the audit trail — no raw hints.
+      const auditEntry = completed.item.workflowAuditTrail.at(-1);
+      expect(auditEntry.plausibility).toEqual({
+        status: 'hints_found',
+        counts: { missingRequired: 1, implausibleValue: 0, total: 1 },
+      });
+      expect(auditEntry.plausibility.hints).toBeUndefined();
+    });
+
+    test('markWorkflowCompleted returns not_configured advisory and still completes when no rules are supplied (existing behavior preserved)', async () => {
+      const created = await createItem('tenant-plausibility-default');
+      await broker.call(
+        'hitl.approve',
+        { id: created.item.id },
+        tenantMeta('tenant-plausibility-default')
+      );
+
+      const completed = await broker.call(
+        'hitl.markWorkflowCompleted',
+        { id: created.item.id },
+        tenantMeta('tenant-plausibility-default')
+      );
+
+      expect(completed.item.workflowCompletionState).toBe('completed');
+      expect(completed.plausibility.status).toBe('not_configured');
+    });
+
+    test('markWorkflowCompleted still preserves the pending-item guard', async () => {
+      const created = await createItem('tenant-plausibility-guard');
+
+      await expect(
+        broker.call(
+          'hitl.markWorkflowCompleted',
+          { id: created.item.id, plausibilityRules: [], completionFields: {} },
+          tenantMeta('tenant-plausibility-guard')
+        )
+      ).rejects.toMatchObject({ code: 400, type: 'HITL_WORKFLOW_INVALID_STATE' });
+    });
+
+    test('markWorkflowCompleted still emits hitl.workflow.completed exactly once when plausibility hints fire', async () => {
+      const created = await createItem('tenant-plausibility-event');
+      await broker.call(
+        'hitl.approve',
+        { id: created.item.id },
+        tenantMeta('tenant-plausibility-event')
+      );
+
+      const before = emitted.filter((e) => e.eventName === 'hitl.workflow.completed').length;
+
+      await broker.call(
+        'hitl.markWorkflowCompleted',
+        {
+          id: created.item.id,
+          plausibilityRules: [
+            { ruleId: 'summary_required', type: 'required', fieldKey: 'summary' },
+          ],
+          completionFields: {},
+        },
+        tenantMeta('tenant-plausibility-event')
+      );
+
+      const after = emitted.filter((e) => e.eventName === 'hitl.workflow.completed').length;
+      expect(after).toBe(before + 1);
+    });
+
+    test('no sensitive completionFields content leaks into the response, audit trail, or emitted event', async () => {
+      const created = await createItem('tenant-plausibility-sensitive');
+      await broker.call(
+        'hitl.approve',
+        { id: created.item.id },
+        tenantMeta('tenant-plausibility-sensitive')
+      );
+
+      const secret = 'Kunde Max Mustermann IBAN-DE00-SECRET-9999';
+      const completed = await broker.call(
+        'hitl.markWorkflowCompleted',
+        {
+          id: created.item.id,
+          completionNotes: 'ok',
+          plausibilityRules: [
+            { ruleId: 'summary_required', type: 'required', fieldKey: 'summary' },
+          ],
+          completionFields: { summary: secret },
+        },
+        tenantMeta('tenant-plausibility-sensitive')
+      );
+
+      expect(JSON.stringify(completed)).not.toContain(secret);
+      expect(JSON.stringify(completed.item)).not.toContain(secret);
+
+      const event = emitted.find(
+        (e) => e.eventName === 'hitl.workflow.completed' && e.payload.itemId === created.item.id
+      );
+      expect(JSON.stringify(event)).not.toContain(secret);
+    });
+
+    test('tenant isolation: plausibility preview on another tenant item is not found', async () => {
+      const created = await createItem('tenant-plausibility-iso-a');
+
+      await expect(
+        broker.call(
+          'hitl.completionPlausibility',
+          { id: created.item.id, rules: [], fields: {} },
+          tenantMeta('tenant-plausibility-iso-b')
+        )
+      ).rejects.toMatchObject({ code: 404 });
+    });
+  });
+
   test('emits hitl.workflow.completed event', async () => {
     const created = await createItem('tenant-event', {
       kind: 'event-test',
