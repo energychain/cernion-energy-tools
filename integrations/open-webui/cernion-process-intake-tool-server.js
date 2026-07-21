@@ -258,7 +258,8 @@ function validateInput(input) {
     const raw = typeof input[key] === 'string' ? input[key].trim() : '';
     if (!raw) return { error: `${key} is required` };
     if (raw.length > maxLength) return { error: `${key} must not exceed ${maxLength} characters` };
-    if (SECRET_KEY_PATTERN.test(raw)) return { error: `${key} must not contain credential-like content` };
+    if (SECRET_KEY_PATTERN.test(raw))
+      return { error: `${key} must not contain credential-like content` };
     normalized[key] = raw;
   }
 
@@ -273,7 +274,8 @@ function validateInput(input) {
       return { error: `${key} must be a non-empty string` };
     }
     const value = input[key].trim();
-    if (value.length > maxLength) return { error: `${key} must not exceed ${maxLength} characters` };
+    if (value.length > maxLength)
+      return { error: `${key} must not exceed ${maxLength} characters` };
     normalized[key] = value;
   }
 
@@ -596,21 +598,17 @@ function createToolServer(options = {}) {
 
       if (response.status === 409) {
         const clean = scrubSecrets(upstream, [token]);
-        sendJson(
-          res,
-          409,
-          {
-            ...errorBody(
-              'upstream_policy_rejected',
-              typeof clean.message === 'string'
-                ? clean.message
-                : 'Cernion policy rejected this intent.',
-              'Adjust the intent per Cernion policy guidance; no draft was created.'
-            ),
-            policyStatus: 'rejected_by_policy',
-            notCalled: NOT_CALLED,
-          }
-        );
+        sendJson(res, 409, {
+          ...errorBody(
+            'upstream_policy_rejected',
+            typeof clean.message === 'string'
+              ? clean.message
+              : 'Cernion policy rejected this intent.',
+            'Adjust the intent per Cernion policy guidance; no draft was created.'
+          ),
+          policyStatus: 'rejected_by_policy',
+          notCalled: NOT_CALLED,
+        });
         return;
       }
 
