@@ -150,7 +150,7 @@ recipes:
   vnb-full-snapshot "A grid operator needs a full health check combining KPI…"
 resolve: GET /api/_agent/operations?domain=grid-ops
 
-### inhouse-data (8 capabilities · 3 recipes · 32 operations)
+### inhouse-data (8 capabilities · 3 recipes · 38 operations)
 capabilities: bilanzkreis_slp_edm_operations, edm_customer_moveout_billing_evidence, edm_metering_concept_evidence, imsys_schedule_value_chain_readiness, imsys_taf2_compliance_status, inhouse_timeseries_analysis, load_profile_stream_monitor, metering_rollout_process_indicator
 recipes:
   datasource-register-and-classify "A user has uploaded a CSV or XLSX file and needs to…"
@@ -251,12 +251,12 @@ Agents resolving capabilities/recipes/operations do not need to read past this p
 - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
 - src/cookbook-recipes.js: 9e48573ca263ef129bc3944a83b013cff25157e25afc703be0ada62d5af8163d
 - src/capability-catalog.js: b9fa91c95a1f029620fb0513b4453677cb2b61b64ca87549fe353262287ab1a8
-- openapi-export.json: 8ce89c71dd61e2e0fbb957e8ed3a4f0dfae1e985057764f75a33b1b77caf5dc5
+- openapi-export.json: 3a7814383128a007e44f87d622b05913478c4e5176b1b8079f51bfc8a90a46ea
 
 ## OpenAPI Surface (full contract, not embedded)
-- path_count: 994
-- operation_count: 1106
+- path_count: 1000
+- operation_count: 1112
 - full_spec: openapi-export.json (repo root) or GET /api/openapi.json
 
 ## Integrity
-- llm_txt_sha256: 525a85873fcddc118b708bd3fe96da8d49abb64e357c4ddd595506f80b488282
+- llm_txt_sha256: 19d80b7b3f041dbafb1dc9b855d30b9a89b781cf04f2b2004d81921bba006a68
