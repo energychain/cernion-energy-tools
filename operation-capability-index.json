@@ -2,7 +2,7 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.67.8",
-  "sourceOpenApiHash": "8af6928daf1a342b469218664fcdb647c934001b3f42b15467ff071ce82dbcee",
+  "sourceOpenApiHash": "fb70da5c45b428b29914daf97d72269c212311f0165b8d7b93f94428e34eeef7",
   "coverage": {
     "rawOperationCount": 1114,
     "operationCount": 858,
@@ -9665,7 +9665,9 @@
         "platform"
       ],
       "dataSources": [],
-      "entityTypes": [],
+      "entityTypes": [
+        "Ticket"
+      ],
       "requiredScopes": [
         "chatgpt-sidecar:read"
       ],
@@ -9675,8 +9677,66 @@
       "idempotency": "idempotent",
       "rollbackHint": null,
       "parameters": {
-        "required": [],
-        "optional": []
+        "required": [
+          {
+            "name": "ticket",
+            "in": "path",
+            "type": "string",
+            "description": "Opaque ChatGPT Sidecar session ticket.",
+            "extractionHint": null
+          }
+        ],
+        "optional": [
+          {
+            "name": "question",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "query",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "context",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "inputs",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "capability",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "parentTurnId",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
       },
       "rankingSignals": {
         "positiveKeywords": [
@@ -10010,7 +10070,9 @@
         "platform"
       ],
       "dataSources": [],
-      "entityTypes": [],
+      "entityTypes": [
+        "Ticket"
+      ],
       "requiredScopes": [
         "chatgpt-sidecar:read"
       ],
@@ -10020,8 +10082,52 @@
       "idempotency": "idempotent",
       "rollbackHint": null,
       "parameters": {
-        "required": [],
-        "optional": []
+        "required": [
+          {
+            "name": "ticket",
+            "in": "path",
+            "type": "string",
+            "description": "Opaque ChatGPT Sidecar session ticket.",
+            "extractionHint": null
+          }
+        ],
+        "optional": [
+          {
+            "name": "task",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "context",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "capability",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "parentTurnId",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
       },
       "rankingSignals": {
         "positiveKeywords": [
@@ -20098,6 +20204,104 @@
             "extractionHint": null
           },
           {
+            "name": "generationMaloCount",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "consumptionMaloCount",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "maloInventoryEvidenceRef",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "supplierOrDirectMarketerEvidenceRef",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "meteringConceptEvidenceRef",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "imsysStatus",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "fifteenMinuteValuesReadiness",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "dataBasisFreshnessRef",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "residualSupplyContractEvidenceRef",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "participationStartDate",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": "date_range_start"
+          },
+          {
+            "name": "participationEndDate",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": "date_range_start"
+          },
+          {
+            "name": "eligibilityEvidenceRef",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "exceptionRateEvidenceRef",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "economicsThresholdRef",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
             "name": "owner",
             "in": "query",
             "type": "string",
@@ -24025,6 +24229,13 @@
           },
           {
             "name": "owner",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "reviewerRole",
             "in": "query",
             "type": "string",
             "description": null,

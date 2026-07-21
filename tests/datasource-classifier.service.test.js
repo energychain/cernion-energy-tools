@@ -68,7 +68,12 @@ describe('Datasource Classifier Service', () => {
     const fixtureDir = path.join(__dirname, 'fixtures');
     const fixtureFiles = fs
       .readdirSync(fixtureDir)
-      .filter((fileName) => fileName.endsWith('.fixture.json') && !fileName.includes('ambiguous'));
+      .filter((fileName) => fileName.endsWith('.fixture.json') && !fileName.includes('ambiguous'))
+      // tabular-*.fixture.json belong to tabular-intelligence.service.test.js (a different
+      // fixture schema: sourceId/dictionary/classification/rows, no label or matching .csv).
+      .filter((fileName) =>
+        fs.existsSync(path.join(fixtureDir, fileName.replace('.fixture.json', '.csv')))
+      );
 
     for (const fixtureFile of fixtureFiles) {
       const fixture = JSON.parse(fs.readFileSync(path.join(fixtureDir, fixtureFile), 'utf-8'));

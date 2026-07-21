@@ -23,6 +23,7 @@
  */
 
 const http = require('node:http');
+const { readJsonBody } = require('./http-json');
 
 const DEFAULT_HOST = '127.0.0.1';
 const DEFAULT_PORT = 3911;
@@ -325,37 +326,6 @@ function validateInput(input) {
   return { value: normalized };
 }
 
-function readJsonBody(req) {
-  return new Promise((resolve, reject) => {
-    let size = 0;
-    const chunks = [];
-    let rejected = false;
-    req.on('data', (chunk) => {
-      if (rejected) return;
-      size += chunk.length;
-      if (size > MAX_BODY_BYTES) {
-        rejected = true;
-        const error = new Error('request body too large');
-        error.code = 'BODY_TOO_LARGE';
-        reject(error);
-        return;
-      }
-      chunks.push(chunk);
-    });
-    req.on('end', () => {
-      if (size > MAX_BODY_BYTES) return;
-      try {
-        resolve(JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}'));
-      } catch {
-        const error = new Error('request body must be valid JSON');
-        error.code = 'INVALID_JSON';
-        reject(error);
-      }
-    });
-    req.on('error', reject);
-  });
-}
-
 function resolveUpstreamUrl(baseUrl) {
   if (!baseUrl) return null;
   let parsed;
@@ -473,7 +443,7 @@ function createToolServer(options = {}) {
 
     let body;
     try {
-      body = await readJsonBody(req);
+      body = await readJsonBody(req, { maxBytes: MAX_BODY_BYTES });
     } catch (error) {
       if (!res.writableEnded) {
         sendJson(

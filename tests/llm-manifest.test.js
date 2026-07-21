@@ -17,8 +17,12 @@ const { CANONICAL_DOMAINS, classifyAll } = require('../src/llm-manifest-taxonomy
 const { buildLlmTxt, END_OF_AGENT_RELEVANT_MARKER } = require('../scripts/generate-llm-txt');
 
 // Token budget is approximated as chars/4 — there is no tokenizer dependency
-// in this project. Agreed hard limit: 3,500 tokens (~14,000 chars).
-const TOKEN_BUDGET = 3500;
+// in this project. Raised from 3,500 to 4,000 tokens (issue #467): organic
+// domain/capability growth pushed the manifest to 14,552 chars, past the
+// original 14,000-char limit, with no single redundant block to cut. See
+// #467 for the open question on a longer-term strategy (further budget
+// bumps vs. restructuring cluster content to resolve on demand).
+const TOKEN_BUDGET = 4000;
 const CHAR_BUDGET = TOKEN_BUDGET * 4;
 
 describe('llm.txt cluster manifest', () => {
