@@ -1,0 +1,17 @@
+{
+  "sourceId": "metering-fixture",
+  "dictionary": {
+    "fields": [
+      { "name": "timestamp", "type": "timestamp", "semanticRole": "timeReference" },
+      { "name": "Verbrauch_kWh", "type": "number", "semanticRole": "consumptionKWh" },
+      { "name": "MaLo_ID", "type": "string", "semanticRole": "maloId", "privacyFlag": true }
+    ]
+  },
+  "classification": { "domainId": "metering", "confidence": 0.99 },
+  "rows": [
+    { "timestamp": "2026-01-01T00:00:00Z", "Verbrauch_kWh": 1, "MaLo_ID": "DE0000000000000000000001" },
+    { "timestamp": "2026-01-01T00:15:00Z", "Verbrauch_kWh": 2, "MaLo_ID": "DE0000000000000000000001" },
+    { "timestamp": "2026-01-01T00:45:00Z", "Verbrauch_kWh": 3, "MaLo_ID": "DE0000000000000000000001" },
+    { "timestamp": "2026-01-01T01:00:00Z", "Verbrauch_kWh": 40, "MaLo_ID": "DE0000000000000000000001" }
+  ]
+}

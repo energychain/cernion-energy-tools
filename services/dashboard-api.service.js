@@ -39,12 +39,8 @@ const {
   stadtwerkMauerPvMissingNap,
   validateVdmiBlueprintPackSeed,
 } = require('../src/vdmi-blueprint-pack-seeds');
-const {
-  buildEnergySidecarRouteRegistryStatus,
-} = require('../src/energy-sidecar-route-registry');
-const {
-  buildInterconnectionReleaseFileStatus,
-} = require('../src/interconnection-release-file');
+const { buildEnergySidecarRouteRegistryStatus } = require('../src/energy-sidecar-route-registry');
+const { buildInterconnectionReleaseFileStatus } = require('../src/interconnection-release-file');
 
 const OPENAPI_TAG = 'Dashboard API';
 const ACTION_MQ_LIST = 'mastr-quality.list';
@@ -2187,14 +2183,24 @@ module.exports = {
           { name: 'category', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'budgetStatus', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'financingOption', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'riskIfNotImplemented', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'riskIfNotImplemented',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
           { name: 'evidenceSource', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'owner', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'committeeWindow', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'nextDecisionPoint', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'blockers', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'openEvidence', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'includeSyntheticRows', in: 'query', required: false, schema: { type: 'boolean' } },
+          {
+            name: 'includeSyntheticRows',
+            in: 'query',
+            required: false,
+            schema: { type: 'boolean' },
+          },
         ],
         responses: {
           200: {
@@ -2295,7 +2301,12 @@ module.exports = {
           { name: 'threshold', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'resolutionStatus', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'openEvidence', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'includeSyntheticRows', in: 'query', required: false, schema: { type: 'boolean' } },
+          {
+            name: 'includeSyntheticRows',
+            in: 'query',
+            required: false,
+            schema: { type: 'boolean' },
+          },
         ],
         responses: {
           200: {
@@ -2565,7 +2576,11 @@ module.exports = {
           { in: 'query', name: 'tenantId', schema: { type: 'string' } },
           { in: 'query', name: 'syntheticRedispatchAssetPortfolio', schema: { type: 'string' } },
           { in: 'query', name: 'installationGridLocationEvidence', schema: { type: 'string' } },
-          { in: 'query', name: 'remoteControlCommunicationTestEvidence', schema: { type: 'string' } },
+          {
+            in: 'query',
+            name: 'remoteControlCommunicationTestEvidence',
+            schema: { type: 'string' },
+          },
           { in: 'query', name: 'forecastDispatchTestProof', schema: { type: 'string' } },
           { in: 'query', name: 'readinessReviewDecision', schema: { type: 'string' } },
         ],
@@ -2656,7 +2671,8 @@ module.exports = {
       openapi: {
         tags: [OPENAPI_TAG],
         summary: 'Decommissioned Asset Reconciliation status -- read-only Workbench projection',
-        description: 'Builds deterministic Decommissioned Asset Reconciliation evidence from supplied facts.',
+        description:
+          'Builds deterministic Decommissioned Asset Reconciliation evidence from supplied facts.',
         responses: {
           200: {
             description: 'Read-only Decommissioned Asset Reconciliation status',
@@ -2708,7 +2724,8 @@ module.exports = {
       openapi: {
         tags: [OPENAPI_TAG],
         summary: 'Energy Sharing Collective Approval status -- read-only Workbench projection',
-        description: 'Builds deterministic Energy Sharing Collective Approval evidence from supplied facts.',
+        description:
+          'Builds deterministic Energy Sharing Collective Approval evidence from supplied facts.',
         responses: {
           200: {
             description: 'Read-only Energy Sharing Collective Approval status',
@@ -2720,7 +2737,11 @@ module.exports = {
           { in: 'query', name: 'operatorParticipantBoundaryEvidence', schema: { type: 'string' } },
           { in: 'query', name: 'meteringConceptEvidence', schema: { type: 'string' } },
           { in: 'query', name: 'contractConsentMarketRoleEvidence', schema: { type: 'string' } },
-          { in: 'query', name: 'allocationBillingSettlementGapEvidence', schema: { type: 'string' } },
+          {
+            in: 'query',
+            name: 'allocationBillingSettlementGapEvidence',
+            schema: { type: 'string' },
+          },
           { in: 'query', name: 'approvalReadinessDecision', schema: { type: 'string' } },
         ],
       },
@@ -10639,13 +10660,37 @@ module.exports = {
           optional: true,
           rules: [{ type: 'string' }, { type: 'array' }],
         },
+        // -- FCA/fNAV lifecycle evidence (additive, caller-supplied, read-only) --
+        connectionRequestRef: { type: 'string', optional: true, min: 1 },
+        gridConnectionPoint: { type: 'string', optional: true, min: 1 },
+        capacityOfferRef: { type: 'string', optional: true, min: 1 },
+        capacityOfferVersion: { type: 'string', optional: true, min: 1 },
+        capacityOfferDate: { type: 'string', optional: true, min: 1 },
+        restrictionProfileRef: { type: 'string', optional: true, min: 1 },
+        restrictionProfileVersion: { type: 'string', optional: true, min: 1 },
+        contractRef: { type: 'string', optional: true, min: 1 },
+        contractVersion: { type: 'string', optional: true, min: 1 },
+        contractReviewStatus: { type: 'string', optional: true, min: 1 },
+        operatingEventRef: { type: 'string', optional: true, min: 1 },
+        operatingEventType: { type: 'string', optional: true, min: 1 },
+        operatingEventTimestamp: { type: 'string', optional: true, min: 1 },
+        curtailmentMeasurementEvidenceRef: { type: 'string', optional: true, min: 1 },
+        redispatchRelevanceRef: { type: 'string', optional: true, min: 1 },
+        redispatchStatusRef: { type: 'string', optional: true, min: 1 },
+        compensationStatusRef: { type: 'string', optional: true, min: 1 },
+        evidenceOwner: { type: 'string', optional: true, min: 1 },
+        nextReviewGate: { type: 'string', optional: true, min: 1 },
+        evidenceSourceTimestamp: { type: 'string', optional: true, min: 1 },
       },
       openapi: {
         tags: [OPENAPI_TAG],
         summary: 'fNAV fast-track contract gate -- read-only decision readiness',
         description:
           'Projects fNAV fast-track request, network-signal, metering/control, commercial, contract, legal and owner evidence into a dossier-safe gate status. ' +
-          'The endpoint is read-only and never creates contracts, HITL items, MaKo, billing, settlement, tariff, control, SMGW/CLS or external actions.',
+          'The endpoint is read-only and never creates contracts, HITL items, MaKo, billing, settlement, tariff, control, SMGW/CLS or external actions. ' +
+          'It additionally projects caller-supplied FCA/fNAV lifecycle evidence (connection request, capacity offer, restriction profile, contract, ' +
+          'at most one operating-event snapshot, curtailment/measurement evidence, and Redispatch/compensation evidence markers) as review-only, ' +
+          'non-consequential display fields.',
         parameters: [
           { name: 'gateId', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'gridOperatorId', in: 'query', required: false, schema: { type: 'string' } },
@@ -10674,6 +10719,26 @@ module.exports = {
           { in: 'query', name: 'escalationOwner', schema: { type: 'string' } },
           { in: 'query', name: 'vdmiProcessId', schema: { type: 'string' } },
           { in: 'query', name: 'sourceRef', schema: { type: 'string' } },
+          { in: 'query', name: 'connectionRequestRef', schema: { type: 'string' } },
+          { in: 'query', name: 'gridConnectionPoint', schema: { type: 'string' } },
+          { in: 'query', name: 'capacityOfferRef', schema: { type: 'string' } },
+          { in: 'query', name: 'capacityOfferVersion', schema: { type: 'string' } },
+          { in: 'query', name: 'capacityOfferDate', schema: { type: 'string' } },
+          { in: 'query', name: 'restrictionProfileRef', schema: { type: 'string' } },
+          { in: 'query', name: 'restrictionProfileVersion', schema: { type: 'string' } },
+          { in: 'query', name: 'contractRef', schema: { type: 'string' } },
+          { in: 'query', name: 'contractVersion', schema: { type: 'string' } },
+          { in: 'query', name: 'contractReviewStatus', schema: { type: 'string' } },
+          { in: 'query', name: 'operatingEventRef', schema: { type: 'string' } },
+          { in: 'query', name: 'operatingEventType', schema: { type: 'string' } },
+          { in: 'query', name: 'operatingEventTimestamp', schema: { type: 'string' } },
+          { in: 'query', name: 'curtailmentMeasurementEvidenceRef', schema: { type: 'string' } },
+          { in: 'query', name: 'redispatchRelevanceRef', schema: { type: 'string' } },
+          { in: 'query', name: 'redispatchStatusRef', schema: { type: 'string' } },
+          { in: 'query', name: 'compensationStatusRef', schema: { type: 'string' } },
+          { in: 'query', name: 'evidenceOwner', schema: { type: 'string' } },
+          { in: 'query', name: 'nextReviewGate', schema: { type: 'string' } },
+          { in: 'query', name: 'evidenceSourceTimestamp', schema: { type: 'string' } },
         ],
         responses: {
           200: {
@@ -10697,6 +10762,7 @@ module.exports = {
                     positiveFollowUps: { type: 'array' },
                     sourceActions: { type: 'object' },
                     dossierEvidence: { type: 'object' },
+                    lifecycleEvidence: { type: 'object' },
                     safety: { type: 'string' },
                     timestamp: { type: 'string', format: 'date-time' },
                   },
@@ -15369,7 +15435,8 @@ module.exports = {
         valueOrNull(params.assetMatch) ||
         valueOrNull(params.mastrMatch) ||
         valueOrNull(params.internalAssetMatch);
-      const exportReadiness = valueOrNull(params.exportReadiness) || valueOrNull(params.evidenceStatus);
+      const exportReadiness =
+        valueOrNull(params.exportReadiness) || valueOrNull(params.evidenceStatus);
       const rowSpecs = [
         {
           id: 'checklist_reference',
@@ -15424,7 +15491,10 @@ module.exports = {
         {
           id: 'owner_deadline',
           label: 'Owner/deadline',
-          value: hasValue(params.owner) && hasValue(params.dueDate) ? `${params.owner} / ${params.dueDate}` : null,
+          value:
+            hasValue(params.owner) && hasValue(params.dueDate)
+              ? `${params.owner} / ${params.dueDate}`
+              : null,
           evidenceClass: 'accountability_and_due_date',
           enablesDossierAddition: 'add accountable owner and due date',
         },
@@ -15441,7 +15511,11 @@ module.exports = {
         label: spec.label,
         value: valueOrNull(spec.value),
         evidenceClass: spec.evidenceClass,
-        evidenceStatus: valueOrNull(spec.value) ? 'provided' : spec.optionalWhen?.() ? 'not_required' : 'missing',
+        evidenceStatus: valueOrNull(spec.value)
+          ? 'provided'
+          : spec.optionalWhen?.()
+            ? 'not_required'
+            : 'missing',
       }));
       const missingEvidence = rowSpecs
         .filter((spec) => !valueOrNull(spec.value) && !spec.optionalWhen?.())
@@ -15472,7 +15546,8 @@ module.exports = {
           ? 'export_dossier_package'
           : normalizedThreshold.includes('above') && normalizedControl.includes('missing')
             ? 'collect_control_technology_evidence'
-            : normalizedTestability.includes('not-testable') || normalizedTestability.includes('nicht')
+            : normalizedTestability.includes('not-testable') ||
+                normalizedTestability.includes('nicht')
               ? 'document_non_testability_exception'
               : 'complete_alignment_evidence';
       const positiveFollowUps = missingEvidence.map((item) => ({
@@ -16068,7 +16143,9 @@ module.exports = {
           artifactId: 'draft:word-briefing-outline',
           artifactType: 'word_outline',
           intent: 'describe allowed briefing outline sections',
-          status: hasValue(params.artifactClassification) ? 'intent_allowed' : 'needs_classification',
+          status: hasValue(params.artifactClassification)
+            ? 'intent_allowed'
+            : 'needs_classification',
           createsFile: false,
           evidenceBinding: params.artifactClassification || 'missing_artifact_classification',
         },
@@ -16106,19 +16183,22 @@ module.exports = {
           guardrailId: 'no_m365_or_external_connector',
           guardrailClass: 'connector',
           status: 'enforced',
-          description: 'No M365, SharePoint, Graph, mail, calendar, task or external connector call.',
+          description:
+            'No M365, SharePoint, Graph, mail, calendar, task or external connector call.',
         },
         {
           guardrailId: 'no_publication_or_decision',
           guardrailClass: 'publication',
           status: hasValue(params.releaseBoundary) ? 'evidence_provided' : 'needs_release_boundary',
-          description: 'No publication, approval, finance/legal/regulatory decision or workflow execution.',
+          description:
+            'No publication, approval, finance/legal/regulatory decision or workflow execution.',
         },
         {
           guardrailId: 'no_personal_agent_shortcut',
           guardrailClass: 'routing',
           status: 'enforced',
-          description: 'Consumption must use broker/hydration/dossier metadata, not Personal Agent hardcoding.',
+          description:
+            'Consumption must use broker/hydration/dossier metadata, not Personal Agent hardcoding.',
         },
       ];
       const status =
@@ -16134,7 +16214,8 @@ module.exports = {
         `Draft artifact intents: ${draftArtifactRows.length}`,
       ];
       if (workbook.workbookId) dossierFacts.push(`Workbook: ${workbook.workbookId}`);
-      if (workbook.committeeContext) dossierFacts.push(`Committee context: ${workbook.committeeContext}`);
+      if (workbook.committeeContext)
+        dossierFacts.push(`Committee context: ${workbook.committeeContext}`);
 
       return {
         readinessId: `gcwr:${Buffer.from(
@@ -16348,16 +16429,15 @@ module.exports = {
           enablesDossierAddition: `add blocker resolution evidence: ${blocker}`,
         });
       }
-      const status =
-        classifiedRows.some((row) => row.readiness === 'financing_risk')
-          ? 'financing_risk'
-          : classifiedRows.every((row) => row.readiness === 'decision_ready')
-            ? 'decision_ready'
-            : classifiedRows.some((row) => row.readiness === 'owner_needed')
-              ? 'owner_needed'
-              : missingEvidence.length > 0
-                ? 'evidence_gap'
-                : 'informational';
+      const status = classifiedRows.some((row) => row.readiness === 'financing_risk')
+        ? 'financing_risk'
+        : classifiedRows.every((row) => row.readiness === 'decision_ready')
+          ? 'decision_ready'
+          : classifiedRows.some((row) => row.readiness === 'owner_needed')
+            ? 'owner_needed'
+            : missingEvidence.length > 0
+              ? 'evidence_gap'
+              : 'informational';
       const positiveFollowUps = missingEvidence.map((item) => ({
         missingDataPoint: item.missingDataPoint,
         enablesDossierAddition: item.enablesDossierAddition,
@@ -16365,13 +16445,16 @@ module.exports = {
       }));
       const decisionBoundaries = [
         {
-          boundary: 'Budget and financing fields classify evidence only; they do not approve spend.',
+          boundary:
+            'Budget and financing fields classify evidence only; they do not approve spend.',
         },
         {
-          boundary: 'Committee windows and next decision points are planning facts, not workflow triggers.',
+          boundary:
+            'Committee windows and next decision points are planning facts, not workflow triggers.',
         },
         {
-          boundary: 'No SAP/ERP, procurement, HITL, billing, settlement, tariff, MaKo or device-control action is called.',
+          boundary:
+            'No SAP/ERP, procurement, HITL, billing, settlement, tariff, MaKo or device-control action is called.',
         },
       ];
       const dossierFacts = [
@@ -16495,7 +16578,11 @@ module.exports = {
       }
 
       const classifyRow = (row) => {
-        if (!hasValue(row.sourceSystem) || !hasValue(row.targetSystem) || !hasValue(row.affectedObject)) {
+        if (
+          !hasValue(row.sourceSystem) ||
+          !hasValue(row.targetSystem) ||
+          !hasValue(row.affectedObject)
+        ) {
           return 'evidence_gap';
         }
         if (!hasValue(row.owner)) return 'needs_owner';
@@ -16612,18 +16699,17 @@ module.exports = {
           enablesDossierAddition: `add open variance evidence: ${evidenceGap}`,
         });
       }
-      const status =
-        classifiedRows.some((row) => row.varianceState === 'revenue_risk')
-          ? 'revenue_risk'
-          : classifiedRows.some((row) => row.varianceState === 'asset_scope_risk')
-            ? 'asset_scope_risk'
-            : classifiedRows.every((row) => row.varianceState === 'management_ready')
-              ? 'management_ready'
-              : classifiedRows.some((row) => row.varianceState === 'needs_owner')
-                ? 'needs_owner'
-                : missingEvidence.length > 0
-                  ? 'evidence_gap'
-                  : 'informational';
+      const status = classifiedRows.some((row) => row.varianceState === 'revenue_risk')
+        ? 'revenue_risk'
+        : classifiedRows.some((row) => row.varianceState === 'asset_scope_risk')
+          ? 'asset_scope_risk'
+          : classifiedRows.every((row) => row.varianceState === 'management_ready')
+            ? 'management_ready'
+            : classifiedRows.some((row) => row.varianceState === 'needs_owner')
+              ? 'needs_owner'
+              : missingEvidence.length > 0
+                ? 'evidence_gap'
+                : 'informational';
       const positiveFollowUps = missingEvidence.map((item) => ({
         missingDataPoint: item.missingDataPoint,
         enablesDossierAddition: item.enablesDossierAddition,
@@ -16631,13 +16717,16 @@ module.exports = {
       }));
       const decisionBoundaries = [
         {
-          boundary: 'Variance rows classify caller-supplied evidence only; they do not reconcile or correct source systems.',
+          boundary:
+            'Variance rows classify caller-supplied evidence only; they do not reconcile or correct source systems.',
         },
         {
-          boundary: 'Revenue, budget and asset hints are risk context, not booking, billing, settlement or master-data authority.',
+          boundary:
+            'Revenue, budget and asset hints are risk context, not booking, billing, settlement or master-data authority.',
         },
         {
-          boundary: 'No ERP/SAP/GIS/MDM connector, workflow, HITL, webhook, MaKo, tariff or device-control action is called.',
+          boundary:
+            'No ERP/SAP/GIS/MDM connector, workflow, HITL, webhook, MaKo, tariff or device-control action is called.',
         },
       ];
       const dossierFacts = [
@@ -16672,7 +16761,11 @@ module.exports = {
         dossierFacts,
         sourceActions: {
           inspected: ['dashboard-api.crossSystemVarianceMatrixStatus'],
-          referenced: ['vdmi.dossier', 'evidence-registry.findings', 'variance-register.suppliedFacts'],
+          referenced: [
+            'vdmi.dossier',
+            'evidence-registry.findings',
+            'variance-register.suppliedFacts',
+          ],
           notCalled: [
             'erp.sap.read',
             'erp.sap.write',
@@ -16733,7 +16826,11 @@ module.exports = {
           label: 'Metering operations',
           rx: /messstellenbetrieb|metering|imsys|smart.?meter|msb|melo|malo/i,
           data: ['MaLo/MeLo reference', 'metering-role boundary', 'rollout or measurement status'],
-          evidence: ['source signal reference', 'affected metering process', 'role responsibility proof'],
+          evidence: [
+            'source signal reference',
+            'affected metering process',
+            'role responsibility proof',
+          ],
           tests: ['metering-process impact check', 'role-boundary regression test'],
           gate: 'Metering owner confirms affected process and evidence scope',
         },
@@ -16741,8 +16838,16 @@ module.exports = {
           key: 'flexibility_grid_operations',
           label: 'Flexibility and grid operations',
           rx: /flex|steuerbar|14a|redispatch|netzbetrieb|grid|cls|smgw/i,
-          data: ['asset controllability scope', 'grid-operation decision boundary', 'flexibility process status'],
-          evidence: ['asset/control evidence', 'grid operations handover proof', 'non-execution boundary'],
+          data: [
+            'asset controllability scope',
+            'grid-operation decision boundary',
+            'flexibility process status',
+          ],
+          evidence: [
+            'asset/control evidence',
+            'grid operations handover proof',
+            'non-execution boundary',
+          ],
           tests: ['read-only controllability evidence check', 'no device-control mutation smoke'],
           gate: 'Grid operations owner confirms control boundary remains non-executing',
         },
@@ -16796,7 +16901,10 @@ module.exports = {
       const evidenceRequirements = uniq([
         ...selectedProfiles.flatMap((profile) => profile.evidence),
         params.evidenceHint || null,
-      ]).map((label) => ({ label, status: params.evidenceHint === label ? 'supplied' : 'required' }));
+      ]).map((label) => ({
+        label,
+        status: params.evidenceHint === label ? 'supplied' : 'required',
+      }));
       const testCaseHints = uniq([
         ...selectedProfiles.flatMap((profile) => profile.tests),
         params.testCaseHint || null,
@@ -16938,7 +17046,11 @@ module.exports = {
         dossierFacts,
         sourceActions: {
           inspected: ['dashboard-api.regulatorySignalProcessTranslatorStatus'],
-          referenced: ['vdmi.dossier', 'evidence-registry.findings', 'regulatory-signal.suppliedFacts'],
+          referenced: [
+            'vdmi.dossier',
+            'evidence-registry.findings',
+            'regulatory-signal.suppliedFacts',
+          ],
           notCalled: [
             'legal.interpret',
             'compliance.decide',
@@ -17141,7 +17253,8 @@ module.exports = {
       ];
       if (params.owner) dossierFacts.push(`Owner: ${params.owner}`);
       if (params.reviewStatus) dossierFacts.push(`Review Status: ${params.reviewStatus}`);
-      if (params.nextCommitteeGate) dossierFacts.push(`Next Committee Gate: ${params.nextCommitteeGate}`);
+      if (params.nextCommitteeGate)
+        dossierFacts.push(`Next Committee Gate: ${params.nextCommitteeGate}`);
 
       return {
         costReviewId: `crcs:${Buffer.from(
@@ -17219,42 +17332,48 @@ module.exports = {
     },
 
     buildRedispatchParticipationReadinessStatus(params = {}) {
-      const hasValue = (value) => value !== undefined && value !== null && String(value).trim() !== '';
+      const hasValue = (value) =>
+        value !== undefined && value !== null && String(value).trim() !== '';
       const evidenceSpecs = [
         {
           id: 'syntheticRedispatchAssetPortfolio',
           label: 'Synthetic Redispatch asset portfolio',
           value: params.syntheticRedispatchAssetPortfolio,
           sourceClass: 'synthetic_tenant_seed',
-          enablesDossierAddition: 'Adds concrete synthetic asset and portfolio context for a Redispatch readiness review once tenant-provided demo values exist.',
+          enablesDossierAddition:
+            'Adds concrete synthetic asset and portfolio context for a Redispatch readiness review once tenant-provided demo values exist.',
         },
         {
           id: 'installationGridLocationEvidence',
           label: 'Installation grid location evidence',
           value: params.installationGridLocationEvidence,
           sourceClass: 'synthetic_tenant_seed',
-          enablesDossierAddition: 'Adds MaStR, installation and grid-location review facts once tenant-provided demo evidence exists.',
+          enablesDossierAddition:
+            'Adds MaStR, installation and grid-location review facts once tenant-provided demo evidence exists.',
         },
         {
           id: 'remoteControlCommunicationTestEvidence',
           label: 'Remote control communication test evidence',
           value: params.remoteControlCommunicationTestEvidence,
           sourceClass: 'synthetic_tenant_seed',
-          enablesDossierAddition: 'Adds remote-control and communication-test readiness proof as evidence only, never as a control action.',
+          enablesDossierAddition:
+            'Adds remote-control and communication-test readiness proof as evidence only, never as a control action.',
         },
         {
           id: 'forecastDispatchTestProof',
           label: 'Forecast dispatch test proof',
           value: params.forecastDispatchTestProof,
           sourceClass: 'synthetic_tenant_seed',
-          enablesDossierAddition: 'Adds forecast or dispatch-test proof for the next safe review gate without claiming productive dispatch participation.',
+          enablesDossierAddition:
+            'Adds forecast or dispatch-test proof for the next safe review gate without claiming productive dispatch participation.',
         },
         {
           id: 'readinessReviewDecision',
           label: 'Readiness review decision',
           value: params.readinessReviewDecision,
           sourceClass: 'synthetic_tenant_seed',
-          enablesDossierAddition: 'Adds the ready-for-review or evidence-gap handoff once the synthetic review decision exists.',
+          enablesDossierAddition:
+            'Adds the ready-for-review or evidence-gap handoff once the synthetic review decision exists.',
         },
       ];
 
@@ -17297,10 +17416,13 @@ module.exports = {
       }));
 
       const validationFindings = missingEvidence.map((item) => ({
-        code: `RPRS_${String(item.missingDataPoint).replace(/([A-Z])/g, '_$1').toUpperCase()}_MISSING`,
-        severity: ['syntheticRedispatchAssetPortfolio', 'installationGridLocationEvidence'].includes(
-          item.missingDataPoint
-        )
+        code: `RPRS_${String(item.missingDataPoint)
+          .replace(/([A-Z])/g, '_$1')
+          .toUpperCase()}_MISSING`,
+        severity: [
+          'syntheticRedispatchAssetPortfolio',
+          'installationGridLocationEvidence',
+        ].includes(item.missingDataPoint)
           ? 'high'
           : 'medium',
         message: item.enablesDossierAddition,
@@ -17330,7 +17452,8 @@ module.exports = {
         status,
         syntheticRedispatchAssetPortfolio: params.syntheticRedispatchAssetPortfolio || null,
         installationGridLocationEvidence: params.installationGridLocationEvidence || null,
-        remoteControlCommunicationTestEvidence: params.remoteControlCommunicationTestEvidence || null,
+        remoteControlCommunicationTestEvidence:
+          params.remoteControlCommunicationTestEvidence || null,
         forecastDispatchTestProof: params.forecastDispatchTestProof || null,
         readinessReviewDecision: params.readinessReviewDecision || null,
         evidenceItems,
@@ -17360,14 +17483,15 @@ module.exports = {
             'rundeck_execution',
             'public_context_mutation',
             'production_mutation',
-            'personal_agent_hardcoding'
+            'personal_agent_hardcoding',
           ],
         },
         dossierEvidence: {
           status,
           syntheticRedispatchAssetPortfolio: params.syntheticRedispatchAssetPortfolio || null,
           installationGridLocationEvidence: params.installationGridLocationEvidence || null,
-          remoteControlCommunicationTestEvidence: params.remoteControlCommunicationTestEvidence || null,
+          remoteControlCommunicationTestEvidence:
+            params.remoteControlCommunicationTestEvidence || null,
           forecastDispatchTestProof: params.forecastDispatchTestProof || null,
           readinessReviewDecision: params.readinessReviewDecision || null,
           missingEvidence,
@@ -17380,28 +17504,32 @@ module.exports = {
     },
 
     buildMastrSyncGapStatus(params = {}) {
-      const hasValue = (value) => value !== undefined && value !== null && String(value).trim() !== '';
+      const hasValue = (value) =>
+        value !== undefined && value !== null && String(value).trim() !== '';
       const evidenceSpecs = [
         {
           id: 'mastrFreshnessEvidence',
           label: 'MaStR freshness evidence',
           value: params.mastrFreshnessEvidence,
           sourceClass: 'synthetic_tenant_seed',
-          enablesDossierAddition: 'Adds evidence of current MaStR data freshness harvest for the local network area.',
+          enablesDossierAddition:
+            'Adds evidence of current MaStR data freshness harvest for the local network area.',
         },
         {
           id: 'redispatchStammdatenComparison',
           label: 'Redispatch Stammdaten comparison',
           value: params.redispatchStammdatenComparison,
           sourceClass: 'synthetic_tenant_seed',
-          enablesDossierAddition: 'Adds structured comparison data between Redispatch 2.0 master data and harvested MaStR records.',
+          enablesDossierAddition:
+            'Adds structured comparison data between Redispatch 2.0 master data and harvested MaStR records.',
         },
         {
           id: 'syncGapAlertFeed',
           label: 'Sync gap alert feed',
           value: params.syncGapAlertFeed,
           sourceClass: 'synthetic_tenant_seed',
-          enablesDossierAddition: 'Adds active sync gap alert feed items and priority-sorted alerting findings.',
+          enablesDossierAddition:
+            'Adds active sync gap alert feed items and priority-sorted alerting findings.',
         },
         {
           id: 'reconciliationApprovalDecision',
@@ -17457,7 +17585,9 @@ module.exports = {
         }
         return {
           code,
-          severity: ['mastrFreshnessEvidence', 'redispatchStammdatenComparison'].includes(item.missingDataPoint)
+          severity: ['mastrFreshnessEvidence', 'redispatchStammdatenComparison'].includes(
+            item.missingDataPoint
+          )
             ? 'high'
             : 'medium',
           message: item.enablesDossierAddition,
@@ -17536,35 +17666,40 @@ module.exports = {
     },
 
     buildDecommissionedAssetReconciliationStatus(params = {}) {
-      const hasValue = (value) => value !== undefined && value !== null && String(value).trim() !== '';
+      const hasValue = (value) =>
+        value !== undefined && value !== null && String(value).trim() !== '';
       const evidenceSpecs = [
         {
           id: 'gisDecommissionedAssetsEvidence',
           label: 'GIS decommissioned assets evidence',
           value: params.gisDecommissionedAssetsEvidence,
           sourceClass: 'synthetic_tenant_seed',
-          enablesDossierAddition: 'Adds evidence of physically decommissioned assets from GIS/network registers.',
+          enablesDossierAddition:
+            'Adds evidence of physically decommissioned assets from GIS/network registers.',
         },
         {
           id: 'sapAnlagenspiegelEvidence',
           label: 'SAP Anlagenspiegel evidence',
           value: params.sapAnlagenspiegelEvidence,
           sourceClass: 'synthetic_tenant_seed',
-          enablesDossierAddition: 'Adds commercial asset register entries and SAP Anlagenspiegel validation evidence.',
+          enablesDossierAddition:
+            'Adds commercial asset register entries and SAP Anlagenspiegel validation evidence.',
         },
         {
           id: 'reconciliationDiscrepancyFeed',
           label: 'Reconciliation discrepancy feed',
           value: params.reconciliationDiscrepancyFeed,
           sourceClass: 'synthetic_tenant_seed',
-          enablesDossierAddition: 'Adds active reconciliation discrepancy alerts and gap findings between physical and commercial states.',
+          enablesDossierAddition:
+            'Adds active reconciliation discrepancy alerts and gap findings between physical and commercial states.',
         },
         {
           id: 'reconciliationApprovalDecision',
           label: 'Reconciliation approval decision',
           value: params.reconciliationApprovalDecision,
           sourceClass: 'synthetic_tenant_seed',
-          enablesDossierAddition: 'Adds the final decommissioning reconciliation sign-off and audit-trail logging.',
+          enablesDossierAddition:
+            'Adds the final decommissioning reconciliation sign-off and audit-trail logging.',
         },
       ];
 
@@ -17613,7 +17748,9 @@ module.exports = {
         }
         return {
           code,
-          severity: ['gisDecommissionedAssetsEvidence', 'sapAnlagenspiegelEvidence'].includes(item.missingDataPoint)
+          severity: ['gisDecommissionedAssetsEvidence', 'sapAnlagenspiegelEvidence'].includes(
+            item.missingDataPoint
+          )
             ? 'high'
             : 'medium',
           message: item.enablesDossierAddition,
@@ -17692,49 +17829,56 @@ module.exports = {
     },
 
     buildEnergySharingCollectiveApprovalStatus(params = {}) {
-      const hasValue = (value) => value !== undefined && value !== null && String(value).trim() !== '';
+      const hasValue = (value) =>
+        value !== undefined && value !== null && String(value).trim() !== '';
       const evidenceSpecs = [
         {
           id: 'syntheticCollectiveBoundaryEvidence',
           label: 'Synthetic collective boundary evidence',
           value: params.syntheticCollectiveBoundaryEvidence,
           sourceClass: 'synthetic_tenant_seed',
-          enablesDossierAddition: 'Adds the synthetic collective and pilot boundary as public-safe review material.',
+          enablesDossierAddition:
+            'Adds the synthetic collective and pilot boundary as public-safe review material.',
         },
         {
           id: 'operatorParticipantBoundaryEvidence',
           label: 'Operator participant boundary evidence',
           value: params.operatorParticipantBoundaryEvidence,
           sourceClass: 'synthetic_tenant_seed',
-          enablesDossierAddition: 'Adds operator ownership, participant boundary and governance scope review evidence.',
+          enablesDossierAddition:
+            'Adds operator ownership, participant boundary and governance scope review evidence.',
         },
         {
           id: 'meteringConceptEvidence',
           label: 'Metering concept evidence',
           value: params.meteringConceptEvidence,
           sourceClass: 'synthetic_tenant_seed',
-          enablesDossierAddition: 'Adds the metering concept readiness statement without creating or changing metering assets.',
+          enablesDossierAddition:
+            'Adds the metering concept readiness statement without creating or changing metering assets.',
         },
         {
           id: 'contractConsentMarketRoleEvidence',
           label: 'Contract consent market role evidence',
           value: params.contractConsentMarketRoleEvidence,
           sourceClass: 'synthetic_tenant_seed',
-          enablesDossierAddition: 'Adds contract, consent and market-role review readiness without customer signing.',
+          enablesDossierAddition:
+            'Adds contract, consent and market-role review readiness without customer signing.',
         },
         {
           id: 'allocationBillingSettlementGapEvidence',
           label: 'Allocation billing settlement gap evidence',
           value: params.allocationBillingSettlementGapEvidence,
           sourceClass: 'synthetic_tenant_seed',
-          enablesDossierAddition: 'Adds allocation, A96, billing and settlement evidence-gap closure as review evidence.',
+          enablesDossierAddition:
+            'Adds allocation, A96, billing and settlement evidence-gap closure as review evidence.',
         },
         {
           id: 'approvalReadinessDecision',
           label: 'Approval readiness decision',
           value: params.approvalReadinessDecision,
           sourceClass: 'synthetic_tenant_seed',
-          enablesDossierAddition: 'Adds the ready-for-review or evidence-gap classification and next safe governance gate.',
+          enablesDossierAddition:
+            'Adds the ready-for-review or evidence-gap classification and next safe governance gate.',
         },
       ];
 
@@ -17793,7 +17937,11 @@ module.exports = {
         }
         return {
           code,
-          severity: ['syntheticCollectiveBoundaryEvidence', 'operatorParticipantBoundaryEvidence', 'meteringConceptEvidence'].includes(item.missingDataPoint)
+          severity: [
+            'syntheticCollectiveBoundaryEvidence',
+            'operatorParticipantBoundaryEvidence',
+            'meteringConceptEvidence',
+          ].includes(item.missingDataPoint)
             ? 'high'
             : 'medium',
           message: item.enablesDossierAddition,
@@ -17826,7 +17974,8 @@ module.exports = {
         operatorParticipantBoundaryEvidence: params.operatorParticipantBoundaryEvidence || null,
         meteringConceptEvidence: params.meteringConceptEvidence || null,
         contractConsentMarketRoleEvidence: params.contractConsentMarketRoleEvidence || null,
-        allocationBillingSettlementGapEvidence: params.allocationBillingSettlementGapEvidence || null,
+        allocationBillingSettlementGapEvidence:
+          params.allocationBillingSettlementGapEvidence || null,
         approvalReadinessDecision: params.approvalReadinessDecision || null,
         evidenceItems,
         missingEvidence,
@@ -17864,7 +18013,8 @@ module.exports = {
           operatorParticipantBoundaryEvidence: params.operatorParticipantBoundaryEvidence || null,
           meteringConceptEvidence: params.meteringConceptEvidence || null,
           contractConsentMarketRoleEvidence: params.contractConsentMarketRoleEvidence || null,
-          allocationBillingSettlementGapEvidence: params.allocationBillingSettlementGapEvidence || null,
+          allocationBillingSettlementGapEvidence:
+            params.allocationBillingSettlementGapEvidence || null,
           approvalReadinessDecision: params.approvalReadinessDecision || null,
           missingEvidence,
           positiveFollowUps,
@@ -29645,8 +29795,7 @@ module.exports = {
           value: params.owner || params.reviewer,
           displayValue: [params.owner, params.reviewer].filter(Boolean).join(' / '),
           sourceClass: 'data_room_accountability',
-          enablesDossierAddition:
-            'adds accountable data-room ownership and review responsibility.',
+          enablesDossierAddition: 'adds accountable data-room ownership and review responsibility.',
         },
         {
           id: 'source_refs',
@@ -29678,23 +29827,24 @@ module.exports = {
           enablesDossierAddition: spec.enablesDossierAddition,
         }));
 
-      const status = !params.roomId || (!params.mandateId && !params.profile)
-        ? 'needs_room_profile'
-        : transformationPaths.length === 0
-          ? 'needs_transformation_path'
-          : scenarioReferences.length === 0
-            ? 'needs_scenario_reference'
-            : !params.evidenceStatus
-              ? 'needs_evidence_register'
-              : !params.decisionStatus
-                ? 'needs_decision_log'
-                : !params.roadmapStatus || !params.reviewDate
-                  ? 'needs_review_snapshot'
-                  : !params.owner && !params.reviewer
-                    ? 'needs_owner_reviewer'
-                    : sourceRefs.length === 0
-                      ? 'needs_source_refs'
-                      : 'ready_for_dataroom_review';
+      const status =
+        !params.roomId || (!params.mandateId && !params.profile)
+          ? 'needs_room_profile'
+          : transformationPaths.length === 0
+            ? 'needs_transformation_path'
+            : scenarioReferences.length === 0
+              ? 'needs_scenario_reference'
+              : !params.evidenceStatus
+                ? 'needs_evidence_register'
+                : !params.decisionStatus
+                  ? 'needs_decision_log'
+                  : !params.roadmapStatus || !params.reviewDate
+                    ? 'needs_review_snapshot'
+                    : !params.owner && !params.reviewer
+                      ? 'needs_owner_reviewer'
+                      : sourceRefs.length === 0
+                        ? 'needs_source_refs'
+                        : 'ready_for_dataroom_review';
 
       const readinessScore = Number((evidenceItems.length / evidenceSpecs.length).toFixed(2));
       const positiveFollowUps = missingEvidence.map((item) => ({
@@ -39405,6 +39555,188 @@ module.exports = {
         `Request Type: ${params.requestType || 'unknown'}`,
         `Open gaps: ${evidenceGaps.length}`,
       ];
+
+      // -- FCA/fNAV lifecycle evidence (additive, caller-supplied, read-only) --
+      // Narrow, non-consequential projection of one supplied FCA/fNAV case across
+      // request, offer, restriction, contract and at most one operating-event
+      // snapshot. Never affects decisionReadiness/status above; scalar and
+      // reference values only, no service calls, persistence or hydration.
+      const hasEvidenceValue = (value) =>
+        value !== undefined && value !== null && String(value).trim() !== '';
+      const lifecycleRowStatus = (values) => {
+        const provided = values.filter(hasEvidenceValue).length;
+        if (provided === 0) return 'missing';
+        if (provided === values.length) return 'provided';
+        return 'partial';
+      };
+      const lifecycleRowSpecs = [
+        {
+          code: 'connection_request',
+          label: 'Connection Request',
+          values: {
+            connectionRequestRef: params.connectionRequestRef ?? null,
+            gridConnectionPoint: params.gridConnectionPoint ?? null,
+          },
+          enablesDossierAddition:
+            'add connection request/case reference and grid connection point evidence',
+        },
+        {
+          code: 'capacity_offer',
+          label: 'Capacity Offer',
+          values: {
+            capacityOfferRef: params.capacityOfferRef ?? null,
+            capacityOfferVersion: params.capacityOfferVersion ?? null,
+            capacityOfferDate: params.capacityOfferDate ?? null,
+            firmCapacityKW: params.firmCapacityKW ?? null,
+            flexibleCapacityKW: params.flexibleCapacityKW ?? null,
+          },
+          enablesDossierAddition:
+            'add capacity-offer reference, offer version/date and offered firm/flexible capacity evidence',
+        },
+        {
+          code: 'restriction_profile',
+          label: 'Restriction Profile',
+          values: {
+            restrictionProfileRef: params.restrictionProfileRef ?? null,
+            restrictionProfileVersion: params.restrictionProfileVersion ?? null,
+            curtailmentWindow: params.curtailmentWindow ?? null,
+          },
+          enablesDossierAddition:
+            'add restriction-profile reference/version and curtailment window evidence',
+        },
+        {
+          code: 'contract_lifecycle',
+          label: 'Contract Lifecycle',
+          values: {
+            contractRef: params.contractRef ?? null,
+            contractVersion: params.contractVersion ?? null,
+            contractReviewStatus: params.contractReviewStatus ?? null,
+          },
+          enablesDossierAddition:
+            'add contract reference, contract version and review status evidence',
+        },
+        {
+          code: 'curtailment_measurement_evidence',
+          label: 'Curtailment/Measurement Evidence',
+          values: {
+            curtailmentMeasurementEvidenceRef: params.curtailmentMeasurementEvidenceRef ?? null,
+          },
+          enablesDossierAddition: 'add curtailment/measurement evidence reference',
+        },
+        {
+          code: 'redispatch_compensation_markers',
+          label: 'Redispatch/Compensation Evidence Markers',
+          values: {
+            redispatchRelevanceRef: params.redispatchRelevanceRef ?? null,
+            redispatchStatusRef: params.redispatchStatusRef ?? null,
+            compensationStatusRef: params.compensationStatusRef ?? null,
+          },
+          enablesDossierAddition:
+            'add Redispatch relevance/status and compensation-status evidence markers (markers only, not a classification or calculation)',
+        },
+        {
+          code: 'evidence_governance',
+          label: 'Evidence Governance',
+          values: {
+            evidenceOwner: params.evidenceOwner ?? null,
+            nextReviewGate: params.nextReviewGate ?? null,
+            evidenceSourceTimestamp: params.evidenceSourceTimestamp ?? null,
+          },
+          enablesDossierAddition: 'add evidence owner, next review gate and source timestamp',
+        },
+      ];
+      const lifecycleRows = lifecycleRowSpecs.map((spec) => ({
+        code: spec.code,
+        label: spec.label,
+        ...spec.values,
+        evidenceStatus: lifecycleRowStatus(Object.values(spec.values)),
+        enablesDossierAddition: spec.enablesDossierAddition,
+      }));
+      const operatingEventValues = {
+        operatingEventRef: params.operatingEventRef ?? null,
+        operatingEventType: params.operatingEventType ?? null,
+        operatingEventTimestamp: params.operatingEventTimestamp ?? null,
+      };
+      const operatingEventStatus = lifecycleRowStatus(Object.values(operatingEventValues));
+      const operatingEventRow = {
+        code: 'operating_event',
+        label: 'Operating Event (optional, at most one snapshot per request)',
+        ...operatingEventValues,
+        evidenceStatus: operatingEventStatus,
+        optional: true,
+        enablesDossierAddition:
+          'add the single supplied operating-event reference, type and timestamp',
+      };
+      const lifecycleMissingEvidence = lifecycleRows
+        .filter((row) => row.evidenceStatus !== 'provided')
+        .map((row) => ({
+          missingDataPoint: row.code,
+          status: row.evidenceStatus,
+          enablesDossierAddition: row.enablesDossierAddition,
+        }));
+      // The operating-event snapshot is optional (at most one per request), so a
+      // fully unsupplied snapshot is not a gap -- only a partially supplied one is.
+      if (operatingEventStatus === 'partial') {
+        lifecycleMissingEvidence.push({
+          missingDataPoint: operatingEventRow.code,
+          status: operatingEventStatus,
+          enablesDossierAddition: operatingEventRow.enablesDossierAddition,
+        });
+      }
+      const lifecyclePositiveFollowUps = lifecycleMissingEvidence.map((gap) => ({
+        missingDataPoint: gap.missingDataPoint,
+        status: gap.status,
+        enablesDossierAddition: gap.enablesDossierAddition,
+        category: 'fca_fnav_lifecycle_evidence',
+      }));
+      const lifecycleEvidence = {
+        capabilityKey: 'fnav_fast_track_contract_gate',
+        gateId,
+        rows: [...lifecycleRows, operatingEventRow],
+        operatingEvent: operatingEventRow,
+        evidenceStatus: {
+          provided: lifecycleRows.filter((row) => row.evidenceStatus === 'provided').length,
+          required: lifecycleRows.length,
+        },
+        missingEvidence: lifecycleMissingEvidence,
+        positiveFollowUps: lifecyclePositiveFollowUps,
+        sourceActions: {
+          referenced: [
+            'fnav-commercial-hedging.createContract',
+            'fnav-commercial-hedging.createScenario',
+            'redispatch-expost.stepCurtailmentCorrelation',
+            'grid-connection.stepCapacity',
+            'grid-connection.fnavValidate',
+          ],
+          notCalled: [
+            'contract.approve',
+            'contract.release',
+            'capacity.allocate',
+            'grid-connection.mutate',
+            'grid-connection.approve',
+            'curtailment.dispatch',
+            'device-control.execute',
+            'smgw.connector.call',
+            'cls.control.execute',
+            'redispatch.execute',
+            'redispatch.classify',
+            'compensation.calculate',
+            'settlement.prepareBilling',
+            'mako.dispatch',
+            'a96.dispatch',
+            'workflow.create',
+            'hitl.create',
+            'external.connector.call',
+            'personal-agent.execute',
+          ],
+        },
+        notice:
+          'Evidence markers only: no capacity allocation, connection approval, contract action, ' +
+          'curtailment/dispatch/device control, Redispatch execution/classification, compensation ' +
+          'calculation, settlement, MaKo/A96, workflow/HITL, connector or Personal-Agent execution ' +
+          'is performed by this projection.',
+      };
+
       return {
         capabilityKey: 'fnav_fast_track_contract_gate',
         safety: 'read_only',
@@ -39443,6 +39775,7 @@ module.exports = {
         positiveFollowUps,
         sourceActions,
         sourceDatapoints: signals,
+        lifecycleEvidence,
         dossierEvidence: {
           capabilityKey: 'fnav_fast_track_contract_gate',
           gateId,
@@ -42418,9 +42751,7 @@ module.exports = {
         status = 'needs_balancing_or_schedule_evidence';
       } else if (
         missingEvidence.some((gap) =>
-          ['billing_settlement_status', 'role_owner', 'deadline'].includes(
-            gap.missingDataPoint
-          )
+          ['billing_settlement_status', 'role_owner', 'deadline'].includes(gap.missingDataPoint)
         )
       ) {
         status = 'needs_billing_or_role_evidence';
@@ -42438,7 +42769,10 @@ module.exports = {
           label: 'Forecast Quality',
           value: params.forecastQuality || null,
           forecastDeviationPct,
-          status: isProvided(params.forecastQuality) && forecastDeviationPct !== null ? 'covered' : 'missing',
+          status:
+            isProvided(params.forecastQuality) && forecastDeviationPct !== null
+              ? 'covered'
+              : 'missing',
         },
         {
           id: 'allocation_rules',
@@ -42477,7 +42811,8 @@ module.exports = {
             roleOwner: params.roleOwner || null,
             deadline: params.deadline || null,
           },
-          status: isProvided(params.roleOwner) && isProvided(params.deadline) ? 'covered' : 'missing',
+          status:
+            isProvided(params.roleOwner) && isProvided(params.deadline) ? 'covered' : 'missing',
         },
       ];
       const handoverContext = {
@@ -44710,8 +45045,7 @@ module.exports = {
         {
           id: 'missing_side_source_policy',
           ok: allowedSideSources.length > 0,
-          enablesDossierAddition:
-            'Nebenquellen-Regel kann Uebersteuerung nachvollziehbar machen.',
+          enablesDossierAddition: 'Nebenquellen-Regel kann Uebersteuerung nachvollziehbar machen.',
         },
       ];
       const missingEvidence = gapSpecs
@@ -44882,7 +45216,8 @@ module.exports = {
           id: 'blocking_finding',
           label: 'Absent blocker evidence',
           value: blockerAbsent ? params.blockingFinding : null,
-          enablesDossierAddition: 'distinguish absent blocker from unresolved unknown or active blocker',
+          enablesDossierAddition:
+            'distinguish absent blocker from unresolved unknown or active blocker',
         },
         {
           id: 'next_check_at',

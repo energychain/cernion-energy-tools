@@ -2401,9 +2401,7 @@ describe('dashboard-api.service', () => {
         expect(result.guardrailRows.map((row) => row.guardrailId)).toEqual(
           expect.arrayContaining(['no_private_document_ingestion', 'no_office_generation'])
         );
-        expect(result.positiveFollowUpRows[0].category).toBe(
-          'gremiencoach_workbook_readiness'
-        );
+        expect(result.positiveFollowUpRows[0].category).toBe('gremiencoach_workbook_readiness');
         expect(result.sourceActions.notCalled).toEqual(
           expect.arrayContaining([
             'document.upload',
@@ -2636,9 +2634,7 @@ describe('dashboard-api.service', () => {
             'test_case_hint',
           ])
         );
-        expect(result.positiveFollowUps[0].category).toBe(
-          'regulatory_signal_process_translator'
-        );
+        expect(result.positiveFollowUps[0].category).toBe('regulatory_signal_process_translator');
         expect(result.sourceActions.notCalled).toEqual(
           expect.arrayContaining([
             'legal.interpret',
@@ -3287,6 +3283,230 @@ describe('dashboard-api.service', () => {
         expect(result.missingEvidence).toEqual([]);
         expect(result.evidenceStatus.provided).toBe(result.evidenceStatus.required);
         expect(result.dossierEvidence.dossierFacts).toContain('Status: ready_for_fast_track');
+      });
+
+      it('is backwards compatible: existing callers without lifecycle params keep all current fields and decisionReadiness', async () => {
+        const result = await broker.call('dashboard-api.fnavFastTrackContractGateStatus', {
+          gateId: 'fnav-ft-legacy',
+          gridOperatorId: 'SNB935578300972',
+          requestType: 'data_center',
+          assetOrLoadType: 'large_load',
+          requestedCapacityKW: 10000,
+          netzsignalPriorityPolicy: 'approved',
+          scheduleObligation: 'confirmed',
+          meteringRequirements: 'confirmed',
+          controlEvidenceRef: 'ctrl-proof-1',
+          contractStatus: 'signed',
+          legalStatus: 'approved',
+          ownerContact: 'vertrieb',
+          commercialImpact: 'ready',
+          marketingBoundaries: 'ready',
+        });
+
+        expect(result.status).toBe('ready_for_fast_track');
+        expect(result.missingEvidence).toEqual([]);
+        expect(result.evidenceStatus.provided).toBe(result.evidenceStatus.required);
+        expect(result.dossierEvidence.dossierFacts).toContain('Status: ready_for_fast_track');
+        // additive field present without changing existing response shape/semantics
+        expect(result.lifecycleEvidence).toBeDefined();
+        expect(result.lifecycleEvidence.capabilityKey).toBe('fnav_fast_track_contract_gate');
+      });
+
+      it('reports complete FCA/fNAV lifecycle evidence when every stage is supplied', async () => {
+        const result = await broker.call('dashboard-api.fnavFastTrackContractGateStatus', {
+          gateId: 'fnav-ft-lifecycle-complete',
+          gridOperatorId: 'SNB935578300972',
+          requestType: 'storage',
+          assetOrLoadType: 'battery',
+          firmCapacityKW: 500,
+          flexibleCapacityKW: 1500,
+          connectionRequestRef: 'creq-2201',
+          gridConnectionPoint: 'napp-08.4',
+          capacityOfferRef: 'coffer-77',
+          capacityOfferVersion: 'v3',
+          capacityOfferDate: '2026-05-01',
+          restrictionProfileRef: 'restr-14',
+          restrictionProfileVersion: 'v2',
+          curtailmentWindow: '18:00-20:00',
+          contractRef: 'contract-91',
+          contractVersion: 'v4',
+          contractReviewStatus: 'under_review',
+          curtailmentMeasurementEvidenceRef: 'meas-3391',
+          redispatchRelevanceRef: 'rd-relevance-1',
+          redispatchStatusRef: 'rd-status-1',
+          compensationStatusRef: 'comp-status-1',
+          evidenceOwner: 'netzplanung',
+          nextReviewGate: 'quarterly-review-q3',
+          evidenceSourceTimestamp: '2026-07-01T09:00:00Z',
+        });
+
+        const { lifecycleEvidence } = result;
+        expect(lifecycleEvidence.evidenceStatus.provided).toBe(
+          lifecycleEvidence.evidenceStatus.required
+        );
+        expect(lifecycleEvidence.missingEvidence).toEqual([]);
+        expect(lifecycleEvidence.positiveFollowUps).toEqual([]);
+        for (const row of lifecycleEvidence.rows) {
+          if (row.code === 'operating_event') continue;
+          expect(row.evidenceStatus).toBe('provided');
+        }
+      });
+
+      it('reports incomplete FCA/fNAV lifecycle evidence with review-only follow-ups when stages are partial or missing', async () => {
+        const result = await broker.call('dashboard-api.fnavFastTrackContractGateStatus', {
+          gateId: 'fnav-ft-lifecycle-incomplete',
+          gridOperatorId: 'SNB935578300972',
+          requestType: 'storage',
+          assetOrLoadType: 'battery',
+          requestedCapacityKW: 2500,
+          netzsignalPriorityPolicy: 'approved',
+          scheduleObligation: 'ready',
+          contractStatus: 'draft',
+          legalStatus: 'approved',
+          ownerContact: 'netzplanung',
+          commercialImpact: 'ready',
+          connectionRequestRef: 'creq-2202',
+          // gridConnectionPoint omitted -> connection_request partial
+          capacityOfferRef: 'coffer-78',
+          // capacityOfferVersion/Date/firm/flexible capacity omitted -> capacity_offer partial
+          // restriction_profile, contract_lifecycle, curtailment_measurement_evidence,
+          // redispatch_compensation_markers, evidence_governance fully omitted -> missing
+        });
+
+        const { lifecycleEvidence } = result;
+        const rowByCode = Object.fromEntries(lifecycleEvidence.rows.map((row) => [row.code, row]));
+        expect(rowByCode.connection_request.evidenceStatus).toBe('partial');
+        expect(rowByCode.capacity_offer.evidenceStatus).toBe('partial');
+        expect(rowByCode.restriction_profile.evidenceStatus).toBe('missing');
+        expect(rowByCode.contract_lifecycle.evidenceStatus).toBe('missing');
+        expect(rowByCode.curtailment_measurement_evidence.evidenceStatus).toBe('missing');
+        expect(rowByCode.redispatch_compensation_markers.evidenceStatus).toBe('missing');
+        expect(rowByCode.evidence_governance.evidenceStatus).toBe('missing');
+
+        const missingCodes = lifecycleEvidence.missingEvidence.map((gap) => gap.missingDataPoint);
+        expect(missingCodes).toEqual(
+          expect.arrayContaining([
+            'connection_request',
+            'capacity_offer',
+            'restriction_profile',
+            'contract_lifecycle',
+            'curtailment_measurement_evidence',
+            'redispatch_compensation_markers',
+            'evidence_governance',
+          ])
+        );
+        expect(lifecycleEvidence.positiveFollowUps.length).toBe(
+          lifecycleEvidence.missingEvidence.length
+        );
+        for (const followUp of lifecycleEvidence.positiveFollowUps) {
+          expect(followUp.category).toBe('fca_fnav_lifecycle_evidence');
+        }
+        // existing gate semantics (decisionReadiness) are unaffected by lifecycle gaps
+        expect(result.status).toBe('needs_control_evidence');
+      });
+
+      it('supports at most one optional operating-event snapshot per request', async () => {
+        const noEvent = await broker.call('dashboard-api.fnavFastTrackContractGateStatus', {
+          gateId: 'fnav-ft-event-none',
+          gridOperatorId: 'SNB935578300972',
+        });
+        expect(noEvent.lifecycleEvidence.operatingEvent.evidenceStatus).toBe('missing');
+        // fully unsupplied optional snapshot is not a gap
+        expect(
+          noEvent.lifecycleEvidence.missingEvidence.some(
+            (gap) => gap.missingDataPoint === 'operating_event'
+          )
+        ).toBe(false);
+
+        const partialEvent = await broker.call('dashboard-api.fnavFastTrackContractGateStatus', {
+          gateId: 'fnav-ft-event-partial',
+          gridOperatorId: 'SNB935578300972',
+          operatingEventRef: 'evt-501',
+        });
+        expect(partialEvent.lifecycleEvidence.operatingEvent.evidenceStatus).toBe('partial');
+        expect(
+          partialEvent.lifecycleEvidence.missingEvidence.some(
+            (gap) => gap.missingDataPoint === 'operating_event'
+          )
+        ).toBe(true);
+
+        const fullEvent = await broker.call('dashboard-api.fnavFastTrackContractGateStatus', {
+          gateId: 'fnav-ft-event-full',
+          gridOperatorId: 'SNB935578300972',
+          operatingEventRef: 'evt-502',
+          operatingEventType: 'curtailment_order',
+          operatingEventTimestamp: '2026-06-15T12:00:00Z',
+        });
+        expect(fullEvent.lifecycleEvidence.operatingEvent.evidenceStatus).toBe('provided');
+        expect(
+          fullEvent.lifecycleEvidence.rows.filter((row) => row.code === 'operating_event').length
+        ).toBe(1);
+      });
+
+      it('keeps lifecycle evidence rows scalar-safe (dossier-display-only values)', async () => {
+        const result = await broker.call('dashboard-api.fnavFastTrackContractGateStatus', {
+          gateId: 'fnav-ft-scalar-safe',
+          gridOperatorId: 'SNB935578300972',
+          connectionRequestRef: 'creq-2203',
+          gridConnectionPoint: 'napp-09.1',
+          firmCapacityKW: 250,
+          flexibleCapacityKW: 750,
+          operatingEventRef: 'evt-503',
+          operatingEventType: 'curtailment_order',
+          operatingEventTimestamp: '2026-06-20T08:00:00Z',
+        });
+
+        expectScalarTableRows(result.lifecycleEvidence.rows);
+        expect(result.lifecycleEvidence.rows).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              code: 'connection_request',
+              connectionRequestRef: 'creq-2203',
+              gridConnectionPoint: 'napp-09.1',
+            }),
+            expect.objectContaining({
+              code: 'operating_event',
+              operatingEventRef: 'evt-503',
+              operatingEventType: 'curtailment_order',
+              operatingEventTimestamp: '2026-06-20T08:00:00Z',
+            }),
+          ])
+        );
+      });
+
+      it('never calls contract, capacity-allocation, grid-mutation, curtailment/dispatch, Redispatch/compensation/settlement, MaKo/A96, workflow/HITL, connector or Personal-Agent actions', async () => {
+        const result = await broker.call('dashboard-api.fnavFastTrackContractGateStatus', {
+          gateId: 'fnav-ft-nocall',
+          gridOperatorId: 'SNB935578300972',
+          connectionRequestRef: 'creq-2204',
+          contractRef: 'contract-92',
+          redispatchRelevanceRef: 'rd-relevance-2',
+          redispatchStatusRef: 'rd-status-2',
+          compensationStatusRef: 'comp-status-2',
+        });
+
+        expect(result.lifecycleEvidence.sourceActions.notCalled).toEqual(
+          expect.arrayContaining([
+            'contract.approve',
+            'contract.release',
+            'capacity.allocate',
+            'grid-connection.mutate',
+            'grid-connection.approve',
+            'curtailment.dispatch',
+            'device-control.execute',
+            'redispatch.execute',
+            'redispatch.classify',
+            'compensation.calculate',
+            'settlement.prepareBilling',
+            'mako.dispatch',
+            'a96.dispatch',
+            'workflow.create',
+            'hitl.create',
+            'external.connector.call',
+            'personal-agent.execute',
+          ])
+        );
+        expect(result._errors).toEqual([]);
       });
     });
 
@@ -4863,9 +5083,7 @@ describe('dashboard-api.service', () => {
         });
 
         expect(stale.status).toBe('stale');
-        expect(stale.staleMarkers.map((marker) => marker.marker)).toContain(
-          'leading_source_stale'
-        );
+        expect(stale.staleMarkers.map((marker) => marker.marker)).toContain('leading_source_stale');
         expect(stale.positiveFollowUps.map((gap) => gap.missingDataPoint)).toContain(
           'stale_leading_source_refresh'
         );

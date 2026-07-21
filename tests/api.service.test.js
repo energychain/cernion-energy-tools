@@ -1086,6 +1086,10 @@ describe('API Gateway Service', () => {
               tenantId: 'tenant-route-421',
             },
           });
+          // The nested facade call must be synchronous. Forwarding the outer
+          // REST marker would make personal-agent.chat return a queued job
+          // descriptor instead of a completed reply.
+          expect(opts.meta.$gateway).toBeUndefined();
           return {
             id: 'chatcmpl_test',
             object: 'chat.completion',
@@ -1130,6 +1134,176 @@ describe('API Gateway Service', () => {
           meta: expect.objectContaining({ tenantId: 'tenant-route-421' }),
         })
       );
+    });
+
+    function createSseCollectingRes() {
+      const writes = [];
+      let ended = false;
+      return {
+        statusCode: null,
+        headers: {},
+        writes,
+        setHeader(name, value) {
+          this.headers[name] = value;
+        },
+        writeHead(status) {
+          this.statusCode = status;
+        },
+        write(chunk) {
+          writes.push(chunk);
+          return true;
+        },
+        end(payload) {
+          if (payload != null) writes.push(payload);
+          ended = true;
+        },
+        get ended() {
+          return ended;
+        },
+      };
+    }
+
+    it('should emit buffered chat.completion.chunk SSE frames ending with [DONE] when stream=true', async () => {
+      const v1Route = ApiService.settings.routes.find((r) => r.path === '/v1');
+      const brokerCall = jest.fn(async (action) => {
+        if (action === 'token-manager.verify') {
+          return {
+            valid: true,
+            tokenId: 'token-stream',
+            scope: 'full-access',
+            scopes: ['full-access'],
+            tenantId: 'tenant-stream',
+            userId: 'user-stream',
+          };
+        }
+        if (action === 'openai-compatible.chatCompletions') {
+          return {
+            id: 'chatcmpl_stream_test',
+            object: 'chat.completion',
+            created: 1234,
+            model: 'cernion-agent-mvp',
+            choices: [
+              {
+                index: 0,
+                message: { role: 'assistant', content: 'Streamed answer.' },
+                finish_reason: 'stop',
+              },
+            ],
+            usage: { prompt_tokens: 1, completion_tokens: 2, total_tokens: 3 },
+          };
+        }
+        throw new Error(`Unexpected action ${action}`);
+      });
+      const res = createSseCollectingRes();
+
+      await v1Route.aliases['POST /chat/completions'].call(
+        { broker: { call: brokerCall, emit: jest.fn() }, logger: { debug: jest.fn() } },
+        {
+          headers: { authorization: 'Bearer ck_stream_token' },
+          method: 'POST',
+          body: {
+            model: 'cernion-agent-mvp',
+            stream: true,
+            messages: [{ role: 'user', content: 'Hallo' }],
+          },
+        },
+        res
+      );
+
+      expect(res.statusCode).toBe(200);
+      expect(res.headers['Content-Type']).toBe('text/event-stream; charset=utf-8');
+      expect(res.ended).toBe(true);
+
+      // Last write is the terminal [DONE] frame; everything before it is a
+      // "data: {...}\n\n" chat.completion.chunk frame.
+      expect(res.writes[res.writes.length - 1]).toBe('data: [DONE]\n\n');
+      const chunkFrames = res.writes.slice(0, -1).map((frame) => {
+        expect(frame.startsWith('data: ')).toBe(true);
+        expect(frame.endsWith('\n\n')).toBe(true);
+        return JSON.parse(frame.slice('data: '.length, -2));
+      });
+
+      expect(chunkFrames).toHaveLength(3);
+      for (const chunk of chunkFrames) {
+        expect(chunk.object).toBe('chat.completion.chunk');
+        expect(chunk.id).toBe('chatcmpl_stream_test');
+        expect(chunk.model).toBe('cernion-agent-mvp');
+      }
+      expect(chunkFrames[0].choices[0].delta).toEqual({ role: 'assistant' });
+      expect(chunkFrames[0].choices[0].finish_reason).toBeNull();
+      expect(chunkFrames[1].choices[0].delta).toEqual({ content: 'Streamed answer.' });
+      expect(chunkFrames[1].choices[0].finish_reason).toBeNull();
+      expect(chunkFrames[2].choices[0].delta).toEqual({});
+      expect(chunkFrames[2].choices[0].finish_reason).toBe('stop');
+    });
+
+    it('should leave non-streaming JSON responses unchanged when stream is omitted', async () => {
+      const v1Route = ApiService.settings.routes.find((r) => r.path === '/v1');
+      const brokerCall = jest.fn(async (action) => {
+        if (action === 'token-manager.verify') {
+          return {
+            valid: true,
+            tokenId: 'token-nonstream',
+            scope: 'full-access',
+            scopes: ['full-access'],
+            tenantId: 'tenant-nonstream',
+            userId: 'user-nonstream',
+          };
+        }
+        if (action === 'openai-compatible.chatCompletions') {
+          return {
+            id: 'chatcmpl_nonstream_test',
+            object: 'chat.completion',
+            created: 1234,
+            model: 'cernion-agent-mvp',
+            choices: [{ index: 0, message: { role: 'assistant', content: 'Buffered answer.' } }],
+            usage: { prompt_tokens: 1, completion_tokens: 2, total_tokens: 3 },
+          };
+        }
+        throw new Error(`Unexpected action ${action}`);
+      });
+      const res = createSseCollectingRes();
+
+      await v1Route.aliases['POST /chat/completions'].call(
+        { broker: { call: brokerCall, emit: jest.fn() }, logger: { debug: jest.fn() } },
+        {
+          headers: { authorization: 'Bearer ck_nonstream_token' },
+          method: 'POST',
+          body: { model: 'cernion-agent-mvp', messages: [{ role: 'user', content: 'Hallo' }] },
+        },
+        res
+      );
+
+      expect(res.statusCode).toBe(200);
+      expect(res.headers['Content-Type']).toBe('application/json; charset=utf-8');
+      expect(res.writes).toHaveLength(1);
+      const body = JSON.parse(res.writes[0]);
+      expect(body.object).toBe('chat.completion');
+      expect(body.choices[0].message.content).toBe('Buffered answer.');
+    });
+
+    it('should expose GET /v1/models with a static, unauthenticated OpenAI-compatible catalog', async () => {
+      const v1Route = ApiService.settings.routes.find((r) => r.path === '/v1');
+      expect(v1Route.aliases['GET /models']).toBeInstanceOf(Function);
+
+      const res = createSseCollectingRes();
+
+      await v1Route.aliases['GET /models'].call(
+        { broker: { call: jest.fn() }, logger: { debug: jest.fn() } },
+        { headers: {}, method: 'GET' },
+        res
+      );
+
+      expect(res.statusCode).toBe(200);
+      expect(res.headers['Content-Type']).toBe('application/json; charset=utf-8');
+      const body = JSON.parse(res.writes[0]);
+      expect(body.object).toBe('list');
+      expect(body.data).toEqual([
+        expect.objectContaining({ id: 'cernion-agent-mvp', object: 'model', owned_by: 'cernion' }),
+      ]);
+      // No tenant data or credentials in the static discovery catalog.
+      const serialized = JSON.stringify(body);
+      expect(serialized).not.toMatch(/tenant|token|secret|apiKey|api_key/i);
     });
 
     it('should extract token from URL params with precedence over bearer token', async () => {

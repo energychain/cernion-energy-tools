@@ -26,7 +26,12 @@ const BACKTEST_MAX_DAYS = 365;
 // Reference orientation yield per type (kWh/kW/year, Germany, standard conditions).
 // Solar: south-facing 30° tilt, no shading. Wind onshore: typical hub height, open terrain.
 // Used as plausibility comparator — actual yield depends on site orientation, shading, losses.
-const BACKTEST_ORIENTATION_YIELD_KWH_KW = { solar: 950, wind: 1800, wind_onshore: 1800, wind_offshore: 3500 };
+const BACKTEST_ORIENTATION_YIELD_KWH_KW = {
+  solar: 950,
+  wind: 1800,
+  wind_onshore: 1800,
+  wind_offshore: 3500,
+};
 
 function _btHourTimestamp(timestamp) {
   const d = new Date(timestamp);
@@ -41,14 +46,14 @@ function _btNormalisePrices(raw) {
   const arr = Array.isArray(raw?.dataPoints)
     ? raw.dataPoints
     : Array.isArray(raw)
-    ? raw
-    : Array.isArray(raw?.prices)
-    ? raw.prices
-    : Array.isArray(raw?.data?.prices)
-    ? raw.data.prices
-    : Array.isArray(raw?.data)
-    ? raw.data
-    : [];
+      ? raw
+      : Array.isArray(raw?.prices)
+        ? raw.prices
+        : Array.isArray(raw?.data?.prices)
+          ? raw.data.prices
+          : Array.isArray(raw?.data)
+            ? raw.data
+            : [];
   const byHour = new Map();
   for (const r of arr
     .map((r) => ({
@@ -83,10 +88,10 @@ function _btNormaliseForecast(result) {
   const arr = Array.isArray(result?.forecasts)
     ? result.forecasts
     : Array.isArray(result?.data?.forecasts)
-    ? result.data.forecasts
-    : Array.isArray(result?.data)
-    ? result.data
-    : [];
+      ? result.data.forecasts
+      : Array.isArray(result?.data)
+        ? result.data
+        : [];
   return arr
     .map((r) => ({
       timestamp: _btHourTimestamp(r.timestamp ?? r.ts),
@@ -94,12 +99,12 @@ function _btNormaliseForecast(result) {
         r.generationMwh != null
           ? Number(r.generationMwh)
           : r.generationMW != null
-          ? Number(r.generationMW) // MW × 1h = MWh for hourly resolution
-          : r.generation_mwh != null
-          ? Number(r.generation_mwh)
-          : r.generationKwh != null
-          ? Number(r.generationKwh) / 1000
-          : Number(r.value ?? 0),
+            ? Number(r.generationMW) // MW × 1h = MWh for hourly resolution
+            : r.generation_mwh != null
+              ? Number(r.generation_mwh)
+              : r.generationKwh != null
+                ? Number(r.generationKwh) / 1000
+                : Number(r.value ?? 0),
     }))
     .filter((r) => r.timestamp);
 }
@@ -140,8 +145,12 @@ function _btMergeIntervals(genSeries, prices) {
 }
 
 function _btAssetKpis(intervals) {
-  let genMwh = 0, valueEur = 0, curtailedEur = 0;
-  let negHours = 0, genDuringNegMwh = 0, valueDuringNegEur = 0;
+  let genMwh = 0,
+    valueEur = 0,
+    curtailedEur = 0;
+  let negHours = 0,
+    genDuringNegMwh = 0,
+    valueDuringNegEur = 0;
   for (const iv of intervals) {
     genMwh += iv.generationMwh;
     valueEur += iv.marketValueEur;
@@ -181,7 +190,15 @@ function _btMonthlyAggregation(intervals, dateFrom, dateTo) {
   for (const iv of intervals) {
     const m = _btBerlinMonth(iv.timestamp);
     if (!months[m]) {
-      months[m] = { month: m, generationMwh: 0, marketValueEur: 0, curtailedMarketValueEur: 0, negativePriceHours: 0, _priceSum: 0, _priceCount: 0 };
+      months[m] = {
+        month: m,
+        generationMwh: 0,
+        marketValueEur: 0,
+        curtailedMarketValueEur: 0,
+        negativePriceHours: 0,
+        _priceSum: 0,
+        _priceCount: 0,
+      };
     }
     months[m].generationMwh += iv.generationMwh;
     months[m].marketValueEur += iv.marketValueEur;
@@ -193,7 +210,9 @@ function _btMonthlyAggregation(intervals, dateFrom, dateTo) {
 
   // Build scaffold of every calendar month from dateFrom to dateTo
   const scaffold = [];
-  let cur = new Date(Date.UTC(parseInt(dateFrom.slice(0, 4)), parseInt(dateFrom.slice(5, 7)) - 1, 1));
+  let cur = new Date(
+    Date.UTC(parseInt(dateFrom.slice(0, 4)), parseInt(dateFrom.slice(5, 7)) - 1, 1)
+  );
   const endYM = dateTo.slice(0, 7);
   while (true) {
     const ym = cur.toISOString().slice(0, 7);
@@ -203,15 +222,27 @@ function _btMonthlyAggregation(intervals, dateFrom, dateTo) {
   }
 
   return scaffold.map((m) => {
-    const d = months[m] || { month: m, generationMwh: 0, marketValueEur: 0, curtailedMarketValueEur: 0, negativePriceHours: 0, _priceSum: 0, _priceCount: 0 };
+    const d = months[m] || {
+      month: m,
+      generationMwh: 0,
+      marketValueEur: 0,
+      curtailedMarketValueEur: 0,
+      negativePriceHours: 0,
+      _priceSum: 0,
+      _priceCount: 0,
+    };
     const { _priceSum, _priceCount, ...rest } = d;
     return {
       ...rest,
       generationMwh: Math.round(rest.generationMwh * 1000) / 1000,
       marketValueEur: Math.round(rest.marketValueEur * 100) / 100,
       curtailedMarketValueEur: Math.round(rest.curtailedMarketValueEur * 100) / 100,
-      averageSpotPriceEurPerMwh: _priceCount > 0 ? Math.round((_priceSum / _priceCount) * 100) / 100 : 0,
-      weightedMarketValueEurPerMwh: rest.generationMwh > 0 ? Math.round((rest.marketValueEur / rest.generationMwh) * 100) / 100 : 0,
+      averageSpotPriceEurPerMwh:
+        _priceCount > 0 ? Math.round((_priceSum / _priceCount) * 100) / 100 : 0,
+      weightedMarketValueEurPerMwh:
+        rest.generationMwh > 0
+          ? Math.round((rest.marketValueEur / rest.generationMwh) * 100) / 100
+          : 0,
     };
   });
 }
@@ -243,7 +274,6 @@ function _btDailyAggregation(intervals) {
       marketValueEur: Math.round(d.marketValueEur * 100) / 100,
     }));
 }
-
 
 function computeInstallationStats(installations) {
   const count = installations.length;
@@ -1456,7 +1486,12 @@ module.exports = {
         assets: { type: 'array', min: 1, max: BACKTEST_MAX_ASSETS, items: { type: 'object' } },
         dateFrom: { type: 'string', optional: true, pattern: /^\d{4}-\d{2}-\d{2}$/ },
         dateTo: { type: 'string', optional: true, pattern: /^\d{4}-\d{2}-\d{2}$/ },
-        resolution: { type: 'enum', values: ['hourly', 'daily'], optional: true, default: 'hourly' },
+        resolution: {
+          type: 'enum',
+          values: ['hourly', 'daily'],
+          optional: true,
+          default: 'hourly',
+        },
         market: { type: 'string', optional: true, default: 'day-ahead' },
         region: { type: 'string', optional: true, default: 'Deutschland' },
         includeTimeseries: { type: 'boolean', optional: true, default: false },
@@ -1491,37 +1526,109 @@ Combines generation timeseries (inline upload, MaStR-based historical reconstruc
                     items: {
                       type: 'object',
                       properties: {
-                        mastrNumber: { type: 'string', description: 'MaStR unit ID (SEE…=solar, SWE…=wind)' },
-                        type: { type: 'string', enum: ['solar', 'wind', 'biomass', 'hydro', 'combustion', 'storage', 'other'], description: 'Technology type' },
+                        mastrNumber: {
+                          type: 'string',
+                          description: 'MaStR unit ID (SEE…=solar, SWE…=wind)',
+                        },
+                        type: {
+                          type: 'string',
+                          enum: [
+                            'solar',
+                            'wind',
+                            'biomass',
+                            'hydro',
+                            'combustion',
+                            'storage',
+                            'other',
+                          ],
+                          description: 'Technology type',
+                        },
                         capacityKw: { type: 'number', description: 'Installed capacity in kW' },
-                        postleitzahl: { type: 'string', description: 'Postal code (used as fallback location)' },
-                        commissioningDate: { type: 'string', format: 'date', description: 'Grid connection date — intervals before this are zeroed' },
-                        timeseries: { type: 'array', description: 'Optional inline generation timeseries (highest priority)', items: { type: 'object', properties: { timestamp: { type: 'string' }, generationMwh: { type: 'number' } } } },
+                        postleitzahl: {
+                          type: 'string',
+                          description: 'Postal code (used as fallback location)',
+                        },
+                        commissioningDate: {
+                          type: 'string',
+                          format: 'date',
+                          description: 'Grid connection date — intervals before this are zeroed',
+                        },
+                        timeseries: {
+                          type: 'array',
+                          description: 'Optional inline generation timeseries (highest priority)',
+                          items: {
+                            type: 'object',
+                            properties: {
+                              timestamp: { type: 'string' },
+                              generationMwh: { type: 'number' },
+                            },
+                          },
+                        },
                       },
                     },
                   },
-                  dateFrom: { type: 'string', format: 'date', description: 'Start date (YYYY-MM-DD). Default: today − 365 days', example: '2025-07-01' },
-                  dateTo: { type: 'string', format: 'date', description: 'End date inclusive (YYYY-MM-DD). Default: yesterday', example: '2026-06-30' },
-                  resolution: { type: 'string', enum: ['hourly', 'daily'], default: 'hourly', description: 'Response resolution' },
+                  dateFrom: {
+                    type: 'string',
+                    format: 'date',
+                    description: 'Start date (YYYY-MM-DD). Default: today − 365 days',
+                    example: '2025-07-01',
+                  },
+                  dateTo: {
+                    type: 'string',
+                    format: 'date',
+                    description: 'End date inclusive (YYYY-MM-DD). Default: yesterday',
+                    example: '2026-06-30',
+                  },
+                  resolution: {
+                    type: 'string',
+                    enum: ['hourly', 'daily'],
+                    default: 'hourly',
+                    description: 'Response resolution',
+                  },
                   market: { type: 'string', default: 'day-ahead', description: 'Market type' },
-                  region: { type: 'string', default: 'Deutschland', description: 'Market region (only "Deutschland" supported in v1)' },
-                  includeTimeseries: { type: 'boolean', default: false, description: 'Include full hourly timeseries in response' },
+                  region: {
+                    type: 'string',
+                    default: 'Deutschland',
+                    description: 'Market region (only "Deutschland" supported in v1)',
+                  },
+                  includeTimeseries: {
+                    type: 'boolean',
+                    default: false,
+                    description: 'Include full hourly timeseries in response',
+                  },
                 },
               },
               examples: {
                 minimal: {
                   summary: 'Single solar asset, default 365-day period',
                   value: {
-                    assets: [{ mastrNumber: 'SEE123456789012', type: 'solar', capacityKw: 742.5, postleitzahl: '69115', commissioningDate: '2020-06-01' }],
+                    assets: [
+                      {
+                        mastrNumber: 'SEE123456789012',
+                        type: 'solar',
+                        capacityKw: 742.5,
+                        postleitzahl: '69115',
+                        commissioningDate: '2020-06-01',
+                      },
+                    ],
                   },
                 },
                 mixedPortfolio: {
                   summary: 'Mixed portfolio with inline biomass timeseries',
                   value: {
                     assets: [
-                      { mastrNumber: 'SEE123456789012', type: 'solar', capacityKw: 500, commissioningDate: '2021-01-01' },
-                      { type: 'biomass', capacityKw: 500, commissioningDate: '2019-03-15',
-                        timeseries: [{ timestamp: '2025-07-01T00:00:00Z', generationMwh: 0.42 }] },
+                      {
+                        mastrNumber: 'SEE123456789012',
+                        type: 'solar',
+                        capacityKw: 500,
+                        commissioningDate: '2021-01-01',
+                      },
+                      {
+                        type: 'biomass',
+                        capacityKw: 500,
+                        commissioningDate: '2019-03-15',
+                        timeseries: [{ timestamp: '2025-07-01T00:00:00Z', generationMwh: 0.42 }],
+                      },
                     ],
                     dateFrom: '2025-07-01',
                     dateTo: '2026-06-30',
@@ -1534,7 +1641,8 @@ Combines generation timeseries (inline upload, MaStR-based historical reconstruc
         },
         responses: {
           202: {
-            description: 'Job accepted — poll `/api/jobs/{jobId}/status`, fetch result from `/api/jobs/{jobId}/result`',
+            description:
+              'Job accepted — poll `/api/jobs/{jobId}/status`, fetch result from `/api/jobs/{jobId}/result`',
             content: {
               'application/json': {
                 example: {
@@ -1549,17 +1657,71 @@ Combines generation timeseries (inline upload, MaStR-based historical reconstruc
             },
           },
           200: {
-            description: 'Backtest result (from `/api/jobs/{jobId}/result` once status is `completed`)',
+            description:
+              'Backtest result (from `/api/jobs/{jobId}/result` once status is `completed`)',
             content: {
               'application/json': {
                 example: {
                   success: true,
-                  period: { dateFrom: '2025-07-01', dateTo: '2026-06-30', days: 365, resolution: 'hourly' },
-                  market: { type: 'day-ahead', region: 'Deutschland', currency: 'EUR', priceUnit: 'EUR/MWh' },
-                  portfolio: { assetCount: 1, totalCapacityKw: 742.5, generationMwh: 721.4, marketValueEur: 54321.1, weightedMarketValueEurPerMwh: 75.3, averageSpotPriceEurPerMwh: 82.1, captureRate: 0.917, negativePriceHours: 24, generationDuringNegativePricesMwh: 18.2, valueDuringNegativePricesEur: -145.6, curtailedMarketValueEur: 54466.7, negativePriceAvoidableLossEur: 145.6 },
-                  monthly: [{ month: '2025-07', generationMwh: 82.1, marketValueEur: 6234.5, curtailedMarketValueEur: 6280.0, averageSpotPriceEurPerMwh: 78.4, weightedMarketValueEurPerMwh: 75.9, negativePriceHours: 3 }],
-                  assets: [{ mastrNumber: 'SEE123456789012', type: 'solar', capacityKw: 742.5, dataQuality: 'mastr_historical_reconstruction', generationMwh: 721.4, marketValueEur: 54321.1, weightedMarketValueEurPerMwh: 75.3, curtailedMarketValueEur: 54466.7, negativePriceAvoidableLossEur: 145.6, negativePriceHours: 24, warnings: [] }],
-                  methodology: { timezone: 'UTC', priceAlignment: 'hourly', fallbackPolicy: 'assumption_if_no_forecast_or_uploaded_profile', captureRateDefinition: 'weightedMarketValueEurPerMwh / timeWeightedAverageSpotPrice' },
+                  period: {
+                    dateFrom: '2025-07-01',
+                    dateTo: '2026-06-30',
+                    days: 365,
+                    resolution: 'hourly',
+                  },
+                  market: {
+                    type: 'day-ahead',
+                    region: 'Deutschland',
+                    currency: 'EUR',
+                    priceUnit: 'EUR/MWh',
+                  },
+                  portfolio: {
+                    assetCount: 1,
+                    totalCapacityKw: 742.5,
+                    generationMwh: 721.4,
+                    marketValueEur: 54321.1,
+                    weightedMarketValueEurPerMwh: 75.3,
+                    averageSpotPriceEurPerMwh: 82.1,
+                    captureRate: 0.917,
+                    negativePriceHours: 24,
+                    generationDuringNegativePricesMwh: 18.2,
+                    valueDuringNegativePricesEur: -145.6,
+                    curtailedMarketValueEur: 54466.7,
+                    negativePriceAvoidableLossEur: 145.6,
+                  },
+                  monthly: [
+                    {
+                      month: '2025-07',
+                      generationMwh: 82.1,
+                      marketValueEur: 6234.5,
+                      curtailedMarketValueEur: 6280.0,
+                      averageSpotPriceEurPerMwh: 78.4,
+                      weightedMarketValueEurPerMwh: 75.9,
+                      negativePriceHours: 3,
+                    },
+                  ],
+                  assets: [
+                    {
+                      mastrNumber: 'SEE123456789012',
+                      type: 'solar',
+                      capacityKw: 742.5,
+                      dataQuality: 'mastr_historical_reconstruction',
+                      generationMwh: 721.4,
+                      marketValueEur: 54321.1,
+                      weightedMarketValueEurPerMwh: 75.3,
+                      curtailedMarketValueEur: 54466.7,
+                      negativePriceAvoidableLossEur: 145.6,
+                      negativePriceHours: 24,
+                      warnings: [],
+                    },
+                  ],
+                  methodology: {
+                    timezone: 'UTC',
+                    priceAlignment: 'hourly',
+                    fallbackPolicy: 'assumption_if_no_forecast_or_uploaded_profile',
+                    captureRateDefinition:
+                      'weightedMarketValueEurPerMwh / timeWeightedAverageSpotPrice',
+                  },
                 },
               },
             },
@@ -1573,7 +1735,10 @@ Combines generation timeseries (inline upload, MaStR-based historical reconstruc
         if (region && region !== 'Deutschland') {
           return {
             success: false,
-            error: { code: 'UNSUPPORTED_REGION', message: `Region "${region}" is not supported. Only "Deutschland" is available in v1.` },
+            error: {
+              code: 'UNSUPPORTED_REGION',
+              message: `Region "${region}" is not supported. Only "Deutschland" is available in v1.`,
+            },
           };
         }
 
@@ -1581,7 +1746,9 @@ Combines generation timeseries (inline upload, MaStR-based historical reconstruc
         const todayMs = Date.now();
         const yesterday = new Date(todayMs - 24 * 3600 * 1000);
         const defaultDateTo = yesterday.toISOString().slice(0, 10);
-        const defaultDateFrom = new Date(todayMs - 365 * 24 * 3600 * 1000).toISOString().slice(0, 10);
+        const defaultDateFrom = new Date(todayMs - 365 * 24 * 3600 * 1000)
+          .toISOString()
+          .slice(0, 10);
         const dateFrom = ctx.params.dateFrom || defaultDateFrom;
         const dateTo = ctx.params.dateTo || defaultDateTo;
 
@@ -1590,7 +1757,10 @@ Combines generation timeseries (inline upload, MaStR-based historical reconstruc
         if (!Number.isFinite(fromMs) || !Number.isFinite(toMs) || fromMs > toMs) {
           return {
             success: false,
-            error: { code: 'INVALID_DATE_RANGE', message: `Invalid date range: ${dateFrom} to ${dateTo}.` },
+            error: {
+              code: 'INVALID_DATE_RANGE',
+              message: `Invalid date range: ${dateFrom} to ${dateTo}.`,
+            },
           };
         }
         const daysDiff = Math.round((toMs - fromMs) / (24 * 3600 * 1000)) + 1;
@@ -1598,7 +1768,10 @@ Combines generation timeseries (inline upload, MaStR-based historical reconstruc
         if (daysDiff > BACKTEST_MAX_DAYS) {
           return {
             success: false,
-            error: { code: 'DATE_RANGE_TOO_LARGE', message: `Maximum date range is ${BACKTEST_MAX_DAYS} days. Requested: ${daysDiff} days.` },
+            error: {
+              code: 'DATE_RANGE_TOO_LARGE',
+              message: `Maximum date range is ${BACKTEST_MAX_DAYS} days. Requested: ${daysDiff} days.`,
+            },
           };
         }
 
@@ -1608,451 +1781,499 @@ Combines generation timeseries (inline upload, MaStR-based historical reconstruc
           ctx,
           { service: 'energy-market', action: 'portfolioBacktest' },
           async (jobId) => {
-        const todayStr = new Date().toISOString().slice(0, 10);
+            const todayStr = new Date().toISOString().slice(0, 10);
 
-        // 1. Fetch Day-Ahead prices for the full period.
-        // entsoe_day_ahead_prices returns exactly one German calendar day per call
-        // regardless of dateTo, so we iterate day-by-day in parallel batches of 30.
-        let prices = [];
-        let priceFetchError = null;
-        try {
-          const priceDates = [];
-          let curDay = new Date(dateFrom + 'T00:00:00Z');
-          const endDay = new Date(dateTo + 'T00:00:00Z');
-          while (curDay <= endDay) {
-            priceDates.push(curDay.toISOString().slice(0, 10));
-            curDay = new Date(curDay.getTime() + 24 * 3600 * 1000);
-          }
-          const PRICE_BATCH = 30;
-          if (jobId) jobStore.appendLog(jobId, 'prices', 5, `Fetching Day-Ahead prices for ${priceDates.length} days (${Math.ceil(priceDates.length / PRICE_BATCH)} batches, cache-first)`);
-          this.logger.info(
-            `portfolioBacktest: fetching prices for ${priceDates.length} days in ${Math.ceil(priceDates.length / PRICE_BATCH)} batches`
-          );
-
-          // Returns normalized hourly prices for one calendar day.
-          // Past days are served from the object-store cache (EPEX Spot prices are
-          // immutable once the day-ahead auction closes). Cache misses and write
-          // failures are swallowed so a degraded object-store never blocks the response.
-          const fetchDayPrices = async (d) => {
-            const isPast = d < todayStr;
-            if (isPast) {
-              try {
-                const cached = await ctx.call('object-store.get', {
-                  namespace: 'epex_spot_prices',
-                  key: d,
-                });
-                if (Array.isArray(cached?.payload?.prices) && cached.payload.prices.length > 0) {
-                  return cached.payload.prices;
-                }
-              } catch (_) {
-                /* cache miss — fall through to MCP fetch */
-              }
-            }
-            const raw = await CernionMCPClient.callWithNewSession('entsoe_day_ahead_prices', {
-              region: 'Germany',
-              dateFrom: d,
-              dateTo: d,
-              includeStatistics: false,
-              format: 'json',
-            });
-            const normalized = _btNormalisePrices(raw);
-            if (isPast && normalized.length > 0) {
-              ctx
-                .call('object-store.put', {
-                  namespace: 'epex_spot_prices',
-                  key: d,
-                  payload: { prices: normalized },
-                })
-                .catch((e) =>
-                  this.logger.warn(`[epex-cache] write failed for ${d}: ${e.message}`)
-                );
-            }
-            return normalized;
-          };
-
-          const allRaw = [];
-          const missingPriceDates = [];
-          const priceFetchFailures = {};
-          for (let i = 0; i < priceDates.length; i += PRICE_BATCH) {
-            const chunk = priceDates.slice(i, i + PRICE_BATCH);
-            const results = await Promise.allSettled(chunk.map(fetchDayPrices));
-            for (let j = 0; j < results.length; j++) {
-              const r = results[j];
-              const priceDate = chunk[j];
-              if (r.status === 'fulfilled' && Array.isArray(r.value) && r.value.length > 0) {
-                allRaw.push(...r.value);
-                continue;
-              }
-              missingPriceDates.push(priceDate);
-              if (r.status === 'rejected') {
-                priceFetchFailures[priceDate] = r.reason?.message || String(r.reason || 'price fetch failed');
-              }
-            }
-          }
-          if (missingPriceDates.length > 0) {
-            return {
-              success: false,
-              error: {
-                code: 'PRICE_DATA_UNAVAILABLE',
-                message: `Day-Ahead price data is incomplete for ${dateFrom}–${dateTo}. Missing usable hourly prices for ${missingPriceDates.length} day(s).`,
-                missingPriceDates,
-                priceCoverage: {
-                  policy: 'fail_on_missing_price_day',
-                  requestedDays: priceDates.length,
-                  coveredDays: priceDates.length - missingPriceDates.length,
-                  missingDays: missingPriceDates.length,
-                  failures: priceFetchFailures,
-                },
-                positiveFollowUp: 'Complete hourly Day-Ahead price coverage for all requested dates enables portfolio, monthly, asset, negative-price, and curtailed-value KPIs for the declared period.',
-              },
-            };
-          }
-          // Deduplicate by timestamp (adjacent days share a UTC midnight boundary)
-          const seen = new Set();
-          prices = allRaw.filter((p) => {
-            if (seen.has(p.timestamp)) return false;
-            seen.add(p.timestamp);
-            return true;
-          });
-        } catch (err) {
-          priceFetchError = err.message;
-          this.logger.warn(`portfolioBacktest: price fetch failed: ${err.message}`);
-        }
-
-        if (prices.length === 0) {
-          return {
-            success: false,
-            error: {
-              code: 'PRICE_DATA_UNAVAILABLE',
-              message: `No Day-Ahead price data available for ${dateFrom}–${dateTo}.${priceFetchError ? ` Detail: ${priceFetchError}` : ''}`,
-            },
-          };
-        }
-
-        if (jobId) jobStore.appendLog(jobId, 'prices', 30, `Prices ready: ${prices.length} hourly slots`);
-        const priceTimestamps = prices.map((p) => p.timestamp);
-        const avgSpotPrice =
-          prices.length > 0
-            ? prices.reduce((s, p) => s + p.priceEurMwh, 0) / prices.length
-            : 0;
-
-        // 2. Process each asset
-        if (jobId) jobStore.appendLog(jobId, 'assets', 35, `Processing ${assets.length} asset(s)`);
-        const assetResults = [];
-        for (let i = 0; i < assets.length; i++) {
-          const asset = assets[i];
-          const assetType = (asset.type || 'other').toLowerCase();
-          const mastrId = asset.mastrNumber || asset.installationMastrNummer;
-          let genSeries = [];
-          let dataQuality;
-          const warnings = [];
-          let genCacheHits = 0;
-          let genBatchCount = 0;
-
-          // Priority 1: inline timeseries
-          if (Array.isArray(asset.timeseries) && asset.timeseries.length > 0) {
-            const uploadedByHour = new Map();
-            for (const r of asset.timeseries) {
-              const timestamp = _btHourTimestamp(r.timestamp);
-              if (!timestamp) continue;
-              uploadedByHour.set(
-                timestamp,
-                (uploadedByHour.get(timestamp) || 0) + Number(r.generationMwh ?? r.value ?? 0)
-              );
-            }
-            genSeries = Array.from(uploadedByHour.entries()).map(([timestamp, generationMwh]) => ({
-              timestamp,
-              generationMwh,
-            }));
-            dataQuality = 'uploaded_timeseries';
-          }
-          // Priority 2: solar/wind with MaStR ID → historical weather model
-          // mastr_generation_forecast does not support endDate; fetch in 14-day batches.
-          // Fully-past batches (last day < today) are cached in the object store since
-          // historical generation profiles do not change after the fact.
-          else if (BACKTEST_WEATHER_TYPES.has(assetType) && mastrId) {
+            // 1. Fetch Day-Ahead prices for the full period.
+            // entsoe_day_ahead_prices returns exactly one German calendar day per call
+            // regardless of dateTo, so we iterate day-by-day in parallel batches of 30.
+            let prices = [];
+            let priceFetchError = null;
             try {
-              const BATCH_DAYS = 14;
-              const allForecasts = [];
-              let batchStart = new Date(dateFrom);
-              const endMs = new Date(dateTo).getTime();
+              const priceDates = [];
+              let curDay = new Date(dateFrom + 'T00:00:00Z');
+              const endDay = new Date(dateTo + 'T00:00:00Z');
+              while (curDay <= endDay) {
+                priceDates.push(curDay.toISOString().slice(0, 10));
+                curDay = new Date(curDay.getTime() + 24 * 3600 * 1000);
+              }
+              const PRICE_BATCH = 30;
+              if (jobId)
+                jobStore.appendLog(
+                  jobId,
+                  'prices',
+                  5,
+                  `Fetching Day-Ahead prices for ${priceDates.length} days (${Math.ceil(priceDates.length / PRICE_BATCH)} batches, cache-first)`
+                );
+              this.logger.info(
+                `portfolioBacktest: fetching prices for ${priceDates.length} days in ${Math.ceil(priceDates.length / PRICE_BATCH)} batches`
+              );
 
-              while (batchStart.getTime() <= endMs) {
-                const batchStartStr = batchStart.toISOString().slice(0, 10);
-                const batchLastDayStr = new Date(batchStart.getTime() + (BATCH_DAYS - 1) * 24 * 3600 * 1000)
-                  .toISOString()
-                  .slice(0, 10);
-                const batchIsPast = batchLastDayStr < todayStr;
-                const genCacheKey = `${mastrId}:${batchStartStr}`;
-                genBatchCount++;
-
-                let batchForecasts = null;
-                if (batchIsPast) {
+              // Returns normalized hourly prices for one calendar day.
+              // Past days are served from the object-store cache (EPEX Spot prices are
+              // immutable once the day-ahead auction closes). Cache misses and write
+              // failures are swallowed so a degraded object-store never blocks the response.
+              const fetchDayPrices = async (d) => {
+                const isPast = d < todayStr;
+                if (isPast) {
                   try {
                     const cached = await ctx.call('object-store.get', {
-                      namespace: 'mastr_gen_cache',
-                      key: genCacheKey,
+                      namespace: 'epex_spot_prices',
+                      key: d,
                     });
-                    if (Array.isArray(cached?.payload?.forecasts) && cached.payload.forecasts.length > 0) {
-                      batchForecasts = cached.payload.forecasts;
-                      genCacheHits++;
+                    if (
+                      Array.isArray(cached?.payload?.prices) &&
+                      cached.payload.prices.length > 0
+                    ) {
+                      return cached.payload.prices;
                     }
                   } catch (_) {
                     /* cache miss — fall through to MCP fetch */
                   }
                 }
+                const raw = await CernionMCPClient.callWithNewSession('entsoe_day_ahead_prices', {
+                  region: 'Germany',
+                  dateFrom: d,
+                  dateTo: d,
+                  includeStatistics: false,
+                  format: 'json',
+                });
+                const normalized = _btNormalisePrices(raw);
+                if (isPast && normalized.length > 0) {
+                  ctx
+                    .call('object-store.put', {
+                      namespace: 'epex_spot_prices',
+                      key: d,
+                      payload: { prices: normalized },
+                    })
+                    .catch((e) =>
+                      this.logger.warn(`[epex-cache] write failed for ${d}: ${e.message}`)
+                    );
+                }
+                return normalized;
+              };
 
-                if (!batchForecasts) {
-                  const batchResult = await CernionMCPClient.callWithNewSession(
-                    'mastr_generation_forecast',
-                    {
-                      installationMastrNummer: mastrId,
-                      startDate: batchStartStr,
-                      forecastDays: BATCH_DAYS,
-                      resolution: 'hourly',
-                    },
-                    ctx.meta.cernionToken
-                  );
-                  if (batchResult?.data?.isError) {
-                    throw new Error(batchResult?.data?.content?.[0]?.text || 'mastr_generation_forecast error');
+              const allRaw = [];
+              const missingPriceDates = [];
+              const priceFetchFailures = {};
+              for (let i = 0; i < priceDates.length; i += PRICE_BATCH) {
+                const chunk = priceDates.slice(i, i + PRICE_BATCH);
+                const results = await Promise.allSettled(chunk.map(fetchDayPrices));
+                for (let j = 0; j < results.length; j++) {
+                  const r = results[j];
+                  const priceDate = chunk[j];
+                  if (r.status === 'fulfilled' && Array.isArray(r.value) && r.value.length > 0) {
+                    allRaw.push(...r.value);
+                    continue;
                   }
-                  batchForecasts = _btNormaliseForecast(batchResult);
-                  if (batchIsPast && batchForecasts.length > 0) {
-                    ctx
-                      .call('object-store.put', {
-                        namespace: 'mastr_gen_cache',
-                        key: genCacheKey,
-                        payload: { forecasts: batchForecasts },
-                      })
-                      .catch((e) =>
-                        this.logger.warn(`[mastr-cache] write failed for ${genCacheKey}: ${e.message}`)
-                      );
+                  missingPriceDates.push(priceDate);
+                  if (r.status === 'rejected') {
+                    priceFetchFailures[priceDate] =
+                      r.reason?.message || String(r.reason || 'price fetch failed');
                   }
                 }
-
-                allForecasts.push(...batchForecasts);
-                batchStart = new Date(batchStart.getTime() + BATCH_DAYS * 24 * 3600 * 1000);
               }
-
-              // Deduplicate by timestamp (batches may overlap at boundaries)
+              if (missingPriceDates.length > 0) {
+                return {
+                  success: false,
+                  error: {
+                    code: 'PRICE_DATA_UNAVAILABLE',
+                    message: `Day-Ahead price data is incomplete for ${dateFrom}–${dateTo}. Missing usable hourly prices for ${missingPriceDates.length} day(s).`,
+                    missingPriceDates,
+                    priceCoverage: {
+                      policy: 'fail_on_missing_price_day',
+                      requestedDays: priceDates.length,
+                      coveredDays: priceDates.length - missingPriceDates.length,
+                      missingDays: missingPriceDates.length,
+                      failures: priceFetchFailures,
+                    },
+                    positiveFollowUp:
+                      'Complete hourly Day-Ahead price coverage for all requested dates enables portfolio, monthly, asset, negative-price, and curtailed-value KPIs for the declared period.',
+                  },
+                };
+              }
+              // Deduplicate by timestamp (adjacent days share a UTC midnight boundary)
               const seen = new Set();
-              genSeries = allForecasts.filter((r) => {
-                if (seen.has(r.timestamp)) return false;
-                seen.add(r.timestamp);
+              prices = allRaw.filter((p) => {
+                if (seen.has(p.timestamp)) return false;
+                seen.add(p.timestamp);
                 return true;
               });
-              dataQuality = 'mastr_historical_reconstruction';
             } catch (err) {
-              this.logger.warn(`portfolioBacktest: forecast failed for ${mastrId}: ${err.message}`);
-              warnings.push('forecast_unavailable');
-              dataQuality = 'missing_profile';
-              genSeries = priceTimestamps.map((ts) => ({ timestamp: ts, generationMwh: 0 }));
+              priceFetchError = err.message;
+              this.logger.warn(`portfolioBacktest: price fetch failed: ${err.message}`);
             }
-          }
-          // Priority 3: dispatchable types with known assumption
-          else if (BACKTEST_ASSUMPTION_FULL_LOAD_HOURS[assetType] !== undefined) {
-            genSeries = _btBuildAssumptionSeries(asset, priceTimestamps);
-            dataQuality = 'assumption';
-            warnings.push('assumption_used');
-          }
-          // Priority 4: storage / unknown → no profile
-          else {
-            genSeries = priceTimestamps.map((ts) => ({ timestamp: ts, generationMwh: 0 }));
-            dataQuality = 'missing_profile';
-            warnings.push('generation_profile_missing');
-          }
 
-          // Apply commissioningDate: zero intervals before grid connection
-          const { series: zeroed, warnings: cdWarnings } = _btApplyCommissioningDate(
-            genSeries,
-            asset.commissioningDate
-          );
-          genSeries = zeroed;
-          if (cdWarnings.length > 0) warnings.push(...cdWarnings);
+            if (prices.length === 0) {
+              return {
+                success: false,
+                error: {
+                  code: 'PRICE_DATA_UNAVAILABLE',
+                  message: `No Day-Ahead price data available for ${dateFrom}–${dateTo}.${priceFetchError ? ` Detail: ${priceFetchError}` : ''}`,
+                },
+              };
+            }
 
-          const intervals = _btMergeIntervals(genSeries, prices);
-          const kpis = _btAssetKpis(intervals);
-          const weightedMvPerMwh =
-            kpis.generationMwh > 0
-              ? Math.round((kpis.marketValueEur / kpis.generationMwh) * 100) / 100
-              : 0;
+            if (jobId)
+              jobStore.appendLog(
+                jobId,
+                'prices',
+                30,
+                `Prices ready: ${prices.length} hourly slots`
+              );
+            const priceTimestamps = prices.map((p) => p.timestamp);
+            const avgSpotPrice =
+              prices.length > 0 ? prices.reduce((s, p) => s + p.priceEurMwh, 0) / prices.length : 0;
 
-          const assetCapacityKw = Number(asset.capacityKw || 0);
-          const orientationYield = BACKTEST_ORIENTATION_YIELD_KWH_KW[assetType] ?? null;
-          const specificYield =
-            assetCapacityKw > 0 ? Math.round((kpis.generationMwh * 1000) / assetCapacityKw * 10) / 10 : null;
-          const nonZeroSlots = intervals.filter((iv) => iv.generationMwh > 0).length;
-          const genCoverage =
-            intervals.length > 0 ? Math.round((nonZeroSlots / intervals.length) * 1000) / 1000 : null;
+            // 2. Process each asset
+            if (jobId)
+              jobStore.appendLog(jobId, 'assets', 35, `Processing ${assets.length} asset(s)`);
+            const assetResults = [];
+            for (let i = 0; i < assets.length; i++) {
+              const asset = assets[i];
+              const assetType = (asset.type || 'other').toLowerCase();
+              const mastrId = asset.mastrNumber || asset.installationMastrNummer;
+              let genSeries = [];
+              let dataQuality;
+              const warnings = [];
+              let genCacheHits = 0;
+              let genBatchCount = 0;
 
-          assetResults.push({
-            mastrNumber: mastrId || undefined,
-            type: assetType,
-            capacityKw: asset.capacityKw,
-            dataQuality,
-            warnings,
-            generationMwh: kpis.generationMwh,
-            marketValueEur: kpis.marketValueEur,
-            weightedMarketValueEurPerMwh: weightedMvPerMwh,
-            curtailedMarketValueEur: kpis.curtailedMarketValueEur,
-            negativePriceAvoidableLossEur: kpis.negativePriceAvoidableLossEur,
-            negativePriceHours: kpis.negativePriceHours,
-            plausibility: {
-              specificYieldKwhPerKw: specificYield,
-              orientationYieldKwhPerKw: orientationYield,
-              // yieldRatio < 1 is expected for non-standard orientation, shading, or large-array losses.
-              yieldRatio:
-                orientationYield && specificYield != null
-                  ? Math.round((specificYield / orientationYield) * 1000) / 1000
-                  : null,
-              generationCoverage: genCoverage,
-              capacityBasis: 'capacityKw_from_request',
-            },
-            _intervals: intervals,
-          });
-          if (jobId) jobStore.appendLog(
-            jobId,
-            'assets',
-            Math.round(35 + ((i + 1) / assets.length) * 55),
-            `Asset ${i + 1}/${assets.length} processed (${dataQuality}${genBatchCount > 0 ? `, ${genCacheHits}/${genBatchCount} gen batches cached` : ''})`
-          );
-        }
-
-        // 3. Aggregate portfolio across all intervals
-        if (jobId) jobStore.appendLog(jobId, 'aggregate', 92, 'Aggregating portfolio KPIs');
-        const allIntervals = [];
-        {
-          // Sum generation across assets per timestamp slot using the shared price grid
-          const genByTs = {};
-          for (const ar of assetResults) {
-            for (const iv of ar._intervals) {
-              if (!genByTs[iv.timestamp]) {
-                genByTs[iv.timestamp] = { timestamp: iv.timestamp, generationMwh: 0, priceEurPerMwh: iv.priceEurPerMwh };
+              // Priority 1: inline timeseries
+              if (Array.isArray(asset.timeseries) && asset.timeseries.length > 0) {
+                const uploadedByHour = new Map();
+                for (const r of asset.timeseries) {
+                  const timestamp = _btHourTimestamp(r.timestamp);
+                  if (!timestamp) continue;
+                  uploadedByHour.set(
+                    timestamp,
+                    (uploadedByHour.get(timestamp) || 0) + Number(r.generationMwh ?? r.value ?? 0)
+                  );
+                }
+                genSeries = Array.from(uploadedByHour.entries()).map(
+                  ([timestamp, generationMwh]) => ({
+                    timestamp,
+                    generationMwh,
+                  })
+                );
+                dataQuality = 'uploaded_timeseries';
               }
-              genByTs[iv.timestamp].generationMwh += iv.generationMwh;
-            }
-          }
-          for (const ts of priceTimestamps) {
-            const slot = genByTs[ts];
-            if (slot) {
-              allIntervals.push({
-                ...slot,
-                marketValueEur: slot.generationMwh * slot.priceEurPerMwh,
+              // Priority 2: solar/wind with MaStR ID → historical weather model
+              // mastr_generation_forecast does not support endDate; fetch in 14-day batches.
+              // Fully-past batches (last day < today) are cached in the object store since
+              // historical generation profiles do not change after the fact.
+              else if (BACKTEST_WEATHER_TYPES.has(assetType) && mastrId) {
+                try {
+                  const BATCH_DAYS = 14;
+                  const allForecasts = [];
+                  let batchStart = new Date(dateFrom);
+                  const endMs = new Date(dateTo).getTime();
+
+                  while (batchStart.getTime() <= endMs) {
+                    const batchStartStr = batchStart.toISOString().slice(0, 10);
+                    const batchLastDayStr = new Date(
+                      batchStart.getTime() + (BATCH_DAYS - 1) * 24 * 3600 * 1000
+                    )
+                      .toISOString()
+                      .slice(0, 10);
+                    const batchIsPast = batchLastDayStr < todayStr;
+                    const genCacheKey = `${mastrId}:${batchStartStr}`;
+                    genBatchCount++;
+
+                    let batchForecasts = null;
+                    if (batchIsPast) {
+                      try {
+                        const cached = await ctx.call('object-store.get', {
+                          namespace: 'mastr_gen_cache',
+                          key: genCacheKey,
+                        });
+                        if (
+                          Array.isArray(cached?.payload?.forecasts) &&
+                          cached.payload.forecasts.length > 0
+                        ) {
+                          batchForecasts = cached.payload.forecasts;
+                          genCacheHits++;
+                        }
+                      } catch (_) {
+                        /* cache miss — fall through to MCP fetch */
+                      }
+                    }
+
+                    if (!batchForecasts) {
+                      const batchResult = await CernionMCPClient.callWithNewSession(
+                        'mastr_generation_forecast',
+                        {
+                          installationMastrNummer: mastrId,
+                          startDate: batchStartStr,
+                          forecastDays: BATCH_DAYS,
+                          resolution: 'hourly',
+                        },
+                        ctx.meta.cernionToken
+                      );
+                      if (batchResult?.data?.isError) {
+                        throw new Error(
+                          batchResult?.data?.content?.[0]?.text || 'mastr_generation_forecast error'
+                        );
+                      }
+                      batchForecasts = _btNormaliseForecast(batchResult);
+                      if (batchIsPast && batchForecasts.length > 0) {
+                        ctx
+                          .call('object-store.put', {
+                            namespace: 'mastr_gen_cache',
+                            key: genCacheKey,
+                            payload: { forecasts: batchForecasts },
+                          })
+                          .catch((e) =>
+                            this.logger.warn(
+                              `[mastr-cache] write failed for ${genCacheKey}: ${e.message}`
+                            )
+                          );
+                      }
+                    }
+
+                    allForecasts.push(...batchForecasts);
+                    batchStart = new Date(batchStart.getTime() + BATCH_DAYS * 24 * 3600 * 1000);
+                  }
+
+                  // Deduplicate by timestamp (batches may overlap at boundaries)
+                  const seen = new Set();
+                  genSeries = allForecasts.filter((r) => {
+                    if (seen.has(r.timestamp)) return false;
+                    seen.add(r.timestamp);
+                    return true;
+                  });
+                  dataQuality = 'mastr_historical_reconstruction';
+                } catch (err) {
+                  this.logger.warn(
+                    `portfolioBacktest: forecast failed for ${mastrId}: ${err.message}`
+                  );
+                  warnings.push('forecast_unavailable');
+                  dataQuality = 'missing_profile';
+                  genSeries = priceTimestamps.map((ts) => ({ timestamp: ts, generationMwh: 0 }));
+                }
+              }
+              // Priority 3: dispatchable types with known assumption
+              else if (BACKTEST_ASSUMPTION_FULL_LOAD_HOURS[assetType] !== undefined) {
+                genSeries = _btBuildAssumptionSeries(asset, priceTimestamps);
+                dataQuality = 'assumption';
+                warnings.push('assumption_used');
+              }
+              // Priority 4: storage / unknown → no profile
+              else {
+                genSeries = priceTimestamps.map((ts) => ({ timestamp: ts, generationMwh: 0 }));
+                dataQuality = 'missing_profile';
+                warnings.push('generation_profile_missing');
+              }
+
+              // Apply commissioningDate: zero intervals before grid connection
+              const { series: zeroed, warnings: cdWarnings } = _btApplyCommissioningDate(
+                genSeries,
+                asset.commissioningDate
+              );
+              genSeries = zeroed;
+              if (cdWarnings.length > 0) warnings.push(...cdWarnings);
+
+              const intervals = _btMergeIntervals(genSeries, prices);
+              const kpis = _btAssetKpis(intervals);
+              const weightedMvPerMwh =
+                kpis.generationMwh > 0
+                  ? Math.round((kpis.marketValueEur / kpis.generationMwh) * 100) / 100
+                  : 0;
+
+              const assetCapacityKw = Number(asset.capacityKw || 0);
+              const orientationYield = BACKTEST_ORIENTATION_YIELD_KWH_KW[assetType] ?? null;
+              const specificYield =
+                assetCapacityKw > 0
+                  ? Math.round(((kpis.generationMwh * 1000) / assetCapacityKw) * 10) / 10
+                  : null;
+              const nonZeroSlots = intervals.filter((iv) => iv.generationMwh > 0).length;
+              const genCoverage =
+                intervals.length > 0
+                  ? Math.round((nonZeroSlots / intervals.length) * 1000) / 1000
+                  : null;
+
+              assetResults.push({
+                mastrNumber: mastrId || undefined,
+                type: assetType,
+                capacityKw: asset.capacityKw,
+                dataQuality,
+                warnings,
+                generationMwh: kpis.generationMwh,
+                marketValueEur: kpis.marketValueEur,
+                weightedMarketValueEurPerMwh: weightedMvPerMwh,
+                curtailedMarketValueEur: kpis.curtailedMarketValueEur,
+                negativePriceAvoidableLossEur: kpis.negativePriceAvoidableLossEur,
+                negativePriceHours: kpis.negativePriceHours,
+                plausibility: {
+                  specificYieldKwhPerKw: specificYield,
+                  orientationYieldKwhPerKw: orientationYield,
+                  // yieldRatio < 1 is expected for non-standard orientation, shading, or large-array losses.
+                  yieldRatio:
+                    orientationYield && specificYield != null
+                      ? Math.round((specificYield / orientationYield) * 1000) / 1000
+                      : null,
+                  generationCoverage: genCoverage,
+                  capacityBasis: 'capacityKw_from_request',
+                },
+                _intervals: intervals,
               });
+              if (jobId)
+                jobStore.appendLog(
+                  jobId,
+                  'assets',
+                  Math.round(35 + ((i + 1) / assets.length) * 55),
+                  `Asset ${i + 1}/${assets.length} processed (${dataQuality}${genBatchCount > 0 ? `, ${genCacheHits}/${genBatchCount} gen batches cached` : ''})`
+                );
             }
-          }
-        }
 
-        const pfKpis = _btAssetKpis(allIntervals);
-        const pfWeightedMvPerMwh =
-          pfKpis.generationMwh > 0
-            ? Math.round((pfKpis.marketValueEur / pfKpis.generationMwh) * 100) / 100
-            : 0;
-        const captureRate =
-          avgSpotPrice !== 0
-            ? Math.round((pfWeightedMvPerMwh / avgSpotPrice) * 10000) / 10000
-            : null;
+            // 3. Aggregate portfolio across all intervals
+            if (jobId) jobStore.appendLog(jobId, 'aggregate', 92, 'Aggregating portfolio KPIs');
+            const allIntervals = [];
+            {
+              // Sum generation across assets per timestamp slot using the shared price grid
+              const genByTs = {};
+              for (const ar of assetResults) {
+                for (const iv of ar._intervals) {
+                  if (!genByTs[iv.timestamp]) {
+                    genByTs[iv.timestamp] = {
+                      timestamp: iv.timestamp,
+                      generationMwh: 0,
+                      priceEurPerMwh: iv.priceEurPerMwh,
+                    };
+                  }
+                  genByTs[iv.timestamp].generationMwh += iv.generationMwh;
+                }
+              }
+              for (const ts of priceTimestamps) {
+                const slot = genByTs[ts];
+                if (slot) {
+                  allIntervals.push({
+                    ...slot,
+                    marketValueEur: slot.generationMwh * slot.priceEurPerMwh,
+                  });
+                }
+              }
+            }
 
-        const monthly = _btMonthlyAggregation(allIntervals, dateFrom, dateTo);
+            const pfKpis = _btAssetKpis(allIntervals);
+            const pfWeightedMvPerMwh =
+              pfKpis.generationMwh > 0
+                ? Math.round((pfKpis.marketValueEur / pfKpis.generationMwh) * 100) / 100
+                : 0;
+            const captureRate =
+              avgSpotPrice !== 0
+                ? Math.round((pfWeightedMvPerMwh / avgSpotPrice) * 10000) / 10000
+                : null;
 
-        // 4. Build response
-        const assetSummaries = assetResults.map(({ _intervals, ...rest }) => rest);
+            const monthly = _btMonthlyAggregation(allIntervals, dateFrom, dateTo);
 
-        // Portfolio-level plausibility: capacity-weighted reference yield and aggregate coverage
-        const pfCapacityKw = assets.reduce((s, a) => s + Number(a.capacityKw || 0), 0);
-        const pfSpecificYield =
-          pfCapacityKw > 0 ? Math.round((pfKpis.generationMwh * 1000) / pfCapacityKw * 10) / 10 : null;
-        const pfOrientationYield =
-          pfCapacityKw > 0
-            ? Math.round(
-                assets.reduce((s, a) => {
-                  const ref = BACKTEST_ORIENTATION_YIELD_KWH_KW[(a.type || '').toLowerCase()] ?? 0;
-                  return s + ref * Number(a.capacityKw || 0);
-                }, 0) / pfCapacityKw
-              )
-            : null;
-        const pfNonZeroSlots = allIntervals.filter((iv) => iv.generationMwh > 0).length;
-        const pfGenCoverage =
-          allIntervals.length > 0 ? Math.round((pfNonZeroSlots / allIntervals.length) * 1000) / 1000 : null;
+            // 4. Build response
+            const assetSummaries = assetResults.map(({ _intervals, ...rest }) => rest);
 
-        const response = {
-          success: true,
-          period: {
-            dateFrom,
-            dateTo,
-            days: daysDiff,
-            resolution: ctx.params.resolution || 'hourly',
-          },
-          market: {
-            type: market || 'day-ahead',
-            region: 'Deutschland',
-            currency: 'EUR',
-            priceUnit: 'EUR/MWh',
-          },
-          portfolio: {
-            assetCount: assets.length,
-            totalCapacityKw: pfCapacityKw,
-            generationMwh: pfKpis.generationMwh,
-            marketValueEur: pfKpis.marketValueEur,
-            weightedMarketValueEurPerMwh: pfWeightedMvPerMwh,
-            averageSpotPriceEurPerMwh: Math.round(avgSpotPrice * 100) / 100,
-            captureRate,
-            negativePriceHours: pfKpis.negativePriceHours,
-            generationDuringNegativePricesMwh: pfKpis.generationDuringNegativePricesMwh,
-            valueDuringNegativePricesEur: pfKpis.valueDuringNegativePricesEur,
-            curtailedMarketValueEur: pfKpis.curtailedMarketValueEur,
-            negativePriceAvoidableLossEur: pfKpis.negativePriceAvoidableLossEur,
-            plausibility: {
-              specificYieldKwhPerKw: pfSpecificYield,
-              orientationYieldKwhPerKw: pfOrientationYield,
-              yieldRatio:
-                pfOrientationYield && pfSpecificYield != null
-                  ? Math.round((pfSpecificYield / pfOrientationYield) * 1000) / 1000
-                  : null,
-              generationCoverage: pfGenCoverage,
-              capacityBasis: 'sum_of_asset_capacityKw',
-            },
-          },
-          monthly,
-          assets: assetSummaries,
-          methodology: {
-            timezone: 'UTC',
-            priceAlignment: 'hourly',
-            fallbackPolicy: 'assumption_if_no_forecast_or_uploaded_profile',
-            captureRateDefinition: 'weightedMarketValueEurPerMwh / timeWeightedAverageSpotPrice',
-            commissioningDatePolicy:
-              'full_period_used_if_commissioningDate_missing — warning commissioning_date_missing is set but no generation is zeroed',
-            generationModel:
-              'mastr_generation_forecast_historical_mode — weather-based reconstruction via MaStR MCP; actual yield reflects site-specific orientation, tilt, shading, and array losses; south-30deg orientation yield used as plausibility reference only',
-            orientationYieldBasis: 'Germany_typical_conditions (solar: 950 kWh/kW/a south-30deg; wind_onshore: 1800 kWh/kW/a)',
-            assumptions: assetResults
-              .filter((a) => a.dataQuality === 'assumption')
-              .map((a) => ({
-                assetType: a.type,
-                fullLoadHoursPerYear: BACKTEST_ASSUMPTION_FULL_LOAD_HOURS[a.type],
-                profile: 'flat_base_generation',
-              })),
-          },
-          sources: [
-            { key: 'spot_market_prices', reference: '/api/energy-market/prices' },
-            { key: 'generation_forecast', reference: 'mastr_generation_forecast (historical mode)' },
-          ],
-        };
+            // Portfolio-level plausibility: capacity-weighted reference yield and aggregate coverage
+            const pfCapacityKw = assets.reduce((s, a) => s + Number(a.capacityKw || 0), 0);
+            const pfSpecificYield =
+              pfCapacityKw > 0
+                ? Math.round(((pfKpis.generationMwh * 1000) / pfCapacityKw) * 10) / 10
+                : null;
+            const pfOrientationYield =
+              pfCapacityKw > 0
+                ? Math.round(
+                    assets.reduce((s, a) => {
+                      const ref =
+                        BACKTEST_ORIENTATION_YIELD_KWH_KW[(a.type || '').toLowerCase()] ?? 0;
+                      return s + ref * Number(a.capacityKw || 0);
+                    }, 0) / pfCapacityKw
+                  )
+                : null;
+            const pfNonZeroSlots = allIntervals.filter((iv) => iv.generationMwh > 0).length;
+            const pfGenCoverage =
+              allIntervals.length > 0
+                ? Math.round((pfNonZeroSlots / allIntervals.length) * 1000) / 1000
+                : null;
 
-        if (includeTimeseries) {
-          response.timeseries =
-            response.period.resolution === 'daily'
-              ? _btDailyAggregation(allIntervals)
-              : allIntervals.map((iv) => ({
-                  timestamp: iv.timestamp,
-                  generationMwh: Math.round(iv.generationMwh * 1000) / 1000,
-                  priceEurPerMwh: iv.priceEurPerMwh,
-                  marketValueEur: Math.round(iv.marketValueEur * 100) / 100,
-                }));
-        }
+            const response = {
+              success: true,
+              period: {
+                dateFrom,
+                dateTo,
+                days: daysDiff,
+                resolution: ctx.params.resolution || 'hourly',
+              },
+              market: {
+                type: market || 'day-ahead',
+                region: 'Deutschland',
+                currency: 'EUR',
+                priceUnit: 'EUR/MWh',
+              },
+              portfolio: {
+                assetCount: assets.length,
+                totalCapacityKw: pfCapacityKw,
+                generationMwh: pfKpis.generationMwh,
+                marketValueEur: pfKpis.marketValueEur,
+                weightedMarketValueEurPerMwh: pfWeightedMvPerMwh,
+                averageSpotPriceEurPerMwh: Math.round(avgSpotPrice * 100) / 100,
+                captureRate,
+                negativePriceHours: pfKpis.negativePriceHours,
+                generationDuringNegativePricesMwh: pfKpis.generationDuringNegativePricesMwh,
+                valueDuringNegativePricesEur: pfKpis.valueDuringNegativePricesEur,
+                curtailedMarketValueEur: pfKpis.curtailedMarketValueEur,
+                negativePriceAvoidableLossEur: pfKpis.negativePriceAvoidableLossEur,
+                plausibility: {
+                  specificYieldKwhPerKw: pfSpecificYield,
+                  orientationYieldKwhPerKw: pfOrientationYield,
+                  yieldRatio:
+                    pfOrientationYield && pfSpecificYield != null
+                      ? Math.round((pfSpecificYield / pfOrientationYield) * 1000) / 1000
+                      : null,
+                  generationCoverage: pfGenCoverage,
+                  capacityBasis: 'sum_of_asset_capacityKw',
+                },
+              },
+              monthly,
+              assets: assetSummaries,
+              methodology: {
+                timezone: 'UTC',
+                priceAlignment: 'hourly',
+                fallbackPolicy: 'assumption_if_no_forecast_or_uploaded_profile',
+                captureRateDefinition:
+                  'weightedMarketValueEurPerMwh / timeWeightedAverageSpotPrice',
+                commissioningDatePolicy:
+                  'full_period_used_if_commissioningDate_missing — warning commissioning_date_missing is set but no generation is zeroed',
+                generationModel:
+                  'mastr_generation_forecast_historical_mode — weather-based reconstruction via MaStR MCP; actual yield reflects site-specific orientation, tilt, shading, and array losses; south-30deg orientation yield used as plausibility reference only',
+                orientationYieldBasis:
+                  'Germany_typical_conditions (solar: 950 kWh/kW/a south-30deg; wind_onshore: 1800 kWh/kW/a)',
+                assumptions: assetResults
+                  .filter((a) => a.dataQuality === 'assumption')
+                  .map((a) => ({
+                    assetType: a.type,
+                    fullLoadHoursPerYear: BACKTEST_ASSUMPTION_FULL_LOAD_HOURS[a.type],
+                    profile: 'flat_base_generation',
+                  })),
+              },
+              sources: [
+                { key: 'spot_market_prices', reference: '/api/energy-market/prices' },
+                {
+                  key: 'generation_forecast',
+                  reference: 'mastr_generation_forecast (historical mode)',
+                },
+              ],
+            };
 
-        if (jobId) jobStore.appendLog(jobId, 'completed', 100, 'Backtest complete');
-        return response;
+            if (includeTimeseries) {
+              response.timeseries =
+                response.period.resolution === 'daily'
+                  ? _btDailyAggregation(allIntervals)
+                  : allIntervals.map((iv) => ({
+                      timestamp: iv.timestamp,
+                      generationMwh: Math.round(iv.generationMwh * 1000) / 1000,
+                      priceEurPerMwh: iv.priceEurPerMwh,
+                      marketValueEur: Math.round(iv.marketValueEur * 100) / 100,
+                    }));
+            }
+
+            if (jobId) jobStore.appendLog(jobId, 'completed', 100, 'Backtest complete');
+            return response;
           } // end worker
         ); // end startJob
       },

@@ -1710,7 +1710,10 @@ const redispatchParticipationBlueprintFixture = {
             M: 'ROLE_ASSET_PLANNING_LEAD',
             I: 'ROLE_REGULATORY_AFFAIRS',
           },
-          evidenceRequirements: ['syntheticRedispatchAssetPortfolio', 'installationGridLocationEvidence'],
+          evidenceRequirements: [
+            'syntheticRedispatchAssetPortfolio',
+            'installationGridLocationEvidence',
+          ],
           status: 'clarification',
           gateOutcome: 'redispatch_portfolio_pending',
         },
@@ -1724,7 +1727,13 @@ const redispatchParticipationBlueprintFixture = {
       'settlement',
     ],
     sourceActions: {
-      notCalled: ['redispatch_enrollment', 'dispatch_control', 'mako_write', 'billing', 'settlement'],
+      notCalled: [
+        'redispatch_enrollment',
+        'dispatch_control',
+        'mako_write',
+        'billing',
+        'settlement',
+      ],
     },
   },
 };
@@ -1743,38 +1752,35 @@ const mastrSyncGapStatusFixture = {
       label: 'MaStR freshness evidence',
       value: 'harvest-freshness-ok',
       sourceClass: 'synthetic_tenant_seed',
-      evidenceStatus: 'provided'
+      evidenceStatus: 'provided',
     },
     {
       id: 'redispatchStammdatenComparison',
       label: 'Redispatch Stammdaten comparison',
       value: 'stammdaten-comparison-complete',
       sourceClass: 'synthetic_tenant_seed',
-      evidenceStatus: 'provided'
+      evidenceStatus: 'provided',
     },
     {
       id: 'syncGapAlertFeed',
       label: 'Sync gap alert feed',
       value: 'sync-gap-active-alerts-verified',
       sourceClass: 'synthetic_tenant_seed',
-      evidenceStatus: 'provided'
+      evidenceStatus: 'provided',
     },
     {
       id: 'reconciliationApprovalDecision',
       label: 'Reconciliation approval decision',
       value: 'reconciliation-signed-off-by-ops-lead',
       sourceClass: 'synthetic_tenant_seed',
-      evidenceStatus: 'provided'
-    }
+      evidenceStatus: 'provided',
+    },
   ],
   missingEvidence: [],
   positiveFollowUps: [],
   sourceActions: {
-    notCalled: [
-      'redispatch_enrollment',
-      'dispatch_control'
-    ]
-  }
+    notCalled: ['redispatch_enrollment', 'dispatch_control'],
+  },
 };
 
 const mastrSyncGapSeedGuardFixture = {
@@ -1783,13 +1789,13 @@ const mastrSyncGapSeedGuardFixture = {
     processFamily: 'mastr_sync_gap_alerting',
     controlCase: 'mastr_sync_gap_alerting_status',
     validation: {
-      valid: true
+      valid: true,
     },
     requiredEvidence: [
       'mastrFreshnessEvidence',
       'redispatchStammdatenComparison',
       'syncGapAlertFeed',
-      'reconciliationApprovalDecision'
+      'reconciliationApprovalDecision',
     ],
     missingEvidence: [],
     demoProcessMatrixSync: {
@@ -1806,7 +1812,7 @@ const mastrSyncGapSeedGuardFixture = {
         'mastrFreshnessEvidence',
         'redispatchStammdatenComparison',
         'syncGapAlertFeed',
-        'reconciliationApprovalDecision'
+        'reconciliationApprovalDecision',
       ],
       rows: [
         {
@@ -1815,22 +1821,19 @@ const mastrSyncGapSeedGuardFixture = {
             V: 'ROLE_NETZBETRIEB',
             D: 'ROLE_CERNION_GOVERNANCE',
             M: 'ROLE_REDISPATCH_KOORDINATOR',
-            I: 'ROLE_REDISPATCH_KOORDINATOR'
+            I: 'ROLE_REDISPATCH_KOORDINATOR',
           },
           evidenceRequirements: ['mastrFreshnessEvidence'],
           status: 'ready_for_review',
-          gateOutcome: 'mastr_freshness_harvested'
-        }
-      ]
+          gateOutcome: 'mastr_freshness_harvested',
+        },
+      ],
     },
-    forbiddenActions: [
-      'redispatch_enrollment',
-      'dispatch_control'
-    ],
+    forbiddenActions: ['redispatch_enrollment', 'dispatch_control'],
     sourceActions: {
-      notCalled: ['redispatch_enrollment', 'dispatch_control']
-    }
-  }
+      notCalled: ['redispatch_enrollment', 'dispatch_control'],
+    },
+  },
 };
 
 const decommissionedAssetStatusFixture = {
@@ -1847,38 +1850,35 @@ const decommissionedAssetStatusFixture = {
       label: 'GIS decommissioned assets evidence',
       value: 'gis-decommissioned-ok',
       sourceClass: 'synthetic_tenant_seed',
-      evidenceStatus: 'provided'
+      evidenceStatus: 'provided',
     },
     {
       id: 'sapAnlagenspiegelEvidence',
       label: 'SAP Anlagenspiegel evidence',
       value: 'sap-anlagenspiegel-complete',
       sourceClass: 'synthetic_tenant_seed',
-      evidenceStatus: 'provided'
+      evidenceStatus: 'provided',
     },
     {
       id: 'reconciliationDiscrepancyFeed',
       label: 'Reconciliation discrepancy feed',
       value: 'discrepancy-feed-verified',
       sourceClass: 'synthetic_tenant_seed',
-      evidenceStatus: 'provided'
+      evidenceStatus: 'provided',
     },
     {
       id: 'reconciliationApprovalDecision',
       label: 'Reconciliation approval decision',
       value: 'reconciliation-signed-off-by-reconciliation-lead',
       sourceClass: 'synthetic_tenant_seed',
-      evidenceStatus: 'provided'
-    }
+      evidenceStatus: 'provided',
+    },
   ],
   missingEvidence: [],
   positiveFollowUps: [],
   sourceActions: {
-    notCalled: [
-      'redispatch_enrollment',
-      'dispatch_control'
-    ]
-  }
+    notCalled: ['redispatch_enrollment', 'dispatch_control'],
+  },
 };
 
 const decommissionedAssetSeedGuardFixture = {
@@ -1887,13 +1887,13 @@ const decommissionedAssetSeedGuardFixture = {
     processFamily: 'decommissioned_asset_reconciliation',
     controlCase: 'decommissioned_asset_reconciliation_status',
     validation: {
-      valid: true
+      valid: true,
     },
     requiredEvidence: [
       'gisDecommissionedAssetsEvidence',
       'sapAnlagenspiegelEvidence',
       'reconciliationDiscrepancyFeed',
-      'reconciliationApprovalDecision'
+      'reconciliationApprovalDecision',
     ],
     missingEvidence: [],
     demoProcessMatrixSync: {
@@ -1910,7 +1910,7 @@ const decommissionedAssetSeedGuardFixture = {
         'gisDecommissionedAssetsEvidence',
         'sapAnlagenspiegelEvidence',
         'reconciliationDiscrepancyFeed',
-        'reconciliationApprovalDecision'
+        'reconciliationApprovalDecision',
       ],
       rows: [
         {
@@ -1919,22 +1919,19 @@ const decommissionedAssetSeedGuardFixture = {
             V: 'ROLE_NETZPLANUNG',
             D: 'ROLE_CERNION_GOVERNANCE',
             M: 'ROLE_ANLAGENBUCHHALTUNG',
-            I: 'ROLE_COMMERCIAL_AUDIT'
+            I: 'ROLE_COMMERCIAL_AUDIT',
           },
           evidenceRequirements: ['gisDecommissionedAssetsEvidence'],
           status: 'ready_for_review',
-          gateOutcome: 'gis_decommissioned_assets_harvested'
-        }
-      ]
+          gateOutcome: 'gis_decommissioned_assets_harvested',
+        },
+      ],
     },
-    forbiddenActions: [
-      'redispatch_enrollment',
-      'dispatch_control'
-    ],
+    forbiddenActions: ['redispatch_enrollment', 'dispatch_control'],
     sourceActions: {
-      notCalled: ['redispatch_enrollment', 'dispatch_control']
-    }
-  }
+      notCalled: ['redispatch_enrollment', 'dispatch_control'],
+    },
+  },
 };
 
 const coordinationMeaningPreservationFixture = {
@@ -2182,52 +2179,49 @@ const energySharingCollectiveApprovalStatusFixture = {
       label: 'Synthetic collective boundary evidence',
       value: 'collective-boundary-ok',
       sourceClass: 'synthetic_tenant_seed',
-      evidenceStatus: 'provided'
+      evidenceStatus: 'provided',
     },
     {
       id: 'operatorParticipantBoundaryEvidence',
       label: 'Operator participant boundary evidence',
       value: 'operator-participant-complete',
       sourceClass: 'synthetic_tenant_seed',
-      evidenceStatus: 'provided'
+      evidenceStatus: 'provided',
     },
     {
       id: 'meteringConceptEvidence',
       label: 'Metering concept evidence',
       value: 'metering-concept-verified',
       sourceClass: 'synthetic_tenant_seed',
-      evidenceStatus: 'provided'
+      evidenceStatus: 'provided',
     },
     {
       id: 'contractConsentMarketRoleEvidence',
       label: 'Contract consent market role evidence',
       value: 'contract-consent-signed-off',
       sourceClass: 'synthetic_tenant_seed',
-      evidenceStatus: 'provided'
+      evidenceStatus: 'provided',
     },
     {
       id: 'allocationBillingSettlementGapEvidence',
       label: 'Allocation billing settlement gap evidence',
       value: 'allocation-gap-closed',
       sourceClass: 'synthetic_tenant_seed',
-      evidenceStatus: 'provided'
+      evidenceStatus: 'provided',
     },
     {
       id: 'approvalReadinessDecision',
       label: 'Approval readiness decision',
       value: 'collective-approval-signed-off-by-product-owner',
       sourceClass: 'synthetic_tenant_seed',
-      evidenceStatus: 'provided'
-    }
+      evidenceStatus: 'provided',
+    },
   ],
   missingEvidence: [],
   positiveFollowUps: [],
   sourceActions: {
-    notCalled: [
-      'redispatch_enrollment',
-      'dispatch_control'
-    ]
-  }
+    notCalled: ['redispatch_enrollment', 'dispatch_control'],
+  },
 };
 
 const energySharingCollectiveApprovalSeedGuardFixture = {
@@ -2236,7 +2230,7 @@ const energySharingCollectiveApprovalSeedGuardFixture = {
     processFamily: 'energy_sharing_governance',
     controlCase: 'energy_sharing_collective_approval',
     validation: {
-      valid: true
+      valid: true,
     },
     requiredEvidence: [
       'syntheticCollectiveBoundaryEvidence',
@@ -2244,7 +2238,7 @@ const energySharingCollectiveApprovalSeedGuardFixture = {
       'meteringConceptEvidence',
       'contractConsentMarketRoleEvidence',
       'allocationBillingSettlementGapEvidence',
-      'approvalReadinessDecision'
+      'approvalReadinessDecision',
     ],
     missingEvidence: [],
     demoProcessMatrixSync: {
@@ -2263,7 +2257,7 @@ const energySharingCollectiveApprovalSeedGuardFixture = {
         'meteringConceptEvidence',
         'contractConsentMarketRoleEvidence',
         'allocationBillingSettlementGapEvidence',
-        'approvalReadinessDecision'
+        'approvalReadinessDecision',
       ],
       rows: [
         {
@@ -2272,22 +2266,19 @@ const energySharingCollectiveApprovalSeedGuardFixture = {
             V: 'ROLE_ENERGY_SHARING_PRODUCT_OWNER',
             D: 'ROLE_CERNION_GOVERNANCE',
             M: 'ROLE_LEGAL_REGULATORY_AFFAIRS',
-            I: 'ROLE_MANAGEMENT'
+            I: 'ROLE_MANAGEMENT',
           },
           evidenceRequirements: ['syntheticCollectiveBoundaryEvidence'],
           status: 'ready_for_review',
-          gateOutcome: 'synthetic_collective_review_case_identified'
-        }
-      ]
+          gateOutcome: 'synthetic_collective_review_case_identified',
+        },
+      ],
     },
-    forbiddenActions: [
-      'redispatch_enrollment',
-      'dispatch_control'
-    ],
+    forbiddenActions: ['redispatch_enrollment', 'dispatch_control'],
     sourceActions: {
-      notCalled: ['redispatch_enrollment', 'dispatch_control']
-    }
-  }
+      notCalled: ['redispatch_enrollment', 'dispatch_control'],
+    },
+  },
 };
 
 const costReviewCommitteeFixture = {
@@ -2389,7 +2380,12 @@ const costReviewBlueprintFixture = {
       'committee.decision.execute',
     ],
     sourceActions: {
-      notCalled: ['workflow_create', 'mail_send', 'budibase_table_write', 'personal_agent_hardcoding'],
+      notCalled: [
+        'workflow_create',
+        'mail_send',
+        'budibase_table_write',
+        'personal_agent_hardcoding',
+      ],
     },
   },
 };
@@ -2706,8 +2702,7 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
     );
     expect(
       queries.every(
-        (query) =>
-          query.path !== '/api/dashboard/stadtwerk-mauer-portfolio-market-value-readiness'
+        (query) => query.path !== '/api/dashboard/stadtwerk-mauer-portfolio-market-value-readiness'
       )
     ).toBe(true);
     expect(
@@ -2781,9 +2776,7 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
   });
 
   it('adds the Cost Review Committee Readiness panel from existing safe endpoints', () => {
-    const queries = manifest.queries.filter((query) =>
-      query.name.includes('CostReviewCommittee')
-    );
+    const queries = manifest.queries.filter((query) => query.name.includes('CostReviewCommittee'));
     const paths = new Set(queries.map((query) => query.path));
 
     expect(paths).toEqual(
@@ -2808,9 +2801,7 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
         .every((section) => queries.some((query) => query.name === section.queryName))
     ).toBe(true);
 
-    const statusQuery = queries.find(
-      (query) => query.name === 'getCostReviewCommitteeStatusRows'
-    );
+    const statusQuery = queries.find((query) => query.name === 'getCostReviewCommitteeStatusRows');
     expect(statusQuery).toMatchObject({
       method: 'GET',
       path: '/api/dashboard/cost-review-committee-status',
@@ -3000,7 +2991,8 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
         expect.objectContaining({
           rowKey: 'matrix_row_1',
           phase: '1',
-          roles: 'V:ROLE_NETZPLANUNG | D:ROLE_GRID_OPERATOR | M:ROLE_ELECTRICIAN | I:ROLE_COMMERCIAL_AUDIT',
+          roles:
+            'V:ROLE_NETZPLANUNG | D:ROLE_GRID_OPERATOR | M:ROLE_ELECTRICIAN | I:ROLE_COMMERCIAL_AUDIT',
           evidenceRequirements: 'publicMunicipalityContext, napReference',
           dataClassRefs: 'publicContextLayer, syntheticTenantSeed',
           gateOutcome: 'missing_nap_clarification',
@@ -3071,10 +3063,7 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       }
     };
 
-    const selectorRows = runTransformer(
-      'getVdmiBlueprintSeedSelectorRows',
-      blueprintVerifyFixture
-    );
+    const selectorRows = runTransformer('getVdmiBlueprintSeedSelectorRows', blueprintVerifyFixture);
     expectScalarRows(selectorRows);
     assertNoRawObjectText(selectorRows);
     expect(selectorRows).toEqual(
@@ -3236,8 +3225,7 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
           d: 'ROLE_CERNION_GOVERNANCE',
           m: 'ROLE_ASSET_MANAGEMENT',
           i: 'ROLE_ADMINISTRATOR',
-          nachweise:
-            'napMaloReferenceEvidence, divisionEvidence, sourceReferenceEvidence',
+          nachweise: 'napMaloReferenceEvidence, divisionEvidence, sourceReferenceEvidence',
         }),
       ])
     );
@@ -3536,9 +3524,12 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       ])
     );
 
-    const connectionTransferRows = runTransformer('getConnectionDeadlineEvidenceQueueTransferRows', {
-      status: 'transfer_blocked',
-    });
+    const connectionTransferRows = runTransformer(
+      'getConnectionDeadlineEvidenceQueueTransferRows',
+      {
+        status: 'transfer_blocked',
+      }
+    );
     expectScalarRows(connectionTransferRows);
     expect(connectionTransferRows[0]).toMatchObject({
       rowKey: 'connection_deadline_transfer_pending',
@@ -3746,10 +3737,9 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       ])
     );
 
-    const directMarketerTransferRows = runTransformer(
-      'getDirectMarketerRiskGateTransferRows',
-      { status: 'transfer_blocked' }
-    );
+    const directMarketerTransferRows = runTransformer('getDirectMarketerRiskGateTransferRows', {
+      status: 'transfer_blocked',
+    });
     expectScalarRows(directMarketerTransferRows);
     expect(directMarketerTransferRows[0]).toMatchObject({
       rowKey: 'direct_marketer_risk_gate_transfer_pending',
@@ -4412,10 +4402,7 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
   });
 
   it('flattens MaStR Sync-Gap Alerting rows and no-call guards', () => {
-    const statusRows = runTransformer(
-      'getMastrSyncGapStatusRows',
-      mastrSyncGapStatusFixture
-    );
+    const statusRows = runTransformer('getMastrSyncGapStatusRows', mastrSyncGapStatusFixture);
     expectScalarRows(statusRows);
     expect(statusRows[0]).toMatchObject({
       rowKey: 'mastr_sync_gap_status',
@@ -4425,10 +4412,7 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       sourceClass: 'mastr_sync_gap_status',
     });
 
-    const evidenceRows = runTransformer(
-      'getMastrSyncGapEvidenceRows',
-      mastrSyncGapStatusFixture
-    );
+    const evidenceRows = runTransformer('getMastrSyncGapEvidenceRows', mastrSyncGapStatusFixture);
     expectScalarRows(evidenceRows);
     expect(evidenceRows).toEqual(
       expect.arrayContaining([
@@ -4440,10 +4424,7 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       ])
     );
 
-    const guardRows = runTransformer(
-      'getMastrSyncGapSeedGuardRows',
-      mastrSyncGapSeedGuardFixture
-    );
+    const guardRows = runTransformer('getMastrSyncGapSeedGuardRows', mastrSyncGapSeedGuardFixture);
     expectScalarRows(guardRows);
     expect(guardRows[0]).toMatchObject({
       seedId: 'stadtwerk-mauer-mastr-sync-gap-alerting-v1',
@@ -4452,10 +4433,7 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       sourceClass: 'mastr_sync_gap_blueprint_guard',
     });
 
-    const matrixRows = runTransformer(
-      'getMastrSyncGapMatrixRows',
-      mastrSyncGapSeedGuardFixture
-    );
+    const matrixRows = runTransformer('getMastrSyncGapMatrixRows', mastrSyncGapSeedGuardFixture);
     expectScalarRows(matrixRows);
     expect(matrixRows).toEqual(
       expect.arrayContaining([
@@ -5063,10 +5041,7 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       selectedTitle: 'Selected Case Detail',
       selectedRows: [{ valueLabel: 'Selected Case Detail' }],
     };
-    const contextRows = runTransformer(
-      'getSelectedCaseContextBindingRows',
-      selectedTargetFixture
-    );
+    const contextRows = runTransformer('getSelectedCaseContextBindingRows', selectedTargetFixture);
     expectScalarRows(contextRows);
     expect(contextRows).toEqual(
       expect.arrayContaining([
@@ -5256,9 +5231,11 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       ])
     );
     expect(
-      queries.filter((query) => query.path.includes('blueprint-pack-verify')).every((query) =>
-        query.queryString.includes('stadtwerk-mauer-flexible-grid-connection-release-file-v1')
-      )
+      queries
+        .filter((query) => query.path.includes('blueprint-pack-verify'))
+        .every((query) =>
+          query.queryString.includes('stadtwerk-mauer-flexible-grid-connection-release-file-v1')
+        )
     ).toBe(true);
     expect(
       manifest.sections
@@ -5291,11 +5268,13 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
           'contractBoundaryStatus',
           'nextGate',
         ],
-        missingEvidence: [{
-          missingDataPoint: 'gridRestrictionEvidenceRef',
-          state: 'evidence_gap',
-          enablesDossierAddition: 'Adds grid restriction evidence for reviewability.',
-        }],
+        missingEvidence: [
+          {
+            missingDataPoint: 'gridRestrictionEvidenceRef',
+            state: 'evidence_gap',
+            enablesDossierAddition: 'Adds grid restriction evidence for reviewability.',
+          },
+        ],
         demoProcessMatrixSync: {
           synced: true,
           roleLegendM: 'Mitwirkend',
@@ -5307,18 +5286,20 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
             landingRegistry: 'pending',
             productiveDemoRoom: 'pending',
           },
-          rows: [{
-            phase: '2',
-            roles: {
-              V: 'ROLE_NETZPLANUNG',
-              D: 'ROLE_GRID_OPERATIONS',
-              M: 'ROLE_ANSCHLUSSWESEN',
-              I: 'ROLE_COMMERCIAL_GOVERNANCE',
+          rows: [
+            {
+              phase: '2',
+              roles: {
+                V: 'ROLE_NETZPLANUNG',
+                D: 'ROLE_GRID_OPERATIONS',
+                M: 'ROLE_ANSCHLUSSWESEN',
+                I: 'ROLE_COMMERCIAL_GOVERNANCE',
+              },
+              evidenceRequirements: ['flexibilityConditionRef', 'gridRestrictionEvidenceRef'],
+              status: 'needs_technical_evidence',
+              gateOutcome: 'technical_restriction_review_pending',
             },
-            evidenceRequirements: ['flexibilityConditionRef', 'gridRestrictionEvidenceRef'],
-            status: 'needs_technical_evidence',
-            gateOutcome: 'technical_restriction_review_pending',
-          }],
+          ],
         },
       },
     };
@@ -5371,19 +5352,39 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
     );
     expect(runTransformer('getFlexibleGridConnectionReleaseFileFocusRows', capacity)).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ rowKey: 'connection_capacity', value: 'NVP-SYN-MAUER-04 / 850 kW' }),
-        expect.objectContaining({ rowKey: 'reservation_release_boundary', value: 'capacityReserved=false; decisionApplied=false' }),
-        expect.objectContaining({ rowKey: 'contract_boundary', value: 'review_marker_only_no_contract_creation' }),
+        expect.objectContaining({
+          rowKey: 'connection_capacity',
+          value: 'NVP-SYN-MAUER-04 / 850 kW',
+        }),
+        expect.objectContaining({
+          rowKey: 'reservation_release_boundary',
+          value: 'capacityReserved=false; decisionApplied=false',
+        }),
+        expect.objectContaining({
+          rowKey: 'contract_boundary',
+          value: 'review_marker_only_no_contract_creation',
+        }),
       ])
     );
     expect(runTransformer('getFlexibleGridConnectionReleaseFileNoCallRows', capacity)).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ boundary: 'rundeck.execute', status: 'not_called', disabled: true }),
+        expect.objectContaining({
+          boundary: 'rundeck.execute',
+          status: 'not_called',
+          disabled: true,
+        }),
         expect.objectContaining({ boundary: 'mako.write', status: 'not_called', disabled: true }),
-        expect.objectContaining({ boundary: 'landing-registry.write', status: 'not_called', disabled: true }),
-        expect.objectContaining({ boundary: 'personal-agent.execute', status: 'not_called', disabled: true }),
+        expect.objectContaining({
+          boundary: 'landing-registry.write',
+          status: 'not_called',
+          disabled: true,
+        }),
+        expect.objectContaining({
+          boundary: 'personal-agent.execute',
+          status: 'not_called',
+          disabled: true,
+        }),
       ])
     );
   });
-
 });

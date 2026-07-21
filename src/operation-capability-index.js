@@ -195,7 +195,8 @@ function findMissingRequiredParameters(entry, extractedInputs = {}) {
   const required = (entry.parameters && entry.parameters.required) || [];
   return required.filter((param) => {
     const nameMatch = provided.has(String(param.name || '').toLowerCase());
-    const hintMatch = param.extractionHint && provided.has(String(param.extractionHint).toLowerCase());
+    const hintMatch =
+      param.extractionHint && provided.has(String(param.extractionHint).toLowerCase());
     return !nameMatch && !hintMatch;
   });
 }
@@ -217,7 +218,13 @@ function findMissingRequiredParameters(entry, extractedInputs = {}) {
  * @returns {Array<object>} candidates sorted by descending score, each with score/confidence/missingRequiredParameters.
  */
 function rankOperations(query, options = {}) {
-  const { capability = null, domain = null, limit = 5, includeNonAgentable = false, extractedInputs = {} } = options;
+  const {
+    capability = null,
+    domain = null,
+    limit = 5,
+    includeNonAgentable = false,
+    extractedInputs = {},
+  } = options;
   const index = resolveIndex(options);
 
   const queryContext = buildQueryContext(query, { capability, domain });
@@ -277,7 +284,9 @@ function findOperationById(operationId, options = {}) {
 
 function listOperationsByCapability(capability, options = {}) {
   const index = resolveIndex(options);
-  return (index.operations || []).filter((entry) => (entry.capabilityCandidates || []).includes(capability));
+  return (index.operations || []).filter((entry) =>
+    (entry.capabilityCandidates || []).includes(capability)
+  );
 }
 
 function listOperationsByDomain(domain, options = {}) {

@@ -53,6 +53,7 @@ const READ_ONLY_QUERY_SERVICES = new Set([
   'oep',
   'osm-geo',
   'residual-load',
+  'tabular',
 ]);
 
 // Verbs whose presence in summary/description/operationId signal a real
@@ -126,7 +127,15 @@ const DOMAIN_NEGATIVE_CUES = {
 // replace that bespoke logic instead of duplicating it forever.
 const OPERATION_SIGNAL_OVERLAY = {
   'energy-market_prices': {
-    positiveKeywords: ['price', 'prices', 'day-ahead', 'intraday', 'strompreis', 'marktpreis', 'de-lu'],
+    positiveKeywords: [
+      'price',
+      'prices',
+      'day-ahead',
+      'intraday',
+      'strompreis',
+      'marktpreis',
+      'de-lu',
+    ],
     negativeCues: ['co2', 'emission', 'installation', 'mastr'],
     synonyms: ['EPEX spot price', 'Day-Ahead-Preis', 'Boersenpreis'],
     examples: ['What is the day-ahead electricity price for Germany tomorrow?'],
@@ -232,11 +241,15 @@ function textBlob(op) {
 // mutating verb appearing there (e.g. "Create persistent asset override")
 // is a much more reliable signal of a genuine write.
 function structuredTextBlob(op) {
-  return [op.summary, toArray(op.tags).join(' '), op.operationId, op.path].filter(Boolean).join(' ');
+  return [op.summary, toArray(op.tags).join(' '), op.operationId, op.path]
+    .filter(Boolean)
+    .join(' ');
 }
 
 function isReadOnlyQueryOperation(op, serviceName) {
   if (op.method === 'GET') return true;
+  // executePlan runs a bounded in-memory analysis and never mutates source data.
+  if (op.method === 'POST' && serviceName === 'tabular') return true;
   if (MUTATING_VERB_PATTERN.test(structuredTextBlob(op))) return false;
   if (op.method === 'POST' && READ_ONLY_QUERY_SERVICES.has(serviceName)) return true;
   if (op.method === 'POST' && QUERY_VERB_PATTERN.test((op.summary || '').trim())) return true;
@@ -260,7 +273,9 @@ function classifyOperationKind(op, ctx) {
 
   if (isReadOnlyQueryOperation(op, serviceName)) {
     const isDashboard =
-      ctx.uiPage === 'dashboard' || tags.includes('Dashboard API') || serviceName === 'dashboard-api';
+      ctx.uiPage === 'dashboard' ||
+      tags.includes('Dashboard API') ||
+      serviceName === 'dashboard-api';
     return isDashboard ? 'dashboard_read' : 'data_read';
   }
 
@@ -273,7 +288,11 @@ function classifyOperationKind(op, ctx) {
     return DRAFT_HINT_PATTERN.test(blob) ? 'draft_write' : 'advisory_plan';
   }
 
-  if (ADMIN_HINT_PATTERN.test(blob) || tags.includes('Tenant Quotas') || tags.includes('Backup & Restore')) {
+  if (
+    ADMIN_HINT_PATTERN.test(blob) ||
+    tags.includes('Tenant Quotas') ||
+    tags.includes('Backup & Restore')
+  ) {
     return 'admin';
   }
 
@@ -362,7 +381,9 @@ function deriveSideEffects(operationKind, op) {
     case 'draft_write':
       return ['creates_draft_or_intent'];
     case 'object_store_write':
-      return method === 'DELETE' ? ['deletes_stored_object'] : ['creates_or_modifies_stored_object'];
+      return method === 'DELETE'
+        ? ['deletes_stored_object']
+        : ['creates_or_modifies_stored_object'];
     case 'process_step':
       return ['advances_process_state'];
     case 'process_start':
@@ -409,7 +430,12 @@ function deriveRollbackHint(operationKind, op, allOps, serviceName) {
     case 'draft_write':
       return 'Discard the created draft/intent - no persisted business state changes until a subsequent confirm/promote step.';
     case 'process_start': {
-      const sibling = findSiblingHint(op, allOps, serviceName, /rollback|deactivate|cancel|reject/i);
+      const sibling = findSiblingHint(
+        op,
+        allOps,
+        serviceName,
+        /rollback|deactivate|cancel|reject/i
+      );
       return sibling
         ? `Companion rollback operation available: ${sibling}.`
         : 'No companion rollback operation detected in this service - verify reversibility with backend/tenant admin before invoking.';
@@ -592,7 +618,9 @@ function deriveRankingSignals(op, ctx) {
   const examples = overlay?.examples || [`${verb} ${(op.summary || op.operationId).toLowerCase()}`];
 
   return {
-    positiveKeywords: overlay ? [...new Set([...overlay.positiveKeywords, ...positiveKeywords])] : positiveKeywords,
+    positiveKeywords: overlay
+      ? [...new Set([...overlay.positiveKeywords, ...positiveKeywords])]
+      : positiveKeywords,
     negativeCues: overlay ? overlay.negativeCues : domainNegativeCues,
     examples,
     synonyms: overlay ? overlay.synonyms : domainSynonyms,
@@ -614,7 +642,10 @@ function deriveCapabilityCandidates(op, ctx, curatedCapabilities) {
   const candidates = new Set();
   if (actionRef && Array.isArray(curatedCapabilities)) {
     for (const capability of curatedCapabilities) {
-      const refs = [...toArray(capability.preferredActions), ...toArray(capability.fallbackActions)];
+      const refs = [
+        ...toArray(capability.preferredActions),
+        ...toArray(capability.fallbackActions),
+      ];
       const matches = refs.some((ref) => {
         const normalized = String(ref).replace(/^v\d+\./, '');
         return normalized === actionRef;
@@ -624,9 +655,10 @@ function deriveCapabilityCandidates(op, ctx, curatedCapabilities) {
   }
 
   if (candidates.size === 0) {
-    const actionSlug = (op.operationId.startsWith(`${serviceName}_`)
-      ? op.operationId.slice(serviceName.length + 1)
-      : op.operationId
+    const actionSlug = (
+      op.operationId.startsWith(`${serviceName}_`)
+        ? op.operationId.slice(serviceName.length + 1)
+        : op.operationId
     ).replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
     candidates.add(`${serviceName}.${actionSlug}`.replace(/_+/g, '_'));
   }
@@ -652,7 +684,10 @@ function classifyOperation(op, options = {}) {
   const ctx = { serviceName, tags, domain, uiPage };
 
   const operationKind = classifyOperationKind(op, ctx);
-  const { consequenceLevel, recommendedExecutionMode } = deriveConsequenceAndMode(operationKind, op);
+  const { consequenceLevel, recommendedExecutionMode } = deriveConsequenceAndMode(
+    operationKind,
+    op
+  );
   const { agentable, nonAgentableReason } = deriveAgentable(op);
   const actionRef = deriveActionRef(serviceName, op.operationId);
   ctx.actionRef = actionRef;

@@ -2,14 +2,14 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.67.8",
-  "sourceOpenApiHash": "73118cbcae83b98d2507de0192b7c1cd7014f740cb12908e43988f9056549404",
+  "sourceOpenApiHash": "1b10b93d16cabdf0c87bcf8ebcc7baeea3bc001bbcee0d7fd0410f40d39dd7b1",
   "coverage": {
-    "rawOperationCount": 1106,
-    "operationCount": 851,
-    "agentableCount": 849,
+    "rawOperationCount": 1112,
+    "operationCount": 857,
+    "agentableCount": 855,
     "nonAgentableCount": 2,
     "byOperationKind": {
-      "data_read": 379,
+      "data_read": 385,
       "admin": 8,
       "object_store_write": 222,
       "process_step": 20,
@@ -72006,6 +72006,561 @@
         "synonyms": [
           "agent infrastructure",
           "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "tabular_ask",
+      "method": "POST",
+      "path": "/api/tabular/ask",
+      "service": "tabular",
+      "action": "tabular.ask",
+      "summary": "Answer a table question with deterministic results and evidence",
+      "tags": [
+        "Tabular Intelligence"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "tabular.ask"
+      ],
+      "domains": [
+        "inhouse-data"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "tabular:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [
+          {
+            "name": "question",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": [
+          {
+            "name": "sourceIds",
+            "in": "body",
+            "type": "array",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "plan",
+            "in": "body",
+            "type": "object",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "useLlm",
+            "in": "body",
+            "type": "boolean",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "tabular",
+          "ask",
+          "answer",
+          "table",
+          "question",
+          "with",
+          "deterministic",
+          "results",
+          "evidence",
+          "intelligence"
+        ],
+        "negativeCues": [
+          "spot price",
+          "gas storage"
+        ],
+        "examples": [
+          "Please answer a table question with deterministic results and evidence"
+        ],
+        "synonyms": [
+          "Messstelle",
+          "metering",
+          "EDM"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "tabular_executePlan",
+      "method": "POST",
+      "path": "/api/tabular/execute-plan",
+      "service": "tabular",
+      "action": "tabular.executePlan",
+      "summary": "Execute a validated tabular plan deterministically",
+      "tags": [
+        "Tabular Intelligence"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "tabular.execute_plan"
+      ],
+      "domains": [
+        "inhouse-data"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "tabular:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [
+          {
+            "name": "plan",
+            "in": "body",
+            "type": "object",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "tabular",
+          "execute",
+          "plan",
+          "validated",
+          "deterministically",
+          "intelligence"
+        ],
+        "negativeCues": [
+          "spot price",
+          "gas storage"
+        ],
+        "examples": [
+          "Please execute a validated tabular plan deterministically"
+        ],
+        "synonyms": [
+          "Messstelle",
+          "metering",
+          "EDM"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "tabular_llmContext",
+      "method": "POST",
+      "path": "/api/tabular/llm-context",
+      "service": "tabular",
+      "action": "tabular.llmContext",
+      "summary": "Build bounded LLM-safe context without raw table rows",
+      "tags": [
+        "Tabular Intelligence"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "tabular.llm_context"
+      ],
+      "domains": [
+        "inhouse-data"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "tabular:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [
+          {
+            "name": "sourceIds",
+            "in": "body",
+            "type": "array",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": [
+          {
+            "name": "maxTokens",
+            "in": "body",
+            "type": "integer",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "privacyContext",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "tabular",
+          "llm",
+          "context",
+          "build",
+          "bounded",
+          "safe",
+          "without",
+          "raw",
+          "table",
+          "rows",
+          "intelligence"
+        ],
+        "negativeCues": [
+          "spot price",
+          "gas storage"
+        ],
+        "examples": [
+          "Please build bounded llm-safe context without raw table rows"
+        ],
+        "synonyms": [
+          "Messstelle",
+          "metering",
+          "EDM"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "tabular_profile",
+      "method": "POST",
+      "path": "/api/tabular/profile",
+      "service": "tabular",
+      "action": "tabular.profile",
+      "summary": "Build a privacy-aware deterministic table profile",
+      "tags": [
+        "Tabular Intelligence"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "tabular.profile"
+      ],
+      "domains": [
+        "inhouse-data"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "tabular:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [
+          {
+            "name": "sourceId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": [
+          {
+            "name": "maxRows",
+            "in": "body",
+            "type": "integer",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "privacyContext",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "tabular",
+          "profile",
+          "build",
+          "privacy",
+          "aware",
+          "deterministic",
+          "table",
+          "intelligence"
+        ],
+        "negativeCues": [
+          "spot price",
+          "gas storage"
+        ],
+        "examples": [
+          "Please build a privacy-aware deterministic table profile"
+        ],
+        "synonyms": [
+          "Messstelle",
+          "metering",
+          "EDM"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "tabular_qualityReport",
+      "method": "POST",
+      "path": "/api/tabular/quality-report",
+      "service": "tabular",
+      "action": "tabular.qualityReport",
+      "summary": "Build an evidence-backed table quality report",
+      "tags": [
+        "Tabular Intelligence"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "tabular.quality_report"
+      ],
+      "domains": [
+        "inhouse-data"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "tabular:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [
+          {
+            "name": "sourceId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": [
+          {
+            "name": "timestampField",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "intervalMinutes",
+            "in": "body",
+            "type": "integer",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "duplicateFields",
+            "in": "body",
+            "type": "array",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "outlierField",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "outlierThreshold",
+            "in": "body",
+            "type": "number",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "tabular",
+          "quality",
+          "report",
+          "build",
+          "an",
+          "evidence",
+          "backed",
+          "table",
+          "intelligence"
+        ],
+        "negativeCues": [
+          "spot price",
+          "gas storage"
+        ],
+        "examples": [
+          "Please build an evidence-backed table quality report"
+        ],
+        "synonyms": [
+          "Messstelle",
+          "metering",
+          "EDM"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "tabular_queryPlan",
+      "method": "POST",
+      "path": "/api/tabular/query-plan",
+      "service": "tabular",
+      "action": "tabular.queryPlan",
+      "summary": "Create or validate an allow-listed tabular analysis plan",
+      "tags": [
+        "Tabular Intelligence"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "tabular.query_plan"
+      ],
+      "domains": [
+        "inhouse-data"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "tabular:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [],
+        "optional": [
+          {
+            "name": "sourceIds",
+            "in": "body",
+            "type": "array",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "question",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "plan",
+            "in": "body",
+            "type": "object",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "useLlm",
+            "in": "body",
+            "type": "boolean",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "maxTokens",
+            "in": "body",
+            "type": "integer",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "tabular",
+          "query",
+          "plan",
+          "create",
+          "or",
+          "validate",
+          "an",
+          "allow",
+          "listed",
+          "analysis",
+          "intelligence"
+        ],
+        "negativeCues": [
+          "spot price",
+          "gas storage"
+        ],
+        "examples": [
+          "Show me create or validate an allow-listed tabular analysis plan"
+        ],
+        "synonyms": [
+          "Messstelle",
+          "metering",
+          "EDM"
         ],
         "curated": false
       },
