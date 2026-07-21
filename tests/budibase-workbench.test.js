@@ -662,6 +662,57 @@ const gridTransformationGateFixture = {
   missingEvidence: [],
 };
 
+const gridTransformationAutomationDecisionValueFixture = {
+  capabilityKey: 'automation_requirements_decision_value',
+  safety: 'read_only',
+  status: 'ready_for_requirements_review',
+  readinessScore: 0.87,
+  requirementContext: {
+    requirementId: 'grid-connection-transformation-gate',
+    requestTitle: 'Legacy-ERP Grid Connection Transformation Gate Overlay',
+    requestType: 'regulatory_decision_evidence_layer',
+    processArea: 'grid_connection_transformation',
+    decisionOwner: 'ROLE_NETZPLANUNG',
+    targetGate: 'grid_connection_transformation_gate',
+  },
+  decisionEvidence: {
+    sourceSystem: 'sap_is_u_s4hana_reference_only',
+    movingDataFlow: 'scada_gis_mds_to_evidence_layer_read_only',
+    manualEffort: 'shadow_it_excel_macro_replacement',
+    controlPoint: 'netzplanung_review_gate',
+    decisionValue: 'close_14a_agnes_ramen_energy_sharing_gap_without_erp_customizing',
+    followUpProcess: 'dossier_and_evidence_anchor_update',
+    dataQuality: 'verified',
+    rollbackOrStopCriterion: 'keep_read_only_and_blocked_if_evidence_missing',
+  },
+  missingEvidence: [
+    { missingDataPoint: 'source_snapshot_ref' },
+    { missingDataPoint: 'evidence_ref' },
+  ],
+  positiveFollowUps: [
+    { missingDataPoint: 'source_snapshot_ref' },
+    { missingDataPoint: 'evidence_ref' },
+  ],
+  sourceActions: {
+    inspected: ['dashboard-api.automationRequirementsDecisionValueStatus'],
+    notCalled: [
+      'powerbi.createDashboard',
+      'power-automate.createFlow',
+      'office.connector.call',
+      'mail.send',
+      'teams.postMessage',
+      'loop.update',
+      'workflow.create',
+      'ticket.create',
+      'hitl.create',
+      'vdmi.create',
+      'vdmi.update',
+      'external.connector.call',
+      'personal-agent.execute',
+    ],
+  },
+};
+
 const gasDataroomBlueprintFixture = {
   ...blueprintVerifyFixture,
   summary: {
@@ -2505,6 +2556,7 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
         '/api/dashboard/stadtwerk-mauer-transfer-readiness',
         '/api/dashboard/cross-system-variance-matrix',
         '/api/dashboard/grid-connection-transformation-gate',
+        '/api/dashboard/automation-requirements-decision-value',
       ])
     );
     expect(
@@ -3257,6 +3309,39 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       nextAction: 'verify_asset_znp_context',
       sourceClass: 'grid_connection_transformation_gate_focus',
     });
+
+    const gridAutomationDecisionValueRows = runTransformer(
+      'getVdmiBlueprintSelectorGridTransformationAutomationDecisionValueSummaryRows',
+      gridTransformationAutomationDecisionValueFixture
+    );
+    expectScalarRows(gridAutomationDecisionValueRows);
+    assertNoRawObjectText(gridAutomationDecisionValueRows);
+    expect(gridAutomationDecisionValueRows[0]).toMatchObject({
+      status: 'ready_for_requirements_review',
+      readinessScore: 0.87,
+      requirementId: 'grid-connection-transformation-gate',
+      processArea: 'grid_connection_transformation',
+      decisionOwner: 'ROLE_NETZPLANUNG',
+      targetGate: 'grid_connection_transformation_gate',
+      sourceSystem: 'sap_is_u_s4hana_reference_only',
+      decisionValue: 'close_14a_agnes_ramen_energy_sharing_gap_without_erp_customizing',
+      missingEvidence: 'source_snapshot_ref, evidence_ref',
+      sourceClass: 'grid_connection_transformation_automation_decision_value_summary',
+    });
+
+    const gridAutomationDecisionValueGuardRows = runTransformer(
+      'getVdmiBlueprintSelectorGridTransformationAutomationDecisionValueNoCallGuardRows',
+      gridTransformationAutomationDecisionValueFixture
+    );
+    expectScalarRows(gridAutomationDecisionValueGuardRows);
+    expect(gridAutomationDecisionValueGuardRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ action: 'mail.send', status: 'not_called' }),
+        expect.objectContaining({ action: 'teams.postMessage', status: 'not_called' }),
+        expect.objectContaining({ action: 'loop.update', status: 'not_called' }),
+        expect.objectContaining({ action: 'personal-agent.execute', status: 'not_called' }),
+      ])
+    );
 
     const gasSelectorRows = runTransformer(
       'getGasTransformationDataroomSeedSelectorRows',
