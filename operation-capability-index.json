@@ -2,7 +2,7 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.67.8",
-  "sourceOpenApiHash": "789d89e9032418ccabeaad5183637470055168452920fcb78063799458461daa",
+  "sourceOpenApiHash": "2d97a2b07aa4b629cf73e654e19afeefada97e0abe937cd028fff37b506f9914",
   "coverage": {
     "rawOperationCount": 1113,
     "operationCount": 858,
@@ -20092,6 +20092,104 @@
           },
           {
             "name": "economicsAssumptionRef",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "generationMaloCount",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "consumptionMaloCount",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "maloInventoryEvidenceRef",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "supplierOrDirectMarketerEvidenceRef",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "meteringConceptEvidenceRef",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "imsysStatus",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "fifteenMinuteValuesReadiness",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "dataBasisFreshnessRef",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "residualSupplyContractEvidenceRef",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "participationStartDate",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": "date_range_start"
+          },
+          {
+            "name": "participationEndDate",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": "date_range_start"
+          },
+          {
+            "name": "eligibilityEvidenceRef",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "exceptionRateEvidenceRef",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "economicsThresholdRef",
             "in": "query",
             "type": "string",
             "description": null,

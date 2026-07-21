@@ -5122,6 +5122,111 @@
       }
     },
     {
+      "name": "getVdmiBlueprintSelectorGridTransformationAutomationDecisionValueSummaryRows",
+      "method": "GET",
+      "path": "/api/dashboard/automation-requirements-decision-value",
+      "queryString": "tenantId={{tenantId}}&requirementId=grid-connection-transformation-gate&requestTitle=Legacy-ERP%20Grid%20Connection%20Transformation%20Gate%20Overlay&requestType=regulatory_decision_evidence_layer&processArea=grid_connection_transformation&decisionOwner=ROLE_NETZPLANUNG&targetGate=grid_connection_transformation_gate&sourceSystem=sap_is_u_s4hana_reference_only&movingDataFlow=scada_gis_mds_to_evidence_layer_read_only&manualEffort=shadow_it_excel_macro_replacement&controlPoint=netzplanung_review_gate&decisionValue=close_14a_agnes_ramen_energy_sharing_gap_without_erp_customizing&followUpProcess=dossier_and_evidence_anchor_update&dataQuality=verified&rollbackOrStopCriterion=keep_read_only_and_blocked_if_evidence_missing",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const rc=data.requirementContext||{}; const de=data.decisionEvidence||{}; const missing=(data.missingEvidence||[]).map((row)=>row.missingDataPoint||row.label).filter(Boolean).join(', '); return [{rowKey:'grid_transformation_automation_decision_value_summary',label:'Legacy-ERP automation decision value',status:data.status||'',readinessScore:Number(data.readinessScore||0),requirementId:rc.requirementId||'',requestTitle:rc.requestTitle||'',processArea:rc.processArea||'',decisionOwner:rc.decisionOwner||'',targetGate:rc.targetGate||'',sourceSystem:de.sourceSystem||'',movingDataFlow:de.movingDataFlow||'',manualEffort:de.manualEffort||'',controlPoint:de.controlPoint||'',decisionValue:de.decisionValue||'',followUpProcess:de.followUpProcess||'',dataQuality:de.dataQuality||'',rollbackOrStopCriterion:de.rollbackOrStopCriterion||'',missingEvidence:missing,safeNextAction:'inspect_read_only_automation_decision_value_and_missing_evidence',sourceClass:'grid_connection_transformation_automation_decision_value_summary'}]",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "readinessScore": {
+          "type": "number"
+        },
+        "requirementId": {
+          "type": "string"
+        },
+        "requestTitle": {
+          "type": "string"
+        },
+        "processArea": {
+          "type": "string"
+        },
+        "decisionOwner": {
+          "type": "string"
+        },
+        "targetGate": {
+          "type": "string"
+        },
+        "sourceSystem": {
+          "type": "string"
+        },
+        "movingDataFlow": {
+          "type": "string"
+        },
+        "manualEffort": {
+          "type": "string"
+        },
+        "controlPoint": {
+          "type": "string"
+        },
+        "decisionValue": {
+          "type": "string"
+        },
+        "followUpProcess": {
+          "type": "string"
+        },
+        "dataQuality": {
+          "type": "string"
+        },
+        "rollbackOrStopCriterion": {
+          "type": "string"
+        },
+        "missingEvidence": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getVdmiBlueprintSelectorGridTransformationAutomationDecisionValueNoCallGuardRows",
+      "method": "GET",
+      "path": "/api/dashboard/automation-requirements-decision-value",
+      "queryString": "tenantId={{tenantId}}&requirementId=grid-connection-transformation-gate&requestTitle=Legacy-ERP%20Grid%20Connection%20Transformation%20Gate%20Overlay&requestType=regulatory_decision_evidence_layer&processArea=grid_connection_transformation&decisionOwner=ROLE_NETZPLANUNG&targetGate=grid_connection_transformation_gate&sourceSystem=sap_is_u_s4hana_reference_only&movingDataFlow=scada_gis_mds_to_evidence_layer_read_only&manualEffort=shadow_it_excel_macro_replacement&controlPoint=netzplanung_review_gate&decisionValue=close_14a_agnes_ramen_energy_sharing_gap_without_erp_customizing&followUpProcess=dossier_and_evidence_anchor_update&dataQuality=verified&rollbackOrStopCriterion=keep_read_only_and_blocked_if_evidence_missing",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const notCalled=((data.sourceActions||{}).notCalled||[]); return notCalled.map((action,index)=>({rowKey:`grid_transformation_automation_decision_value_no_call_${index+1}_${String(action).replace(/[^a-zA-Z0-9]+/g,'_')}`,action:String(action),status:'not_called',safeAlternative:'render_existing_automation_decision_value_read_model_only',sourceClass:'grid_connection_transformation_automation_decision_value_no_call_guard'}))",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "action": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "safeAlternative": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
       "name": "getLandingRegistryDraftSyncSummaryRows",
       "method": "GET",
       "path": "/api/dashboard/stadtwerk-mauer-landing-registry-draft",
@@ -10767,6 +10872,18 @@
       "tableTitle": "NAP/MaLo Transformation Read Model"
     },
     {
+      "id": "blueprint_grid_transformation_automation_decision_value",
+      "title": "Legacy-ERP Automation Decision Value",
+      "queryName": "getVdmiBlueprintSelectorGridTransformationAutomationDecisionValueSummaryRows",
+      "tableTitle": "Legacy-ERP Automation Decision Value Summary"
+    },
+    {
+      "id": "blueprint_grid_transformation_automation_decision_value_no_call_guards",
+      "title": "Legacy-ERP Automation Decision Value Guardrails",
+      "queryName": "getVdmiBlueprintSelectorGridTransformationAutomationDecisionValueNoCallGuardRows",
+      "tableTitle": "Legacy-ERP Automation Decision Value No-Call Guards"
+    },
+    {
       "id": "landing_registry_draft_sync_summary",
       "title": "Cross-System Variance Landing-Registry Draft Sync",
       "queryName": "getLandingRegistryDraftSyncSummaryRows",
@@ -11508,6 +11625,7 @@
     "Portfolio review rows stay read-only/generated: no portfolio persistence, trading, investment advice, external connector, billing, settlement, tariff, MaKo, device-control, Budibase table write or Personal-Agent execution is allowed.",
     "Meaning Preservation binds to the existing coordination-meaning-preservation-profile read model for the selected Stadtwerk-Mauer case; Budibase renders scalar preserved, missing, weak, owner/deadline/decision, transfer-parameter and no-call rows only.",
     "Grid Connection Transformation Workbench panel binds the #404 Blueprint-Pack seed stadtwerk-mauer-grid-connection-transformation-gate-v1 to existing read-only verify, transfer-readiness and grid-connection-transformation-gate dashboard bricks; Budibase renders scalar NAP/MaLo, division, transformation option, data-quality, investment/decommission path, owner/next-action, evidence, sync and no-call rows only.",
+    "Legacy-ERP Automation Decision Value panel (#436) binds the existing automation-requirements-decision-value dashboard brick, scoped with deterministic synthetic grid-connection-transformation-gate query parameters, to answer the Legacy-ERP regulatory-gap decision-value question for ROLE_NETZPLANUNG without introducing a new endpoint, ERP/SAP write, workflow/HITL creation or Personal-Agent shortcut; Budibase renders scalar status, readiness score, requirement/decision-evidence and no-call guard rows only.",
     "Budibase renders the workbench; Cernion remains the system of record and command gate.",
     "Koppelpunkt Freigabeakte binds to the existing interconnection-release-file read model with explicit synthetic default parameters for ROLE_MARKTKOMMUNIKATION.",
     "Koppelpunkt Freigabeakte rows stay scalar/generated: Budibase renders summary, mapping subject, evidence source/version, approval owner/status, process-impact, missing-evidence, next-gate and no-call guard rows only, without A2MDM writes, release workflow execution, MaKo, billing, settlement, tariff, device-control, Budibase table writes or Personal-Agent shortcuts.",
