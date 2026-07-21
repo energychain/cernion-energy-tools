@@ -107,7 +107,7 @@
     "eslint-plugin-sonarjs": "^4.1.0",
     "jest": "^30.4.2",
     "n3": "^2.1.0",
-    "prettier": "^3.8.3",
+    "prettier": "^3.8.4",
     "rdf-validate-shacl": "^0.6.5"
   }
 }
