@@ -1094,6 +1094,81 @@ const EVIDENCE_REGISTRY = Object.freeze({
     ],
   },
 
+  model_viability_evidence_gate: {
+    sources: [
+      {
+        id: 'candidate_identity',
+        label: 'Kandidat/Modellidentitaet und Scope',
+        resolvedBy: ['dashboard-api.modelViabilityEvidenceGateStatus', 'vdmi.dossier'],
+        contextKeys: ['candidateId', 'candidateName', 'modelType', 'scope'],
+        optional: false,
+      },
+      {
+        id: 'evidence_snapshot',
+        label: 'Evidenz-Snapshot-Referenz',
+        resolvedBy: ['dashboard-api.modelViabilityEvidenceGateStatus'],
+        contextKeys: ['evidenceSnapshotRef'],
+        optional: false,
+      },
+      {
+        id: 'process_cost',
+        label: 'Prozesskosten-Band/Referenz',
+        resolvedBy: ['dashboard-api.modelViabilityEvidenceGateStatus'],
+        contextKeys: ['processCostBand', 'processCostReference'],
+        optional: false,
+      },
+      {
+        id: 'exception_case_rate',
+        label: 'Klaerfallquote/Band und Owner',
+        resolvedBy: ['dashboard-api.modelViabilityEvidenceGateStatus'],
+        contextKeys: ['exceptionCaseRateBand', 'exceptionCaseOwner'],
+        optional: false,
+      },
+      {
+        id: 'liquidity_impact',
+        label: 'Liquiditaetswirkung-Band/Referenz',
+        resolvedBy: ['dashboard-api.modelViabilityEvidenceGateStatus'],
+        contextKeys: ['liquidityImpactBand', 'liquidityImpactReference'],
+        optional: false,
+      },
+      {
+        id: 'data_maturity_metering',
+        label: 'Datenreife Messwesen',
+        resolvedBy: ['dashboard-api.modelViabilityEvidenceGateStatus', 'datapoint.health'],
+        contextKeys: ['dataMaturityMetering'],
+        optional: false,
+      },
+      {
+        id: 'data_maturity_roles',
+        label: 'Datenreife Marktrollen',
+        resolvedBy: ['dashboard-api.modelViabilityEvidenceGateStatus', 'datapoint.health'],
+        contextKeys: ['dataMaturityRoles'],
+        optional: false,
+      },
+      {
+        id: 'data_maturity_time_series',
+        label: 'Datenreife Zeitreihen',
+        resolvedBy: ['dashboard-api.modelViabilityEvidenceGateStatus', 'datapoint.health'],
+        contextKeys: ['dataMaturityTimeSeries'],
+        optional: false,
+      },
+      {
+        id: 'data_maturity_source_freshness',
+        label: 'Datenreife Quellaktualitaet',
+        resolvedBy: ['dashboard-api.modelViabilityEvidenceGateStatus', 'datapoint.health'],
+        contextKeys: ['dataMaturitySourceFreshness'],
+        optional: false,
+      },
+      {
+        id: 'governance_effort',
+        label: 'Governance-Aufwand, Owner und naechstes Review-Gate',
+        resolvedBy: ['dashboard-api.modelViabilityEvidenceGateStatus', 'vdmi.dossier'],
+        contextKeys: ['governanceEffortBand', 'governanceDecisionOwner', 'nextReviewGate'],
+        optional: false,
+      },
+    ],
+  },
+
   smart_meter_off_balancing_purpose_lock: {
     sources: [
       {

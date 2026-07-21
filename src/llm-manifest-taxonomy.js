@@ -121,6 +121,8 @@ const CAPABILITY_DOMAIN_MAP = {
   management_steering: 'governance',
   nova_governance: 'governance',
   automation_governance: 'governance',
+  // single-candidate operating-model evidence gate — decision-support governance
+  model_viability_governance: 'governance',
   ki_governance: 'governance',
   audit_governance: 'governance',
   // metering asset financial/accounting governance (off-balance treatment) —

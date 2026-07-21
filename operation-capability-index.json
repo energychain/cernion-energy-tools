@@ -2,11 +2,11 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.67.8",
-  "sourceOpenApiHash": "97728489c32e16bf3046a5424b6e438157ac13caec5e6d20be5d80155a868f71",
+  "sourceOpenApiHash": "26f992f9f1fa0135846a19f7f143f5f243ca67a60fa1340c57a13b9aed79954c",
   "coverage": {
-    "rawOperationCount": 1113,
-    "operationCount": 858,
-    "agentableCount": 856,
+    "rawOperationCount": 1115,
+    "operationCount": 859,
+    "agentableCount": 857,
     "nonAgentableCount": 2,
     "byOperationKind": {
       "data_read": 385,
@@ -17,7 +17,7 @@
       "advisory_plan": 40,
       "draft_write": 10,
       "external_effect": 4,
-      "dashboard_read": 124,
+      "dashboard_read": 125,
       "internal": 7
     }
   },
@@ -27422,6 +27422,206 @@
       },
       "aliases": [
         "GET /api/dashboard-api/metering-rollout-process-indicator"
+      ]
+    },
+    {
+      "operationId": "dashboard-api_modelViabilityEvidenceGateStatus",
+      "method": "GET",
+      "path": "/api/dashboard/model-viability-evidence-gate",
+      "service": "dashboard",
+      "action": null,
+      "summary": "Model Viability Evidence Gate — read-only single-candidate evidence view",
+      "tags": [
+        "Dashboard API"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "dashboard_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "dashboard.dashboard-api_model_viability_evidence_gate_status"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "dashboard:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [],
+        "optional": [
+          {
+            "name": "candidateId",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": "date_range_start"
+          },
+          {
+            "name": "candidateName",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": "date_range_start"
+          },
+          {
+            "name": "modelType",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "scope",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "evidenceSnapshotRef",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "processCostBand",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "processCostReference",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "exceptionCaseRateBand",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "exceptionCaseOwner",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "liquidityImpactBand",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "liquidityImpactReference",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "dataMaturityMetering",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "dataMaturityRoles",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "dataMaturityTimeSeries",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "dataMaturitySourceFreshness",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "governanceEffortBand",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "governanceDecisionOwner",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "nextReviewGate",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "assumptionOnlyDimensions",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "dashboard",
+          "model",
+          "viability",
+          "evidence",
+          "gate",
+          "status",
+          "—",
+          "read",
+          "only",
+          "single",
+          "candidate",
+          "view"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me model viability evidence gate — read-only single-candidate evidence view"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": [
+        "GET /api/dashboard-api/model-viability-evidence-gate"
       ]
     },
     {
@@ -76167,6 +76367,7 @@
         "jour_fixe_decision_closure_tracker",
         "off_balancing_metering_pruefmatrix",
         "automation_requirements_decision_value",
+        "model_viability_evidence_gate",
         "smart_meter_off_balancing_purpose_lock",
         "imsys_schedule_value_chain_readiness",
         "cls_digital_twin_compliance_gate",

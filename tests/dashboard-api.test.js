@@ -6722,6 +6722,119 @@ describe('dashboard-api.service', () => {
       });
     });
 
+    // ── modelViabilityEvidenceGateStatus ───────────────────────────────────
+
+    describe('modelViabilityEvidenceGateStatus', () => {
+      it('reports blocked_missing_evidence with dimension gaps and no side-effect calls', async () => {
+        const result = await broker.call('dashboard-api.modelViabilityEvidenceGateStatus', {
+          candidateId: 'mvg:section-42c',
+          candidateName: 'Section 42c Community',
+          modelType: 'section_42c_community',
+          scope: 'pilot-region-west',
+          processCostBand: 'medium',
+          exceptionCaseRateBand: 'low',
+          exceptionCaseOwner: 'Netzbetrieb',
+        });
+
+        expect(result.status).toBe('blocked_missing_evidence');
+        expect(result.rows.map((row) => row.dimensionId)).toEqual([
+          'candidate_identity',
+          'evidence_snapshot',
+          'process_cost',
+          'exception_case_rate',
+          'liquidity_impact',
+          'data_maturity_metering',
+          'data_maturity_roles',
+          'data_maturity_time_series',
+          'data_maturity_source_freshness',
+          'governance_effort',
+        ]);
+        expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+          expect.arrayContaining([
+            'evidence_snapshot',
+            'liquidity_impact',
+            'data_maturity_metering',
+            'governance_effort',
+          ])
+        );
+        expect(result.positiveFollowUps[0].category).toBe('model_viability_evidence_gate');
+        expect(result.sourceActions.notCalled).toEqual(
+          expect.arrayContaining([
+            'tariff.mutate',
+            'contract.create',
+            'billing.release',
+            'settlement.exportA96',
+            'mako.dispatch',
+            'workflow.execute',
+            'hitl.create',
+            'external.connector.call',
+            'device-control.execute',
+            'personal-agent.execute',
+          ])
+        );
+        expect(result.safety).toBe('read_only');
+      });
+
+      it('returns assumption_heavy when supplied evidence is caller-flagged as assumption-only', async () => {
+        const result = await broker.call('dashboard-api.modelViabilityEvidenceGateStatus', {
+          candidateId: 'mvg:section-42c',
+          candidateName: 'Section 42c Community',
+          modelType: 'section_42c_community',
+          scope: 'pilot-region-west',
+          evidenceSnapshotRef: 'snapshot:mvg-181',
+          processCostBand: 'medium',
+          exceptionCaseRateBand: 'low',
+          exceptionCaseOwner: 'Netzbetrieb',
+          liquidityImpactBand: 'moderate',
+          dataMaturityMetering: 'imsys-rollout-80pct',
+          dataMaturityRoles: 'marktrolle-bestaetigt',
+          dataMaturityTimeSeries: 'stundenwerte-vollstaendig',
+          dataMaturitySourceFreshness: 'taeglich',
+          governanceEffortBand: 'medium',
+          governanceDecisionOwner: 'Netzplanung',
+          nextReviewGate: '2026-Q4-review',
+          assumptionOnlyDimensions: 'liquidity_impact,governance_effort',
+        });
+
+        expect(result.status).toBe('assumption_heavy');
+        expect(result.missingEvidence).toEqual([]);
+        const byId = Object.fromEntries(result.rows.map((row) => [row.dimensionId, row]));
+        expect(byId.liquidity_impact.evidenceStatus).toBe('assumption_only');
+        expect(byId.governance_effort.evidenceStatus).toBe('assumption_only');
+        expect(byId.process_cost.evidenceStatus).toBe('provided');
+        expect(result.positiveFollowUps.map((item) => item.missingDataPoint)).toEqual(
+          expect.arrayContaining(['liquidity_impact', 'governance_effort'])
+        );
+      });
+
+      it('returns ready_for_management_review only when every dimension is fully provided', async () => {
+        const result = await broker.call('dashboard-api.modelViabilityEvidenceGateStatus', {
+          candidateId: 'mvg:section-42c',
+          candidateName: 'Section 42c Community',
+          modelType: 'section_42c_community',
+          scope: 'pilot-region-west',
+          evidenceSnapshotRef: 'snapshot:mvg-181',
+          processCostBand: 'medium',
+          exceptionCaseRateBand: 'low',
+          exceptionCaseOwner: 'Netzbetrieb',
+          liquidityImpactBand: 'moderate',
+          dataMaturityMetering: 'imsys-rollout-80pct',
+          dataMaturityRoles: 'marktrolle-bestaetigt',
+          dataMaturityTimeSeries: 'stundenwerte-vollstaendig',
+          dataMaturitySourceFreshness: 'taeglich',
+          governanceEffortBand: 'medium',
+          governanceDecisionOwner: 'Netzplanung',
+          nextReviewGate: '2026-Q4-review',
+        });
+
+        expect(result.status).toBe('ready_for_management_review');
+        expect(result.readinessScore).toBe(1);
+        expect(result.missingEvidence).toEqual([]);
+        expect(result.positiveFollowUps).toEqual([]);
+        expect(result.dossierEvidence.dossierFacts).toContain('Provided dimensions: 10/10');
+      });
+    });
+
     // ── smartMeterOffBalancingPurposeLockStatus ────────────────────────────
 
     describe('smartMeterOffBalancingPurposeLockStatus', () => {

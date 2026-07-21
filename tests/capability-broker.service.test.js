@@ -2049,6 +2049,25 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes Model Viability Evidence Gate prompts to the read-only single-candidate gate', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe model viability evidence gate fuer einen supplier service model Betriebsmodell-Kandidaten mit Prozesskosten, Klaerfallquote, Liquiditaetswirkung, Datenreife und Governance Aufwand.',
+    });
+
+    expect(result.capability).toBe('model_viability_evidence_gate');
+    expect(result.recommendedCapabilities[0].capability).toBe('model_viability_evidence_gate');
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.modelViabilityEvidenceGateStatus');
+    expect(actionNames).not.toContain('tariff.mutate');
+    expect(actionNames).not.toContain('contract.create');
+    expect(actionNames).not.toContain('billing.release');
+    expect(actionNames).not.toContain('mako.dispatch');
+    expect(actionNames).not.toContain('workflow.execute');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes Smart-Meter Off-Balancing Purpose-Lock prompts to the read-only evidence gate', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Pruefe smart_meter_off_balancing_purpose_lock fuer Smart Meter Off-Balancing, Purpose Lock, Zweckbindung, freiwerdende Liquiditaet, Finanzierer Kosten, regulatorische Anerkennung, Budgetverwaesserung und Leitwarte Invest.',
