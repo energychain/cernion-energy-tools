@@ -3,6 +3,13 @@ const os = require('os');
 const { ServiceBroker } = require('moleculer');
 const BlindflugRadarService = require('../services/blindflug-radar.service');
 
+// Fixtures must stay inside the scanBlindflug time window regardless of when
+// the suite runs, so events are expressed relative to "now" rather than as
+// fixed calendar dates that eventually age out of the window.
+function daysAgo(n) {
+  return new Date(Date.now() - n * 24 * 60 * 60 * 1000).toISOString();
+}
+
 describe('blindflug-radar service', () => {
   let broker;
   const redispatchAudits = [];
@@ -157,21 +164,21 @@ describe('blindflug-radar service', () => {
     redispatchAudits.push(
       {
         id: 'rd-1',
-        createdAt: '2026-03-01T00:00:00.000Z',
+        createdAt: daysAgo(59),
         gridOperator: { mastrId: 'SNB1', name: 'Grid One' },
         riskAssessment: { riskLevel: 'high', estimatedLostCompensationEur: 1800000 },
         settlementReadiness: { readinessPercent: 61 },
       },
       {
         id: 'rd-2',
-        createdAt: '2026-03-20T00:00:00.000Z',
+        createdAt: daysAgo(40),
         gridOperator: { mastrId: 'SNB1', name: 'Grid One' },
         riskAssessment: { riskLevel: 'high', estimatedLostCompensationEur: 1700000 },
         settlementReadiness: { readinessPercent: 63 },
       },
       {
         id: 'rd-3',
-        createdAt: '2026-04-10T00:00:00.000Z',
+        createdAt: daysAgo(19),
         gridOperator: { mastrId: 'SNB1', name: 'Grid One' },
         riskAssessment: { riskLevel: 'high', estimatedLostCompensationEur: 1900000 },
         settlementReadiness: { readinessPercent: 60 },
@@ -181,15 +188,15 @@ describe('blindflug-radar service', () => {
     mastrWatches.push({ watchId: 'watch-1', name: 'Nord' });
     mastrDeltasByWatch.set('watch-1', [
       {
-        timestamp: '2026-03-15T00:00:00.000Z',
+        timestamp: daysAgo(45),
         summary: { added: 1, changed: 5, removed: 1 },
       },
       {
-        timestamp: '2026-04-18T00:00:00.000Z',
+        timestamp: daysAgo(11),
         summary: { added: 0, changed: 4, removed: 2 },
       },
       {
-        timestamp: '2026-04-29T00:00:00.000Z',
+        timestamp: daysAgo(0),
         summary: { added: 0, changed: 3, removed: 1 },
       },
     ]);
@@ -197,21 +204,21 @@ describe('blindflug-radar service', () => {
     qualityAudits.push(
       {
         id: 'mq-1',
-        createdAt: '2026-03-12T00:00:00.000Z',
+        createdAt: daysAgo(48),
         gridOperator: { mastrId: 'SNB1', name: 'Grid One' },
         qualityScore: 71,
         findingsCount: { info: 2, warning: 4, error: 1 },
       },
       {
         id: 'mq-2',
-        createdAt: '2026-04-11T00:00:00.000Z',
+        createdAt: daysAgo(18),
         gridOperator: { mastrId: 'SNB1', name: 'Grid One' },
         qualityScore: 70,
         findingsCount: { info: 2, warning: 3, error: 2 },
       },
       {
         id: 'mq-3',
-        createdAt: '2026-04-27T00:00:00.000Z',
+        createdAt: daysAgo(2),
         gridOperator: { mastrId: 'SNB1', name: 'Grid One' },
         qualityScore: 68,
         findingsCount: { info: 1, warning: 2, error: 1 },
