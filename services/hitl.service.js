@@ -765,7 +765,9 @@ module.exports = {
                   rules: {
                     type: 'array',
                     items: { type: 'object' },
-                    example: [{ ruleId: 'summary_required', type: 'required', fieldKey: 'summary' }],
+                    example: [
+                      { ruleId: 'summary_required', type: 'required', fieldKey: 'summary' },
+                    ],
                   },
                   fields: { type: 'object', example: { summary: 'ok' } },
                 },
@@ -825,7 +827,9 @@ module.exports = {
                   plausibilityRules: {
                     type: 'array',
                     items: { type: 'object' },
-                    example: [{ ruleId: 'summary_required', type: 'required', fieldKey: 'summary' }],
+                    example: [
+                      { ruleId: 'summary_required', type: 'required', fieldKey: 'summary' },
+                    ],
                   },
                   completionFields: { type: 'object', example: { summary: 'ok' } },
                 },
