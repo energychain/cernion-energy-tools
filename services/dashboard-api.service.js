@@ -50,6 +50,10 @@ const ACTION_GC_LIST = 'grid-connection.list';
 const ACTION_VDMI_LIST = 'vdmi.list';
 const ACTION_VDMI_FINDINGS = 'vdmi.findings';
 
+function stringQueryParam(name) {
+  return { name, in: 'query', required: false, schema: { type: 'string' } };
+}
+
 module.exports = {
   name: 'dashboard-api',
 
@@ -13874,64 +13878,24 @@ module.exports = {
           'finance, procurement, workflow, HITL, connector, market-communication, device-control or ' +
           'Personal-Agent action.',
         parameters: [
-          { name: 'candidateId', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'candidateName', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'modelType', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'scope', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'evidenceSnapshotRef', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'processCostBand', in: 'query', required: false, schema: { type: 'string' } },
-          {
-            name: 'processCostReference',
-            in: 'query',
-            required: false,
-            schema: { type: 'string' },
-          },
-          {
-            name: 'exceptionCaseRateBand',
-            in: 'query',
-            required: false,
-            schema: { type: 'string' },
-          },
-          { name: 'exceptionCaseOwner', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'liquidityImpactBand', in: 'query', required: false, schema: { type: 'string' } },
-          {
-            name: 'liquidityImpactReference',
-            in: 'query',
-            required: false,
-            schema: { type: 'string' },
-          },
-          {
-            name: 'dataMaturityMetering',
-            in: 'query',
-            required: false,
-            schema: { type: 'string' },
-          },
-          { name: 'dataMaturityRoles', in: 'query', required: false, schema: { type: 'string' } },
-          {
-            name: 'dataMaturityTimeSeries',
-            in: 'query',
-            required: false,
-            schema: { type: 'string' },
-          },
-          {
-            name: 'dataMaturitySourceFreshness',
-            in: 'query',
-            required: false,
-            schema: { type: 'string' },
-          },
-          {
-            name: 'governanceEffortBand',
-            in: 'query',
-            required: false,
-            schema: { type: 'string' },
-          },
-          {
-            name: 'governanceDecisionOwner',
-            in: 'query',
-            required: false,
-            schema: { type: 'string' },
-          },
-          { name: 'nextReviewGate', in: 'query', required: false, schema: { type: 'string' } },
+          stringQueryParam('candidateId'),
+          stringQueryParam('candidateName'),
+          stringQueryParam('modelType'),
+          stringQueryParam('scope'),
+          stringQueryParam('evidenceSnapshotRef'),
+          stringQueryParam('processCostBand'),
+          stringQueryParam('processCostReference'),
+          stringQueryParam('exceptionCaseRateBand'),
+          stringQueryParam('exceptionCaseOwner'),
+          stringQueryParam('liquidityImpactBand'),
+          stringQueryParam('liquidityImpactReference'),
+          stringQueryParam('dataMaturityMetering'),
+          stringQueryParam('dataMaturityRoles'),
+          stringQueryParam('dataMaturityTimeSeries'),
+          stringQueryParam('dataMaturitySourceFreshness'),
+          stringQueryParam('governanceEffortBand'),
+          stringQueryParam('governanceDecisionOwner'),
+          stringQueryParam('nextReviewGate'),
           {
             name: 'assumptionOnlyDimensions',
             in: 'query',
