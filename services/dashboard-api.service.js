@@ -13778,8 +13778,18 @@ module.exports = {
           { name: 'scope', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'evidenceSnapshotRef', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'processCostBand', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'processCostReference', in: 'query', required: false, schema: { type: 'string' } },
-          { name: 'exceptionCaseRateBand', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'processCostReference',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'exceptionCaseRateBand',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
           { name: 'exceptionCaseOwner', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'liquidityImpactBand', in: 'query', required: false, schema: { type: 'string' } },
           {
@@ -13788,7 +13798,12 @@ module.exports = {
             required: false,
             schema: { type: 'string' },
           },
-          { name: 'dataMaturityMetering', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'dataMaturityMetering',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
           { name: 'dataMaturityRoles', in: 'query', required: false, schema: { type: 'string' } },
           {
             name: 'dataMaturityTimeSeries',
@@ -13802,7 +13817,12 @@ module.exports = {
             required: false,
             schema: { type: 'string' },
           },
-          { name: 'governanceEffortBand', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'governanceEffortBand',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
           {
             name: 'governanceDecisionOwner',
             in: 'query',
@@ -16733,9 +16753,9 @@ module.exports = {
             exceptionCaseRateBand: params.exceptionCaseRateBand || null,
             exceptionCaseOwner: params.exceptionCaseOwner || null,
           },
-          provided: isProvided(params.exceptionCaseRateBand) && isProvided(params.exceptionCaseOwner),
-          enablesDossierAddition:
-            'add exception-case rate/band evidence and an accountable owner',
+          provided:
+            isProvided(params.exceptionCaseRateBand) && isProvided(params.exceptionCaseOwner),
+          enablesDossierAddition: 'add exception-case rate/band evidence and an accountable owner',
         },
         {
           id: 'liquidity_impact',
@@ -16787,8 +16807,7 @@ module.exports = {
             isProvided(params.governanceEffortBand) &&
             isProvided(params.governanceDecisionOwner) &&
             isProvided(params.nextReviewGate),
-          enablesDossierAddition:
-            'add governance-effort band, decision owner and next review gate',
+          enablesDossierAddition: 'add governance-effort band, decision owner and next review gate',
         },
       ];
 
@@ -16865,7 +16884,8 @@ module.exports = {
           `Candidate: ${candidateContext.candidateName || candidateContext.candidateId}`
         );
       }
-      if (candidateContext.modelType) dossierFacts.push(`Model type: ${candidateContext.modelType}`);
+      if (candidateContext.modelType)
+        dossierFacts.push(`Model type: ${candidateContext.modelType}`);
 
       return {
         modelViabilityGateId: `mveg:${Buffer.from(

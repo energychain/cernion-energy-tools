@@ -3970,7 +3970,12 @@ const CURATED_CAPABILITIES = [
       { name: 'candidateName', label: 'Kandidat/Modellname', type: 'string', required: false },
       { name: 'modelType', label: 'Modelltyp', type: 'string', required: false },
       { name: 'processCostBand', label: 'Prozesskosten-Band', type: 'string', required: false },
-      { name: 'liquidityImpactBand', label: 'Liquiditaetswirkung-Band', type: 'string', required: false },
+      {
+        name: 'liquidityImpactBand',
+        label: 'Liquiditaetswirkung-Band',
+        type: 'string',
+        required: false,
+      },
     ],
     risksAndNotes: [
       'dashboard-api.modelViabilityEvidenceGateStatus ist read-only und dossier-safe.',
