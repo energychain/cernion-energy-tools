@@ -2244,6 +2244,132 @@ describe('dashboard-api.service', () => {
       });
     });
 
+    // ── coordinationMeaningPreservationProfile ─────────────────────────────
+
+    describe('coordinationMeaningPreservationProfile', () => {
+      it('reports decision-context gaps without calling Fachsystem or downstream actions', async () => {
+        const result = await broker.call('dashboard-api.coordinationMeaningPreservationProfile', {
+          caseId: 'case-402',
+          sourceDomain: 'Netzbetrieb',
+          targetDomain: 'Planung',
+          regulatoryReference: '14a-readiness',
+          networkConstraint: 'transformer-limit',
+        });
+
+        expect(result.capabilityKey).toBe('coordination_meaning_preservation_profile');
+        expect(result.status).toBe('needs_decision_context');
+        expect(result.coordinationLossClassification).toBe('decision_context_missing');
+        expect(result.preservedDimensions.map((item) => item.id)).toEqual(
+          expect.arrayContaining(['regulatory_reference', 'network_constraint'])
+        );
+        expect(result.missingDimensions.map((gap) => gap.missingDataPoint)).toEqual(
+          expect.arrayContaining(['commercial_effect', 'evidence_proof', 'owner', 'next_decision'])
+        );
+        expect(result.positiveFollowUps[0].category).toBe(
+          'coordination_meaning_preservation_profile'
+        );
+        expect(result.sourceActions.notCalled).toEqual(
+          expect.arrayContaining([
+            'external.connector.call',
+            'fachsystem.write',
+            'hitl.create',
+            'billing.release',
+            'mako.dispatch',
+            'device-control.execute',
+            'budibase.write',
+          ])
+        );
+        expect(result.safety).toBe('read_only');
+      });
+
+      it('returns meaning_preserved when all preservation dimensions are supplied', async () => {
+        const result = await broker.call('dashboard-api.coordinationMeaningPreservationProfile', {
+          caseId: 'case-402',
+          sourceDomain: 'EDM',
+          targetDomain: 'Abrechnung',
+          regulatoryReference: 'EnWG-42c',
+          commercialEffect: 'tariff-impact-reviewed',
+          networkConstraint: 'not-applicable',
+          evidenceProof: 'vdmi:evidence-402',
+          owner: 'Abrechnung',
+          deadline: '2026-08-01',
+          nextDecision: 'billing-boundary-review',
+          operationalRisk: 'low',
+        });
+
+        expect(result.status).toBe('meaning_preserved');
+        expect(result.coordinationLossClassification).toBe('meaning_preserved');
+        expect(result.missingDimensions).toEqual([]);
+        expect(result.dossierEvidence.dossierFacts).toContain('Preserved dimensions: 8/8');
+        expect(result.dossierEvidence.dossierFacts).toContain('Handover: EDM -> Abrechnung');
+      });
+    });
+
+    // -- a2mdmDecisionObjectStatus ----------------------------------------
+
+    describe('a2mdmDecisionObjectStatus', () => {
+      it('reports missing decision-object context without triggering downstream actions', async () => {
+        const result = await broker.call('dashboard-api.a2mdmDecisionObjectStatus', {
+          caseId: 'case-423',
+          subject: 'Flexible Netzanschluss Freigabe',
+          technicalConstraint: 'transformer-limit',
+          regulatoryReference: 'EnWG-14a-context',
+        });
+
+        expect(result.capabilityKey).toBe('a2mdm_decision_object_meaning_preservation');
+        expect(result.status).toBe('needs_decision_context');
+        expect(result.safety).toBe('read_only_decision_context_projection');
+        expect(result.decisionRows.every((row) => row.scalar === true)).toBe(true);
+        expect(result.missingInputs.map((gap) => gap.missingDataPoint)).toEqual(
+          expect.arrayContaining([
+            'business_intent',
+            'evidence_source',
+            'owner_role',
+            'risk_level',
+            'decision_threshold',
+            'next_gate',
+          ])
+        );
+        expect(result.positiveFollowUps[0].category).toBe(
+          'a2mdm_decision_object_meaning_preservation'
+        );
+        expect(result.sourceActions.notCalled).toEqual(
+          expect.arrayContaining([
+            'a2mdm.persist',
+            'budibase.table.write',
+            'mako.dispatch',
+            'billing.release',
+            'settlement.prepareBilling',
+            'device-control.execute',
+            'hitl.create',
+            'external.connector.call',
+            'personal-agent.execute',
+          ])
+        );
+      });
+
+      it('returns decision_context_preserved for a complete synthetic decision object', async () => {
+        const result = await broker.call('dashboard-api.a2mdmDecisionObjectStatus', {
+          caseId: 'case-423-complete',
+          subject: 'Stadtwerk Mauer flexible connection release',
+          businessIntent: 'reserve-capacity-after-evidence-review',
+          technicalConstraint: 'nvp-capacity-window-q3',
+          regulatoryReference: 'EnWG-14a-context',
+          evidenceSource: 'vdmi:release-file-seed-v1',
+          ownerRole: 'Netzplanung',
+          riskLevel: 'medium',
+          decisionThreshold: 'all-release-evidence-present',
+          nextGate: 'human-release-review',
+        });
+
+        expect(result.status).toBe('decision_context_preserved');
+        expect(result.missingInputs).toEqual([]);
+        expect(result.dossierEvidence.dossierFacts).toContain('Open missing inputs: 0');
+        expect(result.dossierEvidence.dossierFacts).toContain('Owner: Netzplanung');
+        expect(result.sourceActions.notCalled).toContain('landing-registry.publish');
+      });
+    });
+
     // ── gremiencoachWorkbookReadinessStatus ────────────────────────────────
 
     describe('gremiencoachWorkbookReadinessStatus', () => {
@@ -2275,9 +2401,7 @@ describe('dashboard-api.service', () => {
         expect(result.guardrailRows.map((row) => row.guardrailId)).toEqual(
           expect.arrayContaining(['no_private_document_ingestion', 'no_office_generation'])
         );
-        expect(result.positiveFollowUpRows[0].category).toBe(
-          'gremiencoach_workbook_readiness'
-        );
+        expect(result.positiveFollowUpRows[0].category).toBe('gremiencoach_workbook_readiness');
         expect(result.sourceActions.notCalled).toEqual(
           expect.arrayContaining([
             'document.upload',
@@ -2510,9 +2634,7 @@ describe('dashboard-api.service', () => {
             'test_case_hint',
           ])
         );
-        expect(result.positiveFollowUps[0].category).toBe(
-          'regulatory_signal_process_translator'
-        );
+        expect(result.positiveFollowUps[0].category).toBe('regulatory_signal_process_translator');
         expect(result.sourceActions.notCalled).toEqual(
           expect.arrayContaining([
             'legal.interpret',
@@ -3161,6 +3283,230 @@ describe('dashboard-api.service', () => {
         expect(result.missingEvidence).toEqual([]);
         expect(result.evidenceStatus.provided).toBe(result.evidenceStatus.required);
         expect(result.dossierEvidence.dossierFacts).toContain('Status: ready_for_fast_track');
+      });
+
+      it('is backwards compatible: existing callers without lifecycle params keep all current fields and decisionReadiness', async () => {
+        const result = await broker.call('dashboard-api.fnavFastTrackContractGateStatus', {
+          gateId: 'fnav-ft-legacy',
+          gridOperatorId: 'SNB935578300972',
+          requestType: 'data_center',
+          assetOrLoadType: 'large_load',
+          requestedCapacityKW: 10000,
+          netzsignalPriorityPolicy: 'approved',
+          scheduleObligation: 'confirmed',
+          meteringRequirements: 'confirmed',
+          controlEvidenceRef: 'ctrl-proof-1',
+          contractStatus: 'signed',
+          legalStatus: 'approved',
+          ownerContact: 'vertrieb',
+          commercialImpact: 'ready',
+          marketingBoundaries: 'ready',
+        });
+
+        expect(result.status).toBe('ready_for_fast_track');
+        expect(result.missingEvidence).toEqual([]);
+        expect(result.evidenceStatus.provided).toBe(result.evidenceStatus.required);
+        expect(result.dossierEvidence.dossierFacts).toContain('Status: ready_for_fast_track');
+        // additive field present without changing existing response shape/semantics
+        expect(result.lifecycleEvidence).toBeDefined();
+        expect(result.lifecycleEvidence.capabilityKey).toBe('fnav_fast_track_contract_gate');
+      });
+
+      it('reports complete FCA/fNAV lifecycle evidence when every stage is supplied', async () => {
+        const result = await broker.call('dashboard-api.fnavFastTrackContractGateStatus', {
+          gateId: 'fnav-ft-lifecycle-complete',
+          gridOperatorId: 'SNB935578300972',
+          requestType: 'storage',
+          assetOrLoadType: 'battery',
+          firmCapacityKW: 500,
+          flexibleCapacityKW: 1500,
+          connectionRequestRef: 'creq-2201',
+          gridConnectionPoint: 'napp-08.4',
+          capacityOfferRef: 'coffer-77',
+          capacityOfferVersion: 'v3',
+          capacityOfferDate: '2026-05-01',
+          restrictionProfileRef: 'restr-14',
+          restrictionProfileVersion: 'v2',
+          curtailmentWindow: '18:00-20:00',
+          contractRef: 'contract-91',
+          contractVersion: 'v4',
+          contractReviewStatus: 'under_review',
+          curtailmentMeasurementEvidenceRef: 'meas-3391',
+          redispatchRelevanceRef: 'rd-relevance-1',
+          redispatchStatusRef: 'rd-status-1',
+          compensationStatusRef: 'comp-status-1',
+          evidenceOwner: 'netzplanung',
+          nextReviewGate: 'quarterly-review-q3',
+          evidenceSourceTimestamp: '2026-07-01T09:00:00Z',
+        });
+
+        const { lifecycleEvidence } = result;
+        expect(lifecycleEvidence.evidenceStatus.provided).toBe(
+          lifecycleEvidence.evidenceStatus.required
+        );
+        expect(lifecycleEvidence.missingEvidence).toEqual([]);
+        expect(lifecycleEvidence.positiveFollowUps).toEqual([]);
+        for (const row of lifecycleEvidence.rows) {
+          if (row.code === 'operating_event') continue;
+          expect(row.evidenceStatus).toBe('provided');
+        }
+      });
+
+      it('reports incomplete FCA/fNAV lifecycle evidence with review-only follow-ups when stages are partial or missing', async () => {
+        const result = await broker.call('dashboard-api.fnavFastTrackContractGateStatus', {
+          gateId: 'fnav-ft-lifecycle-incomplete',
+          gridOperatorId: 'SNB935578300972',
+          requestType: 'storage',
+          assetOrLoadType: 'battery',
+          requestedCapacityKW: 2500,
+          netzsignalPriorityPolicy: 'approved',
+          scheduleObligation: 'ready',
+          contractStatus: 'draft',
+          legalStatus: 'approved',
+          ownerContact: 'netzplanung',
+          commercialImpact: 'ready',
+          connectionRequestRef: 'creq-2202',
+          // gridConnectionPoint omitted -> connection_request partial
+          capacityOfferRef: 'coffer-78',
+          // capacityOfferVersion/Date/firm/flexible capacity omitted -> capacity_offer partial
+          // restriction_profile, contract_lifecycle, curtailment_measurement_evidence,
+          // redispatch_compensation_markers, evidence_governance fully omitted -> missing
+        });
+
+        const { lifecycleEvidence } = result;
+        const rowByCode = Object.fromEntries(lifecycleEvidence.rows.map((row) => [row.code, row]));
+        expect(rowByCode.connection_request.evidenceStatus).toBe('partial');
+        expect(rowByCode.capacity_offer.evidenceStatus).toBe('partial');
+        expect(rowByCode.restriction_profile.evidenceStatus).toBe('missing');
+        expect(rowByCode.contract_lifecycle.evidenceStatus).toBe('missing');
+        expect(rowByCode.curtailment_measurement_evidence.evidenceStatus).toBe('missing');
+        expect(rowByCode.redispatch_compensation_markers.evidenceStatus).toBe('missing');
+        expect(rowByCode.evidence_governance.evidenceStatus).toBe('missing');
+
+        const missingCodes = lifecycleEvidence.missingEvidence.map((gap) => gap.missingDataPoint);
+        expect(missingCodes).toEqual(
+          expect.arrayContaining([
+            'connection_request',
+            'capacity_offer',
+            'restriction_profile',
+            'contract_lifecycle',
+            'curtailment_measurement_evidence',
+            'redispatch_compensation_markers',
+            'evidence_governance',
+          ])
+        );
+        expect(lifecycleEvidence.positiveFollowUps.length).toBe(
+          lifecycleEvidence.missingEvidence.length
+        );
+        for (const followUp of lifecycleEvidence.positiveFollowUps) {
+          expect(followUp.category).toBe('fca_fnav_lifecycle_evidence');
+        }
+        // existing gate semantics (decisionReadiness) are unaffected by lifecycle gaps
+        expect(result.status).toBe('needs_control_evidence');
+      });
+
+      it('supports at most one optional operating-event snapshot per request', async () => {
+        const noEvent = await broker.call('dashboard-api.fnavFastTrackContractGateStatus', {
+          gateId: 'fnav-ft-event-none',
+          gridOperatorId: 'SNB935578300972',
+        });
+        expect(noEvent.lifecycleEvidence.operatingEvent.evidenceStatus).toBe('missing');
+        // fully unsupplied optional snapshot is not a gap
+        expect(
+          noEvent.lifecycleEvidence.missingEvidence.some(
+            (gap) => gap.missingDataPoint === 'operating_event'
+          )
+        ).toBe(false);
+
+        const partialEvent = await broker.call('dashboard-api.fnavFastTrackContractGateStatus', {
+          gateId: 'fnav-ft-event-partial',
+          gridOperatorId: 'SNB935578300972',
+          operatingEventRef: 'evt-501',
+        });
+        expect(partialEvent.lifecycleEvidence.operatingEvent.evidenceStatus).toBe('partial');
+        expect(
+          partialEvent.lifecycleEvidence.missingEvidence.some(
+            (gap) => gap.missingDataPoint === 'operating_event'
+          )
+        ).toBe(true);
+
+        const fullEvent = await broker.call('dashboard-api.fnavFastTrackContractGateStatus', {
+          gateId: 'fnav-ft-event-full',
+          gridOperatorId: 'SNB935578300972',
+          operatingEventRef: 'evt-502',
+          operatingEventType: 'curtailment_order',
+          operatingEventTimestamp: '2026-06-15T12:00:00Z',
+        });
+        expect(fullEvent.lifecycleEvidence.operatingEvent.evidenceStatus).toBe('provided');
+        expect(
+          fullEvent.lifecycleEvidence.rows.filter((row) => row.code === 'operating_event').length
+        ).toBe(1);
+      });
+
+      it('keeps lifecycle evidence rows scalar-safe (dossier-display-only values)', async () => {
+        const result = await broker.call('dashboard-api.fnavFastTrackContractGateStatus', {
+          gateId: 'fnav-ft-scalar-safe',
+          gridOperatorId: 'SNB935578300972',
+          connectionRequestRef: 'creq-2203',
+          gridConnectionPoint: 'napp-09.1',
+          firmCapacityKW: 250,
+          flexibleCapacityKW: 750,
+          operatingEventRef: 'evt-503',
+          operatingEventType: 'curtailment_order',
+          operatingEventTimestamp: '2026-06-20T08:00:00Z',
+        });
+
+        expectScalarTableRows(result.lifecycleEvidence.rows);
+        expect(result.lifecycleEvidence.rows).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              code: 'connection_request',
+              connectionRequestRef: 'creq-2203',
+              gridConnectionPoint: 'napp-09.1',
+            }),
+            expect.objectContaining({
+              code: 'operating_event',
+              operatingEventRef: 'evt-503',
+              operatingEventType: 'curtailment_order',
+              operatingEventTimestamp: '2026-06-20T08:00:00Z',
+            }),
+          ])
+        );
+      });
+
+      it('never calls contract, capacity-allocation, grid-mutation, curtailment/dispatch, Redispatch/compensation/settlement, MaKo/A96, workflow/HITL, connector or Personal-Agent actions', async () => {
+        const result = await broker.call('dashboard-api.fnavFastTrackContractGateStatus', {
+          gateId: 'fnav-ft-nocall',
+          gridOperatorId: 'SNB935578300972',
+          connectionRequestRef: 'creq-2204',
+          contractRef: 'contract-92',
+          redispatchRelevanceRef: 'rd-relevance-2',
+          redispatchStatusRef: 'rd-status-2',
+          compensationStatusRef: 'comp-status-2',
+        });
+
+        expect(result.lifecycleEvidence.sourceActions.notCalled).toEqual(
+          expect.arrayContaining([
+            'contract.approve',
+            'contract.release',
+            'capacity.allocate',
+            'grid-connection.mutate',
+            'grid-connection.approve',
+            'curtailment.dispatch',
+            'device-control.execute',
+            'redispatch.execute',
+            'redispatch.classify',
+            'compensation.calculate',
+            'settlement.prepareBilling',
+            'mako.dispatch',
+            'a96.dispatch',
+            'workflow.create',
+            'hitl.create',
+            'external.connector.call',
+            'personal-agent.execute',
+          ])
+        );
+        expect(result._errors).toEqual([]);
       });
     });
 
@@ -4053,6 +4399,243 @@ describe('dashboard-api.service', () => {
       });
     });
 
+    // -- energySidecarRouteRegistryStatus ----------------------------------
+
+    describe('energySidecarRouteRegistryStatus', () => {
+      it('returns grounded read-only route rows without executing recommended endpoints', async () => {
+        const result = await broker.call('dashboard-api.energySidecarRouteRegistryStatus', {
+          intent: 'redispatch readiness route audit',
+          domain: 'redispatch',
+          requiredInput: 'processId',
+          includeFallbacks: true,
+        });
+
+        expect(result.status).toBe('route_registry_ready');
+        expect(result.safety).toBe('read_only');
+        expect(result.capabilityKey).toBe('energy_sidecar_route_registry');
+        expect(result.rows).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              routeKey: 'redispatch_readiness_evidence',
+              preferredAction: 'redispatch-readiness-gate.getStatus',
+              preferredEndpoint: '/api/redispatch-readiness-gate/status',
+              evidenceStatus: 'route_grounded',
+              safety: 'read_only',
+            }),
+          ])
+        );
+        expect(result.sourceActions.notCalled).toEqual(
+          expect.arrayContaining([
+            'recommendedEndpoint.execute',
+            'external.connector.call',
+            'hitl.create',
+            'workflow.execute',
+            'billing.release',
+            'settlement.prepareBilling',
+            'device-control.execute',
+            'personal-agent.execute',
+          ])
+        );
+        expect(result.decisionBoundary.recommendedEndpointExecuted).toBe(false);
+        expect(result.decisionBoundary.productionMutation).toBe(false);
+      });
+
+      it('surfaces missing-route context as positive follow-ups and scalar dossier rows', async () => {
+        const result = await broker.call('dashboard-api.energySidecarRouteRegistryStatus', {
+          intent: 'unknown hydrogen billing switch action',
+          domain: 'unsupported-domain',
+        });
+
+        expect(result.status).toBe('needs_route_context');
+        expect(result.rows[0]).toEqual(
+          expect.objectContaining({
+            routeKey: 'unsupported_domain_fallback',
+            evidenceStatus: 'unsupported_or_ambiguous_route',
+            preferredAction: 'interface-placeholder.requestEvidence',
+          })
+        );
+        expect(result.positiveFollowUps[0].category).toBe('energy_sidecar_route_registry');
+        expect(result.dossierEvidence.rows[0]).not.toHaveProperty('operationEvidence');
+        expect(result.dossierEvidence.rows[0].noCallGuards).toEqual(
+          expect.arrayContaining(['recommendedEndpoint.execute'])
+        );
+      });
+    });
+
+    // -- interconnectionReleaseFileStatus ----------------------------------
+
+    describe('interconnectionReleaseFileStatus', () => {
+      it('returns read-only release-file rows with no-call guards', async () => {
+        const result = await broker.call('dashboard-api.interconnectionReleaseFileStatus', {
+          caseId: 'case-419',
+          koppelpunktId: 'KP-419',
+          marketPartnerId: 'MP-419',
+          timeseriesId: 'TS-419',
+          mappingVersion: 'v2',
+          sourceSystem: 'a2mdm-export',
+          evidenceStatus: 'complete',
+          approvalStatus: 'approved',
+          owner: 'marktkommunikation',
+          nextChangeGate: '2026-Q3',
+          affectedProcess: 'mako,billing',
+          includeFallbacks: true,
+        });
+
+        expect(result.status).toBe('release_file_ready');
+        expect(result.safety).toBe('read_only');
+        expect(result.capabilityKey).toBe('interconnection_release_file');
+        expect(result.syntheticDemo).toBe(false);
+        expect(result.subject).toEqual(
+          expect.objectContaining({
+            caseId: 'case-419',
+            koppelpunktId: 'KP-419',
+            marketPartnerId: 'MP-419',
+            timeseriesId: 'TS-419',
+            mappingVersion: 'v2',
+          })
+        );
+        expect(result.mappingRows).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ key: 'koppelpunkt', value: 'KP-419' }),
+            expect.objectContaining({ key: 'market_partner', value: 'MP-419' }),
+            expect.objectContaining({ key: 'timeseries', value: 'TS-419' }),
+          ])
+        );
+        expect(result.sourceActions.notCalled).toEqual(
+          expect.arrayContaining([
+            'mapping.write',
+            'mapping.releaseExecute',
+            'mako.submit',
+            'billing.release',
+            'settlement.prepareBilling',
+            'tariff.mutate',
+            'hitl.create',
+            'workflow.execute',
+            'device-control.execute',
+            'external.connector.call',
+            'budibase.table.write',
+            'personal-agent.execute',
+          ])
+        );
+        expect(result.decisionBoundary.mappingWritten).toBe(false);
+        expect(result.decisionBoundary.downstreamProcessExecuted).toBe(false);
+        expect(result.decisionBoundary.productionMutation).toBe(false);
+        expect(result.dossierEvidence.evidenceRows[0]).toEqual(
+          expect.objectContaining({
+            sourceSystem: 'a2mdm-export',
+            mappingVersion: 'v2',
+            evidenceStatus: 'source_versioned',
+          })
+        );
+      });
+
+      it('labels synthetic demo evidence and turns missing release data into positive follow-ups', async () => {
+        const result = await broker.call('dashboard-api.interconnectionReleaseFileStatus', {});
+
+        expect(result.status).toBe('needs_release_evidence');
+        expect(result.syntheticDemo).toBe(true);
+        expect(result.summaryRows).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              key: 'evidence_basis',
+              value: 'synthetic_demo_read_model',
+            }),
+          ])
+        );
+        expect(result.missingEvidence).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ missingDataPoint: 'koppelpunkt_id' }),
+            expect.objectContaining({ missingDataPoint: 'mapping_version' }),
+            expect.objectContaining({ missingDataPoint: 'approval_owner' }),
+          ])
+        );
+        expect(result.positiveFollowUps[0]).toEqual(
+          expect.objectContaining({
+            category: 'interconnection_release_file',
+            enablesDossierAddition: expect.stringContaining('Koppelpunkt identifier'),
+          })
+        );
+        expect(result.dossierEvidence.summaryRows).toBeDefined();
+        expect(result.dossierEvidence).not.toHaveProperty('cache');
+      });
+    });
+
+    // -- directMarketerRiskGateStatus ---------------------------------------
+
+    describe('directMarketerRiskGateStatus', () => {
+      it('reports forecast and allocation gaps without market side effects', async () => {
+        const result = await broker.call('dashboard-api.directMarketerRiskGateStatus', {
+          caseId: 'case-411',
+          directMarketer: 'dm-partner',
+          roleOwner: 'Energy Services',
+        });
+
+        expect(result.status).toBe('needs_forecast_and_allocation_evidence');
+        expect(result.safety).toBe('read_only');
+        expect(result.handoverContext.caseId).toBe('case-411');
+        expect(result.marketEvidence.forecastQuality).toBeNull();
+        expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+          expect.arrayContaining([
+            'forecast_quality',
+            'allocation_rules',
+            'balancing_schedule_impact',
+            'billing_settlement_status',
+            'deadline',
+            'evidence_status',
+          ])
+        );
+        expect(result.positiveFollowUps[0].category).toBe('direct_marketer_risk_gate');
+        expect(result.sourceActions.notCalled).toEqual(
+          expect.arrayContaining([
+            'market.executeTrade',
+            'schedule.submit',
+            'balancing-group.transfer',
+            'direct-marketer.offer.approve',
+            'contract.approve',
+            'billing.release',
+            'settlement.prepareBilling',
+            'customer-communication.send',
+            'hitl.create',
+            'external.connector.call',
+            'personal-agent.execute',
+          ])
+        );
+        expect(result.decisionBoundary.productionMutation).toBe(false);
+      });
+
+      it('returns ready_for_direct_marketer_review for complete handover evidence', async () => {
+        const result = await broker.call('dashboard-api.directMarketerRiskGateStatus', {
+          caseId: 'case-ready-411',
+          projectId: 'energy-sharing-411',
+          communityModel: 'gemeinschaftsstrom',
+          directMarketer: 'dm-partner',
+          forecastQuality: 'validated',
+          forecastDeviationPct: '4.2',
+          allocationRules: 'documented',
+          balancingGroupImpact: 'bounded',
+          scheduleImpact: 'no-daily-submission-change',
+          billingStatus: 'ready',
+          settlementStatus: 'ready',
+          roleOwner: 'Energy Services',
+          deadline: '2026-09-30',
+          evidenceStatus: 'complete',
+          sourceEvidence: 'forecast:v1,allocation:v2',
+        });
+
+        expect(result.status).toBe('ready_for_direct_marketer_review');
+        expect(result.readinessScore).toBe(1);
+        expect(result.missingEvidence).toEqual([]);
+        expect(result.marketEvidence.forecastDeviationPct).toBe(4.2);
+        expect(result.marketEvidence.sourceEvidence).toEqual(
+          expect.arrayContaining(['forecast:v1', 'allocation:v2'])
+        );
+        expect(result.decisionBoundary.scheduleSubmitted).toBe(false);
+        expect(result.dossierEvidence.dossierFacts).toContain(
+          'Direct Marketer Risk Gate Status: ready_for_direct_marketer_review'
+        );
+      });
+    });
+
     // -- noRegretMeasureDefinitionGateStatus --------------------------------
 
     describe('noRegretMeasureDefinitionGateStatus', () => {
@@ -4500,9 +5083,7 @@ describe('dashboard-api.service', () => {
         });
 
         expect(stale.status).toBe('stale');
-        expect(stale.staleMarkers.map((marker) => marker.marker)).toContain(
-          'leading_source_stale'
-        );
+        expect(stale.staleMarkers.map((marker) => marker.marker)).toContain('leading_source_stale');
         expect(stale.positiveFollowUps.map((gap) => gap.missingDataPoint)).toContain(
           'stale_leading_source_refresh'
         );
@@ -9215,6 +9796,63 @@ describe('dashboard-api.service', () => {
         );
       });
 
+      it('verifies the Grid Connection Transformation Gate Blueprint seed read-only', async () => {
+        const result = await broker.call('dashboard-api.stadtwerkMauerBlueprintPackVerifyStatus', {
+          tenantId: 'stadtwerk-mauer',
+          seedId: 'stadtwerk-mauer-grid-connection-transformation-gate-v1',
+        });
+
+        expect(result.status).toBe('completed');
+        expect(result.riskClass).toBe('read_only');
+        expect(result.data.validation).toEqual({ valid: true, errors: [] });
+        expect(result.summary.counts.requiredEvidence).toBe(8);
+        expect(result.summary.counts.demoProcessMatrixRows).toBe(4);
+        expect(result.data.requiredEvidence).toEqual(
+          expect.arrayContaining([
+            'napMaloReferenceEvidence',
+            'divisionEvidence',
+            'transformationOptionEvidence',
+            'dataQualityEvidence',
+            'investmentPathEvidence',
+            'decommissionPathEvidence',
+            'ownerNextActionEvidence',
+            'sourceReferenceEvidence',
+          ])
+        );
+        expect(result.data.demoProcessMatrixSync).toMatchObject({
+          slug: 'grid-connection-transformation-gate',
+          expectedSlug: 'grid-connection-transformation-gate',
+          synced: true,
+          roleLegendM: 'Mitwirkend',
+          rowCount: 4,
+          rowCountValid: true,
+          roleCellsClean: true,
+          dataClassesLimited: true,
+          forbiddenActionsStatus: 'not_introduced',
+        });
+        expect(result.data.demoProcessMatrixSync.rows[2]).toMatchObject({
+          phase: '3',
+          roles: {
+            V: 'ROLE_NETZPLANUNG',
+            D: 'ROLE_CERNION_GOVERNANCE',
+            M: 'ROLE_ASSET_MANAGEMENT',
+            I: 'ROLE_ADMINISTRATOR',
+          },
+          evidenceRequirements: ['investmentPathEvidence', 'decommissionPathEvidence'],
+          gateOutcome: 'investment_and_decommission_path_review_only',
+        });
+        expect(result.data.sourceActions.notCalled).toEqual(
+          expect.arrayContaining([
+            'tenant.provision',
+            'seed.import',
+            'rundeck.execute',
+            'budibase.table.write',
+            'public-context.mutate',
+            'personal-agent.execute',
+          ])
+        );
+      });
+
       it('returns a blocked read-only state for unsupported seeds', async () => {
         const result = await broker.call('dashboard-api.stadtwerkMauerBlueprintPackVerifyStatus', {
           tenantId: 'stadtwerk-mauer',
@@ -9337,6 +9975,63 @@ describe('dashboard-api.service', () => {
         });
         expect(result.data.sourceActions.notCalled).toEqual(
           expect.arrayContaining([
+            'budibase.table.write',
+            'external.connector.call',
+            'public-context.mutate',
+            'personal-agent.execute',
+          ])
+        );
+      });
+
+      it('returns MaStR Sync-Gap matrix facts through the same verify projection', async () => {
+        const result = await broker.call('dashboard-api.stadtwerkMauerBlueprintPackVerifyStatus', {
+          tenantId: 'stadtwerk-mauer',
+          seedId: 'stadtwerk-mauer-mastr-sync-gap-alerting-v1',
+        });
+
+        expect(result.status).toBe('completed');
+        expect(result.summary.counts.seedsFound).toBe(1);
+        expect(result.summary.counts.requiredEvidence).toBe(4);
+        expect(result.summary.counts.demoProcessMatrixRows).toBe(4);
+        expect(result.data.seedFound).toBe(true);
+        expect(result.data.validation).toEqual({ valid: true, errors: [] });
+        expect(result.data.processFamily).toBe('mastr_sync_gap_alerting');
+        expect(result.data.controlCase).toBe('mastr_sync_gap_alerting_status');
+        expect(result.data.requiredEvidence).toEqual([
+          'mastrFreshnessEvidence',
+          'redispatchStammdatenComparison',
+          'syncGapAlertFeed',
+          'reconciliationApprovalDecision',
+        ]);
+        expect(result.data.demoProcessMatrixSync).toMatchObject({
+          slug: 'mastr-sync-gap-alerting',
+          expectedSlug: 'mastr-sync-gap-alerting',
+          synced: true,
+          roleLegendM: 'Mitwirkend',
+          rowCount: 4,
+          rowCountValid: true,
+          roleCellsClean: true,
+          dataClassesLimited: true,
+        });
+        expect(result.data.demoProcessMatrixSync.downstreamHandoff).toMatchObject({
+          blueprintPack: 'complete',
+          landingRegistry: 'pending',
+          productiveDemoRoom: 'pending',
+        });
+        expect(result.data.demoProcessMatrixSync.rows[2]).toMatchObject({
+          phase: '3',
+          roles: {
+            V: 'ROLE_NETZBETRIEB',
+            D: 'ROLE_CERNION_GOVERNANCE',
+            M: 'ROLE_REDISPATCH_KOORDINATOR',
+            I: 'ROLE_COMMERCIAL_AUDIT',
+          },
+          evidenceRequirements: ['syncGapAlertFeed'],
+          gateOutcome: 'sync_gap_alerts_pending',
+        });
+        expect(result.data.sourceActions.notCalled).toEqual(
+          expect.arrayContaining([
+            'tenant.provision',
             'budibase.table.write',
             'external.connector.call',
             'public-context.mutate',
@@ -11862,6 +12557,73 @@ describe('dashboard-api.service', () => {
 
       it('accepts request without gridOperatorId (all operators)', async () => {
         await expect(broker.call('dashboard-api.qualitySummary', {})).resolves.toBeDefined();
+      });
+    });
+
+    // ── controllabilityDataAlignmentStatus ────────────────────────────────
+
+    describe('controllabilityDataAlignmentStatus', () => {
+      it('reports explicit data-alignment gaps without imports or downstream actions', async () => {
+        const result = await broker.call('dashboard-api.controllabilityDataAlignmentStatus', {
+          checklistId: 'check-407',
+          assetId: 'asset-407',
+          mastrId: 'SEE-407',
+          assetMatch: 'matched',
+          controlTechStatus: 'missing',
+          thresholdClass: 'above-threshold',
+          testability: 'not-testable',
+          exceptionReason: 'fehlende-rueckmeldefaehigkeit',
+          owner: 'Netzplanung',
+        });
+
+        expect(result.status).toBe('needs_owner_deadline');
+        expect(result.checklist).toMatchObject({
+          checklistId: 'check-407',
+          assetId: 'asset-407',
+          mastrId: 'SEE-407',
+        });
+        expect(result.alignmentRows.map((row) => row.id)).toEqual(
+          expect.arrayContaining([
+            'checklist_reference',
+            'asset_mastr_match',
+            'control_technology_status',
+            'threshold_classification',
+            'testability',
+          ])
+        );
+        expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+          expect.arrayContaining(['prior_year_comparison', 'owner_deadline', 'export_readiness'])
+        );
+        expect(result.safeNextGate).toBe('collect_control_technology_evidence');
+        expect(result.positiveFollowUps[0].category).toBe('controllability_data_alignment');
+        expect(result.sourceActions.notCalled).toEqual(
+          expect.arrayContaining(['file.import', 'excel.parse', 'grid-operations.executeControl'])
+        );
+        expect(result.safety).toBe('read_only');
+      });
+
+      it('returns ready_for_evidence_export when all required alignment facts are supplied', async () => {
+        const result = await broker.call('dashboard-api.controllabilityDataAlignmentStatus', {
+          checklistId: 'check-407',
+          assetId: 'asset-407',
+          mastrId: 'SEE-407',
+          assetMatch: 'matched',
+          mastrMatch: 'matched',
+          internalAssetMatch: 'matched',
+          controlTechStatus: 'cls-ready',
+          thresholdClass: 'above-threshold',
+          testability: 'testable',
+          priorYearComparison: 'changed',
+          owner: 'Netzplanung',
+          dueDate: '2026-09-30',
+          exportReadiness: 'ready',
+        });
+
+        expect(result.status).toBe('ready_for_evidence_export');
+        expect(result.missingEvidence).toEqual([]);
+        expect(result.safeNextGate).toBe('export_dossier_package');
+        expect(result.dossierEvidence.dossierFacts).toContain('Provided alignment rows: 8/9');
+        expect(result.sourceActions.notCalled).toContain('external.connector.call');
       });
     });
   });

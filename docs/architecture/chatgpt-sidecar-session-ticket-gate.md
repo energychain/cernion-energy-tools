@@ -116,8 +116,11 @@ Existing components to reuse:
 
 New components should stay small:
 
-- `src/chatgpt-sidecar-session-store.js`: interface plus in-memory test store
-  for create/get/revoke/expire/meter events.
+- `src/chatgpt-sidecar-session-store.js`: interface plus default file-backed
+  runtime store and in-memory test store for create/get/revoke/expire/meter
+  events. Non-test runtimes persist tickets, metering and turn summaries under
+  `data/chatgpt-sidecar-sessions/sessions.json` unless
+  `CHATGPT_SIDECAR_SESSION_STORE=memory` is explicitly set.
 - `src/chatgpt-sidecar-session-policy.js`: ticket, capability, write-scope and
   redaction decisions.
 - `src/chatgpt-sidecar-prompt.js`: backend-generated prompt text from redacted

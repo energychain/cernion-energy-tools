@@ -919,15 +919,59 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes Steuerbarkeitscheck data-alignment prompts to the read-only alignment view', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Erstelle Steuerbarkeitscheck-Datenabgleich fuer Prueflistenabgleich, Redispatch Steuerbarkeit, Ausnahmeliste, Vorjahresvergleich und Steuertechnikstatus.',
+    });
+
+    expect(result.capability).toBe('controllability_data_alignment');
+    expect(result.recommendedCapabilities[0].capability).toBe('controllability_data_alignment');
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.controllabilityDataAlignmentStatus');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('grid-operations.executeControl');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
+  it('routes Bedeutungserhalt coordination prompts to the read-only meaning-preservation profile', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Erstelle eine bedeutungserhaltende Koordinationsschicht fuer ein Entscheidungsobjekt mit Bedeutungsverlust, Fachbereichsuebergabe, Owner, Frist, Nachweis und naechster Entscheidung.',
+    });
+
+    expect(result.capability).toBe('coordination_meaning_preservation_profile');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'coordination_meaning_preservation_profile'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.coordinationMeaningPreservationProfile');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
+  it('routes A2MDM decision-object prompts to the read-only meaning-preserving projection', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Erstelle A2MDM Entscheidungsobjekt fuer Bedeutungserhalt mit Business Intent, technischer Restriktion, Regulierungsbezug, Evidenzquelle, Owner, Risiko, Entscheidungsschwelle und Next Gate.',
+    });
+
+    expect(result.capability).toBe('a2mdm_decision_object_meaning_preservation');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'a2mdm_decision_object_meaning_preservation'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.a2mdmDecisionObjectStatus');
+    expect(actionNames).not.toContain('a2mdm.persist');
+    expect(actionNames).not.toContain('budibase.table.write');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes Gremiencoach workbook prompts to the read-only private-prep view', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Erstelle einen Gremiencoach fuer eine VNB Arbeitsmappe mit Claims, Evidenzluecken, Prozessbezug, Word PPT Excel Entwurf-Intents und No-Call Guardrails fuer private Gremienvorbereitung.',
     });
 
     expect(result.capability).toBe('gremiencoach_workbook_readiness');
-    expect(result.recommendedCapabilities[0].capability).toBe(
-      'gremiencoach_workbook_readiness'
-    );
+    expect(result.recommendedCapabilities[0].capability).toBe('gremiencoach_workbook_readiness');
     const actionNames = result.recommendedPlan.map((step) => step.action);
     expect(actionNames).toContain('dashboard-api.gremiencoachWorkbookReadinessStatus');
     expect(actionNames).not.toContain('document.upload');
@@ -1451,6 +1495,66 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  it('routes Direktvermarkter risk prompts to the read-only risk gate', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe Direktvermarkter Risikogate fuer Energy Sharing Gemeinschaftsstrom: Prognose Allokation Bilanzkreis Fahrplan Abrechnung Rollen Frist und fehlende Nachweise vor Angebotsfreigabe.',
+    });
+
+    expect(result.capability).toBe('direct_marketer_risk_gate');
+    expect(result.recommendedCapabilities[0].capability).toBe('direct_marketer_risk_gate');
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.directMarketerRiskGateStatus');
+    expect(actionNames).not.toContain('market.executeTrade');
+    expect(actionNames).not.toContain('schedule.submit');
+    expect(actionNames).not.toContain('balancing-group.transfer');
+    expect(actionNames).not.toContain('contract.approve');
+    expect(actionNames).not.toContain('billing.release');
+    expect(actionNames).not.toContain('settlement.exportA96');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
+  it('routes deterministic Fach-Sidecar routing prompts to the read-only route registry', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe deterministisches Energie Routing fuer Fach-Sidecar Route Audit: welcher Endpoint und welche Capability sind fuer Redispatch Readiness zustaendig, welche Evidence Boundary und Fallback Route gelten?',
+    });
+
+    expect(result.capability).toBe('energy_sidecar_route_registry');
+    expect(result.recommendedCapabilities[0].capability).toBe('energy_sidecar_route_registry');
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.energySidecarRouteRegistryStatus');
+    expect(actionNames).not.toContain('personal-agent.execute');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('workflow.execute');
+    expect(actionNames).not.toContain('billing.release');
+    expect(actionNames).not.toContain('settlement.prepareBilling');
+    expect(actionNames).not.toContain('device-control.execute');
+  });
+
+  it('routes Koppelpunkt Freigabeakte prompts to the read-only release-file status', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe Koppelpunkt Freigabeakte fuer Marktpartner-Zuordnung, Zeitreihen-Zuordnung, Mapping-Freigabe, Owner, Evidence Source Version und naechstes Aenderungsgate.',
+    });
+
+    expect(result.capability).toBe('interconnection_release_file');
+    expect(result.recommendedCapabilities[0].capability).toBe('interconnection_release_file');
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.interconnectionReleaseFileStatus');
+    expect(actionNames).not.toContain('mapping.write');
+    expect(actionNames).not.toContain('mapping.releaseExecute');
+    expect(actionNames).not.toContain('mako.submit');
+    expect(actionNames).not.toContain('billing.release');
+    expect(actionNames).not.toContain('settlement.prepareBilling');
+    expect(actionNames).not.toContain('tariff.mutate');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('workflow.execute');
+    expect(actionNames).not.toContain('device-control.execute');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes No-Regret measure definition prompts to the read-only definition gate', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Pruefe No-Regret Massnahmen Definitionsgate fuer Transformationsprogramm Szenariowirkung Budgetwirkung regulatorische Anschlussfaehigkeit Priorisierungsrecht Datenqualitaet Kommunikationsregel und Review Gate.',
@@ -1702,6 +1806,68 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  // #435 White-Label MaKo API migration readiness dossier: routing-verification slice
+  // over the two existing read-only capabilities, plus a negative/consequential-intent guard.
+  it('routes a White-Label API migration diagnostics prompt to the read-only diagnostics gate', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe White-Label API Migration Diagnostics und EVU API Migration Diagnostics fuer den Wechsel von Full-White-Label-Setup zu eigenem Backend: Schnittstellenmigration, OAuth Scope Diagnose, Request Validation Error, Response Code Diagnostics und Endpoint /api/v2/malo/patch.',
+    });
+
+    expect(result.capability).toBe('evu_api_migration_diagnostics');
+    expect(result.recommendedCapabilities[0].capability).toBe('evu_api_migration_diagnostics');
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.evuApiMigrationDiagnosticsStatus');
+    expect(actionNames).not.toContain('mako.dispatch');
+    expect(actionNames).not.toContain('mscons-import.import');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('oauth.authorize');
+    expect(actionNames).not.toContain('billing.release');
+    expect(actionNames).not.toContain('settlement.exportA96');
+    expect(actionNames).not.toContain('tariff.mutate');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
+  it('routes a MaKo migration evidence-chain prompt with MaLo/MeLo/UTILMD/MSCONS/EDM terms to the read-only evidence gate', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Pruefe die Marktkommunikations Evidenzkette fuer die White-Label Migration mit MaLo MeLo UTILMD Stammdatenweg, MSCONS Zaehlerwerten und EDM Datenqualitaet Nachweis vs. synthetischem Sandbox-Hinweis.',
+    });
+
+    expect(result.capability).toBe('market_communication_evidence_chain');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'market_communication_evidence_chain'
+    );
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('dashboard-api.marketCommunicationEvidenceChainStatus');
+    expect(actionNames).not.toContain('mako.dispatch');
+    expect(actionNames).not.toContain('mscons-import.import');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('billing.release');
+    expect(actionNames).not.toContain('settlement.exportA96');
+    expect(actionNames).not.toContain('settlement.prepareBilling');
+    expect(actionNames).not.toContain('tariff.mutate');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
+  it('does not resolve a consequential MaKo dispatch/import/billing prompt to any dispatch/import/billing/settlement/tariff/external-call action', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Fuehre den echten MaKo Lieferantenwechsel jetzt aus: importiere die MSCONS Datei, aktiviere williMakoEnabled, sende UTILMD per AS4 und gib Billing sowie Settlement fuer die MaLo MeLo Marktkommunikations Evidenzkette frei.',
+    });
+
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).not.toContain('mako.dispatch');
+    expect(actionNames).not.toContain('mscons-import.import');
+    expect(actionNames).not.toContain('mscons-import.parse');
+    expect(actionNames).not.toContain('external.connector.call');
+    expect(actionNames).not.toContain('billing.release');
+    expect(actionNames).not.toContain('settlement.exportA96');
+    expect(actionNames).not.toContain('settlement.prepareBilling');
+    expect(actionNames).not.toContain('tariff.mutate');
+    expect(actionNames).not.toContain('hitl.create');
+    expect(actionNames).not.toContain('personal-agent.execute');
+  });
+
   it('routes NOVA decision lifecycle readiness prompts to the read-only evidence gate', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Pruefe NOVA TRL-7 Production Readiness fuer Decision Lifecycle, Decision Source Catalogue, HITL Bridge Policy, Replay Audit Readiness und tenant-isolierte SSE Evidence.',
@@ -1819,9 +1985,7 @@ describe('Capability Broker Service', () => {
     });
 
     expect(result.capability).toBe('gas_transformation_dataroom_status');
-    expect(result.recommendedCapabilities[0].capability).toBe(
-      'gas_transformation_dataroom_status'
-    );
+    expect(result.recommendedCapabilities[0].capability).toBe('gas_transformation_dataroom_status');
     const actionNames = result.recommendedPlan.map((step) => step.action);
     expect(actionNames).toContain('dashboard-api.gasTransformationDataroomStatus');
     expect(actionNames).not.toContain('object-store.create');
@@ -2621,5 +2785,44 @@ describe('Capability Broker Service', () => {
     });
 
     expect(result.capability).not.toBe('znp_production_readiness_evidence_gate');
+  });
+
+  describe('operation capability index integration', () => {
+    it('adds ranked operation candidates to ordinary recommendations', async () => {
+      const result = await broker.call('capability-broker.recommend', {
+        task: 'What is the current German gas storage fill level?',
+      });
+
+      expect(result.operationCandidates.length).toBeGreaterThan(0);
+      expect(result.operationCandidates[0]).toMatchObject({
+        operationId: 'gas-storage_countryStorage',
+        action: 'gas-storage.countryStorage',
+        recommendedExecutionMode: 'direct',
+      });
+      expect(result.scoringBreakdown.operationCandidateCount).toBe(
+        result.operationCandidates.length
+      );
+    });
+
+    it('does not surface operation candidates from capability bias alone', async () => {
+      const result = await broker.call('capability-broker.queryOperationIndex', {
+        question: 'Wie ist der aktuelle Prozessstatus?',
+        capability: 'datasource-gas-storage',
+      });
+
+      expect(result.candidates).toHaveLength(0);
+    });
+
+    it('surfaces write/process/admin operations rather than hiding them', async () => {
+      const result = await broker.call('capability-broker.queryOperationIndex', {
+        question: 'Create a full backup snapshot of all data stores',
+      });
+
+      expect(result.candidates[0]).toMatchObject({
+        operationId: 'backup-orchestrator_snapshot',
+        operationKind: 'admin',
+        recommendedExecutionMode: 'confirm',
+      });
+    });
   });
 });

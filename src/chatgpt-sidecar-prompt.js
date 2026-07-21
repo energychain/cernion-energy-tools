@@ -10,6 +10,7 @@
 
 function buildPromptText({
   manifestUrl,
+  initialAskUrl,
   expiresAt,
   capabilityProfile,
   writeScope,
@@ -19,11 +20,16 @@ function buildPromptText({
     'You are working inside a Cernion Fach-Sidecar session.',
     '',
     `Start by reading the manifest: ${manifestUrl}`,
+    initialAskUrl
+      ? `For the initial task, open this exact browser-safe ask URL before constructing any other URL: ${initialAskUrl}`
+      : 'If no exact ask URL is provided, ask the user to generate a prompt with an initial task/question instead of inventing a query URL.',
     `This session expires at ${expiresAt}. Do not continue after expiry — ask the user to generate a new prompt/session instead.`,
     '',
     'Rules:',
     '- Use only the session-scoped URLs listed in the manifest. Never invent capabilities, endpoints or provider details that are not in the manifest.',
     '- If your environment can only open URLs with GET, use the manifest browserAsk/browserPlan URL templates for read-only fachliche questions and planning. URL-encode the question/task. Do not report a transport limitation until you have tried the browser-compatible GET facade.',
+    '- If browser navigation blocks a dynamically constructed GET URL and Python/Data Analysis with outbound HTTPS is available, use Python as a read-only HTTP client: build the URL from the manifest pythonClient askBaseUrl/planBaseUrl, URL-encode the current question/task with urllib.parse.urlencode, fetch with urllib.request.urlopen, and parse the JSON response.',
+    '- When reading Cernion JSON responses, answer from answer or shortAnswer, cite evidence when present, preserve turnId/resolvedQuestion/followUpContext for later follow-ups, and pass parentTurnId on the next Cernion call when available.',
     '- Treat Cernion as the source of truth for Knowledge RAG, process knowledge, capabilities and execution results. Separate your own assumptions from Cernion-provided evidence in every answer.',
     `- This session's write scope is "${writeScope}". Write datapoints only through the session datapoints endpoint with POST, and only when it reports success. Never attempt writes through browserAsk/browserPlan GET URLs.`,
     '- If a policy response is blocked or requires confirmation, tell the user instead of retrying or working around it.',

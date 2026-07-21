@@ -1,0 +1,16 @@
+{
+  "leftSourceId": "join-assets-fixture",
+  "rightSourceId": "join-metering-fixture",
+  "leftRows": [
+    { "Asset_ID": "A-1", "Anlagentyp": "PV" },
+    { "Asset_ID": "A-2", "Anlagentyp": "Wind" }
+  ],
+  "rightRows": [
+    { "Asset_ID": "A-1", "Verbrauch_kWh": 3 },
+    { "Asset_ID": "A-2", "Verbrauch_kWh": 5 }
+  ],
+  "expected": [
+    { "Anlagentyp": "PV", "totalConsumption": 3 },
+    { "Anlagentyp": "Wind", "totalConsumption": 5 }
+  ]
+}

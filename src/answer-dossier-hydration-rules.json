@@ -575,6 +575,138 @@
     "sourceIssue": 194
   },
   {
+    "id": "dashboard-api.controllabilityDataAlignmentStatus",
+    "action": "dashboard-api.controllabilityDataAlignmentStatus",
+    "label": "Controllability Data Alignment",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "checklistId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:checklist|checklistId|pruefliste|prüfliste)[:= ]+([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "assetId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:assetId|asset|anlage)[:= ]+([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "owner": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:owner|verantwortlich|verantwortlicher)[:= ]+([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "dossierEvidence.status"], "label": "Alignment Status", "maxLen": 90 },
+        { "paths": ["checklist.checklistId", "dossierEvidence.checklist.checklistId"], "label": "Checklist", "maxLen": 100 },
+        { "paths": ["safeNextGate", "dossierEvidence.safeNextGate"], "label": "Next Gate", "maxLen": 120 },
+        { "paths": ["owner", "dossierEvidence.owner"], "label": "Owner", "maxLen": 100 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["positiveFollowUps.0.enablesDossierAddition", "dossierEvidence.positiveFollowUps.0.enablesDossierAddition"], "label": "Follow-up Enables", "maxLen": 170 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["timestamp"], "label": "Stand", "maxLen": 40 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "derived",
+    "timeoutMs": 7000,
+    "sourceIssue": 407
+  },
+  {
+    "id": "dashboard-api.coordinationMeaningPreservationProfile",
+    "action": "dashboard-api.coordinationMeaningPreservationProfile",
+    "label": "Coordination Meaning Preservation Profile",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "caseId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:case|caseId|fall)[:= ]+([a-zA-Z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "sourceDomain": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:sourceDomain|quelle|quellbereich)[:= ]+([A-Za-z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "targetDomain": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:targetDomain|ziel|zielbereich)[:= ]+([A-Za-z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "owner": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:owner|verantwortlich|rolle)[:= ]+([A-Za-z0-9_.:-]+)",
+          "group": 1
+        }
+      },
+      "nextDecision": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:nextDecision|entscheidung)[:= ]+([A-Za-z0-9_.:-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["status", "dossierEvidence.status"], "label": "Meaning Status", "maxLen": 80 },
+        { "paths": ["coordinationLossClassification", "dossierEvidence.coordinationLossClassification"], "label": "Classification", "maxLen": 100 },
+        { "paths": ["requestContext.sourceDomain", "dossierEvidence.sourceDomain"], "label": "Source", "maxLen": 100 },
+        { "paths": ["requestContext.targetDomain", "dossierEvidence.targetDomain"], "label": "Target", "maxLen": 100 },
+        { "paths": ["missingDimensions.0.missingDataPoint", "dossierEvidence.missingDimensions.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 100 },
+        { "paths": ["positiveFollowUps.0.enablesDossierAddition", "dossierEvidence.positiveFollowUps.0.enablesDossierAddition"], "label": "Follow-up Enables", "maxLen": 160 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["timestamp"], "label": "Stand", "maxLen": 40 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "derived",
+    "timeoutMs": 7000,
+    "sourceIssue": 402
+  },
+  {
     "id": "dashboard-api.decisionReadinessMatrixStatus",
     "action": "dashboard-api.decisionReadinessMatrixStatus",
     "label": "Decision-Readiness Matrix",
@@ -2807,6 +2939,196 @@
     "evidenceQuality": "derived",
     "timeoutMs": 7000,
     "sourceIssue": 278
+  },
+  {
+    "id": "dashboard-api.energySidecarRouteRegistryStatus",
+    "action": "dashboard-api.energySidecarRouteRegistryStatus",
+    "label": "Energy Sidecar Route Registry",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "intent": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:intent|routingIntent|routeIntent)[:= ]+([a-zA-Z0-9_.:@-]+)", "group": 1 }
+      },
+      "domain": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:domain|domäne|domaene)[:= ]+([a-zA-Z0-9_.:@-]+)", "group": 1 }
+      },
+      "requiredInput": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:requiredInput|required input|input)[:= ]+([a-zA-Z0-9_.:@,-]+)", "group": 1 }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["capabilityKey", "dossierEvidence.capabilityKey"], "label": "Capability", "maxLen": 100 },
+        { "paths": ["status", "dossierEvidence.status"], "label": "Route Registry Status", "maxLen": 120 },
+        { "paths": ["routeCount", "dossierEvidence.routeCount"], "label": "Routes", "maxLen": 20 },
+        { "paths": ["rows.0.routeKey", "dossierEvidence.rows.0.routeKey"], "label": "First Route", "maxLen": 140 },
+        { "paths": ["rows.0.preferredAction", "dossierEvidence.rows.0.preferredAction"], "label": "Preferred Action", "maxLen": 160 },
+        { "paths": ["rows.0.sourceRegistry", "dossierEvidence.rows.0.sourceRegistry"], "label": "Source Registry", "maxLen": 140 },
+        { "paths": ["rows.0.evidenceStatus", "dossierEvidence.rows.0.evidenceStatus"], "label": "Evidence Status", "maxLen": 120 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 120 },
+        { "paths": ["positiveFollowUps.0.enablesDossierAddition", "dossierEvidence.positiveFollowUps.0.enablesDossierAddition"], "label": "Follow-up Enables", "maxLen": 180 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 140 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "derived",
+    "timeoutMs": 7000,
+    "sourceIssue": 418
+  },
+  {
+    "id": "dashboard-api.interconnectionReleaseFileStatus",
+    "action": "dashboard-api.interconnectionReleaseFileStatus",
+    "label": "Koppelpunkt Freigabeakte",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "caseId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:case|caseId|fall)[:= ]+([a-zA-Z0-9_.:@-]+)", "group": 1 }
+      },
+      "koppelpunktId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:koppelpunktId|koppelpunkt|kp)[:=]+([a-zA-Z0-9_.:@-]+)", "group": 1 }
+      },
+      "marketPartnerId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:marketPartnerId|marktpartner|mp)[:=]+([a-zA-Z0-9_.:@-]+)", "group": 1 }
+      },
+      "timeseriesId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:timeseriesId|zeitreihe|zeitreihenId|ts)[:=]+([a-zA-Z0-9_.:@-]+)", "group": 1 }
+      },
+      "mappingVersion": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:mappingVersion|mapping-version|version)[:= ]+([a-zA-Z0-9_.:@-]+)", "group": 1 }
+      },
+      "owner": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:owner|freigabeOwner|verantwortlich)[:= ]+([a-zA-Z0-9_.:@-]+)", "group": 1 }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["capabilityKey", "dossierEvidence.capabilityKey"], "label": "Capability", "maxLen": 100 },
+        { "paths": ["status", "dossierEvidence.status"], "label": "Release File Status", "maxLen": 120 },
+        { "paths": ["subject.caseId", "dossierEvidence.subject.caseId"], "label": "Case", "maxLen": 120 },
+        { "paths": ["subject.koppelpunktId", "dossierEvidence.subject.koppelpunktId"], "label": "Koppelpunkt", "maxLen": 120 },
+        { "paths": ["subject.marketPartnerId", "dossierEvidence.subject.marketPartnerId"], "label": "Market Partner", "maxLen": 120 },
+        { "paths": ["subject.timeseriesId", "dossierEvidence.subject.timeseriesId"], "label": "Timeseries", "maxLen": 120 },
+        { "paths": ["subject.mappingVersion", "dossierEvidence.subject.mappingVersion"], "label": "Mapping Version", "maxLen": 120 },
+        { "paths": ["approvalRows.0.owner", "dossierEvidence.approvalRows.0.owner"], "label": "Approval Owner", "maxLen": 120 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 120 },
+        { "paths": ["positiveFollowUps.0.enablesDossierAddition", "dossierEvidence.positiveFollowUps.0.enablesDossierAddition"], "label": "Follow-up Enables", "maxLen": 180 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 140 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "derived",
+    "timeoutMs": 7000,
+    "sourceIssue": 419
+  },
+  {
+    "id": "dashboard-api.directMarketerRiskGateStatus",
+    "action": "dashboard-api.directMarketerRiskGateStatus",
+    "label": "Direktvermarkter Risk Gate",
+    "enabled": true,
+    "safety": {
+      "readOnly": true,
+      "nonConsequential": true,
+      "hitlRequired": false,
+      "allowsMutation": false
+    },
+    "paramTemplate": {
+      "caseId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:case|caseId|fall)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "projectId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:projectId|projekt|projektId)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "directMarketer": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:directMarketer|direktvermarkter)[:=]+([a-zA-Z0-9_.:@-]+)", "group": 1 }
+      },
+      "forecastQuality": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:forecastQuality|prognosequalitaet|prognosequalität)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "allocationRules": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:allocationRules|allokationsregeln|allokation)[:= ]+([a-zA-Z0-9_.:-]+)", "group": 1 }
+      },
+      "roleOwner": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:roleOwner|owner|rollenowner|verantwortlich)[:= ]+([a-zA-Z0-9_.:@-]+)", "group": 1 }
+      },
+      "deadline": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": { "pattern": "(?:deadline|frist)[:= ]+([0-9]{4}-[0-9]{2}-[0-9]{2}|[a-zA-Z0-9_.:-]+)", "group": 1 }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["capabilityKey", "dossierEvidence.capabilityKey"], "label": "Capability", "maxLen": 100 },
+        { "paths": ["status", "dossierEvidence.status"], "label": "Risk Gate Status", "maxLen": 100 },
+        { "paths": ["handoverContext.caseId", "dossierEvidence.handoverContext.caseId", "handoverContext.projectId"], "label": "Case", "maxLen": 140 },
+        { "paths": ["handoverContext.directMarketer", "dossierEvidence.handoverContext.directMarketer"], "label": "Direct Marketer", "maxLen": 140 },
+        { "paths": ["marketEvidence.forecastQuality", "dossierEvidence.marketEvidence.forecastQuality"], "label": "Forecast Quality", "maxLen": 140 },
+        { "paths": ["marketEvidence.allocationRules", "dossierEvidence.marketEvidence.allocationRules"], "label": "Allocation Rules", "maxLen": 160 },
+        { "paths": ["roleDeadline.roleOwner", "dossierEvidence.roleDeadline.roleOwner"], "label": "Owner", "maxLen": 120 },
+        { "paths": ["roleDeadline.deadline", "dossierEvidence.roleDeadline.deadline"], "label": "Deadline", "maxLen": 100 },
+        { "paths": ["missingEvidence.0.missingDataPoint", "dossierEvidence.missingEvidence.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 120 },
+        { "paths": ["positiveFollowUps.0.enablesDossierAddition", "dossierEvidence.positiveFollowUps.0.enablesDossierAddition"], "label": "Follow-up Enables", "maxLen": 180 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "derived",
+    "timeoutMs": 7000,
+    "sourceIssue": 411
   },
   {
     "id": "dashboard-api.noRegretMeasureDefinitionGateStatus",
@@ -8875,5 +9197,84 @@
     "evidenceQuality": "validated",
     "timeoutMs": 7000,
     "sourceIssue": 386
+  },
+  {
+    "id": "dashboard-api.a2mdmDecisionObjectStatus",
+    "action": "dashboard-api.a2mdmDecisionObjectStatus",
+    "label": "A2MDM Decision Object Meaning Preservation",
+    "description": "Read-only A2MDM decision-object projection for meaning-preserving handover context.",
+    "intents": [
+      "a2mdm_decision_object_meaning_preservation",
+      "a2mdm_decision_object",
+      "meaning_preserving_decision_object"
+    ],
+    "safety": {
+      "readOnly": true,
+      "allowsMutation": false,
+      "hitlRequired": false,
+      "consequential": false
+    },
+    "paramTemplate": {
+      "caseId": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:caseId|case-id|case|fall)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      },
+      "subject": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:subject|gegenstand)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      },
+      "ownerRole": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:ownerRole|owner|rolle)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      },
+      "nextGate": {
+        "extractor": "regexCaptureSafe",
+        "required": false,
+        "config": {
+          "pattern": "(?:nextGate|next-gate|gate)[:= ]+([A-Za-z0-9:_-]+)",
+          "group": 1
+        }
+      }
+    },
+    "formatter": {
+      "type": "fieldSummary",
+      "fields": [
+        { "paths": ["capabilityKey", "dossierEvidence.capabilityKey"], "label": "Capability", "maxLen": 120 },
+        { "paths": ["status", "dossierEvidence.status"], "label": "Status", "maxLen": 120 },
+        { "paths": ["decisionObjectId", "dossierEvidence.decisionObjectId"], "label": "Decision Object", "maxLen": 140 },
+        { "paths": ["subject", "dossierEvidence.decisionRows.0.value"], "label": "Subject", "maxLen": 160 },
+        { "paths": ["businessIntent", "dossierEvidence.decisionRows.1.value"], "label": "Business Intent", "maxLen": 160 },
+        { "paths": ["technicalConstraint", "dossierEvidence.decisionRows.2.value"], "label": "Technical Constraint", "maxLen": 160 },
+        { "paths": ["regulatoryReference", "dossierEvidence.decisionRows.3.value"], "label": "Regulatory Reference", "maxLen": 140 },
+        { "paths": ["evidenceSource", "dossierEvidence.decisionRows.4.value"], "label": "Evidence Source", "maxLen": 140 },
+        { "paths": ["ownerRole", "dossierEvidence.decisionRows.5.value"], "label": "Owner", "maxLen": 120 },
+        { "paths": ["riskLevel", "dossierEvidence.decisionRows.6.value"], "label": "Risk", "maxLen": 80 },
+        { "paths": ["decisionThreshold", "dossierEvidence.decisionRows.7.value"], "label": "Threshold", "maxLen": 160 },
+        { "paths": ["nextGate", "dossierEvidence.decisionRows.8.value"], "label": "Next Gate", "maxLen": 120 },
+        { "paths": ["missingInputs.0.missingDataPoint", "dossierEvidence.missingInputs.0.missingDataPoint"], "label": "Leading Gap", "maxLen": 120 },
+        { "paths": ["positiveFollowUps.0.enablesDossierAddition", "dossierEvidence.positiveFollowUps.0.enablesDossierAddition"], "label": "Positive Follow-up", "maxLen": 180 },
+        { "paths": ["sourceActions.notCalled.0", "dossierEvidence.sourceActions.notCalled.0"], "label": "Side-Effect Guard", "maxLen": 120 },
+        { "paths": ["dossierEvidence.dossierFacts.0"], "label": "Fact", "maxLen": 160 }
+      ],
+      "errorFallback": {
+        "paths": ["message"],
+        "maxLen": 200
+      }
+    },
+    "evidenceQuality": "validated",
+    "timeoutMs": 7000,
+    "sourceIssue": 423
   }
 ]

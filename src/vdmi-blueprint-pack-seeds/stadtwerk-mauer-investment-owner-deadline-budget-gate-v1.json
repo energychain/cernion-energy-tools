@@ -1,0 +1,328 @@
+{
+  "id": "stadtwerk-mauer-investment-owner-deadline-budget-gate-v1",
+  "kind": "vdmi_blueprint_pack_seed",
+  "version": "1.0.0",
+  "safetyClassification": "read_only_blueprint_seed",
+  "title": "Stadtwerk Mauer Investment Owner-Frist-Budget Gate seed",
+  "processFamily": "investment_governance",
+  "controlCase": "investment_owner_deadline_budget_gate",
+  "sourceApi": {
+    "operation": "GET /api/dashboard/investment-owner-deadline-budget-gate",
+    "path": "/api/dashboard/investment-owner-deadline-budget-gate",
+    "method": "GET",
+    "workbenchBrick": "investment_owner_deadline_budget_gate",
+    "capability": "dashboard-api.investmentOwnerDeadlineBudgetGateStatus",
+    "readOnly": true,
+    "invocation": "source_hint_only"
+  },
+  "demoTenant": {
+    "tenantId": "stadtwerk-mauer",
+    "classification": "synthetic_demo_tenant",
+    "description": "Virtual Stadtwerk Mauer demo tenant; investment measure, owner, deadline, budget-effect and approval markers are synthetic review data."
+  },
+  "roleQuestion": {
+    "actor": "Asset Management / Controlling / Governance Owner",
+    "answerableIn": "under_one_minute",
+    "question": "Which synthetic investment measure is blocked, who owns it, what budget or deadline evidence is missing, and what safe next review gate is available?"
+  },
+  "dataClasses": {
+    "publicContextLayer": {
+      "description": "Read-only municipal, regulatory, benchmark or governance context already blended into the virtual Stadtwerk. Demo reset flows must not mutate this layer.",
+      "examples": [
+        "municipal investment-governance context",
+        "public benchmark context",
+        "regulatory review reference"
+      ]
+    },
+    "syntheticTenantSeed": {
+      "description": "Invented demo investment measures, owner markers, budget-effect notes, deadline markers, approval-source status and blocked-decision markers for stadtwerk-mauer.",
+      "examples": [
+        "synthetic investment measure",
+        "synthetic accountable owner",
+        "synthetic budget-effect evidence"
+      ]
+    },
+    "sandboxRuntimeArtifact": {
+      "description": "Resettable output from Cernion/Rundeck demo verification runs, separate from public context baselines.",
+      "examples": [
+        "Workbench verify trace",
+        "matrix-sync render artifact",
+        "read-model refresh proof"
+      ]
+    }
+  },
+  "roles": [
+    {
+      "roleId": "ROLE_ASSET_MANAGEMENT",
+      "relation": "verantwortlich",
+      "responsibility": "Owns the investment measure review and decides whether the evidence gate is ready for a safe committee-prep review."
+    },
+    {
+      "roleId": "ROLE_CONTROLLING",
+      "relation": "durchfuehrend",
+      "responsibility": "Checks budget-effect evidence and source references without posting, approving or reserving budget."
+    },
+    {
+      "roleId": "ROLE_GOVERNANCE_OWNER",
+      "relation": "mitwirkend",
+      "responsibility": "Verifies owner, deadline and blocked-decision evidence as a dossier-ready governance gate."
+    },
+    {
+      "roleId": "ROLE_CERNION_GOVERNANCE",
+      "relation": "mitwirkend",
+      "responsibility": "Verifies the Blueprint-Pack seed, matrix sync and read-only dashboard brick reference."
+    },
+    {
+      "roleId": "ROLE_MANAGEMENT",
+      "relation": "information",
+      "responsibility": "Receives blocked-decision, next-gate and readiness context without approving operational action."
+    },
+    {
+      "roleId": "ROLE_COMMERCIAL_AUDIT",
+      "relation": "information",
+      "responsibility": "Receives budget-effect and safety-boundary context without accounting, settlement or approval effects."
+    }
+  ],
+  "evidenceRequirements": [
+    {
+      "id": "investmentMeasureIdentityEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds the synthetic investment measure identity, source brick reference and bounded Stadtwerk-Mauer context."
+    },
+    {
+      "id": "accountableOwnerEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "owner_gap",
+      "enablesDossierAddition": "Adds the accountable owner role and review responsibility without assigning live workflow ownership."
+    },
+    {
+      "id": "deadlineEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "deadline_gap",
+      "enablesDossierAddition": "Adds the due-date marker and timing risk for the safe review gate."
+    },
+    {
+      "id": "budgetEffectEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "budget_gap",
+      "enablesDossierAddition": "Adds the synthetic budget-effect marker without booking, reserving or approving budget."
+    },
+    {
+      "id": "approvalSourceEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "approval_source_gap",
+      "enablesDossierAddition": "Adds the source/approval evidence marker for review without executing a committee decision."
+    },
+    {
+      "id": "blockedDecisionEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "blocked_decision_gap",
+      "enablesDossierAddition": "Adds which follow-up decision remains blocked until owner, deadline and budget evidence are complete."
+    },
+    {
+      "id": "nextEscalationGateEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "next_gate_gap",
+      "enablesDossierAddition": "Adds the next safe escalation or review gate as dossier context only."
+    },
+    {
+      "id": "readinessMarker",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "readiness_gap",
+      "enablesDossierAddition": "Adds whether the investment gate is review-ready or still blocked by evidence gaps."
+    }
+  ],
+  "demoProcessMatrix": {
+    "slug": "investment-owner-deadline-budget-gate",
+    "title": "Investment Owner-Frist-Budget Gate review",
+    "roleLegend": {
+      "V": "Verantwortlich",
+      "D": "Durchfuehrend",
+      "M": "Mitwirkend",
+      "I": "Informiert"
+    },
+    "headers": [
+      "Phase",
+      "V = Verantwortlich",
+      "D = Durchfuehrend",
+      "M = Mitwirkend",
+      "I = Informiert",
+      "Nachweise"
+    ],
+    "allowedDataClasses": [
+      "publicContextLayer",
+      "syntheticTenantSeed",
+      "sandboxRuntimeArtifact"
+    ],
+    "downstreamHandoff": {
+      "blueprintPack": "complete",
+      "landingRegistry": "pending",
+      "productiveDemoRoom": "pending",
+      "acceptanceNote": "Blueprint-Pack/Cernion-Energy-Tools matrix is canonical; Landing-Registry and productive Demo-Raum sync remain downstream proof steps."
+    },
+    "rows": [
+      {
+        "phase": "1",
+        "v": "ROLE_ASSET_MANAGEMENT",
+        "d": "ROLE_CONTROLLING",
+        "m": "ROLE_CERNION_GOVERNANCE",
+        "i": "ROLE_MANAGEMENT",
+        "evidenceRequirements": [
+          "investmentMeasureIdentityEvidence",
+          "accountableOwnerEvidence"
+        ],
+        "dataClassRefs": [
+          "publicContextLayer",
+          "syntheticTenantSeed"
+        ],
+        "status": "owner_gap",
+        "gateOutcome": "measure_identity_and_owner_review_pending",
+        "enablesDossierAddition": "Adds measure identity and accountable owner evidence as bounded review material."
+      },
+      {
+        "phase": "2",
+        "v": "ROLE_ASSET_MANAGEMENT",
+        "d": "ROLE_CONTROLLING",
+        "m": "ROLE_GOVERNANCE_OWNER",
+        "i": "ROLE_COMMERCIAL_AUDIT",
+        "evidenceRequirements": [
+          "deadlineEvidence",
+          "budgetEffectEvidence"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed"
+        ],
+        "status": "budget_gap",
+        "gateOutcome": "deadline_and_budget_effect_review_pending",
+        "enablesDossierAddition": "Adds deadline and budget-effect evidence without booking or approving budget."
+      },
+      {
+        "phase": "3",
+        "v": "ROLE_ASSET_MANAGEMENT",
+        "d": "ROLE_GOVERNANCE_OWNER",
+        "m": "ROLE_CONTROLLING",
+        "i": "ROLE_MANAGEMENT",
+        "evidenceRequirements": [
+          "approvalSourceEvidence",
+          "blockedDecisionEvidence"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed",
+          "sandboxRuntimeArtifact"
+        ],
+        "status": "approval_source_gap",
+        "gateOutcome": "blocked_decision_review_pending",
+        "enablesDossierAddition": "Adds approval-source and blocked-decision context without committee execution."
+      },
+      {
+        "phase": "4",
+        "v": "ROLE_ASSET_MANAGEMENT",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_CONTROLLING",
+        "i": "ROLE_MANAGEMENT",
+        "evidenceRequirements": [
+          "nextEscalationGateEvidence",
+          "readinessMarker"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed",
+          "sandboxRuntimeArtifact"
+        ],
+        "status": "readiness_gap",
+        "gateOutcome": "ready_for_safe_review_or_evidence_gap",
+        "enablesDossierAddition": "Adds next-gate and readiness evidence while keeping Demo-Raum publication pending."
+      }
+    ]
+  },
+  "decisionPolicy": {
+    "onMissingEvidence": "evidence_gap",
+    "onMissingOwner": "owner_gap",
+    "allowedStates": [
+      "owner_gap",
+      "deadline_gap",
+      "budget_gap",
+      "approval_source_gap",
+      "blocked_decision_gap",
+      "next_gate_gap",
+      "readiness_gap",
+      "ready_for_review"
+    ],
+    "mustNotTrigger": [
+      "erp_write",
+      "sap_write",
+      "accounting_write",
+      "budget_approval",
+      "committee_execution",
+      "treasury_transfer",
+      "workflow_create",
+      "hitl_create",
+      "mail_send",
+      "webhook_send",
+      "mako_write",
+      "billing",
+      "settlement",
+      "tariff_mutation",
+      "smgw_cls_device_control",
+      "external_connector_call",
+      "production_mutation",
+      "public_context_mutation"
+    ]
+  },
+  "allowedCommandHints": [
+    {
+      "kind": "workbench_hint",
+      "id": "api:investment-owner-deadline-budget-gate",
+      "label": "Investment Owner-Frist-Budget Gate",
+      "execution": "metadata_only",
+      "safeNextAction": "refresh_read_model"
+    },
+    {
+      "kind": "verification_hint",
+      "id": "blueprint-pack:verify-investment-owner-deadline-budget-matrix",
+      "label": "Verify investment owner/deadline/budget matrix seed",
+      "execution": "metadata_only",
+      "safeNextAction": "verify_seed_matrix"
+    },
+    {
+      "kind": "inspection_hint",
+      "id": "workbench:inspect-investment-evidence-gaps",
+      "label": "Inspect investment gate evidence gaps",
+      "execution": "metadata_only",
+      "safeNextAction": "inspect_evidence_gaps"
+    }
+  ],
+  "forbiddenActions": [
+    "erp_write",
+    "sap_write",
+    "accounting_write",
+    "budget_approval",
+    "committee_execution",
+    "treasury_transfer",
+    "workflow_create",
+    "mail_send",
+    "webhook_send",
+    "mako_write",
+    "billing",
+    "settlement",
+    "tariff_mutation",
+    "smgw_cls_device_control",
+    "external_connector_call",
+    "hitl_create",
+    "budibase_table_write",
+    "public_context_mutation",
+    "production_mutation",
+    "personal_agent_hardcoding"
+  ],
+  "publicContextMutationAllowed": false,
+  "tenantProvisioningAllowed": false,
+  "realWorldClaim": "synthetic_demo_only"
+}

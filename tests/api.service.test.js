@@ -13,6 +13,7 @@ const NbpMonitorService = require('../services/nbp-monitor.service');
 const KnowledgeRagService = require('../services/knowledge-rag.service');
 const FinanceAgentService = require('../services/finance-agent.service');
 const PersonalAgentService = require('../services/personal-agent.service');
+const OpenAICompatibleService = require('../services/openai-compatible.service');
 const CommunityService = require('../services/community.service');
 const AgentPersonaService = require('../services/agent-persona.service');
 const ObservabilityService = require('../services/observability.service');
@@ -79,6 +80,7 @@ describe('API Gateway Service', () => {
       },
     });
     broker.createService(PersonalAgentService);
+    broker.createService(OpenAICompatibleService);
     broker.createService({
       ...AgentPersonaService,
       settings: {
@@ -292,6 +294,15 @@ describe('API Gateway Service', () => {
       );
     });
 
+    it('should document the OpenAI-compatible chat completions facade', async () => {
+      const schema = await broker.call('api.openapi');
+
+      expect(schema.tags.some((tag) => tag.name === 'OpenAI Compatible')).toBe(true);
+      expect(schema.paths['/v1/chat/completions']).toBeDefined();
+      expect(schema.paths['/v1/chat/completions'].post.operationId).toBe('createChatCompletion');
+      expect(schema.paths['/v1/chat/completions'].post.tags).toContain('OpenAI Compatible');
+    });
+
     it('should include CYA, Cookbook, Dashboard API, and MaStR Quality routes', async () => {
       const schema = await broker.call('api.openapi');
 
@@ -301,6 +312,10 @@ describe('API Gateway Service', () => {
       expect(schema.paths['/api/dashboard/redispatch-metering-cockpit']).toBeDefined();
       expect(schema.paths['/api/dashboard/load-profile-stream-monitor']).toBeDefined();
       expect(schema.paths['/api/dashboard/controllability-asset-handover']).toBeDefined();
+      expect(
+        schema.paths['/api/dashboard/coordination-meaning-preservation-profile']
+      ).toBeDefined();
+      expect(schema.paths['/api/dashboard/a2mdm-decision-object']).toBeDefined();
       expect(schema.paths['/api/dashboard/cost-review-committee-status']).toBeDefined();
       expect(schema.paths['/api/dashboard/cross-system-variance-matrix']).toBeDefined();
       expect(schema.paths['/api/dashboard/regulatory-signal-process-translator']).toBeDefined();
@@ -321,6 +336,10 @@ describe('API Gateway Service', () => {
       expect(schema.paths['/api/dashboard/redispatch-metering-cockpit'].get).toBeDefined();
       expect(schema.paths['/api/dashboard/load-profile-stream-monitor'].get).toBeDefined();
       expect(schema.paths['/api/dashboard/controllability-asset-handover'].get).toBeDefined();
+      expect(
+        schema.paths['/api/dashboard/coordination-meaning-preservation-profile'].get
+      ).toBeDefined();
+      expect(schema.paths['/api/dashboard/a2mdm-decision-object'].get).toBeDefined();
       expect(schema.paths['/api/dashboard/gremiencoach-workbook-readiness'].get).toBeDefined();
       expect(schema.paths['/api/dashboard/decision-readiness-matrix'].get).toBeDefined();
       expect(schema.paths['/api/dashboard/cross-system-variance-matrix'].get).toBeDefined();
@@ -349,6 +368,9 @@ describe('API Gateway Service', () => {
       expect(schema.paths['/api/dashboard/controllability-asset-handover'].get.tags).toContain(
         'Dashboard API'
       );
+      expect(
+        schema.paths['/api/dashboard/coordination-meaning-preservation-profile'].get.tags
+      ).toContain('Dashboard API');
       expect(schema.paths['/api/dashboard/gremiencoach-workbook-readiness'].get.tags).toContain(
         'Dashboard API'
       );
@@ -531,6 +553,18 @@ describe('API Gateway Service', () => {
       expect(aliases['GET /dashboard/controllability-asset-handover']).toBe(
         'dashboard-api.controllabilityAssetHandoverStatus'
       );
+      expect(aliases['GET /dashboard/interconnection-release-file']).toBe(
+        'dashboard-api.interconnectionReleaseFileStatus'
+      );
+      expect(aliases['GET /dashboard/controllability-data-alignment']).toBe(
+        'dashboard-api.controllabilityDataAlignmentStatus'
+      );
+      expect(aliases['GET /dashboard/coordination-meaning-preservation-profile']).toBe(
+        'dashboard-api.coordinationMeaningPreservationProfile'
+      );
+      expect(aliases['GET /dashboard/a2mdm-decision-object']).toBe(
+        'dashboard-api.a2mdmDecisionObjectStatus'
+      );
       expect(aliases['GET /dashboard/gremiencoach-workbook-readiness']).toBe(
         'dashboard-api.gremiencoachWorkbookReadinessStatus'
       );
@@ -662,6 +696,9 @@ describe('API Gateway Service', () => {
       );
       expect(aliases['GET /dashboard/investment-owner-deadline-budget-gate']).toBe(
         'dashboard-api.investmentOwnerDeadlineBudgetGateStatus'
+      );
+      expect(aliases['GET /dashboard/direct-marketer-risk-gate']).toBe(
+        'dashboard-api.directMarketerRiskGateStatus'
       );
       expect(aliases['GET /dashboard/no-regret-measure-definition-gate']).toBe(
         'dashboard-api.noRegretMeasureDefinitionGateStatus'
@@ -976,6 +1013,297 @@ describe('API Gateway Service', () => {
       const apiRoute = ApiService.settings.routes.find((r) => r.path === '/api');
       expect(apiRoute.onError).toBeDefined();
       expect(typeof apiRoute.onError).toBe('function');
+    });
+
+    it('should expose /v1/chat/completions outside the /api route', () => {
+      const v1Route = ApiService.settings.routes.find((r) => r.path === '/v1');
+      expect(v1Route).toBeDefined();
+      expect(v1Route.aliases['POST /chat/completions']).toBeInstanceOf(Function);
+      expect(v1Route.bodyParsers.json.limit).toBe('1MB');
+    });
+
+    it('should return OpenAI-style auth errors on the /v1 chat completions facade', async () => {
+      const v1Route = ApiService.settings.routes.find((r) => r.path === '/v1');
+      const chunks = [];
+      const res = {
+        statusCode: null,
+        headers: {},
+        setHeader(name, value) {
+          this.headers[name] = value;
+        },
+        writeHead(status) {
+          this.statusCode = status;
+        },
+        end(payload) {
+          chunks.push(payload);
+        },
+      };
+
+      await v1Route.aliases['POST /chat/completions'].call(
+        { broker, logger: { debug: jest.fn(), warn: jest.fn() } },
+        {
+          headers: {},
+          method: 'POST',
+          body: { model: 'cernion-agent-mvp', messages: [{ role: 'user', content: 'Hallo' }] },
+        },
+        res
+      );
+
+      expect(res.statusCode).toBe(401);
+      expect(JSON.parse(chunks.join('')).error).toMatchObject({
+        type: 'authentication_error',
+        code: 'authentication_required',
+      });
+    });
+
+    it('should preserve authenticated tenant context on the /v1 chat completions facade', async () => {
+      const v1Route = ApiService.settings.routes.find((r) => r.path === '/v1');
+      const chunks = [];
+      const brokerCall = jest.fn(async (action, params, opts) => {
+        if (action === 'token-manager.verify') {
+          expect(params).toMatchObject({
+            token: 'ck_route_success',
+            method: 'POST',
+            path: '/v1/chat/completions',
+            trackUsage: true,
+          });
+          return {
+            valid: true,
+            tokenId: 'token-421',
+            name: 'FacadeSmoke',
+            scope: 'full-access',
+            scopes: ['full-access'],
+            tenantId: 'tenant-route-421',
+            userId: 'user-route-421',
+          };
+        }
+        if (action === 'openai-compatible.chatCompletions') {
+          expect(opts.meta).toMatchObject({
+            tenantId: 'tenant-route-421',
+            authUser: {
+              authType: 'legacy-token',
+              userId: 'user-route-421',
+              tenantId: 'tenant-route-421',
+            },
+          });
+          // The nested facade call must be synchronous. Forwarding the outer
+          // REST marker would make personal-agent.chat return a queued job
+          // descriptor instead of a completed reply.
+          expect(opts.meta.$gateway).toBeUndefined();
+          return {
+            id: 'chatcmpl_test',
+            object: 'chat.completion',
+            created: 1,
+            model: 'cernion-agent-mvp',
+            choices: [{ index: 0, message: { role: 'assistant', content: 'OK' } }],
+            usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+          };
+        }
+        throw new Error(`Unexpected action ${action}`);
+      });
+      const res = {
+        statusCode: null,
+        headers: {},
+        setHeader(name, value) {
+          this.headers[name] = value;
+        },
+        writeHead(status) {
+          this.statusCode = status;
+        },
+        end(payload) {
+          chunks.push(payload);
+        },
+      };
+
+      await v1Route.aliases['POST /chat/completions'].call(
+        { broker: { call: brokerCall, emit: jest.fn() }, logger: { debug: jest.fn() } },
+        {
+          headers: { authorization: 'Bearer ck_route_success' },
+          method: 'POST',
+          body: { model: 'cernion-agent-mvp', messages: [{ role: 'user', content: 'Hallo' }] },
+        },
+        res
+      );
+
+      expect(res.statusCode).toBe(200);
+      expect(JSON.parse(chunks.join('')).choices[0].message.content).toBe('OK');
+      expect(brokerCall).toHaveBeenCalledWith(
+        'openai-compatible.chatCompletions',
+        expect.objectContaining({ model: 'cernion-agent-mvp' }),
+        expect.objectContaining({
+          meta: expect.objectContaining({ tenantId: 'tenant-route-421' }),
+        })
+      );
+    });
+
+    function createSseCollectingRes() {
+      const writes = [];
+      let ended = false;
+      return {
+        statusCode: null,
+        headers: {},
+        writes,
+        setHeader(name, value) {
+          this.headers[name] = value;
+        },
+        writeHead(status) {
+          this.statusCode = status;
+        },
+        write(chunk) {
+          writes.push(chunk);
+          return true;
+        },
+        end(payload) {
+          if (payload != null) writes.push(payload);
+          ended = true;
+        },
+        get ended() {
+          return ended;
+        },
+      };
+    }
+
+    it('should emit buffered chat.completion.chunk SSE frames ending with [DONE] when stream=true', async () => {
+      const v1Route = ApiService.settings.routes.find((r) => r.path === '/v1');
+      const brokerCall = jest.fn(async (action) => {
+        if (action === 'token-manager.verify') {
+          return {
+            valid: true,
+            tokenId: 'token-stream',
+            scope: 'full-access',
+            scopes: ['full-access'],
+            tenantId: 'tenant-stream',
+            userId: 'user-stream',
+          };
+        }
+        if (action === 'openai-compatible.chatCompletions') {
+          return {
+            id: 'chatcmpl_stream_test',
+            object: 'chat.completion',
+            created: 1234,
+            model: 'cernion-agent-mvp',
+            choices: [
+              {
+                index: 0,
+                message: { role: 'assistant', content: 'Streamed answer.' },
+                finish_reason: 'stop',
+              },
+            ],
+            usage: { prompt_tokens: 1, completion_tokens: 2, total_tokens: 3 },
+          };
+        }
+        throw new Error(`Unexpected action ${action}`);
+      });
+      const res = createSseCollectingRes();
+
+      await v1Route.aliases['POST /chat/completions'].call(
+        { broker: { call: brokerCall, emit: jest.fn() }, logger: { debug: jest.fn() } },
+        {
+          headers: { authorization: 'Bearer ck_stream_token' },
+          method: 'POST',
+          body: {
+            model: 'cernion-agent-mvp',
+            stream: true,
+            messages: [{ role: 'user', content: 'Hallo' }],
+          },
+        },
+        res
+      );
+
+      expect(res.statusCode).toBe(200);
+      expect(res.headers['Content-Type']).toBe('text/event-stream; charset=utf-8');
+      expect(res.ended).toBe(true);
+
+      // Last write is the terminal [DONE] frame; everything before it is a
+      // "data: {...}\n\n" chat.completion.chunk frame.
+      expect(res.writes[res.writes.length - 1]).toBe('data: [DONE]\n\n');
+      const chunkFrames = res.writes.slice(0, -1).map((frame) => {
+        expect(frame.startsWith('data: ')).toBe(true);
+        expect(frame.endsWith('\n\n')).toBe(true);
+        return JSON.parse(frame.slice('data: '.length, -2));
+      });
+
+      expect(chunkFrames).toHaveLength(3);
+      for (const chunk of chunkFrames) {
+        expect(chunk.object).toBe('chat.completion.chunk');
+        expect(chunk.id).toBe('chatcmpl_stream_test');
+        expect(chunk.model).toBe('cernion-agent-mvp');
+      }
+      expect(chunkFrames[0].choices[0].delta).toEqual({ role: 'assistant' });
+      expect(chunkFrames[0].choices[0].finish_reason).toBeNull();
+      expect(chunkFrames[1].choices[0].delta).toEqual({ content: 'Streamed answer.' });
+      expect(chunkFrames[1].choices[0].finish_reason).toBeNull();
+      expect(chunkFrames[2].choices[0].delta).toEqual({});
+      expect(chunkFrames[2].choices[0].finish_reason).toBe('stop');
+    });
+
+    it('should leave non-streaming JSON responses unchanged when stream is omitted', async () => {
+      const v1Route = ApiService.settings.routes.find((r) => r.path === '/v1');
+      const brokerCall = jest.fn(async (action) => {
+        if (action === 'token-manager.verify') {
+          return {
+            valid: true,
+            tokenId: 'token-nonstream',
+            scope: 'full-access',
+            scopes: ['full-access'],
+            tenantId: 'tenant-nonstream',
+            userId: 'user-nonstream',
+          };
+        }
+        if (action === 'openai-compatible.chatCompletions') {
+          return {
+            id: 'chatcmpl_nonstream_test',
+            object: 'chat.completion',
+            created: 1234,
+            model: 'cernion-agent-mvp',
+            choices: [{ index: 0, message: { role: 'assistant', content: 'Buffered answer.' } }],
+            usage: { prompt_tokens: 1, completion_tokens: 2, total_tokens: 3 },
+          };
+        }
+        throw new Error(`Unexpected action ${action}`);
+      });
+      const res = createSseCollectingRes();
+
+      await v1Route.aliases['POST /chat/completions'].call(
+        { broker: { call: brokerCall, emit: jest.fn() }, logger: { debug: jest.fn() } },
+        {
+          headers: { authorization: 'Bearer ck_nonstream_token' },
+          method: 'POST',
+          body: { model: 'cernion-agent-mvp', messages: [{ role: 'user', content: 'Hallo' }] },
+        },
+        res
+      );
+
+      expect(res.statusCode).toBe(200);
+      expect(res.headers['Content-Type']).toBe('application/json; charset=utf-8');
+      expect(res.writes).toHaveLength(1);
+      const body = JSON.parse(res.writes[0]);
+      expect(body.object).toBe('chat.completion');
+      expect(body.choices[0].message.content).toBe('Buffered answer.');
+    });
+
+    it('should expose GET /v1/models with a static, unauthenticated OpenAI-compatible catalog', async () => {
+      const v1Route = ApiService.settings.routes.find((r) => r.path === '/v1');
+      expect(v1Route.aliases['GET /models']).toBeInstanceOf(Function);
+
+      const res = createSseCollectingRes();
+
+      await v1Route.aliases['GET /models'].call(
+        { broker: { call: jest.fn() }, logger: { debug: jest.fn() } },
+        { headers: {}, method: 'GET' },
+        res
+      );
+
+      expect(res.statusCode).toBe(200);
+      expect(res.headers['Content-Type']).toBe('application/json; charset=utf-8');
+      const body = JSON.parse(res.writes[0]);
+      expect(body.object).toBe('list');
+      expect(body.data).toEqual([
+        expect.objectContaining({ id: 'cernion-agent-mvp', object: 'model', owned_by: 'cernion' }),
+      ]);
+      // No tenant data or credentials in the static discovery catalog.
+      const serialized = JSON.stringify(body);
+      expect(serialized).not.toMatch(/tenant|token|secret|apiKey|api_key/i);
     });
 
     it('should extract token from URL params with precedence over bearer token', async () => {

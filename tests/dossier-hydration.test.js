@@ -68,14 +68,14 @@ describe('dossier-hydration-registry (unit)', () => {
   // ── Static baseline ──────────────────────────────────────────────────────
 
   describe('static baseline rules', () => {
-    it('loads all 114 static rules', () => {
+    it('loads all 121 static rules', () => {
       const rules = getStaticRules();
-      expect(rules.length).toBe(114);
+      expect(rules.length).toBe(121);
     });
 
-    it('compiles all 114 static rules without error', () => {
+    it('compiles all 121 static rules without error', () => {
       const rules = listRules();
-      expect(rules.length).toBe(114);
+      expect(rules.length).toBe(121);
       for (const rule of rules) {
         expect(typeof rule.extractParams).toBe('function');
         expect(typeof rule.formatEvidence).toBe('function');
@@ -122,6 +122,7 @@ describe('dossier-hydration-registry (unit)', () => {
         'dashboard-api.vnbDeltaSignalClassifierStatus',
         'dashboard-api.evidenceFreshnessGuardStatus',
         'dashboard-api.gremiencoachWorkbookReadinessStatus',
+        'dashboard-api.a2mdmDecisionObjectStatus',
       ];
       for (const action of expected) {
         expect(getRule(action)).not.toBeNull();
@@ -295,8 +296,7 @@ describe('dossier-hydration-registry (unit)', () => {
         guardrailRows: [{ guardrailId: 'no_private_document_ingestion' }],
         positiveFollowUpRows: [
           {
-            enablesDossierAddition:
-              'add evidence-backed source register for committee-safe claims',
+            enablesDossierAddition: 'add evidence-backed source register for committee-safe claims',
           },
         ],
         sourceActions: { notCalled: ['document.upload'] },
@@ -520,6 +520,77 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Leading Gap: feedback_capability');
     });
 
+    it('dashboard-api.controllabilityDataAlignmentStatus is dossier-safe and formats alignment facts', () => {
+      const rule = getRule('dashboard-api.controllabilityDataAlignmentStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Steuerbarkeitscheck-Datenabgleich checklist=check-407 asset=asset-407 owner=netzplanung laden'
+        )
+      ).toEqual({
+        checklistId: 'check-407',
+        assetId: 'asset-407',
+        owner: 'netzplanung',
+      });
+
+      const formatted = rule.formatEvidence({
+        status: 'needs_control_technology_status',
+        checklist: { checklistId: 'check-407' },
+        safeNextGate: 'collect_control_technology_evidence',
+        owner: 'netzplanung',
+        missingEvidence: [{ missingDataPoint: 'control_technology_status' }],
+        positiveFollowUps: [
+          {
+            enablesDossierAddition: 'add Steuertechnik/CLS/iMSys readiness evidence',
+          },
+        ],
+        sourceActions: { notCalled: ['file.import'] },
+        timestamp: '2026-07-08T22:30:00.000Z',
+      });
+
+      expect(formatted).toContain('Alignment Status: needs_control_technology_status');
+      expect(formatted).toContain('Checklist: check-407');
+      expect(formatted).toContain('Next Gate: collect_control_technology_evidence');
+      expect(formatted).toContain('Leading Gap: control_technology_status');
+    });
+
+    it('dashboard-api.coordinationMeaningPreservationProfile is dossier-safe and formats meaning-preservation facts', () => {
+      const rule = getRule('dashboard-api.coordinationMeaningPreservationProfile');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Bedeutungserhalt Koordinationsschicht case=case-402 quelle=Netzbetrieb ziel=Planung owner=netzplanung entscheidung=capex-gate laden'
+        )
+      ).toEqual({
+        caseId: 'case-402',
+        sourceDomain: 'Netzbetrieb',
+        targetDomain: 'Planung',
+        owner: 'netzplanung',
+        nextDecision: 'capex-gate',
+      });
+
+      const formatted = rule.formatEvidence({
+        status: 'needs_decision_context',
+        coordinationLossClassification: 'decision_context_missing',
+        requestContext: { sourceDomain: 'Netzbetrieb', targetDomain: 'Planung' },
+        missingDimensions: [{ missingDataPoint: 'evidence_proof' }],
+        positiveFollowUps: [{ enablesDossierAddition: 'add Nachweisquelle' }],
+        sourceActions: { notCalled: ['external.connector.call'] },
+        timestamp: '2026-07-07T20:50:00.000Z',
+      });
+
+      expect(formatted).toContain('Meaning Status: needs_decision_context');
+      expect(formatted).toContain('Classification: decision_context_missing');
+      expect(formatted).toContain('Source: Netzbetrieb');
+      expect(formatted).toContain('Target: Planung');
+      expect(formatted).toContain('Leading Gap: evidence_proof');
+      expect(formatted).toContain('Side-Effect Guard: external.connector.call');
+    });
+
     it('dashboard-api.decisionReadinessMatrixStatus is dossier-safe and formats decision facts', () => {
       const rule = getRule('dashboard-api.decisionReadinessMatrixStatus');
       expect(rule).not.toBeNull();
@@ -553,6 +624,50 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Measure: grid-study');
       expect(formatted).toContain('Row Status: evidence_gap');
       expect(formatted).toContain('Leading Gap: budget_status');
+    });
+
+    it('dashboard-api.a2mdmDecisionObjectStatus is dossier-safe and formats scalar decision-object facts', () => {
+      const rule = getRule('dashboard-api.a2mdmDecisionObjectStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte A2MDM Entscheidungsobjekt case=case-423 owner=netzplanung gate=freigabe-review laden'
+        )
+      ).toEqual({
+        caseId: 'case-423',
+        ownerRole: 'netzplanung',
+        nextGate: 'freigabe-review',
+      });
+
+      const formatted = rule.formatEvidence({
+        status: 'needs_decision_context',
+        decisionObjectId: 'a2mdm-do:test',
+        subject: 'Flexible Netzanschluss Freigabe',
+        businessIntent: 'reserve-capacity-after-review',
+        technicalConstraint: 'nvp-capacity-window',
+        regulatoryReference: 'EnWG-14a-context',
+        evidenceSource: 'vdmi:release-file',
+        ownerRole: 'Netzplanung',
+        riskLevel: 'medium',
+        decisionThreshold: 'all-evidence-present',
+        nextGate: 'human-release-review',
+        missingInputs: [{ missingDataPoint: 'risk_level' }],
+        positiveFollowUps: [
+          {
+            enablesDossierAddition: 'add risk classification for human review',
+          },
+        ],
+        sourceActions: { notCalled: ['a2mdm.persist'] },
+      });
+
+      expect(formatted).toContain('Status: needs_decision_context');
+      expect(formatted).toContain('Decision Object: a2mdm-do:test');
+      expect(formatted).toContain('Business Intent: reserve-capacity-after-review');
+      expect(formatted).toContain('Leading Gap: risk_level');
+      expect(formatted).toContain('Side-Effect Guard: a2mdm.persist');
+      expect(formatted).not.toContain('[object Object]');
     });
 
     it('dashboard-api.crossSystemVarianceMatrixStatus is dossier-safe and formats variance facts', () => {
@@ -2263,6 +2378,148 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(formatted).toContain('Side-Effect Guard: investment.approve');
     });
 
+    it('dashboard-api.energySidecarRouteRegistryStatus is dossier-safe and formats route facts', () => {
+      const rule = getRule('dashboard-api.energySidecarRouteRegistryStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Route Registry intent=redispatch-readiness-route-audit domain=redispatch input=processId pruefen'
+        )
+      ).toEqual({
+        intent: 'redispatch-readiness-route-audit',
+        domain: 'redispatch',
+        requiredInput: 'processId',
+      });
+
+      const formatted = rule.formatEvidence({
+        capabilityKey: 'energy_sidecar_route_registry',
+        status: 'route_registry_ready',
+        routeCount: 1,
+        rows: [
+          {
+            routeKey: 'redispatch_readiness_evidence',
+            preferredAction: 'redispatch-readiness-gate.getStatus',
+            sourceRegistry: 'capability-catalog',
+            evidenceStatus: 'route_grounded',
+          },
+        ],
+        missingEvidence: [],
+        positiveFollowUps: [{ enablesDossierAddition: 'add deterministic route recommendation' }],
+        sourceActions: {
+          notCalled: ['recommendedEndpoint.execute'],
+        },
+      });
+
+      expect(formatted).toContain('Capability: energy_sidecar_route_registry');
+      expect(formatted).toContain('Route Registry Status: route_registry_ready');
+      expect(formatted).toContain('First Route: redispatch_readiness_evidence');
+      expect(formatted).toContain('Preferred Action: redispatch-readiness-gate.getStatus');
+      expect(formatted).toContain('Side-Effect Guard: recommendedEndpoint.execute');
+    });
+
+    it('dashboard-api.interconnectionReleaseFileStatus is dossier-safe and formats release-file facts', () => {
+      const rule = getRule('dashboard-api.interconnectionReleaseFileStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Koppelpunkt Freigabeakte case=case-419 koppelpunkt=KP-419 marktpartner=MP-419 zeitreihe=TS-419 version=v2 owner=marktkommunikation pruefen'
+        )
+      ).toEqual({
+        caseId: 'case-419',
+        koppelpunktId: 'KP-419',
+        marketPartnerId: 'MP-419',
+        timeseriesId: 'TS-419',
+        mappingVersion: 'v2',
+        owner: 'marktkommunikation',
+      });
+
+      const formatted = rule.formatEvidence({
+        capabilityKey: 'interconnection_release_file',
+        status: 'needs_release_evidence',
+        subject: {
+          caseId: 'case-419',
+          koppelpunktId: 'KP-419',
+          marketPartnerId: 'MP-419',
+          timeseriesId: 'TS-419',
+          mappingVersion: 'v2',
+        },
+        approvalRows: [{ owner: 'marktkommunikation' }],
+        missingEvidence: [{ missingDataPoint: 'evidence_source_version' }],
+        positiveFollowUps: [
+          {
+            enablesDossierAddition: 'add source system and version carrying the mapping evidence',
+          },
+        ],
+        sourceActions: {
+          notCalled: ['mapping.write'],
+        },
+      });
+
+      expect(formatted).toContain('Capability: interconnection_release_file');
+      expect(formatted).toContain('Release File Status: needs_release_evidence');
+      expect(formatted).toContain('Koppelpunkt: KP-419');
+      expect(formatted).toContain('Market Partner: MP-419');
+      expect(formatted).toContain('Timeseries: TS-419');
+      expect(formatted).toContain('Mapping Version: v2');
+      expect(formatted).toContain('Approval Owner: marktkommunikation');
+      expect(formatted).toContain('Leading Gap: evidence_source_version');
+      expect(formatted).toContain('Side-Effect Guard: mapping.write');
+    });
+
+    it('dashboard-api.directMarketerRiskGateStatus is dossier-safe and formats risk gate facts', () => {
+      const rule = getRule('dashboard-api.directMarketerRiskGateStatus');
+      expect(rule).not.toBeNull();
+      expect(isSafetyRejectedAction(rule.action)).toBe(false);
+      expect(
+        rule.extractParams(
+          [],
+          'Bitte Direktvermarkter Risikogate case=case-411 direktvermarkter=dm-partner prognosequalitaet=validiert allokation=regelwerk-v1 owner=energy-services frist=2026-09-30 pruefen'
+        )
+      ).toEqual({
+        caseId: 'case-411',
+        directMarketer: 'dm-partner',
+        forecastQuality: 'validiert',
+        allocationRules: 'regelwerk-v1',
+        roleOwner: 'energy-services',
+        deadline: '2026-09-30',
+      });
+
+      const formatted = rule.formatEvidence({
+        capabilityKey: 'direct_marketer_risk_gate',
+        status: 'needs_forecast_and_allocation_evidence',
+        handoverContext: {
+          caseId: 'case-411',
+          directMarketer: 'dm-partner',
+        },
+        marketEvidence: {
+          forecastQuality: 'validiert',
+          allocationRules: 'regelwerk-v1',
+        },
+        roleDeadline: {
+          roleOwner: 'energy-services',
+          deadline: '2026-09-30',
+        },
+        missingEvidence: [{ missingDataPoint: 'balancing_schedule_impact' }],
+        positiveFollowUps: [
+          { enablesDossierAddition: 'add balancing-group and schedule-impact assessment' },
+        ],
+        sourceActions: {
+          notCalled: ['schedule.submit'],
+        },
+      });
+
+      expect(formatted).toContain('Capability: direct_marketer_risk_gate');
+      expect(formatted).toContain('Risk Gate Status: needs_forecast_and_allocation_evidence');
+      expect(formatted).toContain('Case: case-411');
+      expect(formatted).toContain('Direct Marketer: dm-partner');
+      expect(formatted).toContain('Leading Gap: balancing_schedule_impact');
+      expect(formatted).toContain('Side-Effect Guard: schedule.submit');
+    });
+
     it('dashboard-api.noRegretMeasureDefinitionGateStatus is dossier-safe and formats definition facts', () => {
       const rule = getRule('dashboard-api.noRegretMeasureDefinitionGateStatus');
       expect(rule).not.toBeNull();
@@ -2462,9 +2719,7 @@ describe('dossier-hydration-registry (unit)', () => {
         },
       });
 
-      expect(formatted).toContain(
-        'Nicht-Eskalation Status: needs_absent_blocker_evidence'
-      );
+      expect(formatted).toContain('Nicht-Eskalation Status: needs_absent_blocker_evidence');
       expect(formatted).toContain('Signal: signal-368');
       expect(formatted).toContain('Quelle: monitor');
       expect(formatted).toContain('Leading Gap: blocking_finding');
@@ -2476,10 +2731,7 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(rule).not.toBeNull();
       expect(isSafetyRejectedAction(rule.action)).toBe(false);
       expect(
-        rule.extractParams(
-          [],
-          'Bitte review=cr-367 owner=controlling gate=invest-board laden'
-        )
+        rule.extractParams([], 'Bitte review=cr-367 owner=controlling gate=invest-board laden')
       ).toEqual({
         reviewId: 'cr-367',
         owner: 'controlling',
@@ -2494,9 +2746,7 @@ describe('dossier-hydration-registry (unit)', () => {
         decisionReadiness: null,
         nextCommitteeGate: 'invest-board',
         missingEvidence: [{ missingDataPoint: 'decision_readiness' }],
-        positiveFollowUps: [
-          { enablesDossierAddition: 'add readiness rationale and blockers' },
-        ],
+        positiveFollowUps: [{ enablesDossierAddition: 'add readiness rationale and blockers' }],
         sourceActions: { notCalled: ['budget.approve'] },
         dossierEvidence: {
           dossierFacts: ['Kostenpruefung Status: needs_decision_readiness'],

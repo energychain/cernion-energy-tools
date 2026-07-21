@@ -76,6 +76,7 @@ const UI_PAGE_MAP = [
   [/^\/residual-load\//, 'residual-load'],
   [/^\/query\//, 'query'],
   [/^\/agent\//, 'agent'],
+  [/^\/v1\/chat\/completions$/, 'agent'],
   [/^\/system\//, 'system'],
 ];
 
@@ -135,6 +136,7 @@ async function loadSpec() {
  * For a complete spec, run the server and use --live flag.
  */
 function normaliseApiPath(routePath) {
+  if (routePath.startsWith('/v1/')) return routePath.replace(/\/+/g, '/');
   const prefixed = routePath.startsWith('/') ? `/api${routePath}` : `/api/${routePath}`;
   return prefixed.replace(/\/+/g, '/');
 }
@@ -192,24 +194,33 @@ function buildOperationFromAction(actionRef, actionDef) {
 
 function buildStaticPaths(apiSvc, actionRegistry) {
   const routes = apiSvc.settings?.routes || [];
-  const apiRoute = routes.find((route) => route && route.path === '/api');
-  const aliases = apiRoute?.aliases || {};
   const paths = {};
 
-  for (const [aliasKey, aliasTarget] of Object.entries(aliases)) {
-    if (typeof aliasTarget !== 'string') continue;
+  for (const route of routes) {
+    if (!route || (route.path !== '/api' && route.path !== '/v1')) continue;
+    const aliases = route.aliases || {};
 
-    const [methodRaw, ...restParts] = aliasKey.split(' ');
-    if (!methodRaw || restParts.length === 0) continue;
+    for (const [aliasKey, rawAliasTarget] of Object.entries(aliases)) {
+      const aliasTarget =
+        route.path === '/v1' && aliasKey === 'POST /chat/completions'
+          ? 'openai-compatible.chatCompletions'
+          : rawAliasTarget;
+      if (typeof aliasTarget !== 'string') continue;
 
-    const method = methodRaw.toLowerCase();
-    const routePath = restParts.join(' ').trim();
-    const openapiPath = normaliseApiPath(routePath);
+      const [methodRaw, ...restParts] = aliasKey.split(' ');
+      if (!methodRaw || restParts.length === 0) continue;
 
-    if (!paths[openapiPath]) paths[openapiPath] = {};
+      const method = methodRaw.toLowerCase();
+      const routePath = restParts.join(' ').trim();
+      const fullRoutePath =
+        route.path === '/v1' && routePath.startsWith('/') ? `/v1${routePath}` : routePath;
+      const openapiPath = normaliseApiPath(fullRoutePath);
 
-    const actionDef = actionRegistry.get(aliasTarget);
-    paths[openapiPath][method] = buildOperationFromAction(aliasTarget, actionDef || {});
+      if (!paths[openapiPath]) paths[openapiPath] = {};
+
+      const actionDef = actionRegistry.get(aliasTarget);
+      paths[openapiPath][method] = buildOperationFromAction(aliasTarget, actionDef || {});
+    }
   }
 
   return paths;
