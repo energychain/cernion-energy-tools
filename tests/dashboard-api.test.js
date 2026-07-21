@@ -3512,6 +3512,66 @@ describe('dashboard-api.service', () => {
         );
         expect(result._errors).toEqual([]);
       });
+
+      it('does not promote core gate readiness when lifecycle evidence is complete but legacy gate evidence is incomplete', async () => {
+        const result = await broker.call('dashboard-api.fnavFastTrackContractGateStatus', {
+          gateId: 'fnav-ft-lifecycle-only',
+          gridOperatorId: 'SNB935578300972',
+          requestType: 'storage',
+          assetOrLoadType: 'battery',
+          firmCapacityKW: 500,
+          flexibleCapacityKW: 1500,
+          connectionRequestRef: 'creq-2205',
+          gridConnectionPoint: 'napp-08.4',
+          capacityOfferRef: 'coffer-79',
+          capacityOfferVersion: 'v4',
+          capacityOfferDate: '2026-05-15',
+          restrictionProfileRef: 'restr-15',
+          restrictionProfileVersion: 'v3',
+          curtailmentWindow: '18:00-20:00',
+          contractRef: 'contract-93',
+          contractVersion: 'v5',
+          contractReviewStatus: 'under_review',
+          curtailmentMeasurementEvidenceRef: 'meas-3392',
+          redispatchRelevanceRef: 'rd-relevance-3',
+          redispatchStatusRef: 'rd-status-3',
+          compensationStatusRef: 'comp-status-3',
+          evidenceOwner: 'netzplanung',
+          nextReviewGate: 'quarterly-review-q4',
+          evidenceSourceTimestamp: '2026-07-02T09:00:00Z',
+        });
+
+        expect(result.lifecycleEvidence.evidenceStatus.provided).toBe(
+          result.lifecycleEvidence.evidenceStatus.required
+        );
+        expect(result.lifecycleEvidence.missingEvidence).toEqual([]);
+        expect(result.status).toBe('blocked_by_legal_status');
+        expect(result.status).not.toBe('ready_for_fast_track');
+        expect(result.missingEvidence.map((gap) => gap.missingDataPoint)).toEqual(
+          expect.arrayContaining([
+            'netzsignal_priority_policy',
+            'schedule_obligation',
+            'metering_requirement',
+            'control_evidence_ref',
+            'contract_status',
+            'legal_status',
+            'owner_contact',
+            'commercial_impact',
+          ])
+        );
+      });
+
+      it('rejects empty lifecycle evidence parameters before creating the projection', async () => {
+        await expect(
+          broker.call('dashboard-api.fnavFastTrackContractGateStatus', {
+            gateId: 'fnav-ft-empty-lifecycle-ref',
+            gridOperatorId: 'SNB935578300972',
+            connectionRequestRef: '',
+          })
+        ).rejects.toMatchObject({
+          type: 'VALIDATION_ERROR',
+        });
+      });
     });
 
     // -- crossChannelVnbSignalQueueStatus -----------------------------------
