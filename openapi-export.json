@@ -23962,6 +23962,9 @@
                     "dossierEvidence": {
                       "type": "object"
                     },
+                    "lifecycleEvidence": {
+                      "type": "object"
+                    },
                     "safety": {
                       "type": "string"
                     },
@@ -23975,7 +23978,7 @@
             }
           }
         },
-        "description": "Projects fNAV fast-track request, network-signal, metering/control, commercial, contract, legal and owner evidence into a dossier-safe gate status. The endpoint is read-only and never creates contracts, HITL items, MaKo, billing, settlement, tariff, control, SMGW/CLS or external actions.",
+        "description": "Projects fNAV fast-track request, network-signal, metering/control, commercial, contract, legal and owner evidence into a dossier-safe gate status. The endpoint is read-only and never creates contracts, HITL items, MaKo, billing, settlement, tariff, control, SMGW/CLS or external actions. It additionally projects caller-supplied FCA/fNAV lifecycle evidence (connection request, capacity offer, restriction profile, contract, at most one operating-event snapshot, curtailment/measurement evidence, and Redispatch/compensation evidence markers) as review-only, non-consequential display fields.",
         "parameters": [
           {
             "name": "gateId",
@@ -24136,6 +24139,146 @@
           {
             "in": "query",
             "name": "sourceRef",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "connectionRequestRef",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "gridConnectionPoint",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "capacityOfferRef",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "capacityOfferVersion",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "capacityOfferDate",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "restrictionProfileRef",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "restrictionProfileVersion",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "contractRef",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "contractVersion",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "contractReviewStatus",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "operatingEventRef",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "operatingEventType",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "operatingEventTimestamp",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "curtailmentMeasurementEvidenceRef",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "redispatchRelevanceRef",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "redispatchStatusRef",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "compensationStatusRef",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "evidenceOwner",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "nextReviewGate",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "evidenceSourceTimestamp",
             "schema": {
               "type": "string"
             }
@@ -57981,6 +58124,436 @@
         ]
       }
     },
+    "/api/tabular/profile": {
+      "post": {
+        "operationId": "tabular_profile",
+        "summary": "Build a privacy-aware deterministic table profile",
+        "tags": [
+          "Tabular Intelligence"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "sourceId"
+                ],
+                "properties": {
+                  "sourceId": {
+                    "type": "string",
+                    "example": "metering-source-01"
+                  },
+                  "maxRows": {
+                    "type": "integer",
+                    "default": 5000,
+                    "example": 5000
+                  },
+                  "privacyContext": {
+                    "type": "string",
+                    "enum": [
+                      "ai-agent",
+                      "public"
+                    ],
+                    "default": "ai-agent",
+                    "example": "ai-agent"
+                  }
+                }
+              },
+              "examples": {
+                "request": {
+                  "summary": "Tabular intelligence request",
+                  "value": {
+                    "sourceId": "metering-source-01",
+                    "maxRows": 5000,
+                    "privacyContext": "ai-agent"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tabular/llm-context": {
+      "post": {
+        "operationId": "tabular_llmContext",
+        "summary": "Build bounded LLM-safe context without raw table rows",
+        "tags": [
+          "Tabular Intelligence"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "sourceIds"
+                ],
+                "properties": {
+                  "sourceIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "example": [
+                      "metering-source-01"
+                    ]
+                  },
+                  "maxTokens": {
+                    "type": "integer",
+                    "default": 2000,
+                    "example": 2000
+                  },
+                  "privacyContext": {
+                    "type": "string",
+                    "enum": [
+                      "ai-agent",
+                      "public"
+                    ],
+                    "default": "ai-agent",
+                    "example": "ai-agent"
+                  }
+                }
+              },
+              "examples": {
+                "request": {
+                  "summary": "Tabular intelligence request",
+                  "value": {
+                    "sourceIds": [
+                      "metering-source-01"
+                    ],
+                    "maxTokens": 2000,
+                    "privacyContext": "ai-agent"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tabular/query-plan": {
+      "post": {
+        "operationId": "tabular_queryPlan",
+        "summary": "Create or validate an allow-listed tabular analysis plan",
+        "tags": [
+          "Tabular Intelligence"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [],
+                "properties": {
+                  "sourceIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "example": [
+                      "metering-source-01"
+                    ]
+                  },
+                  "question": {
+                    "type": "string",
+                    "example": "What is the total consumption?"
+                  },
+                  "plan": {
+                    "type": "object",
+                    "default": null,
+                    "example": {}
+                  },
+                  "useLlm": {
+                    "type": "boolean",
+                    "default": false,
+                    "example": false
+                  },
+                  "maxTokens": {
+                    "type": "integer",
+                    "default": 2000,
+                    "example": 2000
+                  }
+                }
+              },
+              "examples": {
+                "request": {
+                  "summary": "Tabular intelligence request",
+                  "value": {
+                    "sourceIds": [
+                      "metering-source-01"
+                    ],
+                    "question": "What is the total consumption?",
+                    "useLlm": false
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tabular/execute-plan": {
+      "post": {
+        "operationId": "tabular_executePlan",
+        "summary": "Execute a validated tabular plan deterministically",
+        "tags": [
+          "Tabular Intelligence"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "plan"
+                ],
+                "properties": {
+                  "plan": {
+                    "type": "object",
+                    "example": {
+                      "schemaVersion": "1.0",
+                      "sources": [],
+                      "operations": []
+                    }
+                  }
+                }
+              },
+              "examples": {
+                "request": {
+                  "summary": "Tabular intelligence request",
+                  "value": {
+                    "plan": {
+                      "schemaVersion": "1.0",
+                      "sources": [
+                        {
+                          "alias": "table",
+                          "sourceId": "metering-source-01"
+                        }
+                      ],
+                      "operations": [
+                        {
+                          "op": "aggregate",
+                          "groupBy": [],
+                          "metrics": [
+                            {
+                              "fn": "sum",
+                              "field": "value",
+                              "as": "totalValue"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tabular/ask": {
+      "post": {
+        "operationId": "tabular_ask",
+        "summary": "Answer a table question with deterministic results and evidence",
+        "tags": [
+          "Tabular Intelligence"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "question"
+                ],
+                "properties": {
+                  "question": {
+                    "type": "string",
+                    "example": "What is the total consumption?"
+                  },
+                  "sourceIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "example": [
+                      "metering-source-01"
+                    ]
+                  },
+                  "plan": {
+                    "type": "object",
+                    "default": null,
+                    "example": {}
+                  },
+                  "useLlm": {
+                    "type": "boolean",
+                    "default": false,
+                    "example": false
+                  }
+                }
+              },
+              "examples": {
+                "request": {
+                  "summary": "Tabular intelligence request",
+                  "value": {
+                    "question": "What is the total consumption?",
+                    "sourceIds": [
+                      "metering-source-01"
+                    ],
+                    "useLlm": false
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tabular/quality-report": {
+      "post": {
+        "operationId": "tabular_qualityReport",
+        "summary": "Build an evidence-backed table quality report",
+        "tags": [
+          "Tabular Intelligence"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "sourceId"
+                ],
+                "properties": {
+                  "sourceId": {
+                    "type": "string",
+                    "example": "metering-source-01"
+                  },
+                  "timestampField": {
+                    "type": "string",
+                    "default": null,
+                    "example": "timestamp"
+                  },
+                  "intervalMinutes": {
+                    "type": "integer",
+                    "default": 15,
+                    "example": 15
+                  },
+                  "duplicateFields": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "example": [
+                      "timestamp"
+                    ]
+                  },
+                  "outlierField": {
+                    "type": "string",
+                    "default": null,
+                    "example": "value"
+                  },
+                  "outlierThreshold": {
+                    "type": "number",
+                    "default": 3,
+                    "example": 3
+                  }
+                }
+              },
+              "examples": {
+                "request": {
+                  "summary": "Tabular intelligence request",
+                  "value": {
+                    "sourceId": "metering-source-01",
+                    "timestampField": "timestamp",
+                    "intervalMinutes": 15,
+                    "duplicateFields": [
+                      "timestamp"
+                    ],
+                    "outlierField": "value"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/tenant-quota/tenants/:id/quotas": {
       "get": {
         "operationId": "tenant-quota_getQuotas",
@@ -62069,7 +62642,7 @@
     "/v1/chat/completions": {
       "post": {
         "operationId": "createChatCompletion",
-        "summary": "Create a non-streaming OpenAI-compatible Cernion chat completion",
+        "summary": "Create an OpenAI-compatible Cernion Personal Agent chat completion",
         "tags": [
           "OpenAI Compatible"
         ],
@@ -62120,7 +62693,7 @@
             }
           }
         },
-        "description": "Inbound OpenAI-compatible facade over existing authenticated Cernion advisory actions. It supports only non-streaming chat completions and treats system/developer messages as prompt context, not authorization.",
+        "description": "Inbound OpenAI-compatible facade over the authenticated Cernion Personal Agent (personal-agent.chat), synthesized internally with Gemini. Returns a complete, polished answer for the caller, not an evidence/grounding packet for a downstream Copilot. Always runs in consultation mode (no execution, no consequential process action) — this is a hard, non-negotiable safety boundary and cannot be overridden by request metadata. It treats system/developer messages and prior turns as non-authoritative prompt context, never as authorization; tenant identity and authorization always come from the caller session, not the request body. When stream=true, the gateway (services/api.service.js) obtains the full result from this action first and then emits it as buffered chat.completion.chunk SSE frames — this is not genuine token-by-token streaming.",
         "requestBody": {
           "required": true,
           "content": {
@@ -72739,6 +73312,9 @@
                     "dossierEvidence": {
                       "type": "object"
                     },
+                    "lifecycleEvidence": {
+                      "type": "object"
+                    },
                     "safety": {
                       "type": "string"
                     },
@@ -72752,7 +73328,7 @@
             }
           }
         },
-        "description": "Projects fNAV fast-track request, network-signal, metering/control, commercial, contract, legal and owner evidence into a dossier-safe gate status. The endpoint is read-only and never creates contracts, HITL items, MaKo, billing, settlement, tariff, control, SMGW/CLS or external actions.",
+        "description": "Projects fNAV fast-track request, network-signal, metering/control, commercial, contract, legal and owner evidence into a dossier-safe gate status. The endpoint is read-only and never creates contracts, HITL items, MaKo, billing, settlement, tariff, control, SMGW/CLS or external actions. It additionally projects caller-supplied FCA/fNAV lifecycle evidence (connection request, capacity offer, restriction profile, contract, at most one operating-event snapshot, curtailment/measurement evidence, and Redispatch/compensation evidence markers) as review-only, non-consequential display fields.",
         "parameters": [
           {
             "name": "gateId",
@@ -72913,6 +73489,146 @@
           {
             "in": "query",
             "name": "sourceRef",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "connectionRequestRef",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "gridConnectionPoint",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "capacityOfferRef",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "capacityOfferVersion",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "capacityOfferDate",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "restrictionProfileRef",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "restrictionProfileVersion",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "contractRef",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "contractVersion",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "contractReviewStatus",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "operatingEventRef",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "operatingEventType",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "operatingEventTimestamp",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "curtailmentMeasurementEvidenceRef",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "redispatchRelevanceRef",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "redispatchStatusRef",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "compensationStatusRef",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "evidenceOwner",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "nextReviewGate",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "evidenceSourceTimestamp",
             "schema": {
               "type": "string"
             }

@@ -48,8 +48,7 @@ describe('chatgpt-sidecar service', () => {
             if (ctx.params.question.includes('zeitaufgelöste Stromlastdaten')) {
               return {
                 success: true,
-                shortAnswer:
-                  'Generischer Planner-Fallback mit MaStR- und VNBdigital-Schnellcheck.',
+                shortAnswer: 'Generischer Planner-Fallback mit MaStR- und VNBdigital-Schnellcheck.',
                 confidence: 'medium',
                 evidence: [],
                 evidenceBySource: {
@@ -474,9 +473,9 @@ describe('chatgpt-sidecar service', () => {
       operationId: 'planCernion',
       'x-openai-isConsequential': false,
     });
-    expect(
-      schema.components.schemas.AskCernionRequest.properties.capability.enum
-    ).toEqual(expect.arrayContaining(['knowledge-rag', 'datasource-mastr']));
+    expect(schema.components.schemas.AskCernionRequest.properties.capability.enum).toEqual(
+      expect.arrayContaining(['knowledge-rag', 'datasource-mastr'])
+    );
     expect(JSON.stringify(schema)).not.toMatch(/tenant-a|user-a|sessionId|datapoints/);
 
     const metering = await broker.call('chatgpt-sidecar.metering', { ticket });
@@ -560,9 +559,7 @@ describe('chatgpt-sidecar service', () => {
 
     expect(result.success).toBe(true);
     expect(result.turnId).toMatch(/^cgs_turn_/);
-    expect(result.resolvedQuestion).toBe(
-      'Welche Prozessschritte fehlen fuer die Gremienfreigabe?'
-    );
+    expect(result.resolvedQuestion).toBe('Welche Prozessschritte fehlen fuer die Gremienfreigabe?');
     expect(result.answer).toBe('Cernion evidence answer');
     expect(result.responseContract.schemaVersion).toBe('cernion.chatgpt-sidecar.response.v1');
     expect(result.followUpContext).toMatchObject({
@@ -873,7 +870,9 @@ describe('chatgpt-sidecar service', () => {
     });
 
     expect(result.success).toBe(true);
-    expect(result.responseKind || result.capabilityGrounding?.reason).toBe('openapi_semantic_router');
+    expect(result.responseKind || result.capabilityGrounding?.reason).toBe(
+      'openapi_semantic_router'
+    );
     expect(result.capabilityGrounding).toMatchObject({
       requestedCapability: 'datasource-entsoe',
       status: 'fallback',

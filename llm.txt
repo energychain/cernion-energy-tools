@@ -150,7 +150,7 @@ recipes:
   vnb-full-snapshot "A grid operator needs a full health check combining KPI…"
 resolve: GET /api/_agent/operations?domain=grid-ops
 
-### inhouse-data (8 capabilities · 3 recipes · 32 operations)
+### inhouse-data (8 capabilities · 3 recipes · 38 operations)
 capabilities: bilanzkreis_slp_edm_operations, edm_customer_moveout_billing_evidence, edm_metering_concept_evidence, imsys_schedule_value_chain_readiness, imsys_taf2_compliance_status, inhouse_timeseries_analysis, load_profile_stream_monitor, metering_rollout_process_indicator
 recipes:
   datasource-register-and-classify "A user has uploaded a CSV or XLSX file and needs to…"
@@ -246,17 +246,17 @@ Agents resolving capabilities/recipes/operations do not need to read past this p
 - `tests/query.service.test.js`: `query.searchCopilot` body-based wrapper returns expected `query`, `domain`, and `results` shape.
 
 ## Source File Hashes
-- CHANGELOG.md: 7c3b75b7930847389ae52f5988e6521e19b41ad0e27ac5db011428fe7b87a2c7
+- CHANGELOG.md: dd532a1aa6380ff0630f1f501951faf42976125bed56d772228e013f9c8b3cd8
 - README.md: bdfc5d35a65796de3357f3ce717a61998325fa257776cbf17f7077893d0b23e7
 - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
 - src/cookbook-recipes.js: 9e48573ca263ef129bc3944a83b013cff25157e25afc703be0ada62d5af8163d
-- src/capability-catalog.js: b9fa91c95a1f029620fb0513b4453677cb2b61b64ca87549fe353262287ab1a8
-- openapi-export.json: b1b08f8e27ce239d025f4e215fe2e7477786ca9eb0f21427eb1a9782546b9e49
+- src/capability-catalog.js: c7985f6810bcf9052a94c5635b14cabe22c699fdb74840844d0f68b0ffc2dae9
+- openapi-export.json: 789d89e9032418ccabeaad5183637470055168452920fcb78063799458461daa
 
 ## OpenAPI Surface (full contract, not embedded)
-- path_count: 995
-- operation_count: 1107
+- path_count: 1001
+- operation_count: 1113
 - full_spec: openapi-export.json (repo root) or GET /api/openapi.json
 
 ## Integrity
-- llm_txt_sha256: 3f8831c32be7c41a79ffacd03826666379644cbbaf905be67975bf8d333e9e34
+- llm_txt_sha256: e0c651845b61dc9e08749fc06ff63dd0a4bd259d78354d5b1ba945fc52e8ff1a

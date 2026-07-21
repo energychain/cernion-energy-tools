@@ -1,0 +1,21 @@
+{
+  "sourceId": "assets-fixture",
+  "dictionary": {
+    "fields": [
+      { "name": "Asset_ID", "type": "string", "semanticRole": "assetId" },
+      { "name": "Betreiber_Name", "type": "string", "privacyFlag": true },
+      { "name": "Anlagentyp", "type": "string", "semanticRole": "assetType" },
+      { "name": "Spannungsebene", "type": "string", "semanticRole": "voltageLevel" }
+    ]
+  },
+  "classification": {
+    "domainId": "grid-assets",
+    "confidence": 0.98,
+    "fieldMappings": { "assetId": "Asset_ID", "assetType": "Anlagentyp" }
+  },
+  "rows": [
+    { "Asset_ID": "A-1", "Betreiber_Name": "Private Grid GmbH", "Anlagentyp": "PV", "Spannungsebene": "MS" },
+    { "Asset_ID": "A-2", "Betreiber_Name": "Private Wind GmbH", "Anlagentyp": "Wind", "Spannungsebene": "HS" },
+    { "Asset_ID": "A-2", "Betreiber_Name": "Private Wind GmbH", "Anlagentyp": "Wind", "Spannungsebene": "HS" }
+  ]
+}

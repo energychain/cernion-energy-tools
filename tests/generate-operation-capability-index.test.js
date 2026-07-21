@@ -45,8 +45,16 @@ describe('generate-operation-capability-index', () => {
   describe('dedupeOperations', () => {
     it('keeps every operationId exactly once, carrying duplicates as aliases', () => {
       const ops = [
-        { path: '/api/gas-storage/country-storage', method: 'POST', operationId: 'gas-storage_countryStorage' },
-        { path: '/api/gas-storage-alt/country-storage', method: 'POST', operationId: 'gas-storage_countryStorage' },
+        {
+          path: '/api/gas-storage/country-storage',
+          method: 'POST',
+          operationId: 'gas-storage_countryStorage',
+        },
+        {
+          path: '/api/gas-storage-alt/country-storage',
+          method: 'POST',
+          operationId: 'gas-storage_countryStorage',
+        },
         { path: '/api/other', method: 'GET', operationId: 'other_get' },
       ];
       const deduped = dedupeOperations(ops);
@@ -82,13 +90,29 @@ describe('generate-operation-capability-index', () => {
     });
 
     it('flags an invalid operationKind', () => {
-      const entries = [{ method: 'GET', path: '/x', operationKind: 'bogus', agentable: true, nonAgentableReason: null }];
+      const entries = [
+        {
+          method: 'GET',
+          path: '/x',
+          operationKind: 'bogus',
+          agentable: true,
+          nonAgentableReason: null,
+        },
+      ];
       const problems = checkCoverage(entries, 1);
       expect(problems.some((p) => p.includes('invalid operationKind'))).toBe(true);
     });
 
     it('requires a nonAgentableReason whenever agentable is false', () => {
-      const entries = [{ method: 'GET', path: '/x', operationKind: 'internal', agentable: false, nonAgentableReason: null }];
+      const entries = [
+        {
+          method: 'GET',
+          path: '/x',
+          operationKind: 'internal',
+          agentable: false,
+          nonAgentableReason: null,
+        },
+      ];
       const problems = checkCoverage(entries, 1);
       expect(problems.some((p) => p.includes('nonAgentableReason'))).toBe(true);
     });
@@ -123,8 +147,17 @@ describe('generate-operation-capability-index', () => {
     });
 
     it('never blanket-hides write/process-capable operations: every write/process kind stays agentable', () => {
-      const consequentialKinds = ['draft_write', 'object_store_write', 'process_start', 'process_step', 'admin', 'external_effect'];
-      const consequentialEntries = result.entries.filter((e) => consequentialKinds.includes(e.operationKind));
+      const consequentialKinds = [
+        'draft_write',
+        'object_store_write',
+        'process_start',
+        'process_step',
+        'admin',
+        'external_effect',
+      ];
+      const consequentialEntries = result.entries.filter((e) =>
+        consequentialKinds.includes(e.operationKind)
+      );
       expect(consequentialEntries.length).toBeGreaterThan(0);
       expect(consequentialEntries.every((e) => e.agentable === true)).toBe(true);
     });
@@ -154,7 +187,8 @@ describe('generate-operation-capability-index', () => {
 
       const agentableCount = entries.filter((e) => e.agentable).length;
       const kindCounts = {};
-      for (const entry of entries) kindCounts[entry.operationKind] = (kindCounts[entry.operationKind] || 0) + 1;
+      for (const entry of entries)
+        kindCounts[entry.operationKind] = (kindCounts[entry.operationKind] || 0) + 1;
 
       const expected = {
         schemaVersion: 'cernion.operationCapabilityIndex.v1',
@@ -162,7 +196,9 @@ describe('generate-operation-capability-index', () => {
         packageVersion,
         sourceOpenApiHash,
         coverage: {
-          rawOperationCount: loadRawOperations(JSON.parse(fs.readFileSync(path.join(ROOT, 'openapi-export.json'), 'utf8'))).length,
+          rawOperationCount: loadRawOperations(
+            JSON.parse(fs.readFileSync(path.join(ROOT, 'openapi-export.json'), 'utf8'))
+          ).length,
           operationCount: entries.length,
           agentableCount,
           nonAgentableCount: entries.length - agentableCount,
