@@ -8636,14 +8636,10 @@ const CURATED_CAPABILITIES = [
       'virtuelles stadtwerk mauer',
       'stadtwerk mauer redispatch',
     ],
-    preferredActions: [
-      'redispatch-participation-readiness.getStatus',
-    ],
+    preferredActions: ['redispatch-participation-readiness.getStatus'],
     fallbackActions: ['redispatch-participation-readiness.getStatus'],
     avoid: ['query.ask', 'query.askLearned'],
-    requiredInputs: [
-      { name: 'tenantId', label: 'Tenant-ID', type: 'string', required: false },
-    ],
+    requiredInputs: [{ name: 'tenantId', label: 'Tenant-ID', type: 'string', required: false }],
     risksAndNotes: [
       'getStatus ist read-only und dossier-safe.',
       'Keine echte Marktkommunikation, kein operativer Abruf und kein SMGW/CLS-Device-Control.',
@@ -9279,14 +9275,10 @@ const CURATED_CAPABILITIES = [
       'mastr monitoring',
       'redispatch monitoring',
     ],
-    preferredActions: [
-      'dashboard-api.mastrSyncGapStatus',
-    ],
+    preferredActions: ['dashboard-api.mastrSyncGapStatus'],
     fallbackActions: ['dashboard-api.mastrSyncGapStatus'],
     avoid: ['query.ask', 'query.askLearned'],
-    requiredInputs: [
-      { name: 'tenantId', label: 'Tenant-ID', type: 'string', required: false },
-    ],
+    requiredInputs: [{ name: 'tenantId', label: 'Tenant-ID', type: 'string', required: false }],
     risksAndNotes: [
       'mastrSyncGapStatus ist read-only und dossier-safe.',
       'Keine echten MaStR API Calls, kein operativer Abruf und kein SMGW/CLS-Device-Control.',
@@ -9306,14 +9298,10 @@ const CURATED_CAPABILITIES = [
       'sap reconciliation',
       'book value mismatch',
     ],
-    preferredActions: [
-      'dashboard-api.decommissionedAssetReconciliationStatus',
-    ],
+    preferredActions: ['dashboard-api.decommissionedAssetReconciliationStatus'],
     fallbackActions: ['dashboard-api.decommissionedAssetReconciliationStatus'],
     avoid: ['query.ask', 'query.askLearned'],
-    requiredInputs: [
-      { name: 'tenantId', label: 'Tenant-ID', type: 'string', required: false },
-    ],
+    requiredInputs: [{ name: 'tenantId', label: 'Tenant-ID', type: 'string', required: false }],
     risksAndNotes: [
       'decommissionedAssetReconciliationStatus ist read-only und dossier-safe.',
       'Keine echten GIS oder SAP API Calls, keine Datenmutation und kein Personal-Agent Hardcoding.',
@@ -9332,14 +9320,10 @@ const CURATED_CAPABILITIES = [
       'energy sharing collective',
       'collective approval status',
     ],
-    preferredActions: [
-      'dashboard-api.energySharingCollectiveApprovalStatus',
-    ],
+    preferredActions: ['dashboard-api.energySharingCollectiveApprovalStatus'],
     fallbackActions: ['dashboard-api.energySharingCollectiveApprovalStatus'],
     avoid: ['query.ask', 'query.askLearned'],
-    requiredInputs: [
-      { name: 'tenantId', label: 'Tenant-ID', type: 'string', required: false },
-    ],
+    requiredInputs: [{ name: 'tenantId', label: 'Tenant-ID', type: 'string', required: false }],
     risksAndNotes: [
       'energySharingCollectiveApprovalStatus ist read-only und dossier-safe.',
       'Keine echten Energy-Sharing API-Calls, keine Datenmutation, kein Personal-Agent Hardcoding.',

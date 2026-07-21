@@ -470,7 +470,9 @@ function validateVdmiBlueprintPackSeed(seed) {
     const allowedDataClasses = new Set(REQUIRED_DATA_CLASSES);
     for (const dataClass of matrix.allowedDataClasses || []) {
       if (!allowedDataClasses.has(dataClass)) {
-        errors.push(`demoProcessMatrix.allowedDataClasses contains unsupported class: ${dataClass}`);
+        errors.push(
+          `demoProcessMatrix.allowedDataClasses contains unsupported class: ${dataClass}`
+        );
       }
     }
 
@@ -484,7 +486,9 @@ function validateVdmiBlueprintPackSeed(seed) {
         }
         for (const dataClass of REQUIRED_DATA_CLASSES) {
           if (roleValue === dataClass) {
-            errors.push(`demoProcessMatrix row ${rowLabel} role ${roleKey} must not be a data class`);
+            errors.push(
+              `demoProcessMatrix row ${rowLabel} role ${roleKey} must not be a data class`
+            );
           }
         }
         for (const headerWord of MATRIX_HEADER_WORDS) {
@@ -498,7 +502,9 @@ function validateVdmiBlueprintPackSeed(seed) {
       }
       for (const dataClass of row.dataClassRefs || []) {
         if (!allowedDataClasses.has(dataClass)) {
-          errors.push(`demoProcessMatrix row ${rowLabel} uses unsupported data class: ${dataClass}`);
+          errors.push(
+            `demoProcessMatrix row ${rowLabel} uses unsupported data class: ${dataClass}`
+          );
         }
       }
       if (!row.gateOutcome) {
@@ -561,32 +567,33 @@ function buildWorkbenchClarificationItems(seed) {
       item.id === 'napReference'
         ? 'ROLE_NETZPLANUNG'
         : selectedSeed.id === stadtwerkMauerGasTransformationDataroomReview.id
-        ? 'ROLE_DATAROOM_OWNER'
-        : selectedSeed.id === stadtwerkMauerPortfolioMarketValueReadiness.id
-          ? 'ROLE_PORTFOLIO_OWNER'
-        : selectedSeed.id === stadtwerkMauerMonitoringNonEscalationStatus.id
-          ? 'ROLE_GOVERNANCE_OWNER'
-        : selectedSeed.id === stadtwerkMauerCrossSystemVarianceEvidenceMatrix.id
-          ? 'ROLE_GOVERNANCE_OWNER'
-        : selectedSeed.id === stadtwerkMauerMastrSyncGapAlerting.id
-          ? 'ROLE_REDISPATCH_KOORDINATOR'
-        : selectedSeed.id === stadtwerkMauerCostReviewCommitteeReadiness.id
-          ? 'ROLE_CONTROLLING'
-        : selectedSeed.id === stadtwerkMauerConnectionDeadlineEvidenceQueue.id
-          ? 'ROLE_ANSCHLUSSWESEN'
-        : selectedSeed.id === stadtwerkMauerInvestmentOwnerDeadlineBudgetGate.id
-          ? 'ROLE_ASSET_MANAGEMENT'
-        : selectedSeed.id === stadtwerkMauerDirectMarketerRiskGate.id
-          ? 'ROLE_MARKET_OPERATIONS'
-        : selectedSeed.id === stadtwerkMauerFlexibleGridConnectionReleaseFile.id
-          ? 'ROLE_ANSCHLUSSWESEN'
-        : selectedSeed.id === stadtwerkMauerEnergySharingCollectiveApproval.id
-          ? 'ROLE_ENERGY_SHARING_PRODUCT_OWNER'
-        : selectedSeed.id === stadtwerkMauerSubstationLoadAssessment.id
-          ? 'ROLE_ASSET_PLANNING_LEAD'
-        : selectedSeed.id === stadtwerkMauerRedispatchParticipationReadiness.id
-          ? 'ROLE_GRID_OPERATIONS_LEAD'
-          : 'ROLE_GRID_OPERATOR',
+          ? 'ROLE_DATAROOM_OWNER'
+          : selectedSeed.id === stadtwerkMauerPortfolioMarketValueReadiness.id
+            ? 'ROLE_PORTFOLIO_OWNER'
+            : selectedSeed.id === stadtwerkMauerMonitoringNonEscalationStatus.id
+              ? 'ROLE_GOVERNANCE_OWNER'
+              : selectedSeed.id === stadtwerkMauerCrossSystemVarianceEvidenceMatrix.id
+                ? 'ROLE_GOVERNANCE_OWNER'
+                : selectedSeed.id === stadtwerkMauerMastrSyncGapAlerting.id
+                  ? 'ROLE_REDISPATCH_KOORDINATOR'
+                  : selectedSeed.id === stadtwerkMauerCostReviewCommitteeReadiness.id
+                    ? 'ROLE_CONTROLLING'
+                    : selectedSeed.id === stadtwerkMauerConnectionDeadlineEvidenceQueue.id
+                      ? 'ROLE_ANSCHLUSSWESEN'
+                      : selectedSeed.id === stadtwerkMauerInvestmentOwnerDeadlineBudgetGate.id
+                        ? 'ROLE_ASSET_MANAGEMENT'
+                        : selectedSeed.id === stadtwerkMauerDirectMarketerRiskGate.id
+                          ? 'ROLE_MARKET_OPERATIONS'
+                          : selectedSeed.id === stadtwerkMauerFlexibleGridConnectionReleaseFile.id
+                            ? 'ROLE_ANSCHLUSSWESEN'
+                            : selectedSeed.id === stadtwerkMauerEnergySharingCollectiveApproval.id
+                              ? 'ROLE_ENERGY_SHARING_PRODUCT_OWNER'
+                              : selectedSeed.id === stadtwerkMauerSubstationLoadAssessment.id
+                                ? 'ROLE_ASSET_PLANNING_LEAD'
+                                : selectedSeed.id ===
+                                    stadtwerkMauerRedispatchParticipationReadiness.id
+                                  ? 'ROLE_GRID_OPERATIONS_LEAD'
+                                  : 'ROLE_GRID_OPERATOR',
     enablesDossierAddition: item.enablesDossierAddition,
     sourceSeedId: selectedSeed.id,
     execution: 'none',
@@ -635,7 +642,8 @@ function buildDemoProcessMatrixSync(seed) {
     expectedSlug:
       getSeedValidationRequirements(selectedSeed).expectedMatrixSlug || matrix.slug || null,
     synced:
-      matrix.slug === (getSeedValidationRequirements(selectedSeed).expectedMatrixSlug || matrix.slug),
+      matrix.slug ===
+      (getSeedValidationRequirements(selectedSeed).expectedMatrixSlug || matrix.slug),
     roleLegend: matrix.roleLegend || {},
     roleLegendM: matrix.roleLegend?.M || null,
     rowCount: rows.length,
@@ -751,10 +759,7 @@ function buildLandingRegistryDraftFromBlueprintSeed(seed) {
     ],
     sourceActions: {
       inspected: ['buildLandingRegistryDraftFromBlueprintSeed', 'buildDemoProcessMatrixSync'],
-      referenced: [
-        `src/vdmi-blueprint-pack-seeds/${selectedSeed.id}.json`,
-        'demoProcessMatrix',
-      ],
+      referenced: [`src/vdmi-blueprint-pack-seeds/${selectedSeed.id}.json`, 'demoProcessMatrix'],
       notCalled: safetyBoundaries,
     },
   };

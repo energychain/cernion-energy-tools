@@ -101,8 +101,7 @@ function buildPositiveFollowUps(kind, details = {}) {
     unsupported_browser_query: [
       {
         missing: 'shorter GET question or task',
-        enablesDossierAddition:
-          `Retry with a URL-encoded question/task up to ${MAX_BROWSER_QUERY_LENGTH} characters using the manifest template.`,
+        enablesDossierAddition: `Retry with a URL-encoded question/task up to ${MAX_BROWSER_QUERY_LENGTH} characters using the manifest template.`,
       },
     ],
   };
@@ -166,14 +165,16 @@ function buildPythonClientHints(baseUrl, ticket) {
     usage: 'python_read_only_http_client_when_browser_navigation_blocks_dynamic_get_urls',
     askBaseUrl: `${prefix}/api/chatgpt-sidecar/s/${ticket}/ask`,
     planBaseUrl: `${prefix}/api/chatgpt-sidecar/s/${ticket}/plan`,
-    queryEncoding: 'Use urllib.parse.urlencode for query/task plus optional capability and parentTurnId.',
+    queryEncoding:
+      'Use urllib.parse.urlencode for query/task plus optional capability and parentTurnId.',
     timeoutSeconds: 30,
     responseFields: {
       answer: 'Use answer first, then shortAnswer, then groundingAnswer.',
       evidence: 'Use evidence/citations as Cernion-provided grounding.',
       turnId: 'Persist for the next follow-up call.',
       resolvedQuestion: 'Use to make the interpreted user request explicit.',
-      followUpContext: 'Use for conversational continuity; pass followUpContext.turnId as parentTurnId on the next Cernion call.',
+      followUpContext:
+        'Use for conversational continuity; pass followUpContext.turnId as parentTurnId on the next Cernion call.',
     },
     example: [
       'import json, urllib.parse, urllib.request',
@@ -485,7 +486,14 @@ function normalizeInstallationStats(payload, installations) {
     Number(stats.totalCapacity ?? stats.totalCapacityKW ?? stats.totalCapacityKw) ||
     installations.reduce(
       (sum, installation) =>
-        sum + Number(installation.bruttoleistung || installation.Bruttoleistung || installation.capacityKW || installation.capacityKw || 0),
+        sum +
+        Number(
+          installation.bruttoleistung ||
+            installation.Bruttoleistung ||
+            installation.capacityKW ||
+            installation.capacityKw ||
+            0
+        ),
       0
     );
   return {
@@ -528,10 +536,17 @@ function buildMastrEvidenceItems(installations, scope, stats) {
           mastrNummer: installation.mastrNummer || installation.EinheitMastrNummer || null,
           name: installation.name || installation.EinheitName || null,
           bruttoleistungKw: Number(
-            installation.bruttoleistung || installation.Bruttoleistung || installation.capacityKW || installation.capacityKw || 0
+            installation.bruttoleistung ||
+              installation.Bruttoleistung ||
+              installation.capacityKW ||
+              installation.capacityKw ||
+              0
           ),
           inbetriebnahmedatum:
-            installation.inbetriebnahmedatum || installation.Inbetriebnahmedatum || installation.commissioningDate || null,
+            installation.inbetriebnahmedatum ||
+            installation.Inbetriebnahmedatum ||
+            installation.commissioningDate ||
+            null,
           ort: installation.ort || installation.gemeinde || null,
           postleitzahl: installation.postleitzahl || null,
           netzbetreiberpruefungStatus: installation.netzbetreiberpruefungStatus ?? null,
@@ -578,9 +593,7 @@ function buildMastrMissingPostalCodeResponse({ question, scope, warning }) {
         ? `Welche PLZ soll fuer ${scope.municipality} verwendet werden?`
         : 'Welche 5-stellige PLZ soll fuer die MaStR-Abfrage verwendet werden?',
     ],
-    recommendedNextSteps: [
-      'Die Frage mit PLZ wiederholen, z.B. "PV-Leistung in 69256 Mauer".',
-    ],
+    recommendedNextSteps: ['Die Frage mit PLZ wiederholen, z.B. "PV-Leistung in 69256 Mauer".'],
     allowedActions: ['explain', 'retrieve_evidence', 'prepare_intent'],
     forbiddenActions: ['execute', 'confirm', 'delete', 'override', 'sign', 'nominate'],
   };
@@ -591,7 +604,9 @@ function buildMastrInstallationsResponse({ question, scope, payload }) {
   const stats = normalizeInstallationStats(payload, installations);
   const locationLabel = [scope.postalCode, scope.municipality].filter(Boolean).join(' ').trim();
   const typeLabel = scope.installationType === 'solar' ? 'PV-Anlagen' : 'Anlagen';
-  const yearText = scope.commissioningYear ? ` mit Inbetriebnahmejahr ${scope.commissioningYear}` : '';
+  const yearText = scope.commissioningYear
+    ? ` mit Inbetriebnahmejahr ${scope.commissioningYear}`
+    : '';
   const shortAnswer =
     installations.length > 0
       ? `Für ${locationLabel || 'den angefragten Standort'} weist die MaStR-Abfrage ${stats.count.toLocaleString('de-DE')} ${typeLabel}${yearText} mit zusammen ${formatKwValue(stats.totalCapacity)} Bruttoleistung aus.`
@@ -623,7 +638,10 @@ function buildMastrInstallationsResponse({ question, scope, payload }) {
       requestedCapability: 'datasource-mastr',
       mode: 'hard',
       status: installations.length > 0 ? 'available' : 'missing',
-      reason: installations.length > 0 ? 'capability_evidence_available' : 'no_matching_mastr_installations',
+      reason:
+        installations.length > 0
+          ? 'capability_evidence_available'
+          : 'no_matching_mastr_installations',
       genericFallbackSuppressed: true,
     },
     processContext: [
@@ -631,8 +649,12 @@ function buildMastrInstallationsResponse({ question, scope, payload }) {
       installations.length > 0 ? 'capability_evidence:available' : 'capability_evidence:missing',
       'source:energy-market.installations',
     ],
-    openQuestions: installations.length > 0 ? [] : ['Soll ein anderer Anlagenstatus oder eine andere PLZ geprueft werden?'],
-    recommendedNextSteps: installations.length > 0 ? [] : ['MaStR-Abfrage mit anderem Scope wiederholen.'],
+    openQuestions:
+      installations.length > 0
+        ? []
+        : ['Soll ein anderer Anlagenstatus oder eine andere PLZ geprueft werden?'],
+    recommendedNextSteps:
+      installations.length > 0 ? [] : ['MaStR-Abfrage mit anderem Scope wiederholen.'],
     allowedActions: ['explain', 'retrieve_evidence', 'prepare_intent'],
     forbiddenActions: ['execute', 'confirm', 'delete', 'override', 'sign', 'nominate'],
   };
@@ -640,7 +662,10 @@ function buildMastrInstallationsResponse({ question, scope, payload }) {
 
 async function tryBuildDatasourceMastrAnswer(ctx, { question, context, inputs }) {
   const scope = resolveMastrScope(question, context, inputs);
-  if (!scope.installationType && !/mastr|anlage|leistung|installiert|zubau|pv|solar/i.test(question)) {
+  if (
+    !scope.installationType &&
+    !/mastr|anlage|leistung|installiert|zubau|pv|solar/i.test(question)
+  ) {
     return null;
   }
 
@@ -792,12 +817,10 @@ function getActionOpenApiText(action) {
 }
 
 function isReadOnlyFallbackOperation(operation) {
-  if (!operation || UNSAFE_OPERATION_PATTERN.test(operation.policyText || operation.searchText)) return false;
+  if (!operation || UNSAFE_OPERATION_PATTERN.test(operation.policyText || operation.searchText))
+    return false;
   if (operation.method === 'GET') return true;
-  return (
-    operation.method === 'POST' &&
-    READ_ONLY_FALLBACK_POST_SERVICES.has(operation.serviceName)
-  );
+  return operation.method === 'POST' && READ_ONLY_FALLBACK_POST_SERVICES.has(operation.serviceName);
 }
 
 function buildOpenApiFallbackOperationIndex(broker) {
@@ -865,7 +888,9 @@ function scoreOpenApiFallbackOperation(operation, { question, capability }) {
     );
   const singleCountryCue = /deutschland|deutsche|germany|\bde\b/.test(normalizedQuestion);
   const crossCountryCue =
-    /laendervergleich|landervergleich|countries|multi.country|cross.border/.test(normalizedQuestion) ||
+    /laendervergleich|landervergleich|countries|multi.country|cross.border/.test(
+      normalizedQuestion
+    ) ||
     /(frankreich|france|\bfr\b|italien|italy|\bit\b|niederlande|netherlands|\bnl\b|oesterreich|osterreich|austria|\bat\b)/.test(
       normalizedQuestion
     );
@@ -932,10 +957,18 @@ function scoreOpenApiFallbackOperation(operation, { question, capability }) {
     if (singleCountryCue) score += 80;
     if (/fuellstand|fullstand|fill|level|speicher/i.test(normalizedQuestion)) score += 40;
   }
-  if (operation.serviceName === 'gas-storage' && operation.actionName === 'compareCountries' && !crossCountryCue) {
+  if (
+    operation.serviceName === 'gas-storage' &&
+    operation.actionName === 'compareCountries' &&
+    !crossCountryCue
+  ) {
     score -= 120;
   }
-  if (operation.serviceName === 'gas-storage' && operation.actionName === 'storageTrend' && !trendCue) {
+  if (
+    operation.serviceName === 'gas-storage' &&
+    operation.actionName === 'storageTrend' &&
+    !trendCue
+  ) {
     score -= 60;
   }
   return score;
@@ -1120,11 +1153,14 @@ function resolveOpenApiFallbackParams(operation, { question, context, inputs }) 
   const params = {};
   const missing = [];
   const schemaByParam = getOpenApiFallbackParamSchema(operation);
-  const explicitParams = extractKeyValueParams(Object.keys(schemaByParam), question, context, inputs);
+  const explicitParams = extractKeyValueParams(
+    Object.keys(schemaByParam),
+    question,
+    context,
+    inputs
+  );
 
-  if (
-    schemaByParam.country
-  ) {
+  if (schemaByParam.country) {
     const country = resolveCountryCode(question, context, inputs);
     if (country) params.country = country;
     else if (actionRequiresParam(operation, 'country')) missing.push('country');
@@ -1174,7 +1210,8 @@ function resolveOpenApiFallbackParams(operation, { question, context, inputs }) 
       }
     }
     if (typeof schema === 'object' && schema.default !== undefined) params[key] = schema.default;
-    if (typeof schema === 'object' && schema.type === 'boolean' && params[key] === undefined) params[key] = false;
+    if (typeof schema === 'object' && schema.type === 'boolean' && params[key] === undefined)
+      params[key] = false;
     if (actionRequiresParam(operation, key) && params[key] === undefined) missing.push(key);
   }
 
@@ -1212,13 +1249,14 @@ function buildOpenApiFallbackAnswerText({ operation, payload, params }) {
   const data = unwrapDataPayload(payload) || {};
   if (operation.actionRef === 'gas-storage.countryStorage') {
     const storage = data.storage && typeof data.storage === 'object' ? data.storage : {};
-    const operations = data.operations && typeof data.operations === 'object' ? data.operations : {};
+    const operations =
+      data.operations && typeof data.operations === 'object' ? data.operations : {};
     const fill = firstFiniteNumber(
       data.gasInStoragePercentage ??
-      data.fillLevelPercentage ??
-      data.fillPercentage ??
-      data.percentage ??
-      data.full,
+        data.fillLevelPercentage ??
+        data.fillPercentage ??
+        data.percentage ??
+        data.full,
       storage.fillPercentage,
       storage.gasInStoragePercentage
     );
@@ -1240,10 +1278,16 @@ function buildOpenApiFallbackAnswerText({ operation, payload, params }) {
     const date = data.updatedAt || data.timestamp || data.date || data.gasDayStart || null;
     const parts = [
       `Cernion hat per OpenAPI-Fallback ${operation.actionRef} fuer ${params.country || data.code || data.country || 'das angefragte Land'} ausgefuehrt.`,
-      fill != null ? `Der gemeldete Fuellstand betraegt ${formatPercentageValue(fill) || fill}.` : null,
+      fill != null
+        ? `Der gemeldete Fuellstand betraegt ${formatPercentageValue(fill) || fill}.`
+        : null,
       gas != null ? `Gas im Speicher: ${formatTwhValue(gas) || gas}.` : null,
-      capacity != null ? `Arbeitsgas-/Kapazitaetswert: ${formatTwhValue(capacity) || capacity}.` : null,
-      trend != null ? `Veraenderung/Tendenz: ${trend.toLocaleString('de-DE', { maximumFractionDigits: 2 })} Prozentpunkte.` : null,
+      capacity != null
+        ? `Arbeitsgas-/Kapazitaetswert: ${formatTwhValue(capacity) || capacity}.`
+        : null,
+      trend != null
+        ? `Veraenderung/Tendenz: ${trend.toLocaleString('de-DE', { maximumFractionDigits: 2 })} Prozentpunkte.`
+        : null,
       injection != null ? `Einspeicherung: ${formatTwhValue(injection) || injection}.` : null,
       withdrawal != null ? `Ausspeicherung: ${formatTwhValue(withdrawal) || withdrawal}.` : null,
       date ? `Zeitstempel/Stand: ${date}.` : null,
@@ -1345,7 +1389,9 @@ function buildOpenApiFallbackResponse({ question, capability, operation, params,
       'Diese Antwort stammt aus einem generischen read-only OpenAPI-Fallback, nicht aus einer dedizierten Capability-Route.',
     ],
     openQuestions: [],
-    recommendedNextSteps: ['Bei wiederkehrendem Bedarf eine dedizierte Capability-Route fuer diese Datenquelle ergaenzen.'],
+    recommendedNextSteps: [
+      'Bei wiederkehrendem Bedarf eine dedizierte Capability-Route fuer diese Datenquelle ergaenzen.',
+    ],
     allowedActions: ['explain', 'retrieve_evidence', 'prepare_intent'],
     forbiddenActions: ['execute', 'confirm', 'delete', 'override', 'sign', 'nominate'],
   };
@@ -1406,7 +1452,8 @@ function resolveParentTurnId(ctx, context = {}, inputs = {}) {
 
 function resolveAnswerText(result) {
   if (typeof result?.answer === 'string' && result.answer.trim()) return result.answer;
-  if (typeof result?.shortAnswer === 'string' && result.shortAnswer.trim()) return result.shortAnswer;
+  if (typeof result?.shortAnswer === 'string' && result.shortAnswer.trim())
+    return result.shortAnswer;
   if (typeof result?.groundingAnswer === 'string' && result.groundingAnswer.trim()) {
     return result.groundingAnswer;
   }
@@ -1445,7 +1492,10 @@ function capabilityMatchesEvidenceItem(item, capability) {
 function hasCapabilitySpecificEvidence(result, capability) {
   if (!capability) return true;
   if (result?.capability === capability || result?.requestedCapability === capability) return true;
-  if (Array.isArray(result?.evidence) && result.evidence.some((item) => capabilityMatchesEvidenceItem(item, capability))) {
+  if (
+    Array.isArray(result?.evidence) &&
+    result.evidence.some((item) => capabilityMatchesEvidenceItem(item, capability))
+  ) {
     return true;
   }
 
