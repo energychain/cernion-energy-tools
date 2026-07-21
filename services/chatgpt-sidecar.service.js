@@ -2302,6 +2302,22 @@ module.exports = {
         description:
           'For prompt-only ChatGPT.com usage where only URL reads are available. This ' +
           'facade is read-only and delegates to the same session policy as POST ask.',
+        parameters: [
+          {
+            name: 'ticket',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'opaque-ticket' },
+            description: 'Opaque ChatGPT Sidecar session ticket.',
+          },
+          { name: 'question', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'query', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'q', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'context', in: 'query', required: false, schema: {} },
+          { name: 'inputs', in: 'query', required: false, schema: {} },
+          { name: 'capability', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'parentTurnId', in: 'query', required: false, schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         return handleAsk(ctx, { browserFacade: true });
@@ -2342,6 +2358,20 @@ module.exports = {
         description:
           'For prompt-only ChatGPT.com usage where only URL reads are available. This ' +
           'facade is read-only and delegates to the same session policy as POST plan.',
+        parameters: [
+          {
+            name: 'ticket',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'opaque-ticket' },
+            description: 'Opaque ChatGPT Sidecar session ticket.',
+          },
+          { name: 'task', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'q', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'context', in: 'query', required: false, schema: {} },
+          { name: 'capability', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'parentTurnId', in: 'query', required: false, schema: { type: 'string' } },
+        ],
       },
       async handler(ctx) {
         return handlePlan(ctx, { browserFacade: true });
