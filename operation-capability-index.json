@@ -2,7 +2,7 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.67.8",
-  "sourceOpenApiHash": "2d97a2b07aa4b629cf73e654e19afeefada97e0abe937cd028fff37b506f9914",
+  "sourceOpenApiHash": "97728489c32e16bf3046a5424b6e438157ac13caec5e6d20be5d80155a868f71",
   "coverage": {
     "rawOperationCount": 1113,
     "operationCount": 858,
@@ -9665,7 +9665,9 @@
         "platform"
       ],
       "dataSources": [],
-      "entityTypes": [],
+      "entityTypes": [
+        "Ticket"
+      ],
       "requiredScopes": [
         "chatgpt-sidecar:read"
       ],
@@ -9675,8 +9677,66 @@
       "idempotency": "idempotent",
       "rollbackHint": null,
       "parameters": {
-        "required": [],
-        "optional": []
+        "required": [
+          {
+            "name": "ticket",
+            "in": "path",
+            "type": "string",
+            "description": "Opaque ChatGPT Sidecar session ticket.",
+            "extractionHint": null
+          }
+        ],
+        "optional": [
+          {
+            "name": "question",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "query",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "context",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "inputs",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "capability",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "parentTurnId",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
       },
       "rankingSignals": {
         "positiveKeywords": [
@@ -10010,7 +10070,9 @@
         "platform"
       ],
       "dataSources": [],
-      "entityTypes": [],
+      "entityTypes": [
+        "Ticket"
+      ],
       "requiredScopes": [
         "chatgpt-sidecar:read"
       ],
@@ -10020,8 +10082,52 @@
       "idempotency": "idempotent",
       "rollbackHint": null,
       "parameters": {
-        "required": [],
-        "optional": []
+        "required": [
+          {
+            "name": "ticket",
+            "in": "path",
+            "type": "string",
+            "description": "Opaque ChatGPT Sidecar session ticket.",
+            "extractionHint": null
+          }
+        ],
+        "optional": [
+          {
+            "name": "task",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "context",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "capability",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "parentTurnId",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
       },
       "rankingSignals": {
         "positiveKeywords": [
@@ -24123,6 +24229,13 @@
           },
           {
             "name": "owner",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "reviewerRole",
             "in": "query",
             "type": "string",
             "description": null,
