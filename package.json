@@ -82,7 +82,7 @@
     "dotenv": "^17.4.2",
     "german-zip-codes": "^1.0.2",
     "graphology": "^0.26.0",
-    "iconv-lite": "^0.7.2",
+    "iconv-lite": "^0.7.3",
     "moleculer": "^0.15.0",
     "moleculer-auto-openapi": "^1.1.7",
     "moleculer-repl": "^0.8.0",
