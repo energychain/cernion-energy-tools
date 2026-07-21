@@ -246,7 +246,7 @@ Agents resolving capabilities/recipes/operations do not need to read past this p
 - `tests/query.service.test.js`: `query.searchCopilot` body-based wrapper returns expected `query`, `domain`, and `results` shape.
 
 ## Source File Hashes
-- CHANGELOG.md: 0923b5ac092fdf74a9082e4fb757e872418a0deaad1d13e3c635d4de0a35d32f
+- CHANGELOG.md: a10023417a5755e39841a9c671a1c3555f1728d5004b06df558c20cd2d12c99c
 - README.md: bdfc5d35a65796de3357f3ce717a61998325fa257776cbf17f7077893d0b23e7
 - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
 - src/cookbook-recipes.js: 9e48573ca263ef129bc3944a83b013cff25157e25afc703be0ada62d5af8163d
@@ -259,4 +259,4 @@ Agents resolving capabilities/recipes/operations do not need to read past this p
 - full_spec: openapi-export.json (repo root) or GET /api/openapi.json
 
 ## Integrity
-- llm_txt_sha256: b5812719e4eb1b7e8a780d57b325ca845a55f6356be9199ae3c6bc6a42d94d75
+- llm_txt_sha256: a4e27552c50f63d4a0fc0e6d635ac9a8dd911f4110cbea60d10ad90662578d82
