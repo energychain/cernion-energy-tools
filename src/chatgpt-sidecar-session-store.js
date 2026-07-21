@@ -282,10 +282,7 @@ function createDefaultSessionStore() {
   if (process.env.CHATGPT_SIDECAR_SESSION_STORE === 'memory') {
     return createInMemorySessionStore();
   }
-  if (
-    process.env.CHATGPT_SIDECAR_SESSION_STORE === 'file' ||
-    process.env.NODE_ENV !== 'test'
-  ) {
+  if (process.env.CHATGPT_SIDECAR_SESSION_STORE === 'file' || process.env.NODE_ENV !== 'test') {
     return createFileBackedSessionStore();
   }
   return createInMemorySessionStore();

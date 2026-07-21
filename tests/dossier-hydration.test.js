@@ -296,8 +296,7 @@ describe('dossier-hydration-registry (unit)', () => {
         guardrailRows: [{ guardrailId: 'no_private_document_ingestion' }],
         positiveFollowUpRows: [
           {
-            enablesDossierAddition:
-              'add evidence-backed source register for committee-safe claims',
+            enablesDossierAddition: 'add evidence-backed source register for committee-safe claims',
           },
         ],
         sourceActions: { notCalled: ['document.upload'] },
@@ -2407,9 +2406,7 @@ describe('dossier-hydration-registry (unit)', () => {
           },
         ],
         missingEvidence: [],
-        positiveFollowUps: [
-          { enablesDossierAddition: 'add deterministic route recommendation' },
-        ],
+        positiveFollowUps: [{ enablesDossierAddition: 'add deterministic route recommendation' }],
         sourceActions: {
           notCalled: ['recommendedEndpoint.execute'],
         },
@@ -2722,9 +2719,7 @@ describe('dossier-hydration-registry (unit)', () => {
         },
       });
 
-      expect(formatted).toContain(
-        'Nicht-Eskalation Status: needs_absent_blocker_evidence'
-      );
+      expect(formatted).toContain('Nicht-Eskalation Status: needs_absent_blocker_evidence');
       expect(formatted).toContain('Signal: signal-368');
       expect(formatted).toContain('Quelle: monitor');
       expect(formatted).toContain('Leading Gap: blocking_finding');
@@ -2736,10 +2731,7 @@ describe('dossier-hydration-registry (unit)', () => {
       expect(rule).not.toBeNull();
       expect(isSafetyRejectedAction(rule.action)).toBe(false);
       expect(
-        rule.extractParams(
-          [],
-          'Bitte review=cr-367 owner=controlling gate=invest-board laden'
-        )
+        rule.extractParams([], 'Bitte review=cr-367 owner=controlling gate=invest-board laden')
       ).toEqual({
         reviewId: 'cr-367',
         owner: 'controlling',
@@ -2754,9 +2746,7 @@ describe('dossier-hydration-registry (unit)', () => {
         decisionReadiness: null,
         nextCommitteeGate: 'invest-board',
         missingEvidence: [{ missingDataPoint: 'decision_readiness' }],
-        positiveFollowUps: [
-          { enablesDossierAddition: 'add readiness rationale and blockers' },
-        ],
+        positiveFollowUps: [{ enablesDossierAddition: 'add readiness rationale and blockers' }],
         sourceActions: { notCalled: ['budget.approve'] },
         dossierEvidence: {
           dossierFacts: ['Kostenpruefung Status: needs_decision_readiness'],

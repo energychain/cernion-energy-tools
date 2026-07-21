@@ -260,9 +260,9 @@ describe('VDMI Blueprint Pack seeds', () => {
         demoTenantId: 'stadtwerk-mauer',
       })
     );
-    expect(getVdmiBlueprintPackSeed('stadtwerk-mauer-cross-system-variance-evidence-matrix-v1')).toBe(
-      stadtwerkMauerCrossSystemVarianceEvidenceMatrix
-    );
+    expect(
+      getVdmiBlueprintPackSeed('stadtwerk-mauer-cross-system-variance-evidence-matrix-v1')
+    ).toBe(stadtwerkMauerCrossSystemVarianceEvidenceMatrix);
   });
 
   test('exposes the Flexible Grid-Connection Release File seed as read-only metadata', () => {
@@ -285,9 +285,9 @@ describe('VDMI Blueprint Pack seeds', () => {
         demoTenantId: 'stadtwerk-mauer',
       })
     );
-    expect(getVdmiBlueprintPackSeed('stadtwerk-mauer-flexible-grid-connection-release-file-v1')).toBe(
-      stadtwerkMauerFlexibleGridConnectionReleaseFile
-    );
+    expect(
+      getVdmiBlueprintPackSeed('stadtwerk-mauer-flexible-grid-connection-release-file-v1')
+    ).toBe(stadtwerkMauerFlexibleGridConnectionReleaseFile);
   });
 
   test('validates Flexible Grid-Connection Release File without release or publication side effects', () => {
@@ -305,7 +305,9 @@ describe('VDMI Blueprint Pack seeds', () => {
       expect(item.enablesDossierAddition).toEqual(expect.any(String));
     }
 
-    expect(stadtwerkMauerFlexibleGridConnectionReleaseFile.sourceApis.map((api) => api.path)).toEqual(
+    expect(
+      stadtwerkMauerFlexibleGridConnectionReleaseFile.sourceApis.map((api) => api.path)
+    ).toEqual(
       expect.arrayContaining([
         '/api/dashboard/anschlusskapazitaet-evidence-queue',
         '/api/dashboard/connection-deadline-evidence-queue',
@@ -350,7 +352,9 @@ describe('VDMI Blueprint Pack seeds', () => {
         'personal_agent_hardcoding',
       ])
     );
-    expect(stadtwerkMauerFlexibleGridConnectionReleaseFile.publicContextMutationAllowed).toBe(false);
+    expect(stadtwerkMauerFlexibleGridConnectionReleaseFile.publicContextMutationAllowed).toBe(
+      false
+    );
     expect(stadtwerkMauerFlexibleGridConnectionReleaseFile.tenantProvisioningAllowed).toBe(false);
     expect(stadtwerkMauerFlexibleGridConnectionReleaseFile.realWorldClaim).toBe(
       'synthetic_demo_only'
@@ -395,9 +399,9 @@ describe('VDMI Blueprint Pack seeds', () => {
     const result = validateVdmiBlueprintPackSeed(stadtwerkMauerGridConnectionTransformationGate);
 
     expect(result).toEqual({ valid: true, errors: [] });
-    expect(stadtwerkMauerGridConnectionTransformationGate.evidenceRequirements.map((item) => item.id)).toEqual(
-      REQUIRED_GRID_CONNECTION_TRANSFORMATION_GATE_EVIDENCE
-    );
+    expect(
+      stadtwerkMauerGridConnectionTransformationGate.evidenceRequirements.map((item) => item.id)
+    ).toEqual(REQUIRED_GRID_CONNECTION_TRANSFORMATION_GATE_EVIDENCE);
     expect(stadtwerkMauerGridConnectionTransformationGate.forbiddenActions).toEqual(
       expect.arrayContaining([
         'connection_commitment',
@@ -420,7 +424,9 @@ describe('VDMI Blueprint Pack seeds', () => {
     );
     expect(stadtwerkMauerGridConnectionTransformationGate.publicContextMutationAllowed).toBe(false);
     expect(stadtwerkMauerGridConnectionTransformationGate.tenantProvisioningAllowed).toBe(false);
-    expect(stadtwerkMauerGridConnectionTransformationGate.realWorldClaim).toBe('synthetic_demo_only');
+    expect(stadtwerkMauerGridConnectionTransformationGate.realWorldClaim).toBe(
+      'synthetic_demo_only'
+    );
   });
 
   test('exposes and validates Investment Owner-Frist-Budget Gate as a canonical Blueprint Pack seed', () => {
@@ -458,9 +464,9 @@ describe('VDMI Blueprint Pack seeds', () => {
 
     const result = validateVdmiBlueprintPackSeed(stadtwerkMauerInvestmentOwnerDeadlineBudgetGate);
     expect(result).toEqual({ valid: true, errors: [] });
-    expect(stadtwerkMauerInvestmentOwnerDeadlineBudgetGate.evidenceRequirements.map((item) => item.id)).toEqual(
-      REQUIRED_INVESTMENT_OWNER_DEADLINE_BUDGET_GATE_EVIDENCE
-    );
+    expect(
+      stadtwerkMauerInvestmentOwnerDeadlineBudgetGate.evidenceRequirements.map((item) => item.id)
+    ).toEqual(REQUIRED_INVESTMENT_OWNER_DEADLINE_BUDGET_GATE_EVIDENCE);
     expect(stadtwerkMauerInvestmentOwnerDeadlineBudgetGate.demoProcessMatrix).toMatchObject({
       slug: 'investment-owner-deadline-budget-gate',
       roleLegend: {
@@ -527,9 +533,9 @@ describe('VDMI Blueprint Pack seeds', () => {
 
     const result = validateVdmiBlueprintPackSeed(stadtwerkMauerDirectMarketerRiskGate);
     expect(result).toEqual({ valid: true, errors: [] });
-    expect(stadtwerkMauerDirectMarketerRiskGate.evidenceRequirements.map((item) => item.id)).toEqual(
-      REQUIRED_DIRECT_MARKETER_RISK_GATE_EVIDENCE
-    );
+    expect(
+      stadtwerkMauerDirectMarketerRiskGate.evidenceRequirements.map((item) => item.id)
+    ).toEqual(REQUIRED_DIRECT_MARKETER_RISK_GATE_EVIDENCE);
     expect(stadtwerkMauerDirectMarketerRiskGate.demoProcessMatrix).toMatchObject({
       slug: 'direct-marketer-risk-gate',
       roleLegend: {
@@ -604,7 +610,9 @@ describe('VDMI Blueprint Pack seeds', () => {
         'personal_agent_hardcoding',
       ])
     );
-    expect(stadtwerkMauerCrossSystemVarianceEvidenceMatrix.publicContextMutationAllowed).toBe(false);
+    expect(stadtwerkMauerCrossSystemVarianceEvidenceMatrix.publicContextMutationAllowed).toBe(
+      false
+    );
     expect(stadtwerkMauerCrossSystemVarianceEvidenceMatrix.tenantProvisioningAllowed).toBe(false);
     expect(stadtwerkMauerCrossSystemVarianceEvidenceMatrix.realWorldClaim).toBe(
       'synthetic_demo_only'
@@ -1715,7 +1723,9 @@ describe('VDMI Blueprint Pack seeds', () => {
 
       for (const roleCell of [row.v, row.d, row.m, row.i]) {
         expect(REQUIRED_DATA_CLASSES).not.toContain(roleCell);
-        expect(roleCell).not.toMatch(/Phase|Verantwortlich|Durchfuehrend|Mitwirkend|Informiert|Nachweise/);
+        expect(roleCell).not.toMatch(
+          /Phase|Verantwortlich|Durchfuehrend|Mitwirkend|Informiert|Nachweise/
+        );
       }
 
       for (const dataClass of row.dataClassRefs) {
@@ -1877,7 +1887,11 @@ describe('VDMI Blueprint Pack seeds', () => {
       ])
     );
     expect(sync.dataClassRefs).toEqual(
-      expect.arrayContaining(['publicContextLayer', 'syntheticTenantSeed', 'sandboxRuntimeArtifact'])
+      expect.arrayContaining([
+        'publicContextLayer',
+        'syntheticTenantSeed',
+        'sandboxRuntimeArtifact',
+      ])
     );
   });
 
@@ -1965,7 +1979,9 @@ describe('VDMI Blueprint Pack seeds', () => {
   });
 
   test('derives a Landing-Registry draft from the canonical substation matrix', () => {
-    const draft = buildLandingRegistryDraftFromBlueprintSeed(stadtwerkMauerSubstationLoadAssessment);
+    const draft = buildLandingRegistryDraftFromBlueprintSeed(
+      stadtwerkMauerSubstationLoadAssessment
+    );
 
     expect(draft).toMatchObject({
       slug: 'substation-load-assessment',
@@ -2071,9 +2087,7 @@ describe('VDMI Blueprint Pack seeds', () => {
   });
 
   test('keeps Decommissioned Asset Reconciliation sync proof tied to issue 397 seed hygiene', () => {
-    const seed = getVdmiBlueprintPackSeed(
-      'stadtwerk-mauer-decommissioned-asset-reconciliation-v1'
-    );
+    const seed = getVdmiBlueprintPackSeed('stadtwerk-mauer-decommissioned-asset-reconciliation-v1');
 
     expect(seed.projectionHints.sourceIssue).toBe(397);
     expect(seed.dataClasses.syntheticTenantSeed.examples).toEqual([
@@ -2294,7 +2308,9 @@ describe('VDMI Blueprint Pack seeds', () => {
         state: 'owner_gap',
         roleHint: 'ROLE_ASSET_MANAGEMENT',
         execution: 'none',
-        enablesDossierAddition: expect.stringContaining('without assigning live workflow ownership'),
+        enablesDossierAddition: expect.stringContaining(
+          'without assigning live workflow ownership'
+        ),
       })
     );
     expect(items).toContainEqual(
@@ -2302,7 +2318,9 @@ describe('VDMI Blueprint Pack seeds', () => {
         evidenceId: 'budgetEffectEvidence',
         state: 'budget_gap',
         execution: 'none',
-        enablesDossierAddition: expect.stringContaining('without booking, reserving or approving budget'),
+        enablesDossierAddition: expect.stringContaining(
+          'without booking, reserving or approving budget'
+        ),
       })
     );
     expect(items).toContainEqual(

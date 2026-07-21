@@ -109,16 +109,26 @@ function missingEvidenceFor(params, evidence, approval) {
     addGap('mapping_version', 'add mapping version to make the release file revision-safe');
   }
   if (!asTrimmed(params.sourceSystem) || evidence === 'missing_source_version') {
-    addGap('evidence_source_version', 'add source system and version carrying the mapping evidence');
+    addGap(
+      'evidence_source_version',
+      'add source system and version carrying the mapping evidence'
+    );
   }
   if (!asTrimmed(params.owner)) {
     addGap('approval_owner', 'add approval owner or accountable role for the release decision');
   }
   if (approval === 'needs_release_owner_review') {
-    addGap('approval_status', 'add approval status to separate reviewable evidence from released mapping');
+    addGap(
+      'approval_status',
+      'add approval status to separate reviewable evidence from released mapping'
+    );
   }
   if (!asTrimmed(params.nextChangeGate)) {
-    addGap('next_change_gate', 'add next change gate to make later mapping changes auditable', 'low');
+    addGap(
+      'next_change_gate',
+      'add next change gate to make later mapping changes auditable',
+      'low'
+    );
   }
   return gaps;
 }
@@ -159,13 +169,32 @@ function buildInterconnectionReleaseFileStatus(params = {}) {
     { key: 'owner', label: 'Approval owner', value: owner },
     { key: 'mapping_version', label: 'Mapping version', value: subject.mappingVersion },
     { key: 'next_change_gate', label: 'Next change gate', value: nextChangeGate },
-    { key: 'evidence_basis', label: 'Evidence basis', value: syntheticDemo ? 'synthetic_demo_read_model' : 'request_provided_read_model' },
+    {
+      key: 'evidence_basis',
+      label: 'Evidence basis',
+      value: syntheticDemo ? 'synthetic_demo_read_model' : 'request_provided_read_model',
+    },
   ];
 
   const mappingRows = [
-    { key: 'koppelpunkt', label: 'Koppelpunkt', value: subject.koppelpunktId, evidenceStatus: evidence },
-    { key: 'market_partner', label: 'Marktpartner', value: subject.marketPartnerId, evidenceStatus: evidence },
-    { key: 'timeseries', label: 'Zeitreihe', value: subject.timeseriesId, evidenceStatus: evidence },
+    {
+      key: 'koppelpunkt',
+      label: 'Koppelpunkt',
+      value: subject.koppelpunktId,
+      evidenceStatus: evidence,
+    },
+    {
+      key: 'market_partner',
+      label: 'Marktpartner',
+      value: subject.marketPartnerId,
+      evidenceStatus: evidence,
+    },
+    {
+      key: 'timeseries',
+      label: 'Zeitreihe',
+      value: subject.timeseriesId,
+      evidenceStatus: evidence,
+    },
   ];
 
   const evidenceRows = [

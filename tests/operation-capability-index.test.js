@@ -33,7 +33,13 @@ function makeEntry(overrides) {
     capabilityCandidates: [],
     domains: [],
     parameters: { required: [], optional: [] },
-    rankingSignals: { positiveKeywords: [], negativeCues: [], synonyms: [], examples: [], curated: false },
+    rankingSignals: {
+      positiveKeywords: [],
+      negativeCues: [],
+      synonyms: [],
+      examples: [],
+      curated: false,
+    },
     ...overrides,
   };
 }
@@ -178,7 +184,10 @@ describe('operation-capability-index (ranker)', () => {
     });
 
     it('surfaces a write/admin operation (never blanket-hidden) for a matching query', () => {
-      const [top] = rankOperations('Create a full backup snapshot', { index: FIXTURE_INDEX, limit: 1 });
+      const [top] = rankOperations('Create a full backup snapshot', {
+        index: FIXTURE_INDEX,
+        limit: 1,
+      });
       expect(top.operationId).toBe('backup-orchestrator_snapshot');
       expect(top.operationKind).toBe('admin');
       expect(top.recommendedExecutionMode).toBe('confirm');
@@ -205,7 +214,10 @@ describe('operation-capability-index (ranker)', () => {
     });
 
     it('boosts score when an explicit capability match is provided', () => {
-      const withoutCapability = rankOperations('country gas data', { index: FIXTURE_INDEX, limit: 1 })[0];
+      const withoutCapability = rankOperations('country gas data', {
+        index: FIXTURE_INDEX,
+        limit: 1,
+      })[0];
       const withCapability = rankOperations('country gas data', {
         index: FIXTURE_INDEX,
         limit: 1,
@@ -253,12 +265,16 @@ describe('operation-capability-index (ranker)', () => {
   // -------------------------------------------------------------------------
   describe('lookup helpers', () => {
     it('findOperationById finds an exact operation', () => {
-      expect(findOperationById('gas-storage_countryStorage', { index: FIXTURE_INDEX }).service).toBe('gas-storage');
+      expect(
+        findOperationById('gas-storage_countryStorage', { index: FIXTURE_INDEX }).service
+      ).toBe('gas-storage');
       expect(findOperationById('does-not-exist', { index: FIXTURE_INDEX })).toBeNull();
     });
 
     it('listOperationsByCapability filters by capabilityCandidates', () => {
-      const results = listOperationsByCapability('gas_grid_transformation_asset_cockpit', { index: FIXTURE_INDEX });
+      const results = listOperationsByCapability('gas_grid_transformation_asset_cockpit', {
+        index: FIXTURE_INDEX,
+      });
       expect(results.map((r) => r.operationId)).toEqual(['gas-storage_countryStorage']);
     });
 
@@ -284,7 +300,10 @@ describe('operation-capability-index (ranker)', () => {
 
     it('reports all required params as missing when nothing is provided', () => {
       const entry = FIXTURE_INDEX.operations[1];
-      expect(findMissingRequiredParameters(entry, {}).map((p) => p.name)).toEqual(['countries', 'metric']);
+      expect(findMissingRequiredParameters(entry, {}).map((p) => p.name)).toEqual([
+        'countries',
+        'metric',
+      ]);
     });
   });
 
