@@ -9579,6 +9579,7 @@ module.exports = {
           { name: 'evidenceStatus', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'approvalStatus', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'owner', in: 'query', required: false, schema: { type: 'string' } },
+          { name: 'reviewerRole', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'affectedProcess', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'nextChangeGate', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'tenantId', in: 'query', required: false, schema: { type: 'string' } },
