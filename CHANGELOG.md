@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Fixed
+- **Restore Prettier/ESLint quality baseline on `main`** (27 files across `services/`, `src/`, `scripts/`, `tests/`): `npm run lint` was failing with 861 `prettier/prettier` formatting errors on `main`, blocking the `quality` CI gate for every open PR and Dependabot bump (formatting-only diff, no behavioural change; full test suite verified green).
+
 ### Added
 - **VDMI Blueprint Pack seed for flexible grid-connection release files** (`src/vdmi-blueprint-pack-seeds/stadtwerk-mauer-flexible-grid-connection-release-file-v1.json`, #424): Adds a versioned, read-only `vdmi_blueprint_pack_seed` for `flexible_grid_connection_release` / `flexible_connection_release_file_review`, including a canonical 5-row Demo-Raum `demoProcessMatrix`, V/D/M/I role legend with `M = Mitwirkend`, source references to existing `/api/dashboard/*` Workbench bricks, required release-file evidence gates, data-class separation, positive follow-up rows, and no-call guards for capacity reservation, connection approval/rejection, contract creation, MaKo, billing, settlement, tariffs, device control, Budibase writes, Landing-Registry/publication, public-context mutation, production mutation and Personal-Agent hardcoding.
 - **VDMI Blueprint Pack registry repair for MaStR sync-gap alerting** (`src/vdmi-blueprint-pack-seeds.js`, `src/vdmi-blueprint-pack-seeds/stadtwerk-mauer-mastr-sync-gap-alerting-v1.json`, #401): Registers the existing read-only `stadtwerk-mauer-mastr-sync-gap-alerting-v1` seed in the canonical Blueprint-Pack registry, validates its four required evidence IDs and V/D/M/I matrix, and keeps the Budibase Workbench manifest as a generated render shell over the existing verify/read-model endpoints.

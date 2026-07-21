@@ -2401,9 +2401,7 @@ describe('dashboard-api.service', () => {
         expect(result.guardrailRows.map((row) => row.guardrailId)).toEqual(
           expect.arrayContaining(['no_private_document_ingestion', 'no_office_generation'])
         );
-        expect(result.positiveFollowUpRows[0].category).toBe(
-          'gremiencoach_workbook_readiness'
-        );
+        expect(result.positiveFollowUpRows[0].category).toBe('gremiencoach_workbook_readiness');
         expect(result.sourceActions.notCalled).toEqual(
           expect.arrayContaining([
             'document.upload',
@@ -2636,9 +2634,7 @@ describe('dashboard-api.service', () => {
             'test_case_hint',
           ])
         );
-        expect(result.positiveFollowUps[0].category).toBe(
-          'regulatory_signal_process_translator'
-        );
+        expect(result.positiveFollowUps[0].category).toBe('regulatory_signal_process_translator');
         expect(result.sourceActions.notCalled).toEqual(
           expect.arrayContaining([
             'legal.interpret',
@@ -5087,9 +5083,7 @@ describe('dashboard-api.service', () => {
         });
 
         expect(stale.status).toBe('stale');
-        expect(stale.staleMarkers.map((marker) => marker.marker)).toContain(
-          'leading_source_stale'
-        );
+        expect(stale.staleMarkers.map((marker) => marker.marker)).toContain('leading_source_stale');
         expect(stale.positiveFollowUps.map((gap) => gap.missingDataPoint)).toContain(
           'stale_leading_source_refresh'
         );
