@@ -113,4 +113,32 @@ describe('provisioning registry and CLI', () => {
     expect(JSON.parse(fs.readFileSync(tenantsFile, 'utf8'))[0].tenantId).toBe('public');
     expect(JSON.parse(fs.readFileSync(usersFile, 'utf8'))[0].userId).toBe('svc:chat-ui');
   });
+
+  it('accepts support token input from the environment so runbooks avoid process args', () => {
+    const tenantsFile = path.join(tempDir, 'tenants-env.json');
+    const supportSecret = 'support-secret-from-env';
+
+    const result = spawnSync(
+      process.execPath,
+      ['scripts/provision-tenant.js', '--tenant', 'public', '--name', 'Public Tenant'],
+      {
+        cwd: path.join(__dirname, '..'),
+        env: {
+          ...process.env,
+          CERNION_SUPPORT_TOKEN: supportSecret,
+          CERNION_SUPPORT_TOKEN_INPUT: supportSecret,
+          CERNION_TENANT_REGISTRY_FILE: tenantsFile,
+        },
+        encoding: 'utf8',
+      }
+    );
+
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe('');
+    expect(result.stdout).not.toContain(supportSecret);
+    expect(JSON.parse(fs.readFileSync(tenantsFile, 'utf8'))[0]).toMatchObject({
+      tenantId: 'public',
+      name: 'Public Tenant',
+    });
+  });
 });
