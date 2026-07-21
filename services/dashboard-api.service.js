@@ -3918,6 +3918,28 @@ module.exports = {
         settlementEvidenceRef: { type: 'string', optional: true, min: 1 },
         contractEvidenceRef: { type: 'string', optional: true, min: 1 },
         economicsAssumptionRef: { type: 'string', optional: true, min: 1 },
+        generationMaloCount: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'number' }, { type: 'string', min: 1 }],
+        },
+        consumptionMaloCount: {
+          type: 'multi',
+          optional: true,
+          rules: [{ type: 'number' }, { type: 'string', min: 1 }],
+        },
+        maloInventoryEvidenceRef: { type: 'string', optional: true, min: 1 },
+        supplierOrDirectMarketerEvidenceRef: { type: 'string', optional: true, min: 1 },
+        meteringConceptEvidenceRef: { type: 'string', optional: true, min: 1 },
+        imsysStatus: { type: 'string', optional: true, min: 1 },
+        fifteenMinuteValuesReadiness: { type: 'string', optional: true, min: 1 },
+        dataBasisFreshnessRef: { type: 'string', optional: true, min: 1 },
+        residualSupplyContractEvidenceRef: { type: 'string', optional: true, min: 1 },
+        participationStartDate: { type: 'string', optional: true, min: 1 },
+        participationEndDate: { type: 'string', optional: true, min: 1 },
+        eligibilityEvidenceRef: { type: 'string', optional: true, min: 1 },
+        exceptionRateEvidenceRef: { type: 'string', optional: true, min: 1 },
+        economicsThresholdRef: { type: 'string', optional: true, min: 1 },
         owner: { type: 'string', optional: true, min: 1 },
         escalationContact: { type: 'string', optional: true, min: 1 },
         sourceArtifacts: {
@@ -3963,6 +3985,85 @@ module.exports = {
             required: false,
             schema: { type: 'string' },
           },
+          {
+            name: 'generationMaloCount',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'consumptionMaloCount',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'maloInventoryEvidenceRef',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'supplierOrDirectMarketerEvidenceRef',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'meteringConceptEvidenceRef',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
+          { name: 'imsysStatus', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'fifteenMinuteValuesReadiness',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'dataBasisFreshnessRef',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'residualSupplyContractEvidenceRef',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'participationStartDate',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'participationEndDate',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'eligibilityEvidenceRef',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'exceptionRateEvidenceRef',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
+          {
+            name: 'economicsThresholdRef',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+          },
           { name: 'owner', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'escalationContact', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'sourceArtifacts', in: 'query', required: false, schema: { type: 'string' } },
@@ -3994,7 +4095,7 @@ module.exports = {
       },
       async handler(ctx) {
         const params = { ...ctx.params };
-        const cacheKey = `energy-sharing-simulation-gate:${params.communityId || 'no-community'}:${params.gridOperatorId || 'no-grid'}:${params.participantCount || 'no-participants'}:${params.maloStatus || 'no-malo'}:${params.meteringReadiness || 'no-metering'}:${params.marketRoleReadiness || 'no-market-role'}:${params.dataBasis || 'no-data-basis'}:${params.a96EvidenceRef || 'no-a96'}:${params.settlementEvidenceRef || 'no-settlement'}:${params.contractEvidenceRef || 'no-contract'}:${params.economicsAssumptionRef || 'no-economics'}`;
+        const cacheKey = `energy-sharing-simulation-gate:${params.communityId || 'no-community'}:${params.gridOperatorId || 'no-grid'}:${params.participantCount || 'no-participants'}:${params.maloStatus || 'no-malo'}:${params.meteringReadiness || 'no-metering'}:${params.marketRoleReadiness || 'no-market-role'}:${params.dataBasis || 'no-data-basis'}:${params.a96EvidenceRef || 'no-a96'}:${params.settlementEvidenceRef || 'no-settlement'}:${params.contractEvidenceRef || 'no-contract'}:${params.economicsAssumptionRef || 'no-economics'}:${params.generationMaloCount || 'no-gen-malo'}:${params.consumptionMaloCount || 'no-cons-malo'}:${params.maloInventoryEvidenceRef || 'no-malo-inventory'}:${params.supplierOrDirectMarketerEvidenceRef || 'no-supplier'}:${params.meteringConceptEvidenceRef || 'no-metering-concept'}:${params.imsysStatus || 'no-imsys'}:${params.fifteenMinuteValuesReadiness || 'no-15min'}:${params.dataBasisFreshnessRef || 'no-freshness'}:${params.residualSupplyContractEvidenceRef || 'no-residual-supply'}:${params.participationStartDate || 'no-start'}:${params.participationEndDate || 'no-end'}:${params.eligibilityEvidenceRef || 'no-eligibility'}:${params.exceptionRateEvidenceRef || 'no-exception-rate'}:${params.economicsThresholdRef || 'no-economics-threshold'}`;
 
         return this.cacheGetOrFetch(
           cacheKey,
@@ -20553,6 +20654,8 @@ module.exports = {
       };
       const isReady = (value) => normalizeStatus(value) === 'ready';
       const participantCount = Number(params.participantCount || 0);
+      const generationMaloCount = Number(params.generationMaloCount || 0);
+      const consumptionMaloCount = Number(params.consumptionMaloCount || 0);
       const sourceArtifacts = toList(params.sourceArtifacts);
       const dataBasis = String(params.dataBasis || '').toLowerCase();
       const isBillingDataBasis = /inhouse|imsys|mscons|billing|abrechnung/.test(dataBasis);
@@ -20655,6 +20758,96 @@ module.exports = {
           statusWhenMissing: 'blocked_by_evidence',
         },
         {
+          id: 'malo_inventory_evidence',
+          label: 'Generation and consumption MaLo evidence summary',
+          value:
+            generationMaloCount > 0 && consumptionMaloCount > 0 && params.maloInventoryEvidenceRef,
+          displayValue:
+            generationMaloCount > 0 || consumptionMaloCount > 0
+              ? `${generationMaloCount} generation / ${consumptionMaloCount} consumption / ${params.maloInventoryEvidenceRef || 'no evidence ref'}`
+              : null,
+          readinessBlock: 'maloInventory',
+          sourceClass: 'malo_evidence',
+          enablesDossierAddition:
+            'add generation/consumption MaLo counts and an evidence reference (never raw MaLo identifiers) to confirm portfolio metering-point scope',
+          statusWhenMissing: 'blocked_by_evidence',
+        },
+        {
+          id: 'supplier_direct_marketer_evidence',
+          label: 'Supplier / direct-marketer evidence',
+          value: params.supplierOrDirectMarketerEvidenceRef,
+          displayValue: params.supplierOrDirectMarketerEvidenceRef,
+          readinessBlock: 'supplierDirectMarketer',
+          sourceClass: 'supplier_evidence',
+          enablesDossierAddition:
+            'add supplier or direct-marketer evidence reference to confirm the commercial counterpart for the candidate',
+          statusWhenMissing: 'blocked_by_evidence',
+        },
+        {
+          id: 'metering_concept_data_quality_evidence',
+          label:
+            'Metering concept, iMSys status, 15-minute-value readiness and data-basis freshness',
+          value:
+            params.meteringConceptEvidenceRef &&
+            isReady(params.imsysStatus) &&
+            isReady(params.fifteenMinuteValuesReadiness) &&
+            params.dataBasisFreshnessRef,
+          displayValue: [
+            params.meteringConceptEvidenceRef,
+            params.imsysStatus,
+            params.fifteenMinuteValuesReadiness,
+            params.dataBasisFreshnessRef,
+          ]
+            .filter(Boolean)
+            .join(' / '),
+          readinessBlock: 'meteringConceptDataQuality',
+          sourceClass: 'metering_concept_evidence',
+          enablesDossierAddition:
+            'add metering-concept evidence, iMSys status, 15-minute-value readiness and a data-basis freshness reference to confirm measurement data quality',
+          statusWhenMissing: 'blocked_by_metering',
+        },
+        {
+          id: 'residual_supply_contract_evidence',
+          label: 'Residual-supply contract evidence (Reststromvertrag)',
+          value: params.residualSupplyContractEvidenceRef,
+          displayValue: params.residualSupplyContractEvidenceRef,
+          readinessBlock: 'residualSupply',
+          sourceClass: 'residual_supply_evidence',
+          enablesDossierAddition:
+            'add residual-supply contract evidence to confirm coverage for non-shared consumption',
+          statusWhenMissing: 'blocked_by_evidence',
+        },
+        {
+          id: 'participation_eligibility_evidence',
+          label: 'Participation start/end and eligibility evidence',
+          value: params.participationStartDate && params.eligibilityEvidenceRef,
+          displayValue: [
+            params.participationStartDate,
+            params.participationEndDate,
+            params.eligibilityEvidenceRef,
+          ]
+            .filter(Boolean)
+            .join(' / '),
+          readinessBlock: 'participationEligibility',
+          sourceClass: 'participation_evidence',
+          enablesDossierAddition:
+            'add participation start date and eligibility/authorization evidence (end date optional for ongoing participation) to confirm participation scope',
+          statusWhenMissing: 'blocked_by_evidence',
+        },
+        {
+          id: 'exception_rate_economics_threshold_evidence',
+          label: 'Exception-rate evidence and economics-threshold reference',
+          value: params.exceptionRateEvidenceRef && params.economicsThresholdRef,
+          displayValue: [params.exceptionRateEvidenceRef, params.economicsThresholdRef]
+            .filter(Boolean)
+            .join(' / '),
+          readinessBlock: 'exceptionRateEconomicsThreshold',
+          sourceClass: 'exception_rate_evidence',
+          enablesDossierAddition:
+            'add exception/clarification-case rate evidence and an explicit economics-threshold reference for commercial viability review',
+          statusWhenMissing: 'blocked_by_evidence',
+        },
+        {
           id: 'owner_escalation',
           label: 'Owner and escalation contact',
           value: params.owner && params.escalationContact,
@@ -20700,6 +20893,53 @@ module.exports = {
           economicsAssumptionRef: params.economicsAssumptionRef || null,
           status:
             params.contractEvidenceRef && params.economicsAssumptionRef
+              ? 'ready'
+              : 'missing_evidence',
+        },
+        maloInventoryReadiness: {
+          generationMaloCount,
+          consumptionMaloCount,
+          maloInventoryEvidenceRef: params.maloInventoryEvidenceRef || null,
+          status:
+            generationMaloCount > 0 && consumptionMaloCount > 0 && params.maloInventoryEvidenceRef
+              ? 'ready'
+              : 'missing_evidence',
+        },
+        supplierDirectMarketerReadiness: {
+          supplierOrDirectMarketerEvidenceRef: params.supplierOrDirectMarketerEvidenceRef || null,
+          status: params.supplierOrDirectMarketerEvidenceRef ? 'ready' : 'missing_evidence',
+        },
+        meteringConceptDataQualityReadiness: {
+          meteringConceptEvidenceRef: params.meteringConceptEvidenceRef || null,
+          imsysStatus: params.imsysStatus || null,
+          fifteenMinuteValuesReadiness: params.fifteenMinuteValuesReadiness || null,
+          dataBasisFreshnessRef: params.dataBasisFreshnessRef || null,
+          status:
+            params.meteringConceptEvidenceRef &&
+            isReady(params.imsysStatus) &&
+            isReady(params.fifteenMinuteValuesReadiness) &&
+            params.dataBasisFreshnessRef
+              ? 'ready'
+              : 'missing_evidence',
+        },
+        residualSupplyReadiness: {
+          residualSupplyContractEvidenceRef: params.residualSupplyContractEvidenceRef || null,
+          status: params.residualSupplyContractEvidenceRef ? 'ready' : 'missing_evidence',
+        },
+        participationEligibilityReadiness: {
+          participationStartDate: params.participationStartDate || null,
+          participationEndDate: params.participationEndDate || null,
+          eligibilityEvidenceRef: params.eligibilityEvidenceRef || null,
+          status:
+            params.participationStartDate && params.eligibilityEvidenceRef
+              ? 'ready'
+              : 'missing_evidence',
+        },
+        exceptionRateEconomicsThresholdReadiness: {
+          exceptionRateEvidenceRef: params.exceptionRateEvidenceRef || null,
+          economicsThresholdRef: params.economicsThresholdRef || null,
+          status:
+            params.exceptionRateEvidenceRef && params.economicsThresholdRef
               ? 'ready'
               : 'missing_evidence',
         },
@@ -20794,6 +21034,9 @@ module.exports = {
           'hitl.create',
           'external.connector.call',
           'personal-agent.execute',
+          'energy-sharing.contract.sign',
+          'energy-sharing.onboarding.start',
+          'workflow.execute',
         ],
       };
       const dossierFacts = [

@@ -2,7 +2,7 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.67.8",
-  "sourceOpenApiHash": "1b10b93d16cabdf0c87bcf8ebcc7baeea3bc001bbcee0d7fd0410f40d39dd7b1",
+  "sourceOpenApiHash": "115839940aa58c388ae01d85fb00c4c9238a265e334ba1ec0c48c98711e93e70",
   "coverage": {
     "rawOperationCount": 1112,
     "operationCount": 857,
@@ -11,8 +11,8 @@
     "byOperationKind": {
       "data_read": 385,
       "admin": 8,
-      "object_store_write": 222,
-      "process_step": 20,
+      "object_store_write": 221,
+      "process_step": 21,
       "process_start": 38,
       "advisory_plan": 39,
       "draft_write": 10,
@@ -20098,6 +20098,104 @@
             "extractionHint": null
           },
           {
+            "name": "generationMaloCount",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "consumptionMaloCount",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "maloInventoryEvidenceRef",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "supplierOrDirectMarketerEvidenceRef",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "meteringConceptEvidenceRef",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "imsysStatus",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "fifteenMinuteValuesReadiness",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "dataBasisFreshnessRef",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "residualSupplyContractEvidenceRef",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "participationStartDate",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": "date_range_start"
+          },
+          {
+            "name": "participationEndDate",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": "date_range_start"
+          },
+          {
+            "name": "eligibilityEvidenceRef",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "exceptionRateEvidenceRef",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "economicsThresholdRef",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
             "name": "owner",
             "in": "query",
             "type": "string",
@@ -21346,6 +21444,146 @@
           },
           {
             "name": "sourceRef",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "connectionRequestRef",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "gridConnectionPoint",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "capacityOfferRef",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "capacityOfferVersion",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "capacityOfferDate",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": "date_range_start"
+          },
+          {
+            "name": "restrictionProfileRef",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "restrictionProfileVersion",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "contractRef",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "contractVersion",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "contractReviewStatus",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "operatingEventRef",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "operatingEventType",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "operatingEventTimestamp",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "curtailmentMeasurementEvidenceRef",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "redispatchRelevanceRef",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "redispatchStatusRef",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "compensationStatusRef",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "evidenceOwner",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "nextReviewGate",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "evidenceSourceTimestamp",
             "in": "query",
             "type": "string",
             "description": null,
@@ -80317,13 +80555,13 @@
       "path": "/v1/chat/completions",
       "service": "unknown",
       "action": null,
-      "summary": "Create a non-streaming OpenAI-compatible Cernion chat completion",
+      "summary": "Create an OpenAI-compatible Cernion Personal Agent chat completion",
       "tags": [
         "OpenAI Compatible"
       ],
       "uiPage": "agent",
       "oeoClass": null,
-      "operationKind": "object_store_write",
+      "operationKind": "process_step",
       "consequenceLevel": "medium",
       "recommendedExecutionMode": "prepare",
       "agentable": true,
@@ -80344,10 +80582,10 @@
         "unknown"
       ],
       "sideEffects": [
-        "creates_or_modifies_stored_object"
+        "advances_process_state"
       ],
       "idempotency": "not_idempotent",
-      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "rollbackHint": "Check for a companion reject/cancel/rollback operation on the same resource before treating this as final.",
       "parameters": {
         "required": [
           {
@@ -80401,17 +80639,18 @@
           "create",
           "chat",
           "completion",
-          "non",
-          "streaming",
+          "an",
           "open",
           "ai",
           "compatible",
           "cernion",
+          "personal",
+          "agent",
           "unknown"
         ],
         "negativeCues": [],
         "examples": [
-          "Please create a non-streaming openai-compatible cernion chat completion"
+          "Please create an openai-compatible cernion personal agent chat completion"
         ],
         "synonyms": [
           "agent infrastructure",
