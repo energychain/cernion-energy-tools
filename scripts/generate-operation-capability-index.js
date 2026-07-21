@@ -127,10 +127,14 @@ function checkCoverage(entries, expectedCount) {
 
   for (const entry of entries) {
     if (!OPERATION_KINDS.includes(entry.operationKind)) {
-      problems.push(`${entry.method} ${entry.path}: invalid operationKind "${entry.operationKind}".`);
+      problems.push(
+        `${entry.method} ${entry.path}: invalid operationKind "${entry.operationKind}".`
+      );
     }
     if (entry.agentable === false && !entry.nonAgentableReason) {
-      problems.push(`${entry.method} ${entry.path}: agentable=false requires a nonAgentableReason.`);
+      problems.push(
+        `${entry.method} ${entry.path}: agentable=false requires a nonAgentableReason.`
+      );
     }
   }
 

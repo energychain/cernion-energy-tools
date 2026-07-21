@@ -2,22 +2,22 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.67.8",
-  "sourceOpenApiHash": "73118cbcae83b98d2507de0192b7c1cd7014f740cb12908e43988f9056549404",
+  "sourceOpenApiHash": "8af6928daf1a342b469218664fcdb647c934001b3f42b15467ff071ce82dbcee",
   "coverage": {
-    "rawOperationCount": 1106,
-    "operationCount": 851,
-    "agentableCount": 849,
+    "rawOperationCount": 1114,
+    "operationCount": 858,
+    "agentableCount": 856,
     "nonAgentableCount": 2,
     "byOperationKind": {
-      "data_read": 379,
+      "data_read": 385,
       "admin": 8,
-      "object_store_write": 222,
-      "process_step": 20,
+      "object_store_write": 221,
+      "process_step": 21,
       "process_start": 38,
       "advisory_plan": 39,
       "draft_write": 10,
       "external_effect": 4,
-      "dashboard_read": 124,
+      "dashboard_read": 125,
       "internal": 7
     }
   },
@@ -21350,6 +21350,146 @@
             "type": "string",
             "description": null,
             "extractionHint": null
+          },
+          {
+            "name": "connectionRequestRef",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "gridConnectionPoint",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "capacityOfferRef",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "capacityOfferVersion",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "capacityOfferDate",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": "date_range_start"
+          },
+          {
+            "name": "restrictionProfileRef",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "restrictionProfileVersion",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "contractRef",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "contractVersion",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "contractReviewStatus",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "operatingEventRef",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "operatingEventType",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "operatingEventTimestamp",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "curtailmentMeasurementEvidenceRef",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "redispatchRelevanceRef",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "redispatchStatusRef",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "compensationStatusRef",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "evidenceOwner",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "nextReviewGate",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "evidenceSourceTimestamp",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
           }
         ]
       },
@@ -27071,6 +27211,206 @@
       },
       "aliases": [
         "GET /api/dashboard-api/metering-rollout-process-indicator"
+      ]
+    },
+    {
+      "operationId": "dashboard-api_modelViabilityEvidenceGateStatus",
+      "method": "GET",
+      "path": "/api/dashboard/model-viability-evidence-gate",
+      "service": "dashboard",
+      "action": null,
+      "summary": "Model Viability Evidence Gate — read-only single-candidate evidence view",
+      "tags": [
+        "Dashboard API"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "dashboard_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "dashboard.dashboard-api_model_viability_evidence_gate_status"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "dashboard:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [],
+        "optional": [
+          {
+            "name": "candidateId",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": "date_range_start"
+          },
+          {
+            "name": "candidateName",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": "date_range_start"
+          },
+          {
+            "name": "modelType",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "scope",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "evidenceSnapshotRef",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "processCostBand",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "processCostReference",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "exceptionCaseRateBand",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "exceptionCaseOwner",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "liquidityImpactBand",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "liquidityImpactReference",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "dataMaturityMetering",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "dataMaturityRoles",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "dataMaturityTimeSeries",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "dataMaturitySourceFreshness",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "governanceEffortBand",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "governanceDecisionOwner",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "nextReviewGate",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "assumptionOnlyDimensions",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "dashboard",
+          "model",
+          "viability",
+          "evidence",
+          "gate",
+          "status",
+          "—",
+          "read",
+          "only",
+          "single",
+          "candidate",
+          "view"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me model viability evidence gate — read-only single-candidate evidence view"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": [
+        "GET /api/dashboard-api/model-viability-evidence-gate"
       ]
     },
     {
@@ -72012,6 +72352,561 @@
       "aliases": []
     },
     {
+      "operationId": "tabular_ask",
+      "method": "POST",
+      "path": "/api/tabular/ask",
+      "service": "tabular",
+      "action": "tabular.ask",
+      "summary": "Answer a table question with deterministic results and evidence",
+      "tags": [
+        "Tabular Intelligence"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "tabular.ask"
+      ],
+      "domains": [
+        "inhouse-data"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "tabular:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [
+          {
+            "name": "question",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": [
+          {
+            "name": "sourceIds",
+            "in": "body",
+            "type": "array",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "plan",
+            "in": "body",
+            "type": "object",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "useLlm",
+            "in": "body",
+            "type": "boolean",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "tabular",
+          "ask",
+          "answer",
+          "table",
+          "question",
+          "with",
+          "deterministic",
+          "results",
+          "evidence",
+          "intelligence"
+        ],
+        "negativeCues": [
+          "spot price",
+          "gas storage"
+        ],
+        "examples": [
+          "Please answer a table question with deterministic results and evidence"
+        ],
+        "synonyms": [
+          "Messstelle",
+          "metering",
+          "EDM"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "tabular_executePlan",
+      "method": "POST",
+      "path": "/api/tabular/execute-plan",
+      "service": "tabular",
+      "action": "tabular.executePlan",
+      "summary": "Execute a validated tabular plan deterministically",
+      "tags": [
+        "Tabular Intelligence"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "tabular.execute_plan"
+      ],
+      "domains": [
+        "inhouse-data"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "tabular:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [
+          {
+            "name": "plan",
+            "in": "body",
+            "type": "object",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "tabular",
+          "execute",
+          "plan",
+          "validated",
+          "deterministically",
+          "intelligence"
+        ],
+        "negativeCues": [
+          "spot price",
+          "gas storage"
+        ],
+        "examples": [
+          "Please execute a validated tabular plan deterministically"
+        ],
+        "synonyms": [
+          "Messstelle",
+          "metering",
+          "EDM"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "tabular_llmContext",
+      "method": "POST",
+      "path": "/api/tabular/llm-context",
+      "service": "tabular",
+      "action": "tabular.llmContext",
+      "summary": "Build bounded LLM-safe context without raw table rows",
+      "tags": [
+        "Tabular Intelligence"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "tabular.llm_context"
+      ],
+      "domains": [
+        "inhouse-data"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "tabular:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [
+          {
+            "name": "sourceIds",
+            "in": "body",
+            "type": "array",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": [
+          {
+            "name": "maxTokens",
+            "in": "body",
+            "type": "integer",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "privacyContext",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "tabular",
+          "llm",
+          "context",
+          "build",
+          "bounded",
+          "safe",
+          "without",
+          "raw",
+          "table",
+          "rows",
+          "intelligence"
+        ],
+        "negativeCues": [
+          "spot price",
+          "gas storage"
+        ],
+        "examples": [
+          "Please build bounded llm-safe context without raw table rows"
+        ],
+        "synonyms": [
+          "Messstelle",
+          "metering",
+          "EDM"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "tabular_profile",
+      "method": "POST",
+      "path": "/api/tabular/profile",
+      "service": "tabular",
+      "action": "tabular.profile",
+      "summary": "Build a privacy-aware deterministic table profile",
+      "tags": [
+        "Tabular Intelligence"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "tabular.profile"
+      ],
+      "domains": [
+        "inhouse-data"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "tabular:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [
+          {
+            "name": "sourceId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": [
+          {
+            "name": "maxRows",
+            "in": "body",
+            "type": "integer",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "privacyContext",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "tabular",
+          "profile",
+          "build",
+          "privacy",
+          "aware",
+          "deterministic",
+          "table",
+          "intelligence"
+        ],
+        "negativeCues": [
+          "spot price",
+          "gas storage"
+        ],
+        "examples": [
+          "Please build a privacy-aware deterministic table profile"
+        ],
+        "synonyms": [
+          "Messstelle",
+          "metering",
+          "EDM"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "tabular_qualityReport",
+      "method": "POST",
+      "path": "/api/tabular/quality-report",
+      "service": "tabular",
+      "action": "tabular.qualityReport",
+      "summary": "Build an evidence-backed table quality report",
+      "tags": [
+        "Tabular Intelligence"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "tabular.quality_report"
+      ],
+      "domains": [
+        "inhouse-data"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "tabular:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [
+          {
+            "name": "sourceId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": [
+          {
+            "name": "timestampField",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "intervalMinutes",
+            "in": "body",
+            "type": "integer",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "duplicateFields",
+            "in": "body",
+            "type": "array",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "outlierField",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "outlierThreshold",
+            "in": "body",
+            "type": "number",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "tabular",
+          "quality",
+          "report",
+          "build",
+          "an",
+          "evidence",
+          "backed",
+          "table",
+          "intelligence"
+        ],
+        "negativeCues": [
+          "spot price",
+          "gas storage"
+        ],
+        "examples": [
+          "Please build an evidence-backed table quality report"
+        ],
+        "synonyms": [
+          "Messstelle",
+          "metering",
+          "EDM"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "tabular_queryPlan",
+      "method": "POST",
+      "path": "/api/tabular/query-plan",
+      "service": "tabular",
+      "action": "tabular.queryPlan",
+      "summary": "Create or validate an allow-listed tabular analysis plan",
+      "tags": [
+        "Tabular Intelligence"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "tabular.query_plan"
+      ],
+      "domains": [
+        "inhouse-data"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "tabular:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [],
+        "optional": [
+          {
+            "name": "sourceIds",
+            "in": "body",
+            "type": "array",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "question",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "plan",
+            "in": "body",
+            "type": "object",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "useLlm",
+            "in": "body",
+            "type": "boolean",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "maxTokens",
+            "in": "body",
+            "type": "integer",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "tabular",
+          "query",
+          "plan",
+          "create",
+          "or",
+          "validate",
+          "an",
+          "allow",
+          "listed",
+          "analysis",
+          "intelligence"
+        ],
+        "negativeCues": [
+          "spot price",
+          "gas storage"
+        ],
+        "examples": [
+          "Show me create or validate an allow-listed tabular analysis plan"
+        ],
+        "synonyms": [
+          "Messstelle",
+          "metering",
+          "EDM"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
       "operationId": "tenant-quota_getQuotas",
       "method": "GET",
       "path": "/api/tenants/:id/quotas",
@@ -75160,6 +76055,7 @@
         "jour_fixe_decision_closure_tracker",
         "off_balancing_metering_pruefmatrix",
         "automation_requirements_decision_value",
+        "model_viability_evidence_gate",
         "smart_meter_off_balancing_purpose_lock",
         "imsys_schedule_value_chain_readiness",
         "cls_digital_twin_compliance_gate",
@@ -79762,13 +80658,13 @@
       "path": "/v1/chat/completions",
       "service": "unknown",
       "action": null,
-      "summary": "Create a non-streaming OpenAI-compatible Cernion chat completion",
+      "summary": "Create an OpenAI-compatible Cernion Personal Agent chat completion",
       "tags": [
         "OpenAI Compatible"
       ],
       "uiPage": "agent",
       "oeoClass": null,
-      "operationKind": "object_store_write",
+      "operationKind": "process_step",
       "consequenceLevel": "medium",
       "recommendedExecutionMode": "prepare",
       "agentable": true,
@@ -79789,10 +80685,10 @@
         "unknown"
       ],
       "sideEffects": [
-        "creates_or_modifies_stored_object"
+        "advances_process_state"
       ],
       "idempotency": "not_idempotent",
-      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "rollbackHint": "Check for a companion reject/cancel/rollback operation on the same resource before treating this as final.",
       "parameters": {
         "required": [
           {
@@ -79846,17 +80742,18 @@
           "create",
           "chat",
           "completion",
-          "non",
-          "streaming",
+          "an",
           "open",
           "ai",
           "compatible",
           "cernion",
+          "personal",
+          "agent",
           "unknown"
         ],
         "negativeCues": [],
         "examples": [
-          "Please create a non-streaming openai-compatible cernion chat completion"
+          "Please create an openai-compatible cernion personal agent chat completion"
         ],
         "synonyms": [
           "agent infrastructure",

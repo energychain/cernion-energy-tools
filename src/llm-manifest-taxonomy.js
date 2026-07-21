@@ -194,6 +194,7 @@ const OPENAPI_TAG_DOMAIN_MAP = {
   'Dashboard API': 'platform',
   Datapoints: 'platform',
   DataSources: 'platform',
+  'Tabular Intelligence': 'inhouse-data',
   'Decision Frame': 'governance',
   'e2e-connection-check': 'grid-ops',
   'EDM Messkonzept': 'inhouse-data',

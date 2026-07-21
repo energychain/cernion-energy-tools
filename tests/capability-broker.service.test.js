@@ -971,9 +971,7 @@ describe('Capability Broker Service', () => {
     });
 
     expect(result.capability).toBe('gremiencoach_workbook_readiness');
-    expect(result.recommendedCapabilities[0].capability).toBe(
-      'gremiencoach_workbook_readiness'
-    );
+    expect(result.recommendedCapabilities[0].capability).toBe('gremiencoach_workbook_readiness');
     const actionNames = result.recommendedPlan.map((step) => step.action);
     expect(actionNames).toContain('dashboard-api.gremiencoachWorkbookReadinessStatus');
     expect(actionNames).not.toContain('document.upload');
@@ -1987,9 +1985,7 @@ describe('Capability Broker Service', () => {
     });
 
     expect(result.capability).toBe('gas_transformation_dataroom_status');
-    expect(result.recommendedCapabilities[0].capability).toBe(
-      'gas_transformation_dataroom_status'
-    );
+    expect(result.recommendedCapabilities[0].capability).toBe('gas_transformation_dataroom_status');
     const actionNames = result.recommendedPlan.map((step) => step.action);
     expect(actionNames).toContain('dashboard-api.gasTransformationDataroomStatus');
     expect(actionNames).not.toContain('object-store.create');

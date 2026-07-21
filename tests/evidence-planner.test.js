@@ -266,7 +266,11 @@ describe('T-EV-001 — evidence-planner: planEvidence() pure-function contract',
     expect(result).not.toBeNull();
     expect(result.registryKey).toBe('vnb_special_topic_workstate');
     expect(result.checkedSources).toEqual(
-      expect.arrayContaining(['leading_source', 'leading_source_timestamp', 'owner_or_accountable_role'])
+      expect.arrayContaining([
+        'leading_source',
+        'leading_source_timestamp',
+        'owner_or_accountable_role',
+      ])
     );
     expect(result.gaps.map((gap) => gap.id)).toContain('leading_source_version');
     expect(result.gaps.map((gap) => gap.id)).not.toContain('side_source_policy');
