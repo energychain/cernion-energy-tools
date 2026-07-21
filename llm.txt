@@ -182,7 +182,7 @@ recipes:
   transformation-financing-scenario-view "Management needs one dossier-safe view over cashflow, gas…"
 resolve: GET /api/_agent/operations?domain=governance
 
-### platform (13 capabilities · 9 recipes · 413 operations)
+### platform (13 capabilities · 9 recipes · 414 operations)
 capabilities: datasource_registry_classification_governance, dr_readiness_evidence_gate, energy_sidecar_route_registry, evidence_grounding_confidence_audit, evu_api_migration_diagnostics, file_ingest_monitor, hitl_role_based_evidence_request, live_update_stream_contract_status, receipt_grounded_presentation_contract, stadtwerk_mauer_e2e_process_demo, stadtwerk_mauer_external_interface_stubs, stadtwerk_mauer_mastr_data_overlay, stadtwerk_mauer_sandbox_runtime
 recipes:
   agentic-production-feedback-prompt "An engineering agent should receive a consistent, redacted…"
@@ -246,17 +246,17 @@ Agents resolving capabilities/recipes/operations do not need to read past this p
 - `tests/query.service.test.js`: `query.searchCopilot` body-based wrapper returns expected `query`, `domain`, and `results` shape.
 
 ## Source File Hashes
-- CHANGELOG.md: a10023417a5755e39841a9c671a1c3555f1728d5004b06df558c20cd2d12c99c
+- CHANGELOG.md: 510b3fcffd410eea54571ac7a611768956d1dd592557c14abb9a7c2f526f62b1
 - README.md: bdfc5d35a65796de3357f3ce717a61998325fa257776cbf17f7077893d0b23e7
 - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
 - src/cookbook-recipes.js: 9e48573ca263ef129bc3944a83b013cff25157e25afc703be0ada62d5af8163d
 - src/capability-catalog.js: c7985f6810bcf9052a94c5635b14cabe22c699fdb74840844d0f68b0ffc2dae9
-- openapi-export.json: df6a1dbadc96aeff7938a899296cf2757c70f13bb054d6abd49ea0158cee3565
+- openapi-export.json: 97728489c32e16bf3046a5424b6e438157ac13caec5e6d20be5d80155a868f71
 
 ## OpenAPI Surface (full contract, not embedded)
-- path_count: 1000
-- operation_count: 1112
+- path_count: 1001
+- operation_count: 1113
 - full_spec: openapi-export.json (repo root) or GET /api/openapi.json
 
 ## Integrity
-- llm_txt_sha256: a4e27552c50f63d4a0fc0e6d635ac9a8dd911f4110cbea60d10ad90662578d82
+- llm_txt_sha256: 315aa4c4f632ad71bb6bdc2309e41214b708f4c1d8df1dd85c2dfe3daf98b17a
