@@ -1,0 +1,383 @@
+{
+  "id": "stadtwerk-mauer-model-viability-management-review-v1",
+  "kind": "vdmi_blueprint_pack_seed",
+  "version": "1.0.0",
+  "safetyClassification": "read_only_blueprint_seed",
+  "title": "Stadtwerk Mauer Model Viability Management Review seed",
+  "processFamily": "operating_model_viability_governance",
+  "controlCase": "single_candidate_management_review",
+  "sourceApi": {
+    "operation": "GET /api/dashboard/model-viability-evidence-gate",
+    "path": "/api/dashboard/model-viability-evidence-gate",
+    "method": "GET",
+    "workbenchBrick": "model_viability_evidence_gate",
+    "capability": "dashboard-api.modelViabilityEvidenceGateStatus",
+    "readOnly": true,
+    "invocation": "source_hint_only"
+  },
+  "demoTenant": {
+    "tenantId": "stadtwerk-mauer",
+    "classification": "synthetic_demo_tenant",
+    "description": "Virtual Stadtwerk Mauer demo tenant; operating-model candidate, evidence bands/references and gaps are synthetic review data."
+  },
+  "roleQuestion": {
+    "actor": "Strategy / Management / Governance",
+    "answerableIn": "under_one_minute",
+    "question": "Is this one operating-model candidate ready for management review, which evidence is missing or assumption-only, who owns clarification, and what safe next gate is available?"
+  },
+  "dataClasses": {
+    "publicContextLayer": {
+      "description": "Read-only regulatory/market/context references already blended into the virtual Stadtwerk. Demo reset flows must not mutate this layer.",
+      "examples": ["public regulatory operating-model context", "read-only market-role labels"]
+    },
+    "syntheticTenantSeed": {
+      "description": "Invented candidate scope, evidence snapshot reference, process-cost/exception-case/liquidity bands, data-maturity bands and governance-effort/owner/gate labels for stadtwerk-mauer.",
+      "examples": ["synthetic candidate id", "synthetic process-cost band", "synthetic governance owner hint"]
+    },
+    "sandboxRuntimeArtifact": {
+      "description": "Resettable output from Cernion/Rundeck or Workbench verification runs, separate from public context baselines.",
+      "examples": ["model-viability evidence gate render proof", "matrix-sync render artifact"]
+    }
+  },
+  "roles": [
+    {
+      "roleId": "ROLE_STRATEGY_OWNER",
+      "relation": "verantwortlich",
+      "responsibility": "Owns the synthetic operating-model candidate and decides whether the package is ready for management review or still a clarification case."
+    },
+    {
+      "roleId": "ROLE_CERNION_GOVERNANCE",
+      "relation": "durchfuehrend",
+      "responsibility": "Verifies the Blueprint-Pack seed, matrix sync, no-call boundary and source API hint without creating runtime records."
+    },
+    {
+      "roleId": "ROLE_PROCESS_OWNER",
+      "relation": "mitwirkend",
+      "responsibility": "Provides candidate scope and evidence-snapshot context without changing process, project or budget records."
+    },
+    {
+      "roleId": "ROLE_CONTROLLING",
+      "relation": "mitwirkend",
+      "responsibility": "Provides process-cost, exception-case and liquidity-impact evidence context without booking costs or approving budget."
+    },
+    {
+      "roleId": "ROLE_OPERATIONS_OWNER",
+      "relation": "mitwirkend",
+      "responsibility": "Reviews process-cost, exception-case and liquidity-impact evidence from an operational perspective without executing process changes."
+    },
+    {
+      "roleId": "ROLE_DATA_GOVERNANCE",
+      "relation": "verantwortlich",
+      "responsibility": "Owns the data-maturity evidence review (metering, roles, time series, source freshness) without mutating metering or master data."
+    },
+    {
+      "roleId": "ROLE_METERING_DATA_OWNER",
+      "relation": "mitwirkend",
+      "responsibility": "Provides metering/time-series/source-freshness context without changing metering or datapoint records."
+    },
+    {
+      "roleId": "ROLE_MANAGEMENT",
+      "relation": "information",
+      "responsibility": "Receives readiness and gate context without approving budget, project scope or commercial action."
+    },
+    {
+      "roleId": "ROLE_COMMERCIAL_AUDIT",
+      "relation": "information",
+      "responsibility": "Receives evidence-gap and safety-boundary context without ERP, SAP, accounting, billing or settlement effects."
+    }
+  ],
+  "evidenceRequirements": [
+    {
+      "id": "candidateScopeEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds the candidate scope and identity row before any management review."
+    },
+    {
+      "id": "evidenceSnapshotReference",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds an evidence-snapshot reference for traceability."
+    },
+    {
+      "id": "processCostEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds process-cost band/reference evidence for the candidate model."
+    },
+    {
+      "id": "exceptionCaseEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds exception-case rate/band evidence and an accountable owner."
+    },
+    {
+      "id": "liquidityImpactEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds liquidity-impact band/reference evidence."
+    },
+    {
+      "id": "meteringMaturityEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds metering data-maturity evidence."
+    },
+    {
+      "id": "roleMaturityEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds market-role data-maturity evidence."
+    },
+    {
+      "id": "timeseriesMaturityEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds time-series data-maturity evidence."
+    },
+    {
+      "id": "sourceFreshnessEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds source-freshness evidence for the underlying data."
+    },
+    {
+      "id": "governanceEffortEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds governance-effort band evidence for the candidate model."
+    },
+    {
+      "id": "decisionOwnerEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds the accountable decision owner for the management review."
+    },
+    {
+      "id": "nextReviewGateEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds the next management-review gate and safe clarification owner."
+    },
+    {
+      "id": "noCallGuardEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "review",
+      "enablesDossierAddition": "Adds the explicit no-call boundary as read-only status, not as a management decision."
+    }
+  ],
+  "demoProcessMatrix": {
+    "slug": "model-viability-management-review",
+    "title": "Model Viability Management Review",
+    "roleLegend": {
+      "V": "Verantwortlich",
+      "D": "Durchfuehrend",
+      "M": "Mitwirkend",
+      "I": "Informiert"
+    },
+    "headers": [
+      "Phase",
+      "V = Verantwortlich",
+      "D = Durchfuehrend",
+      "M = Mitwirkend",
+      "I = Informiert",
+      "Nachweise"
+    ],
+    "allowedDataClasses": [
+      "publicContextLayer",
+      "syntheticTenantSeed",
+      "sandboxRuntimeArtifact"
+    ],
+    "downstreamHandoff": {
+      "blueprintPack": "complete",
+      "landingRegistry": "pending",
+      "productiveDemoRoom": "pending",
+      "acceptanceNote": "Blueprint-Pack/Cernion-Energy-Tools matrix is canonical; Landing-Registry and productive Demo-Raum sync remain downstream proof steps."
+    },
+    "rows": [
+      {
+        "phase": "1",
+        "v": "ROLE_STRATEGY_OWNER",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_PROCESS_OWNER",
+        "i": "ROLE_MANAGEMENT",
+        "evidenceRequirements": [
+          "candidateScopeEvidence",
+          "evidenceSnapshotReference"
+        ],
+        "dataClassRefs": [
+          "publicContextLayer",
+          "syntheticTenantSeed"
+        ],
+        "status": "clarification",
+        "gateOutcome": "candidate_scope_and_evidence_snapshot_pending",
+        "enablesDossierAddition": "Adds bounded candidate scope and evidence-snapshot context before any management review."
+      },
+      {
+        "phase": "2",
+        "v": "ROLE_STRATEGY_OWNER",
+        "d": "ROLE_CONTROLLING",
+        "m": "ROLE_OPERATIONS_OWNER",
+        "i": "ROLE_MANAGEMENT",
+        "evidenceRequirements": [
+          "processCostEvidence",
+          "exceptionCaseEvidence",
+          "liquidityImpactEvidence"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed"
+        ],
+        "status": "evidence_gap",
+        "gateOutcome": "operational_burden_review_pending",
+        "enablesDossierAddition": "Adds process-cost, exception-case and liquidity-impact evidence context without economics calculation."
+      },
+      {
+        "phase": "3",
+        "v": "ROLE_DATA_GOVERNANCE",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_METERING_DATA_OWNER",
+        "i": "ROLE_STRATEGY_OWNER",
+        "evidenceRequirements": [
+          "meteringMaturityEvidence",
+          "roleMaturityEvidence",
+          "timeseriesMaturityEvidence",
+          "sourceFreshnessEvidence"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed"
+        ],
+        "status": "evidence_gap",
+        "gateOutcome": "data_maturity_review_pending",
+        "enablesDossierAddition": "Adds metering, role, time-series and source-freshness data-maturity context."
+      },
+      {
+        "phase": "4",
+        "v": "ROLE_MANAGEMENT",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_STRATEGY_OWNER",
+        "i": "ROLE_COMMERCIAL_AUDIT",
+        "evidenceRequirements": [
+          "governanceEffortEvidence",
+          "decisionOwnerEvidence",
+          "nextReviewGateEvidence",
+          "noCallGuardEvidence"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed",
+          "sandboxRuntimeArtifact"
+        ],
+        "status": "clarification",
+        "gateOutcome": "management_review_ready_or_evidence_gap",
+        "enablesDossierAddition": "Adds governance-effort, decision-owner and next-gate status as review evidence only."
+      }
+    ]
+  },
+  "decisionPolicy": {
+    "onMissingEvidence": "evidence_gap",
+    "onMissingOwner": "clarification",
+    "onReadyEvidence": "ready_for_management_review",
+    "allowedStates": ["clarification", "evidence_gap", "review", "ready_for_management_review"],
+    "mustNotTrigger": [
+      "model_ranking",
+      "viability_scoring",
+      "winner_selection",
+      "economics_calculation",
+      "npv_calculation",
+      "profitability_statement",
+      "legal_interpretation",
+      "regulatory_approval",
+      "market_entry_recommendation",
+      "go_live_decision",
+      "tariff_mutation",
+      "contract_creation",
+      "allocation_onboarding",
+      "billing",
+      "settlement",
+      "mako_write",
+      "a96_export",
+      "finance_booking",
+      "procurement_execution",
+      "market_communication",
+      "dispatch",
+      "redispatch_compensation",
+      "device_control",
+      "smgw_cls_device_control",
+      "workflow_create",
+      "hitl_create",
+      "mail_send",
+      "webhook_send",
+      "external_connector_call",
+      "budibase_table_write",
+      "rundeck_execution",
+      "landing_registry_publication",
+      "cernion_de_publication",
+      "public_context_mutation",
+      "production_mutation",
+      "secret_key_handling",
+      "personal_agent_hardcoding"
+    ]
+  },
+  "allowedCommandHints": [
+    {
+      "id": "inspect-model-viability-evidence-gate-brick",
+      "kind": "source_api_reference",
+      "execution": "metadata_only",
+      "description": "References the existing read-only dashboard brick; this seed must not invoke or mutate live model-viability state."
+    }
+  ],
+  "forbiddenActions": [
+    "model_ranking",
+    "viability_scoring",
+    "winner_selection",
+    "economics_calculation",
+    "npv_calculation",
+    "profitability_statement",
+    "legal_interpretation",
+    "regulatory_approval",
+    "market_entry_recommendation",
+    "go_live_decision",
+    "tariff_mutation",
+    "contract_creation",
+    "allocation_onboarding",
+    "billing",
+    "settlement",
+    "mako_write",
+    "a96_export",
+    "finance_booking",
+    "procurement_execution",
+    "market_communication",
+    "dispatch",
+    "redispatch_compensation",
+    "device_control",
+    "smgw_cls_device_control",
+    "workflow_create",
+    "hitl_create",
+    "mail_send",
+    "webhook_send",
+    "external_connector_call",
+    "budibase_table_write",
+    "rundeck_execute",
+    "landing_registry_publication",
+    "cernion_de_publication",
+    "public_context_mutation",
+    "production_mutation",
+    "secret_key_handling",
+    "personal_agent_hardcoding"
+  ],
+  "publicContextMutationAllowed": false,
+  "tenantProvisioningAllowed": false,
+  "realWorldClaim": "synthetic_demo_only"
+}
