@@ -56,6 +56,7 @@ The workbench renders:
 - A2MDM decision-object rows for `ROLE_GOVERNANCE_OWNER`, composed from the existing read-only `GET /api/dashboard/a2mdm-decision-object` projection with deterministic #423 synthetic defaults and selected-case binding shown only as a context hint until #422 visible-demo apply is unblocked
 - Selected-case context binding rows for `ROLE_NETZPLANUNG`, defaulting to `tenantId=stadtwerk-mauer`, `caseId=smm-budibase-workbench`, `target=selected-case-detail` and `seedId=stadtwerk-mauer-pv-missing-nap-v1`, composed from existing selected-target, Hub, case-detail, case-actions, Blueprint-Pack verify and transfer-readiness read models
 - Flexible Grid-Connection Release File selector/sync rows for `stadtwerk-mauer-flexible-grid-connection-release-file-v1`, composed from `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify`, `GET /api/dashboard/stadtwerk-mauer-transfer-readiness` and `GET /api/dashboard/anschlusskapazitaet-evidence-queue`
+- Model Viability Management Review candidate/matrix/transfer rows for `stadtwerk-mauer-model-viability-management-review-v1`, composed from `GET /api/dashboard/model-viability-evidence-gate` (fixed synthetic single-candidate defaults), `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify` and `GET /api/dashboard/stadtwerk-mauer-transfer-readiness`
 - Transfer Readiness rows from `GET /api/dashboard/stadtwerk-mauer-transfer-readiness`, separating public context, synthetic seed data, sandbox runtime artifacts, tenant parameters, reusable Blueprint/Workbench elements and blocked production boundaries
 - a scope-protected action query for `POST /api/operations-runbook/stadtwerk-mauer/e2e-smoke`
 
@@ -225,6 +226,19 @@ approve or reject a connection, create a contract, execute Rundeck, perform MaKo
 settlement, tariff or device-control operations, create HITL/workflow actions, call external
 connectors, write arbitrary tables, mutate production, publish Landing Registry state, handle
 secrets or use Personal-Agent shortcuts.
+The Model Viability Management Review panel is generated manifest composition, not a new Cernion
+endpoint. It calls the merged single-candidate `model-viability-evidence-gate` brick with a fixed,
+clearly synthetic candidate (`section_42c_community`), and renders scalar candidate/readiness,
+per-dimension evidence-vs-assumption-vs-missing, missing-evidence, positive-follow-up and
+decision-boundary rows alongside the canonical `stadtwerk-mauer-model-viability-management-review-v1`
+Blueprint-Pack four-row V/D/M/I matrix and transfer-readiness state. Blueprint-Pack remains the
+canonical matrix source; Landing Registry and productive Demo-Raum publication remain blocked
+downstream steps. Budibase may refresh these existing read-only rows, but it must not rank or score
+candidates, select a winner, calculate economics/NPV, make a legal/regulatory/market-entry/go-live
+determination, mutate a tariff/contract, execute billing/settlement/MaKo/A96, book finance, run
+procurement/market-communication/dispatch/Redispatch/device-control, create HITL/workflow actions,
+call external connectors, write arbitrary tables, mutate production, publish Landing Registry state,
+handle secrets or use Personal-Agent shortcuts.
 The selected-target query is read-only: it maps a supported Hub or role target to scalar selected,
 focus and helper rows so Budibase can visibly focus a section without owning persistent state or
 mutating Cernion tenant data.
