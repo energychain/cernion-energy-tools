@@ -104,6 +104,61 @@ describe('operation-capability-classifier', () => {
       expect(result.requiredScopes).toEqual(['tabular:read']);
     });
 
+    // Table-driven regression: every current tabular POST route is a
+    // deterministic, bounded read-only analysis operation (issue #459) - the
+    // classifier comment must match this actual contract exactly.
+    describe.each([
+      ['/api/tabular/profile', 'tabular_profile', 'Build a privacy-aware deterministic table profile'],
+      [
+        '/api/tabular/llm-context',
+        'tabular_llmContext',
+        'Build bounded LLM-safe context without raw table rows',
+      ],
+      [
+        '/api/tabular/query-plan',
+        'tabular_queryPlan',
+        'Create or validate an allow-listed tabular analysis plan',
+      ],
+      [
+        '/api/tabular/execute-plan',
+        'tabular_executePlan',
+        'Execute a validated tabular plan deterministically',
+      ],
+      ['/api/tabular/ask', 'tabular_ask', 'Answer a table question with deterministic results'],
+      [
+        '/api/tabular/quality-report',
+        'tabular_qualityReport',
+        'Build an evidence-backed table quality report',
+      ],
+    ])('%s', (path, operationId, summary) => {
+      it('classifies as data_read / tabular:read with no side effects', () => {
+        const result = classifyOperation(
+          buildOp({ path, method: 'POST', operationId, summary, tags: ['Tabular Intelligence'] })
+        );
+        expect(result.operationKind).toBe('data_read');
+        expect(result.consequenceLevel).toBe('none');
+        expect(result.sideEffects).toEqual([]);
+        expect(result.requiredScopes).toEqual(['tabular:read']);
+      });
+    });
+
+    it('does not broaden the tabular blanket POST read-only exception to an unrelated service', () => {
+      // No mutating verb, no query verb, and not on READ_ONLY_QUERY_SERVICES -
+      // proves the exception is scoped to serviceName === 'tabular' and not
+      // to "any bounded in-memory POST" in general.
+      const result = classifyOperation(
+        buildOp({
+          path: '/api/agent-persona/snapshot',
+          method: 'POST',
+          operationId: 'agent-persona_snapshot',
+          summary: 'Actor persona snapshot',
+          tags: ['Actor Personas'],
+        })
+      );
+      expect(result.operationKind).not.toBe('data_read');
+      expect(result.operationKind).toBe('object_store_write');
+    });
+
     // Regression test: "start"/"stop" and other generic English words
     // appearing inside prose parameter documentation (not the operation's
     // own summary/tags/operationId/path) must not misclassify an otherwise

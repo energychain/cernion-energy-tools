@@ -311,3 +311,208 @@ describe('Tabular Intelligence Service', () => {
     );
   });
 });
+
+describe('Tabular Intelligence core hashing and plan validation (src/tabular-intelligence)', () => {
+  const { hashValue, validateAndBindPlan } = require('../src/tabular-intelligence');
+
+  function basePlan(operations) {
+    return {
+      schemaVersion: '1.0',
+      sources: [{ alias: 'table', sourceId: 'source-1' }],
+      operations,
+    };
+  }
+
+  function planWithFilter(overrides) {
+    return basePlan([{ op: 'filter', field: 'status', ...overrides }]);
+  }
+
+  describe('canonical Date hashing', () => {
+    it('produces stable hashes for equivalent Date instants', () => {
+      const a = new Date('2026-01-01T00:00:00.000Z');
+      const b = new Date('2026-01-01T00:00:00.000Z');
+      expect(hashValue({ when: a })).toBe(hashValue({ when: b }));
+    });
+
+    it('produces non-colliding hashes for different Date instants', () => {
+      const a = new Date('2026-01-01T00:00:00.000Z');
+      const b = new Date('2026-01-02T00:00:00.000Z');
+      expect(hashValue({ when: a })).not.toBe(hashValue({ when: b }));
+    });
+
+    it('distinguishes a Date from an identical ISO string representation', () => {
+      const date = new Date('2026-01-01T00:00:00.000Z');
+      expect(hashValue({ when: date })).not.toBe(hashValue({ when: date.toISOString() }));
+    });
+
+    it('fails closed for an invalid Date instead of collapsing to an empty object', () => {
+      const invalid = new Date('not-a-date');
+      expect(() => hashValue({ when: invalid })).toThrow(/Invalid Date/);
+    });
+
+    it('produces different input hashes for rows differing only by date', () => {
+      const rowA = { timestamp: new Date('2026-01-01T00:00:00.000Z'), value: 1 };
+      const rowB = { timestamp: new Date('2026-01-02T00:00:00.000Z'), value: 1 };
+      expect(hashValue([rowA])).not.toBe(hashValue([rowB]));
+    });
+
+    it('produces the same input hash when rows carry equal Date instants', () => {
+      const rowA = { timestamp: new Date('2026-01-01T00:00:00.000Z'), value: 1 };
+      const rowB = { timestamp: new Date('2026-01-01T00:00:00.000Z'), value: 1 };
+      expect(hashValue([rowA])).toBe(hashValue([rowB]));
+    });
+  });
+
+  describe('detectMissingIntervals.intervalMinutes bounds', () => {
+    function planWithInterval(intervalMinutes) {
+      return basePlan([
+        {
+          op: 'detectMissingIntervals',
+          field: 'timestamp',
+          ...(intervalMinutes === undefined ? {} : { intervalMinutes }),
+        },
+      ]);
+    }
+
+    it('accepts the minimum boundary of 1', () => {
+      const plan = validateAndBindPlan(planWithInterval(1), 'tenant-a');
+      expect(plan.operations[0].intervalMinutes).toBe(1);
+    });
+
+    it('accepts the maximum boundary of 10080', () => {
+      const plan = validateAndBindPlan(planWithInterval(10080), 'tenant-a');
+      expect(plan.operations[0].intervalMinutes).toBe(10080);
+    });
+
+    it.each([
+      ['missing', undefined],
+      ['zero', 0],
+      ['negative', -1],
+      ['fractional', 1.5],
+      ['string-coerced', '15'],
+      ['non-finite (Infinity)', Infinity],
+      ['NaN', NaN],
+      ['excessive (10081)', 10081],
+    ])('rejects %s intervalMinutes before any interval loop runs', (_label, value) => {
+      expect(() => validateAndBindPlan(planWithInterval(value), 'tenant-a')).toThrow(
+        /intervalMinutes must be an integer between 1 and 10080/
+      );
+    });
+  });
+
+  describe('filter operator value/type validation', () => {
+    it.each(['isNull', 'notNull'])('rejects a supplied value for %s', (operator) => {
+      expect(() =>
+        validateAndBindPlan(planWithFilter({ operator, value: 'x' }), 'tenant-a')
+      ).toThrow(/value must not be supplied/);
+    });
+
+    it.each(['isNull', 'notNull'])('accepts %s without a value', (operator) => {
+      expect(() => validateAndBindPlan(planWithFilter({ operator }), 'tenant-a')).not.toThrow();
+    });
+
+    it.each(['eq', 'neq'])(
+      'requires a scalar value for %s and rejects missing/null/array/object',
+      (operator) => {
+        expect(() => validateAndBindPlan(planWithFilter({ operator }), 'tenant-a')).toThrow(
+          /value is required/
+        );
+        expect(() =>
+          validateAndBindPlan(planWithFilter({ operator, value: null }), 'tenant-a')
+        ).toThrow();
+        expect(() =>
+          validateAndBindPlan(planWithFilter({ operator, value: [1] }), 'tenant-a')
+        ).toThrow();
+        expect(() =>
+          validateAndBindPlan(planWithFilter({ operator, value: { a: 1 } }), 'tenant-a')
+        ).toThrow();
+        expect(() =>
+          validateAndBindPlan(planWithFilter({ operator, value: 'active' }), 'tenant-a')
+        ).not.toThrow();
+        expect(() =>
+          validateAndBindPlan(planWithFilter({ operator, value: 42 }), 'tenant-a')
+        ).not.toThrow();
+        expect(() =>
+          validateAndBindPlan(planWithFilter({ operator, value: true }), 'tenant-a')
+        ).not.toThrow();
+      }
+    );
+
+    it.each(['gt', 'gte', 'lt', 'lte'])(
+      'requires a finite number or non-empty string for %s and rejects boolean/null/empty-string/array',
+      (operator) => {
+        expect(() =>
+          validateAndBindPlan(planWithFilter({ operator, value: true }), 'tenant-a')
+        ).toThrow();
+        expect(() =>
+          validateAndBindPlan(planWithFilter({ operator, value: null }), 'tenant-a')
+        ).toThrow();
+        expect(() =>
+          validateAndBindPlan(planWithFilter({ operator, value: '' }), 'tenant-a')
+        ).toThrow();
+        expect(() =>
+          validateAndBindPlan(planWithFilter({ operator, value: [1] }), 'tenant-a')
+        ).toThrow();
+        expect(() =>
+          validateAndBindPlan(planWithFilter({ operator, value: 5 }), 'tenant-a')
+        ).not.toThrow();
+        expect(() =>
+          validateAndBindPlan(planWithFilter({ operator, value: '2026-01-01' }), 'tenant-a')
+        ).not.toThrow();
+      }
+    );
+
+    it('requires a non-empty string for contains and rejects empty string/number', () => {
+      expect(() =>
+        validateAndBindPlan(planWithFilter({ operator: 'contains', value: '' }), 'tenant-a')
+      ).toThrow();
+      expect(() =>
+        validateAndBindPlan(planWithFilter({ operator: 'contains', value: 5 }), 'tenant-a')
+      ).toThrow();
+      expect(() =>
+        validateAndBindPlan(planWithFilter({ operator: 'contains', value: 'abc' }), 'tenant-a')
+      ).not.toThrow();
+    });
+
+    it('requires an array of 1-100 scalar values for in and rejects 0/101/nested/null items', () => {
+      expect(() =>
+        validateAndBindPlan(planWithFilter({ operator: 'in', value: [] }), 'tenant-a')
+      ).toThrow();
+      expect(() =>
+        validateAndBindPlan(
+          planWithFilter({ operator: 'in', value: Array.from({ length: 101 }, (_, i) => i) }),
+          'tenant-a'
+        )
+      ).toThrow();
+      expect(() =>
+        validateAndBindPlan(planWithFilter({ operator: 'in', value: [[1]] }), 'tenant-a')
+      ).toThrow();
+      expect(() =>
+        validateAndBindPlan(planWithFilter({ operator: 'in', value: [{ a: 1 }] }), 'tenant-a')
+      ).toThrow();
+      expect(() =>
+        validateAndBindPlan(planWithFilter({ operator: 'in', value: [null] }), 'tenant-a')
+      ).toThrow();
+      expect(() =>
+        validateAndBindPlan(planWithFilter({ operator: 'in', value: [1] }), 'tenant-a')
+      ).not.toThrow();
+      expect(() =>
+        validateAndBindPlan(
+          planWithFilter({ operator: 'in', value: Array.from({ length: 100 }, (_, i) => i) }),
+          'tenant-a'
+        )
+      ).not.toThrow();
+    });
+
+    it('accepts a 500-character string and rejects a 501-character string', () => {
+      const ok = 'a'.repeat(500);
+      const tooLong = 'a'.repeat(501);
+      expect(() =>
+        validateAndBindPlan(planWithFilter({ operator: 'eq', value: ok }), 'tenant-a')
+      ).not.toThrow();
+      expect(() =>
+        validateAndBindPlan(planWithFilter({ operator: 'eq', value: tooLong }), 'tenant-a')
+      ).toThrow();
+    });
+  });
+});

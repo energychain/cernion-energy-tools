@@ -248,7 +248,12 @@ function structuredTextBlob(op) {
 
 function isReadOnlyQueryOperation(op, serviceName) {
   if (op.method === 'GET') return true;
-  // executePlan runs a bounded in-memory analysis and never mutates source data.
+  // Every current tabular POST route (profile, llm-context, query-plan,
+  // execute-plan, ask, quality-report) is a deterministic, bounded
+  // in-memory analysis over already-loaded rows and never mutates source
+  // data - see docs/architecture/tabular-intelligence-layer.md. This
+  // exception is deliberately scoped to serviceName === 'tabular' only and
+  // must not be widened to cover other services' POST routes.
   if (op.method === 'POST' && serviceName === 'tabular') return true;
   if (MUTATING_VERB_PATTERN.test(structuredTextBlob(op))) return false;
   if (op.method === 'POST' && READ_ONLY_QUERY_SERVICES.has(serviceName)) return true;

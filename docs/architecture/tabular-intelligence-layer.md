@@ -1,7 +1,7 @@
 # Tabular Intelligence Layer — MVP Architecture
 
-Status: accepted implementation plan for issue #456  
-Date: 2026-07-21
+Status: accepted implementation plan for issue #456; hardened for evidence-readiness by issue #459
+Date: 2026-07-21 (updated 2026-07-22)
 
 ## Decision and MVP cut
 
@@ -79,6 +79,22 @@ optional collision settings. It is allowed only before row-local operations and 
 cross-tenant plan execution are rejected. No executable expression or arbitrary action name is
 accepted.
 
+`validateAndBindPlan` rejects the following invalid inputs before any execution loop runs
+(issue #459 hardening):
+
+- `detectMissingIntervals.intervalMinutes` must be an integer in `1..10080` (inclusive, minutes in
+  a week) — missing, zero, negative, fractional, non-finite, string-coerced, and out-of-range
+  values are rejected. This mirrors the pre-existing `qualityReport.intervalMinutes` Moleculer
+  schema bound, now also enforced at the shared plan boundary so a raw `plan` supplied directly to
+  `queryPlan`/`executePlan` cannot bypass it.
+- Filter `value` requirements are operator-specific: `isNull`/`notNull` must **not** carry a
+  `value`; `eq`/`neq` require exactly one JSON scalar (string, finite number, or boolean — use
+  `isNull`/`notNull` for null semantics); `gt`/`gte`/`lt`/`lte` require a finite number or
+  non-empty string; `contains` requires a non-empty string; `in` requires an array of `1..100`
+  items, each satisfying the `eq`/`neq` scalar rule (no nested arrays/objects/null). Every accepted
+  filter string is bounded to at most 500 characters. Invalid filter plans are rejected outright
+  rather than silently producing an empty result set.
+
 ## Profile representation
 
 Profiles are calculated on bounded cache pages and returned, not persisted:
@@ -149,6 +165,13 @@ never accepted as numerical evidence.
 
 Evidence rows are a small bounded excerpt of the privacy-processed result, not source-table rows.
 Stable canonical JSON hashes make reruns comparable. Warning conditions lower confidence.
+
+Canonicalization (`canonicalize`/`stableStringify`, issue #459 hardening) tags a valid
+JavaScript `Date` as `{ "$date": "<ISO-8601 instant>" }` before sorted-object traversal, so it
+stays distinct from an ordinary ISO string at the ordinary key/traversal position, while equal
+instants still hash identically and different instants never collide. An invalid `Date` fails
+closed with a thrown error rather than silently canonicalizing to `{}` and entering an evidence
+hash. All other JSON value semantics (array order, sorted object keys) are unchanged.
 
 ## Tenant and privacy boundary
 

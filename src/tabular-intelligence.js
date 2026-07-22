@@ -32,8 +32,25 @@ const ALLOWED_OPERATIONS = new Set([
   'detectOutliers',
 ]);
 const ALLOWED_BUCKETS = new Set(['15min', 'hour', 'day', 'week', 'month']);
+// detectMissingIntervals.intervalMinutes bounds - mirrors the existing
+// qualityReport Moleculer schema (services/tabular-intelligence.service.js)
+// so a raw supplied plan cannot bypass that boundary via queryPlan/executePlan.
+const MIN_INTERVAL_MINUTES = 1;
+const MAX_INTERVAL_MINUTES = 10080;
+// Conservative filter value bounds: keep evidence bounded and prevent
+// resource-amplifying plans without adding regex/expression evaluation.
+const MAX_FILTER_STRING_LENGTH = 500;
+const MAX_FILTER_IN_VALUES = 100;
 
 function canonicalize(value) {
+  if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) {
+      throw new Error('Invalid Date value cannot be canonicalized');
+    }
+    // Tagged so a Date instance stays distinct from an ordinary ISO string
+    // at the same instant, while equal instants still hash identically.
+    return { $date: value.toISOString() };
+  }
   if (Array.isArray(value)) return value.map(canonicalize);
   if (!value || typeof value !== 'object') return value;
   return Object.keys(value)
@@ -272,6 +289,73 @@ function assertField(value, label) {
   }
 }
 
+function isFiniteNumber(value) {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
+// eq/neq/in-item rule: exactly one JSON scalar. Null semantics belong to
+// isNull/notNull instead, so null/undefined are deliberately rejected here.
+function assertScalarFilterValue(value, label) {
+  const valid =
+    typeof value === 'boolean' ||
+    isFiniteNumber(value) ||
+    (typeof value === 'string' && value.length <= MAX_FILTER_STRING_LENGTH);
+  if (!valid) {
+    throw new Error(
+      `${label} must be a boolean, finite number, or string of at most ${MAX_FILTER_STRING_LENGTH} characters`
+    );
+  }
+}
+
+function assertComparableFilterValue(value, label) {
+  const validNumber = isFiniteNumber(value);
+  const validString =
+    typeof value === 'string' && value.trim() !== '' && value.length <= MAX_FILTER_STRING_LENGTH;
+  if (!validNumber && !validString) {
+    throw new Error(
+      `${label} must be a finite number or non-empty string of at most ${MAX_FILTER_STRING_LENGTH} characters`
+    );
+  }
+}
+
+function validateFilterValue(operation, label) {
+  const hasValue = Object.prototype.hasOwnProperty.call(operation, 'value');
+  if (operation.operator === 'isNull' || operation.operator === 'notNull') {
+    if (hasValue) throw new Error(`${label}.value must not be supplied for ${operation.operator}`);
+    return;
+  }
+  if (!hasValue) {
+    throw new Error(`${label}.value is required for operator ${operation.operator}`);
+  }
+  const { value } = operation;
+  if (operation.operator === 'eq' || operation.operator === 'neq') {
+    assertScalarFilterValue(value, `${label}.value`);
+    return;
+  }
+  if (['gt', 'gte', 'lt', 'lte'].includes(operation.operator)) {
+    assertComparableFilterValue(value, `${label}.value`);
+    return;
+  }
+  if (operation.operator === 'contains') {
+    if (typeof value !== 'string' || !value.length || value.length > MAX_FILTER_STRING_LENGTH) {
+      throw new Error(
+        `${label}.value must be a non-empty string of at most ${MAX_FILTER_STRING_LENGTH} characters for contains`
+      );
+    }
+    return;
+  }
+  if (operation.operator === 'in') {
+    if (!Array.isArray(value) || value.length < 1 || value.length > MAX_FILTER_IN_VALUES) {
+      throw new Error(
+        `${label}.value must be an array of 1 to ${MAX_FILTER_IN_VALUES} values for in`
+      );
+    }
+    value.forEach((item, itemIndex) =>
+      assertScalarFilterValue(item, `${label}.value[${itemIndex}]`)
+    );
+  }
+}
+
 function validateOperation(operation, index) {
   assertPlainObject(operation, `operations[${index}]`);
   if (!ALLOWED_OPERATIONS.has(operation.op)) {
@@ -289,6 +373,7 @@ function validateOperation(operation, index) {
     if (!ALLOWED_FILTERS.has(operation.operator)) {
       throw new Error(`${label}.operator is not allowed`);
     }
+    validateFilterValue(operation, label);
   }
   if (operation.op === 'sort') {
     if (!Array.isArray(operation.by) || !operation.by.length) {
@@ -348,6 +433,17 @@ function validateOperation(operation, index) {
   }
   if (['detectMissingIntervals', 'detectOutliers'].includes(operation.op)) {
     assertField(operation.field, `${label}.field`);
+  }
+  if (operation.op === 'detectMissingIntervals') {
+    if (
+      !Number.isInteger(operation.intervalMinutes) ||
+      operation.intervalMinutes < MIN_INTERVAL_MINUTES ||
+      operation.intervalMinutes > MAX_INTERVAL_MINUTES
+    ) {
+      throw new Error(
+        `${label}.intervalMinutes must be an integer between ${MIN_INTERVAL_MINUTES} and ${MAX_INTERVAL_MINUTES}`
+      );
+    }
   }
   if (operation.op === 'detectDuplicates') {
     if (!Array.isArray(operation.fields) || !operation.fields.length) {
@@ -512,7 +608,9 @@ function aggregateRows(rows, operation) {
 }
 
 function missingIntervals(rows, operation) {
-  const intervalMinutes = Number(operation.intervalMinutes) || 15;
+  // intervalMinutes is guaranteed to be a bounded positive integer by
+  // validateAndBindPlan/validateOperation before this ever runs.
+  const intervalMinutes = operation.intervalMinutes;
   const expectedMs = intervalMinutes * 60000;
   const dates = rows
     .map((row) => parseDate(row?.[operation.field]))
