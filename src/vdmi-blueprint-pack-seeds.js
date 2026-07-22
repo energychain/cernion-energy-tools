@@ -17,6 +17,7 @@ const stadtwerkMauerInvestmentOwnerDeadlineBudgetGate = require('./vdmi-blueprin
 const stadtwerkMauerDirectMarketerRiskGate = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-direct-marketer-risk-gate-v1.json');
 const stadtwerkMauerFlexibleGridConnectionReleaseFile = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-flexible-grid-connection-release-file-v1.json');
 const stadtwerkMauerModelViabilityManagementReview = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-model-viability-management-review-v1.json');
+const stadtwerkMauerTabularDecisionInputReadiness = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-tabular-decision-input-readiness-v1.json');
 
 const REQUIRED_EVIDENCE = Object.freeze([
   'napReference',
@@ -279,6 +280,34 @@ const REQUIRED_MODEL_VIABILITY_MANAGEMENT_REVIEW_ROLE_IDS = Object.freeze([
   'ROLE_METERING_DATA_OWNER',
   'ROLE_COMMERCIAL_AUDIT',
 ]);
+const REQUIRED_TABULAR_DECISION_INPUT_READINESS_EVIDENCE = Object.freeze([
+  'tableScopeEvidence',
+  'privacyContextEvidence',
+  'profileHashEvidence',
+  'schemaProfileEvidence',
+  'missingValueEvidence',
+  'duplicateEvidence',
+  'intervalQualityEvidence',
+  'outlierEvidence',
+  'executedPlanEvidence',
+  'sourceRowCountEvidence',
+  'resultRowCountEvidence',
+  'inputPlanResultHashEvidence',
+  'warningEvidence',
+  'decisionInputReadinessEvidence',
+  'clarificationOwnerEvidence',
+  'nextSafeGateEvidence',
+  'noCallGuardEvidence',
+]);
+const REQUIRED_TABULAR_DECISION_INPUT_READINESS_ROLE_IDS = Object.freeze([
+  'ROLE_DATA_GOVERNANCE',
+  'ROLE_CERNION_GOVERNANCE',
+  'ROLE_DATASOURCE_OWNER',
+  'ROLE_METERING_DATA_OWNER',
+  'ROLE_PROCESS_OWNER',
+  'ROLE_COMMERCIAL_AUDIT',
+  'ROLE_MANAGEMENT',
+]);
 const REQUIRED_MATRIX_ROLE_KEYS = Object.freeze(['v', 'd', 'm', 'i']);
 const MATRIX_HEADER_WORDS = Object.freeze([
   'Phase',
@@ -307,6 +336,7 @@ const SEEDS = Object.freeze([
   stadtwerkMauerDirectMarketerRiskGate,
   stadtwerkMauerFlexibleGridConnectionReleaseFile,
   stadtwerkMauerModelViabilityManagementReview,
+  stadtwerkMauerTabularDecisionInputReadiness,
 ]);
 
 const SEED_VALIDATION_REQUIREMENTS = Object.freeze({
@@ -394,6 +424,11 @@ const SEED_VALIDATION_REQUIREMENTS = Object.freeze({
     requiredEvidence: REQUIRED_MODEL_VIABILITY_MANAGEMENT_REVIEW_EVIDENCE,
     requiredRoleIds: REQUIRED_MODEL_VIABILITY_MANAGEMENT_REVIEW_ROLE_IDS,
     expectedMatrixSlug: 'model-viability-management-review',
+  }),
+  [stadtwerkMauerTabularDecisionInputReadiness.id]: Object.freeze({
+    requiredEvidence: REQUIRED_TABULAR_DECISION_INPUT_READINESS_EVIDENCE,
+    requiredRoleIds: REQUIRED_TABULAR_DECISION_INPUT_READINESS_ROLE_IDS,
+    expectedMatrixSlug: 'tabular-decision-input-readiness',
   }),
 });
 
@@ -834,6 +869,8 @@ module.exports = {
   REQUIRED_ROLE_IDS,
   REQUIRED_SUBSTATION_LOAD_ASSESSMENT_EVIDENCE,
   REQUIRED_SUBSTATION_LOAD_ASSESSMENT_ROLE_IDS,
+  REQUIRED_TABULAR_DECISION_INPUT_READINESS_EVIDENCE,
+  REQUIRED_TABULAR_DECISION_INPUT_READINESS_ROLE_IDS,
   buildDemoProcessMatrixSync,
   buildLandingRegistryDraftFromBlueprintSeed,
   buildWorkbenchClarificationItems,
@@ -856,5 +893,6 @@ module.exports = {
   stadtwerkMauerModelViabilityManagementReview,
   stadtwerkMauerMonitoringNonEscalationStatus,
   stadtwerkMauerPortfolioMarketValueReadiness,
+  stadtwerkMauerTabularDecisionInputReadiness,
   validateVdmiBlueprintPackSeed,
 };

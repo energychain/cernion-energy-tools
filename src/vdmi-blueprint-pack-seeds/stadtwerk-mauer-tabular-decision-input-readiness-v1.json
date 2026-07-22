@@ -1,0 +1,419 @@
+{
+  "id": "stadtwerk-mauer-tabular-decision-input-readiness-v1",
+  "kind": "vdmi_blueprint_pack_seed",
+  "version": "1.0.0",
+  "safetyClassification": "read_only_blueprint_seed",
+  "title": "Stadtwerk Mauer Tabular Decision-Input Readiness seed",
+  "processFamily": "tabular_data_quality_governance",
+  "controlCase": "decision_input_table_readiness_review",
+  "sourceApi": {
+    "operation": "POST /api/tabular/profile",
+    "path": "/api/tabular/profile",
+    "method": "POST",
+    "workbenchBrick": "tabular_profile",
+    "capability": "tabular-intelligence.profile",
+    "readOnly": true,
+    "invocation": "source_hint_only"
+  },
+  "demoTenant": {
+    "tenantId": "stadtwerk-mauer",
+    "classification": "synthetic_demo_tenant",
+    "description": "Virtual Stadtwerk Mauer demo tenant; source table id, purpose, profile bands, findings, owner and readiness labels are synthetic review data."
+  },
+  "roleQuestion": {
+    "actor": "Data Governance / Netzdaten Owner / Process Owner",
+    "answerableIn": "under_one_minute",
+    "question": "Is this table sufficiently profiled and evidenced for the next process review, which quality/provenance gap remains, who owns clarification, and which safe next gate is available?"
+  },
+  "dataClasses": {
+    "publicContextLayer": {
+      "description": "Optional public/curated schema vocabulary or MaStR/OSM context already available read-only. Demo reset flows must not mutate this layer.",
+      "examples": [
+        "public schema vocabulary reference",
+        "read-only MaStR/OSM context label"
+      ]
+    },
+    "syntheticTenantSeed": {
+      "description": "Invented source table id, table purpose, profile bands, quality findings, owner and readiness states for stadtwerk-mauer.",
+      "examples": [
+        "synthetic source table id",
+        "synthetic profile band",
+        "synthetic clarification owner hint"
+      ]
+    },
+    "sandboxRuntimeArtifact": {
+      "description": "Resettable output from Cernion/Rundeck or Workbench verification runs, separate from public context baselines.",
+      "examples": [
+        "tabular profile/quality-report render proof",
+        "matrix-sync render artifact",
+        "executed-plan hash proof"
+      ]
+    }
+  },
+  "roles": [
+    {
+      "roleId": "ROLE_DATA_GOVERNANCE",
+      "relation": "verantwortlich",
+      "responsibility": "Owns the synthetic table-scope and schema-profile review and decides whether it is ready for process review or still a clarification case."
+    },
+    {
+      "roleId": "ROLE_CERNION_GOVERNANCE",
+      "relation": "durchfuehrend",
+      "responsibility": "Verifies the Blueprint-Pack seed, matrix sync, no-call boundary and source API hints without creating runtime records or executing a plan."
+    },
+    {
+      "roleId": "ROLE_DATASOURCE_OWNER",
+      "relation": "mitwirkend",
+      "responsibility": "Provides table scope, privacy-context and profile-hash evidence without importing, mutating or exporting raw source rows. Seed-local, tenant-parametrizable role; not a Personal-Agent identity and must be mapped during tenant onboarding."
+    },
+    {
+      "roleId": "ROLE_METERING_DATA_OWNER",
+      "relation": "mitwirkend",
+      "responsibility": "Provides schema/missing-value/duplicate/interval/outlier profile evidence without changing metering or source data."
+    },
+    {
+      "roleId": "ROLE_PROCESS_OWNER",
+      "relation": "verantwortlich",
+      "responsibility": "Owns the executed-plan and decision-input readiness rows and decides whether the table's evidence is sufficient for the next process review."
+    },
+    {
+      "roleId": "ROLE_COMMERCIAL_AUDIT",
+      "relation": "information",
+      "responsibility": "Receives table-scope, privacy-context and decision-readiness evidence without ERP, SAP, accounting, billing or settlement effects."
+    },
+    {
+      "roleId": "ROLE_MANAGEMENT",
+      "relation": "information",
+      "responsibility": "Receives readiness and next-gate context without approving a business, investment or regulatory decision."
+    }
+  ],
+  "evidenceRequirements": [
+    {
+      "id": "tableScopeEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds the source table scope and purpose row before any process review."
+    },
+    {
+      "id": "privacyContextEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds privacy-processing context (e.g. field-level classification) for the source table."
+    },
+    {
+      "id": "profileHashEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds a profile-hash reference for traceability."
+    },
+    {
+      "id": "schemaProfileEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds schema-profile evidence for the source table."
+    },
+    {
+      "id": "missingValueEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds missing-value quality-finding evidence."
+    },
+    {
+      "id": "duplicateEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds duplicate-row quality-finding evidence."
+    },
+    {
+      "id": "intervalQualityEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds interval/time-series quality-finding evidence."
+    },
+    {
+      "id": "outlierEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds outlier quality-finding evidence."
+    },
+    {
+      "id": "executedPlanEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds executed-plan evidence for the source table."
+    },
+    {
+      "id": "sourceRowCountEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds source row-count evidence for the executed plan."
+    },
+    {
+      "id": "resultRowCountEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds result row-count evidence for the executed plan."
+    },
+    {
+      "id": "inputPlanResultHashEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds input/plan/result hash evidence for deterministic traceability."
+    },
+    {
+      "id": "warningEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "review",
+      "enablesDossierAddition": "Adds warning evidence surfaced by the executed plan."
+    },
+    {
+      "id": "decisionInputReadinessEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds the decision-input readiness marker for the table."
+    },
+    {
+      "id": "clarificationOwnerEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds the accountable clarification owner."
+    },
+    {
+      "id": "nextSafeGateEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds the next safe review gate."
+    },
+    {
+      "id": "noCallGuardEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "review",
+      "enablesDossierAddition": "Adds the explicit no-call boundary as read-only status, not as a review decision."
+    }
+  ],
+  "demoProcessMatrix": {
+    "slug": "tabular-decision-input-readiness",
+    "title": "Tabular Decision-Input Readiness",
+    "roleLegend": {
+      "V": "Verantwortlich",
+      "D": "Durchfuehrend",
+      "M": "Mitwirkend",
+      "I": "Informiert"
+    },
+    "headers": [
+      "Phase",
+      "V = Verantwortlich",
+      "D = Durchfuehrend",
+      "M = Mitwirkend",
+      "I = Informiert",
+      "Nachweise"
+    ],
+    "allowedDataClasses": [
+      "publicContextLayer",
+      "syntheticTenantSeed",
+      "sandboxRuntimeArtifact"
+    ],
+    "downstreamHandoff": {
+      "blueprintPack": "complete",
+      "landingRegistry": "pending",
+      "productiveDemoRoom": "pending",
+      "acceptanceNote": "Blueprint-Pack/Cernion-Energy-Tools matrix is canonical; Landing-Registry and productive Demo-Raum sync remain downstream proof steps."
+    },
+    "rows": [
+      {
+        "phase": "1",
+        "v": "ROLE_DATA_GOVERNANCE",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_DATASOURCE_OWNER",
+        "i": "ROLE_COMMERCIAL_AUDIT",
+        "evidenceRequirements": [
+          "tableScopeEvidence",
+          "privacyContextEvidence",
+          "profileHashEvidence"
+        ],
+        "dataClassRefs": [
+          "publicContextLayer",
+          "syntheticTenantSeed",
+          "sandboxRuntimeArtifact"
+        ],
+        "status": "clarification",
+        "gateOutcome": "table_scope_and_privacy_context_pending",
+        "enablesDossierAddition": "Adds bounded table scope, privacy context and profile-hash evidence before any process review."
+      },
+      {
+        "phase": "2",
+        "v": "ROLE_DATA_GOVERNANCE",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_METERING_DATA_OWNER",
+        "i": "ROLE_PROCESS_OWNER",
+        "evidenceRequirements": [
+          "schemaProfileEvidence",
+          "missingValueEvidence",
+          "duplicateEvidence",
+          "intervalQualityEvidence",
+          "outlierEvidence"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed"
+        ],
+        "status": "evidence_gap",
+        "gateOutcome": "schema_and_quality_profile_review_pending",
+        "enablesDossierAddition": "Adds schema-profile and quality-finding evidence without table mutation."
+      },
+      {
+        "phase": "3",
+        "v": "ROLE_PROCESS_OWNER",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_DATA_GOVERNANCE",
+        "i": "ROLE_MANAGEMENT",
+        "evidenceRequirements": [
+          "executedPlanEvidence",
+          "sourceRowCountEvidence",
+          "resultRowCountEvidence",
+          "inputPlanResultHashEvidence",
+          "warningEvidence"
+        ],
+        "dataClassRefs": [
+          "sandboxRuntimeArtifact"
+        ],
+        "status": "evidence_gap",
+        "gateOutcome": "executed_plan_evidence_review_pending",
+        "enablesDossierAddition": "Adds executed-plan row/hash/warning evidence without re-executing or mutating the source."
+      },
+      {
+        "phase": "4",
+        "v": "ROLE_PROCESS_OWNER",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_COMMERCIAL_AUDIT",
+        "i": "ROLE_MANAGEMENT",
+        "evidenceRequirements": [
+          "decisionInputReadinessEvidence",
+          "clarificationOwnerEvidence",
+          "nextSafeGateEvidence",
+          "noCallGuardEvidence"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed"
+        ],
+        "status": "clarification",
+        "gateOutcome": "decision_input_ready_or_evidence_gap",
+        "enablesDossierAddition": "Adds decision-input readiness, clarification-owner and next-gate status as review evidence only."
+      }
+    ]
+  },
+  "decisionPolicy": {
+    "onMissingEvidence": "evidence_gap",
+    "onMissingOwner": "clarification",
+    "onReadyEvidence": "decision_input_ready",
+    "allowedStates": [
+      "clarification",
+      "evidence_gap",
+      "review",
+      "decision_input_ready"
+    ],
+    "mustNotTrigger": [
+      "datasource_import",
+      "row_mutation",
+      "write_back",
+      "row_correction",
+      "row_deletion",
+      "arbitrary_sql_execution",
+      "arbitrary_expression_execution",
+      "arbitrary_callback_execution",
+      "raw_sensitive_table_export",
+      "unrestricted_raw_row_display",
+      "llm_originated_numeric_evidence",
+      "hidden_scoring_ranking",
+      "budibase_table_write",
+      "rundeck_execution",
+      "workflow_create",
+      "hitl_create",
+      "mail_send",
+      "webhook_send",
+      "external_connector_call",
+      "mako_write",
+      "a96_export",
+      "billing",
+      "settlement",
+      "tariff_mutation",
+      "contract_creation",
+      "finance_booking",
+      "dispatch",
+      "redispatch_compensation",
+      "device_control",
+      "smgw_cls_device_control",
+      "landing_registry_publication",
+      "cernion_de_publication",
+      "public_context_mutation",
+      "production_mutation",
+      "secret_key_handling",
+      "personal_agent_hardcoding"
+    ]
+  },
+  "allowedCommandHints": [
+    {
+      "id": "inspect-tabular-profile-brick",
+      "kind": "source_api_reference",
+      "execution": "metadata_only",
+      "description": "References the existing read-only tabular-intelligence operations (profile, quality-report, query-plan, execute-plan); this seed must not invoke or mutate live tabular state."
+    }
+  ],
+  "forbiddenActions": [
+    "datasource_import",
+    "row_mutation",
+    "write_back",
+    "row_correction",
+    "row_deletion",
+    "arbitrary_sql_execution",
+    "arbitrary_expression_execution",
+    "arbitrary_callback_execution",
+    "raw_sensitive_table_export",
+    "unrestricted_raw_row_display",
+    "llm_originated_numeric_evidence",
+    "hidden_scoring_ranking",
+    "budibase_table_write",
+    "rundeck_execute",
+    "workflow_create",
+    "hitl_create",
+    "mail_send",
+    "webhook_send",
+    "external_connector_call",
+    "mako_write",
+    "a96_export",
+    "billing",
+    "settlement",
+    "tariff_mutation",
+    "contract_creation",
+    "finance_booking",
+    "dispatch",
+    "redispatch_compensation",
+    "device_control",
+    "smgw_cls_device_control",
+    "landing_registry_publication",
+    "cernion_de_publication",
+    "public_context_mutation",
+    "production_mutation",
+    "secret_key_handling",
+    "personal_agent_hardcoding"
+  ],
+  "publicContextMutationAllowed": false,
+  "tenantProvisioningAllowed": false,
+  "realWorldClaim": "synthetic_demo_only"
+}
