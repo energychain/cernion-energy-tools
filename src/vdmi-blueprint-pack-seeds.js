@@ -16,6 +16,7 @@ const stadtwerkMauerGridConnectionTransformationGate = require('./vdmi-blueprint
 const stadtwerkMauerInvestmentOwnerDeadlineBudgetGate = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-investment-owner-deadline-budget-gate-v1.json');
 const stadtwerkMauerDirectMarketerRiskGate = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-direct-marketer-risk-gate-v1.json');
 const stadtwerkMauerFlexibleGridConnectionReleaseFile = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-flexible-grid-connection-release-file-v1.json');
+const stadtwerkMauerModelViabilityManagementReview = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-model-viability-management-review-v1.json');
 
 const REQUIRED_EVIDENCE = Object.freeze([
   'napReference',
@@ -252,6 +253,32 @@ const REQUIRED_FLEXIBLE_GRID_CONNECTION_RELEASE_FILE_ROLE_IDS = Object.freeze([
   'ROLE_GRID_OPERATIONS',
   'ROLE_COMMERCIAL_GOVERNANCE',
 ]);
+const REQUIRED_MODEL_VIABILITY_MANAGEMENT_REVIEW_EVIDENCE = Object.freeze([
+  'candidateScopeEvidence',
+  'evidenceSnapshotReference',
+  'processCostEvidence',
+  'exceptionCaseEvidence',
+  'liquidityImpactEvidence',
+  'meteringMaturityEvidence',
+  'roleMaturityEvidence',
+  'timeseriesMaturityEvidence',
+  'sourceFreshnessEvidence',
+  'governanceEffortEvidence',
+  'decisionOwnerEvidence',
+  'nextReviewGateEvidence',
+  'noCallGuardEvidence',
+]);
+const REQUIRED_MODEL_VIABILITY_MANAGEMENT_REVIEW_ROLE_IDS = Object.freeze([
+  'ROLE_STRATEGY_OWNER',
+  'ROLE_CERNION_GOVERNANCE',
+  'ROLE_PROCESS_OWNER',
+  'ROLE_MANAGEMENT',
+  'ROLE_CONTROLLING',
+  'ROLE_OPERATIONS_OWNER',
+  'ROLE_DATA_GOVERNANCE',
+  'ROLE_METERING_DATA_OWNER',
+  'ROLE_COMMERCIAL_AUDIT',
+]);
 const REQUIRED_MATRIX_ROLE_KEYS = Object.freeze(['v', 'd', 'm', 'i']);
 const MATRIX_HEADER_WORDS = Object.freeze([
   'Phase',
@@ -279,6 +306,7 @@ const SEEDS = Object.freeze([
   stadtwerkMauerInvestmentOwnerDeadlineBudgetGate,
   stadtwerkMauerDirectMarketerRiskGate,
   stadtwerkMauerFlexibleGridConnectionReleaseFile,
+  stadtwerkMauerModelViabilityManagementReview,
 ]);
 
 const SEED_VALIDATION_REQUIREMENTS = Object.freeze({
@@ -361,6 +389,11 @@ const SEED_VALIDATION_REQUIREMENTS = Object.freeze({
     requiredEvidence: REQUIRED_FLEXIBLE_GRID_CONNECTION_RELEASE_FILE_EVIDENCE,
     requiredRoleIds: REQUIRED_FLEXIBLE_GRID_CONNECTION_RELEASE_FILE_ROLE_IDS,
     expectedMatrixSlug: 'flexible-grid-connection-release-file',
+  }),
+  [stadtwerkMauerModelViabilityManagementReview.id]: Object.freeze({
+    requiredEvidence: REQUIRED_MODEL_VIABILITY_MANAGEMENT_REVIEW_EVIDENCE,
+    requiredRoleIds: REQUIRED_MODEL_VIABILITY_MANAGEMENT_REVIEW_ROLE_IDS,
+    expectedMatrixSlug: 'model-viability-management-review',
   }),
 });
 
@@ -790,6 +823,8 @@ module.exports = {
   REQUIRED_GRID_CONNECTION_TRANSFORMATION_GATE_ROLE_IDS,
   REQUIRED_INVESTMENT_OWNER_DEADLINE_BUDGET_GATE_EVIDENCE,
   REQUIRED_INVESTMENT_OWNER_DEADLINE_BUDGET_GATE_ROLE_IDS,
+  REQUIRED_MODEL_VIABILITY_MANAGEMENT_REVIEW_EVIDENCE,
+  REQUIRED_MODEL_VIABILITY_MANAGEMENT_REVIEW_ROLE_IDS,
   REQUIRED_MONITORING_NON_ESCALATION_STATUS_EVIDENCE,
   REQUIRED_MONITORING_NON_ESCALATION_STATUS_ROLE_IDS,
   REQUIRED_PORTFOLIO_MARKET_VALUE_READINESS_EVIDENCE,
@@ -818,6 +853,7 @@ module.exports = {
   stadtwerkMauerMastrSyncGapAlerting,
   stadtwerkMauerGridConnectionTransformationGate,
   stadtwerkMauerInvestmentOwnerDeadlineBudgetGate,
+  stadtwerkMauerModelViabilityManagementReview,
   stadtwerkMauerMonitoringNonEscalationStatus,
   stadtwerkMauerPortfolioMarketValueReadiness,
   validateVdmiBlueprintPackSeed,

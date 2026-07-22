@@ -13,6 +13,7 @@ const {
   REQUIRED_INVESTMENT_OWNER_DEADLINE_BUDGET_GATE_EVIDENCE,
   REQUIRED_MASTR_SYNC_GAP_ALERTING_EVIDENCE,
   REQUIRED_GRID_CONNECTION_TRANSFORMATION_GATE_EVIDENCE,
+  REQUIRED_MODEL_VIABILITY_MANAGEMENT_REVIEW_EVIDENCE,
   REQUIRED_MONITORING_NON_ESCALATION_STATUS_EVIDENCE,
   REQUIRED_PORTFOLIO_MARKET_VALUE_READINESS_EVIDENCE,
   REQUIRED_REDISPATCH_READINESS_EVIDENCE,
@@ -32,6 +33,7 @@ const {
   stadtwerkMauerMastrSyncGapAlerting,
   stadtwerkMauerGridConnectionTransformationGate,
   stadtwerkMauerInvestmentOwnerDeadlineBudgetGate,
+  stadtwerkMauerModelViabilityManagementReview,
   stadtwerkMauerMonitoringNonEscalationStatus,
   stadtwerkMauerPvMissingNap,
   stadtwerkMauerPortfolioMarketValueReadiness,
@@ -194,6 +196,40 @@ describe('VDMI Blueprint Pack seeds', () => {
     );
     expect(getVdmiBlueprintPackSeed('stadtwerk-mauer-cost-review-committee-readiness-v1')).toBe(
       stadtwerkMauerCostReviewCommitteeReadiness
+    );
+  });
+
+  test('exposes the Model Viability Management Review seed as read-only metadata', () => {
+    expect(stadtwerkMauerModelViabilityManagementReview).toMatchObject({
+      id: 'stadtwerk-mauer-model-viability-management-review-v1',
+      kind: 'vdmi_blueprint_pack_seed',
+      version: '1.0.0',
+      safetyClassification: 'read_only_blueprint_seed',
+      processFamily: 'operating_model_viability_governance',
+      controlCase: 'single_candidate_management_review',
+      sourceApi: {
+        operation: 'GET /api/dashboard/model-viability-evidence-gate',
+        path: '/api/dashboard/model-viability-evidence-gate',
+        method: 'GET',
+        workbenchBrick: 'model_viability_evidence_gate',
+        capability: 'dashboard-api.modelViabilityEvidenceGateStatus',
+        readOnly: true,
+        invocation: 'source_hint_only',
+      },
+      demoTenant: {
+        tenantId: 'stadtwerk-mauer',
+        classification: 'synthetic_demo_tenant',
+      },
+    });
+
+    expect(listVdmiBlueprintPackSeeds()).toContainEqual(
+      expect.objectContaining({
+        id: 'stadtwerk-mauer-model-viability-management-review-v1',
+        demoTenantId: 'stadtwerk-mauer',
+      })
+    );
+    expect(getVdmiBlueprintPackSeed('stadtwerk-mauer-model-viability-management-review-v1')).toBe(
+      stadtwerkMauerModelViabilityManagementReview
     );
   });
 
@@ -774,6 +810,52 @@ describe('VDMI Blueprint Pack seeds', () => {
     );
   });
 
+  test('validates Model Viability Management Review evidence without ranking, economics or governance side effects', () => {
+    const result = validateVdmiBlueprintPackSeed(stadtwerkMauerModelViabilityManagementReview);
+    expect(result).toEqual({ valid: true, errors: [] });
+
+    const evidenceIds = stadtwerkMauerModelViabilityManagementReview.evidenceRequirements.map(
+      (item) => item.id
+    );
+    expect(evidenceIds).toEqual(
+      expect.arrayContaining(REQUIRED_MODEL_VIABILITY_MANAGEMENT_REVIEW_EVIDENCE)
+    );
+    for (const item of stadtwerkMauerModelViabilityManagementReview.evidenceRequirements) {
+      expect(item.dataClass).toBe('syntheticTenantSeed');
+      expect(item.enablesDossierAddition).toEqual(expect.any(String));
+    }
+
+    expect(stadtwerkMauerModelViabilityManagementReview.forbiddenActions).toEqual(
+      expect.arrayContaining([
+        'model_ranking',
+        'viability_scoring',
+        'winner_selection',
+        'economics_calculation',
+        'legal_interpretation',
+        'regulatory_approval',
+        'tariff_mutation',
+        'contract_creation',
+        'billing',
+        'settlement',
+        'mako_write',
+        'workflow_create',
+        'hitl_create',
+        'external_connector_call',
+        'budibase_table_write',
+        'landing_registry_publication',
+        'cernion_de_publication',
+        'public_context_mutation',
+        'production_mutation',
+        'secret_key_handling',
+        'personal_agent_hardcoding',
+      ])
+    );
+
+    expect(stadtwerkMauerModelViabilityManagementReview.publicContextMutationAllowed).toBe(false);
+    expect(stadtwerkMauerModelViabilityManagementReview.tenantProvisioningAllowed).toBe(false);
+    expect(stadtwerkMauerModelViabilityManagementReview.realWorldClaim).toBe('synthetic_demo_only');
+  });
+
   test('exposes the Redispatch participation readiness seed as read-only metadata', () => {
     expect(stadtwerkMauerRedispatchParticipationReadiness).toMatchObject({
       id: 'stadtwerk-mauer-redispatch-participation-readiness-v1',
@@ -1176,6 +1258,56 @@ describe('VDMI Blueprint Pack seeds', () => {
       i: 'ROLE_COMMERCIAL_AUDIT',
       evidenceRequirements: ['escalationThresholdEvidence'],
       gateOutcome: 'escalation_threshold_review_pending',
+    });
+
+    for (const row of matrix.rows) {
+      expect(row).toEqual(
+        expect.objectContaining({
+          phase: expect.any(String),
+          v: expect.stringMatching(/^ROLE_/),
+          d: expect.stringMatching(/^ROLE_/),
+          m: expect.stringMatching(/^ROLE_/),
+          i: expect.stringMatching(/^ROLE_/),
+          evidenceRequirements: expect.arrayContaining([expect.any(String)]),
+          dataClassRefs: expect.arrayContaining([expect.any(String)]),
+          gateOutcome: expect.any(String),
+          enablesDossierAddition: expect.any(String),
+        })
+      );
+
+      for (const roleCell of [row.v, row.d, row.m, row.i]) {
+        expect(REQUIRED_DATA_CLASSES).not.toContain(roleCell);
+        expect(roleCell).not.toMatch(
+          /Phase|Verantwortlich|Durchfuehrend|Mitwirkend|Informiert|Nachweise/
+        );
+      }
+    }
+  });
+
+  test('exposes a canonical Demo-Raum process matrix for Model Viability Management Review sync', () => {
+    const matrix = stadtwerkMauerModelViabilityManagementReview.demoProcessMatrix;
+
+    expect(matrix.slug).toBe('model-viability-management-review');
+    expect(matrix.roleLegend.M).toBe('Mitwirkend');
+    expect(matrix.rows).toHaveLength(4);
+    expect(matrix.allowedDataClasses).toEqual(REQUIRED_DATA_CLASSES);
+    expect(matrix.downstreamHandoff).toMatchObject({
+      blueprintPack: 'complete',
+      landingRegistry: 'pending',
+      productiveDemoRoom: 'pending',
+    });
+    expect(matrix.rows[1]).toMatchObject({
+      phase: '2',
+      v: 'ROLE_STRATEGY_OWNER',
+      d: 'ROLE_CONTROLLING',
+      m: 'ROLE_OPERATIONS_OWNER',
+      i: 'ROLE_MANAGEMENT',
+      evidenceRequirements: [
+        'processCostEvidence',
+        'exceptionCaseEvidence',
+        'liquidityImpactEvidence',
+      ],
+      gateOutcome: 'operational_burden_review_pending',
     });
 
     for (const row of matrix.rows) {
