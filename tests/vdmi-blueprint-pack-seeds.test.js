@@ -14,6 +14,7 @@ const {
   REQUIRED_MASTR_SYNC_GAP_ALERTING_EVIDENCE,
   REQUIRED_GRID_CONNECTION_TRANSFORMATION_GATE_EVIDENCE,
   REQUIRED_MODEL_VIABILITY_MANAGEMENT_REVIEW_EVIDENCE,
+  REQUIRED_TABULAR_DECISION_INPUT_READINESS_EVIDENCE,
   REQUIRED_MONITORING_NON_ESCALATION_STATUS_EVIDENCE,
   REQUIRED_PORTFOLIO_MARKET_VALUE_READINESS_EVIDENCE,
   REQUIRED_REDISPATCH_READINESS_EVIDENCE,
@@ -39,6 +40,7 @@ const {
   stadtwerkMauerPortfolioMarketValueReadiness,
   stadtwerkMauerRedispatchParticipationReadiness,
   stadtwerkMauerSubstationLoadAssessment,
+  stadtwerkMauerTabularDecisionInputReadiness,
   validateVdmiBlueprintPackSeed,
 } = require('../src/vdmi-blueprint-pack-seeds');
 
@@ -230,6 +232,40 @@ describe('VDMI Blueprint Pack seeds', () => {
     );
     expect(getVdmiBlueprintPackSeed('stadtwerk-mauer-model-viability-management-review-v1')).toBe(
       stadtwerkMauerModelViabilityManagementReview
+    );
+  });
+
+  test('exposes the Tabular Decision-Input Readiness seed as read-only metadata', () => {
+    expect(stadtwerkMauerTabularDecisionInputReadiness).toMatchObject({
+      id: 'stadtwerk-mauer-tabular-decision-input-readiness-v1',
+      kind: 'vdmi_blueprint_pack_seed',
+      version: '1.0.0',
+      safetyClassification: 'read_only_blueprint_seed',
+      processFamily: 'tabular_data_quality_governance',
+      controlCase: 'decision_input_table_readiness_review',
+      sourceApi: {
+        operation: 'POST /api/tabular/profile',
+        path: '/api/tabular/profile',
+        method: 'POST',
+        workbenchBrick: 'tabular_profile',
+        capability: 'tabular-intelligence.profile',
+        readOnly: true,
+        invocation: 'source_hint_only',
+      },
+      demoTenant: {
+        tenantId: 'stadtwerk-mauer',
+        classification: 'synthetic_demo_tenant',
+      },
+    });
+
+    expect(listVdmiBlueprintPackSeeds()).toContainEqual(
+      expect.objectContaining({
+        id: 'stadtwerk-mauer-tabular-decision-input-readiness-v1',
+        demoTenantId: 'stadtwerk-mauer',
+      })
+    );
+    expect(getVdmiBlueprintPackSeed('stadtwerk-mauer-tabular-decision-input-readiness-v1')).toBe(
+      stadtwerkMauerTabularDecisionInputReadiness
     );
   });
 
@@ -856,6 +892,61 @@ describe('VDMI Blueprint Pack seeds', () => {
     expect(stadtwerkMauerModelViabilityManagementReview.realWorldClaim).toBe('synthetic_demo_only');
   });
 
+  test('validates Tabular Decision-Input Readiness evidence without mutation, execution or scoring side effects', () => {
+    const result = validateVdmiBlueprintPackSeed(stadtwerkMauerTabularDecisionInputReadiness);
+    expect(result).toEqual({ valid: true, errors: [] });
+
+    const evidenceIds = stadtwerkMauerTabularDecisionInputReadiness.evidenceRequirements.map(
+      (item) => item.id
+    );
+    expect(evidenceIds).toEqual(
+      expect.arrayContaining(REQUIRED_TABULAR_DECISION_INPUT_READINESS_EVIDENCE)
+    );
+    for (const item of stadtwerkMauerTabularDecisionInputReadiness.evidenceRequirements) {
+      expect(item.dataClass).toBe('syntheticTenantSeed');
+      expect(item.enablesDossierAddition).toEqual(expect.any(String));
+    }
+
+    expect(stadtwerkMauerTabularDecisionInputReadiness.forbiddenActions).toEqual(
+      expect.arrayContaining([
+        'datasource_import',
+        'row_mutation',
+        'write_back',
+        'row_correction',
+        'row_deletion',
+        'arbitrary_sql_execution',
+        'arbitrary_expression_execution',
+        'arbitrary_callback_execution',
+        'raw_sensitive_table_export',
+        'unrestricted_raw_row_display',
+        'llm_originated_numeric_evidence',
+        'hidden_scoring_ranking',
+        'budibase_table_write',
+        'rundeck_execute',
+        'workflow_create',
+        'hitl_create',
+        'external_connector_call',
+        'mako_write',
+        'billing',
+        'settlement',
+        'tariff_mutation',
+        'contract_creation',
+        'dispatch',
+        'device_control',
+        'landing_registry_publication',
+        'cernion_de_publication',
+        'public_context_mutation',
+        'production_mutation',
+        'secret_key_handling',
+        'personal_agent_hardcoding',
+      ])
+    );
+
+    expect(stadtwerkMauerTabularDecisionInputReadiness.publicContextMutationAllowed).toBe(false);
+    expect(stadtwerkMauerTabularDecisionInputReadiness.tenantProvisioningAllowed).toBe(false);
+    expect(stadtwerkMauerTabularDecisionInputReadiness.realWorldClaim).toBe('synthetic_demo_only');
+  });
+
   test('exposes the Redispatch participation readiness seed as read-only metadata', () => {
     expect(stadtwerkMauerRedispatchParticipationReadiness).toMatchObject({
       id: 'stadtwerk-mauer-redispatch-participation-readiness-v1',
@@ -1308,6 +1399,58 @@ describe('VDMI Blueprint Pack seeds', () => {
         'liquidityImpactEvidence',
       ],
       gateOutcome: 'operational_burden_review_pending',
+    });
+
+    for (const row of matrix.rows) {
+      expect(row).toEqual(
+        expect.objectContaining({
+          phase: expect.any(String),
+          v: expect.stringMatching(/^ROLE_/),
+          d: expect.stringMatching(/^ROLE_/),
+          m: expect.stringMatching(/^ROLE_/),
+          i: expect.stringMatching(/^ROLE_/),
+          evidenceRequirements: expect.arrayContaining([expect.any(String)]),
+          dataClassRefs: expect.arrayContaining([expect.any(String)]),
+          gateOutcome: expect.any(String),
+          enablesDossierAddition: expect.any(String),
+        })
+      );
+
+      for (const roleCell of [row.v, row.d, row.m, row.i]) {
+        expect(REQUIRED_DATA_CLASSES).not.toContain(roleCell);
+        expect(roleCell).not.toMatch(
+          /Phase|Verantwortlich|Durchfuehrend|Mitwirkend|Informiert|Nachweise/
+        );
+      }
+    }
+  });
+
+  test('exposes a canonical Demo-Raum process matrix for Tabular Decision-Input Readiness sync', () => {
+    const matrix = stadtwerkMauerTabularDecisionInputReadiness.demoProcessMatrix;
+
+    expect(matrix.slug).toBe('tabular-decision-input-readiness');
+    expect(matrix.roleLegend.M).toBe('Mitwirkend');
+    expect(matrix.rows).toHaveLength(4);
+    expect(matrix.allowedDataClasses).toEqual(REQUIRED_DATA_CLASSES);
+    expect(matrix.downstreamHandoff).toMatchObject({
+      blueprintPack: 'complete',
+      landingRegistry: 'pending',
+      productiveDemoRoom: 'pending',
+    });
+    expect(matrix.rows[2]).toMatchObject({
+      phase: '3',
+      v: 'ROLE_PROCESS_OWNER',
+      d: 'ROLE_CERNION_GOVERNANCE',
+      m: 'ROLE_DATA_GOVERNANCE',
+      i: 'ROLE_MANAGEMENT',
+      evidenceRequirements: [
+        'executedPlanEvidence',
+        'sourceRowCountEvidence',
+        'resultRowCountEvidence',
+        'inputPlanResultHashEvidence',
+        'warningEvidence',
+      ],
+      gateOutcome: 'executed_plan_evidence_review_pending',
     });
 
     for (const row of matrix.rows) {
