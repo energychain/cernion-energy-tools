@@ -1,9 +1,9 @@
 # Cernion Energy Tools
 
 > API-first Agentic Energy Operations Layer for Stadtwerke, DSOs and energy-service teams.
-> Cernion combines deterministic energy-domain microservices, governed agent orchestration,
-> evidence dossiers and curated integration surfaces for Microsoft Copilot, OpenClaw and
-> conventional REST clients.
+> Cernion combines deterministic energy-domain services, curated capability routing,
+> evidence dossiers, VDMI role logic, HITL boundaries and read-only integration surfaces
+> for REST, Sidecar, Microsoft Copilot, n8n, OpenWebUI and OpenClaw.
 
 [![Maintenance CI](https://github.com/energychain/cernion-energy-tools/actions/workflows/maintenance-ci.yml/badge.svg?branch=main)](https://github.com/energychain/cernion-energy-tools/actions/workflows/maintenance-ci.yml)
 [![CodeQL](https://github.com/energychain/cernion-energy-tools/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/energychain/cernion-energy-tools/actions/workflows/codeql.yml)
@@ -18,13 +18,26 @@ agentic process orchestration.
 
 It is not just a chat frontend for energy APIs. The current platform contains:
 
-- **108 Moleculer services** in `services/`
-- **619 OpenAPI paths** in `openapi-export.json`
-- **243 JavaScript test files** under `tests/`
-- **curated Copilot and Sidecar interfaces** that expose only governed subsets of the backend
+- **137 Moleculer services** in `services/`
+- **1003 OpenAPI paths** in `openapi-export.json`
+- **297 JavaScript test files** under `tests/`
+- **curated Copilot, Sidecar, OpenWebUI, n8n and OpenClaw integration surfaces** that expose only governed subsets of the backend
 - **agentic runtime components** for routing, receipts, dossiers, HITL, evidence, revalidation and observability
 
-Current package version: **`0.60.8`**
+Current package/OpenAPI version: **`0.67.8`**
+
+### Public positioning
+
+Cernion does not let the chat decide. The platform structures the objective, available
+data, service chain, evidence, gaps, risk and the next safe gate. The result is not a
+black-box answer, but a dossier-ready status or decision-readiness view for Stadtwerke,
+distribution-system operators and energy-service teams.
+
+Cernion Energy Tools is not an automatic contract decision, grid-connection commitment,
+device-control system, MaKo execution system, billing/settlement system or tariff-mutation
+machine. Suitable integration scopes are `ask`, `plan`, `evidence`, `capability lookup`
+and `read-only status`. Write-like or consequential steps stay in `draft`, `prepare` or
+`pending confirmation` states and require HITL.
 
 The public website explains Cernion as an energy-intelligence and decision platform for
 Stadtwerke: MaStR analysis, grid planning, §14a, Redispatch, Energy Sharing, customer-service
