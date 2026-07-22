@@ -5387,4 +5387,223 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       ])
     );
   });
+
+  it('adds the Model Viability Management Review panel from existing read-only bricks', () => {
+    const names = [
+      'getModelViabilityManagementReviewCandidateRows',
+      'getModelViabilityManagementReviewVerifyRows',
+      'getModelViabilityManagementReviewMatrixRows',
+      'getModelViabilityManagementReviewTransferRows',
+      'getModelViabilityManagementReviewNoCallRows',
+    ];
+    const queries = manifest.queries.filter((query) => names.includes(query.name));
+    expect(queries).toHaveLength(names.length);
+    expect(new Set(queries.map((query) => query.path))).toEqual(
+      new Set([
+        '/api/dashboard/model-viability-evidence-gate',
+        '/api/dashboard/stadtwerk-mauer-blueprint-pack-verify',
+        '/api/dashboard/stadtwerk-mauer-transfer-readiness',
+      ])
+    );
+    expect(
+      queries
+        .filter((query) => query.path.includes('blueprint-pack-verify'))
+        .every((query) =>
+          query.queryString.includes('stadtwerk-mauer-model-viability-management-review-v1')
+        )
+    ).toBe(true);
+    expect(
+      manifest.sections
+        .filter((section) => section.id.startsWith('model_viability_management_review'))
+        .map((section) => section.queryName)
+    ).toEqual(expect.arrayContaining(names));
+    expect(manifest.notes.join(' ')).toContain('Model Viability Management Review binds');
+  });
+
+  it('renders scalar Model Viability Management Review rows, evidence/assumption/missing status and explicit no-call guards', () => {
+    const candidate = {
+      status: 'assumption_heavy',
+      readinessScore: 0.9,
+      candidateContext: {
+        candidateId: 'smm-model-viability-review-001',
+        candidateName: 'Section 42c Community Model',
+        modelType: 'section_42c_community',
+        scope: 'synthetic_stadtwerk_mauer_demo',
+        evidenceSnapshotRef: 'smm-mvr-snapshot-2026-07',
+      },
+      rows: [
+        {
+          dimensionId: 'candidate_identity',
+          label: 'Candidate/model identity and scope',
+          values: { candidateName: 'Section 42c Community Model' },
+          evidenceStatus: 'provided',
+        },
+        {
+          dimensionId: 'process_cost',
+          label: 'Process-cost band/reference',
+          values: { processCostBand: 'medium' },
+          evidenceStatus: 'assumption_only',
+        },
+      ],
+      missingEvidence: [],
+      positiveFollowUps: [
+        {
+          missingDataPoint: 'process_cost',
+          evidenceStatus: 'assumption_only',
+          enablesDossierAddition: 'add a supplied process-cost band or reference',
+          category: 'model_viability_evidence_gate',
+        },
+      ],
+      decisionBoundaries: [
+        { boundary: 'This is a normalized evidence view, not a viability verdict.' },
+      ],
+      sourceActions: { notCalled: ['tariff.mutate', 'contract.create'] },
+    };
+    const verify = {
+      status: 'completed',
+      tenantId: 'stadtwerk-mauer',
+      summary: { counts: { requiredEvidence: 13, demoProcessMatrixRows: 4, forbiddenActions: 37 } },
+      nextActions: ['Render the verify read model in Budibase'],
+      data: {
+        seedId: 'stadtwerk-mauer-model-viability-management-review-v1',
+        tenantId: 'stadtwerk-mauer',
+        processFamily: 'operating_model_viability_governance',
+        controlCase: 'single_candidate_management_review',
+        validation: { valid: true },
+        demoProcessMatrixSync: {
+          synced: true,
+          roleLegendM: 'Mitwirkend',
+          rowCount: 4,
+          rowCountValid: true,
+          evidenceRequirements: ['candidateScopeEvidence', 'governanceEffortEvidence'],
+          downstreamHandoff: {
+            blueprintPack: 'complete',
+            landingRegistry: 'pending',
+            productiveDemoRoom: 'pending',
+          },
+          rows: [
+            {
+              phase: '1',
+              roles: {
+                V: 'ROLE_STRATEGY_OWNER',
+                D: 'ROLE_CERNION_GOVERNANCE',
+                M: 'ROLE_PROCESS_OWNER',
+                I: 'ROLE_MANAGEMENT',
+              },
+              evidenceRequirements: ['candidateScopeEvidence', 'evidenceSnapshotReference'],
+              status: 'clarification',
+              gateOutcome: 'candidate_scope_and_evidence_snapshot_pending',
+            },
+            {
+              phase: '2',
+              roles: {
+                V: 'ROLE_STRATEGY_OWNER',
+                D: 'ROLE_CONTROLLING',
+                M: 'ROLE_OPERATIONS_OWNER',
+                I: 'ROLE_MANAGEMENT',
+              },
+              evidenceRequirements: ['processCostEvidence'],
+              status: 'evidence_gap',
+              gateOutcome: 'operational_burden_review_pending',
+            },
+            {
+              phase: '3',
+              roles: {
+                V: 'ROLE_DATA_GOVERNANCE',
+                D: 'ROLE_CERNION_GOVERNANCE',
+                M: 'ROLE_METERING_DATA_OWNER',
+                I: 'ROLE_STRATEGY_OWNER',
+              },
+              evidenceRequirements: ['meteringMaturityEvidence'],
+              status: 'evidence_gap',
+              gateOutcome: 'data_maturity_review_pending',
+            },
+            {
+              phase: '4',
+              roles: {
+                V: 'ROLE_MANAGEMENT',
+                D: 'ROLE_CERNION_GOVERNANCE',
+                M: 'ROLE_STRATEGY_OWNER',
+                I: 'ROLE_COMMERCIAL_AUDIT',
+              },
+              evidenceRequirements: ['governanceEffortEvidence'],
+              status: 'clarification',
+              gateOutcome: 'management_review_ready_or_evidence_gap',
+            },
+          ],
+        },
+      },
+    };
+    const transfer = { status: 'transfer_blocked' };
+
+    for (const [name, fixture] of [
+      ['getModelViabilityManagementReviewCandidateRows', candidate],
+      ['getModelViabilityManagementReviewVerifyRows', verify],
+      ['getModelViabilityManagementReviewMatrixRows', verify],
+      ['getModelViabilityManagementReviewTransferRows', transfer],
+      ['getModelViabilityManagementReviewNoCallRows', candidate],
+    ]) {
+      const rows = runTransformer(name, fixture);
+      expectScalarRows(rows);
+      expectNoRawObjectText(rows);
+    }
+
+    expect(runTransformer('getModelViabilityManagementReviewCandidateRows', candidate)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ rowKey: 'mvr_candidate_summary', status: 'assumption_heavy' }),
+        expect.objectContaining({
+          rowKey: 'mvr_dimension_process_cost',
+          status: 'assumption_only',
+        }),
+        expect.objectContaining({
+          rowKey: 'mvr_followup_process_cost',
+          status: 'assumption_only',
+        }),
+      ])
+    );
+
+    const matrixRows = runTransformer('getModelViabilityManagementReviewMatrixRows', verify);
+    expect(matrixRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'mvr_matrix_sync',
+          roleLegendM: 'Mitwirkend',
+          rowCount: 4,
+          downstreamHandoff: 'complete -> pending -> pending',
+        }),
+      ])
+    );
+    const dataRows = matrixRows.filter((row) => row.rowKey !== 'mvr_matrix_sync');
+    expect(dataRows).toHaveLength(4);
+    for (const row of dataRows) {
+      for (const roleCell of [row.v, row.d, row.m, row.i]) {
+        expect(roleCell).toMatch(/^ROLE_/);
+      }
+    }
+
+    expect(runTransformer('getModelViabilityManagementReviewNoCallRows', candidate)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          boundary: 'model_ranking',
+          status: 'not_called',
+          disabled: true,
+        }),
+        expect.objectContaining({
+          boundary: 'economics_calculation',
+          status: 'not_called',
+          disabled: true,
+        }),
+        expect.objectContaining({
+          boundary: 'landing_registry_publication',
+          status: 'not_called',
+          disabled: true,
+        }),
+        expect.objectContaining({
+          boundary: 'personal_agent_hardcoding',
+          status: 'not_called',
+          disabled: true,
+        }),
+      ])
+    );
+  });
 });

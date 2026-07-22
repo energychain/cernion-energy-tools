@@ -10292,6 +10292,224 @@
           "type": "string"
         }
       }
+    },
+    {
+      "name": "getModelViabilityManagementReviewCandidateRows",
+      "method": "GET",
+      "path": "/api/dashboard/model-viability-evidence-gate",
+      "queryString": "candidateId=smm-model-viability-review-001&candidateName=Section%2042c%20Community%20Model&modelType=section_42c_community&scope=synthetic_stadtwerk_mauer_demo&evidenceSnapshotRef=smm-mvr-snapshot-2026-07&processCostBand=medium&processCostReference=smm-process-cost-ref-01&exceptionCaseRateBand=low&exceptionCaseOwner=ROLE_CONTROLLING&liquidityImpactBand=low&liquidityImpactReference=smm-liquidity-ref-01&dataMaturityMetering=high&dataMaturityRoles=medium&dataMaturityTimeSeries=medium&dataMaturitySourceFreshness=high&governanceEffortBand=medium&governanceDecisionOwner=ROLE_STRATEGY_OWNER&nextReviewGate=smm-management-review-2026-08&assumptionOnlyDimensions=process_cost",
+      "parameters": [],
+      "transformer": "const cc=data.candidateContext||{}; const base={caseId:'smm-model-viability-review-001',roleTarget:'ROLE_STRATEGY_OWNER',sourceClass:'model_viability_management_review_candidate'}; const summary={rowKey:'mvr_candidate_summary',label:'Selected candidate',value:[cc.candidateName||cc.candidateId||'unknown',cc.modelType||''].filter(Boolean).join(' / '),status:String(data.status||'unknown'),safeNextGate:'Is this one candidate ready for management review, which evidence is missing or assumption-only, who owns clarification, and what safe gate is next?',...base}; const readiness={rowKey:'mvr_readiness',label:'Readiness score',value:String(data.readinessScore??''),status:String(data.status||'unknown'),safeNextGate:'refresh_read_only_evidence_gate_rows',...base}; const dimensionRows=(data.rows||[]).map((row)=>({rowKey:'mvr_dimension_'+String(row.dimensionId||''),label:String(row.label||row.dimensionId||''),value:Object.values(row.values||{}).filter(Boolean).join(' / ')||'not supplied',status:String(row.evidenceStatus||'missing'),safeNextGate:row.evidenceStatus==='provided'?'no_action_needed':'supply_or_confirm_evidence_then_refresh',...base})); const missingRows=(data.missingEvidence||[]).map((row)=>({rowKey:'mvr_missing_'+String(row.missingDataPoint||''),label:'Missing: '+String(row.label||row.missingDataPoint||''),value:String(row.enablesDossierAddition||''),status:'missing',safeNextGate:'supply_evidence_then_refresh_read_only_rows',...base})); const followUpRows=(data.positiveFollowUps||[]).map((row)=>({rowKey:'mvr_followup_'+String(row.missingDataPoint||''),label:'Follow-up: '+String(row.missingDataPoint||''),value:String(row.enablesDossierAddition||''),status:String(row.evidenceStatus||'review'),safeNextGate:'keep_for_human_management_review',...base})); const boundaryRows=(data.decisionBoundaries||[]).map((row,index)=>({rowKey:'mvr_boundary_'+String(index+1),label:'Decision boundary',value:String(row.boundary||''),status:'read_only_boundary',safeNextGate:'no_ranking_no_economics_no_legal_decision',...base})); return [summary,readiness].concat(dimensionRows,missingRows,followUpRows,boundaryRows)",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "safeNextGate": {
+          "type": "string"
+        },
+        "caseId": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getModelViabilityManagementReviewVerifyRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-model-viability-management-review-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.data||{}; const counts=(data.summary||{}).counts||{}; const v=d.validation||{}; return [{rowKey:'mvr_verify',label:'Blueprint-Pack verification',seedId:d.seedId||'stadtwerk-mauer-model-viability-management-review-v1',tenantId:d.tenantId||data.tenantId||'stadtwerk-mauer',status:data.status||'unknown',valid:Boolean(v.valid),processFamily:d.processFamily||'operating_model_viability_governance',controlCase:d.controlCase||'single_candidate_management_review',requiredEvidenceCount:Number(counts.requiredEvidence||0),matrixRowCount:Number(counts.demoProcessMatrixRows||0),forbiddenActionCount:Number(counts.forbiddenActions||0),safeNextGate:(data.nextActions||[])[0]||'refresh_read_only_verify_rows',sourceClass:'model_viability_management_review_verify'}]",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "seedId": {
+          "type": "string"
+        },
+        "tenantId": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "valid": {
+          "type": "boolean"
+        },
+        "processFamily": {
+          "type": "string"
+        },
+        "controlCase": {
+          "type": "string"
+        },
+        "requiredEvidenceCount": {
+          "type": "number"
+        },
+        "matrixRowCount": {
+          "type": "number"
+        },
+        "forbiddenActionCount": {
+          "type": "number"
+        },
+        "safeNextGate": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getModelViabilityManagementReviewMatrixRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-model-viability-management-review-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.data||{}; const m=d.demoProcessMatrixSync||{}; const handoff=m.downstreamHandoff||{}; const base={seedId:d.seedId||'stadtwerk-mauer-model-viability-management-review-v1',roleLegendM:String(m.roleLegendM||'Mitwirkend'),rowCount:Number(m.rowCount||0),rowCountValid:Boolean(m.rowCountValid),syncStatus:m.synced?'blueprint_pack_complete':'sync_proof_required',downstreamHandoff:[handoff.blueprintPack||'complete',handoff.landingRegistry||'pending',handoff.productiveDemoRoom||'pending'].join(' -> ')}; const summary={rowKey:'mvr_matrix_sync',phase:'sync',v:'ROLE_STRATEGY_OWNER',d:'ROLE_CERNION_GOVERNANCE',m:base.roleLegendM,i:'ROLE_MANAGEMENT',nachweise:(m.evidenceRequirements||[]).map(String).join(', '),status:base.syncStatus,safeNextGate:'keep_landing_registry_and_productive_demo_room_blocked_until_sync_proof',sourceClass:'model_viability_management_review_matrix_sync',...base}; const rows=(m.rows||[]).map((row,index)=>{const roles=row.roles||{}; return {rowKey:'mvr_matrix_'+String(row.phase||index+1),phase:String(row.phase||index+1),v:String(roles.V||row.v||''),d:String(roles.D||row.d||''),m:String(roles.M||row.m||''),i:String(roles.I||row.i||''),nachweise:(row.evidenceRequirements||[]).map(String).join(', '),status:String(row.status||''),safeNextGate:String(row.gateOutcome||row.enablesDossierAddition||'refresh_read_only_matrix'),sourceClass:'model_viability_management_review_matrix_row',...base};}); return [summary].concat(rows)",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "phase": {
+          "type": "string"
+        },
+        "v": {
+          "type": "string"
+        },
+        "d": {
+          "type": "string"
+        },
+        "m": {
+          "type": "string"
+        },
+        "i": {
+          "type": "string"
+        },
+        "nachweise": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "safeNextGate": {
+          "type": "string"
+        },
+        "seedId": {
+          "type": "string"
+        },
+        "roleLegendM": {
+          "type": "string"
+        },
+        "rowCount": {
+          "type": "number"
+        },
+        "rowCountValid": {
+          "type": "boolean"
+        },
+        "syncStatus": {
+          "type": "string"
+        },
+        "downstreamHandoff": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getModelViabilityManagementReviewTransferRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-transfer-readiness",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-model-viability-management-review-v1&caseId=smm-model-viability-review-001",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const rows=[...(data.transferSummaryRows||[]),...(data.dataClassRows||[]),...(data.safeNextGateRows||[]),...(data.boundaryRows||[])]; const source=rows.length?rows:[{rowKey:'mvr_transfer_pending',label:'Transfer readiness',status:data.status||'pending',description:'Blueprint-Pack canonical; Landing-Registry and productive Demo-Raum pending',safeNextAction:'keep downstream publication blocked'}]; return source.map((row,index)=>({rowKey:String(row.rowKey||'mvr_transfer_'+(index+1)),label:String(row.label||row.category||'Transfer readiness'),status:String(row.status||row.transferState||data.status||'pending'),value:String(row.value||row.description||row.examples||row.boundary||row.safeNextGate||''),dataClass:String(row.category||row.sourceClass||'transfer_readiness'),productionBlocked:Boolean(row.productionBlocked),safeNextGate:String(row.safeNextAction||row.safeNextGate||row.nextGate||'refresh_transfer_readiness'),sourceClass:String(row.sourceClass||'model_viability_management_review_transfer')}))",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "dataClass": {
+          "type": "string"
+        },
+        "productionBlocked": {
+          "type": "boolean"
+        },
+        "safeNextGate": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getModelViabilityManagementReviewNoCallRows",
+      "method": "GET",
+      "path": "/api/dashboard/model-viability-evidence-gate",
+      "queryString": "candidateId=smm-model-viability-review-001&candidateName=Section%2042c%20Community%20Model&modelType=section_42c_community&scope=synthetic_stadtwerk_mauer_demo",
+      "parameters": [],
+      "transformer": "const notCalled=((data.sourceActions||{}).notCalled)||[]; const guards=['model_ranking','viability_scoring','winner_selection','economics_calculation','npv_calculation','profitability_statement','legal_interpretation','regulatory_approval','market_entry_recommendation','go_live_decision','tariff_mutation','contract_creation','allocation_onboarding','billing','settlement','mako_write','a96_export','finance_booking','procurement_execution','market_communication','dispatch','redispatch_compensation','device_control','smgw_cls_device_control','workflow_create','hitl_create','mail_send','webhook_send','external_connector_call','budibase_table_write','rundeck_execution','landing_registry_publication','cernion_de_publication','public_context_mutation','production_mutation','secret_key_handling','personal_agent_hardcoding']; return [...new Set(notCalled.map(String).concat(guards))].map((action,index)=>({rowKey:'mvr_no_call_'+String(index+1),boundary:String(action),status:'not_called',disabled:true,safeAlternative:'refresh_existing_read_only_dashboard_rows_or_verify_blueprint_seed',sourceClass:'model_viability_management_review_no_call_guard'}))",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "boundary": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "disabled": {
+          "type": "boolean"
+        },
+        "safeAlternative": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
     }
   ],
   "sections": [
@@ -11580,6 +11798,36 @@
       "tableTitle": "Disabled Consequential Actions"
     },
     {
+      "id": "model_viability_management_review_candidate",
+      "title": "Model Viability Management Review — Candidate",
+      "queryName": "getModelViabilityManagementReviewCandidateRows",
+      "tableTitle": "Candidate Evidence and Follow-Ups"
+    },
+    {
+      "id": "model_viability_management_review_verify",
+      "title": "Model Viability Management Review — Blueprint Verify",
+      "queryName": "getModelViabilityManagementReviewVerifyRows",
+      "tableTitle": "Blueprint Verification"
+    },
+    {
+      "id": "model_viability_management_review_matrix_sync",
+      "title": "Model Viability Management Review — Matrix Sync",
+      "queryName": "getModelViabilityManagementReviewMatrixRows",
+      "tableTitle": "Canonical V/D/M/I Matrix"
+    },
+    {
+      "id": "model_viability_management_review_transfer",
+      "title": "Model Viability Management Review — Transfer Readiness",
+      "queryName": "getModelViabilityManagementReviewTransferRows",
+      "tableTitle": "Transfer and Data-Class Boundaries"
+    },
+    {
+      "id": "model_viability_management_review_no_calls",
+      "title": "Model Viability Management Review — No-Call Guards",
+      "queryName": "getModelViabilityManagementReviewNoCallRows",
+      "tableTitle": "Disabled Consequential Actions"
+    },
+    {
       "id": "e2e",
       "title": "E2E Demo Status",
       "queryName": "getStadtwerkMauerE2EProcessDemo",
@@ -11636,6 +11884,8 @@
     "Safe-Action Catalog binds existing Stadtwerk-Mauer selected-case action rows to committed Operation Capability Index operation ids; Budibase renders operationKind, consequenceLevel, recommendedExecutionMode, scopes, tenant boundary, missing parameters, disabled reasons, next gates and no-call guards as scalar explanation rows only.",
     "Safe-Action Catalog rows keep disabled consequential operations visible but non-executable: direct Rundeck, operations-runbook execution, Budibase/Cernion writes, MaKo, billing, settlement, tariff, SMGW/CLS/device-control, HITL/workflow, external connector, production mutation and Personal-Agent execution remain not-called boundaries.",
     "Flexible Grid-Connection Release File binds the canonical stadtwerk-mauer-flexible-grid-connection-release-file-v1 matrix to existing Blueprint-Pack verify, transfer-readiness and Anschlusskapazitaet evidence-queue read models; no new backend endpoint is introduced.",
-    "Flexible release-file rows stay scalar/generated and synthetic: Budibase renders case, NVP/capacity, restriction/flexibility, reservation/release and contract review boundaries, owner/deadline, missing evidence, next gate and no-call guards without arbitrary writes, approval/rejection, reservation, contract creation, Rundeck, MaKo, billing, settlement, tariff, device control, HITL/workflow, external connectors, production mutation, Landing-Registry publication, secrets or Personal-Agent shortcuts."
+    "Flexible release-file rows stay scalar/generated and synthetic: Budibase renders case, NVP/capacity, restriction/flexibility, reservation/release and contract review boundaries, owner/deadline, missing evidence, next gate and no-call guards without arbitrary writes, approval/rejection, reservation, contract creation, Rundeck, MaKo, billing, settlement, tariff, device control, HITL/workflow, external connectors, production mutation, Landing-Registry publication, secrets or Personal-Agent shortcuts.",
+    "Model Viability Management Review binds the merged single-candidate model-viability-evidence-gate brick, the canonical stadtwerk-mauer-model-viability-management-review-v1 Blueprint-Pack seed, and stadtwerk-mauer-transfer-readiness; no new backend endpoint is introduced.",
+    "Model Viability Management Review rows stay scalar/generated and synthetic: Budibase renders selected candidate, readiness score, per-dimension evidence status, missing evidence, positive follow-ups, decision boundaries, the canonical four-row V/D/M/I matrix, transfer/data-class boundaries and no-call guards without model ranking, scoring, winner selection, economics/legal/regulatory decisions, Budibase writes, Rundeck execution, MaKo, billing, settlement, tariff, device control, HITL/workflow, external connectors, production mutation, Landing-Registry publication, secrets or Personal-Agent shortcuts."
   ]
 }
