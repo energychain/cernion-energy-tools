@@ -108,7 +108,11 @@ describe('operation-capability-classifier', () => {
     // deterministic, bounded read-only analysis operation (issue #459) - the
     // classifier comment must match this actual contract exactly.
     describe.each([
-      ['/api/tabular/profile', 'tabular_profile', 'Build a privacy-aware deterministic table profile'],
+      [
+        '/api/tabular/profile',
+        'tabular_profile',
+        'Build a privacy-aware deterministic table profile',
+      ],
       [
         '/api/tabular/llm-context',
         'tabular_llmContext',
