@@ -58,6 +58,7 @@ The workbench renders:
 - Flexible Grid-Connection Release File selector/sync rows for `stadtwerk-mauer-flexible-grid-connection-release-file-v1`, composed from `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify`, `GET /api/dashboard/stadtwerk-mauer-transfer-readiness` and `GET /api/dashboard/anschlusskapazitaet-evidence-queue`
 - Model Viability Management Review candidate/matrix/transfer rows for `stadtwerk-mauer-model-viability-management-review-v1`, composed from `GET /api/dashboard/model-viability-evidence-gate` (fixed synthetic single-candidate defaults), `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify` and `GET /api/dashboard/stadtwerk-mauer-transfer-readiness`
 - Transfer Readiness rows from `GET /api/dashboard/stadtwerk-mauer-transfer-readiness`, separating public context, synthetic seed data, sandbox runtime artifacts, tenant parameters, reusable Blueprint/Workbench elements and blocked production boundaries
+- Redispatch E2E Evidence Chain rows (#465) for `stadtwerk-mauer-redispatch-participation-readiness-v1`, joining `GET /api/dashboard/redispatch-metering-cockpit`, `GET /api/dashboard/redispatch-call-quality-gate`, `GET /api/dashboard/redispatch-participation-readiness-status`, `GET /api/dashboard/redispatch-project-controlling-kpi-cockpit`, `GET /api/dashboard/owner-deadline-evidence-gate`, `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify` and `GET /api/dashboard/stadtwerk-mauer-transfer-readiness`, reusing the existing Redispatch Participation matrix/evidence/guard/no-call rows instead of cloning them
 - a scope-protected action query for `POST /api/operations-runbook/stadtwerk-mauer/e2e-smoke`
 
 The action query is intentionally still guarded by Cernion scopes. A Budibase button may be
@@ -282,6 +283,22 @@ dashboard facade backed by the existing operations-runbook verify contract. Budi
 the verify query, but it must not execute Rundeck directly, run setup/reset/provisioning, import
 seeds, write public context, mutate Budibase-owned Cernion state, or treat synthetic Blueprint
 evidence as real customer, meter, consent, MaKo, billing, settlement, tariff or device-control data.
+The Redispatch E2E Evidence Chain panel (#465) is a read-only, renderer-only composition, not a
+new Redispatch steering engine, endpoint, case type or second Blueprint seed. It adds a bounded
+selector/section that joins the still-separated Redispatch operational review views — metering/
+masterdata readiness, call quality, project-controlling/KPI, owner/deadline and the final
+Blueprint/transfer gate — around the existing canonical `stadtwerk-mauer-redispatch-participation-readiness-v1`
+five-row matrix, reusing `getRedispatchParticipationMatrixRows`, `getRedispatchParticipationEvidenceRows`,
+`getRedispatchParticipationSeedGuardRows` and `getRedispatchParticipationBoundaryRows` instead of
+cloning their transformers. Budibase renders scalar scope, asset class, metering/masterdata and
+call-quality state, test/forecast/dispatch-proof state, milestone/due-date/data-source health,
+exception/blocker, owner/deadline, final-gate and missing-evidence/next-action rows only, with
+`finalApprovalGranted` fixed to `false`. It must not perform authorization/RBAC/IAM/provisioning,
+Redispatch enrollment, dispatch/control, curtailment or compensation, MaKo/A96, billing,
+settlement, tariff, finance or contract actions, create workflow/task/HITL/CRM/mail/webhook/
+connector calls, write Budibase tables or mutate tenant/production/public context, handle
+secrets, or use Personal-Agent shortcuts; it answers readiness and blocking evidence only, not
+authorization, controllability, productive participation or final approval.
 
 ## Case View Manifest Contract
 

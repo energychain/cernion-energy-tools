@@ -5606,4 +5606,230 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       ])
     );
   });
+
+  it('adds the Redispatch E2E Evidence Chain section joining metering, call-quality, project-controlling, owner/deadline and final-gate rows (#465)', () => {
+    const newNames = [
+      'getRedispatchE2eChainSelectorRows',
+      'getRedispatchE2eMeteringMasterdataRows',
+      'getRedispatchE2eCallQualityRows',
+      'getRedispatchE2eProjectControllingKpiRows',
+      'getRedispatchE2eOwnerDeadlineRows',
+      'getRedispatchE2eFinalGateTransferRows',
+    ];
+    const queries = manifest.queries.filter((query) => newNames.includes(query.name));
+    expect(queries).toHaveLength(newNames.length);
+    expect(new Set(queries.map((query) => query.path))).toEqual(
+      new Set([
+        '/api/dashboard/stadtwerk-mauer-blueprint-pack-verify',
+        '/api/dashboard/redispatch-metering-cockpit',
+        '/api/dashboard/redispatch-call-quality-gate',
+        '/api/dashboard/redispatch-project-controlling-kpi-cockpit',
+        '/api/dashboard/owner-deadline-evidence-gate',
+        '/api/dashboard/stadtwerk-mauer-transfer-readiness',
+      ])
+    );
+    expect(
+      queries
+        .filter((query) => query.path.includes('blueprint-pack-verify') || query.path.includes('transfer-readiness'))
+        .every((query) =>
+          query.queryString.includes('stadtwerk-mauer-redispatch-participation-readiness-v1')
+        )
+    ).toBe(true);
+
+    const reusedNames = [
+      'getRedispatchParticipationMatrixRows',
+      'getRedispatchParticipationEvidenceRows',
+      'getRedispatchParticipationSeedGuardRows',
+      'getRedispatchParticipationBoundaryRows',
+    ];
+    expect(
+      manifest.queries.filter((query) => reusedNames.includes(query.name))
+    ).toHaveLength(reusedNames.length);
+
+    const e2eSectionIds = manifest.sections
+      .filter((section) => section.id.startsWith('redispatch_e2e_'))
+      .map((section) => section.id);
+    expect(e2eSectionIds).toEqual(
+      expect.arrayContaining([
+        'redispatch_e2e_chain_selector',
+        'redispatch_e2e_metering_masterdata',
+        'redispatch_e2e_call_quality',
+        'redispatch_e2e_test_object_matrix',
+        'redispatch_e2e_evidence_gaps',
+        'redispatch_e2e_project_controlling_kpi',
+        'redispatch_e2e_owner_deadline',
+        'redispatch_e2e_final_gate_guard',
+        'redispatch_e2e_final_gate_transfer',
+        'redispatch_e2e_boundaries',
+      ])
+    );
+    expect(
+      manifest.sections
+        .filter((section) => section.id.startsWith('redispatch_e2e_'))
+        .map((section) => section.queryName)
+    ).toEqual(
+      expect.arrayContaining([
+        ...newNames,
+        'getRedispatchParticipationMatrixRows',
+        'getRedispatchParticipationEvidenceRows',
+        'getRedispatchParticipationSeedGuardRows',
+        'getRedispatchParticipationBoundaryRows',
+      ])
+    );
+    expect(manifest.notes.join(' ')).toContain('Redispatch E2E Evidence Chain (#465)');
+
+    const selectorRows = runTransformer('getRedispatchE2eChainSelectorRows', {
+      data: {
+        seedId: 'stadtwerk-mauer-redispatch-participation-readiness-v1',
+        processFamily: 'redispatch_readiness',
+        controlCase: 'redispatch_participation_readiness',
+      },
+    });
+    expectScalarRows(selectorRows);
+    expectNoRawObjectText(selectorRows);
+    expect(selectorRows[0]).toMatchObject({
+      rowKey: 'redispatch_e2e_chain_selector',
+      availableSeedId: 'stadtwerk-mauer-redispatch-participation-readiness-v1',
+      selected: true,
+      scope: 'redispatch_participation_readiness_review',
+      roleTarget: 'ROLE_GRID_OPERATIONS_LEAD',
+    });
+
+    const meteringRows = runTransformer('getRedispatchE2eMeteringMasterdataRows', {
+      operator: { gridOperatorId: 'SNB000000000000' },
+      decisionReadiness: { signal: 'yellow', score: 55, blocked: true },
+      blockingEvidenceGaps: [
+        {
+          code: 'METERING_EVIDENCE_MISSING',
+          severity: 'high',
+          source: 'datapoint.health',
+          message: 'Keine belastbare Metering-Evidenz verfuegbar.',
+        },
+      ],
+      staleData: [{ source: 'datapoint.health', indicator: 'staleDatapoints', value: 3 }],
+    });
+    expectScalarRows(meteringRows);
+    expectNoRawObjectText(meteringRows);
+    expect(meteringRows[0]).toMatchObject({
+      rowKey: 'redispatch_e2e_metering_masterdata_summary',
+      state: 'yellow',
+      severity: 'blocking',
+      sourceClass: 'redispatch_e2e_metering_masterdata_summary',
+    });
+    expect(meteringRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'redispatch_e2e_metering_blocker_1',
+          state: 'METERING_EVIDENCE_MISSING',
+        }),
+        expect.objectContaining({ rowKey: 'redispatch_e2e_metering_stale_1', state: 'stale' }),
+      ])
+    );
+
+    const callQualityRows = runTransformer('getRedispatchE2eCallQualityRows', {
+      gateStatus: 'needs_metering_clarification',
+      missingDataPoints: [
+        {
+          missingDataPoint: 'loadProfileCompleteness',
+          enablesDossierAddition: 'Nullwerte und Lastgangluecken koennen bewertet werden',
+          category: 'metering',
+          severity: 'high',
+        },
+      ],
+    });
+    expectScalarRows(callQualityRows);
+    expectNoRawObjectText(callQualityRows);
+    expect(callQualityRows[0]).toMatchObject({
+      rowKey: 'redispatch_e2e_call_quality_summary',
+      testStatus: 'needs_metering_clarification',
+      sourceClass: 'redispatch_e2e_call_quality_summary',
+    });
+
+    const projectKpiRows = runTransformer('getRedispatchE2eProjectControllingKpiRows', {
+      status: 'needs_load_profile_evidence',
+      projectContext: { period: '2026-Q3' },
+      taskSignals: [
+        {
+          taskId: 'redispatch-e2e-review-mauer',
+          owner: 'ROLE_GRID_OPERATIONS_LEAD',
+          dueDate: '2026-08-15',
+          blockedDecision: 'Redispatch Participation Readiness Review',
+        },
+      ],
+      sourceHealth: ['datasource=ready; freshness=ready; quality=ready'],
+      evidenceGaps: [
+        {
+          missingDataPoint: 'load_profile_evidence',
+          status: 'missing',
+          value: false,
+          enablesDossierAddition: 'add load-profile / Lastgang evidence for the controlling period',
+        },
+      ],
+    });
+    expectScalarRows(projectKpiRows);
+    expectNoRawObjectText(projectKpiRows);
+    expect(projectKpiRows[0]).toMatchObject({
+      rowKey: 'redispatch_e2e_project_kpi_summary',
+      status: 'needs_load_profile_evidence',
+      owner: 'ROLE_GRID_OPERATIONS_LEAD',
+      dueDate: '2026-08-15',
+    });
+
+    const ownerDeadlineRows = runTransformer('getRedispatchE2eOwnerDeadlineRows', {
+      readinessSignals: [
+        {
+          code: 'redispatch_e2e_owner_deadline',
+          label: 'Owner/Deadline',
+          status: 'missing',
+          rawStatus: null,
+          ownerRole: 'ROLE_GRID_OPERATIONS_LEAD',
+          dueAt: '2026-08-15T12:00:00.000Z',
+          finding: 'evidence missing',
+          enablesDossierAddition: 'x',
+          statusWhenMissing: 'needs_evidence',
+        },
+      ],
+    });
+    expectScalarRows(ownerDeadlineRows);
+    expectNoRawObjectText(ownerDeadlineRows);
+    expect(ownerDeadlineRows[0]).toMatchObject({
+      rowKey: 'redispatch_e2e_owner_deadline',
+      owner: 'ROLE_GRID_OPERATIONS_LEAD',
+      dueDate: '2026-08-15T12:00:00.000Z',
+      state: 'missing',
+    });
+
+    const finalGatePendingRows = runTransformer('getRedispatchE2eFinalGateTransferRows', {
+      status: 'transfer_blocked',
+    });
+    expectScalarRows(finalGatePendingRows);
+    expectNoRawObjectText(finalGatePendingRows);
+    expect(finalGatePendingRows[0]).toMatchObject({
+      rowKey: 'redispatch_e2e_final_gate_pending',
+      status: 'transfer_blocked',
+      finalApprovalGranted: false,
+    });
+
+    const finalGateTransferRows = runTransformer('getRedispatchE2eFinalGateTransferRows', {
+      status: 'ready_for_onboarding_discussion',
+      transferSummaryRows: [
+        {
+          rowKey: 'transfer_readiness',
+          label: 'Transfer Readiness',
+          status: 'ready_for_onboarding_discussion',
+        },
+      ],
+    });
+    expectScalarRows(finalGateTransferRows);
+    expectNoRawObjectText(finalGateTransferRows);
+    expect(finalGateTransferRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'transfer_readiness',
+          status: 'ready_for_onboarding_discussion',
+          finalApprovalGranted: false,
+        }),
+      ])
+    );
+  });
 });
