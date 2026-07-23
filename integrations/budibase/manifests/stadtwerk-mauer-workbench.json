@@ -10510,6 +10510,249 @@
           "type": "string"
         }
       }
+    },
+    {
+      "name": "getTabularDecisionInputReadinessVerifyRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-tabular-decision-input-readiness-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.data||{}; const counts=(data.summary||{}).counts||{}; const v=d.validation||{}; const base={seedId:d.seedId||'stadtwerk-mauer-tabular-decision-input-readiness-v1',tenantId:d.tenantId||data.tenantId||'stadtwerk-mauer',caseId:'smm-tabular-decision-input-review-001',sourceClass:'tabular_decision_input_readiness_verify'}; const selection={rowKey:'tdir_selection',label:'Selected table/case and role question',value:'Data Governance / Netzdaten Owner / Process Owner: Is this table sufficiently profiled and evidenced for the next process review, which quality/provenance gap remains, who owns clarification, and which safe next gate is available?',status:String(data.status||'unknown'),safeNextGate:'refresh_read_only_verify_rows',...base}; const verify={rowKey:'tdir_verify',label:'Blueprint-Pack verification',value:[d.processFamily||'tabular_data_quality_governance',d.controlCase||'decision_input_table_readiness_review'].join(' / '),status:String(data.status||'unknown'),valid:Boolean(v.valid),requiredEvidenceCount:Number(counts.requiredEvidence||0),matrixRowCount:Number(counts.demoProcessMatrixRows||0),forbiddenActionCount:Number(counts.forbiddenActions||0),safeNextGate:String((data.nextActions||[])[0]||'refresh_read_only_verify_rows'),...base}; return [selection,verify];",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "valid": {
+          "type": "boolean"
+        },
+        "requiredEvidenceCount": {
+          "type": "number"
+        },
+        "matrixRowCount": {
+          "type": "number"
+        },
+        "forbiddenActionCount": {
+          "type": "number"
+        },
+        "safeNextGate": {
+          "type": "string"
+        },
+        "seedId": {
+          "type": "string"
+        },
+        "tenantId": {
+          "type": "string"
+        },
+        "caseId": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getTabularDecisionInputReadinessMatrixRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-tabular-decision-input-readiness-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.data||{}; const m=d.demoProcessMatrixSync||{}; const handoff=m.downstreamHandoff||{}; const base={seedId:d.seedId||'stadtwerk-mauer-tabular-decision-input-readiness-v1',roleLegendM:String(m.roleLegendM||'Mitwirkend'),rowCount:Number(m.rowCount||0),rowCountValid:Boolean(m.rowCountValid),syncChainLabel:'Blueprint-Pack/Cernion-Energy-Tools -> Landing-Registry -> Produktivseite'}; const summary={rowKey:'tdir_matrix_sync',phase:'sync',v:'ROLE_DATA_GOVERNANCE',d:'ROLE_CERNION_GOVERNANCE',m:base.roleLegendM,i:'ROLE_PROCESS_OWNER',nachweise:(m.evidenceRequirements||[]).map(String).join(', '),status:m.synced?'blueprint_pack_complete':'sync_proof_required',downstreamHandoff:[handoff.blueprintPack||'complete',handoff.landingRegistry||'pending',handoff.productiveDemoRoom||'pending'].join(' -> '),safeNextGate:'keep_landing_registry_and_productive_demo_room_blocked_until_sync_proof',sourceClass:'tabular_decision_input_readiness_matrix_sync',...base}; const rows=(m.rows||[]).map((row,index)=>{const roles=row.roles||{}; return {rowKey:'tdir_matrix_'+String(row.phase||index+1),phase:String(row.phase||index+1),v:String(roles.V||row.v||''),d:String(roles.D||row.d||''),m:String(roles.M||row.m||''),i:String(roles.I||row.i||''),nachweise:(row.evidenceRequirements||[]).map(String).join(', '),status:String(row.status||''),safeNextGate:String(row.gateOutcome||row.enablesDossierAddition||'refresh_read_only_matrix'),sourceClass:'tabular_decision_input_readiness_matrix_row',...base};}); return [summary].concat(rows);",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "phase": {
+          "type": "string"
+        },
+        "v": {
+          "type": "string"
+        },
+        "d": {
+          "type": "string"
+        },
+        "m": {
+          "type": "string"
+        },
+        "i": {
+          "type": "string"
+        },
+        "nachweise": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "downstreamHandoff": {
+          "type": "string"
+        },
+        "safeNextGate": {
+          "type": "string"
+        },
+        "seedId": {
+          "type": "string"
+        },
+        "roleLegendM": {
+          "type": "string"
+        },
+        "rowCount": {
+          "type": "number"
+        },
+        "rowCountValid": {
+          "type": "boolean"
+        },
+        "syncChainLabel": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getTabularDecisionInputReadinessEvidenceRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-tabular-decision-input-readiness-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.data||{}; const missing=Array.isArray(d.missingEvidence)?d.missingEvidence:[]; const groups={tableScopeEvidence:'scope_privacy_profile_hash',privacyContextEvidence:'scope_privacy_profile_hash',profileHashEvidence:'scope_privacy_profile_hash',schemaProfileEvidence:'schema_and_quality_findings',missingValueEvidence:'schema_and_quality_findings',duplicateEvidence:'schema_and_quality_findings',intervalQualityEvidence:'schema_and_quality_findings',outlierEvidence:'schema_and_quality_findings',executedPlanEvidence:'plan_source_result_hash_warning',sourceRowCountEvidence:'plan_source_result_hash_warning',resultRowCountEvidence:'plan_source_result_hash_warning',inputPlanResultHashEvidence:'plan_source_result_hash_warning',warningEvidence:'plan_source_result_hash_warning',decisionInputReadinessEvidence:'owner_readiness_next_gate',clarificationOwnerEvidence:'owner_readiness_next_gate',nextSafeGateEvidence:'owner_readiness_next_gate',noCallGuardEvidence:'operation_boundary'}; const base={seedId:d.seedId||'stadtwerk-mauer-tabular-decision-input-readiness-v1',tenantId:d.tenantId||data.tenantId||'stadtwerk-mauer',caseId:'smm-tabular-decision-input-review-001',sourceClass:'tabular_decision_input_readiness_evidence'}; return missing.map((item)=>({rowKey:'tdir_evidence_'+String(item.missingDataPoint||''),missingDataPoint:String(item.missingDataPoint||''),group:String(groups[item.missingDataPoint]||'other'),state:String(item.state||'evidence_gap'),enablesDossierAddition:String(item.enablesDossierAddition||''),...base}));",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "missingDataPoint": {
+          "type": "string"
+        },
+        "group": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        },
+        "enablesDossierAddition": {
+          "type": "string"
+        },
+        "seedId": {
+          "type": "string"
+        },
+        "tenantId": {
+          "type": "string"
+        },
+        "caseId": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getTabularDecisionInputReadinessTransferRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-transfer-readiness",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-tabular-decision-input-readiness-v1&caseId=smm-tabular-decision-input-review-001",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const rows=[...(data.transferSummaryRows||[]),...(data.dataClassRows||[]),...(data.safeNextGateRows||[]),...(data.productionBoundaryRows||[])]; const source=rows.length?rows:[{rowKey:'tdir_transfer_pending',label:'Transfer readiness',status:data.status||'pending',description:'Blueprint-Pack canonical; Landing-Registry and Produktivseite sync pending'}]; return source.map((row,index)=>({rowKey:String(row.rowKey||'tdir_transfer_'+(index+1)),label:String(row.label||row.category||'Transfer readiness'),status:String(row.status||row.transferState||data.status||'pending'),value:String(row.value||row.description||row.examples||row.boundary||row.safeNextGate||row.safety||''),dataClass:String(row.category||row.sourceClass||'transfer_readiness'),productionBlocked:Boolean(row.productionBlocked||row.disabled),safeNextGate:String(row.safeNextAction||row.safeNextGate||row.nextGate||'refresh_transfer_readiness'),sourceClass:String(row.sourceClass||'tabular_decision_input_readiness_transfer')}));",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "dataClass": {
+          "type": "string"
+        },
+        "productionBlocked": {
+          "type": "boolean"
+        },
+        "safeNextGate": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getTabularDecisionInputReadinessOperationBoundaryRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-tabular-decision-input-readiness-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.data||{}; const forbidden=Array.isArray(d.forbiddenActions)?d.forbiddenActions:[]; const notCalled=Array.isArray((d.sourceActions||{}).notCalled)?d.sourceActions.notCalled:[]; const tabularOps=[['tabular_profile','profile','/api/tabular/profile'],['tabular_qualityReport','quality-report','/api/tabular/quality-report'],['tabular_queryPlan','query-plan','/api/tabular/query-plan'],['tabular_executePlan','execute-plan','/api/tabular/execute-plan']]; const opRows=tabularOps.map(([operationId,operationName,operationPath])=>({rowKey:'tdir_op_'+operationName.replace(/-/g,'_'),operationId,operationName,operationPath:'POST '+operationPath,invocation:'source_hint_only',status:'not_called',disabled:true,safeAlternative:'render_curated_metadata_only_no_runtime_call',sourceClass:'tabular_intelligence_operation_boundary'})); const guardRows=[...new Set(forbidden.concat(notCalled).map(String))].map((action,index)=>({rowKey:'tdir_guard_'+String(index+1),boundary:action,status:'not_called',disabled:true,safeAlternative:'refresh_existing_read_only_dashboard_rows_or_verify_blueprint_seed',sourceClass:'tabular_decision_input_readiness_no_call_guard'})); return opRows.concat(guardRows);",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "operationId": {
+          "type": "string"
+        },
+        "operationName": {
+          "type": "string"
+        },
+        "operationPath": {
+          "type": "string"
+        },
+        "invocation": {
+          "type": "string"
+        },
+        "boundary": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "disabled": {
+          "type": "boolean"
+        },
+        "safeAlternative": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
     }
   ],
   "sections": [
@@ -11828,6 +12071,36 @@
       "tableTitle": "Disabled Consequential Actions"
     },
     {
+      "id": "tabular_decision_input_readiness_verify",
+      "title": "Tabular Decision-Input Readiness — Selection and Verify",
+      "queryName": "getTabularDecisionInputReadinessVerifyRows",
+      "tableTitle": "Selected Table/Case, Role Question and Blueprint Verification"
+    },
+    {
+      "id": "tabular_decision_input_readiness_matrix_sync",
+      "title": "Tabular Decision-Input Readiness — Matrix Sync",
+      "queryName": "getTabularDecisionInputReadinessMatrixRows",
+      "tableTitle": "Canonical V/D/M/I Matrix"
+    },
+    {
+      "id": "tabular_decision_input_readiness_evidence",
+      "title": "Tabular Decision-Input Readiness — Evidence",
+      "queryName": "getTabularDecisionInputReadinessEvidenceRows",
+      "tableTitle": "Scope, Quality, Plan and Readiness Evidence"
+    },
+    {
+      "id": "tabular_decision_input_readiness_transfer",
+      "title": "Tabular Decision-Input Readiness — Transfer Readiness",
+      "queryName": "getTabularDecisionInputReadinessTransferRows",
+      "tableTitle": "Transfer and Data-Class Boundaries"
+    },
+    {
+      "id": "tabular_decision_input_readiness_operation_boundaries",
+      "title": "Tabular Decision-Input Readiness — Operation Boundaries",
+      "queryName": "getTabularDecisionInputReadinessOperationBoundaryRows",
+      "tableTitle": "Tabular Intelligence Operation Metadata and No-Call Guards"
+    },
+    {
       "id": "e2e",
       "title": "E2E Demo Status",
       "queryName": "getStadtwerkMauerE2EProcessDemo",
@@ -11886,6 +12159,9 @@
     "Flexible Grid-Connection Release File binds the canonical stadtwerk-mauer-flexible-grid-connection-release-file-v1 matrix to existing Blueprint-Pack verify, transfer-readiness and Anschlusskapazitaet evidence-queue read models; no new backend endpoint is introduced.",
     "Flexible release-file rows stay scalar/generated and synthetic: Budibase renders case, NVP/capacity, restriction/flexibility, reservation/release and contract review boundaries, owner/deadline, missing evidence, next gate and no-call guards without arbitrary writes, approval/rejection, reservation, contract creation, Rundeck, MaKo, billing, settlement, tariff, device control, HITL/workflow, external connectors, production mutation, Landing-Registry publication, secrets or Personal-Agent shortcuts.",
     "Model Viability Management Review binds the merged single-candidate model-viability-evidence-gate brick, the canonical stadtwerk-mauer-model-viability-management-review-v1 Blueprint-Pack seed, and stadtwerk-mauer-transfer-readiness; no new backend endpoint is introduced.",
-    "Model Viability Management Review rows stay scalar/generated and synthetic: Budibase renders selected candidate, readiness score, per-dimension evidence status, missing evidence, positive follow-ups, decision boundaries, the canonical four-row V/D/M/I matrix, transfer/data-class boundaries and no-call guards without model ranking, scoring, winner selection, economics/legal/regulatory decisions, Budibase writes, Rundeck execution, MaKo, billing, settlement, tariff, device control, HITL/workflow, external connectors, production mutation, Landing-Registry publication, secrets or Personal-Agent shortcuts."
+    "Model Viability Management Review rows stay scalar/generated and synthetic: Budibase renders selected candidate, readiness score, per-dimension evidence status, missing evidence, positive follow-ups, decision boundaries, the canonical four-row V/D/M/I matrix, transfer/data-class boundaries and no-call guards without model ranking, scoring, winner selection, economics/legal/regulatory decisions, Budibase writes, Rundeck execution, MaKo, billing, settlement, tariff, device control, HITL/workflow, external connectors, production mutation, Landing-Registry publication, secrets or Personal-Agent shortcuts.",
+    "Tabular Decision-Input Readiness (#478) is generated manifest composition, not a new Cernion endpoint. It composes only the existing stadtwerk-mauer-blueprint-pack-verify and stadtwerk-mauer-transfer-readiness read models for the canonical stadtwerk-mauer-tabular-decision-input-readiness-v1 Blueprint-Pack seed and synthetic case smm-tabular-decision-input-review-001; no Tabular Intelligence operation (profile, quality-report, query-plan, execute-plan) is invoked.",
+    "Tabular Decision-Input Readiness rows stay scalar/generated and synthetic: Budibase renders the selected table/case and role question, Blueprint-Pack validity, the canonical four-row V/D/M/I matrix with roleLegend.M = Mitwirkend, scope/privacy/profile-hash evidence, schema/missing-value/duplicate/interval-quality/outlier evidence, executed-plan/source-row/result-row/hash/warning evidence state, owner/readiness/next-safe-gate evidence, transfer-readiness and data-class boundaries, and the visible Blueprint-Pack/Cernion-Energy-Tools -> Landing-Registry -> Produktivseite sync chain with Landing-Registry and Produktivseite explicitly pending.",
+    "Tabular Decision-Input Readiness renders profile, quality-report, query-plan and execute-plan only as curated operation-boundary metadata rows (operationId, operationPath, invocation: source_hint_only, status: not_called); Budibase must not call /api/tabular/profile, /api/tabular/quality-report, /api/tabular/query-plan or /api/tabular/execute-plan, import or mutate source rows, execute SQL/expressions/callbacks, export raw rows, write Budibase or Cernion tables, publish the Landing Registry or cernion.de, run MaKo/A96/billing/settlement/tariff/Redispatch/device-control actions, handle secrets, or use Personal-Agent shortcuts."
   ]
 }
