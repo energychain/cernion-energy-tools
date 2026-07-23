@@ -34,7 +34,7 @@ Anything that reads like "create a Klärfall", "assign an owner", "advance the s
 
 ### Owner / Deadline / Evidence (`owner-deadline-evidence-gate`)
 
-Answers: who owns the open question, what is the deadline, what evidence is supplied or missing, what decision is blocked, and what is the next clarification step. Accepts caller-supplied facts only (`signalId`, `sourceType`, `sourceRef`, `processType`, `riskLevel`, `ownerRole`, `ownerContact`, `dueAt`, `evidenceRef`, `evidenceStatus`, `blockedDecision`, `linkedEntity`, `blockedByMissingEvidence`, `overdue`, `missingEvidence`, `evidenceGaps`, `caseId`) and classifies them into a `readinessSignals[]` / `evidenceGaps[]` / `positiveFollowUps[]` view. See the full contract in [owner-deadline-evidence-gate.md](owner-deadline-evidence-gate.md).
+Answers: who owns the open question, what is the deadline, what evidence is supplied or missing, what decision is blocked, and what is the next clarification step. Accepts caller-supplied facts only (`signalId`, `sourceType`, `sourceRef`, `processType`, `riskLevel`, `ownerRole`, `ownerContact`, `dueAt`, `evidenceRef`, `evidenceStatus`, `blockedDecision`, `linkedEntity`, `blockedByMissingEvidence`, `overdue`, `signalContextStatus`, `missingEvidence`, `evidenceGaps`, `caseId`) and classifies them into a `readinessSignals[]` / `evidenceGaps[]` / `positiveFollowUps[]` view. See the full contract in [owner-deadline-evidence-gate.md](owner-deadline-evidence-gate.md).
 
 **Synthetic query example:**
 
@@ -51,7 +51,7 @@ GET /api/dashboard/owner-deadline-evidence-gate
 
 ### Decision-Readiness Interpretation (`decision-readiness-matrix`)
 
-Answers: given the supplied case/measure facts, is this clarification ready for its next cross-functional review, and if not, what evidence gap explains that. Accepts caller-supplied facts only (`caseId`, `measureId`, `measureName`, `category`, `budgetStatus`, `financingOption`, `riskIfNotImplemented`, `evidenceSource`, `owner`, `committeeWindow`, `nextDecisionPoint`, `blockers`, `openEvidence`) and returns row readiness, `missingEvidence[]`, `positiveFollowUps[]` and `decisionBoundaries[]` without approving, budgeting or scheduling anything.
+Answers: given the supplied case/measure facts, is this clarification ready for its next cross-functional review, and if not, what evidence gap explains that. Accepts caller-supplied facts only (`caseId`, `measureId`, `measureName`, `category`, `budgetStatus`, `financingOption`, `riskIfNotImplemented`, `evidenceSource`, `owner`, `committeeWindow`, `nextDecisionPoint`, `blockers`, `openEvidence`, `includeSyntheticRows`) and returns row readiness, `missingEvidence[]`, `positiveFollowUps[]` and `decisionBoundaries[]` without approving, budgeting or scheduling anything.
 
 **Synthetic query example:**
 
