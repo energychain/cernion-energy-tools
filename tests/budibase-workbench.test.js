@@ -5080,6 +5080,26 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
           rowKey: 'demo_raum_sync',
           intentionallyUnavailable: 'only visible for canonical Blueprint-Pack matrix seeds',
         }),
+        expect.objectContaining({
+          rowKey: 'role_workbench_catalog',
+          queryName: 'getStadtwerkMauerRoleWorkbenchCatalog',
+          targetRoute: 'role-catalog',
+        }),
+        expect.objectContaining({
+          rowKey: 'tenant_databrowser',
+          queryName: 'getStadtwerkMauerTenantDatabrowser',
+          targetRoute: 'tenant-databrowser',
+        }),
+        expect.objectContaining({
+          rowKey: 'grid_planning_role_queue',
+          queryName: 'getStadtwerkMauerGridPlanningRoleQueue',
+          targetRoute: 'grid-planning-role-queue',
+        }),
+        expect.objectContaining({
+          rowKey: 'e2e_process_demo',
+          queryName: 'getStadtwerkMauerE2EProcessDemo',
+          targetRoute: 'e2e-process-demo',
+        }),
       ])
     );
 
@@ -5332,11 +5352,17 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       const rows = runTransformer(name, fixture);
       expectScalarRows(rows);
       expectNoRawObjectText(rows);
+      for (const row of rows) {
+        expect(row.renderTarget).toBe(
+          'budibase:stadtwerk-mauer-workbench:flexible-grid-connection-release-file-panel'
+        );
+      }
     }
     expect(runTransformer('getFlexibleGridConnectionReleaseFileMatrixRows', blueprint)).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           rowKey: 'flex_release_matrix_sync',
+          renderTarget: 'budibase:stadtwerk-mauer-workbench:flexible-grid-connection-release-file-panel',
           roleLegendM: 'Mitwirkend',
           rowCount: 5,
           downstreamHandoff: 'complete -> pending -> pending',
