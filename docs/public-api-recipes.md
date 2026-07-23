@@ -143,7 +143,7 @@ Synthetic response fixture:
 
 Endpoint: `POST https://api.cernion.de/api/customer-service/portal-widget`
 
-OpenAPI anchor: `paths['/api/customer-service/portal-widget'].post`, operationId `customer_service_portalWidget`.
+OpenAPI anchor: `paths['/api/customer-service/portal-widget'].post`, operationId `customer-service_portalWidget`.
 
 Link target: <https://api.cernion.de/api/docs> and OpenAPI JSON path `paths['/api/customer-service/portal-widget'].post`.
 
