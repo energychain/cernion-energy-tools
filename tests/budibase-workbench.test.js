@@ -5362,7 +5362,8 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       expect.arrayContaining([
         expect.objectContaining({
           rowKey: 'flex_release_matrix_sync',
-          renderTarget: 'budibase:stadtwerk-mauer-workbench:flexible-grid-connection-release-file-panel',
+          renderTarget:
+            'budibase:stadtwerk-mauer-workbench:flexible-grid-connection-release-file-panel',
           roleLegendM: 'Mitwirkend',
           rowCount: 5,
           downstreamHandoff: 'complete -> pending -> pending',
@@ -5927,7 +5928,8 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
           roleLegendM: 'Mitwirkend',
           rowCount: 4,
           downstreamHandoff: 'complete -> pending -> pending',
-          syncChainLabel: 'Blueprint-Pack/Cernion-Energy-Tools -> Landing-Registry -> Produktivseite',
+          syncChainLabel:
+            'Blueprint-Pack/Cernion-Energy-Tools -> Landing-Registry -> Produktivseite',
         }),
       ])
     );
