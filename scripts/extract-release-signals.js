@@ -109,10 +109,9 @@ function parseChangelogEntries(markdown) {
       continue;
     }
 
-    const sectionMatch = line.match(/^###\s+(.+)$/);
-    if (sectionMatch) {
+    if (line.startsWith('### ')) {
       flush();
-      currentSection = sectionMatch[1].trim();
+      currentSection = line.slice(4).trim();
       continue;
     }
 
@@ -138,20 +137,28 @@ function parseChangelogEntries(markdown) {
 
 function extractEntryTitle(text) {
   const boldMatch = String(text || '').match(/^\*\*([^*]+)\*\*/);
-  if (boldMatch) return boldMatch[1].replace(/`/g, '').trim();
+  if (boldMatch) return boldMatch[1].replaceAll('`', '').trim();
   return truncateText(
     String(text || '')
       .split(':')[0]
-      .replace(/`/g, ''),
+      .replaceAll('`', ''),
     140
   );
+}
+
+function stripTrailingEndpointPunctuation(value) {
+  let cleaned = String(value || '');
+  while (cleaned.length > 0 && '),.;'.includes(cleaned.at(-1))) {
+    cleaned = cleaned.slice(0, -1);
+  }
+  return cleaned;
 }
 
 function extractEndpointRefs(text) {
   const refs = [];
   const regex = /\b(GET|POST|PUT|PATCH|DELETE|OPTIONS|HEAD)\s+(\/api\/[\w./:{}-]+)/gi;
   for (const match of String(text || '').matchAll(regex)) {
-    refs.push(`${match[1].toUpperCase()} ${match[2].replace(/[),.;]+$/, '')}`);
+    refs.push(`${match[1].toUpperCase()} ${stripTrailingEndpointPunctuation(match[2])}`);
   }
   return Array.from(new Set(refs));
 }
@@ -160,7 +167,7 @@ function extractPathRefs(text) {
   const refs = [];
   const regex = /(?:`|\b)(\/api\/[\w./:{}-]+)(?:`|\b)/g;
   for (const match of String(text || '').matchAll(regex)) {
-    refs.push(match[1].replace(/[),.;]+$/, ''));
+    refs.push(stripTrailingEndpointPunctuation(match[1]));
   }
   return Array.from(new Set(refs));
 }
@@ -325,7 +332,7 @@ function buildServiceSignals(operations, entries) {
   return Array.from(services.values())
     .map((service) => ({
       ...service,
-      tags: Array.from(service.tags).sort(),
+      tags: Array.from(service.tags).sort((a, b) => a.localeCompare(b)),
       changelogMentions: service.changelogMentions.slice(0, 10),
       publicationBoundary: 'raw-extraction-only',
     }))
@@ -444,8 +451,8 @@ function renderMarkdownReport(report) {
 
 function escapeMarkdownCell(value) {
   return String(value || '')
-    .replace(/\\/g, '\\\\')
-    .replace(/\|/g, '\\|')
+    .replaceAll('\\', '\\\\')
+    .replaceAll('|', '\\|')
     .replace(/\r?\n/g, '<br>');
 }
 

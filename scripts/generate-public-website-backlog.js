@@ -130,8 +130,9 @@ function normalizeText(value) {
 
 function slugify(value) {
   return normalizeText(value)
-    .replace(/[^a-z0-9äöüß]+/g, '-')
-    .replace(/^-+|-+$/g, '')
+    .split(/[^a-z0-9äöüß]+/)
+    .filter(Boolean)
+    .join('-')
     .slice(0, 80);
 }
 
@@ -162,10 +163,9 @@ function parseChangelogEntries(markdown) {
       continue;
     }
 
-    const sectionMatch = line.match(/^###\s+(.+)$/);
-    if (sectionMatch) {
+    if (line.startsWith('### ')) {
       flush();
-      currentSection = sectionMatch[1].trim();
+      currentSection = line.slice(4).trim();
       continue;
     }
 
@@ -190,8 +190,8 @@ function parseChangelogEntries(markdown) {
 
 function extractEntryTitle(text) {
   const boldMatch = text.match(/^\*\*([^*]+)\*\*/);
-  if (boldMatch) return boldMatch[1].replace(/`/g, '').trim();
-  return text.split(':')[0].replace(/`/g, '').slice(0, 120).trim();
+  if (boldMatch) return boldMatch[1].replaceAll('`', '').trim();
+  return text.split(':')[0].replaceAll('`', '').slice(0, 120).trim();
 }
 
 function loadOpenApiOperations(spec) {
@@ -538,8 +538,8 @@ function renderChannelPackageSummary(channelPackages) {
 
 function escapeMarkdownCell(value) {
   return String(value || '')
-    .replace(/\\/g, '\\\\')
-    .replace(/\|/g, '\\|')
+    .replaceAll('\\', '\\\\')
+    .replaceAll('|', '\\|')
     .replace(/\r?\n/g, '<br>');
 }
 
