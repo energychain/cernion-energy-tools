@@ -31,6 +31,8 @@
     "check:llm": "node scripts/generate-llm-txt.js --check",
     "generate:operation-capability-index": "node scripts/generate-operation-capability-index.js",
     "check:operation-capability-index": "node scripts/generate-operation-capability-index.js --check",
+    "generate:public-website-backlog": "node scripts/generate-public-website-backlog.js",
+    "extract:release-signals": "node scripts/extract-release-signals.js",
     "check:quality-gate": "node scripts/check-quality-gate.js",
     "release:check": "npm run test:unit:ci && npm run test:tdd-matrix && npm run check:tdd-matrix-coverage && npm run audit:openapi && npm run check:llm && npm run check:operation-capability-index && npm run check:quality-gate && npm run audit:security",
     "export:openapi": "node scripts/export-openapi.js",
