@@ -208,6 +208,9 @@ The complete REST API is generated from Moleculer service metadata.
 - Swagger UI: `GET /api/docs`
 - OpenAPI JSON: `GET /api/openapi.json`
 - Static export: `openapi-export.json`
+- Public API recipes for developer and LLM discovery: [docs/public-api-recipes.md](docs/public-api-recipes.md)
+
+The recipes use only synthetic examples, environment-variable based tokens and tenant-safe demo identifiers. They document consultation/read-only/pending-confirmation boundaries and are not approval, billing, tariff, device-control, contract or production-mutation demos.
 
 Regenerate and audit:
 
