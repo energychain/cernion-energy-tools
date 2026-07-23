@@ -347,9 +347,13 @@ function inferRecommendedFollowUpAgent(candidate) {
   if (candidate.targetRole === 'Felix' && candidate.demoReadiness === 'demo-ready') {
     return 'felix-demo-sales';
   }
-  if (candidate.websiteTargetPage.includes('corrently.io')) return 'devops-api-check';
+  if (hasSiteHost(candidate.websiteTargetPage, 'corrently.io')) return 'devops-api-check';
   if (candidate.endpoints.length > 0) return 'webmaster';
   return 'rhajaina-claim-review';
+}
+
+function hasSiteHost(sitePath, expectedHost) {
+  return String(sitePath || '').split('/')[0] === expectedHost;
 }
 
 function buildChannelPackages(candidate) {
@@ -534,6 +538,7 @@ function renderChannelPackageSummary(channelPackages) {
 
 function escapeMarkdownCell(value) {
   return String(value || '')
+    .replace(/\\/g, '\\\\')
     .replace(/\|/g, '\\|')
     .replace(/\r?\n/g, '<br>');
 }
