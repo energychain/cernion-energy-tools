@@ -5630,7 +5630,11 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
     );
     expect(
       queries
-        .filter((query) => query.path.includes('blueprint-pack-verify') || query.path.includes('transfer-readiness'))
+        .filter(
+          (query) =>
+            query.path.includes('blueprint-pack-verify') ||
+            query.path.includes('transfer-readiness')
+        )
         .every((query) =>
           query.queryString.includes('stadtwerk-mauer-redispatch-participation-readiness-v1')
         )
@@ -5642,9 +5646,9 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       'getRedispatchParticipationSeedGuardRows',
       'getRedispatchParticipationBoundaryRows',
     ];
-    expect(
-      manifest.queries.filter((query) => reusedNames.includes(query.name))
-    ).toHaveLength(reusedNames.length);
+    expect(manifest.queries.filter((query) => reusedNames.includes(query.name))).toHaveLength(
+      reusedNames.length
+    );
 
     const e2eSectionIds = manifest.sections
       .filter((section) => section.id.startsWith('redispatch_e2e_'))
