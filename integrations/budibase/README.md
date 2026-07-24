@@ -391,3 +391,9 @@ Two Budibase details are important for generated query-backed screens:
 
 These details should be hidden behind a future Cernion Case View Manifest renderer instead of
 leaking into product-level workbench definitions.
+
+### Redispatch E2E Evidence Chain panel (#465)
+
+The Redispatch E2E Evidence Chain panel (#465) is a read-only, renderer-only composition for the synthetic `stadtwerk-mauer-redispatch-participation-readiness-v1` validation chain. It joins the existing dashboard reads for metering/masterdata readiness, Redispatch call quality, Redispatch participation readiness, project-controlling/KPI, owner/deadline, Blueprint verify and transfer-readiness, while reusing the canonical Redispatch Participation matrix/evidence/guard/no-call rows instead of cloning them.
+
+The panel answers for `ROLE_GRID_OPERATIONS_LEAD` whether the synthetic Redispatch validation chain is ready for the next review and, if not, which scope, data-quality, test, exception, owner/deadline or final-gate evidence blocks it. It renders scalar rows only and remains explicitly non-executable: no Redispatch steering engine, endpoint, case type, second Blueprint seed, Budibase write, authorization/provisioning, dispatch/device control, MaKo/billing/settlement/tariff/contract, workflow/HITL/CRM/mail/webhook/connector call, production mutation, secret exposure or Personal-Agent shortcut is introduced.
