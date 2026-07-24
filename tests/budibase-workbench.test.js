@@ -2390,6 +2390,345 @@ const costReviewBlueprintFixture = {
   },
 };
 
+const automationRiskGateStatusFixture = {
+  automationRiskGateStatusId: 'arg:test',
+  capabilityKey: 'automation_risk_gate',
+  safety: 'read_only',
+  status: 'ready_for_automation_decision',
+  processContext: {
+    processId: 'automation-mscons-retry-001',
+    processName: 'MSCONS Bewegungsdaten Retry-Automation',
+    processClass: 'bewegungsdaten_automation',
+    runFrequency: 'daily',
+    massRunVolume: 250,
+    affectedDomains: ['messwesen', 'marktkommunikation'],
+    blockedDecision: null,
+    sourceRef: ['job-run-2026-07-21'],
+  },
+  riskContext: {
+    riskLevel: 'medium',
+    customerCommunicationImpact: 'none',
+    billingImpact: 'low',
+    marketCommunicationImpact: 'medium',
+    massDataImpact: 'medium',
+  },
+  readinessSignals: [
+    { code: 'process_context', label: 'Process Context', status: 'ready' },
+    { code: 'process_owner', label: 'Process Owner', status: 'ready' },
+    { code: 'test_case_coverage', label: 'Test Coverage', status: 'ready' },
+  ],
+  evidenceGaps: [],
+  missingEvidence: [],
+  blockers: [],
+  nextActions: [],
+  positiveFollowUps: [],
+  sourceActions: {
+    inspected: ['dashboard-api.automationRiskGateStatus'],
+    notCalled: [
+      'rpa.execute',
+      'bot.run',
+      'mass-run.trigger',
+      'workflow.execute',
+      'hitl.create',
+      'personal-agent.execute',
+    ],
+  },
+};
+
+const automationRiskGateStatusGapFixture = {
+  ...automationRiskGateStatusFixture,
+  status: 'needs_test_coverage',
+  readinessSignals: [
+    { code: 'process_context', label: 'Process Context', status: 'ready' },
+    { code: 'process_owner', label: 'Process Owner', status: 'ready' },
+    { code: 'test_case_coverage', label: 'Test Coverage', status: 'partial' },
+  ],
+  evidenceGaps: [
+    {
+      missingDataPoint: 'test_case_coverage',
+      status: 'partial',
+      value: 'partial',
+      enablesDossierAddition: 'add test-case coverage and acceptance confidence',
+    },
+  ],
+  missingEvidence: [
+    {
+      missingDataPoint: 'test_case_coverage',
+      status: 'partial',
+      value: 'partial',
+      enablesDossierAddition: 'add test-case coverage and acceptance confidence',
+    },
+  ],
+  positiveFollowUps: [
+    {
+      missingDataPoint: 'test_case_coverage',
+      status: 'partial',
+      enablesDossierAddition: 'add test-case coverage and acceptance confidence',
+      category: 'automation_risk_gate',
+    },
+  ],
+};
+
+const controllabilitySubmissionCockpitStatusFixture = {
+  submissionStatusId: 'csc:test',
+  capabilityKey: 'controllability_submission_cockpit',
+  safety: 'read_only',
+  status: 'ready',
+  submissionReadiness: 'ready',
+  handoverStatus: 'carry-over-to-q4',
+  readinessScore: 1,
+  submissionContext: {
+    submissionId: 'SC-2026-JAHRESZYKLUS-01',
+    submissionDeadline: '2026-09-30',
+    coordinator: 'ROLE_GRID_OPERATIONS_LEAD',
+  },
+  submissionSteps: [
+    { id: 'coordinator', label: 'Coordinator', evidenceStatus: 'provided' },
+    { id: 'source-list', label: 'Source list', evidenceStatus: 'provided' },
+    { id: 'data-reconciliation', label: 'Data reconciliation', evidenceStatus: 'provided' },
+    { id: 'handover', label: 'Handover decision and owner', evidenceStatus: 'provided' },
+  ],
+  missingEvidence: [],
+  positiveFollowUps: [],
+  sourceActions: {
+    inspected: ['dashboard-api.controllabilitySubmissionCockpitStatus'],
+    notCalled: ['hitl.create', 'submission.file', 'grid-control.execute', 'personal-agent.execute'],
+  },
+};
+
+const controllabilitySubmissionCockpitStatusGapFixture = {
+  ...controllabilitySubmissionCockpitStatusFixture,
+  status: 'needs_open_measure_closure',
+  submissionReadiness: 'needs_open_measure_closure',
+  readinessScore: 0.8,
+  missingEvidence: [
+    {
+      missingDataPoint: 'open_measures',
+      severity: 'medium',
+      enablesDossierAddition:
+        'Offene Massnahmen, naechste Schritte und Blocker koennen ergaenzt werden',
+    },
+  ],
+  positiveFollowUps: [
+    {
+      missingDataPoint: 'open_measures',
+      category: 'controllability_submission_cockpit',
+      enablesDossierAddition:
+        'Offene Massnahmen, naechste Schritte und Blocker koennen ergaenzt werden',
+    },
+  ],
+};
+
+const investmentCommitteeSteeringCardsStatusFixture = {
+  status: 'ready_for_committee',
+  safety: 'read_only',
+  cardContext: {
+    investmentItemId: 'INV-2026-NETZAUSBAU-042',
+    projectId: 'PRJ-STROMNETZ-Q3',
+    assetId: 'teilnetz-mauer-ort',
+    capexEur: 450000,
+    riskFlag: 'medium',
+  },
+  committeeContext: {
+    reviewStatus: 'technical-review-complete',
+    evidenceStatus: 'complete',
+    committeeWindow: '2026-Q4-Investitionsausschuss',
+    owner: 'ROLE_ASSET_MANAGEMENT',
+    blockedFollowUpAction: 'freigabe-baubeginn',
+  },
+  evidenceItems: [
+    { id: 'investment_item', label: 'Investment item', value: 'INV-2026-NETZAUSBAU-042' },
+    { id: 'owner', label: 'Owner', value: 'ROLE_ASSET_MANAGEMENT' },
+    { id: 'committee_window', label: 'Committee window', value: '2026-Q4-Investitionsausschuss' },
+  ],
+  missingEvidence: [],
+  positiveFollowUps: [],
+  sourceActions: {
+    inspected: ['dashboard-api.investmentCommitteeSteeringCardsStatus'],
+    notCalled: ['hitl.create', 'budget.release', 'personal-agent.execute'],
+  },
+};
+
+const investmentCommitteeSteeringCardsStatusGapFixture = {
+  ...investmentCommitteeSteeringCardsStatusFixture,
+  status: 'needs_owner',
+  missingEvidence: [
+    {
+      missingDataPoint: 'owner',
+      label: 'Owner',
+      enablesDossierAddition: 'add accountable owner for card preparation',
+    },
+  ],
+  positiveFollowUps: [
+    {
+      missingDataPoint: 'owner',
+      category: 'investment_committee_steering_cards',
+      enablesDossierAddition: 'add accountable owner for card preparation',
+    },
+  ],
+};
+
+const eogModelFixture = {
+  success: true,
+  scope: { tenantId: 'stadtwerk-mauer', vnbId: 'SNB-MAUER-DEMO' },
+  datapoints: [
+    {
+      id: 'dp1',
+      key: 'ausgangsniveau',
+      typedKey: 'eog.ausgangsniveau',
+      value: 1250000,
+      unit: 'EUR',
+      sector: 'strom',
+      source: 'wirtschaftsplan-2026',
+      version: 'v1',
+      status: 'validated',
+    },
+    {
+      id: 'dp2',
+      key: 'effizienzwert',
+      typedKey: 'eog.effizienzwert',
+      value: 0.92,
+      unit: 'ratio',
+      sector: 'strom',
+      source: 'bnetza-benchmark-2025',
+      version: 'v1',
+      status: 'validated',
+    },
+  ],
+  decisions: [
+    {
+      id: 'ev1',
+      decision: 'accepted',
+      approved: true,
+      actor: 'ROLE_REGULATORY',
+      comment: 'Q3 Gremienfreigabe',
+      createdAt: '2026-07-01T10:00:00.000Z',
+    },
+  ],
+};
+
+const eogModelEmptyFixture = {
+  success: true,
+  scope: { tenantId: 'stadtwerk-mauer', vnbId: 'SNB-MAUER-DEMO' },
+  datapoints: [],
+  decisions: [],
+};
+
+const risikowertValidierungsGateFixture = {
+  matrixId: 'drm:test',
+  capabilityKey: 'decision_readiness_matrix',
+  safety: 'read_only',
+  requestContext: { caseId: 'risk-validation-2026-q3', includeSyntheticRows: false },
+  status: 'decision_ready',
+  rows: [
+    {
+      rowId: 'risikowert-kalibrierung-2026',
+      measureId: 'risikowert-kalibrierung-2026',
+      measureName: 'Risikowert-Validierungs-Gate 2026',
+      category: 'cross_sparte_risk_regulatorik',
+      evidenceSource: 'risikoregister-2026-q3',
+      owner: 'ROLE_CERNION_GOVERNANCE',
+      riskIfNotImplemented:
+        'inkonsistente Kennzahleninterpretation zwischen Netz, kaufmaennischer Steuerung und Risikomanagement',
+      committeeWindow: '2026-Q4-Risikoausschuss',
+      nextDecisionPoint: 'risiko-eskalationsgremium',
+      readiness: 'decision_ready',
+      evidenceStatus: 'provided',
+      blockers: [],
+      openEvidence: [],
+    },
+  ],
+  readinessCounts: { decision_ready: 1 },
+  missingEvidence: [],
+  positiveFollowUps: [],
+  sourceActions: {
+    inspected: ['dashboard-api.decisionReadinessMatrixStatus'],
+    notCalled: ['budget.approve', 'sap.erp.write', 'personal-agent.execute'],
+  },
+};
+
+const risikowertValidierungsGateGapFixture = {
+  ...risikowertValidierungsGateFixture,
+  status: 'evidence_gap',
+  readinessCounts: { evidence_gap: 1 },
+  missingEvidence: [
+    {
+      missingDataPoint: 'open_evidence',
+      label: 'Sparten-Freigabe ausstehend',
+      enablesDossierAddition: 'add open evidence: Sparten-Freigabe ausstehend',
+    },
+  ],
+  positiveFollowUps: [
+    {
+      missingDataPoint: 'open_evidence',
+      enablesDossierAddition: 'add open evidence: Sparten-Freigabe ausstehend',
+      category: 'decision_readiness_matrix',
+    },
+  ],
+};
+
+const msconsIdentifikatorwechselFixture = {
+  status: 'ready_for_switch_decision',
+  safety: 'read_only',
+  signalContext: {
+    signalId: 'mscons-identifier-switch-2026-001',
+    sourceType: 'technical-reference-id',
+    processType: 'lastgang_metering',
+    riskLevel: 'medium',
+    blockedDecision: 'produktivschwenk-malo-referenz',
+    linkedEntity: 'malo-target-identifier',
+    sourceRef: [],
+  },
+  ownerContext: {
+    ownerRole: 'ROLE_METERING',
+    ownerContact: 'ROLE_MARKTKOMMUNIKATION',
+    dueAt: '2026-08-15',
+  },
+  readinessSignals: [
+    { code: 'signal_context', label: 'Signal Context', status: 'ready' },
+    { code: 'owner', label: 'Owner', status: 'ready' },
+    { code: 'evidence_ref', label: 'Evidence Reference', status: 'ready' },
+  ],
+  evidenceGaps: [],
+  missingEvidence: [],
+  positiveFollowUps: [],
+  sourceActions: {
+    inspected: ['dashboard-api.ownerDeadlineEvidenceGateStatus'],
+    notCalled: ['mail.fetch', 'mscons.import', 'edm.mutate', 'personal-agent.execute'],
+  },
+};
+
+const msconsIdentifikatorwechselGapFixture = {
+  ...msconsIdentifikatorwechselFixture,
+  status: 'needs_evidence_ref',
+  readinessSignals: [
+    { code: 'signal_context', label: 'Signal Context', status: 'ready' },
+    { code: 'owner', label: 'Owner', status: 'ready' },
+    { code: 'evidence_ref', label: 'Evidence Reference', status: 'partial' },
+  ],
+  evidenceGaps: [
+    {
+      missingDataPoint: 'evidence_ref',
+      status: 'partial',
+      enablesDossierAddition: 'attach the blocking evidence proof',
+    },
+  ],
+  missingEvidence: [
+    {
+      missingDataPoint: 'evidence_ref',
+      status: 'partial',
+      enablesDossierAddition: 'attach the blocking evidence proof',
+    },
+  ],
+  positiveFollowUps: [
+    {
+      missingDataPoint: 'evidence_ref',
+      enablesDossierAddition: 'attach the blocking evidence proof',
+      category: 'mscons_identifikatorwechsel_gate',
+    },
+  ],
+};
+
 describe('Budibase Stadtwerk Mauer workbench manifest', () => {
   const expectedSectionIds = [
     'vdmi_profile_summary',
@@ -6260,6 +6599,561 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
           finalApprovalGranted: false,
         }),
       ])
+    );
+  });
+
+  it('flattens Automation Risk Gate rows and no-call guards (#485)', () => {
+    const summaryRows = runTransformer(
+      'getAutomationRiskGateSummaryRows',
+      automationRiskGateStatusFixture
+    );
+    expectScalarRows(summaryRows);
+    expectNoRawObjectText(summaryRows);
+    expect(summaryRows[0]).toMatchObject({
+      rowKey: 'automation_risk_gate_summary',
+      renderTarget: 'budibase:stadtwerk-mauer-workbench:automation-risk-gate-panel',
+      roleTarget: 'ROLE_GRID_OPERATIONS_LEAD',
+      caseId: 'automation-mscons-retry-001',
+      status: 'ready_for_automation_decision',
+      riskLevel: 'medium',
+      gapCount: '0',
+      sourceClass: 'automation_risk_gate_summary',
+    });
+
+    const processRows = runTransformer(
+      'getAutomationRiskGateProcessRows',
+      automationRiskGateStatusFixture
+    );
+    expectScalarRows(processRows);
+    expectNoRawObjectText(processRows);
+    expect(processRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ label: 'Process', value: 'automation-mscons-retry-001' }),
+        expect.objectContaining({ label: 'Mass-Run Volume', value: '250' }),
+        expect.objectContaining({
+          label: 'Affected Domains',
+          value: 'messwesen, marktkommunikation',
+        }),
+        expect.objectContaining({ label: 'Test Coverage', category: 'readiness_signal' }),
+      ])
+    );
+
+    const missingRowsWhenComplete = runTransformer(
+      'getAutomationRiskGateMissingRows',
+      automationRiskGateStatusFixture
+    );
+    expectScalarRows(missingRowsWhenComplete);
+    expect(missingRowsWhenComplete[0]).toMatchObject({ missingDataPoint: 'none' });
+
+    const missingRowsWithGap = runTransformer(
+      'getAutomationRiskGateMissingRows',
+      automationRiskGateStatusGapFixture
+    );
+    expectScalarRows(missingRowsWithGap);
+    expectNoRawObjectText(missingRowsWithGap);
+    expect(missingRowsWithGap).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          missingDataPoint: 'test_case_coverage',
+          safeNextAction: 'supply_evidence_then_refresh_read_only_automation_risk_gate',
+        }),
+      ])
+    );
+
+    const followupRows = runTransformer(
+      'getAutomationRiskGatePositiveFollowupRows',
+      automationRiskGateStatusGapFixture
+    );
+    expectScalarRows(followupRows);
+    expect(followupRows[0]).toMatchObject({
+      missingDataPoint: 'test_case_coverage',
+      category: 'automation_risk_gate',
+    });
+
+    const noCallRows = runTransformer(
+      'getAutomationRiskGateNoCallRows',
+      automationRiskGateStatusFixture
+    );
+    expectScalarRows(noCallRows);
+    expectNoRawObjectText(noCallRows);
+    expect(noCallRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ boundary: 'rpa.execute', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'mass-run.trigger', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'personal-agent.execute', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'budibase.table.write', status: 'not_called' }),
+      ])
+    );
+
+    expect(manifest.sections.map((section) => section.id)).toEqual(
+      expect.arrayContaining([
+        'automation_risk_gate_summary',
+        'automation_risk_gate_rows',
+        'automation_risk_gate_missing_inputs',
+        'automation_risk_gate_followups',
+        'automation_risk_gate_no_call_guards',
+      ])
+    );
+    expect(manifest.notes.join(' ')).toContain('Automation Risk Gate panel binds');
+  });
+
+  it('flattens Controllability Submission Cockpit rows and no-call guards (#484)', () => {
+    const summaryRows = runTransformer(
+      'getControllabilitySubmissionCockpitSummaryRows',
+      controllabilitySubmissionCockpitStatusFixture
+    );
+    expectScalarRows(summaryRows);
+    expectNoRawObjectText(summaryRows);
+    expect(summaryRows[0]).toMatchObject({
+      rowKey: 'controllability_submission_cockpit_summary',
+      renderTarget: 'budibase:stadtwerk-mauer-workbench:controllability-submission-cockpit-panel',
+      roleTarget: 'ROLE_GRID_OPERATIONS_LEAD',
+      submissionId: 'SC-2026-JAHRESZYKLUS-01',
+      status: 'ready',
+      handoverStatus: 'carry-over-to-q4',
+      gapCount: '0',
+      sourceClass: 'controllability_submission_cockpit_summary',
+    });
+
+    const stepRows = runTransformer(
+      'getControllabilitySubmissionCockpitStepRows',
+      controllabilitySubmissionCockpitStatusFixture
+    );
+    expectScalarRows(stepRows);
+    expectNoRawObjectText(stepRows);
+    expect(stepRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ label: 'Coordinator', evidenceStatus: 'provided' }),
+        expect.objectContaining({
+          label: 'Handover decision and owner',
+          evidenceStatus: 'provided',
+        }),
+      ])
+    );
+
+    const missingRowsWhenComplete = runTransformer(
+      'getControllabilitySubmissionCockpitMissingRows',
+      controllabilitySubmissionCockpitStatusFixture
+    );
+    expectScalarRows(missingRowsWhenComplete);
+    expect(missingRowsWhenComplete[0]).toMatchObject({ missingDataPoint: 'none' });
+
+    const missingRowsWithGap = runTransformer(
+      'getControllabilitySubmissionCockpitMissingRows',
+      controllabilitySubmissionCockpitStatusGapFixture
+    );
+    expectScalarRows(missingRowsWithGap);
+    expectNoRawObjectText(missingRowsWithGap);
+    expect(missingRowsWithGap).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          missingDataPoint: 'open_measures',
+          safeNextAction: 'supply_evidence_then_refresh_read_only_controllability_cockpit',
+        }),
+      ])
+    );
+
+    const followupRows = runTransformer(
+      'getControllabilitySubmissionCockpitFollowupRows',
+      controllabilitySubmissionCockpitStatusGapFixture
+    );
+    expectScalarRows(followupRows);
+    expect(followupRows[0]).toMatchObject({
+      missingDataPoint: 'open_measures',
+      category: 'controllability_submission_cockpit',
+    });
+
+    const noCallRows = runTransformer(
+      'getControllabilitySubmissionCockpitNoCallRows',
+      controllabilitySubmissionCockpitStatusFixture
+    );
+    expectScalarRows(noCallRows);
+    expectNoRawObjectText(noCallRows);
+    expect(noCallRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ boundary: 'hitl.create', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'grid-control.execute', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'personal-agent.execute', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'budibase.table.write', status: 'not_called' }),
+      ])
+    );
+
+    expect(manifest.sections.map((section) => section.id)).toEqual(
+      expect.arrayContaining([
+        'controllability_submission_cockpit_summary',
+        'controllability_submission_cockpit_steps',
+        'controllability_submission_cockpit_missing_inputs',
+        'controllability_submission_cockpit_followups',
+        'controllability_submission_cockpit_no_call_guards',
+      ])
+    );
+    expect(manifest.notes.join(' ')).toContain('Controllability Submission Cockpit panel binds');
+  });
+
+  it('flattens Investment Committee Steering Cards rows and no-call guards (#475)', () => {
+    const summaryRows = runTransformer(
+      'getInvestmentCommitteeSteeringCardsSummaryRows',
+      investmentCommitteeSteeringCardsStatusFixture
+    );
+    expectScalarRows(summaryRows);
+    expectNoRawObjectText(summaryRows);
+    expect(summaryRows[0]).toMatchObject({
+      rowKey: 'investment_committee_steering_cards_summary',
+      renderTarget: 'budibase:stadtwerk-mauer-workbench:investment-committee-steering-cards-panel',
+      roleTarget: 'ROLE_ASSET_MANAGEMENT',
+      investmentItemId: 'INV-2026-NETZAUSBAU-042',
+      status: 'ready_for_committee',
+      capexEur: '450000',
+      riskFlag: 'medium',
+      gapCount: '0',
+      sourceClass: 'investment_committee_steering_cards_summary',
+    });
+
+    const cardRows = runTransformer(
+      'getInvestmentCommitteeSteeringCardsRows',
+      investmentCommitteeSteeringCardsStatusFixture
+    );
+    expectScalarRows(cardRows);
+    expectNoRawObjectText(cardRows);
+    expect(cardRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ label: 'Owner', value: 'ROLE_ASSET_MANAGEMENT' }),
+        expect.objectContaining({
+          label: 'Committee window',
+          value: '2026-Q4-Investitionsausschuss',
+        }),
+      ])
+    );
+
+    const missingRowsWhenComplete = runTransformer(
+      'getInvestmentCommitteeSteeringCardsMissingRows',
+      investmentCommitteeSteeringCardsStatusFixture
+    );
+    expectScalarRows(missingRowsWhenComplete);
+    expect(missingRowsWhenComplete[0]).toMatchObject({ missingDataPoint: 'none' });
+
+    const missingRowsWithGap = runTransformer(
+      'getInvestmentCommitteeSteeringCardsMissingRows',
+      investmentCommitteeSteeringCardsStatusGapFixture
+    );
+    expectScalarRows(missingRowsWithGap);
+    expectNoRawObjectText(missingRowsWithGap);
+    expect(missingRowsWithGap).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          missingDataPoint: 'owner',
+          safeNextAction: 'supply_evidence_then_refresh_read_only_investment_committee_cards',
+        }),
+      ])
+    );
+
+    const followupRows = runTransformer(
+      'getInvestmentCommitteeSteeringCardsFollowupRows',
+      investmentCommitteeSteeringCardsStatusGapFixture
+    );
+    expectScalarRows(followupRows);
+    expect(followupRows[0]).toMatchObject({
+      missingDataPoint: 'owner',
+      category: 'investment_committee_steering_cards',
+    });
+
+    const noCallRows = runTransformer(
+      'getInvestmentCommitteeSteeringCardsNoCallRows',
+      investmentCommitteeSteeringCardsStatusFixture
+    );
+    expectScalarRows(noCallRows);
+    expectNoRawObjectText(noCallRows);
+    expect(noCallRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ boundary: 'hitl.create', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'budget.release', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'personal-agent.execute', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'budibase.table.write', status: 'not_called' }),
+      ])
+    );
+
+    expect(manifest.sections.map((section) => section.id)).toEqual(
+      expect.arrayContaining([
+        'investment_committee_steering_cards_summary',
+        'investment_committee_steering_cards_rows',
+        'investment_committee_steering_cards_missing_inputs',
+        'investment_committee_steering_cards_followups',
+        'investment_committee_steering_cards_no_call_guards',
+      ])
+    );
+    expect(manifest.notes.join(' ')).toContain('Investment Committee Steering Cards panel binds');
+  });
+
+  it('flattens EOG Scenario Akte rows and no-call guards (#464)', () => {
+    const summaryRows = runTransformer('getEogModelSummaryRows', eogModelFixture);
+    expectScalarRows(summaryRows);
+    expectNoRawObjectText(summaryRows);
+    expect(summaryRows[0]).toMatchObject({
+      rowKey: 'eog_model_summary',
+      renderTarget: 'budibase:stadtwerk-mauer-workbench:eog-scenario-akte-panel',
+      roleTarget: 'ROLE_REGULATORY',
+      tenantId: 'stadtwerk-mauer',
+      vnbId: 'SNB-MAUER-DEMO',
+      datapointCount: '2',
+      decisionCount: '1',
+      sourceClass: 'eog_model_summary',
+    });
+
+    const datapointRows = runTransformer('getEogModelDatapointRows', eogModelFixture);
+    expectScalarRows(datapointRows);
+    expectNoRawObjectText(datapointRows);
+    expect(datapointRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ key: 'eog.ausgangsniveau', value: '1250000', sector: 'strom' }),
+        expect.objectContaining({ key: 'eog.effizienzwert', value: '0.92' }),
+      ])
+    );
+
+    const emptyDatapointRows = runTransformer('getEogModelDatapointRows', eogModelEmptyFixture);
+    expectScalarRows(emptyDatapointRows);
+    expect(emptyDatapointRows[0]).toMatchObject({ key: 'none', value: 'missing' });
+
+    const decisionRows = runTransformer('getEogModelDecisionRows', eogModelFixture);
+    expectScalarRows(decisionRows);
+    expectNoRawObjectText(decisionRows);
+    expect(decisionRows[0]).toMatchObject({
+      decision: 'accepted',
+      approved: 'true',
+      actor: 'ROLE_REGULATORY',
+    });
+
+    const emptyDecisionRows = runTransformer('getEogModelDecisionRows', eogModelEmptyFixture);
+    expectScalarRows(emptyDecisionRows);
+    expect(emptyDecisionRows[0]).toMatchObject({ decision: 'none' });
+
+    const missingRowsWhenComplete = runTransformer('getEogModelMissingRows', eogModelFixture);
+    expectScalarRows(missingRowsWhenComplete);
+    expect(missingRowsWhenComplete[0]).toMatchObject({ missingDataPoint: 'none' });
+
+    const missingRowsWhenEmpty = runTransformer('getEogModelMissingRows', eogModelEmptyFixture);
+    expectScalarRows(missingRowsWhenEmpty);
+    expectNoRawObjectText(missingRowsWhenEmpty);
+    expect(missingRowsWhenEmpty).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ missingDataPoint: 'eog_datapoints' }),
+        expect.objectContaining({ missingDataPoint: 'eog_decision_events' }),
+      ])
+    );
+
+    const noCallRows = runTransformer('getEogModelNoCallRows', eogModelFixture);
+    expectScalarRows(noCallRows);
+    expectNoRawObjectText(noCallRows);
+    expect(noCallRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ boundary: 'eog-calculator.calculate', status: 'not_called' }),
+        expect.objectContaining({
+          boundary: 'eog-calculator.commitDatapoints',
+          status: 'not_called',
+        }),
+        expect.objectContaining({ boundary: 'personal-agent.execute', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'budibase.table.write', status: 'not_called' }),
+      ])
+    );
+
+    expect(manifest.sections.map((section) => section.id)).toEqual(
+      expect.arrayContaining([
+        'eog_model_summary',
+        'eog_model_datapoints',
+        'eog_model_decisions',
+        'eog_model_missing_inputs',
+        'eog_model_no_call_guards',
+      ])
+    );
+    expect(manifest.notes.join(' ')).toContain('EOG Scenario Akte panel binds');
+  });
+
+  it('flattens Risikowert Validierungs-Gate rows and no-call guards (#486)', () => {
+    const summaryRows = runTransformer(
+      'getRisikowertValidierungsGateSummaryRows',
+      risikowertValidierungsGateFixture
+    );
+    expectScalarRows(summaryRows);
+    expectNoRawObjectText(summaryRows);
+    expect(summaryRows[0]).toMatchObject({
+      rowKey: 'risikowert_validierungs_gate_summary',
+      renderTarget: 'budibase:stadtwerk-mauer-workbench:risikowert-validierungs-gate-panel',
+      roleTarget: 'ROLE_CERNION_GOVERNANCE',
+      caseId: 'risk-validation-2026-q3',
+      status: 'decision_ready',
+      decisionReadyRows: '1',
+      gapCount: '0',
+      sourceClass: 'risikowert_validierungs_gate_summary',
+    });
+
+    const matrixRows = runTransformer(
+      'getRisikowertValidierungsGateRows',
+      risikowertValidierungsGateFixture
+    );
+    expectScalarRows(matrixRows);
+    expectNoRawObjectText(matrixRows);
+    expect(matrixRows[0]).toMatchObject({
+      measureName: 'Risikowert-Validierungs-Gate 2026',
+      category: 'cross_sparte_risk_regulatorik',
+      evidenceSource: 'risikoregister-2026-q3',
+      owner: 'ROLE_CERNION_GOVERNANCE',
+      committeeWindow: '2026-Q4-Risikoausschuss',
+      readiness: 'decision_ready',
+    });
+
+    const missingRowsWhenComplete = runTransformer(
+      'getRisikowertValidierungsGateMissingRows',
+      risikowertValidierungsGateFixture
+    );
+    expectScalarRows(missingRowsWhenComplete);
+    expect(missingRowsWhenComplete[0]).toMatchObject({ missingDataPoint: 'none' });
+
+    const missingRowsWithGap = runTransformer(
+      'getRisikowertValidierungsGateMissingRows',
+      risikowertValidierungsGateGapFixture
+    );
+    expectScalarRows(missingRowsWithGap);
+    expectNoRawObjectText(missingRowsWithGap);
+    expect(missingRowsWithGap).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          missingDataPoint: 'open_evidence',
+          safeNextAction: 'supply_evidence_then_refresh_read_only_risikowert_gate',
+        }),
+      ])
+    );
+
+    const followupRows = runTransformer(
+      'getRisikowertValidierungsGateFollowupRows',
+      risikowertValidierungsGateGapFixture
+    );
+    expectScalarRows(followupRows);
+    expect(followupRows[0]).toMatchObject({
+      missingDataPoint: 'open_evidence',
+      category: 'decision_readiness_matrix',
+    });
+
+    const noCallRows = runTransformer(
+      'getRisikowertValidierungsGateNoCallRows',
+      risikowertValidierungsGateFixture
+    );
+    expectScalarRows(noCallRows);
+    expectNoRawObjectText(noCallRows);
+    expect(noCallRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ boundary: 'budget.approve', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'sap.erp.write', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'personal-agent.execute', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'budibase.table.write', status: 'not_called' }),
+      ])
+    );
+
+    expect(manifest.sections.map((section) => section.id)).toEqual(
+      expect.arrayContaining([
+        'risikowert_validierungs_gate_summary',
+        'risikowert_validierungs_gate_rows',
+        'risikowert_validierungs_gate_missing_inputs',
+        'risikowert_validierungs_gate_followups',
+        'risikowert_validierungs_gate_no_call_guards',
+      ])
+    );
+    expect(manifest.notes.join(' ')).toContain('Risikowert Validierungs-Gate panel binds');
+  });
+
+  it('flattens MSCONS Identifikatorwechsel Readiness-Gate rows and no-call guards (#476)', () => {
+    const summaryRows = runTransformer(
+      'getMsconsIdentifikatorwechselSummaryRows',
+      msconsIdentifikatorwechselFixture
+    );
+    expectScalarRows(summaryRows);
+    expectNoRawObjectText(summaryRows);
+    expect(summaryRows[0]).toMatchObject({
+      rowKey: 'mscons_identifikatorwechsel_summary',
+      renderTarget:
+        'budibase:stadtwerk-mauer-workbench:mscons-identifikatorwechsel-readiness-gate-panel',
+      roleTarget: 'ROLE_METERING',
+      caseId: 'mscons-identifier-switch-2026-001',
+      status: 'ready_for_switch_decision',
+      sourceType: 'technical-reference-id',
+      linkedEntity: 'malo-target-identifier',
+      gapCount: '0',
+      sourceClass: 'mscons_identifikatorwechsel_summary',
+    });
+
+    const contextRows = runTransformer(
+      'getMsconsIdentifikatorwechselRows',
+      msconsIdentifikatorwechselFixture
+    );
+    expectScalarRows(contextRows);
+    expectNoRawObjectText(contextRows);
+    expect(contextRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          label: 'Source Identifier Type',
+          value: 'technical-reference-id',
+        }),
+        expect.objectContaining({ label: 'Target Identifier', value: 'malo-target-identifier' }),
+        expect.objectContaining({ label: 'Owner Role', value: 'ROLE_METERING' }),
+      ])
+    );
+
+    const missingRowsWhenComplete = runTransformer(
+      'getMsconsIdentifikatorwechselMissingRows',
+      msconsIdentifikatorwechselFixture
+    );
+    expectScalarRows(missingRowsWhenComplete);
+    expect(missingRowsWhenComplete[0]).toMatchObject({ missingDataPoint: 'none' });
+
+    const missingRowsWithGap = runTransformer(
+      'getMsconsIdentifikatorwechselMissingRows',
+      msconsIdentifikatorwechselGapFixture
+    );
+    expectScalarRows(missingRowsWithGap);
+    expectNoRawObjectText(missingRowsWithGap);
+    expect(missingRowsWithGap).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          missingDataPoint: 'evidence_ref',
+          safeNextAction: 'supply_evidence_then_refresh_read_only_mscons_gate',
+        }),
+      ])
+    );
+
+    const followupRows = runTransformer(
+      'getMsconsIdentifikatorwechselFollowupRows',
+      msconsIdentifikatorwechselGapFixture
+    );
+    expectScalarRows(followupRows);
+    expect(followupRows[0]).toMatchObject({
+      missingDataPoint: 'evidence_ref',
+      category: 'mscons_identifikatorwechsel_gate',
+    });
+
+    const noCallRows = runTransformer(
+      'getMsconsIdentifikatorwechselNoCallRows',
+      msconsIdentifikatorwechselFixture
+    );
+    expectScalarRows(noCallRows);
+    expectNoRawObjectText(noCallRows);
+    expect(noCallRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ boundary: 'mscons.import', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'edm.mutate', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'personal-agent.execute', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'budibase.table.write', status: 'not_called' }),
+      ])
+    );
+
+    expect(manifest.sections.map((section) => section.id)).toEqual(
+      expect.arrayContaining([
+        'mscons_identifikatorwechsel_summary',
+        'mscons_identifikatorwechsel_rows',
+        'mscons_identifikatorwechsel_missing_inputs',
+        'mscons_identifikatorwechsel_followups',
+        'mscons_identifikatorwechsel_no_call_guards',
+      ])
+    );
+    expect(manifest.notes.join(' ')).toContain(
+      'MSCONS Identifikatorwechsel Readiness-Gate panel binds'
     );
   });
 });

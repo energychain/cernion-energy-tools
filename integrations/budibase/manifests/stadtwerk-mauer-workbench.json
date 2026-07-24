@@ -7640,10 +7640,7 @@
             "receivedAt": "2026-06-28T08:30:00.000Z",
             "subject": "VNB Kapazitaetsfenster neu priorisieren",
             "bodyExcerpt": "Synthetic demo: Anschlussfall braucht Kapazitaetsfenster und Owner bis Freitag.",
-            "knownContextAnchors": [
-              "smm-budibase-workbench",
-              "vnb-demo-001"
-            ],
+            "knownContextAnchors": ["smm-budibase-workbench", "vnb-demo-001"],
             "processHint": "grid_connection_capacity",
             "ownerHint": "ROLE_NETZPLANUNG",
             "dueDateHint": "2026-07-03",
@@ -7877,10 +7874,7 @@
             "receivedAt": "2026-06-28T08:30:00.000Z",
             "subject": "VNB Kapazitaetsfenster neu priorisieren",
             "bodyExcerpt": "Synthetic demo: Anschlussfall braucht Kapazitaetsfenster und Owner bis Freitag.",
-            "knownContextAnchors": [
-              "smm-budibase-workbench",
-              "vnb-demo-001"
-            ],
+            "knownContextAnchors": ["smm-budibase-workbench", "vnb-demo-001"],
             "processHint": "grid_connection_capacity",
             "ownerHint": "ROLE_NETZPLANUNG",
             "dueDateHint": "2026-07-03",
@@ -11053,6 +11047,1035 @@
           "type": "string"
         }
       }
+    },
+    {
+      "name": "getAutomationRiskGateSummaryRows",
+      "method": "GET",
+      "path": "/api/dashboard/automation-risk-gate",
+      "queryString": "processId=automation-mscons-retry-001&processName=MSCONS+Bewegungsdaten+Retry-Automation&processClass=bewegungsdaten_automation&runFrequency=daily&massRunVolume=250&affectedDomains=messwesen%2Cmarktkommunikation&customerCommunicationImpact=none&billingImpact=low&marketCommunicationImpact=medium&massDataImpact=medium&testCaseCoverage=partial&edgeCaseCatalog=documented&acceptanceMethod=governance-review&monitoringSignals=present&stopCriteria=documented&rollbackPath=documented&processOwner=ROLE_GRID_OPERATIONS_LEAD&operationsOwner=ROLE_IT_OPERATIONS&riskLevel=medium&source=mscons-retry-monitor&sourceRef=job-run-2026-07-21",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "caseId": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "safety": {
+          "type": "string"
+        },
+        "riskLevel": {
+          "type": "string"
+        },
+        "affectedDomains": {
+          "type": "string"
+        },
+        "gapCount": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      },
+      "transformer": "const ctx=data.processContext||{}; const risk=data.riskContext||{}; const gaps=data.evidenceGaps||data.missingEvidence||[]; return [{rowKey:'automation_risk_gate_summary',renderTarget:'budibase:stadtwerk-mauer-workbench:automation-risk-gate-panel',roleTarget:'ROLE_GRID_OPERATIONS_LEAD',caseId:String(ctx.processId||ctx.processName||'automation-mscons-retry-001'),status:String(data.status||'unknown'),safety:String(data.safety||'read_only'),riskLevel:String(risk.riskLevel||'unknown'),affectedDomains:(ctx.affectedDomains||[]).join(', ')||'none',gapCount:String(gaps.length),safeNextAction:'refresh_read_only_automation_risk_gate_rows_only',sourceClass:'automation_risk_gate_summary'}]"
+    },
+    {
+      "name": "getAutomationRiskGateProcessRows",
+      "method": "GET",
+      "path": "/api/dashboard/automation-risk-gate",
+      "queryString": "processId=automation-mscons-retry-001&processName=MSCONS+Bewegungsdaten+Retry-Automation&processClass=bewegungsdaten_automation&runFrequency=daily&massRunVolume=250&affectedDomains=messwesen%2Cmarktkommunikation&customerCommunicationImpact=none&billingImpact=low&marketCommunicationImpact=medium&massDataImpact=medium&testCaseCoverage=partial&edgeCaseCatalog=documented&acceptanceMethod=governance-review&monitoringSignals=present&stopCriteria=documented&rollbackPath=documented&processOwner=ROLE_GRID_OPERATIONS_LEAD&operationsOwner=ROLE_IT_OPERATIONS&riskLevel=medium&source=mscons-retry-monitor&sourceRef=job-run-2026-07-21",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      },
+      "transformer": "const ctx=data.processContext||{}; const risk=data.riskContext||{}; const contextRows=[{label:'Process',value:ctx.processId||ctx.processName||'missing',category:'process_context'},{label:'Process Class',value:ctx.processClass||'missing',category:'process_context'},{label:'Run Frequency',value:ctx.runFrequency||'missing',category:'process_context'},{label:'Mass-Run Volume',value:ctx.massRunVolume!=null?String(ctx.massRunVolume):'missing',category:'process_context'},{label:'Affected Domains',value:(ctx.affectedDomains||[]).join(', ')||'missing',category:'process_context'},{label:'Risk Level',value:risk.riskLevel||'missing',category:'risk_context'},{label:'Billing Impact',value:risk.billingImpact||'missing',category:'risk_context'},{label:'Market Communication Impact',value:risk.marketCommunicationImpact||'missing',category:'risk_context'}]; const signalRows=(data.readinessSignals||[]).map((s)=>({label:s.label,value:s.status,category:'readiness_signal'})); const rows=[...contextRows,...signalRows]; return rows.map((row,index)=>({rowKey:'automation_risk_'+String(row.label||index+1).toLowerCase().replace(/[^a-z0-9]+/g,'_'),renderTarget:'budibase:stadtwerk-mauer-workbench:automation-risk-gate-panel',roleTarget:'ROLE_GRID_OPERATIONS_LEAD',label:String(row.label||''),value:String(row.value||'missing'),category:String(row.category||''),sourceClass:'automation_risk_gate_row'}))"
+    },
+    {
+      "name": "getAutomationRiskGateMissingRows",
+      "method": "GET",
+      "path": "/api/dashboard/automation-risk-gate",
+      "queryString": "processId=automation-mscons-retry-001&processName=MSCONS+Bewegungsdaten+Retry-Automation&processClass=bewegungsdaten_automation&runFrequency=daily&massRunVolume=250&affectedDomains=messwesen%2Cmarktkommunikation&customerCommunicationImpact=none&billingImpact=low&marketCommunicationImpact=medium&massDataImpact=medium&testCaseCoverage=partial&edgeCaseCatalog=documented&acceptanceMethod=governance-review&monitoringSignals=present&stopCriteria=documented&rollbackPath=documented&processOwner=ROLE_GRID_OPERATIONS_LEAD&operationsOwner=ROLE_IT_OPERATIONS&riskLevel=medium&source=mscons-retry-monitor&sourceRef=job-run-2026-07-21",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "missingDataPoint": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "enablesDossierAddition": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      },
+      "transformer": "const gaps=data.evidenceGaps||data.missingEvidence||[]; return gaps.length?gaps.map((row,index)=>({rowKey:'automation_risk_missing_'+String(row.missingDataPoint||index+1),renderTarget:'budibase:stadtwerk-mauer-workbench:automation-risk-gate-panel',roleTarget:'ROLE_GRID_OPERATIONS_LEAD',missingDataPoint:String(row.missingDataPoint||''),status:String(row.status||'missing'),value:String(row.value||''),enablesDossierAddition:String(row.enablesDossierAddition||''),safeNextAction:'supply_evidence_then_refresh_read_only_automation_risk_gate',sourceClass:'automation_risk_gate_missing_input'})):[{rowKey:'automation_risk_missing_none',renderTarget:'budibase:stadtwerk-mauer-workbench:automation-risk-gate-panel',roleTarget:'ROLE_GRID_OPERATIONS_LEAD',missingDataPoint:'none',status:String(data.status||'ready_for_automation_decision'),value:'complete',enablesDossierAddition:'process, owner, test-coverage, edge-case, stop-criteria, rollback and monitoring evidence remain visible',safeNextAction:'keep_refresh_read_only',sourceClass:'automation_risk_gate_missing_input'}]"
+    },
+    {
+      "name": "getAutomationRiskGatePositiveFollowupRows",
+      "method": "GET",
+      "path": "/api/dashboard/automation-risk-gate",
+      "queryString": "processId=automation-mscons-retry-001&processName=MSCONS+Bewegungsdaten+Retry-Automation&processClass=bewegungsdaten_automation&runFrequency=daily&massRunVolume=250&affectedDomains=messwesen%2Cmarktkommunikation&customerCommunicationImpact=none&billingImpact=low&marketCommunicationImpact=medium&massDataImpact=medium&testCaseCoverage=partial&edgeCaseCatalog=documented&acceptanceMethod=governance-review&monitoringSignals=present&stopCriteria=documented&rollbackPath=documented&processOwner=ROLE_GRID_OPERATIONS_LEAD&operationsOwner=ROLE_IT_OPERATIONS&riskLevel=medium&source=mscons-retry-monitor&sourceRef=job-run-2026-07-21",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "missingDataPoint": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "enablesDossierAddition": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      },
+      "transformer": "const rows=data.positiveFollowUps||[]; return rows.length?rows.map((row,index)=>({rowKey:'automation_risk_followup_'+String(row.missingDataPoint||index+1),renderTarget:'budibase:stadtwerk-mauer-workbench:automation-risk-gate-panel',roleTarget:'ROLE_GRID_OPERATIONS_LEAD',missingDataPoint:String(row.missingDataPoint||''),category:String(row.category||'automation_risk_gate'),enablesDossierAddition:String(row.enablesDossierAddition||''),safeNextAction:'add_evidence_then_refresh_read_only_panel',sourceClass:'automation_risk_gate_positive_followup'})):[{rowKey:'automation_risk_followup_complete',renderTarget:'budibase:stadtwerk-mauer-workbench:automation-risk-gate-panel',roleTarget:'ROLE_GRID_OPERATIONS_LEAD',missingDataPoint:'none',category:'automation_risk_gate',enablesDossierAddition:'complete synthetic automation-risk context is already visible',safeNextAction:'keep_context_review_read_only',sourceClass:'automation_risk_gate_positive_followup'}]"
+    },
+    {
+      "name": "getAutomationRiskGateNoCallRows",
+      "method": "GET",
+      "path": "/api/dashboard/automation-risk-gate",
+      "queryString": "processId=automation-mscons-retry-001&processName=MSCONS+Bewegungsdaten+Retry-Automation&processClass=bewegungsdaten_automation&runFrequency=daily&massRunVolume=250&affectedDomains=messwesen%2Cmarktkommunikation&customerCommunicationImpact=none&billingImpact=low&marketCommunicationImpact=medium&massDataImpact=medium&testCaseCoverage=partial&edgeCaseCatalog=documented&acceptanceMethod=governance-review&monitoringSignals=present&stopCriteria=documented&rollbackPath=documented&processOwner=ROLE_GRID_OPERATIONS_LEAD&operationsOwner=ROLE_IT_OPERATIONS&riskLevel=medium&source=mscons-retry-monitor&sourceRef=job-run-2026-07-21",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "boundary": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "safeAlternative": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      },
+      "transformer": "const notCalled=((data.sourceActions||{}).notCalled)||[]; const fallback=['rpa.execute','bot.run','mass-run.trigger','workflow.execute','hitl.create','vdmi.mutate','customer-communication.send','settlement.prepareBilling','settlement.exportA96','market-communication.send','notification.send','external.connector.call','personal-agent.execute','budibase.table.write','landing-registry.publish','production.mutate']; const unique=[...new Set(notCalled.concat(fallback))]; return unique.map((action,index)=>({rowKey:'automation_risk_no_call_'+(index+1)+'_'+String(action).replace(/[^a-zA-Z0-9]+/g,'_'),renderTarget:'budibase:stadtwerk-mauer-workbench:automation-risk-gate-panel',roleTarget:'ROLE_GRID_OPERATIONS_LEAD',boundary:String(action),status:'not_called',safeAlternative:'render_existing_read_only_automation_risk_gate_rows_only',sourceClass:'automation_risk_gate_no_call_guard'}))"
+    },
+    {
+      "name": "getControllabilitySubmissionCockpitSummaryRows",
+      "method": "GET",
+      "path": "/api/dashboard/controllability-submission-cockpit",
+      "queryString": "submissionId=SC-2026-JAHRESZYKLUS-01&submissionDeadline=2026-09-30&coordinator=ROLE_GRID_OPERATIONS_LEAD&sourceList=scada%2Cgis%2Cmds&dataReconciliationStatus=abgeglichen&reasonCatalog=planned-maintenance-window&assetGroupStatuses=teilnetz-a%3Aready%2Cteilnetz-b%3Apending&openMeasures=verify-teilnetz-b-testabruf&handoverDecision=carry-over-to-q4&handoverOwner=ROLE_GRID_OPERATIONS_LEAD&nextCycleTasks=schedule-teilnetz-b-retest",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "submissionId": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "safety": {
+          "type": "string"
+        },
+        "handoverStatus": {
+          "type": "string"
+        },
+        "readinessScore": {
+          "type": "string"
+        },
+        "gapCount": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      },
+      "transformer": "const ctx=data.submissionContext||{}; const gaps=data.missingEvidence||[]; return [{rowKey:'controllability_submission_cockpit_summary',renderTarget:'budibase:stadtwerk-mauer-workbench:controllability-submission-cockpit-panel',roleTarget:'ROLE_GRID_OPERATIONS_LEAD',submissionId:String(ctx.submissionId||data.submissionStatusId||'SC-2026-JAHRESZYKLUS-01'),status:String(data.status||data.submissionReadiness||'unknown'),safety:String(data.safety||'read_only'),handoverStatus:String(data.handoverStatus||'missing'),readinessScore:String(data.readinessScore!=null?data.readinessScore:'0'),gapCount:String(gaps.length),safeNextAction:'refresh_read_only_controllability_submission_cockpit_rows_only',sourceClass:'controllability_submission_cockpit_summary'}]"
+    },
+    {
+      "name": "getControllabilitySubmissionCockpitStepRows",
+      "method": "GET",
+      "path": "/api/dashboard/controllability-submission-cockpit",
+      "queryString": "submissionId=SC-2026-JAHRESZYKLUS-01&submissionDeadline=2026-09-30&coordinator=ROLE_GRID_OPERATIONS_LEAD&sourceList=scada%2Cgis%2Cmds&dataReconciliationStatus=abgeglichen&reasonCatalog=planned-maintenance-window&assetGroupStatuses=teilnetz-a%3Aready%2Cteilnetz-b%3Apending&openMeasures=verify-teilnetz-b-testabruf&handoverDecision=carry-over-to-q4&handoverOwner=ROLE_GRID_OPERATIONS_LEAD&nextCycleTasks=schedule-teilnetz-b-retest",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "evidenceStatus": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      },
+      "transformer": "const steps=data.submissionSteps||[]; return steps.map((step,index)=>({rowKey:'controllability_submission_step_'+String(step.id||index+1),renderTarget:'budibase:stadtwerk-mauer-workbench:controllability-submission-cockpit-panel',roleTarget:'ROLE_GRID_OPERATIONS_LEAD',label:String(step.label||step.id||''),evidenceStatus:String(step.evidenceStatus||'missing'),sourceClass:'controllability_submission_cockpit_step'}))"
+    },
+    {
+      "name": "getControllabilitySubmissionCockpitMissingRows",
+      "method": "GET",
+      "path": "/api/dashboard/controllability-submission-cockpit",
+      "queryString": "submissionId=SC-2026-JAHRESZYKLUS-01&submissionDeadline=2026-09-30&coordinator=ROLE_GRID_OPERATIONS_LEAD&sourceList=scada%2Cgis%2Cmds&dataReconciliationStatus=abgeglichen&reasonCatalog=planned-maintenance-window&assetGroupStatuses=teilnetz-a%3Aready%2Cteilnetz-b%3Apending&openMeasures=verify-teilnetz-b-testabruf&handoverDecision=carry-over-to-q4&handoverOwner=ROLE_GRID_OPERATIONS_LEAD&nextCycleTasks=schedule-teilnetz-b-retest",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "missingDataPoint": {
+          "type": "string"
+        },
+        "severity": {
+          "type": "string"
+        },
+        "enablesDossierAddition": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      },
+      "transformer": "const gaps=data.missingEvidence||[]; return gaps.length?gaps.map((row,index)=>({rowKey:'controllability_submission_missing_'+String(row.missingDataPoint||index+1),renderTarget:'budibase:stadtwerk-mauer-workbench:controllability-submission-cockpit-panel',roleTarget:'ROLE_GRID_OPERATIONS_LEAD',missingDataPoint:String(row.missingDataPoint||''),severity:String(row.severity||'medium'),enablesDossierAddition:String(row.enablesDossierAddition||''),safeNextAction:'supply_evidence_then_refresh_read_only_controllability_cockpit',sourceClass:'controllability_submission_cockpit_missing_input'})):[{rowKey:'controllability_submission_missing_none',renderTarget:'budibase:stadtwerk-mauer-workbench:controllability-submission-cockpit-panel',roleTarget:'ROLE_GRID_OPERATIONS_LEAD',missingDataPoint:'none',severity:'none',enablesDossierAddition:'coordinator, source-list, reconciliation, reason-catalog, asset-group and handover evidence remain visible',safeNextAction:'keep_refresh_read_only',sourceClass:'controllability_submission_cockpit_missing_input'}]"
+    },
+    {
+      "name": "getControllabilitySubmissionCockpitFollowupRows",
+      "method": "GET",
+      "path": "/api/dashboard/controllability-submission-cockpit",
+      "queryString": "submissionId=SC-2026-JAHRESZYKLUS-01&submissionDeadline=2026-09-30&coordinator=ROLE_GRID_OPERATIONS_LEAD&sourceList=scada%2Cgis%2Cmds&dataReconciliationStatus=abgeglichen&reasonCatalog=planned-maintenance-window&assetGroupStatuses=teilnetz-a%3Aready%2Cteilnetz-b%3Apending&openMeasures=verify-teilnetz-b-testabruf&handoverDecision=carry-over-to-q4&handoverOwner=ROLE_GRID_OPERATIONS_LEAD&nextCycleTasks=schedule-teilnetz-b-retest",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "missingDataPoint": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "enablesDossierAddition": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      },
+      "transformer": "const rows=data.positiveFollowUps||[]; return rows.length?rows.map((row,index)=>({rowKey:'controllability_submission_followup_'+String(row.missingDataPoint||index+1),renderTarget:'budibase:stadtwerk-mauer-workbench:controllability-submission-cockpit-panel',roleTarget:'ROLE_GRID_OPERATIONS_LEAD',missingDataPoint:String(row.missingDataPoint||''),category:String(row.category||'controllability_submission_cockpit'),enablesDossierAddition:String(row.enablesDossierAddition||''),safeNextAction:'add_evidence_then_refresh_read_only_panel',sourceClass:'controllability_submission_cockpit_positive_followup'})):[{rowKey:'controllability_submission_followup_complete',renderTarget:'budibase:stadtwerk-mauer-workbench:controllability-submission-cockpit-panel',roleTarget:'ROLE_GRID_OPERATIONS_LEAD',missingDataPoint:'none',category:'controllability_submission_cockpit',enablesDossierAddition:'complete synthetic annual controllability submission context is already visible',safeNextAction:'keep_context_review_read_only',sourceClass:'controllability_submission_cockpit_positive_followup'}]"
+    },
+    {
+      "name": "getControllabilitySubmissionCockpitNoCallRows",
+      "method": "GET",
+      "path": "/api/dashboard/controllability-submission-cockpit",
+      "queryString": "submissionId=SC-2026-JAHRESZYKLUS-01&submissionDeadline=2026-09-30&coordinator=ROLE_GRID_OPERATIONS_LEAD&sourceList=scada%2Cgis%2Cmds&dataReconciliationStatus=abgeglichen&reasonCatalog=planned-maintenance-window&assetGroupStatuses=teilnetz-a%3Aready%2Cteilnetz-b%3Apending&openMeasures=verify-teilnetz-b-testabruf&handoverDecision=carry-over-to-q4&handoverOwner=ROLE_GRID_OPERATIONS_LEAD&nextCycleTasks=schedule-teilnetz-b-retest",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "boundary": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "safeAlternative": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      },
+      "transformer": "const notCalled=((data.sourceActions||{}).notCalled)||[]; const fallback=['hitl.create','submission.file','grid-control.execute','cls.execute','smgw.execute','device-control.execute','mako.mutate','billing.mutate','settlement.mutate','tariff.mutate','external.connector.call','personal-agent.execute','budibase.table.write','production.mutate']; const unique=[...new Set(notCalled.concat(fallback))]; return unique.map((action,index)=>({rowKey:'controllability_submission_no_call_'+(index+1)+'_'+String(action).replace(/[^a-zA-Z0-9]+/g,'_'),renderTarget:'budibase:stadtwerk-mauer-workbench:controllability-submission-cockpit-panel',roleTarget:'ROLE_GRID_OPERATIONS_LEAD',boundary:String(action),status:'not_called',safeAlternative:'render_existing_read_only_controllability_submission_cockpit_rows_only',sourceClass:'controllability_submission_cockpit_no_call_guard'}))"
+    },
+    {
+      "name": "getInvestmentCommitteeSteeringCardsSummaryRows",
+      "method": "GET",
+      "path": "/api/dashboard/investment-committee-steering-cards",
+      "queryString": "investmentItemId=INV-2026-NETZAUSBAU-042&projectId=PRJ-STROMNETZ-Q3&assetId=teilnetz-mauer-ort&reviewStatus=technical-review-complete&evidenceStatus=complete&committeeWindow=2026-Q4-Investitionsausschuss&owner=ROLE_ASSET_MANAGEMENT&blockedFollowUpAction=freigabe-baubeginn&capexEur=450000&riskFlag=medium&sourceRef=samp-plan-2026%2Cwirtschaftsplan-q3",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "investmentItemId": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "safety": {
+          "type": "string"
+        },
+        "capexEur": {
+          "type": "string"
+        },
+        "riskFlag": {
+          "type": "string"
+        },
+        "gapCount": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      },
+      "transformer": "const card=data.cardContext||{}; const gaps=data.missingEvidence||[]; return [{rowKey:'investment_committee_steering_cards_summary',renderTarget:'budibase:stadtwerk-mauer-workbench:investment-committee-steering-cards-panel',roleTarget:'ROLE_ASSET_MANAGEMENT',investmentItemId:String(card.investmentItemId||'INV-2026-NETZAUSBAU-042'),status:String(data.status||'unknown'),safety:String(data.safety||'read_only'),capexEur:String(card.capexEur!=null?card.capexEur:'missing'),riskFlag:String(card.riskFlag||'unknown'),gapCount:String(gaps.length),safeNextAction:'refresh_read_only_investment_committee_steering_cards_rows_only',sourceClass:'investment_committee_steering_cards_summary'}]"
+    },
+    {
+      "name": "getInvestmentCommitteeSteeringCardsRows",
+      "method": "GET",
+      "path": "/api/dashboard/investment-committee-steering-cards",
+      "queryString": "investmentItemId=INV-2026-NETZAUSBAU-042&projectId=PRJ-STROMNETZ-Q3&assetId=teilnetz-mauer-ort&reviewStatus=technical-review-complete&evidenceStatus=complete&committeeWindow=2026-Q4-Investitionsausschuss&owner=ROLE_ASSET_MANAGEMENT&blockedFollowUpAction=freigabe-baubeginn&capexEur=450000&riskFlag=medium&sourceRef=samp-plan-2026%2Cwirtschaftsplan-q3",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      },
+      "transformer": "const items=data.evidenceItems||[]; return items.map((item,index)=>({rowKey:'investment_committee_card_'+String(item.id||index+1),renderTarget:'budibase:stadtwerk-mauer-workbench:investment-committee-steering-cards-panel',roleTarget:'ROLE_ASSET_MANAGEMENT',label:String(item.label||item.id||''),value:String(item.value||'missing'),sourceClass:String(item.sourceClass||'investment_committee_steering_cards_row')}))"
+    },
+    {
+      "name": "getInvestmentCommitteeSteeringCardsMissingRows",
+      "method": "GET",
+      "path": "/api/dashboard/investment-committee-steering-cards",
+      "queryString": "investmentItemId=INV-2026-NETZAUSBAU-042&projectId=PRJ-STROMNETZ-Q3&assetId=teilnetz-mauer-ort&reviewStatus=technical-review-complete&evidenceStatus=complete&committeeWindow=2026-Q4-Investitionsausschuss&owner=ROLE_ASSET_MANAGEMENT&blockedFollowUpAction=freigabe-baubeginn&capexEur=450000&riskFlag=medium&sourceRef=samp-plan-2026%2Cwirtschaftsplan-q3",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "missingDataPoint": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "enablesDossierAddition": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      },
+      "transformer": "const gaps=data.missingEvidence||[]; return gaps.length?gaps.map((row,index)=>({rowKey:'investment_committee_missing_'+String(row.missingDataPoint||index+1),renderTarget:'budibase:stadtwerk-mauer-workbench:investment-committee-steering-cards-panel',roleTarget:'ROLE_ASSET_MANAGEMENT',missingDataPoint:String(row.missingDataPoint||''),label:String(row.label||row.missingDataPoint||''),enablesDossierAddition:String(row.enablesDossierAddition||''),safeNextAction:'supply_evidence_then_refresh_read_only_investment_committee_cards',sourceClass:'investment_committee_steering_cards_missing_input'})):[{rowKey:'investment_committee_missing_none',renderTarget:'budibase:stadtwerk-mauer-workbench:investment-committee-steering-cards-panel',roleTarget:'ROLE_ASSET_MANAGEMENT',missingDataPoint:'none',label:'No missing investment committee steering-card inputs in synthetic default demo',enablesDossierAddition:'investment item, asset/project, review, evidence, owner, committee-window and source-reference rows remain visible',safeNextAction:'keep_refresh_read_only',sourceClass:'investment_committee_steering_cards_missing_input'}]"
+    },
+    {
+      "name": "getInvestmentCommitteeSteeringCardsFollowupRows",
+      "method": "GET",
+      "path": "/api/dashboard/investment-committee-steering-cards",
+      "queryString": "investmentItemId=INV-2026-NETZAUSBAU-042&projectId=PRJ-STROMNETZ-Q3&assetId=teilnetz-mauer-ort&reviewStatus=technical-review-complete&evidenceStatus=complete&committeeWindow=2026-Q4-Investitionsausschuss&owner=ROLE_ASSET_MANAGEMENT&blockedFollowUpAction=freigabe-baubeginn&capexEur=450000&riskFlag=medium&sourceRef=samp-plan-2026%2Cwirtschaftsplan-q3",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "missingDataPoint": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "enablesDossierAddition": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      },
+      "transformer": "const rows=data.positiveFollowUps||[]; return rows.length?rows.map((row,index)=>({rowKey:'investment_committee_followup_'+String(row.missingDataPoint||index+1),renderTarget:'budibase:stadtwerk-mauer-workbench:investment-committee-steering-cards-panel',roleTarget:'ROLE_ASSET_MANAGEMENT',missingDataPoint:String(row.missingDataPoint||''),category:String(row.category||'investment_committee_steering_cards'),enablesDossierAddition:String(row.enablesDossierAddition||''),safeNextAction:'add_evidence_then_refresh_read_only_panel',sourceClass:'investment_committee_steering_cards_positive_followup'})):[{rowKey:'investment_committee_followup_complete',renderTarget:'budibase:stadtwerk-mauer-workbench:investment-committee-steering-cards-panel',roleTarget:'ROLE_ASSET_MANAGEMENT',missingDataPoint:'none',category:'investment_committee_steering_cards',enablesDossierAddition:'complete synthetic investment committee steering-card context is already visible',safeNextAction:'keep_context_review_read_only',sourceClass:'investment_committee_steering_cards_positive_followup'}]"
+    },
+    {
+      "name": "getInvestmentCommitteeSteeringCardsNoCallRows",
+      "method": "GET",
+      "path": "/api/dashboard/investment-committee-steering-cards",
+      "queryString": "investmentItemId=INV-2026-NETZAUSBAU-042&projectId=PRJ-STROMNETZ-Q3&assetId=teilnetz-mauer-ort&reviewStatus=technical-review-complete&evidenceStatus=complete&committeeWindow=2026-Q4-Investitionsausschuss&owner=ROLE_ASSET_MANAGEMENT&blockedFollowUpAction=freigabe-baubeginn&capexEur=450000&riskFlag=medium&sourceRef=samp-plan-2026%2Cwirtschaftsplan-q3",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "boundary": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "safeAlternative": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      },
+      "transformer": "const notCalled=((data.sourceActions||{}).notCalled)||[]; const fallback=['hitl.create','vdmi.mutate','investment-plan.mutate','finance.mutate','budget.release','billing.mutate','settlement.mutate','tariff.mutate','payment.execute','external.connector.call','personal-agent.execute','budibase.table.write','production.mutate']; const unique=[...new Set(notCalled.concat(fallback))]; return unique.map((action,index)=>({rowKey:'investment_committee_no_call_'+(index+1)+'_'+String(action).replace(/[^a-zA-Z0-9]+/g,'_'),renderTarget:'budibase:stadtwerk-mauer-workbench:investment-committee-steering-cards-panel',roleTarget:'ROLE_ASSET_MANAGEMENT',boundary:String(action),status:'not_called',safeAlternative:'render_existing_read_only_investment_committee_steering_cards_rows_only',sourceClass:'investment_committee_steering_cards_no_call_guard'}))"
+    },
+    {
+      "name": "getEogModelSummaryRows",
+      "method": "GET",
+      "path": "/api/eog-calculator/stadtwerk-mauer/SNB-MAUER-DEMO",
+      "queryString": "",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "tenantId": {
+          "type": "string"
+        },
+        "vnbId": {
+          "type": "string"
+        },
+        "datapointCount": {
+          "type": "string"
+        },
+        "decisionCount": {
+          "type": "string"
+        },
+        "safety": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      },
+      "transformer": "const scope=data.scope||{}; const datapoints=data.datapoints||[]; const decisions=data.decisions||[]; return [{rowKey:'eog_model_summary',renderTarget:'budibase:stadtwerk-mauer-workbench:eog-scenario-akte-panel',roleTarget:'ROLE_REGULATORY',tenantId:String(scope.tenantId||'stadtwerk-mauer'),vnbId:String(scope.vnbId||'SNB-MAUER-DEMO'),datapointCount:String(datapoints.length),decisionCount:String(decisions.length),safety:'read_only_eog_model_projection',safeNextAction:'refresh_read_only_eog_model_rows_only',sourceClass:'eog_model_summary'}]"
+    },
+    {
+      "name": "getEogModelDatapointRows",
+      "method": "GET",
+      "path": "/api/eog-calculator/stadtwerk-mauer/SNB-MAUER-DEMO",
+      "queryString": "",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "unit": {
+          "type": "string"
+        },
+        "sector": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      },
+      "transformer": "const rows=data.datapoints||[]; return rows.length?rows.map((row,index)=>({rowKey:'eog_model_datapoint_'+String(row.id||row.key||index+1),renderTarget:'budibase:stadtwerk-mauer-workbench:eog-scenario-akte-panel',roleTarget:'ROLE_REGULATORY',key:String(row.typedKey||row.key||''),value:String(row.value!=null?row.value:'missing'),unit:String(row.unit||''),sector:String(row.sector||'missing'),source:String(row.source||'missing'),version:String(row.version||'missing'),status:String(row.status||'unknown'),sourceClass:'eog_model_datapoint'})):[{rowKey:'eog_model_datapoint_none',renderTarget:'budibase:stadtwerk-mauer-workbench:eog-scenario-akte-panel',roleTarget:'ROLE_REGULATORY',key:'none',value:'missing',unit:'',sector:'missing',source:'missing',version:'missing',status:'no_datapoints_provided_yet',sourceClass:'eog_model_datapoint'}]"
+    },
+    {
+      "name": "getEogModelDecisionRows",
+      "method": "GET",
+      "path": "/api/eog-calculator/stadtwerk-mauer/SNB-MAUER-DEMO",
+      "queryString": "",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "decision": {
+          "type": "string"
+        },
+        "approved": {
+          "type": "string"
+        },
+        "actor": {
+          "type": "string"
+        },
+        "comment": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      },
+      "transformer": "const rows=data.decisions||[]; return rows.length?rows.map((row,index)=>({rowKey:'eog_model_decision_'+String(row.id||index+1),renderTarget:'budibase:stadtwerk-mauer-workbench:eog-scenario-akte-panel',roleTarget:'ROLE_REGULATORY',decision:String(row.decision||'missing'),approved:String(Boolean(row.approved)),actor:String(row.actor||'missing'),comment:String(row.comment||''),createdAt:String(row.createdAt||''),sourceClass:'eog_model_decision'})):[{rowKey:'eog_model_decision_none',renderTarget:'budibase:stadtwerk-mauer-workbench:eog-scenario-akte-panel',roleTarget:'ROLE_REGULATORY',decision:'none',approved:'false',actor:'missing',comment:'no Gremienentscheidung recorded yet for this synthetic scope',createdAt:'',sourceClass:'eog_model_decision'}]"
+    },
+    {
+      "name": "getEogModelMissingRows",
+      "method": "GET",
+      "path": "/api/eog-calculator/stadtwerk-mauer/SNB-MAUER-DEMO",
+      "queryString": "",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "missingDataPoint": {
+          "type": "string"
+        },
+        "enablesDossierAddition": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      },
+      "transformer": "const datapoints=data.datapoints||[]; const decisions=data.decisions||[]; const gaps=[]; if(!datapoints.length){gaps.push({missingDataPoint:'eog_datapoints',enablesDossierAddition:'add Ausgangsniveau, Effizienzwerte, betriebsnotwendiges Vermoegen or other EOG datapoints via eog-calculator.inputStatus'});} if(!decisions.length){gaps.push({missingDataPoint:'eog_decision_events',enablesDossierAddition:'add a recorded Gremienentscheidung/next-gate decision event'});} return gaps.length?gaps.map((row,index)=>({rowKey:'eog_model_missing_'+String(row.missingDataPoint||index+1),renderTarget:'budibase:stadtwerk-mauer-workbench:eog-scenario-akte-panel',roleTarget:'ROLE_REGULATORY',missingDataPoint:String(row.missingDataPoint||''),enablesDossierAddition:String(row.enablesDossierAddition||''),safeNextAction:'supply_evidence_via_eog_calculator_then_refresh_read_only_panel',sourceClass:'eog_model_missing_input'})):[{rowKey:'eog_model_missing_none',renderTarget:'budibase:stadtwerk-mauer-workbench:eog-scenario-akte-panel',roleTarget:'ROLE_REGULATORY',missingDataPoint:'none',enablesDossierAddition:'EOG datapoints and decision events remain visible',safeNextAction:'keep_refresh_read_only',sourceClass:'eog_model_missing_input'}]"
+    },
+    {
+      "name": "getEogModelNoCallRows",
+      "method": "GET",
+      "path": "/api/eog-calculator/stadtwerk-mauer/SNB-MAUER-DEMO",
+      "queryString": "",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "boundary": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "safeAlternative": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      },
+      "transformer": "const fallback=['eog-calculator.calculate','eog-calculator.commitDatapoints','eog-calculator.validateDatapoints','eog-calculator.requestInput','eog-calculator.scenario','hitl.create','tariff.mutate','settlement.mutate','billing.mutate','external.connector.call','personal-agent.execute','budibase.table.write','production.mutate']; return fallback.map((action,index)=>({rowKey:'eog_model_no_call_'+(index+1)+'_'+String(action).replace(/[^a-zA-Z0-9]+/g,'_'),renderTarget:'budibase:stadtwerk-mauer-workbench:eog-scenario-akte-panel',roleTarget:'ROLE_REGULATORY',boundary:String(action),status:'not_called',safeAlternative:'render_existing_read_only_eog_model_rows_only',sourceClass:'eog_model_no_call_guard'}))"
+    },
+    {
+      "name": "getRisikowertValidierungsGateSummaryRows",
+      "method": "GET",
+      "path": "/api/dashboard/decision-readiness-matrix",
+      "queryString": "caseId=risk-validation-2026-q3&measureId=risikowert-kalibrierung-2026&measureName=Risikowert-Validierungs-Gate+2026&category=cross_sparte_risk_regulatorik&budgetStatus=not_applicable&financingOption=not_applicable&riskIfNotImplemented=inkonsistente+Kennzahleninterpretation+zwischen+Netz%2C+kaufmaennischer+Steuerung+und+Risikomanagement&evidenceSource=risikoregister-2026-q3&owner=ROLE_CERNION_GOVERNANCE&committeeWindow=2026-Q4-Risikoausschuss&nextDecisionPoint=risiko-eskalationsgremium",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "caseId": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "safety": {
+          "type": "string"
+        },
+        "decisionReadyRows": {
+          "type": "string"
+        },
+        "gapCount": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      },
+      "transformer": "const ctx=data.requestContext||{}; const gaps=data.missingEvidence||[]; const counts=data.readinessCounts||{}; return [{rowKey:'risikowert_validierungs_gate_summary',renderTarget:'budibase:stadtwerk-mauer-workbench:risikowert-validierungs-gate-panel',roleTarget:'ROLE_CERNION_GOVERNANCE',caseId:String(ctx.caseId||'risk-validation-2026-q3'),status:String(data.status||'unknown'),safety:String(data.safety||'read_only'),decisionReadyRows:String(counts.decision_ready||0),gapCount:String(gaps.length),safeNextAction:'refresh_read_only_risikowert_validierungs_gate_rows_only',sourceClass:'risikowert_validierungs_gate_summary'}]"
+    },
+    {
+      "name": "getRisikowertValidierungsGateRows",
+      "method": "GET",
+      "path": "/api/dashboard/decision-readiness-matrix",
+      "queryString": "caseId=risk-validation-2026-q3&measureId=risikowert-kalibrierung-2026&measureName=Risikowert-Validierungs-Gate+2026&category=cross_sparte_risk_regulatorik&budgetStatus=not_applicable&financingOption=not_applicable&riskIfNotImplemented=inkonsistente+Kennzahleninterpretation+zwischen+Netz%2C+kaufmaennischer+Steuerung+und+Risikomanagement&evidenceSource=risikoregister-2026-q3&owner=ROLE_CERNION_GOVERNANCE&committeeWindow=2026-Q4-Risikoausschuss&nextDecisionPoint=risiko-eskalationsgremium",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "measureName": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "evidenceSource": {
+          "type": "string"
+        },
+        "owner": {
+          "type": "string"
+        },
+        "riskIfNotImplemented": {
+          "type": "string"
+        },
+        "committeeWindow": {
+          "type": "string"
+        },
+        "nextDecisionPoint": {
+          "type": "string"
+        },
+        "readiness": {
+          "type": "string"
+        },
+        "evidenceStatus": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      },
+      "transformer": "const rows=data.rows||[]; return rows.map((row,index)=>({rowKey:'risikowert_validierungs_row_'+String(row.rowId||index+1),renderTarget:'budibase:stadtwerk-mauer-workbench:risikowert-validierungs-gate-panel',roleTarget:'ROLE_CERNION_GOVERNANCE',measureName:String(row.measureName||'missing'),category:String(row.category||'missing'),evidenceSource:String(row.evidenceSource||'missing'),owner:String(row.owner||'missing'),riskIfNotImplemented:String(row.riskIfNotImplemented||'missing'),committeeWindow:String(row.committeeWindow||'missing'),nextDecisionPoint:String(row.nextDecisionPoint||'missing'),readiness:String(row.readiness||'unknown'),evidenceStatus:String(row.evidenceStatus||'missing'),sourceClass:'risikowert_validierungs_gate_row'}))"
+    },
+    {
+      "name": "getRisikowertValidierungsGateMissingRows",
+      "method": "GET",
+      "path": "/api/dashboard/decision-readiness-matrix",
+      "queryString": "caseId=risk-validation-2026-q3&measureId=risikowert-kalibrierung-2026&measureName=Risikowert-Validierungs-Gate+2026&category=cross_sparte_risk_regulatorik&budgetStatus=not_applicable&financingOption=not_applicable&riskIfNotImplemented=inkonsistente+Kennzahleninterpretation+zwischen+Netz%2C+kaufmaennischer+Steuerung+und+Risikomanagement&evidenceSource=risikoregister-2026-q3&owner=ROLE_CERNION_GOVERNANCE&committeeWindow=2026-Q4-Risikoausschuss&nextDecisionPoint=risiko-eskalationsgremium",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "missingDataPoint": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "enablesDossierAddition": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      },
+      "transformer": "const gaps=data.missingEvidence||[]; return gaps.length?gaps.map((row,index)=>({rowKey:'risikowert_validierungs_missing_'+String(row.missingDataPoint||index+1)+'_'+index,renderTarget:'budibase:stadtwerk-mauer-workbench:risikowert-validierungs-gate-panel',roleTarget:'ROLE_CERNION_GOVERNANCE',missingDataPoint:String(row.missingDataPoint||''),label:String(row.label||row.missingDataPoint||''),enablesDossierAddition:String(row.enablesDossierAddition||''),safeNextAction:'supply_evidence_then_refresh_read_only_risikowert_gate',sourceClass:'risikowert_validierungs_gate_missing_input'})):[{rowKey:'risikowert_validierungs_missing_none',renderTarget:'budibase:stadtwerk-mauer-workbench:risikowert-validierungs-gate-panel',roleTarget:'ROLE_CERNION_GOVERNANCE',missingDataPoint:'none',label:'No missing Risikowert-Validierungs-Gate inputs in synthetic default demo',enablesDossierAddition:'category, evidence-source, owner, committee-window and next-decision-point rows remain visible',safeNextAction:'keep_refresh_read_only',sourceClass:'risikowert_validierungs_gate_missing_input'}]"
+    },
+    {
+      "name": "getRisikowertValidierungsGateFollowupRows",
+      "method": "GET",
+      "path": "/api/dashboard/decision-readiness-matrix",
+      "queryString": "caseId=risk-validation-2026-q3&measureId=risikowert-kalibrierung-2026&measureName=Risikowert-Validierungs-Gate+2026&category=cross_sparte_risk_regulatorik&budgetStatus=not_applicable&financingOption=not_applicable&riskIfNotImplemented=inkonsistente+Kennzahleninterpretation+zwischen+Netz%2C+kaufmaennischer+Steuerung+und+Risikomanagement&evidenceSource=risikoregister-2026-q3&owner=ROLE_CERNION_GOVERNANCE&committeeWindow=2026-Q4-Risikoausschuss&nextDecisionPoint=risiko-eskalationsgremium",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "missingDataPoint": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "enablesDossierAddition": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      },
+      "transformer": "const rows=data.positiveFollowUps||[]; return rows.length?rows.map((row,index)=>({rowKey:'risikowert_validierungs_followup_'+String(row.missingDataPoint||index+1)+'_'+index,renderTarget:'budibase:stadtwerk-mauer-workbench:risikowert-validierungs-gate-panel',roleTarget:'ROLE_CERNION_GOVERNANCE',missingDataPoint:String(row.missingDataPoint||''),category:String(row.category||'decision_readiness_matrix'),enablesDossierAddition:String(row.enablesDossierAddition||''),safeNextAction:'add_evidence_then_refresh_read_only_panel',sourceClass:'risikowert_validierungs_gate_positive_followup'})):[{rowKey:'risikowert_validierungs_followup_complete',renderTarget:'budibase:stadtwerk-mauer-workbench:risikowert-validierungs-gate-panel',roleTarget:'ROLE_CERNION_GOVERNANCE',missingDataPoint:'none',category:'decision_readiness_matrix',enablesDossierAddition:'complete synthetic Risikowert-Validierungs-Gate context is already visible',safeNextAction:'keep_context_review_read_only',sourceClass:'risikowert_validierungs_gate_positive_followup'}]"
+    },
+    {
+      "name": "getRisikowertValidierungsGateNoCallRows",
+      "method": "GET",
+      "path": "/api/dashboard/decision-readiness-matrix",
+      "queryString": "caseId=risk-validation-2026-q3&measureId=risikowert-kalibrierung-2026&measureName=Risikowert-Validierungs-Gate+2026&category=cross_sparte_risk_regulatorik&budgetStatus=not_applicable&financingOption=not_applicable&riskIfNotImplemented=inkonsistente+Kennzahleninterpretation+zwischen+Netz%2C+kaufmaennischer+Steuerung+und+Risikomanagement&evidenceSource=risikoregister-2026-q3&owner=ROLE_CERNION_GOVERNANCE&committeeWindow=2026-Q4-Risikoausschuss&nextDecisionPoint=risiko-eskalationsgremium",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "boundary": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "safeAlternative": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      },
+      "transformer": "const notCalled=((data.sourceActions||{}).notCalled)||[]; const fallback=['budget.approve','finance.book','procurement.create','sap.erp.write','hitl.create','workflow.execute','webhook.emit','billing.mutate','settlement.mutate','tariff.mutate','device-control.execute','mako.mutate','external.connector.call','personal-agent.execute','budibase.table.write','production.mutate']; const unique=[...new Set(notCalled.concat(fallback))]; return unique.map((action,index)=>({rowKey:'risikowert_validierungs_no_call_'+(index+1)+'_'+String(action).replace(/[^a-zA-Z0-9]+/g,'_'),renderTarget:'budibase:stadtwerk-mauer-workbench:risikowert-validierungs-gate-panel',roleTarget:'ROLE_CERNION_GOVERNANCE',boundary:String(action),status:'not_called',safeAlternative:'render_existing_read_only_risikowert_validierungs_gate_rows_only',sourceClass:'risikowert_validierungs_gate_no_call_guard'}))"
+    },
+    {
+      "name": "getMsconsIdentifikatorwechselSummaryRows",
+      "method": "GET",
+      "path": "/api/dashboard/owner-deadline-evidence-gate",
+      "queryString": "signalId=mscons-malo-switch-2026-001&caseId=mscons-identifier-switch-2026-001&sourceType=technical-reference-id&processType=lastgang_metering&riskLevel=medium&ownerRole=ROLE_METERING&ownerContact=ROLE_MARKTKOMMUNIKATION&dueAt=2026-08-15&evidenceRef=mscons-testabruf-2026-07&evidenceStatus=ready&blockedDecision=produktivschwenk-malo-referenz&linkedEntity=malo-target-identifier&signalContextStatus=ready",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "caseId": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "safety": {
+          "type": "string"
+        },
+        "sourceType": {
+          "type": "string"
+        },
+        "linkedEntity": {
+          "type": "string"
+        },
+        "gapCount": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      },
+      "transformer": "const ctx=data.signalContext||{}; const gaps=data.evidenceGaps||data.missingEvidence||[]; return [{rowKey:'mscons_identifikatorwechsel_summary',renderTarget:'budibase:stadtwerk-mauer-workbench:mscons-identifikatorwechsel-readiness-gate-panel',roleTarget:'ROLE_METERING',caseId:String(ctx.signalId||'mscons-identifier-switch-2026-001'),status:String(data.status||'unknown'),safety:String(data.safety||'read_only'),sourceType:String(ctx.sourceType||'missing'),linkedEntity:String(ctx.linkedEntity||'missing'),gapCount:String(gaps.length),safeNextAction:'refresh_read_only_mscons_identifikatorwechsel_rows_only',sourceClass:'mscons_identifikatorwechsel_summary'}]"
+    },
+    {
+      "name": "getMsconsIdentifikatorwechselRows",
+      "method": "GET",
+      "path": "/api/dashboard/owner-deadline-evidence-gate",
+      "queryString": "signalId=mscons-malo-switch-2026-001&caseId=mscons-identifier-switch-2026-001&sourceType=technical-reference-id&processType=lastgang_metering&riskLevel=medium&ownerRole=ROLE_METERING&ownerContact=ROLE_MARKTKOMMUNIKATION&dueAt=2026-08-15&evidenceRef=mscons-testabruf-2026-07&evidenceStatus=ready&blockedDecision=produktivschwenk-malo-referenz&linkedEntity=malo-target-identifier&signalContextStatus=ready",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      },
+      "transformer": "const ctx=data.signalContext||{}; const owner=data.ownerContext||{}; const contextRows=[{label:'Source Identifier Type',value:ctx.sourceType||'missing',category:'signal_context'},{label:'Target Identifier',value:ctx.linkedEntity||'missing',category:'signal_context'},{label:'Process Type',value:ctx.processType||'missing',category:'signal_context'},{label:'Risk Level',value:ctx.riskLevel||'missing',category:'signal_context'},{label:'Owner Role',value:owner.ownerRole||'missing',category:'owner_context'},{label:'Due At',value:owner.dueAt||'missing',category:'owner_context'},{label:'Blocked Decision',value:ctx.blockedDecision||'missing',category:'signal_context'}]; const signalRows=(data.readinessSignals||[]).map((s)=>({label:s.label,value:s.status,category:'readiness_signal'})); const rows=[...contextRows,...signalRows]; return rows.map((row,index)=>({rowKey:'mscons_identifikatorwechsel_'+String(row.label||index+1).toLowerCase().replace(/[^a-z0-9]+/g,'_'),renderTarget:'budibase:stadtwerk-mauer-workbench:mscons-identifikatorwechsel-readiness-gate-panel',roleTarget:'ROLE_METERING',label:String(row.label||''),value:String(row.value||'missing'),category:String(row.category||''),sourceClass:'mscons_identifikatorwechsel_row'}))"
+    },
+    {
+      "name": "getMsconsIdentifikatorwechselMissingRows",
+      "method": "GET",
+      "path": "/api/dashboard/owner-deadline-evidence-gate",
+      "queryString": "signalId=mscons-malo-switch-2026-001&caseId=mscons-identifier-switch-2026-001&sourceType=technical-reference-id&processType=lastgang_metering&riskLevel=medium&ownerRole=ROLE_METERING&ownerContact=ROLE_MARKTKOMMUNIKATION&dueAt=2026-08-15&evidenceRef=mscons-testabruf-2026-07&evidenceStatus=ready&blockedDecision=produktivschwenk-malo-referenz&linkedEntity=malo-target-identifier&signalContextStatus=ready",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "missingDataPoint": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "enablesDossierAddition": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      },
+      "transformer": "const gaps=data.evidenceGaps||data.missingEvidence||[]; return gaps.length?gaps.map((row,index)=>({rowKey:'mscons_identifikatorwechsel_missing_'+String(row.missingDataPoint||index+1),renderTarget:'budibase:stadtwerk-mauer-workbench:mscons-identifikatorwechsel-readiness-gate-panel',roleTarget:'ROLE_METERING',missingDataPoint:String(row.missingDataPoint||''),status:String(row.status||'missing'),enablesDossierAddition:String(row.enablesDossierAddition||''),safeNextAction:'supply_evidence_then_refresh_read_only_mscons_gate',sourceClass:'mscons_identifikatorwechsel_missing_input'})):[{rowKey:'mscons_identifikatorwechsel_missing_none',renderTarget:'budibase:stadtwerk-mauer-workbench:mscons-identifikatorwechsel-readiness-gate-panel',roleTarget:'ROLE_METERING',missingDataPoint:'none',status:String(data.status||'ready'),enablesDossierAddition:'source/target identifier, owner, deadline, evidence and blocked-decision rows remain visible',safeNextAction:'keep_refresh_read_only',sourceClass:'mscons_identifikatorwechsel_missing_input'}]"
+    },
+    {
+      "name": "getMsconsIdentifikatorwechselFollowupRows",
+      "method": "GET",
+      "path": "/api/dashboard/owner-deadline-evidence-gate",
+      "queryString": "signalId=mscons-malo-switch-2026-001&caseId=mscons-identifier-switch-2026-001&sourceType=technical-reference-id&processType=lastgang_metering&riskLevel=medium&ownerRole=ROLE_METERING&ownerContact=ROLE_MARKTKOMMUNIKATION&dueAt=2026-08-15&evidenceRef=mscons-testabruf-2026-07&evidenceStatus=ready&blockedDecision=produktivschwenk-malo-referenz&linkedEntity=malo-target-identifier&signalContextStatus=ready",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "missingDataPoint": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "enablesDossierAddition": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      },
+      "transformer": "const rows=data.positiveFollowUps||[]; return rows.length?rows.map((row,index)=>({rowKey:'mscons_identifikatorwechsel_followup_'+String(row.missingDataPoint||index+1),renderTarget:'budibase:stadtwerk-mauer-workbench:mscons-identifikatorwechsel-readiness-gate-panel',roleTarget:'ROLE_METERING',missingDataPoint:String(row.missingDataPoint||''),category:String(row.category||'mscons_identifikatorwechsel_gate'),enablesDossierAddition:String(row.enablesDossierAddition||''),safeNextAction:'add_evidence_then_refresh_read_only_panel',sourceClass:'mscons_identifikatorwechsel_positive_followup'})):[{rowKey:'mscons_identifikatorwechsel_followup_complete',renderTarget:'budibase:stadtwerk-mauer-workbench:mscons-identifikatorwechsel-readiness-gate-panel',roleTarget:'ROLE_METERING',missingDataPoint:'none',category:'mscons_identifikatorwechsel_gate',enablesDossierAddition:'complete synthetic MSCONS identifier-switch context is already visible',safeNextAction:'keep_context_review_read_only',sourceClass:'mscons_identifikatorwechsel_positive_followup'}]"
+    },
+    {
+      "name": "getMsconsIdentifikatorwechselNoCallRows",
+      "method": "GET",
+      "path": "/api/dashboard/owner-deadline-evidence-gate",
+      "queryString": "signalId=mscons-malo-switch-2026-001&caseId=mscons-identifier-switch-2026-001&sourceType=technical-reference-id&processType=lastgang_metering&riskLevel=medium&ownerRole=ROLE_METERING&ownerContact=ROLE_MARKTKOMMUNIKATION&dueAt=2026-08-15&evidenceRef=mscons-testabruf-2026-07&evidenceStatus=ready&blockedDecision=produktivschwenk-malo-referenz&linkedEntity=malo-target-identifier&signalContextStatus=ready",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "boundary": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "safeAlternative": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      },
+      "transformer": "const notCalled=((data.sourceActions||{}).notCalled)||[]; const fallback=['mail.fetch','teams.fetch','loop.fetch','external.connector.call','workflow.execute','notification.send','deadline.mutate','task.create','owner.assign','hitl.create','mscons.import','edm.mutate','mako.mutate','personal-agent.execute','budibase.table.write','production.mutate']; const unique=[...new Set(notCalled.concat(fallback))]; return unique.map((action,index)=>({rowKey:'mscons_identifikatorwechsel_no_call_'+(index+1)+'_'+String(action).replace(/[^a-zA-Z0-9]+/g,'_'),renderTarget:'budibase:stadtwerk-mauer-workbench:mscons-identifikatorwechsel-readiness-gate-panel',roleTarget:'ROLE_METERING',boundary:String(action),status:'not_called',safeAlternative:'render_existing_read_only_mscons_identifikatorwechsel_rows_only',sourceClass:'mscons_identifikatorwechsel_no_call_guard'}))"
     }
   ],
   "sections": [
@@ -12465,6 +13488,186 @@
       "title": "Redispatch E2E — No-Call Boundaries",
       "queryName": "getRedispatchParticipationBoundaryRows",
       "tableTitle": "Reused Redispatch Participation No-Call Guards"
+    },
+    {
+      "id": "automation_risk_gate_summary",
+      "title": "Automation Risk Gate Summary",
+      "queryName": "getAutomationRiskGateSummaryRows",
+      "tableTitle": "Status, Risk Level and Gap Count"
+    },
+    {
+      "id": "automation_risk_gate_rows",
+      "title": "Automation Risk Gate Process & Risk Context",
+      "queryName": "getAutomationRiskGateProcessRows",
+      "tableTitle": "Process, Risk and Readiness Signals"
+    },
+    {
+      "id": "automation_risk_gate_missing_inputs",
+      "title": "Automation Risk Gate Missing Inputs",
+      "queryName": "getAutomationRiskGateMissingRows",
+      "tableTitle": "Missing Evidence and Enabled Additions"
+    },
+    {
+      "id": "automation_risk_gate_followups",
+      "title": "Automation Risk Gate Follow-ups",
+      "queryName": "getAutomationRiskGatePositiveFollowupRows",
+      "tableTitle": "Positive Follow-ups"
+    },
+    {
+      "id": "automation_risk_gate_no_call_guards",
+      "title": "Automation Risk Gate No-Call Guards",
+      "queryName": "getAutomationRiskGateNoCallRows",
+      "tableTitle": "Forbidden and Not-Called Boundaries"
+    },
+    {
+      "id": "controllability_submission_cockpit_summary",
+      "title": "Controllability Submission Cockpit Summary",
+      "queryName": "getControllabilitySubmissionCockpitSummaryRows",
+      "tableTitle": "Status, Handover and Readiness Score"
+    },
+    {
+      "id": "controllability_submission_cockpit_steps",
+      "title": "Controllability Submission Cockpit Steps",
+      "queryName": "getControllabilitySubmissionCockpitStepRows",
+      "tableTitle": "Coordinator, Sources, Reconciliation and Handover Steps"
+    },
+    {
+      "id": "controllability_submission_cockpit_missing_inputs",
+      "title": "Controllability Submission Cockpit Missing Inputs",
+      "queryName": "getControllabilitySubmissionCockpitMissingRows",
+      "tableTitle": "Missing Evidence and Enabled Additions"
+    },
+    {
+      "id": "controllability_submission_cockpit_followups",
+      "title": "Controllability Submission Cockpit Follow-ups",
+      "queryName": "getControllabilitySubmissionCockpitFollowupRows",
+      "tableTitle": "Positive Follow-ups"
+    },
+    {
+      "id": "controllability_submission_cockpit_no_call_guards",
+      "title": "Controllability Submission Cockpit No-Call Guards",
+      "queryName": "getControllabilitySubmissionCockpitNoCallRows",
+      "tableTitle": "Forbidden and Not-Called Boundaries"
+    },
+    {
+      "id": "investment_committee_steering_cards_summary",
+      "title": "Investment Committee Steering Cards Summary",
+      "queryName": "getInvestmentCommitteeSteeringCardsSummaryRows",
+      "tableTitle": "Status, Capex and Risk Flag"
+    },
+    {
+      "id": "investment_committee_steering_cards_rows",
+      "title": "Investment Committee Steering Cards Rows",
+      "queryName": "getInvestmentCommitteeSteeringCardsRows",
+      "tableTitle": "Card, Review, Evidence and Committee Window"
+    },
+    {
+      "id": "investment_committee_steering_cards_missing_inputs",
+      "title": "Investment Committee Steering Cards Missing Inputs",
+      "queryName": "getInvestmentCommitteeSteeringCardsMissingRows",
+      "tableTitle": "Missing Evidence and Enabled Additions"
+    },
+    {
+      "id": "investment_committee_steering_cards_followups",
+      "title": "Investment Committee Steering Cards Follow-ups",
+      "queryName": "getInvestmentCommitteeSteeringCardsFollowupRows",
+      "tableTitle": "Positive Follow-ups"
+    },
+    {
+      "id": "investment_committee_steering_cards_no_call_guards",
+      "title": "Investment Committee Steering Cards No-Call Guards",
+      "queryName": "getInvestmentCommitteeSteeringCardsNoCallRows",
+      "tableTitle": "Forbidden and Not-Called Boundaries"
+    },
+    {
+      "id": "eog_model_summary",
+      "title": "EOG Scenario Akte Summary",
+      "queryName": "getEogModelSummaryRows",
+      "tableTitle": "Tenant, VNB, Datapoint and Decision Counts"
+    },
+    {
+      "id": "eog_model_datapoints",
+      "title": "EOG Scenario Akte Datapoints",
+      "queryName": "getEogModelDatapointRows",
+      "tableTitle": "EOG Eckwerte, Sparte, Quelle and Version"
+    },
+    {
+      "id": "eog_model_decisions",
+      "title": "EOG Scenario Akte Decisions",
+      "queryName": "getEogModelDecisionRows",
+      "tableTitle": "Gremienentscheidungen und Provenienz"
+    },
+    {
+      "id": "eog_model_missing_inputs",
+      "title": "EOG Scenario Akte Missing Inputs",
+      "queryName": "getEogModelMissingRows",
+      "tableTitle": "Missing Evidence and Enabled Additions"
+    },
+    {
+      "id": "eog_model_no_call_guards",
+      "title": "EOG Scenario Akte No-Call Guards",
+      "queryName": "getEogModelNoCallRows",
+      "tableTitle": "Forbidden and Not-Called Boundaries"
+    },
+    {
+      "id": "risikowert_validierungs_gate_summary",
+      "title": "Risikowert Validierungs-Gate Summary",
+      "queryName": "getRisikowertValidierungsGateSummaryRows",
+      "tableTitle": "Status, Decision-Ready Rows and Gap Count"
+    },
+    {
+      "id": "risikowert_validierungs_gate_rows",
+      "title": "Risikowert Validierungs-Gate Rows",
+      "queryName": "getRisikowertValidierungsGateRows",
+      "tableTitle": "Herkunft, Sparte, Owner and Entscheidungsgremium"
+    },
+    {
+      "id": "risikowert_validierungs_gate_missing_inputs",
+      "title": "Risikowert Validierungs-Gate Missing Inputs",
+      "queryName": "getRisikowertValidierungsGateMissingRows",
+      "tableTitle": "Missing Evidence and Enabled Additions"
+    },
+    {
+      "id": "risikowert_validierungs_gate_followups",
+      "title": "Risikowert Validierungs-Gate Follow-ups",
+      "queryName": "getRisikowertValidierungsGateFollowupRows",
+      "tableTitle": "Positive Follow-ups"
+    },
+    {
+      "id": "risikowert_validierungs_gate_no_call_guards",
+      "title": "Risikowert Validierungs-Gate No-Call Guards",
+      "queryName": "getRisikowertValidierungsGateNoCallRows",
+      "tableTitle": "Forbidden and Not-Called Boundaries"
+    },
+    {
+      "id": "mscons_identifikatorwechsel_summary",
+      "title": "MSCONS Identifikatorwechsel Readiness-Gate Summary",
+      "queryName": "getMsconsIdentifikatorwechselSummaryRows",
+      "tableTitle": "Status, Source Type and Target Identifier"
+    },
+    {
+      "id": "mscons_identifikatorwechsel_rows",
+      "title": "MSCONS Identifikatorwechsel Readiness-Gate Rows",
+      "queryName": "getMsconsIdentifikatorwechselRows",
+      "tableTitle": "Source/Target Identifier, Process, Owner and Readiness Signals"
+    },
+    {
+      "id": "mscons_identifikatorwechsel_missing_inputs",
+      "title": "MSCONS Identifikatorwechsel Readiness-Gate Missing Inputs",
+      "queryName": "getMsconsIdentifikatorwechselMissingRows",
+      "tableTitle": "Missing Evidence and Enabled Additions"
+    },
+    {
+      "id": "mscons_identifikatorwechsel_followups",
+      "title": "MSCONS Identifikatorwechsel Readiness-Gate Follow-ups",
+      "queryName": "getMsconsIdentifikatorwechselFollowupRows",
+      "tableTitle": "Positive Follow-ups"
+    },
+    {
+      "id": "mscons_identifikatorwechsel_no_call_guards",
+      "title": "MSCONS Identifikatorwechsel Readiness-Gate No-Call Guards",
+      "queryName": "getMsconsIdentifikatorwechselNoCallRows",
+      "tableTitle": "Forbidden and Not-Called Boundaries"
     }
   ],
   "notes": [
@@ -12524,6 +13727,18 @@
     "Tabular Decision-Input Readiness rows stay scalar/generated and synthetic: Budibase renders the selected table/case and role question, Blueprint-Pack validity, the canonical four-row V/D/M/I matrix with roleLegend.M = Mitwirkend, scope/privacy/profile-hash evidence, schema/missing-value/duplicate/interval-quality/outlier evidence, executed-plan/source-row/result-row/hash/warning evidence state, owner/readiness/next-safe-gate evidence, transfer-readiness and data-class boundaries, and the visible Blueprint-Pack/Cernion-Energy-Tools -> Landing-Registry -> Produktivseite sync chain with Landing-Registry and Produktivseite explicitly pending.",
     "Tabular Decision-Input Readiness renders profile, quality-report, query-plan and execute-plan only as curated operation-boundary metadata rows (operationId, operationPath, invocation: source_hint_only, status: not_called); Budibase must not call /api/tabular/profile, /api/tabular/quality-report, /api/tabular/query-plan or /api/tabular/execute-plan, import or mutate source rows, execute SQL/expressions/callbacks, export raw rows, write Budibase or Cernion tables, publish the Landing Registry or cernion.de, run MaKo/A96/billing/settlement/tariff/Redispatch/device-control actions, handle secrets, or use Personal-Agent shortcuts.",
     "Redispatch E2E Evidence Chain (#465) is a read-only, renderer-only composition that joins the still-separated Redispatch operational review views — metering/masterdata readiness, call quality, project-controlling/KPI, owner/deadline and the final Blueprint/transfer gate — with the existing canonical stadtwerk-mauer-redispatch-participation-readiness-v1 five-row matrix and evidence rows; it reuses getRedispatchParticipationMatrixRows, getRedispatchParticipationEvidenceRows, getRedispatchParticipationSeedGuardRows and getRedispatchParticipationBoundaryRows instead of cloning their transformers and introduces no new backend endpoint, case type, or second Blueprint seed.",
-    "Redispatch E2E Evidence Chain rows stay scalar/generated and clearly synthetic: Budibase renders scope, asset class, metering/masterdata and call-quality state, test/forecast/dispatch-proof state, milestone/due-date/data-source health, exception/blocker, owner/deadline, final-gate and missing-evidence/next-action rows only, with finalApprovalGranted fixed to false, without authorization/RBAC, Redispatch enrollment/dispatch/curtailment/compensation, MaKo/billing/settlement/tariff/contract, workflow/HITL/CRM/mail/webhook/connector calls, Budibase table/tenant/production writes, secrets, or Personal-Agent shortcuts; it answers readiness and blocking evidence only, not authorization, controllability or final approval."
+    "Redispatch E2E Evidence Chain rows stay scalar/generated and clearly synthetic: Budibase renders scope, asset class, metering/masterdata and call-quality state, test/forecast/dispatch-proof state, milestone/due-date/data-source health, exception/blocker, owner/deadline, final-gate and missing-evidence/next-action rows only, with finalApprovalGranted fixed to false, without authorization/RBAC, Redispatch enrollment/dispatch/curtailment/compensation, MaKo/billing/settlement/tariff/contract, workflow/HITL/CRM/mail/webhook/connector calls, Budibase table/tenant/production writes, secrets, or Personal-Agent shortcuts; it answers readiness and blocking evidence only, not authorization, controllability or final approval.",
+    "Automation Risk Gate panel binds the existing dashboard-api.automationRiskGateStatus read model with deterministic synthetic MSCONS-Bewegungsdaten retry-automation defaults for ROLE_GRID_OPERATIONS_LEAD, translating a caller-supplied automation warning into a fachliche Bewegungsdaten-Risikosicht (#485).",
+    "Automation Risk Gate rows stay scalar/generated: Budibase renders summary, process/risk context, readiness signals, missing evidence, positive follow-ups and no-call guards only, without RPA/bot execution, mass-run triggers, workflow/HITL creation, customer/market communication, settlement, Budibase table writes or Personal-Agent shortcuts.",
+    "Controllability Submission Cockpit panel binds the existing dashboard-api.controllabilitySubmissionCockpitStatus read model with deterministic synthetic annual Steuerbarkeitscheck cycle defaults for ROLE_GRID_OPERATIONS_LEAD, surfacing submission deadline, asset-group scope, data reconciliation, reason catalog, open measures and handover decision/owner for the annual controllability review cycle (#484).",
+    "Controllability Submission Cockpit rows stay scalar/generated: Budibase renders summary, step, missing-evidence, positive-follow-up and no-call-guard rows only, without HITL creation, submission filing, grid/CLS/SMGW/device control execution, MaKo/billing/settlement/tariff mutation, Budibase table writes or Personal-Agent shortcuts.",
+    "Investment Committee Steering Cards panel binds the existing dashboard-api.investmentCommitteeSteeringCardsStatus read model with deterministic synthetic Investitions-Governance defaults for ROLE_ASSET_MANAGEMENT, surfacing investment item, asset/project reference, review/evidence status, capex, risk flag, committee window, owner and source references for a spartenuebergreifendes governance review (#475).",
+    "Investment Committee Steering Cards rows stay scalar/generated: Budibase renders summary, card, missing-evidence, positive-follow-up and no-call-guard rows only, without HITL/VDMI/investment-plan record creation, finance mutation, budget release, billing/settlement/tariff/payment execution, Budibase table writes or Personal-Agent shortcuts.",
+    "EOG Scenario Akte panel binds the existing eog-calculator.getModel read model (GET /api/eog-calculator/:tenantId/:vnbId) with a synthetic stadtwerk-mauer/SNB-MAUER-DEMO scope for ROLE_REGULATORY, surfacing persisted EOG datapoints (Ausgangsniveau, Effizienzwerte, betriebsnotwendiges Vermoegen and related Eckwerte) and Gremienentscheidungen as a regulatorische Szenarioakte (#464). No EOG calculation, validation, commit, scenario or Sonderabschreibungslogik is invoked from this panel.",
+    "EOG Scenario Akte rows stay scalar/generated: Budibase renders summary, datapoint, decision, missing-evidence and no-call-guard rows only, without eog-calculator calculate/validate/commit/scenario/request-input calls, HITL creation, tariff/billing/settlement mutation, Budibase table writes or Personal-Agent shortcuts.",
+    "Risikowert Validierungs-Gate panel binds the existing dashboard-api.decisionReadinessMatrixStatus read model with deterministic synthetic cross-Sparte risk-calibration defaults for ROLE_CERNION_GOVERNANCE, surfacing Herkunft (evidenceSource), Sparte (category), Owner, offene Rueckfrage (openEvidence), Ergebniswirkung (riskIfNotImplemented) and naechstes Entscheidungsgremium (committeeWindow/nextDecisionPoint) per the accepted dashboard-projection product cut (#486). It is a generic validation-gate view, not a new risk/regulatory calculation engine.",
+    "Risikowert Validierungs-Gate rows stay scalar/generated: Budibase renders summary, measure, missing-evidence, positive-follow-up and no-call-guard rows only, without budget approval, finance booking, procurement, SAP/ERP writes, HITL/workflow/webhook creation, billing/settlement/tariff/MaKo/device-control mutation, Budibase table writes or Personal-Agent shortcuts.",
+    "MSCONS Identifikatorwechsel Readiness-Gate panel binds the existing dashboard-api.ownerDeadlineEvidenceGateStatus read model with deterministic synthetic MaLo/technical-reference-id switch defaults for ROLE_METERING, surfacing source/target identifier, process type, owner, deadline, tested-processing evidence and blocked decision per the accepted dashboard-projection product cut (#476). It does not create an MSCONS importer, EDM mutation flow or MaKo production decision path.",
+    "MSCONS Identifikatorwechsel Readiness-Gate rows stay scalar/generated: Budibase renders summary, context/readiness-signal, missing-evidence, positive-follow-up and no-call-guard rows only, without mail/Teams/Loop ingestion, MSCONS import, EDM/MaKo mutation, deadline/task/owner mutation, workflow/notification execution, Budibase table writes or Personal-Agent shortcuts."
   ]
 }
