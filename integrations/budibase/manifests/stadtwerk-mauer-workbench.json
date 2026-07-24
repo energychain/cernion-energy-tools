@@ -10774,6 +10774,285 @@
           "type": "string"
         }
       }
+    },
+    {
+      "name": "getRedispatchE2eChainSelectorRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-redispatch-participation-readiness-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.data||{}; const selected=d.seedId||'stadtwerk-mauer-redispatch-participation-readiness-v1'; return [{rowKey:'redispatch_e2e_chain_selector',availableSeedId:'stadtwerk-mauer-redispatch-participation-readiness-v1',selectedSeedId:selected,tenantId:d.tenantId||data.tenantId||'stadtwerk-mauer',label:'Redispatch End-to-End Steuerungsakte',selected:true,scope:'redispatch_participation_readiness_review',assetClass:'synthetic_redispatch_asset_portfolio',roleTarget:'ROLE_GRID_OPERATIONS_LEAD',processFamily:d.processFamily||'redispatch_readiness',controlCase:d.controlCase||'redispatch_participation_readiness',caseId:'smm-budibase-workbench',roleQuestion:'is_this_synthetic_redispatch_validation_chain_ready_for_the_next_review',safeNextAction:'inspect_e2e_evidence_blocks_below_before_next_review',sourceClass:'redispatch_e2e_chain_selector'}]",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "availableSeedId": {
+          "type": "string"
+        },
+        "selectedSeedId": {
+          "type": "string"
+        },
+        "tenantId": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "selected": {
+          "type": "boolean"
+        },
+        "scope": {
+          "type": "string"
+        },
+        "assetClass": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "processFamily": {
+          "type": "string"
+        },
+        "controlCase": {
+          "type": "string"
+        },
+        "caseId": {
+          "type": "string"
+        },
+        "roleQuestion": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getRedispatchE2eMeteringMasterdataRows",
+      "method": "GET",
+      "path": "/api/dashboard/redispatch-metering-cockpit",
+      "queryString": "gridOperatorId=SNB000000000000",
+      "parameters": [
+        {
+          "name": "gridOperatorId",
+          "default": "SNB000000000000"
+        }
+      ],
+      "transformer": "const operator=data.operator||{}; const readiness=data.decisionReadiness||{}; const blockers=(data.blockingEvidenceGaps||[]).map((gap,index)=>({rowKey:`redispatch_e2e_metering_blocker_${index+1}`,label:'Metering/Masterdata Blocker',scope:'redispatch_metering_masterdata_readiness',assetClass:'synthetic_redispatch_asset_portfolio',state:String(gap.code||'blocker'),severity:String(gap.severity||''),exceptionReason:String(gap.message||''),dataSourceHealth:String(gap.source||''),safeNextAction:'resolve_metering_masterdata_evidence_gap_then_refresh',sourceClass:'redispatch_e2e_metering_masterdata_blocker'})); const stale=(data.staleData||[]).map((row,index)=>({rowKey:`redispatch_e2e_metering_stale_${index+1}`,label:'Metering/Masterdata Data-Source Health',scope:'redispatch_metering_masterdata_readiness',assetClass:'synthetic_redispatch_asset_portfolio',state:'stale',severity:'medium',exceptionReason:`${row.indicator||'source'}=${row.value}`,dataSourceHealth:String(row.source||''),safeNextAction:'refresh_stale_metering_masterdata_source',sourceClass:'redispatch_e2e_metering_masterdata_stale'})); const summary={rowKey:'redispatch_e2e_metering_masterdata_summary',label:'Metering/Masterdata Readiness',scope:'redispatch_metering_masterdata_readiness',assetClass:'synthetic_redispatch_asset_portfolio',state:String(readiness.signal||'unknown'),severity:readiness.blocked?'blocking':'none',exceptionReason:blockers.length?blockers[0].exceptionReason:'',dataSourceHealth:operator.gridOperatorId?'operator_context_present':'operator_context_missing',safeNextAction:readiness.blocked?'resolve_metering_masterdata_evidence_gaps_first':'inspect_next_e2e_evidence_block',sourceClass:'redispatch_e2e_metering_masterdata_summary'}; return [summary].concat(blockers).concat(stale)",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "scope": {
+          "type": "string"
+        },
+        "assetClass": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        },
+        "severity": {
+          "type": "string"
+        },
+        "exceptionReason": {
+          "type": "string"
+        },
+        "dataSourceHealth": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getRedispatchE2eCallQualityRows",
+      "method": "GET",
+      "path": "/api/dashboard/redispatch-call-quality-gate",
+      "queryString": "gridOperatorId=SNB000000000000&meloId=synthetic-melo-mauer-001&assetId=synthetic-redispatch-asset-mauer-001",
+      "parameters": [
+        {
+          "name": "gridOperatorId",
+          "default": "SNB000000000000"
+        }
+      ],
+      "transformer": "const missing=(data.missingDataPoints||[]).map((row,index)=>({rowKey:`redispatch_e2e_call_quality_gap_${index+1}`,label:'Call Quality Data-Point',scope:'redispatch_call_quality_gate',testObject:String(row.missingDataPoint||''),testStatus:'missing',exceptionReason:String(row.enablesDossierAddition||''),owner:'ROLE_METERING',safeNextAction:'supply_missing_call_quality_evidence_then_refresh',sourceClass:'redispatch_e2e_call_quality_gap'})); const summary={rowKey:'redispatch_e2e_call_quality_summary',label:'Redispatch Call Quality Gate',scope:'redispatch_call_quality_gate',testObject:'redispatch_abrufprozess',testStatus:String(data.gateStatus||'unknown'),exceptionReason:missing.length?missing[0].exceptionReason:'',owner:'ROLE_METERING',safeNextAction:data.gateStatus==='ready_for_settlement'?'inspect_next_e2e_evidence_block':'resolve_call_quality_gaps_first',sourceClass:'redispatch_e2e_call_quality_summary'}; return [summary].concat(missing)",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "scope": {
+          "type": "string"
+        },
+        "testObject": {
+          "type": "string"
+        },
+        "testStatus": {
+          "type": "string"
+        },
+        "exceptionReason": {
+          "type": "string"
+        },
+        "owner": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getRedispatchE2eProjectControllingKpiRows",
+      "method": "GET",
+      "path": "/api/dashboard/redispatch-project-controlling-kpi-cockpit",
+      "queryString": "cockpitId=rdp-e2e-mauer-001&gridOperatorId=SNB000000000000&period=2026-Q3&redispatchAuditId=synthetic-audit-mauer-001&hasRedispatchAudit=true&datasourceHealth=ready&sourceFreshness=ready&qualityStatus=ready&hasAssetEvidence=true&hasMastrEvidence=true&hasLoadProfileEvidence=false&taskId=redispatch-e2e-review-mauer&taskOwner=ROLE_GRID_OPERATIONS_LEAD&dueDate=2026-08-15&blockedDecision=Redispatch%20Participation%20Readiness%20Review",
+      "parameters": [
+        {
+          "name": "cockpitId",
+          "default": "rdp-e2e-mauer-001"
+        }
+      ],
+      "transformer": "const task=(data.taskSignals||[])[0]||{}; const gaps=(data.evidenceGaps||[]).map((gap,index)=>({rowKey:`redispatch_e2e_project_kpi_gap_${index+1}`,label:'Project-Controlling/KPI Evidence Gap',scope:'redispatch_project_controlling_kpi_cockpit',milestone:String(gap.missingDataPoint||''),dueDate:String(task.dueDate||''),dataSourceHealth:String((data.sourceHealth||[])[0]||''),exceptionReason:String(gap.enablesDossierAddition||''),owner:String(task.owner||''),safeNextAction:'supply_missing_project_kpi_evidence_then_refresh',sourceClass:'redispatch_e2e_project_kpi_gap'})); const summary={rowKey:'redispatch_e2e_project_kpi_summary',label:'Redispatch Project-Controlling/KPI Readiness',scope:'redispatch_project_controlling_kpi_cockpit',milestone:String((data.projectContext||{}).period||''),dueDate:String(task.dueDate||''),dataSourceHealth:String((data.sourceHealth||[])[0]||''),exceptionReason:String(task.blockedDecision||''),owner:String(task.owner||''),status:String(data.status||'unknown'),safeNextAction:data.status==='ready_for_project_review'?'inspect_next_e2e_evidence_block':'resolve_project_controlling_kpi_gaps_first',sourceClass:'redispatch_e2e_project_kpi_summary'}; return [summary].concat(gaps)",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "scope": {
+          "type": "string"
+        },
+        "milestone": {
+          "type": "string"
+        },
+        "dueDate": {
+          "type": "string"
+        },
+        "dataSourceHealth": {
+          "type": "string"
+        },
+        "exceptionReason": {
+          "type": "string"
+        },
+        "owner": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getRedispatchE2eOwnerDeadlineRows",
+      "method": "GET",
+      "path": "/api/dashboard/owner-deadline-evidence-gate",
+      "queryString": "signalId=redispatch-e2e-demo-mauer&sourceType=synthetic-demo&sourceRef=redispatch-demo-001&processType=redispatch_participation_readiness&riskLevel=medium&ownerRole=ROLE_GRID_OPERATIONS_LEAD&dueAt=2026-08-15T12%3A00%3A00.000Z&evidenceStatus=missing&blockedDecision=Redispatch%20Participation%20Readiness%20Review&missingEvidence=forecast-dispatch-test-proof&caseId=smm-budibase-workbench",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "return (data.readinessSignals||[]).map((row)=>({rowKey:row.code,label:row.label,scope:'redispatch_owner_deadline_evidence_gate',owner:row.ownerRole,dueDate:row.dueAt,state:row.status,exceptionReason:row.finding||'',safeNextAction:row.status==='ready'?'inspect_next_e2e_evidence_block':'resolve_owner_deadline_evidence_gap_then_refresh',sourceClass:'redispatch_e2e_owner_deadline'}))",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "scope": {
+          "type": "string"
+        },
+        "owner": {
+          "type": "string"
+        },
+        "dueDate": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        },
+        "exceptionReason": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getRedispatchE2eFinalGateTransferRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-transfer-readiness",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-redispatch-participation-readiness-v1&caseId=smm-redispatch-e2e-001",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const rows=[...(data.transferSummaryRows||[]),...(data.dataClassRows||[]),...(data.safeNextGateRows||[]),...(data.boundaryRows||[])]; const source=rows.length?rows:[{rowKey:'redispatch_e2e_final_gate_pending',label:'Final Blueprint/Transfer Gate',status:data.status||'pending',description:'Blueprint-Pack canonical; Landing-Registry and productive Demo-Raum pending',safeNextAction:'keep downstream publication and final release blocked'}]; return source.map((row,index)=>({rowKey:String(row.rowKey||'redispatch_e2e_final_gate_'+(index+1)),label:String(row.label||row.category||'Final Blueprint/Transfer Gate'),scope:'redispatch_final_blueprint_transfer_gate',status:String(row.status||row.transferState||data.status||'pending'),value:String(row.value||row.description||row.examples||row.boundary||row.safeNextGate||''),productionBlocked:Boolean(row.productionBlocked),finalApprovalGranted:false,safeNextGate:String(row.safeNextAction||row.safeNextGate||row.nextGate||'refresh_final_gate_transfer_readiness'),sourceClass:String(row.sourceClass||'redispatch_e2e_final_gate_transfer')}))",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "scope": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "productionBlocked": {
+          "type": "boolean"
+        },
+        "finalApprovalGranted": {
+          "type": "boolean"
+        },
+        "safeNextGate": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
     }
   ],
   "sections": [
@@ -12126,6 +12405,66 @@
       "title": "E2E Demo Status",
       "queryName": "getStadtwerkMauerE2EProcessDemo",
       "tableTitle": "E2E Demo Status"
+    },
+    {
+      "id": "redispatch_e2e_chain_selector",
+      "title": "Redispatch E2E Evidence Chain",
+      "queryName": "getRedispatchE2eChainSelectorRows",
+      "tableTitle": "Chain Scope, Asset Class and Role Question"
+    },
+    {
+      "id": "redispatch_e2e_metering_masterdata",
+      "title": "Redispatch E2E — Metering/Masterdata Readiness",
+      "queryName": "getRedispatchE2eMeteringMasterdataRows",
+      "tableTitle": "Metering/Masterdata State and Data-Source Health"
+    },
+    {
+      "id": "redispatch_e2e_call_quality",
+      "title": "Redispatch E2E — Call Quality Gate",
+      "queryName": "getRedispatchE2eCallQualityRows",
+      "tableTitle": "Test Object and Test/Forecast/Dispatch-Proof State"
+    },
+    {
+      "id": "redispatch_e2e_test_object_matrix",
+      "title": "Redispatch E2E — Test Object Matrix",
+      "queryName": "getRedispatchParticipationMatrixRows",
+      "tableTitle": "Reused Redispatch Participation Matrix Rows"
+    },
+    {
+      "id": "redispatch_e2e_evidence_gaps",
+      "title": "Redispatch E2E — Data Completeness",
+      "queryName": "getRedispatchParticipationEvidenceRows",
+      "tableTitle": "Reused Redispatch Participation Evidence Rows"
+    },
+    {
+      "id": "redispatch_e2e_project_controlling_kpi",
+      "title": "Redispatch E2E — Project Controlling/KPI",
+      "queryName": "getRedispatchE2eProjectControllingKpiRows",
+      "tableTitle": "Milestone, Due Date and Exception/Blocker"
+    },
+    {
+      "id": "redispatch_e2e_owner_deadline",
+      "title": "Redispatch E2E — Owner/Deadline",
+      "queryName": "getRedispatchE2eOwnerDeadlineRows",
+      "tableTitle": "Owner, Deadline and Evidence State"
+    },
+    {
+      "id": "redispatch_e2e_final_gate_guard",
+      "title": "Redispatch E2E — Final Gate Blueprint Guard",
+      "queryName": "getRedispatchParticipationSeedGuardRows",
+      "tableTitle": "Reused Redispatch Participation Blueprint Guard"
+    },
+    {
+      "id": "redispatch_e2e_final_gate_transfer",
+      "title": "Redispatch E2E — Final Blueprint/Transfer Gate",
+      "queryName": "getRedispatchE2eFinalGateTransferRows",
+      "tableTitle": "Transfer Readiness, Data-Class and Boundary Rows"
+    },
+    {
+      "id": "redispatch_e2e_boundaries",
+      "title": "Redispatch E2E — No-Call Boundaries",
+      "queryName": "getRedispatchParticipationBoundaryRows",
+      "tableTitle": "Reused Redispatch Participation No-Call Guards"
     }
   ],
   "notes": [
@@ -12183,6 +12522,8 @@
     "Model Viability Management Review rows stay scalar/generated and synthetic: Budibase renders selected candidate, readiness score, per-dimension evidence status, missing evidence, positive follow-ups, decision boundaries, the canonical four-row V/D/M/I matrix, transfer/data-class boundaries and no-call guards without model ranking, scoring, winner selection, economics/legal/regulatory decisions, Budibase writes, Rundeck execution, MaKo, billing, settlement, tariff, device control, HITL/workflow, external connectors, production mutation, Landing-Registry publication, secrets or Personal-Agent shortcuts.",
     "Tabular Decision-Input Readiness (#478) is generated manifest composition, not a new Cernion endpoint. It composes only the existing stadtwerk-mauer-blueprint-pack-verify and stadtwerk-mauer-transfer-readiness read models for the canonical stadtwerk-mauer-tabular-decision-input-readiness-v1 Blueprint-Pack seed and synthetic case smm-tabular-decision-input-review-001; no Tabular Intelligence operation (profile, quality-report, query-plan, execute-plan) is invoked.",
     "Tabular Decision-Input Readiness rows stay scalar/generated and synthetic: Budibase renders the selected table/case and role question, Blueprint-Pack validity, the canonical four-row V/D/M/I matrix with roleLegend.M = Mitwirkend, scope/privacy/profile-hash evidence, schema/missing-value/duplicate/interval-quality/outlier evidence, executed-plan/source-row/result-row/hash/warning evidence state, owner/readiness/next-safe-gate evidence, transfer-readiness and data-class boundaries, and the visible Blueprint-Pack/Cernion-Energy-Tools -> Landing-Registry -> Produktivseite sync chain with Landing-Registry and Produktivseite explicitly pending.",
-    "Tabular Decision-Input Readiness renders profile, quality-report, query-plan and execute-plan only as curated operation-boundary metadata rows (operationId, operationPath, invocation: source_hint_only, status: not_called); Budibase must not call /api/tabular/profile, /api/tabular/quality-report, /api/tabular/query-plan or /api/tabular/execute-plan, import or mutate source rows, execute SQL/expressions/callbacks, export raw rows, write Budibase or Cernion tables, publish the Landing Registry or cernion.de, run MaKo/A96/billing/settlement/tariff/Redispatch/device-control actions, handle secrets, or use Personal-Agent shortcuts."
+    "Tabular Decision-Input Readiness renders profile, quality-report, query-plan and execute-plan only as curated operation-boundary metadata rows (operationId, operationPath, invocation: source_hint_only, status: not_called); Budibase must not call /api/tabular/profile, /api/tabular/quality-report, /api/tabular/query-plan or /api/tabular/execute-plan, import or mutate source rows, execute SQL/expressions/callbacks, export raw rows, write Budibase or Cernion tables, publish the Landing Registry or cernion.de, run MaKo/A96/billing/settlement/tariff/Redispatch/device-control actions, handle secrets, or use Personal-Agent shortcuts.",
+    "Redispatch E2E Evidence Chain (#465) is a read-only, renderer-only composition that joins the still-separated Redispatch operational review views — metering/masterdata readiness, call quality, project-controlling/KPI, owner/deadline and the final Blueprint/transfer gate — with the existing canonical stadtwerk-mauer-redispatch-participation-readiness-v1 five-row matrix and evidence rows; it reuses getRedispatchParticipationMatrixRows, getRedispatchParticipationEvidenceRows, getRedispatchParticipationSeedGuardRows and getRedispatchParticipationBoundaryRows instead of cloning their transformers and introduces no new backend endpoint, case type, or second Blueprint seed.",
+    "Redispatch E2E Evidence Chain rows stay scalar/generated and clearly synthetic: Budibase renders scope, asset class, metering/masterdata and call-quality state, test/forecast/dispatch-proof state, milestone/due-date/data-source health, exception/blocker, owner/deadline, final-gate and missing-evidence/next-action rows only, with finalApprovalGranted fixed to false, without authorization/RBAC, Redispatch enrollment/dispatch/curtailment/compensation, MaKo/billing/settlement/tariff/contract, workflow/HITL/CRM/mail/webhook/connector calls, Budibase table/tenant/production writes, secrets, or Personal-Agent shortcuts; it answers readiness and blocking evidence only, not authorization, controllability or final approval."
   ]
 }
