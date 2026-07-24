@@ -5080,6 +5080,26 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
           rowKey: 'demo_raum_sync',
           intentionallyUnavailable: 'only visible for canonical Blueprint-Pack matrix seeds',
         }),
+        expect.objectContaining({
+          rowKey: 'role_workbench_catalog',
+          queryName: 'getStadtwerkMauerRoleWorkbenchCatalog',
+          targetRoute: 'role-catalog',
+        }),
+        expect.objectContaining({
+          rowKey: 'tenant_databrowser',
+          queryName: 'getStadtwerkMauerTenantDatabrowser',
+          targetRoute: 'tenant-databrowser',
+        }),
+        expect.objectContaining({
+          rowKey: 'grid_planning_role_queue',
+          queryName: 'getStadtwerkMauerGridPlanningRoleQueue',
+          targetRoute: 'grid-planning-role-queue',
+        }),
+        expect.objectContaining({
+          rowKey: 'e2e_process_demo',
+          queryName: 'getStadtwerkMauerE2EProcessDemo',
+          targetRoute: 'e2e-process-demo',
+        }),
       ])
     );
 
@@ -5332,11 +5352,18 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       const rows = runTransformer(name, fixture);
       expectScalarRows(rows);
       expectNoRawObjectText(rows);
+      for (const row of rows) {
+        expect(row.renderTarget).toBe(
+          'budibase:stadtwerk-mauer-workbench:flexible-grid-connection-release-file-panel'
+        );
+      }
     }
     expect(runTransformer('getFlexibleGridConnectionReleaseFileMatrixRows', blueprint)).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           rowKey: 'flex_release_matrix_sync',
+          renderTarget:
+            'budibase:stadtwerk-mauer-workbench:flexible-grid-connection-release-file-panel',
           roleLegendM: 'Mitwirkend',
           rowCount: 5,
           downstreamHandoff: 'complete -> pending -> pending',
@@ -5607,6 +5634,405 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
     );
   });
 
+  it('adds the Tabular Decision-Input Readiness panel from exactly the two existing dashboard reads (#478)', () => {
+    const names = [
+      'getTabularDecisionInputReadinessVerifyRows',
+      'getTabularDecisionInputReadinessMatrixRows',
+      'getTabularDecisionInputReadinessEvidenceRows',
+      'getTabularDecisionInputReadinessTransferRows',
+      'getTabularDecisionInputReadinessOperationBoundaryRows',
+    ];
+    const queries = manifest.queries.filter((query) => names.includes(query.name));
+    expect(queries).toHaveLength(names.length);
+    expect(new Set(queries.map((query) => query.path))).toEqual(
+      new Set([
+        '/api/dashboard/stadtwerk-mauer-blueprint-pack-verify',
+        '/api/dashboard/stadtwerk-mauer-transfer-readiness',
+      ])
+    );
+    expect(
+      queries
+        .filter((query) => query.path.includes('blueprint-pack-verify'))
+        .every((query) =>
+          query.queryString.includes('stadtwerk-mauer-tabular-decision-input-readiness-v1')
+        )
+    ).toBe(true);
+    const transferQuery = queries.find(
+      (query) => query.name === 'getTabularDecisionInputReadinessTransferRows'
+    );
+    expect(transferQuery.queryString).toContain('caseId=smm-tabular-decision-input-review-001');
+    expect(
+      manifest.sections
+        .filter((section) => section.id.startsWith('tabular_decision_input_readiness'))
+        .map((section) => section.queryName)
+    ).toEqual(expect.arrayContaining(names));
+    expect(manifest.notes.join(' ')).toContain('Tabular Decision-Input Readiness (#478)');
+  });
+
+  it('renders scalar Tabular Decision-Input Readiness rows: selection/role question, verify, matrix, evidence, transfer and operation-boundary no-call guards', () => {
+    const verify = {
+      status: 'completed',
+      tenantId: 'stadtwerk-mauer',
+      summary: { counts: { requiredEvidence: 17, demoProcessMatrixRows: 4, forbiddenActions: 35 } },
+      nextActions: ['Render the verify read model in Budibase'],
+      data: {
+        seedId: 'stadtwerk-mauer-tabular-decision-input-readiness-v1',
+        tenantId: 'stadtwerk-mauer',
+        processFamily: 'tabular_data_quality_governance',
+        controlCase: 'decision_input_table_readiness_review',
+        validation: { valid: true },
+        forbiddenActions: ['datasource_import', 'row_mutation', 'arbitrary_sql_execution'],
+        sourceActions: {
+          inspected: ['dashboard-api.stadtwerkMauerBlueprintPackVerifyStatus'],
+          referenced: [],
+          notCalled: ['tenant.provision', 'sandbox.reset', 'rundeck.execute'],
+        },
+        missingEvidence: [
+          {
+            missingDataPoint: 'tableScopeEvidence',
+            state: 'clarification',
+            enablesDossierAddition: 'Adds table scope',
+          },
+          {
+            missingDataPoint: 'privacyContextEvidence',
+            state: 'evidence_gap',
+            enablesDossierAddition: 'Adds privacy context',
+          },
+          {
+            missingDataPoint: 'profileHashEvidence',
+            state: 'evidence_gap',
+            enablesDossierAddition: 'Adds profile hash',
+          },
+          {
+            missingDataPoint: 'schemaProfileEvidence',
+            state: 'evidence_gap',
+            enablesDossierAddition: 'Adds schema profile',
+          },
+          {
+            missingDataPoint: 'missingValueEvidence',
+            state: 'evidence_gap',
+            enablesDossierAddition: 'Adds missing-value finding',
+          },
+          {
+            missingDataPoint: 'duplicateEvidence',
+            state: 'evidence_gap',
+            enablesDossierAddition: 'Adds duplicate-row finding',
+          },
+          {
+            missingDataPoint: 'intervalQualityEvidence',
+            state: 'evidence_gap',
+            enablesDossierAddition: 'Adds interval quality finding',
+          },
+          {
+            missingDataPoint: 'outlierEvidence',
+            state: 'evidence_gap',
+            enablesDossierAddition: 'Adds outlier finding',
+          },
+          {
+            missingDataPoint: 'executedPlanEvidence',
+            state: 'evidence_gap',
+            enablesDossierAddition: 'Adds executed-plan evidence',
+          },
+          {
+            missingDataPoint: 'sourceRowCountEvidence',
+            state: 'evidence_gap',
+            enablesDossierAddition: 'Adds source row-count evidence',
+          },
+          {
+            missingDataPoint: 'resultRowCountEvidence',
+            state: 'evidence_gap',
+            enablesDossierAddition: 'Adds result row-count evidence',
+          },
+          {
+            missingDataPoint: 'inputPlanResultHashEvidence',
+            state: 'evidence_gap',
+            enablesDossierAddition: 'Adds input/plan/result hash evidence',
+          },
+          {
+            missingDataPoint: 'warningEvidence',
+            state: 'review',
+            enablesDossierAddition: 'Adds warning evidence',
+          },
+          {
+            missingDataPoint: 'decisionInputReadinessEvidence',
+            state: 'clarification',
+            enablesDossierAddition: 'Adds decision-input readiness marker',
+          },
+          {
+            missingDataPoint: 'clarificationOwnerEvidence',
+            state: 'clarification',
+            enablesDossierAddition: 'Adds clarification owner',
+          },
+          {
+            missingDataPoint: 'nextSafeGateEvidence',
+            state: 'clarification',
+            enablesDossierAddition: 'Adds next safe gate',
+          },
+          {
+            missingDataPoint: 'noCallGuardEvidence',
+            state: 'review',
+            enablesDossierAddition: 'Adds no-call boundary status',
+          },
+        ],
+        demoProcessMatrixSync: {
+          synced: true,
+          roleLegendM: 'Mitwirkend',
+          rowCount: 4,
+          rowCountValid: true,
+          evidenceRequirements: ['tableScopeEvidence', 'privacyContextEvidence'],
+          downstreamHandoff: {
+            blueprintPack: 'complete',
+            landingRegistry: 'pending',
+            productiveDemoRoom: 'pending',
+          },
+          rows: [
+            {
+              phase: '1',
+              roles: {
+                V: 'ROLE_DATA_GOVERNANCE',
+                D: 'ROLE_CERNION_GOVERNANCE',
+                M: 'ROLE_DATASOURCE_OWNER',
+                I: 'ROLE_COMMERCIAL_AUDIT',
+              },
+              evidenceRequirements: [
+                'tableScopeEvidence',
+                'privacyContextEvidence',
+                'profileHashEvidence',
+              ],
+              status: 'clarification',
+              gateOutcome: 'table_scope_and_privacy_context_pending',
+            },
+            {
+              phase: '2',
+              roles: {
+                V: 'ROLE_DATA_GOVERNANCE',
+                D: 'ROLE_CERNION_GOVERNANCE',
+                M: 'ROLE_METERING_DATA_OWNER',
+                I: 'ROLE_PROCESS_OWNER',
+              },
+              evidenceRequirements: [
+                'schemaProfileEvidence',
+                'missingValueEvidence',
+                'duplicateEvidence',
+                'intervalQualityEvidence',
+                'outlierEvidence',
+              ],
+              status: 'evidence_gap',
+              gateOutcome: 'schema_and_quality_profile_review_pending',
+            },
+            {
+              phase: '3',
+              roles: {
+                V: 'ROLE_PROCESS_OWNER',
+                D: 'ROLE_CERNION_GOVERNANCE',
+                M: 'ROLE_DATA_GOVERNANCE',
+                I: 'ROLE_MANAGEMENT',
+              },
+              evidenceRequirements: [
+                'executedPlanEvidence',
+                'sourceRowCountEvidence',
+                'resultRowCountEvidence',
+                'inputPlanResultHashEvidence',
+                'warningEvidence',
+              ],
+              status: 'evidence_gap',
+              gateOutcome: 'executed_plan_evidence_review_pending',
+            },
+            {
+              phase: '4',
+              roles: {
+                V: 'ROLE_PROCESS_OWNER',
+                D: 'ROLE_CERNION_GOVERNANCE',
+                M: 'ROLE_COMMERCIAL_AUDIT',
+                I: 'ROLE_MANAGEMENT',
+              },
+              evidenceRequirements: [
+                'decisionInputReadinessEvidence',
+                'clarificationOwnerEvidence',
+                'nextSafeGateEvidence',
+                'noCallGuardEvidence',
+              ],
+              status: 'clarification',
+              gateOutcome: 'decision_input_ready_or_evidence_gap',
+            },
+          ],
+        },
+      },
+    };
+    const transfer = {
+      status: 'ready_for_onboarding_discussion',
+      transferSummaryRows: [
+        {
+          rowKey: 'transfer_readiness',
+          label: 'Transfer Readiness',
+          status: 'ready_for_onboarding_discussion',
+        },
+      ],
+      dataClassRows: [
+        {
+          rowKey: 'synthetic_tenant_seed',
+          category: 'synthetic_seed',
+          transferState: 'replace_for_real_tenant',
+          description: 'Invented source table id, purpose, profile bands and findings.',
+          examples: 'synthetic source table id, synthetic profile band',
+          productionBlocked: false,
+          safeNextAction: 'replace_with_tenant_parameters_before_onboarding',
+        },
+      ],
+      safeNextGateRows: [
+        {
+          rowKey: 'inspect_blueprint_verify',
+          label: 'Inspect Blueprint verify panel',
+          safety: 'safe_read_only',
+        },
+      ],
+      productionBoundaryRows: [
+        {
+          rowKey: 'rundeck.execute',
+          boundary: 'rundeck.execute',
+          status: 'blocked_in_transfer_readiness_slice',
+          disabled: true,
+          safeAlternative: 'read_or_verify_readiness_only',
+        },
+      ],
+    };
+
+    for (const [name, fixture] of [
+      ['getTabularDecisionInputReadinessVerifyRows', verify],
+      ['getTabularDecisionInputReadinessMatrixRows', verify],
+      ['getTabularDecisionInputReadinessEvidenceRows', verify],
+      ['getTabularDecisionInputReadinessTransferRows', transfer],
+      ['getTabularDecisionInputReadinessOperationBoundaryRows', verify],
+    ]) {
+      const rows = runTransformer(name, fixture);
+      expectScalarRows(rows);
+      expectNoRawObjectText(rows);
+    }
+
+    const verifyRows = runTransformer('getTabularDecisionInputReadinessVerifyRows', verify);
+    expect(verifyRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'tdir_selection',
+          value: expect.stringContaining('Is this table sufficiently profiled and evidenced'),
+        }),
+        expect.objectContaining({ rowKey: 'tdir_verify', valid: true, status: 'completed' }),
+      ])
+    );
+
+    const matrixRows = runTransformer('getTabularDecisionInputReadinessMatrixRows', verify);
+    expect(matrixRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'tdir_matrix_sync',
+          roleLegendM: 'Mitwirkend',
+          rowCount: 4,
+          downstreamHandoff: 'complete -> pending -> pending',
+          syncChainLabel:
+            'Blueprint-Pack/Cernion-Energy-Tools -> Landing-Registry -> Produktivseite',
+        }),
+      ])
+    );
+    const matrixDataRows = matrixRows.filter((row) => row.rowKey !== 'tdir_matrix_sync');
+    expect(matrixDataRows).toHaveLength(4);
+    for (const row of matrixDataRows) {
+      for (const roleCell of [row.v, row.d, row.m, row.i]) {
+        expect(roleCell).toMatch(/^ROLE_/);
+      }
+    }
+
+    const evidenceRows = runTransformer('getTabularDecisionInputReadinessEvidenceRows', verify);
+    expect(evidenceRows).toHaveLength(17);
+    expect(evidenceRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          missingDataPoint: 'tableScopeEvidence',
+          group: 'scope_privacy_profile_hash',
+        }),
+        expect.objectContaining({
+          missingDataPoint: 'schemaProfileEvidence',
+          group: 'schema_and_quality_findings',
+        }),
+        expect.objectContaining({
+          missingDataPoint: 'executedPlanEvidence',
+          group: 'plan_source_result_hash_warning',
+        }),
+        expect.objectContaining({
+          missingDataPoint: 'clarificationOwnerEvidence',
+          group: 'owner_readiness_next_gate',
+        }),
+      ])
+    );
+    for (const row of evidenceRows) {
+      expect(['clarification', 'evidence_gap', 'review']).toContain(row.state);
+    }
+
+    const transferRows = runTransformer('getTabularDecisionInputReadinessTransferRows', transfer);
+    expect(transferRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'synthetic_tenant_seed',
+          dataClass: 'synthetic_seed',
+        }),
+        expect.objectContaining({ rowKey: 'rundeck.execute', productionBlocked: true }),
+      ])
+    );
+
+    const boundaryRows = runTransformer(
+      'getTabularDecisionInputReadinessOperationBoundaryRows',
+      verify
+    );
+    expect(boundaryRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          operationId: 'tabular_profile',
+          operationPath: 'POST /api/tabular/profile',
+          invocation: 'source_hint_only',
+          status: 'not_called',
+          disabled: true,
+        }),
+        expect.objectContaining({
+          operationId: 'tabular_qualityReport',
+          operationPath: 'POST /api/tabular/quality-report',
+          invocation: 'source_hint_only',
+          status: 'not_called',
+          disabled: true,
+        }),
+        expect.objectContaining({
+          operationId: 'tabular_queryPlan',
+          operationPath: 'POST /api/tabular/query-plan',
+          invocation: 'source_hint_only',
+          status: 'not_called',
+          disabled: true,
+        }),
+        expect.objectContaining({
+          operationId: 'tabular_executePlan',
+          operationPath: 'POST /api/tabular/execute-plan',
+          invocation: 'source_hint_only',
+          status: 'not_called',
+          disabled: true,
+        }),
+        expect.objectContaining({
+          boundary: 'datasource_import',
+          status: 'not_called',
+          disabled: true,
+        }),
+        expect.objectContaining({
+          boundary: 'arbitrary_sql_execution',
+          status: 'not_called',
+          disabled: true,
+        }),
+        expect.objectContaining({
+          boundary: 'rundeck.execute',
+          status: 'not_called',
+          disabled: true,
+        }),
+      ])
+    );
+    expect(boundaryRows.every((row) => row.status === 'not_called' && row.disabled === true)).toBe(
+      true
+    );
+  });
   it('adds the Redispatch E2E Evidence Chain section joining metering, call-quality, project-controlling, owner/deadline and final-gate rows (#465)', () => {
     const newNames = [
       'getRedispatchE2eChainSelectorRows',

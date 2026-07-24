@@ -57,8 +57,8 @@ The workbench renders:
 - Selected-case context binding rows for `ROLE_NETZPLANUNG`, defaulting to `tenantId=stadtwerk-mauer`, `caseId=smm-budibase-workbench`, `target=selected-case-detail` and `seedId=stadtwerk-mauer-pv-missing-nap-v1`, composed from existing selected-target, Hub, case-detail, case-actions, Blueprint-Pack verify and transfer-readiness read models
 - Flexible Grid-Connection Release File selector/sync rows for `stadtwerk-mauer-flexible-grid-connection-release-file-v1`, composed from `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify`, `GET /api/dashboard/stadtwerk-mauer-transfer-readiness` and `GET /api/dashboard/anschlusskapazitaet-evidence-queue`
 - Model Viability Management Review candidate/matrix/transfer rows for `stadtwerk-mauer-model-viability-management-review-v1`, composed from `GET /api/dashboard/model-viability-evidence-gate` (fixed synthetic single-candidate defaults), `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify` and `GET /api/dashboard/stadtwerk-mauer-transfer-readiness`
+- Tabular Decision-Input Readiness selection/verify/matrix/evidence/transfer rows for `stadtwerk-mauer-tabular-decision-input-readiness-v1`, composed only from `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify` and `GET /api/dashboard/stadtwerk-mauer-transfer-readiness`; the `profile`, `quality-report`, `query-plan` and `execute-plan` Tabular Intelligence operations are rendered as curated `source_hint_only` / `not_called` operation-boundary metadata only and are never invoked
 - Transfer Readiness rows from `GET /api/dashboard/stadtwerk-mauer-transfer-readiness`, separating public context, synthetic seed data, sandbox runtime artifacts, tenant parameters, reusable Blueprint/Workbench elements and blocked production boundaries
-- Redispatch E2E Evidence Chain rows (#465) for `stadtwerk-mauer-redispatch-participation-readiness-v1`, joining `GET /api/dashboard/redispatch-metering-cockpit`, `GET /api/dashboard/redispatch-call-quality-gate`, `GET /api/dashboard/redispatch-participation-readiness-status`, `GET /api/dashboard/redispatch-project-controlling-kpi-cockpit`, `GET /api/dashboard/owner-deadline-evidence-gate`, `GET /api/dashboard/stadtwerk-mauer-blueprint-pack-verify` and `GET /api/dashboard/stadtwerk-mauer-transfer-readiness`, reusing the existing Redispatch Participation matrix/evidence/guard/no-call rows instead of cloning them
 - a scope-protected action query for `POST /api/operations-runbook/stadtwerk-mauer/e2e-smoke`
 
 The action query is intentionally still guarded by Cernion scopes. A Budibase button may be
@@ -240,6 +240,25 @@ determination, mutate a tariff/contract, execute billing/settlement/MaKo/A96, bo
 procurement/market-communication/dispatch/Redispatch/device-control, create HITL/workflow actions,
 call external connectors, write arbitrary tables, mutate production, publish Landing Registry state,
 handle secrets or use Personal-Agent shortcuts.
+The Tabular Decision-Input Readiness panel (#478) is generated manifest composition, not a new
+Cernion endpoint. It composes only the existing `stadtwerk-mauer-blueprint-pack-verify` and
+`stadtwerk-mauer-transfer-readiness` read models for the canonical
+`stadtwerk-mauer-tabular-decision-input-readiness-v1` Blueprint-Pack seed and synthetic case
+`smm-tabular-decision-input-review-001`. Budibase renders scalar selected table/case and role
+question, Blueprint verification, the canonical four-row V/D/M/I matrix with
+`roleLegend.M = Mitwirkend`, scope/privacy/profile-hash evidence,
+schema/missing-value/duplicate/interval-quality/outlier evidence, executed-plan/source-row/
+result-row/hash/warning evidence state, owner/readiness/next-safe-gate evidence,
+transfer-readiness/data-class boundaries, and the visible
+`Blueprint-Pack/Cernion-Energy-Tools -> Landing-Registry -> Produktivseite` sync chain with
+Landing-Registry and Produktivseite kept explicitly pending. The `profile`, `quality-report`,
+`query-plan` and `execute-plan` Tabular Intelligence operations are rendered only as curated
+`source_hint_only` / `not_called` operation-boundary metadata rows; Budibase must not call
+`/api/tabular/profile`, `/api/tabular/quality-report`, `/api/tabular/query-plan` or
+`/api/tabular/execute-plan`, import or mutate source rows, execute arbitrary SQL/expressions/
+callbacks, export raw rows, write Budibase or Cernion tables, publish the Landing Registry or
+`cernion.de`, run MaKo/A96/billing/settlement/tariff/Redispatch/device-control actions, handle
+secrets, or use Personal-Agent shortcuts.
 The selected-target query is read-only: it maps a supported Hub or role target to scalar selected,
 focus and helper rows so Budibase can visibly focus a section without owning persistent state or
 mutating Cernion tenant data.
@@ -283,22 +302,6 @@ dashboard facade backed by the existing operations-runbook verify contract. Budi
 the verify query, but it must not execute Rundeck directly, run setup/reset/provisioning, import
 seeds, write public context, mutate Budibase-owned Cernion state, or treat synthetic Blueprint
 evidence as real customer, meter, consent, MaKo, billing, settlement, tariff or device-control data.
-The Redispatch E2E Evidence Chain panel (#465) is a read-only, renderer-only composition, not a
-new Redispatch steering engine, endpoint, case type or second Blueprint seed. It adds a bounded
-selector/section that joins the still-separated Redispatch operational review views — metering/
-masterdata readiness, call quality, project-controlling/KPI, owner/deadline and the final
-Blueprint/transfer gate — around the existing canonical `stadtwerk-mauer-redispatch-participation-readiness-v1`
-five-row matrix, reusing `getRedispatchParticipationMatrixRows`, `getRedispatchParticipationEvidenceRows`,
-`getRedispatchParticipationSeedGuardRows` and `getRedispatchParticipationBoundaryRows` instead of
-cloning their transformers. Budibase renders scalar scope, asset class, metering/masterdata and
-call-quality state, test/forecast/dispatch-proof state, milestone/due-date/data-source health,
-exception/blocker, owner/deadline, final-gate and missing-evidence/next-action rows only, with
-`finalApprovalGranted` fixed to `false`. It must not perform authorization/RBAC/IAM/provisioning,
-Redispatch enrollment, dispatch/control, curtailment or compensation, MaKo/A96, billing,
-settlement, tariff, finance or contract actions, create workflow/task/HITL/CRM/mail/webhook/
-connector calls, write Budibase tables or mutate tenant/production/public context, handle
-secrets, or use Personal-Agent shortcuts; it answers readiness and blocking evidence only, not
-authorization, controllability, productive participation or final approval.
 
 ## Case View Manifest Contract
 
@@ -388,3 +391,9 @@ Two Budibase details are important for generated query-backed screens:
 
 These details should be hidden behind a future Cernion Case View Manifest renderer instead of
 leaking into product-level workbench definitions.
+
+### Redispatch E2E Evidence Chain panel (#465)
+
+The Redispatch E2E Evidence Chain panel (#465) is a read-only, renderer-only composition for the synthetic `stadtwerk-mauer-redispatch-participation-readiness-v1` validation chain. It joins the existing dashboard reads for metering/masterdata readiness, Redispatch call quality, Redispatch participation readiness, project-controlling/KPI, owner/deadline, Blueprint verify and transfer-readiness, while reusing the canonical Redispatch Participation matrix/evidence/guard/no-call rows instead of cloning them.
+
+The panel answers for `ROLE_GRID_OPERATIONS_LEAD` whether the synthetic Redispatch validation chain is ready for the next review and, if not, which scope, data-quality, test, exception, owner/deadline or final-gate evidence blocks it. It renders scalar rows only and remains explicitly non-executable: no Redispatch steering engine, endpoint, case type, second Blueprint seed, Budibase write, authorization/provisioning, dispatch/device control, MaKo/billing/settlement/tariff/contract, workflow/HITL/CRM/mail/webhook/connector call, production mutation, secret exposure or Personal-Agent shortcut is introduced.
