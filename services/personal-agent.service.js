@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const { MoleculerClientError } = require('moleculer').Errors;
 const jobStore = require('../src/job-store');
 const { getTenantId, tenantNamespace } = require('../src/tenant-context');
+const { hasMakoEdifactCodeContextSignal } = require('../src/mako-edifact-signal');
 const {
   buildContextStack,
   buildPersistableSessionState,
@@ -1032,13 +1033,7 @@ function isCopilotEnergySharingQuestion(question) {
  * acceptance-test example for this generic routing.
  */
 function isCopilotMakoEdifactQuestion(question) {
-  const text = String(question || '').toLowerCase();
-  return (
-    /(aperak|utilmd|mscons|edifact)/i.test(text) &&
-    /(fehlercode|prüfidentifikator|pruefidentifikator|nachrichtentyp|segmentstruktur|segment|prüfhinweis|pruefhinweis|erkl[aä]r|bedeutet|marktkommunikation|mako.?kontext|\bmako\b)/i.test(
-      text
-    )
-  );
+  return hasMakoEdifactCodeContextSignal(question);
 }
 
 function extractCopilotAnalysisSignals(question) {

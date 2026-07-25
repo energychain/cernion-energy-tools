@@ -5,6 +5,7 @@ const {
   GLOBAL_DO_NOT_USE,
 } = require('../src/capability-catalog');
 const { buildServiceCatalogue } = require('../src/agent-planning-utils');
+const { hasMakoEdifactCodeContextSignal } = require('../src/mako-edifact-signal');
 
 const {
   listCompiledDomainRoutes,
@@ -1518,13 +1519,7 @@ function findBestCapability(taskText, options = {}) {
   // evidence-chain-specific combo above so a genuine evidence-chain proof request still
   // wins on its own more specific signals; this block instead catches "explain this
   // MaKo/EDIFACT code/segment/message-type" style questions that don't mention evidence.
-  const hasMakoEdifactCodeContextSignal =
-    /(aperak|utilmd|mscons|edifact)/i.test(haystack) &&
-    /(fehlercode|prüfidentifikator|pruefidentifikator|nachrichtentyp|segmentstruktur|segment|prüfhinweis|pruefhinweis|erkl[aä]r|bedeutet|marktkommunikation|mako.?kontext|\bmako\b)/i.test(
-      haystack
-    );
-
-  if (hasMakoEdifactCodeContextSignal) {
+  if (hasMakoEdifactCodeContextSignal(haystack)) {
     const makoCodeContextCapability = findCapabilityByName('market_communication_evidence_chain');
     if (makoCodeContextCapability) {
       return { capability: makoCodeContextCapability, score: 132, usedFallback: false };

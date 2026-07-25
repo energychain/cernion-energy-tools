@@ -13,7 +13,7 @@ function buildServiceHarness() {
   };
 }
 
-function buildBaseCtxCallMock({ williMakoResponse, williMakoSpy } = {}) {
+function buildBaseCtxCallMock({ williMakoResponse, williMakoSpy, williMakoImpl } = {}) {
   return jest.fn(async (action, params) => {
     if (action === 'query.search') {
       return { query: params.q, domain: params.domain, totalResults: 0, results: [] };
@@ -28,6 +28,7 @@ function buildBaseCtxCallMock({ williMakoResponse, williMakoSpy } = {}) {
       return { docs: [] };
     }
     if (action === 'willi-mako.resolveStructure') {
+      if (williMakoImpl) return williMakoImpl(params);
       williMakoSpy?.(params);
       if (williMakoResponse) return williMakoResponse;
       return {
@@ -127,15 +128,10 @@ describe('askCernionAgent Willi-Mako MaKo/EDIFACT evidence (#498)', () => {
         maxEvidence: 5,
         context: {},
       },
-      call: jest.fn(async (action) => {
-        if (action === 'query.search') return { totalResults: 0, results: [] };
-        if (action === 'knowledge-rag.query') return { success: true, data: { results: [] } };
-        if (action === 'datapoint.list') return { datapoints: [] };
-        if (action === 'object-store.query') return { docs: [] };
-        if (action === 'willi-mako.resolveStructure') {
+      call: buildBaseCtxCallMock({
+        williMakoImpl: () => {
           throw new Error('MCP timeout');
-        }
-        throw new Error(`unexpected action ${action}`);
+        },
       }),
     };
 
