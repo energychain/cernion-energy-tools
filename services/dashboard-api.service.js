@@ -1464,6 +1464,7 @@ module.exports = {
         consumptionRetrievalStatus: { type: 'string', optional: true, min: 1 },
         dataQualityStatus: { type: 'string', optional: true, min: 1 },
         nextBillingStep: { type: 'string', optional: true, min: 1 },
+        includeMakoKnowledge: { type: 'boolean', optional: true, convert: true, default: false },
       },
       openapi: {
         tags: [OPENAPI_TAG],
@@ -1473,7 +1474,10 @@ module.exports = {
           'and billing-readiness cases. Portal screenshots, customer statements and provider views ' +
           'are hints only; official MaLo/MeLo, UTILMD/master-data path, meter values, consumption ' +
           'retrieval, data-quality status and next billing step remain separate required evidence. ' +
-          'The endpoint is read-only and does not mutate MaKo, EDM, billing, settlement, VDMI or HITL state.',
+          'The endpoint is read-only and does not mutate MaKo, EDM, billing, settlement, VDMI or HITL state. ' +
+          'When `includeMakoKnowledge=true`, an optional, advisory `makoKnowledgeContext` (Willi-Mako ' +
+          'structural hints via `willi-mako.resolveStructure`) is attached; it never changes the default ' +
+          'response shape, is never binding, and degrades to `available:false` if unavailable.',
         parameters: [
           { name: 'maloId', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'meloId', in: 'query', required: false, schema: { type: 'string' } },
@@ -1498,6 +1502,12 @@ module.exports = {
           },
           { name: 'dataQualityStatus', in: 'query', required: false, schema: { type: 'string' } },
           { name: 'nextBillingStep', in: 'query', required: false, schema: { type: 'string' } },
+          {
+            name: 'includeMakoKnowledge',
+            in: 'query',
+            required: false,
+            schema: { type: 'boolean', default: false },
+          },
         ],
         responses: {
           200: {
@@ -1515,6 +1525,12 @@ module.exports = {
                     dossierFacts: { type: 'array' },
                     dossierEvidence: { type: 'object' },
                     safety: { type: 'string' },
+                    makoKnowledgeContext: {
+                      type: 'object',
+                      description:
+                        'Optional, advisory Willi-Mako structure context; only present when ' +
+                        'includeMakoKnowledge=true. Never binding; degrades to available:false.',
+                    },
                     timestamp: { type: 'string', format: 'date-time' },
                     _errors: { type: 'array', items: { type: 'string' } },
                   },
@@ -1526,16 +1542,27 @@ module.exports = {
       },
       async handler(ctx) {
         const params = { ...ctx.params };
-        const cacheKey = `market-communication-evidence-chain:${params.caseId || 'no-case'}:${params.maloId || 'no-malo'}:${params.meloId || 'no-melo'}:${params.contractAccountId || 'no-account'}:${params.includeHints ? 'hints' : 'no-hints'}:${params.utilmdMasterdataPath || 'no-utilmd'}:${params.meterValueBatchId || 'no-meter'}:${params.consumptionRetrievalStatus || 'no-consumption'}:${params.dataQualityStatus || 'no-quality'}:${params.nextBillingStep || 'no-next'}`;
+        const cacheKey = `market-communication-evidence-chain:${params.caseId || 'no-case'}:${params.maloId || 'no-malo'}:${params.meloId || 'no-melo'}:${params.contractAccountId || 'no-account'}:${params.includeHints ? 'hints' : 'no-hints'}:${params.utilmdMasterdataPath || 'no-utilmd'}:${params.meterValueBatchId || 'no-meter'}:${params.consumptionRetrievalStatus || 'no-consumption'}:${params.dataQualityStatus || 'no-quality'}:${params.nextBillingStep || 'no-next'}:${params.includeMakoKnowledge ? 'mako-knowledge' : 'no-mako-knowledge'}`;
 
         return this.cacheGetOrFetch(
           cacheKey,
           this.settings.cacheTtlMs.marketCommunicationEvidenceChainStatus,
-          async () => ({
-            ...this.buildMarketCommunicationEvidenceChainStatus(params),
-            timestamp: new Date().toISOString(),
-            _errors: [],
-          })
+          async () => {
+            const result = {
+              ...this.buildMarketCommunicationEvidenceChainStatus(params),
+              timestamp: new Date().toISOString(),
+              _errors: [],
+            };
+            const makoKnowledgeContext = await this.maybeAttachMakoKnowledge(
+              ctx,
+              params.includeMakoKnowledge,
+              'UTILMD Marktkommunikation Evidenzkette MaLo MeLo Abrechnung'
+            );
+            if (makoKnowledgeContext) {
+              result.makoKnowledgeContext = makoKnowledgeContext;
+            }
+            return result;
+          }
         );
       },
     },
@@ -13948,6 +13975,29 @@ module.exports = {
   },
 
   methods: {
+    /**
+     * Read-only, advisory Willi-Mako Marktkommunikation structure context.
+     * Never called by default; only attached when a consumer action explicitly
+     * opts in via an `includeMakoKnowledge`-style param. Degrades to
+     * `{ available: false }` on any failure so a knowledge-service outage
+     * never fails the calling dashboard-api endpoint.
+     */
+    async maybeAttachMakoKnowledge(ctx, enabled, query) {
+      if (!enabled || !query) return null;
+      try {
+        const result = await ctx.call('willi-mako.resolveStructure', { query, limit: 3 });
+        if (!result || result.success === false) {
+          return {
+            available: false,
+            error: result?.error?.code || 'MAKO_KNOWLEDGE_UNAVAILABLE',
+          };
+        }
+        return { available: true, ...result.data };
+      } catch (_err) {
+        return { available: false, error: 'MAKO_KNOWLEDGE_UNAVAILABLE' };
+      }
+    },
+
     buildReceiptGroundingSyntheticDomain(params = {}) {
       switch (params.domainShape) {
         case 'vdmi_matrix':

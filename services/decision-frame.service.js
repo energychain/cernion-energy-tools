@@ -141,6 +141,11 @@ module.exports = {
       openapi: {
         summary: 'Get a SCQA decision frame by ID',
         tags: [OPENAPI_TAG],
+        description:
+          'Returns the decision frame. When `includeMakoKnowledge=true`, an optional, advisory ' +
+          '`makoKnowledgeContext` (Willi-Mako structural hints via `willi-mako.resolveStructure`, ' +
+          'queried by the frame question) is attached; it never changes the default response shape, ' +
+          'is never binding, and degrades to `available:false` if unavailable.',
         parameters: [
           {
             name: 'frameId',
@@ -148,14 +153,30 @@ module.exports = {
             required: true,
             schema: { type: 'string', example: 'df-aabbccddeeff' },
           },
+          {
+            name: 'includeMakoKnowledge',
+            in: 'query',
+            required: false,
+            schema: { type: 'boolean', default: false },
+          },
         ],
       },
       params: {
         frameId: { type: 'string' },
+        includeMakoKnowledge: { type: 'boolean', optional: true, convert: true, default: false },
       },
       async handler(ctx) {
         const doc = await this._getDoc(ctx.params.frameId);
-        return toPublic(doc);
+        const result = toPublic(doc);
+        const makoKnowledgeContext = await this.maybeAttachMakoKnowledge(
+          ctx,
+          ctx.params.includeMakoKnowledge,
+          doc.question
+        );
+        if (makoKnowledgeContext) {
+          result.makoKnowledgeContext = makoKnowledgeContext;
+        }
+        return result;
       },
     },
 
@@ -464,6 +485,29 @@ module.exports = {
   },
 
   methods: {
+    /**
+     * Read-only, advisory Willi-Mako Marktkommunikation structure context.
+     * Never called by default; only attached when a consumer action explicitly
+     * opts in via `includeMakoKnowledge`. Degrades to `{ available: false }`
+     * on any failure so a knowledge-service outage never fails the decision
+     * frame lookup.
+     */
+    async maybeAttachMakoKnowledge(ctx, enabled, query) {
+      if (!enabled || !query) return null;
+      try {
+        const result = await ctx.call('willi-mako.resolveStructure', { query, limit: 3 });
+        if (!result || result.success === false) {
+          return {
+            available: false,
+            error: result?.error?.code || 'MAKO_KNOWLEDGE_UNAVAILABLE',
+          };
+        }
+        return { available: true, ...result.data };
+      } catch (_err) {
+        return { available: false, error: 'MAKO_KNOWLEDGE_UNAVAILABLE' };
+      }
+    },
+
     async _getDoc(frameId) {
       try {
         return await this.db.get(docId(frameId));

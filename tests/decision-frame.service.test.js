@@ -41,8 +41,37 @@ const STARTER_LLM_RESPONSE = {
 
 // ─── Setup ────────────────────────────────────────────────────────────────────
 
+const MOCK_WILLI_MAKO_RESOLVE_STRUCTURE = {
+  success: true,
+  data: {
+    topic:
+      'Welche Asset-Gruppen müssen bis Q3 priorisiert werden, um Gate-Konformität zu erreichen?',
+    sources: [
+      {
+        id: 'wm-1',
+        title: 'UTILMD Strukturwechsel Uebersicht',
+        url: 'https://stromhaltig.de/wissen/utilmd-strukturwechsel',
+      },
+    ],
+    structuralHints: [{ category: 'edifact', tags: ['UTILMD'], hint: 'UTILMD context hint' }],
+    validationCandidates: [
+      {
+        topic: 'UTILMD Strukturwechsel Uebersicht',
+        sourceId: 'wm-1',
+        confidenceHint: 20,
+        suggestedUse: 'structural_hint_only',
+      },
+    ],
+    noCallBoundaries: [
+      'This response is not legally binding and is not an instruction to send a MaKo message.',
+    ],
+    confidence: 'low',
+  },
+};
+
 describe('decision-frame.service', () => {
   let broker;
+  let williMakoResolveStructure;
 
   beforeAll(async () => {
     broker = new ServiceBroker({ logger: false });
@@ -69,6 +98,19 @@ describe('decision-frame.service', () => {
       },
     });
 
+    // Mock willi-mako service for the optional makoKnowledgeContext consumption (#496)
+    williMakoResolveStructure = jest.fn(() => MOCK_WILLI_MAKO_RESOLVE_STRUCTURE);
+    broker.createService({
+      name: 'willi-mako',
+      actions: {
+        resolveStructure: {
+          handler(ctx) {
+            return williMakoResolveStructure(ctx);
+          },
+        },
+      },
+    });
+
     broker.createService({
       ...DecisionFrameService,
       settings: {
@@ -86,6 +128,8 @@ describe('decision-frame.service', () => {
 
   beforeEach(() => {
     mockGenerateStructured.mockReset();
+    williMakoResolveStructure.mockReset();
+    williMakoResolveStructure.mockImplementation(() => MOCK_WILLI_MAKO_RESOLVE_STRUCTURE);
   });
 
   // ── create ──────────────────────────────────────────────────────────────────
@@ -150,6 +194,74 @@ describe('decision-frame.service', () => {
       await expect(
         broker.call('decision-frame.get', { frameId: 'df-000000000000' })
       ).rejects.toMatchObject({ code: 404 });
+    });
+
+    it('does not call willi-mako and omits makoKnowledgeContext by default (#496)', async () => {
+      const created = await broker.call('decision-frame.create', makeFrame());
+      const fetched = await broker.call('decision-frame.get', { frameId: created.frameId });
+
+      expect(williMakoResolveStructure).not.toHaveBeenCalled();
+      expect(fetched.makoKnowledgeContext).toBeUndefined();
+    });
+
+    it('attaches an advisory makoKnowledgeContext when includeMakoKnowledge=true (#496)', async () => {
+      const created = await broker.call('decision-frame.create', makeFrame());
+      const fetched = await broker.call('decision-frame.get', {
+        frameId: created.frameId,
+        includeMakoKnowledge: true,
+      });
+
+      expect(williMakoResolveStructure).toHaveBeenCalledWith(
+        expect.objectContaining({ params: expect.objectContaining({ query: created.question }) })
+      );
+      expect(fetched.makoKnowledgeContext).toMatchObject({
+        available: true,
+        confidence: 'low',
+      });
+      expect(fetched.makoKnowledgeContext.noCallBoundaries.join(' ')).toMatch(
+        /not legally binding/i
+      );
+      // Attaching MaKo context must never change the core frame fields.
+      expect(fetched.frameId).toBe(created.frameId);
+      expect(fetched.situation).toBe(created.situation);
+    });
+
+    it('degrades to available:false without failing the lookup when willi-mako is unavailable (#496)', async () => {
+      williMakoResolveStructure.mockImplementation(() => ({
+        success: false,
+        error: { code: 'MISSING_TOKEN', message: 'CERNION_TOKEN environment variable not set.' },
+      }));
+
+      const created = await broker.call('decision-frame.create', makeFrame());
+      const fetched = await broker.call('decision-frame.get', {
+        frameId: created.frameId,
+        includeMakoKnowledge: true,
+      });
+
+      expect(fetched.frameId).toBe(created.frameId);
+      expect(fetched.makoKnowledgeContext).toEqual({
+        available: false,
+        error: 'MISSING_TOKEN',
+      });
+      expect(JSON.stringify(fetched)).not.toMatch(/CERNION_TOKEN=|Bearer\s+\S+/);
+    });
+
+    it('degrades to available:false without throwing when willi-mako.resolveStructure rejects (#496)', async () => {
+      williMakoResolveStructure.mockImplementation(() => {
+        throw new Error('service unavailable');
+      });
+
+      const created = await broker.call('decision-frame.create', makeFrame());
+      const fetched = await broker.call('decision-frame.get', {
+        frameId: created.frameId,
+        includeMakoKnowledge: true,
+      });
+
+      expect(fetched.frameId).toBe(created.frameId);
+      expect(fetched.makoKnowledgeContext).toEqual({
+        available: false,
+        error: 'MAKO_KNOWLEDGE_UNAVAILABLE',
+      });
     });
   });
 
