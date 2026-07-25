@@ -5,6 +5,7 @@ const {
   GLOBAL_DO_NOT_USE,
 } = require('../src/capability-catalog');
 const { buildServiceCatalogue } = require('../src/agent-planning-utils');
+const { hasMakoEdifactCodeContextSignal } = require('../src/mako-edifact-signal');
 
 const {
   listCompiledDomainRoutes,
@@ -1511,6 +1512,20 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  // ── Generic MaKo/EDIFACT code-context questions (energychain/cernion-energy-tools#498)
+  // Deliberately generic (APERAK/UTILMD/MSCONS/EDIFACT + Fehlercode/Prüfidentifikator/
+  // Nachrichtentyp/Segmentstruktur/explanatory intent) — no Z17-only special case. Z17 is
+  // used only as an acceptance-test example for this generic routing. Placed after the
+  // evidence-chain-specific combo above so a genuine evidence-chain proof request still
+  // wins on its own more specific signals; this block instead catches "explain this
+  // MaKo/EDIFACT code/segment/message-type" style questions that don't mention evidence.
+  if (hasMakoEdifactCodeContextSignal(haystack)) {
+    const makoCodeContextCapability = findCapabilityByName('market_communication_evidence_chain');
+    if (makoCodeContextCapability) {
+      return { capability: makoCodeContextCapability, score: 132, usedFallback: false };
+    }
+  }
+
   // ── Redispatch/RCS Special Case Governance — must precede VDMI decision check
   // 'vergütungszusage' + 'netzbetreiber' combo would otherwise trigger VDMI grid-connection
   // decision governance (score 130). RCS/Expost signals narrow the domain unambiguously.
@@ -2780,6 +2795,12 @@ function buildActionTemplate(action) {
       limit: 3,
     };
   }
+  if (action === 'willi-mako.search' || action === 'willi-mako.resolveStructure') {
+    return {
+      query: null,
+      limit: 5,
+    };
+  }
   if (action === 'grid-operations.vnbLookup') {
     return {
       bdew: '__step_1.data.results[0].bdewCode',
@@ -3013,6 +3034,12 @@ function interpolateTemplateWithKnownContext(
   if (action === 'grid-operations.marketPartners') {
     if (hydrated.query === null || hydrated.query === undefined || hydrated.query === '') {
       hydrated.query = queryCandidate;
+    }
+  }
+
+  if (action === 'willi-mako.search' || action === 'willi-mako.resolveStructure') {
+    if (hydrated.query === null || hydrated.query === undefined || hydrated.query === '') {
+      hydrated.query = knownContext.query || String(taskText || '').trim() || null;
     }
   }
 

@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+- **Route Willi-Mako MaKo context through Capability Broker, CoPilot and Sidecar** (`src/capability-catalog.js`, `services/capability-broker.service.js`, `services/personal-agent.service.js`, `tests/capability-broker.service.test.js`, `tests/agent-sidecar-willi-mako-routing.test.js`, `tests/personal-agent-willi-mako-evidence.test.js`, #498): Extends the existing read-only `market_communication_evidence_chain` capability so generic MaKo/EDIFACT code-context questions (`APERAK`, `UTILMD`, `MSCONS`, `EDIFACT`, Fehlercode/Prüfidentifikator/Nachrichtentyp/Segmentstruktur) can surface `willi-mako.resolveStructure` / `willi-mako.search` through Capability Broker recommendations and existing Sidecar discovery (`cernion.recommend_capability`). `personal-agent.askCernionAgent` now optionally enriches CoPilot answers with advisory Willi-Mako evidence via `ctx.call('willi-mako.resolveStructure', ...)`, capped at conservative limits and failing open to `unavailable` without failing the answer. The routing is deliberately generic — `Z17` is only an acceptance-test example, not a special case — and preserves no-call boundaries: no APERAK/UTILMD/MSCONS/EDIFACT message creation, validation, dispatch, mutation, legal final decision, HITL/workflow, billing/settlement/tariff/device-control or external connector action is performed.
+
 ## [0.67.9] — 2026-07-24
 
 ### Fixed
