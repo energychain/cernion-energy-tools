@@ -8470,19 +8470,6 @@ const CURATED_CAPABILITIES = [
       'imsys abrechnungsreife',
       'portal screenshot proof',
       'portalhinweis nachweis',
-      // Generic MaKo/EDIFACT code-context signals (energychain/cernion-energy-tools#498).
-      // Kept generic on purpose — no Z17-only special case; Z17 is used only as an
-      // acceptance-test example for this generic routing.
-      'aperak',
-      'utilmd',
-      'mscons',
-      'edifact',
-      'fehlercode',
-      'prüfidentifikator',
-      'pruefidentifikator',
-      'nachrichtentyp',
-      'mako',
-      'marktkommunikation',
     ],
     preferredActions: [
       'dashboard-api.marketCommunicationEvidenceChainStatus',
