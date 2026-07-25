@@ -1026,6 +1026,21 @@ function isCopilotEnergySharingQuestion(question) {
   );
 }
 
+/**
+ * Generic MaKo/EDIFACT code-context signal (energychain/cernion-energy-tools#498).
+ * Deliberately generic — no Z17-only special case; Z17 is used only as an
+ * acceptance-test example for this generic routing.
+ */
+function isCopilotMakoEdifactQuestion(question) {
+  const text = String(question || '').toLowerCase();
+  return (
+    /(aperak|utilmd|mscons|edifact)/i.test(text) &&
+    /(fehlercode|prüfidentifikator|pruefidentifikator|nachrichtentyp|segmentstruktur|segment|prüfhinweis|pruefhinweis|erkl[aä]r|bedeutet|marktkommunikation|mako.?kontext|\bmako\b)/i.test(
+      text
+    )
+  );
+}
+
 function extractCopilotAnalysisSignals(question) {
   const text = String(question || '');
   const lower = text.toLowerCase();
@@ -2584,6 +2599,7 @@ module.exports = {
           datapointEvidence,
           objectEvidence,
           planningEvidence,
+          makoKnowledgeEvidence,
         ] = await Promise.all([
           this.searchCopilotEntities(ctx, { searchTerm, searchDomain, maxEvidence }),
           this.collectCopilotKnowledgeEvidence(ctx, {
@@ -2594,6 +2610,10 @@ module.exports = {
           this.collectCopilotDatapointEvidence(ctx, { queryTerms, maxEvidence }),
           this.collectCopilotObjectEvidence(ctx, { context, queryTerms, maxEvidence }),
           this.collectCopilotPlanningEvidence(ctx, { analysisSignals, maxEvidence }),
+          this.collectCopilotMakoKnowledgeEvidence(ctx, {
+            question: ctx.params.question,
+            maxEvidence,
+          }),
         ]);
 
         const baseAnswer = this.buildCopilotSearchAnswer({
@@ -2608,6 +2628,7 @@ module.exports = {
           datapointEvidence,
           objectEvidence,
           planningEvidence,
+          makoKnowledgeEvidence,
           maxEvidence,
         });
         const enhancedAnswer = await this.enhanceCopilotAnswerWithConsultingBrief(ctx, baseAnswer, {
@@ -8438,6 +8459,65 @@ module.exports = {
       }
     },
 
+    /**
+     * Optional, advisory Willi-Mako / Marktkommunikation knowledge context for
+     * generic MaKo/EDIFACT code-context questions (APERAK/UTILMD/MSCONS/EDIFACT
+     * Fehlercode, Prüfidentifikator, Nachrichtentyp, Segmentstruktur, ...).
+     * Only called when isCopilotMakoEdifactQuestion() detects such a question —
+     * never unconditionally. Read-only via willi-mako.resolveStructure with a
+     * conservative limit; degrades to unavailable/skipped on any failure so a
+     * knowledge-service outage never fails askCernionAgent. Never upgrades
+     * confidence by itself (energychain/cernion-energy-tools#498).
+     */
+    async collectCopilotMakoKnowledgeEvidence(ctx, { question, maxEvidence = 5 } = {}) {
+      if (!isCopilotMakoEdifactQuestion(question)) {
+        return { source: 'willi-mako', status: 'skipped', hits: [], trace: { hitCount: 0 } };
+      }
+      try {
+        const result = await ctx.call('willi-mako.resolveStructure', {
+          query: compactString(question, 600),
+          limit: Math.min(Math.max(Number(maxEvidence) || 5, 1), 5),
+        });
+        if (!result || result.success === false) {
+          return {
+            source: 'willi-mako',
+            status: 'unavailable',
+            hits: [],
+            trace: { hitCount: 0, error: result?.error?.code || 'MAKO_KNOWLEDGE_UNAVAILABLE' },
+          };
+        }
+        const sources = Array.isArray(result.data?.sources) ? result.data.sources : [];
+        const hits = toCopilotList(
+          sources,
+          (entry) => ({
+            source: 'willi-mako',
+            value: compactString(
+              [entry.title, entry.url ? `URL: ${entry.url}` : null].filter(Boolean).join(' · '),
+              400
+            ),
+            metadata: { sourceId: entry.id || null, score: entry.score ?? null },
+          }),
+          maxEvidence
+        );
+        return {
+          source: 'willi-mako',
+          status: hits.length > 0 ? 'available' : 'missing',
+          hits,
+          noCallBoundaries: Array.isArray(result.data?.noCallBoundaries)
+            ? result.data.noCallBoundaries
+            : [],
+          trace: { hitCount: hits.length, confidence: result.data?.confidence || 'none' },
+        };
+      } catch (_err) {
+        return {
+          source: 'willi-mako',
+          status: 'unavailable',
+          hits: [],
+          trace: { hitCount: 0, error: 'MAKO_KNOWLEDGE_UNAVAILABLE' },
+        };
+      }
+    },
+
     async collectCopilotKnowledgeEvidence(ctx, { question, searchTerm, maxEvidence = 5 } = {}) {
       const query = compactString([searchTerm, question].filter(Boolean).join(' · '), 600);
       const result = await queryKnowledgeEvidenceAdapter(ctx, {
@@ -8847,6 +8927,7 @@ module.exports = {
       datapointEvidence = { status: 'unavailable', hits: [] },
       objectEvidence = { status: 'unavailable', hits: [] },
       planningEvidence = { status: 'skipped', hits: [] },
+      makoKnowledgeEvidence = { status: 'skipped', hits: [] },
       maxEvidence = 5,
     } = {}) {
       const results = Array.isArray(searchResult.results) ? searchResult.results : [];
@@ -8909,12 +8990,20 @@ module.exports = {
         datapointEvidence.status ? `datapoints:${datapointEvidence.status}` : null,
         objectEvidence.status ? `objects:${objectEvidence.status}` : null,
         planningEvidence.status ? `planner:${planningEvidence.status}` : null,
+        makoKnowledgeEvidence.status && makoKnowledgeEvidence.status !== 'skipped'
+          ? `makoKnowledge:${makoKnowledgeEvidence.status}`
+          : null,
       ].filter(Boolean);
       const guardrails = [
         'Copilot soll Knowledge-RAG, Datapoints und Object-Store-Evidence als Antwortkontext nutzen.',
         'Copilot darf Evidence-Snippets nutzernah zusammenfassen, auch wenn daraus keine perfekte Kurzantwort ableitbar ist.',
         'Copilot darf keine Ausführungs-, Lösch-, Signatur-, Override- oder Nominierungsaktion durchführen.',
         'Bei fehlender oder widersprüchlicher Evidence muss Copilot Unsicherheit benennen und darf gezielt nach fehlendem Kontext fragen.',
+        ...(makoKnowledgeEvidence.status === 'available'
+          ? [
+              'Willi-Mako Marktkommunikations-Kontext ist unverbindlicher Wissens-/Struktur-Hinweis, kein offizieller MaKo-Nachweis und keine Anweisung zum Versand einer APERAK/UTILMD/MSCONS-Nachricht.',
+            ]
+          : []),
       ];
 
       const risks = [
@@ -9006,6 +9095,7 @@ module.exports = {
           datapoints: datapointEvidence,
           objects: objectEvidence,
           planning: planningEvidence,
+          makoKnowledge: makoKnowledgeEvidence,
         },
         guardrails,
         processContext,

@@ -8470,14 +8470,29 @@ const CURATED_CAPABILITIES = [
       'imsys abrechnungsreife',
       'portal screenshot proof',
       'portalhinweis nachweis',
+      // Generic MaKo/EDIFACT code-context signals (energychain/cernion-energy-tools#498).
+      // Kept generic on purpose — no Z17-only special case; Z17 is used only as an
+      // acceptance-test example for this generic routing.
+      'aperak',
+      'utilmd',
+      'mscons',
+      'edifact',
+      'fehlercode',
+      'prüfidentifikator',
+      'pruefidentifikator',
+      'nachrichtentyp',
+      'mako',
+      'marktkommunikation',
     ],
     preferredActions: [
       'dashboard-api.marketCommunicationEvidenceChainStatus',
+      'willi-mako.resolveStructure',
+      'willi-mako.search',
       'edm-validation.validate',
       'settlement.readiness',
       'vdmi.findings',
     ],
-    fallbackActions: ['dashboard-api.marketCommunicationEvidenceChainStatus'],
+    fallbackActions: ['dashboard-api.marketCommunicationEvidenceChainStatus', 'willi-mako.search'],
     avoid: [
       'settlement.exportA96',
       'settlement.prepareBilling',
@@ -8502,6 +8517,7 @@ const CURATED_CAPABILITIES = [
       'Portal-/Provider-/Kundenaussagen sind Hinweise, aber nie offizieller Marktkommunikationsnachweis.',
       'Fehlende MaLo/MeLo-, UTILMD-, Zaehlerwert-, EDM-Qualitaets- und Abrechnungsschritt-Evidenz wird als positiver Follow-up sichtbar.',
       'Keine MaKo-Persistenz, kein UTILMD-Parser, keine Settlement-/Billing-Freigabe, keine HITL-Erzeugung und keine externen Calls.',
+      'willi-mako.search/resolveStructure liefern nur unverbindlichen Wissens-/Struktur-Kontext (Willi-Mako), keinen offiziellen Marktkommunikationsnachweis.',
     ],
     routingPattern: 'market_communication_evidence_chain',
   },

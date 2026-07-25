@@ -79641,7 +79641,7 @@
       "agentable": true,
       "nonAgentableReason": null,
       "capabilityCandidates": [
-        "willi-mako.resolve_structure"
+        "market_communication_evidence_chain"
       ],
       "domains": [
         "market-data"
@@ -79743,7 +79743,7 @@
       "agentable": true,
       "nonAgentableReason": null,
       "capabilityCandidates": [
-        "willi-mako.search"
+        "market_communication_evidence_chain"
       ],
       "domains": [
         "market-data"

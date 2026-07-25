@@ -889,6 +889,66 @@ describe('Capability Broker Service', () => {
     expect(actionNames).not.toContain('personal-agent.execute');
   });
 
+  // energychain/cernion-energy-tools#498 — generic MaKo/EDIFACT code-context routing.
+  // Z17 is used here only as an acceptance-test example; the routing signal itself
+  // (see findBestCapability's hasMakoEdifactCodeContextSignal block) is generic and
+  // must not special-case Z17.
+  describe('generic MaKo/EDIFACT code-context routing (#498)', () => {
+    it.each([
+      ['was bedeutet eine Z17 in einer APERAK?'],
+      ['APERAK Fehlercode Z18 erklären'],
+      ['Welche UTILMD-Segmentstruktur ist für Lieferantenwechsel relevant?'],
+      ['Was bedeutet ein MSCONS Prüfhinweis im MaKo-Kontext?'],
+    ])(
+      'routes "%s" to the read-only market-communication capability with Willi-Mako support',
+      async (task) => {
+        const result = await broker.call('capability-broker.recommend', { task });
+
+        expect(result.capability).toBe('market_communication_evidence_chain');
+        expect(result.recommendedCapabilities[0].capability).toBe(
+          'market_communication_evidence_chain'
+        );
+
+        const actionNames = result.recommendedPlan.map((step) => step.action);
+        expect(actionNames).toEqual(
+          expect.arrayContaining(['dashboard-api.marketCommunicationEvidenceChainStatus'])
+        );
+        expect(
+          actionNames.some((a) => a === 'willi-mako.resolveStructure' || a === 'willi-mako.search')
+        ).toBe(true);
+
+        // Still read-only/advisory: no consequential MaKo action is ever recommended.
+        expect(actionNames).not.toContain('mako.dispatch');
+        expect(actionNames).not.toContain('mscons-import.import');
+        expect(actionNames).not.toContain('settlement.exportA96');
+        expect(actionNames).not.toContain('settlement.prepareBilling');
+        expect(actionNames).not.toContain('hitl.create');
+        expect(actionNames).not.toContain('personal-agent.execute');
+        expect(result.doNotUse.map((d) => d.action)).not.toContain('willi-mako.search');
+      }
+    );
+
+    it('carries a Willi-Mako query param populated from the task text for willi-mako.search/resolveStructure steps', async () => {
+      const task = 'APERAK Fehlercode Z18 erklären';
+      const result = await broker.call('capability-broker.recommend', { task });
+
+      const williMakoStep = result.recommendedPlan.find(
+        (step) =>
+          step.action === 'willi-mako.resolveStructure' || step.action === 'willi-mako.search'
+      );
+      expect(williMakoStep).toBeDefined();
+      expect(williMakoStep.params.query).toBe(task);
+    });
+
+    it('does not require a Z17-specific branch: an analogous Z-code-free APERAK question still routes generically', async () => {
+      const result = await broker.call('capability-broker.recommend', {
+        task: 'APERAK Nachrichtentyp und Prüfidentifikator erklären, ohne konkreten Fehlercode.',
+      });
+
+      expect(result.capability).toBe('market_communication_evidence_chain');
+    });
+  });
+
   it('routes E2E Steuerbarkeitscheck governance prompts to the read-only matrix view', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Baue eine E2E Steuerbarkeitscheck Governance Evidenzmatrix fuer §14a Redispatch Steuerbarkeit mit Messkonzept, Rollenmatrix, Abgabeprozess und Abrechnung Grenze.',
