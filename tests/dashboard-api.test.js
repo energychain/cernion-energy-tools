@@ -221,6 +221,33 @@ function isoDaysAgo(days) {
   return new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 }
 
+const MOCK_WILLI_MAKO_RESOLVE_STRUCTURE = {
+  success: true,
+  data: {
+    topic: 'UTILMD Marktkommunikation Evidenzkette MaLo MeLo Abrechnung',
+    sources: [
+      {
+        id: 'wm-1',
+        title: 'UTILMD Strukturwechsel Uebersicht',
+        url: 'https://stromhaltig.de/wissen/utilmd-strukturwechsel',
+      },
+    ],
+    structuralHints: [{ category: 'edifact', tags: ['UTILMD'], hint: 'UTILMD context hint' }],
+    validationCandidates: [
+      {
+        topic: 'UTILMD Strukturwechsel Uebersicht',
+        sourceId: 'wm-1',
+        confidenceHint: 20,
+        suggestedUse: 'structural_hint_only',
+      },
+    ],
+    noCallBoundaries: [
+      'This response is not legally binding and is not an instruction to send a MaKo message.',
+    ],
+    confidence: 'low',
+  },
+};
+
 const MOCK_VDMI_MATRICES = {
   count: 3,
   items: [
@@ -498,6 +525,17 @@ describe('dashboard-api.service', () => {
       actions: {
         list: makeHandler('vdmiList', MOCK_VDMI_MATRICES),
         findings: makeHandler('vdmiFindings', MOCK_VDMI_FINDINGS),
+      },
+    });
+
+    // Mock willi-mako
+    broker.createService({
+      name: 'willi-mako',
+      actions: {
+        resolveStructure: makeHandler(
+          'williMakoResolveStructure',
+          MOCK_WILLI_MAKO_RESOLVE_STRUCTURE
+        ),
       },
     });
 
@@ -2122,6 +2160,76 @@ describe('dashboard-api.service', () => {
         expect(result.dossierFacts).toContain('Official evidence items: 7/7');
         expect(result.sourceActions.notCalled).toContain('settlement.exportA96');
         expect(result.sourceActions.notCalled).toContain('hitl.create');
+      });
+
+      it('does not call willi-mako and omits makoKnowledgeContext by default (#496)', async () => {
+        const spy = jest.fn(() => MOCK_WILLI_MAKO_RESOLVE_STRUCTURE);
+        handlers.williMakoResolveStructure = spy;
+
+        const result = await broker.call('dashboard-api.marketCommunicationEvidenceChainStatus', {
+          maloId: 'DE-MALO-1',
+        });
+
+        expect(spy).not.toHaveBeenCalled();
+        expect(result.makoKnowledgeContext).toBeUndefined();
+      });
+
+      it('attaches an advisory makoKnowledgeContext when includeMakoKnowledge=true (#496)', async () => {
+        const result = await broker.call('dashboard-api.marketCommunicationEvidenceChainStatus', {
+          maloId: 'DE-MALO-1',
+          includeMakoKnowledge: true,
+        });
+
+        expect(result.makoKnowledgeContext).toMatchObject({
+          available: true,
+          topic: 'UTILMD Marktkommunikation Evidenzkette MaLo MeLo Abrechnung',
+          confidence: 'low',
+        });
+        expect(result.makoKnowledgeContext.sources).toEqual(
+          expect.arrayContaining([expect.objectContaining({ id: 'wm-1' })])
+        );
+        expect(result.makoKnowledgeContext.noCallBoundaries.join(' ')).toMatch(
+          /not legally binding/i
+        );
+        // Attaching MaKo context must never change the core evidence-chain fields.
+        expect(result.status).toBeDefined();
+        expect(result.officialEvidence).toBeDefined();
+      });
+
+      it('degrades to available:false without failing the endpoint when willi-mako is unavailable (#496)', async () => {
+        handlers.williMakoResolveStructure = () => ({
+          success: false,
+          error: { code: 'MISSING_TOKEN', message: 'CERNION_TOKEN environment variable not set.' },
+        });
+
+        const result = await broker.call('dashboard-api.marketCommunicationEvidenceChainStatus', {
+          maloId: 'DE-MALO-1',
+          includeMakoKnowledge: true,
+        });
+
+        expect(result.status).toBeDefined();
+        expect(result.makoKnowledgeContext).toEqual({
+          available: false,
+          error: 'MISSING_TOKEN',
+        });
+        expect(JSON.stringify(result)).not.toMatch(/CERNION_TOKEN=|Bearer\s+\S+/);
+      });
+
+      it('degrades to available:false without throwing when willi-mako.resolveStructure rejects (#496)', async () => {
+        handlers.williMakoResolveStructure = () => {
+          throw new Error('service unavailable');
+        };
+
+        const result = await broker.call('dashboard-api.marketCommunicationEvidenceChainStatus', {
+          maloId: 'DE-MALO-1',
+          includeMakoKnowledge: true,
+        });
+
+        expect(result.status).toBeDefined();
+        expect(result.makoKnowledgeContext).toEqual({
+          available: false,
+          error: 'MAKO_KNOWLEDGE_UNAVAILABLE',
+        });
       });
     });
 

@@ -2,7 +2,7 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.67.9",
-  "sourceOpenApiHash": "68fa37136e4c28cd4dc6fcbd76b26b39655f899e2204db9039c1d2c8b3374385",
+  "sourceOpenApiHash": "d501f75e91e8a7ebffc78768ac4e67c6b66734a7f075b7eba2f169057e172f6a",
   "coverage": {
     "rawOperationCount": 1117,
     "operationCount": 861,
@@ -27041,6 +27041,13 @@
             "type": "string",
             "description": null,
             "extractionHint": null
+          },
+          {
+            "name": "includeMakoKnowledge",
+            "in": "query",
+            "type": "boolean",
+            "description": null,
+            "extractionHint": null
           }
         ]
       },
@@ -38107,7 +38114,15 @@
             "extractionHint": null
           }
         ],
-        "optional": []
+        "optional": [
+          {
+            "name": "includeMakoKnowledge",
+            "in": "query",
+            "type": "boolean",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
       },
       "rankingSignals": {
         "positiveKeywords": [

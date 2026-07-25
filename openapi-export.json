@@ -12327,6 +12327,10 @@
                     "safety": {
                       "type": "string"
                     },
+                    "makoKnowledgeContext": {
+                      "type": "object",
+                      "description": "Optional, advisory Willi-Mako structure context; only present when includeMakoKnowledge=true. Never binding; degrades to available:false."
+                    },
                     "timestamp": {
                       "type": "string",
                       "format": "date-time"
@@ -12343,7 +12347,7 @@
             }
           }
         },
-        "description": "Classifies market-communication evidence for dynamic tariff, iMSys, consumption-data and billing-readiness cases. Portal screenshots, customer statements and provider views are hints only; official MaLo/MeLo, UTILMD/master-data path, meter values, consumption retrieval, data-quality status and next billing step remain separate required evidence. The endpoint is read-only and does not mutate MaKo, EDM, billing, settlement, VDMI or HITL state.",
+        "description": "Classifies market-communication evidence for dynamic tariff, iMSys, consumption-data and billing-readiness cases. Portal screenshots, customer statements and provider views are hints only; official MaLo/MeLo, UTILMD/master-data path, meter values, consumption retrieval, data-quality status and next billing step remain separate required evidence. The endpoint is read-only and does not mutate MaKo, EDM, billing, settlement, VDMI or HITL state. When `includeMakoKnowledge=true`, an optional, advisory `makoKnowledgeContext` (Willi-Mako structural hints via `willi-mako.resolveStructure`) is attached; it never changes the default response shape, is never binding, and degrades to `available:false` if unavailable.",
         "parameters": [
           {
             "name": "maloId",
@@ -12447,6 +12451,15 @@
             "required": false,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "includeMakoKnowledge",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
             }
           }
         ]
@@ -30894,6 +30907,7 @@
             }
           }
         },
+        "description": "Returns the decision frame. When `includeMakoKnowledge=true`, an optional, advisory `makoKnowledgeContext` (Willi-Mako structural hints via `willi-mako.resolveStructure`, queried by the frame question) is attached; it never changes the default response shape, is never binding, and degrades to `available:false` if unavailable.",
         "parameters": [
           {
             "name": "frameId",
@@ -30902,6 +30916,15 @@
             "schema": {
               "type": "string",
               "example": "df-aabbccddeeff"
+            }
+          },
+          {
+            "name": "includeMakoKnowledge",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
             }
           }
         ]
@@ -68110,6 +68133,10 @@
                     "safety": {
                       "type": "string"
                     },
+                    "makoKnowledgeContext": {
+                      "type": "object",
+                      "description": "Optional, advisory Willi-Mako structure context; only present when includeMakoKnowledge=true. Never binding; degrades to available:false."
+                    },
                     "timestamp": {
                       "type": "string",
                       "format": "date-time"
@@ -68126,7 +68153,7 @@
             }
           }
         },
-        "description": "Classifies market-communication evidence for dynamic tariff, iMSys, consumption-data and billing-readiness cases. Portal screenshots, customer statements and provider views are hints only; official MaLo/MeLo, UTILMD/master-data path, meter values, consumption retrieval, data-quality status and next billing step remain separate required evidence. The endpoint is read-only and does not mutate MaKo, EDM, billing, settlement, VDMI or HITL state.",
+        "description": "Classifies market-communication evidence for dynamic tariff, iMSys, consumption-data and billing-readiness cases. Portal screenshots, customer statements and provider views are hints only; official MaLo/MeLo, UTILMD/master-data path, meter values, consumption retrieval, data-quality status and next billing step remain separate required evidence. The endpoint is read-only and does not mutate MaKo, EDM, billing, settlement, VDMI or HITL state. When `includeMakoKnowledge=true`, an optional, advisory `makoKnowledgeContext` (Willi-Mako structural hints via `willi-mako.resolveStructure`) is attached; it never changes the default response shape, is never binding, and degrades to `available:false` if unavailable.",
         "parameters": [
           {
             "name": "maloId",
@@ -68230,6 +68257,15 @@
             "required": false,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "includeMakoKnowledge",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
             }
           }
         ]
