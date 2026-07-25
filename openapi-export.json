@@ -61950,6 +61950,150 @@
         }
       }
     },
+    "/api/willi-mako/search": {
+      "post": {
+        "operationId": "willi-mako_search",
+        "summary": "Willi-Mako Marktkommunikation knowledge search (read-only)",
+        "tags": [
+          "Willi-Mako Marktkommunikation"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Willi-Mako search result",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "source": "willi-mako-service",
+                    "returned": 3,
+                    "results": [
+                      {
+                        "id": "wm-1",
+                        "slug": "aperak-frist-effizienz",
+                        "title": "APERAK-Frist: Effizienz in der Marktkommunikation steigern",
+                        "score": 32,
+                        "category": "edifact",
+                        "tags": [
+                          "APERAK",
+                          "Frist"
+                        ],
+                        "excerpt": "Kurzfassung des Artikels...",
+                        "url": "https://stromhaltig.de/wissen/aperak-frist-effizienz"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Read-only search over Willi-Mako / Marktkommunikation articles via the internal MCP tool `cernion_willi_mako_search`. Returns article/context evidence for validation logic, structural hints and explanation context; it does not send, validate or dispatch any MaKo message.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "query"
+                ],
+                "properties": {
+                  "query": {
+                    "type": "string",
+                    "example": "APERAK Fehlercode Frist Marktkommunikation"
+                  },
+                  "limit": {
+                    "type": "number",
+                    "minimum": 1,
+                    "maximum": 20,
+                    "default": 5,
+                    "example": 3
+                  },
+                  "tag": {
+                    "type": "string",
+                    "example": "APERAK"
+                  },
+                  "category": {
+                    "type": "string",
+                    "example": "edifact"
+                  },
+                  "includeContent": {
+                    "type": "boolean",
+                    "default": false,
+                    "example": false
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "query": "APERAK Fehlercode Frist Marktkommunikation",
+                    "limit": 3
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/willi-mako/resolve-structure": {
+      "post": {
+        "operationId": "willi-mako_resolveStructure",
+        "summary": "Willi-Mako structure-oriented validation-planning view (read-only, advisory)",
+        "tags": [
+          "Willi-Mako Marktkommunikation"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only structure-oriented validation-planning view"
+          }
+        },
+        "description": "Calls `willi-mako.search` internally and returns a conservative, structure-oriented view (sources, structural hints, validation candidates, no-call boundaries, confidence) useful for MaKo validation planning. Never autonomously executes, validates, or dispatches a MaKo message.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "query"
+                ],
+                "properties": {
+                  "query": {
+                    "type": "string",
+                    "example": "APERAK Fehlercode Frist Marktkommunikation"
+                  },
+                  "limit": {
+                    "type": "number",
+                    "minimum": 1,
+                    "maximum": 20,
+                    "default": 5,
+                    "example": 5
+                  },
+                  "tag": {
+                    "type": "string",
+                    "example": "APERAK"
+                  },
+                  "category": {
+                    "type": "string",
+                    "example": "edifact"
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "query": "APERAK Fehlercode Frist Marktkommunikation"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/znp/projects": {
       "get": {
         "operationId": "znp_listProjects",
