@@ -2,11 +2,11 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.67.9",
-  "sourceOpenApiHash": "72f6554fe35e661c33b509e5db4c970e33f2347ae5434354a4ce2523b8d64265",
+  "sourceOpenApiHash": "68fa37136e4c28cd4dc6fcbd76b26b39655f899e2204db9039c1d2c8b3374385",
   "coverage": {
-    "rawOperationCount": 1115,
-    "operationCount": 859,
-    "agentableCount": 857,
+    "rawOperationCount": 1117,
+    "operationCount": 861,
+    "agentableCount": 859,
     "nonAgentableCount": 2,
     "byOperationKind": {
       "data_read": 385,
@@ -14,7 +14,7 @@
       "object_store_write": 221,
       "process_step": 21,
       "process_start": 38,
-      "advisory_plan": 40,
+      "advisory_plan": 42,
       "draft_write": 10,
       "external_effect": 4,
       "dashboard_read": 125,
@@ -79603,6 +79603,212 @@
         "synonyms": [
           "agent infrastructure",
           "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "willi-mako_resolveStructure",
+      "method": "POST",
+      "path": "/api/willi-mako/resolve-structure",
+      "service": "willi-mako",
+      "action": "willi-mako.resolveStructure",
+      "summary": "Willi-Mako structure-oriented validation-planning view (read-only, advisory)",
+      "tags": [
+        "Willi-Mako Marktkommunikation"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "advisory_plan",
+      "consequenceLevel": "low",
+      "recommendedExecutionMode": "explain_only",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "willi-mako.resolve_structure"
+      ],
+      "domains": [
+        "market-data"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "willi-mako:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [
+          {
+            "name": "query",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": [
+          {
+            "name": "limit",
+            "in": "body",
+            "type": "number",
+            "description": null,
+            "extractionHint": "result_limit"
+          },
+          {
+            "name": "tag",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "category",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "willi",
+          "mako",
+          "resolve",
+          "structure",
+          "oriented",
+          "validation",
+          "planning",
+          "view",
+          "(read",
+          "only,",
+          "advisory)",
+          "marktkommunikation"
+        ],
+        "negativeCues": [
+          "redispatch settlement",
+          "grid connection request",
+          "metering data"
+        ],
+        "examples": [
+          "Please willi-mako structure-oriented validation-planning view (read-only, advisory)"
+        ],
+        "synonyms": [
+          "spot price",
+          "day-ahead",
+          "EPEX",
+          "ENTSO-E",
+          "intraday",
+          "wholesale market"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "willi-mako_search",
+      "method": "POST",
+      "path": "/api/willi-mako/search",
+      "service": "willi-mako",
+      "action": "willi-mako.search",
+      "summary": "Willi-Mako Marktkommunikation knowledge search (read-only)",
+      "tags": [
+        "Willi-Mako Marktkommunikation"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "advisory_plan",
+      "consequenceLevel": "low",
+      "recommendedExecutionMode": "explain_only",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "willi-mako.search"
+      ],
+      "domains": [
+        "market-data"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "willi-mako:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [
+          {
+            "name": "query",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": [
+          {
+            "name": "limit",
+            "in": "body",
+            "type": "number",
+            "description": null,
+            "extractionHint": "result_limit"
+          },
+          {
+            "name": "tag",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "category",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "includeContent",
+            "in": "body",
+            "type": "boolean",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "willi",
+          "mako",
+          "search",
+          "marktkommunikation",
+          "knowledge",
+          "(read",
+          "only)"
+        ],
+        "negativeCues": [
+          "redispatch settlement",
+          "grid connection request",
+          "metering data"
+        ],
+        "examples": [
+          "Show me willi-mako marktkommunikation knowledge search (read-only)"
+        ],
+        "synonyms": [
+          "spot price",
+          "day-ahead",
+          "EPEX",
+          "ENTSO-E",
+          "intraday",
+          "wholesale market"
         ],
         "curated": false
       },

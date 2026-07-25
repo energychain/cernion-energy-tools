@@ -158,7 +158,7 @@ recipes:
   inhouse-metering-spot-cost "An uploaded inhouse load profile should be priced against…"
 resolve: GET /api/_agent/operations?domain=inhouse-data
 
-### market-data (4 capabilities · 5 recipes · 40 operations)
+### market-data (4 capabilities · 5 recipes · 42 operations)
 capabilities: cross_commodity_supply_security_lagebild, direct_marketer_risk_gate, market_communication_evidence_chain, oep_research_dataset_discovery
 recipes:
   forecast-vs-actual-comparison "A generation operator wants to measure forecast accuracy…"
@@ -246,17 +246,17 @@ Agents resolving capabilities/recipes/operations do not need to read past this p
 - `tests/query.service.test.js`: `query.searchCopilot` body-based wrapper returns expected `query`, `domain`, and `results` shape.
 
 ## Source File Hashes
-- CHANGELOG.md: a8051b221670bd1e8dc4db63509f9b4f201a27930b2e84b1d2c961b510082c0f
+- CHANGELOG.md: 06cfec107f8e12952c34cbf8d77d5c01f7bf91a5d44795d3a4022ce9f668c591
 - README.md: 20212e8ece52ae9dfb251bdd93b4a9d719f6887623f9b11b6c542b719b49c29f
 - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
 - src/cookbook-recipes.js: 9e48573ca263ef129bc3944a83b013cff25157e25afc703be0ada62d5af8163d
 - src/capability-catalog.js: 4abecc2ae81b220b9e5f812225413f094eb36da4876d2546092720b817a85d12
-- openapi-export.json: 72f6554fe35e661c33b509e5db4c970e33f2347ae5434354a4ce2523b8d64265
+- openapi-export.json: 68fa37136e4c28cd4dc6fcbd76b26b39655f899e2204db9039c1d2c8b3374385
 
 ## OpenAPI Surface (full contract, not embedded)
-- path_count: 1003
-- operation_count: 1115
+- path_count: 1005
+- operation_count: 1117
 - full_spec: openapi-export.json (repo root) or GET /api/openapi.json
 
 ## Integrity
-- llm_txt_sha256: e059cfabb1ed8b088dfc2a0ade786e1f5bd4a618a511cfe95a599591a3691a1e
+- llm_txt_sha256: 2a8413ce8c371444b91c152a18aa51335503cdcfab10d15185477dc88a38782b

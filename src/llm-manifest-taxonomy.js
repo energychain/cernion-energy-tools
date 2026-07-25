@@ -262,6 +262,7 @@ const OPENAPI_TAG_DOMAIN_MAP = {
   'vnb-100-tage-assessment': 'grid-planning',
   'Web Search': 'platform',
   Webhooks: 'platform',
+  'Willi-Mako Marktkommunikation': 'market-data',
   'Zielnetzplanung (ZNP)': 'grid-planning',
   ZNP: 'grid-planning',
   'vdmi-human-override': 'governance',
