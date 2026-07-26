@@ -1139,6 +1139,120 @@ describe('API Gateway Service', () => {
       );
     });
 
+    it('should expose /v1/images/generations outside the /api route (#498)', () => {
+      const v1Route = ApiService.settings.routes.find((r) => r.path === '/v1');
+      expect(v1Route).toBeDefined();
+      expect(v1Route.aliases['POST /images/generations']).toBeInstanceOf(Function);
+    });
+
+    it('should return OpenAI-style auth errors on the /v1 images generations facade (#498)', async () => {
+      const v1Route = ApiService.settings.routes.find((r) => r.path === '/v1');
+      const chunks = [];
+      const res = {
+        statusCode: null,
+        headers: {},
+        setHeader(name, value) {
+          this.headers[name] = value;
+        },
+        writeHead(status) {
+          this.statusCode = status;
+        },
+        end(payload) {
+          chunks.push(payload);
+        },
+      };
+
+      await v1Route.aliases['POST /images/generations'].call(
+        { broker, logger: { debug: jest.fn(), warn: jest.fn() } },
+        {
+          headers: {},
+          method: 'POST',
+          body: { prompt: 'Infografik' },
+        },
+        res
+      );
+
+      expect(res.statusCode).toBe(401);
+      expect(JSON.parse(chunks.join('')).error).toMatchObject({
+        type: 'authentication_error',
+        code: 'authentication_required',
+      });
+    });
+
+    it('should forward an authenticated request to openai-compatible.imageGenerations with the images-generations token scope (#498)', async () => {
+      const brokerCall = jest.fn(async (action, params, opts) => {
+        if (action === 'token-manager.verify') {
+          expect(params).toMatchObject({
+            token: 'ck_route_image_success',
+            method: 'POST',
+            path: '/v1/images/generations',
+            trackUsage: true,
+          });
+          return {
+            valid: true,
+            tokenId: 'token-498',
+            name: 'ImageFacadeSmoke',
+            scope: 'full-access',
+            scopes: ['full-access'],
+            tenantId: 'tenant-route-498',
+            userId: 'user-route-498',
+          };
+        }
+        if (action === 'openai-compatible.imageGenerations') {
+          expect(opts.meta).toMatchObject({
+            tenantId: 'tenant-route-498',
+            authUser: {
+              authType: 'legacy-token',
+              userId: 'user-route-498',
+              tenantId: 'tenant-route-498',
+            },
+          });
+          expect(opts.meta.$gateway).toBeUndefined();
+          return {
+            created: 1,
+            data: [{ b64_json: 'ZmFrZQ==' }],
+            cernion: { facade: 'openai-compatible-image-generations' },
+          };
+        }
+        throw new Error(`Unexpected action ${action}`);
+      });
+      const v1Route = ApiService.settings.routes.find((r) => r.path === '/v1');
+      const chunks = [];
+      const res = {
+        statusCode: null,
+        headers: {},
+        setHeader(name, value) {
+          this.headers[name] = value;
+        },
+        writeHead(status) {
+          this.statusCode = status;
+        },
+        end(payload) {
+          chunks.push(payload);
+        },
+      };
+
+      await v1Route.aliases['POST /images/generations'].call(
+        { broker: { call: brokerCall, emit: jest.fn() }, logger: { debug: jest.fn() } },
+        {
+          headers: { authorization: 'Bearer ck_route_image_success' },
+          method: 'POST',
+          body: { prompt: 'Infografik der PV-Einspeisung' },
+        },
+        res
+      );
+
+      expect(res.statusCode).toBe(200);
+      expect(JSON.parse(chunks.join('')).data).toEqual([{ b64_json: 'ZmFrZQ==' }]);
+      expect(brokerCall).toHaveBeenCalledWith(
+        'openai-compatible.imageGenerations',
+        expect.objectContaining({ prompt: 'Infografik der PV-Einspeisung' }),
+        expect.objectContaining({
+          meta: expect.objectContaining({ tenantId: 'tenant-route-498' }),
+        })
+      );
+    });
+
     function createSseCollectingRes() {
       const writes = [];
       let ended = false;

@@ -204,7 +204,9 @@ function buildStaticPaths(apiSvc, actionRegistry) {
       const aliasTarget =
         route.path === '/v1' && aliasKey === 'POST /chat/completions'
           ? 'openai-compatible.chatCompletions'
-          : rawAliasTarget;
+          : route.path === '/v1' && aliasKey === 'POST /images/generations'
+            ? 'openai-compatible.imageGenerations'
+            : rawAliasTarget;
       if (typeof aliasTarget !== 'string') continue;
 
       const [methodRaw, ...restParts] = aliasKey.split(' ');

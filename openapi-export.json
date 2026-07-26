@@ -63393,6 +63393,99 @@
         "x-ui-page": "agent"
       }
     },
+    "/v1/images/generations": {
+      "post": {
+        "operationId": "createImageGeneration",
+        "summary": "Create an OpenAI-compatible image generation via the configured background model",
+        "tags": [
+          "OpenAI Compatible"
+        ],
+        "responses": {
+          "200": {
+            "description": "OpenAI-compatible image generation response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "created",
+                    "data"
+                  ],
+                  "properties": {
+                    "created": {
+                      "type": "integer"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "b64_json": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "cernion": {
+                      "type": "object",
+                      "additionalProperties": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Inbound OpenAI-compatible facade over the configured Cernion LLM provider (default Gemini). Forwards the prompt to the background image-generation model and returns base64-encoded image data in the standard OpenAI images.generations response shape. Only `response_format: \"b64_json\"` is supported — no public URL/object storage is provisioned by this facade.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "examples": {
+                "minimal": {
+                  "value": {
+                    "prompt": "Infografik: jaehrlicher Anstieg der PV-Einspeisung 2020-2026, Balkendiagramm"
+                  }
+                }
+              },
+              "schema": {
+                "type": "object",
+                "required": [
+                  "prompt"
+                ],
+                "properties": {
+                  "prompt": {
+                    "type": "string"
+                  },
+                  "model": {
+                    "type": "string",
+                    "default": "cernion-image-mvp"
+                  },
+                  "n": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 4,
+                    "default": 1
+                  },
+                  "size": {
+                    "type": "string",
+                    "example": "1024x1024"
+                  },
+                  "response_format": {
+                    "type": "string",
+                    "enum": [
+                      "b64_json",
+                      "url"
+                    ],
+                    "default": "b64_json"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/openapi.json": {
       "get": {
         "operationId": "api_openapi",

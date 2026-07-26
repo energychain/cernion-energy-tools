@@ -425,9 +425,36 @@ async function embeddings(texts, options = {}) {
 }
 
 /**
+ * Generate an image from a text prompt.
+ * PII is scrubbed from the prompt before the call (EU AI Act Art. 12).
+ *
+ * @param {string} prompt  The image prompt (may contain PII — will be scrubbed).
+ * @param {object} [options] Optional provider call options (model/size/n hints).
+ * @returns {Promise<{images: {b64Json: string, mimeType: string}[], text: (string|null)}>}
+ * @throws {MoleculerError} 503 LLM_CAPABILITY_MISSING if the provider does not support image generation.
+ * @throws {MoleculerError} 503 LLM_NOT_CONFIGURED if the provider's API key is not set.
+ */
+async function generateImage(prompt, options = {}) {
+  const adapter = getAdapter();
+  const caps = typeof adapter.capabilities === 'function' ? adapter.capabilities() : {};
+  if (!caps.imageGeneration || typeof adapter.generateImage !== 'function') {
+    throw new MoleculerError(
+      'Der konfigurierte LLM Provider unterstützt keine Bildgenerierung.',
+      503,
+      'LLM_CAPABILITY_MISSING'
+    );
+  }
+
+  const scrubbedPrompt = scrubPromptText(prompt);
+  return await observeLlmCall(adapter, 'generate_image', options, scrubbedPrompt, () =>
+    withRetries(() => adapter.generateImage(scrubbedPrompt, options), options)
+  );
+}
+
+/**
  * Return provider capability matrix.
  *
- * @returns {{provider: string, structured: boolean, embeddings: boolean, vision: boolean, contextWindow: (number|null)}}
+ * @returns {{provider: string, structured: boolean, embeddings: boolean, vision: boolean, imageGeneration: boolean, contextWindow: (number|null)}}
  */
 function capabilities() {
   const adapter = getAdapter();
@@ -437,8 +464,16 @@ function capabilities() {
     structured: !!caps.structured,
     embeddings: !!caps.embeddings,
     vision: !!caps.vision,
+    imageGeneration: !!caps.imageGeneration,
     contextWindow: caps.contextWindow ?? null,
   };
 }
 
-module.exports = { SchemaType, generateText, generateStructured, embeddings, capabilities };
+module.exports = {
+  SchemaType,
+  generateText,
+  generateStructured,
+  embeddings,
+  generateImage,
+  capabilities,
+};

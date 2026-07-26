@@ -2,16 +2,16 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.67.9",
-  "sourceOpenApiHash": "d501f75e91e8a7ebffc78768ac4e67c6b66734a7f075b7eba2f169057e172f6a",
+  "sourceOpenApiHash": "356babc646cc168b4b78a91a21d04ba8d8aaed7e9ca72b0e47eed8dab1aaa734",
   "coverage": {
-    "rawOperationCount": 1117,
-    "operationCount": 861,
-    "agentableCount": 859,
+    "rawOperationCount": 1118,
+    "operationCount": 862,
+    "agentableCount": 860,
     "nonAgentableCount": 2,
     "byOperationKind": {
       "data_read": 385,
       "admin": 8,
-      "object_store_write": 221,
+      "object_store_write": 222,
       "process_step": 21,
       "process_start": 38,
       "advisory_plan": 42,
@@ -81287,6 +81287,111 @@
         "negativeCues": [],
         "examples": [
           "Please create an openai-compatible cernion personal agent chat completion"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "createImageGeneration",
+      "method": "POST",
+      "path": "/v1/images/generations",
+      "service": "unknown",
+      "action": null,
+      "summary": "Create an OpenAI-compatible image generation via the configured background model",
+      "tags": [
+        "OpenAI Compatible"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "unknown.create_image_generation"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "unknown:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "unknown"
+      ],
+      "sideEffects": [
+        "creates_or_modifies_stored_object"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "parameters": {
+        "required": [
+          {
+            "name": "prompt",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": [
+          {
+            "name": "model",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "n",
+            "in": "body",
+            "type": "integer",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "size",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "response_format",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "create",
+          "image",
+          "generation",
+          "an",
+          "open",
+          "ai",
+          "compatible",
+          "via",
+          "configured",
+          "background",
+          "model",
+          "unknown"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please create an openai-compatible image generation via the configured background model"
         ],
         "synonyms": [
           "agent infrastructure",
