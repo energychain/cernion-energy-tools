@@ -94,12 +94,65 @@ async function generateImage(prompt, options = {}) {
   return { images, text: null };
 }
 
+// The upstream is already OpenAI-shaped, so messages/tools/tool_choice are
+// forwarded almost as-is — only the tool-call-carrying assistant messages
+// need their extra fields (tool_calls/tool_call_id/name) preserved, since a
+// plain {role, content} would drop the OpenAI tool-calling turn sequence.
+function toUpstreamMessage(message) {
+  const out = { role: message.role, content: message.content ?? null };
+  if (Array.isArray(message.tool_calls)) out.tool_calls = message.tool_calls;
+  if (message.tool_call_id) out.tool_call_id = message.tool_call_id;
+  if (message.name) out.name = message.name;
+  return out;
+}
+
+function safeParseJson(raw) {
+  try {
+    return JSON.parse(raw);
+  } catch (_err) {
+    return {};
+  }
+}
+
+async function generateChat(messages, options = {}) {
+  const body = {
+    model: options.model || getModelName(),
+    messages: messages.map(toUpstreamMessage),
+  };
+  if (Array.isArray(options.tools) && options.tools.length > 0) {
+    body.tools = options.tools;
+    if (options.toolChoice != null) body.tool_choice = options.toolChoice;
+  }
+
+  const data = await post('/chat/completions', body);
+  const choice = data?.choices?.[0];
+  const toolCalls = choice?.message?.tool_calls;
+
+  if (Array.isArray(toolCalls) && toolCalls.length > 0) {
+    return {
+      content: null,
+      toolCalls: toolCalls.map((call) => ({
+        name: call?.function?.name,
+        args: safeParseJson(call?.function?.arguments),
+      })),
+      finishReason: 'tool_calls',
+    };
+  }
+
+  return {
+    content: choice?.message?.content || '',
+    toolCalls: null,
+    finishReason: choice?.finish_reason || 'stop',
+  };
+}
+
 function capabilities() {
   return {
     structured: true,
     embeddings: true,
     vision: false,
     imageGeneration: true,
+    toolCalling: true,
     contextWindow: null,
   };
 }
@@ -110,5 +163,6 @@ module.exports = {
   generateStructured,
   embeddings,
   generateImage,
+  generateChat,
   capabilities,
 };

@@ -1253,6 +1253,123 @@ describe('API Gateway Service', () => {
       );
     });
 
+    it('should expose /v1/embeddings outside the /api route', () => {
+      const v1Route = ApiService.settings.routes.find((r) => r.path === '/v1');
+      expect(v1Route).toBeDefined();
+      expect(v1Route.aliases['POST /embeddings']).toBeInstanceOf(Function);
+    });
+
+    it('should return OpenAI-style auth errors on the /v1 embeddings facade', async () => {
+      const v1Route = ApiService.settings.routes.find((r) => r.path === '/v1');
+      const chunks = [];
+      const res = {
+        statusCode: null,
+        headers: {},
+        setHeader(name, value) {
+          this.headers[name] = value;
+        },
+        writeHead(status) {
+          this.statusCode = status;
+        },
+        end(payload) {
+          chunks.push(payload);
+        },
+      };
+
+      await v1Route.aliases['POST /embeddings'].call(
+        { broker, logger: { debug: jest.fn(), warn: jest.fn() } },
+        {
+          headers: {},
+          method: 'POST',
+          body: { input: 'Marktkommunikation' },
+        },
+        res
+      );
+
+      expect(res.statusCode).toBe(401);
+      expect(JSON.parse(chunks.join('')).error).toMatchObject({
+        type: 'authentication_error',
+        code: 'authentication_required',
+      });
+    });
+
+    it('should forward an authenticated request to openai-compatible.embeddings with the embeddings token scope', async () => {
+      const brokerCall = jest.fn(async (action, params, opts) => {
+        if (action === 'token-manager.verify') {
+          expect(params).toMatchObject({
+            token: 'ck_route_embed_success',
+            method: 'POST',
+            path: '/v1/embeddings',
+            trackUsage: true,
+          });
+          return {
+            valid: true,
+            tokenId: 'token-embed',
+            name: 'EmbeddingFacadeSmoke',
+            scope: 'full-access',
+            scopes: ['full-access'],
+            tenantId: 'tenant-route-embed',
+            userId: 'user-route-embed',
+          };
+        }
+        if (action === 'openai-compatible.embeddings') {
+          expect(opts.meta).toMatchObject({
+            tenantId: 'tenant-route-embed',
+            authUser: {
+              authType: 'legacy-token',
+              userId: 'user-route-embed',
+              tenantId: 'tenant-route-embed',
+            },
+          });
+          expect(opts.meta.$gateway).toBeUndefined();
+          return {
+            object: 'list',
+            data: [{ object: 'embedding', index: 0, embedding: [0.1, 0.2] }],
+            model: 'cernion-embedding-mvp',
+            usage: { prompt_tokens: 2, total_tokens: 2 },
+          };
+        }
+        throw new Error(`Unexpected action ${action}`);
+      });
+      const v1Route = ApiService.settings.routes.find((r) => r.path === '/v1');
+      const chunks = [];
+      const res = {
+        statusCode: null,
+        headers: {},
+        setHeader(name, value) {
+          this.headers[name] = value;
+        },
+        writeHead(status) {
+          this.statusCode = status;
+        },
+        end(payload) {
+          chunks.push(payload);
+        },
+      };
+
+      await v1Route.aliases['POST /embeddings'].call(
+        { broker: { call: brokerCall, emit: jest.fn() }, logger: { debug: jest.fn() } },
+        {
+          headers: { authorization: 'Bearer ck_route_embed_success' },
+          method: 'POST',
+          body: { input: 'Marktkommunikation Evidenzkette' },
+        },
+        res
+      );
+
+      expect(res.statusCode).toBe(200);
+      expect(JSON.parse(chunks.join('')).data).toEqual([
+        { object: 'embedding', index: 0, embedding: [0.1, 0.2] },
+      ]);
+      expect(brokerCall).toHaveBeenCalledWith(
+        'openai-compatible.embeddings',
+        expect.objectContaining({ input: 'Marktkommunikation Evidenzkette' }),
+        expect.objectContaining({
+          meta: expect.objectContaining({ tenantId: 'tenant-route-embed' }),
+        })
+      );
+    });
+
     function createSseCollectingRes() {
       const writes = [];
       let ended = false;

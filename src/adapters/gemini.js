@@ -110,12 +110,139 @@ async function generateImage(prompt, options = {}) {
   return { images, text: text || null };
 }
 
+// Translates OpenAI-shaped chat messages (role, content, and — for the
+// tool-calling turn sequence — tool_calls / tool_call_id / name) into
+// Gemini's `contents` array plus a combined systemInstruction string.
+// System/developer messages never become part of `contents`: Gemini has no
+// "system" role, and mixing prompt-context into a user/model turn would let
+// it compete with the actual conversation on equal footing.
+function buildGeminiContents(messages) {
+  const contents = [];
+  const systemParts = [];
+  const toolCallNameById = new Map();
+
+  for (const message of messages) {
+    const role = message?.role;
+
+    if (role === 'system' || role === 'developer') {
+      if (message.content) systemParts.push(String(message.content));
+      continue;
+    }
+
+    if (role === 'user') {
+      contents.push({ role: 'user', parts: [{ text: String(message.content || '') }] });
+      continue;
+    }
+
+    if (role === 'assistant') {
+      if (Array.isArray(message.tool_calls) && message.tool_calls.length > 0) {
+        const parts = message.tool_calls.map((call) => {
+          const name = call?.function?.name || 'unknown_function';
+          let args = {};
+          try {
+            args = JSON.parse(call?.function?.arguments || '{}');
+          } catch (_err) {
+            args = {};
+          }
+          if (call?.id) toolCallNameById.set(call.id, name);
+          return { functionCall: { name, args } };
+        });
+        contents.push({ role: 'model', parts });
+      } else {
+        contents.push({ role: 'model', parts: [{ text: String(message.content || '') }] });
+      }
+      continue;
+    }
+
+    if (role === 'tool') {
+      const name = toolCallNameById.get(message.tool_call_id) || message.name || 'unknown_function';
+      let responsePayload;
+      try {
+        responsePayload = JSON.parse(message.content);
+      } catch (_err) {
+        responsePayload = { result: message.content ?? null };
+      }
+      contents.push({
+        role: 'function',
+        parts: [{ functionResponse: { name, response: responsePayload } }],
+      });
+    }
+  }
+
+  return {
+    contents,
+    systemInstruction: systemParts.length > 0 ? systemParts.join('\n') : undefined,
+  };
+}
+
+const TOOL_CHOICE_MODE = { auto: 'AUTO', none: 'NONE', required: 'ANY' };
+
+// Translates an OpenAI-shaped `tool_choice` (string or {type,function:{name}})
+// into Gemini's toolConfig.functionCallingConfig. Returns undefined when no
+// tools were supplied — Gemini's default (AUTO) applies without an explicit
+// toolConfig block.
+function buildGeminiToolConfig(toolChoice) {
+  if (toolChoice == null) return undefined;
+  if (typeof toolChoice === 'string') {
+    const mode = TOOL_CHOICE_MODE[toolChoice];
+    return mode ? { functionCallingConfig: { mode } } : undefined;
+  }
+  const name = toolChoice?.function?.name;
+  if (toolChoice?.type === 'function' && name) {
+    return { functionCallingConfig: { mode: 'ANY', allowedFunctionNames: [name] } };
+  }
+  return undefined;
+}
+
+function toGeminiFunctionDeclarations(tools) {
+  return (Array.isArray(tools) ? tools : [])
+    .filter((tool) => tool?.type === 'function' && tool?.function?.name)
+    .map((tool) => ({
+      name: tool.function.name,
+      description: tool.function.description || '',
+      parameters: tool.function.parameters || { type: 'object', properties: {} },
+    }));
+}
+
+// Chat completion with OpenAI-shaped tool/function-calling support. Only
+// meaningfully differs from generateText once `options.tools` is supplied —
+// callers without tools get a plain text reply, same as generateText.
+async function generateChat(messages, options = {}) {
+  const { contents, systemInstruction } = buildGeminiContents(messages);
+  const functionDeclarations = toGeminiFunctionDeclarations(options.tools);
+
+  const modelParams = { model: options.model || getModelName() };
+  if (systemInstruction) modelParams.systemInstruction = systemInstruction;
+  if (functionDeclarations.length > 0) {
+    modelParams.tools = [{ functionDeclarations }];
+    const toolConfig = buildGeminiToolConfig(options.toolChoice);
+    if (toolConfig) modelParams.toolConfig = toolConfig;
+  }
+
+  const model = getClient().getGenerativeModel(modelParams);
+  const result = await model.generateContent({ contents });
+  const response = result.response;
+
+  const functionCalls =
+    typeof response.functionCalls === 'function' ? response.functionCalls() : null;
+  if (Array.isArray(functionCalls) && functionCalls.length > 0) {
+    return {
+      content: null,
+      toolCalls: functionCalls.map((call) => ({ name: call.name, args: call.args || {} })),
+      finishReason: 'tool_calls',
+    };
+  }
+
+  return { content: response.text(), toolCalls: null, finishReason: 'stop' };
+}
+
 function capabilities() {
   return {
     structured: true,
     embeddings: true,
     vision: false,
     imageGeneration: true,
+    toolCalling: true,
     contextWindow: null,
   };
 }
@@ -126,5 +253,6 @@ module.exports = {
   generateStructured,
   embeddings,
   generateImage,
+  generateChat,
   capabilities,
 };

@@ -2,18 +2,18 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.67.11",
-  "sourceOpenApiHash": "348cad37becc6f8dfcb54cd9591576ac325cda08f8e2bdcbef08075891ffba12",
+  "sourceOpenApiHash": "351ab94e43807db9cc1d457de88dace2450c17bba985a3cc482fbccef8366aa9",
   "coverage": {
-    "rawOperationCount": 1118,
-    "operationCount": 862,
-    "agentableCount": 860,
+    "rawOperationCount": 1119,
+    "operationCount": 863,
+    "agentableCount": 861,
     "nonAgentableCount": 2,
     "byOperationKind": {
       "data_read": 385,
       "admin": 8,
-      "object_store_write": 222,
-      "process_step": 21,
-      "process_start": 38,
+      "object_store_write": 223,
+      "process_step": 20,
+      "process_start": 39,
       "advisory_plan": 42,
       "draft_write": 10,
       "external_effect": 4,
@@ -81197,9 +81197,9 @@
       ],
       "uiPage": "agent",
       "oeoClass": null,
-      "operationKind": "process_step",
-      "consequenceLevel": "medium",
-      "recommendedExecutionMode": "prepare",
+      "operationKind": "process_start",
+      "consequenceLevel": "high",
+      "recommendedExecutionMode": "confirm",
       "agentable": true,
       "nonAgentableReason": null,
       "capabilityCandidates": [
@@ -81218,10 +81218,10 @@
         "unknown"
       ],
       "sideEffects": [
-        "advances_process_state"
+        "starts_new_process_instance"
       ],
       "idempotency": "not_idempotent",
-      "rollbackHint": "Check for a companion reject/cancel/rollback operation on the same resource before treating this as final.",
+      "rollbackHint": "No companion rollback operation detected in this service - verify reversibility with backend/tenant admin before invoking.",
       "parameters": {
         "required": [
           {
@@ -81267,6 +81267,20 @@
             "type": "boolean",
             "description": null,
             "extractionHint": null
+          },
+          {
+            "name": "tools",
+            "in": "body",
+            "type": "array",
+            "description": "OpenAI-shaped function-calling tool declarations.",
+            "extractionHint": null
+          },
+          {
+            "name": "tool_choice",
+            "in": "body",
+            "type": "object",
+            "description": "\"auto\" | \"none\" | \"required\" | {type:\"function\",function:{name}}",
+            "extractionHint": null
           }
         ]
       },
@@ -81287,6 +81301,97 @@
         "negativeCues": [],
         "examples": [
           "Please create an openai-compatible cernion personal agent chat completion"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "createEmbedding",
+      "method": "POST",
+      "path": "/v1/embeddings",
+      "service": "unknown",
+      "action": null,
+      "summary": "Create OpenAI-compatible text embeddings via the configured background model",
+      "tags": [
+        "OpenAI Compatible"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "unknown.create_embedding"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "unknown:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "unknown"
+      ],
+      "sideEffects": [
+        "creates_or_modifies_stored_object"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "parameters": {
+        "required": [
+          {
+            "name": "input",
+            "in": "body",
+            "type": "object",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": [
+          {
+            "name": "model",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "encoding_format",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "create",
+          "embedding",
+          "open",
+          "ai",
+          "compatible",
+          "text",
+          "embeddings",
+          "via",
+          "configured",
+          "background",
+          "model",
+          "unknown"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please create openai-compatible text embeddings via the configured background model"
         ],
         "synonyms": [
           "agent infrastructure",

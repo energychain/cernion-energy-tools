@@ -1,5 +1,7 @@
 jest.mock('../src/llm-client', () => ({
   generateImage: jest.fn(),
+  embeddings: jest.fn(),
+  generateChat: jest.fn(),
   capabilities: jest.fn(() => ({ provider: 'gemini' })),
 }));
 
@@ -356,6 +358,213 @@ describe('OpenAI Compatible Service', () => {
   });
 });
 
+describe('OpenAI Compatible Service — chatCompletions tool/function calling', () => {
+  const handler = OpenAICompatibleService.actions.chatCompletions.handler;
+  const weatherTool = {
+    type: 'function',
+    function: {
+      name: 'get_weather',
+      description: 'Get current weather for a location',
+      parameters: {
+        type: 'object',
+        properties: { location: { type: 'string' } },
+        required: ['location'],
+      },
+    },
+  };
+
+  beforeEach(() => {
+    llmClient.generateChat.mockReset();
+    llmClient.capabilities.mockReset();
+    llmClient.capabilities.mockReturnValue({ provider: 'gemini' });
+  });
+
+  it('bypasses personal-agent.chat entirely when tools are supplied', async () => {
+    llmClient.generateChat.mockResolvedValue({
+      content: null,
+      toolCalls: [{ name: 'get_weather', args: { location: 'Berlin' } }],
+      finishReason: 'tool_calls',
+    });
+    const ctx = {
+      params: {
+        messages: [{ role: 'user', content: 'Wie ist das Wetter in Berlin?' }],
+        tools: [weatherTool],
+      },
+      meta: { tenantId: 'tenant-tools-1', authUser: { userId: 'tester', roles: ['full-access'] } },
+      call: jest.fn(),
+    };
+
+    const result = await handler(ctx);
+
+    expect(ctx.call).not.toHaveBeenCalled();
+    expect(llmClient.generateChat).toHaveBeenCalledWith(
+      [{ role: 'user', content: 'Wie ist das Wetter in Berlin?' }],
+      expect.objectContaining({
+        tools: [weatherTool],
+        tenantId: 'tenant-tools-1',
+      })
+    );
+    expect(result.choices[0].finish_reason).toBe('tool_calls');
+    expect(result.choices[0].message).toEqual({
+      role: 'assistant',
+      content: null,
+      tool_calls: [
+        {
+          id: expect.stringMatching(/^call_[0-9a-f]+$/),
+          type: 'function',
+          function: { name: 'get_weather', arguments: '{"location":"Berlin"}' },
+        },
+      ],
+    });
+    expect(result.cernion.facade).toBe('openai-compatible-chat-completions-tool-calling');
+    expect(result.cernion.safety).toBe(
+      'tool_calls_returned_to_caller_for_execution_cernion_never_executes_a_tool'
+    );
+  });
+
+  it('forwards tool_choice to llm-client.generateChat', async () => {
+    llmClient.generateChat.mockResolvedValue({
+      content: 'ok',
+      toolCalls: null,
+      finishReason: 'stop',
+    });
+    const ctx = {
+      params: {
+        messages: [{ role: 'user', content: 'x' }],
+        tools: [weatherTool],
+        tool_choice: 'required',
+      },
+      meta: { authUser: { userId: 'tester', roles: ['full-access'] } },
+    };
+
+    await handler(ctx);
+
+    expect(llmClient.generateChat).toHaveBeenCalledWith(
+      expect.any(Array),
+      expect.objectContaining({ toolChoice: 'required' })
+    );
+  });
+
+  it('returns a plain assistant reply when the model does not call a tool', async () => {
+    llmClient.generateChat.mockResolvedValue({
+      content: 'Es tut mir leid, ich habe keine Standortangabe erhalten.',
+      toolCalls: null,
+      finishReason: 'stop',
+    });
+    const ctx = {
+      params: {
+        messages: [{ role: 'user', content: 'Wie ist das Wetter?' }],
+        tools: [weatherTool],
+      },
+      meta: { authUser: { userId: 'tester', roles: ['full-access'] } },
+    };
+
+    const result = await handler(ctx);
+
+    expect(result.choices[0].finish_reason).toBe('stop');
+    expect(result.choices[0].message).toEqual({
+      role: 'assistant',
+      content: 'Es tut mir leid, ich habe keine Standortangabe erhalten.',
+    });
+  });
+
+  it('round-trips a tool response message back into a follow-up completion', async () => {
+    llmClient.generateChat.mockResolvedValue({
+      content: 'In Berlin sind es aktuell 22°C und sonnig.',
+      toolCalls: null,
+      finishReason: 'stop',
+    });
+    const ctx = {
+      params: {
+        messages: [
+          { role: 'user', content: 'Wie ist das Wetter in Berlin?' },
+          {
+            role: 'assistant',
+            content: null,
+            tool_calls: [
+              {
+                id: 'call_1',
+                type: 'function',
+                function: { name: 'get_weather', arguments: '{"location":"Berlin"}' },
+              },
+            ],
+          },
+          { role: 'tool', tool_call_id: 'call_1', content: '{"tempC":22,"condition":"sunny"}' },
+        ],
+        tools: [weatherTool],
+      },
+      meta: { authUser: { userId: 'tester', roles: ['full-access'] } },
+    };
+
+    const result = await handler(ctx);
+
+    const [forwardedMessages] = llmClient.generateChat.mock.calls[0];
+    expect(forwardedMessages[1]).toMatchObject({
+      role: 'assistant',
+      content: null,
+      tool_calls: [
+        {
+          id: 'call_1',
+          type: 'function',
+          function: { name: 'get_weather', arguments: '{"location":"Berlin"}' },
+        },
+      ],
+    });
+    expect(forwardedMessages[2]).toMatchObject({
+      role: 'tool',
+      tool_call_id: 'call_1',
+      content: '{"tempC":22,"condition":"sunny"}',
+    });
+    expect(result.choices[0].message.content).toBe('In Berlin sind es aktuell 22°C und sonnig.');
+  });
+
+  it('rejects a tool without type=function', async () => {
+    const ctx = {
+      params: {
+        messages: [{ role: 'user', content: 'x' }],
+        tools: [{ type: 'not-a-function', function: { name: 'x' } }],
+      },
+      meta: { authUser: { userId: 'tester', roles: ['full-access'] } },
+    };
+
+    await expect(handler(ctx)).rejects.toMatchObject({ code: 400, type: 'tool_invalid' });
+    expect(llmClient.generateChat).not.toHaveBeenCalled();
+  });
+
+  it('rejects a tool with a missing function name', async () => {
+    const ctx = {
+      params: {
+        messages: [{ role: 'user', content: 'x' }],
+        tools: [{ type: 'function', function: {} }],
+      },
+      meta: { authUser: { userId: 'tester', roles: ['full-access'] } },
+    };
+
+    await expect(handler(ctx)).rejects.toMatchObject({ code: 400, type: 'tool_invalid' });
+  });
+
+  it('propagates a capability-missing failure from llm-client without swallowing it', async () => {
+    llmClient.generateChat.mockRejectedValue(
+      Object.assign(
+        new Error('Der konfigurierte LLM Provider unterstützt kein Tool-/Function-Calling.'),
+        {
+          code: 503,
+          type: 'LLM_CAPABILITY_MISSING',
+        }
+      )
+    );
+    const ctx = {
+      params: {
+        messages: [{ role: 'user', content: 'x' }],
+        tools: [weatherTool],
+      },
+      meta: { authUser: { userId: 'tester', roles: ['full-access'] } },
+    };
+
+    await expect(handler(ctx)).rejects.toMatchObject({ code: 503 });
+  });
+});
+
 describe('OpenAI Compatible Service — imageGenerations action', () => {
   const handler = OpenAICompatibleService.actions.imageGenerations.handler;
 
@@ -437,6 +646,96 @@ describe('OpenAI Compatible Service — imageGenerations action', () => {
     );
     const ctx = {
       params: { prompt: 'Diagramm' },
+      meta: { authUser: { userId: 'tester', roles: ['full-access'] } },
+    };
+
+    await expect(handler(ctx)).rejects.toMatchObject({ code: 503 });
+  });
+});
+
+describe('OpenAI Compatible Service — embeddings action', () => {
+  const handler = OpenAICompatibleService.actions.embeddings.handler;
+
+  beforeEach(() => {
+    llmClient.embeddings.mockReset();
+    llmClient.capabilities.mockReset();
+    llmClient.capabilities.mockReturnValue({ provider: 'gemini' });
+  });
+
+  it('wraps a single string input in an array and returns an OpenAI-shaped list response', async () => {
+    llmClient.embeddings.mockResolvedValue([[0.1, 0.2, 0.3]]);
+    const ctx = {
+      params: { input: 'Marktkommunikation Evidenzkette' },
+      meta: { tenantId: 'tenant-emb-1', authUser: { userId: 'tester', roles: ['full-access'] } },
+    };
+
+    const result = await handler(ctx);
+
+    expect(llmClient.embeddings).toHaveBeenCalledWith(
+      ['Marktkommunikation Evidenzkette'],
+      expect.objectContaining({ tenantId: 'tenant-emb-1' })
+    );
+    expect(result.object).toBe('list');
+    expect(result.data).toEqual([{ object: 'embedding', index: 0, embedding: [0.1, 0.2, 0.3] }]);
+    expect(result.model).toBe('cernion-embedding-mvp');
+    expect(result.cernion.facade).toBe('openai-compatible-embeddings');
+    expect(result.cernion.provider).toBe('gemini');
+  });
+
+  it('preserves order for a batch array input', async () => {
+    llmClient.embeddings.mockResolvedValue([
+      [1, 0, 0],
+      [0, 1, 0],
+    ]);
+    const ctx = {
+      params: { input: ['APERAK Frist', 'UTILMD Strukturwechsel'] },
+      meta: { authUser: { userId: 'tester', roles: ['full-access'] } },
+    };
+
+    const result = await handler(ctx);
+
+    expect(llmClient.embeddings).toHaveBeenCalledWith(
+      ['APERAK Frist', 'UTILMD Strukturwechsel'],
+      expect.any(Object)
+    );
+    expect(result.data).toEqual([
+      { object: 'embedding', index: 0, embedding: [1, 0, 0] },
+      { object: 'embedding', index: 1, embedding: [0, 1, 0] },
+    ]);
+  });
+
+  it('rejects encoding_format=base64 with an OpenAI-compatible error', async () => {
+    const ctx = {
+      params: { input: 'text', encoding_format: 'base64' },
+      meta: { authUser: { userId: 'tester', roles: ['full-access'] } },
+    };
+
+    await expect(handler(ctx)).rejects.toMatchObject({
+      code: 400,
+      type: 'encoding_format_not_supported',
+    });
+    expect(llmClient.embeddings).not.toHaveBeenCalled();
+  });
+
+  it('requires authentication', async () => {
+    const ctx = { params: { input: 'text' }, meta: {} };
+
+    await expect(handler(ctx)).rejects.toMatchObject({
+      code: 401,
+      type: 'authentication_required',
+    });
+    expect(llmClient.embeddings).not.toHaveBeenCalled();
+  });
+
+  it('propagates a capability-missing failure from llm-client without swallowing it', async () => {
+    llmClient.embeddings.mockRejectedValue(
+      Object.assign(new Error('Der konfigurierte LLM Provider unterstützt keine Embeddings.'), {
+        code: 503,
+        type: 'LLM_CAPABILITY_MISSING',
+      })
+    );
+    const ctx = {
+      params: { input: 'text' },
       meta: { authUser: { userId: 'tester', roles: ['full-access'] } },
     };
 

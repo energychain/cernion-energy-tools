@@ -8,6 +8,8 @@ const SUPPORTED_MODELS = new Set([FACADE_MODEL, 'cernion-agent', 'gpt-4o-mini', 
 const FACADE_IMAGE_MODEL = 'cernion-image-mvp';
 const MAX_IMAGE_COUNT = 4;
 const MAX_IMAGE_PROMPT_LENGTH = 4000;
+const FACADE_EMBEDDING_MODEL = 'cernion-embedding-mvp';
+const MAX_EMBEDDING_INPUTS = 100;
 
 function openAiError(message, statusCode = 400, code = 'invalid_request_error') {
   return new Errors.MoleculerClientError(message, statusCode, code, {
@@ -65,19 +67,34 @@ function normalizeMessages(rawMessages) {
     const role = String(message?.role || '')
       .trim()
       .toLowerCase();
-    const content = compactString(normalizeContent(message?.content), 2000);
 
     if (!role) {
       throw openAiError(`messages[${index}].role is required.`, 400, 'message_role_required');
     }
-    if (!content) {
+
+    // An assistant message that only carries tool_calls (the standard
+    // OpenAI tool-calling turn) has no text content — content:null is
+    // expected there, not a malformed request.
+    const hasToolCalls =
+      role === 'assistant' && Array.isArray(message?.tool_calls) && message.tool_calls.length > 0;
+    const content = compactString(normalizeContent(message?.content), 2000);
+
+    if (!content && !hasToolCalls) {
       throw openAiError(`messages[${index}].content is required.`, 400, 'message_content_required');
     }
+    if (role === 'tool' && !message?.tool_call_id) {
+      throw openAiError(
+        `messages[${index}].tool_call_id is required for role="tool".`,
+        400,
+        'tool_call_id_required'
+      );
+    }
 
-    return {
-      role,
-      content,
-    };
+    const normalized = { role, content: content || null };
+    if (hasToolCalls) normalized.tool_calls = message.tool_calls;
+    if (message?.tool_call_id) normalized.tool_call_id = String(message.tool_call_id);
+    if (message?.name) normalized.name = String(message.name);
+    return normalized;
   });
 
   if (!messages.some((message) => message.role === 'user')) {
@@ -85,6 +102,39 @@ function normalizeMessages(rawMessages) {
   }
 
   return messages;
+}
+
+// Validates and normalizes OpenAI-shaped `tools` (function-calling
+// declarations). Returns [] when no tools were supplied — chatCompletions
+// uses that to decide between the existing Personal-Agent consultation path
+// and the tool-calling path.
+function normalizeTools(rawTools) {
+  if (rawTools == null) return [];
+  if (!Array.isArray(rawTools)) {
+    throw openAiError('tools must be an array.', 400, 'tools_invalid');
+  }
+
+  return rawTools.map((tool, index) => {
+    const name = tool?.function?.name;
+    if (tool?.type !== 'function' || !name) {
+      throw openAiError(
+        `tools[${index}] must be a function tool with a non-empty function.name.`,
+        400,
+        'tool_invalid'
+      );
+    }
+    return {
+      type: 'function',
+      function: {
+        name: String(name),
+        description: tool.function.description ? String(tool.function.description) : '',
+        parameters:
+          tool.function.parameters && typeof tool.function.parameters === 'object'
+            ? tool.function.parameters
+            : { type: 'object', properties: {} },
+      },
+    };
+  });
 }
 
 // Bounds for the structured conversation context we attach alongside `question`.
@@ -154,6 +204,72 @@ function estimateTokens(text) {
   return Math.ceil(String(text).length / 4);
 }
 
+// Tool/function-calling completion: a direct call to the configured
+// background LLM (default Gemini) via llm-client.generateChat, entirely
+// separate from the Personal-Agent evidence/consultation pipeline used by
+// the plain-chat path above. Cernion only ever reports which tool the model
+// wants to call and with what arguments — it never invokes the tool itself;
+// that remains the caller's responsibility, exactly like real OpenAI
+// tool-calling.
+async function buildToolCallingChatCompletion(ctx, messages, tools, requestedModel) {
+  const result = await llmClient.generateChat(messages, {
+    tools,
+    toolChoice: ctx.params.tool_choice,
+    model: requestedModel === FACADE_MODEL ? undefined : requestedModel,
+    tenantId: ctx.meta.tenantId || ctx.meta.authUser?.tenantId || undefined,
+  });
+
+  const promptTokens = estimateTokens(messages.map((message) => message.content || '').join('\n'));
+
+  let message;
+  let finishReason;
+  if (Array.isArray(result.toolCalls) && result.toolCalls.length > 0) {
+    message = {
+      role: 'assistant',
+      content: null,
+      tool_calls: result.toolCalls.map((call) => ({
+        id: `call_${crypto.randomUUID().replace(/-/g, '')}`,
+        type: 'function',
+        function: { name: call.name, arguments: JSON.stringify(call.args || {}) },
+      })),
+    };
+    finishReason = 'tool_calls';
+  } else {
+    message = { role: 'assistant', content: result.content || '' };
+    finishReason = 'stop';
+  }
+
+  const completionTokens = estimateTokens(
+    message.content || JSON.stringify(message.tool_calls || [])
+  );
+
+  return {
+    id: `chatcmpl_${crypto.randomUUID().replace(/-/g, '')}`,
+    object: 'chat.completion',
+    created: Math.floor(Date.now() / 1000),
+    model: requestedModel,
+    choices: [
+      {
+        index: 0,
+        message,
+        finish_reason: finishReason,
+      },
+    ],
+    usage: {
+      prompt_tokens: promptTokens,
+      completion_tokens: completionTokens,
+      total_tokens: promptTokens + completionTokens,
+    },
+    cernion: {
+      facade: 'openai-compatible-chat-completions-tool-calling',
+      sourceAction: 'llm-client.generateChat',
+      provider: llmClient.capabilities().provider,
+      safety: 'tool_calls_returned_to_caller_for_execution_cernion_never_executes_a_tool',
+      tenantId: ctx.meta.tenantId || ctx.meta.authUser?.tenantId || null,
+    },
+  };
+}
+
 module.exports = {
   name: 'openai-compatible',
 
@@ -166,6 +282,8 @@ module.exports = {
         max_tokens: { type: 'number', optional: true, integer: true, convert: true },
         metadata: { type: 'object', optional: true },
         stream: { type: 'boolean', optional: true, convert: true },
+        tools: { type: 'array', optional: true },
+        tool_choice: { type: 'any', optional: true },
       },
       openapi: {
         operationId: 'createChatCompletion',
@@ -181,7 +299,11 @@ module.exports = {
           'prompt context, never as authorization; tenant identity and authorization always come from ' +
           'the caller session, not the request body. When stream=true, the gateway ' +
           '(services/api.service.js) obtains the full result from this action first and then emits it ' +
-          'as buffered chat.completion.chunk SSE frames — this is not genuine token-by-token streaming.',
+          'as buffered chat.completion.chunk SSE frames — this is not genuine token-by-token streaming. ' +
+          'When `tools` is supplied (OpenAI function-calling declarations), this action takes a separate ' +
+          'path: it calls the configured background LLM directly (bypassing the Personal-Agent evidence ' +
+          'pipeline) via `llm-client.generateChat` and returns either a normal text reply or a ' +
+          '`tool_calls` array for the caller to execute — Cernion itself never invokes any tool.',
         requestBody: {
           required: true,
           content: {
@@ -198,6 +320,27 @@ module.exports = {
                     ],
                   },
                 },
+                toolCalling: {
+                  summary: 'Tool/function calling (bypasses the Personal-Agent evidence pipeline)',
+                  value: {
+                    messages: [{ role: 'user', content: 'Wie ist das Wetter in Berlin?' }],
+                    tools: [
+                      {
+                        type: 'function',
+                        function: {
+                          name: 'get_weather',
+                          description: 'Get current weather for a location',
+                          parameters: {
+                            type: 'object',
+                            properties: { location: { type: 'string' } },
+                            required: ['location'],
+                          },
+                        },
+                      },
+                    ],
+                    tool_choice: 'auto',
+                  },
+                },
               },
               schema: {
                 type: 'object',
@@ -208,10 +351,13 @@ module.exports = {
                     type: 'array',
                     items: {
                       type: 'object',
-                      required: ['role', 'content'],
+                      required: ['role'],
                       properties: {
                         role: { type: 'string' },
-                        content: { type: 'string' },
+                        content: { type: 'string', nullable: true },
+                        tool_calls: { type: 'array' },
+                        tool_call_id: { type: 'string' },
+                        name: { type: 'string' },
                       },
                     },
                   },
@@ -219,6 +365,33 @@ module.exports = {
                   max_tokens: { type: 'integer' },
                   metadata: { type: 'object', additionalProperties: true },
                   stream: { type: 'boolean', default: false },
+                  tools: {
+                    type: 'array',
+                    description: 'OpenAI-shaped function-calling tool declarations.',
+                    items: {
+                      type: 'object',
+                      required: ['type', 'function'],
+                      properties: {
+                        type: { type: 'string', enum: ['function'] },
+                        function: {
+                          type: 'object',
+                          required: ['name'],
+                          properties: {
+                            name: { type: 'string' },
+                            description: { type: 'string' },
+                            parameters: { type: 'object', additionalProperties: true },
+                          },
+                        },
+                      },
+                    },
+                  },
+                  tool_choice: {
+                    description: '"auto" | "none" | "required" | {type:"function",function:{name}}',
+                    oneOf: [
+                      { type: 'string', enum: ['auto', 'none', 'required'] },
+                      { type: 'object', additionalProperties: true },
+                    ],
+                  },
                 },
               },
             },
@@ -266,6 +439,18 @@ module.exports = {
         }
 
         const messages = normalizeMessages(ctx.params.messages);
+        const tools = normalizeTools(ctx.params.tools);
+
+        // A caller-supplied `tools` array switches to a separate path: a
+        // direct call to the configured background LLM (bypassing the
+        // Personal-Agent evidence pipeline entirely), returning either a
+        // normal reply or an OpenAI-shaped tool_calls array for the caller
+        // to execute. Cernion never invokes a tool itself here — see
+        // buildToolCallingChatCompletion.
+        if (tools.length > 0) {
+          return await buildToolCallingChatCompletion(ctx, messages, tools, requestedModel);
+        }
+
         // The latest user message is the retrieval question. Older turns (including
         // prior assistant output and unrelated earlier topics) are never concatenated
         // into it — see buildConversationContext for how they are bounded instead.
@@ -460,6 +645,130 @@ module.exports = {
             provider: llmClient.capabilities().provider,
             tenantId: ctx.meta.tenantId || ctx.meta.authUser?.tenantId || null,
             revisedPrompt: lastResult?.text || null,
+          },
+        };
+      },
+    },
+
+    embeddings: {
+      params: {
+        input: {
+          type: 'multi',
+          rules: [
+            { type: 'string', min: 1 },
+            { type: 'array', min: 1, max: MAX_EMBEDDING_INPUTS, items: { type: 'string', min: 1 } },
+          ],
+        },
+        model: { type: 'string', optional: true, trim: true, max: 120 },
+        encoding_format: {
+          type: 'enum',
+          optional: true,
+          values: ['float', 'base64'],
+          default: 'float',
+        },
+      },
+      openapi: {
+        operationId: 'createEmbedding',
+        tags: ['OpenAI Compatible'],
+        summary: 'Create OpenAI-compatible text embeddings via the configured background model',
+        description:
+          'Inbound OpenAI-compatible facade over the configured Cernion LLM provider (default Gemini). ' +
+          'Forwards one or more input strings to the background embedding model and returns vectors in ' +
+          'the standard OpenAI embeddings response shape. Only `encoding_format: "float"` is supported.',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              examples: {
+                single: { value: { input: 'Marktkommunikation Evidenzkette' } },
+                batch: { value: { input: ['APERAK Frist', 'UTILMD Strukturwechsel'] } },
+              },
+              schema: {
+                type: 'object',
+                required: ['input'],
+                properties: {
+                  input: {
+                    oneOf: [
+                      { type: 'string' },
+                      { type: 'array', items: { type: 'string' }, maxItems: MAX_EMBEDDING_INPUTS },
+                    ],
+                  },
+                  model: { type: 'string', default: FACADE_EMBEDDING_MODEL },
+                  encoding_format: { type: 'string', enum: ['float', 'base64'], default: 'float' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'OpenAI-compatible embeddings response',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['object', 'data', 'model'],
+                  properties: {
+                    object: { type: 'string', enum: ['list'] },
+                    data: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          object: { type: 'string', enum: ['embedding'] },
+                          index: { type: 'integer' },
+                          embedding: { type: 'array', items: { type: 'number' } },
+                        },
+                      },
+                    },
+                    model: { type: 'string' },
+                    usage: { type: 'object' },
+                    cernion: { type: 'object', additionalProperties: true },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        if (!ctx.meta?.authUser && !ctx.meta?.apiToken && !ctx.meta?.authSession) {
+          throw openAiError('Authentication required.', 401, 'authentication_required');
+        }
+
+        if (ctx.params.encoding_format === 'base64') {
+          throw openAiError(
+            'encoding_format="base64" is not supported by this facade. Use "float".',
+            400,
+            'encoding_format_not_supported'
+          );
+        }
+
+        const inputs = Array.isArray(ctx.params.input) ? ctx.params.input : [ctx.params.input];
+        const vectors = await llmClient.embeddings(inputs, {
+          model: ctx.params.model,
+          tenantId: ctx.meta.tenantId || ctx.meta.authUser?.tenantId || undefined,
+        });
+
+        const promptTokens = inputs.reduce((sum, text) => sum + estimateTokens(text), 0);
+
+        return {
+          object: 'list',
+          data: vectors.map((embedding, index) => ({
+            object: 'embedding',
+            index,
+            embedding,
+          })),
+          model: ctx.params.model || FACADE_EMBEDDING_MODEL,
+          usage: {
+            prompt_tokens: promptTokens,
+            total_tokens: promptTokens,
+          },
+          cernion: {
+            facade: 'openai-compatible-embeddings',
+            sourceAction: 'llm-client.embeddings',
+            provider: llmClient.capabilities().provider,
+            tenantId: ctx.meta.tenantId || ctx.meta.authUser?.tenantId || null,
           },
         };
       },
