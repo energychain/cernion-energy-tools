@@ -748,19 +748,23 @@ function writeOpenAiChatCompletionStream(res, response) {
   res.end();
 }
 
-async function handleOpenAiChatCompletions(req, res) {
+// Shared auth/rate-limit/broker-call core for the synchronous /v1 OpenAI
+// facades (chat completions, image generations, ...). On success, writes any
+// rate-limit response headers and returns { requestBody, response } for the
+// caller to serialize; on failure, writes the full OpenAI-compatible error
+// response itself and returns null — callers must check for that and return.
+async function runOpenAiFacadeAction(service, req, res, { facadePath, brokerAction }) {
   const requestBody = req?.body || req?.$params || {};
-  const wantsStream = requestBody?.stream === true;
   try {
-    const meta = await buildOpenAiFacadeMeta(this, req);
+    const meta = await buildOpenAiFacadeMeta(service, req, facadePath);
     const tenantIdForQuota = meta.tenantId || 'default';
     const rateLimit = rateQuotaStore.acquireRateLimitToken({
       tenantId: tenantIdForQuota,
       endpointClass: 'compute',
     });
-    await emitRateQuotaEvents(this.broker, tenantIdForQuota, rateLimit.newEvents || [], {
+    await emitRateQuotaEvents(service.broker, tenantIdForQuota, rateLimit.newEvents || [], {
       endpointClass: 'compute',
-      requestPath: '/v1/chat/completions',
+      requestPath: facadePath,
     });
     if (!rateLimit.allowed) {
       throw new Errors.MoleculerClientError(
@@ -780,26 +784,20 @@ async function handleOpenAiChatCompletions(req, res) {
       );
     }
 
-    // The outer request is a REST-gateway call, but the OpenAI facade must
-    // synchronously return a finished completion. Propagating `$gateway: true`
-    // into personal-agent.chat would activate its generic 202/job wrapper and
-    // yield only a queued-job descriptor (without `reply`). Keep all verified
-    // auth/tenant fields while marking this nested broker path as internal.
+    // The outer request is a REST-gateway call, but these facades must
+    // synchronously return a finished result. Propagating `$gateway: true`
+    // into the nested action would activate its generic 202/job wrapper and
+    // yield only a queued-job descriptor. Keep all verified auth/tenant
+    // fields while marking this nested broker path as internal.
     const synchronousMeta = { ...meta };
     delete synchronousMeta.$gateway;
-    const response = await this.broker.call('openai-compatible.chatCompletions', requestBody, {
+    const response = await service.broker.call(brokerAction, requestBody, {
       meta: synchronousMeta,
     });
     for (const [headerName, headerValue] of Object.entries(rateLimit.responseHeaders || {})) {
       if (headerValue != null) res.setHeader(headerName, String(headerValue));
     }
-    if (wantsStream) {
-      writeOpenAiChatCompletionStream(res, response);
-      return;
-    }
-    res.setHeader(CONTENT_TYPE_HEADER, CONTENT_TYPE_JSON);
-    res.writeHead(200);
-    res.end(JSON.stringify(response));
+    return { requestBody, response };
   } catch (err) {
     const errorHeaders = err?.data?.responseHeaders || {};
     for (const [headerName, headerValue] of Object.entries(errorHeaders)) {
@@ -808,7 +806,24 @@ async function handleOpenAiChatCompletions(req, res) {
     res.setHeader(CONTENT_TYPE_HEADER, CONTENT_TYPE_JSON);
     res.writeHead(resolveHttpStatus(err));
     res.end(JSON.stringify(buildOpenAiErrorBody(err)));
+    return null;
   }
+}
+
+async function handleOpenAiChatCompletions(req, res) {
+  const result = await runOpenAiFacadeAction(this, req, res, {
+    facadePath: '/v1/chat/completions',
+    brokerAction: 'openai-compatible.chatCompletions',
+  });
+  if (!result) return;
+  const { requestBody, response } = result;
+  if (requestBody?.stream === true) {
+    writeOpenAiChatCompletionStream(res, response);
+    return;
+  }
+  res.setHeader(CONTENT_TYPE_HEADER, CONTENT_TYPE_JSON);
+  res.writeHead(200);
+  res.end(JSON.stringify(response));
 }
 
 // Non-streaming OpenAI-compatible facade for POST /v1/images/generations,
@@ -816,56 +831,14 @@ async function handleOpenAiChatCompletions(req, res) {
 // openai-compatible.imageGenerations for the actual provider call and the
 // b64_json-only response-format boundary.
 async function handleOpenAiImageGenerations(req, res) {
-  const requestBody = req?.body || req?.$params || {};
-  try {
-    const meta = await buildOpenAiFacadeMeta(this, req, '/v1/images/generations');
-    const tenantIdForQuota = meta.tenantId || 'default';
-    const rateLimit = rateQuotaStore.acquireRateLimitToken({
-      tenantId: tenantIdForQuota,
-      endpointClass: 'compute',
-    });
-    await emitRateQuotaEvents(this.broker, tenantIdForQuota, rateLimit.newEvents || [], {
-      endpointClass: 'compute',
-      requestPath: '/v1/images/generations',
-    });
-    if (!rateLimit.allowed) {
-      throw new Errors.MoleculerClientError(
-        'Rate limit exceeded for tenant.',
-        429,
-        'RATE_LIMIT_EXCEEDED',
-        {
-          responseHeaders: rateLimit.responseHeaders,
-          openai: {
-            error: {
-              message: 'Rate limit exceeded for tenant.',
-              type: 'rate_limit_error',
-              code: 'rate_limit_exceeded',
-            },
-          },
-        }
-      );
-    }
-
-    const synchronousMeta = { ...meta };
-    delete synchronousMeta.$gateway;
-    const response = await this.broker.call('openai-compatible.imageGenerations', requestBody, {
-      meta: synchronousMeta,
-    });
-    for (const [headerName, headerValue] of Object.entries(rateLimit.responseHeaders || {})) {
-      if (headerValue != null) res.setHeader(headerName, String(headerValue));
-    }
-    res.setHeader(CONTENT_TYPE_HEADER, CONTENT_TYPE_JSON);
-    res.writeHead(200);
-    res.end(JSON.stringify(response));
-  } catch (err) {
-    const errorHeaders = err?.data?.responseHeaders || {};
-    for (const [headerName, headerValue] of Object.entries(errorHeaders)) {
-      if (headerValue != null) res.setHeader(headerName, String(headerValue));
-    }
-    res.setHeader(CONTENT_TYPE_HEADER, CONTENT_TYPE_JSON);
-    res.writeHead(resolveHttpStatus(err));
-    res.end(JSON.stringify(buildOpenAiErrorBody(err)));
-  }
+  const result = await runOpenAiFacadeAction(this, req, res, {
+    facadePath: '/v1/images/generations',
+    brokerAction: 'openai-compatible.imageGenerations',
+  });
+  if (!result) return;
+  res.setHeader(CONTENT_TYPE_HEADER, CONTENT_TYPE_JSON);
+  res.writeHead(200);
+  res.end(JSON.stringify(result.response));
 }
 
 // Static OpenAPI-compatible model catalog for GET /v1/models. Intentionally
