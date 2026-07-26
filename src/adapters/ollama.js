@@ -77,12 +77,21 @@ async function generateImage() {
   );
 }
 
+async function generateChat() {
+  throw new MoleculerError(
+    'The configured Ollama provider does not support tool/function calling.',
+    503,
+    'TOOL_CALLING_NOT_SUPPORTED'
+  );
+}
+
 function capabilities() {
   return {
     structured: true,
     embeddings: true,
     vision: false,
     imageGeneration: false,
+    toolCalling: false,
     contextWindow: null,
   };
 }
@@ -93,5 +102,6 @@ module.exports = {
   generateStructured,
   embeddings,
   generateImage,
+  generateChat,
   capabilities,
 };

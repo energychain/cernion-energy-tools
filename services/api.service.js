@@ -508,6 +508,7 @@ function classifyEndpointClass(method, requestPath) {
   if (
     pathOnly === '/v1/chat/completions' ||
     pathOnly === '/v1/images/generations' ||
+    pathOnly === '/v1/embeddings' ||
     pathOnly === '/api/personal-agent/chat' ||
     pathOnly === '/api/copilot/ask-cernion-agent' ||
     pathOnly === '/api/copilot/answer-dossier' || // v0.63.0 #220
@@ -834,6 +835,20 @@ async function handleOpenAiImageGenerations(req, res) {
   const result = await runOpenAiFacadeAction(this, req, res, {
     facadePath: '/v1/images/generations',
     brokerAction: 'openai-compatible.imageGenerations',
+  });
+  if (!result) return;
+  res.setHeader(CONTENT_TYPE_HEADER, CONTENT_TYPE_JSON);
+  res.writeHead(200);
+  res.end(JSON.stringify(result.response));
+}
+
+// Non-streaming OpenAI-compatible facade for POST /v1/embeddings, forwarded
+// to the configured background LLM provider (default Gemini). See
+// openai-compatible.embeddings for the actual provider call.
+async function handleOpenAiEmbeddings(req, res) {
+  const result = await runOpenAiFacadeAction(this, req, res, {
+    facadePath: '/v1/embeddings',
+    brokerAction: 'openai-compatible.embeddings',
   });
   if (!result) return;
   res.setHeader(CONTENT_TYPE_HEADER, CONTENT_TYPE_JSON);
@@ -1439,6 +1454,7 @@ module.exports = {
         aliases: {
           'POST /chat/completions': handleOpenAiChatCompletions,
           'POST /images/generations': handleOpenAiImageGenerations,
+          'POST /embeddings': handleOpenAiEmbeddings,
           // Unauthenticated by design — see OPENAI_MODEL_CATALOG comment above.
           'GET /models': handleOpenAiModels,
         },
@@ -3392,6 +3408,17 @@ module.exports = {
             'post',
             'openai-compatible.imageGenerations',
             openAiImageAction,
+            'openai-compatible'
+          );
+        }
+
+        const openAiEmbeddingsAction = actionRegistry.get('openai-compatible.embeddings');
+        if (openAiEmbeddingsAction) {
+          upsertOperation(
+            '/v1/embeddings',
+            'post',
+            'openai-compatible.embeddings',
+            openAiEmbeddingsAction,
             'openai-compatible'
           );
         }

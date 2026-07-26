@@ -13,11 +13,17 @@ jest.mock('../src/adapters/gemini', () => ({
     images: [{ b64Json: 'gemini-b64', mimeType: 'image/png' }],
     text: null,
   })),
+  generateChat: jest.fn(async () => ({
+    content: 'gemini-chat-reply',
+    toolCalls: null,
+    finishReason: 'stop',
+  })),
   capabilities: jest.fn(() => ({
     structured: true,
     embeddings: true,
     vision: false,
     imageGeneration: true,
+    toolCalling: true,
     contextWindow: null,
   })),
 }));
@@ -31,11 +37,17 @@ jest.mock('../src/adapters/openai-compat', () => ({
     images: [{ b64Json: 'openai-b64', mimeType: 'image/png' }],
     text: null,
   })),
+  generateChat: jest.fn(async () => ({
+    content: 'openai-chat-reply',
+    toolCalls: null,
+    finishReason: 'stop',
+  })),
   capabilities: jest.fn(() => ({
     structured: true,
     embeddings: true,
     vision: false,
     imageGeneration: true,
+    toolCalling: true,
     contextWindow: null,
   })),
 }));
@@ -46,11 +58,13 @@ jest.mock('../src/adapters/ollama', () => ({
   generateStructured: jest.fn(async () => '{"source":"ollama"}'),
   embeddings: jest.fn(async () => [[4, 5, 6]]),
   generateImage: jest.fn(),
+  generateChat: jest.fn(),
   capabilities: jest.fn(() => ({
     structured: true,
     embeddings: false,
     vision: false,
     imageGeneration: false,
+    toolCalling: false,
     contextWindow: null,
   })),
 }));
@@ -85,16 +99,19 @@ describe('llm-client provider abstraction', () => {
     geminiAdapter.generateStructured.mockClear();
     geminiAdapter.embeddings.mockClear();
     geminiAdapter.generateImage.mockClear();
+    geminiAdapter.generateChat.mockClear();
 
     openaiAdapter.generateText.mockClear();
     openaiAdapter.generateStructured.mockClear();
     openaiAdapter.embeddings.mockClear();
     openaiAdapter.generateImage.mockClear();
+    openaiAdapter.generateChat.mockClear();
 
     ollamaAdapter.generateText.mockClear();
     ollamaAdapter.generateStructured.mockClear();
     ollamaAdapter.embeddings.mockClear();
     ollamaAdapter.generateImage.mockClear();
+    ollamaAdapter.generateChat.mockClear();
   });
 
   afterEach(() => {
@@ -242,5 +259,57 @@ describe('llm-client provider abstraction', () => {
       type: 'LLM_CAPABILITY_MISSING',
     });
     expect(ollamaAdapter.generateImage).not.toHaveBeenCalled();
+  });
+
+  it('uses gemini adapter by default for generateChat', async () => {
+    const result = await llmClient.generateChat([{ role: 'user', content: 'Hallo' }]);
+
+    expect(result.content).toBe('gemini-chat-reply');
+    expect(geminiAdapter.generateChat).toHaveBeenCalledWith(
+      [{ role: 'user', content: 'Hallo' }],
+      expect.any(Object)
+    );
+  });
+
+  it('scrubs string message content before forwarding to the adapter', async () => {
+    await llmClient.generateChat([
+      { role: 'system', content: 'be terse' },
+      { role: 'user', content: 'ping' },
+      {
+        role: 'assistant',
+        content: null,
+        tool_calls: [{ id: 'call_1', function: { name: 'x', arguments: '{}' } }],
+      },
+    ]);
+
+    const [forwardedMessages] = geminiAdapter.generateChat.mock.calls[0];
+    expect(forwardedMessages[0].content).toBe('be terse');
+    expect(forwardedMessages[1].content).toBe('ping');
+    // Non-string content (null, for a tool-call-carrying assistant message) passes through untouched.
+    expect(forwardedMessages[2].content).toBeNull();
+    expect(forwardedMessages[2].tool_calls).toEqual([
+      { id: 'call_1', function: { name: 'x', arguments: '{}' } },
+    ]);
+  });
+
+  it('capability matrix reports toolCalling per provider', () => {
+    process.env.LLM_PROVIDER = 'ollama';
+    expect(llmClient.capabilities().toolCalling).toBe(false);
+
+    process.env.LLM_PROVIDER = 'gemini';
+    loadFreshModules();
+    expect(llmClient.capabilities().toolCalling).toBe(true);
+  });
+
+  it('throws capability error when provider has no tool-calling support', async () => {
+    process.env.LLM_PROVIDER = 'ollama';
+
+    await expect(llmClient.generateChat([{ role: 'user', content: 'ping' }])).rejects.toMatchObject(
+      {
+        code: 503,
+        type: 'LLM_CAPABILITY_MISSING',
+      }
+    );
+    expect(ollamaAdapter.generateChat).not.toHaveBeenCalled();
   });
 });

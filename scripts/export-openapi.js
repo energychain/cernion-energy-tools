@@ -192,6 +192,15 @@ function buildOperationFromAction(actionRef, actionDef) {
   return operation;
 }
 
+// Function-valued aliases under the /v1 route (live gateway handlers in
+// api.service.js) map 1:1 to the broker action that actually carries the
+// `openapi` metadata this exporter reads.
+const V1_FUNCTION_ALIAS_ACTIONS = {
+  'POST /chat/completions': 'openai-compatible.chatCompletions',
+  'POST /images/generations': 'openai-compatible.imageGenerations',
+  'POST /embeddings': 'openai-compatible.embeddings',
+};
+
 function buildStaticPaths(apiSvc, actionRegistry) {
   const routes = apiSvc.settings?.routes || [];
   const paths = {};
@@ -201,12 +210,14 @@ function buildStaticPaths(apiSvc, actionRegistry) {
     const aliases = route.aliases || {};
 
     for (const [aliasKey, rawAliasTarget] of Object.entries(aliases)) {
+      // Function-valued /v1 aliases (the live gateway handlers in
+      // api.service.js) aren't action-registry strings; translate the known
+      // ones to their underlying action so the static export still finds
+      // their openapi metadata.
       const aliasTarget =
-        route.path === '/v1' && aliasKey === 'POST /chat/completions'
-          ? 'openai-compatible.chatCompletions'
-          : route.path === '/v1' && aliasKey === 'POST /images/generations'
-            ? 'openai-compatible.imageGenerations'
-            : rawAliasTarget;
+        route.path === '/v1' && V1_FUNCTION_ALIAS_ACTIONS[aliasKey]
+          ? V1_FUNCTION_ALIAS_ACTIONS[aliasKey]
+          : rawAliasTarget;
       if (typeof aliasTarget !== 'string') continue;
 
       const [methodRaw, ...restParts] = aliasKey.split(' ');

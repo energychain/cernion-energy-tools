@@ -452,9 +452,46 @@ async function generateImage(prompt, options = {}) {
 }
 
 /**
+ * Chat completion with OpenAI-shaped tool/function-calling support.
+ * PII is scrubbed from every string message content before the call
+ * (EU AI Act Art. 12). Callers that never pass `options.tools` still work
+ * (the adapter falls back to a plain text reply), but the capability gate
+ * below applies regardless — providers without any chat/tool support (per
+ * their `capabilities().toolCalling` flag) are rejected up front.
+ *
+ * @param {Array<{role: string, content?: string, tool_calls?: object[], tool_call_id?: string, name?: string}>} messages
+ * @param {object} [options] Optional provider call options (model/tools/toolChoice hints).
+ * @returns {Promise<{content: (string|null), toolCalls: ({name: string, args: object}[]|null), finishReason: string}>}
+ * @throws {MoleculerError} 503 LLM_CAPABILITY_MISSING if the provider does not support chat/tool calling.
+ * @throws {MoleculerError} 503 LLM_NOT_CONFIGURED if the provider's API key is not set.
+ */
+async function generateChat(messages, options = {}) {
+  const adapter = getAdapter();
+  const caps = typeof adapter.capabilities === 'function' ? adapter.capabilities() : {};
+  if (!caps.toolCalling || typeof adapter.generateChat !== 'function') {
+    throw new MoleculerError(
+      'Der konfigurierte LLM Provider unterstützt kein Tool-/Function-Calling.',
+      503,
+      'LLM_CAPABILITY_MISSING'
+    );
+  }
+
+  const scrubbedMessages = (Array.isArray(messages) ? messages : []).map((message) => ({
+    ...message,
+    content:
+      typeof message?.content === 'string' ? scrubPromptText(message.content) : message?.content,
+  }));
+  const usageInput = scrubbedMessages.map((message) => message.content || '').join('\n');
+
+  return await observeLlmCall(adapter, 'generate_chat', options, usageInput, () =>
+    withRetries(() => adapter.generateChat(scrubbedMessages, options), options)
+  );
+}
+
+/**
  * Return provider capability matrix.
  *
- * @returns {{provider: string, structured: boolean, embeddings: boolean, vision: boolean, imageGeneration: boolean, contextWindow: (number|null)}}
+ * @returns {{provider: string, structured: boolean, embeddings: boolean, vision: boolean, imageGeneration: boolean, toolCalling: boolean, contextWindow: (number|null)}}
  */
 function capabilities() {
   const adapter = getAdapter();
@@ -465,6 +502,7 @@ function capabilities() {
     embeddings: !!caps.embeddings,
     vision: !!caps.vision,
     imageGeneration: !!caps.imageGeneration,
+    toolCalling: !!caps.toolCalling,
     contextWindow: caps.contextWindow ?? null,
   };
 }
@@ -474,6 +512,7 @@ module.exports = {
   generateText,
   generateStructured,
   embeddings,
+  generateChat,
   generateImage,
   capabilities,
 };

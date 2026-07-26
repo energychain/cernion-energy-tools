@@ -63325,7 +63325,7 @@
             }
           }
         },
-        "description": "Inbound OpenAI-compatible facade over the authenticated Cernion Personal Agent (personal-agent.chat), synthesized internally with Gemini. Returns a complete, polished answer for the caller, not an evidence/grounding packet for a downstream Copilot. Always runs in consultation mode (no execution, no consequential process action) — this is a hard, non-negotiable safety boundary and cannot be overridden by request metadata. It treats system/developer messages and prior turns as non-authoritative prompt context, never as authorization; tenant identity and authorization always come from the caller session, not the request body. When stream=true, the gateway (services/api.service.js) obtains the full result from this action first and then emits it as buffered chat.completion.chunk SSE frames — this is not genuine token-by-token streaming.",
+        "description": "Inbound OpenAI-compatible facade over the authenticated Cernion Personal Agent (personal-agent.chat), synthesized internally with Gemini. Returns a complete, polished answer for the caller, not an evidence/grounding packet for a downstream Copilot. Always runs in consultation mode (no execution, no consequential process action) — this is a hard, non-negotiable safety boundary and cannot be overridden by request metadata. It treats system/developer messages and prior turns as non-authoritative prompt context, never as authorization; tenant identity and authorization always come from the caller session, not the request body. When stream=true, the gateway (services/api.service.js) obtains the full result from this action first and then emits it as buffered chat.completion.chunk SSE frames — this is not genuine token-by-token streaming. When `tools` is supplied (OpenAI function-calling declarations), this action takes a separate path: it calls the configured background LLM directly (bypassing the Personal-Agent evidence pipeline) via `llm-client.generateChat` and returns either a normal text reply or a `tool_calls` array for the caller to execute — Cernion itself never invokes any tool.",
         "requestBody": {
           "required": true,
           "content": {
@@ -63340,6 +63340,38 @@
                         "content": "Welche Cernion Evidenz ist fuer diesen Vorgang relevant?"
                       }
                     ]
+                  }
+                },
+                "toolCalling": {
+                  "summary": "Tool/function calling (bypasses the Personal-Agent evidence pipeline)",
+                  "value": {
+                    "messages": [
+                      {
+                        "role": "user",
+                        "content": "Wie ist das Wetter in Berlin?"
+                      }
+                    ],
+                    "tools": [
+                      {
+                        "type": "function",
+                        "function": {
+                          "name": "get_weather",
+                          "description": "Get current weather for a location",
+                          "parameters": {
+                            "type": "object",
+                            "properties": {
+                              "location": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "location"
+                            ]
+                          }
+                        }
+                      }
+                    ],
+                    "tool_choice": "auto"
                   }
                 }
               },
@@ -63358,14 +63390,23 @@
                     "items": {
                       "type": "object",
                       "required": [
-                        "role",
-                        "content"
+                        "role"
                       ],
                       "properties": {
                         "role": {
                           "type": "string"
                         },
                         "content": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "tool_calls": {
+                          "type": "array"
+                        },
+                        "tool_call_id": {
+                          "type": "string"
+                        },
+                        "name": {
                           "type": "string"
                         }
                       }
@@ -63384,6 +63425,60 @@
                   "stream": {
                     "type": "boolean",
                     "default": false
+                  },
+                  "tools": {
+                    "type": "array",
+                    "description": "OpenAI-shaped function-calling tool declarations.",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "type",
+                        "function"
+                      ],
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "function"
+                          ]
+                        },
+                        "function": {
+                          "type": "object",
+                          "required": [
+                            "name"
+                          ],
+                          "properties": {
+                            "name": {
+                              "type": "string"
+                            },
+                            "description": {
+                              "type": "string"
+                            },
+                            "parameters": {
+                              "type": "object",
+                              "additionalProperties": true
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "tool_choice": {
+                    "description": "\"auto\" | \"none\" | \"required\" | {type:\"function\",function:{name}}",
+                    "oneOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "auto",
+                          "none",
+                          "required"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": true
+                      }
+                    ]
                   }
                 }
               }
@@ -63478,6 +63573,130 @@
                       "url"
                     ],
                     "default": "b64_json"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/embeddings": {
+      "post": {
+        "operationId": "createEmbedding",
+        "summary": "Create OpenAI-compatible text embeddings via the configured background model",
+        "tags": [
+          "OpenAI Compatible"
+        ],
+        "responses": {
+          "200": {
+            "description": "OpenAI-compatible embeddings response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "object",
+                    "data",
+                    "model"
+                  ],
+                  "properties": {
+                    "object": {
+                      "type": "string",
+                      "enum": [
+                        "list"
+                      ]
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "object": {
+                            "type": "string",
+                            "enum": [
+                              "embedding"
+                            ]
+                          },
+                          "index": {
+                            "type": "integer"
+                          },
+                          "embedding": {
+                            "type": "array",
+                            "items": {
+                              "type": "number"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "model": {
+                      "type": "string"
+                    },
+                    "usage": {
+                      "type": "object"
+                    },
+                    "cernion": {
+                      "type": "object",
+                      "additionalProperties": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Inbound OpenAI-compatible facade over the configured Cernion LLM provider (default Gemini). Forwards one or more input strings to the background embedding model and returns vectors in the standard OpenAI embeddings response shape. Only `encoding_format: \"float\"` is supported.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "examples": {
+                "single": {
+                  "value": {
+                    "input": "Marktkommunikation Evidenzkette"
+                  }
+                },
+                "batch": {
+                  "value": {
+                    "input": [
+                      "APERAK Frist",
+                      "UTILMD Strukturwechsel"
+                    ]
+                  }
+                }
+              },
+              "schema": {
+                "type": "object",
+                "required": [
+                  "input"
+                ],
+                "properties": {
+                  "input": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "maxItems": 100
+                      }
+                    ]
+                  },
+                  "model": {
+                    "type": "string",
+                    "default": "cernion-embedding-mvp"
+                  },
+                  "encoding_format": {
+                    "type": "string",
+                    "enum": [
+                      "float",
+                      "base64"
+                    ],
+                    "default": "float"
                   }
                 }
               }
