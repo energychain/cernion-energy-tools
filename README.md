@@ -44,6 +44,18 @@ Stadtwerke: MaStR analysis, grid planning, §14a, Redispatch, Energy Sharing, cu
 automation and Microsoft Copilot complementarity. This repository is the deeper technical
 system underneath that product narrative.
 
+### Public discovery links
+
+- Product and topic hub: [Cernion Themencluster](https://cernion.de/themen)
+- Capability overview: [Cernion Capability Hub](https://cernion.de/capabilities)
+- API and agent integration: [MCP Tools & API](https://cernion.de/mcp-tools-api) and [REST API](https://cernion.de/rest-api)
+- Operational search-intent pages:
+  - [Verteilnetzbetreiber Software](https://cernion.de/verteilnetzbetreiber-software)
+  - [Stadtwerke Prozessautomatisierung](https://cernion.de/stadtwerke-prozessautomatisierung)
+  - [§14a EnWG Nachweisakte](https://cernion.de/14a-enwg-nachweisakte)
+  - [Redispatch 2.0 Bewegungsdaten](https://cernion.de/redispatch-20-bewegungsdaten)
+  - [KI für Stadtwerke und Netzbetreiber](https://cernion.de/ki-fuer-stadtwerke-netzbetreiber)
+
 ## Why Cernion Is Agentic
 
 Cernion is API-first, but the API is only the integration layer. The agentic part is the
