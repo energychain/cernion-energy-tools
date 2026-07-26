@@ -1,9 +1,13 @@
 const crypto = require('crypto');
 const { Errors } = require('moleculer');
 const { CHAT_MODES } = require('../src/personal-agent-routing');
+const llmClient = require('../src/llm-client');
 
 const FACADE_MODEL = 'cernion-agent-mvp';
 const SUPPORTED_MODELS = new Set([FACADE_MODEL, 'cernion-agent', 'gpt-4o-mini', 'gpt-4o']);
+const FACADE_IMAGE_MODEL = 'cernion-image-mvp';
+const MAX_IMAGE_COUNT = 4;
+const MAX_IMAGE_PROMPT_LENGTH = 4000;
 
 function openAiError(message, statusCode = 400, code = 'invalid_request_error') {
   return new Errors.MoleculerClientError(message, statusCode, code, {
@@ -328,6 +332,134 @@ module.exports = {
             tenantId: ctx.meta.tenantId || ctx.meta.authUser?.tenantId || null,
             sessionId: result?.sessionId || null,
             result,
+          },
+        };
+      },
+    },
+
+    imageGenerations: {
+      params: {
+        prompt: { type: 'string', trim: true, min: 1, max: MAX_IMAGE_PROMPT_LENGTH },
+        model: { type: 'string', optional: true, trim: true, max: 120 },
+        n: {
+          type: 'number',
+          optional: true,
+          integer: true,
+          convert: true,
+          min: 1,
+          max: MAX_IMAGE_COUNT,
+        },
+        size: { type: 'string', optional: true, trim: true, max: 20 },
+        response_format: {
+          type: 'enum',
+          optional: true,
+          values: ['b64_json', 'url'],
+          default: 'b64_json',
+        },
+      },
+      openapi: {
+        operationId: 'createImageGeneration',
+        tags: ['OpenAI Compatible'],
+        summary: 'Create an OpenAI-compatible image generation via the configured background model',
+        description:
+          'Inbound OpenAI-compatible facade over the configured Cernion LLM provider (default Gemini). ' +
+          'Forwards the prompt to the background image-generation model and returns base64-encoded ' +
+          'image data in the standard OpenAI images.generations response shape. Only `response_format: ' +
+          '"b64_json"` is supported — no public URL/object storage is provisioned by this facade.',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              examples: {
+                minimal: {
+                  value: {
+                    prompt:
+                      'Infografik: jaehrlicher Anstieg der PV-Einspeisung 2020-2026, Balkendiagramm',
+                  },
+                },
+              },
+              schema: {
+                type: 'object',
+                required: ['prompt'],
+                properties: {
+                  prompt: { type: 'string' },
+                  model: { type: 'string', default: FACADE_IMAGE_MODEL },
+                  n: { type: 'integer', minimum: 1, maximum: MAX_IMAGE_COUNT, default: 1 },
+                  size: { type: 'string', example: '1024x1024' },
+                  response_format: {
+                    type: 'string',
+                    enum: ['b64_json', 'url'],
+                    default: 'b64_json',
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'OpenAI-compatible image generation response',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['created', 'data'],
+                  properties: {
+                    created: { type: 'integer' },
+                    data: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        properties: { b64_json: { type: 'string' } },
+                      },
+                    },
+                    cernion: { type: 'object', additionalProperties: true },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        if (!ctx.meta?.authUser && !ctx.meta?.apiToken && !ctx.meta?.authSession) {
+          throw openAiError('Authentication required.', 401, 'authentication_required');
+        }
+
+        if (ctx.params.response_format === 'url') {
+          throw openAiError(
+            'response_format="url" is not supported by this facade. Use "b64_json".',
+            400,
+            'response_format_not_supported'
+          );
+        }
+
+        const n = ctx.params.n || 1;
+        const images = [];
+        let lastResult = null;
+
+        // Providers here return one image per call (matching Gemini's contract);
+        // loop rather than pushing `n` upstream so every adapter behaves the same way.
+        for (let i = 0; i < n; i += 1) {
+          lastResult = await llmClient.generateImage(ctx.params.prompt, {
+            model: ctx.params.model,
+            size: ctx.params.size,
+            tenantId: ctx.meta.tenantId || ctx.meta.authUser?.tenantId || undefined,
+          });
+          for (const image of lastResult.images) {
+            images.push({ b64_json: image.b64Json });
+          }
+        }
+
+        return {
+          created: Math.floor(Date.now() / 1000),
+          data: images,
+          cernion: {
+            facade: 'openai-compatible-image-generations',
+            sourceAction: 'llm-client.generateImage',
+            provider: llmClient.capabilities().provider,
+            tenantId: ctx.meta.tenantId || ctx.meta.authUser?.tenantId || null,
+            revisedPrompt: lastResult?.text || null,
           },
         };
       },

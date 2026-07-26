@@ -1,6 +1,7 @@
 'use strict';
 
 const axios = require('axios');
+const { MoleculerError } = require('moleculer').Errors;
 
 const DEFAULT_BASE_URL = 'http://127.0.0.1:11434';
 const DEFAULT_MODEL = 'llama3.1:8b';
@@ -68,11 +69,20 @@ async function embeddings(texts) {
   return vectors;
 }
 
+async function generateImage() {
+  throw new MoleculerError(
+    'The configured Ollama provider does not support image generation.',
+    503,
+    'IMAGE_GENERATION_NOT_SUPPORTED'
+  );
+}
+
 function capabilities() {
   return {
     structured: true,
     embeddings: true,
     vision: false,
+    imageGeneration: false,
     contextWindow: null,
   };
 }
@@ -82,5 +92,6 @@ module.exports = {
   generateText,
   generateStructured,
   embeddings,
+  generateImage,
   capabilities,
 };

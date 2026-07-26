@@ -71,11 +71,35 @@ async function embeddings(texts) {
   return Array.isArray(data?.data) ? data.data.map((item) => item.embedding || []) : [];
 }
 
+function getImageModelName() {
+  return process.env.LLM_IMAGE_MODEL || 'dall-e-3';
+}
+
+// The upstream is already OpenAI-shaped, so this is a thin, direct forward:
+// no Cernion-specific translation of the request or response happens here.
+async function generateImage(prompt, options = {}) {
+  const data = await post('/images/generations', {
+    model: options.model || getImageModelName(),
+    prompt,
+    n: options.n || 1,
+    size: options.size || undefined,
+    response_format: 'b64_json',
+  });
+
+  const items = Array.isArray(data?.data) ? data.data : [];
+  const images = items
+    .filter((item) => item?.b64_json)
+    .map((item) => ({ b64Json: item.b64_json, mimeType: 'image/png' }));
+
+  return { images, text: null };
+}
+
 function capabilities() {
   return {
     structured: true,
     embeddings: true,
     vision: false,
+    imageGeneration: true,
     contextWindow: null,
   };
 }
@@ -85,5 +109,6 @@ module.exports = {
   generateText,
   generateStructured,
   embeddings,
+  generateImage,
   capabilities,
 };

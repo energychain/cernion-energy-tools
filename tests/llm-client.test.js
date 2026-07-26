@@ -9,10 +9,15 @@ jest.mock('../src/adapters/gemini', () => ({
   generateText: jest.fn(async (prompt) => `gemini:${prompt}`),
   generateStructured: jest.fn(async () => '{"ok":true}'),
   embeddings: jest.fn(async () => [[0.1, 0.2]]),
+  generateImage: jest.fn(async () => ({
+    images: [{ b64Json: 'gemini-b64', mimeType: 'image/png' }],
+    text: null,
+  })),
   capabilities: jest.fn(() => ({
     structured: true,
     embeddings: true,
     vision: false,
+    imageGeneration: true,
     contextWindow: null,
   })),
 }));
@@ -22,10 +27,15 @@ jest.mock('../src/adapters/openai-compat', () => ({
   generateText: jest.fn(async () => 'openai-text'),
   generateStructured: jest.fn(async () => '{"source":"openai"}'),
   embeddings: jest.fn(async () => [[1, 2, 3]]),
+  generateImage: jest.fn(async () => ({
+    images: [{ b64Json: 'openai-b64', mimeType: 'image/png' }],
+    text: null,
+  })),
   capabilities: jest.fn(() => ({
     structured: true,
     embeddings: true,
     vision: false,
+    imageGeneration: true,
     contextWindow: null,
   })),
 }));
@@ -35,10 +45,12 @@ jest.mock('../src/adapters/ollama', () => ({
   generateText: jest.fn(async () => 'ollama-text'),
   generateStructured: jest.fn(async () => '{"source":"ollama"}'),
   embeddings: jest.fn(async () => [[4, 5, 6]]),
+  generateImage: jest.fn(),
   capabilities: jest.fn(() => ({
     structured: true,
     embeddings: false,
     vision: false,
+    imageGeneration: false,
     contextWindow: null,
   })),
 }));
@@ -72,14 +84,17 @@ describe('llm-client provider abstraction', () => {
     geminiAdapter.generateText.mockClear();
     geminiAdapter.generateStructured.mockClear();
     geminiAdapter.embeddings.mockClear();
+    geminiAdapter.generateImage.mockClear();
 
     openaiAdapter.generateText.mockClear();
     openaiAdapter.generateStructured.mockClear();
     openaiAdapter.embeddings.mockClear();
+    openaiAdapter.generateImage.mockClear();
 
     ollamaAdapter.generateText.mockClear();
     ollamaAdapter.generateStructured.mockClear();
     ollamaAdapter.embeddings.mockClear();
+    ollamaAdapter.generateImage.mockClear();
   });
 
   afterEach(() => {
@@ -201,5 +216,31 @@ describe('llm-client provider abstraction', () => {
 
     const events = rateQuotaStore.listTenantEvents('tenant-a');
     expect(events.events.some((item) => item.type === 'quota.exhausted')).toBe(true);
+  });
+
+  it('uses gemini adapter by default for generateImage', async () => {
+    const result = await llmClient.generateImage('an infographic');
+
+    expect(result.images).toEqual([{ b64Json: 'gemini-b64', mimeType: 'image/png' }]);
+    expect(geminiAdapter.generateImage).toHaveBeenCalledWith('an infographic', expect.any(Object));
+  });
+
+  it('capability matrix reports imageGeneration per provider', () => {
+    process.env.LLM_PROVIDER = 'ollama';
+    expect(llmClient.capabilities().imageGeneration).toBe(false);
+
+    process.env.LLM_PROVIDER = 'gemini';
+    loadFreshModules();
+    expect(llmClient.capabilities().imageGeneration).toBe(true);
+  });
+
+  it('throws capability error when provider has no image generation support', async () => {
+    process.env.LLM_PROVIDER = 'ollama';
+
+    await expect(llmClient.generateImage('an infographic')).rejects.toMatchObject({
+      code: 503,
+      type: 'LLM_CAPABILITY_MISSING',
+    });
+    expect(ollamaAdapter.generateImage).not.toHaveBeenCalled();
   });
 });

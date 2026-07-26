@@ -1,5 +1,11 @@
+jest.mock('../src/llm-client', () => ({
+  generateImage: jest.fn(),
+  capabilities: jest.fn(() => ({ provider: 'gemini' })),
+}));
+
 const OpenAICompatibleService = require('../services/openai-compatible.service');
 const { CHAT_MODES } = require('../src/personal-agent-routing');
+const llmClient = require('../src/llm-client');
 
 describe('OpenAI Compatible Service', () => {
   const handler = OpenAICompatibleService.actions.chatCompletions.handler;
@@ -347,5 +353,93 @@ describe('OpenAI Compatible Service', () => {
       },
     });
     expect(ctx.call).not.toHaveBeenCalled();
+  });
+});
+
+describe('OpenAI Compatible Service — imageGenerations action', () => {
+  const handler = OpenAICompatibleService.actions.imageGenerations.handler;
+
+  beforeEach(() => {
+    llmClient.generateImage.mockReset();
+    llmClient.capabilities.mockReset();
+    llmClient.capabilities.mockReturnValue({ provider: 'gemini' });
+  });
+
+  it('forwards the prompt to llm-client.generateImage and returns an OpenAI-shaped b64_json response', async () => {
+    llmClient.generateImage.mockResolvedValue({
+      images: [{ b64Json: 'ZmFrZS1wbmc=', mimeType: 'image/png' }],
+      text: null,
+    });
+    const ctx = {
+      params: { prompt: 'Infografik: PV-Einspeisung 2020-2026' },
+      meta: { tenantId: 'tenant-img-1', authUser: { userId: 'tester', roles: ['full-access'] } },
+    };
+
+    const result = await handler(ctx);
+
+    expect(llmClient.generateImage).toHaveBeenCalledWith(
+      'Infografik: PV-Einspeisung 2020-2026',
+      expect.objectContaining({ tenantId: 'tenant-img-1' })
+    );
+    expect(result.data).toEqual([{ b64_json: 'ZmFrZS1wbmc=' }]);
+    expect(typeof result.created).toBe('number');
+    expect(result.cernion.facade).toBe('openai-compatible-image-generations');
+    expect(result.cernion.provider).toBe('gemini');
+  });
+
+  it('loops per requested image count, one provider call per image', async () => {
+    llmClient.generateImage
+      .mockResolvedValueOnce({ images: [{ b64Json: 'aaa', mimeType: 'image/png' }], text: null })
+      .mockResolvedValueOnce({ images: [{ b64Json: 'bbb', mimeType: 'image/png' }], text: null });
+    const ctx = {
+      params: { prompt: 'Diagramm', n: 2 },
+      meta: { authUser: { userId: 'tester', roles: ['full-access'] } },
+    };
+
+    const result = await handler(ctx);
+
+    expect(llmClient.generateImage).toHaveBeenCalledTimes(2);
+    expect(result.data).toEqual([{ b64_json: 'aaa' }, { b64_json: 'bbb' }]);
+  });
+
+  it('rejects response_format=url with an OpenAI-compatible error', async () => {
+    const ctx = {
+      params: { prompt: 'Diagramm', response_format: 'url' },
+      meta: { authUser: { userId: 'tester', roles: ['full-access'] } },
+    };
+
+    await expect(handler(ctx)).rejects.toMatchObject({
+      code: 400,
+      type: 'response_format_not_supported',
+    });
+    expect(llmClient.generateImage).not.toHaveBeenCalled();
+  });
+
+  it('requires authentication', async () => {
+    const ctx = { params: { prompt: 'Diagramm' }, meta: {} };
+
+    await expect(handler(ctx)).rejects.toMatchObject({
+      code: 401,
+      type: 'authentication_required',
+    });
+    expect(llmClient.generateImage).not.toHaveBeenCalled();
+  });
+
+  it('propagates a capability-missing failure from llm-client without swallowing it', async () => {
+    llmClient.generateImage.mockRejectedValue(
+      Object.assign(
+        new Error('Der konfigurierte LLM Provider unterstützt keine Bildgenerierung.'),
+        {
+          code: 503,
+          type: 'LLM_CAPABILITY_MISSING',
+        }
+      )
+    );
+    const ctx = {
+      params: { prompt: 'Diagramm' },
+      meta: { authUser: { userId: 'tester', roles: ['full-access'] } },
+    };
+
+    await expect(handler(ctx)).rejects.toMatchObject({ code: 503 });
   });
 });

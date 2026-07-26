@@ -507,6 +507,7 @@ function classifyEndpointClass(method, requestPath) {
 
   if (
     pathOnly === '/v1/chat/completions' ||
+    pathOnly === '/v1/images/generations' ||
     pathOnly === '/api/personal-agent/chat' ||
     pathOnly === '/api/copilot/ask-cernion-agent' ||
     pathOnly === '/api/copilot/answer-dossier' || // v0.63.0 #220
@@ -567,7 +568,7 @@ function buildOpenAiErrorBody(err) {
   };
 }
 
-async function buildOpenAiFacadeMeta(service, req) {
+async function buildOpenAiFacadeMeta(service, req, facadePath = '/v1/chat/completions') {
   const authHeader = req?.headers?.authorization || req?.headers?.Authorization;
   const bearerToken =
     authHeader && authHeader.startsWith('Bearer ') ? authHeader.substring(7).trim() : null;
@@ -611,7 +612,7 @@ async function buildOpenAiFacadeMeta(service, req) {
     const verification = await service.broker.call('token-manager.verify', {
       token: tokenToUse,
       method: req?.method || 'POST',
-      path: '/v1/chat/completions',
+      path: facadePath,
       trackUsage: true,
     });
 
@@ -795,6 +796,63 @@ async function handleOpenAiChatCompletions(req, res) {
     if (wantsStream) {
       writeOpenAiChatCompletionStream(res, response);
       return;
+    }
+    res.setHeader(CONTENT_TYPE_HEADER, CONTENT_TYPE_JSON);
+    res.writeHead(200);
+    res.end(JSON.stringify(response));
+  } catch (err) {
+    const errorHeaders = err?.data?.responseHeaders || {};
+    for (const [headerName, headerValue] of Object.entries(errorHeaders)) {
+      if (headerValue != null) res.setHeader(headerName, String(headerValue));
+    }
+    res.setHeader(CONTENT_TYPE_HEADER, CONTENT_TYPE_JSON);
+    res.writeHead(resolveHttpStatus(err));
+    res.end(JSON.stringify(buildOpenAiErrorBody(err)));
+  }
+}
+
+// Non-streaming OpenAI-compatible facade for POST /v1/images/generations,
+// forwarded to the configured background LLM provider (default Gemini). See
+// openai-compatible.imageGenerations for the actual provider call and the
+// b64_json-only response-format boundary.
+async function handleOpenAiImageGenerations(req, res) {
+  const requestBody = req?.body || req?.$params || {};
+  try {
+    const meta = await buildOpenAiFacadeMeta(this, req, '/v1/images/generations');
+    const tenantIdForQuota = meta.tenantId || 'default';
+    const rateLimit = rateQuotaStore.acquireRateLimitToken({
+      tenantId: tenantIdForQuota,
+      endpointClass: 'compute',
+    });
+    await emitRateQuotaEvents(this.broker, tenantIdForQuota, rateLimit.newEvents || [], {
+      endpointClass: 'compute',
+      requestPath: '/v1/images/generations',
+    });
+    if (!rateLimit.allowed) {
+      throw new Errors.MoleculerClientError(
+        'Rate limit exceeded for tenant.',
+        429,
+        'RATE_LIMIT_EXCEEDED',
+        {
+          responseHeaders: rateLimit.responseHeaders,
+          openai: {
+            error: {
+              message: 'Rate limit exceeded for tenant.',
+              type: 'rate_limit_error',
+              code: 'rate_limit_exceeded',
+            },
+          },
+        }
+      );
+    }
+
+    const synchronousMeta = { ...meta };
+    delete synchronousMeta.$gateway;
+    const response = await this.broker.call('openai-compatible.imageGenerations', requestBody, {
+      meta: synchronousMeta,
+    });
+    for (const [headerName, headerValue] of Object.entries(rateLimit.responseHeaders || {})) {
+      if (headerValue != null) res.setHeader(headerName, String(headerValue));
     }
     res.setHeader(CONTENT_TYPE_HEADER, CONTENT_TYPE_JSON);
     res.writeHead(200);
@@ -1407,6 +1465,7 @@ module.exports = {
 
         aliases: {
           'POST /chat/completions': handleOpenAiChatCompletions,
+          'POST /images/generations': handleOpenAiImageGenerations,
           // Unauthenticated by design — see OPENAI_MODEL_CATALOG comment above.
           'GET /models': handleOpenAiModels,
         },
@@ -3349,6 +3408,17 @@ module.exports = {
             'post',
             'openai-compatible.chatCompletions',
             openAiChatAction,
+            'openai-compatible'
+          );
+        }
+
+        const openAiImageAction = actionRegistry.get('openai-compatible.imageGenerations');
+        if (openAiImageAction) {
+          upsertOperation(
+            '/v1/images/generations',
+            'post',
+            'openai-compatible.imageGenerations',
+            openAiImageAction,
             'openai-compatible'
           );
         }
