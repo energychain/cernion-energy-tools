@@ -5,7 +5,7 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [0.67.14] — 2026-07-28
 
 ### Fixed
 - **Root-caused and fixed a long-standing intermittent test failure**: several PouchDB-backed test suites (e.g. `decision-frame.service.test.js` + `object-store.service.test.js` run together) would intermittently fail with `OpenError: IO error: <path>/LOCK: No such file or directory`, previously assumed to be unexplained environmental flakiness (worked around by manually re-running suites in isolation). Root cause: when several services' `created()` hooks run back to back during `broker.start()` and their PouchDB paths share a not-yet-existing parent directory (e.g. the repo-root `./data/`), leveldown's own internal directory creation can race. `src/pouchdb-lifecycle-mixin.js`'s `created()` now unconditionally `mkdirSync`s the target directory (synchronously, before opening the db) instead of only doing so when an opt-in `ensureDirectory` flag was set — reproduced the failure in isolation (100% reproducible across repeated runs of the same two-file combination) and confirmed the fix both in that isolated repro and across the full test suite (every LevelDB LOCK failure gone; only the two pre-existing, unrelated live-server-dependent REST-usecase tests remain).
