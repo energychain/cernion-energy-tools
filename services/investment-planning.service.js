@@ -1,8 +1,7 @@
 'use strict';
 
 const crypto = require('crypto');
-const PouchDB = require('pouchdb');
-PouchDB.plugin(require('pouchdb-find'));
+const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 const { MoleculerClientError } = require('moleculer').Errors;
 const { getTenantId } = require('../src/tenant-context');
 const {
@@ -29,26 +28,13 @@ function nowIso() {
 module.exports = {
   name: 'investment-planning',
 
-  settings: {
-    dbPath: process.env.INVESTMENT_PLANNING_DB_PATH || './data/investment-planning',
-  },
-
-  created() {
-    this.db = new PouchDB(this.settings.dbPath, { auto_compaction: true });
-  },
-
-  async started() {
-    await this.db.createIndex({ index: { fields: ['tenantId'] } });
-    await this.db.createIndex({ index: { fields: ['createdAt'] } });
-    await this.db.createIndex({ index: { fields: ['gridOperatorId'] } });
-    this.logger.info(`Investment Planning DB initialized at ${this.settings.dbPath}`);
-  },
-
-  async stopped() {
-    if (this.db) {
-      await this.db.close();
-    }
-  },
+  mixins: [
+    createPouchDbLifecycleMixin({
+      dbPathEnvVar: 'INVESTMENT_PLANNING_DB_PATH',
+      defaultDbPath: './data/investment-planning',
+      indexes: [['tenantId'], ['createdAt'], ['gridOperatorId']],
+    }),
+  ],
 
   actions: {
     createPlan: {

@@ -1,8 +1,7 @@
 'use strict';
 
 const crypto = require('crypto');
-const PouchDB = require('pouchdb');
-PouchDB.plugin(require('pouchdb-find'));
+const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 const { MoleculerClientError } = require('moleculer').Errors;
 const {
   applyCursorPagination,
@@ -132,25 +131,13 @@ const SYNTHESIS_SCHEMA = {
 module.exports = {
   name: 'finance-agent',
 
-  settings: {
-    dbPath: process.env.FINANCE_AGENT_DB_PATH || './data/finance-agent',
-  },
-
-  created() {
-    this.db = new PouchDB(this.settings.dbPath, { auto_compaction: true });
-  },
-
-  async started() {
-    await this.db.createIndex({ index: { fields: ['createdAt'] } });
-    await this.db.createIndex({ index: { fields: ['status'] } });
-    this.logger.info(`Finance agent DB initialized at ${this.settings.dbPath}`);
-  },
-
-  async stopped() {
-    if (this.db) {
-      await this.db.close();
-    }
-  },
+  mixins: [
+    createPouchDbLifecycleMixin({
+      dbPathEnvVar: 'FINANCE_AGENT_DB_PATH',
+      defaultDbPath: './data/finance-agent',
+      indexes: [['createdAt'], ['status']],
+    }),
+  ],
 
   actions: {
     analyze: {

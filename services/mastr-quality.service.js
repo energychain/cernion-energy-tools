@@ -1,8 +1,7 @@
 'use strict';
 
 const crypto = require('crypto');
-const PouchDB = require('pouchdb');
-PouchDB.plugin(require('pouchdb-find'));
+const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 const { MoleculerClientError } = require('moleculer').Errors;
 const CernionMCPClient = require('../src/mcp-client');
 const jobStore = require('../src/job-store');
@@ -67,25 +66,13 @@ const DIMENSION_STEPS = {
 module.exports = {
   name: 'mastr-quality',
 
-  settings: {
-    dbPath: process.env.MASTR_QUALITY_DB_PATH || './data/mastr-quality',
-  },
-
-  created() {
-    this.db = new PouchDB(this.settings.dbPath, { auto_compaction: true });
-  },
-
-  async started() {
-    await this.db.createIndex({ index: { fields: ['createdAt'] } });
-    await this.db.createIndex({ index: { fields: ['gridOperator.mastrId'] } });
-    this.logger.info(`MaStR quality DB initialized at ${this.settings.dbPath}`);
-  },
-
-  async stopped() {
-    if (this.db) {
-      await this.db.close();
-    }
-  },
+  mixins: [
+    createPouchDbLifecycleMixin({
+      dbPathEnvVar: 'MASTR_QUALITY_DB_PATH',
+      defaultDbPath: './data/mastr-quality',
+      indexes: [['createdAt'], ['gridOperator.mastrId']],
+    }),
+  ],
 
   // ---------------------------------------------------------------------------
   // Actions

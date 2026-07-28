@@ -104,6 +104,205 @@ const OVERRIDEABLE_FIELDS = [
 ];
 const CRITICAL_OVERRIDE_FIELDS = ['voltageLevel', 'direktvermarktungActive'];
 
+// Single-asset-type actions (solar/wind/storage/biomass/hydro/combustion) share an
+// identical MaStR query shape and only differ in the asset type, OEO ontology class,
+// and description copy — generated from ASSET_TYPE_CATALOG instead of hand-duplicated
+// per type (previously ~130 near-identical lines each, flagged by SonarCloud).
+const ASSET_TYPE_CATALOG = [
+  {
+    type: 'solar',
+    oeoUrl: 'https://openenergyplatform.org/ontology/oeo/OEO_00000034', // solar power unit
+    summary: 'List solar PV installations by grid operator or location',
+    assetNoun: 'photovoltaic',
+    locationQueryExample: 'Wie viele PV Anlagen gibt es in <Ort>?',
+    descriptionSuffix: ' Example: /api/assets/solar?location=Mainz',
+    opStatusDesc: PARAM_DESC_OP_STATUS,
+    offsetDesc:
+      'Pagination offset — skip this many records. Use `offset=1000` to fetch the next page.',
+    redispatchDesc: 'Redispatch 2.0 filter (≥100kW)',
+  },
+  {
+    type: 'wind',
+    oeoUrl: 'https://openenergyplatform.org/ontology/oeo/OEO_00000044', // wind energy converting unit
+    summary: 'List wind installations by grid operator or location',
+    assetNoun: 'wind',
+    locationQueryExample: 'Wie viele Windanlagen gibt es in <Ort>?',
+  },
+  {
+    type: 'storage',
+    oeoUrl: 'https://openenergyplatform.org/ontology/oeo/OEO_00000159', // energy storage object
+    summary: 'List battery storage installations by grid operator or location',
+    assetNoun: 'battery storage',
+    locationQueryExample: 'Welche Speicheranlagen gibt es in <Ort>?',
+  },
+  {
+    type: 'biomass',
+    oeoUrl: 'https://openenergyplatform.org/ontology/oeo/OEO_00010214', // biomass power unit
+    summary: 'List all biomass installations of a grid operator',
+  },
+  {
+    type: 'hydro',
+    oeoUrl: 'https://openenergyplatform.org/ontology/oeo/OEO_00010086', // hydro power plant
+    summary: 'List all hydropower installations of a grid operator',
+  },
+  {
+    type: 'combustion',
+    oeoUrl: 'https://openenergyplatform.org/ontology/oeo/OEO_00140038', // combustion power plant
+    summary: 'List all combustion installations of a grid operator',
+  },
+];
+
+function buildAssetTypeDescription(def) {
+  if (!def.assetNoun) {
+    return PARAM_DESC_DEFAULT_STATUS;
+  }
+  return (
+    `Retrieves ${def.assetNoun} installations from MaStR by grid operator context (\`vnbName\`, \`bdewCode\`, \`gridOperatorId\`) ` +
+    'or directly by `location` (city/region/postal code). ' +
+    PARAM_DESC_DEFAULT_STATUS +
+    ' ' +
+    ASSET_QUERY_COUNT_SEMANTICS +
+    (def.descriptionSuffix || '')
+  );
+}
+
+function buildAssetTypeLocationDescription(def) {
+  if (!def.locationQueryExample) {
+    return PARAM_DESC_LOCATION;
+  }
+  return `${PARAM_DESC_LOCATION}. Supports city-style queries like "${def.locationQueryExample}".`;
+}
+
+function buildAssetTypeAction(def) {
+  return {
+    rest: `GET /${def.type}`,
+    params: {
+      vnbName: { type: 'string', optional: true },
+      bdewCode: { type: 'string', optional: true, convert: true },
+      gridOperatorId: { type: 'string', optional: true, convert: true },
+      location: { type: 'string', optional: true },
+      commissioningYear: { type: 'number', optional: true, convert: true },
+      minCapacityKW: { type: 'number', optional: true, convert: true },
+      maxCapacityKW: { type: 'number', optional: true, convert: true },
+      limit: { type: 'any', optional: true },
+      offset: { type: 'number', optional: true, min: 0, convert: true },
+      redispatch: { type: 'boolean', optional: true, convert: true },
+      operationalStatus: { type: 'string', optional: true, default: '35', convert: true },
+      netzbetreiberPruefungStatus: { type: 'string', optional: true, convert: true },
+      format: { type: 'enum', values: ['json', 'csv', 'xlsx'], optional: true, default: 'json' },
+      includeNapData: { type: 'boolean', optional: true, default: true, convert: true },
+      updatedAfter: { type: 'string', optional: true, convert: true },
+    },
+    openapi: {
+      operationId: `assets_${def.type}`,
+      summary: def.summary,
+      description: buildAssetTypeDescription(def),
+      tags: ['Assets'],
+      [OEO_CLASS_KEY]: [def.oeoUrl],
+      parameters: [
+        {
+          name: 'vnbName',
+          in: 'query',
+          schema: { type: 'string', example: 'Netze BW' },
+          description: PARAM_DESC_VNB_NAME,
+        },
+        {
+          name: 'bdewCode',
+          in: 'query',
+          schema: { type: 'string', example: '4041407000008' },
+          description: PARAM_DESC_BDEW_CODE,
+        },
+        {
+          name: 'gridOperatorId',
+          in: 'query',
+          schema: { type: 'string', example: 'SNB948311994307' },
+          description: PARAM_DESC_GR_ID,
+        },
+        {
+          name: 'location',
+          in: 'query',
+          schema: { type: 'string', example: 'Heidelberg' },
+          description: buildAssetTypeLocationDescription(def),
+        },
+        {
+          name: 'commissioningYear',
+          in: 'query',
+          schema: { type: 'number', example: 2020 },
+          description: PARAM_DESC_YEAR,
+        },
+        {
+          name: 'minCapacityKW',
+          in: 'query',
+          schema: { type: 'number', example: 100 },
+          description: PARAM_DESC_MIN_CAP,
+        },
+        {
+          name: 'maxCapacityKW',
+          in: 'query',
+          schema: { type: 'number', example: 10000 },
+          description: PARAM_DESC_MAX_CAP,
+        },
+        {
+          name: 'limit',
+          in: 'query',
+          schema: { type: 'number', default: 1000, example: 1000 },
+          description: PARAM_DESC_LIMIT,
+        },
+        {
+          name: 'offset',
+          in: 'query',
+          schema: { type: 'number', default: 0, minimum: 0, example: 0 },
+          description: def.offsetDesc || PARAM_DESC_OFFSET,
+        },
+        {
+          name: 'redispatch',
+          in: 'query',
+          schema: { type: 'boolean', example: true },
+          description: def.redispatchDesc || PARAM_DESC_REDISPATCH,
+        },
+        {
+          name: 'operationalStatus',
+          in: 'query',
+          schema: { type: 'string', default: '35', example: '35' },
+          description: def.opStatusDesc || PARAM_DESC_OP_STATUS_SHORT,
+        },
+        {
+          name: 'netzbetreiberPruefungStatus',
+          in: 'query',
+          schema: { type: 'string', example: '2955' },
+          description: PARAM_DESC_PRUEFUNG_STATUS,
+        },
+        {
+          name: 'includeNapData',
+          in: 'query',
+          schema: { type: 'boolean', default: true },
+          description: PARAM_DESC_NAP,
+        },
+        {
+          name: 'updatedAfter',
+          in: 'query',
+          schema: { type: 'string', format: 'date', example: EXAMPLE_DATE },
+          description: PARAM_DESC_UPDATED_AFTER,
+        },
+        {
+          name: 'format',
+          in: 'query',
+          schema: { type: 'string', enum: ['json', 'csv', 'xlsx'], default: 'json' },
+          description: PARAM_DESC_FORMAT,
+        },
+      ],
+      responses: ASSET_QUERY_ARRAY_RESPONSE,
+    },
+    async handler(ctx) {
+      return this._fetchAssets(ctx, [def.type]);
+    },
+  };
+}
+
+const GENERATED_ASSET_TYPE_ACTIONS = Object.fromEntries(
+  ASSET_TYPE_CATALOG.map((def) => [def.type, buildAssetTypeAction(def)])
+);
+
 /**
  * Assets Service
  *
@@ -1934,801 +2133,7 @@ module.exports = {
       },
     },
 
-    /**
-     * solar
-     *
-     * Extracts all PV installations for a VNB.
-     */
-    solar: {
-      rest: 'GET /solar',
-      params: {
-        vnbName: { type: 'string', optional: true },
-        bdewCode: { type: 'string', optional: true, convert: true },
-        gridOperatorId: { type: 'string', optional: true, convert: true },
-        location: { type: 'string', optional: true },
-        commissioningYear: { type: 'number', optional: true, convert: true },
-        minCapacityKW: { type: 'number', optional: true, convert: true },
-        maxCapacityKW: { type: 'number', optional: true, convert: true },
-        limit: { type: 'any', optional: true },
-        offset: { type: 'number', optional: true, min: 0, convert: true },
-        redispatch: { type: 'boolean', optional: true, convert: true },
-        operationalStatus: { type: 'string', optional: true, default: '35', convert: true },
-        netzbetreiberPruefungStatus: { type: 'string', optional: true, convert: true },
-        format: { type: 'enum', values: ['json', 'csv', 'xlsx'], optional: true, default: 'json' },
-        includeNapData: { type: 'boolean', optional: true, default: true, convert: true },
-        updatedAfter: { type: 'string', optional: true, convert: true },
-      },
-      openapi: {
-        operationId: 'assets_solar',
-        summary: 'List solar PV installations by grid operator or location',
-        description:
-          'Retrieves photovoltaic installations from MaStR by grid operator context (`vnbName`, `bdewCode`, `gridOperatorId`) ' +
-          'or directly by `location` (city/region/postal code). ' +
-          '**Default: Only active installations (status 35).** ' +
-          ASSET_QUERY_COUNT_SEMANTICS +
-          ' Example: /api/assets/solar?location=Mainz',
-        tags: ['Assets'],
-        // @OpenEnergyPlatform/ontology — OEO_00000034 solar power unit
-        [OEO_CLASS_KEY]: ['https://openenergyplatform.org/ontology/oeo/OEO_00000034'],
-        parameters: [
-          {
-            name: 'vnbName',
-            in: 'query',
-            schema: { type: 'string', example: 'Netze BW' },
-            description: PARAM_DESC_VNB_NAME,
-          },
-          {
-            name: 'bdewCode',
-            in: 'query',
-            schema: { type: 'string', example: '4041407000008' },
-            description: PARAM_DESC_BDEW_CODE,
-          },
-          {
-            name: 'gridOperatorId',
-            in: 'query',
-            schema: { type: 'string', example: 'SNB948311994307' },
-            description: PARAM_DESC_GR_ID,
-          },
-          {
-            name: 'location',
-            in: 'query',
-            schema: { type: 'string', example: 'Heidelberg' },
-            description:
-              PARAM_DESC_LOCATION +
-              '. Supports city-style queries like "Wie viele PV Anlagen gibt es in <Ort>?".',
-          },
-          {
-            name: 'commissioningYear',
-            in: 'query',
-            schema: { type: 'number', example: 2020 },
-            description: PARAM_DESC_YEAR,
-          },
-          {
-            name: 'minCapacityKW',
-            in: 'query',
-            schema: { type: 'number', example: 100 },
-            description: PARAM_DESC_MIN_CAP,
-          },
-          {
-            name: 'maxCapacityKW',
-            in: 'query',
-            schema: { type: 'number', example: 10000 },
-            description: PARAM_DESC_MAX_CAP,
-          },
-          {
-            name: 'limit',
-            in: 'query',
-            schema: { type: 'number', default: 1000, example: 1000 },
-            description: PARAM_DESC_LIMIT,
-          },
-          {
-            name: 'offset',
-            in: 'query',
-            schema: { type: 'number', default: 0, minimum: 0, example: 0 },
-            description:
-              'Pagination offset — skip this many records. Use `offset=1000` to fetch the next page.',
-          },
-          {
-            name: 'redispatch',
-            in: 'query',
-            schema: { type: 'boolean', example: true },
-            description: 'Redispatch 2.0 filter (≥100kW)',
-          },
-          {
-            name: 'operationalStatus',
-            in: 'query',
-            schema: { type: 'string', default: '35', example: '35' },
-            description: PARAM_DESC_OP_STATUS,
-          },
-          {
-            name: 'netzbetreiberPruefungStatus',
-            in: 'query',
-            schema: { type: 'string', example: '2955' },
-            description: PARAM_DESC_PRUEFUNG_STATUS,
-          },
-          {
-            name: 'includeNapData',
-            in: 'query',
-            schema: { type: 'boolean', default: true },
-            description: PARAM_DESC_NAP,
-          },
-          {
-            name: 'updatedAfter',
-            in: 'query',
-            schema: { type: 'string', format: 'date', example: EXAMPLE_DATE },
-            description: PARAM_DESC_UPDATED_AFTER,
-          },
-          {
-            name: 'format',
-            in: 'query',
-            schema: { type: 'string', enum: ['json', 'csv', 'xlsx'], default: 'json' },
-            description: PARAM_DESC_FORMAT,
-          },
-        ],
-        responses: ASSET_QUERY_ARRAY_RESPONSE,
-      },
-      async handler(ctx) {
-        return this._fetchAssets(ctx, ['solar']);
-      },
-    },
-
-    /**
-     * wind
-     *
-     * Extracts all wind installations for a VNB.
-     */
-    wind: {
-      rest: 'GET /wind',
-      params: {
-        vnbName: { type: 'string', optional: true },
-        bdewCode: { type: 'string', optional: true, convert: true },
-        gridOperatorId: { type: 'string', optional: true, convert: true },
-        location: { type: 'string', optional: true },
-        commissioningYear: { type: 'number', optional: true, convert: true },
-        minCapacityKW: { type: 'number', optional: true, convert: true },
-        maxCapacityKW: { type: 'number', optional: true, convert: true },
-        limit: { type: 'any', optional: true },
-        offset: { type: 'number', optional: true, min: 0, convert: true },
-        redispatch: { type: 'boolean', optional: true, convert: true },
-        operationalStatus: { type: 'string', optional: true, default: '35', convert: true },
-        netzbetreiberPruefungStatus: { type: 'string', optional: true, convert: true },
-        format: { type: 'enum', values: ['json', 'csv', 'xlsx'], optional: true, default: 'json' },
-        includeNapData: { type: 'boolean', optional: true, default: true, convert: true },
-        updatedAfter: { type: 'string', optional: true, convert: true },
-      },
-      openapi: {
-        operationId: 'assets_wind',
-        summary: 'List wind installations by grid operator or location',
-        description:
-          'Retrieves wind installations from MaStR by grid operator context (`vnbName`, `bdewCode`, `gridOperatorId`) ' +
-          'or directly by `location` (city/region/postal code). ' +
-          PARAM_DESC_DEFAULT_STATUS +
-          ' ' +
-          ASSET_QUERY_COUNT_SEMANTICS,
-        tags: ['Assets'],
-        // @OpenEnergyPlatform/ontology — OEO_00000044 wind energy converting unit
-        [OEO_CLASS_KEY]: ['https://openenergyplatform.org/ontology/oeo/OEO_00000044'],
-        parameters: [
-          {
-            name: 'vnbName',
-            in: 'query',
-            schema: { type: 'string', example: 'Netze BW' },
-            description: PARAM_DESC_VNB_NAME,
-          },
-          {
-            name: 'bdewCode',
-            in: 'query',
-            schema: { type: 'string', example: '4041407000008' },
-            description: PARAM_DESC_BDEW_CODE,
-          },
-          {
-            name: 'gridOperatorId',
-            in: 'query',
-            schema: { type: 'string', example: 'SNB948311994307' },
-            description: PARAM_DESC_GR_ID,
-          },
-          {
-            name: 'location',
-            in: 'query',
-            schema: { type: 'string', example: 'Heidelberg' },
-            description:
-              PARAM_DESC_LOCATION +
-              '. Supports city-style queries like "Wie viele Windanlagen gibt es in <Ort>?".',
-          },
-          {
-            name: 'commissioningYear',
-            in: 'query',
-            schema: { type: 'number', example: 2020 },
-            description: PARAM_DESC_YEAR,
-          },
-          {
-            name: 'minCapacityKW',
-            in: 'query',
-            schema: { type: 'number', example: 100 },
-            description: PARAM_DESC_MIN_CAP,
-          },
-          {
-            name: 'maxCapacityKW',
-            in: 'query',
-            schema: { type: 'number', example: 10000 },
-            description: PARAM_DESC_MAX_CAP,
-          },
-          {
-            name: 'limit',
-            in: 'query',
-            schema: { type: 'number', default: 1000, example: 1000 },
-            description: PARAM_DESC_LIMIT,
-          },
-          {
-            name: 'offset',
-            in: 'query',
-            schema: { type: 'number', default: 0, minimum: 0, example: 0 },
-            description: PARAM_DESC_OFFSET,
-          },
-          {
-            name: 'redispatch',
-            in: 'query',
-            schema: { type: 'boolean', example: true },
-            description: PARAM_DESC_REDISPATCH,
-          },
-          {
-            name: 'operationalStatus',
-            in: 'query',
-            schema: { type: 'string', default: '35', example: '35' },
-            description: PARAM_DESC_OP_STATUS_SHORT,
-          },
-          {
-            name: 'netzbetreiberPruefungStatus',
-            in: 'query',
-            schema: { type: 'string', example: '2955' },
-            description: PARAM_DESC_PRUEFUNG_STATUS,
-          },
-          {
-            name: 'includeNapData',
-            in: 'query',
-            schema: { type: 'boolean', default: true },
-            description: PARAM_DESC_NAP,
-          },
-          {
-            name: 'updatedAfter',
-            in: 'query',
-            schema: { type: 'string', format: 'date', example: EXAMPLE_DATE },
-            description: PARAM_DESC_UPDATED_AFTER,
-          },
-          {
-            name: 'format',
-            in: 'query',
-            schema: { type: 'string', enum: ['json', 'csv', 'xlsx'], default: 'json' },
-            description: PARAM_DESC_FORMAT,
-          },
-        ],
-        responses: ASSET_QUERY_ARRAY_RESPONSE,
-      },
-      async handler(ctx) {
-        return this._fetchAssets(ctx, ['wind']);
-      },
-    },
-
-    /**
-     * storage
-     *
-     * Extracts all storage installations for a VNB.
-     */
-    storage: {
-      rest: 'GET /storage',
-      params: {
-        vnbName: { type: 'string', optional: true },
-        bdewCode: { type: 'string', optional: true, convert: true },
-        gridOperatorId: { type: 'string', optional: true, convert: true },
-        location: { type: 'string', optional: true },
-        commissioningYear: { type: 'number', optional: true, convert: true },
-        minCapacityKW: { type: 'number', optional: true, convert: true },
-        maxCapacityKW: { type: 'number', optional: true, convert: true },
-        limit: { type: 'any', optional: true },
-        offset: { type: 'number', optional: true, min: 0, convert: true },
-        redispatch: { type: 'boolean', optional: true, convert: true },
-        operationalStatus: { type: 'string', optional: true, default: '35', convert: true },
-        netzbetreiberPruefungStatus: { type: 'string', optional: true, convert: true },
-        format: { type: 'enum', values: ['json', 'csv', 'xlsx'], optional: true, default: 'json' },
-        includeNapData: { type: 'boolean', optional: true, default: true, convert: true },
-        updatedAfter: { type: 'string', optional: true, convert: true },
-      },
-      openapi: {
-        operationId: 'assets_storage',
-        summary: 'List battery storage installations by grid operator or location',
-        description:
-          'Retrieves battery storage installations from MaStR by grid operator context (`vnbName`, `bdewCode`, `gridOperatorId`) ' +
-          'or directly by `location` (city/region/postal code). ' +
-          PARAM_DESC_DEFAULT_STATUS +
-          ' ' +
-          ASSET_QUERY_COUNT_SEMANTICS,
-        tags: ['Assets'],
-        // @OpenEnergyPlatform/ontology — OEO_00000159 energy storage object
-        [OEO_CLASS_KEY]: ['https://openenergyplatform.org/ontology/oeo/OEO_00000159'],
-        parameters: [
-          {
-            name: 'vnbName',
-            in: 'query',
-            schema: { type: 'string', example: 'Netze BW' },
-            description: PARAM_DESC_VNB_NAME,
-          },
-          {
-            name: 'bdewCode',
-            in: 'query',
-            schema: { type: 'string', example: '4041407000008' },
-            description: PARAM_DESC_BDEW_CODE,
-          },
-          {
-            name: 'gridOperatorId',
-            in: 'query',
-            schema: { type: 'string', example: 'SNB948311994307' },
-            description: PARAM_DESC_GR_ID,
-          },
-          {
-            name: 'location',
-            in: 'query',
-            schema: { type: 'string', example: 'Heidelberg' },
-            description:
-              PARAM_DESC_LOCATION +
-              '. Supports city-style queries like "Welche Speicheranlagen gibt es in <Ort>?".',
-          },
-          {
-            name: 'commissioningYear',
-            in: 'query',
-            schema: { type: 'number', example: 2020 },
-            description: PARAM_DESC_YEAR,
-          },
-          {
-            name: 'minCapacityKW',
-            in: 'query',
-            schema: { type: 'number', example: 100 },
-            description: PARAM_DESC_MIN_CAP,
-          },
-          {
-            name: 'maxCapacityKW',
-            in: 'query',
-            schema: { type: 'number', example: 10000 },
-            description: PARAM_DESC_MAX_CAP,
-          },
-          {
-            name: 'limit',
-            in: 'query',
-            schema: { type: 'number', default: 1000, example: 1000 },
-            description: PARAM_DESC_LIMIT,
-          },
-          {
-            name: 'offset',
-            in: 'query',
-            schema: { type: 'number', default: 0, minimum: 0, example: 0 },
-            description: PARAM_DESC_OFFSET,
-          },
-          {
-            name: 'redispatch',
-            in: 'query',
-            schema: { type: 'boolean', example: true },
-            description: PARAM_DESC_REDISPATCH,
-          },
-          {
-            name: 'operationalStatus',
-            in: 'query',
-            schema: { type: 'string', default: '35', example: '35' },
-            description: PARAM_DESC_OP_STATUS_SHORT,
-          },
-          {
-            name: 'netzbetreiberPruefungStatus',
-            in: 'query',
-            schema: { type: 'string', example: '2955' },
-            description: PARAM_DESC_PRUEFUNG_STATUS,
-          },
-          {
-            name: 'includeNapData',
-            in: 'query',
-            schema: { type: 'boolean', default: true },
-            description: PARAM_DESC_NAP,
-          },
-          {
-            name: 'updatedAfter',
-            in: 'query',
-            schema: { type: 'string', format: 'date', example: EXAMPLE_DATE },
-            description: PARAM_DESC_UPDATED_AFTER,
-          },
-          {
-            name: 'format',
-            in: 'query',
-            schema: { type: 'string', enum: ['json', 'csv', 'xlsx'], default: 'json' },
-            description: PARAM_DESC_FORMAT,
-          },
-        ],
-        responses: ASSET_QUERY_ARRAY_RESPONSE,
-      },
-      async handler(ctx) {
-        return this._fetchAssets(ctx, ['storage']);
-      },
-    },
-
-    /**
-     * biomass
-     *
-     * Extracts all biomass installations for a VNB.
-     */
-    biomass: {
-      rest: 'GET /biomass',
-      params: {
-        vnbName: { type: 'string', optional: true },
-        bdewCode: { type: 'string', optional: true, convert: true },
-        gridOperatorId: { type: 'string', optional: true, convert: true },
-        location: { type: 'string', optional: true },
-        commissioningYear: { type: 'number', optional: true, convert: true },
-        minCapacityKW: { type: 'number', optional: true, convert: true },
-        maxCapacityKW: { type: 'number', optional: true, convert: true },
-        limit: { type: 'any', optional: true },
-        offset: { type: 'number', optional: true, min: 0, convert: true },
-        redispatch: { type: 'boolean', optional: true, convert: true },
-        operationalStatus: { type: 'string', optional: true, default: '35', convert: true },
-        netzbetreiberPruefungStatus: { type: 'string', optional: true, convert: true },
-        format: { type: 'enum', values: ['json', 'csv', 'xlsx'], optional: true, default: 'json' },
-        includeNapData: { type: 'boolean', optional: true, default: true, convert: true },
-        updatedAfter: { type: 'string', optional: true, convert: true },
-      },
-      openapi: {
-        summary: 'List all biomass installations of a grid operator',
-        description: PARAM_DESC_DEFAULT_STATUS,
-        tags: ['Assets'],
-        // @OpenEnergyPlatform/ontology — OEO_00010214 biomass power unit
-        [OEO_CLASS_KEY]: ['https://openenergyplatform.org/ontology/oeo/OEO_00010214'],
-        parameters: [
-          {
-            name: 'vnbName',
-            in: 'query',
-            schema: { type: 'string', example: 'Netze BW' },
-            description: PARAM_DESC_VNB_NAME,
-          },
-          {
-            name: 'bdewCode',
-            in: 'query',
-            schema: { type: 'string', example: '4041407000008' },
-            description: PARAM_DESC_BDEW_CODE,
-          },
-          {
-            name: 'gridOperatorId',
-            in: 'query',
-            schema: { type: 'string', example: 'SNB948311994307' },
-            description: PARAM_DESC_GR_ID,
-          },
-          {
-            name: 'location',
-            in: 'query',
-            schema: { type: 'string', example: 'Heidelberg' },
-            description: PARAM_DESC_LOCATION,
-          },
-          {
-            name: 'commissioningYear',
-            in: 'query',
-            schema: { type: 'number', example: 2020 },
-            description: PARAM_DESC_YEAR,
-          },
-          {
-            name: 'minCapacityKW',
-            in: 'query',
-            schema: { type: 'number', example: 100 },
-            description: PARAM_DESC_MIN_CAP,
-          },
-          {
-            name: 'maxCapacityKW',
-            in: 'query',
-            schema: { type: 'number', example: 10000 },
-            description: PARAM_DESC_MAX_CAP,
-          },
-          {
-            name: 'limit',
-            in: 'query',
-            schema: { type: 'number', default: 1000, example: 1000 },
-            description: PARAM_DESC_LIMIT,
-          },
-          {
-            name: 'offset',
-            in: 'query',
-            schema: { type: 'number', default: 0, minimum: 0, example: 0 },
-            description: PARAM_DESC_OFFSET,
-          },
-          {
-            name: 'redispatch',
-            in: 'query',
-            schema: { type: 'boolean', example: true },
-            description: PARAM_DESC_REDISPATCH,
-          },
-          {
-            name: 'operationalStatus',
-            in: 'query',
-            schema: { type: 'string', default: '35', example: '35' },
-            description: PARAM_DESC_OP_STATUS_SHORT,
-          },
-          {
-            name: 'netzbetreiberPruefungStatus',
-            in: 'query',
-            schema: { type: 'string', example: '2955' },
-            description: PARAM_DESC_PRUEFUNG_STATUS,
-          },
-          {
-            name: 'includeNapData',
-            in: 'query',
-            schema: { type: 'boolean', default: true },
-            description: PARAM_DESC_NAP,
-          },
-          {
-            name: 'updatedAfter',
-            in: 'query',
-            schema: { type: 'string', format: 'date', example: EXAMPLE_DATE },
-            description: PARAM_DESC_UPDATED_AFTER,
-          },
-          {
-            name: 'format',
-            in: 'query',
-            schema: { type: 'string', enum: ['json', 'csv', 'xlsx'], default: 'json' },
-            description: PARAM_DESC_FORMAT,
-          },
-        ],
-      },
-      async handler(ctx) {
-        return this._fetchAssets(ctx, ['biomass']);
-      },
-    },
-
-    /**
-     * hydro
-     *
-     * Extracts all hydro installations for a VNB.
-     */
-    hydro: {
-      rest: 'GET /hydro',
-      params: {
-        vnbName: { type: 'string', optional: true },
-        bdewCode: { type: 'string', optional: true, convert: true },
-        gridOperatorId: { type: 'string', optional: true, convert: true },
-        location: { type: 'string', optional: true },
-        commissioningYear: { type: 'number', optional: true, convert: true },
-        minCapacityKW: { type: 'number', optional: true, convert: true },
-        maxCapacityKW: { type: 'number', optional: true, convert: true },
-        limit: { type: 'any', optional: true },
-        offset: { type: 'number', optional: true, min: 0, convert: true },
-        redispatch: { type: 'boolean', optional: true, convert: true },
-        operationalStatus: { type: 'string', optional: true, default: '35', convert: true },
-        netzbetreiberPruefungStatus: { type: 'string', optional: true, convert: true },
-        format: { type: 'enum', values: ['json', 'csv', 'xlsx'], optional: true, default: 'json' },
-        includeNapData: { type: 'boolean', optional: true, default: true, convert: true },
-        updatedAfter: { type: 'string', optional: true, convert: true },
-      },
-      openapi: {
-        summary: 'List all hydropower installations of a grid operator',
-        description: PARAM_DESC_DEFAULT_STATUS,
-        tags: ['Assets'],
-        // @OpenEnergyPlatform/ontology — OEO_00010086 hydro power plant
-        [OEO_CLASS_KEY]: ['https://openenergyplatform.org/ontology/oeo/OEO_00010086'],
-        parameters: [
-          {
-            name: 'vnbName',
-            in: 'query',
-            schema: { type: 'string', example: 'Netze BW' },
-            description: PARAM_DESC_VNB_NAME,
-          },
-          {
-            name: 'bdewCode',
-            in: 'query',
-            schema: { type: 'string', example: '4041407000008' },
-            description: PARAM_DESC_BDEW_CODE,
-          },
-          {
-            name: 'gridOperatorId',
-            in: 'query',
-            schema: { type: 'string', example: 'SNB948311994307' },
-            description: PARAM_DESC_GR_ID,
-          },
-          {
-            name: 'location',
-            in: 'query',
-            schema: { type: 'string', example: 'Heidelberg' },
-            description: PARAM_DESC_LOCATION,
-          },
-          {
-            name: 'commissioningYear',
-            in: 'query',
-            schema: { type: 'number', example: 2020 },
-            description: PARAM_DESC_YEAR,
-          },
-          {
-            name: 'minCapacityKW',
-            in: 'query',
-            schema: { type: 'number', example: 100 },
-            description: PARAM_DESC_MIN_CAP,
-          },
-          {
-            name: 'maxCapacityKW',
-            in: 'query',
-            schema: { type: 'number', example: 10000 },
-            description: PARAM_DESC_MAX_CAP,
-          },
-          {
-            name: 'limit',
-            in: 'query',
-            schema: { type: 'number', default: 1000, example: 1000 },
-            description: PARAM_DESC_LIMIT,
-          },
-          {
-            name: 'offset',
-            in: 'query',
-            schema: { type: 'number', default: 0, minimum: 0, example: 0 },
-            description: PARAM_DESC_OFFSET,
-          },
-          {
-            name: 'redispatch',
-            in: 'query',
-            schema: { type: 'boolean', example: true },
-            description: PARAM_DESC_REDISPATCH,
-          },
-          {
-            name: 'operationalStatus',
-            in: 'query',
-            schema: { type: 'string', default: '35', example: '35' },
-            description: PARAM_DESC_OP_STATUS_SHORT,
-          },
-          {
-            name: 'netzbetreiberPruefungStatus',
-            in: 'query',
-            schema: { type: 'string', example: '2955' },
-            description: PARAM_DESC_PRUEFUNG_STATUS,
-          },
-          {
-            name: 'includeNapData',
-            in: 'query',
-            schema: { type: 'boolean', default: true },
-            description: PARAM_DESC_NAP,
-          },
-          {
-            name: 'updatedAfter',
-            in: 'query',
-            schema: { type: 'string', format: 'date', example: EXAMPLE_DATE },
-            description: PARAM_DESC_UPDATED_AFTER,
-          },
-          {
-            name: 'format',
-            in: 'query',
-            schema: { type: 'string', enum: ['json', 'csv', 'xlsx'], default: 'json' },
-            description: PARAM_DESC_FORMAT,
-          },
-        ],
-      },
-      async handler(ctx) {
-        return this._fetchAssets(ctx, ['hydro']);
-      },
-    },
-
-    /**
-     * combustion
-     *
-     * Extracts all combustion installations for a VNB.
-     */
-    combustion: {
-      rest: 'GET /combustion',
-      params: {
-        vnbName: { type: 'string', optional: true },
-        bdewCode: { type: 'string', optional: true, convert: true },
-        gridOperatorId: { type: 'string', optional: true, convert: true },
-        location: { type: 'string', optional: true },
-        commissioningYear: { type: 'number', optional: true, convert: true },
-        minCapacityKW: { type: 'number', optional: true, convert: true },
-        maxCapacityKW: { type: 'number', optional: true, convert: true },
-        limit: { type: 'any', optional: true },
-        offset: { type: 'number', optional: true, min: 0, convert: true },
-        redispatch: { type: 'boolean', optional: true, convert: true },
-        operationalStatus: { type: 'string', optional: true, default: '35', convert: true },
-        netzbetreiberPruefungStatus: { type: 'string', optional: true, convert: true },
-        format: { type: 'enum', values: ['json', 'csv', 'xlsx'], optional: true, default: 'json' },
-        includeNapData: { type: 'boolean', optional: true, default: true, convert: true },
-        updatedAfter: { type: 'string', optional: true, convert: true },
-      },
-      openapi: {
-        summary: 'List all combustion installations of a grid operator',
-        description: PARAM_DESC_DEFAULT_STATUS,
-        tags: ['Assets'],
-        // @OpenEnergyPlatform/ontology — OEO_00140038 combustion power plant
-        [OEO_CLASS_KEY]: ['https://openenergyplatform.org/ontology/oeo/OEO_00140038'],
-        parameters: [
-          {
-            name: 'vnbName',
-            in: 'query',
-            schema: { type: 'string', example: 'Netze BW' },
-            description: PARAM_DESC_VNB_NAME,
-          },
-          {
-            name: 'bdewCode',
-            in: 'query',
-            schema: { type: 'string', example: '4041407000008' },
-            description: PARAM_DESC_BDEW_CODE,
-          },
-          {
-            name: 'gridOperatorId',
-            in: 'query',
-            schema: { type: 'string', example: 'SNB948311994307' },
-            description: PARAM_DESC_GR_ID,
-          },
-          {
-            name: 'location',
-            in: 'query',
-            schema: { type: 'string', example: 'Heidelberg' },
-            description: PARAM_DESC_LOCATION,
-          },
-          {
-            name: 'commissioningYear',
-            in: 'query',
-            schema: { type: 'number', example: 2020 },
-            description: PARAM_DESC_YEAR,
-          },
-          {
-            name: 'minCapacityKW',
-            in: 'query',
-            schema: { type: 'number', example: 100 },
-            description: PARAM_DESC_MIN_CAP,
-          },
-          {
-            name: 'maxCapacityKW',
-            in: 'query',
-            schema: { type: 'number', example: 10000 },
-            description: PARAM_DESC_MAX_CAP,
-          },
-          {
-            name: 'limit',
-            in: 'query',
-            schema: { type: 'number', default: 1000, example: 1000 },
-            description: PARAM_DESC_LIMIT,
-          },
-          {
-            name: 'offset',
-            in: 'query',
-            schema: { type: 'number', default: 0, minimum: 0, example: 0 },
-            description: PARAM_DESC_OFFSET,
-          },
-          {
-            name: 'redispatch',
-            in: 'query',
-            schema: { type: 'boolean', example: true },
-            description: PARAM_DESC_REDISPATCH,
-          },
-          {
-            name: 'operationalStatus',
-            in: 'query',
-            schema: { type: 'string', default: '35', example: '35' },
-            description: PARAM_DESC_OP_STATUS_SHORT,
-          },
-          {
-            name: 'netzbetreiberPruefungStatus',
-            in: 'query',
-            schema: { type: 'string', example: '2955' },
-            description: PARAM_DESC_PRUEFUNG_STATUS,
-          },
-          {
-            name: 'includeNapData',
-            in: 'query',
-            schema: { type: 'boolean', default: true },
-            description: PARAM_DESC_NAP,
-          },
-          {
-            name: 'updatedAfter',
-            in: 'query',
-            schema: { type: 'string', format: 'date', example: EXAMPLE_DATE },
-            description: PARAM_DESC_UPDATED_AFTER,
-          },
-          {
-            name: 'format',
-            in: 'query',
-            schema: { type: 'string', enum: ['json', 'csv', 'xlsx'], default: 'json' },
-            description: PARAM_DESC_FORMAT,
-          },
-        ],
-      },
-      async handler(ctx) {
-        return this._fetchAssets(ctx, ['combustion']);
-      },
-    },
+    ...GENERATED_ASSET_TYPE_ACTIONS,
 
     /**
      * all

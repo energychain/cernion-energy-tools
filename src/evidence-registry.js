@@ -30,6 +30,23 @@
  * }
  */
 
+// Exact-duplicate evidence sources reused verbatim across several registry keys —
+// extracted so the underlying evidence definition only needs to change in one place.
+const GRID_OPERATOR_IDENTITY_SOURCE = {
+  id: 'grid_operator_identity',
+  label: 'Netzbetreiber-Identität',
+  resolvedBy: ['grid-operations.marketPartners', 'grid-operations.vnbLookup'],
+  contextKeys: ['gridOperatorId', 'bdewCode'],
+  optional: false,
+};
+const GRID_OPERATOR_IDENTITY_SOURCE_WITH_NAME = {
+  id: 'grid_operator_identity',
+  label: 'Netzbetreiber-Identität',
+  resolvedBy: ['grid-operations.marketPartners', 'grid-operations.vnbLookup'],
+  contextKeys: ['gridOperatorId', 'bdewCode', 'gridOperatorName'],
+  optional: false,
+};
+
 const EVIDENCE_REGISTRY = Object.freeze({
   // ── Capability-keyed entries ────────────────────────────────────────────
 
@@ -4875,13 +4892,7 @@ const EVIDENCE_REGISTRY = Object.freeze({
 
   'investment-grid-check': {
     sources: [
-      {
-        id: 'grid_operator_identity',
-        label: 'Netzbetreiber-Identität',
-        resolvedBy: ['grid-operations.marketPartners', 'grid-operations.vnbLookup'],
-        contextKeys: ['gridOperatorId', 'bdewCode'],
-        optional: false,
-      },
+      GRID_OPERATOR_IDENTITY_SOURCE,
       {
         id: 'investment_measures',
         label: 'Investitionsmaßnahmen',
@@ -4901,13 +4912,7 @@ const EVIDENCE_REGISTRY = Object.freeze({
         contextKeys: ['assetId', 'location', 'capacityMW'],
         optional: false,
       },
-      {
-        id: 'grid_operator_identity',
-        label: 'Netzbetreiber-Identität',
-        resolvedBy: ['grid-operations.marketPartners', 'grid-operations.vnbLookup'],
-        contextKeys: ['gridOperatorId', 'bdewCode'],
-        optional: false,
-      },
+      GRID_OPERATOR_IDENTITY_SOURCE,
       {
         id: 'netzanschlusszusage',
         label: 'Verbindliche Netzanschlusszusage (BKZ)',
@@ -4925,13 +4930,7 @@ const EVIDENCE_REGISTRY = Object.freeze({
 
   'energy-sharing-znp': {
     sources: [
-      {
-        id: 'grid_operator_identity',
-        label: 'Netzbetreiber-Identität',
-        resolvedBy: ['grid-operations.marketPartners', 'grid-operations.vnbLookup'],
-        contextKeys: ['gridOperatorId', 'bdewCode'],
-        optional: false,
-      },
+      GRID_OPERATOR_IDENTITY_SOURCE,
       {
         id: 'energy_sharing_community',
         label: 'Gemeinschaft (Name oder ID)',
@@ -4951,13 +4950,7 @@ const EVIDENCE_REGISTRY = Object.freeze({
 
   'redispatch-settlement': {
     sources: [
-      {
-        id: 'grid_operator_identity',
-        label: 'Netzbetreiber-Identität',
-        resolvedBy: ['grid-operations.marketPartners', 'grid-operations.vnbLookup'],
-        contextKeys: ['gridOperatorId', 'bdewCode', 'gridOperatorName'],
-        optional: false,
-      },
+      GRID_OPERATOR_IDENTITY_SOURCE_WITH_NAME,
       {
         id: 'audit_period',
         label: 'Redispatch-Auditperiode (von–bis)',
@@ -4984,13 +4977,7 @@ const EVIDENCE_REGISTRY = Object.freeze({
         contextKeys: ['fnavProfile'],
         optional: false,
       },
-      {
-        id: 'grid_operator_identity',
-        label: 'Netzbetreiber-Identität',
-        resolvedBy: ['grid-operations.marketPartners', 'grid-operations.vnbLookup'],
-        contextKeys: ['gridOperatorId', 'bdewCode', 'gridOperatorName'],
-        optional: false,
-      },
+      GRID_OPERATOR_IDENTITY_SOURCE_WITH_NAME,
       {
         id: 'voltage_level',
         label: 'Spannungsebene (NS/MS/HS)',

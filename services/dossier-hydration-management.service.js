@@ -1,8 +1,7 @@
 'use strict';
 
 const crypto = require('crypto');
-const PouchDB = require('pouchdb');
-PouchDB.plugin(require('pouchdb-find'));
+const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 
 const { MoleculerClientError } = require('moleculer').Errors;
 const {
@@ -73,23 +72,16 @@ function toActivePublic(doc) {
 module.exports = {
   name: 'dossier-hydration',
 
-  settings: {
-    dbPath: process.env.DOSSIER_HYDRATION_DB_PATH || './data/dossier-hydration-registry',
-  },
-
-  created() {
-    this.db = new PouchDB(this.settings.dbPath, { auto_compaction: true });
-  },
+  mixins: [
+    createPouchDbLifecycleMixin({
+      dbPathEnvVar: 'DOSSIER_HYDRATION_DB_PATH',
+      defaultDbPath: './data/dossier-hydration-registry',
+      indexes: [['type'], ['type', 'ruleId']],
+    }),
+  ],
 
   async started() {
-    await this.db.createIndex({ index: { fields: ['type'] } });
-    await this.db.createIndex({ index: { fields: ['type', 'ruleId'] } });
-    this.logger.info(`[dossier-hydration] DB ready at ${this.settings.dbPath}`);
     await this._restoreRuntimeOverlay();
-  },
-
-  async stopped() {
-    if (this.db) await this.db.close();
   },
 
   actions: {

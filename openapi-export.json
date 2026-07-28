@@ -3400,14 +3400,106 @@
         ],
         "responses": {
           "200": {
-            "description": "Successful response",
+            "description": "Array of matching installations, OR — when `location` was a free-text city/region that could not be resolved to a postal code (#274) — an object reporting that resolution failure instead of a bare empty array. A bare `[]` always means a genuinely empty, location-resolved result set; count/aggregation for the array case can be derived via response length (`array.length`).",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "oneOf": [
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": true,
+                        "properties": {
+                          "Asset-ID": {
+                            "type": "string"
+                          },
+                          "SEE Nummer": {
+                            "type": "string"
+                          },
+                          "Anlagentyp": {
+                            "type": "string"
+                          },
+                          "Leistung kW": {
+                            "type": "number"
+                          },
+                          "Ort": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "Postleitzahl": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "Bundesland": {
+                            "type": "string",
+                            "nullable": true
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "description": "Returned instead of a bare array when `location` could not be resolved to an exact postal code. Never confuse this with \"0 assets found\" — re-issue the request with a 5-digit postal code.",
+                      "required": [
+                        "success",
+                        "data",
+                        "locationResolutionWarning"
+                      ],
+                      "properties": {
+                        "success": {
+                          "type": "boolean",
+                          "example": true
+                        },
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": true,
+                            "properties": {
+                              "Asset-ID": {
+                                "type": "string"
+                              },
+                              "SEE Nummer": {
+                                "type": "string"
+                              },
+                              "Anlagentyp": {
+                                "type": "string"
+                              },
+                              "Leistung kW": {
+                                "type": "number"
+                              },
+                              "Ort": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "Postleitzahl": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "Bundesland": {
+                                "type": "string",
+                                "nullable": true
+                              }
+                            }
+                          }
+                        },
+                        "locationResolutionWarning": {
+                          "type": "string",
+                          "example": "Location \"Meckesheim\" could not be resolved to a postal code. The live MaStR backend only supports exact 5-digit postleitzahl filtering, not free-text city/region search. Pass \"postleitzahl\" directly, or resolve the postal code first (e.g. via grid-operations.marketPartners or OSM Geo)."
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             }
+          },
+          "400": {
+            "description": "Invalid parameters (at least one of vnbName, bdewCode, gridOperatorId or location is required)."
+          },
+          "500": {
+            "description": "Internal server error during MaStR query."
           }
         },
         "description": "**Default: Only active installations (status 35).**",
@@ -3572,14 +3664,106 @@
         ],
         "responses": {
           "200": {
-            "description": "Successful response",
+            "description": "Array of matching installations, OR — when `location` was a free-text city/region that could not be resolved to a postal code (#274) — an object reporting that resolution failure instead of a bare empty array. A bare `[]` always means a genuinely empty, location-resolved result set; count/aggregation for the array case can be derived via response length (`array.length`).",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "oneOf": [
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": true,
+                        "properties": {
+                          "Asset-ID": {
+                            "type": "string"
+                          },
+                          "SEE Nummer": {
+                            "type": "string"
+                          },
+                          "Anlagentyp": {
+                            "type": "string"
+                          },
+                          "Leistung kW": {
+                            "type": "number"
+                          },
+                          "Ort": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "Postleitzahl": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "Bundesland": {
+                            "type": "string",
+                            "nullable": true
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "description": "Returned instead of a bare array when `location` could not be resolved to an exact postal code. Never confuse this with \"0 assets found\" — re-issue the request with a 5-digit postal code.",
+                      "required": [
+                        "success",
+                        "data",
+                        "locationResolutionWarning"
+                      ],
+                      "properties": {
+                        "success": {
+                          "type": "boolean",
+                          "example": true
+                        },
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": true,
+                            "properties": {
+                              "Asset-ID": {
+                                "type": "string"
+                              },
+                              "SEE Nummer": {
+                                "type": "string"
+                              },
+                              "Anlagentyp": {
+                                "type": "string"
+                              },
+                              "Leistung kW": {
+                                "type": "number"
+                              },
+                              "Ort": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "Postleitzahl": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "Bundesland": {
+                                "type": "string",
+                                "nullable": true
+                              }
+                            }
+                          }
+                        },
+                        "locationResolutionWarning": {
+                          "type": "string",
+                          "example": "Location \"Meckesheim\" could not be resolved to a postal code. The live MaStR backend only supports exact 5-digit postleitzahl filtering, not free-text city/region search. Pass \"postleitzahl\" directly, or resolve the postal code first (e.g. via grid-operations.marketPartners or OSM Geo)."
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             }
+          },
+          "400": {
+            "description": "Invalid parameters (at least one of vnbName, bdewCode, gridOperatorId or location is required)."
+          },
+          "500": {
+            "description": "Internal server error during MaStR query."
           }
         },
         "description": "**Default: Only active installations (status 35).**",
@@ -3744,14 +3928,106 @@
         ],
         "responses": {
           "200": {
-            "description": "Successful response",
+            "description": "Array of matching installations, OR — when `location` was a free-text city/region that could not be resolved to a postal code (#274) — an object reporting that resolution failure instead of a bare empty array. A bare `[]` always means a genuinely empty, location-resolved result set; count/aggregation for the array case can be derived via response length (`array.length`).",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "oneOf": [
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": true,
+                        "properties": {
+                          "Asset-ID": {
+                            "type": "string"
+                          },
+                          "SEE Nummer": {
+                            "type": "string"
+                          },
+                          "Anlagentyp": {
+                            "type": "string"
+                          },
+                          "Leistung kW": {
+                            "type": "number"
+                          },
+                          "Ort": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "Postleitzahl": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "Bundesland": {
+                            "type": "string",
+                            "nullable": true
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "description": "Returned instead of a bare array when `location` could not be resolved to an exact postal code. Never confuse this with \"0 assets found\" — re-issue the request with a 5-digit postal code.",
+                      "required": [
+                        "success",
+                        "data",
+                        "locationResolutionWarning"
+                      ],
+                      "properties": {
+                        "success": {
+                          "type": "boolean",
+                          "example": true
+                        },
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": true,
+                            "properties": {
+                              "Asset-ID": {
+                                "type": "string"
+                              },
+                              "SEE Nummer": {
+                                "type": "string"
+                              },
+                              "Anlagentyp": {
+                                "type": "string"
+                              },
+                              "Leistung kW": {
+                                "type": "number"
+                              },
+                              "Ort": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "Postleitzahl": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "Bundesland": {
+                                "type": "string",
+                                "nullable": true
+                              }
+                            }
+                          }
+                        },
+                        "locationResolutionWarning": {
+                          "type": "string",
+                          "example": "Location \"Meckesheim\" could not be resolved to a postal code. The live MaStR backend only supports exact 5-digit postleitzahl filtering, not free-text city/region search. Pass \"postleitzahl\" directly, or resolve the postal code first (e.g. via grid-operations.marketPartners or OSM Geo)."
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             }
+          },
+          "400": {
+            "description": "Invalid parameters (at least one of vnbName, bdewCode, gridOperatorId or location is required)."
+          },
+          "500": {
+            "description": "Internal server error during MaStR query."
           }
         },
         "description": "**Default: Only active installations (status 35).**",

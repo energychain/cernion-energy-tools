@@ -15,8 +15,7 @@
  */
 
 const crypto = require('crypto');
-const PouchDB = require('pouchdb');
-PouchDB.plugin(require('pouchdb-find'));
+const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 const CernionMCPClient = require('../src/mcp-client');
 const { runAsync } = require('../src/async-job-runner');
 const {
@@ -73,25 +72,13 @@ const STATUS_IN_BETRIEB = 35;
 module.exports = {
   name: 'redispatch-expost',
 
-  settings: {
-    dbPath: process.env.REDISPATCH_EXPOST_DB_PATH || './data/redispatch-expost',
-  },
-
-  created() {
-    this.db = new PouchDB(this.settings.dbPath, { auto_compaction: true });
-  },
-
-  async started() {
-    await this.db.createIndex({ index: { fields: ['createdAt'] } });
-    await this.db.createIndex({ index: { fields: ['gridOperator.mastrId'] } });
-    this.logger.info(`Redispatch Ex-Post DB initialized at ${this.settings.dbPath}`);
-  },
-
-  async stopped() {
-    if (this.db) {
-      await this.db.close();
-    }
-  },
+  mixins: [
+    createPouchDbLifecycleMixin({
+      dbPathEnvVar: 'REDISPATCH_EXPOST_DB_PATH',
+      defaultDbPath: './data/redispatch-expost',
+      indexes: [['createdAt'], ['gridOperator.mastrId']],
+    }),
+  ],
 
   // ---------------------------------------------------------------------------
   // Actions

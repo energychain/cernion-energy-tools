@@ -21,8 +21,7 @@
  */
 
 const crypto = require('crypto');
-const PouchDB = require('pouchdb');
-PouchDB.plugin(require('pouchdb-find'));
+const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 const { MoleculerClientError } = require('moleculer').Errors;
 const { getTenantId } = require('../src/tenant-context');
 
@@ -147,25 +146,13 @@ function nowIso() {
 module.exports = {
   name: 'automatisierungsradar',
 
-  settings: {
-    dbPath: process.env.AUTOMATISIERUNGSRADAR_DB_PATH || './data/automatisierungsradar',
-  },
-
-  created() {
-    this.db = new PouchDB(this.settings.dbPath, { auto_compaction: true });
-  },
-
-  async started() {
-    await this.db.createIndex({ index: { fields: ['tenantId'] } });
-    await this.db.createIndex({ index: { fields: ['gridOperatorId'] } });
-    await this.db.createIndex({ index: { fields: ['createdAt'] } });
-    await this.db.createIndex({ index: { fields: ['tenantId', 'type', 'createdAt'] } });
-    this.logger.info(`Automatisierungsradar DB initialized at ${this.settings.dbPath}`);
-  },
-
-  async stopped() {
-    if (this.db) await this.db.close();
-  },
+  mixins: [
+    createPouchDbLifecycleMixin({
+      dbPathEnvVar: 'AUTOMATISIERUNGSRADAR_DB_PATH',
+      defaultDbPath: './data/automatisierungsradar',
+      indexes: [['tenantId'], ['gridOperatorId'], ['createdAt'], ['tenantId', 'type', 'createdAt']],
+    }),
+  ],
 
   actions: {
     /**

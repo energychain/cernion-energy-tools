@@ -40,8 +40,7 @@ const path = require('path');
 
 const crypto = require('crypto');
 const { MoleculerError } = require('moleculer').Errors;
-const PouchDB = require('pouchdb');
-PouchDB.plugin(require('pouchdb-find'));
+const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 const Graph = require('graphology');
 
 const jobStore = require('../src/job-store');
@@ -102,10 +101,15 @@ const ASSUMPTION_SCHEMA = {
 module.exports = {
   name: 'znp',
 
-  settings: {
-    /** PouchDB path for project metadata. Override with ZNP_DB_PATH env var. */
-    dbPath: process.env.ZNP_DB_PATH || './data/znp',
-  },
+  mixins: [
+    createPouchDbLifecycleMixin({
+      dbPathEnvVar: 'ZNP_DB_PATH',
+      defaultDbPath: './data/znp',
+      indexes: [['createdAt']],
+    }),
+  ],
+
+  settings: {/** PouchDB path for project metadata. Override with ZNP_DB_PATH env var. */},
 
   // ─── Lifecycle ──────────────────────────────────────────────────────────────
 
@@ -115,20 +119,14 @@ module.exports = {
      * Map<projectId: string, { graph: Graph, bbox, createdAt, layers: string[] }>
      */
     this.activeGraphs = new Map();
-    this.db = new PouchDB(this.settings.dbPath, { auto_compaction: true });
   },
 
   async started() {
-    await this.db.createIndex({ index: { fields: ['createdAt'] } });
-    this.logger.info(`[znp] Project metadata DB initialised at ${this.settings.dbPath}`);
     await this._hydrateGraphs();
   },
 
   async stopped() {
     this.activeGraphs.clear();
-    if (this.db) {
-      await this.db.close();
-    }
   },
 
   // ─── Actions ────────────────────────────────────────────────────────────────

@@ -11,8 +11,7 @@
  */
 
 const crypto = require('crypto');
-const PouchDB = require('pouchdb');
-PouchDB.plugin(require('pouchdb-find'));
+const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 const { MoleculerClientError } = require('moleculer').Errors;
 const { getTenantId } = require('../src/tenant-context');
 const {
@@ -35,26 +34,13 @@ function nowIso() {
 module.exports = {
   name: 'redispatch-asset-register',
 
-  settings: {
-    dbPath: process.env.REDISPATCH_ASSET_REGISTER_DB_PATH || './data/redispatch-asset-register',
-  },
-
-  created() {
-    this.db = new PouchDB(this.settings.dbPath, { auto_compaction: true });
-  },
-
-  async started() {
-    await this.db.createIndex({ index: { fields: ['tenantId', 'docType'] } });
-    await this.db.createIndex({ index: { fields: ['mastrId'] } });
-    await this.db.createIndex({ index: { fields: ['assetIdA'] } });
-    await this.db.createIndex({ index: { fields: ['assetIdB'] } });
-    await this.db.createIndex({ index: { fields: ['createdAt'] } });
-    this.logger.info(`Redispatch Asset Register DB initialized at ${this.settings.dbPath}`);
-  },
-
-  async stopped() {
-    if (this.db) await this.db.close();
-  },
+  mixins: [
+    createPouchDbLifecycleMixin({
+      dbPathEnvVar: 'REDISPATCH_ASSET_REGISTER_DB_PATH',
+      defaultDbPath: './data/redispatch-asset-register',
+      indexes: [['tenantId', 'docType'], ['mastrId'], ['assetIdA'], ['assetIdB'], ['createdAt']],
+    }),
+  ],
 
   actions: {
     // ── Projections ───────────────────────────────────────────────────────

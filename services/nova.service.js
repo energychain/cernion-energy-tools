@@ -2,8 +2,7 @@
 
 const crypto = require('crypto');
 const { PassThrough } = require('stream');
-const PouchDB = require('pouchdb');
-PouchDB.plugin(require('pouchdb-find'));
+const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 const { MoleculerError } = require('moleculer').Errors;
 const { getTenantId } = require('../src/tenant-context');
 const {
@@ -34,8 +33,15 @@ const DECISION_KINDS_WITH_HITL = new Set([
 module.exports = {
   name: 'nova',
 
+  mixins: [
+    createPouchDbLifecycleMixin({
+      dbPathEnvVar: 'NOVA_DB_PATH',
+      defaultDbPath: './data/nova',
+      indexes: [['type'], ['tenantId'], ['projectId'], ['kind'], ['lifecycle.current']],
+    }),
+  ],
+
   settings: {
-    dbPath: process.env.NOVA_DB_PATH || './data/nova',
     decisionTtlHours: Number(process.env.NOVA_DECISION_TTL_HOURS || DEFAULT_DECISION_TTL_HOURS),
     expiryCheckIntervalMs: Number(process.env.NOVA_EXPIRY_CHECK_INTERVAL_MS || 60_000),
   },
@@ -43,17 +49,10 @@ module.exports = {
   created() {
     this.sseClients = new Set();
     this.pendingDecisionIndex = new Map();
-    this.db = new PouchDB(this.settings.dbPath, { auto_compaction: true });
     this.expiryTimer = null;
   },
 
   async started() {
-    await this.db.createIndex({ index: { fields: ['type'] } });
-    await this.db.createIndex({ index: { fields: ['tenantId'] } });
-    await this.db.createIndex({ index: { fields: ['projectId'] } });
-    await this.db.createIndex({ index: { fields: ['kind'] } });
-    await this.db.createIndex({ index: { fields: ['lifecycle.current'] } });
-
     this.expiryTimer = setInterval(() => {
       this.expireDueDecisions().catch((err) =>
         this.logger.warn(`[nova] expireDueDecisions failed: ${err.message}`)
@@ -76,10 +75,6 @@ module.exports = {
       }
     }
     this.sseClients.clear();
-
-    if (this.db) {
-      await this.db.close();
-    }
   },
 
   events: {

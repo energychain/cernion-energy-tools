@@ -8,6 +8,14 @@
 
 const BROKER_SCHEMA_VERSION = 'cernion.capabilityRecommendation.v1';
 
+// Small `avoid`/`fallbackActions` fragments repeated verbatim across dozens of
+// CURATED_CAPABILITIES entries below — extracted once so the underlying policy
+// (e.g. "don't recommend the generic query tools", "fall back to marking a gap")
+// only needs to change in one place.
+const AVOID_QUERY_TOOLS = ['query.ask', 'query.askLearned'];
+const AVOID_QUERY_ASK_ONLY = ['query.ask'];
+const FALLBACK_MARK_GAP = ['interface-placeholder.markGap'];
+
 const INTERFACE_PLACEHOLDER_CAPABILITY = {
   capability: 'interface_placeholder',
   domain: 'governance',
@@ -19,8 +27,8 @@ const INTERFACE_PLACEHOLDER_CAPABILITY = {
     'interface-placeholder.requestEvidence',
     'interface-placeholder.listGaps',
   ],
-  fallbackActions: ['interface-placeholder.markGap'],
-  avoid: ['query.ask', 'query.askLearned'],
+  fallbackActions: FALLBACK_MARK_GAP,
+  avoid: AVOID_QUERY_TOOLS,
   requiredInputs: [
     {
       name: 'role',
@@ -65,8 +73,8 @@ const CURATED_CAPABILITIES = [
       'interface-placeholder.requestEvidence',
       'interface-placeholder.listGaps',
     ],
-    fallbackActions: ['interface-placeholder.markGap'],
-    avoid: ['query.ask', 'query.askLearned'],
+    fallbackActions: FALLBACK_MARK_GAP,
+    avoid: AVOID_QUERY_TOOLS,
     requiredInputs: [
       {
         name: 'role',
@@ -98,8 +106,8 @@ const CURATED_CAPABILITIES = [
       'redispatch',
     ],
     preferredActions: ['v1.blindflug-radar.scan', 'znp.correlateDisturbance'],
-    fallbackActions: ['interface-placeholder.markGap'],
-    avoid: ['query.ask'],
+    fallbackActions: FALLBACK_MARK_GAP,
+    avoid: AVOID_QUERY_ASK_ONLY,
     requiredInputs: [
       {
         name: 'vnbId',
@@ -138,8 +146,8 @@ const CURATED_CAPABILITIES = [
       'strategische annahme',
     ],
     preferredActions: ['znp.assessPortfolio'],
-    fallbackActions: ['interface-placeholder.markGap'],
-    avoid: ['query.ask', 'query.askLearned'],
+    fallbackActions: FALLBACK_MARK_GAP,
+    avoid: AVOID_QUERY_TOOLS,
     requiredInputs: [
       {
         name: 'projectId',
@@ -1967,8 +1975,8 @@ const CURATED_CAPABILITIES = [
       'grid-operations.netzfahrplanGenerate',
       'finance-agent.fnavEconomics',
     ],
-    fallbackActions: ['interface-placeholder.markGap'],
-    avoid: ['query.ask', 'query.askLearned'],
+    fallbackActions: FALLBACK_MARK_GAP,
+    avoid: AVOID_QUERY_TOOLS,
     requiredInputs: [
       {
         name: 'requestedCapacityKW',
@@ -2016,7 +2024,7 @@ const CURATED_CAPABILITIES = [
       'energy-market.prices',
     ],
     fallbackActions: ['grid-operations.marketPartners', 'residual-load.netResidualLoad'],
-    avoid: ['query.ask', 'query.askLearned'],
+    avoid: AVOID_QUERY_TOOLS,
     requiredInputs: [
       {
         name: 'query',
@@ -2126,7 +2134,7 @@ const CURATED_CAPABILITIES = [
     ],
     preferredActions: ['settlement.reconcileA96'],
     fallbackActions: ['settlement.prepareA96'],
-    avoid: ['query.ask', 'query.askLearned'],
+    avoid: AVOID_QUERY_TOOLS,
     requiredInputs: [
       {
         name: 'settlementId',
@@ -2171,7 +2179,7 @@ const CURATED_CAPABILITIES = [
       'forecast-engine.evaluateQuality',
       'vdmi.findings',
     ],
-    avoid: ['query.ask', 'query.askLearned'],
+    avoid: AVOID_QUERY_TOOLS,
     requiredInputs: [
       {
         name: 'meloId',
@@ -2224,7 +2232,7 @@ const CURATED_CAPABILITIES = [
     ],
     preferredActions: ['vdmi.agentRole', 'vdmi.context'],
     fallbackActions: ['vdmi.agentRole', 'interface-placeholder.markGap'],
-    avoid: ['query.ask', 'query.askLearned'],
+    avoid: AVOID_QUERY_TOOLS,
     requiredInputs: [
       {
         name: 'agentId',
@@ -2270,7 +2278,7 @@ const CURATED_CAPABILITIES = [
     ],
     preferredActions: ['vdmi.dossier', 'vdmi.negotiationTrace', 'vdmi.agentRole'],
     fallbackActions: ['vdmi.dossier', 'interface-placeholder.markGap'],
-    avoid: ['query.ask', 'query.askLearned'],
+    avoid: AVOID_QUERY_TOOLS,
     requiredInputs: [
       {
         name: 'taskId',
@@ -2319,7 +2327,7 @@ const CURATED_CAPABILITIES = [
       stepActions: ['vdmi.dossier', 'vdmi.negotiationTrace', 'vdmi.agentRole'],
     },
     fallbackActions: ['vdmi.dossier', 'interface-placeholder.markGap'],
-    avoid: ['query.ask', 'query.askLearned'],
+    avoid: AVOID_QUERY_TOOLS,
     requiredInputs: [
       {
         name: 'taskId',
@@ -2437,7 +2445,7 @@ const CURATED_CAPABILITIES = [
     keywords: ['inhouse', 'csv', 'upload', 'datasource', 'messwerte', 'lastprofil'],
     preferredActions: ['datasource-cache.query', 'in-memory-join.meteringSpotCost'],
     fallbackActions: ['datasource-cache.query'],
-    avoid: ['query.ask', 'query.askLearned'],
+    avoid: AVOID_QUERY_TOOLS,
     requiredInputs: [
       {
         name: 'sourceId',
@@ -2534,7 +2542,7 @@ const CURATED_CAPABILITIES = [
       stepActions: ['finance-agent.analyze'],
     },
     fallbackActions: ['finance-agent.analyze', 'interface-placeholder.markGap'],
-    avoid: ['query.ask', 'query.askLearned'],
+    avoid: AVOID_QUERY_TOOLS,
     requiredInputs: [
       {
         name: 'query',
@@ -2636,7 +2644,7 @@ const CURATED_CAPABILITIES = [
       'assets.all',
     ],
     fallbackActions: ['grid-operations.marketPartners', 'ewk-monitoring.benchmarkVnb'],
-    avoid: ['query.ask', 'query.askLearned'],
+    avoid: AVOID_QUERY_TOOLS,
     requiredInputs: [
       {
         name: 'vnb1Name',
@@ -2673,7 +2681,7 @@ const CURATED_CAPABILITIES = [
     keywords: ['ghost asset', 'ortsfremde anlage', 'mastr geo', 'eeg vergütung', 'netzgebiet'],
     preferredActions: ['ghost-asset-alert.scan', 'ghost-asset-alert.list', 'ghost-asset-alert.get'],
     fallbackActions: ['ghost-asset-alert.list'],
-    avoid: ['query.ask'],
+    avoid: AVOID_QUERY_ASK_ONLY,
     requiredInputs: [
       { name: 'gridOperatorId', label: 'Netzbetreiber ID', type: 'string', required: true },
       { name: 'installations', label: 'Anlagen-Liste', type: 'array', required: true },
@@ -2689,7 +2697,7 @@ const CURATED_CAPABILITIES = [
     keywords: ['bess', 'grossspeicher', 'netzanschluss evidence', 'speicheranschluss'],
     preferredActions: ['bess-screening.screen', 'bess-screening.list', 'bess-screening.get'],
     fallbackActions: ['bess-screening.list'],
-    avoid: ['query.ask'],
+    avoid: AVOID_QUERY_ASK_ONLY,
     requiredInputs: [
       { name: 'gridOperatorId', label: 'Netzbetreiber ID', type: 'string', required: true },
     ],
@@ -2702,7 +2710,7 @@ const CURATED_CAPABILITIES = [
     keywords: ['n-1', 'engpass', 'agnes', 'dynamisches netzentgelt', 'fnav portfolio'],
     preferredActions: ['agnes-bottleneck.assess', 'agnes-bottleneck.list', 'agnes-bottleneck.get'],
     fallbackActions: ['agnes-bottleneck.list'],
-    avoid: ['query.ask'],
+    avoid: AVOID_QUERY_ASK_ONLY,
     requiredInputs: [
       { name: 'gridOperatorId', label: 'Netzbetreiber ID', type: 'string', required: true },
     ],
@@ -2721,7 +2729,7 @@ const CURATED_CAPABILITIES = [
       'capex-prioritization.get',
     ],
     fallbackActions: ['capex-prioritization.list'],
-    avoid: ['query.ask'],
+    avoid: AVOID_QUERY_ASK_ONLY,
     requiredInputs: [
       { name: 'gridOperatorId', label: 'Netzbetreiber ID', type: 'string', required: true },
     ],
@@ -2740,7 +2748,7 @@ const CURATED_CAPABILITIES = [
       'connection-rejection-evidence.get',
     ],
     fallbackActions: ['connection-rejection-evidence.list'],
-    avoid: ['query.ask'],
+    avoid: AVOID_QUERY_ASK_ONLY,
     requiredInputs: [
       { name: 'gridOperatorId', label: 'Netzbetreiber ID', type: 'string', required: true },
     ],
@@ -2759,7 +2767,7 @@ const CURATED_CAPABILITIES = [
       'e2e-connection-check.list',
     ],
     fallbackActions: ['e2e-connection-check.list'],
-    avoid: ['query.ask'],
+    avoid: AVOID_QUERY_ASK_ONLY,
     requiredInputs: [
       { name: 'gridOperatorId', label: 'Netzbetreiber ID', type: 'string', required: true },
     ],
@@ -2779,7 +2787,7 @@ const CURATED_CAPABILITIES = [
       'fnav-commercial-hedging.listContracts',
     ],
     fallbackActions: ['fnav-commercial-hedging.listContracts'],
-    avoid: ['query.ask'],
+    avoid: AVOID_QUERY_ASK_ONLY,
     requiredInputs: [
       { name: 'gridOperatorId', label: 'Netzbetreiber ID', type: 'string', required: true },
     ],
@@ -2798,7 +2806,7 @@ const CURATED_CAPABILITIES = [
       'flexibilitaetskosten-raster.get',
     ],
     fallbackActions: ['flexibilitaetskosten-raster.list'],
-    avoid: ['query.ask'],
+    avoid: AVOID_QUERY_ASK_ONLY,
     requiredInputs: [
       { name: 'gridOperatorId', label: 'Netzbetreiber ID', type: 'string', required: true },
     ],
@@ -2814,7 +2822,7 @@ const CURATED_CAPABILITIES = [
     keywords: ['nkp', 'netzknotenpunkt', 'reporting', 'plausibilitaetspruefung', 'kpi'],
     preferredActions: ['nkp-reporting.importReport', 'nkp-reporting.list', 'nkp-reporting.get'],
     fallbackActions: ['nkp-reporting.list'],
-    avoid: ['query.ask'],
+    avoid: AVOID_QUERY_ASK_ONLY,
     requiredInputs: [
       { name: 'gridOperatorId', label: 'Netzbetreiber ID', type: 'string', required: true },
     ],
@@ -2831,7 +2839,7 @@ const CURATED_CAPABILITIES = [
       'reporting-governance.get',
     ],
     fallbackActions: ['reporting-governance.list'],
-    avoid: ['query.ask'],
+    avoid: AVOID_QUERY_ASK_ONLY,
     requiredInputs: [
       { name: 'gridOperatorId', label: 'Netzbetreiber ID', type: 'string', required: true },
     ],
@@ -2847,7 +2855,7 @@ const CURATED_CAPABILITIES = [
     keywords: ['reinvest', 'aregv fotojahr', 'wartungslog', 'scada', 'investitionssignal'],
     preferredActions: ['reinvest-signal.analyze', 'reinvest-signal.list', 'reinvest-signal.get'],
     fallbackActions: ['reinvest-signal.list'],
-    avoid: ['query.ask'],
+    avoid: AVOID_QUERY_ASK_ONLY,
     requiredInputs: [
       { name: 'gridOperatorId', label: 'Netzbetreiber ID', type: 'string', required: true },
     ],
@@ -2866,7 +2874,7 @@ const CURATED_CAPABILITIES = [
       'vnb-100-tage-assessment.get',
     ],
     fallbackActions: ['vnb-100-tage-assessment.list'],
-    avoid: ['query.ask'],
+    avoid: AVOID_QUERY_ASK_ONLY,
     requiredInputs: [
       { name: 'gridOperatorId', label: 'Netzbetreiber ID', type: 'string', required: true },
     ],
@@ -2883,7 +2891,7 @@ const CURATED_CAPABILITIES = [
       'altdaten-assessment.get',
     ],
     fallbackActions: ['altdaten-assessment.list'],
-    avoid: ['query.ask'],
+    avoid: AVOID_QUERY_ASK_ONLY,
     requiredInputs: [
       { name: 'gridOperatorId', label: 'Netzbetreiber ID', type: 'string', required: true },
       { name: 'deviations', label: 'Abweichungsliste', type: 'array', required: true },
@@ -2907,7 +2915,7 @@ const CURATED_CAPABILITIES = [
       'automatisierungsradar.get',
     ],
     fallbackActions: ['automatisierungsradar.list'],
-    avoid: ['query.ask'],
+    avoid: AVOID_QUERY_ASK_ONLY,
     requiredInputs: [
       { name: 'gridOperatorId', label: 'Netzbetreiber ID', type: 'string', required: true },
       { name: 'steps', label: 'Prozessschritte', type: 'array', required: true },
@@ -2926,7 +2934,7 @@ const CURATED_CAPABILITIES = [
       'gasnetz-waermeplanung.get',
     ],
     fallbackActions: ['gasnetz-waermeplanung.list'],
-    avoid: ['query.ask'],
+    avoid: AVOID_QUERY_ASK_ONLY,
     requiredInputs: [
       { name: 'gridOperatorId', label: 'Netzbetreiber ID', type: 'string', required: true },
       { name: 'segments', label: 'Gasnetz-Segmente', type: 'array', required: true },
@@ -2948,7 +2956,7 @@ const CURATED_CAPABILITIES = [
       'netzkoppelvertrag-workflow.list',
     ],
     fallbackActions: ['netzkoppelvertrag-workflow.list'],
-    avoid: ['query.ask'],
+    avoid: AVOID_QUERY_ASK_ONLY,
     requiredInputs: [
       { name: 'gridOperatorId', label: 'Netzbetreiber ID', type: 'string', required: true },
     ],
@@ -2971,7 +2979,7 @@ const CURATED_CAPABILITIES = [
       'vdmi-portfolio-gatekeeping.get',
     ],
     fallbackActions: ['vdmi-portfolio-gatekeeping.list'],
-    avoid: ['query.ask'],
+    avoid: AVOID_QUERY_ASK_ONLY,
     requiredInputs: [
       { name: 'gridOperatorId', label: 'Netzbetreiber ID', type: 'string', required: true },
       { name: 'assetIds', label: 'Asset-IDs', type: 'array', required: true },
@@ -2995,7 +3003,7 @@ const CURATED_CAPABILITIES = [
       'vdmi-governance-templates.listInstances',
     ],
     fallbackActions: ['vdmi-governance-templates.listBaseTemplates'],
-    avoid: ['query.ask'],
+    avoid: AVOID_QUERY_ASK_ONLY,
     requiredInputs: [
       { name: 'gridOperatorId', label: 'Netzbetreiber ID', type: 'string', required: true },
       { name: 'templateType', label: 'Template-Typ', type: 'string', required: true },
@@ -3023,7 +3031,7 @@ const CURATED_CAPABILITIES = [
       'regulatorische-entgeltlogik.list',
     ],
     fallbackActions: ['regulatorische-entgeltlogik.list'],
-    avoid: ['query.ask'],
+    avoid: AVOID_QUERY_ASK_ONLY,
     requiredInputs: [
       { name: 'gridOperatorId', label: 'Netzbetreiber ID', type: 'string', required: true },
     ],
@@ -3068,7 +3076,7 @@ const CURATED_CAPABILITIES = [
       'decision-frame.get',
     ],
     fallbackActions: ['decision-frame.list'],
-    avoid: ['query.ask', 'query.askLearned'],
+    avoid: AVOID_QUERY_TOOLS,
     requiredInputs: [
       { name: 'situation', label: 'Aktuelle Ausgangslage', type: 'string', required: true },
       {
@@ -3117,7 +3125,7 @@ const CURATED_CAPABILITIES = [
       'file-ingest-monitor.listMonitors',
     ],
     fallbackActions: ['file-ingest-monitor.listMonitors'],
-    avoid: ['query.ask', 'query.askLearned'],
+    avoid: AVOID_QUERY_TOOLS,
     requiredInputs: [
       { name: 'watchPath', label: 'Überwachter Dateipfad', type: 'string', required: true },
     ],
@@ -3155,7 +3163,7 @@ const CURATED_CAPABILITIES = [
       'redispatch-asset-register.listRelationships',
     ],
     fallbackActions: ['redispatch-asset-register.listProjections'],
-    avoid: ['query.ask', 'query.askLearned'],
+    avoid: AVOID_QUERY_TOOLS,
     requiredInputs: [
       { name: 'mastrId', label: 'MaStR-ID der Anlage', type: 'string', required: true },
     ],
@@ -3192,7 +3200,7 @@ const CURATED_CAPABILITIES = [
       'redispatch-data-governance.listEvaluations',
     ],
     fallbackActions: ['redispatch-data-governance.listPolicies'],
-    avoid: ['query.ask', 'query.askLearned'],
+    avoid: AVOID_QUERY_TOOLS,
     requiredInputs: [
       { name: 'dataClass', label: 'Datenklasse', type: 'string', required: true },
       { name: 'processId', label: 'Prozess-ID', type: 'string', required: true },
@@ -3229,7 +3237,7 @@ const CURATED_CAPABILITIES = [
       'redispatch-settlement-sandbox.getScenario',
     ],
     fallbackActions: ['redispatch-settlement-sandbox.listScenarios'],
-    avoid: ['query.ask', 'query.askLearned'],
+    avoid: AVOID_QUERY_TOOLS,
     requiredInputs: [
       { name: 'gridOperatorId', label: 'Netzbetreiber-ID', type: 'string', required: true },
       { name: 'periodStart', label: 'Abrechnungsperiode Start', type: 'string', required: true },
@@ -3269,7 +3277,7 @@ const CURATED_CAPABILITIES = [
       'interface-placeholder.requestEvidence',
       'interface-placeholder.listGaps',
     ],
-    fallbackActions: ['interface-placeholder.markGap'],
+    fallbackActions: FALLBACK_MARK_GAP,
     avoid: [
       'vdmi.dossier',
       'vdmi.agentRole',
@@ -3319,7 +3327,7 @@ const CURATED_CAPABILITIES = [
       'interface-placeholder.requestEvidence',
       'interface-placeholder.listGaps',
     ],
-    fallbackActions: ['interface-placeholder.markGap'],
+    fallbackActions: FALLBACK_MARK_GAP,
     avoid: ['vdmi.dossier', 'vdmi.agentRole', 'query.ask', 'query.askLearned'],
     requiredInputs: [
       {
@@ -3364,7 +3372,7 @@ const CURATED_CAPABILITIES = [
       'interface-placeholder.requestEvidence',
       'interface-placeholder.listGaps',
     ],
-    fallbackActions: ['interface-placeholder.markGap'],
+    fallbackActions: FALLBACK_MARK_GAP,
     avoid: [
       'vdmi.dossier',
       'vdmi.agentRole',
@@ -3412,7 +3420,7 @@ const CURATED_CAPABILITIES = [
       'interface-placeholder.requestEvidence',
       'interface-placeholder.listGaps',
     ],
-    fallbackActions: ['interface-placeholder.markGap'],
+    fallbackActions: FALLBACK_MARK_GAP,
     avoid: ['vdmi.dossier', 'vdmi.agentRole', 'query.ask', 'query.askLearned'],
     requiredInputs: [
       { name: 'sourceId', label: 'Datenquellen-ID oder -Name', type: 'string', required: false },
@@ -3447,7 +3455,7 @@ const CURATED_CAPABILITIES = [
       'interface-placeholder.requestEvidence',
       'interface-placeholder.listGaps',
     ],
-    fallbackActions: ['interface-placeholder.markGap'],
+    fallbackActions: FALLBACK_MARK_GAP,
     avoid: [
       'vdmi.dossier',
       'vdmi.agentRole',
@@ -8692,7 +8700,7 @@ const CURATED_CAPABILITIES = [
       'redispatch-readiness-gate.getRun',
     ],
     fallbackActions: ['redispatch-readiness-gate.getStatus'],
-    avoid: ['query.ask', 'query.askLearned'],
+    avoid: AVOID_QUERY_TOOLS,
     requiredInputs: [
       { name: 'processId', label: 'Redispatch-Prozess-ID', type: 'string', required: false },
     ],
@@ -8719,7 +8727,7 @@ const CURATED_CAPABILITIES = [
     ],
     preferredActions: ['redispatch-participation-readiness.getStatus'],
     fallbackActions: ['redispatch-participation-readiness.getStatus'],
-    avoid: ['query.ask', 'query.askLearned'],
+    avoid: AVOID_QUERY_TOOLS,
     requiredInputs: [{ name: 'tenantId', label: 'Tenant-ID', type: 'string', required: false }],
     risksAndNotes: [
       'getStatus ist read-only und dossier-safe.',
@@ -8754,7 +8762,7 @@ const CURATED_CAPABILITIES = [
       're4de-variable-grid-fee.calculate',
     ],
     fallbackActions: ['re4de-variable-grid-fee.getEvidence'],
-    avoid: ['query.ask', 'query.askLearned'],
+    avoid: AVOID_QUERY_TOOLS,
     requiredInputs: [
       { name: 'calculationId', label: 'Calculation ID', type: 'string', required: false },
       {
@@ -8809,7 +8817,7 @@ const CURATED_CAPABILITIES = [
       'battery-redispatch-special-gate.getGate',
     ],
     fallbackActions: ['battery-redispatch-special-gate.getStatus'],
-    avoid: ['query.ask', 'query.askLearned'],
+    avoid: AVOID_QUERY_TOOLS,
     requiredInputs: [
       { name: 'gateId', label: 'Battery Redispatch Gate ID', type: 'string', required: false },
       { name: 'assetId', label: 'Speicher-Asset-ID', type: 'string', required: false },
@@ -9094,7 +9102,7 @@ const CURATED_CAPABILITIES = [
       'redispatch-special-case-gate.getRun',
     ],
     fallbackActions: ['redispatch-special-case-gate.listRuns'],
-    avoid: ['query.ask', 'query.askLearned'],
+    avoid: AVOID_QUERY_TOOLS,
     requiredInputs: [
       { name: 'mastrId', label: 'MaStR-ID der Anlage', type: 'string', required: true },
       { name: 'periodStart', label: 'Bewertungszeitraum Start', type: 'string', required: true },
@@ -9153,7 +9161,7 @@ const CURATED_CAPABILITIES = [
       'bess grid',
     ],
     preferredActions: ['interface-placeholder.markGap', 'interface-placeholder.requestEvidence'],
-    fallbackActions: ['interface-placeholder.markGap'],
+    fallbackActions: FALLBACK_MARK_GAP,
     avoid: ['query.ask', 'query.askLearned', 'vdmi.dossier'],
     requiredInputs: [],
     risksAndNotes: [
@@ -9175,7 +9183,7 @@ const CURATED_CAPABILITIES = [
       'regulatorische kapitalkosten',
     ],
     preferredActions: ['interface-placeholder.markGap', 'interface-placeholder.requestEvidence'],
-    fallbackActions: ['interface-placeholder.markGap'],
+    fallbackActions: FALLBACK_MARK_GAP,
     avoid: ['query.ask', 'query.askLearned', 'vdmi.dossier'],
     requiredInputs: [],
     risksAndNotes: [
@@ -9219,7 +9227,7 @@ const CURATED_CAPABILITIES = [
       'connection rejection',
     ],
     preferredActions: ['interface-placeholder.markGap', 'interface-placeholder.requestEvidence'],
-    fallbackActions: ['interface-placeholder.markGap'],
+    fallbackActions: FALLBACK_MARK_GAP,
     avoid: ['query.ask', 'query.askLearned', 'vdmi.dossier'],
     requiredInputs: [],
     risksAndNotes: [
@@ -9241,7 +9249,7 @@ const CURATED_CAPABILITIES = [
       'gasinfrastruktur transformation',
     ],
     preferredActions: ['interface-placeholder.markGap', 'interface-placeholder.requestEvidence'],
-    fallbackActions: ['interface-placeholder.markGap'],
+    fallbackActions: FALLBACK_MARK_GAP,
     avoid: ['query.ask', 'query.askLearned', 'vdmi.dossier'],
     requiredInputs: [],
     risksAndNotes: [
@@ -9358,7 +9366,7 @@ const CURATED_CAPABILITIES = [
     ],
     preferredActions: ['dashboard-api.mastrSyncGapStatus'],
     fallbackActions: ['dashboard-api.mastrSyncGapStatus'],
-    avoid: ['query.ask', 'query.askLearned'],
+    avoid: AVOID_QUERY_TOOLS,
     requiredInputs: [{ name: 'tenantId', label: 'Tenant-ID', type: 'string', required: false }],
     risksAndNotes: [
       'mastrSyncGapStatus ist read-only und dossier-safe.',
@@ -9381,7 +9389,7 @@ const CURATED_CAPABILITIES = [
     ],
     preferredActions: ['dashboard-api.decommissionedAssetReconciliationStatus'],
     fallbackActions: ['dashboard-api.decommissionedAssetReconciliationStatus'],
-    avoid: ['query.ask', 'query.askLearned'],
+    avoid: AVOID_QUERY_TOOLS,
     requiredInputs: [{ name: 'tenantId', label: 'Tenant-ID', type: 'string', required: false }],
     risksAndNotes: [
       'decommissionedAssetReconciliationStatus ist read-only und dossier-safe.',
@@ -9403,7 +9411,7 @@ const CURATED_CAPABILITIES = [
     ],
     preferredActions: ['dashboard-api.energySharingCollectiveApprovalStatus'],
     fallbackActions: ['dashboard-api.energySharingCollectiveApprovalStatus'],
-    avoid: ['query.ask', 'query.askLearned'],
+    avoid: AVOID_QUERY_TOOLS,
     requiredInputs: [{ name: 'tenantId', label: 'Tenant-ID', type: 'string', required: false }],
     risksAndNotes: [
       'energySharingCollectiveApprovalStatus ist read-only und dossier-safe.',

@@ -19,8 +19,7 @@
  * forwarded — never raw prompts, chat transcripts, or learned fact values.
  */
 
-const PouchDB = require('pouchdb');
-PouchDB.plugin(require('pouchdb-find'));
+const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 const { MoleculerClientError } = require('moleculer').Errors;
 const { getTenantId, validateTenantId } = require('../src/tenant-context');
 
@@ -99,26 +98,13 @@ function computeScopeHash(normalizedScope) {
 module.exports = {
   name: 'evidence-revalidation',
 
-  settings: {
-    dbPath: process.env.EVIDENCE_REVALIDATION_DB_PATH || './data/evidence-revalidation',
-  },
-
-  created() {
-    this.db = new PouchDB(this.settings.dbPath, { auto_compaction: true });
-  },
-
-  async started() {
-    await this.db.createIndex({ index: { fields: ['tenantId'] } });
-    await this.db.createIndex({ index: { fields: ['status'] } });
-    await this.db.createIndex({ index: { fields: ['requestedFact'] } });
-    this.logger.info(`Evidence Revalidation DB initialized at ${this.settings.dbPath}`);
-  },
-
-  async stopped() {
-    if (this.db) {
-      await this.db.close();
-    }
-  },
+  mixins: [
+    createPouchDbLifecycleMixin({
+      dbPathEnvVar: 'EVIDENCE_REVALIDATION_DB_PATH',
+      defaultDbPath: './data/evidence-revalidation',
+      indexes: [['tenantId'], ['status'], ['requestedFact']],
+    }),
+  ],
 
   actions: {
     /**

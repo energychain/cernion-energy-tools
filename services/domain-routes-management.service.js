@@ -1,8 +1,7 @@
 'use strict';
 
 const crypto = require('crypto');
-const PouchDB = require('pouchdb');
-PouchDB.plugin(require('pouchdb-find'));
+const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 
 const { MoleculerClientError } = require('moleculer').Errors;
 const { CURATED_CAPABILITIES } = require('../src/capability-catalog');
@@ -260,23 +259,16 @@ function toActivePublic(doc) {
 module.exports = {
   name: 'domain-routes',
 
-  settings: {
-    dbPath: process.env.DOMAIN_ROUTES_DB_PATH || './data/domain-routes-registry',
-  },
-
-  created() {
-    this.db = new PouchDB(this.settings.dbPath, { auto_compaction: true });
-  },
+  mixins: [
+    createPouchDbLifecycleMixin({
+      dbPathEnvVar: 'DOMAIN_ROUTES_DB_PATH',
+      defaultDbPath: './data/domain-routes-registry',
+      indexes: [['type'], ['type', 'routeId']],
+    }),
+  ],
 
   async started() {
-    await this.db.createIndex({ index: { fields: ['type'] } });
-    await this.db.createIndex({ index: { fields: ['type', 'routeId'] } });
-    this.logger.info(`[domain-routes] DB ready at ${this.settings.dbPath}`);
     await this._restoreRuntimeOverlay();
-  },
-
-  async stopped() {
-    if (this.db) await this.db.close();
   },
 
   actions: {

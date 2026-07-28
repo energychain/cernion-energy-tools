@@ -3,6 +3,7 @@
 const crypto = require('crypto');
 const PouchDB = require('pouchdb');
 PouchDB.plugin(require('pouchdb-find'));
+const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 
 const { MoleculerClientError } = require('moleculer').Errors;
 
@@ -14,7 +15,6 @@ const {
 } = require('../src/znp-context-snapshot'); // v0.56.3
 const { CATALOG_BY_ROLE, ALL_ROLE_KEYS } = require('../src/evu-operational-persona-catalog');
 
-const DB_PATH = process.env.AGENT_PERSONA_DB_PATH || './data/agent-personas';
 const AUDIT_DB_PATH = process.env.AGENT_PERSONA_AUDIT_DB_PATH || './data/agent-persona-audit';
 const DEFAULT_AUDIT_RETENTION_DAYS = Number.parseInt(
   process.env.AGENT_PERSONA_AUDIT_RETENTION_DAYS || '90',
@@ -341,8 +341,14 @@ function forbiddenTenantError(requestedTenantId, callerTenantId) {
 module.exports = {
   name: 'agent-persona',
 
+  mixins: [
+    createPouchDbLifecycleMixin({
+      dbPathEnvVar: 'AGENT_PERSONA_DB_PATH',
+      defaultDbPath: './data/agent-personas',
+    }),
+  ],
+
   settings: {
-    dbPath: DB_PATH,
     auditDbPath: AUDIT_DB_PATH,
     auditRetentionDays: Number.isFinite(DEFAULT_AUDIT_RETENTION_DAYS)
       ? DEFAULT_AUDIT_RETENTION_DAYS
@@ -350,17 +356,14 @@ module.exports = {
   },
 
   created() {
-    this.db = new PouchDB(this.settings.dbPath, { auto_compaction: true });
     this.auditDb = new PouchDB(this.settings.auditDbPath, { auto_compaction: true });
   },
 
   async started() {
-    this.logger.info(`Agent Persona DB initialized at ${this.settings.dbPath}`);
     this.logger.info(`Agent Persona Audit DB initialized at ${this.settings.auditDbPath}`);
   },
 
   async stopped() {
-    if (this.db) await this.db.close();
     if (this.auditDb) await this.auditDb.close();
   },
 

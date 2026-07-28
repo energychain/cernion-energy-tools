@@ -21,8 +21,7 @@
  */
 
 const crypto = require('crypto');
-const PouchDB = require('pouchdb');
-PouchDB.plugin(require('pouchdb-find'));
+const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 const { MoleculerClientError } = require('moleculer').Errors;
 const { getTenantId } = require('../src/tenant-context');
 
@@ -100,25 +99,13 @@ function computeGovernanceScore(assessedSources) {
 module.exports = {
   name: 'reporting-governance',
 
-  settings: {
-    dbPath: process.env.REPORTING_GOVERNANCE_DB_PATH || './data/reporting-governance',
-  },
-
-  created() {
-    this.db = new PouchDB(this.settings.dbPath, { auto_compaction: true });
-  },
-
-  async started() {
-    await this.db.createIndex({ index: { fields: ['tenantId'] } });
-    await this.db.createIndex({ index: { fields: ['gridOperatorId'] } });
-    await this.db.createIndex({ index: { fields: ['createdAt'] } });
-    await this.db.createIndex({ index: { fields: ['tenantId', 'type', 'createdAt'] } });
-    this.logger.info(`Reporting Governance DB initialized at ${this.settings.dbPath}`);
-  },
-
-  async stopped() {
-    if (this.db) await this.db.close();
-  },
+  mixins: [
+    createPouchDbLifecycleMixin({
+      dbPathEnvVar: 'REPORTING_GOVERNANCE_DB_PATH',
+      defaultDbPath: './data/reporting-governance',
+      indexes: [['tenantId'], ['gridOperatorId'], ['createdAt'], ['tenantId', 'type', 'createdAt']],
+    }),
+  ],
 
   actions: {
     /**

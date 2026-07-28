@@ -7,8 +7,7 @@
  */
 
 const crypto = require('crypto');
-const PouchDB = require('pouchdb');
-PouchDB.plugin(require('pouchdb-find'));
+const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 const { MoleculerClientError } = require('moleculer').Errors;
 const { getTenantId } = require('../src/tenant-context');
 const {
@@ -140,28 +139,18 @@ function buildStatusFromGate(gate) {
 module.exports = {
   name: 'investment-maturity-off-balance-gate',
 
+  mixins: [
+    createPouchDbLifecycleMixin({
+      dbPathEnvVar: 'INVESTMENT_MATURITY_OFF_BALANCE_GATE_DB_PATH',
+      defaultDbPath: './data/investment-maturity-off-balance-gate',
+      indexes: [['tenantId', 'docType'], ['investmentCaseId'], ['evidenceStatus'], ['createdAt']],
+    }),
+  ],
+
   settings: {
     dbPath:
       process.env.INVESTMENT_MATURITY_OFF_BALANCE_GATE_DB_PATH ||
       './data/investment-maturity-off-balance-gate',
-  },
-
-  created() {
-    this.db = new PouchDB(this.settings.dbPath, { auto_compaction: true });
-  },
-
-  async started() {
-    await this.db.createIndex({ index: { fields: ['tenantId', 'docType'] } });
-    await this.db.createIndex({ index: { fields: ['investmentCaseId'] } });
-    await this.db.createIndex({ index: { fields: ['evidenceStatus'] } });
-    await this.db.createIndex({ index: { fields: ['createdAt'] } });
-    this.logger.info(
-      `Investment Maturity Off-Balance Gate DB initialized at ${this.settings.dbPath}`
-    );
-  },
-
-  async stopped() {
-    if (this.db) await this.db.close();
   },
 
   actions: {

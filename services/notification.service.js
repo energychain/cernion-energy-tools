@@ -1,8 +1,7 @@
 'use strict';
 
 const crypto = require('crypto');
-const PouchDB = require('pouchdb');
-PouchDB.plugin(require('pouchdb-find'));
+const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 const { MoleculerClientError } = require('moleculer').Errors;
 const { getTenantId, validateTenantId } = require('../src/tenant-context');
 const DISPATCH_TYPE_DEFINITIONS = require('../src/notification-dispatch-types.json');
@@ -65,25 +64,13 @@ function toHash(value) {
 module.exports = {
   name: 'notification',
 
-  settings: {
-    dbPath: process.env.NOTIFICATION_DB_PATH || './data/notifications',
-  },
-
-  created() {
-    this.db = new PouchDB(this.settings.dbPath, { auto_compaction: true });
-  },
-
-  async started() {
-    await this.db.createIndex({ index: { fields: ['tenantId'] } });
-    await this.db.createIndex({ index: { fields: ['status'] } });
-    this.logger.info(`Notification DB initialized at ${this.settings.dbPath}`);
-  },
-
-  async stopped() {
-    if (this.db) {
-      await this.db.close();
-    }
-  },
+  mixins: [
+    createPouchDbLifecycleMixin({
+      dbPathEnvVar: 'NOTIFICATION_DB_PATH',
+      defaultDbPath: './data/notifications',
+      indexes: [['tenantId'], ['status']],
+    }),
+  ],
 
   actions: {
     dispatchHitlApproval: {

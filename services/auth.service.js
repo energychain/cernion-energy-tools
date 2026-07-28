@@ -1,8 +1,7 @@
 'use strict';
 
 const crypto = require('crypto');
-const PouchDB = require('pouchdb');
-PouchDB.plugin(require('pouchdb-find'));
+const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 
 const { Errors } = require('moleculer');
 const { getTenantId } = require('../src/tenant-context');
@@ -33,8 +32,15 @@ function extractBearerToken(headers) {
 module.exports = {
   name: 'auth',
 
+  mixins: [
+    createPouchDbLifecycleMixin({
+      dbPathEnvVar: 'AUTH_DB_PATH',
+      defaultDbPath: './data/auth',
+      indexes: [['type'], ['tokenHash'], ['expiresAt']],
+    }),
+  ],
+
   settings: {
-    dbPath: process.env.AUTH_DB_PATH || './data/auth',
     sessionTtlSeconds: Number(process.env.AUTH_SESSION_TTL_SECONDS || 3600),
     cleanupIntervalMs: Number(process.env.AUTH_CLEANUP_INTERVAL_MS || 60000),
     oidc: {
@@ -63,15 +69,10 @@ module.exports = {
   },
 
   created() {
-    this.db = new PouchDB(this.settings.dbPath, { auto_compaction: true });
     this.cleanupTimer = null;
   },
 
   async started() {
-    await this.db.createIndex({ index: { fields: ['type'] } });
-    await this.db.createIndex({ index: { fields: ['tokenHash'] } });
-    await this.db.createIndex({ index: { fields: ['expiresAt'] } });
-
     this.cleanupTimer = setInterval(() => {
       this.expireSessions().catch((error) => {
         this.logger.warn(`[auth] expireSessions failed: ${error.message}`);
@@ -84,7 +85,6 @@ module.exports = {
       clearInterval(this.cleanupTimer);
       this.cleanupTimer = null;
     }
-    if (this.db) await this.db.close();
   },
 
   actions: {

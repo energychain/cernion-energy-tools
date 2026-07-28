@@ -7,8 +7,7 @@
  */
 
 const crypto = require('crypto');
-const PouchDB = require('pouchdb');
-PouchDB.plugin(require('pouchdb-find'));
+const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 const { MoleculerClientError } = require('moleculer').Errors;
 const { getTenantId } = require('../src/tenant-context');
 
@@ -327,25 +326,13 @@ function buildEvidence(calculation) {
 module.exports = {
   name: 're4de-variable-grid-fee',
 
-  settings: {
-    dbPath: process.env.RE4DE_VARIABLE_GRID_FEE_DB_PATH || './data/re4de-variable-grid-fee',
-  },
-
-  created() {
-    this.db = new PouchDB(this.settings.dbPath, { auto_compaction: true });
-  },
-
-  async started() {
-    await this.db.createIndex({ index: { fields: ['tenantId', 'docType'] } });
-    await this.db.createIndex({ index: { fields: ['calculationId'] } });
-    await this.db.createIndex({ index: { fields: ['gridAreaId'] } });
-    await this.db.createIndex({ index: { fields: ['calculatedAt'] } });
-    this.logger.info(`Re4DE Variable Grid Fee DB initialized at ${this.settings.dbPath}`);
-  },
-
-  async stopped() {
-    if (this.db) await this.db.close();
-  },
+  mixins: [
+    createPouchDbLifecycleMixin({
+      dbPathEnvVar: 'RE4DE_VARIABLE_GRID_FEE_DB_PATH',
+      defaultDbPath: './data/re4de-variable-grid-fee',
+      indexes: [['tenantId', 'docType'], ['calculationId'], ['gridAreaId'], ['calculatedAt']],
+    }),
+  ],
 
   actions: {
     /**

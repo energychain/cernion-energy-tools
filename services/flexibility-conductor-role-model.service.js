@@ -7,8 +7,7 @@
  */
 
 const crypto = require('crypto');
-const PouchDB = require('pouchdb');
-PouchDB.plugin(require('pouchdb-find'));
+const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 const { MoleculerClientError } = require('moleculer').Errors;
 const { getTenantId } = require('../src/tenant-context');
 const {
@@ -148,26 +147,18 @@ function buildStatusFromModel(model) {
 module.exports = {
   name: 'flexibility-conductor-role-model',
 
+  mixins: [
+    createPouchDbLifecycleMixin({
+      dbPathEnvVar: 'FLEXIBILITY_CONDUCTOR_ROLE_MODEL_DB_PATH',
+      defaultDbPath: './data/flexibility-conductor-role-model',
+      indexes: [['tenantId', 'docType'], ['processId'], ['evidenceStatus'], ['createdAt']],
+    }),
+  ],
+
   settings: {
     dbPath:
       process.env.FLEXIBILITY_CONDUCTOR_ROLE_MODEL_DB_PATH ||
       './data/flexibility-conductor-role-model',
-  },
-
-  created() {
-    this.db = new PouchDB(this.settings.dbPath, { auto_compaction: true });
-  },
-
-  async started() {
-    await this.db.createIndex({ index: { fields: ['tenantId', 'docType'] } });
-    await this.db.createIndex({ index: { fields: ['processId'] } });
-    await this.db.createIndex({ index: { fields: ['evidenceStatus'] } });
-    await this.db.createIndex({ index: { fields: ['createdAt'] } });
-    this.logger.info(`Flexibility Conductor Role Model DB initialized at ${this.settings.dbPath}`);
-  },
-
-  async stopped() {
-    if (this.db) await this.db.close();
   },
 
   actions: {

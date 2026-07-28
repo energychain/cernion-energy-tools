@@ -10,8 +10,7 @@
  */
 
 const crypto = require('crypto');
-const PouchDB = require('pouchdb');
-PouchDB.plugin(require('pouchdb-find'));
+const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 const { MoleculerClientError } = require('moleculer').Errors;
 const { getTenantId } = require('../src/tenant-context');
 const {
@@ -40,26 +39,23 @@ function computeInputHash(inputArtifactRefs, datapointRefs) {
 module.exports = {
   name: 'redispatch-settlement-sandbox',
 
+  mixins: [
+    createPouchDbLifecycleMixin({
+      dbPathEnvVar: 'REDISPATCH_SETTLEMENT_SANDBOX_DB_PATH',
+      defaultDbPath: './data/redispatch-settlement-sandbox',
+      indexes: [
+        ['tenantId', 'docType'],
+        ['gridOperatorId'],
+        ['periodStart'],
+        ['status'],
+        ['createdAt'],
+      ],
+    }),
+  ],
+
   settings: {
     dbPath:
       process.env.REDISPATCH_SETTLEMENT_SANDBOX_DB_PATH || './data/redispatch-settlement-sandbox',
-  },
-
-  created() {
-    this.db = new PouchDB(this.settings.dbPath, { auto_compaction: true });
-  },
-
-  async started() {
-    await this.db.createIndex({ index: { fields: ['tenantId', 'docType'] } });
-    await this.db.createIndex({ index: { fields: ['gridOperatorId'] } });
-    await this.db.createIndex({ index: { fields: ['periodStart'] } });
-    await this.db.createIndex({ index: { fields: ['status'] } });
-    await this.db.createIndex({ index: { fields: ['createdAt'] } });
-    this.logger.info(`Redispatch Settlement Sandbox DB initialized at ${this.settings.dbPath}`);
-  },
-
-  async stopped() {
-    if (this.db) await this.db.close();
   },
 
   actions: {

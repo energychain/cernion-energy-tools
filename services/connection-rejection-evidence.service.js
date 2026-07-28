@@ -24,8 +24,7 @@
  */
 
 const crypto = require('crypto');
-const PouchDB = require('pouchdb');
-PouchDB.plugin(require('pouchdb-find'));
+const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 const { MoleculerClientError } = require('moleculer').Errors;
 const { getTenantId } = require('../src/tenant-context');
 
@@ -81,26 +80,23 @@ function validateEvidenceCompleteness(params) {
 module.exports = {
   name: 'connection-rejection-evidence',
 
+  mixins: [
+    createPouchDbLifecycleMixin({
+      dbPathEnvVar: 'CONNECTION_REJECTION_EVIDENCE_DB_PATH',
+      defaultDbPath: './data/connection-rejection-evidence',
+      indexes: [
+        ['tenantId'],
+        ['tenantId', 'type', 'createdAt'],
+        ['gridOperatorId'],
+        ['createdAt'],
+        ['decision'],
+      ],
+    }),
+  ],
+
   settings: {
     dbPath:
       process.env.CONNECTION_REJECTION_EVIDENCE_DB_PATH || './data/connection-rejection-evidence',
-  },
-
-  created() {
-    this.db = new PouchDB(this.settings.dbPath, { auto_compaction: true });
-  },
-
-  async started() {
-    await this.db.createIndex({ index: { fields: ['tenantId'] } });
-    await this.db.createIndex({ index: { fields: ['tenantId', 'type', 'createdAt'] } });
-    await this.db.createIndex({ index: { fields: ['gridOperatorId'] } });
-    await this.db.createIndex({ index: { fields: ['createdAt'] } });
-    await this.db.createIndex({ index: { fields: ['decision'] } });
-    this.logger.info(`Connection Rejection Evidence DB initialized at ${this.settings.dbPath}`);
-  },
-
-  async stopped() {
-    if (this.db) await this.db.close();
   },
 
   actions: {

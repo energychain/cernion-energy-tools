@@ -12,6 +12,20 @@ const {
   FORMAT_RESPONSE_CONTENT,
 } = require('../src/format-response');
 
+// Every ENTSO-E query action (except psrTypes) forwards to the MCP client with the
+// same shape, differing only in the MCP tool name and the applyFormat routing labels.
+function buildEntsoeQueryHandler(mcpToolName, pathSlug, label) {
+  return async function handler(ctx) {
+    const { format, ...mcpParams } = ctx.params;
+    const result = await CernionMCPClient.callWithNewSession(
+      mcpToolName,
+      mcpParams,
+      ctx.meta.cernionToken
+    );
+    return applyFormat(ctx, result, format, pathSlug, label);
+  };
+}
+
 module.exports = {
   name: 'entsoe',
 
@@ -174,15 +188,7 @@ module.exports = {
           },
         },
       },
-      async handler(ctx) {
-        const { format, ...mcpParams } = ctx.params;
-        const result = await CernionMCPClient.callWithNewSession(
-          'entsoe_day_ahead_prices',
-          mcpParams,
-          ctx.meta.cernionToken
-        );
-        return applyFormat(ctx, result, format, 'day-ahead-prices', 'Prices');
-      },
+      handler: buildEntsoeQueryHandler('entsoe_day_ahead_prices', 'day-ahead-prices', 'Prices'),
     },
 
     /**
@@ -354,15 +360,7 @@ module.exports = {
           },
         },
       },
-      async handler(ctx) {
-        const { format, ...mcpParams } = ctx.params;
-        const result = await CernionMCPClient.callWithNewSession(
-          'entsoe_unavailability',
-          mcpParams,
-          ctx.meta.cernionToken
-        );
-        return applyFormat(ctx, result, format, 'unavailability', 'Unavailability');
-      },
+      handler: buildEntsoeQueryHandler('entsoe_unavailability', 'unavailability', 'Unavailability'),
     },
 
     /**
@@ -476,15 +474,7 @@ module.exports = {
           },
         },
       },
-      async handler(ctx) {
-        const { format, ...mcpParams } = ctx.params;
-        const result = await CernionMCPClient.callWithNewSession(
-          'entsoe_physical_flows',
-          mcpParams,
-          ctx.meta.cernionToken
-        );
-        return applyFormat(ctx, result, format, 'physical-flows', 'Flows');
-      },
+      handler: buildEntsoeQueryHandler('entsoe_physical_flows', 'physical-flows', 'Flows'),
     },
 
     /**
@@ -656,15 +646,11 @@ module.exports = {
           },
         },
       },
-      async handler(ctx) {
-        const { format, ...mcpParams } = ctx.params;
-        const result = await CernionMCPClient.callWithNewSession(
-          'entsoe_actual_generation',
-          mcpParams,
-          ctx.meta.cernionToken
-        );
-        return applyFormat(ctx, result, format, 'actual-generation', 'Generation');
-      },
+      handler: buildEntsoeQueryHandler(
+        'entsoe_actual_generation',
+        'actual-generation',
+        'Generation'
+      ),
     },
 
     /**
@@ -838,15 +824,11 @@ module.exports = {
           },
         },
       },
-      async handler(ctx) {
-        const { format, ...mcpParams } = ctx.params;
-        const result = await CernionMCPClient.callWithNewSession(
-          'entsoe_wind_solar_forecast',
-          mcpParams,
-          ctx.meta.cernionToken
-        );
-        return applyFormat(ctx, result, format, 'wind-solar-forecast', 'Forecast');
-      },
+      handler: buildEntsoeQueryHandler(
+        'entsoe_wind_solar_forecast',
+        'wind-solar-forecast',
+        'Forecast'
+      ),
     },
 
     /**
@@ -964,15 +946,7 @@ module.exports = {
           },
         },
       },
-      async handler(ctx) {
-        const { format, ...mcpParams } = ctx.params;
-        const result = await CernionMCPClient.callWithNewSession(
-          'entsoe_load_forecast',
-          mcpParams,
-          ctx.meta.cernionToken
-        );
-        return applyFormat(ctx, result, format, 'load-forecast', 'LoadForecast');
-      },
+      handler: buildEntsoeQueryHandler('entsoe_load_forecast', 'load-forecast', 'LoadForecast'),
     },
 
     /**
@@ -1087,15 +1061,11 @@ module.exports = {
           },
         },
       },
-      async handler(ctx) {
-        const { format, ...mcpParams } = ctx.params;
-        const result = await CernionMCPClient.callWithNewSession(
-          'entsoe_aggregated_generation',
-          mcpParams,
-          ctx.meta.cernionToken
-        );
-        return applyFormat(ctx, result, format, 'aggregated-generation', 'Generation');
-      },
+      handler: buildEntsoeQueryHandler(
+        'entsoe_aggregated_generation',
+        'aggregated-generation',
+        'Generation'
+      ),
     },
 
     /**
@@ -1216,15 +1186,11 @@ module.exports = {
           },
         },
       },
-      async handler(ctx) {
-        const { format, ...mcpParams } = ctx.params;
-        const result = await CernionMCPClient.callWithNewSession(
-          'entsoe_wind_solar_actual',
-          mcpParams,
-          ctx.meta.cernionToken
-        );
-        return applyFormat(ctx, result, format, 'wind-solar-actual', 'Generation');
-      },
+      handler: buildEntsoeQueryHandler(
+        'entsoe_wind_solar_actual',
+        'wind-solar-actual',
+        'Generation'
+      ),
     },
 
     /**
@@ -1346,15 +1312,11 @@ module.exports = {
           },
         },
       },
-      async handler(ctx) {
-        const { format, ...mcpParams } = ctx.params;
-        const result = await CernionMCPClient.callWithNewSession(
-          'entsoe_generation_forecast',
-          mcpParams,
-          ctx.meta.cernionToken
-        );
-        return applyFormat(ctx, result, format, 'generation-forecast', 'Forecast');
-      },
+      handler: buildEntsoeQueryHandler(
+        'entsoe_generation_forecast',
+        'generation-forecast',
+        'Forecast'
+      ),
     },
 
     /**

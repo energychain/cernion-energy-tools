@@ -22,8 +22,7 @@
  */
 
 const crypto = require('crypto');
-const PouchDB = require('pouchdb');
-PouchDB.plugin(require('pouchdb-find'));
+const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 const { MoleculerClientError } = require('moleculer').Errors;
 const { getTenantId } = require('../src/tenant-context');
 
@@ -123,26 +122,19 @@ function nowIso() {
 module.exports = {
   name: 'vdmi-portfolio-gatekeeping',
 
-  settings: {
-    dbPath: process.env.VDMI_GATEKEEPING_DB_PATH || './data/vdmi-portfolio-gatekeeping',
-  },
-
-  created() {
-    this.db = new PouchDB(this.settings.dbPath, { auto_compaction: true });
-  },
-
-  async started() {
-    await this.db.createIndex({ index: { fields: ['tenantId'] } });
-    await this.db.createIndex({ index: { fields: ['tenantId', 'type', 'createdAt'] } });
-    await this.db.createIndex({ index: { fields: ['gridOperatorId'] } });
-    await this.db.createIndex({ index: { fields: ['decision'] } });
-    await this.db.createIndex({ index: { fields: ['createdAt'] } });
-    this.logger.info(`VDMI Portfolio Gatekeeping DB initialized at ${this.settings.dbPath}`);
-  },
-
-  async stopped() {
-    if (this.db) await this.db.close();
-  },
+  mixins: [
+    createPouchDbLifecycleMixin({
+      dbPathEnvVar: 'VDMI_GATEKEEPING_DB_PATH',
+      defaultDbPath: './data/vdmi-portfolio-gatekeeping',
+      indexes: [
+        ['tenantId'],
+        ['tenantId', 'type', 'createdAt'],
+        ['gridOperatorId'],
+        ['decision'],
+        ['createdAt'],
+      ],
+    }),
+  ],
 
   actions: {
     /**

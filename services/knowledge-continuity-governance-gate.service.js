@@ -7,8 +7,7 @@
  */
 
 const crypto = require('crypto');
-const PouchDB = require('pouchdb');
-PouchDB.plugin(require('pouchdb-find'));
+const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 const { MoleculerClientError } = require('moleculer').Errors;
 const { getTenantId } = require('../src/tenant-context');
 const {
@@ -124,28 +123,18 @@ function buildStatusFromModel(model) {
 module.exports = {
   name: 'knowledge-continuity-governance-gate',
 
+  mixins: [
+    createPouchDbLifecycleMixin({
+      dbPathEnvVar: 'KNOWLEDGE_CONTINUITY_GOVERNANCE_GATE_DB_PATH',
+      defaultDbPath: './data/knowledge-continuity-governance-gate',
+      indexes: [['tenantId', 'docType'], ['criticalProcessId'], ['evidenceStatus'], ['createdAt']],
+    }),
+  ],
+
   settings: {
     dbPath:
       process.env.KNOWLEDGE_CONTINUITY_GOVERNANCE_GATE_DB_PATH ||
       './data/knowledge-continuity-governance-gate',
-  },
-
-  created() {
-    this.db = new PouchDB(this.settings.dbPath, { auto_compaction: true });
-  },
-
-  async started() {
-    await this.db.createIndex({ index: { fields: ['tenantId', 'docType'] } });
-    await this.db.createIndex({ index: { fields: ['criticalProcessId'] } });
-    await this.db.createIndex({ index: { fields: ['evidenceStatus'] } });
-    await this.db.createIndex({ index: { fields: ['createdAt'] } });
-    this.logger.info(
-      `Knowledge Continuity Governance Gate DB initialized at ${this.settings.dbPath}`
-    );
-  },
-
-  async stopped() {
-    if (this.db) await this.db.close();
   },
 
   actions: {

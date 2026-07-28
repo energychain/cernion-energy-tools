@@ -2,8 +2,7 @@
 
 const crypto = require('crypto');
 const axios = require('axios');
-const PouchDB = require('pouchdb');
-PouchDB.plugin(require('pouchdb-find'));
+const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 const { MoleculerClientError } = require('moleculer').Errors;
 const { getTenantId } = require('../src/tenant-context');
 const { encryptSecret, decryptSecret, signPayload } = require('../src/webhook-crypto');
@@ -41,8 +40,15 @@ function nowIso() {
 module.exports = {
   name: 'webhooks',
 
+  mixins: [
+    createPouchDbLifecycleMixin({
+      dbPathEnvVar: 'WEBHOOKS_DB_PATH',
+      defaultDbPath: './data/webhooks',
+      indexes: [['type'], ['tenantId'], ['status']],
+    }),
+  ],
+
   settings: {
-    dbPath: process.env.WEBHOOKS_DB_PATH || './data/webhooks',
     retryScheduleMs: [60_000, 300_000, 1_800_000, 7_200_000, 43_200_000],
     maxAttempts: 5,
     processIntervalMs: Number(process.env.WEBHOOKS_PROCESS_INTERVAL_MS || 15_000),
@@ -51,16 +57,10 @@ module.exports = {
   },
 
   created() {
-    this.db = new PouchDB(this.settings.dbPath, { auto_compaction: true });
     this.processTimer = null;
   },
 
   async started() {
-    await this.db.createIndex({ index: { fields: ['type'] } });
-    await this.db.createIndex({ index: { fields: ['tenantId'] } });
-    await this.db.createIndex({ index: { fields: ['status'] } });
-    this.logger.info(`Webhook DB initialized at ${this.settings.dbPath}`);
-
     this.processTimer = setInterval(() => {
       this.processDueDeliveries().catch((err) =>
         this.logger.warn(`[webhooks] processDueDeliveries failed: ${err.message}`)
@@ -72,9 +72,6 @@ module.exports = {
     if (this.processTimer) {
       clearInterval(this.processTimer);
       this.processTimer = null;
-    }
-    if (this.db) {
-      await this.db.close();
     }
   },
 

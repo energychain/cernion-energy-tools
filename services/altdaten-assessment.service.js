@@ -22,8 +22,7 @@
  */
 
 const crypto = require('crypto');
-const PouchDB = require('pouchdb');
-PouchDB.plugin(require('pouchdb-find'));
+const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 const { MoleculerClientError } = require('moleculer').Errors;
 const { getTenantId } = require('../src/tenant-context');
 
@@ -113,25 +112,13 @@ function classifyDeviationEntry(entry) {
 module.exports = {
   name: 'altdaten-assessment',
 
-  settings: {
-    dbPath: process.env.ALTDATEN_ASSESSMENT_DB_PATH || './data/altdaten-assessment',
-  },
-
-  created() {
-    this.db = new PouchDB(this.settings.dbPath, { auto_compaction: true });
-  },
-
-  async started() {
-    await this.db.createIndex({ index: { fields: ['tenantId'] } });
-    await this.db.createIndex({ index: { fields: ['gridOperatorId'] } });
-    await this.db.createIndex({ index: { fields: ['createdAt'] } });
-    await this.db.createIndex({ index: { fields: ['tenantId', 'type', 'createdAt'] } });
-    this.logger.info(`Altdaten Assessment DB initialized at ${this.settings.dbPath}`);
-  },
-
-  async stopped() {
-    if (this.db) await this.db.close();
-  },
+  mixins: [
+    createPouchDbLifecycleMixin({
+      dbPathEnvVar: 'ALTDATEN_ASSESSMENT_DB_PATH',
+      defaultDbPath: './data/altdaten-assessment',
+      indexes: [['tenantId'], ['gridOperatorId'], ['createdAt'], ['tenantId', 'type', 'createdAt']],
+    }),
+  ],
 
   actions: {
     /**

@@ -25,8 +25,7 @@
  */
 
 const crypto = require('crypto');
-const PouchDB = require('pouchdb');
-PouchDB.plugin(require('pouchdb-find'));
+const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 const { MoleculerClientError } = require('moleculer').Errors;
 const { getTenantId } = require('../src/tenant-context');
 
@@ -105,25 +104,13 @@ function classifySignal(signal) {
 module.exports = {
   name: 'flexibilitaetskosten-raster',
 
-  settings: {
-    dbPath: process.env.FLEXIBILITAETSKOSTEN_RASTER_DB_PATH || './data/flexibilitaetskosten-raster',
-  },
-
-  created() {
-    this.db = new PouchDB(this.settings.dbPath, { auto_compaction: true });
-  },
-
-  async started() {
-    await this.db.createIndex({ index: { fields: ['tenantId'] } });
-    await this.db.createIndex({ index: { fields: ['gridOperatorId'] } });
-    await this.db.createIndex({ index: { fields: ['createdAt'] } });
-    await this.db.createIndex({ index: { fields: ['tenantId', 'type', 'createdAt'] } });
-    this.logger.info(`Flexibilitätskosten Raster DB initialized at ${this.settings.dbPath}`);
-  },
-
-  async stopped() {
-    if (this.db) await this.db.close();
-  },
+  mixins: [
+    createPouchDbLifecycleMixin({
+      dbPathEnvVar: 'FLEXIBILITAETSKOSTEN_RASTER_DB_PATH',
+      defaultDbPath: './data/flexibilitaetskosten-raster',
+      indexes: [['tenantId'], ['gridOperatorId'], ['createdAt'], ['tenantId', 'type', 'createdAt']],
+    }),
+  ],
 
   actions: {
     /**

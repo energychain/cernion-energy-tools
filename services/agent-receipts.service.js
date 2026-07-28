@@ -1,7 +1,6 @@
 'use strict';
 
-const PouchDB = require('pouchdb');
-PouchDB.plugin(require('pouchdb-find'));
+const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 
 const { MoleculerClientError } = require('moleculer').Errors;
 const {
@@ -293,31 +292,22 @@ function pruneSelectionResult(payload = {}) {
 module.exports = {
   name: 'agent-receipts',
 
+  mixins: [
+    createPouchDbLifecycleMixin({
+      dbPathEnvVar: 'AGENT_RECEIPTS_DB_PATH',
+      defaultDbPath: './data/agent-receipts',
+      indexes: [['type'], ['type', 'status'], ['type', 'domain'], ['type', 'updatedAt']],
+    }),
+  ],
+
   settings: {
-    dbPath: process.env.AGENT_RECEIPTS_DB_PATH || './data/agent-receipts',
     defaultLimit: 50,
     maxLimit: 200,
   },
 
-  created() {
-    this.db = new PouchDB(this.settings.dbPath, { auto_compaction: true });
-  },
-
   async started() {
-    await this.db.createIndex({ index: { fields: ['type'] } });
-    await this.db.createIndex({ index: { fields: ['type', 'status'] } });
-    await this.db.createIndex({ index: { fields: ['type', 'domain'] } });
-    await this.db.createIndex({ index: { fields: ['type', 'updatedAt'] } });
-    this.logger.info(`[agent-receipts] DB initialized at ${this.settings.dbPath}`);
-
     // v0.54.3: Seed vnb-lookup-v1 receipt
     await this._seedReceipts();
-  },
-
-  async stopped() {
-    if (this.db) {
-      await this.db.close();
-    }
   },
 
   actions: {

@@ -1,8 +1,7 @@
 'use strict';
 
 const crypto = require('crypto');
-const PouchDB = require('pouchdb');
-PouchDB.plugin(require('pouchdb-find'));
+const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 const { MoleculerClientError } = require('moleculer').Errors;
 const { generateStructured, SchemaType } = require('../src/llm-client');
 
@@ -75,24 +74,17 @@ function toPublic(doc) {
 module.exports = {
   name: 'decision-frame',
 
-  settings: {
-    dbPath: process.env.DECISION_FRAME_DB_PATH || './data/decision-frames',
-  },
-
-  created() {
-    this.db = new PouchDB(this.settings.dbPath, { auto_compaction: true });
-  },
-
-  async started() {
-    await this.db.createIndex({ index: { fields: ['type', 'createdAt'] } });
-    await this.db.createIndex({ index: { fields: ['type', 'domain', 'status'] } });
-    await this.db.createIndex({ index: { fields: ['type', 'createdBy'] } });
-    this.logger.info(`[decision-frame] DB ready at ${this.settings.dbPath}`);
-  },
-
-  async stopped() {
-    if (this.db) await this.db.close();
-  },
+  mixins: [
+    createPouchDbLifecycleMixin({
+      dbPathEnvVar: 'DECISION_FRAME_DB_PATH',
+      defaultDbPath: './data/decision-frames',
+      indexes: [
+        ['type', 'createdAt'],
+        ['type', 'domain', 'status'],
+        ['type', 'createdBy'],
+      ],
+    }),
+  ],
 
   actions: {
     // ── create ────────────────────────────────────────────────────────────────

@@ -18,8 +18,7 @@
  */
 
 const crypto = require('crypto');
-const PouchDB = require('pouchdb');
-PouchDB.plugin(require('pouchdb-find'));
+const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 const { MoleculerClientError } = require('moleculer').Errors;
 const { getTenantId } = require('../src/tenant-context');
 
@@ -122,26 +121,19 @@ function evaluateInstallationGeo(installation, networkPolygons, thresholdKm) {
 module.exports = {
   name: 'ghost-asset-alert',
 
-  settings: {
-    dbPath: process.env.GHOST_ASSET_ALERT_DB_PATH || './data/ghost-asset-alert',
-  },
-
-  created() {
-    this.db = new PouchDB(this.settings.dbPath, { auto_compaction: true });
-  },
-
-  async started() {
-    await this.db.createIndex({ index: { fields: ['tenantId'] } });
-    await this.db.createIndex({ index: { fields: ['tenantId', 'type', 'createdAt'] } });
-    await this.db.createIndex({ index: { fields: ['gridOperatorId'] } });
-    await this.db.createIndex({ index: { fields: ['createdAt'] } });
-    await this.db.createIndex({ index: { fields: ['status'] } });
-    this.logger.info(`Ghost Asset Alert DB initialized at ${this.settings.dbPath}`);
-  },
-
-  async stopped() {
-    if (this.db) await this.db.close();
-  },
+  mixins: [
+    createPouchDbLifecycleMixin({
+      dbPathEnvVar: 'GHOST_ASSET_ALERT_DB_PATH',
+      defaultDbPath: './data/ghost-asset-alert',
+      indexes: [
+        ['tenantId'],
+        ['tenantId', 'type', 'createdAt'],
+        ['gridOperatorId'],
+        ['createdAt'],
+        ['status'],
+      ],
+    }),
+  ],
 
   actions: {
     /**

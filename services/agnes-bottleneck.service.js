@@ -19,8 +19,7 @@
  */
 
 const crypto = require('crypto');
-const PouchDB = require('pouchdb');
-PouchDB.plugin(require('pouchdb-find'));
+const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 const { MoleculerClientError } = require('moleculer').Errors;
 const { getTenantId } = require('../src/tenant-context');
 
@@ -134,26 +133,19 @@ function modelAgnesScenario(bottleneck, agnesConfig) {
 module.exports = {
   name: 'agnes-bottleneck',
 
-  settings: {
-    dbPath: process.env.AGNES_BOTTLENECK_DB_PATH || './data/agnes-bottleneck',
-  },
-
-  created() {
-    this.db = new PouchDB(this.settings.dbPath, { auto_compaction: true });
-  },
-
-  async started() {
-    await this.db.createIndex({ index: { fields: ['tenantId'] } });
-    await this.db.createIndex({ index: { fields: ['tenantId', 'type', 'createdAt'] } });
-    await this.db.createIndex({ index: { fields: ['gridOperatorId'] } });
-    await this.db.createIndex({ index: { fields: ['createdAt'] } });
-    await this.db.createIndex({ index: { fields: ['overallSeverity'] } });
-    this.logger.info(`Agnes Bottleneck DB initialized at ${this.settings.dbPath}`);
-  },
-
-  async stopped() {
-    if (this.db) await this.db.close();
-  },
+  mixins: [
+    createPouchDbLifecycleMixin({
+      dbPathEnvVar: 'AGNES_BOTTLENECK_DB_PATH',
+      defaultDbPath: './data/agnes-bottleneck',
+      indexes: [
+        ['tenantId'],
+        ['tenantId', 'type', 'createdAt'],
+        ['gridOperatorId'],
+        ['createdAt'],
+        ['overallSeverity'],
+      ],
+    }),
+  ],
 
   actions: {
     /**

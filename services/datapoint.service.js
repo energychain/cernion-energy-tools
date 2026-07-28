@@ -17,8 +17,7 @@
  * semantics and index-based queries.
  */
 
-const PouchDB = require('pouchdb');
-PouchDB.plugin(require('pouchdb-find'));
+const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 const crypto = require('crypto');
 const { MoleculerClientError } = require('moleculer').Errors;
 const {
@@ -34,24 +33,26 @@ const DATAPOINT_NAME_PATTERN = /^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$/;
 module.exports = {
   name: 'datapoint',
 
+  mixins: [
+    createPouchDbLifecycleMixin({
+      dbPathEnvVar: 'DATAPOINT_DB_PATH',
+      defaultDbPath: './data/datapoints',
+      indexes: [['sourceType', 'createdAt'], ['createdAt']],
+    }),
+  ],
+
   settings: {
-    dbPath: process.env.DATAPOINT_DB_PATH || './data/datapoints',
     defaultTimeout: 120000,
     maxConcurrentRefreshes: parseInt(process.env.DATAPOINT_MAX_CONCURRENT_REFRESHES || '3', 10),
   },
 
   created() {
-    this.db = new PouchDB(this.settings.dbPath, { auto_compaction: true });
     this.activeRefreshes = new Set();
   },
 
   async started() {
-    await this.db.createIndex({ index: { fields: ['sourceType', 'createdAt'] } });
-    await this.db.createIndex({ index: { fields: ['createdAt'] } });
-    this.logger.info(`Datapoint DB initialized at ${this.settings.dbPath}`);
     if (process.env.DATAPOINT_SCHEDULER_ENABLED !== 'false') {
       this.schedulerInterval = setInterval(() => this.runScheduledRefreshes(), 60_000);
-      this.logger.info('Datapoint scheduler started (60 s tick)');
     }
   },
 

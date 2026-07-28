@@ -17,8 +17,7 @@
  *   - projectScope prevents project-mixing (Sinsheim / Mauer etc.).
  */
 
-const PouchDB = require('pouchdb');
-PouchDB.plugin(require('pouchdb-find'));
+const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 const { MoleculerClientError } = require('moleculer').Errors;
 const { getTenantId, validateTenantId } = require('../src/tenant-context');
 
@@ -77,25 +76,13 @@ function normalizeProjectScope(scope) {
 module.exports = {
   name: 'evidence-requirement',
 
-  settings: {
-    dbPath: process.env.EVIDENCE_REQUIREMENT_DB_PATH || './data/evidence-requirement',
-  },
-
-  created() {
-    this.db = new PouchDB(this.settings.dbPath, { auto_compaction: true });
-  },
-
-  async started() {
-    await this.db.createIndex({ index: { fields: ['tenantId'] } });
-    await this.db.createIndex({ index: { fields: ['status'] } });
-    await this.db.createIndex({ index: { fields: ['responsibleRole'] } });
-    await this.db.createIndex({ index: { fields: ['projectScopeKey'] } });
-    this.logger.info(`Evidence Requirement DB initialized at ${this.settings.dbPath}`);
-  },
-
-  async stopped() {
-    if (this.db) await this.db.close();
-  },
+  mixins: [
+    createPouchDbLifecycleMixin({
+      dbPathEnvVar: 'EVIDENCE_REQUIREMENT_DB_PATH',
+      defaultDbPath: './data/evidence-requirement',
+      indexes: [['tenantId'], ['status'], ['responsibleRole'], ['projectScopeKey']],
+    }),
+  ],
 
   actions: {
     /**

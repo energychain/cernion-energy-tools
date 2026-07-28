@@ -18,6 +18,11 @@ const tracing = require('../src/tracing');
 const { mergeObservabilityContext } = require('../src/observability-context');
 const { hasRole, mapRolesFromLegacyToken } = require('../src/auth/rbac');
 const { validateTenantId, isTenantAllowed } = require('../src/tenant-context');
+const {
+  isReadMethod,
+  isReadOnlySidecarInvocation,
+  isOperationsRunbookInvocation,
+} = require('../src/gateway-request-classifiers');
 
 const UPLOAD_DIR = path.join(__dirname, '..', 'uploads');
 const CONTENT_TYPE_HEADER = 'Content-Type';
@@ -241,28 +246,6 @@ function resolveHttpStatus(err) {
     }
   }
   return 500;
-}
-
-function isReadMethod(method) {
-  const m = String(method || '').toUpperCase();
-  return m === 'GET' || m === 'HEAD' || m === 'OPTIONS';
-}
-
-function isReadOnlySidecarInvocation(method, requestPath) {
-  const m = String(method || '').toUpperCase();
-  const pathOnly = String(requestPath || '').split('?')[0];
-  return (
-    m === 'POST' &&
-    (/^\/api\/agent-sidecar\/tools\/[^/]+\/call$/.test(pathOnly) ||
-      /^\/api\/agent-sidecar\/mcp\/tools\/[^/]+\/call$/.test(pathOnly))
-  );
-}
-
-function isOperationsRunbookInvocation(method, requestPath) {
-  const m = String(method || '').toUpperCase();
-  const pathOnly = String(requestPath || '').split('?')[0];
-  if (!pathOnly.startsWith('/api/operations-runbook/')) return false;
-  return ['GET', 'POST'].includes(m);
 }
 
 function normalizeRequestPath(req) {

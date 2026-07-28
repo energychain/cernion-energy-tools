@@ -20,8 +20,7 @@
  */
 
 const crypto = require('crypto');
-const PouchDB = require('pouchdb');
-PouchDB.plugin(require('pouchdb-find'));
+const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 
 const CernionMCPClient = require('../src/mcp-client');
 const {
@@ -31,7 +30,6 @@ const {
   extractCandidates,
 } = require('../src/market-role-classifier');
 
-const DB_PATH = process.env.COMPANY_DB_PATH || './data/companies';
 const DOC_PREFIX = 'co:';
 
 function nowIso() {
@@ -41,26 +39,21 @@ function nowIso() {
 module.exports = {
   name: 'company',
 
-  settings: {
-    dbPath: DB_PATH,
-  },
+  mixins: [
+    createPouchDbLifecycleMixin({
+      dbPathEnvVar: 'COMPANY_DB_PATH',
+      defaultDbPath: './data/companies',
+      indexes: [['displayName'], ['status'], ['createdAt']],
+    }),
+  ],
 
   created() {
-    this.db = new PouchDB(this.settings.dbPath, { auto_compaction: true });
     // In-memory index: bdewCode (lowercase) → companyId
     this._bdewIndex = new Map();
   },
 
   async started() {
-    await this.db.createIndex({ index: { fields: ['displayName'] } });
-    await this.db.createIndex({ index: { fields: ['status'] } });
-    await this.db.createIndex({ index: { fields: ['createdAt'] } });
     await this._rebuildBdewIndex();
-    this.logger.info(`Company DB initialized at ${this.settings.dbPath}`);
-  },
-
-  async stopped() {
-    if (this.db) await this.db.close();
   },
 
   actions: {

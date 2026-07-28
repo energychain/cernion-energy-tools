@@ -11,6 +11,11 @@ const crypto = require('crypto');
 const { Errors } = require('moleculer');
 const { validateTenantId, isTenantAllowed } = require('../src/tenant-context');
 const { tenantExistsInRegistry } = require('../src/provisioning-registry');
+const {
+  isReadMethod,
+  isReadOnlySidecarInvocation,
+  isOperationsRunbookInvocation,
+} = require('../src/gateway-request-classifiers');
 
 const DEFAULT_STORAGE_FILE = process.env.TOKEN_STORAGE_FILE || './uploads/.api-tokens.json';
 const MAX_NAME_LENGTH = 60;
@@ -77,28 +82,6 @@ function normalizeScopes(scope, requestedScopes = []) {
     scopes.add(value);
   }
   return [...scopes];
-}
-
-function isWriteMethod(method) {
-  const m = String(method || '').toUpperCase();
-  return m !== 'GET' && m !== 'HEAD' && m !== 'OPTIONS';
-}
-
-function isReadOnlySidecarInvocation(method, requestPath) {
-  const m = String(method || '').toUpperCase();
-  const pathOnly = String(requestPath || '').split('?')[0];
-  return (
-    m === 'POST' &&
-    (/^\/api\/agent-sidecar\/tools\/[^/]+\/call$/.test(pathOnly) ||
-      /^\/api\/agent-sidecar\/mcp\/tools\/[^/]+\/call$/.test(pathOnly))
-  );
-}
-
-function isOperationsRunbookInvocation(method, requestPath) {
-  const m = String(method || '').toUpperCase();
-  const pathOnly = String(requestPath || '').split('?')[0];
-  if (!pathOnly.startsWith('/api/operations-runbook/')) return false;
-  return ['GET', 'POST'].includes(m);
 }
 
 // Tokens created before Issue #157 (tenant/user binding) have no userId on
@@ -359,7 +342,7 @@ module.exports = {
 
         if (
           scope === 'read-only' &&
-          isWriteMethod(method) &&
+          !isReadMethod(method) &&
           !isReadOnlySidecarInvocation(method, requestPath) &&
           !isOperationsRunbookInvocation(method, requestPath)
         ) {

@@ -1,8 +1,7 @@
 'use strict';
 
 const crypto = require('crypto');
-const PouchDB = require('pouchdb');
-PouchDB.plugin(require('pouchdb-find'));
+const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 const { MoleculerClientError } = require('moleculer').Errors;
 
 const OPENAPI_TAG = 'EOG Calculator';
@@ -170,26 +169,20 @@ function sanitizeForDatapointName(value) {
 module.exports = {
   name: 'eog-calculator',
 
+  mixins: [
+    createPouchDbLifecycleMixin({
+      dbPathEnvVar: 'EOG_CALCULATOR_DB_PATH',
+      defaultDbPath: './data/eog-calculator',
+      indexes: [
+        ['type', 'tenantId', 'vnbId'],
+        ['type', 'tenantId', 'vnbId', 'periodYear'],
+      ],
+    }),
+  ],
+
   settings: {
-    dbPath: process.env.EOG_CALCULATOR_DB_PATH || './data/eog-calculator',
     calibrationToleranceAbsolute: Number(process.env.EOG_CALIBRATION_TOLERANCE_ABS || 1),
     calibrationToleranceRelative: Number(process.env.EOG_CALIBRATION_TOLERANCE_REL || 0.01),
-  },
-
-  created() {
-    this.db = new PouchDB(this.settings.dbPath, { auto_compaction: true });
-  },
-
-  async started() {
-    await this.db.createIndex({ index: { fields: ['type', 'tenantId', 'vnbId'] } });
-    await this.db.createIndex({ index: { fields: ['type', 'tenantId', 'vnbId', 'periodYear'] } });
-    this.logger.info(`EOG calculator DB initialized at ${this.settings.dbPath}`);
-  },
-
-  async stopped() {
-    if (this.db) {
-      await this.db.close();
-    }
   },
 
   actions: {

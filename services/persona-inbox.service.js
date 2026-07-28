@@ -1,8 +1,7 @@
 'use strict';
 
 const crypto = require('crypto');
-const PouchDB = require('pouchdb');
-PouchDB.plugin(require('pouchdb-find'));
+const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 
 const { MoleculerClientError } = require('moleculer').Errors;
 const { getTenantId, validateTenantId } = require('../src/tenant-context');
@@ -29,27 +28,13 @@ function toHash(value) {
 module.exports = {
   name: 'persona-inbox',
 
-  settings: {
-    dbPath: process.env.PERSONA_INBOX_DB_PATH || './data/persona-inbox',
-  },
-
-  created() {
-    this.db = new PouchDB(this.settings.dbPath, { auto_compaction: true });
-  },
-
-  async started() {
-    await this.db.createIndex({ index: { fields: ['tenantId'] } });
-    await this.db.createIndex({ index: { fields: ['personaId'] } });
-    await this.db.createIndex({ index: { fields: ['status'] } });
-    await this.db.createIndex({ index: { fields: ['hitlItemId'] } });
-    this.logger.info(`Persona Inbox DB initialized at ${this.settings.dbPath}`);
-  },
-
-  async stopped() {
-    if (this.db) {
-      await this.db.close();
-    }
-  },
+  mixins: [
+    createPouchDbLifecycleMixin({
+      dbPathEnvVar: 'PERSONA_INBOX_DB_PATH',
+      defaultDbPath: './data/persona-inbox',
+      indexes: [['tenantId'], ['personaId'], ['status'], ['hitlItemId']],
+    }),
+  ],
 
   actions: {
     enqueue: {

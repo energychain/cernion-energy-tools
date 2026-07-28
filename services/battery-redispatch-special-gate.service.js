@@ -7,8 +7,7 @@
  */
 
 const crypto = require('crypto');
-const PouchDB = require('pouchdb');
-PouchDB.plugin(require('pouchdb-find'));
+const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 const { MoleculerClientError } = require('moleculer').Errors;
 const { getTenantId } = require('../src/tenant-context');
 const {
@@ -108,26 +107,18 @@ function buildStatusFromGate(gate) {
 module.exports = {
   name: 'battery-redispatch-special-gate',
 
+  mixins: [
+    createPouchDbLifecycleMixin({
+      dbPathEnvVar: 'BATTERY_REDISPATCH_SPECIAL_GATE_DB_PATH',
+      defaultDbPath: './data/battery-redispatch-special-gate',
+      indexes: [['tenantId', 'docType'], ['assetId'], ['evidenceStatus'], ['createdAt']],
+    }),
+  ],
+
   settings: {
     dbPath:
       process.env.BATTERY_REDISPATCH_SPECIAL_GATE_DB_PATH ||
       './data/battery-redispatch-special-gate',
-  },
-
-  created() {
-    this.db = new PouchDB(this.settings.dbPath, { auto_compaction: true });
-  },
-
-  async started() {
-    await this.db.createIndex({ index: { fields: ['tenantId', 'docType'] } });
-    await this.db.createIndex({ index: { fields: ['assetId'] } });
-    await this.db.createIndex({ index: { fields: ['evidenceStatus'] } });
-    await this.db.createIndex({ index: { fields: ['createdAt'] } });
-    this.logger.info(`Battery Redispatch Special Gate DB initialized at ${this.settings.dbPath}`);
-  },
-
-  async stopped() {
-    if (this.db) await this.db.close();
   },
 
   actions: {

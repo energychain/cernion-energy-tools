@@ -21,8 +21,7 @@
  */
 
 const crypto = require('crypto');
-const PouchDB = require('pouchdb');
-PouchDB.plugin(require('pouchdb-find'));
+const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 const { MoleculerClientError } = require('moleculer').Errors;
 const { getTenantId } = require('../src/tenant-context');
 
@@ -128,26 +127,19 @@ function assessSegmentRisk(segment, heatZones) {
 module.exports = {
   name: 'gasnetz-waermeplanung',
 
-  settings: {
-    dbPath: process.env.GASNETZ_WAERMEPLANUNG_DB_PATH || './data/gasnetz-waermeplanung',
-  },
-
-  created() {
-    this.db = new PouchDB(this.settings.dbPath, { auto_compaction: true });
-  },
-
-  async started() {
-    await this.db.createIndex({ index: { fields: ['tenantId'] } });
-    await this.db.createIndex({ index: { fields: ['tenantId', 'type', 'createdAt'] } });
-    await this.db.createIndex({ index: { fields: ['gridOperatorId'] } });
-    await this.db.createIndex({ index: { fields: ['type'] } });
-    await this.db.createIndex({ index: { fields: ['createdAt'] } });
-    this.logger.info(`Gasnetz Wärmeplanung DB initialized at ${this.settings.dbPath}`);
-  },
-
-  async stopped() {
-    if (this.db) await this.db.close();
-  },
+  mixins: [
+    createPouchDbLifecycleMixin({
+      dbPathEnvVar: 'GASNETZ_WAERMEPLANUNG_DB_PATH',
+      defaultDbPath: './data/gasnetz-waermeplanung',
+      indexes: [
+        ['tenantId'],
+        ['tenantId', 'type', 'createdAt'],
+        ['gridOperatorId'],
+        ['type'],
+        ['createdAt'],
+      ],
+    }),
+  ],
 
   actions: {
     /**

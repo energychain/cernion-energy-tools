@@ -1,8 +1,7 @@
 'use strict';
 
 const crypto = require('crypto');
-const PouchDB = require('pouchdb');
-PouchDB.plugin(require('pouchdb-find'));
+const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 
 const { MoleculerClientError } = require('moleculer').Errors;
 const { validateBlueprint } = require('../src/l2-blueprint-interpreter');
@@ -200,27 +199,21 @@ function toActivePublic(doc) {
 module.exports = {
   name: 'blueprint-management',
 
+  mixins: [
+    createPouchDbLifecycleMixin({
+      dbPathEnvVar: 'BLUEPRINT_MGMT_DB_PATH',
+      defaultDbPath: './data/blueprint-registry',
+      indexes: [['type'], ['type', 'blueprintId'], ['type', 'createdAt']],
+    }),
+  ],
+
   settings: {
-    dbPath: process.env.BLUEPRINT_MGMT_DB_PATH || './data/blueprint-registry',
     allowPromoteWithWarnings: process.env.BLUEPRINT_MGMT_ALLOW_WARN_PROMOTE !== 'false',
   },
 
-  created() {
-    this.db = new PouchDB(this.settings.dbPath, { auto_compaction: true });
-  },
-
   async started() {
-    await this.db.createIndex({ index: { fields: ['type'] } });
-    await this.db.createIndex({ index: { fields: ['type', 'blueprintId'] } });
-    await this.db.createIndex({ index: { fields: ['type', 'createdAt'] } });
-    this.logger.info(`[blueprint-management] DB ready at ${this.settings.dbPath}`);
-
     // Restore runtime overlay from persisted active blueprints
     await this._restoreRuntimeOverlay();
-  },
-
-  async stopped() {
-    if (this.db) await this.db.close();
   },
 
   actions: {

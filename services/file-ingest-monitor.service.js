@@ -12,8 +12,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const PouchDB = require('pouchdb');
-PouchDB.plugin(require('pouchdb-find'));
+const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 const { MoleculerClientError } = require('moleculer').Errors;
 const { getTenantId } = require('../src/tenant-context');
 const {
@@ -35,24 +34,13 @@ function nowIso() {
 module.exports = {
   name: 'file-ingest-monitor',
 
-  settings: {
-    dbPath: process.env.FILE_INGEST_MONITOR_DB_PATH || './data/file-ingest-monitor',
-  },
-
-  created() {
-    this.db = new PouchDB(this.settings.dbPath, { auto_compaction: true });
-  },
-
-  async started() {
-    await this.db.createIndex({ index: { fields: ['tenantId', 'docType'] } });
-    await this.db.createIndex({ index: { fields: ['docType'] } });
-    await this.db.createIndex({ index: { fields: ['createdAt'] } });
-    this.logger.info(`File Ingest Monitor DB initialized at ${this.settings.dbPath}`);
-  },
-
-  async stopped() {
-    if (this.db) await this.db.close();
-  },
+  mixins: [
+    createPouchDbLifecycleMixin({
+      dbPathEnvVar: 'FILE_INGEST_MONITOR_DB_PATH',
+      defaultDbPath: './data/file-ingest-monitor',
+      indexes: [['tenantId', 'docType'], ['docType'], ['createdAt']],
+    }),
+  ],
 
   actions: {
     // ── Schema Registry ───────────────────────────────────────────────────

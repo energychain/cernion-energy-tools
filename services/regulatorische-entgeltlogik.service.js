@@ -22,8 +22,7 @@
  */
 
 const crypto = require('crypto');
-const PouchDB = require('pouchdb');
-PouchDB.plugin(require('pouchdb-find'));
+const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 const { MoleculerClientError } = require('moleculer').Errors;
 const { getTenantId } = require('../src/tenant-context');
 
@@ -108,27 +107,20 @@ function nowIso() {
 module.exports = {
   name: 'regulatorische-entgeltlogik',
 
-  settings: {
-    dbPath: process.env.REG_ENTGELTLOGIK_DB_PATH || './data/regulatorische-entgeltlogik',
-  },
-
-  created() {
-    this.db = new PouchDB(this.settings.dbPath, { auto_compaction: true });
-  },
-
-  async started() {
-    await this.db.createIndex({ index: { fields: ['tenantId'] } });
-    await this.db.createIndex({ index: { fields: ['tenantId', 'type', 'createdAt'] } });
-    await this.db.createIndex({ index: { fields: ['gridOperatorId'] } });
-    await this.db.createIndex({ index: { fields: ['ruleType'] } });
-    await this.db.createIndex({ index: { fields: ['effectiveFrom'] } });
-    await this.db.createIndex({ index: { fields: ['createdAt'] } });
-    this.logger.info(`Regulatorische Entgeltlogik DB initialized at ${this.settings.dbPath}`);
-  },
-
-  async stopped() {
-    if (this.db) await this.db.close();
-  },
+  mixins: [
+    createPouchDbLifecycleMixin({
+      dbPathEnvVar: 'REG_ENTGELTLOGIK_DB_PATH',
+      defaultDbPath: './data/regulatorische-entgeltlogik',
+      indexes: [
+        ['tenantId'],
+        ['tenantId', 'type', 'createdAt'],
+        ['gridOperatorId'],
+        ['ruleType'],
+        ['effectiveFrom'],
+        ['createdAt'],
+      ],
+    }),
+  ],
 
   actions: {
     /**

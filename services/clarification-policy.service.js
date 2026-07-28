@@ -1,8 +1,7 @@
 'use strict';
 
 const crypto = require('crypto');
-const PouchDB = require('pouchdb');
-PouchDB.plugin(require('pouchdb-find'));
+const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 
 const { MoleculerClientError } = require('moleculer').Errors;
 const {
@@ -62,22 +61,16 @@ function toActivePublic(doc) {
 module.exports = {
   name: 'clarification-policy',
 
-  settings: {
-    dbPath: process.env.CLARIFICATION_POLICY_DB_PATH || './data/clarification-policies',
-  },
-
-  created() {
-    this.db = new PouchDB(this.settings.dbPath, { auto_compaction: true });
-  },
+  mixins: [
+    createPouchDbLifecycleMixin({
+      dbPathEnvVar: 'CLARIFICATION_POLICY_DB_PATH',
+      defaultDbPath: './data/clarification-policies',
+      indexes: [['type']],
+    }),
+  ],
 
   async started() {
-    await this.db.createIndex({ index: { fields: ['type'] } });
     await this._restoreRuntimeOverlay();
-    this.logger.info(`[clarification-policy] DB ready at ${this.settings.dbPath}`);
-  },
-
-  async stopped() {
-    if (this.db) await this.db.close();
   },
 
   actions: {

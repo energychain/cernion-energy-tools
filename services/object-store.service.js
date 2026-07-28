@@ -18,12 +18,9 @@
  * @version 0.20.5
  */
 
-const PouchDB = require('pouchdb');
-PouchDB.plugin(require('pouchdb-find'));
+const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 
 const { MoleculerClientError } = require('moleculer').Errors;
-
-const DB_PATH = process.env.OBJECT_STORE_DB_PATH || './data/object-store';
 
 /** Namespace: lowercase letter start, alphanumeric + underscores, optionally
  * followed by colon-separated segments (alphanumeric + hyphens) for tenant isolation.
@@ -70,26 +67,13 @@ function isConflictError(err) {
 module.exports = {
   name: 'object-store',
 
-  settings: {
-    dbPath: DB_PATH,
-  },
-
-  // ─── Lifecycle ──────────────────────────────────────────────────────────────
-
-  created() {
-    this.db = new PouchDB(this.settings.dbPath, { auto_compaction: true });
-  },
-
-  async started() {
-    // Index on ns field for efficient namespace-scoped Mango queries.
-    await this.db.createIndex({ index: { fields: ['ns'] } });
-    await this.db.createIndex({ index: { fields: ['ns', 'updatedAt'] } });
-    this.logger.info(`[object-store] DB initialized at ${this.settings.dbPath}`);
-  },
-
-  async stopped() {
-    if (this.db) await this.db.close();
-  },
+  mixins: [
+    createPouchDbLifecycleMixin({
+      dbPathEnvVar: 'OBJECT_STORE_DB_PATH',
+      defaultDbPath: './data/object-store',
+      indexes: [['ns'], ['ns', 'updatedAt']],
+    }),
+  ],
 
   // ─── Actions ────────────────────────────────────────────────────────────────
 

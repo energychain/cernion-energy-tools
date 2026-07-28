@@ -1,8 +1,7 @@
 'use strict';
 
 const crypto = require('crypto');
-const PouchDB = require('pouchdb');
-PouchDB.plugin(require('pouchdb-find'));
+const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 const CernionMCPClient = require('../src/mcp-client');
 const { runAsync } = require('../src/async-job-runner');
 const {
@@ -43,25 +42,13 @@ const PIPELINE_VERSION = '0.14.0';
 module.exports = {
   name: 'grid-connection',
 
-  settings: {
-    dbPath: process.env.GRID_CONNECTION_DB_PATH || './data/grid-connections',
-  },
-
-  created() {
-    this.db = new PouchDB(this.settings.dbPath, { auto_compaction: true });
-  },
-
-  async started() {
-    await this.db.createIndex({ index: { fields: ['createdAt'] } });
-    await this.db.createIndex({ index: { fields: ['gridOperator.mastrId'] } });
-    this.logger.info(`Grid-connection validation DB initialized at ${this.settings.dbPath}`);
-  },
-
-  async stopped() {
-    if (this.db) {
-      await this.db.close();
-    }
-  },
+  mixins: [
+    createPouchDbLifecycleMixin({
+      dbPathEnvVar: 'GRID_CONNECTION_DB_PATH',
+      defaultDbPath: './data/grid-connections',
+      indexes: [['createdAt'], ['gridOperator.mastrId']],
+    }),
+  ],
 
   // ---------------------------------------------------------------------------
   // Actions

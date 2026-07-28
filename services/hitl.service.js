@@ -1,8 +1,7 @@
 'use strict';
 
 const crypto = require('crypto');
-const PouchDB = require('pouchdb');
-PouchDB.plugin(require('pouchdb-find'));
+const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 const { MoleculerClientError } = require('moleculer').Errors;
 const { getTenantId } = require('../src/tenant-context');
 const { hasFullAccessPrincipal, callerHasAnyRole } = require('../src/auth-role-helpers');
@@ -55,22 +54,23 @@ function toBucketKey(date) {
 module.exports = {
   name: 'hitl',
 
+  mixins: [
+    createPouchDbLifecycleMixin({
+      dbPathEnvVar: 'HITL_DB_PATH',
+      defaultDbPath: './data/hitl',
+      indexes: [['tenantId'], ['status'], ['kind']],
+    }),
+  ],
+
   settings: {
-    dbPath: process.env.HITL_DB_PATH || './data/hitl',
     expiryCheckIntervalMs: Number(process.env.HITL_EXPIRY_CHECK_INTERVAL_MS || 60_000),
   },
 
   created() {
-    this.db = new PouchDB(this.settings.dbPath, { auto_compaction: true });
     this.expiryTimer = null;
   },
 
   async started() {
-    await this.db.createIndex({ index: { fields: ['tenantId'] } });
-    await this.db.createIndex({ index: { fields: ['status'] } });
-    await this.db.createIndex({ index: { fields: ['kind'] } });
-    this.logger.info(`HITL DB initialized at ${this.settings.dbPath}`);
-
     this.expiryTimer = setInterval(() => {
       this.expireDueItems().catch((err) =>
         this.logger.warn(`[hitl] expireDueItems failed: ${err.message}`)
@@ -82,9 +82,6 @@ module.exports = {
     if (this.expiryTimer) {
       clearInterval(this.expiryTimer);
       this.expiryTimer = null;
-    }
-    if (this.db) {
-      await this.db.close();
     }
   },
 

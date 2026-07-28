@@ -27,8 +27,7 @@
  */
 
 const crypto = require('crypto');
-const PouchDB = require('pouchdb');
-PouchDB.plugin(require('pouchdb-find'));
+const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 const { MoleculerClientError } = require('moleculer').Errors;
 const { resolveTenantId } = require('../src/pagination');
 
@@ -126,23 +125,13 @@ function buildMemberDoc(input) {
 module.exports = {
   name: 'energy-sharing-community',
 
-  settings: {
-    dbPath: process.env.ENERGY_SHARING_COMMUNITY_DB_PATH || './data/energy-sharing-community',
-  },
-
-  created() {
-    this.db = new PouchDB(this.settings.dbPath, { auto_compaction: true });
-  },
-
-  async started() {
-    await this.db.createIndex({ index: { fields: ['tenantId'] } });
-    await this.db.createIndex({ index: { fields: ['communityId'] } });
-    this.logger.info(`Energy-sharing community DB initialized at ${this.settings.dbPath}`);
-  },
-
-  async stopped() {
-    if (this.db) await this.db.close();
-  },
+  mixins: [
+    createPouchDbLifecycleMixin({
+      dbPathEnvVar: 'ENERGY_SHARING_COMMUNITY_DB_PATH',
+      defaultDbPath: './data/energy-sharing-community',
+      indexes: [['tenantId'], ['communityId']],
+    }),
+  ],
 
   actions: {
     /**

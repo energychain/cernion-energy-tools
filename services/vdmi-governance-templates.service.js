@@ -21,8 +21,7 @@
  */
 
 const crypto = require('crypto');
-const PouchDB = require('pouchdb');
-PouchDB.plugin(require('pouchdb-find'));
+const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 const { MoleculerClientError } = require('moleculer').Errors;
 const { getTenantId } = require('../src/tenant-context');
 
@@ -187,25 +186,13 @@ function nowIso() {
 module.exports = {
   name: 'vdmi-governance-templates',
 
-  settings: {
-    dbPath: process.env.VDMI_TEMPLATES_DB_PATH || './data/vdmi-governance-templates',
-  },
-
-  created() {
-    this.db = new PouchDB(this.settings.dbPath, { auto_compaction: true });
-  },
-
-  async started() {
-    await this.db.createIndex({ index: { fields: ['tenantId'] } });
-    await this.db.createIndex({ index: { fields: ['templateType'] } });
-    await this.db.createIndex({ index: { fields: ['createdAt'] } });
-    await this.db.createIndex({ index: { fields: ['tenantId', 'type', 'createdAt'] } });
-    this.logger.info(`VDMI Governance Templates DB initialized at ${this.settings.dbPath}`);
-  },
-
-  async stopped() {
-    if (this.db) await this.db.close();
-  },
+  mixins: [
+    createPouchDbLifecycleMixin({
+      dbPathEnvVar: 'VDMI_TEMPLATES_DB_PATH',
+      defaultDbPath: './data/vdmi-governance-templates',
+      indexes: [['tenantId'], ['templateType'], ['createdAt'], ['tenantId', 'type', 'createdAt']],
+    }),
+  ],
 
   actions: {
     /**

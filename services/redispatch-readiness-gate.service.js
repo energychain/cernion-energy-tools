@@ -9,8 +9,7 @@
  */
 
 const crypto = require('crypto');
-const PouchDB = require('pouchdb');
-PouchDB.plugin(require('pouchdb-find'));
+const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 const { MoleculerClientError } = require('moleculer').Errors;
 const { getTenantId } = require('../src/tenant-context');
 const {
@@ -80,25 +79,13 @@ function buildStatusFromRun(run) {
 module.exports = {
   name: 'redispatch-readiness-gate',
 
-  settings: {
-    dbPath: process.env.REDISPATCH_READINESS_GATE_DB_PATH || './data/redispatch-readiness-gate',
-  },
-
-  created() {
-    this.db = new PouchDB(this.settings.dbPath, { auto_compaction: true });
-  },
-
-  async started() {
-    await this.db.createIndex({ index: { fields: ['tenantId', 'docType'] } });
-    await this.db.createIndex({ index: { fields: ['processId'] } });
-    await this.db.createIndex({ index: { fields: ['status'] } });
-    await this.db.createIndex({ index: { fields: ['createdAt'] } });
-    this.logger.info(`Redispatch Readiness Gate DB initialized at ${this.settings.dbPath}`);
-  },
-
-  async stopped() {
-    if (this.db) await this.db.close();
-  },
+  mixins: [
+    createPouchDbLifecycleMixin({
+      dbPathEnvVar: 'REDISPATCH_READINESS_GATE_DB_PATH',
+      defaultDbPath: './data/redispatch-readiness-gate',
+      indexes: [['tenantId', 'docType'], ['processId'], ['status'], ['createdAt']],
+    }),
+  ],
 
   actions: {
     /**

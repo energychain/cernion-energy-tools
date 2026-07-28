@@ -10,8 +10,7 @@
  */
 
 const crypto = require('crypto');
-const PouchDB = require('pouchdb');
-PouchDB.plugin(require('pouchdb-find'));
+const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 const { MoleculerClientError } = require('moleculer').Errors;
 const { getTenantId } = require('../src/tenant-context');
 const {
@@ -37,25 +36,17 @@ function nowIso() {
 module.exports = {
   name: 'redispatch-special-case-gate',
 
+  mixins: [
+    createPouchDbLifecycleMixin({
+      dbPathEnvVar: 'REDISPATCH_SPECIAL_CASE_GATE_DB_PATH',
+      defaultDbPath: './data/redispatch-special-case-gate',
+      indexes: [['tenantId', 'docType'], ['mastrId'], ['status'], ['createdAt']],
+    }),
+  ],
+
   settings: {
     dbPath:
       process.env.REDISPATCH_SPECIAL_CASE_GATE_DB_PATH || './data/redispatch-special-case-gate',
-  },
-
-  created() {
-    this.db = new PouchDB(this.settings.dbPath, { auto_compaction: true });
-  },
-
-  async started() {
-    await this.db.createIndex({ index: { fields: ['tenantId', 'docType'] } });
-    await this.db.createIndex({ index: { fields: ['mastrId'] } });
-    await this.db.createIndex({ index: { fields: ['status'] } });
-    await this.db.createIndex({ index: { fields: ['createdAt'] } });
-    this.logger.info(`Redispatch Special Case Gate DB initialized at ${this.settings.dbPath}`);
-  },
-
-  async stopped() {
-    if (this.db) await this.db.close();
   },
 
   actions: {

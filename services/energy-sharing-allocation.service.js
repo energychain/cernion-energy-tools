@@ -52,8 +52,7 @@
  */
 
 const crypto = require('crypto');
-const PouchDB = require('pouchdb');
-PouchDB.plugin(require('pouchdb-find'));
+const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 const CernionMCPClient = require('../src/mcp-client');
 const { runAsync } = require('../src/async-job-runner');
 const {
@@ -127,24 +126,13 @@ const MALO_REGEX = /^DE\d{31}$/;
 module.exports = {
   name: 'energy-sharing-allocation',
 
-  settings: {
-    dbPath: process.env.ALLOCATION_ENGINE_DB_PATH || './data/allocation-engine',
-  },
-
-  created() {
-    this.db = new PouchDB(this.settings.dbPath, { auto_compaction: true });
-  },
-
-  async started() {
-    await this.db.createIndex({ index: { fields: ['communityId'] } });
-    await this.db.createIndex({ index: { fields: ['createdAt'] } });
-    await this.db.createIndex({ index: { fields: ['tenantId'] } });
-    this.logger.info(`Energy-sharing allocation DB initialized at ${this.settings.dbPath}`);
-  },
-
-  async stopped() {
-    if (this.db) await this.db.close();
-  },
+  mixins: [
+    createPouchDbLifecycleMixin({
+      dbPathEnvVar: 'ALLOCATION_ENGINE_DB_PATH',
+      defaultDbPath: './data/allocation-engine',
+      indexes: [['communityId'], ['createdAt'], ['tenantId']],
+    }),
+  ],
 
   // ---------------------------------------------------------------------------
   // Actions
