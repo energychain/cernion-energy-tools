@@ -5,7 +5,7 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [0.67.13] — 2026-07-28
 
 ### Changed
 - **Duplication cleanup, round 2 — remaining PouchDB lifecycle special cases**: Extended `src/pouchdb-lifecycle-mixin.js` with two opt-in options (`ensureDirectory`, `settingsKey`) needed to safely cover the special-case services deliberately skipped in round 1, then migrated 6 of the 8: `services/mqtt-broker.service.js` (had a `fs.mkdirSync` prerequisite before opening the db — now `ensureDirectory: true`), `services/governance.service.js` (used a non-standard `decisionAuditDbPath` settings key that two tests override directly for per-test DB isolation — preserved via `settingsKey: 'decisionAuditDbPath'`, verified the override still resolves correctly through Moleculer's mixin/settings merge), and the four VDMI class-based services (`vdmi-spectator`, `vdmi-evidence`, `vdmi-findings`, `vdmi-human-override` — confirmed the mixin also works correctly with ES6-class `parseServiceSchema()`-based services, not just plain-object schemas). Discovered and worked around a real hazard along the way: `vdmi-evidence`/`vdmi-findings`/`vdmi-human-override` each independently open a PouchDB handle onto the *same* shared `data/vdmi-audit-trail` path — closing one handle to a shared PouchDB path hangs the sibling handles (verified with a standalone repro), so that shared db is deliberately left outside the mixin's auto-close lifecycle, unlike each service's own unique primary db.
