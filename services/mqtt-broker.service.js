@@ -1,27 +1,16 @@
 'use strict';
 
 const crypto = require('crypto');
-const fs = require('fs');
-const path = require('path');
-
-const PouchDB = require('pouchdb');
-PouchDB.plugin(require('pouchdb-find'));
+const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 
 const { MoleculerClientError } = require('moleculer').Errors;
 
-const DEFAULT_DB_PATH = process.env.MQTT_BROKER_DB_PATH || './data/mqtt-broker';
 const DEFAULT_CONTROL_TTL_SECONDS = 300;
 const MAX_PAYLOAD_BYTES = Number(process.env.MQTT_BROKER_MAX_PAYLOAD_BYTES || 32768);
 const CLEANUP_INTERVAL_MS = Number(process.env.MQTT_BROKER_CLEANUP_INTERVAL_MS || 60000);
 
 function nowIso() {
   return new Date().toISOString();
-}
-
-function ensureDir(dirPath) {
-  if (!fs.existsSync(dirPath)) {
-    fs.mkdirSync(dirPath, { recursive: true });
-  }
 }
 
 function sha256(value) {
@@ -120,23 +109,31 @@ function toPublicMessage(doc) {
 module.exports = {
   name: 'mqtt-broker',
 
+  mixins: [
+    createPouchDbLifecycleMixin({
+      dbPathEnvVar: 'MQTT_BROKER_DB_PATH',
+      defaultDbPath: './data/mqtt-broker',
+      indexes: [
+        ['docType', 'state'],
+        ['docType', 'topic'],
+        ['docType', 'expiresAt'],
+      ],
+      ensureDirectory: true,
+      logLabel: 'mqtt-broker',
+    }),
+  ],
+
   settings: {
-    dbPath: DEFAULT_DB_PATH,
     maxPayloadBytes: MAX_PAYLOAD_BYTES,
     cleanupIntervalMs: CLEANUP_INTERVAL_MS,
     controlTtlSeconds: DEFAULT_CONTROL_TTL_SECONDS,
   },
 
   created() {
-    ensureDir(path.resolve(this.settings.dbPath));
-    this.db = new PouchDB(this.settings.dbPath, { auto_compaction: true });
     this.cleanupTimer = null;
   },
 
   async started() {
-    await this.db.createIndex({ index: { fields: ['docType', 'state'] } });
-    await this.db.createIndex({ index: { fields: ['docType', 'topic'] } });
-    await this.db.createIndex({ index: { fields: ['docType', 'expiresAt'] } });
     await this.cleanupExpiredState();
     this.cleanupTimer = setInterval(() => {
       this.cleanupExpiredState().catch((error) => {
@@ -146,16 +143,12 @@ module.exports = {
     if (typeof this.cleanupTimer.unref === 'function') {
       this.cleanupTimer.unref();
     }
-    this.logger.info(`[mqtt-broker] DB initialized at ${this.settings.dbPath}`);
   },
 
   async stopped() {
     if (this.cleanupTimer) {
       clearInterval(this.cleanupTimer);
       this.cleanupTimer = null;
-    }
-    if (this.db) {
-      await this.db.close();
     }
   },
 

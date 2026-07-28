@@ -8,6 +8,7 @@ const Service = require('moleculer').Service;
 const { MoleculerClientError } = require('moleculer').Errors;
 const PouchDB = require('pouchdb');
 const VDMIAuditTrail = require('../src/vdmi-audit-trail');
+const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 
 module.exports = class VDMIFindingsService extends Service {
   constructor(broker) {
@@ -25,34 +26,34 @@ module.exports = class VDMIFindingsService extends Service {
       },
     };
 
-    this.db = null;
     this.auditTrail = null;
 
     this.parseServiceSchema({
       name: this.name,
+      mixins: [
+        createPouchDbLifecycleMixin({
+          defaultDbPath: 'data/vdmi-findings',
+          indexes: [
+            ['tenantId', 'status'],
+            ['tenantId', 'severity'],
+          ],
+          logLabel: 'vdmi-findings',
+        }),
+      ],
       settings: this.settings,
       actions: this.actions,
       created: this.created,
-      started: this.started,
     });
   }
 
   created() {
-    this.db = new PouchDB('data/vdmi-findings', {
-      auto_compaction: true,
-    });
+    // Shared across vdmi-evidence/vdmi-findings/vdmi-human-override — each opens its own
+    // PouchDB handle onto the same underlying store, so this one is deliberately NOT
+    // lifecycle-managed by the mixin: closing one handle to a shared PouchDB path hangs
+    // the sibling handles (verified), so it is left open for the process lifetime as before.
     this.auditTrail = new VDMIAuditTrail(
       new PouchDB('data/vdmi-audit-trail', { auto_compaction: true })
     );
-  }
-
-  async started() {
-    await this.db.createIndex({
-      index: { fields: ['tenantId', 'status'] },
-    });
-    await this.db.createIndex({
-      index: { fields: ['tenantId', 'severity'] },
-    });
   }
 
   actions = {

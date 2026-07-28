@@ -16,6 +16,8 @@
  * @param {string[][]} [options.indexes] - field arrays passed to db.createIndex per entry
  * @param {string} [options.dbProperty] - property name the PouchDB instance is assigned to (default: 'db')
  * @param {string} [options.logLabel] - label used in the ready log line (default: service name)
+ * @param {boolean} [options.ensureDirectory] - mkdir -p the dbPath before opening it (for services that don't rely on PouchDB's own directory creation)
+ * @param {string} [options.settingsKey] - settings property holding the path (default: 'dbPath'); override for services whose callers/tests already override a differently-named settings key (e.g. `decisionAuditDbPath`) for per-test DB isolation
  */
 function createPouchDbLifecycleMixin({
   dbPathEnvVar,
@@ -23,6 +25,8 @@ function createPouchDbLifecycleMixin({
   indexes = [],
   dbProperty = 'db',
   logLabel,
+  ensureDirectory = false,
+  settingsKey = 'dbPath',
 } = {}) {
   const PouchDB = require('pouchdb');
   PouchDB.plugin(require('pouchdb-find'));
@@ -31,18 +35,27 @@ function createPouchDbLifecycleMixin({
 
   return {
     settings: {
-      dbPath,
+      [settingsKey]: dbPath,
     },
 
     created() {
-      this[dbProperty] = new PouchDB(this.settings.dbPath, { auto_compaction: true });
+      const resolvedDbPath = this.settings[settingsKey];
+      if (ensureDirectory) {
+        const fs = require('fs');
+        const path = require('path');
+        const resolved = path.resolve(resolvedDbPath);
+        if (!fs.existsSync(resolved)) {
+          fs.mkdirSync(resolved, { recursive: true });
+        }
+      }
+      this[dbProperty] = new PouchDB(resolvedDbPath, { auto_compaction: true });
     },
 
     async started() {
       for (const fields of indexes) {
         await this[dbProperty].createIndex({ index: { fields } });
       }
-      this.logger.info(`[${logLabel || this.name}] PouchDB ready at ${this.settings.dbPath}`);
+      this.logger.info(`[${logLabel || this.name}] PouchDB ready at ${this.settings[settingsKey]}`);
     },
 
     async stopped() {

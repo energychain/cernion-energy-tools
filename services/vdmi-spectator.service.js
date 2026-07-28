@@ -5,7 +5,7 @@
  */
 
 const Service = require('moleculer').Service;
-const PouchDB = require('pouchdb');
+const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 
 module.exports = class VDMISpectatorService extends Service {
   constructor(broker) {
@@ -19,26 +19,17 @@ module.exports = class VDMISpectatorService extends Service {
       },
     };
 
-    this.db = null;
-
     this.parseServiceSchema({
       name: this.name,
+      mixins: [
+        createPouchDbLifecycleMixin({
+          defaultDbPath: 'data/vdmi-spectator',
+          indexes: [['tenantId', 'taskId']],
+          logLabel: 'vdmi-spectator',
+        }),
+      ],
       settings: this.settings,
       actions: this.actions,
-      created: this.created,
-      started: this.started,
-    });
-  }
-
-  created() {
-    this.db = new PouchDB('data/vdmi-spectator', {
-      auto_compaction: true,
-    });
-  }
-
-  async started() {
-    await this.db.createIndex({
-      index: { fields: ['tenantId', 'taskId'] },
     });
   }
 

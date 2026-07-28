@@ -1,6 +1,6 @@
 'use strict';
 
-const PouchDB = require('pouchdb');
+const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 const { evaluateGovernancePolicy } = require('../src/governance-policy-evaluator');
 const {
   DecisionEvidenceAuditTrail,
@@ -18,15 +18,16 @@ const { getTenantId } = require('../src/tenant-context');
 module.exports = {
   name: 'governance',
 
-  settings: {
-    decisionAuditDbPath:
-      process.env.GOVERNANCE_DECISION_AUDIT_DB_PATH || './data/governance-decision-audit',
-  },
+  mixins: [
+    createPouchDbLifecycleMixin({
+      dbPathEnvVar: 'GOVERNANCE_DECISION_AUDIT_DB_PATH',
+      defaultDbPath: './data/governance-decision-audit',
+      dbProperty: 'decisionAuditDb',
+      settingsKey: 'decisionAuditDbPath',
+    }),
+  ],
 
   created() {
-    this.decisionAuditDb = new PouchDB(this.settings.decisionAuditDbPath, {
-      auto_compaction: true,
-    });
     this.decisionAuditTrail = new DecisionEvidenceAuditTrail(this.decisionAuditDb);
   },
 
