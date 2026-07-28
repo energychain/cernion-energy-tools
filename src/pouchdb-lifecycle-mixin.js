@@ -10,13 +10,25 @@
  * overlay restore, ...) simply keeps its own created/started/stopped hooks
  * for that extra part — this mixin only owns the PouchDB instance itself.
  *
+ * created() always synchronously mkdir -p's the target directory before
+ * opening it. This isn't just for services that used to do this by hand
+ * (e.g. mqtt-broker): when several services' created() hooks run back to
+ * back during broker.start() and their db paths share a not-yet-existing
+ * parent directory (e.g. the repo-root `./data/`), leveldown's own internal
+ * directory creation can race and intermittently fail with
+ * "IO error: <path>/LOCK: No such file or directory" — root-caused and
+ * reproduced in isolation (two services' test suites run together, ~always
+ * failing without this, ~always passing with it) while investigating
+ * pre-existing test flakiness. A synchronous mkdirSync before `new PouchDB()`
+ * removes the race entirely, since Node's sync fs call has no equivalent
+ * ordering hazard.
+ *
  * @param {object} options
  * @param {string} [options.dbPathEnvVar] - env var name overriding the default path
  * @param {string} options.defaultDbPath - fallback PouchDB path
  * @param {string[][]} [options.indexes] - field arrays passed to db.createIndex per entry
  * @param {string} [options.dbProperty] - property name the PouchDB instance is assigned to (default: 'db')
  * @param {string} [options.logLabel] - label used in the ready log line (default: service name)
- * @param {boolean} [options.ensureDirectory] - mkdir -p the dbPath before opening it (for services that don't rely on PouchDB's own directory creation)
  * @param {string} [options.settingsKey] - settings property holding the path (default: 'dbPath'); override for services whose callers/tests already override a differently-named settings key (e.g. `decisionAuditDbPath`) for per-test DB isolation
  */
 function createPouchDbLifecycleMixin({
@@ -25,7 +37,6 @@ function createPouchDbLifecycleMixin({
   indexes = [],
   dbProperty = 'db',
   logLabel,
-  ensureDirectory = false,
   settingsKey = 'dbPath',
 } = {}) {
   const PouchDB = require('pouchdb');
@@ -39,14 +50,12 @@ function createPouchDbLifecycleMixin({
     },
 
     created() {
+      const fs = require('fs');
+      const path = require('path');
       const resolvedDbPath = this.settings[settingsKey];
-      if (ensureDirectory) {
-        const fs = require('fs');
-        const path = require('path');
-        const resolved = path.resolve(resolvedDbPath);
-        if (!fs.existsSync(resolved)) {
-          fs.mkdirSync(resolved, { recursive: true });
-        }
+      const resolved = path.resolve(resolvedDbPath);
+      if (!fs.existsSync(resolved)) {
+        fs.mkdirSync(resolved, { recursive: true });
       }
       this[dbProperty] = new PouchDB(resolvedDbPath, { auto_compaction: true });
     },

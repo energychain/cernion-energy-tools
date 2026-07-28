@@ -118,7 +118,6 @@ module.exports = {
         ['docType', 'topic'],
         ['docType', 'expiresAt'],
       ],
-      ensureDirectory: true,
       logLabel: 'mqtt-broker',
     }),
   ],

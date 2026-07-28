@@ -6,13 +6,29 @@
  *
  * Copy this file to create new services:
  * cp templates/skeleton.service.js services/yourservice.service.js
+ *
+ * Before writing new logic, check whether it already exists as a shared
+ * utility — the codebase has had a recurring problem of the same helper
+ * being hand-copied across many services instead of reused. In particular:
+ * - Need PouchDB-backed persistence? Use `src/pouchdb-lifecycle-mixin.js`'s
+ *   `createPouchDbLifecycleMixin({ dbPathEnvVar, defaultDbPath, indexes })`
+ *   via `mixins: [...]` instead of hand-writing settings.dbPath/created/
+ *   started/stopped — see services/company.service.js for a minimal example,
+ *   or services/hitl.service.js for one that also needs its own extra
+ *   started()/stopped() logic alongside the mixin.
+ * - Need to call the LLM (Gemini/OpenAI-compatible/Ollama)? Use
+ *   `src/llm-client.js` (`generateText`/`generateStructured`/`generateChat`/
+ *   `embeddings`/`generateImage`), never call a provider SDK directly — it's
+ *   the only path that gets PII scrubbing, quota enforcement, tracing and
+ *   retries for free.
+ * - Don't set a `version` field unless a real multi-version rollout is
+ *   needed — almost no service in this repo declares one.
  */
 
 const { Service } = require('moleculer'); // eslint-disable-line no-unused-vars
 
 module.exports = {
   name: 'skeleton',
-  version: 1,
 
   /**
    * Service settings
@@ -220,25 +236,17 @@ module.exports = {
     },
 
     /**
-     * Example method for calling Gemini AI
-     * (requires GEMINI_API_KEY in .env)
+     * Example method for calling the LLM. Always go through src/llm-client.js
+     * rather than a provider SDK directly — it dispatches to whichever
+     * provider LLM_PROVIDER selects (Gemini/OpenAI-compatible/Ollama) and
+     * applies PII scrubbing, quota enforcement, tracing and retries.
      */
-    async callGemini(prompt) {
-      if (!process.env.GEMINI_API_KEY) {
-        this.logger.warn('GEMINI_API_KEY not set');
-        return null;
-      }
-
+    async callLlm(prompt) {
+      const llmClient = require('../src/llm-client');
       try {
-        const { GoogleGenerativeAI } = require('@google/generative-ai');
-        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-        const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
-
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        return response.text();
+        return await llmClient.generateText(prompt);
       } catch (error) {
-        this.logger.error('Gemini API error:', error);
+        this.logger.error('LLM call failed:', error);
         return null;
       }
     },

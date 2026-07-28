@@ -135,6 +135,13 @@ Requirements:
 - Validate inputs with Moleculer params.
 - Provide OpenAPI documentation in action.openapi.
 - Be resilient to MCP response shapes; handle both result.data.* and top-level fields (e.g., forecast arrays).
+- If the service needs its own persistence, use the shared
+  \`createPouchDbLifecycleMixin({ dbPathEnvVar, defaultDbPath, indexes })\`
+  from \`src/pouchdb-lifecycle-mixin.js\` via \`mixins: [...]\` — do NOT hand-write
+  settings.dbPath / created() / started() / stopped() PouchDB boilerplate.
+- If the service needs to call an LLM, use \`src/llm-client.js\`
+  (\`generateText\`/\`generateStructured\`/\`generateChat\`/\`embeddings\`/\`generateImage\`)
+  — never call a Gemini/OpenAI/Ollama SDK directly.
 
 Business Case:
 ${businessCase}

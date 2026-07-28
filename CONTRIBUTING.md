@@ -59,6 +59,27 @@ Or manually copy the skeleton template:
 cp templates/skeleton.service.js services/my-service.service.js
 ```
 
+### Reuse shared utilities before writing new ones
+
+The most common source of duplication in this codebase (and the biggest
+maintenance cost when an agent or contributor is working in it) has been the
+same helper getting hand-copied into a new service instead of reused. Before
+writing new logic, check whether it already exists:
+
+- **PouchDB-backed persistence** → `src/pouchdb-lifecycle-mixin.js`'s
+  `createPouchDbLifecycleMixin({ dbPathEnvVar, defaultDbPath, indexes })` via
+  `mixins: [...]`. Used by 60+ services (see `services/company.service.js`
+  for a minimal example). Do not hand-write
+  `settings.dbPath` / `created()` / `async started()` / `async stopped()`.
+- **Calling an LLM** (Gemini/OpenAI-compatible/Ollama) → `src/llm-client.js`
+  (`generateText`/`generateStructured`/`generateChat`/`embeddings`/
+  `generateImage`). Never call a provider SDK directly — only this facade
+  applies PII scrubbing, quota enforcement, tracing and retries.
+- **HTTP request classification** (read vs. write, sidecar/runbook
+  exceptions) → `src/gateway-request-classifiers.js`.
+- When unsure whether something already exists, grep `src/` for the concept
+  first (e.g. `grep -rl "keyword" src/`) before adding a new helper.
+
 ### Service Structure
 
 Each service should follow this structure:
@@ -86,7 +107,7 @@ module.exports = {
 
   created() {},
   async started() {},
-  async stopped() {}
+  async stopped() {},
 };
 ```
 
@@ -137,6 +158,7 @@ Follow these conventions:
 - `chore:` Maintenance tasks
 
 Example:
+
 ```
 feat: add energy consumption prediction service
 
@@ -157,20 +179,24 @@ feat: add energy consumption prediction service
 
 ```markdown
 ## Description
+
 Brief description of changes
 
 ## Type of Change
+
 - [ ] Bug fix
 - [ ] New feature
 - [ ] Breaking change
 - [ ] Documentation update
 
 ## Testing
+
 - [ ] Tested locally
 - [ ] Added/updated tests (if applicable)
 - [ ] All linters pass
 
 ## Related Issues
+
 Fixes #(issue number)
 ```
 
@@ -178,7 +204,7 @@ Fixes #(issue number)
 
 ```
 cernion-energy-tools/
-├── services/              # Core microservices (25 services)
+├── services/              # Core microservices (run `ls services/*.service.js | wc -l` for current count)
 │   ├── api.service.js     # API Gateway + Swagger UI
 │   ├── agent.service.js   # AI agent — plan/execute/export
 │   ├── assets.service.js  # MaStR installation assets
@@ -260,6 +286,7 @@ cp .env.example .env
 ```
 
 Add your configuration:
+
 - API keys
 - Service URLs
 - Feature flags

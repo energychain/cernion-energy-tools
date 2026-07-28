@@ -1,4 +1,36 @@
+# Project-Specific Conventions
+
+Before writing new logic in `services/` or `src/`, check whether it already
+exists as a shared utility — the biggest recurring maintainability problem
+in this codebase has been the same helper getting hand-copied into a new
+service instead of reused (see CHANGELOG.md's duplication-cleanup entries
+for the history). In particular:
+
+- **PouchDB-backed persistence** → `src/pouchdb-lifecycle-mixin.js`'s
+  `createPouchDbLifecycleMixin({ dbPathEnvVar, defaultDbPath, indexes })` via
+  `mixins: [...]`, not hand-written `settings.dbPath` / `created()` /
+  `async started()` / `async stopped()`. Used by 60+ services — see
+  `services/company.service.js` for a minimal example, `services/hitl.service.js`
+  for one that also keeps its own extra `started()`/`stopped()` logic
+  alongside the mixin (Moleculer chains `created`/`started` mixin-first,
+  `stopped` service-first, so the extra logic runs at the correct point).
+  If a service needs to close a PouchDB handle it does _not_ own exclusively
+  (a path also opened by other services), do not add it to the mixin's
+  auto-close lifecycle — closing one handle to a shared PouchDB path hangs
+  sibling handles onto the same path.
+- **Calling an LLM** (Gemini/OpenAI-compatible/Ollama) → `src/llm-client.js`
+  (`generateText`/`generateStructured`/`generateChat`/`embeddings`/
+  `generateImage`), never a provider SDK directly — only this facade applies
+  PII scrubbing, quota enforcement, tracing and retries.
+- **HTTP request classification** (read vs. write, sidecar/runbook
+  exceptions) → `src/gateway-request-classifiers.js`.
+- When unsure, `grep -rl "keyword" src/` before adding a new helper.
+
+CONTRIBUTING.md has more detail. `templates/skeleton.service.js` (the base
+for `npm run create` and manual `cp` scaffolding) also documents these.
+
 <!-- gitnexus:start -->
+
 # GitNexus — Code Intelligence
 
 This project is indexed by GitNexus as **cernion-energy-tools** (13347 symbols, 26472 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
@@ -22,22 +54,22 @@ This project is indexed by GitNexus as **cernion-energy-tools** (13347 symbols, 
 
 ## Resources
 
-| Resource | Use for |
-|----------|---------|
-| `gitnexus://repo/cernion-energy-tools/context` | Codebase overview, check index freshness |
-| `gitnexus://repo/cernion-energy-tools/clusters` | All functional areas |
-| `gitnexus://repo/cernion-energy-tools/processes` | All execution flows |
-| `gitnexus://repo/cernion-energy-tools/process/{name}` | Step-by-step execution trace |
+| Resource                                              | Use for                                  |
+| ----------------------------------------------------- | ---------------------------------------- |
+| `gitnexus://repo/cernion-energy-tools/context`        | Codebase overview, check index freshness |
+| `gitnexus://repo/cernion-energy-tools/clusters`       | All functional areas                     |
+| `gitnexus://repo/cernion-energy-tools/processes`      | All execution flows                      |
+| `gitnexus://repo/cernion-energy-tools/process/{name}` | Step-by-step execution trace             |
 
 ## CLI
 
-| Task | Read this skill file |
-|------|---------------------|
-| Understand architecture / "How does X work?" | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md` |
-| Blast radius / "What breaks if I change X?" | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
-| Trace bugs / "Why is X failing?" | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md` |
-| Rename / extract / split / refactor | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
-| Tools, resources, schema reference | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md` |
-| Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
+| Task                                         | Read this skill file                                        |
+| -------------------------------------------- | ----------------------------------------------------------- |
+| Understand architecture / "How does X work?" | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md`       |
+| Blast radius / "What breaks if I change X?"  | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
+| Trace bugs / "Why is X failing?"             | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md`       |
+| Rename / extract / split / refactor          | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md`     |
+| Tools, resources, schema reference           | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md`           |
+| Index, status, clean, wiki CLI commands      | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md`             |
 
 <!-- gitnexus:end -->
