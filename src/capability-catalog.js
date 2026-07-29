@@ -9444,6 +9444,150 @@ const CURATED_CAPABILITIES = [
     ],
     routingPattern: 'eeg_clawback_ewk_monitoring',
   },
+  {
+    // Present since v0.1.0 (services/eic-codes.service.js) but never registered here — added
+    // while auditing whether the platform's earliest business domains are still discoverable
+    // via the Capability Broker / Chat Agent semantic routing (both read CURATED_CAPABILITIES).
+    capability: 'eic_code_lookup',
+    domain: 'stammdaten',
+    abstractionLevel: 'read_only_master_data_lookup',
+    intent: 'eic-codes.search',
+    keywords: [
+      'eic code',
+      'eic-code',
+      'energy identification code',
+      'iec 62325',
+      'marktpartner code',
+      'bilanzkreis code',
+      'entso-e code',
+      'welcher eic',
+      'eic für',
+      'eic von',
+      'party code',
+      'x-code',
+      'gas operator code',
+      'gasnetzbetreiber code',
+      'eic validieren',
+      'eic gültig',
+      'eic statistik',
+      'eic datenbank',
+      'eic_code_lookup',
+    ],
+    preferredActions: [
+      'eic-codes.search',
+      'eic-codes.validate',
+      'eic-codes.gasOperators',
+      'eic-codes.gasFacilities',
+      'eic-codes.statistics',
+    ],
+    fallbackActions: ['eic-codes.search'],
+    avoid: AVOID_QUERY_TOOLS,
+    requiredInputs: [
+      { name: 'code', label: 'EIC-Code', type: 'string', required: false },
+      { name: 'name', label: 'Firmenname', type: 'string', required: false },
+      { name: 'country', label: 'Ländercode', type: 'string', required: false, default: 'DE' },
+    ],
+    risksAndNotes: [
+      'eic-codes.* ist ein read-only Nachschlage-/Validierungsservice über die ENTSO-E/AGSI-EIC-Datenbank (72.580+ Codes), keine Registrierungs- oder Vergabestelle.',
+      'Kein EIC wird erzeugt, geändert oder bei ENTSO-E/AGSI beantragt; reine Suche, IEC-62325-Formatvalidierung und Statistik.',
+    ],
+    routingPattern: 'eic_code_lookup',
+  },
+  {
+    // Present since v0.1.0 (services/german-grid.service.js) but never registered here — see
+    // note on eic_code_lookup above for why this was added.
+    capability: 'german_grid_market_data',
+    domain: 'market-operations',
+    abstractionLevel: 'read_only_market_data_lookup',
+    intent: 'german-grid.spotprices',
+    keywords: [
+      'spotpreis',
+      'spotmarkt',
+      'epex',
+      'eex',
+      'day-ahead preise',
+      'dynamischer tarif',
+      'dynamische tarife',
+      'negative preise',
+      'negativpreise',
+      'eeg-compliance',
+      'redispatch statistik',
+      'solar prognose',
+      'wind prognose',
+      'netztransparenz',
+      'german grid data',
+      'german spotmarket',
+      'german_grid_market_data',
+    ],
+    preferredActions: [
+      'german-grid.spotprices',
+      'german-grid.negativePrices',
+      'german-grid.forecast',
+      'german-grid.redispatch',
+    ],
+    fallbackActions: ['german-grid.spotprices', 'entsoe.dayAheadPrices'],
+    avoid: AVOID_QUERY_TOOLS,
+    requiredInputs: [
+      { name: 'dateFrom', label: 'Startdatum', type: 'string', required: false },
+      { name: 'dateTo', label: 'Enddatum', type: 'string', required: false },
+    ],
+    risksAndNotes: [
+      'german-grid.* liefert offizielle Netztransparenz.de-Daten (OAuth2) mit automatischem ENTSO-E-Fallback bei fehlenden/fehlerhaften Daten; read-only Marktdaten, keine Handelsentscheidung.',
+      'Redispatch- und Negativpreis-Auswertungen sind Markt-/Systemdaten, keine interne Portfolio- oder Leitwartenmeldung.',
+    ],
+    routingPattern: 'german_grid_market_data',
+  },
+  {
+    // Present since v0.5.0 (services/forecast.service.js). Already reachable via the Chat
+    // Agent's deterministic routing matrix and referenced as a supporting evidence source by
+    // other capabilities (e.g. redispatch_probability_forecast) — but had no standalone
+    // Capability Broker entry, so a direct forecast question could not be routed to it as its
+    // own capability. Added for consistency with the other two v0.1.0-era gaps above.
+    capability: 'renewable_generation_forecast',
+    domain: 'forecast',
+    abstractionLevel: 'read_only_forecast_lookup',
+    intent: 'forecast.generationForecast',
+    keywords: [
+      'erzeugungsprognose',
+      'generation forecast',
+      'solarprognose',
+      'windprognose',
+      'wetterprognose erzeugung',
+      'pv prognose',
+      'einspeiseprognose',
+      'stromerzeugung prognose',
+      'wieviel strom wird erzeugt',
+      'wie viel solarstrom',
+      'wie viel windstrom',
+      'iec 61853',
+      'iec 61400',
+      'renewable_generation_forecast',
+    ],
+    preferredActions: ['forecast.generationForecast'],
+    fallbackActions: ['forecast.generationForecast'],
+    avoid: AVOID_QUERY_TOOLS,
+    requiredInputs: [
+      {
+        name: 'installationType',
+        label: 'Anlagentyp (solar/wind/all)',
+        type: 'string',
+        required: false,
+        default: 'solar',
+      },
+      { name: 'forecastDays', label: 'Prognosehorizont (Tage)', type: 'number', required: false },
+      {
+        name: 'gridOperatorMastrId',
+        label: 'Netzbetreiber MaStR-ID',
+        type: 'string',
+        required: false,
+      },
+    ],
+    risksAndNotes: [
+      'forecast.generationForecast ist ein read-only, wetterbasierter Prognoseservice (IEC 61853 Solar / IEC 61400 Wind) auf Basis realer MaStR-Anlagendaten, keine Handels- oder Einspeiseentscheidung.',
+      'Prognose ersetzt keine verbindliche Netzfahrplan-, Redispatch- oder Beschaffungsentscheidung; dient als Evidenzquelle für nachgelagerte Analysen.',
+    ],
+    routingPattern: 'renewable_generation_forecast',
+  },
 ];
 
 const GLOBAL_DO_NOT_USE = [

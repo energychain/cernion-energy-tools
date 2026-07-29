@@ -42086,7 +42086,7 @@
       "agentable": true,
       "nonAgentableReason": null,
       "capabilityCandidates": [
-        "eic-codes.gas_facilities"
+        "eic_code_lookup"
       ],
       "domains": [
         "grid-ops"
@@ -42178,7 +42178,7 @@
       "agentable": true,
       "nonAgentableReason": null,
       "capabilityCandidates": [
-        "eic-codes.gas_operators"
+        "eic_code_lookup"
       ],
       "domains": [
         "grid-ops"
@@ -42269,7 +42269,7 @@
       "agentable": true,
       "nonAgentableReason": null,
       "capabilityCandidates": [
-        "eic-codes.search"
+        "eic_code_lookup"
       ],
       "domains": [
         "grid-ops"
@@ -42381,7 +42381,7 @@
       "agentable": true,
       "nonAgentableReason": null,
       "capabilityCandidates": [
-        "eic-codes.statistics"
+        "eic_code_lookup"
       ],
       "domains": [
         "grid-ops"
@@ -42452,7 +42452,7 @@
       "agentable": true,
       "nonAgentableReason": null,
       "capabilityCandidates": [
-        "eic-codes.validate"
+        "eic_code_lookup"
       ],
       "domains": [
         "grid-ops"
@@ -45130,7 +45130,8 @@
       "agentable": true,
       "nonAgentableReason": null,
       "capabilityCandidates": [
-        "cross_commodity_supply_security_lagebild"
+        "cross_commodity_supply_security_lagebild",
+        "german_grid_market_data"
       ],
       "domains": [
         "market-data"
@@ -50470,7 +50471,7 @@
       "agentable": true,
       "nonAgentableReason": null,
       "capabilityCandidates": [
-        "forecast.generation_forecast"
+        "renewable_generation_forecast"
       ],
       "domains": [
         "market-data"
@@ -52586,7 +52587,7 @@
       "agentable": true,
       "nonAgentableReason": null,
       "capabilityCandidates": [
-        "german-grid.forecast"
+        "german_grid_market_data"
       ],
       "domains": [
         "grid-ops"
@@ -52698,7 +52699,7 @@
       "agentable": true,
       "nonAgentableReason": null,
       "capabilityCandidates": [
-        "german-grid.negative_prices"
+        "german_grid_market_data"
       ],
       "domains": [
         "grid-ops"
@@ -52805,7 +52806,7 @@
       "agentable": true,
       "nonAgentableReason": null,
       "capabilityCandidates": [
-        "german-grid.redispatch"
+        "german_grid_market_data"
       ],
       "domains": [
         "grid-ops"
@@ -52906,7 +52907,7 @@
       "agentable": true,
       "nonAgentableReason": null,
       "capabilityCandidates": [
-        "german-grid.spotprices"
+        "german_grid_market_data"
       ],
       "domains": [
         "grid-ops"
