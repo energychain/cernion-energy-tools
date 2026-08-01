@@ -17,8 +17,8 @@
 
 const {
   classifyQueryScope,
-  isOperatorScopeResolved,
-  hasLocationScope,
+  _isOperatorScopeResolved,
+  _hasLocationScope,
 } = require('./query-scope-classifier');
 
 const { LOCATION_PRECISION } = require('./location-resolution');
@@ -585,7 +585,7 @@ function hasContextKey(knownContext, keys = []) {
 function analyzeInputReadiness({
   workflowType = WORKFLOW_TYPES.ADVISORY_ONLY,
   knownContext = {},
-  consultation = {},
+  _consultation = {},
   extractedInputs = [],
 } = {}) {
   const required = REQUIRED_BY_WORKFLOW[workflowType] || [];
@@ -651,7 +651,7 @@ function buildExecutablePlan({
   const evidenceGates = [];
   const assumptions = [];
 
-  const missingParams = new Set(missingInputs.map((m) => m.param));
+  const _missingParams = new Set(missingInputs.map((m) => m.param));
 
   if (workflowType === WORKFLOW_TYPES.BESS_DEVELOPMENT) {
     // Step 1: VNB lookup — needs location or BDEW
@@ -1929,7 +1929,7 @@ function pruneEmptyValues(value) {
  * Resolve params for fallback action (e.g., marketPartners after vnbLookup fails)
  * Derives query param from context or prior step result
  */
-function resolveFallbackActionParams(fallbackAction = '', knownContext = {}, priorStep = {}) {
+function resolveFallbackActionParams(fallbackAction = '', knownContext = {}, _priorStep = {}) {
   const params = {};
 
   if (fallbackAction === 'grid-operations.marketPartners') {

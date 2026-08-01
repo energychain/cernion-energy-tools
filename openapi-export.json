@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.67.15",
+    "version": "0.99.0",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com."
   },
   "servers": [
@@ -4747,7 +4747,7 @@
     "/api/auth/oidc/callback": {
       "get": {
         "operationId": "auth_oidcCallback",
-        "summary": "OIDC callback (foundation)",
+        "summary": "OIDC callback (foundation mode — disabled by default)",
         "tags": [
           "Authentication"
         ],
@@ -4763,6 +4763,7 @@
             }
           }
         },
+        "description": "⚠️ Builds a session directly from the caller-supplied `claims` payload — no authorization-code exchange, no ID-token signature validation. This is a full authentication bypass if reachable with a real OIDC provider configured, so it is disabled unless `AUTH_FOUNDATION_MODE=true` is explicitly set (local development/demos only). Returns 501 otherwise.",
         "parameters": [
           {
             "name": "code",
@@ -4795,7 +4796,7 @@
     "/api/auth/saml/acs": {
       "post": {
         "operationId": "auth_samlAcs",
-        "summary": "SAML ACS callback (foundation)",
+        "summary": "SAML ACS callback (foundation mode — disabled by default)",
         "tags": [
           "Authentication"
         ],
@@ -4811,6 +4812,7 @@
             }
           }
         },
+        "description": "⚠️ Builds a session directly from the caller-supplied `payload` — no SAML assertion signature validation against `settings.saml.cert`. This is a full authentication bypass if reachable with a real SAML IdP configured, so it is disabled unless `AUTH_FOUNDATION_MODE=true` is explicitly set (local development/demos only). Returns 501 otherwise.",
         "requestBody": {
           "required": false,
           "content": {
@@ -90393,5 +90395,5 @@
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.67.15"
+  "x-version": "0.99.0"
 }

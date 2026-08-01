@@ -41,6 +41,13 @@ module.exports = {
   ],
 
   settings: {
+    // oidcCallback/samlAcs below build a session directly from caller-supplied claims —
+    // no authorization-code exchange, no ID-token signature validation, no SAML assertion
+    // signature check (see src/auth/oidc.js and src/auth/saml.js's own TODOs). That is fine
+    // for local development/demos but is a full authentication bypass if reachable with a
+    // real OIDC/SAML provider configured, so both actions refuse to run unless this is
+    // explicitly opted into.
+    authFoundationModeEnabled: process.env.AUTH_FOUNDATION_MODE === 'true',
     sessionTtlSeconds: Number(process.env.AUTH_SESSION_TTL_SECONDS || 3600),
     cleanupIntervalMs: Number(process.env.AUTH_CLEANUP_INTERVAL_MS || 60000),
     oidc: {
@@ -124,7 +131,9 @@ module.exports = {
           state,
           nonce,
           authorizationUrl,
-          note: 'Foundation mode. Full openid-client token validation follows in v0.48.x.',
+          note: this.settings.authFoundationModeEnabled
+            ? 'Foundation mode active (AUTH_FOUNDATION_MODE=true). The callback accepts unverified claims — do not use with a real IdP outside development.'
+            : 'Foundation mode callback is disabled by default; set AUTH_FOUNDATION_MODE=true to enable it for local development. Full openid-client token validation follows in v0.48.x.',
         };
       },
     },
@@ -137,7 +146,12 @@ module.exports = {
         claims: { type: 'object', optional: true, default: {} },
       },
       openapi: {
-        summary: 'OIDC callback (foundation)',
+        summary: 'OIDC callback (foundation mode — disabled by default)',
+        description:
+          '⚠️ Builds a session directly from the caller-supplied `claims` payload — no authorization-code exchange, ' +
+          'no ID-token signature validation. This is a full authentication bypass if reachable with a real OIDC ' +
+          'provider configured, so it is disabled unless `AUTH_FOUNDATION_MODE=true` is explicitly set (local ' +
+          'development/demos only). Returns 501 otherwise.',
         tags: [OPENAPI_TAG],
         parameters: [
           { name: 'code', in: 'query', schema: { type: 'string', example: 'oidc-code-abc' } },
@@ -154,6 +168,15 @@ module.exports = {
         ],
       },
       async handler(ctx) {
+        if (!this.settings.authFoundationModeEnabled) {
+          throw new Errors.MoleculerClientError(
+            'OIDC foundation-mode callback is disabled: it builds a session from unverified caller-supplied ' +
+              'claims (no code exchange, no ID-token validation) and must not be reachable in production. ' +
+              'Set AUTH_FOUNDATION_MODE=true only for local development/demos.',
+            501,
+            'AUTH_FOUNDATION_MODE_DISABLED'
+          );
+        }
         validateOidcConfig(this.settings.oidc);
 
         const claimsInput = ctx.params.claims || {};
@@ -187,7 +210,12 @@ module.exports = {
         payload: { type: 'object', optional: true, default: {} },
       },
       openapi: {
-        summary: 'SAML ACS callback (foundation)',
+        summary: 'SAML ACS callback (foundation mode — disabled by default)',
+        description:
+          '⚠️ Builds a session directly from the caller-supplied `payload` — no SAML assertion signature ' +
+          'validation against `settings.saml.cert`. This is a full authentication bypass if reachable with a real ' +
+          'SAML IdP configured, so it is disabled unless `AUTH_FOUNDATION_MODE=true` is explicitly set (local ' +
+          'development/demos only). Returns 501 otherwise.',
         tags: [OPENAPI_TAG],
         requestBody: {
           required: false,
@@ -214,6 +242,15 @@ module.exports = {
         },
       },
       async handler(ctx) {
+        if (!this.settings.authFoundationModeEnabled) {
+          throw new Errors.MoleculerClientError(
+            'SAML foundation-mode ACS callback is disabled: it builds a session from an unverified caller-supplied ' +
+              'payload (no assertion signature validation) and must not be reachable in production. ' +
+              'Set AUTH_FOUNDATION_MODE=true only for local development/demos.',
+            501,
+            'AUTH_FOUNDATION_MODE_DISABLED'
+          );
+        }
         validateSamlConfig(this.settings.saml);
         const claims = extractClaimsFromAcsPayload(ctx.params.payload || {});
 

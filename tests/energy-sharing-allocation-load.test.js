@@ -18,7 +18,6 @@
 
 const {
   buildIntervalGrid,
-  mergeGeneratorForecasts,
   allocateTimeseries,
   buildConsumerSummary,
   formatAsCsv,
@@ -65,8 +64,8 @@ function buildSyntheticGrid(dateFrom, dateTo, generators) {
 describe('Sub-Track D — Allocation Engine Load & Determinism Tests', () => {
   const DATE_FROM_30D = '2026-06-01';
   const DATE_TO_30D = '2026-06-30';
-  const GENERATORS_5 = buildGenerators(5);
-  const CONSUMERS_100 = buildConsumers(100);
+  const _GENERATORS_5 = buildGenerators(5);
+  const _CONSUMERS_100 = buildConsumers(100);
 
   // ─────────────────────────────────────────────────────────────────────────
   // D-1: CSV-Export deterministisch (Byte-identisch bei Wiederholung)

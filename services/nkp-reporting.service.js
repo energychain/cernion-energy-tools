@@ -26,7 +26,7 @@ const { MoleculerClientError } = require('moleculer').Errors;
 const { getTenantId } = require('../src/tenant-context');
 
 const PIPELINE_VERSION = '0.1.0';
-const OPENAPI_TAG = 'NKP Reporting';
+const _OPENAPI_TAG = 'NKP Reporting';
 const DOC_PREFIX = 'nkp:';
 
 // Data quality check thresholds

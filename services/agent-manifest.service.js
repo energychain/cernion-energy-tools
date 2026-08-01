@@ -26,7 +26,10 @@ function loadOperations() {
   let spec;
   try {
     spec = JSON.parse(fs.readFileSync(OPENAPI_EXPORT_PATH, 'utf8'));
-  } catch {
+  } catch (err) {
+    process.stderr.write(
+      `[agent-manifest.service] silent-catch-fallback (line 29): ${err && err.message}\n`
+    );
     return [];
   }
 

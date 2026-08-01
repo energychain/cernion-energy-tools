@@ -974,10 +974,10 @@ describe('API Gateway Service', () => {
     it('should include Netzfahrplan / fNAV tag in OpenAPI', async () => {
       const apiRoute = ApiService.settings.routes.find((r) => r.path === '/api');
       expect(apiRoute).toBeDefined();
-      const tags =
+      const _tags =
         ApiService.settings.routes.find((r) => r.path === '/api')?.openApiService?.tags || [];
       // Verify the tag exists in the api service definition (tags are in the service schema)
-      const apiServiceTags = ApiService.settings?.tags || [];
+      const _apiServiceTags = ApiService.settings?.tags || [];
       // Check via aliases — the 3 routes must be present
       const aliases = apiRoute?.aliases || {};
       expect(aliases['POST /netzfahrplan/generate']).toBe('grid-operations.netzfahrplanGenerate');

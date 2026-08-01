@@ -297,9 +297,9 @@ describe('answerDossier action', () => {
 
   // 12. followUp metadata appears for partial dossiers (simulated timeout)
   test('followUp metadata present when completionState=partial', async () => {
-    const service = buildServiceHarness();
+    const _service = buildServiceHarness();
     // Simulate knowledge RAG returning timeout status
-    const ctx = buildCtx(
+    const _ctx = buildCtx(
       { question: 'Evidence Timeout Test' },
       {
         'knowledge-rag.query': async () => {

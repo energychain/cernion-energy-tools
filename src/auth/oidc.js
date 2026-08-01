@@ -31,7 +31,10 @@ function buildAuthorizationUrl(config, options = {}) {
   if (options.state) url.searchParams.set('state', String(options.state));
   if (options.nonce) url.searchParams.set('nonce', String(options.nonce));
 
-  // TODO(v0.48.x): replace with openid-client flow (discovery, PKCE, token exchange, ID token validation).
+  // TODO: replace with a full openid-client flow (discovery, PKCE, token exchange,
+  // ID token validation). Until then, the callback this URL leads to only runs
+  // under AUTH_FOUNDATION_MODE=true (see services/auth.service.js) and is disabled
+  // by default in production.
   return url.toString();
 }
 

@@ -8,7 +8,7 @@
 
 const { ServiceBroker } = require('moleculer');
 const BlueprintManagementService = require('../services/blueprint-management.service');
-const { loadBlueprint, listBlueprints, _resetCache } = require('../src/blueprint-registry');
+const { loadBlueprint, _resetCache } = require('../src/blueprint-registry');
 const {
   checkStickinessRetain,
   buildSynthesisPolicyDirectives,

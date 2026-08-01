@@ -1693,6 +1693,9 @@ module.exports = {
           thresholds: mergeThresholds(VNB_MONITOR_DEFAULTS.thresholds, stored.payload),
         };
       } catch (_) {
+        this.logger?.warn(
+          `[vnb-monitor.service] silent-catch-fallback (line 1695): ${_ && _.message}`
+        );
         return {
           source: 'defaults',
           thresholds: { ...VNB_MONITOR_DEFAULTS.thresholds },

@@ -27,7 +27,7 @@ const { MoleculerClientError } = require('moleculer').Errors;
 const { getTenantId } = require('../src/tenant-context');
 
 const PIPELINE_VERSION = '0.1.0';
-const OPENAPI_TAG = 'BESS Screening';
+const _OPENAPI_TAG = 'BESS Screening';
 const DOC_PREFIX = 'bess:';
 
 // Evidence quality tiers
@@ -38,7 +38,7 @@ const EVIDENCE_TIER = Object.freeze({
   MISSING: 'MISSING', // required but not provided
 });
 
-const REQUIRED_EVIDENCE_FIELDS = [
+const _REQUIRED_EVIDENCE_FIELDS = [
   'vnbMastrId',
   'networkTerritory',
   'voltageLevel',

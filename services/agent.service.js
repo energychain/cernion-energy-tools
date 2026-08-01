@@ -65,7 +65,10 @@ function loadSession(id) {
   if (!fs.existsSync(file)) return null;
   try {
     return JSON.parse(fs.readFileSync(file, 'utf-8'));
-  } catch {
+  } catch (err) {
+    process.stderr.write(
+      `[agent.service] silent-catch-fallback (line 68): ${err && err.message}\n`
+    );
     return null;
   }
 }
@@ -3067,7 +3070,10 @@ Respond ONLY with valid JSON:
         let interpretation;
         try {
           interpretation = JSON.parse(jsonStr2);
-        } catch {
+        } catch (err) {
+          this.logger?.warn(
+            `[agent.service] silent-catch-fallback (line 3070): ${err && err.message}`
+          );
           interpretation = {
             summary: 'Analysis complete.',
             tableColumns: ['step', 'action', 'result'],

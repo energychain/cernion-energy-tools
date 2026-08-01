@@ -3395,7 +3395,8 @@ module.exports = {
           return null;
         }
         return cm;
-      } catch {
+      } catch (err) {
+        this.logger?.warn(`[cya.service] silent-catch-fallback (line 3398): ${err && err.message}`);
         return null;
       }
     },

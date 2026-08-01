@@ -105,7 +105,7 @@ function classifyDossierContext({
   question = '',
   priorUserContext = null,
   priorProcessStage = null,
-  domain = 'auto',
+  _domain = 'auto',
   evidenceCount = 0,
 }) {
   // Preserve known prior userContext; re-detect only when unknown
@@ -707,7 +707,7 @@ function buildRendererPackageMarkdown({
 
 function buildReasoningSummary({
   userContext,
-  answerMode,
+  _answerMode,
   evidenceCount,
   domain,
   finalMode = false,

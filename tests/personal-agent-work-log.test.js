@@ -9,7 +9,6 @@ const {
   VALID_WORK_LOG_ACTIONS,
   WORK_LOG_METADATA_WHITELIST,
   createTurnWorkLog,
-  sanitizeWorkLogEntry,
   sanitizeWorkLogMetadata,
   sanitizeMetadataField,
   validateWorkLogEntry,

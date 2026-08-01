@@ -323,6 +323,9 @@ module.exports = {
             datapointRefs: scenario.datapointRefs,
           });
         } catch (_err) {
+          this.logger?.warn(
+            `[redispatch-settlement-sandbox.service] silent-catch-fallback (line 325): ${_err && _err.message}`
+          );
           findings.push({
             finding: RDSS_MISSING_DATAPOINT_EVIDENCE,
             severity: 'error',

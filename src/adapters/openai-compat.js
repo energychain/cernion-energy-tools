@@ -110,6 +110,9 @@ function safeParseJson(raw) {
   try {
     return JSON.parse(raw);
   } catch (_err) {
+    process.stderr.write(
+      `[openai-compat] silent-catch-fallback (line 112): ${_err && _err.message}\n`
+    );
     return {};
   }
 }

@@ -114,7 +114,10 @@ async function fetchInstallations(ctx, params) {
       meta: { cernionToken: ctx.meta.cernionToken },
     });
     return toArray(result?.data?.installations).map(normalizeInstallation);
-  } catch {
+  } catch (err) {
+    process.stderr.write(
+      `[cya-data-retriever] silent-catch-fallback (line 117): ${err && err.message}\n`
+    );
     return [];
   }
 }

@@ -101,7 +101,10 @@ function formatLogArgs(args) {
   if (typeof args[0] === 'string') {
     try {
       return util.format(...args);
-    } catch {
+    } catch (err) {
+      process.stderr.write(
+        `[observability-store] silent-catch-fallback (line 104): ${err && err.message}\n`
+      );
       return args.map(formatValue).join(' ');
     }
   }

@@ -272,7 +272,10 @@ function validateAgainstSchema(metadata) {
   let Ajv, schema;
   try {
     Ajv = require('ajv');
-  } catch {
+  } catch (err) {
+    process.stderr.write(
+      `[audit-oemetadata-builder] silent-catch-fallback (line 275): ${err && err.message}\n`
+    );
     warnings.push('`ajv` package not installed. Run `npm install` to enable schema validation.');
     return { valid: true, errors: null, warnings };
   }

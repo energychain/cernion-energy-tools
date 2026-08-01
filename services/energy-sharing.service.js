@@ -884,6 +884,9 @@ module.exports = {
                 if (k) secondaryMap.set(k, s);
               }
             } catch (_) {
+              this.logger?.warn(
+                `[energy-sharing.service] silent-catch-fallback (line 886): ${_ && _.message}`
+              );
               secondaryMap = new Map();
             }
           }
@@ -1110,6 +1113,9 @@ module.exports = {
               );
               dvCache.set(gen.direktvermarkter, dvResult);
             } catch (_) {
+              this.logger?.warn(
+                `[energy-sharing.service] silent-catch-fallback (line 1112): ${_ && _.message}`
+              );
               dvResult = null;
             }
           }

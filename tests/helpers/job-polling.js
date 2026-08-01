@@ -56,7 +56,7 @@ async function waitForJobCompletion(jobId, options = {}) {
           logs: Array.isArray(job.logs) ? job.logs : [],
           error: job.error || null,
         });
-      } catch (err) {
+      } catch (_err) {
         // Silently ignore callback errors to not break polling
       }
     }

@@ -51,7 +51,6 @@ async function exportPouch(dbPath, destFile) {
   const db = new PouchDB(dbPath, { auto_compaction: true });
   const result = await db.allDocs({ include_docs: true });
   const docs = result.rows.map((r) => {
-    // eslint-disable-next-line no-unused-vars
     const { _rev, ...docWithoutRev } = r.doc;
     return docWithoutRev;
   });
@@ -83,7 +82,7 @@ async function importPouch(dbPath, srcFile) {
       } else {
         skipped++;
       }
-    } catch (err) {
+    } catch (_err) {
       // Ignore conflicts — keep existing
       skipped++;
     }

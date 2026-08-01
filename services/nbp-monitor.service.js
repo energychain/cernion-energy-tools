@@ -445,6 +445,9 @@ module.exports = {
           });
           resolvedGridOperatorId = vnbSnapshot?.identity?.mastrId || null;
         } catch (_) {
+          this.logger?.warn(
+            `[nbp-monitor.service] silent-catch-fallback (line 447): ${_ && _.message}`
+          );
           resolvedGridOperatorId = null;
         }
 
@@ -456,6 +459,9 @@ module.exports = {
             });
             resolvedGridOperatorId = lookup?.data?.mastrId || null;
           } catch (_) {
+            this.logger?.warn(
+              `[nbp-monitor.service] silent-catch-fallback (line 458): ${_ && _.message}`
+            );
             resolvedGridOperatorId = null;
           }
         }
@@ -671,6 +677,9 @@ module.exports = {
           parameters: stored.payload,
         };
       } catch (_) {
+        this.logger?.warn(
+          `[nbp-monitor.service] silent-catch-fallback (line 673): ${_ && _.message}`
+        );
         return {
           source: 'defaults',
           parameters: { ...DEFAULT_PARAMETERS },

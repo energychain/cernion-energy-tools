@@ -163,6 +163,9 @@ const EXTRACTORS = {
       const groupIndex = config.group ?? 1;
       return match[groupIndex] ?? match[0] ?? null;
     } catch (_e) {
+      process.stderr.write(
+        `[dossier-hydration-registry] silent-catch-fallback (line 165): ${_e && _e.message}\n`
+      );
       return null;
     }
   },
@@ -253,7 +256,7 @@ function fieldSummaryFormatter(result, spec) {
 function timeseriesStatsFormatter(result, spec) {
   if (!result || typeof result !== 'object') return null;
   const label = spec.label || 'Daten';
-  const data = result.data || result;
+  const _data = result.data || result;
   const stats = resolveFirstPath(result, spec.statsPaths) || {};
   const points = resolveFirstPath(result, spec.dataPaths) || [];
   const first = Array.isArray(points) ? points[0] : null;
@@ -657,6 +660,9 @@ function _loadStaticRules() {
   try {
     _staticRulesCache = require(STATIC_RULES_PATH);
   } catch (_err) {
+    process.stderr.write(
+      `[dossier-hydration-registry] silent-catch-fallback (line 659): ${_err && _err.message}\n`
+    );
     _staticRulesCache = [];
   }
   return _staticRulesCache;

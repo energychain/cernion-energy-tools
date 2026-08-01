@@ -41,7 +41,7 @@ describe('redispatch-special-case-gate service', () => {
       name: 'assets',
       actions: {
         list: {
-          handler(ctx) {
+          handler(_ctx) {
             if (!assetsServiceAvailable) {
               throw new Error('Service unavailable');
             }

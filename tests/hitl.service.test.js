@@ -682,7 +682,7 @@ describe('hitl service', () => {
       kind: 'complete-test',
     });
 
-    const approved = await broker.call(
+    const _approved = await broker.call(
       'hitl.approve',
       { id: created.item.id, comment: 'Approved' },
       tenantMeta('tenant-complete')

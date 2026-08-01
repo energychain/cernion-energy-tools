@@ -34,7 +34,10 @@ async function computeEmbedding(text) {
   try {
     const vectors = await embeddings([cleaned], { model: EMBEDDING_MODEL });
     return Array.isArray(vectors?.[0]) ? vectors[0] : null;
-  } catch {
+  } catch (err) {
+    process.stderr.write(
+      `[cookbook-embeddings] silent-catch-fallback (line 37): ${err && err.message}\n`
+    );
     return null;
   }
 }

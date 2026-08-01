@@ -25,6 +25,12 @@ function toArray(value) {
   return [String(value).trim()].filter(Boolean);
 }
 
+// TODO: this trusts the caller-supplied ACS payload as-is — it does not parse or verify
+// a real SAML assertion (no XML signature check, no issuer/audience/condition validation).
+// A production integration needs a library like `samlify` or `passport-saml` doing real
+// assertion verification before claims are extracted. Until then, the callback this feeds
+// only runs under AUTH_FOUNDATION_MODE=true (see services/auth.service.js) and is disabled
+// by default in production.
 function extractClaimsFromAcsPayload(payload = {}) {
   const profile = payload && typeof payload === 'object' ? payload : {};
 

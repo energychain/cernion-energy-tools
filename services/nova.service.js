@@ -4,7 +4,6 @@ const crypto = require('crypto');
 const { PassThrough } = require('stream');
 const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 const { MoleculerError } = require('moleculer').Errors;
-const { getTenantId } = require('../src/tenant-context');
 const {
   STATES: DECISION_STATES,
   FINAL_STATES,
@@ -1524,6 +1523,9 @@ module.exports = {
           try {
             client.stream.write(frame);
           } catch (_) {
+            this.logger?.warn(
+              `[nova.service] silent-catch-fallback (line 1525): ${_ && _.message}`
+            );
             if (client.keepAliveTimer) clearInterval(client.keepAliveTimer);
             this.sseClients.delete(client);
           }

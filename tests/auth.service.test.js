@@ -7,7 +7,7 @@ const { ServiceBroker } = require('moleculer');
 const AuthService = require('../services/auth.service');
 const ApiService = require('../services/api.service');
 
-describe('auth service foundation', () => {
+describe('auth service foundation-mode gate (default: disabled)', () => {
   let broker;
 
   beforeAll(async () => {
@@ -16,6 +16,59 @@ describe('auth service foundation', () => {
       ...AuthService,
       settings: {
         ...AuthService.settings,
+        authFoundationModeEnabled: false,
+        dbPath: path.join(os.tmpdir(), `cernion-auth-gate-test-${Date.now()}`),
+        oidc: {
+          issuer: 'https://id.example.com',
+          clientId: 'client-1',
+          authorizationEndpoint: 'https://id.example.com/authorize',
+          redirectUri: 'https://api.example.com/api/auth/oidc/callback',
+        },
+        saml: {
+          entryPoint: 'https://adfs.example.com/adfs/ls/',
+          issuer: 'urn:cernion',
+          callbackUrl: 'https://api.example.com/api/auth/saml/acs',
+        },
+      },
+    });
+    await broker.start();
+  });
+
+  afterAll(async () => {
+    await broker.stop();
+  });
+
+  test('oidcCallback refuses to build a session when foundation mode is not explicitly enabled', async () => {
+    await expect(
+      broker.call('auth.oidcCallback', { claims: { sub: 'attacker', groups: ['cernion-admin'] } })
+    ).rejects.toMatchObject({ code: 501, type: 'AUTH_FOUNDATION_MODE_DISABLED' });
+  });
+
+  test('samlAcs refuses to build a session when foundation mode is not explicitly enabled', async () => {
+    await expect(
+      broker.call('auth.samlAcs', {
+        payload: { nameID: 'attacker', groups: ['cernion-admin'] },
+      })
+    ).rejects.toMatchObject({ code: 501, type: 'AUTH_FOUNDATION_MODE_DISABLED' });
+  });
+
+  test('oidcLogin still works (only the callback session-building is gated)', async () => {
+    const result = await broker.call('auth.oidcLogin', { state: 's1', nonce: 'n1' });
+    expect(result.success).toBe(true);
+    expect(result.note).toMatch(/disabled by default/);
+  });
+});
+
+describe('auth service foundation (AUTH_FOUNDATION_MODE=true, e.g. local dev)', () => {
+  let broker;
+
+  beforeAll(async () => {
+    broker = new ServiceBroker({ logger: false });
+    broker.createService({
+      ...AuthService,
+      settings: {
+        ...AuthService.settings,
+        authFoundationModeEnabled: true,
         dbPath: path.join(os.tmpdir(), `cernion-auth-test-${Date.now()}`),
         oidc: {
           issuer: 'https://id.example.com',

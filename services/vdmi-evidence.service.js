@@ -265,7 +265,7 @@ module.exports = class VDMIEvidenceService extends Service {
       async handler(ctx) {
         const { tenantId, evidenceId } = ctx.params;
         const body = ctx.request?.body || ctx.params;
-        const { signatureRequestId, signatureData } = body;
+        const { signatureRequestId } = body;
 
         try {
           // Verify signature

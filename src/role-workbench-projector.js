@@ -162,7 +162,10 @@ function projectRoleWorkbench({
         try {
           const derived = deriveRoles({ row: task, decisionPolicy });
           resolverRoles = derived.requiredResolverRoles || [];
-        } catch {
+        } catch (err) {
+          process.stderr.write(
+            `[role-workbench-projector] silent-catch-fallback (line 165): ${err && err.message}\n`
+          );
           resolverRoles = [];
         }
       }

@@ -130,7 +130,8 @@ function parseOptionalJsonObject(value, fallback = {}) {
   try {
     const parsed = JSON.parse(value);
     return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : fallback;
-  } catch {
+  } catch (err) {
+    process.stderr.write(`[api.service] silent-catch-fallback (line 133): ${err && err.message}\n`);
     return fallback;
   }
 }
@@ -1346,7 +1347,10 @@ module.exports = {
               res.setHeader(CONTENT_TYPE_HEADER, CONTENT_TYPE_JSON);
               res.setHeader('Cache-Control', 'no-cache');
               res.end(content);
-            } catch {
+            } catch (err) {
+              process.stderr.write(
+                `[api.service] silent-catch-fallback (line 1349): ${err && err.message}\n`
+              );
               res.writeHead(404, { [CONTENT_TYPE_HEADER]: CONTENT_TYPE_JSON });
               res.end(
                 JSON.stringify({

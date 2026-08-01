@@ -20,6 +20,9 @@ function parseJson(value, fallback) {
   try {
     return JSON.parse(value);
   } catch (_err) {
+    process.stderr.write(
+      `[edm.service] silent-catch-fallback (line 22): ${_err && _err.message}\n`
+    );
     return fallback;
   }
 }

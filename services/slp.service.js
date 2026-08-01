@@ -14,6 +14,9 @@ function parseCustomValues(value) {
     const parsed = JSON.parse(value);
     return Array.isArray(parsed) ? parsed : null;
   } catch (_err) {
+    process.stderr.write(
+      `[slp.service] silent-catch-fallback (line 16): ${_err && _err.message}\n`
+    );
     return null;
   }
 }

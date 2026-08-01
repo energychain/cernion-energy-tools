@@ -902,6 +902,9 @@ module.exports = {
             bnr: c.bnr || null,
           };
         } catch (_) {
+          process.stderr.write(
+            `[grid-connection.service] silent-catch-fallback (line 904): ${_ && _.message}\n`
+          );
           return { mastrId: null, name: 'Unknown', bdew: gridOperatorBdew, bnr: null };
         }
       }

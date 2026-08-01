@@ -679,7 +679,10 @@ module.exports = {
       let sub;
       try {
         sub = await this.db.get(`${SUB_PREFIX}${current.subscriptionId}`);
-      } catch (err) {
+      } catch (_err) {
+        this.logger?.warn(
+          `[webhooks.service] silent-catch-fallback (line 682): ${_err && _err.message}`
+        );
         const dead = {
           ...current,
           status: 'dead',

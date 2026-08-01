@@ -522,6 +522,9 @@ module.exports = {
           try {
             stat = fs.statSync(filePath);
           } catch (_e) {
+            this.logger?.warn(
+              `[file-ingest-monitor.service] silent-catch-fallback (line 524): ${_e && _e.message}`
+            );
             continue;
           }
           if (!stat.isFile()) continue;
@@ -798,6 +801,9 @@ function readFirstLine(filePath) {
     const newlineIdx = content.indexOf('\n');
     return newlineIdx >= 0 ? content.slice(0, newlineIdx) : content;
   } catch (_e) {
+    process.stderr.write(
+      `[file-ingest-monitor.service] silent-catch-fallback (line 800): ${_e && _e.message}\n`
+    );
     return null;
   }
 }

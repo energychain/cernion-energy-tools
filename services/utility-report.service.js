@@ -72,7 +72,10 @@ function loadProgress(reportId) {
   if (!fs.existsSync(file)) return null;
   try {
     return JSON.parse(fs.readFileSync(file, 'utf-8'));
-  } catch {
+  } catch (err) {
+    process.stderr.write(
+      `[utility-report.service] silent-catch-fallback (line 75): ${err && err.message}\n`
+    );
     return null;
   }
 }
@@ -113,7 +116,10 @@ function findCachedReport(utilityName, date) {
     delete index[key];
     fs.writeFileSync(indexFile, JSON.stringify(index, null, 2));
     return null;
-  } catch {
+  } catch (err) {
+    process.stderr.write(
+      `[utility-report.service] silent-catch-fallback (line 116): ${err && err.message}\n`
+    );
     return null;
   }
 }
@@ -143,7 +149,7 @@ function indexReport(utilityName, date, reportId) {
  */
 async function callMcpDirect(toolName, params, token, timeoutMs = LONG_CALL_TIMEOUT_MS) {
   const TIMEOUT_MS = timeoutMs;
-  const startedAt = Date.now();
+  const _startedAt = Date.now();
   const parentCarrier = getObservabilityContext().traceCarrier || null;
 
   return tracing.withSpan(
@@ -260,7 +266,10 @@ async function discoverAvailableTools(token) {
     }
 
     return new Set(toolNames);
-  } catch {
+  } catch (err) {
+    process.stderr.write(
+      `[utility-report.service] silent-catch-fallback (line 263): ${err && err.message}\n`
+    );
     return new Set();
   }
 }
@@ -312,7 +321,10 @@ Keine Überschriften, keine Nummerierung, nur die 5 Erkenntnisse.`;
 
     const text = await generateText(prompt, { model: process.env.UTILITY_REPORT_LLM_MODEL });
     return text.trim().length > 50 ? text.trim() : buildStaticNarrative(utilityName, kpiSummary);
-  } catch {
+  } catch (err) {
+    process.stderr.write(
+      `[utility-report.service] silent-catch-fallback (line 315): ${err && err.message}\n`
+    );
     return buildStaticNarrative(utilityName, kpiSummary);
   }
 }
@@ -666,7 +678,10 @@ function extractCoordinatesFromSearchResult(item) {
     if (match && match[1]) {
       try {
         return decodeURIComponent(match[1]);
-      } catch {
+      } catch (err) {
+        process.stderr.write(
+          `[utility-report.service] silent-catch-fallback (line 669): ${err && err.message}\n`
+        );
         return match[1];
       }
     }
@@ -715,7 +730,10 @@ function validateVnbUniqueness(currentKpi, currentReportId, logger) {
       let refProg;
       try {
         refProg = JSON.parse(fs.readFileSync(progressFile, 'utf-8'));
-      } catch {
+      } catch (err) {
+        process.stderr.write(
+          `[utility-report.service] silent-catch-fallback (line 718): ${err && err.message}\n`
+        );
         continue;
       }
       if (refProg.status !== 'completed' || !refProg.kpiSummaryFlat) continue;

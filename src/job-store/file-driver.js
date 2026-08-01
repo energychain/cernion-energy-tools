@@ -110,7 +110,8 @@ class FileJobStoreDriver extends JobStoreDriver {
         .sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
 
       return jobs[0] || null;
-    } catch {
+    } catch (err) {
+      this.logger?.warn(`[file-driver] silent-catch-fallback (line 113): ${err && err.message}`);
       return null;
     }
   }
@@ -215,7 +216,8 @@ class FileJobStoreDriver extends JobStoreDriver {
   getJob(jobId) {
     try {
       return JSON.parse(fs.readFileSync(this.progressPath(jobId), 'utf-8'));
-    } catch {
+    } catch (err) {
+      this.logger?.warn(`[file-driver] silent-catch-fallback (line 218): ${err && err.message}`);
       return null;
     }
   }
@@ -223,7 +225,8 @@ class FileJobStoreDriver extends JobStoreDriver {
   getResult(jobId) {
     try {
       return JSON.parse(fs.readFileSync(this.resultPath(jobId), 'utf-8'));
-    } catch {
+    } catch (err) {
+      this.logger?.warn(`[file-driver] silent-catch-fallback (line 226): ${err && err.message}`);
       return null;
     }
   }
@@ -236,7 +239,8 @@ class FileJobStoreDriver extends JobStoreDriver {
         .map((f) => this.getJob(f.replace('.progress.json', '')))
         .filter(Boolean)
         .sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')));
-    } catch {
+    } catch (err) {
+      this.logger?.warn(`[file-driver] silent-catch-fallback (line 239): ${err && err.message}`);
       return [];
     }
   }

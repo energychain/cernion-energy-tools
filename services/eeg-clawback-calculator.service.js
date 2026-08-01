@@ -286,6 +286,9 @@ async function safeRunCall(ctx, action, params) {
   try {
     return await ctx.call(action, params);
   } catch (_e) {
+    process.stderr.write(
+      `[eeg-clawback-calculator.service] silent-catch-fallback (line 288): ${_e && _e.message}\n`
+    );
     return null;
   }
 }

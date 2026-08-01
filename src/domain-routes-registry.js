@@ -45,6 +45,9 @@ function _loadStaticRoutes() {
   try {
     _staticRoutesCache = require(STATIC_ROUTES_PATH);
   } catch (_err) {
+    process.stderr.write(
+      `[domain-routes-registry] silent-catch-fallback (line 47): ${_err && _err.message}\n`
+    );
     _staticRoutesCache = [];
   }
   return _staticRoutesCache;

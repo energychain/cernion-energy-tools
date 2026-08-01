@@ -503,6 +503,9 @@ module.exports = {
                   ? pricesResult.prices
                   : null;
           } catch (_error) {
+            this.logger?.warn(
+              `[forecast-engine.service] silent-catch-fallback (line 505): ${_error && _error.message}`
+            );
             marketPrices = null;
           }
         }

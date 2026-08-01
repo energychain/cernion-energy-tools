@@ -624,7 +624,7 @@ describe('nbp-monitor.service', () => {
     it('should have rest property on all actions', () => {
       for (const [name, action] of Object.entries(NbpMonitorService.actions)) {
         expect(action.rest).toBeTruthy();
-        // eslint-disable-next-line no-unused-vars
+
         const _ = name; // suppress lint
       }
     });
@@ -632,7 +632,7 @@ describe('nbp-monitor.service', () => {
     it('should have openapi property on all actions', () => {
       for (const [name, action] of Object.entries(NbpMonitorService.actions)) {
         expect(action.openapi).toBeTruthy();
-        // eslint-disable-next-line no-unused-vars
+
         const _ = name;
       }
     });

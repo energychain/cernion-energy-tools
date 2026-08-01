@@ -127,6 +127,9 @@ module.exports = {
             });
             relationships = relResult.relationships || [];
           } catch (_err) {
+            this.logger?.warn(
+              `[redispatch-special-case-gate.service] silent-catch-fallback (line 129): ${_err && _err.message}`
+            );
             coLocationServiceAvailable = false;
             hasInsufficientEvidence = true;
           }
@@ -161,6 +164,9 @@ module.exports = {
           try {
             assetList = await ctx.call('assets.list', { mastrId });
           } catch (_err) {
+            this.logger?.warn(
+              `[redispatch-special-case-gate.service] silent-catch-fallback (line 163): ${_err && _err.message}`
+            );
             assetServiceAvailable = false;
             hasInsufficientEvidence = true;
           }

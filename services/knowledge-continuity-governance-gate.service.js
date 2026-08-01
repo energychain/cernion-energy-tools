@@ -45,7 +45,7 @@ function asArray(value) {
   return Array.isArray(value) ? value.filter(Boolean) : [];
 }
 
-function normalizeObject(value) {
+function _normalizeObject(value) {
   return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
 }
 

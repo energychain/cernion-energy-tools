@@ -23,7 +23,7 @@ const { MoleculerClientError } = require('moleculer').Errors;
 const { getTenantId } = require('../src/tenant-context');
 
 const PIPELINE_VERSION = '0.1.0';
-const OPENAPI_TAG = 'Ghost Asset Alert';
+const _OPENAPI_TAG = 'Ghost Asset Alert';
 const DOC_PREFIX = 'gaa:';
 
 /** Maximum allowed distance in km before an asset is flagged as suspicious */

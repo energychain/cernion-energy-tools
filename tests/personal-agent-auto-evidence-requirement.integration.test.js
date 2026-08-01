@@ -93,7 +93,7 @@ describe('personal-agent auto-evidence-requirement end-to-end (Part C)', () => {
       name: 'agent-persona',
       actions: {
         get: {
-          handler(ctx) {
+          handler(_ctx) {
             const err = new Error('persona not found');
             err.code = 404;
             err.type = 'PERSONA_NOT_FOUND';
@@ -177,7 +177,7 @@ describe('personal-agent auto-evidence-requirement end-to-end (Part C)', () => {
     // Turn 1 returns a result with vnb_lookup_required missing evidence.
     // Turn 2 returns a clean result (no missing evidence) after gridOperatorBdew is supplied.
     let callCount = 0;
-    svc.handleConsultationTurn = async function stubHandleConsultationTurn(ctx, input) {
+    svc.handleConsultationTurn = async function stubHandleConsultationTurn(_ctx, _input) {
       callCount += 1;
       if (callCount === 1) {
         // Turn 1: missing grid-operator evidence

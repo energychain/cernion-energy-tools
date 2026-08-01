@@ -46,7 +46,10 @@ function summarizeForLog(value, maxChars = POLLER_LOG_MAX_CHARS) {
     if (!str) return '';
     if (str.length <= maxChars) return str;
     return `${str.slice(0, maxChars)}…`;
-  } catch {
+  } catch (err) {
+    process.stderr.write(
+      `[async-job-poller] silent-catch-fallback (line 49): ${err && err.message}\n`
+    );
     return '[UnserializablePayload]';
   }
 }

@@ -9,8 +9,8 @@ const DOC_PREFIX_DP = 'eogdp:';
 const DOC_PREFIX_VALIDATION = 'eogval:';
 const DOC_PREFIX_EVENT = 'eogevt:';
 
-const DATA_STATUS_VALUES = ['complete', 'partial', 'blocked'];
-const CALCULATION_MODE_VALUES = ['actual', 'scenario', 'provisional'];
+const _DATA_STATUS_VALUES = ['complete', 'partial', 'blocked'];
+const _CALCULATION_MODE_VALUES = ['actual', 'scenario', 'provisional'];
 const CONFIDENCE_VALUES = ['confirmed', 'user_supplied', 'derived', 'missing', 'assumed'];
 const SOURCE_VALUES = [
   'public',

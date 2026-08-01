@@ -69,6 +69,9 @@ function inferRequiredEvidenceTypes(question) {
       try {
         return new RegExp(signal, 'i').test(haystack);
       } catch (_err) {
+        process.stderr.write(
+          `[evidence-router] silent-catch-fallback (line 71): ${_err && _err.message}\n`
+        );
         return haystack.includes(String(signal).toLowerCase());
       }
     });

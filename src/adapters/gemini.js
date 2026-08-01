@@ -142,6 +142,9 @@ function buildGeminiContents(messages) {
           try {
             args = JSON.parse(call?.function?.arguments || '{}');
           } catch (_err) {
+            process.stderr.write(
+              `[gemini] silent-catch-fallback (line 144): ${_err && _err.message}\n`
+            );
             args = {};
           }
           if (call?.id) toolCallNameById.set(call.id, name);
@@ -160,6 +163,9 @@ function buildGeminiContents(messages) {
       try {
         responsePayload = JSON.parse(message.content);
       } catch (_err) {
+        process.stderr.write(
+          `[gemini] silent-catch-fallback (line 162): ${_err && _err.message}\n`
+        );
         responsePayload = { result: message.content ?? null };
       }
       contents.push({

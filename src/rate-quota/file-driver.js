@@ -26,7 +26,8 @@ class FileRateQuotaDriver extends RateQuotaDriver {
     this.ensureDir();
     try {
       return JSON.parse(fs.readFileSync(this.statePath(tenantId), 'utf8'));
-    } catch {
+    } catch (err) {
+      this.logger?.warn(`[file-driver] silent-catch-fallback (line 29): ${err && err.message}`);
       return null;
     }
   }

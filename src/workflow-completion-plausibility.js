@@ -56,7 +56,10 @@ function isPlainObject(value) {
   try {
     const prototype = Object.getPrototypeOf(value);
     return prototype === Object.prototype || prototype === null;
-  } catch {
+  } catch (err) {
+    process.stderr.write(
+      `[workflow-completion-plausibility] silent-catch-fallback (line 59): ${err && err.message}\n`
+    );
     return false;
   }
 }
@@ -87,7 +90,10 @@ function toFiniteNumber(value) {
 function allowedKeys(rule, keys) {
   try {
     return Reflect.ownKeys(rule).every((key) => typeof key === 'string' && keys.includes(key));
-  } catch {
+  } catch (err) {
+    process.stderr.write(
+      `[workflow-completion-plausibility] silent-catch-fallback (line 90): ${err && err.message}\n`
+    );
     return false;
   }
 }

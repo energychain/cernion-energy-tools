@@ -45,7 +45,7 @@ async function callPersonalAgentChat(payload) {
         try {
           const data = JSON.parse(body);
           resolve({ status: res.statusCode, data });
-        } catch (e) {
+        } catch (_e) {
           reject(new Error(`Failed to parse response: ${body}`));
         }
       });
@@ -63,7 +63,7 @@ describeLive('v0.54.3 VNB Lookup Receipt Migration', () => {
     let ready = false;
     for (let i = 0; i < 20; i++) {
       try {
-        const result = await callPersonalAgentChat({
+        const _result = await callPersonalAgentChat({
           message: 'test',
           sessionId: `${SESSION_ID_PREFIX}ready_check`,
           forceReceipt: 'invalid-receipt',
@@ -71,7 +71,7 @@ describeLive('v0.54.3 VNB Lookup Receipt Migration', () => {
         // Even if error, service is up
         ready = true;
         break;
-      } catch (e) {
+      } catch (_e) {
         await new Promise((r) => setTimeout(r, 500));
       }
     }

@@ -1132,6 +1132,9 @@ module.exports = {
           meloId: installation?.napData?.messlokation || null,
         };
       } catch (_error) {
+        process.stderr.write(
+          `[settlement.service] silent-catch-fallback (line 1134): ${_error && _error.message}\n`
+        );
         return {};
       }
     },

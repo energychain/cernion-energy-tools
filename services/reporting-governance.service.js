@@ -26,7 +26,7 @@ const { MoleculerClientError } = require('moleculer').Errors;
 const { getTenantId } = require('../src/tenant-context');
 
 const PIPELINE_VERSION = '0.1.0';
-const OPENAPI_TAG = 'Reporting Governance';
+const _OPENAPI_TAG = 'Reporting Governance';
 const DOC_PREFIX = 'rg:';
 
 // Maturity levels for data sources

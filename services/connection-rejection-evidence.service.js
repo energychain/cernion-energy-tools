@@ -29,7 +29,7 @@ const { MoleculerClientError } = require('moleculer').Errors;
 const { getTenantId } = require('../src/tenant-context');
 
 const PIPELINE_VERSION = '0.1.0';
-const OPENAPI_TAG = 'Connection Rejection Evidence';
+const _OPENAPI_TAG = 'Connection Rejection Evidence';
 const DOC_PREFIX = 'cre:';
 
 const DECISION = Object.freeze({

@@ -224,7 +224,7 @@ module.exports = class VDMISpectatorService extends Service {
     return `${app_count} applications with ${role_count} role assignments updated. No critical violations detected.`;
   }
 
-  async _generateDelta(prevMatrixId, currentMatrix) {
+  async _generateDelta(_prevMatrixId, _currentMatrix) {
     // Would fetch previous matrix and generate structured diff
     return {
       added_roles: [],

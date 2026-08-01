@@ -7,12 +7,15 @@ const hasExplicitTestSelection = cliArgs.some((arg) => {
 
 const globalCoverageThreshold = {
   global: {
-    // Maintenance milestone (v0.13.1): enacted N+1 ramp-up.
-    // Next target (v0.14+): branches 65, functions 78, lines 78, statements 78.
-    branches: 60,
-    functions: 75,
-    lines: 75,
-    statements: 75,
+    // Ramp-up milestone (v0.99.0): actual coverage as of this bump was
+    // branches 65.92, functions 85.41, lines 82.87, statements 81.06 —
+    // thresholds raised below that with headroom so incidental coverage
+    // dips don't immediately break CI. Raise again next time actual
+    // coverage comfortably clears these numbers.
+    branches: 63,
+    functions: 80,
+    lines: 79,
+    statements: 79,
   },
 };
 

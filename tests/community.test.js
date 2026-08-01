@@ -20,7 +20,7 @@ describe('Community Service', () => {
       name: 'grid-operations',
       actions: {
         vnbLookup: {
-          handler(ctx) {
+          handler(_ctx) {
             return {
               success: true,
               companyName: 'Netze BW GmbH',
@@ -35,7 +35,7 @@ describe('Community Service', () => {
       name: 'energy-market',
       actions: {
         co2Intensity: {
-          handler(ctx) {
+          handler(_ctx) {
             return {
               success: true,
               co2_intensity_gco2eq_kwh: 120,

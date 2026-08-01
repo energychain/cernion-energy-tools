@@ -566,7 +566,7 @@ module.exports = {
             // If not found, try benchmark prefix
             try {
               doc = await this.db.get(`fa:benchmark:${ctx.params.id}`);
-            } catch (err2) {
+            } catch (_err2) {
               throw err1; // Throw the original error
             }
           }
@@ -2051,6 +2051,9 @@ module.exports = {
         if (!raw) return 'n/a';
         return raw.length > 240 ? `${raw.slice(0, 237)}...` : raw;
       } catch (_error) {
+        process.stderr.write(
+          `[finance-agent.service] silent-catch-fallback (line 2053): ${_error && _error.message}\n`
+        );
         return 'n/a';
       }
     },

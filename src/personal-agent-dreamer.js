@@ -635,6 +635,9 @@ async function enrichL1TenantMemory(ctx, tenantId, tenantFacts) {
     const caps = llmCapabilities();
     embeddingsAvailable = Boolean(caps?.embeddings);
   } catch (_err) {
+    process.stderr.write(
+      `[personal-agent-dreamer] silent-catch-fallback (line 637): ${_err && _err.message}\n`
+    );
     embeddingsAvailable = false;
   }
 
@@ -645,6 +648,9 @@ async function enrichL1TenantMemory(ctx, tenantId, tenantFacts) {
     try {
       existingVectors = await llmEmbeddings(existingTexts);
     } catch (_embErr) {
+      process.stderr.write(
+        `[personal-agent-dreamer] silent-catch-fallback (line 647): ${_embErr && _embErr.message}\n`
+      );
       embeddingsAvailable = false;
     }
   }
@@ -669,6 +675,9 @@ async function enrichL1TenantMemory(ctx, tenantId, tenantFacts) {
         const result = await llmEmbeddings([fact]);
         newVec = Array.isArray(result) ? result[0] : result;
       } catch (_embErr) {
+        process.stderr.write(
+          `[personal-agent-dreamer] silent-catch-fallback (line 671): ${_embErr && _embErr.message}\n`
+        );
         newVec = null;
       }
 

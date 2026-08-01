@@ -148,7 +148,7 @@ describe('Evidence Requirement relay integration', () => {
     }
   });
 
-  const authMeta = (tenantId = 'tenant-relay') => ({
+  const _authMeta = (tenantId = 'tenant-relay') => ({
     meta: { tenantId, authUser: { userId: 'user-relay', authType: 'test' } },
   });
 

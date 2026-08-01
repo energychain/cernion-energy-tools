@@ -1,8 +1,8 @@
 {
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
-  "packageVersion": "0.67.15",
-  "sourceOpenApiHash": "af1573eab95a49c6e9f8b1d55327c2a7ac3a5dd0cd14c4ff653ea344c33afe96",
+  "packageVersion": "0.99.0",
+  "sourceOpenApiHash": "0d6c4a4e0ee4d6f7668fcad846c285854bf3d7c5c00b676bc6a4f64cd9a57bc5",
   "coverage": {
     "rawOperationCount": 1119,
     "operationCount": 863,
@@ -6435,7 +6435,7 @@
       "path": "/api/auth/oidc/callback",
       "service": "auth",
       "action": "auth.oidcCallback",
-      "summary": "OIDC callback (foundation)",
+      "summary": "OIDC callback (foundation mode — disabled by default)",
       "tags": [
         "Authentication"
       ],
@@ -6493,12 +6493,17 @@
           "auth",
           "oidc",
           "callback",
-          "(foundation)",
+          "(foundation",
+          "mode",
+          "—",
+          "disabled",
+          "by",
+          "default)",
           "authentication"
         ],
         "negativeCues": [],
         "examples": [
-          "Show me oidc callback (foundation)"
+          "Show me oidc callback (foundation mode — disabled by default)"
         ],
         "synonyms": [
           "agent infrastructure",
@@ -6663,7 +6668,7 @@
       "path": "/api/auth/saml/acs",
       "service": "auth",
       "action": "auth.samlAcs",
-      "summary": "SAML ACS callback (foundation)",
+      "summary": "SAML ACS callback (foundation mode — disabled by default)",
       "tags": [
         "Authentication"
       ],
@@ -6712,12 +6717,17 @@
           "saml",
           "acs",
           "callback",
-          "(foundation)",
+          "(foundation",
+          "mode",
+          "—",
+          "disabled",
+          "by",
+          "default)",
           "authentication"
         ],
         "negativeCues": [],
         "examples": [
-          "Please saml acs callback (foundation)"
+          "Please saml acs callback (foundation mode — disabled by default)"
         ],
         "synonyms": [
           "agent infrastructure",

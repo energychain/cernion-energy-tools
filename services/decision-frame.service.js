@@ -496,6 +496,9 @@ module.exports = {
         }
         return { available: true, ...result.data };
       } catch (_err) {
+        process.stderr.write(
+          `[decision-frame.service] silent-catch-fallback (line 498): ${_err && _err.message}\n`
+        );
         return { available: false, error: 'MAKO_KNOWLEDGE_UNAVAILABLE' };
       }
     },

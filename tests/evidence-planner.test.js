@@ -15,7 +15,6 @@ const {
   isSourceSatisfied,
   computeConfidence,
   shouldBlockSynthesisOnGaps,
-  buildEvidenceGapPresentation,
 } = require('../src/evidence-planner');
 const { buildExecutionPlan } = require('../src/personal-agent-routing');
 const { listRegisteredKeys } = require('../src/evidence-registry');

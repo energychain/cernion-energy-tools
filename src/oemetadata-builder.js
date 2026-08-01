@@ -412,7 +412,10 @@ function validateAgainstSchema(metadata) {
   try {
     // Require ajv lazily — it's only needed when ?validate=true is requested
     Ajv = require('ajv');
-  } catch {
+  } catch (err) {
+    process.stderr.write(
+      `[oemetadata-builder] silent-catch-fallback (line 415): ${err && err.message}\n`
+    );
     warnings.push('`ajv` package not installed. Run `npm install` to enable schema validation.');
     return { valid: true, errors: null, warnings };
   }

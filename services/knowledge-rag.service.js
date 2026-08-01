@@ -1930,7 +1930,10 @@ module.exports = (() => {
               const bytes = Buffer.from(doc.content, 'base64');
               const parsed = await pdfParse(bytes);
               return parsed.text || '';
-            } catch {
+            } catch (err) {
+              process.stderr.write(
+                `[knowledge-rag.service] silent-catch-fallback (line 1933): ${err && err.message}\n`
+              );
               return '';
             }
           }

@@ -263,7 +263,10 @@ module.exports = {
         try {
           const vdmiResult = await ctx.call('vdmi.list', { limit: 200 }, { meta: ctx.meta });
           matrices = Array.isArray(vdmiResult?.items) ? vdmiResult.items : [];
-        } catch {
+        } catch (err) {
+          process.stderr.write(
+            `[governance.service] silent-catch-fallback (line 266): ${err && err.message}\n`
+          );
           matrices = [];
         }
 

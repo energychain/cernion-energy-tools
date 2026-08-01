@@ -110,7 +110,6 @@ const {
   isDreamPending,
   buildDreamIdempotencyKey,
   COSINE_DEDUP_THRESHOLD,
-  OCC_MAX_RETRIES,
 } = require('../src/personal-agent-dreamer');
 
 const { embeddings: mockEmbeddings, capabilities: mockCapabilities } = require('../src/llm-client');

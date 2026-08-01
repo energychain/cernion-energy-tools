@@ -26,7 +26,7 @@ const { MoleculerClientError } = require('moleculer').Errors;
 const { getTenantId } = require('../src/tenant-context');
 
 const PIPELINE_VERSION = '0.1.0';
-const TMPL_PREFIX = 'vgt:';
+const _TMPL_PREFIX = 'vgt:';
 const INST_PREFIX = 'vgi:';
 
 const TEMPLATE_TYPE = Object.freeze({

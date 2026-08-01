@@ -2,14 +2,14 @@
 
 ## Supported Versions
 
-We provide security updates for the latest minor release series.
+We provide security updates for the latest minor release series. Earlier
+release series are unsupported — please upgrade before reporting an issue
+against an old version.
 
 | Version | Supported |
 |---------|-----------|
-| 0.20.x  | ✅ Yes |
-| 0.19.x  | ✅ Yes (security patches only) |
-| 0.18.x  | ❌ No |
-| < 0.18  | ❌ No |
+| 0.99.x  | ✅ Yes |
+| < 0.99  | ❌ No |
 
 ## Reporting a Vulnerability
 
@@ -32,13 +32,15 @@ This repository uses automated security checks:
 
 ## Known Dependency Exceptions
 
-As of `0.20.0`, one high-severity advisory remains open for `xlsx` (SheetJS),
-with **no upstream fix available** in the current dependency line.
+None currently. `npm audit` reports 0 known vulnerabilities as of `0.99.0`.
 
-- Advisory IDs: `GHSA-4r6h-8v6p-xvw6`, `GHSA-5pgg-2g8v-p4x9`
-- Status: accepted temporary risk until upstream fix/replacement is available
-- Mitigation: keep parsing/export paths constrained to trusted in-process data;
-	avoid ingesting untrusted workbook payloads from external users.
+Note on `xlsx` (SheetJS): the npm registry build of `xlsx` had two
+high-severity advisories (`GHSA-4r6h-8v6p-xvw6`, `GHSA-5pgg-2g8v-p4x9`) with
+no fix published to the npm registry. SheetJS ships patched releases only via
+their own CDN, so this project installs `xlsx` from a version-pinned
+`cdn.sheetjs.com` tarball (see the `xlsx` entry in `package.json`
+`dependencies`) instead of the npm registry. Keep that pinned URL up to date
+when bumping `xlsx`.
 
 CI policy:
 

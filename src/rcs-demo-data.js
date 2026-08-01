@@ -134,7 +134,7 @@ function getDemoTimeseries(meloId, from, to, resolution = '15min') {
   const end = new Date(to).getTime();
   const stepMs = resolution === 'daily' ? 86400000 : resolution === 'hourly' ? 3600000 : 15 * 60000;
   const rows = [];
-  const profile = technologyProfile(asset.technology);
+  const _profile = technologyProfile(asset.technology);
   const intervalHours = stepMs / 3600000;
 
   for (let ts = start; ts < end; ts += stepMs) {

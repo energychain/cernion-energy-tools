@@ -2000,7 +2000,10 @@ module.exports = {
           try {
             const latest = await this.db.get(toDocId(receiptId));
             currentRev = latest?._rev || null;
-          } catch {
+          } catch (err) {
+            this.logger?.warn(
+              `[agent-receipts.service] silent-catch-fallback (line 2003): ${err && err.message}`
+            );
             currentRev = null;
           }
 

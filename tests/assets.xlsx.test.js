@@ -6,6 +6,7 @@
 
 const { ServiceBroker } = require('moleculer');
 const XLSX = require('xlsx');
+const { convertToXLSX } = require('../src/format-response');
 
 jest.mock('../src/mcp-client', () => ({
   callWithNewSession: jest.fn(),
@@ -144,15 +145,17 @@ describe('Assets Service - XLSX Export', () => {
     await broker.stop();
   });
 
-  describe('convertToXLSX method', () => {
+  describe('convertToXLSX (shared src/format-response.js helper)', () => {
+    // assets.service.js used to carry its own duplicate convertToXLSX method; it now
+    // delegates to the shared src/format-response.js helper (used by other services too),
+    // so these tests exercise that shared helper directly with the 'Assets' sheet name.
     it('should convert array of objects to XLSX buffer', () => {
       const data = [
         { name: 'Test 1', value: 100 },
         { name: 'Test 2', value: 200 },
       ];
 
-      const service = broker.getLocalService('assets');
-      const xlsxBuffer = service.convertToXLSX(data);
+      const xlsxBuffer = convertToXLSX(data, 'Assets');
 
       expect(xlsxBuffer).toBeInstanceOf(Buffer);
       expect(xlsxBuffer.length).toBeGreaterThan(0);
@@ -170,8 +173,7 @@ describe('Assets Service - XLSX Export', () => {
     });
 
     it('should handle empty data gracefully', () => {
-      const service = broker.getLocalService('assets');
-      const xlsxBuffer = service.convertToXLSX([]);
+      const xlsxBuffer = convertToXLSX([], 'Assets');
 
       expect(xlsxBuffer).toBeInstanceOf(Buffer);
       expect(xlsxBuffer.length).toBeGreaterThan(0);
@@ -182,8 +184,7 @@ describe('Assets Service - XLSX Export', () => {
     });
 
     it('should handle null data', () => {
-      const service = broker.getLocalService('assets');
-      const xlsxBuffer = service.convertToXLSX(null);
+      const xlsxBuffer = convertToXLSX(null, 'Assets');
 
       expect(xlsxBuffer).toBeInstanceOf(Buffer);
     });
@@ -194,8 +195,7 @@ describe('Assets Service - XLSX Export', () => {
         { shortName: 'B', veryLongColumnNameForTesting: 'Another short' },
       ];
 
-      const service = broker.getLocalService('assets');
-      const xlsxBuffer = service.convertToXLSX(data);
+      const xlsxBuffer = convertToXLSX(data, 'Assets');
 
       const workbook = XLSX.read(xlsxBuffer, { type: 'buffer' });
       const worksheet = workbook.Sheets['Assets'];

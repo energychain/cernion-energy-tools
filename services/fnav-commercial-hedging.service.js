@@ -26,7 +26,7 @@ const { MoleculerClientError } = require('moleculer').Errors;
 const { getTenantId } = require('../src/tenant-context');
 
 const PIPELINE_VERSION = '0.1.0';
-const OPENAPI_TAG = 'fNAV Commercial Hedging';
+const _OPENAPI_TAG = 'fNAV Commercial Hedging';
 const DOC_PREFIX_CONTRACT = 'fnav-c:';
 const DOC_PREFIX_SCENARIO = 'fnav-s:';
 

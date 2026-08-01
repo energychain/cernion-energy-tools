@@ -1054,7 +1054,10 @@ async function selectOpenApiFallbackOperation(ctx, { question, capability, conte
           recommendedExecutionMode: candidate.recommendedExecutionMode,
         })),
     };
-  } catch (error) {
+  } catch (_error) {
+    process.stderr.write(
+      `[chatgpt-sidecar.service] silent-catch-fallback (line 1057): ${_error && _error.message}\n`
+    );
     return selectLocalOpenApiFallbackOperation(ctx.broker, { question, capability });
   }
 }
@@ -1774,7 +1777,10 @@ function parseOptionalObject(value, fallback = {}) {
   try {
     const parsed = JSON.parse(value);
     return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : fallback;
-  } catch {
+  } catch (err) {
+    process.stderr.write(
+      `[chatgpt-sidecar.service] silent-catch-fallback (line 1777): ${err && err.message}\n`
+    );
     return fallback;
   }
 }

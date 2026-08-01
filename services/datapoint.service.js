@@ -1471,7 +1471,10 @@ module.exports = {
                 currentHash: current.provenanceHash,
               });
             }
-          } catch (e) {
+          } catch (_e) {
+            this.logger?.warn(
+              `[datapoint.service] silent-catch-fallback (line 1474): ${_e && _e.message}`
+            );
             drift.push({
               name: dp.name,
               snapshotHash: dp.provenanceHash,
@@ -1608,7 +1611,10 @@ module.exports = {
           }))
         );
         return crypto.createHash('sha256').update(canonical).digest('hex');
-      } catch {
+      } catch (err) {
+        process.stderr.write(
+          `[datapoint.service] silent-catch-fallback (line 1611): ${err && err.message}\n`
+        );
         return null;
       }
     },

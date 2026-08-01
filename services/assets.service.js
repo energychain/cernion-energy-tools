@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const XLSX = require('xlsx');
+const { convertToXLSX } = require('../src/format-response');
 const { callWithAutoPoll } = require('../src/async-job-poller');
 const { MoleculerClientError } = require('moleculer').Errors;
 const { getTenantId, tenantNamespace } = require('../src/tenant-context');
@@ -358,49 +358,6 @@ module.exports = {
       });
 
       return [header, ...rows].join('\n');
-    },
-
-    /**
-     * Convert array of objects to XLSX format
-     */
-    convertToXLSX(data) {
-      if (!data || data.length === 0) {
-        // Create empty workbook with headers only
-        const ws = XLSX.utils.aoa_to_sheet([['No data available']]);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Assets');
-        return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
-      }
-
-      // Create worksheet from JSON data
-      const ws = XLSX.utils.json_to_sheet(data);
-
-      // Auto-size columns
-      const colWidths = [];
-      const range = XLSX.utils.decode_range(ws['!ref']);
-
-      for (let C = range.s.c; C <= range.e.c; ++C) {
-        let maxWidth = 10;
-        for (let R = range.s.r; R <= range.e.r; ++R) {
-          const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
-          const cell = ws[cellAddress];
-          if (cell && cell.v) {
-            const cellLength = String(cell.v).length;
-            if (cellLength > maxWidth) {
-              maxWidth = cellLength;
-            }
-          }
-        }
-        colWidths.push({ wch: Math.min(maxWidth + 2, 50) });
-      }
-      ws['!cols'] = colWidths;
-
-      // Create workbook and add worksheet
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Assets');
-
-      // Return as buffer
-      return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
     },
 
     _getOverrideNamespace(ctx) {
@@ -843,7 +800,10 @@ module.exports = {
                   if (jsonMatch) {
                     jsonData = JSON.parse(jsonMatch[1] || jsonMatch[0]);
                   }
-                } catch {
+                } catch (err) {
+                  this.logger?.warn(
+                    `[assets.service] silent-catch-fallback (line 803): ${err && err.message}`
+                  );
                   const bdewMatch =
                     rawText.match(/BDEW[:\s]*(\d{13})/i) || rawText.match(/\b(\d{13})\b/);
                   if (bdewMatch && !resolvedBdewCode) {
@@ -1026,7 +986,7 @@ module.exports = {
 
       // Handle XLSX export if requested
       if (format === 'xlsx') {
-        const xlsxBuffer = this.convertToXLSX(allResults);
+        const xlsxBuffer = convertToXLSX(allResults, 'Assets');
 
         // Set response headers for XLSX download
         ctx.meta.$responseHeaders = {
@@ -2448,7 +2408,6 @@ module.exports = {
         // Translate raw MaStR Energieträger catalog codes to readable labels.
         // cernion_installations_local returns the numeric catalog code in item.type
         // for detailed format (e.g. '2495' for solar, '2484' for wind onshore).
-        // TODO: Extract to src/installation-type-map.js when used by other handlers.
         const TYPE_LABEL = {
           2495: 'solar',
           2483: 'wind',
@@ -2701,7 +2660,7 @@ module.exports = {
         }
 
         if (format === 'xlsx') {
-          const xlsxBuffer = this.convertToXLSX(mappedItems);
+          const xlsxBuffer = convertToXLSX(mappedItems, 'Assets');
           ctx.meta.$responseHeaders = {
             'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             'Content-Disposition': `attachment; filename="direktvermarkter-assets-${Date.now()}.xlsx"`,

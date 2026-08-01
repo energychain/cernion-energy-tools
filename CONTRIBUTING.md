@@ -170,7 +170,7 @@ feat: add energy consumption prediction service
 ## Pull Request Process
 
 1. Update documentation if needed
-2. Ensure all tests pass (when available)
+2. Ensure all tests pass: `npm test`
 3. Run linter and fix any issues
 4. Update README.md if adding new features
 5. Submit PR with clear description

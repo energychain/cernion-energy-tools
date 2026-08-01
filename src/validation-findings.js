@@ -526,10 +526,12 @@ function summarizeFindings(findings) {
 // Used by dashboard-api.findingCodes to power UI tooltips and filter chips.
 // ---------------------------------------------------------------------------
 
-// TODO (v0.21): Add `recommendation` (EN) and `recommendationDe` (DE) fields
-// to every entry in FINDING_CODE_METADATA. These are actionable next-step texts
-// displayed in the UI alongside each finding. Sync document with all 37 error-severity
-// codes and draft recommendations: docs/ui-contracts/14-finding-code-recommendations.md
+// TODO: Add `recommendation` (EN) and `recommendationDe` (DE) fields to every
+// entry in FINDING_CODE_METADATA. These are actionable next-step texts displayed
+// in the UI alongside each finding. Blocked on domain review of the proposed
+// wording (references EnWG/EEG provisions) — see the draft in
+// docs/ui-contracts/14-finding-code-recommendations.md. Do not sync until that
+// review signs off, since this text is presented to grid operators as guidance.
 
 /**
  * Metadata map for all 100 finding codes.

@@ -25,7 +25,7 @@ const { MoleculerClientError } = require('moleculer').Errors;
 const { getTenantId } = require('../src/tenant-context');
 
 const PIPELINE_VERSION = '0.1.0';
-const OPENAPI_TAG = 'VNB 100-Tage Assessment';
+const _OPENAPI_TAG = 'VNB 100-Tage Assessment';
 const DOC_PREFIX = 'v100:';
 
 // Standard assessment domains

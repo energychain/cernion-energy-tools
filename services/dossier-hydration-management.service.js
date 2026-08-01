@@ -10,7 +10,6 @@ const {
   reloadRegistry,
   getStaticRules,
   getRuntimeRules,
-  getRuntimeRule,
   validateRule,
   compileRule,
 } = require('../src/dossier-hydration-registry');

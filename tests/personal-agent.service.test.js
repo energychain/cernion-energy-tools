@@ -7386,7 +7386,7 @@ describe('personal-agent.service', () => {
      * Helper: build a minimal scope-blocked evaluation result to inject via
      * the agent-receipts.select mock, without naming a specific receipt.
      */
-    const makeScopeBlockedEval = (receiptId = 'generic-fixture-v1') => ({
+    const makeScopeBlockedEval = (_receiptId = 'generic-fixture-v1') => ({
       executable: false,
       matchScore: 80,
       plannedToolCalls: [
@@ -7446,7 +7446,7 @@ describe('personal-agent.service', () => {
       let selectCallCount = 0;
 
       // Use ctx.call intercept instead via direct service spy on selectRuntimeReceipt
-      const origSelectRuntimeReceipt = svc.selectRuntimeReceipt.bind(svc);
+      const _origSelectRuntimeReceipt = svc.selectRuntimeReceipt.bind(svc);
       const selectReceiptSpy = jest
         .spyOn(svc, 'selectRuntimeReceipt')
         .mockImplementation(async (ctx, payload) => {
@@ -7474,11 +7474,9 @@ describe('personal-agent.service', () => {
         });
 
       // LLM reflection call returns a city extracted from the message
-      let llmCallCount = 0;
       const callLlmSpy = jest
         .spyOn(svc, 'callLlmGenerate')
         .mockImplementation(async (_ctx, payload) => {
-          llmCallCount += 1;
           // Reflection call: schema has resolvedContextPatch → return structured patch
           if (payload?.schema?.properties?.resolvedContextPatch) {
             return {

@@ -6,8 +6,8 @@ const path = require('path');
 const { ServiceBroker } = require('moleculer');
 
 const EvidenceRequirementService = require('../services/evidence-requirement.service');
-const NotificationService = require('../services/notification.service');
-const dispatchTypeDefinitions = require('../src/notification-dispatch-types.json');
+const _NotificationService = require('../services/notification.service');
+const _dispatchTypeDefinitions = require('../src/notification-dispatch-types.json');
 
 describe('evidence-requirement.service', () => {
   let broker;
@@ -560,7 +560,7 @@ describe('evidence-requirement.service', () => {
       },
     ];
 
-    const result = await broker.call(
+    const _result = await broker.call(
       'evidence-requirement.fromVdmiEvidenceGaps',
       { evidenceGaps, originSessionId: 'vdmi-session-2' },
       meta(tenantId)

@@ -5,7 +5,6 @@ const {
   EXECUTION_READINESS,
   classifyWorkflowType,
   analyzeInputReadiness,
-  buildExecutablePlan,
   assessExecutionReadiness,
   buildConsultationExecutionPlan,
 } = require('../src/consultation-execution-bridge');

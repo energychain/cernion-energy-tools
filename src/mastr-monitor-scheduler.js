@@ -100,14 +100,20 @@ function isDue(schedule, lastRun, now = new Date()) {
     } else {
       expression = schedule.expression;
     }
-  } catch {
+  } catch (err) {
+    process.stderr.write(
+      `[mastr-monitor-scheduler] silent-catch-fallback (line 103): ${err && err.message}\n`
+    );
     return false;
   }
 
   let fields;
   try {
     fields = parseCronExpression(expression);
-  } catch {
+  } catch (err) {
+    process.stderr.write(
+      `[mastr-monitor-scheduler] silent-catch-fallback (line 110): ${err && err.message}\n`
+    );
     return false;
   }
 

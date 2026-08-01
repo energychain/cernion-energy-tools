@@ -185,6 +185,9 @@ async function getToolParamSchema(ctx, toolName, options = {}) {
       }
     }
   } catch (_error) {
+    process.stderr.write(
+      `[consultation-tool-resolver] silent-catch-fallback (line 187): ${_error && _error.message}\n`
+    );
     return { schema: null, source: 'missing' };
   }
 
@@ -197,6 +200,9 @@ function extractJsonObject(raw) {
   try {
     return JSON.parse(match[0]);
   } catch (_error) {
+    process.stderr.write(
+      `[consultation-tool-resolver] silent-catch-fallback (line 199): ${_error && _error.message}\n`
+    );
     return null;
   }
 }

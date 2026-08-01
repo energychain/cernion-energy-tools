@@ -48,7 +48,6 @@ function docId(ns, key) {
  * @returns {object}    Clean public document
  */
 function toPublic(doc) {
-  // eslint-disable-next-line no-unused-vars
   const { _id, _rev, ns, ...rest } = doc;
   // Use the stored `ns` field to determine the namespace boundary, so that
   // multi-segment namespaces like 'tenant:stadtwerk-a:cya_profiles' are

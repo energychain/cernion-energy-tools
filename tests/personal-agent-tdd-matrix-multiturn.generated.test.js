@@ -117,7 +117,7 @@ function expectHttp200(response) {
   expect(response.status).toBe(200);
 }
 
-function expectAutoExecution(payload) {
+function _expectAutoExecution(payload) {
   expect(payload && typeof payload).toBe('object');
   expect(payload.executionMode).toBe('auto');
   expect(payload.execution && typeof payload.execution).toBe('object');

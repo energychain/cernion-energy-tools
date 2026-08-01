@@ -18,13 +18,13 @@ agentic process orchestration.
 
 It is not just a chat frontend for energy APIs. The current platform contains:
 
-- **137 Moleculer services** in `services/`
-- **1003 OpenAPI paths** in `openapi-export.json`
-- **297 JavaScript test files** under `tests/`
+- **138 Moleculer services** in `services/`
+- **1007 OpenAPI paths** in `openapi-export.json`
+- **304 JavaScript test files** under `tests/`
 - **curated Copilot, Sidecar, OpenWebUI, n8n and OpenClaw integration surfaces** that expose only governed subsets of the backend
 - **agentic runtime components** for routing, receipts, dossiers, HITL, evidence, revalidation and observability
 
-Current package/OpenAPI version: **`0.67.8`**
+Current package/OpenAPI version: **`0.99.0`**
 
 ### Public positioning
 

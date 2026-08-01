@@ -26,7 +26,7 @@ const { MoleculerClientError } = require('moleculer').Errors;
 const { getTenantId } = require('../src/tenant-context');
 
 const PIPELINE_VERSION = '0.1.0';
-const OPENAPI_TAG = 'ReInvest Signal';
+const _OPENAPI_TAG = 'ReInvest Signal';
 const DOC_PREFIX = 'ris:';
 
 const FOTOJAHR = 2026;

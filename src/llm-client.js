@@ -384,7 +384,10 @@ async function generateStructured(responseSchema, prompt, options = {}) {
       )
     );
     return parseJsonResponse(raw);
-  } catch (error) {
+  } catch (_error) {
+    process.stderr.write(
+      `[llm-client] silent-catch-fallback (line 387): ${_error && _error.message}\n`
+    );
     const fallbackPrompt = buildStructuredFallbackPrompt(responseSchema, scrubbedPrompt);
     const fallbackRaw = await observeLlmCall(
       adapter,

@@ -330,6 +330,9 @@ module.exports = {
               });
               slpValues = slp?.values || null;
             } catch (_err) {
+              this.logger?.warn(
+                `[edm-validation.service] silent-catch-fallback (line 332): ${_err && _err.message}`
+              );
               slpValues = null;
             }
 
@@ -404,6 +407,9 @@ module.exports = {
               });
               previousDayRows = mapTimeseriesRows(prevSeries);
             } catch (_err) {
+              this.logger?.warn(
+                `[edm-validation.service] silent-catch-fallback (line 406): ${_err && _err.message}`
+              );
               previousDayRows = [];
             }
 
@@ -419,6 +425,9 @@ module.exports = {
               });
               slpValues = slp?.values || null;
             } catch (_err) {
+              this.logger?.warn(
+                `[edm-validation.service] silent-catch-fallback (line 421): ${_err && _err.message}`
+              );
               slpValues = null;
             }
 
@@ -630,6 +639,9 @@ module.exports = {
           });
           previousDayRows = mapTimeseriesRows(prevSeries);
         } catch (_err) {
+          process.stderr.write(
+            `[edm-validation.service] silent-catch-fallback (line 632): ${_err && _err.message}\n`
+          );
           previousDayRows = [];
         }
 
@@ -645,6 +657,9 @@ module.exports = {
           });
           slpValues = slp?.values || null;
         } catch (_err) {
+          process.stderr.write(
+            `[edm-validation.service] silent-catch-fallback (line 647): ${_err && _err.message}\n`
+          );
           slpValues = null;
         }
 

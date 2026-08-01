@@ -137,7 +137,7 @@ function applyAllowedType(type, allowedTypes, warnings) {
   return allowedTypes.includes('debug_summary') ? 'debug_summary' : allowedTypes[0];
 }
 
-function selectRenderer({ preferredFormat, intent, domainResult, context = {} }) {
+function selectRenderer({ preferredFormat, domainResult, context = {} }) {
   const warnings = [];
   const dr = domainResult || {};
   const allowedTypes = normalizeAllowedTypes(context);
@@ -218,7 +218,7 @@ function markdownTable(headers, rows) {
  *   domainResult.asOf      — ISO timestamp or date string
  *   domainResult.note      — optional short note
  */
-function renderKpiFact(domainResult, context, locale) {
+function renderKpiFact(domainResult, context, _locale) {
   const dr = domainResult || {};
   const warnings = [];
 
@@ -299,7 +299,7 @@ function renderKpiFact(domainResult, context, locale) {
  *
  * Produces a short, scannable summary without dumping large JSON blobs.
  */
-function renderDebugSummary(domainResult, context) {
+function renderDebugSummary(domainResult, _context) {
   const dr = domainResult || {};
   const warnings = ['debug_summary_fallback: no specific renderer matched the domainResult shape'];
 

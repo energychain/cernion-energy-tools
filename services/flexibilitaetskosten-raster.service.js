@@ -30,7 +30,7 @@ const { MoleculerClientError } = require('moleculer').Errors;
 const { getTenantId } = require('../src/tenant-context');
 
 const PIPELINE_VERSION = '0.1.0';
-const OPENAPI_TAG = 'Flexibilitätskosten Raster';
+const _OPENAPI_TAG = 'Flexibilitätskosten Raster';
 const DOC_PREFIX = 'fkr:';
 
 // Signal priority hierarchy (lower number = higher priority)

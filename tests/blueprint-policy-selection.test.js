@@ -8,11 +8,10 @@
 const {
   findBlueprintByPrimaryIntent,
   detectBlueprintIntent,
-  MATCH_THRESHOLD,
   _derivePrimaryIntent,
 } = require('../src/l3-broker');
 const { extractPromptHints } = require('../src/personal-agent-routing');
-const { listBlueprints, setRuntimeBlueprint, _resetCache } = require('../src/blueprint-registry');
+const { setRuntimeBlueprint, _resetCache } = require('../src/blueprint-registry');
 const {
   extractBlueprintPolicy,
   checkStickinessRetain,

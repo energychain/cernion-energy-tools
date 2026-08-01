@@ -27,7 +27,7 @@ function extractSpecOperations(spec) {
 const specOps = extractSpecOperations(copilotSpec);
 const specIds = new Set(specOps.keys());
 const allowedIds = new Set(allowlist.map((e) => e.operationId));
-const allowlistMap = new Map(allowlist.map((e) => [e.operationId, e]));
+const _allowlistMap = new Map(allowlist.map((e) => [e.operationId, e]));
 const pluginFunctionNames = new Set(copilotPlugin.functions.map((f) => f.name));
 const pluginRunForFunctions = new Set(copilotPlugin.runtimes[0].run_for_functions);
 
@@ -76,7 +76,7 @@ describe('Copilot OpenAPI subset (openapi-copilot.json)', () => {
   // ── Phase 2 safety: no consequential operations ─────────────────────────────
   describe('Phase 2 safety — no consequential operations', () => {
     it('no operation has x-openai-isConsequential: true', () => {
-      for (const [oid, { operation }] of specOps.entries()) {
+      for (const [_oid, { operation }] of specOps.entries()) {
         expect(operation['x-openai-isConsequential']).not.toBe(true);
       }
     });
@@ -191,7 +191,7 @@ describe('Copilot OpenAPI subset (openapi-copilot.json)', () => {
     });
 
     it('all operations have x-openai-isConsequential defined', () => {
-      for (const [oid, { operation }] of specOps.entries()) {
+      for (const [_oid, { operation }] of specOps.entries()) {
         expect(operation).toHaveProperty('x-openai-isConsequential');
         expect(typeof operation['x-openai-isConsequential']).toBe('boolean');
       }
@@ -257,13 +257,13 @@ describe('Copilot OpenAPI subset (openapi-copilot.json)', () => {
     });
 
     it('all operations in spec have a summary', () => {
-      for (const [oid, { operation }] of specOps.entries()) {
+      for (const [_oid, { operation }] of specOps.entries()) {
         expect(operation.summary).toBeTruthy();
       }
     });
 
     it('Copilot operation descriptions stay within Studio model description limit', () => {
-      for (const [oid, { operation }] of specOps.entries()) {
+      for (const [_oid, { operation }] of specOps.entries()) {
         if (operation.description) {
           expect(operation.description.length).toBeLessThanOrEqual(1024);
           expect(operation.description).not.toMatch(/\*\*/);

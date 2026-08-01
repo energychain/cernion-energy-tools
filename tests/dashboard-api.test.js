@@ -13705,7 +13705,7 @@ describe('dashboard-api.service', () => {
       });
 
       for (const row of result.valueRows) {
-        for (const [key, value] of Object.entries(row)) {
+        for (const [_key, value] of Object.entries(row)) {
           if (typeof value === 'string') {
             expect(value).not.toMatch(/\d+%\s*(bilanziell|autark|Deckung)/i);
             expect(value.toLowerCase()).not.toContain('versorgt');
@@ -14217,7 +14217,6 @@ describe('dashboard-api.service', () => {
   describe('buildIntermunicipalComparison unit tests (issue #334)', () => {
     const {
       buildIntermunicipalComparison,
-      CONSUMPTION_PER_CAPITA_MIN,
       CONSUMPTION_PER_CAPITA_MAX,
       MIN_PEER_COUNT,
     } = require('../src/intermunicipal-comparison');

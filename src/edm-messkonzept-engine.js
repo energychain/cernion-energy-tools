@@ -143,7 +143,7 @@ function evaluateCalcExpression(formula, values) {
     const result = func(...varValues, restrictedMath);
 
     return typeof result === 'number' && !isNaN(result) ? result : null;
-  } catch (err) {
+  } catch (_err) {
     // Return null on evaluation errors (formula syntax error, etc)
     return null;
   }
