@@ -388,7 +388,7 @@ describe('MCP transport self-healing (v0.99.4) — mcp-server missing from the b
     expect(broker.registry.getServiceList({}).some((s) => s.name === 'mcp-server')).toBe(true);
 
     const { tools } = await client.listTools();
-    expect(tools.length).toBe(9);
+    expect(tools).toHaveLength(9);
     await client.close();
   });
 

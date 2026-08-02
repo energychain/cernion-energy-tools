@@ -20,8 +20,8 @@
  * *before* any Bearer auth exists (that's the whole point of the flow).
  */
 
-const crypto = require('crypto');
-const querystring = require('querystring');
+const crypto = require('node:crypto');
+const querystring = require('node:querystring');
 const { OAuthStore } = require('./oauth-store');
 
 const AUTHORIZE_PATH = '/oauth/authorize';
@@ -114,34 +114,34 @@ function renderAuthorizeForm({ clientId, redirectUri, state, codeChallenge, erro
 </body></html>`;
 }
 
+async function wellKnownProtectedResource(req, res) {
+  const baseUrl = getBaseUrl(req);
+  writeJson(res, 200, {
+    resource: `${baseUrl}/api/mcp`,
+    authorization_servers: [baseUrl],
+  });
+}
+
+async function wellKnownAuthorizationServer(req, res) {
+  const baseUrl = getBaseUrl(req);
+  writeJson(res, 200, {
+    issuer: baseUrl,
+    authorization_endpoint: `${baseUrl}${AUTHORIZE_PATH}`,
+    token_endpoint: `${baseUrl}${TOKEN_PATH}`,
+    registration_endpoint: `${baseUrl}${REGISTER_PATH}`,
+    response_types_supported: ['code'],
+    grant_types_supported: ['authorization_code'],
+    code_challenge_methods_supported: ['S256'],
+    token_endpoint_auth_methods_supported: ['client_secret_post', 'none'],
+    scopes_supported: ['mcp'],
+  });
+}
+
 /**
  * @param {import('moleculer').ServiceBroker} broker
  */
 function createOAuthHttpHandlers(broker) {
   const store = new OAuthStore();
-
-  async function wellKnownProtectedResource(req, res) {
-    const baseUrl = getBaseUrl(req);
-    writeJson(res, 200, {
-      resource: `${baseUrl}/api/mcp`,
-      authorization_servers: [baseUrl],
-    });
-  }
-
-  async function wellKnownAuthorizationServer(req, res) {
-    const baseUrl = getBaseUrl(req);
-    writeJson(res, 200, {
-      issuer: baseUrl,
-      authorization_endpoint: `${baseUrl}${AUTHORIZE_PATH}`,
-      token_endpoint: `${baseUrl}${TOKEN_PATH}`,
-      registration_endpoint: `${baseUrl}${REGISTER_PATH}`,
-      response_types_supported: ['code'],
-      grant_types_supported: ['authorization_code'],
-      code_challenge_methods_supported: ['S256'],
-      token_endpoint_auth_methods_supported: ['client_secret_post', 'none'],
-      scopes_supported: ['mcp'],
-    });
-  }
 
   // Lets a page outside this repo (e.g. cernion.de's token-issuance page)
   // display the static OAuth client to paste into an MCP client's connector
@@ -201,7 +201,9 @@ function createOAuthHttpHandlers(broker) {
   }
 
   async function authorizeGet(req, res) {
-    const url = new URL(req.url, 'http://internal');
+    // Dummy base — only req.url's path/query are used below; discarded
+    // immediately, never a real network endpoint.
+    const url = new URL(req.url, 'https://internal');
     const clientId = url.searchParams.get('client_id') || '';
     const redirectUri = url.searchParams.get('redirect_uri') || '';
     const state = url.searchParams.get('state') || '';

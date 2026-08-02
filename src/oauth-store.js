@@ -15,7 +15,7 @@
  * instances without a shared store — an accepted v1 simplification.
  */
 
-const crypto = require('crypto');
+const crypto = require('node:crypto');
 
 const AUTH_CODE_TTL_MS = 5 * 60 * 1000; // 5 minutes — RFC 6749 §4.1.2 "SHOULD... a maximum lifetime of 10 minutes"
 const DYNAMIC_CLIENT_TTL_MS = 365 * 24 * 60 * 60 * 1000; // 1 year

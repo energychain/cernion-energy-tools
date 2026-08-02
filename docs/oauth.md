@@ -103,9 +103,23 @@ specific `/oauth/authorize` flow to its `/oauth/token` exchange.
 - **In-memory only** (`src/oauth-store.js`): authorization codes and
   dynamically-registered clients don't survive a process restart, and
   don't work across multiple horizontally-scaled instances without a
-  shared store. Codes live 5 minutes (RFC 6749 §4.1.2's suggested max is
-  10) — a restart mid-flow just means retrying `/oauth/authorize`, the
-  underlying CET token is unaffected.
+  shared store. **Confirmed with the operator (2026-08-02): `api.cernion.de`
+  runs as a single process, so this is an accepted tradeoff, not an open
+  risk** — revisit (e.g. a Redis-backed store) only if that ever changes to
+  multiple instances behind a load balancer without sticky sessions, which
+  would make authorization-code exchanges fail whenever `/oauth/authorize`
+  and `/oauth/token` land on different instances (not just during restarts).
+  On a single instance, the only practical exposure is the few-second
+  window between an `/oauth/authorize` submission and the `/oauth/token`
+  exchange — codes live 5 minutes (RFC 6749 §4.1.2's suggested max is 10);
+  a restart hitting that narrow window just means the user clicks
+  "connect"/authorize once more in their MCP client, which starts a fresh
+  flow. Already-issued `access_token`s (the underlying CET token, persisted
+  via `token-manager`/`auth`, not this store) and already-open MCP sessions
+  are unaffected either way — a restarted server just makes an MCP client
+  reconnect (`initialize` again with its cached `access_token`, no
+  re-authorization needed), the same as it does today for any other reason
+  a session drops.
 - **No refresh tokens.** The issued `access_token` doesn't expire on our
   side (it's the underlying CET token, whose own lifetime is managed via
   `token-manager`), so there's nothing to refresh — re-running the
