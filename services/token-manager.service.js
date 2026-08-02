@@ -426,7 +426,7 @@ module.exports = {
           };
           tokens[matchIndex] = updatedRecord;
           this.saveTokens(tokens);
-          if (usageSignal.signalStage) {
+          if (usageSignal.signalStage && typeof this.recordTokenSignal === 'function') {
             this.recordTokenSignal(updatedRecord, usageSignal.signalStage, {
               signalAt: usedAt,
               channel: usageSignal.channel,
@@ -569,11 +569,13 @@ module.exports = {
 
       tokens.push(record);
       this.saveTokens(tokens);
-      this.recordTokenSignal(record, 'token_registered', {
-        signalAt: createdAt,
-        channel: 'unknown',
-        source: 'token-manager',
-      });
+      if (typeof this.recordTokenSignal === 'function') {
+        this.recordTokenSignal(record, 'token_registered', {
+          signalAt: createdAt,
+          channel: 'unknown',
+          source: 'token-manager',
+        });
+      }
 
       return {
         success: true,
