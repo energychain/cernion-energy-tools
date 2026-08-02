@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.99.0",
+    "version": "0.99.1",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com."
   },
   "servers": [
@@ -12426,6 +12426,16 @@
               "type": "boolean",
               "default": false
             }
+          },
+          {
+            "name": "includeFederatedKnowledge",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Opt-in only (default false). When true, additionally probes knowledge-rag.federatedSearch health/availability alongside knowledge-rag.query."
           }
         ],
         "x-oeo-class": [
@@ -48180,6 +48190,193 @@
         ]
       }
     },
+    "/api/knowledge-rag/federated-search": {
+      "post": {
+        "operationId": "knowledge-rag_federatedSearch",
+        "summary": "Federated search across Marktkommunikation/regulatory collections",
+        "tags": [
+          "Knowledge RAG"
+        ],
+        "responses": {
+          "200": {
+            "description": "RAG query result (internal/direct calls only; external callers receive 202)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "queryType": {
+                          "type": "string",
+                          "example": "semantic"
+                        },
+                        "collection": {
+                          "type": "string",
+                          "example": "cernion_knowledge_v1"
+                        },
+                        "returned": {
+                          "type": "number",
+                          "example": 2
+                        },
+                        "results": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "pointId": {
+                                "type": "string",
+                                "example": "doc-123"
+                              },
+                              "score": {
+                                "type": "number",
+                                "example": 0.91
+                              },
+                              "referenceText_L0": {
+                                "type": "string",
+                                "example": "Die Festlegung regelt ..."
+                              },
+                              "vectorText": {
+                                "type": "string",
+                                "example": "Welche Regeln gelten für ..."
+                              },
+                              "metadata": {
+                                "type": "object",
+                                "properties": {
+                                  "title": {
+                                    "type": "string",
+                                    "example": "BK6-24-xxx"
+                                  },
+                                  "docType": {
+                                    "type": "string",
+                                    "example": "Festlegung"
+                                  },
+                                  "authority": {
+                                    "type": "string",
+                                    "example": "BNetzA"
+                                  },
+                                  "status": {
+                                    "type": "string",
+                                    "example": "gültig"
+                                  }
+                                }
+                              },
+                              "oeoTags": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Job accepted and queued for async processing",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Relative URI to job status endpoint (/api/jobs/:jobId/status)"
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Suggested polling interval in seconds"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "jobId": {
+                      "type": "string",
+                      "example": "6fd38b12-a3f4-41d5-8f49-e7f9c1b2d3e4"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "queued"
+                      ],
+                      "example": "queued"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Job started. Poll /api/jobs/:jobId/status for progress."
+                    },
+                    "statusUrl": {
+                      "type": "string",
+                      "example": "/api/jobs/6fd38b12-a3f4-41d5-8f49-e7f9c1b2d3e4/status"
+                    },
+                    "resultUrl": {
+                      "type": "string",
+                      "example": "/api/jobs/6fd38b12-a3f4-41d5-8f49-e7f9c1b2d3e4/result"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Async wrapper for `cernion_willi_federated_search`, which searches in parallel across multiple collections optimized for Marktkommunikation (MaKo/EDIFACT) and regulatory (Festlegungen, BNetzA, etc.) content. Uses job pattern for REST calls (HTTP 202 + /api/jobs polling), same as `query`/`semantic`.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "query"
+                ],
+                "properties": {
+                  "query": {
+                    "type": "string",
+                    "example": "Welche Fristen gelten für den Lieferantenwechsel nach GPKE?"
+                  },
+                  "limit": {
+                    "type": "number",
+                    "minimum": 1,
+                    "maximum": 100,
+                    "default": 10,
+                    "example": 10
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "summary": "Federated MaKo/Regulatorik query",
+                  "value": {
+                    "query": "Welche Fristen gelten für den Lieferantenwechsel nach GPKE?",
+                    "limit": 10
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-oeo-class": [
+          "https://openenergyplatform.org/ontology/oeo/OEO_00000143"
+        ]
+      }
+    },
     "/api/knowledge-rag/scroll": {
       "post": {
         "operationId": "knowledge-rag_scroll",
@@ -62251,6 +62448,150 @@
         }
       }
     },
+    "/api/willi-federated/search": {
+      "post": {
+        "operationId": "willi-federated_search",
+        "summary": "Willi-Federated Marktkommunikation/regulatory knowledge search (read-only)",
+        "tags": [
+          "Willi-Federated"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Willi-Federated search result",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "source": "willi-federated-service",
+                    "returned": 3,
+                    "results": [
+                      {
+                        "id": "wf-1",
+                        "slug": "gpke-lieferantenwechsel-fristen",
+                        "title": "GPKE: Fristen beim Lieferantenwechsel",
+                        "score": 32,
+                        "category": "edifact",
+                        "tags": [
+                          "GPKE",
+                          "Frist"
+                        ],
+                        "excerpt": "Kurzfassung des Artikels...",
+                        "url": "https://stromhaltig.de/wissen/gpke-lieferantenwechsel-fristen"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Read-only federated search in parallel across Marktkommunikation/EDIFACT and regulatory (BNetzA/EnWG/EEG) collections via the internal MCP tool `cernion_willi_federated_search`. Returns article/context evidence for validation logic, structural hints and explanation context; it does not send, validate or dispatch any MaKo message and does not file, submit or act on any regulatory process step.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "query"
+                ],
+                "properties": {
+                  "query": {
+                    "type": "string",
+                    "example": "Welche Fristen gelten für den Lieferantenwechsel nach GPKE?"
+                  },
+                  "limit": {
+                    "type": "number",
+                    "minimum": 1,
+                    "maximum": 20,
+                    "default": 5,
+                    "example": 3
+                  },
+                  "tag": {
+                    "type": "string",
+                    "example": "GPKE"
+                  },
+                  "category": {
+                    "type": "string",
+                    "example": "edifact"
+                  },
+                  "includeContent": {
+                    "type": "boolean",
+                    "default": false,
+                    "example": false
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "query": "Welche Fristen gelten für den Lieferantenwechsel nach GPKE?",
+                    "limit": 3
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/willi-federated/resolve-structure": {
+      "post": {
+        "operationId": "willi-federated_resolveStructure",
+        "summary": "Willi-Federated structure-oriented validation-planning view (read-only, advisory)",
+        "tags": [
+          "Willi-Federated"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only structure-oriented validation-planning view"
+          }
+        },
+        "description": "Calls `willi-federated.search` internally and returns a conservative, structure-oriented view (sources, structural hints, validation candidates, no-call boundaries, confidence) useful for MaKo/regulatory validation planning. Never autonomously executes, validates, or dispatches a MaKo message or regulatory filing.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "query"
+                ],
+                "properties": {
+                  "query": {
+                    "type": "string",
+                    "example": "Welche Fristen gelten für den Lieferantenwechsel nach GPKE?"
+                  },
+                  "limit": {
+                    "type": "number",
+                    "minimum": 1,
+                    "maximum": 20,
+                    "default": 5,
+                    "example": 5
+                  },
+                  "tag": {
+                    "type": "string",
+                    "example": "GPKE"
+                  },
+                  "category": {
+                    "type": "string",
+                    "example": "edifact"
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "query": "Welche Fristen gelten für den Lieferantenwechsel nach GPKE?"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/willi-mako/search": {
       "post": {
         "operationId": "willi-mako_search",
@@ -62387,6 +62728,150 @@
                 "default": {
                   "value": {
                     "query": "APERAK Fehlercode Frist Marktkommunikation"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/willi-regulatorik/search": {
+      "post": {
+        "operationId": "willi-regulatorik_search",
+        "summary": "Willi-Regulatorik regulatory knowledge search (read-only)",
+        "tags": [
+          "Willi-Regulatorik"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only Willi-Regulatorik search result",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "source": "willi-regulatorik-service",
+                    "returned": 3,
+                    "results": [
+                      {
+                        "id": "wr-1",
+                        "slug": "bk6-festlegung-netzanschluss-fristen",
+                        "title": "BK6-Festlegung: Fristen für Netzanschlussprüfung",
+                        "score": 32,
+                        "category": "regulatory",
+                        "tags": [
+                          "BNetzA",
+                          "Festlegung"
+                        ],
+                        "excerpt": "Kurzfassung des Artikels...",
+                        "url": "https://stromhaltig.de/wissen/bk6-festlegung-netzanschluss-fristen"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Read-only search over regulatory (BNetzA/EnWG/EEG) articles via the internal MCP tool `cernion_willi_regulatorik_search`. Returns article/context evidence for validation logic, structural hints and explanation context; it does not file, submit or act on any regulatory process step.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "query"
+                ],
+                "properties": {
+                  "query": {
+                    "type": "string",
+                    "example": "BNetzA Festlegung Netzanschluss Fristen"
+                  },
+                  "limit": {
+                    "type": "number",
+                    "minimum": 1,
+                    "maximum": 20,
+                    "default": 5,
+                    "example": 3
+                  },
+                  "tag": {
+                    "type": "string",
+                    "example": "Festlegung"
+                  },
+                  "category": {
+                    "type": "string",
+                    "example": "regulatory"
+                  },
+                  "includeContent": {
+                    "type": "boolean",
+                    "default": false,
+                    "example": false
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "query": "BNetzA Festlegung Netzanschluss Fristen",
+                    "limit": 3
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/willi-regulatorik/resolve-structure": {
+      "post": {
+        "operationId": "willi-regulatorik_resolveStructure",
+        "summary": "Willi-Regulatorik structure-oriented validation-planning view (read-only, advisory)",
+        "tags": [
+          "Willi-Regulatorik"
+        ],
+        "responses": {
+          "200": {
+            "description": "Read-only structure-oriented validation-planning view"
+          }
+        },
+        "description": "Calls `willi-regulatorik.search` internally and returns a conservative, structure-oriented view (sources, structural hints, validation candidates, no-call boundaries, confidence) useful for regulatory validation planning. Never autonomously executes, validates, or dispatches any regulatory filing.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "query"
+                ],
+                "properties": {
+                  "query": {
+                    "type": "string",
+                    "example": "BNetzA Festlegung Netzanschluss Fristen"
+                  },
+                  "limit": {
+                    "type": "number",
+                    "minimum": 1,
+                    "maximum": 20,
+                    "default": 5,
+                    "example": 5
+                  },
+                  "tag": {
+                    "type": "string",
+                    "example": "Festlegung"
+                  },
+                  "category": {
+                    "type": "string",
+                    "example": "regulatory"
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "query": "BNetzA Festlegung Netzanschluss Fristen"
                   }
                 }
               }
@@ -67156,6 +67641,11 @@
                     "maximum": 12,
                     "default": 5,
                     "description": "Maximum number of evidence items returned."
+                  },
+                  "includeFederatedKnowledge": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Opt-in only (default false, does not change the default evidence sources/output shape). When true, additionally queries `knowledge-rag.federatedSearch` (Marktkommunikation/regulatory collections) and includes it as an advisory `evidenceBySource.federatedKnowledge` entry."
                   }
                 }
               }
@@ -68544,6 +69034,16 @@
               "type": "boolean",
               "default": false
             }
+          },
+          {
+            "name": "includeFederatedKnowledge",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Opt-in only (default false). When true, additionally probes knowledge-rag.federatedSearch health/availability alongside knowledge-rag.query."
           }
         ],
         "x-oeo-class": [
@@ -90395,5 +90895,5 @@
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.99.0"
+  "x-version": "0.99.1"
 }

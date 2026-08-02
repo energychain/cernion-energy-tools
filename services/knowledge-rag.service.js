@@ -9,6 +9,7 @@ const metrics = require('../src/metrics');
 
 const OPENAPI_TAG = 'Knowledge RAG';
 const MCP_TOOL = 'cernion_rag_search';
+const FEDERATED_MCP_TOOL = 'cernion_willi_federated_search';
 const OEO_CLASS = ['https://openenergyplatform.org/ontology/oeo/OEO_00000143'];
 
 const QUERY_TYPE_VALUES = ['semantic', 'scroll', 'fetch', 'collection_info'];
@@ -789,6 +790,58 @@ module.exports = (() => {
         },
         async handler(ctx) {
           return this.startRagJob(ctx, { ...ctx.params, queryType: 'semantic' }, 'semantic');
+        },
+      },
+
+      federatedSearch: {
+        rest: 'POST /federated-search',
+        params: {
+          query: { type: 'string', min: 1 },
+          limit: { type: 'number', optional: true, convert: true, min: 1, max: 100, default: 10 },
+        },
+        openapi: {
+          summary: 'Federated search across Marktkommunikation/regulatory collections',
+          tags: [OPENAPI_TAG],
+          'x-oeo-class': OEO_CLASS,
+          description:
+            `Async wrapper for \`${FEDERATED_MCP_TOOL}\`, which searches in parallel across ` +
+            'multiple collections optimized for Marktkommunikation (MaKo/EDIFACT) and regulatory ' +
+            '(Festlegungen, BNetzA, etc.) content. Uses job pattern for REST calls ' +
+            '(HTTP 202 + /api/jobs polling), same as `query`/`semantic`.',
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['query'],
+                  properties: {
+                    query: {
+                      type: 'string',
+                      example: 'Welche Fristen gelten für den Lieferantenwechsel nach GPKE?',
+                    },
+                    limit: { type: 'number', minimum: 1, maximum: 100, default: 10, example: 10 },
+                  },
+                },
+                examples: {
+                  default: {
+                    summary: 'Federated MaKo/Regulatorik query',
+                    value: {
+                      query: 'Welche Fristen gelten für den Lieferantenwechsel nach GPKE?',
+                      limit: 10,
+                    },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            ...JOB_202_RESPONSE,
+            ...SUCCESS_200_RESPONSE,
+          },
+        },
+        async handler(ctx) {
+          return this.startFederatedSearchJob(ctx, ctx.params);
         },
       },
 
@@ -1904,6 +1957,50 @@ module.exports = (() => {
 
             metrics.recordRagQuery(collection, inferHitCount(result));
             if (jobId) appendLog(jobId, 'completed', 100, `${MCP_TOOL} finished`);
+            return result;
+          },
+        });
+      },
+
+      startFederatedSearchJob(ctx, rawParams) {
+        const query = String(rawParams?.query || '').trim();
+        if (!query) {
+          throw new Errors.MoleculerClientError(
+            'Parameter "query" is required for federatedSearch',
+            400,
+            'VALIDATION_ERROR'
+          );
+        }
+        const toolParams = {
+          query,
+          limit: rawParams.limit || 10,
+        };
+
+        return runAsync(ctx, {
+          service: 'knowledge-rag',
+          action: 'federatedSearch',
+          params: rawParams,
+          worker: async (jobId) => {
+            if (jobId) appendLog(jobId, 'queued', 0, `Starting ${FEDERATED_MCP_TOOL}`);
+
+            const result = await callWithAutoPoll(
+              FEDERATED_MCP_TOOL,
+              toolParams,
+              {
+                maxWaitTime: 8 * 60 * 1000,
+                pollInterval: 2000,
+                onStatusUpdate: (update) => {
+                  if (!jobId) return;
+                  const statusLabel = String(update.status || 'running');
+                  const progress = statusLabel === 'succeeded' ? 100 : 50;
+                  appendLog(jobId, statusLabel, progress, `MCP job status: ${statusLabel}`);
+                },
+              },
+              ctx.meta.cernionToken
+            );
+
+            metrics.recordRagQuery('federated:mako-regulatory', inferHitCount(result));
+            if (jobId) appendLog(jobId, 'completed', 100, `${FEDERATED_MCP_TOOL} finished`);
             return result;
           },
         });

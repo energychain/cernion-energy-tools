@@ -121,6 +121,28 @@ describe('Agent Receipts Service', () => {
             };
           },
         },
+        federatedSearch: {
+          handler(ctx) {
+            const query = String(ctx.params?.query || '');
+            if (/missing-case/i.test(query)) {
+              return { success: true, data: { results: [] } };
+            }
+            return {
+              success: true,
+              data: {
+                results: [
+                  {
+                    id: 'federated-hit-1',
+                    source: 'willi-federated',
+                    score: 0.81,
+                    summary: 'MaKo/Regulatorik-Fund über die föderierte Suche.',
+                    metadata: { docType: 'article' },
+                  },
+                ],
+              },
+            };
+          },
+        },
       },
     });
 
@@ -246,6 +268,58 @@ describe('Agent Receipts Service', () => {
               query: '{{message}}',
             },
           ],
+        })
+      )
+    ).rejects.toMatchObject({
+      code: 422,
+      type: 'AGENT_RECEIPT_VALIDATION_FAILED',
+    });
+  });
+
+  it('v0.99.1: accepts knowledgeQueries source=federated and rejects unknown source values', async () => {
+    const withFederatedSource = await broker.call(
+      'agent-receipts.create',
+      validReceipt({
+        receiptId: 'knowledge-query-federated-source-v1',
+        title: 'Knowledge query federated source',
+        knowledgeQueries: [
+          {
+            id: 'kq-fed',
+            source: 'federated',
+            query: '{{message}}',
+            limit: 2,
+          },
+        ],
+        knowledgeEvidencePolicy: { required: false },
+      })
+    );
+
+    expect(withFederatedSource.success).toBe(true);
+    expect(withFederatedSource.data.knowledgeQueries).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'kq-fed', source: 'federated', query: '{{message}}' }),
+      ])
+    );
+
+    // Default source ('knowledge-rag') is omitted from the stored doc, not written explicitly.
+    const withDefaultSource = await broker.call(
+      'agent-receipts.create',
+      validReceipt({
+        receiptId: 'knowledge-query-default-source-v1',
+        title: 'Knowledge query default source',
+        knowledgeQueries: [{ id: 'kq-default', query: '{{message}}' }],
+        knowledgeEvidencePolicy: { required: false },
+      })
+    );
+    expect(withDefaultSource.data.knowledgeQueries[0].source).toBeUndefined();
+
+    await expect(
+      broker.call(
+        'agent-receipts.create',
+        validReceipt({
+          receiptId: 'knowledge-query-invalid-source-v1',
+          title: 'Knowledge query invalid source',
+          knowledgeQueries: [{ source: 'made-up-source', query: '{{message}}' }],
         })
       )
     ).rejects.toMatchObject({
@@ -499,6 +573,43 @@ describe('Agent Receipts Service', () => {
     );
     expect(JSON.stringify(evaluation.data.knowledgeEvidence)).not.toContain(
       'DO_NOT_LEAK_RAW_REFERENCE'
+    );
+  });
+
+  it('v0.99.1: knowledgeQueries entry with source=federated uses knowledge-rag.federatedSearch', async () => {
+    await broker.call('agent-receipts.create', {
+      ...validReceipt({
+        receiptId: 'knowledge-evidence-federated-v1',
+        title: 'Knowledge evidence federated',
+        matching: {
+          triggerTerms: ['netzbetreiber'],
+        },
+        requiredInputs: [],
+      }),
+      knowledgeQueries: [
+        {
+          id: 'kq-federated',
+          source: 'federated',
+          query: '{{message}}',
+          limit: 1,
+        },
+      ],
+    });
+
+    const evaluation = await broker.call('agent-receipts.evaluateStored', {
+      id: 'knowledge-evidence-federated-v1',
+      input: {
+        message: 'GPKE Lieferantenwechsel Frist',
+      },
+    });
+
+    expect(evaluation.success).toBe(true);
+    expect(evaluation.data.knowledgeEvidenceStatus).toBe('available');
+    expect(evaluation.data.knowledgeEvidence[0]).toEqual(
+      expect.objectContaining({
+        hitId: 'federated-hit-1',
+        source: 'willi-federated',
+      })
     );
   });
 

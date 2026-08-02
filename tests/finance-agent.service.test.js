@@ -280,6 +280,30 @@ describe('finance-agent service', () => {
             return { success: true, data: { results: [] } };
           },
         },
+        federatedSearch: {
+          async handler(ctx) {
+            ragCalls.push({
+              query: String(ctx.params.query || ''),
+              limit: ctx.params.limit,
+              federated: true,
+              gatewayWasTrue: !!ctx.meta.$gateway,
+            });
+            return {
+              success: true,
+              data: {
+                results: [
+                  {
+                    pointId: 'fa-fed-1',
+                    score: 0.84,
+                    referenceText_L0: 'Föderierter Treffer aus Marktkommunikation/Regulatorik.',
+                    metadata: { extractionLevel: 'L1_Rule' },
+                    oeoTags: [],
+                  },
+                ],
+              },
+            };
+          },
+        },
       },
     });
 
@@ -614,6 +638,40 @@ describe('finance-agent service', () => {
     expect(res.assumptions.length).toBeGreaterThan(0);
     expect(agentAnalyzeCalls).toBeGreaterThanOrEqual(2);
     expect(agentExecuteCalls).toBe(0);
+  });
+
+  it('v0.99.1: retrieveEvidence uses knowledge-rag.federatedSearch for an intent with source=federated', async () => {
+    // Not currently reachable through finance-agent.analyze's public params (the LLM
+    // query planner does not emit source:'federated' intents) — this exercises the
+    // additive opt-in directly at the retrieveEvidence method level, mirroring how a
+    // future planner extension or direct internal caller could opt a specific intent in.
+    ragCalls.length = 0;
+    const service = broker.getLocalService('finance-agent');
+    const ctx = {
+      call: (...args) => broker.call(...args),
+      meta: { $gateway: false, cernionToken: 'test-token' },
+      broker,
+    };
+
+    const result = await service.retrieveEvidence(
+      ctx,
+      {
+        intents: [
+          { name: 'federated-intent', query: 'GPKE Lieferantenwechsel', source: 'federated' },
+        ],
+      },
+      'GPKE Lieferantenwechsel',
+      'cernion_knowledge_v1',
+      {}
+    );
+
+    const federatedCall = ragCalls.find((call) => call.federated === true);
+    expect(federatedCall).toBeDefined();
+    expect(federatedCall.query).toBe('GPKE Lieferantenwechsel');
+    expect(result.evidence.some((row) => row.pointId === 'fa-fed-1' || row.id === 'fa-fed-1')).toBe(
+      true
+    );
+    ragCalls.length = 0;
   });
 
   it('does not propagate $gateway to knowledge-rag.query (no 202 job descriptor as result)', async () => {

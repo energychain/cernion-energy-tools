@@ -52,6 +52,7 @@ describe('Knowledge RAG Service', () => {
     const actions = broker.getLocalService('knowledge-rag').schema.actions;
     expect(actions.query.rest).toBe('POST /query');
     expect(actions.semantic.rest).toBe('POST /semantic');
+    expect(actions.federatedSearch.rest).toBe('POST /federated-search');
     expect(actions.scroll.rest).toBe('POST /scroll');
     expect(actions.fetch.rest).toBe('POST /fetch');
     expect(actions.collectionInfo.rest).toBe('POST /collection-info');
@@ -141,6 +142,66 @@ describe('Knowledge RAG Service', () => {
       expect.objectContaining({ queryType: 'semantic', query: 'BNetzA Festlegung Netzanschluss' }),
       expect.any(Object),
       undefined
+    );
+  });
+
+  it('should run federated search via cernion_willi_federated_search', async () => {
+    await broker.call('knowledge-rag.federatedSearch', {
+      query: 'Welche Fristen gelten für den Lieferantenwechsel nach GPKE?',
+      limit: 5,
+    });
+
+    expect(callWithAutoPoll).toHaveBeenCalledWith(
+      'cernion_willi_federated_search',
+      { query: 'Welche Fristen gelten für den Lieferantenwechsel nach GPKE?', limit: 5 },
+      expect.objectContaining({ pollInterval: 2000 }),
+      undefined
+    );
+  });
+
+  it('should default federated search limit to 10 when omitted', async () => {
+    await broker.call('knowledge-rag.federatedSearch', {
+      query: 'MaKo Prüfidentifikator 11039',
+    });
+
+    expect(callWithAutoPoll).toHaveBeenCalledWith(
+      'cernion_willi_federated_search',
+      { query: 'MaKo Prüfidentifikator 11039', limit: 10 },
+      expect.any(Object),
+      undefined
+    );
+  });
+
+  it('should require query for federated search', async () => {
+    await expect(broker.call('knowledge-rag.federatedSearch', {})).rejects.toMatchObject({
+      code: 422,
+      type: 'VALIDATION_ERROR',
+    });
+    expect(callWithAutoPoll).not.toHaveBeenCalled();
+  });
+
+  it('should reject a whitespace-only query for federated search', async () => {
+    await expect(
+      broker.call('knowledge-rag.federatedSearch', { query: ' ' })
+    ).rejects.toMatchObject({
+      code: 400,
+      type: 'VALIDATION_ERROR',
+    });
+    expect(callWithAutoPoll).not.toHaveBeenCalled();
+  });
+
+  it('should forward cernion token from context meta on federated search', async () => {
+    await broker.call(
+      'knowledge-rag.federatedSearch',
+      { query: 'EDIFACT UTILMD Segmentstruktur' },
+      { meta: { cernionToken: 'ck_test_token' } }
+    );
+
+    expect(callWithAutoPoll).toHaveBeenCalledWith(
+      'cernion_willi_federated_search',
+      expect.objectContaining({ query: 'EDIFACT UTILMD Segmentstruktur' }),
+      expect.any(Object),
+      'ck_test_token'
     );
   });
 

@@ -2178,13 +2178,25 @@ module.exports = {
           // startJob fires async, sets ctx.meta.$statusCode=202 on the child, and
           // Moleculer propagates that back to the parent (v0.46.4 root-cause fix).
           // Pattern matches agent.service.js (lines with $gateway: false for internal calls).
+          //
+          // v0.99.1: additive opt-in — an intent may set `source: 'federated'` to use
+          // knowledge-rag.federatedSearch (parallel search across Marktkommunikation/
+          // regulatory collections) instead of the default single-collection
+          // knowledge-rag.query. Not currently set by the LLM intent planner
+          // (callAgentAnalyzePlan) — only reachable via a caller-supplied intent.
+          const isFederatedIntent = intent.source === 'federated';
           const response = await ctx.call(
-            'knowledge-rag.query',
-            {
-              ...intent,
-              query: intent.query || originalQuery,
-              collection: collectionName,
-            },
+            isFederatedIntent ? 'knowledge-rag.federatedSearch' : 'knowledge-rag.query',
+            isFederatedIntent
+              ? {
+                  query: intent.query || originalQuery,
+                  limit: intent.limit,
+                }
+              : {
+                  ...intent,
+                  query: intent.query || originalQuery,
+                  collection: collectionName,
+                },
             { meta: { ...ctx.meta, $gateway: false } }
           );
 

@@ -2795,7 +2795,14 @@ function buildActionTemplate(action) {
       limit: 3,
     };
   }
-  if (action === 'willi-mako.search' || action === 'willi-mako.resolveStructure') {
+  if (
+    action === 'willi-mako.search' ||
+    action === 'willi-mako.resolveStructure' ||
+    action === 'willi-regulatorik.search' ||
+    action === 'willi-regulatorik.resolveStructure' ||
+    action === 'willi-federated.search' ||
+    action === 'willi-federated.resolveStructure'
+  ) {
     return {
       query: null,
       limit: 5,
@@ -3037,7 +3044,14 @@ function interpolateTemplateWithKnownContext(
     }
   }
 
-  if (action === 'willi-mako.search' || action === 'willi-mako.resolveStructure') {
+  if (
+    action === 'willi-mako.search' ||
+    action === 'willi-mako.resolveStructure' ||
+    action === 'willi-regulatorik.search' ||
+    action === 'willi-regulatorik.resolveStructure' ||
+    action === 'willi-federated.search' ||
+    action === 'willi-federated.resolveStructure'
+  ) {
     if (hydrated.query === null || hydrated.query === undefined || hydrated.query === '') {
       hydrated.query = knownContext.query || String(taskText || '').trim() || null;
     }

@@ -961,6 +961,8 @@ module.exports = {
         convert: true,
         default: false,
       },
+      // v0.99.1: opt-in only — does not change default audit scope/latency.
+      includeFederatedKnowledge: { type: 'boolean', optional: true, convert: true, default: false },
     },
     openapi: {
       tags: [OPENAPI_TAG],
@@ -986,6 +988,14 @@ module.exports = {
           in: 'query',
           required: false,
           schema: { type: 'boolean', default: false },
+        },
+        {
+          name: 'includeFederatedKnowledge',
+          in: 'query',
+          required: false,
+          schema: { type: 'boolean', default: false },
+          description:
+            'Opt-in only (default false). When true, additionally probes knowledge-rag.federatedSearch health/availability alongside knowledge-rag.query.',
         },
       ],
       responses: {
@@ -1040,7 +1050,7 @@ module.exports = {
                 'capability-broker.recommend'
               )
             : null;
-          const [datapointRes, vdmiRes, ragRes] = await Promise.all([
+          const [datapointRes, vdmiRes, ragRes, federatedRagRes] = await Promise.all([
             this.safeCall(ctx, 'datapoint.health', {}, null, errors, 'datapoint.health'),
             this.safeCall(
               ctx,
@@ -1060,6 +1070,20 @@ module.exports = {
                   'knowledge-rag.query'
                 )
               : null,
+            // v0.99.1: opt-in only — skipped unless the caller explicitly requests it.
+            // Uses its own errors array (not `errors`) so a probe failure never surfaces
+            // as a core tool failure / degrades answerStatus or evidenceConfidence —
+            // see buildEvidenceGroundingConfidenceAudit's separate federatedKnowledgeProbe.
+            params.query && params.includeFederatedKnowledge
+              ? this.safeCall(
+                  ctx,
+                  'knowledge-rag.federatedSearch',
+                  { query: params.query, limit: 5 },
+                  null,
+                  [],
+                  'knowledge-rag.federatedSearch'
+                )
+              : null,
           ]);
 
           return {
@@ -1069,6 +1093,7 @@ module.exports = {
               datapointRes,
               vdmiRes,
               ragRes,
+              federatedRagRes,
               errors,
             }),
             timestamp: new Date().toISOString(),

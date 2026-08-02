@@ -186,11 +186,11 @@ function buildTimeoutError(ms) {
   return err;
 }
 
-async function callWithHardTimeout(ctx, params, timeoutMs) {
+async function callWithHardTimeout(ctx, params, timeoutMs, action = 'knowledge-rag.query') {
   let timer = null;
   try {
     return await Promise.race([
-      ctx.call('knowledge-rag.query', params, {
+      ctx.call(action, params, {
         timeout: timeoutMs,
         meta: { ...ctx?.meta, $gateway: false },
       }),
@@ -444,9 +444,109 @@ async function queryKnowledgeEvidence(
   }
 }
 
+// v0.99.1: additive evidence path over `knowledge-rag.federatedSearch`, which searches
+// in parallel across collections optimized for Marktkommunikation/regulatory content
+// (`cernion_willi_federated_search`). Mirrors queryKnowledgeEvidence's safety wrapping
+// (timeout handling, sanitized hits) exactly; does not change existing call sites.
+async function queryFederatedEvidence(
+  ctx,
+  {
+    query,
+    limit = DEFAULT_LIMIT,
+    summaryMaxChars = DEFAULT_EVIDENCE_SUMMARY_MAX_CHARS,
+    timeoutMs = QUERY_TIMEOUT_MS,
+  } = {}
+) {
+  const normalizedQuery = String(query || '').trim();
+  if (!normalizedQuery) {
+    return {
+      status: 'missing',
+      hits: [],
+      queryType: 'federated',
+      query: '',
+      trace: {
+        hitCount: 0,
+      },
+    };
+  }
+
+  if (!ctx || typeof ctx.call !== 'function') {
+    return {
+      status: 'unavailable',
+      hits: [],
+      queryType: 'federated',
+      query: normalizedQuery,
+      trace: {
+        hitCount: 0,
+      },
+    };
+  }
+
+  try {
+    const ragResult = await callWithHardTimeout(
+      ctx,
+      {
+        query: normalizedQuery,
+        limit: clampLimit(limit),
+      },
+      Math.max(1000, Math.floor(Number(timeoutMs) || QUERY_TIMEOUT_MS)),
+      'knowledge-rag.federatedSearch'
+    );
+
+    const hits = extractHits(ragResult).map((hit) =>
+      toSafeEvidenceHit(hit, { summaryMaxChars: clampSummaryMaxChars(summaryMaxChars) })
+    );
+
+    return {
+      status: hits.length > 0 ? 'available' : 'missing',
+      hits,
+      queryType: 'federated',
+      query: normalizedQuery,
+      trace: {
+        hitCount: hits.length,
+      },
+    };
+  } catch (error) {
+    if (isTimeoutError(error)) {
+      return {
+        status: 'timeout',
+        hits: [],
+        queryType: 'federated',
+        query: normalizedQuery,
+        trace: {
+          hitCount: 0,
+        },
+      };
+    }
+
+    if (isServiceUnavailableError(error)) {
+      return {
+        status: 'unavailable',
+        hits: [],
+        queryType: 'federated',
+        query: normalizedQuery,
+        trace: {
+          hitCount: 0,
+        },
+      };
+    }
+
+    return {
+      status: 'unavailable',
+      hits: [],
+      queryType: 'federated',
+      query: normalizedQuery,
+      trace: {
+        hitCount: 0,
+      },
+    };
+  }
+}
+
 module.exports = {
   queryKnowledgeOrientation,
   queryKnowledgeEvidence,
+  queryFederatedEvidence,
   _internal: {
     QUERY_TIMEOUT_MS,
     DOMAIN_HINT_RULES,

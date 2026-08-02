@@ -940,6 +940,31 @@ describe('Capability Broker Service', () => {
       expect(williMakoStep.params.query).toBe(task);
     });
 
+    it('v0.99.1: also offers willi-regulatorik and willi-federated steps with the same query param', async () => {
+      const task = 'APERAK Fehlercode Z18 erklären';
+      const result = await broker.call('capability-broker.recommend', { task });
+      const actionNames = result.recommendedPlan.map((step) => step.action);
+
+      expect(actionNames).toEqual(
+        expect.arrayContaining([
+          'willi-regulatorik.search',
+          'willi-regulatorik.resolveStructure',
+          'willi-federated.search',
+          'willi-federated.resolveStructure',
+        ])
+      );
+
+      for (const actionName of [
+        'willi-regulatorik.search',
+        'willi-regulatorik.resolveStructure',
+        'willi-federated.search',
+        'willi-federated.resolveStructure',
+      ]) {
+        const step = result.recommendedPlan.find((entry) => entry.action === actionName);
+        expect(step.params.query).toBe(task);
+      }
+    });
+
     it('does not require a Z17-specific branch: an analogous Z-code-free APERAK question still routes generically', async () => {
       const result = await broker.call('capability-broker.recommend', {
         task: 'APERAK Nachrichtentyp und Prüfidentifikator erklären, ohne konkreten Fehlercode.',

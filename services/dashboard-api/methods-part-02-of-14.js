@@ -616,6 +616,7 @@ module.exports = {
     datapointRes,
     vdmiRes,
     ragRes,
+    federatedRagRes = null,
     errors,
   }) {
     const now = new Date().toISOString();
@@ -772,6 +773,16 @@ module.exports = {
         message: item.enablesDossierAddition,
       })),
       dossierEvidence,
+      // v0.99.1: opt-in only — present only when params.includeFederatedKnowledge was true.
+      // Kept separate from evidenceConfidence/sourceClassBreakdown/claims so the existing
+      // audit scoring logic is entirely unaffected by this addition.
+      federatedKnowledgeProbe: params.includeFederatedKnowledge
+        ? {
+            attempted: true,
+            status: federatedRagRes ? 'available' : 'unavailable',
+            sources: this.extractRagEvidenceItems(federatedRagRes).length,
+          }
+        : { attempted: false, status: 'skipped', sources: 0 },
     };
   },
 

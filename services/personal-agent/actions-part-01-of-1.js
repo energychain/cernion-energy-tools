@@ -164,6 +164,8 @@ module.exports = {
         default: 5,
         convert: true,
       },
+      // v0.99.1: opt-in only — does not change default evidence sources/output shape.
+      includeFederatedKnowledge: { type: 'boolean', optional: true, convert: true, default: false },
     },
     openapi: {
       operationId: 'askCernionAgent',
@@ -237,6 +239,12 @@ module.exports = {
                   maximum: 12,
                   default: 5,
                   description: 'Maximum number of evidence items returned.',
+                },
+                includeFederatedKnowledge: {
+                  type: 'boolean',
+                  default: false,
+                  description:
+                    'Opt-in only (default false, does not change the default evidence sources/output shape). When true, additionally queries `knowledge-rag.federatedSearch` (Marktkommunikation/regulatory collections) and includes it as an advisory `evidenceBySource.federatedKnowledge` entry.',
                 },
               },
             },
@@ -412,6 +420,7 @@ module.exports = {
       const context = ctx.params.context || {};
       const inputs = ctx.params.inputs || {};
       const maxEvidence = ctx.params.maxEvidence || 5;
+      const includeFederatedKnowledge = ctx.params.includeFederatedKnowledge === true;
 
       // Blueprint-aware read-only REST plan (energychain/cernion-energy-tools#271):
       // if an active read-only Blueprint can compile this question into a single
@@ -451,6 +460,7 @@ module.exports = {
         objectEvidence,
         planningEvidence,
         makoKnowledgeEvidence,
+        federatedKnowledgeEvidence,
       ] = await Promise.all([
         this.searchCopilotEntities(ctx, { searchTerm, searchDomain, maxEvidence }),
         this.collectCopilotKnowledgeEvidence(ctx, {
@@ -465,6 +475,14 @@ module.exports = {
           question: ctx.params.question,
           maxEvidence,
         }),
+        // v0.99.1: opt-in only — skipped unless the caller explicitly requests it.
+        includeFederatedKnowledge
+          ? this.collectCopilotFederatedKnowledgeEvidence(ctx, {
+              question: ctx.params.question,
+              searchTerm,
+              maxEvidence,
+            })
+          : Promise.resolve({ source: 'knowledge-rag-federated', status: 'skipped', hits: [] }),
       ]);
 
       const baseAnswer = this.buildCopilotSearchAnswer({
@@ -480,6 +498,7 @@ module.exports = {
         objectEvidence,
         planningEvidence,
         makoKnowledgeEvidence,
+        federatedKnowledgeEvidence,
         maxEvidence,
       });
       const enhancedAnswer = await this.enhanceCopilotAnswerWithConsultingBrief(ctx, baseAnswer, {

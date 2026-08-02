@@ -12,7 +12,10 @@ const {
 } = require('../src/agent-receipts-schema');
 const { buildActionRegistry } = require('../src/agent-receipts-registry');
 const { evaluateReceiptPlan } = require('../src/agent-receipts-evaluation');
-const { queryKnowledgeEvidence } = require('../src/personal-agent-knowledge-rag');
+const {
+  queryKnowledgeEvidence,
+  queryFederatedEvidence,
+} = require('../src/personal-agent-knowledge-rag');
 const { hasFullAccessPrincipal, callerHasAnyRole } = require('../src/auth-role-helpers');
 
 // Receipt-promotion authorization (#289, gap identified in #275's Bestandsanalyse):
@@ -2128,7 +2131,13 @@ module.exports = {
       for (let index = 0; index < queries.length; index += 1) {
         const queryDef = queries[index];
         const queryText = this.renderKnowledgeQueryTemplate(queryDef.query, mergedScope);
-        const result = await queryKnowledgeEvidence(ctx, {
+        // v0.99.1: additive opt-in — a receipt's knowledgeQueries entry may set
+        // `source: 'federated'` to use knowledge-rag.federatedSearch (parallel search
+        // across Marktkommunikation/regulatory collections) instead of the default
+        // single-collection knowledge-rag.query. Omitting `source` keeps prior behavior.
+        const queryFn =
+          queryDef.source === 'federated' ? queryFederatedEvidence : queryKnowledgeEvidence;
+        const result = await queryFn(ctx, {
           query: queryText,
           limit: queryDef.limit,
           summaryMaxChars: queryDef.summaryMaxChars,
@@ -2137,7 +2146,7 @@ module.exports = {
 
         queryResults.push({
           id: queryDef.id || `q${index + 1}`,
-          queryType: 'semantic',
+          queryType: queryDef.source === 'federated' ? 'federated' : 'semantic',
           query: queryText,
           status: result.status,
           hitCount: Array.isArray(result.hits) ? result.hits.length : 0,

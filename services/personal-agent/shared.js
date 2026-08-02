@@ -87,6 +87,7 @@ const {
 const {
   queryKnowledgeOrientation: queryKnowledgeOrientationAdapter,
   queryKnowledgeEvidence: queryKnowledgeEvidenceAdapter,
+  queryFederatedEvidence: queryFederatedEvidenceAdapter,
 } = require('../../src/personal-agent-knowledge-rag');
 const {
   scheduleDream,
@@ -2338,6 +2339,7 @@ module.exports = {
   evaluatePresentationGrounding,
   queryKnowledgeOrientationAdapter,
   queryKnowledgeEvidenceAdapter,
+  queryFederatedEvidenceAdapter,
   scheduleDream,
   cancelDream,
   isDreamPending,

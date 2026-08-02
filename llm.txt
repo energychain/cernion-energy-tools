@@ -2,8 +2,8 @@
 
 ## Metadata
 - project: cernion-energy-tools
-- version: 0.99.0
-- changelog_latest_release: 0.99.0
+- version: 0.99.1
+- changelog_latest_release: 0.99.1
 
 ## Purpose
 This file is a navigation manifest for LLM/agent consumers. It lists cluster
@@ -168,7 +168,7 @@ recipes:
   residual-load-co2-price-window "A Stadtwerk needs time-window guidance for flexible loads…"
 resolve: GET /api/_agent/operations?domain=market-data
 
-### regulatory (21 capabilities · 3 recipes · 38 operations)
+### regulatory (21 capabilities · 3 recipes · 42 operations)
 capabilities: cls_digital_twin_compliance_gate, eeg_clawback_ewk_monitoring, energy_tax_information_package, gas_capacity_booking_review_gate, gas_capacity_order_revision_gate, gas_decommissioning_roadmap_status, gas_grid_transformation_asset_cockpit, gas_infrastructure_risk_governance, gas_network_decision_chain, gas_transformation_dataroom_status, gasnetz_waermeplanung, gasnetz_waermeplanung_assessment, heat_asset_tariff_steering, heat_transformation_line_asset_model, mastr_quality_oemetadata, re4de_variable_grid_fee_layer3, regulatorische_entgeltlogik, regulatory_change_simulator_readiness, regulatory_risk_revenue_scenario, special_grid_usage_impact_map, water_pricing_net_investment_alignment_gate
 recipes:
   regulatory-risk-revenue-scenario-briefing "A VNB or Stadtwerk needs to turn an emerging regulatory…"
@@ -182,7 +182,7 @@ recipes:
   transformation-financing-scenario-view "Management needs one dossier-safe view over cashflow, gas…"
 resolve: GET /api/_agent/operations?domain=governance
 
-### platform (13 capabilities · 9 recipes · 417 operations)
+### platform (13 capabilities · 9 recipes · 418 operations)
 capabilities: datasource_registry_classification_governance, dr_readiness_evidence_gate, energy_sidecar_route_registry, evidence_grounding_confidence_audit, evu_api_migration_diagnostics, file_ingest_monitor, hitl_role_based_evidence_request, live_update_stream_contract_status, receipt_grounded_presentation_contract, stadtwerk_mauer_e2e_process_demo, stadtwerk_mauer_external_interface_stubs, stadtwerk_mauer_mastr_data_overlay, stadtwerk_mauer_sandbox_runtime
 recipes:
   agentic-production-feedback-prompt "An engineering agent should receive a consistent, redacted…"
@@ -246,17 +246,17 @@ Agents resolving capabilities/recipes/operations do not need to read past this p
 - `tests/query.service.test.js`: `query.searchCopilot` body-based wrapper returns expected `query`, `domain`, and `results` shape.
 
 ## Source File Hashes
-- CHANGELOG.md: 9d0ae5648167012257d61c8b489586a23988c7836405bbc59074350cf1e84b46
+- CHANGELOG.md: b4f0014ea45bff001e30810adda75dd8364f25582daf236c2b994f153f87e4ab
 - README.md: e5c8aa36d7cd7195c83e00138361bd22d8cbe1860ff829bb026687d462d860ff
 - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
 - src/cookbook-recipes.js: 9e48573ca263ef129bc3944a83b013cff25157e25afc703be0ada62d5af8163d
-- src/capability-catalog.js: 13da2115e360be2f236a097c07a751378433cb232175c72bb3f04a5a9eb05ce4
-- openapi-export.json: 0d6c4a4e0ee4d6f7668fcad846c285854bf3d7c5c00b676bc6a4f64cd9a57bc5
+- src/capability-catalog.js: f62636a7c749d6a2502c8d1199c03d2f0d04d7be6d4ec9170b7cb81f79c6f2a4
+- openapi-export.json: 50a7a9fbeb6e11f604382fe5f2ad7077d202b528da3aee08702c2fcdc88fb123
 
 ## OpenAPI Surface (full contract, not embedded)
-- path_count: 1007
-- operation_count: 1119
+- path_count: 1012
+- operation_count: 1124
 - full_spec: openapi-export.json (repo root) or GET /api/openapi.json
 
 ## Integrity
-- llm_txt_sha256: 90837b0b30c60d8497a0bf6a48daee2e1bde52392f2030b912d07eb860263d83
+- llm_txt_sha256: 6b1f10c1fa53013250d79e1abf50972cf4d17e85678969fea2f5bee09f5d3e5b

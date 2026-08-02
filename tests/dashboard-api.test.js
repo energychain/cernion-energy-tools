@@ -621,6 +621,17 @@ describe('dashboard-api.service', () => {
             },
           ],
         }),
+        federatedSearch: makeHandler('knowledgeRagFederatedSearch', {
+          results: [
+            {
+              sourceId: 'rag:federated:1',
+              sourceVersion: 'v1',
+              collection: 'federated',
+              title: 'GPKE Lieferantenwechsel Fristen',
+              score: 0.81,
+            },
+          ],
+        }),
       },
     });
 
@@ -1534,6 +1545,60 @@ describe('dashboard-api.service', () => {
       expect(result.answerStatus).toBe('ok');
       expect(result.evidenceConfidence.level).toBe('high');
       expect(result.requiresNetworkOperatorConfirmation).toBe(false);
+    });
+
+    it('v0.99.1: skips the federated knowledge probe by default (opt-in only)', async () => {
+      const result = await broker.call('dashboard-api.evidenceGroundingConfidenceAudit', {
+        domain: 'grid_connection',
+        query: 'Standard-Audit ohne federated knowledge',
+        scopeId: 'grid-area:demo',
+      });
+
+      expect(result.federatedKnowledgeProbe).toEqual({
+        attempted: false,
+        status: 'skipped',
+        sources: 0,
+      });
+      // Default audit scoring must remain entirely unaffected by this optional field.
+      expect(result.sourceActions['knowledge-rag.federatedSearch']).toBeUndefined();
+    });
+
+    it('v0.99.1: probes knowledge-rag.federatedSearch when includeFederatedKnowledge=true', async () => {
+      const result = await broker.call('dashboard-api.evidenceGroundingConfidenceAudit', {
+        domain: 'grid_connection',
+        query: 'Audit mit federated knowledge Probe',
+        scopeId: 'grid-area:demo',
+        includeFederatedKnowledge: true,
+      });
+
+      expect(result.federatedKnowledgeProbe).toEqual({
+        attempted: true,
+        status: 'available',
+        sources: 1,
+      });
+    });
+
+    it('v0.99.1: reports federated probe as unavailable without degrading the core audit when it fails', async () => {
+      handlers.knowledgeRagFederatedSearch = () => {
+        throw new Error('federated search unavailable');
+      };
+
+      const result = await broker.call('dashboard-api.evidenceGroundingConfidenceAudit', {
+        domain: 'grid_connection',
+        query: 'Audit mit fehlschlagender federated knowledge Probe',
+        scopeId: 'grid-area:demo',
+        datasourceId: 'datasource:operator',
+        datapointId: 'datapoint:confirmed:1',
+        networkOperatorConfirmed: true,
+        includeFederatedKnowledge: true,
+      });
+
+      expect(result.federatedKnowledgeProbe.status).toBe('unavailable');
+      // The core (pre-existing) audit outcome is unaffected by an optional-probe failure.
+      expect(result.answerStatus).toBe('ok');
+      expect(result.evidenceConfidence.level).toBe('high');
+
+      delete handlers.knowledgeRagFederatedSearch;
     });
   });
 

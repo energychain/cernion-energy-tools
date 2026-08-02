@@ -751,4 +751,109 @@ describe('askCernionAgent evidence bundle', () => {
     expect(result.recommendedEndpoints).toHaveLength(1);
     expect(ctx.call).not.toHaveBeenCalled();
   });
+
+  test('v0.99.1: skips federated knowledge search by default (opt-in only)', async () => {
+    const service = buildServiceHarness();
+    const handler = PersonalAgentService.actions.askCernionAgent.handler;
+    const ctx = {
+      meta: { tenantId: 'tenant-a' },
+      params: {
+        question: 'Welche Fristen gelten für den Lieferantenwechsel nach GPKE?',
+        domain: 'auto',
+        maxEvidence: 3,
+        context: {},
+      },
+      call: jest.fn(async (action, params) => {
+        if (action === 'query.search') {
+          return { query: params.q, domain: 'all', totalResults: 0, results: [] };
+        }
+        if (action === 'knowledge-rag.query') {
+          return { success: true, data: { results: [] } };
+        }
+        if (action === 'datapoint.list') {
+          return { datapoints: [] };
+        }
+        if (action === 'object-store.query') {
+          return { docs: [] };
+        }
+        if (action === 'knowledge-rag.federatedSearch') {
+          throw new Error('federatedSearch must not be called unless explicitly requested');
+        }
+        throw new Error(`unexpected action ${action}`);
+      }),
+    };
+
+    const result = await handler.call(service, ctx);
+
+    expect(result.evidenceBySource.federatedKnowledge).toEqual({
+      source: 'knowledge-rag-federated',
+      status: 'skipped',
+      hits: [],
+    });
+    expect(ctx.call).not.toHaveBeenCalledWith(
+      'knowledge-rag.federatedSearch',
+      expect.anything(),
+      expect.anything()
+    );
+  });
+
+  test('v0.99.1: runs federated knowledge search when includeFederatedKnowledge=true', async () => {
+    const service = buildServiceHarness();
+    const handler = PersonalAgentService.actions.askCernionAgent.handler;
+    const calls = [];
+    const ctx = {
+      meta: { tenantId: 'tenant-a' },
+      params: {
+        question: 'Welche Fristen gelten für den Lieferantenwechsel nach GPKE?',
+        domain: 'auto',
+        maxEvidence: 3,
+        context: {},
+        includeFederatedKnowledge: true,
+      },
+      call: jest.fn(async (action, params) => {
+        calls.push({ action, params });
+        if (action === 'query.search') {
+          return { query: params.q, domain: 'all', totalResults: 0, results: [] };
+        }
+        if (action === 'knowledge-rag.query') {
+          return { success: true, data: { results: [] } };
+        }
+        if (action === 'datapoint.list') {
+          return { datapoints: [] };
+        }
+        if (action === 'object-store.query') {
+          return { docs: [] };
+        }
+        if (action === 'knowledge-rag.federatedSearch') {
+          return {
+            success: true,
+            data: {
+              results: [
+                {
+                  id: 'fed-1',
+                  source: 'willi-federated',
+                  score: 0.87,
+                  summary: 'GPKE-Fristen für den Lieferantenwechsel, Übersicht.',
+                  metadata: { docType: 'article' },
+                },
+              ],
+            },
+          };
+        }
+        throw new Error(`unexpected action ${action}`);
+      }),
+    };
+
+    const result = await handler.call(service, ctx);
+    const federatedCall = calls.find((entry) => entry.action === 'knowledge-rag.federatedSearch');
+
+    expect(federatedCall).toBeDefined();
+    expect(federatedCall.params).toEqual(
+      expect.objectContaining({ query: expect.any(String), limit: expect.any(Number) })
+    );
+    expect(result.evidenceBySource.federatedKnowledge.status).toBe('available');
+    expect(result.evidenceBySource.federatedKnowledge.hits).toHaveLength(1);
+    expect(result.processContext).toContain('federatedKnowledge:available');
+    expect(result.guardrails.join(' ')).toContain('Federated-Knowledge-Kontext');
+  });
 });

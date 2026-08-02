@@ -263,6 +263,10 @@ const OPENAPI_TAG_DOMAIN_MAP = {
   'Web Search': 'platform',
   Webhooks: 'platform',
   'Willi-Mako Marktkommunikation': 'market-data',
+  'Willi-Regulatorik': 'regulatory',
+  // federated search spans Marktkommunikation + regulatory collections; classified
+  // with regulatory since that's the broader/less-covered of the two domains here.
+  'Willi-Federated': 'regulatory',
   'Zielnetzplanung (ZNP)': 'grid-planning',
   ZNP: 'grid-planning',
   'vdmi-human-override': 'governance',

@@ -3,6 +3,12 @@
 const RECEIPT_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const ACTION_REF_PATTERN = /^[a-z0-9-]+\.[a-zA-Z0-9_]+$/;
 const KNOWLEDGE_QUERY_TYPE = 'semantic';
+// v0.99.1: additive opt-in — selects which knowledge-rag action a knowledgeQueries
+// entry uses. 'knowledge-rag' (default) preserves prior behavior (knowledge-rag.query,
+// single collection); 'federated' uses knowledge-rag.federatedSearch (parallel search
+// across Marktkommunikation/regulatory collections).
+const KNOWLEDGE_QUERY_SOURCES = ['knowledge-rag', 'federated'];
+const KNOWLEDGE_QUERY_SOURCE_DEFAULT = 'knowledge-rag';
 
 const RECEIPT_STATUSES = ['draft', 'active', 'deprecated', 'archived'];
 
@@ -268,6 +274,19 @@ function normalizeKnowledgeQuery(rawQuery, index, errors) {
     });
   } else {
     query.queryType = queryType;
+  }
+
+  if (rawQuery.source != null) {
+    const source =
+      typeof rawQuery.source === 'string' && rawQuery.source.trim() ? rawQuery.source.trim() : null;
+    if (!source || !KNOWLEDGE_QUERY_SOURCES.includes(source)) {
+      errors.push({
+        field: `knowledgeQueries[${index}].source`,
+        message: `source must be one of: ${KNOWLEDGE_QUERY_SOURCES.join(', ')}.`,
+      });
+    } else if (source !== KNOWLEDGE_QUERY_SOURCE_DEFAULT) {
+      query.source = source;
+    }
   }
 
   if (typeof rawQuery.query !== 'string' || !rawQuery.query.trim()) {

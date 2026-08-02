@@ -3,6 +3,7 @@
 const {
   queryKnowledgeOrientation,
   queryKnowledgeEvidence,
+  queryFederatedEvidence,
 } = require('../src/personal-agent-knowledge-rag');
 
 describe('personal-agent-knowledge-rag adapter', () => {
@@ -258,5 +259,99 @@ describe('personal-agent-knowledge-rag adapter', () => {
 
     expect(result.status).toBe('unavailable');
     expect(result.hits).toEqual([]);
+  });
+
+  test('T-PA-KR-011: queryFederatedEvidence calls knowledge-rag.federatedSearch with query+limit only', async () => {
+    const ctx = {
+      meta: { tenantId: 'tenant-a' },
+      call: jest.fn().mockResolvedValue({
+        success: true,
+        data: {
+          results: [
+            {
+              id: 'wm-1',
+              source: 'willi-mako',
+              score: 0.77,
+              summary: 'APERAK Fehlercode Zusammenfassung.',
+              metadata: { docType: 'article' },
+            },
+          ],
+        },
+      }),
+    };
+
+    const result = await queryFederatedEvidence(ctx, {
+      query: 'APERAK Fehlercode Frist',
+      limit: 4,
+    });
+
+    expect(ctx.call).toHaveBeenCalledTimes(1);
+    expect(ctx.call).toHaveBeenCalledWith(
+      'knowledge-rag.federatedSearch',
+      { query: 'APERAK Fehlercode Frist', limit: 4 },
+      expect.objectContaining({
+        meta: expect.objectContaining({ tenantId: 'tenant-a', $gateway: false }),
+      })
+    );
+
+    expect(result.status).toBe('available');
+    expect(result.queryType).toBe('federated');
+    expect(result.hits).toHaveLength(1);
+    expect(result.hits[0]).toEqual(
+      expect.objectContaining({ hitId: 'wm-1', source: 'willi-mako', score: 0.77 })
+    );
+  });
+
+  test('T-PA-KR-012: queryFederatedEvidence returns missing status for empty query without calling ctx', async () => {
+    const ctx = { call: jest.fn() };
+
+    const result = await queryFederatedEvidence(ctx, { query: '  ' });
+
+    expect(result).toEqual({
+      status: 'missing',
+      hits: [],
+      queryType: 'federated',
+      query: '',
+      trace: { hitCount: 0 },
+    });
+    expect(ctx.call).not.toHaveBeenCalled();
+  });
+
+  test('T-PA-KR-013: queryFederatedEvidence returns timeout/unavailable as first-class status', async () => {
+    const timeoutCtx = {
+      call: jest.fn().mockRejectedValue({ type: 'REQUEST_TIMEOUT', message: 'Request timeout' }),
+    };
+    const unavailableCtx = {
+      call: jest
+        .fn()
+        .mockRejectedValue({ type: 'SERVICE_NOT_FOUND', message: 'Service not found' }),
+    };
+
+    const timeoutResult = await queryFederatedEvidence(timeoutCtx, {
+      query: 'timeout test',
+      timeoutMs: 1000,
+    });
+    expect(timeoutResult.status).toBe('timeout');
+    expect(timeoutResult.hits).toEqual([]);
+
+    const unavailableResult = await queryFederatedEvidence(unavailableCtx, {
+      query: 'unavailable test',
+    });
+    expect(unavailableResult.status).toBe('unavailable');
+    expect(unavailableResult.hits).toEqual([]);
+  });
+
+  test('T-PA-KR-014: queryKnowledgeEvidence still targets knowledge-rag.query unaffected by the federated addition', async () => {
+    const ctx = {
+      call: jest.fn().mockResolvedValue({ success: true, data: { results: [] } }),
+    };
+
+    await queryKnowledgeEvidence(ctx, { query: 'regression guard' });
+
+    expect(ctx.call).toHaveBeenCalledWith(
+      'knowledge-rag.query',
+      expect.objectContaining({ queryType: 'semantic', query: 'regression guard' }),
+      expect.any(Object)
+    );
   });
 });

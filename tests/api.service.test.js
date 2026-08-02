@@ -511,6 +511,7 @@ describe('API Gateway Service', () => {
 
       expect(aliases['POST /knowledge-rag/query']).toBe('knowledge-rag.query');
       expect(aliases['POST /knowledge-rag/semantic']).toBe('knowledge-rag.semantic');
+      expect(aliases['POST /knowledge-rag/federated-search']).toBe('knowledge-rag.federatedSearch');
       expect(aliases['POST /knowledge-rag/scroll']).toBe('knowledge-rag.scroll');
       expect(aliases['POST /knowledge-rag/fetch']).toBe('knowledge-rag.fetch');
       expect(aliases['POST /knowledge-rag/collection-info']).toBe('knowledge-rag.collectionInfo');

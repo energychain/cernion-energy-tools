@@ -2,10 +2,11 @@
 
 // personal-agent methods chunk 1/11 — extracted verbatim from
 // services/personal-agent.service.js as part of the v0.99 file-size modularization.
-// Contains: _executeChatCoreLogic, buildResponseStrategy, buildStrategyLead, buildCopilotAgentAnswer, searchCopilotEntities, collectCopilotMakoKnowledgeEvidence, collectCopilotKnowledgeEvidence, collectCopilotDatapointEvidence, collectCopilotObjectEvidence, collectCopilotPlanningEvidence, enhanceCopilotAnswerWithConsultingBrief, buildCopilotSearchAnswer, resolveConsultationSynthesisTimeoutMs, collectAllowedLegalRefs
+// Contains: _executeChatCoreLogic, buildResponseStrategy, buildStrategyLead, buildCopilotAgentAnswer, searchCopilotEntities, collectCopilotMakoKnowledgeEvidence, collectCopilotFederatedKnowledgeEvidence, collectCopilotKnowledgeEvidence, collectCopilotDatapointEvidence, collectCopilotObjectEvidence, collectCopilotPlanningEvidence, enhanceCopilotAnswerWithConsultingBrief, buildCopilotSearchAnswer, resolveConsultationSynthesisTimeoutMs, collectAllowedLegalRefs
 
 const {
   queryKnowledgeEvidenceAdapter,
+  queryFederatedEvidenceAdapter,
   buildPersonalAgentResponseStrategy,
   buildPersonalAgentStrategyLead,
   llmGenerateStructured,
@@ -203,6 +204,38 @@ module.exports = {
         trace: { hitCount: 0, error: 'MAKO_KNOWLEDGE_UNAVAILABLE' },
       };
     }
+  },
+
+  // v0.99.1: opt-in only — callers must explicitly pass `includeFederatedKnowledge: true`
+  // to askCernionAgent for this to run (see actions-part-01-of-1.js). Uses
+  // knowledge-rag.federatedSearch (parallel search across Marktkommunikation/regulatory
+  // collections via cernion_willi_federated_search) instead of the default single-collection
+  // knowledge-rag.query used by collectCopilotKnowledgeEvidence.
+  async collectCopilotFederatedKnowledgeEvidence(
+    ctx,
+    { question, searchTerm, maxEvidence = 5 } = {}
+  ) {
+    const query = compactString([searchTerm, question].filter(Boolean).join(' · '), 600);
+    const result = await queryFederatedEvidenceAdapter(ctx, {
+      query,
+      limit: Math.min(Math.max(Number(maxEvidence) || 5, 1), 8),
+      timeoutMs: COPILOT_KNOWLEDGE_TIMEOUT_MS,
+    });
+    return {
+      source: 'knowledge-rag-federated',
+      status: result.status,
+      query: result.query,
+      hits: toCopilotList(
+        result.hits,
+        (hit) => ({
+          source: compactString(hit.source || 'knowledge-rag-federated', 120),
+          value: compactString([hit.summary, hit.retrievalHint].filter(Boolean).join(' · '), 500),
+          metadata: { hitId: hit.hitId || null, score: hit.score ?? null },
+        }),
+        maxEvidence
+      ),
+      trace: result.trace,
+    };
   },
 
   async collectCopilotKnowledgeEvidence(ctx, { question, searchTerm, maxEvidence = 5 } = {}) {
@@ -603,6 +636,7 @@ module.exports = {
     objectEvidence = { status: 'unavailable', hits: [] },
     planningEvidence = { status: 'skipped', hits: [] },
     makoKnowledgeEvidence = { status: 'skipped', hits: [] },
+    federatedKnowledgeEvidence = { status: 'skipped', hits: [] },
     maxEvidence = 5,
   } = {}) {
     const results = Array.isArray(searchResult.results) ? searchResult.results : [];
@@ -668,6 +702,9 @@ module.exports = {
       makoKnowledgeEvidence.status && makoKnowledgeEvidence.status !== 'skipped'
         ? `makoKnowledge:${makoKnowledgeEvidence.status}`
         : null,
+      federatedKnowledgeEvidence.status && federatedKnowledgeEvidence.status !== 'skipped'
+        ? `federatedKnowledge:${federatedKnowledgeEvidence.status}`
+        : null,
     ].filter(Boolean);
     const guardrails = [
       'Copilot soll Knowledge-RAG, Datapoints und Object-Store-Evidence als Antwortkontext nutzen.',
@@ -677,6 +714,11 @@ module.exports = {
       ...(makoKnowledgeEvidence.status === 'available'
         ? [
             'Willi-Mako Marktkommunikations-Kontext ist unverbindlicher Wissens-/Struktur-Hinweis, kein offizieller MaKo-Nachweis und keine Anweisung zum Versand einer APERAK/UTILMD/MSCONS-Nachricht.',
+          ]
+        : []),
+      ...(federatedKnowledgeEvidence.status === 'available'
+        ? [
+            'Federated-Knowledge-Kontext (Marktkommunikation/Regulatorik) ist unverbindlicher Wissens-/Struktur-Hinweis, kein offizieller Nachweis und keine Rechts- oder Verfahrensentscheidung.',
           ]
         : []),
     ];
@@ -771,6 +813,7 @@ module.exports = {
         objects: objectEvidence,
         planning: planningEvidence,
         makoKnowledge: makoKnowledgeEvidence,
+        federatedKnowledge: federatedKnowledgeEvidence,
       },
       guardrails,
       processContext,

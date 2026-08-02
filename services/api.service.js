@@ -501,6 +501,7 @@ function classifyEndpointClass(method, requestPath) {
     pathOnly === '/api/finance-agent/analyze' ||
     pathOnly.startsWith('/api/knowledge-rag/query') ||
     pathOnly.startsWith('/api/knowledge-rag/semantic') ||
+    pathOnly.startsWith('/api/knowledge-rag/federated-search') || // v0.99.1
     pathOnly.startsWith('/api/knowledge-rag/ingest') ||
     /^\/api\/knowledge-rag\/(reindex|cutover)\//.test(pathOnly) ||
     pathOnly === '/api/grid-connection/validate' ||
@@ -1718,6 +1719,7 @@ module.exports = {
           // Knowledge RAG (v0.39)
           'POST /knowledge-rag/query': 'knowledge-rag.query',
           'POST /knowledge-rag/semantic': 'knowledge-rag.semantic',
+          'POST /knowledge-rag/federated-search': 'knowledge-rag.federatedSearch', // v0.99.1
           'POST /knowledge-rag/scroll': 'knowledge-rag.scroll',
           'POST /knowledge-rag/fetch': 'knowledge-rag.fetch',
           'POST /knowledge-rag/collection-info': 'knowledge-rag.collectionInfo',
