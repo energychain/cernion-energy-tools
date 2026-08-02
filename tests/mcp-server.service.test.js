@@ -258,6 +258,64 @@ describe('MCP Server meta-tools', () => {
             return { intentId: ctx.params.intentId, status: 'rejected', reason: ctx.params.reason };
           },
         },
+        prepareVdmiEvidence: {
+          params: {
+            matrixId: { type: 'string' },
+            evidenceType: { type: 'string' },
+            reference: { type: 'string' },
+            reason: { type: 'string' },
+            content: { type: 'object', optional: true },
+          },
+          handler(ctx) {
+            return { intentId: 'vdmi-intent-1', operationFamily: 'vdmi', ...ctx.params };
+          },
+        },
+        prepareGridConnectionValidation: {
+          params: {
+            gridOperatorId: { type: 'string', optional: true },
+            gridOperatorBdew: { type: 'string', optional: true },
+            gridOperatorName: { type: 'string', optional: true },
+            includeCapacityCheck: { type: 'boolean', optional: true },
+            reason: { type: 'string' },
+          },
+          handler(ctx) {
+            return {
+              intentId: 'grid-connection-intent-1',
+              operationFamily: 'gridConnection',
+              ...ctx.params,
+            };
+          },
+        },
+        prepareZnpAssumption: {
+          params: {
+            projectId: { type: 'string' },
+            text: { type: 'string' },
+            reason: { type: 'string' },
+          },
+          handler(ctx) {
+            return { intentId: 'znp-intent-1', operationFamily: 'znp', ...ctx.params };
+          },
+        },
+        prepareConnectionRejectionEvidence: {
+          params: {
+            gridOperatorId: { type: 'string' },
+            applicantReference: { type: 'string' },
+            loadAssumptionKw: { type: 'number' },
+            netzverknuepfungspunktId: { type: 'string' },
+            voltageLevel: { type: 'string' },
+            bottleneckDescription: { type: 'string' },
+            n1QualityStatus: { type: 'string' },
+            decision: { type: 'string' },
+            reason: { type: 'string' },
+          },
+          handler(ctx) {
+            return {
+              intentId: 'connection-rejection-intent-1',
+              operationFamily: 'connectionRejectionEvidence',
+              ...ctx.params,
+            };
+          },
+        },
       },
     });
 
@@ -455,6 +513,155 @@ describe('MCP Server meta-tools', () => {
       broker.call(
         'mcp-server.prepareProcess',
         { operationFamily: 'customer_master_data_correction', proposedAction: 'correct_address' },
+        { meta: { authUser: { roles: ['read-only'] } } }
+      )
+    ).rejects.toMatchObject({ type: 'ROLE_REQUIRED' });
+  });
+
+  test('prepareProcess routes operationFamily=vdmi to the dedicated action', async () => {
+    const res = await broker.call(
+      'mcp-server.prepareProcess',
+      {
+        operationFamily: 'vdmi',
+        proposedAction: 'inject_evidence',
+        reason: 'test reason',
+        payload: { matrixId: 'm-1', evidenceType: 'document', reference: 'REF-1' },
+      },
+      { meta: FULL_ACCESS_META }
+    );
+    expect(res.ref).toBe('cernion://intent/vdmi-intent-1');
+    expect(res.matrixId).toBe('m-1');
+  });
+
+  test('prepareProcess rejects operationFamily=vdmi with a missing payload field', async () => {
+    await expect(
+      broker.call(
+        'mcp-server.prepareProcess',
+        {
+          operationFamily: 'vdmi',
+          proposedAction: 'inject_evidence',
+          reason: 'test reason',
+          payload: { matrixId: 'm-1' },
+        },
+        { meta: FULL_ACCESS_META }
+      )
+    ).rejects.toMatchObject({ type: 'MCP_MISSING_RESERVED_FAMILY_FIELD' });
+  });
+
+  test('prepareProcess requires reason for a reserved operationFamily', async () => {
+    await expect(
+      broker.call(
+        'mcp-server.prepareProcess',
+        {
+          operationFamily: 'vdmi',
+          proposedAction: 'inject_evidence',
+          payload: { matrixId: 'm-1', evidenceType: 'document', reference: 'REF-1' },
+        },
+        { meta: FULL_ACCESS_META }
+      )
+    ).rejects.toMatchObject({ type: 'MCP_MISSING_REASON' });
+  });
+
+  test('prepareProcess routes operationFamily=gridConnection to the dedicated action', async () => {
+    const res = await broker.call(
+      'mcp-server.prepareProcess',
+      {
+        operationFamily: 'gridConnection',
+        proposedAction: 'run_grid_connection_validation',
+        reason: 'test reason',
+        payload: { gridOperatorBdew: '9900992720003', includeCapacityCheck: true },
+      },
+      { meta: FULL_ACCESS_META }
+    );
+    expect(res.ref).toBe('cernion://intent/grid-connection-intent-1');
+  });
+
+  test('prepareProcess rejects operationFamily=gridConnection with no operator identifier', async () => {
+    await expect(
+      broker.call(
+        'mcp-server.prepareProcess',
+        {
+          operationFamily: 'gridConnection',
+          proposedAction: 'run_grid_connection_validation',
+          reason: 'test reason',
+          payload: {},
+        },
+        { meta: FULL_ACCESS_META }
+      )
+    ).rejects.toMatchObject({ type: 'MCP_MISSING_RESERVED_FAMILY_FIELD' });
+  });
+
+  test('prepareProcess routes operationFamily=znp to the dedicated action', async () => {
+    const res = await broker.call(
+      'mcp-server.prepareProcess',
+      {
+        operationFamily: 'znp',
+        proposedAction: 'add_assumption',
+        reason: 'test reason',
+        payload: { projectId: 'p-1', text: 'a planning assumption text of sufficient length' },
+      },
+      { meta: FULL_ACCESS_META }
+    );
+    expect(res.ref).toBe('cernion://intent/znp-intent-1');
+  });
+
+  test('prepareProcess routes operationFamily=connectionRejectionEvidence to the dedicated action', async () => {
+    const res = await broker.call(
+      'mcp-server.prepareProcess',
+      {
+        operationFamily: 'connectionRejectionEvidence',
+        proposedAction: 'create_package',
+        reason: 'test reason',
+        payload: {
+          gridOperatorId: 'op-1',
+          applicantReference: 'ref-1',
+          loadAssumptionKw: 50,
+          netzverknuepfungspunktId: 'nvp-1',
+          voltageLevel: 'NS',
+          bottleneckDescription: 'transformer capacity',
+          n1QualityStatus: 'COMPLIANT',
+          decision: 'NO_GO',
+        },
+      },
+      { meta: FULL_ACCESS_META }
+    );
+    expect(res.ref).toBe('cernion://intent/connection-rejection-intent-1');
+  });
+
+  test('prepareProcess rejects operationFamily=connectionRejectionEvidence with an invalid decision', async () => {
+    await expect(
+      broker.call(
+        'mcp-server.prepareProcess',
+        {
+          operationFamily: 'connectionRejectionEvidence',
+          proposedAction: 'create_package',
+          reason: 'test reason',
+          payload: {
+            gridOperatorId: 'op-1',
+            applicantReference: 'ref-1',
+            loadAssumptionKw: 50,
+            netzverknuepfungspunktId: 'nvp-1',
+            voltageLevel: 'NS',
+            bottleneckDescription: 'transformer capacity',
+            n1QualityStatus: 'COMPLIANT',
+            decision: 'REJECTED',
+          },
+        },
+        { meta: FULL_ACCESS_META }
+      )
+    ).rejects.toMatchObject({ type: 'MCP_INVALID_RESERVED_FAMILY_FIELD' });
+  });
+
+  test('prepareProcess refuses a reserved operationFamily without the full-access role', async () => {
+    await expect(
+      broker.call(
+        'mcp-server.prepareProcess',
+        {
+          operationFamily: 'znp',
+          proposedAction: 'add_assumption',
+          reason: 'test reason',
+          payload: { projectId: 'p-1', text: 'a planning assumption text of sufficient length' },
+        },
         { meta: { authUser: { roles: ['read-only'] } } }
       )
     ).rejects.toMatchObject({ type: 'ROLE_REQUIRED' });

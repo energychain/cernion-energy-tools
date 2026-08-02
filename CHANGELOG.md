@@ -5,6 +5,14 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.99.3] — 2026-08-02
+
+### Added
+- **MCP server: full execution for the 4 reserved operation families** (`vdmi`, `gridConnection`, `znp`, `connectionRejectionEvidence`), closing the gap noted in v0.99.2's `docs/mcp-server.md`. `cernion_prepare_process` now routes these 4 `operationFamily` values to their dedicated `prepare*` actions in `services/copilot-process.service.js` instead of the generic `prepareProcessIntent` (which explicitly rejects them) — their intents execute for real through `cernion_execute_process`, since `_executeIntent`'s dispatch table already had real cases for exactly these 4. `src/mcp-reserved-families.js` maps each family's MCP-facing `payload` shape onto the dedicated action's actual params and validates required fields up front, returning a clear `422` instead of letting a malformed request reach the REST action. No changes were needed for `cernion_execute_process` (already handles these intents correctly) or for the families' read-only context endpoints (`getVdmiContext`, `listOpenResponsibilities`, `getZnpProjectStatus`, `getGridConnectionValidation` — plain GET routes, already reachable via `cernion_search`/`describe`/`execute_read`).
+
+### Fixed
+- **`cernion_prepare_process` now catches a pre-existing validation gap in `prepareConnectionRejectionEvidence` before it reaches the REST action**: that action validates `decision` as a plain string rather than against the target action's real enum (`GO`/`CONDITIONAL`/`NO_GO`/`PENDING`) — existing tests even use `'REJECTED'`, an invalid value that would only fail later, at `executeProcessIntent` time, after a human has already confirmed the intent. `src/mcp-reserved-families.js` validates `decision` against the real enum itself. Not fixed at the source (`copilot-process.service.js`) to avoid touching existing call sites/tests for a fix that's only load-bearing through the new MCP path — see `docs/mcp-server.md`'s "Reserved operation families" section.
+
 ## [0.99.2] — 2026-08-02
 
 ### Added

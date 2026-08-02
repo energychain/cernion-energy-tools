@@ -32,6 +32,7 @@ const { MoleculerClientError } = require('moleculer').Errors;
 const { buildRef, parseRef } = require('../src/mcp-uri');
 const { checkExecuteReadPolicy } = require('../src/mcp-execute-read-policy');
 const { assertFullAccessForWrite } = require('../src/mcp-rbac-gate');
+const { RESERVED_FAMILIES, resolveIntentId } = require('../src/mcp-reserved-families');
 
 const SEARCH_KINDS = ['capability', 'operation', 'receipt', 'blueprint', 'recipe'];
 const DESCRIBE_KINDS = ['capability', 'operation', 'receipt', 'blueprint', 'recipe'];
@@ -503,6 +504,21 @@ module.exports = {
       },
       async handler(ctx) {
         assertFullAccessForWrite(ctx.meta);
+
+        const reservedFamily = RESERVED_FAMILIES[ctx.params.operationFamily];
+        if (reservedFamily) {
+          if (!ctx.params.reason) {
+            throw new MoleculerClientError(
+              `reason is required for operationFamily "${ctx.params.operationFamily}"`,
+              422,
+              'MCP_MISSING_REASON'
+            );
+          }
+          const familyParams = reservedFamily.buildParams(ctx.params.payload || {}, ctx.params);
+          const result = await ctx.call(reservedFamily.action, familyParams);
+          return { ...result, ref: buildRef('intent', resolveIntentId(result)) };
+        }
+
         const result = await ctx.call('copilot-process.prepareProcessIntent', ctx.params);
         return { ...result, ref: buildRef('intent', result.receipt.intentId) };
       },
