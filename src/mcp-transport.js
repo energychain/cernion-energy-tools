@@ -132,7 +132,22 @@ const TOOL_DEFS = [
     title: 'Prepare a process intent',
     description:
       'Prepares any mutation (business write or governance action) as a pending_confirmation intent. ' +
-      'Never writes by itself. Returns a cernion://intent/{id} ref for cernion_execute_process.',
+      'Never writes by itself. Returns a cernion://intent/{id} ref for cernion_execute_process.\n\n' +
+      'operationFamily is the routing key. Most values go through the generic intake path (real ' +
+      'execution needs a developer to wire a dispatch case first — see cernion_execute_process). ' +
+      'Four operationFamily values are reserved and route to dedicated, fully-executable actions — for ' +
+      'these, reason is required and payload must contain:\n' +
+      '- "vdmi": payload.matrixId, payload.evidenceType, payload.reference (payload.content optional). ' +
+      'Injects VDMI evidence.\n' +
+      '- "gridConnection": at least one of payload.gridOperatorId / payload.gridOperatorBdew / ' +
+      'payload.gridOperatorName (payload.includeCapacityCheck optional). Runs the Netzanschluss ' +
+      'validation pipeline.\n' +
+      '- "znp": payload.projectId, payload.text. Adds a ZNP planning assumption.\n' +
+      '- "connectionRejectionEvidence": payload.gridOperatorId, payload.applicantReference, ' +
+      'payload.loadAssumptionKw, payload.netzverknuepfungspunktId, payload.voltageLevel, ' +
+      'payload.bottleneckDescription, payload.n1QualityStatus ' +
+      '(COMPLIANT|NON_COMPLIANT|CONDITIONALLY_COMPLIANT|UNKNOWN), payload.decision ' +
+      '(GO|CONDITIONAL|NO_GO|PENDING). Creates a connection-rejection evidence package.',
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
     inputSchema: {
       operationFamily: z.string().min(1).max(64),
@@ -154,9 +169,11 @@ const TOOL_DEFS = [
     description:
       'Executes (action=execute, default) or rejects (action=reject) a pending_confirmation intent by ' +
       'id/ref. Deliberately a separate tool call from cernion_prepare_process so a client cannot ' +
-      'prepare-and-execute in one shot. NOTE: intents created with a domain-agnostic operationFamily ' +
-      'have no wired auto-execution (by design — see docs/mcp-server.md) and will fail execute with a ' +
-      'clear error; reject still works for those.',
+      'prepare-and-execute in one shot. Intents from the 4 reserved operationFamily values (vdmi, ' +
+      'gridConnection, znp, connectionRejectionEvidence — see cernion_prepare_process) execute for ' +
+      'real. NOTE: intents from any other (generic) operationFamily have no wired auto-execution (by ' +
+      'design — see docs/mcp-server.md) and will fail execute with a clear error; reject still works ' +
+      'for those.',
     annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true },
     inputSchema: {
       ref: z.string().optional(),
@@ -215,6 +232,29 @@ function toolErrorResult(err) {
   };
 }
 
+function hasMcpServerActions(broker) {
+  return TOOL_DEFS.every((def) => broker.registry.actions.get(def.action));
+}
+
+async function ensureMcpServerActions(broker) {
+  if (hasMcpServerActions(broker)) return;
+
+  const services = broker.registry.getServiceList({ withActions: true });
+  const registeredService = services.find((service) => service.name === 'mcp-server');
+  if (registeredService) {
+    throw new Error('mcp-server service is registered but its MCP actions are not available');
+  }
+
+  const service = broker.createService(require('../services/mcp-server.service'));
+  if (broker.started && typeof service._start === 'function') {
+    await service._start();
+  }
+
+  if (!hasMcpServerActions(broker)) {
+    throw new Error('mcp-server service was loaded but its MCP actions are still unavailable');
+  }
+}
+
 function readJsonBody(req) {
   return new Promise((resolve, reject) => {
     const chunks = [];
@@ -245,6 +285,17 @@ function readJsonBody(req) {
 
 function buildSessionMcpServer(broker, sessionMeta) {
   const server = new McpServer(SERVER_INFO, { capabilities: { tools: {} } });
+  let ensureMcpServerPromise = null;
+  const ensureMcpServerReady = async () => {
+    if (hasMcpServerActions(broker)) return;
+    if (!ensureMcpServerPromise) {
+      ensureMcpServerPromise = ensureMcpServerActions(broker).finally(() => {
+        ensureMcpServerPromise = null;
+      });
+    }
+    await ensureMcpServerPromise;
+  };
+
   for (const def of TOOL_DEFS) {
     server.registerTool(
       def.name,
@@ -256,6 +307,7 @@ function buildSessionMcpServer(broker, sessionMeta) {
       },
       async (args) => {
         try {
+          await ensureMcpServerReady();
           const result = await broker.call(def.action, args || {}, { meta: { ...sessionMeta } });
           return toolSuccessResult(result);
         } catch (err) {

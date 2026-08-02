@@ -1,4 +1,4 @@
-# MCP Server (v0.99.2)
+# MCP Server (v0.99.2, extended v0.99.3)
 
 A real MCP (Model Context Protocol) server — JSON-RPC 2.0 over the
 streamable-HTTP transport — sitting in front of this platform's REST API.
@@ -39,7 +39,7 @@ full round-trip example using `@modelcontextprotocol/sdk`'s
 | 3 | `cernion_describe` | `agent-manifest.getCapability`, `agent-receipts.get`+`explainStored`, `blueprint-management.get`, `cookbook.get` | Yes |
 | 4 | `cernion_execute_read` | Loopback HTTP call into `/api/...` (see below) | Yes, allowlisted |
 | 5 | `cernion_run_receipt` | `agent-receipts.test` (plan); `copilot-process.prepareProcessIntent` (run) | plan: yes; run: no |
-| 6 | `cernion_prepare_process` | `copilot-process.prepareProcessIntent` | No |
+| 6 | `cernion_prepare_process` | `copilot-process.prepareProcessIntent`, or one of 4 dedicated `prepare*` actions for reserved families (v0.99.3, see below) | No |
 | 7 | `cernion_execute_process` | `copilot-process.executeProcessIntent` / `.rejectProcessIntent` | No |
 | 8 | `cernion_process_status` | `copilot-process.getProcessIntent`/`.listProcessIntents`, `job-status.status`, `hitl.get`/`.list` | Yes |
 | 9 | `cernion_get_context` | `agent-sidecar.descriptor`, `tenant-quota.getQuotas` | Yes |
@@ -69,21 +69,23 @@ the hard way:
    4 reserved operation families (`vdmi`, `gridConnection`, `znp`,
    `connectionRejectionEvidence`), each with its own dedicated `prepare*`
    REST action. Any intent created through the **generic**
-   `prepareProcessIntent` (which is all `cernion_prepare_process` and
-   `cernion_run_receipt` mode=run currently use) will get
+   `prepareProcessIntent` (which is what `cernion_run_receipt` mode=run
+   uses, and what `cernion_prepare_process` falls back to for any
+   `operationFamily` outside the 4 reserved ones) will get
    `UNKNOWN_OPERATION_FAMILY` if you try to execute it — the docstring in
    `copilot-process.service.js` calls this "establishes the intake/
    classification/HITL boundary only." `cernion_execute_process` catches
    that specific error and rewraps it with a clearer message
    (`MCP_INTENT_REQUIRES_MANUAL_EXECUTION`) rather than a raw 400. Rejecting
    a generic intent still works fully.
-   **v1.1 follow-up**: wire the 4 reserved-family `prepare*` actions
-   (`prepareVdmiEvidence`, `prepareGridConnectionValidation`,
-   `prepareZnpAssumption`, `prepareConnectionRejectionEvidence`) into
-   `cernion_prepare_process` so at least those get real end-to-end
-   execution through MCP. Not done here — each has its own param shape
-   that needs the same care this file's ground-truth research took for the
-   generic path.
+   **As of v0.99.3**, `cernion_prepare_process` routes the 4 reserved
+   `operationFamily` values to their dedicated `prepare*` actions instead
+   of the generic one (see "Reserved operation families" below) — those 4
+   now execute for real through `cernion_execute_process`, closing this
+   gap for the families that have one. Everything else still needs a
+   developer to add a reviewed dispatch case in `_executeIntent` first —
+   that's a deliberate governance boundary, not something MCP should paper
+   over.
 
 3. **Receipts have no direct execution path either.** There is no
    "run this receipt for real" REST action — only `test`/`testStored`
@@ -132,6 +134,48 @@ and is denied regardless of method if the path matches an admin/secret
 surface (`backup`, `restore`, `system/admin`, `domain-routes/reload`,
 `token-manager`, `auth`, `tenant-quotas`) — the concept doc's "Nicht
 exponieren" list.
+
+## Reserved operation families (v0.99.3)
+
+`cernion_prepare_process`'s `operationFamily` param routes to one of two
+places (`src/mcp-reserved-families.js`):
+
+- One of the 4 reserved values below → the matching dedicated `prepare*`
+  action in `services/copilot-process.service.js`, whose intent **does**
+  execute for real via `cernion_execute_process`.
+- Anything else → the generic `prepareProcessIntent` (deviation #2 above —
+  no auto-execution without a developer adding a dispatch case).
+
+| `operationFamily` | Required `payload` fields | Optional `payload` fields | Executes as |
+|---|---|---|---|
+| `vdmi` | `matrixId`, `evidenceType`, `reference` | `content` | `vdmi.evidence` — injects VDMI evidence |
+| `gridConnection` | at least one of `gridOperatorId` / `gridOperatorBdew` / `gridOperatorName` | `includeCapacityCheck` | `grid-connection.validate` — runs the Netzanschluss validation pipeline (up to 2 min) |
+| `znp` | `projectId`, `text` | — | `znp.addAssumption` — adds a ZNP planning assumption |
+| `connectionRejectionEvidence` | `gridOperatorId`, `applicantReference`, `loadAssumptionKw`, `netzverknuepfungspunktId`, `voltageLevel`, `bottleneckDescription`, `n1QualityStatus` (`COMPLIANT`\|`NON_COMPLIANT`\|`CONDITIONALLY_COMPLIANT`\|`UNKNOWN`), `decision` (`GO`\|`CONDITIONAL`\|`NO_GO`\|`PENDING`) | — | `connection-rejection-evidence.create` — creates an evidence package |
+
+`reason` (top-level, not inside `payload`) is required for all 4 — the
+dedicated actions require it themselves.
+
+**A bug found and worked around, not fixed at the source**:
+`prepareConnectionRejectionEvidence` validates `decision` as a plain
+string, not against the target action's actual enum (`GO`/`CONDITIONAL`/
+`NO_GO`/`PENDING`) — existing tests even pass `'REJECTED'`, which isn't a
+valid value and would fail at `executeProcessIntent` time, after
+confirmation. `src/mcp-reserved-families.js` validates `decision` against
+the real enum itself before calling the REST action, so MCP callers get a
+clear `422 MCP_INVALID_RESERVED_FAMILY_FIELD` up front instead of a
+confusing failure after the human has already confirmed. Not fixed in
+`copilot-process.service.js` itself, to avoid touching existing call sites
+(including tests that rely on the current loose validation) for a fix
+that's only load-bearing through the new MCP path.
+
+The 4 families' read-only context endpoints
+(`getVdmiContext`, `listOpenResponsibilities`, `getZnpProjectStatus`,
+`getGridConnectionValidation`) needed no changes — they're plain GET
+routes, so `cernion_search`/`describe`/`execute_read` already reach them
+via the normal operation catalogue. `connectionRejectionEvidence` has no
+equivalent context endpoint in `copilot-process.service.js` (a pre-existing
+asymmetry with the other 3 families, not something this change introduces).
 
 ## Auth and RBAC — why this needed its own gate
 
