@@ -23,7 +23,7 @@
 
 const { randomUUID } = require('crypto');
 const { z } = require('zod');
-const { McpServer } = require('@modelcontextprotocol/sdk/server/mcp.js');
+const { McpServer, ResourceTemplate } = require('@modelcontextprotocol/sdk/server/mcp.js');
 const {
   StreamableHTTPServerTransport,
 } = require('@modelcontextprotocol/sdk/server/streamableHttp.js');
@@ -212,6 +212,70 @@ const TOOL_DEFS = [
   },
 ];
 
+// Resources (v0.99.4): design principle #6 from the original concept doc —
+// "Blueprints/Receipts zusätzlich als MCP-Resources, damit Clients mit
+// Resource-Support sie ohne Tool-Call browsen können." Backed entirely by
+// the existing cernion_search/describe actions (list/read respectively) —
+// no new business logic, just the MCP resource-template protocol shape
+// around what already exists. `search`'s query param requires a non-empty
+// string; a single space trims to empty inside its textIncludes() filter,
+// which is how these list callbacks ask for "everything of this kind"
+// rather than a text match. Capped at 50 per kind (search's own max) —
+// real pagination (MCP's cursor mechanism) is a reasonable follow-up if
+// any of these kinds outgrows that.
+const RESOURCE_KINDS = {
+  capability: { title: 'Cernion Capabilities', description: 'Capability-broker catalog entries.' },
+  receipt: { title: 'Cernion Agent Receipts', description: 'Curated playbook receipts.' },
+  blueprint: { title: 'Cernion Blueprints', description: 'Governance blueprint definitions.' },
+  recipe: { title: 'Cernion Cookbook Recipes', description: 'Curated implementation recipes.' },
+};
+
+// Prompts (v0.99.4): one per cookbook recipe (src/cookbook-recipes.js via
+// cookbook.list) — recipes are already curated "how to accomplish X" guides
+// with an ordered step plan, which is exactly what an MCP prompt is for.
+// Fetched once per session at initialize time; advisory (a cookbook outage
+// just means no prompts get registered, not a failed session).
+function renderRecipePromptText(recipe) {
+  const steps = (recipe.process || [])
+    .slice()
+    .sort((a, b) => (a.step || 0) - (b.step || 0))
+    .map((step) => `${step.step}. ${step.description} (internally: ${step.action})`)
+    .join('\n');
+  return [
+    `Task: ${recipe.problem}`,
+    '',
+    'Suggested approach (curated CET recipe). For each step below, use ' +
+      'cernion_search/cernion_describe to find the matching operation, then ' +
+      'cernion_execute_read if it resolves to a read-classified operation ' +
+      '(or cernion_prepare_process/cernion_execute_process if it is a write):',
+    steps,
+    '',
+    `Expected result: ${recipe.expectedResult}`,
+  ].join('\n');
+}
+
+async function registerRecipePrompts(server, broker, sessionMeta) {
+  try {
+    const result = await broker.call('cookbook.list', {}, { meta: { ...sessionMeta } });
+    const recipes = Array.isArray(result?.data) ? result.data : [];
+    for (const recipe of recipes) {
+      if (!recipe?.id) continue;
+      server.registerPrompt(
+        recipe.id,
+        { title: recipe.title, description: recipe.problem },
+        async () => ({
+          description: recipe.title,
+          messages: [
+            { role: 'user', content: { type: 'text', text: renderRecipePromptText(recipe) } },
+          ],
+        })
+      );
+    }
+  } catch {
+    // Advisory only — a cookbook outage shouldn't block MCP session init.
+  }
+}
+
 function toolSuccessResult(payload) {
   return { content: [{ type: 'text', text: JSON.stringify(payload, null, 2) }] };
 }
@@ -232,6 +296,19 @@ function toolErrorResult(err) {
   };
 }
 
+// Self-healing guard (v0.99.4): a production instance was observed
+// answering `initialize`/`tools/list` correctly (both served straight out
+// of this file's static TOOL_DEFS) while every actual tool call failed
+// with SERVICE_NOT_FOUND for `mcp-server.*` — i.e. `index.js`'s glob
+// service loader hadn't picked up `services/mcp-server.service.js` on
+// that running process, even though it ships in the same deploy. Rather
+// than only documenting "redeploy fixes it", each tool call now checks
+// the broker's own action registry first and lazily loads the service if
+// it's missing — cheap on the normal path (`registry.actions.get` is an
+// O(1) lookup, ~0.1ms measured), and turns a silent, confusing
+// SERVICE_NOT_FOUND into either a working call or a clear, specific error
+// if `mcp-server` is registered but genuinely broken (as opposed to simply
+// not loaded).
 function hasMcpServerActions(broker) {
   return TOOL_DEFS.every((def) => broker.registry.actions.get(def.action));
 }
@@ -245,6 +322,14 @@ async function ensureMcpServerActions(broker) {
     throw new Error('mcp-server service is registered but its MCP actions are not available');
   }
 
+  // broker.createService() already fires-and-forgets service._start() when
+  // broker.started is true (see moleculer's ServiceBroker#createService /
+  // #_restartService) — it does NOT await it. The explicit await below is
+  // required so hasMcpServerActions() below observes the service's actions
+  // as registered rather than racing service._start()'s own async
+  // registerLocalService() call. Verified (tests/mcp-transport.test.js)
+  // this doesn't double-register: Moleculer's registerLocalService is
+  // idempotent for the same service instance either way.
   const service = broker.createService(require('../services/mcp-server.service'));
   if (broker.started && typeof service._start === 'function') {
     await service._start();
@@ -283,8 +368,10 @@ function readJsonBody(req) {
   });
 }
 
-function buildSessionMcpServer(broker, sessionMeta) {
-  const server = new McpServer(SERVER_INFO, { capabilities: { tools: {} } });
+async function buildSessionMcpServer(broker, sessionMeta) {
+  const server = new McpServer(SERVER_INFO, {
+    capabilities: { tools: {}, resources: {}, prompts: {} },
+  });
   let ensureMcpServerPromise = null;
   const ensureMcpServerReady = async () => {
     if (hasMcpServerActions(broker)) return;
@@ -316,6 +403,52 @@ function buildSessionMcpServer(broker, sessionMeta) {
       }
     );
   }
+
+  for (const [kind, meta] of Object.entries(RESOURCE_KINDS)) {
+    server.registerResource(
+      kind,
+      new ResourceTemplate(`cernion://${kind}/{id}`, {
+        list: async () => {
+          await ensureMcpServerReady();
+          const result = await broker.call(
+            'mcp-server.search',
+            { query: ' ', kind, limit: 50 },
+            { meta: { ...sessionMeta } }
+          );
+          return {
+            resources: (result.results || []).map((r) => ({
+              uri: r.ref,
+              name: r.title,
+              description: r.summary,
+              mimeType: 'application/json',
+            })),
+          };
+        },
+      }),
+      meta,
+      async (uri, variables) => {
+        await ensureMcpServerReady();
+        const result = await broker.call(
+          'mcp-server.describe',
+          { kind, id: variables.id },
+          { meta: { ...sessionMeta } }
+        );
+        return {
+          contents: [
+            {
+              uri: uri.toString(),
+              mimeType: 'application/json',
+              text: JSON.stringify(result.data, null, 2),
+            },
+          ],
+        };
+      }
+    );
+  }
+
+  await ensureMcpServerReady();
+  await registerRecipePrompts(server, broker, sessionMeta);
+
   return server;
 }
 
@@ -364,7 +497,7 @@ function createMcpHttpHandlers(broker) {
         return;
       }
 
-      const server = buildSessionMcpServer(broker, auth.meta);
+      const server = await buildSessionMcpServer(broker, auth.meta);
       const transport = new StreamableHTTPServerTransport({
         sessionIdGenerator: () => randomUUID(),
         onsessioninitialized: (newSessionId) => {

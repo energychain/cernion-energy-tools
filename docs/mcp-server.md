@@ -1,16 +1,19 @@
-# MCP Server (v0.99.2, extended v0.99.3)
+# MCP Server (v0.99.2, extended v0.99.3, v0.99.4)
 
 A real MCP (Model Context Protocol) server — JSON-RPC 2.0 over the
 streamable-HTTP transport — sitting in front of this platform's REST API.
 It exposes **9 meta-tools** instead of a 1:1 tool-per-endpoint mapping, per
 the original design concept. It authenticates with the same Bearer tokens
 as the REST API (`ck_...` API tokens, `csess_...` session tokens, or legacy
-plain tokens).
+plain tokens) — or, for clients that can only do OAuth (e.g. claude.ai's
+remote connector UI), via the OAuth 2.1 flow in `docs/oauth.md`, which
+issues that same kind of token through a browser-based authorization step.
 
 - Endpoint: `POST/GET/DELETE /api/mcp`
 - Transport implementation: `src/mcp-transport.js`
 - Tool business logic: `services/mcp-server.service.js`
 - Also reachable per-tool over plain REST for debugging: `POST /api/mcp-server/<action>` (e.g. `POST /api/mcp-server/search`), same auth as everything else on `/api`.
+- OAuth 2.1 authorization layer (v0.99.4): `docs/oauth.md`
 
 ## Connecting
 
@@ -48,6 +51,32 @@ Typed refs use `cernion://{kind}/{id}` (`src/mcp-uri.js`) with
 `kind ∈ {capability, operation, receipt, blueprint, recipe, intent, job,
 hitl}` — `search`/`describe` emit them, the write/status tools accept them
 back instead of requiring separate id+kind params.
+
+## Resources and prompts (v0.99.4)
+
+Design principle #6 from the original concept doc: "Blueprints/Receipts
+zusätzlich als MCP-Resources, damit Clients mit Resource-Support sie ohne
+Tool-Call browsen können." Both are backed entirely by existing actions —
+no new business logic, just the MCP resource/prompt protocol shape around
+what `cernion_search`/`describe` and `cookbook.list` already do.
+
+**Resources** — one `ResourceTemplate` per browsable kind
+(`cernion://{kind}/{id}` for `kind ∈ {capability, receipt, blueprint,
+recipe}`):
+- `resources/list` calls `mcp-server.search` with an all-matching query
+  (capped at 50 per kind — `search`'s own max; real cursor-based pagination
+  is a reasonable follow-up if any kind outgrows that)
+- `resources/read` calls `mcp-server.describe` for the matched `{id}` and
+  returns its JSON as the resource content
+
+**Prompts** — one MCP prompt per cookbook recipe (`cookbook.list`, 45 as of
+this writing), registered once per session at `initialize` time. Each
+prompt's `get` renders the recipe's `problem` as the task, its ordered
+`process` steps as a suggested approach (pointing the caller at
+`cernion_search`/`describe`/`execute_read`/`prepare_process` to find and run
+the MCP-reachable equivalent of each internal step), and `expectedResult` as
+the goal. Advisory — a `cookbook.list` failure just means no prompts get
+registered for that session, not a failed `initialize`.
 
 ## Deviations from the original concept doc — read before relying on this
 
