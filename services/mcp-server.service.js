@@ -8,8 +8,11 @@
  * docs/mcp-server.md for the full design). This service is the thin
  * protocol-facing layer: each action orchestrates existing services
  * (`agent-manifest`, `personal-agent`, `evidence-router`, `copilot-process`,
- * `job-status`, `agent-receipts`, `blueprint-management`, `cookbook`,
- * `hitl`, `agent-sidecar`, `tenant-quota`) rather than reimplementing them.
+ * `job-status`, `agent-receipts`, `cookbook`, `hitl`, `agent-sidecar`,
+ * `tenant-quota`) plus `src/blueprint-registry.js` directly (a plain module,
+ * not a service — see the `blueprint` branches in `search`/`describe` for
+ * why it's used instead of `blueprint-management`) rather than
+ * reimplementing them.
  *
  * These actions are dispatched two ways:
  *  - by `src/mcp-transport.js`, which speaks the real MCP JSON-RPC protocol
@@ -33,6 +36,7 @@ const { buildRef, parseRef } = require('../src/mcp-uri');
 const { checkExecuteReadPolicy } = require('../src/mcp-execute-read-policy');
 const { assertFullAccessForWrite } = require('../src/mcp-rbac-gate');
 const { RESERVED_FAMILIES, resolveIntentId } = require('../src/mcp-reserved-families');
+const { loadBlueprint, listBlueprints } = require('../src/blueprint-registry');
 
 const SEARCH_KINDS = ['capability', 'operation', 'receipt', 'blueprint', 'recipe'];
 const DESCRIBE_KINDS = ['capability', 'operation', 'receipt', 'blueprint', 'recipe'];
@@ -185,17 +189,26 @@ module.exports = {
               }));
           },
           blueprint: async () => {
-            const res = await ctx.call('blueprint-management.list', {
-              includeDrafts: true,
-              includeActive: true,
-            });
-            return (res.data || [])
-              .filter((b) => textIncludes([b.blueprintId, b.id, b.title, b.description], query))
+            // src/blueprint-registry.js, not blueprint-management.list — it's
+            // the unified view cernion_ask's own L3 broker consults (static
+            // repo blueprints merged with governance-promoted ones via
+            // setRuntimeBlueprint), not just the draft/active subset tracked
+            // in blueprint-management's PouchDB. A real gap this closes:
+            // built-in blueprints (e.g. ev-charging-co2-optimization-v1) were
+            // invisible to cernion_search/describe before this, even though
+            // askCernionAgent could already route to them internally —
+            // confirmed against a real user report where an MCP client found
+            // the blueprint mentioned by name in an ask response but
+            // cernion_describe couldn't resolve it. Draft (not-yet-promoted)
+            // blueprints are intentionally out of scope here — those are
+            // governance-workflow-internal, not yet part of live routing.
+            return listBlueprints()
+              .filter((b) => textIncludes([b.id, b.title, b.description], query))
               .slice(0, perKindLimit)
               .map((b) => ({
-                ref: buildRef('blueprint', b.blueprintId || b.id),
+                ref: buildRef('blueprint', b.id),
                 kind: 'blueprint',
-                title: b.title || b.blueprintId || b.id,
+                title: b.title || b.id,
                 summary: b.description || '',
                 riskClass: 'write',
               }));
@@ -288,8 +301,21 @@ module.exports = {
         }
 
         if (kind === 'blueprint') {
-          const res = await ctx.call('blueprint-management.get', { id });
-          return { success: true, ref: buildRef(kind, id), kind, data: res.data };
+          // src/blueprint-registry.js — see the matching comment in `search`
+          // above for why (not blueprint-management.get, which only sees
+          // draft/promoted governance-workflow blueprints, not built-in ones).
+          const blueprint = loadBlueprint(id);
+          if (!blueprint) {
+            throw new MoleculerClientError(
+              `Blueprint not found: ${id}`,
+              404,
+              'MCP_BLUEPRINT_NOT_FOUND',
+              {
+                id,
+              }
+            );
+          }
+          return { success: true, ref: buildRef(kind, id), kind, data: blueprint };
         }
 
         // kind === 'recipe'
