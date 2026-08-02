@@ -321,6 +321,7 @@ function buildParamSchemaIndex(services) {
     'znp',
     'object-store',
     'cookbook',
+    'mcp-server',
   ]);
   for (const svc of services) {
     if (!svc.name || svc.name.startsWith('$') || skipServices.has(svc.name)) continue;

@@ -2,12 +2,12 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.99.1",
+    "version": "0.99.2",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com."
   },
   "servers": [
     {
-      "url": "https://api.cernion.de",
+      "url": "http://10.0.0.101:3900",
       "description": "Cernion API Server"
     }
   ],
@@ -50507,6 +50507,195 @@
         ]
       }
     },
+    "/api/mcp-server/ask": {
+      "post": {
+        "operationId": "mcp-server_ask",
+        "summary": "MCP meta-tool: cernion_ask",
+        "tags": [
+          "MCP Server"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mcp-server/search": {
+      "post": {
+        "operationId": "mcp-server_search",
+        "summary": "MCP meta-tool: cernion_search",
+        "tags": [
+          "MCP Server"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mcp-server/describe": {
+      "post": {
+        "operationId": "mcp-server_describe",
+        "summary": "MCP meta-tool: cernion_describe",
+        "tags": [
+          "MCP Server"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mcp-server/execute-read": {
+      "post": {
+        "operationId": "mcp-server_executeRead",
+        "summary": "MCP meta-tool: cernion_execute_read",
+        "tags": [
+          "MCP Server"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mcp-server/run-receipt": {
+      "post": {
+        "operationId": "mcp-server_runReceipt",
+        "summary": "MCP meta-tool: cernion_run_receipt",
+        "tags": [
+          "MCP Server"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mcp-server/prepare-process": {
+      "post": {
+        "operationId": "mcp-server_prepareProcess",
+        "summary": "MCP meta-tool: cernion_prepare_process",
+        "tags": [
+          "MCP Server"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mcp-server/execute-process": {
+      "post": {
+        "operationId": "mcp-server_executeProcess",
+        "summary": "MCP meta-tool: cernion_execute_process",
+        "tags": [
+          "MCP Server"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mcp-server/process-status": {
+      "post": {
+        "operationId": "mcp-server_processStatus",
+        "summary": "MCP meta-tool: cernion_process_status",
+        "tags": [
+          "MCP Server"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mcp-server/get-context": {
+      "post": {
+        "operationId": "mcp-server_getContext",
+        "summary": "MCP meta-tool: cernion_get_context",
+        "tags": [
+          "MCP Server"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/mscons-import/parse": {
       "post": {
         "operationId": "mscons-import_parse",
@@ -90895,5 +91084,5 @@
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.99.1"
+  "x-version": "0.99.2"
 }

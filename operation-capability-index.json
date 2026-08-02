@@ -1,21 +1,21 @@
 {
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
-  "packageVersion": "0.99.1",
-  "sourceOpenApiHash": "50a7a9fbeb6e11f604382fe5f2ad7077d202b528da3aee08702c2fcdc88fb123",
+  "packageVersion": "0.99.2",
+  "sourceOpenApiHash": "63d4b644e8900f65927b81c60f5d1391a7089f02367187d707580fdab570edf1",
   "coverage": {
-    "rawOperationCount": 1124,
-    "operationCount": 868,
-    "agentableCount": 866,
+    "rawOperationCount": 1133,
+    "operationCount": 877,
+    "agentableCount": 875,
     "nonAgentableCount": 2,
     "byOperationKind": {
       "data_read": 385,
       "admin": 8,
-      "object_store_write": 224,
+      "object_store_write": 229,
       "process_step": 20,
-      "process_start": 39,
+      "process_start": 42,
       "advisory_plan": 46,
-      "draft_write": 10,
+      "draft_write": 11,
       "external_effect": 4,
       "dashboard_read": 125,
       "internal": 7
@@ -61561,6 +61561,569 @@
           "grid operator",
           "VNB",
           "distribution grid"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "mcp-server_ask",
+      "method": "POST",
+      "path": "/api/mcp-server/ask",
+      "service": "mcp-server",
+      "action": "mcp-server.ask",
+      "summary": "MCP meta-tool: cernion_ask",
+      "tags": [
+        "MCP Server"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "mcp-server.ask"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "mcp-server:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "mcp-server"
+      ],
+      "sideEffects": [
+        "creates_or_modifies_stored_object"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "mcp",
+          "server",
+          "ask",
+          "meta",
+          "tool",
+          "cernion"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please mcp meta-tool: cernion_ask"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "mcp-server_describe",
+      "method": "POST",
+      "path": "/api/mcp-server/describe",
+      "service": "mcp-server",
+      "action": "mcp-server.describe",
+      "summary": "MCP meta-tool: cernion_describe",
+      "tags": [
+        "MCP Server"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "mcp-server.describe"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "mcp-server:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "mcp-server"
+      ],
+      "sideEffects": [
+        "creates_or_modifies_stored_object"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "mcp",
+          "server",
+          "describe",
+          "meta",
+          "tool",
+          "cernion"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please mcp meta-tool: cernion_describe"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "mcp-server_executeProcess",
+      "method": "POST",
+      "path": "/api/mcp-server/execute-process",
+      "service": "mcp-server",
+      "action": "mcp-server.executeProcess",
+      "summary": "MCP meta-tool: cernion_execute_process",
+      "tags": [
+        "MCP Server"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "process_start",
+      "consequenceLevel": "high",
+      "recommendedExecutionMode": "confirm",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "mcp-server.execute_process"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "mcp-server:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "mcp-server"
+      ],
+      "sideEffects": [
+        "starts_new_process_instance"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "No companion rollback operation detected in this service - verify reversibility with backend/tenant admin before invoking.",
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "mcp",
+          "server",
+          "execute",
+          "process",
+          "meta",
+          "tool",
+          "cernion"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please mcp meta-tool: cernion_execute_process"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "mcp-server_executeRead",
+      "method": "POST",
+      "path": "/api/mcp-server/execute-read",
+      "service": "mcp-server",
+      "action": "mcp-server.executeRead",
+      "summary": "MCP meta-tool: cernion_execute_read",
+      "tags": [
+        "MCP Server"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "process_start",
+      "consequenceLevel": "high",
+      "recommendedExecutionMode": "confirm",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "mcp-server.execute_read"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "mcp-server:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "mcp-server"
+      ],
+      "sideEffects": [
+        "starts_new_process_instance"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "No companion rollback operation detected in this service - verify reversibility with backend/tenant admin before invoking.",
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "mcp",
+          "server",
+          "execute",
+          "read",
+          "meta",
+          "tool",
+          "cernion"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please mcp meta-tool: cernion_execute_read"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "mcp-server_getContext",
+      "method": "POST",
+      "path": "/api/mcp-server/get-context",
+      "service": "mcp-server",
+      "action": "mcp-server.getContext",
+      "summary": "MCP meta-tool: cernion_get_context",
+      "tags": [
+        "MCP Server"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "mcp-server.get_context"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "mcp-server:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "mcp-server"
+      ],
+      "sideEffects": [
+        "creates_or_modifies_stored_object"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "mcp",
+          "server",
+          "context",
+          "meta",
+          "tool",
+          "cernion"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me mcp meta-tool: cernion_get_context"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "mcp-server_prepareProcess",
+      "method": "POST",
+      "path": "/api/mcp-server/prepare-process",
+      "service": "mcp-server",
+      "action": "mcp-server.prepareProcess",
+      "summary": "MCP meta-tool: cernion_prepare_process",
+      "tags": [
+        "MCP Server"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "draft_write",
+      "consequenceLevel": "low",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "mcp-server.prepare_process"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "mcp-server:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "mcp-server"
+      ],
+      "sideEffects": [
+        "creates_draft_or_intent"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Discard the created draft/intent - no persisted business state changes until a subsequent confirm/promote step.",
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "mcp",
+          "server",
+          "prepare",
+          "process",
+          "meta",
+          "tool",
+          "cernion"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please mcp meta-tool: cernion_prepare_process"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "mcp-server_processStatus",
+      "method": "POST",
+      "path": "/api/mcp-server/process-status",
+      "service": "mcp-server",
+      "action": "mcp-server.processStatus",
+      "summary": "MCP meta-tool: cernion_process_status",
+      "tags": [
+        "MCP Server"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "mcp-server.process_status"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "mcp-server:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "mcp-server"
+      ],
+      "sideEffects": [
+        "creates_or_modifies_stored_object"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "mcp",
+          "server",
+          "process",
+          "status",
+          "meta",
+          "tool",
+          "cernion"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please mcp meta-tool: cernion_process_status"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "mcp-server_runReceipt",
+      "method": "POST",
+      "path": "/api/mcp-server/run-receipt",
+      "service": "mcp-server",
+      "action": "mcp-server.runReceipt",
+      "summary": "MCP meta-tool: cernion_run_receipt",
+      "tags": [
+        "MCP Server"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "process_start",
+      "consequenceLevel": "high",
+      "recommendedExecutionMode": "confirm",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "mcp-server.run_receipt"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "mcp-server:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "mcp-server"
+      ],
+      "sideEffects": [
+        "starts_new_process_instance"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "No companion rollback operation detected in this service - verify reversibility with backend/tenant admin before invoking.",
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "mcp",
+          "server",
+          "run",
+          "receipt",
+          "meta",
+          "tool",
+          "cernion"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please mcp meta-tool: cernion_run_receipt"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "mcp-server_search",
+      "method": "POST",
+      "path": "/api/mcp-server/search",
+      "service": "mcp-server",
+      "action": "mcp-server.search",
+      "summary": "MCP meta-tool: cernion_search",
+      "tags": [
+        "MCP Server"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "mcp-server.search"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "mcp-server:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "mcp-server"
+      ],
+      "sideEffects": [
+        "creates_or_modifies_stored_object"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "mcp",
+          "server",
+          "search",
+          "meta",
+          "tool",
+          "cernion"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me mcp meta-tool: cernion_search"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
         ],
         "curated": false
       },

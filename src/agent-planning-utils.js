@@ -38,6 +38,7 @@ function buildServiceCatalogue(services) {
     'object-store',
     'cookbook',
     'capability-broker',
+    'mcp-server',
   ]);
 
   for (const svc of services) {
