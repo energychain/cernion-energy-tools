@@ -1,4 +1,4 @@
-# MCP Server (v0.99.2, extended v0.99.3, v0.99.4)
+# MCP Server (v0.99.2, extended v0.99.3, v0.99.4, v0.99.5)
 
 A real MCP (Model Context Protocol) server — JSON-RPC 2.0 over the
 streamable-HTTP transport — sitting in front of this platform's REST API.
@@ -38,8 +38,8 @@ full round-trip example using `@modelcontextprotocol/sdk`'s
 | # | Tool | Maps to | Read-only? |
 |---|------|---------|------------|
 | 1 | `cernion_ask` | `personal-agent.askCernionAgent` / `.answerDossier` | No — POST, gated (see Auth) |
-| 2 | `cernion_search` | `agent-manifest.list{Capabilities,Operations}`, `agent-receipts.list`, `blueprint-management.list`, `cookbook.search` | Yes |
-| 3 | `cernion_describe` | `agent-manifest.getCapability`, `agent-receipts.get`+`explainStored`, `blueprint-management.get`, `cookbook.get` | Yes |
+| 2 | `cernion_search` | `agent-manifest.list{Capabilities,Operations}`, `agent-receipts.list`, `src/blueprint-registry.js` (v0.99.5, see below), `cookbook.search` | Yes |
+| 3 | `cernion_describe` | `agent-manifest.getCapability`, `agent-receipts.get`+`explainStored`, `src/blueprint-registry.js` (v0.99.5, see below), `cookbook.get` | Yes |
 | 4 | `cernion_execute_read` | Loopback HTTP call into `/api/...` (see below) | Yes, allowlisted |
 | 5 | `cernion_run_receipt` | `agent-receipts.test` (plan); `copilot-process.prepareProcessIntent` (run) | plan: yes; run: no |
 | 6 | `cernion_prepare_process` | `copilot-process.prepareProcessIntent`, or one of 4 dedicated `prepare*` actions for reserved families (v0.99.3, see below) | No |
@@ -133,8 +133,11 @@ the hard way:
    contract. Left out rather than forced.
 
 5. **`cernion_execute_read` is allowlist-based, not universal**, even
-   though the concept called for covering "all ~1,100 endpoints." See
-   "How execute_read actually works" below for why, and what's covered.
+   though the concept called for covering "all ~1,100 endpoints." As of
+   v0.99.5 the allowlist is index-driven (~556 operations classified
+   `data_read`/`dashboard_read`/`advisory_plan`) rather than a ~10-entry
+   hand-curated list, but it's still a classification-based gate, not
+   "everything goes." See "How execute_read actually works" below.
 
 ## How `execute_read` actually works
 
@@ -152,17 +155,80 @@ call — no duplicated security logic, and it automatically covers any
 future REST endpoint without code changes here.
 
 A request is allowed (`src/mcp-execute-read-policy.js`) if:
-- the method is GET (mirrors `src/gateway-request-classifiers.js`'s
-  `isReadMethod`), or
-- it's one of a short list of POST endpoints that are read/dry-run despite
-  the verb (`evidence-router/route`, `knowledge-rag/{query,semantic,
-  federated-search}`, `agent-receipts/{select,evaluate,test,explain}`,
-  `cookbook/{search,validate}`, `copilot/{ask-cernion-agent,answer-dossier}`)
+- the path doesn't match the admin/secret denylist below (checked first,
+  always wins — see below), **and**
+- `operation-capability-index.json` classifies it as read-safe (v0.99.5,
+  see "The allowlist redesign" below), **or**, if it isn't in that index,
+  the method is GET (mirrors `src/gateway-request-classifiers.js`'s
+  `isReadMethod`) or it's one of a short fallback list of POST endpoints
+  that are read/dry-run despite the verb (`evidence-router/route`,
+  `knowledge-rag/{query,semantic,federated-search}`,
+  `agent-receipts/{select,evaluate,test,explain}`, `cookbook/{search,
+  validate}`, `copilot/{ask-cernion-agent,answer-dossier}`)
 
-and is denied regardless of method if the path matches an admin/secret
-surface (`backup`, `restore`, `system/admin`, `domain-routes/reload`,
-`token-manager`, `auth`, `tenant-quotas`) — the concept doc's "Nicht
-exponieren" list.
+and is denied regardless of method or classification if the path matches
+an admin/secret surface (`backup`, `restore`, `system/admin`,
+`domain-routes/reload`, `tokens`, `auth`, `tenant-quotas`) — the concept
+doc's "Nicht exponieren" list, plus token/auth surfaces added defensively.
+
+### The allowlist redesign (v0.99.5) — and two real bugs it fixed
+
+Real-world testing (an MCP client via claude.ai asking a CO₂-intensity
+question) hit `energy-market.co2Intensity` refused by `execute_read` —
+it's POST (takes a body), so the original hand-curated ~10-entry
+`POST_ALLOWLIST_PATH_PATTERNS` list didn't cover it, even though it's a
+genuine, side-effect-free read. That list was always going to under-cover:
+every read-shaped POST across the platform (energy-market, entsoe,
+gas-storage, german-grid, oep, osm-geo, residual-load, tabular, and more)
+had the identical gap.
+
+The fix: `execute_read` now consults `operation-capability-index.json` —
+the same deterministic classification (`src/operation-capability-
+classifier.js`) already computed for all ~880 operations and relied on
+elsewhere in the platform (e.g. the ChatGPT sidecar's own read-only
+fallback) — as the primary source of truth, rather than re-deriving it by
+hand. `data_read`/`dashboard_read` operations are read-safe when
+`recommendedExecutionMode: 'direct'` (empirically always true for those
+two kinds, no exceptions found across the index). `advisory_plan`
+operations need `recommendedExecutionMode: 'explain_only'` specifically —
+**not** uniformly `'direct'` like the other two kinds — because at least
+one operation (`znp_deleteProject`, a real `DELETE`) is misclassified as
+`advisory_plan` in the index but correctly flagged `recommendedExecutionMode:
+'confirm'`; checking the mode per-kind lets genuinely read-only
+`advisory_plan` endpoints (like `evidence-router.route`) through while
+still catching that one. GET-by-convention and the original small POST
+allowlist remain as a fallback for anything not (yet) in the index.
+
+Investigating the CO₂ report also surfaced a second, unrelated bug: the
+denylist targeted `/token-manager/*`, but the service is actually mounted
+at `/tokens` (see `services/token-manager.service.js`) — so `GET
+/api/tokens` (token metadata — masked values, but still names, tenant/user
+IDs, scopes, active status, potentially across more than the caller's own
+tenant) was never actually blocked, despite that clearly being the intent.
+Fixed alongside the allowlist redesign; caught by cross-checking this file
+against the operation index, not by the original report.
+
+## Blueprint discoverability (v0.99.5)
+
+From the same real-world report above: `cernion_ask`'s response mentioned
+a blueprint (`ev-charging-co2-optimization-v1`) by name — its own internal
+routing (`src/l3-broker.js`) already knew about it — but `cernion_describe`
+couldn't resolve it. Root cause: `search`/`describe`'s `blueprint` kind
+queried `blueprint-management` (the PouchDB-backed governance-lifecycle
+system: draft → validate → test → promote → rollback), which only tracks
+blueprints someone has actually drafted/promoted through that workflow. It
+never saw **built-in** blueprints shipped as static files in
+`src/blueprints/*.json` — which is most of them, including this one.
+
+`src/blueprint-registry.js` is the actual unified view — the same one
+`cernion_ask`'s L3 broker consults — merging the static repo files with an
+in-memory overlay that `blueprint-management.service.js` populates via
+`setRuntimeBlueprint()` on promote/rollback/startup. `search`/`describe`
+now call `listBlueprints()`/`loadBlueprint()` from that module directly
+(a plain function call, not a service — no `ctx.call` needed) instead of
+`blueprint-management.list`/`.get`. Scope note: not-yet-promoted **drafts**
+are intentionally excluded — those are governance-workflow-internal, not
+part of what `cernion_ask` can actually route to yet.
 
 ## Reserved operation families (v0.99.3)
 

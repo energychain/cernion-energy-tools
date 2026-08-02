@@ -107,31 +107,10 @@ describe('MCP transport (real streamable-HTTP round trip)', () => {
       },
     });
 
-    broker.createService({
-      name: 'blueprint-management',
-      actions: {
-        list: {
-          handler() {
-            return {
-              success: true,
-              data: [
-                {
-                  blueprintId: 'ev-charging-co2-optimization-v1',
-                  title: 'EV CO2',
-                  description: 'charging',
-                },
-              ],
-            };
-          },
-        },
-        get: {
-          params: { id: { type: 'string' } },
-          handler(ctx) {
-            return { success: true, data: { blueprintId: ctx.params.id, title: 'EV CO2' } };
-          },
-        },
-      },
-    });
+    // No blueprint-management stub: the `blueprint` kind reads
+    // src/blueprint-registry.js directly (real src/blueprints/*.json data,
+    // including the real 'ev-charging-co2-optimization-v1' blueprint used
+    // below), not blueprint-management.
 
     broker.createService({
       name: 'cookbook',

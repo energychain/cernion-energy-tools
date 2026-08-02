@@ -158,31 +158,12 @@ describe('MCP Server meta-tools', () => {
       },
     });
 
-    broker.createService({
-      name: 'blueprint-management',
-      actions: {
-        list: {
-          handler() {
-            return {
-              success: true,
-              data: [
-                {
-                  blueprintId: 'ev-charging-co2-optimization-v1',
-                  title: 'EV CO2',
-                  description: 'charging',
-                },
-              ],
-            };
-          },
-        },
-        get: {
-          params: { id: { type: 'string' } },
-          handler(ctx) {
-            return { success: true, data: { blueprintId: ctx.params.id, title: 'EV CO2' } };
-          },
-        },
-      },
-    });
+    // No blueprint-management stub: mcp-server.service.js's `blueprint`
+    // kind reads src/blueprint-registry.js directly (a plain module reading
+    // the real src/blueprints/*.json files), not blueprint-management —
+    // see the comment in mcp-server.service.js's search/describe for why.
+    // The 'ev-charging-co2-optimization-v1' blueprint used in tests below
+    // is real, shipped repo data, not a stub.
 
     broker.createService({
       name: 'cookbook',
@@ -449,6 +430,28 @@ describe('MCP Server meta-tools', () => {
   test('describe an operation includes execute-read policy', async () => {
     const res = await broker.call('mcp-server.describe', { kind: 'operation', id: 'getPrices' });
     expect(res.data.executeReadPolicy.allowed).toBe(true);
+  });
+
+  // Real-world regression test: an MCP client asked a CO2-intensity
+  // question, cernion_ask's response mentioned this blueprint by name (its
+  // own L3 broker routing already knew about it), but cernion_describe
+  // couldn't resolve it because it only queried blueprint-management (the
+  // governance-lifecycle subset), not src/blueprint-registry.js (the
+  // unified view including built-in repo blueprints like this one).
+  test('describe resolves a real built-in blueprint via blueprint-registry', async () => {
+    const res = await broker.call('mcp-server.describe', {
+      kind: 'blueprint',
+      id: 'ev-charging-co2-optimization-v1',
+    });
+    expect(res.success).toBe(true);
+    expect(res.data.id).toBe('ev-charging-co2-optimization-v1');
+    expect(res.data.meta.title).toContain('CO2');
+  });
+
+  test('describe a nonexistent blueprint id returns a clear 404', async () => {
+    await expect(
+      broker.call('mcp-server.describe', { kind: 'blueprint', id: 'does-not-exist-v1' })
+    ).rejects.toMatchObject({ type: 'MCP_BLUEPRINT_NOT_FOUND' });
   });
 
   test('executeRead refuses a non-allowlisted write operation', async () => {

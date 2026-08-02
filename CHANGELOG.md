@@ -5,6 +5,17 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.99.5] — 2026-08-02
+
+### Fixed
+- **`cernion_execute_read`'s allowlist was structurally too narrow, refusing genuinely read-only operations** — found via real-world testing (an MCP client via claude.ai asked a CO₂-intensity question; `energy-market.co2Intensity` was refused because it's POST and the ~10-entry hand-curated allowlist didn't cover it, even though it's a side-effect-free query). Every read-shaped POST across the platform (energy-market, entsoe, gas-storage, german-grid, oep, osm-geo, residual-load, tabular, and more) had the same gap. `execute_read` now consults `operation-capability-index.json` — the same deterministic classification (`src/operation-capability-classifier.js`) already computed for all ~880 operations and relied on elsewhere in the platform — as its primary source of truth (~556 operations now correctly recognized as read-safe, vs. ~10 before), with the original GET-by-convention + small POST allowlist kept only as a fallback for anything not yet in the index. See `docs/mcp-server.md`'s "The allowlist redesign" section for the exact per-`operationKind` rule, including a real misclassification (`znp_deleteProject`, a `DELETE`, incorrectly labeled `advisory_plan` in the index) that the redesign deliberately still catches via a stricter per-kind execution-mode check.
+- **A real, independent bug found while investigating the report above**: the execute_read denylist targeted `/token-manager/*`, but `services/token-manager.service.js` is actually mounted at `/tokens` — so `GET /api/tokens` (token metadata: masked values, but names/tenant-user IDs/scopes/active status, potentially beyond the caller's own tenant) was never actually blocked despite that clearly being the intent. Fixed alongside the allowlist redesign.
+- **`cernion_search`/`cernion_describe`'s `blueprint` kind couldn't resolve built-in blueprints** — also found via the CO₂ report: `cernion_ask`'s response mentioned a blueprint (`ev-charging-co2-optimization-v1`) by name (its own internal L3-broker routing already knew about it), but `cernion_describe` reported it as unresolvable. Root cause: `search`/`describe` queried `blueprint-management` (the PouchDB-backed draft/promote governance workflow) instead of `src/blueprint-registry.js` — the actual unified view `cernion_ask`'s own routing consults, merging static repo blueprints (`src/blueprints/*.json`, most of the 20 shipped blueprints) with governance-promoted ones. Switched `search`/`describe` to call `blueprint-registry.js` directly (a plain module, no service call needed).
+
+### Testing
+- `tests/mcp-execute-read-policy.test.js` (new, 16 tests) — the CO₂-intensity fix, the token-manager path-prefix fix, the `znp_deleteProject` misclassification edge case, denylist coverage, and a mocked-missing-index fallback scenario.
+- `tests/mcp-server.service.test.js` extended with real (not stubbed) blueprint-registry data, including a 404 case for a nonexistent blueprint id.
+
 ## [0.99.4] — 2026-08-02
 
 ### Added
