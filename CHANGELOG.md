@@ -5,6 +5,22 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.99.4] — 2026-08-02
+
+### Added
+- **OAuth 2.1 (authorization code + mandatory PKCE) authorization server fronting `/api/mcp`**, for MCP clients that can only authenticate via OAuth rather than a raw Bearer token (e.g. claude.ai's remote connector UI). Does not introduce a second identity system: the issued `access_token` **is** the same `ck_...`/`csess_...` token a Bearer-auth caller would use directly — the `/oauth/authorize` consent step is "paste an existing CET API token to authorize this client," verified via the same `token-manager.verify`/`auth.verify` calls the REST gateway already uses. `src/mcp-auth.js` needed zero changes as a result. See `docs/oauth.md` for the full design, endpoint table, and known v1 limitations (in-memory-only authorization codes/dynamic clients, no per-grant revocation, no refresh tokens).
+  - `src/oauth-server.js` — the protocol/HTTP layer: RFC 9728 protected-resource metadata, RFC 8414 authorization-server metadata, RFC 7591 Dynamic Client Registration (auto-accepted), the consent form, and the authorization-code/PKCE token exchange. Registered as raw handlers on the root `/` route in `services/api.service.js` (same pattern as `/metrics` and the `/api/mcp` MCP transport handlers).
+  - `src/oauth-store.js` — in-memory authorization-code and dynamic-client state, mirroring `copilot-process.service.js`'s `ProcessIntentStore` pattern (short-lived records, single-process).
+  - `MCP_OAUTH_CLIENT_ID`/`MCP_OAUTH_CLIENT_SECRET` env vars pre-register a static client for connectors (like claude.ai's) that expect manually-entered Client ID/Secret fields rather than Dynamic Client Registration.
+  - `GET /oauth/client-info` returns that static client (404 if unset) so a page outside this repo (cernion.de's token-issuance page) can display it without duplicating the env vars as a second copy elsewhere.
+
+- **`resources/list`/`resources/read` and `prompts/list`/`prompts/get`** — the MCP server previously only implemented the `tools` capability; these two were returning `Method not found`. Both are backed by existing actions, adding no new business logic: resources expose one `ResourceTemplate` per browsable kind (`cernion://{kind}/{id}` for `capability`/`receipt`/`blueprint`/`recipe`) via `mcp-server.search`/`.describe`; prompts expose one MCP prompt per cookbook recipe (`cookbook.list`), rendering each recipe's problem statement, ordered steps, and expected result as a task briefing. See `docs/mcp-server.md`'s "Resources and prompts" section.
+- **Self-healing guard for `mcp-server` actions** (`src/mcp-transport.js`): a production instance was observed answering `initialize`/`tools/list` correctly (served from this file's static tool definitions) while every actual tool call failed with `SERVICE_NOT_FOUND` — the `mcp-server` service itself hadn't been loaded into that process's broker, despite shipping in the same deploy. Each session now checks the broker's action registry at connect time and lazily loads `services/mcp-server.service.js` if it's missing, turning a silent, confusing failure into either a working call or a specific error if the service is registered but genuinely broken.
+
+### Testing
+- `tests/oauth-server.test.js` (14 tests) — a real HTTP server exercising the full authorization-code + PKCE flow end to end (metadata discovery, dynamic registration, consent rejection/acceptance, single-use code consumption, PKCE verifier mismatch, `csess_` session tokens, `/oauth/client-info` with and without a static client configured), including a direct check that the resulting `access_token` authenticates successfully through the real `resolveMcpAuth` (`src/mcp-auth.js`) — proving the OAuth and Bearer paths converge on the same auth resolution.
+- `tests/mcp-transport.test.js` extended with real end-to-end coverage of `resources/list`, `resources/read`, `prompts/list`, `prompts/get`, and a dedicated self-healing scenario (a broker that never registered `mcp-server` at boot, proving a real tool call still succeeds instead of `SERVICE_NOT_FOUND`).
+
 ## [0.99.3] — 2026-08-02
 
 ### Added

@@ -24,6 +24,7 @@ const {
   isOperationsRunbookInvocation,
 } = require('../src/gateway-request-classifiers');
 const { createMcpHttpHandlers } = require('../src/mcp-transport');
+const { createOAuthHttpHandlers } = require('../src/oauth-server');
 
 const UPLOAD_DIR = path.join(__dirname, '..', 'uploads');
 const CONTENT_TYPE_HEADER = 'Content-Type';
@@ -1421,6 +1422,32 @@ module.exports = {
                 })
               );
             }
+          },
+
+          // OAuth 2.1 authorization server fronting /api/mcp (v0.99.4) — see
+          // src/oauth-server.js and docs/oauth.md. Deliberately unauthenticated
+          // (that's the point: these endpoints establish auth, they don't
+          // require it) and at root, matching MCP's OAuth discovery convention.
+          'GET /.well-known/oauth-protected-resource'(req, res) {
+            return this.oauthServer.wellKnownProtectedResource(req, res);
+          },
+          'GET /.well-known/oauth-authorization-server'(req, res) {
+            return this.oauthServer.wellKnownAuthorizationServer(req, res);
+          },
+          'GET /oauth/client-info'(req, res) {
+            return this.oauthServer.clientInfo(req, res);
+          },
+          'POST /oauth/register'(req, res) {
+            return this.oauthServer.register(req, res);
+          },
+          'GET /oauth/authorize'(req, res) {
+            return this.oauthServer.authorizeGet(req, res);
+          },
+          'POST /oauth/authorize'(req, res) {
+            return this.oauthServer.authorizePost(req, res);
+          },
+          'POST /oauth/token'(req, res) {
+            return this.oauthServer.token(req, res);
           },
         },
       },
@@ -3485,6 +3512,7 @@ module.exports = {
 
   created() {
     this.mcpTransport = createMcpHttpHandlers(this.broker);
+    this.oauthServer = createOAuthHttpHandlers(this.broker);
     this.logger.info('API Gateway created');
   },
 
