@@ -5,6 +5,21 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.99.2] — 2026-08-02
+
+### Added
+- **Real MCP server** (`POST/GET/DELETE /api/mcp`, JSON-RPC 2.0 over the streamable-HTTP transport, `@modelcontextprotocol/sdk`'s server-side `McpServer`/`StreamableHTTPServerTransport`) exposing 9 layer-based meta-tools (`cernion_ask`, `cernion_search`, `cernion_describe`, `cernion_execute_read`, `cernion_run_receipt`, `cernion_prepare_process`, `cernion_execute_process`, `cernion_process_status`, `cernion_get_context`) instead of a 1:1 mapping over the platform's ~1,100 REST operations. Authenticates with the same Bearer tokens as the REST API (`ck_...` API tokens, `csess_...` session tokens, legacy passthrough). See `docs/mcp-server.md` for the full design, including explicit, evidence-based deviations from the original design concept found while wiring it against the real codebase (no `confirmation_token` field exists anywhere in `copilot-process`; generic process intents have no wired auto-execution by design — only 4 reserved operation families do; agent receipts have no direct execution path, only dry-run planning).
+- `services/mcp-server.service.js` — the 9 meta-tool actions (also reachable individually over plain REST at `POST /api/mcp-server/<action>` for debugging), each orchestrating existing services (`agent-manifest`, `personal-agent`, `agent-receipts`, `blueprint-management`, `cookbook`, `copilot-process`, `job-status`, `hitl`, `agent-sidecar`, `tenant-quota`) rather than reimplementing them.
+- `src/mcp-transport.js` — the MCP wire-protocol layer: one `StreamableHTTPServerTransport` + one dedicated `McpServer` per session, tool callbacks closed over that session's resolved auth.
+- `src/mcp-auth.js` / `src/mcp-rbac-gate.js` — because `/api/mcp` is a raw (non-aliased) route on `services/api.service.js`'s `/api` gateway, it bypasses `onBeforeCall`'s bearer-token resolution and RBAC enforcement entirely. These two modules replicate the relevant parts of that logic (ck_/csess_/legacy token resolution; the "any non-GET request requires the `full-access` role" rule) so a `read-only`-scoped token can't reach through MCP what it can't reach through REST — a real gap that would otherwise exist, not a hypothetical one.
+- `src/mcp-execute-read-policy.js` — server-side allowlist for `cernion_execute_read`: GET is always allowed (mirrors `src/gateway-request-classifiers.js`), a short list of read/dry-run POST endpoints are allowed despite the verb, and admin/secret surfaces (backup/restore, system admin, token-manager, auth, tenant-quotas) are denied regardless of method. `execute_read` itself reaches the underlying operation via a loopback HTTP call into `/api${path}` with the caller's real bearer token forwarded, rather than re-implementing moleculer-web's alias→action routing table — reuses the real gateway's auth/RBAC/tenant-scoping/rate-limiting instead of risking drift from a second implementation of it.
+- `src/mcp-uri.js` — typed `cernion://{kind}/{id}` refs (`capability`, `operation`, `receipt`, `blueprint`, `recipe`, `intent`, `job`, `hitl`) shared by all 9 tools so `search`/`describe` results can be passed directly into the read/write/status tools.
+- `'MCP Server'` OpenAPI tag registered in `src/llm-manifest-taxonomy.js` (→ `platform` domain) so the new operations don't fall into `llm.txt`'s unmapped-taxonomy-gap check.
+
+### Testing
+- `tests/mcp-server.service.test.js` (22 tests) — the 9 actions against stubbed dependency services (matches this repo's existing `ServiceBroker`-with-stub-services convention), including the RBAC gate's allow/deny paths.
+- `tests/mcp-transport.test.js` (6 tests) — a genuine end-to-end round trip: a real Node HTTP server running the actual transport handlers, a real `@modelcontextprotocol/sdk` client connecting over `StreamableHTTPClientTransport`, `tools/list` returning exactly the 9 documented tools, and both the legacy-token and `ck_` full-access/read-only auth paths exercised for real.
+
 ## [0.99.1] — 2026-08-02
 
 ### Added

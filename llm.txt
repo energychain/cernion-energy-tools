@@ -2,8 +2,8 @@
 
 ## Metadata
 - project: cernion-energy-tools
-- version: 0.99.1
-- changelog_latest_release: 0.99.1
+- version: 0.99.2
+- changelog_latest_release: 0.99.2
 
 ## Purpose
 This file is a navigation manifest for LLM/agent consumers. It lists cluster
@@ -182,7 +182,7 @@ recipes:
   transformation-financing-scenario-view "Management needs one dossier-safe view over cashflow, gas…"
 resolve: GET /api/_agent/operations?domain=governance
 
-### platform (13 capabilities · 9 recipes · 418 operations)
+### platform (13 capabilities · 9 recipes · 427 operations)
 capabilities: datasource_registry_classification_governance, dr_readiness_evidence_gate, energy_sidecar_route_registry, evidence_grounding_confidence_audit, evu_api_migration_diagnostics, file_ingest_monitor, hitl_role_based_evidence_request, live_update_stream_contract_status, receipt_grounded_presentation_contract, stadtwerk_mauer_e2e_process_demo, stadtwerk_mauer_external_interface_stubs, stadtwerk_mauer_mastr_data_overlay, stadtwerk_mauer_sandbox_runtime
 recipes:
   agentic-production-feedback-prompt "An engineering agent should receive a consistent, redacted…"
@@ -246,17 +246,17 @@ Agents resolving capabilities/recipes/operations do not need to read past this p
 - `tests/query.service.test.js`: `query.searchCopilot` body-based wrapper returns expected `query`, `domain`, and `results` shape.
 
 ## Source File Hashes
-- CHANGELOG.md: b4f0014ea45bff001e30810adda75dd8364f25582daf236c2b994f153f87e4ab
+- CHANGELOG.md: e83be3d58b950f8955dd2dc6263c3c369a28b453d8c1e19e0bef28347800be1f
 - README.md: e5c8aa36d7cd7195c83e00138361bd22d8cbe1860ff829bb026687d462d860ff
 - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
 - src/cookbook-recipes.js: 9e48573ca263ef129bc3944a83b013cff25157e25afc703be0ada62d5af8163d
 - src/capability-catalog.js: f62636a7c749d6a2502c8d1199c03d2f0d04d7be6d4ec9170b7cb81f79c6f2a4
-- openapi-export.json: 50a7a9fbeb6e11f604382fe5f2ad7077d202b528da3aee08702c2fcdc88fb123
+- openapi-export.json: 170d80bbe316fbd4f2a87c3471ff9b9d78169649644f7414baf7aebc0727e86d
 
 ## OpenAPI Surface (full contract, not embedded)
-- path_count: 1012
-- operation_count: 1124
+- path_count: 1021
+- operation_count: 1133
 - full_spec: openapi-export.json (repo root) or GET /api/openapi.json
 
 ## Integrity
-- llm_txt_sha256: 6b1f10c1fa53013250d79e1abf50972cf4d17e85678969fea2f5bee09f5d3e5b
+- llm_txt_sha256: d49e3ef42ad8277400b8b34b7998b9fd0899a93bd2eedfbcda2b053e4db71f13

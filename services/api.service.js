@@ -23,6 +23,7 @@ const {
   isReadOnlySidecarInvocation,
   isOperationsRunbookInvocation,
 } = require('../src/gateway-request-classifiers');
+const { createMcpHttpHandlers } = require('../src/mcp-transport');
 
 const UPLOAD_DIR = path.join(__dirname, '..', 'uploads');
 const CONTENT_TYPE_HEADER = 'Content-Type';
@@ -973,7 +974,7 @@ module.exports = {
         title: 'Cernion Energy Tools API',
         version: packageVersion,
         description:
-          'MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.',
+          'MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.\n\nFor the public instance at https://api.cernion.de/, create your token at https://cernion.de/cet-token/.',
       },
       tags: [
         { name: 'Energy', description: 'Energy market operations' },
@@ -2545,6 +2546,20 @@ module.exports = {
               );
             }
           },
+
+          // MCP server (v0.99.2): real MCP JSON-RPC over streamable-HTTP.
+          // Raw handlers (like the datasource upload endpoints above) so
+          // the MCP SDK's transport owns the request/response lifecycle —
+          // see src/mcp-transport.js for session/auth handling.
+          'POST /mcp'(req, res) {
+            return this.mcpTransport.post(req, res);
+          },
+          'GET /mcp'(req, res) {
+            return this.mcpTransport.get(req, res);
+          },
+          'DELETE /mcp'(req, res) {
+            return this.mcpTransport.delete(req, res);
+          },
         },
 
         callingOptions: {},
@@ -3469,6 +3484,7 @@ module.exports = {
   },
 
   created() {
+    this.mcpTransport = createMcpHttpHandlers(this.broker);
     this.logger.info('API Gateway created');
   },
 

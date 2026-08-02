@@ -2,8 +2,8 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.64.0",
-    "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com."
+    "version": "0.99.2",
+    "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.\n\nFor the public instance at https://api.cernion.de/, create your token at https://cernion.de/cet-token/."
   },
   "servers": [
     {
@@ -71,6 +71,10 @@
     {
       "name": "Personal Agent",
       "description": "Interactive personal chat orchestration (v0.52). Builds deterministic L0-L4 context stacks with strict token budgeting. Layer 4 is transient and never persisted."
+    },
+    {
+      "name": "OpenAI Compatible",
+      "description": "Inbound OpenAI-compatible facade for authenticated Cernion advisory completions."
     },
     {
       "name": "Actor Personas",
@@ -1421,43 +1425,6 @@
         "x-openai-isConsequential": false
       }
     },
-    "/api/copilot-process/intents/{intentId}": {
-      "get": {
-        "operationId": "getProcessIntent",
-        "summary": "Get a process execution intent by ID (status, payload, audit trail)",
-        "tags": [
-          "Copilot Process"
-        ],
-        "responses": {
-          "200": {
-            "description": "Process execution intent",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Intent not found"
-          }
-        },
-        "description": "Returns intent status, payload summary, and audit trail. Read-only.",
-        "parameters": [
-          {
-            "name": "intentId",
-            "in": "path",
-            "required": true,
-            "description": "Intent UUID",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "x-openai-isConsequential": false
-      }
-    },
     "/api/copilot-process/intents": {
       "get": {
         "operationId": "listProcessIntents",
@@ -1528,6 +1495,43 @@
               "default": 20,
               "minimum": 1,
               "maximum": 100
+            }
+          }
+        ],
+        "x-openai-isConsequential": false
+      }
+    },
+    "/api/copilot-process/intents/{intentId}": {
+      "get": {
+        "operationId": "getProcessIntent",
+        "summary": "Get a process execution intent by ID (status, payload, audit trail)",
+        "tags": [
+          "Copilot Process"
+        ],
+        "responses": {
+          "200": {
+            "description": "Process execution intent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Intent not found"
+          }
+        },
+        "description": "Returns intent status, payload summary, and audit trail. Read-only.",
+        "parameters": [
+          {
+            "name": "intentId",
+            "in": "path",
+            "required": true,
+            "description": "Intent UUID",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -2266,6 +2270,111 @@
                     "routing": {
                       "type": "object",
                       "additionalProperties": true
+                    },
+                    "resolved": {
+                      "type": "object",
+                      "description": "Blueprint/Capability resolution outcome (energychain/cernion-energy-tools#271). kind is \"blueprint\" when a read-only execution plan was compiled, \"none\" otherwise.",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "blueprint",
+                            "none"
+                          ]
+                        },
+                        "id": {
+                          "type": "string"
+                        },
+                        "version": {
+                          "type": "string"
+                        },
+                        "source": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "canonicalInputs": {
+                      "type": "object",
+                      "additionalProperties": true,
+                      "description": "Normalized inputs used to compile the execution plan, if any."
+                    },
+                    "recommendedEndpoints": {
+                      "type": "array",
+                      "description": "Read-only endpoint recommendations (energychain/cernion-energy-tools#271 architecture follow-up). Cernion recommends which approved read-only endpoint(s) are the evidence surface for this request and what each result set means fachlich — it does not execute them or synthesize a final answer; that is the responsibility of the consuming agent/orchestrator. May contain more than one complementary endpoint.",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "method": {
+                            "type": "string",
+                            "example": "GET"
+                          },
+                          "path": {
+                            "type": "string",
+                            "example": "/api/assets/solar"
+                          },
+                          "query": {
+                            "type": "object",
+                            "additionalProperties": true
+                          },
+                          "resultSemantics": {
+                            "type": "object",
+                            "description": "Fachliche Bedeutung des Result-Sets dieses Endpoints.",
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "example": "asset_list"
+                              },
+                              "description": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "execution": {
+                      "type": "object",
+                      "nullable": true,
+                      "description": "Alias of recommendedEndpoints[0] for backward compatibility with #271 consumers that only read a single plan, or null when none is available.",
+                      "properties": {
+                        "mode": {
+                          "type": "string",
+                          "example": "read_only_rest_plan"
+                        },
+                        "method": {
+                          "type": "string",
+                          "example": "GET"
+                        },
+                        "path": {
+                          "type": "string",
+                          "example": "/api/assets/solar"
+                        },
+                        "query": {
+                          "type": "object",
+                          "additionalProperties": true
+                        }
+                      }
+                    },
+                    "policy": {
+                      "type": "object",
+                      "properties": {
+                        "readOnly": {
+                          "type": "boolean"
+                        },
+                        "sideEffects": {
+                          "type": "string"
+                        },
+                        "tenantScoped": {
+                          "type": "boolean"
+                        },
+                        "externalSideEffects": {
+                          "type": "boolean"
+                        }
+                      }
+                    },
+                    "noPlanReason": {
+                      "type": "string",
+                      "description": "Present when resolved.kind is \"none\" — explains why no executable read-only plan was available."
                     }
                   }
                 }
@@ -2300,6 +2409,19 @@
                     "additionalProperties": true,
                     "description": "Optional tenant, user, object, process or document context."
                   },
+                  "inputs": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "description": "Optional canonical structured input values (e.g. assetType, location, minCapacity, maxCapacity, commissioningYear, limit) for Blueprint read-only REST-plan compilation. Separate from context.",
+                    "example": {
+                      "assetType": "solar",
+                      "location": "69168",
+                      "minCapacity": 10,
+                      "maxCapacity": 13,
+                      "commissioningYear": 2025,
+                      "limit": 100
+                    }
+                  },
                   "domain": {
                     "type": "string",
                     "enum": [
@@ -2332,6 +2454,11 @@
                     "maximum": 12,
                     "default": 5,
                     "description": "Maximum number of evidence items returned."
+                  },
+                  "includeFederatedKnowledge": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Opt-in only (default false, does not change the default evidence sources/output shape). When true, additionally queries knowledge-rag.federatedSearch (Marktkommunikation/regulatory collections) and includes it as an advisory evidenceBySource.federatedKnowledge entry."
                   }
                 }
               }
@@ -2343,7 +2470,7 @@
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.64.0",
+  "x-version": "0.99.2",
   "x-copilot-subset": true,
   "x-copilot-operations-version": 26
 }
