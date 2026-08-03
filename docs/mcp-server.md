@@ -1,4 +1,4 @@
-# MCP Server (v0.99.2, extended v0.99.3, v0.99.4, v0.99.5)
+# MCP Server (v0.99.2, extended v0.99.3, v0.99.4, v0.99.5, v0.99.6)
 
 A real MCP (Model Context Protocol) server — JSON-RPC 2.0 over the
 streamable-HTTP transport — sitting in front of this platform's REST API.
@@ -229,6 +229,32 @@ now call `listBlueprints()`/`loadBlueprint()` from that module directly
 `blueprint-management.list`/`.get`. Scope note: not-yet-promoted **drafts**
 are intentionally excluded — those are governance-workflow-internal, not
 part of what `cernion_ask` can actually route to yet.
+
+## Tool-selection steering: cernion_ask vs. cernion_search+execute_read (v0.99.6)
+
+A third real-world report (claude.ai asking for the current German gas
+storage fill level) found the same pattern as the CO₂ report above, but
+this time the underlying data path was already correct
+(`gas-storage.countryStorage` classifies `data_read`/agentable, reachable
+via `execute_read` since v0.99.5's redesign) — the gap was purely which
+tool got called. `cernion_ask`'s internal routing
+(`personal-agent.askCernionAgent`, a much larger system this MCP layer
+doesn't touch) sometimes falls back to generic knowledge-RAG document
+search for a specific structured data point tied to a named entity,
+instead of recognizing it as a request for a matching operation.
+
+Nothing to fix in `askCernionAgent` itself from here — but `cernion_ask`'s
+tool description previously said "try this first... covers most requests
+without needing search/describe/execute_read", which actively steered
+MCP clients away from the more reliable path for exactly this question
+shape. `cernion_ask`, `cernion_search`, and `cernion_execute_read`'s
+descriptions now explicitly point structured/quantitative questions
+(prices, fill levels, forecasts, a named entity's code) at
+`cernion_search` (kind=operation) + `cernion_execute_read` first, and
+reserve `cernion_ask` for open-ended/explanatory questions or as a
+fallback when no matching operation exists. A prompt-engineering-level
+fix, not a code fix — worth knowing if `askCernionAgent`'s own routing
+improves later, since these descriptions would then be overly cautious.
 
 ## Reserved operation families (v0.99.3)
 

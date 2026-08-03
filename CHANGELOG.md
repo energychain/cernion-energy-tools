@@ -5,6 +5,14 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.99.6] — 2026-08-03
+
+### Changed
+- **Tool-selection steering for structured/quantitative questions** — found via a third real-world report (after Syna GmbH's BDEW/EIC code and a CO₂-intensity question): "wie voll im Augenblick die Gasspeicher sind" was answered by `cernion_ask` falling back to generic document/knowledge-RAG search instead of finding the matching structured operation (`gas-storage.countryStorage`), even though that operation is correctly classified and reachable — verified directly: `checkExecuteReadPolicy('POST', '/api/gas-storage/country-storage')` returns `{ allowed: true }`, and the operation is `data_read`/`agentable=true` in `operation-capability-index.json`. The routing decision itself (`personal-agent.service.js`'s internal RAG-vs-tool arbitration) is out of MCP-server scope and untouched; the only lever available here is steering which *MCP tool* an external client picks in the first place. Reworded `cernion_ask`, `cernion_search`, and `cernion_execute_read`'s tool descriptions in `src/mcp-transport.js` so an MCP client is explicitly pointed at `cernion_search` (kind=operation) + `cernion_execute_read` first for a specific structured data point tied to a known entity, falling back to `cernion_ask` only when no matching operation exists or the question is genuinely open-ended/explanatory. Also refreshed `cernion_execute_read`'s description, which still referenced the pre-v0.99.5 "small allowlist" instead of the current index-driven (~556 operation) classification. See `docs/mcp-server.md`'s "Tool-selection steering" section.
+
+### Testing
+- No behavioral/runtime code changed (description-text only); existing `tests/mcp-transport.test.js` and `tests/mcp-server.service.test.js` (45 tests) re-run clean against the updated tool definitions.
+
 ## [0.99.5] — 2026-08-02
 
 ### Fixed
