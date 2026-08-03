@@ -46,9 +46,15 @@ const TOOL_DEFS = [
     action: 'mcp-server.ask',
     title: 'Ask Cernion',
     description:
-      'Standard factual question about the energy domain (grid, market, regulatory). CET routes ' +
-      'internally and answers directly with evidence, guardrails, and process context. Try this first ' +
-      '— it covers most requests without needing search/describe/execute_read.',
+      'Open-ended factual/regulatory question (grid, market, process, compliance). CET routes ' +
+      'internally and answers with evidence, guardrails, and process context — good for explanatory ' +
+      'or document-grounded questions. NOT reliable yet for a specific structured data point tied to ' +
+      'a known entity (e.g. "what is the gas storage fill level", "what is the BDEW/EIC code of ' +
+      'company X", "what is the CO2 intensity forecast for postal code Y") — internal routing ' +
+      'sometimes falls back to generic document search for these instead of the matching structured ' +
+      'operation, even though one exists and works. For that shape of question, try cernion_search ' +
+      '(kind=operation) + cernion_execute_read FIRST; fall back to cernion_ask only if no matching ' +
+      'operation is found, or for genuinely open-ended/explanatory questions.',
     annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
     inputSchema: {
       question: z.string().min(1).max(8000),
@@ -67,7 +73,11 @@ const TOOL_DEFS = [
     title: 'Search Cernion catalogue',
     description:
       'Unified search over capabilities, REST operations, agent receipts, blueprints, and cookbook ' +
-      'recipes. Returns compact typed refs (cernion://{kind}/{id}) — use cernion_describe for full detail.',
+      'recipes. Returns compact typed refs (cernion://{kind}/{id}) — use cernion_describe for full ' +
+      'detail, cernion_execute_read to run a read-classified operation directly. Prefer this ' +
+      '(kind=operation) + cernion_execute_read over cernion_ask when the question wants one specific ' +
+      "structured data point (a price, a fill level, a company's BDEW/EIC code, a forecast value) " +
+      "rather than an open-ended explanation — cernion_ask's internal routing is less reliable for that shape of question.",
     annotations: { readOnlyHint: true, openWorldHint: true },
     inputSchema: {
       query: z.string().min(1).max(500),
@@ -96,8 +106,10 @@ const TOOL_DEFS = [
     title: 'Execute a read-only operation',
     description:
       'Executes a read-only REST operation selected via ref (from cernion_search/describe) or an ' +
-      'explicit method+path. Server-side allowlist enforced — refused if the operation is not GET or ' +
-      'on the small read-classified POST allowlist (evidence-router, knowledge-rag, receipt dry-runs).',
+      'explicit method+path. Server-side classification enforced (~556 operations recognized as ' +
+      'read-safe regardless of HTTP verb) — refused if the operation is a genuine write, or an ' +
+      'admin/secret surface. Use this + cernion_search for a specific structured data point instead ' +
+      "of cernion_ask — see cernion_ask's description for why.",
     annotations: { readOnlyHint: true, openWorldHint: true },
     inputSchema: {
       ref: z.string().optional(),
