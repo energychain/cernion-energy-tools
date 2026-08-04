@@ -27,6 +27,8 @@ const RESERVED_PROCESS_OPERATION_FAMILIES = new Set([
   'gridConnection',
   'znp',
   'connectionRejectionEvidence',
+  'vdmiFindingMitigation',
+  'vdmiFindingResolution',
 ]);
 
 function buildAudit(ctx, correlationId) {
@@ -1118,6 +1120,193 @@ Returns intentId, expiresAt, and confirmationMessage. Execute via executeProcess
     },
 
     /**
+     * Prepare a VDMI finding mitigation intent — no write.
+     * operationId: prepareVdmiFindingMitigation
+     *
+     * v0.99.7: vdmi.mitigateFinding (POST /api/vdmi/findings/:findingId/mitigate)
+     * is a genuine write with no MCP write path before this — only VDMI
+     * evidence injection had one. Added alongside prepareVdmiFindingResolution
+     * as the highest-value pair of the ~19 unwired VDMI write operations
+     * (see docs/mcp-server.md's "Full capability exposure" section for why
+     * the other ~17 are deliberately deferred rather than wired in bulk).
+     */
+    prepareVdmiFindingMitigation: {
+      rest: 'POST /vdmi/findings/:findingId/prepare-mitigation',
+      params: {
+        findingId: { type: 'string', min: 2 },
+        owner: { type: 'string', min: 2 },
+        dueAt: { type: 'string', min: 10 },
+        plan: { type: 'string', min: 3 },
+        reason: { type: 'string', min: 1, max: 500 },
+        correlationId: { type: 'string', optional: true },
+        idempotencyKey: { type: 'string', optional: true },
+        decisionFrameId: { type: 'string', optional: true },
+      },
+      openapi: {
+        operationId: 'prepareVdmiFindingMitigation',
+        'x-openai-isConsequential': false,
+        summary: 'Prepare VDMI finding mitigation intent — no write',
+        description: `Verifies the VDMI finding exists and creates a persistent ProcessExecutionIntent for submitting a mitigation plan. No finding is modified.
+Returns intentId, expiresAt, and confirmationMessage. Execute via executeProcessIntent outside Copilot.`,
+        tags: [SERVICE_TAG],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['findingId', 'owner', 'dueAt', 'plan', 'reason'],
+                properties: {
+                  findingId: { type: 'string', example: 'finding-abc123' },
+                  owner: { type: 'string', minLength: 2, example: 'grid-lead' },
+                  dueAt: {
+                    type: 'string',
+                    format: 'date-time',
+                    example: '2026-12-31T00:00:00.000Z',
+                  },
+                  plan: {
+                    type: 'string',
+                    minLength: 3,
+                    example: 'Ablösung des Schattenpfads durch API-Integration',
+                  },
+                  reason: {
+                    type: 'string',
+                    minLength: 1,
+                    maxLength: 500,
+                    example: 'Mitigation nach Governance-Review',
+                  },
+                  correlationId: { type: 'string', example: 'req-2026-001' },
+                  idempotencyKey: { type: 'string', example: 'idem-finding-20260611' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: 'VDMI finding mitigation intent created' },
+          404: { description: 'Finding not found' },
+        },
+      },
+      async handler(ctx) {
+        const {
+          findingId,
+          owner,
+          dueAt,
+          plan,
+          reason,
+          correlationId,
+          idempotencyKey,
+          decisionFrameId,
+        } = ctx.params;
+        return this._prepareVdmiFindingIntent(ctx, {
+          findingId,
+          operationFamily: 'vdmiFindingMitigation',
+          proposedAction: 'mitigate_finding',
+          reason,
+          correlationId,
+          idempotencyKey,
+          decisionFrameId,
+          describe: (finding) => ({
+            payload: { findingId, owner, dueAt, plan },
+            inputSummary: `Submit mitigation plan for finding '${finding.code || findingId}': owner ${owner}, due ${dueAt}`,
+            summary: `Mitigations-Intent erstellt für Finding '${finding.code || findingId}'. Menschliche Bestätigung erforderlich.`,
+            confirmationMessage: `Bitte bestätige den Mitigationsplan für Finding '${finding.code || findingId}' (Owner: ${owner}, Frist: ${dueAt}).`,
+          }),
+        });
+      },
+    },
+
+    /**
+     * Prepare a VDMI finding resolution intent — no write.
+     * operationId: prepareVdmiFindingResolution
+     *
+     * v0.99.7: vdmi.resolveFinding (POST /api/vdmi/findings/:findingId/resolve)
+     * was found misclassified as data_read/direct in
+     * operation-capability-index.json while scoping this release (see
+     * src/mcp-execute-read-policy.js's KNOWN_MISCLASSIFIED_WRITE_PATTERNS) —
+     * it is a genuine write, now denied from cernion_execute_read AND given
+     * its own proper prepare→confirm→execute path here.
+     */
+    prepareVdmiFindingResolution: {
+      rest: 'POST /vdmi/findings/:findingId/prepare-resolution',
+      params: {
+        findingId: { type: 'string', min: 2 },
+        resolutionReason: { type: 'string', min: 3 },
+        evidenceRef: { type: 'string', optional: true },
+        reason: { type: 'string', min: 1, max: 500 },
+        correlationId: { type: 'string', optional: true },
+        idempotencyKey: { type: 'string', optional: true },
+        decisionFrameId: { type: 'string', optional: true },
+      },
+      openapi: {
+        operationId: 'prepareVdmiFindingResolution',
+        'x-openai-isConsequential': false,
+        summary: 'Prepare VDMI finding resolution intent — no write',
+        description: `Verifies the VDMI finding exists and creates a persistent ProcessExecutionIntent for resolving it. No finding is modified.
+Returns intentId, expiresAt, and confirmationMessage. Execute via executeProcessIntent outside Copilot.`,
+        tags: [SERVICE_TAG],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['findingId', 'resolutionReason', 'reason'],
+                properties: {
+                  findingId: { type: 'string', example: 'finding-abc123' },
+                  resolutionReason: {
+                    type: 'string',
+                    minLength: 3,
+                    example: 'Integration abgeschlossen',
+                  },
+                  evidenceRef: { type: 'string', example: 'ticket-123' },
+                  reason: {
+                    type: 'string',
+                    minLength: 1,
+                    maxLength: 500,
+                    example: 'Abschluss nach Governance-Review',
+                  },
+                  correlationId: { type: 'string', example: 'req-2026-001' },
+                  idempotencyKey: { type: 'string', example: 'idem-finding-20260611' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: 'VDMI finding resolution intent created' },
+          404: { description: 'Finding not found' },
+        },
+      },
+      async handler(ctx) {
+        const {
+          findingId,
+          resolutionReason,
+          evidenceRef,
+          reason,
+          correlationId,
+          idempotencyKey,
+          decisionFrameId,
+        } = ctx.params;
+        return this._prepareVdmiFindingIntent(ctx, {
+          findingId,
+          operationFamily: 'vdmiFindingResolution',
+          proposedAction: 'resolve_finding',
+          reason,
+          correlationId,
+          idempotencyKey,
+          decisionFrameId,
+          describe: (finding) => ({
+            payload: { findingId, reason: resolutionReason, evidenceRef: evidenceRef || null },
+            inputSummary: `Resolve finding '${finding.code || findingId}': ${resolutionReason}`,
+            summary: `Resolution-Intent erstellt für Finding '${finding.code || findingId}'. Menschliche Bestätigung erforderlich.`,
+            confirmationMessage: `Bitte bestätige die Auflösung von Finding '${finding.code || findingId}': ${resolutionReason}.`,
+          }),
+        });
+      },
+    },
+
+    /**
      * Prepare a ZNP planning assumption intent — no write.
      * operationId: prepareZnpAssumption
      */
@@ -1877,6 +2066,68 @@ NOT available via Copilot — not for autonomous agent use.`,
   },
 
   methods: {
+    // Shared by prepareVdmiFindingMitigation and prepareVdmiFindingResolution
+    // (v0.99.7) — both look up the same finding, create an intent the same
+    // way, and return the same response shape; only the domain-specific
+    // payload/summary text differs, supplied via `describe(finding)`.
+    async _prepareVdmiFindingIntent(
+      ctx,
+      {
+        findingId,
+        operationFamily,
+        proposedAction,
+        reason,
+        correlationId,
+        idempotencyKey,
+        decisionFrameId,
+        describe,
+      }
+    ) {
+      const callOpts = { meta: { ...ctx.meta, $gateway: false } };
+      const audit = buildAudit(ctx, correlationId);
+
+      const { findings } = await ctx.call('vdmi.findings', { limit: 500 }, callOpts);
+      const finding = (findings || []).find((f) => f.id === findingId);
+      if (!finding) {
+        throw new MoleculerClientError(`Finding not found: ${findingId}`, 404, 'FINDING_NOT_FOUND');
+      }
+
+      const details = describe(finding);
+      const intent = this.intentStore.create({
+        operationFamily,
+        proposedAction,
+        targetType: 'vdmiFinding',
+        targetId: findingId,
+        inputSummary: details.inputSummary,
+        payload: details.payload,
+        risk: 'medium',
+        createdBy: audit.requestedBy,
+        correlationId: audit.correlationId,
+        reason,
+        decisionFrameId: decisionFrameId || null,
+      });
+
+      return {
+        intentId: intent.intentId,
+        operationFamily,
+        proposedAction,
+        target: { findingId, code: finding.code },
+        inputSummary: intent.inputSummary,
+        status: intent.status,
+        expiresAt: intent.expiresAt,
+        risk: 'medium',
+        requiresHumanConfirmation: true,
+        decisionFrameId: intent.decisionFrameId,
+        summary: details.summary,
+        confirmationMessage: details.confirmationMessage,
+        executeVia: {
+          operationId: 'executeProcessIntent',
+          note: 'Not available via Copilot. Use direct API: POST /api/copilot-process/intents/:intentId/execute',
+        },
+        auditTrail: { ...audit, idempotencyKey: idempotencyKey ?? null, reason },
+      };
+    },
+
     async _executeIntent(ctx, intent) {
       const callOpts = { meta: { ...ctx.meta, $gateway: false } };
       const { operationFamily, payload } = intent;
@@ -1890,6 +2141,10 @@ NOT available via Copilot — not for autonomous agent use.`,
           return ctx.call('znp.addAssumption', payload, callOpts);
         case 'connectionRejectionEvidence':
           return ctx.call('connection-rejection-evidence.create', payload, callOpts);
+        case 'vdmiFindingMitigation':
+          return ctx.call('vdmi.mitigateFinding', payload, callOpts);
+        case 'vdmiFindingResolution':
+          return ctx.call('vdmi.resolveFinding', payload, callOpts);
         default:
           throw new MoleculerClientError(
             `Unknown operationFamily: ${operationFamily}`,

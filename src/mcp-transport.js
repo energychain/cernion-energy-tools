@@ -147,7 +147,7 @@ const TOOL_DEFS = [
       'Never writes by itself. Returns a cernion://intent/{id} ref for cernion_execute_process.\n\n' +
       'operationFamily is the routing key. Most values go through the generic intake path (real ' +
       'execution needs a developer to wire a dispatch case first — see cernion_execute_process). ' +
-      'Four operationFamily values are reserved and route to dedicated, fully-executable actions — for ' +
+      'Six operationFamily values are reserved and route to dedicated, fully-executable actions — for ' +
       'these, reason is required and payload must contain:\n' +
       '- "vdmi": payload.matrixId, payload.evidenceType, payload.reference (payload.content optional). ' +
       'Injects VDMI evidence.\n' +
@@ -159,7 +159,13 @@ const TOOL_DEFS = [
       'payload.loadAssumptionKw, payload.netzverknuepfungspunktId, payload.voltageLevel, ' +
       'payload.bottleneckDescription, payload.n1QualityStatus ' +
       '(COMPLIANT|NON_COMPLIANT|CONDITIONALLY_COMPLIANT|UNKNOWN), payload.decision ' +
-      '(GO|CONDITIONAL|NO_GO|PENDING). Creates a connection-rejection evidence package.',
+      '(GO|CONDITIONAL|NO_GO|PENDING). Creates a connection-rejection evidence package.\n' +
+      '- "vdmiFindingMitigation": payload.findingId, payload.owner, payload.dueAt, payload.plan. ' +
+      'Submits a mitigation plan for a VDMI finding.\n' +
+      '- "vdmiFindingResolution": payload.findingId, payload.resolutionReason (payload.evidenceRef ' +
+      'optional). Resolves/closes a VDMI finding. NOTE: the underlying REST operation looks read-only ' +
+      'by name (its summary starts with "Resolve...") but is a genuine write — do not attempt this via ' +
+      'cernion_execute_read (it is explicitly refused there); use this operationFamily instead.',
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
     inputSchema: {
       operationFamily: z.string().min(1).max(64),
@@ -181,11 +187,11 @@ const TOOL_DEFS = [
     description:
       'Executes (action=execute, default) or rejects (action=reject) a pending_confirmation intent by ' +
       'id/ref. Deliberately a separate tool call from cernion_prepare_process so a client cannot ' +
-      'prepare-and-execute in one shot. Intents from the 4 reserved operationFamily values (vdmi, ' +
-      'gridConnection, znp, connectionRejectionEvidence — see cernion_prepare_process) execute for ' +
-      'real. NOTE: intents from any other (generic) operationFamily have no wired auto-execution (by ' +
-      'design — see docs/mcp-server.md) and will fail execute with a clear error; reject still works ' +
-      'for those.',
+      'prepare-and-execute in one shot. Intents from the 6 reserved operationFamily values (vdmi, ' +
+      'gridConnection, znp, connectionRejectionEvidence, vdmiFindingMitigation, vdmiFindingResolution ' +
+      '— see cernion_prepare_process) execute for real. NOTE: intents from any other (generic) ' +
+      'operationFamily have no wired auto-execution (by design — see docs/mcp-server.md) and will fail ' +
+      'execute with a clear error; reject still works for those.',
     annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true },
     inputSchema: {
       ref: z.string().optional(),

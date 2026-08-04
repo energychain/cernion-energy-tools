@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.99.6",
+    "version": "0.99.7",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.\n\nFor the public instance at https://api.cernion.de/, create your token at https://cernion.de/cet-token/."
   },
   "servers": [
@@ -8738,6 +8738,140 @@
                   "idempotencyKey": {
                     "type": "string",
                     "example": "idem-vdmi-20260611"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-openai-isConsequential": false
+      }
+    },
+    "/api/copilot-process/vdmi/findings/:findingId/prepare-mitigation": {
+      "post": {
+        "operationId": "prepareVdmiFindingMitigation",
+        "summary": "Prepare VDMI finding mitigation intent — no write",
+        "tags": [
+          "Copilot Process"
+        ],
+        "responses": {
+          "200": {
+            "description": "VDMI finding mitigation intent created"
+          },
+          "404": {
+            "description": "Finding not found"
+          }
+        },
+        "description": "Verifies the VDMI finding exists and creates a persistent ProcessExecutionIntent for submitting a mitigation plan. No finding is modified.\nReturns intentId, expiresAt, and confirmationMessage. Execute via executeProcessIntent outside Copilot.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "findingId",
+                  "owner",
+                  "dueAt",
+                  "plan",
+                  "reason"
+                ],
+                "properties": {
+                  "findingId": {
+                    "type": "string",
+                    "example": "finding-abc123"
+                  },
+                  "owner": {
+                    "type": "string",
+                    "minLength": 2,
+                    "example": "grid-lead"
+                  },
+                  "dueAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "example": "2026-12-31T00:00:00.000Z"
+                  },
+                  "plan": {
+                    "type": "string",
+                    "minLength": 3,
+                    "example": "Ablösung des Schattenpfads durch API-Integration"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "example": "Mitigation nach Governance-Review"
+                  },
+                  "correlationId": {
+                    "type": "string",
+                    "example": "req-2026-001"
+                  },
+                  "idempotencyKey": {
+                    "type": "string",
+                    "example": "idem-finding-20260611"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-openai-isConsequential": false
+      }
+    },
+    "/api/copilot-process/vdmi/findings/:findingId/prepare-resolution": {
+      "post": {
+        "operationId": "prepareVdmiFindingResolution",
+        "summary": "Prepare VDMI finding resolution intent — no write",
+        "tags": [
+          "Copilot Process"
+        ],
+        "responses": {
+          "200": {
+            "description": "VDMI finding resolution intent created"
+          },
+          "404": {
+            "description": "Finding not found"
+          }
+        },
+        "description": "Verifies the VDMI finding exists and creates a persistent ProcessExecutionIntent for resolving it. No finding is modified.\nReturns intentId, expiresAt, and confirmationMessage. Execute via executeProcessIntent outside Copilot.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "findingId",
+                  "resolutionReason",
+                  "reason"
+                ],
+                "properties": {
+                  "findingId": {
+                    "type": "string",
+                    "example": "finding-abc123"
+                  },
+                  "resolutionReason": {
+                    "type": "string",
+                    "minLength": 3,
+                    "example": "Integration abgeschlossen"
+                  },
+                  "evidenceRef": {
+                    "type": "string",
+                    "example": "ticket-123"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "example": "Abschluss nach Governance-Review"
+                  },
+                  "correlationId": {
+                    "type": "string",
+                    "example": "req-2026-001"
+                  },
+                  "idempotencyKey": {
+                    "type": "string",
+                    "example": "idem-finding-20260611"
                   }
                 }
               }
@@ -91084,5 +91218,5 @@
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.99.6"
+  "x-version": "0.99.7"
 }

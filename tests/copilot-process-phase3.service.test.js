@@ -37,6 +37,13 @@ const MOCK_ZNP_PROJECT = {
   createdAt: '2026-05-01T08:00:00Z',
 };
 
+const MOCK_FINDING = {
+  id: 'finding-p3-1',
+  code: 'VD_GOV_RECURRENCE_K',
+  severity: 'H',
+  status: 'open',
+};
+
 // ── Helper: build isolated broker with mocked dependencies ────────────────────
 
 async function buildBroker({ vdmiMatrixNotFound, znpProjectNotFound } = {}) {
@@ -44,7 +51,14 @@ async function buildBroker({ vdmiMatrixNotFound, znpProjectNotFound } = {}) {
   broker.createService(CopilotProcessService);
 
   // Track calls to write actions so we can assert they were NOT called during prepare
-  const writeCalls = { vdmiEvidence: 0, znpAddAssumption: 0, gcValidate: 0, creCreate: 0 };
+  const writeCalls = {
+    vdmiEvidence: 0,
+    znpAddAssumption: 0,
+    gcValidate: 0,
+    creCreate: 0,
+    vdmiMitigateFinding: 0,
+    vdmiResolveFinding: 0,
+  };
 
   broker.createService({
     name: 'vdmi',
@@ -61,6 +75,23 @@ async function buildBroker({ vdmiMatrixNotFound, znpProjectNotFound } = {}) {
         handler() {
           writeCalls.vdmiEvidence++;
           return { success: true, evidenceId: 'ev-001' };
+        },
+      },
+      findings: {
+        handler() {
+          return { success: true, count: 1, findings: [MOCK_FINDING] };
+        },
+      },
+      mitigateFinding: {
+        handler() {
+          writeCalls.vdmiMitigateFinding++;
+          return { success: true, finding: { ...MOCK_FINDING, status: 'mitigated' } };
+        },
+      },
+      resolveFinding: {
+        handler() {
+          writeCalls.vdmiResolveFinding++;
+          return { success: true, finding: { ...MOCK_FINDING, status: 'resolved' } };
         },
       },
     },
@@ -267,6 +298,123 @@ describe('copilot-process service — Phase 3', () => {
     });
   });
 
+  // ── prepareVdmiFindingMitigation ────────────────────────────────────────────
+  describe('prepareVdmiFindingMitigation', () => {
+    let broker;
+    beforeAll(async () => {
+      ({ broker } = await buildBroker());
+    });
+    afterAll(() => broker.stop());
+
+    const VALID_PARAMS = {
+      findingId: 'finding-p3-1',
+      owner: 'grid-lead',
+      dueAt: '2026-12-31T00:00:00.000Z',
+      plan: 'Ablösung des Schattenpfads durch API-Integration',
+      reason: 'Mitigation nach Governance-Review',
+    };
+
+    it('returns intentId and status pending_confirmation', async () => {
+      const result = await broker.call(
+        'copilot-process.prepareVdmiFindingMitigation',
+        VALID_PARAMS
+      );
+      expect(result).toHaveProperty('intentId');
+      expect(result).toHaveProperty('status', 'pending_confirmation');
+    });
+
+    it('operationFamily is vdmiFindingMitigation', async () => {
+      const result = await broker.call(
+        'copilot-process.prepareVdmiFindingMitigation',
+        VALID_PARAMS
+      );
+      expect(result.operationFamily).toBe('vdmiFindingMitigation');
+    });
+
+    it('proposedAction is mitigate_finding', async () => {
+      const result = await broker.call(
+        'copilot-process.prepareVdmiFindingMitigation',
+        VALID_PARAMS
+      );
+      expect(result.proposedAction).toBe('mitigate_finding');
+    });
+
+    it('throws 404 if finding not found', async () => {
+      await expect(
+        broker.call('copilot-process.prepareVdmiFindingMitigation', {
+          ...VALID_PARAMS,
+          findingId: 'notfound',
+        })
+      ).rejects.toMatchObject({ code: 404 });
+    });
+
+    it('requires owner, dueAt, plan, and reason', async () => {
+      await expect(
+        broker.call('copilot-process.prepareVdmiFindingMitigation', {
+          findingId: 'finding-p3-1',
+        })
+      ).rejects.toThrow();
+    });
+  });
+
+  // ── prepareVdmiFindingResolution ────────────────────────────────────────────
+  describe('prepareVdmiFindingResolution', () => {
+    let broker;
+    beforeAll(async () => {
+      ({ broker } = await buildBroker());
+    });
+    afterAll(() => broker.stop());
+
+    const VALID_PARAMS = {
+      findingId: 'finding-p3-1',
+      resolutionReason: 'Integration abgeschlossen',
+      evidenceRef: 'ticket-123',
+      reason: 'Abschluss nach Governance-Review',
+    };
+
+    it('returns intentId and status pending_confirmation', async () => {
+      const result = await broker.call(
+        'copilot-process.prepareVdmiFindingResolution',
+        VALID_PARAMS
+      );
+      expect(result).toHaveProperty('intentId');
+      expect(result).toHaveProperty('status', 'pending_confirmation');
+    });
+
+    it('operationFamily is vdmiFindingResolution', async () => {
+      const result = await broker.call(
+        'copilot-process.prepareVdmiFindingResolution',
+        VALID_PARAMS
+      );
+      expect(result.operationFamily).toBe('vdmiFindingResolution');
+    });
+
+    it('proposedAction is resolve_finding', async () => {
+      const result = await broker.call(
+        'copilot-process.prepareVdmiFindingResolution',
+        VALID_PARAMS
+      );
+      expect(result.proposedAction).toBe('resolve_finding');
+    });
+
+    it('throws 404 if finding not found', async () => {
+      await expect(
+        broker.call('copilot-process.prepareVdmiFindingResolution', {
+          ...VALID_PARAMS,
+          findingId: 'notfound',
+        })
+      ).rejects.toMatchObject({ code: 404 });
+    });
+
+    it('requires resolutionReason and reason', async () => {
+      await expect(
+        broker.call('copilot-process.prepareVdmiFindingResolution', {
+          findingId: 'finding-p3-1',
+        })
+      ).rejects.toThrow();
+    });
+  });
+
   // ── prepareConnectionRejectionEvidence ──────────────────────────────────────
   describe('prepareConnectionRejectionEvidence', () => {
     let broker;
@@ -401,6 +549,26 @@ describe('copilot-process service — Phase 3', () => {
       return result.intentId;
     }
 
+    async function prepareVdmiFindingMitigationIntent() {
+      const result = await broker.call('copilot-process.prepareVdmiFindingMitigation', {
+        findingId: 'finding-p3-1',
+        owner: 'grid-lead',
+        dueAt: '2026-12-31T00:00:00.000Z',
+        plan: 'Ablösung des Schattenpfads durch API-Integration',
+        reason: 'Test',
+      });
+      return result.intentId;
+    }
+
+    async function prepareVdmiFindingResolutionIntent() {
+      const result = await broker.call('copilot-process.prepareVdmiFindingResolution', {
+        findingId: 'finding-p3-1',
+        resolutionReason: 'Integration abgeschlossen',
+        reason: 'Test',
+      });
+      return result.intentId;
+    }
+
     it('executes a pending_confirmation vdmi intent successfully', async () => {
       const intentId = await prepareVdmiIntent();
       const result = await broker.call('copilot-process.executeProcessIntent', { intentId });
@@ -483,6 +651,22 @@ describe('copilot-process service — Phase 3', () => {
       const callsBefore = writeCalls.creCreate;
       await broker.call('copilot-process.executeProcessIntent', { intentId });
       expect(writeCalls.creCreate).toBe(callsBefore + 1);
+    });
+
+    it('dispatches vdmi.mitigateFinding for vdmiFindingMitigation operationFamily', async () => {
+      const intentId = await prepareVdmiFindingMitigationIntent();
+      const callsBefore = writeCalls.vdmiMitigateFinding;
+      const result = await broker.call('copilot-process.executeProcessIntent', { intentId });
+      expect(writeCalls.vdmiMitigateFinding).toBe(callsBefore + 1);
+      expect(result.status).toBe('executed');
+    });
+
+    it('dispatches vdmi.resolveFinding for vdmiFindingResolution operationFamily', async () => {
+      const intentId = await prepareVdmiFindingResolutionIntent();
+      const callsBefore = writeCalls.vdmiResolveFinding;
+      const result = await broker.call('copilot-process.executeProcessIntent', { intentId });
+      expect(writeCalls.vdmiResolveFinding).toBe(callsBefore + 1);
+      expect(result.status).toBe('executed');
     });
   });
 
@@ -660,6 +844,16 @@ describe('copilot-process service — Phase 3', () => {
 
     it('prepareConnectionRejectionEvidence action has x-openai-isConsequential: false', () => {
       const action = CopilotProcessService.actions.prepareConnectionRejectionEvidence;
+      expect(action.openapi['x-openai-isConsequential']).toBe(false);
+    });
+
+    it('prepareVdmiFindingMitigation action has x-openai-isConsequential: false', () => {
+      const action = CopilotProcessService.actions.prepareVdmiFindingMitigation;
+      expect(action.openapi['x-openai-isConsequential']).toBe(false);
+    });
+
+    it('prepareVdmiFindingResolution action has x-openai-isConsequential: false', () => {
+      const action = CopilotProcessService.actions.prepareVdmiFindingResolution;
       expect(action.openapi['x-openai-isConsequential']).toBe(false);
     });
 

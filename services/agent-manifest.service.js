@@ -43,7 +43,10 @@ function loadOperations() {
         method: method.toUpperCase(),
         operationId: op.operationId || '',
         summary: op.summary || '',
+        description: op.description || '',
         tags: Array.isArray(op.tags) ? op.tags : [],
+        parameters: Array.isArray(op.parameters) ? op.parameters : [],
+        requestBody: op.requestBody || null,
       });
     }
   }
@@ -76,7 +79,10 @@ function dedupeOperations(operations) {
       path: canonical.path,
       operationId: canonical.operationId,
       summary: canonical.summary,
+      description: canonical.description,
       tags: canonical.tags,
+      parameters: canonical.parameters,
+      requestBody: canonical.requestBody,
       aliases,
     });
   }
