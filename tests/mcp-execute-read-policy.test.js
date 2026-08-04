@@ -43,6 +43,32 @@ describe('mcp-execute-read-policy (operation-capability-index-backed, v0.99.5)',
     });
   });
 
+  // Regression tests for v0.99.7: operation-capability-index.json's
+  // QUERY_VERB_PATTERN heuristic treats any POST summary starting with
+  // "resolve" as a read (matching genuine cases like chatgpt-sidecar.plan's
+  // "Resolve a request to a route"), but these 3 real operations use
+  // "resolve" to mean "close out a stateful entity" and persist a write —
+  // found agentable/data_read/direct in the index despite that.
+  test.each([
+    ['/api/vdmi/findings/f1/resolve', 'POST'],
+    ['/api/interface-placeholder/gaps/ph1/resolve', 'POST'],
+    ['/api/jobs/alarms/a1/resolve', 'POST'],
+  ])(
+    'denies %s %s despite being classified data_read/direct (resolve-verb false positive)',
+    (p, m) => {
+      expect(checkExecuteReadPolicy(m, p)).toEqual({
+        allowed: false,
+        reason: 'NOT_READ_ONLY: classifier false positive (resolve-verb heuristic)',
+      });
+    }
+  );
+
+  test('does not deny an unrelated GET on a path that merely ends in /resolve-like segments', () => {
+    // Sanity check: the override is scoped to the exact 3 known paths, not
+    // a bare "/resolve" suffix match that could catch unrelated services.
+    expect(checkExecuteReadPolicy('GET', '/api/vdmi/findings')).toEqual({ allowed: true });
+  });
+
   test('denies a genuine write operation found in the index (object_store_write)', () => {
     const result = checkExecuteReadPolicy('POST', '/api/copilot-process/intents');
     expect(result.allowed).toBe(false);

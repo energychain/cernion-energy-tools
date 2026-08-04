@@ -129,6 +129,38 @@ const RESERVED_FAMILIES = {
       };
     },
   },
+  // v0.99.7: the first 2 of ~19 previously-unwired VDMI write operations
+  // (see docs/mcp-server.md's "Full capability exposure" section for why
+  // the rest are deliberately deferred, and src/mcp-execute-read-policy.js
+  // for the misclassification that made vdmiFindingResolution's underlying
+  // action look like a safe read before this).
+  vdmiFindingMitigation: {
+    action: 'copilot-process.prepareVdmiFindingMitigation',
+    buildParams(payload, topLevel) {
+      return {
+        findingId: requireField(payload, 'findingId', 'vdmiFindingMitigation'),
+        owner: requireField(payload, 'owner', 'vdmiFindingMitigation'),
+        dueAt: requireField(payload, 'dueAt', 'vdmiFindingMitigation'),
+        plan: requireField(payload, 'plan', 'vdmiFindingMitigation'),
+        reason: topLevel.reason,
+        correlationId: topLevel.correlationId,
+        decisionFrameId: topLevel.decisionFrameId,
+      };
+    },
+  },
+  vdmiFindingResolution: {
+    action: 'copilot-process.prepareVdmiFindingResolution',
+    buildParams(payload, topLevel) {
+      return {
+        findingId: requireField(payload, 'findingId', 'vdmiFindingResolution'),
+        resolutionReason: requireField(payload, 'resolutionReason', 'vdmiFindingResolution'),
+        evidenceRef: payload.evidenceRef,
+        reason: topLevel.reason,
+        correlationId: topLevel.correlationId,
+        decisionFrameId: topLevel.decisionFrameId,
+      };
+    },
+  },
 };
 
 /**

@@ -5,6 +5,20 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.99.7] — 2026-08-04
+
+### Security
+- **Fixed a real gap: `cernion_execute_read` could silently execute 3 write operations misclassified as read-only.** Found while scoping "full capability exposure via MCP" (see below): `operation-capability-index.json`'s classifier heuristic treats any POST operation whose summary starts with "resolve" as a read query — correct for genuine cases (`chatgpt-sidecar.plan`: "Resolve a request to a route, no execution") but wrong for `vdmi.resolveFinding`, `interface-placeholder.resolveGap`, and `job-status.resolveAlarm`, which all persist real state changes. All 3 were classified `data_read`/`direct` and reachable through the supposedly read-only MCP tool before this fix. Not fixed in the shared classifier (used by other consumers beyond MCP) — overridden with an explicit deny in `src/mcp-execute-read-policy.js` the same way v0.99.5 handled `znp_deleteProject`'s misclassification. See `docs/mcp-server.md`'s "Full capability exposure" section.
+
+### Added
+- **Full parameter/request-body schema now surfaced by `cernion_describe(kind=operation)`.** Previously returned only `{method, path, operationId, summary, tags, aliases}` — no way for an MCP client to discover what to filter/pass before calling `execute_read`, even though the schema always existed in `openapi-export.json`. `services/agent-manifest.service.js`'s `loadOperations()`/`dedupeOperations()` now carry `description`, `parameters`, and `requestBody` through; `describe` already spread the full operation object, so no further change was needed there. `search` results are untouched (still lean, unaffected).
+- **2 new reserved `operationFamily` values for `cernion_prepare_process`/`execute_process`: `vdmiFindingMitigation` and `vdmiFindingResolution`** (`services/copilot-process.service.js`: `prepareVdmiFindingMitigation`, `prepareVdmiFindingResolution`, plus `_executeIntent` dispatch cases; `src/mcp-reserved-families.js`). The highest-value, lowest-risk pair of ~19 previously-unwired VDMI write operations — `vdmiFindingResolution` is also the proper write path for the operation flagged in the Security section above. The remaining VDMI write operations (and VDMI nomination, whose Phase 3 execute path isn't implemented server-side yet at all) are deliberately deferred to a future release with their own per-action review rather than wired in bulk — see `docs/mcp-server.md`'s "Full capability exposure" section for the full reasoning.
+
+### Testing
+- `tests/mcp-execute-read-policy.test.js` — regression tests for all 3 misclassified-write denials plus a sanity check that the override doesn't over-match unrelated `/resolve`-suffixed paths.
+- `tests/agent-manifest.service.test.js` (new) — parameter/requestBody/description exposure, run against the real generated `openapi-export.json`.
+- `tests/mcp-server.service.test.js`, `tests/copilot-process-phase3.service.test.js` — describe-schema pass-through, and full prepare→execute coverage for both new reserved families (intent creation, dispatch, 404s, missing-field validation, `x-openai-isConsequential: false`).
+
 ## [0.99.6] — 2026-08-03
 
 ### Changed

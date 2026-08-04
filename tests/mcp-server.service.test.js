@@ -48,7 +48,10 @@ describe('MCP Server meta-tools', () => {
                   path: '/api/energy-market/prices',
                   operationId: 'getPrices',
                   summary: 'Prices',
+                  description: 'Full description of the prices endpoint.',
                   tags: [],
+                  parameters: [{ name: 'date', in: 'query', schema: { type: 'string' } }],
+                  requestBody: null,
                 },
                 {
                   method: 'POST',
@@ -297,6 +300,37 @@ describe('MCP Server meta-tools', () => {
             };
           },
         },
+        prepareVdmiFindingMitigation: {
+          params: {
+            findingId: { type: 'string' },
+            owner: { type: 'string' },
+            dueAt: { type: 'string' },
+            plan: { type: 'string' },
+            reason: { type: 'string' },
+          },
+          handler(ctx) {
+            return {
+              intentId: 'vdmi-finding-mitigation-intent-1',
+              operationFamily: 'vdmiFindingMitigation',
+              ...ctx.params,
+            };
+          },
+        },
+        prepareVdmiFindingResolution: {
+          params: {
+            findingId: { type: 'string' },
+            resolutionReason: { type: 'string' },
+            evidenceRef: { type: 'string', optional: true },
+            reason: { type: 'string' },
+          },
+          handler(ctx) {
+            return {
+              intentId: 'vdmi-finding-resolution-intent-1',
+              operationFamily: 'vdmiFindingResolution',
+              ...ctx.params,
+            };
+          },
+        },
       },
     });
 
@@ -432,6 +466,21 @@ describe('MCP Server meta-tools', () => {
     expect(res.data.executeReadPolicy.allowed).toBe(true);
   });
 
+  // v0.99.7: describe(kind=operation) previously returned only
+  // {method,path,operationId,summary,tags} — no parameter/body schema, so a
+  // caller had no way to discover what to filter by before calling
+  // execute_read. Now surfaces the full OpenAPI parameters/requestBody
+  // (and description, not just summary) agent-manifest.listOperations
+  // already carries.
+  test('describe an operation includes full description and parameter/requestBody schema', async () => {
+    const res = await broker.call('mcp-server.describe', { kind: 'operation', id: 'getPrices' });
+    expect(res.data.description).toBe('Full description of the prices endpoint.');
+    expect(res.data.parameters).toEqual([
+      { name: 'date', in: 'query', schema: { type: 'string' } },
+    ]);
+    expect(res.data).toHaveProperty('requestBody', null);
+  });
+
   // Real-world regression test: an MCP client asked a CO2-intensity
   // question, cernion_ask's response mentioned this blueprint by name (its
   // own L3 broker routing already knew about it), but cernion_describe
@@ -545,6 +594,61 @@ describe('MCP Server meta-tools', () => {
           proposedAction: 'inject_evidence',
           reason: 'test reason',
           payload: { matrixId: 'm-1' },
+        },
+        { meta: FULL_ACCESS_META }
+      )
+    ).rejects.toMatchObject({ type: 'MCP_MISSING_RESERVED_FAMILY_FIELD' });
+  });
+
+  // v0.99.7: the 2 newest reserved families. vdmiFindingResolution is
+  // notable because its underlying REST operation (vdmi.resolveFinding) was
+  // found misclassified as a safe read in operation-capability-index.json
+  // (see src/mcp-execute-read-policy.js) — this is now the correct/only
+  // write path for it.
+  test('prepareProcess routes operationFamily=vdmiFindingMitigation to the dedicated action', async () => {
+    const res = await broker.call(
+      'mcp-server.prepareProcess',
+      {
+        operationFamily: 'vdmiFindingMitigation',
+        proposedAction: 'mitigate_finding',
+        reason: 'test reason',
+        payload: {
+          findingId: 'finding-1',
+          owner: 'grid-lead',
+          dueAt: '2026-12-31T00:00:00.000Z',
+          plan: 'Fix it',
+        },
+      },
+      { meta: FULL_ACCESS_META }
+    );
+    expect(res.ref).toBe('cernion://intent/vdmi-finding-mitigation-intent-1');
+    expect(res.findingId).toBe('finding-1');
+  });
+
+  test('prepareProcess routes operationFamily=vdmiFindingResolution to the dedicated action', async () => {
+    const res = await broker.call(
+      'mcp-server.prepareProcess',
+      {
+        operationFamily: 'vdmiFindingResolution',
+        proposedAction: 'resolve_finding',
+        reason: 'test reason',
+        payload: { findingId: 'finding-1', resolutionReason: 'Done' },
+      },
+      { meta: FULL_ACCESS_META }
+    );
+    expect(res.ref).toBe('cernion://intent/vdmi-finding-resolution-intent-1');
+    expect(res.findingId).toBe('finding-1');
+  });
+
+  test('prepareProcess rejects operationFamily=vdmiFindingMitigation with a missing payload field', async () => {
+    await expect(
+      broker.call(
+        'mcp-server.prepareProcess',
+        {
+          operationFamily: 'vdmiFindingMitigation',
+          proposedAction: 'mitigate_finding',
+          reason: 'test reason',
+          payload: { findingId: 'finding-1' },
         },
         { meta: FULL_ACCESS_META }
       )

@@ -39,6 +39,19 @@
  * more than the caller's own tenant) was never actually blocked. Caught by
  * cross-checking this file against the operation index while investigating
  * the CO₂ report, not by the report itself.
+ *
+ * v0.99.7: auditing every POST operation classified `data_read` via the
+ * classifier's `QUERY_VERB_PATTERN` (any summary starting with "resolve" is
+ * treated as a read, e.g. "Resolve a request to a route") found 3 real
+ * writes let through by that same heuristic — "resolve" also means "close
+ * out a stateful entity" (finding/gap/alarm), not just "look up": `POST
+ * /vdmi/findings/:findingId/resolve` (persists finding.status='resolved'),
+ * `POST /interface-placeholder/gaps/:placeholderId/resolve`, and `POST
+ * /jobs/alarms/:alarmId/resolve` (persists alarm status via jobStore). Not
+ * fixed in the classifier itself (`src/operation-capability-classifier.js`
+ * is relied on by other consumers beyond MCP; narrowing the "resolve" verb
+ * there needs its own dedicated audit) — overridden here the same way
+ * v0.99.5 handled `znp_deleteProject`'s misclassification.
  */
 
 const fs = require('fs');
@@ -63,6 +76,16 @@ const DENYLIST_PATH_PATTERNS = [
   /^\/tenant-quotas?(\/|$)/,
 ];
 
+// Confirmed real writes that operation-capability-index.json misclassifies
+// as data_read/direct (see the "v0.99.7" module comment above) — checked by
+// exact method + path, not folded into DENYLIST_PATH_PATTERNS above since
+// the reason is a classifier false positive, not an admin/secret surface.
+const KNOWN_MISCLASSIFIED_WRITE_PATTERNS = [
+  { method: 'POST', pattern: /^\/vdmi\/findings\/[^/]+\/resolve$/ },
+  { method: 'POST', pattern: /^\/interface-placeholder\/gaps\/[^/]+\/resolve$/ },
+  { method: 'POST', pattern: /^\/jobs\/alarms\/[^/]+\/resolve$/ },
+];
+
 // Fallback for operations not found in operation-capability-index.json —
 // POST endpoints that are read-only or dry-run in effect despite the verb.
 const POST_ALLOWLIST_PATH_PATTERNS = [
@@ -82,6 +105,12 @@ function stripApiPrefix(path_) {
 
 function isDenied(relativePath) {
   return DENYLIST_PATH_PATTERNS.some((pattern) => pattern.test(relativePath));
+}
+
+function isKnownMisclassifiedWrite(method, relativePath) {
+  return KNOWN_MISCLASSIFIED_WRITE_PATTERNS.some(
+    (entry) => entry.method === method && entry.pattern.test(relativePath)
+  );
 }
 
 let _operationLookup = null;
@@ -137,6 +166,13 @@ function checkExecuteReadPolicy(method, path_) {
   }
 
   const upperMethod = String(method || '').toUpperCase();
+  if (isKnownMisclassifiedWrite(upperMethod, relativePath)) {
+    return {
+      allowed: false,
+      reason: 'NOT_READ_ONLY: classifier false positive (resolve-verb heuristic)',
+    };
+  }
+
   const fullPath = String(path_ || '').startsWith('/api') ? path_ : `/api${relativePath}`;
   const entry = loadOperationLookup().get(`${upperMethod} ${fullPath}`);
   if (entry) {

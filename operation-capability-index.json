@@ -1,12 +1,12 @@
 {
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
-  "packageVersion": "0.99.6",
-  "sourceOpenApiHash": "3e303b519aea14e06040f8a24e6c4b62743710db3d1e64d1e243b1c77fdb7ce8",
+  "packageVersion": "0.99.7",
+  "sourceOpenApiHash": "fa9819ed0996deebfa6b2bf9c417f1dc49d90ddd5a01146a47a9b0dd9442c873",
   "coverage": {
-    "rawOperationCount": 1133,
-    "operationCount": 877,
-    "agentableCount": 875,
+    "rawOperationCount": 1135,
+    "operationCount": 879,
+    "agentableCount": 877,
     "nonAgentableCount": 2,
     "byOperationKind": {
       "data_read": 385,
@@ -15,7 +15,7 @@
       "process_step": 20,
       "process_start": 42,
       "advisory_plan": 46,
-      "draft_write": 11,
+      "draft_write": 13,
       "external_effect": 4,
       "dashboard_read": 125,
       "internal": 7
@@ -13034,6 +13034,237 @@
         "negativeCues": [],
         "examples": [
           "Please prepare vdmi matrix nomination — draft only, no write"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "prepareVdmiFindingMitigation",
+      "method": "POST",
+      "path": "/api/copilot-process/vdmi/findings/:findingId/prepare-mitigation",
+      "service": "copilot-process",
+      "action": null,
+      "summary": "Prepare VDMI finding mitigation intent — no write",
+      "tags": [
+        "Copilot Process"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "draft_write",
+      "consequenceLevel": "low",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "copilot-process.prepare_vdmi_finding_mitigation"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [
+        "VDMI"
+      ],
+      "entityTypes": [],
+      "requiredScopes": [
+        "copilot-process:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "copilot-process"
+      ],
+      "sideEffects": [
+        "creates_draft_or_intent"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Discard the created draft/intent - no persisted business state changes until a subsequent confirm/promote step.",
+      "parameters": {
+        "required": [
+          {
+            "name": "findingId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "owner",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "dueAt",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "plan",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "reason",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": [
+          {
+            "name": "correlationId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": "geo_coordinate"
+          },
+          {
+            "name": "idempotencyKey",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "prepare",
+          "vdmi",
+          "finding",
+          "mitigation",
+          "intent",
+          "—",
+          "no",
+          "write",
+          "copilot",
+          "process"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please prepare vdmi finding mitigation intent — no write"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "prepareVdmiFindingResolution",
+      "method": "POST",
+      "path": "/api/copilot-process/vdmi/findings/:findingId/prepare-resolution",
+      "service": "copilot-process",
+      "action": null,
+      "summary": "Prepare VDMI finding resolution intent — no write",
+      "tags": [
+        "Copilot Process"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "draft_write",
+      "consequenceLevel": "low",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "copilot-process.prepare_vdmi_finding_resolution"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [
+        "VDMI"
+      ],
+      "entityTypes": [],
+      "requiredScopes": [
+        "copilot-process:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "copilot-process"
+      ],
+      "sideEffects": [
+        "creates_draft_or_intent"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Discard the created draft/intent - no persisted business state changes until a subsequent confirm/promote step.",
+      "parameters": {
+        "required": [
+          {
+            "name": "findingId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "resolutionReason",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "reason",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": [
+          {
+            "name": "evidenceRef",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "correlationId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": "geo_coordinate"
+          },
+          {
+            "name": "idempotencyKey",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "prepare",
+          "vdmi",
+          "finding",
+          "resolution",
+          "intent",
+          "—",
+          "no",
+          "write",
+          "copilot",
+          "process"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please prepare vdmi finding resolution intent — no write"
         ],
         "synonyms": [
           "agent infrastructure",

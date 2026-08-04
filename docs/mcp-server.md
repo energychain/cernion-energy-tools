@@ -1,4 +1,4 @@
-# MCP Server (v0.99.2, extended v0.99.3, v0.99.4, v0.99.5, v0.99.6)
+# MCP Server (v0.99.2, extended v0.99.3, v0.99.4, v0.99.5, v0.99.6, v0.99.7)
 
 A real MCP (Model Context Protocol) server — JSON-RPC 2.0 over the
 streamable-HTTP transport — sitting in front of this platform's REST API.
@@ -95,26 +95,29 @@ the hard way:
 
 2. **Generic process intents don't auto-execute — by design, not a gap.**
    `copilot-process.js`'s `_executeIntent` dispatch table only has cases for
-   4 reserved operation families (`vdmi`, `gridConnection`, `znp`,
-   `connectionRejectionEvidence`), each with its own dedicated `prepare*`
-   REST action. Any intent created through the **generic**
-   `prepareProcessIntent` (which is what `cernion_run_receipt` mode=run
-   uses, and what `cernion_prepare_process` falls back to for any
-   `operationFamily` outside the 4 reserved ones) will get
+   6 reserved operation families (`vdmi`, `gridConnection`, `znp`,
+   `connectionRejectionEvidence`, and as of v0.99.7
+   `vdmiFindingMitigation`/`vdmiFindingResolution`), each with its own
+   dedicated `prepare*` REST action. Any intent created through the
+   **generic** `prepareProcessIntent` (which is what `cernion_run_receipt`
+   mode=run uses, and what `cernion_prepare_process` falls back to for any
+   `operationFamily` outside the reserved ones) will get
    `UNKNOWN_OPERATION_FAMILY` if you try to execute it — the docstring in
    `copilot-process.service.js` calls this "establishes the intake/
    classification/HITL boundary only." `cernion_execute_process` catches
    that specific error and rewraps it with a clearer message
    (`MCP_INTENT_REQUIRES_MANUAL_EXECUTION`) rather than a raw 400. Rejecting
    a generic intent still works fully.
-   **As of v0.99.3**, `cernion_prepare_process` routes the 4 reserved
-   `operationFamily` values to their dedicated `prepare*` actions instead
-   of the generic one (see "Reserved operation families" below) — those 4
-   now execute for real through `cernion_execute_process`, closing this
-   gap for the families that have one. Everything else still needs a
-   developer to add a reviewed dispatch case in `_executeIntent` first —
-   that's a deliberate governance boundary, not something MCP should paper
-   over.
+   **As of v0.99.3** (extended v0.99.7), `cernion_prepare_process` routes
+   the reserved `operationFamily` values to their dedicated `prepare*`
+   actions instead of the generic one (see "Reserved operation families"
+   below) — those now execute for real through `cernion_execute_process`,
+   closing this gap for the families that have one. Everything else still
+   needs a developer to add a reviewed dispatch case in `_executeIntent`
+   first — that's a deliberate governance boundary, not something MCP
+   should paper over. See "Full capability exposure (v0.99.7)" below for
+   why only 2 of ~19 unwired VDMI write operations were added, not all of
+   them.
 
 3. **Receipts have no direct execution path either.** There is no
    "run this receipt for real" REST action — only `test`/`testStored`
@@ -256,12 +259,78 @@ fallback when no matching operation exists. A prompt-engineering-level
 fix, not a code fix — worth knowing if `askCernionAgent`'s own routing
 improves later, since these descriptions would then be overly cautious.
 
-## Reserved operation families (v0.99.3)
+## Full capability exposure (v0.99.7)
+
+Scoping question from the platform owner: "are we still meaningfully behind
+what the REST API/OpenAPI spec can do, especially for VDMI (processes) and
+structured retrieval/filtering?" Two real, confirmed gaps, one incidental
+security finding:
+
+**1. `cernion_describe(kind=operation)` had no parameter/body schema.** It
+returned only `{method, path, operationId, summary, tags, aliases}` — an
+MCP client had no way to discover what to filter/pass (query params, body
+fields) before calling `execute_read`, even though the full OpenAPI
+`parameters`/`requestBody` schema (with types, required fields, examples)
+was already sitting in `openapi-export.json` for every operation, just
+never carried through `agent-manifest.listOperations()`. Fixed by having
+`loadOperations()`/`dedupeOperations()` (`services/agent-manifest.
+service.js`) also capture `description` (not just `summary` — often has the
+real usage guidance, see `gas-storage_countryStorage`'s "Use cases:..."
+prose), `parameters`, and `requestBody` straight from the parsed spec.
+`describe`'s operation branch already spread `...op` into its response, so
+no change was needed there — the new fields just flow through. `search`'s
+operation results are untouched (still the lean `{ref, kind, title,
+summary, riskClass}` shape) since a 10-row search list isn't the place for
+full schemas — that's what `describe` is for.
+
+**2. VDMI write coverage was 1 of ~20 operations.** All 24 VDMI
+*read*-shaped operations were already reachable via `cernion_search`+
+`execute_read`. But only `prepareVdmiEvidence` had a dedicated
+prepare→confirm→execute path — `nominate`, `confirm-nomination`, `detect`,
+`revert`, `findings/mitigate`, `findings/resolve`, `evidence/sign`, and
+others had none. This is **not** purely an MCP-layer gap: `copilot-process.
+service.js`'s `_executeIntent` dispatch table is deliberately hand-reviewed
+per operation (see deviation #2 above) — there is no generic "execute
+whatever the intent says" path, by design, since each write needs its own
+validation review (see the `connectionRejectionEvidence` `decision`-enum
+gap in "Reserved operation families" below for why that caution is
+warranted). One target, VDMI nomination, doesn't even have a real Phase 3
+execute path server-side yet (`prepareVdmiValidation`'s own response says
+`"Noch nicht implementiert (Phase 3)"`) — building that is a platform
+feature, not something to bolt on under an MCP release. Given that, v0.99.7
+adds the 2 highest-value, lowest-risk additions —
+`vdmiFindingMitigation`/`vdmiFindingResolution` (see "Reserved operation
+families" below) — rather than rushing all ~19 through in one pass. The
+remaining VDMI write operations, and the still-unimplemented nomination
+Phase 3, are deliberately deferred to a future release with its own
+per-action review, not silently dropped.
+
+**3. Security finding made while confirming #2's target list**:
+`vdmi.resolveFinding` — a genuine write (persists `finding.status =
+'resolved'` to PouchDB) — was misclassified `data_read`/`recommended
+ExecutionMode: direct` in `operation-capability-index.json`, meaning it was
+silently reachable through the supposedly read-only `cernion_execute_read`
+tool. Root cause: `src/operation-capability-classifier.js`'s
+`QUERY_VERB_PATTERN` treats any POST operation whose summary starts with
+"resolve" as a read query (correct for genuine cases like
+`chatgpt-sidecar.plan`'s "Resolve a request to a route (no execution)",
+wrong here — "resolve" also means "close out a stateful entity"). Auditing
+every operation the same heuristic let through found 2 more real instances:
+`interface-placeholder.resolveGap` and `job-status.resolveAlarm`. Not fixed
+in the classifier itself — it's relied on by other consumers beyond MCP, so
+narrowing the "resolve" verb there needs its own dedicated audit — instead
+overridden in `src/mcp-execute-read-policy.js` (`KNOWN_MISCLASSIFIED_
+WRITE_PATTERNS`) the same way v0.99.5 handled `znp_deleteProject`'s
+misclassification. All 3 are now explicitly denied by `execute_read`
+regardless of index classification; see the module comment there for the
+exact paths and regression tests in `tests/mcp-execute-read-policy.test.js`.
+
+## Reserved operation families (v0.99.3, extended v0.99.7)
 
 `cernion_prepare_process`'s `operationFamily` param routes to one of two
 places (`src/mcp-reserved-families.js`):
 
-- One of the 4 reserved values below → the matching dedicated `prepare*`
+- One of the 6 reserved values below → the matching dedicated `prepare*`
   action in `services/copilot-process.service.js`, whose intent **does**
   execute for real via `cernion_execute_process`.
 - Anything else → the generic `prepareProcessIntent` (deviation #2 above —
@@ -273,8 +342,10 @@ places (`src/mcp-reserved-families.js`):
 | `gridConnection` | at least one of `gridOperatorId` / `gridOperatorBdew` / `gridOperatorName` | `includeCapacityCheck` | `grid-connection.validate` — runs the Netzanschluss validation pipeline (up to 2 min) |
 | `znp` | `projectId`, `text` | — | `znp.addAssumption` — adds a ZNP planning assumption |
 | `connectionRejectionEvidence` | `gridOperatorId`, `applicantReference`, `loadAssumptionKw`, `netzverknuepfungspunktId`, `voltageLevel`, `bottleneckDescription`, `n1QualityStatus` (`COMPLIANT`\|`NON_COMPLIANT`\|`CONDITIONALLY_COMPLIANT`\|`UNKNOWN`), `decision` (`GO`\|`CONDITIONAL`\|`NO_GO`\|`PENDING`) | — | `connection-rejection-evidence.create` — creates an evidence package |
+| `vdmiFindingMitigation` (v0.99.7) | `findingId`, `owner`, `dueAt`, `plan` | — | `vdmi.mitigateFinding` — submits a mitigation plan for a VDMI finding |
+| `vdmiFindingResolution` (v0.99.7) | `findingId`, `resolutionReason` | `evidenceRef` | `vdmi.resolveFinding` — resolves/closes a VDMI finding |
 
-`reason` (top-level, not inside `payload`) is required for all 4 — the
+`reason` (top-level, not inside `payload`) is required for all 6 — the
 dedicated actions require it themselves.
 
 **A bug found and worked around, not fixed at the source**:
@@ -290,13 +361,20 @@ confusing failure after the human has already confirmed. Not fixed in
 (including tests that rely on the current loose validation) for a fix
 that's only load-bearing through the new MCP path.
 
-The 4 families' read-only context endpoints
+The original 4 families' read-only context endpoints
 (`getVdmiContext`, `listOpenResponsibilities`, `getZnpProjectStatus`,
 `getGridConnectionValidation`) needed no changes — they're plain GET
 routes, so `cernion_search`/`describe`/`execute_read` already reach them
 via the normal operation catalogue. `connectionRejectionEvidence` has no
 equivalent context endpoint in `copilot-process.service.js` (a pre-existing
 asymmetry with the other 3 families, not something this change introduces).
+`vdmiFindingMitigation`/`vdmiFindingResolution` likewise reuse an existing
+read endpoint, `vdmi.findings` (`GET /api/vdmi/findings`), for existence
+checks in their `prepare*` actions rather than needing a new one.
+
+**`vdmiFindingResolution` is the write-path fix for the v0.99.7 execute_read
+security finding below** — before this, `vdmi.resolveFinding` had no MCP
+write path *and* was reachable through the read-only tool by mistake.
 
 ## Auth and RBAC — why this needed its own gate
 
