@@ -1188,54 +1188,31 @@ Returns intentId, expiresAt, and confirmationMessage. Execute via executeProcess
         },
       },
       async handler(ctx) {
-        const callOpts = { meta: { ...ctx.meta, $gateway: false } };
-        const { findingId, owner, dueAt, plan, reason } = ctx.params;
-        const audit = buildAudit(ctx, ctx.params.correlationId);
-
-        const { findings } = await ctx.call('vdmi.findings', { limit: 500 }, callOpts);
-        const finding = (findings || []).find((f) => f.id === findingId);
-        if (!finding) {
-          throw new MoleculerClientError(
-            `Finding not found: ${findingId}`,
-            404,
-            'FINDING_NOT_FOUND'
-          );
-        }
-
-        const inputSummary = `Submit mitigation plan for finding '${finding.code || findingId}': owner ${owner}, due ${dueAt}`;
-        const intent = this.intentStore.create({
-          operationFamily: 'vdmiFindingMitigation',
-          proposedAction: 'mitigate_finding',
-          targetType: 'vdmiFinding',
-          targetId: findingId,
-          inputSummary,
-          payload: { findingId, owner, dueAt, plan },
-          risk: 'medium',
-          createdBy: audit.requestedBy,
-          correlationId: audit.correlationId,
+        const {
+          findingId,
+          owner,
+          dueAt,
+          plan,
           reason,
-          decisionFrameId: ctx.params.decisionFrameId || null,
-        });
-
-        return {
-          intentId: intent.intentId,
+          correlationId,
+          idempotencyKey,
+          decisionFrameId,
+        } = ctx.params;
+        return this._prepareVdmiFindingIntent(ctx, {
+          findingId,
           operationFamily: 'vdmiFindingMitigation',
           proposedAction: 'mitigate_finding',
-          target: { findingId, code: finding.code },
-          inputSummary: intent.inputSummary,
-          status: intent.status,
-          expiresAt: intent.expiresAt,
-          risk: 'medium',
-          requiresHumanConfirmation: true,
-          decisionFrameId: intent.decisionFrameId,
-          summary: `Mitigations-Intent erstellt für Finding '${finding.code || findingId}'. Menschliche Bestätigung erforderlich.`,
-          confirmationMessage: `Bitte bestätige den Mitigationsplan für Finding '${finding.code || findingId}' (Owner: ${owner}, Frist: ${dueAt}).`,
-          executeVia: {
-            operationId: 'executeProcessIntent',
-            note: 'Not available via Copilot. Use direct API: POST /api/copilot-process/intents/:intentId/execute',
-          },
-          auditTrail: { ...audit, idempotencyKey: ctx.params.idempotencyKey ?? null, reason },
-        };
+          reason,
+          correlationId,
+          idempotencyKey,
+          decisionFrameId,
+          describe: (finding) => ({
+            payload: { findingId, owner, dueAt, plan },
+            inputSummary: `Submit mitigation plan for finding '${finding.code || findingId}': owner ${owner}, due ${dueAt}`,
+            summary: `Mitigations-Intent erstellt für Finding '${finding.code || findingId}'. Menschliche Bestätigung erforderlich.`,
+            confirmationMessage: `Bitte bestätige den Mitigationsplan für Finding '${finding.code || findingId}' (Owner: ${owner}, Frist: ${dueAt}).`,
+          }),
+        });
       },
     },
 
@@ -1302,54 +1279,30 @@ Returns intentId, expiresAt, and confirmationMessage. Execute via executeProcess
         },
       },
       async handler(ctx) {
-        const callOpts = { meta: { ...ctx.meta, $gateway: false } };
-        const { findingId, resolutionReason, evidenceRef, reason } = ctx.params;
-        const audit = buildAudit(ctx, ctx.params.correlationId);
-
-        const { findings } = await ctx.call('vdmi.findings', { limit: 500 }, callOpts);
-        const finding = (findings || []).find((f) => f.id === findingId);
-        if (!finding) {
-          throw new MoleculerClientError(
-            `Finding not found: ${findingId}`,
-            404,
-            'FINDING_NOT_FOUND'
-          );
-        }
-
-        const inputSummary = `Resolve finding '${finding.code || findingId}': ${resolutionReason}`;
-        const intent = this.intentStore.create({
-          operationFamily: 'vdmiFindingResolution',
-          proposedAction: 'resolve_finding',
-          targetType: 'vdmiFinding',
-          targetId: findingId,
-          inputSummary,
-          payload: { findingId, reason: resolutionReason, evidenceRef: evidenceRef || null },
-          risk: 'medium',
-          createdBy: audit.requestedBy,
-          correlationId: audit.correlationId,
+        const {
+          findingId,
+          resolutionReason,
+          evidenceRef,
           reason,
-          decisionFrameId: ctx.params.decisionFrameId || null,
-        });
-
-        return {
-          intentId: intent.intentId,
+          correlationId,
+          idempotencyKey,
+          decisionFrameId,
+        } = ctx.params;
+        return this._prepareVdmiFindingIntent(ctx, {
+          findingId,
           operationFamily: 'vdmiFindingResolution',
           proposedAction: 'resolve_finding',
-          target: { findingId, code: finding.code },
-          inputSummary: intent.inputSummary,
-          status: intent.status,
-          expiresAt: intent.expiresAt,
-          risk: 'medium',
-          requiresHumanConfirmation: true,
-          decisionFrameId: intent.decisionFrameId,
-          summary: `Resolution-Intent erstellt für Finding '${finding.code || findingId}'. Menschliche Bestätigung erforderlich.`,
-          confirmationMessage: `Bitte bestätige die Auflösung von Finding '${finding.code || findingId}': ${resolutionReason}.`,
-          executeVia: {
-            operationId: 'executeProcessIntent',
-            note: 'Not available via Copilot. Use direct API: POST /api/copilot-process/intents/:intentId/execute',
-          },
-          auditTrail: { ...audit, idempotencyKey: ctx.params.idempotencyKey ?? null, reason },
-        };
+          reason,
+          correlationId,
+          idempotencyKey,
+          decisionFrameId,
+          describe: (finding) => ({
+            payload: { findingId, reason: resolutionReason, evidenceRef: evidenceRef || null },
+            inputSummary: `Resolve finding '${finding.code || findingId}': ${resolutionReason}`,
+            summary: `Resolution-Intent erstellt für Finding '${finding.code || findingId}'. Menschliche Bestätigung erforderlich.`,
+            confirmationMessage: `Bitte bestätige die Auflösung von Finding '${finding.code || findingId}': ${resolutionReason}.`,
+          }),
+        });
       },
     },
 
@@ -2113,6 +2066,68 @@ NOT available via Copilot — not for autonomous agent use.`,
   },
 
   methods: {
+    // Shared by prepareVdmiFindingMitigation and prepareVdmiFindingResolution
+    // (v0.99.7) — both look up the same finding, create an intent the same
+    // way, and return the same response shape; only the domain-specific
+    // payload/summary text differs, supplied via `describe(finding)`.
+    async _prepareVdmiFindingIntent(
+      ctx,
+      {
+        findingId,
+        operationFamily,
+        proposedAction,
+        reason,
+        correlationId,
+        idempotencyKey,
+        decisionFrameId,
+        describe,
+      }
+    ) {
+      const callOpts = { meta: { ...ctx.meta, $gateway: false } };
+      const audit = buildAudit(ctx, correlationId);
+
+      const { findings } = await ctx.call('vdmi.findings', { limit: 500 }, callOpts);
+      const finding = (findings || []).find((f) => f.id === findingId);
+      if (!finding) {
+        throw new MoleculerClientError(`Finding not found: ${findingId}`, 404, 'FINDING_NOT_FOUND');
+      }
+
+      const details = describe(finding);
+      const intent = this.intentStore.create({
+        operationFamily,
+        proposedAction,
+        targetType: 'vdmiFinding',
+        targetId: findingId,
+        inputSummary: details.inputSummary,
+        payload: details.payload,
+        risk: 'medium',
+        createdBy: audit.requestedBy,
+        correlationId: audit.correlationId,
+        reason,
+        decisionFrameId: decisionFrameId || null,
+      });
+
+      return {
+        intentId: intent.intentId,
+        operationFamily,
+        proposedAction,
+        target: { findingId, code: finding.code },
+        inputSummary: intent.inputSummary,
+        status: intent.status,
+        expiresAt: intent.expiresAt,
+        risk: 'medium',
+        requiresHumanConfirmation: true,
+        decisionFrameId: intent.decisionFrameId,
+        summary: details.summary,
+        confirmationMessage: details.confirmationMessage,
+        executeVia: {
+          operationId: 'executeProcessIntent',
+          note: 'Not available via Copilot. Use direct API: POST /api/copilot-process/intents/:intentId/execute',
+        },
+        auditTrail: { ...audit, idempotencyKey: idempotencyKey ?? null, reason },
+      };
+    },
+
     async _executeIntent(ctx, intent) {
       const callOpts = { meta: { ...ctx.meta, $gateway: false } };
       const { operationFamily, payload } = intent;
