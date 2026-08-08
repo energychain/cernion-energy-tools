@@ -82,7 +82,7 @@
     "@turf/boolean-point-in-polygon": "^7.4.0",
     "@turf/helpers": "^7.3.4",
     "ajv": "^8.20.0",
-    "axios": "^1.18.1",
+    "axios": "^1.19.0",
     "better-sqlite3": "^13.0.2",
     "dotenv": "^17.4.2",
     "german-zip-codes": "^1.0.2",
