@@ -188,6 +188,13 @@ describe('OEP Service — action handlers', () => {
       const result = await broker.call('oep.listSchemas');
       expect(result.schemas).toEqual([]);
     });
+
+    it('throws a clean 404 instead of a raw AxiosError when OEP schema listing is unavailable', async () => {
+      const err = new Error('Not found');
+      err.response = { status: 404 };
+      axios.get.mockRejectedValueOnce(err);
+      await expect(broker.call('oep.listSchemas')).rejects.toMatchObject({ code: 404 });
+    });
   });
 
   // ------------------------------------------------------------------
@@ -331,6 +338,36 @@ describe('OEP Service — action handlers', () => {
     it('count matches tables array length', async () => {
       const result = await broker.call('oep.energyTables');
       expect(result.count).toBe(result.tables.length);
+    });
+  });
+
+  // ------------------------------------------------------------------
+  // search — searches the curated table catalog, no OEP call
+  // ------------------------------------------------------------------
+  describe('search', () => {
+    it('finds a curated table by name substring without calling OEP', async () => {
+      const result = await broker.call('oep.search', { q: 'zensus_population_per_bkg' });
+      expect(axios.get).not.toHaveBeenCalled();
+      expect(result.total).toBeGreaterThanOrEqual(1);
+      expect(result.results.some((r) => r.schema === 'society')).toBe(true);
+    });
+
+    it('finds a curated table by description substring', async () => {
+      const result = await broker.call('oep.search', { q: 'Gemeindeschlüssel' });
+      expect(result.results.some((r) => r.table.includes('zensus_population'))).toBe(true);
+    });
+
+    it('respects the schema filter', async () => {
+      const result = await broker.call('oep.search', { q: 'de', schema: 'society' });
+      for (const r of result.results) {
+        expect(r.schema).toBe('society');
+      }
+    });
+
+    it('returns an empty result set for a non-matching term', async () => {
+      const result = await broker.call('oep.search', { q: 'xyznonexistentterm' });
+      expect(result.total).toBe(0);
+      expect(result.results).toEqual([]);
     });
   });
 

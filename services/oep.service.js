@@ -266,7 +266,20 @@ module.exports = {
         const cached = this._cacheGet(cacheKey);
         if (cached) return { schemas: cached, cached: true };
 
-        const data = await this._oepGet('/schema/');
+        let data;
+        try {
+          data = await this._oepGet('/schema/');
+        } catch (err) {
+          if (err.response?.status === 404) {
+            throw new MoleculerClientError(
+              'OEP schema listing is not available',
+              404,
+              'NOT_FOUND'
+            );
+          }
+          throw err;
+        }
+
         const schemas = Array.isArray(data) ? data : [];
         this._cacheSet(cacheKey, schemas);
         return { schemas, cached: false };
@@ -718,10 +731,12 @@ module.exports = {
         summary: 'Search OEP tables by name or description',
         tags: ['OEP (Open Energy Platform)'],
         description:
-          'Case-insensitive substring search across all OEP table names and descriptions. ' +
-          'Optionally scoped to a specific schema. Uses the cached table list (24 h TTL) \u2014 ' +
-          'no per-search API call is made to OEP. ' +
-          'Useful for discovering scenario datasets, e.g. "NEP", "Kohleausstieg", "photovoltaik".',
+          'Case-insensitive substring search over the curated, Cernion-relevant OEP table ' +
+          'catalog (src/oep-tables.js) \u2014 not a live full-catalog search against OEP. ' +
+          "OEP's own schema/table discovery REST endpoints were removed upstream and no " +
+          'longer respond with JSON, so free-text discovery across the entire platform is ' +
+          'not available; use oep.query directly if you already know an exact schema/table ' +
+          'pair that is not in the curated list. Optionally scoped to a specific schema.',
         parameters: [
           {
             name: 'q',
@@ -749,43 +764,25 @@ module.exports = {
         const { q, schema: schemaFilter, limit } = ctx.params;
         const term = q.toLowerCase();
 
-        // Determine which schemas to search
-        let schemasToSearch;
-        if (schemaFilter) {
-          schemasToSearch = [schemaFilter];
-        } else {
-          // Fetch schema list (cached)
-          const schemaResult = await ctx.call('oep.listSchemas');
-          schemasToSearch = schemaResult.schemas;
-        }
+        const candidates = schemaFilter
+          ? CERNION_RELEVANT_OEP_TABLES.filter((entry) => entry.schema === schemaFilter)
+          : CERNION_RELEVANT_OEP_TABLES;
 
         const matches = [];
-
-        for (const schema of schemasToSearch) {
+        for (const entry of candidates) {
           if (matches.length >= limit) break;
 
-          const tableResult = await ctx.call('oep.listTables', { schema });
-          const tables = tableResult.tables || [];
+          const nameMatch = entry.table.toLowerCase().includes(term);
+          const descMatch = (entry.description || '').toLowerCase().includes(term);
 
-          for (const entry of tables) {
-            if (matches.length >= limit) break;
-
-            // OEP returns either a string name or an object with name/description
-            const name = typeof entry === 'string' ? entry : entry.name || '';
-            const description = typeof entry === 'object' ? entry.description || '' : '';
-
-            const nameMatch = name.toLowerCase().includes(term);
-            const descMatch = description.toLowerCase().includes(term);
-
-            if (nameMatch || descMatch) {
-              matches.push({
-                schema,
-                table: name,
-                description: description || null,
-                matchedOn:
-                  nameMatch && descMatch ? 'name+description' : nameMatch ? 'name' : 'description',
-              });
-            }
+          if (nameMatch || descMatch) {
+            matches.push({
+              schema: entry.schema,
+              table: entry.table,
+              description: entry.description || null,
+              matchedOn:
+                nameMatch && descMatch ? 'name+description' : nameMatch ? 'name' : 'description',
+            });
           }
         }
 
