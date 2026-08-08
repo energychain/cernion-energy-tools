@@ -80,7 +80,7 @@
     "@opentelemetry/sdk-trace-base": "^2.10.0",
     "@opentelemetry/sdk-trace-node": "^2.10.0",
     "@turf/boolean-point-in-polygon": "^7.3.5",
-    "@turf/helpers": "^7.3.4",
+    "@turf/helpers": "^7.4.0",
     "ajv": "^8.20.0",
     "axios": "^1.18.1",
     "better-sqlite3": "^13.0.1",
