@@ -1733,6 +1733,9 @@ module.exports = {
             'operations-runbook.stadtwerkMauerE2eSmoke',
           'GET /operations-runbook/vdmi-blueprint-packs/verify':
             'operations-runbook.verifyVdmiBlueprintPackSeed',
+          // Municipality (AGS) lookup (v0.99.8)
+          'GET /municipality/lookup': 'municipality.lookup',
+          'GET /municipality/reverse-geocode': 'municipality.reverseGeocode',
           // OEP (Open Energy Platform) read-only connector (v0.12)
           'GET /oep/schemas': 'oep.listSchemas',
           'GET /oep/schemas/:schema/tables': 'oep.listTables',
