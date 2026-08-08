@@ -2,8 +2,8 @@
 
 ## Metadata
 - project: cernion-energy-tools
-- version: 0.99.7
-- changelog_latest_release: 0.99.7
+- version: 0.99.8
+- changelog_latest_release: 0.99.8
 
 ## Purpose
 This file is a navigation manifest for LLM/agent consumers. It lists cluster
@@ -113,7 +113,7 @@ recipes:
   redispatch-settlement-audit "Check settlement readiness and financial risk exposure for…"
 resolve: GET /api/_agent/operations?domain=redispatch
 
-### grid-planning (24 capabilities · 8 recipes · 47 operations)
+### grid-planning (24 capabilities · 8 recipes · 49 operations)
 capabilities: altdaten_assessment, areal_network_integration_offer_gate, asset_valuation_transformation_gate, automatisierungsradar, blindflug_radar_anomaly_detection, budget_waterfall_governance, cost_review_committee_status, decision_readiness_matrix, finance_nkp_capex_reinvest_governance, investment_budget_cap_exception_governance, investment_committee_steering_cards, investment_data_review_queue, investment_maturity_off_balance_gate, investment_owner_deadline_budget_gate, investment_risk_translation_status, investment_two_track_control, investment_waterfall_governance, no_regret_measure_definition_gate, reinvest_signal, sap_budget_psp_gate, transformation_financing_scenario_view, vnb_100_tage_assessment, znp_portfolio_assessment, znp_production_readiness_evidence_gate
 recipes:
   cybergrid-counter-location-scout "A VNB wants to proactively identify storage locations near…"
@@ -246,17 +246,17 @@ Agents resolving capabilities/recipes/operations do not need to read past this p
 - `tests/query.service.test.js`: `query.searchCopilot` body-based wrapper returns expected `query`, `domain`, and `results` shape.
 
 ## Source File Hashes
-- CHANGELOG.md: 49505c511b77d50100039d52f6210d0ef122a04d0ec26218d0df1c19843b2fa3
+- CHANGELOG.md: bffdd9566ece3b4a221bc913efa1fd459c77ee29da2bc8cbd4b3b5f0336f0543
 - README.md: e5c8aa36d7cd7195c83e00138361bd22d8cbe1860ff829bb026687d462d860ff
 - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
 - src/cookbook-recipes.js: 9e48573ca263ef129bc3944a83b013cff25157e25afc703be0ada62d5af8163d
 - src/capability-catalog.js: f62636a7c749d6a2502c8d1199c03d2f0d04d7be6d4ec9170b7cb81f79c6f2a4
-- openapi-export.json: fa9819ed0996deebfa6b2bf9c417f1dc49d90ddd5a01146a47a9b0dd9442c873
+- openapi-export.json: 756dfeeaf6213d72069c758a2d55b9a637d971681f58d610dc99f73b51bd5aa5
 
 ## OpenAPI Surface (full contract, not embedded)
-- path_count: 1023
-- operation_count: 1135
+- path_count: 1025
+- operation_count: 1137
 - full_spec: openapi-export.json (repo root) or GET /api/openapi.json
 
 ## Integrity
-- llm_txt_sha256: 17f2c2c1d3240463bffb7a5d82a6166c621ddd5103ce110cd38ff18a676b767b
+- llm_txt_sha256: 850e1226f49359339bc15a7940a22ea692847a17a50217c8f1e500e330a74f2a

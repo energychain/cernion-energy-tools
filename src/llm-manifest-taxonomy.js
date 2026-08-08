@@ -231,6 +231,7 @@ const OPENAPI_TAG_DOMAIN_MAP = {
   'MCP Server': 'platform',
   'MaStR Monitor': 'grid-ops',
   'MaStR Data Quality': 'grid-ops',
+  Municipality: 'grid-planning',
   VNBMonitor: 'grid-ops',
   NBPMonitor: 'grid-ops',
   'netzkoppelvertrag-workflow': 'governance',

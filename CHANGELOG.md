@@ -5,6 +5,24 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.99.8] — 2026-08-09
+
+### Added
+- **`municipality` service — dedicated Amtlicher Gemeindeschlüssel (AGS) lookup**, requested after a user asked whether the platform could resolve the AGS by name, PLZ, or geo-coordinates. `resolveMunicipalityProfile()` (`src/municipality-resolver.js`, offline against Destatis Gemeindegrenzen 2022/GV100) already covered name/PLZ/AGS, but was only reachable indirectly through `dashboard-api.municipalEnergyValueAnalysisStatus` — a much heavier economic Lagebild endpoint with mandatory year/scenario params. `GET /api/municipality/lookup` (`services/municipality.service.js`) exposes it directly with no extra computation.
+- **`GET /api/municipality/reverse-geocode` — coordinates to AGS**, closing a gap that didn't exist in any form before: no reverse-geocoding or point-in-polygon capability against municipality boundaries existed anywhere in the codebase (`src/data/gemeinden-2022.json` has no polygon geometry, only attributes). `src/municipality-geocoder.js` reverse-geocodes via OpenStreetMap Nominatim (`extratags['de:amtlicher_gemeindeschluessel']`, verified live against both a Kreisfreie Stadt and a regular Gemeinde before implementing), then joins the resolved AGS back through the same `resolveMunicipalityProfile()` used by `lookup` for a full profile. Sends an explicit `User-Agent` header from the start — Nominatim's usage policy requires one, and axios sends none by default in Node (the same class of bug fixed for Overpass below). `NOMINATIM_ENDPOINT` env var for a private mirror under sustained load, mirroring the existing `OVERPASS_ENDPOINT`/`OEP_API_BASE_URL` pattern.
+
+### Fixed
+- **`znp.addLayer1` (OSM building-clustering job) failed at the first tile fetch with a 406 from Overpass** — `src/znp-osm-buildings.js`'s `fetchBuildingTile()` sent no `User-Agent` header; overpass-api.de's Apache front-end rejects User-Agent-less requests with 406 rather than a more obvious 403. Reproduced live against the real endpoint before and after the fix.
+- **`oep.search` threw an unhandled `AxiosError` (404) in production** whenever called without a `schema` filter. Root cause: it built its candidate set via `oep.listSchemas` → `oep.listTables`, both of which call OEP REST routes (`/schema/`, `/schema/:schema/tables/`) that no longer exist on the live Open Energy Platform (confirmed live: both consistently return OEP's themed HTML 404 page, not JSON, across many schema names — a permanent upstream removal, not an outage). `oep.search` now searches the curated `CERNION_RELEVANT_OEP_TABLES` catalog directly instead, with the same response shape and no external call. `oep.listSchemas` also gets the same 404 → clean `MoleculerClientError` handling `listTables`/`getTableMeta`/`query` already had, so a direct call now fails cleanly instead of leaking a raw axios stack trace.
+
+### Data
+- **`society.destatis_zensus_population_per_bkg_vg250_6_gem` added to `CERNION_RELEVANT_OEP_TABLES`** (`src/oep-tables.js`) — Zensus 2011 population per municipality (`ags_0`, `census_sum`/`census_count`/`census_density`), enabling an OSM-independent consumption-estimation path via `oep.query`/`oep.getTableMeta`/`oep.energyTables` as an alternative to Layer 1 OSM building clustering. Verified live against the real OEP `society` schema; not discoverable via `oep.search` before the fix above existed, since that schema's real table names aren't derivable from the (broken) discovery endpoints.
+
+### Testing
+- `tests/municipality.service.test.js` (new, 16 tests) — name/PLZ/AGS lookup, coordinate reverse-geocoding including the User-Agent header, Nominatim 404/outage/no-match handling, and the case where a geocoded AGS isn't in the local GV100 snapshot.
+- `tests/oep.service.test.js` extended (5 new tests) — `oep.search` catalog-based matching (name, description, schema filter, no-match, and an explicit assertion that `axios.get` is never called) and `oep.listSchemas` 404 handling.
+- Full regression: `tests/oep.service.test.js`, `tests/agent.service.test.js`, `tests/api.service.test.js`, `tests/municipality.service.test.js` — all pass.
+
 ## [0.99.7] — 2026-08-04
 
 ### Security

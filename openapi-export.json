@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.99.7",
+    "version": "0.99.8",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.\n\nFor the public instance at https://api.cernion.de/, create your token at https://cernion.de/cet-token/."
   },
   "servers": [
@@ -50946,6 +50946,156 @@
         }
       }
     },
+    "/api/municipality/lookup": {
+      "get": {
+        "operationId": "municipality_lookup",
+        "summary": "Look up a German municipality by name, PLZ, or AGS",
+        "tags": [
+          "Municipality"
+        ],
+        "responses": {
+          "200": {
+            "description": "Municipality profile (found:false if unresolved)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "found": {
+                      "type": "boolean"
+                    },
+                    "name": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "ags": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "state": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "postalCode": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "population": {
+                      "type": "integer",
+                      "nullable": true
+                    },
+                    "areaSqKm": {
+                      "type": "number",
+                      "nullable": true
+                    },
+                    "sourceStatus": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Resolves a municipality profile (AGS, name, Bundesland, population, PLZ) from a municipality name, a 5-digit PLZ, or an Amtlicher Gemeindeschlüssel (AGS). Offline lookup against Destatis Gemeindegrenzen 2022 (GV100, 10,990 municipalities) — no external API call. found:true with population:null means the name/PLZ resolved but there was no Destatis GV100 match (name+state known only).",
+        "parameters": [
+          {
+            "name": "municipality",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "Hockenheim"
+            },
+            "description": "Municipality name or 5-digit PLZ."
+          },
+          {
+            "name": "ags",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "08226032"
+            },
+            "description": "Amtlicher Gemeindeschlüssel, takes priority over municipality."
+          }
+        ]
+      }
+    },
+    "/api/municipality/reverse-geocode": {
+      "get": {
+        "operationId": "municipality_reverseGeocode",
+        "summary": "Resolve a German municipality (AGS) from WGS84 coordinates",
+        "tags": [
+          "Municipality"
+        ],
+        "responses": {
+          "200": {
+            "description": "Municipality profile resolved from coordinates (found:false if unresolved)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "found": {
+                      "type": "boolean"
+                    },
+                    "name": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "ags": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "state": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "postalCode": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "population": {
+                      "type": "integer",
+                      "nullable": true
+                    },
+                    "areaSqKm": {
+                      "type": "number",
+                      "nullable": true
+                    },
+                    "sourceStatus": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Reverse-geocodes a lat/lon pair via OpenStreetMap Nominatim to a German Amtlicher Gemeindeschlüssel (AGS), then joins it against the same Destatis GV100 profile as GET /municipality/lookup. found:false means the coordinates do not fall inside a German municipality boundary known to Nominatim (e.g. outside Germany, or open water). Live external call — not cached; the public Nominatim instance is rate-limited to ~1 request/second, set NOMINATIM_ENDPOINT for a private mirror under sustained load.",
+        "parameters": [
+          {
+            "name": "lat",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "example": 49.3183
+            }
+          },
+          {
+            "name": "lon",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "example": 8.5495
+            }
+          }
+        ]
+      }
+    },
     "/api/nbp-monitor/:bdewCode": {
       "get": {
         "operationId": "nbp-monitor_snapshot",
@@ -52908,7 +53058,7 @@
             }
           }
         },
-        "description": "Case-insensitive substring search across all OEP table names and descriptions. Optionally scoped to a specific schema. Uses the cached table list (24 h TTL) — no per-search API call is made to OEP. Useful for discovering scenario datasets, e.g. \"NEP\", \"Kohleausstieg\", \"photovoltaik\".",
+        "description": "Case-insensitive substring search over the curated, Cernion-relevant OEP table catalog (src/oep-tables.js) — not a live full-catalog search against OEP. OEP's own schema/table discovery REST endpoints were removed upstream and no longer respond with JSON, so free-text discovery across the entire platform is not available; use oep.query directly if you already know an exact schema/table pair that is not in the curated list. Optionally scoped to a specific schema.",
         "parameters": [
           {
             "name": "q",
@@ -91218,5 +91368,5 @@
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.99.7"
+  "x-version": "0.99.8"
 }

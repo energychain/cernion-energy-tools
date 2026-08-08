@@ -1,15 +1,15 @@
 {
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
-  "packageVersion": "0.99.7",
-  "sourceOpenApiHash": "fa9819ed0996deebfa6b2bf9c417f1dc49d90ddd5a01146a47a9b0dd9442c873",
+  "packageVersion": "0.99.8",
+  "sourceOpenApiHash": "756dfeeaf6213d72069c758a2d55b9a637d971681f58d610dc99f73b51bd5aa5",
   "coverage": {
-    "rawOperationCount": 1135,
-    "operationCount": 879,
-    "agentableCount": 877,
+    "rawOperationCount": 1137,
+    "operationCount": 881,
+    "agentableCount": 879,
     "nonAgentableCount": 2,
     "byOperationKind": {
-      "data_read": 385,
+      "data_read": 387,
       "admin": 8,
       "object_store_write": 229,
       "process_step": 20,
@@ -62609,6 +62609,161 @@
       "aliases": [
         "POST /api/mscons-import/parse"
       ]
+    },
+    {
+      "operationId": "municipality_lookup",
+      "method": "GET",
+      "path": "/api/municipality/lookup",
+      "service": "municipality",
+      "action": "municipality.lookup",
+      "summary": "Look up a German municipality by name, PLZ, or AGS",
+      "tags": [
+        "Municipality"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "municipality.lookup"
+      ],
+      "domains": [
+        "grid-planning"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "municipality:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [],
+        "optional": [
+          {
+            "name": "municipality",
+            "in": "query",
+            "type": "string",
+            "description": "Municipality name or 5-digit PLZ.",
+            "extractionHint": null
+          },
+          {
+            "name": "ags",
+            "in": "query",
+            "type": "string",
+            "description": "Amtlicher Gemeindeschlüssel, takes priority over municipality.",
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "municipality",
+          "lookup",
+          "look",
+          "up",
+          "german",
+          "by",
+          "name,",
+          "plz,",
+          "or",
+          "ags"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me look up a german municipality by name, plz, or ags"
+        ],
+        "synonyms": [
+          "Netzplanung",
+          "Zielnetzplanung",
+          "investment planning"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "municipality_reverseGeocode",
+      "method": "GET",
+      "path": "/api/municipality/reverse-geocode",
+      "service": "municipality",
+      "action": "municipality.reverseGeocode",
+      "summary": "Resolve a German municipality (AGS) from WGS84 coordinates",
+      "tags": [
+        "Municipality"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "municipality.reverse_geocode"
+      ],
+      "domains": [
+        "grid-planning"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "municipality:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [
+          {
+            "name": "lat",
+            "in": "query",
+            "type": "number",
+            "description": null,
+            "extractionHint": "geo_coordinate"
+          },
+          {
+            "name": "lon",
+            "in": "query",
+            "type": "number",
+            "description": null,
+            "extractionHint": "geo_coordinate"
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "municipality",
+          "reverse",
+          "geocode",
+          "resolve",
+          "german",
+          "(ags)",
+          "from",
+          "wgs84",
+          "coordinates"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me resolve a german municipality (ags) from wgs84 coordinates"
+        ],
+        "synonyms": [
+          "Netzplanung",
+          "Zielnetzplanung",
+          "investment planning"
+        ],
+        "curated": false
+      },
+      "aliases": []
     },
     {
       "operationId": "nbp-monitor_snapshot",
