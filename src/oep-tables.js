@@ -123,6 +123,16 @@ const CERNION_RELEVANT_OEP_TABLES = Object.freeze([
     cernionUseCase: 'Topologie-Validierung und Netzplanung',
     oeoClass: 'oeo:ElectricitySubstation',
   },
+  {
+    schema: 'society',
+    table: 'destatis_zensus_population_per_bkg_vg250_6_gem',
+    description:
+      'Zensus 2011 Bevölkerungsdaten je Gemeinde (census_sum, census_count, census_density), ' +
+      'aggregiert über BKG-VG250-Verwaltungsgrenzen und referenziert per Amtlichem ' +
+      'Gemeindeschlüssel (Feld ags_0).',
+    cernionUseCase: 'OSM-unabhängige Verbrauchsprognose über Gemeindeschlüssel (AGS) statt OSM-Gebäude-Clustering',
+    oeoClass: 'oeo:PopulationStatistic',
+  },
 ]);
 
 function getOepTableConfig(schema, table) {
