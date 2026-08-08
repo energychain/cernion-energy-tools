@@ -18,6 +18,8 @@ const {
 } = require('../src/gateway-request-classifiers');
 
 const DEFAULT_STORAGE_FILE = process.env.TOKEN_STORAGE_FILE || './uploads/.api-tokens.json';
+const DEFAULT_SIGNAL_QUEUE_FILE =
+  process.env.TOKEN_SIGNAL_QUEUE_FILE || './uploads/.api-token-signals.json';
 const MAX_NAME_LENGTH = 60;
 const ALLOWED_EXTRA_SCOPES = new Set([
   'vnb-monitor',
@@ -84,6 +86,64 @@ function normalizeScopes(scope, requestedScopes = []) {
   return [...scopes];
 }
 
+function classifyTokenUsageSignal(method, requestPath) {
+  const normalizedPath = String(requestPath || '')
+    .split('?')[0]
+    .toLowerCase();
+  if (normalizedPath === '/api/mcp' || normalizedPath.startsWith('/api/mcp/')) {
+    return { channel: 'mcp', signalStage: 'first_mcp_call', source: 'mcp-transport' };
+  }
+  if (normalizedPath.startsWith('/v1/')) {
+    return { channel: 'rest', signalStage: 'first_api_call', source: 'openai-facade' };
+  }
+  if (normalizedPath.startsWith('/api/')) {
+    return { channel: 'rest', signalStage: 'first_api_call', source: 'rest-gateway' };
+  }
+  if (method) {
+    return { channel: 'rest', signalStage: 'first_api_call', source: 'rest-gateway' };
+  }
+  return { channel: 'unknown', signalStage: null, source: 'token-manager' };
+}
+
+function isEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || ''));
+}
+
+function classifyContact(record) {
+  const identity = String(record.userId || record.name || '').trim();
+  const lower = identity.toLowerCase();
+  const internalPattern = /(stromdao|cernion|corrently|\btest\b|demo|^svc:|local|example)/i;
+  if (internalPattern.test(lower)) {
+    return {
+      contactEmail: null,
+      contactLabel: identity || null,
+      internalTest: true,
+      exclusionReason: 'internal_test',
+      followupStatus: 'excluded',
+    };
+  }
+  if (!isEmail(identity)) {
+    return {
+      contactEmail: null,
+      contactLabel: identity || null,
+      internalTest: false,
+      exclusionReason: 'no_business_contact',
+      followupStatus: 'excluded',
+    };
+  }
+  return {
+    contactEmail: identity,
+    contactLabel: identity,
+    internalTest: false,
+    exclusionReason: 'none',
+    followupStatus: 'none',
+  };
+}
+
+function buildQueueId(tokenId, signalStage) {
+  return `cetq_${sha256(`${tokenId}:${signalStage}`).slice(0, 16)}`;
+}
+
 // Tokens created before Issue #157 (tenant/user binding) have no userId on
 // record. They keep working but are flagged so callers can sunset them.
 function isLegacyToken(record) {
@@ -99,6 +159,7 @@ module.exports = {
 
   settings: {
     storageFile: DEFAULT_STORAGE_FILE,
+    signalQueueFile: DEFAULT_SIGNAL_QUEUE_FILE,
     maxTokensPerInstallation: 20,
   },
 
@@ -356,12 +417,22 @@ module.exports = {
         }
 
         if (trackUsage) {
-          tokens[matchIndex] = {
+          const usedAt = nowIso();
+          const usageSignal = classifyTokenUsageSignal(method, requestPath);
+          const updatedRecord = {
             ...record,
             usageCount: (record.usageCount || 0) + 1,
-            lastUsedAt: nowIso(),
+            lastUsedAt: usedAt,
           };
+          tokens[matchIndex] = updatedRecord;
           this.saveTokens(tokens);
+          if (usageSignal.signalStage && typeof this.recordTokenSignal === 'function') {
+            this.recordTokenSignal(updatedRecord, usageSignal.signalStage, {
+              signalAt: usedAt,
+              channel: usageSignal.channel,
+              source: usageSignal.source,
+            });
+          }
         }
 
         return {
@@ -375,6 +446,22 @@ module.exports = {
           userId: record.userId ?? null,
           legacy: isLegacyToken(record),
           active: true,
+        };
+      },
+    },
+
+    'signalQueue.list': {
+      handler(ctx) {
+        const { since, stage } = ctx.params || {};
+        const sinceTime = since ? Date.parse(since) : null;
+        const signals = this.loadTokenSignals()
+          .filter((entry) => !stage || entry.signalStage === stage)
+          .filter((entry) => !sinceTime || Date.parse(entry.signalAt) >= sinceTime)
+          .sort((a, b) => String(b.signalAt).localeCompare(String(a.signalAt)));
+        return {
+          success: true,
+          data: signals.map((entry) => this.toDisplaySafeSignal(entry)),
+          count: signals.length,
         };
       },
     },
@@ -482,6 +569,13 @@ module.exports = {
 
       tokens.push(record);
       this.saveTokens(tokens);
+      if (typeof this.recordTokenSignal === 'function') {
+        this.recordTokenSignal(record, 'token_registered', {
+          signalAt: createdAt,
+          channel: 'unknown',
+          source: 'token-manager',
+        });
+      }
 
       return {
         success: true,
@@ -500,6 +594,110 @@ module.exports = {
         message:
           'Token created. The plain token is shown only once. Copy it now and store it securely.',
       };
+    },
+
+    recordTokenSignal(record, signalStage, options = {}) {
+      const signalAt = options.signalAt || nowIso();
+      const channel = options.channel || 'unknown';
+      const source = options.source || 'token-manager';
+      const signals = this.loadTokenSignals();
+      const existingIndex = signals.findIndex(
+        (entry) => entry.tokenId === record.id && entry.signalStage === signalStage
+      );
+      if (existingIndex !== -1) {
+        const existing = signals[existingIndex];
+        signals[existingIndex] = {
+          ...existing,
+          usageCount: record.usageCount || existing.usageCount || 0,
+          lastUsedAt: record.lastUsedAt || existing.lastUsedAt || null,
+          updatedAt: signalAt,
+        };
+        this.saveTokenSignals(signals);
+        return signals[existingIndex];
+      }
+
+      const contact = classifyContact(record);
+      const signal = {
+        queueId: buildQueueId(record.id, signalStage),
+        tokenId: record.id,
+        tokenMasked: record.tokenMasked || null,
+        contactEmail: contact.contactEmail,
+        contactLabel: contact.contactLabel,
+        tenantId: record.tenantId || null,
+        source,
+        sourceEventId: `${record.id}:${signalStage}`,
+        signalAt,
+        signalStage,
+        channel,
+        restIndicator: channel === 'rest',
+        mcpIndicator: channel === 'mcp',
+        usageCount: record.usageCount || 0,
+        lastUsedAt: record.lastUsedAt || null,
+        crmContactId: null,
+        followupStatus: contact.followupStatus,
+        exclusionReason: record.active === false ? 'revoked' : contact.exclusionReason,
+        internalTest: contact.internalTest,
+        createdAt: signalAt,
+        updatedAt: signalAt,
+      };
+      signals.push(signal);
+      this.saveTokenSignals(signals);
+      return signal;
+    },
+
+    toDisplaySafeSignal(entry) {
+      return {
+        queueId: entry.queueId,
+        tokenId: entry.tokenId,
+        tokenMasked: entry.tokenMasked || null,
+        contactEmail: entry.contactEmail || null,
+        contactLabel: entry.contactLabel || null,
+        tenantId: entry.tenantId || null,
+        source: entry.source,
+        sourceEventId: entry.sourceEventId,
+        signalAt: entry.signalAt,
+        signalStage: entry.signalStage,
+        channel: entry.channel,
+        restIndicator: entry.restIndicator === true,
+        mcpIndicator: entry.mcpIndicator === true,
+        usageCount: entry.usageCount || 0,
+        lastUsedAt: entry.lastUsedAt || null,
+        crmContactId: entry.crmContactId || null,
+        followupStatus: entry.followupStatus || 'none',
+        exclusionReason: entry.exclusionReason || 'none',
+        internalTest: entry.internalTest === true,
+        createdAt: entry.createdAt,
+        updatedAt: entry.updatedAt,
+      };
+    },
+
+    loadTokenSignals() {
+      try {
+        const filePath = this.settings.signalQueueFile;
+        if (!fs.existsSync(filePath)) return [];
+        const raw = fs.readFileSync(filePath, 'utf8');
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (err) {
+        this.logger.warn(
+          `Failed to load token signals from ${this.settings.signalQueueFile}: ${err.message}`
+        );
+        return [];
+      }
+    },
+
+    saveTokenSignals(signals) {
+      const filePath = this.settings.signalQueueFile;
+      ensureDirForFile(filePath);
+      fs.writeFileSync(
+        filePath,
+        JSON.stringify(
+          signals.map((s) => this.toDisplaySafeSignal(s)),
+          null,
+          2
+        ),
+        'utf8'
+      );
     },
 
     loadTokens() {

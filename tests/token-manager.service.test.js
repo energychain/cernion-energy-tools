@@ -9,16 +9,19 @@ const TokenManagerService = require('../services/token-manager.service');
 describe('token-manager.service', () => {
   let broker;
   let storageFile;
+  let signalQueueFile;
 
   beforeAll(async () => {
     storageFile = path.join(os.tmpdir(), `token-manager-${Date.now()}.json`);
+    signalQueueFile = path.join(os.tmpdir(), `token-signals-${Date.now()}.json`);
     broker = new ServiceBroker({ logger: false });
     broker.createService({
       ...TokenManagerService,
       settings: {
         ...TokenManagerService.settings,
         storageFile,
-        maxTokensPerInstallation: 10,
+        signalQueueFile,
+        maxTokensPerInstallation: 50,
       },
     });
     await broker.start();
@@ -27,6 +30,7 @@ describe('token-manager.service', () => {
   afterAll(async () => {
     await broker.stop();
     if (fs.existsSync(storageFile)) fs.unlinkSync(storageFile);
+    if (fs.existsSync(signalQueueFile)) fs.unlinkSync(signalQueueFile);
   });
 
   it('creates a token and returns plaintext only once', async () => {
@@ -325,6 +329,155 @@ describe('token-manager.service', () => {
     expect(verified.tenantId).toBeNull();
     expect(verified.userId).toBeNull();
     expect(verified.legacy).toBe(true);
+  });
+
+  describe('Felix token signal queue', () => {
+    beforeEach(() => {
+      fs.writeFileSync(storageFile, '[]', 'utf8');
+      if (fs.existsSync(signalQueueFile)) fs.unlinkSync(signalQueueFile);
+    });
+
+    it('records token_registered without storing raw tokens or headers in the display-safe export', async () => {
+      const created = await broker.call('token-manager.create', {
+        name: 'Business Trial',
+        scope: 'read-only',
+        tenantId: 'stadtwerk-a',
+        userId: 'buyer@stadtwerk-a.de',
+      });
+
+      const queue = await broker.call('token-manager.signalQueue.list');
+      expect(queue.success).toBe(true);
+      expect(queue.data).toHaveLength(1);
+      expect(queue.data[0]).toMatchObject({
+        tokenId: created.data.id,
+        tokenMasked: expect.stringContaining('****'),
+        signalStage: 'token_registered',
+        channel: 'unknown',
+        source: 'token-manager',
+        contactEmail: 'buyer@stadtwerk-a.de',
+        followupStatus: 'none',
+        exclusionReason: 'none',
+        internalTest: false,
+      });
+
+      const serialized = JSON.stringify(queue.data);
+      expect(serialized).not.toContain(created.data.token);
+      expect(serialized).not.toMatch(/authorization|bearer|magic|prompt|payload|user-agent|ip/i);
+    });
+
+    it('records first_api_call for REST/OpenAI-compatible token usage only once', async () => {
+      const created = await broker.call('token-manager.create', {
+        name: 'OpenAI Facade',
+        scope: 'full-access',
+        tenantId: 'stadtwerk-a',
+        userId: 'api.buyer@utility.de',
+      });
+
+      await broker.call('token-manager.verify', {
+        token: created.data.token,
+        method: 'POST',
+        path: '/v1/chat/completions',
+        trackUsage: true,
+      });
+      await broker.call('token-manager.verify', {
+        token: created.data.token,
+        method: 'POST',
+        path: '/api/grid-operations/vnb-lookup',
+        trackUsage: true,
+      });
+
+      const queue = await broker.call('token-manager.signalQueue.list');
+      const apiSignals = queue.data.filter((entry) => entry.signalStage === 'first_api_call');
+      expect(apiSignals).toHaveLength(1);
+      expect(apiSignals[0]).toMatchObject({
+        tokenId: created.data.id,
+        channel: 'rest',
+        restIndicator: true,
+        mcpIndicator: false,
+        source: 'openai-facade',
+      });
+    });
+
+    it('records first_mcp_call separately and idempotently for /api/mcp usage', async () => {
+      const created = await broker.call('token-manager.create', {
+        name: 'MCP Client',
+        scope: 'full-access',
+        tenantId: 'stadtwerk-a',
+        userId: 'mcp.buyer@utility.de',
+      });
+
+      await broker.call('token-manager.verify', {
+        token: created.data.token,
+        method: 'POST',
+        path: '/api/mcp',
+        trackUsage: true,
+      });
+      await broker.call('token-manager.verify', {
+        token: created.data.token,
+        method: 'POST',
+        path: '/api/mcp',
+        trackUsage: true,
+      });
+
+      const queue = await broker.call('token-manager.signalQueue.list');
+      const mcpSignals = queue.data.filter((entry) => entry.signalStage === 'first_mcp_call');
+      expect(mcpSignals).toHaveLength(1);
+      expect(mcpSignals[0]).toMatchObject({
+        tokenId: created.data.id,
+        channel: 'mcp',
+        restIndicator: false,
+        mcpIndicator: true,
+        source: 'mcp-transport',
+      });
+    });
+
+    it('excludes internal/test/no-business contacts while keeping only display-safe fields', async () => {
+      const created = await broker.call('token-manager.createCli', {
+        name: 'Demo Smoke Token',
+        tenantId: 'stadtwerk-a',
+        userId: 'svc:cernion-demo',
+      });
+
+      await broker.call('token-manager.verify', {
+        token: created.data.token,
+        method: 'GET',
+        path: '/api/assets/list',
+        trackUsage: true,
+      });
+
+      const queue = await broker.call('token-manager.signalQueue.list');
+      expect(queue.data).toHaveLength(2);
+      for (const entry of queue.data) {
+        expect(entry.contactEmail).toBeNull();
+        expect(entry.internalTest).toBe(true);
+        expect(entry.exclusionReason).toBe('internal_test');
+        expect(Object.keys(entry).sort()).toEqual(
+          [
+            'channel',
+            'contactEmail',
+            'contactLabel',
+            'createdAt',
+            'crmContactId',
+            'exclusionReason',
+            'followupStatus',
+            'internalTest',
+            'lastUsedAt',
+            'mcpIndicator',
+            'queueId',
+            'restIndicator',
+            'signalAt',
+            'signalStage',
+            'source',
+            'sourceEventId',
+            'tenantId',
+            'tokenId',
+            'tokenMasked',
+            'updatedAt',
+            'usageCount',
+          ].sort()
+        );
+      }
+    });
   });
 
   describe('createCli action (permanent CLI path)', () => {
