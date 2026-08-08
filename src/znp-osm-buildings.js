@@ -64,7 +64,12 @@ async function fetchBuildingTile(tile) {
 
   const response = await axios.post(OVERPASS_ENDPOINT, `data=${encodeURIComponent(query)}`, {
     timeout: 35000,
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      // overpass-api.de's Apache front-end returns 406 for requests with no
+      // User-Agent header at all (axios sends none by default in Node).
+      'User-Agent': 'cernion-energy-tools/znp-layer1 (+https://cernion.energy)',
+    },
   });
 
   return (response.data.elements || []).map(parseOverpassWay).filter(Boolean);
