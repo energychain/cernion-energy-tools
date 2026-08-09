@@ -9,9 +9,11 @@
 jest.mock('axios');
 
 const axios = require('axios');
+const { haversineDistanceM } = require('../src/znp-clustering-heuristics');
 const {
   geocodeLocationToBbox,
   bboxAreaSqKm,
+  padBbox,
   classifyVoltage,
   isVoltageCompatible,
   nearestPointOnWay,
@@ -23,6 +25,8 @@ const {
   shortestPath,
   MAX_BBOX_AREA_SQ_KM,
   PROXIMITY_THRESHOLD_M,
+  MAX_NEAREST_SUBSTATION_DISTANCE_M,
+  FETCH_PADDING_M,
 } = require('../src/osm-grid-topology');
 
 beforeEach(() => {
@@ -152,6 +156,36 @@ describe('bboxAreaSqKm', () => {
 });
 
 // ---------------------------------------------------------------------------
+// padBbox — widens the fetch area so infrastructure just outside the
+// caller's exact bbox (e.g. a substation's real feeding line, or the real
+// nearest substation for the transformer fallback) is still visible.
+// ---------------------------------------------------------------------------
+describe('padBbox', () => {
+  it('expands the bbox outward on every side', () => {
+    const bbox = { south: 49.3, west: 8.5, north: 49.31, east: 8.51 };
+    const padded = padBbox(bbox, 1000);
+    expect(padded.south).toBeLessThan(bbox.south);
+    expect(padded.north).toBeGreaterThan(bbox.north);
+    expect(padded.west).toBeLessThan(bbox.west);
+    expect(padded.east).toBeGreaterThan(bbox.east);
+  });
+
+  it('pads by approximately the requested distance in metres', () => {
+    const bbox = { south: 49.3, west: 8.5, north: 49.31, east: 8.51 };
+    const padded = padBbox(bbox, 4000);
+    const latPadM = haversineDistanceM(bbox.south, bbox.west, padded.south, bbox.west);
+    expect(latPadM).toBeGreaterThan(3900);
+    expect(latPadM).toBeLessThan(4100);
+  });
+
+  it('zero padding returns the same extent', () => {
+    const bbox = { south: 49.3, west: 8.5, north: 49.31, east: 8.51 };
+    const padded = padBbox(bbox, 0);
+    expect(padded).toEqual(bbox);
+  });
+});
+
+// ---------------------------------------------------------------------------
 describe('geocodeLocationToBbox', () => {
   it('parses Nominatim boundingbox (south,north,west,east order) into {south,west,north,east}', async () => {
     axios.get.mockResolvedValueOnce({
@@ -201,6 +235,19 @@ describe('fetchGridElements', () => {
     await fetchGridElements({ south: 49.27, west: 8.48, north: 49.36, east: 8.62 });
     const [, , config] = axios.post.mock.calls[0];
     expect(config.headers['User-Agent']).toBeTruthy();
+  });
+
+  it('pads the queried bbox by FETCH_PADDING_M before sending the Overpass query (boundary-truncation fix)', async () => {
+    axios.post.mockResolvedValueOnce({ data: { elements: [] } });
+    const bbox = { south: 49.27, west: 8.48, north: 49.36, east: 8.62 };
+    await fetchGridElements(bbox);
+    const [, body] = axios.post.mock.calls[0];
+    const decoded = decodeURIComponent(body);
+    // The unpadded south/west bounds should not appear verbatim -- the
+    // query must use the widened (smaller south, smaller west) bbox.
+    expect(decoded).not.toContain(`(${bbox.south},${bbox.west},`);
+    const padded = padBbox(bbox, FETCH_PADDING_M);
+    expect(decoded).toContain(`${padded.south},${padded.west},${padded.north},${padded.east}`);
   });
 
   it('excludes German railway traction power lines (16.7 Hz / DB Energie) from the query', async () => {
@@ -351,6 +398,75 @@ describe('buildGraph', () => {
     const { edges } = buildGraph(nodesById, ehsWay, null);
     expect(edges).toHaveLength(1);
     expect(edges[0].voltageLevel).toBe('EHS');
+  });
+
+  // ─── Nearest-substation fallback (the Weinheim MS-cable-is-underground fix) ──
+  describe('nearest-substation fallback for unattached transformers', () => {
+    it('pairs a transformer with no mapped-line attachment to the nearest substation', () => {
+      const nodesById = new Map([
+        ['1', { id: 1, lat: 49.3, lon: 8.5, tags: { power: 'transformer' } }], // no nearby way at all
+        ['2', { id: 2, lat: 49.301, lon: 8.501, tags: { power: 'substation' } }], // ~130m away
+        ['3', { id: 3, lat: 49.4, lon: 8.6, tags: { power: 'substation' } }], // far away
+      ]);
+      const { nodes, edges } = buildGraph(nodesById, [], null);
+      expect(nodes).toHaveLength(3);
+      expect(edges).toHaveLength(1);
+      expect(edges[0].evidenceType).toBe('nearest_substation_inferred');
+      expect(edges[0].voltageLevel).toBe('MS');
+      expect([edges[0].from, edges[0].to]).toContain('node/1');
+      expect([edges[0].from, edges[0].to]).toContain('node/2'); // the nearer of the two substations
+    });
+
+    it('does not pair a transformer with a substation beyond MAX_NEAREST_SUBSTATION_DISTANCE_M', () => {
+      const nodesById = new Map([
+        ['1', { id: 1, lat: 49.3, lon: 8.5, tags: { power: 'transformer' } }],
+        ['2', { id: 2, lat: 49.6, lon: 8.9, tags: { power: 'substation' } }], // tens of km away
+      ]);
+      const distanceM = haversineDistanceM(49.3, 8.5, 49.6, 8.9);
+      expect(distanceM).toBeGreaterThan(MAX_NEAREST_SUBSTATION_DISTANCE_M);
+      const { edges } = buildGraph(nodesById, [], null);
+      expect(edges).toHaveLength(0);
+    });
+
+    it('does not apply the fallback to a transformer that already has a real mapped-line edge (Hockenheim case unaffected)', () => {
+      const nodesById = new Map([
+        ['1', { id: 1, lat: 49.3, lon: 8.5, tags: { power: 'transformer' } }],
+        ['2', { id: 2, lat: 49.31, lon: 8.5, tags: { power: 'transformer' } }],
+        ['3', { id: 3, lat: 49.301, lon: 8.501, tags: { power: 'substation' } }], // near node 1, but node 1 is already connected
+      ]);
+      const way = [{ id: 900, nodes: [1, 2], tags: { power: 'minor_line', voltage: '20000' } }];
+      const { edges } = buildGraph(nodesById, way, null);
+      expect(edges).toHaveLength(1);
+      expect(edges[0].evidenceType).toBe('mapped_line');
+    });
+
+    it('leaves a transformer isolated when no substation exists in the fetch at all', () => {
+      const nodesById = new Map([
+        ['1', { id: 1, lat: 49.3, lon: 8.5, tags: { power: 'transformer' } }],
+      ]);
+      const { nodes, edges } = buildGraph(nodesById, [], null);
+      expect(nodes).toHaveLength(1);
+      expect(edges).toHaveLength(0);
+    });
+
+    it('respects voltageLevelFilter: excluded when filtering for a level other than MS', () => {
+      const nodesById = new Map([
+        ['1', { id: 1, lat: 49.3, lon: 8.5, tags: { power: 'transformer' } }],
+        ['2', { id: 2, lat: 49.301, lon: 8.501, tags: { power: 'substation' } }],
+      ]);
+      expect(buildGraph(nodesById, [], 'HS').edges).toHaveLength(0);
+      expect(buildGraph(nodesById, [], 'MS').edges).toHaveLength(1);
+      expect(buildGraph(nodesById, [], null).edges).toHaveLength(1);
+    });
+
+    it('does not fall back for substations (only power=transformer nodes get the inference)', () => {
+      const nodesById = new Map([
+        ['1', { id: 1, lat: 49.3, lon: 8.5, tags: { power: 'substation' } }], // isolated, no line
+        ['2', { id: 2, lat: 49.301, lon: 8.501, tags: { power: 'substation' } }],
+      ]);
+      const { edges } = buildGraph(nodesById, [], null);
+      expect(edges).toHaveLength(0);
+    });
   });
 });
 
