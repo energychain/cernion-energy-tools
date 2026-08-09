@@ -153,26 +153,36 @@ const RETRY_BACKOFF_MS = 2000;
 /**
  * Fetches grid elements and builds the graph, retrying when the result looks
  * like a truncated/degraded Overpass response rather than a genuinely empty
- * area:
- *   (a) real line ways present, at least one topology node present, but
- *       zero derivable edges (v0.99.9 regression: node portion of a
- *       compound query silently truncated while the way portion stayed
- *       complete — identical query, back to back, alternated between
- *       8 nodes/106 ways and 2 unrelated/wrong nodes/106 ways, no error,
- *       no `remark` field);
- *   (b) a completely empty response — zero ways AND zero nodes (v0.99.10
- *       regression: the same known-populated bbox, reproduced 3x, returned
- *       nothing at all with no error either — an even more severe version
- *       of the same silent-truncation failure mode, not caught by (a)'s
- *       `ways.length > 0` guard).
+ * area. Three regressions were found in production, each a more complete
+ * form of the same underlying failure (the public Overpass instance
+ * silently truncating part of a compound node+way query under load, with
+ * no error and no `remark` field, while the way portion stays complete):
+ *   (a) real line ways present, real (but wrong) topology nodes present,
+ *       zero derivable edges (v0.99.9: identical query back to back
+ *       alternated between 8 correct nodes/106 ways and 2 unrelated
+ *       nodes/106 ways);
+ *   (b) a completely empty response — zero ways AND zero nodes (v0.99.10:
+ *       the same bbox, reproduced 3x, returned nothing at all);
+ *   (c) real line ways present, but *zero* tagged topology nodes at all —
+ *       not wrong ones, none (v0.99.11: reproduced 5/5 with the v0.99.10
+ *       fix already deployed, because that fix's "partially truncated"
+ *       clause still required `nodes.length > 0` and so didn't cover this
+ *       case; the "totally empty" clause didn't apply either since
+ *       `ways.length > 0` here).
+ *
+ * The fix is a single unified rule: if ways were returned, any zero-edge
+ * result is implausible regardless of node count; if no ways were
+ * returned, only a fully empty response (no nodes either) is implausible —
+ * isolated transformers with no nearby lines in the queried bbox is a
+ * legitimate, non-implausible result and shouldn't cost an extra retry.
  *
  * This does mean a *genuinely* empty area (no power infrastructure at all
  * within the bbox) pays for one extra retry before settling — an acceptable
  * cost given this platform only ever queries real German municipality
  * areas, which essentially always have some grid infrastructure. Not a bug
- * in buildGraph() itself in either case (unchanged, still covered by its
- * deterministic unit tests) — the failure is entirely at the Overpass fetch
- * layer.
+ * in buildGraph() itself in any of the three cases (unchanged, still
+ * covered by its deterministic unit tests) — the failure is entirely at
+ * the Overpass fetch layer.
  *
  * @param {{south,west,north,east}} bbox
  * @param {string|null} voltageLevelFilter
@@ -194,10 +204,18 @@ async function fetchAndBuildGraph(bbox, voltageLevelFilter, options = {}) {
     const { nodesById, ways } = await fetchGridElements(bbox);
     result = buildGraph(nodesById, ways, voltageLevelFilter);
 
-    const partiallyTruncated =
-      ways.length > 0 && result.nodes.length > 0 && result.edges.length === 0;
-    const totallyEmpty = ways.length === 0 && nodesById.size === 0;
-    if (!partiallyTruncated && !totallyEmpty) break;
+    // Unified implausibility check: if real line ways were returned, *any*
+    // zero-edge result is suspicious regardless of how many topology nodes
+    // came back — this also covers a case found after v0.99.10 shipped:
+    // ways present but *zero* tagged substation/transformer nodes at all
+    // (not just the wrong ones), which the old two-clause check (requiring
+    // nodes.length > 0 for the "partially truncated" case) missed entirely
+    // and let through as a final NO_NODES result without ever retrying.
+    // If no ways were returned, only retry when nodes are absent too — a
+    // bbox with isolated transformers but no nearby lines is a legitimate,
+    // non-implausible result and shouldn't cost an extra retry.
+    const implausible = ways.length > 0 ? result.edges.length === 0 : nodesById.size === 0;
+    if (!implausible) break;
   }
 
   return { ...result, retried };

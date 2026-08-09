@@ -5,6 +5,18 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.99.12] — 2026-08-09
+
+### Fixed
+- **v0.99.11's fix still missed a third variant of the same failure: line ways present, but *zero* tagged substation/transformer nodes at all — not wrong ones, none.** A user regression report reproduced `osm-geo.gridTopology` returning `NO_NODES` deterministically 5/5 times (3× `boundingBox`, 1× `postalCode`, consistent ~5s response time matching the full 3-attempt retry budget being exhausted every time) — unlike the earlier reports, not randomly alternating between success and failure. Root cause: `fetchAndBuildGraph()`'s "partially truncated" retry clause required `nodes.length > 0` (v0.99.9's pattern: wrong-but-present nodes), and the "totally empty" clause required `ways.length === 0` (v0.99.10's pattern: nothing at all) — a response with ways present but zero tagged nodes fell through both and was accepted as final without ever retrying.
+- **Fix:** the two clauses are now a single unified rule — if line ways were returned, *any* zero-edge result is implausible and retried, regardless of node count; if no ways were returned, only a fully empty response (no nodes either) is implausible. An isolated transformer with no nearby line in the queried bbox is a legitimate, non-implausible result and correctly does not cost an extra retry. Verified exhaustively against all 5 reachable `(ways, nodes, edges)` combinations, not just the specific case from each bug report.
+- The public Overpass instance itself was also observed to be under unusually heavy load at the time of this report (the user's `substation-finder` — the still-external `mcp.cernion.de` path — failed 3/3 times in the same session, atypical for that endpoint; a live retest here also hit a clean `504`). Both things were true at once: a real, now-fixed logic gap, and a genuinely saturated shared public instance that no amount of retrying alone fully compensates for — the existing recommendation to point `OVERPASS_ENDPOINT` at a private instance for production load stands.
+
+### Testing
+- `tests/osm-grid-topology.test.js` extended (2 new tests) — retry-and-recover for "ways present, zero tagged nodes" (the exact v0.99.11 regression pattern), and a new explicit non-regression case: no ways but a real isolated tagged node does *not* trigger a retry.
+- Full suite: `osm-geo.service.test.js` + `osm-grid-topology.test.js` — 12 suites / 533 tests pass.
+- Exhaustive manual sweep of all 5 reachable `(ways, nodes, edges)` combinations against the actual implausibility check, confirming correct retry/no-retry behavior for each — done specifically to catch further gaps before shipping, given the pattern of the previous two fixes each missing an adjacent case.
+
 ## [0.99.11] — 2026-08-09
 
 ### Fixed
