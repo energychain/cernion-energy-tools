@@ -942,15 +942,14 @@ Returns both a detail list and **aggregated statistics**:
           );
         }
 
-        let nodesById;
-        let ways;
+        let nodes;
+        let edges;
         try {
-          ({ nodesById, ways } = await osmGridTopology.fetchGridElements(bbox));
+          ({ nodes, edges } = await osmGridTopology.fetchAndBuildGraph(bbox, voltageLevel || null));
         } catch (err) {
           return _degraded(_classifyDegradedReason(err.message), err.message);
         }
 
-        const { nodes, edges } = osmGridTopology.buildGraph(nodesById, ways, voltageLevel || null);
         const topologyMetrics = osmGridTopology.computeMetrics(nodes, edges);
 
         let pathAnalysis = { requested: false };
