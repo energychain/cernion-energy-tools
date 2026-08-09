@@ -20,10 +20,15 @@ const NOMINATIM_SEARCH_FIXTURE = [
   },
 ];
 
+// Endpoints of the 110kV (HS) way are 'substation' (not 'transformer') --
+// matches real-world convention (a plain transformer with unknown voltage
+// is restricted to NS/MS-only by isVoltageCompatible, since it's virtually
+// always a small distribution transformer in practice; only a substation
+// plausibly terminates a 110kV line).
 const GRID_TOPOLOGY_OVERPASS_FIXTURE = {
   elements: [
-    { type: 'node', id: 1738604612, lat: 49.3, lon: 8.5, tags: { power: 'transformer' } },
-    { type: 'node', id: 1738604613, lat: 49.31, lon: 8.51, tags: { power: 'transformer' } },
+    { type: 'node', id: 1738604612, lat: 49.3, lon: 8.5, tags: { power: 'substation' } },
+    { type: 'node', id: 1738604613, lat: 49.31, lon: 8.51, tags: { power: 'substation' } },
     { type: 'node', id: 1746960840, lat: 49.32, lon: 8.52, tags: { power: 'substation' } },
     { type: 'node', id: 9999999999, lat: 49.305, lon: 8.505, tags: { power: 'tower' } },
     {

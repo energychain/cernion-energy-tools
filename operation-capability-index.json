@@ -1,8 +1,8 @@
 {
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
-  "packageVersion": "0.99.12",
-  "sourceOpenApiHash": "3f953dccdb562fede01851497ce536df20a0b0a007562ceb557323f3ab90739e",
+  "packageVersion": "0.99.13",
+  "sourceOpenApiHash": "918e89b0df5922f0dc152219ac893c829d5ec375db6414dfc85eb21683b2b090",
   "coverage": {
     "rawOperationCount": 1137,
     "operationCount": 881,

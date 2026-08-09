@@ -13,6 +13,8 @@ const {
   geocodeLocationToBbox,
   bboxAreaSqKm,
   classifyVoltage,
+  isVoltageCompatible,
+  nearestPointOnWay,
   fetchGridElements,
   fetchAndBuildGraph,
   buildGraph,
@@ -20,6 +22,7 @@ const {
   countConnectedComponents,
   shortestPath,
   MAX_BBOX_AREA_SQ_KM,
+  PROXIMITY_THRESHOLD_M,
 } = require('../src/osm-grid-topology');
 
 beforeEach(() => {
@@ -48,6 +51,89 @@ describe('classifyVoltage', () => {
     expect(classifyVoltage(undefined)).toEqual({ level: 'UNKNOWN', volts: null });
     expect(classifyVoltage('')).toEqual({ level: 'UNKNOWN', volts: null });
     expect(classifyVoltage('not-a-number')).toEqual({ level: 'UNKNOWN', volts: null });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// isVoltageCompatible — the plausibility gate requested after a real report:
+// a low-voltage transformer must not connect to a 380kV transmission line
+// merely because it happens to be the geometrically nearest infrastructure.
+// ---------------------------------------------------------------------------
+describe('isVoltageCompatible', () => {
+  it('rejects an unknown-voltage transformer near an EHS (380kV) line', () => {
+    expect(isVoltageCompatible('UNKNOWN', 'transformer', 'EHS')).toBe(false);
+  });
+
+  it('rejects an unknown-voltage transformer near an HS (110kV) line', () => {
+    expect(isVoltageCompatible('UNKNOWN', 'transformer', 'HS')).toBe(false);
+  });
+
+  it('allows an unknown-voltage transformer near NS or MS lines (the common case)', () => {
+    expect(isVoltageCompatible('UNKNOWN', 'transformer', 'NS')).toBe(true);
+    expect(isVoltageCompatible('UNKNOWN', 'transformer', 'MS')).toBe(true);
+  });
+
+  it('allows an unknown-voltage substation near any line (substations span the full range)', () => {
+    expect(isVoltageCompatible('UNKNOWN', 'substation', 'NS')).toBe(true);
+    expect(isVoltageCompatible('UNKNOWN', 'substation', 'MS')).toBe(true);
+    expect(isVoltageCompatible('UNKNOWN', 'substation', 'HS')).toBe(true);
+    expect(isVoltageCompatible('UNKNOWN', 'substation', 'EHS')).toBe(true);
+  });
+
+  it('allows a known-voltage node to attach to a line at the same or adjacent bucket', () => {
+    expect(isVoltageCompatible('MS', 'substation', 'MS')).toBe(true);
+    expect(isVoltageCompatible('MS', 'substation', 'NS')).toBe(true); // MS/NS distribution transformer
+    expect(isVoltageCompatible('MS', 'substation', 'HS')).toBe(true); // HS/MS substation
+  });
+
+  it('rejects a known-voltage node more than one bucket away from the line', () => {
+    expect(isVoltageCompatible('NS', 'substation', 'EHS')).toBe(false);
+    expect(isVoltageCompatible('NS', 'substation', 'HS')).toBe(false);
+    expect(isVoltageCompatible('EHS', 'substation', 'NS')).toBe(false);
+  });
+
+  it('cannot judge compatibility against an unclassified line — allows it', () => {
+    expect(isVoltageCompatible('NS', 'transformer', 'UNKNOWN')).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// nearestPointOnWay — point-to-polyline projection used for proximity-based
+// edge derivation (replaces exact node-ID membership, see buildGraph).
+// ---------------------------------------------------------------------------
+describe('nearestPointOnWay', () => {
+  it('returns ~0 distance for a point exactly on a way vertex', () => {
+    const wayCoords = [
+      { lat: 49.3, lon: 8.5 },
+      { lat: 49.31, lon: 8.51 },
+    ];
+    const result = nearestPointOnWay(49.3, 8.5, wayCoords);
+    expect(result.distanceM).toBeLessThan(1);
+    expect(result.alongM).toBeCloseTo(0, 0);
+  });
+
+  it('returns a positive distance for a point offset from the way', () => {
+    const wayCoords = [
+      { lat: 49.3, lon: 8.5 },
+      { lat: 49.31, lon: 8.5 }, // due north, ~1.1km
+    ];
+    // ~0.0003 deg east of the line ~= ~25m at this latitude
+    const result = nearestPointOnWay(49.305, 8.5003, wayCoords);
+    expect(result.distanceM).toBeGreaterThan(15);
+    expect(result.distanceM).toBeLessThan(35);
+  });
+
+  it('orders the projection along a multi-segment way correctly', () => {
+    const wayCoords = [
+      { lat: 49.3, lon: 8.5 },
+      { lat: 49.31, lon: 8.5 },
+      { lat: 49.32, lon: 8.5 },
+    ];
+    const near0 = nearestPointOnWay(49.3, 8.5, wayCoords);
+    const nearMid = nearestPointOnWay(49.31, 8.5, wayCoords);
+    const nearEnd = nearestPointOnWay(49.32, 8.5, wayCoords);
+    expect(near0.alongM).toBeLessThan(nearMid.alongM);
+    expect(nearMid.alongM).toBeLessThan(nearEnd.alongM);
   });
 });
 
@@ -116,13 +202,28 @@ describe('fetchGridElements', () => {
     const [, , config] = axios.post.mock.calls[0];
     expect(config.headers['User-Agent']).toBeTruthy();
   });
+
+  it('excludes German railway traction power lines (16.7 Hz / DB Energie) from the query', async () => {
+    axios.post.mockResolvedValueOnce({ data: { elements: [] } });
+    await fetchGridElements({ south: 49.27, west: 8.48, north: 49.36, east: 8.62 });
+    const [, body] = axios.post.mock.calls[0];
+    const decoded = decodeURIComponent(body);
+    expect(decoded).toContain('"frequency"!="16.7"');
+    expect(decoded).toMatch(/"operator"!~"DB Energie\|Bahnstrom"/);
+  });
 });
 
 // ---------------------------------------------------------------------------
 describe('buildGraph', () => {
+  // node/2 is a 'substation' (not 'transformer') deliberately: it sits
+  // between an HS (110kV) and an MS (20kV) way, and a plain 'transformer'
+  // with unknown voltage is restricted to NS/MS-only by isVoltageCompatible
+  // (see dedicated voltage-plausibility tests below) — a substation is
+  // unrestricted, matching real German convention where HS-connected points
+  // are mapped as substations, not small distribution transformers.
   const nodesById = new Map([
     ['1', { id: 1, lat: 49.3, lon: 8.5, tags: { power: 'substation' } }],
-    ['2', { id: 2, lat: 49.31, lon: 8.51, tags: { power: 'transformer' } }],
+    ['2', { id: 2, lat: 49.31, lon: 8.51, tags: { power: 'substation' } }],
     ['3', { id: 3, lat: 49.32, lon: 8.52, tags: { power: 'transformer' } }],
     ['9', { id: 9, lat: 49.315, lon: 8.515, tags: { power: 'tower' } }],
   ]);
@@ -165,6 +266,91 @@ describe('buildGraph', () => {
     const { nodes, edges } = buildGraph(isolatedNodes, ways, null);
     expect(nodes).toHaveLength(1);
     expect(edges).toHaveLength(0);
+  });
+
+  // ─── Spatial proximity model (the Weinheim fix) ────────────────────────
+  // A straight north-south way; test nodes are offset east of it by a known
+  // distance rather than being literal way-members — reproducing the real
+  // finding that OSM substations/transformers are usually geometrically
+  // close to, but not topologically threaded into, the line way.
+  const straightWay = [
+    {
+      id: 700,
+      nodes: [1000, 1001],
+      tags: { power: 'line', voltage: '20000' }, // MS
+    },
+  ];
+  const straightWayNodes = new Map([
+    ['1000', { id: 1000, lat: 49.3, lon: 8.5 }],
+    ['1001', { id: 1001, lat: 49.31, lon: 8.5 }],
+  ]);
+
+  it('connects a substation ~22m from the line even though it is not a way-member (Weinheim pattern)', () => {
+    const nodesById = new Map(straightWayNodes);
+    nodesById.set('2000', {
+      id: 2000,
+      lat: 49.305,
+      lon: 8.5003, // ~22m east of the line at this latitude
+      tags: { power: 'substation' },
+    });
+    const { nodes, edges } = buildGraph(nodesById, straightWay, null);
+    expect(nodes).toHaveLength(1);
+    expect(edges).toHaveLength(0); // only one topology node -- can't form an edge alone, but it IS included
+    expect(nodes[0].osmId).toBe('node/2000');
+  });
+
+  it('connects two substations near the same line into an edge, even though neither is a way-member', () => {
+    const nodesById = new Map(straightWayNodes);
+    nodesById.set('2000', {
+      id: 2000,
+      lat: 49.302,
+      lon: 8.5003, // ~22m east, near the start
+      tags: { power: 'substation' },
+    });
+    nodesById.set('2001', {
+      id: 2001,
+      lat: 49.308,
+      lon: 8.5003, // ~22m east, near the end
+      tags: { power: 'substation' },
+    });
+    const { nodes, edges } = buildGraph(nodesById, straightWay, null);
+    expect(nodes).toHaveLength(2);
+    expect(edges).toHaveLength(1);
+    expect(edges[0].voltageLevel).toBe('MS');
+  });
+
+  it('does NOT connect a substation ~218m from the line (beyond PROXIMITY_THRESHOLD_M)', () => {
+    expect(PROXIMITY_THRESHOLD_M).toBeLessThan(218);
+    const nodesById = new Map(straightWayNodes);
+    nodesById.set('2000', { id: 2000, lat: 49.302, lon: 8.503, tags: { power: 'substation' } });
+    nodesById.set('2001', { id: 2001, lat: 49.308, lon: 8.503, tags: { power: 'substation' } });
+    const { edges } = buildGraph(nodesById, straightWay, null);
+    expect(edges).toHaveLength(0);
+  });
+
+  it('rejects an implausible connection: an unknown-voltage transformer right next to a 380kV (EHS) line', () => {
+    const ehsWay = [{ id: 800, nodes: [1000, 1001], tags: { power: 'line', voltage: '380000' } }];
+    const nodesById = new Map(straightWayNodes);
+    // 2m from the line -- would trivially match on proximity alone.
+    nodesById.set('2000', {
+      id: 2000,
+      lat: 49.305,
+      lon: 8.50003,
+      tags: { power: 'transformer' }, // no voltage tag -- unknown
+    });
+    const { nodes, edges } = buildGraph(nodesById, ehsWay, null);
+    expect(nodes).toHaveLength(1); // the node is still reported (found, isolated)
+    expect(edges).toHaveLength(0); // but not connected -- voltage-implausible
+  });
+
+  it('does connect a substation right next to the same 380kV line (substations are unrestricted)', () => {
+    const ehsWay = [{ id: 800, nodes: [1000, 1001], tags: { power: 'line', voltage: '380000' } }];
+    const nodesById = new Map(straightWayNodes);
+    nodesById.set('2000', { id: 2000, lat: 49.302, lon: 8.50003, tags: { power: 'substation' } });
+    nodesById.set('2001', { id: 2001, lat: 49.308, lon: 8.50003, tags: { power: 'substation' } });
+    const { edges } = buildGraph(nodesById, ehsWay, null);
+    expect(edges).toHaveLength(1);
+    expect(edges[0].voltageLevel).toBe('EHS');
   });
 });
 
@@ -297,7 +483,7 @@ describe('fetchAndBuildGraph', () => {
       // A tagged node present, but not a way-member of the one line way below
       // -- exactly the shape of the live regression (ways complete, nodes
       // silently wrong/incomplete).
-      { type: 'node', id: 4414642613, lat: 49.3, lon: 8.5, tags: { power: 'transformer' } },
+      { type: 'node', id: 4414642613, lat: 49.3, lon: 8.5, tags: { power: 'substation' } },
       {
         type: 'way',
         id: 500,
@@ -308,8 +494,8 @@ describe('fetchAndBuildGraph', () => {
   };
   const GOOD_RESPONSE = {
     elements: [
-      { type: 'node', id: 1738604612, lat: 49.3, lon: 8.5, tags: { power: 'transformer' } },
-      { type: 'node', id: 1738604613, lat: 49.31, lon: 8.51, tags: { power: 'transformer' } },
+      { type: 'node', id: 1738604612, lat: 49.3, lon: 8.5, tags: { power: 'substation' } },
+      { type: 'node', id: 1738604613, lat: 49.31, lon: 8.51, tags: { power: 'substation' } },
       {
         type: 'way',
         id: 500,
