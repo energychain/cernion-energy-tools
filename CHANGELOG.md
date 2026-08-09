@@ -5,6 +5,18 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.99.10] — 2026-08-09
+
+### Fixed
+- **`osm-geo.gridTopology` (v0.99.9's local implementation) regressed to 0 edges on a follow-up test — root-caused to the public Overpass instance itself, not the graph logic.** A user regression report reproduced only 2 (unconnected) nodes instead of the expected 8, with the 6 previously-confirmed-connected node IDs missing entirely. Investigated by replaying the exact same query multiple times back to back with the exact deployed User-Agent: results alternated between fully correct (8 nodes/106 ways, matching the original bug investigation exactly) and a clean 504, with no case of a wrong-but-successful response reproducing in that session — but the way count stayed constant at 106 every time, while node counts varied, consistent with the public Overpass instance silently truncating the node portion of a compound node+way query under load (no error, no `remark` field) while the way portion stays complete. This is a known-flaky characteristic of the shared public instance under the heavy repeated querying this investigation itself generated, not a bug in `buildGraph()` (unchanged, still covered by its existing deterministic unit tests).
+- **Fix: `osm-grid-topology.js` now retries once when a fetch result is topologically implausible** (`fetchAndBuildGraph()`) — real line ways present, at least one topology node present, but zero derivable edges is exactly the truncation signature observed live, and essentially never occurs for a complete fetch of a real mapped area. A short-backoff retry resolves this in practice; if it recurs, the caller still gets the honest "no line connectivity could be derived" `dataQuality` message from v0.99.9 rather than a fabricated explanation. Hard fetch errors (timeouts, 5xx, 429) are surfaced immediately as a proper `degradedReason` and are not retried by this mechanism — confirmed live during this fix: the public instance returned clean `504`/`429` responses that came through correctly as `SERVICE_ABORT` degraded responses rather than silently wrong data, itself a real improvement over the pre-v0.99.9 behavior.
+- Correction for anyone tracking this thread: this is no longer a `mcp.cernion.de` issue to report externally — `gridTopology`'s edge derivation has been fully local since v0.99.9 (`src/osm-grid-topology.js`), so this class of bug is now ours to fix directly, which is what this release does.
+
+### Testing
+- `tests/osm-grid-topology.test.js` extended (5 new tests) — `fetchAndBuildGraph()`: no retry on a plausible result, retry-and-recover on an implausible one, honest zero-edges result after exhausting retries, no retry for a genuinely empty area (no ways at all), and no retry on a hard fetch error (propagates immediately). Retry backoff is configurable (`backoffMs` option) so these run at full unit-test speed, not the real 2s production backoff.
+- `tests/osm-geo.service.test.js` — unchanged; the handler's external response contract didn't change, so existing `gridTopology` tests continue to cover it via the same fixtures.
+- Full suite: `osm-geo.service.test.js` + `osm-grid-topology.test.js` — 12 suites / 530 tests pass.
+
 ## [0.99.9] — 2026-08-09
 
 ### Fixed

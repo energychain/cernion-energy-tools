@@ -14,6 +14,7 @@ const {
   bboxAreaSqKm,
   classifyVoltage,
   fetchGridElements,
+  fetchAndBuildGraph,
   buildGraph,
   computeMetrics,
   countConnectedComponents,
@@ -281,5 +282,81 @@ describe('shortestPath', () => {
   it('returns found:false when an endpoint is not in the node set', () => {
     const result = shortestPath(nodes, edges, 'node/1', 'node/999');
     expect(result.found).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// fetchAndBuildGraph — retry on a topologically implausible zero-edge result
+// (regression: public Overpass observed live silently truncating the node
+// portion of a compound query under load, while the way portion stayed
+// complete — no error, no `remark` field, just fewer/wrong nodes).
+// ---------------------------------------------------------------------------
+describe('fetchAndBuildGraph', () => {
+  const IMPLAUSIBLE_RESPONSE = {
+    elements: [
+      // A tagged node present, but not a way-member of the one line way below
+      // -- exactly the shape of the live regression (ways complete, nodes
+      // silently wrong/incomplete).
+      { type: 'node', id: 4414642613, lat: 49.3, lon: 8.5, tags: { power: 'transformer' } },
+      {
+        type: 'way',
+        id: 500,
+        nodes: [1738604612, 1738604613],
+        tags: { power: 'line', voltage: '110000' },
+      },
+    ],
+  };
+  const GOOD_RESPONSE = {
+    elements: [
+      { type: 'node', id: 1738604612, lat: 49.3, lon: 8.5, tags: { power: 'transformer' } },
+      { type: 'node', id: 1738604613, lat: 49.31, lon: 8.51, tags: { power: 'transformer' } },
+      {
+        type: 'way',
+        id: 500,
+        nodes: [1738604612, 1738604613],
+        tags: { power: 'line', voltage: '110000' },
+      },
+    ],
+  };
+  const bbox = { south: 49.27, west: 8.48, north: 49.36, east: 8.62 };
+
+  it('returns the first result directly when it is plausible (no retry)', async () => {
+    axios.post.mockResolvedValueOnce({ data: GOOD_RESPONSE });
+    const result = await fetchAndBuildGraph(bbox, null);
+    expect(result.edges).toHaveLength(1);
+    expect(result.retried).toBe(false);
+    expect(axios.post).toHaveBeenCalledTimes(1);
+  });
+
+  it('retries once and uses the retry result when the first fetch is implausible (ways present, 0 edges)', async () => {
+    axios.post.mockResolvedValueOnce({ data: IMPLAUSIBLE_RESPONSE });
+    axios.post.mockResolvedValueOnce({ data: GOOD_RESPONSE });
+    const result = await fetchAndBuildGraph(bbox, null, { maxRetries: 1, backoffMs: 0 });
+    expect(result.edges).toHaveLength(1);
+    expect(result.retried).toBe(true);
+    expect(axios.post).toHaveBeenCalledTimes(2);
+  });
+
+  it('gives up after maxRetries and returns the last (still implausible) result honestly', async () => {
+    axios.post.mockResolvedValue({ data: IMPLAUSIBLE_RESPONSE });
+    const result = await fetchAndBuildGraph(bbox, null, { maxRetries: 1, backoffMs: 0 });
+    expect(result.edges).toHaveLength(0);
+    expect(result.nodes).toHaveLength(1);
+    expect(result.retried).toBe(true);
+    expect(axios.post).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not retry a genuinely empty area (no ways at all)', async () => {
+    axios.post.mockResolvedValueOnce({ data: { elements: [] } });
+    const result = await fetchAndBuildGraph(bbox, null);
+    expect(result.edges).toHaveLength(0);
+    expect(result.retried).toBe(false);
+    expect(axios.post).toHaveBeenCalledTimes(1);
+  });
+
+  it('propagates a hard fetch error without retrying', async () => {
+    axios.post.mockRejectedValueOnce(new Error('OVERPASS_TIMEOUT'));
+    await expect(fetchAndBuildGraph(bbox, null)).rejects.toThrow('OVERPASS_TIMEOUT');
+    expect(axios.post).toHaveBeenCalledTimes(1);
   });
 });

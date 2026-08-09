@@ -147,6 +147,54 @@ async function fetchGridElements(bbox) {
   return { nodesById, ways };
 }
 
+/** Backoff between retries in fetchAndBuildGraph. */
+const RETRY_BACKOFF_MS = 2000;
+
+/**
+ * Fetches grid elements and builds the graph, retrying the fetch once if the
+ * result is topologically implausible: real line ways present, at least one
+ * topology node present, but zero derivable edges.
+ *
+ * This exists because the public Overpass instance was observed live to
+ * silently truncate the node portion of a compound node+way query under
+ * load while the way portion stayed complete (identical query, back to
+ * back: 8 nodes/106 ways, then only 2 unrelated nodes/106 ways, with no
+ * error or `remark` field either time) — a v0.99.9 regression report
+ * reproduced the exact same 2 spurious node IDs independently, which is
+ * consistent with a fixed internal processing/truncation order on an
+ * overloaded shared instance rather than a bug in buildGraph() (already
+ * covered by deterministic unit tests). A short-backoff retry resolves this
+ * in practice; if it recurs, the caller gets an honest zero-edges result
+ * (see osm-geo.service.js's dataQuality messaging) rather than a fabricated
+ * explanation.
+ *
+ * @param {{south,west,north,east}} bbox
+ * @param {string|null} voltageLevelFilter
+ * @param {{maxRetries?: number, backoffMs?: number}} [options]
+ * @returns {Promise<{nodes: object[], edges: object[], retried: boolean}>}
+ */
+async function fetchAndBuildGraph(bbox, voltageLevelFilter, options = {}) {
+  const maxRetries = options.maxRetries ?? 1;
+  const backoffMs = options.backoffMs ?? RETRY_BACKOFF_MS;
+  let result = { nodes: [], edges: [] };
+  let retried = false;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    if (attempt > 0) {
+      retried = true;
+      await new Promise((resolve) => setTimeout(resolve, backoffMs));
+    }
+
+    const { nodesById, ways } = await fetchGridElements(bbox);
+    result = buildGraph(nodesById, ways, voltageLevelFilter);
+
+    const implausible = ways.length > 0 && result.nodes.length > 0 && result.edges.length === 0;
+    if (!implausible) break;
+  }
+
+  return { ...result, retried };
+}
+
 // ─── Graph construction ─────────────────────────────────────────────────────
 
 /**
@@ -380,6 +428,7 @@ module.exports = {
   bboxAreaSqKm,
   classifyVoltage,
   fetchGridElements,
+  fetchAndBuildGraph,
   buildGraph,
   computeMetrics,
   countConnectedComponents,
