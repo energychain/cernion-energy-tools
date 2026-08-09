@@ -17,16 +17,29 @@
  *
  * Graph model:
  *   Nodes  — OSM elements tagged power=substation or power=transformer.
- *   Edges  — derived by walking each power=line/cable/minor_line way's ordered
- *            node list and connecting consecutive pairs of *our* node-set
- *            members found along that way. A line that only touches zero or
- *            one such node within the queried bbox contributes no edge from
- *            that way (a legitimate boundary effect — the line continues via
- *            towers/poles we don't model as graph nodes, or leaves the bbox).
+ *   Edges  — derived by SPATIAL PROXIMITY between topology nodes and line
+ *            geometry (within PROXIMITY_THRESHOLD_M, see buildGraph()),
+ *            not exact OSM node-ID membership. An earlier version required
+ *            a topology node to be a literal way-member of the line; that
+ *            matched the pilot area (Hockenheim, mapped with lines traced
+ *            through the transformer points) but was proven wrong for
+ *            general use by a second real area (Weinheim): 32 real,
+ *            fully-fetched topology nodes, 0 way-members of 65 real nearby
+ *            lines — the community mapped them as geometrically close but
+ *            topologically separate points, which is the more common OSM
+ *            style. Node-ID membership (distance 0) is a proper subset of
+ *            the proximity model, so it's superseded rather than kept as a
+ *            separate path. Every attachment is additionally gated by
+ *            voltage plausibility (isVoltageCompatible()) — a 380kV
+ *            transmission line must not connect to a low-voltage
+ *            distribution transformer merely because it runs nearby.
  *   This intentionally does not model towers/poles as graph nodes — matches
  *   the coarse "which substations are grid-connected to which" question the
  *   original tool's output shape (topologyMetrics, voltageBreakdown) implies,
  *   without exploding into a many-thousand-node pole-level graph.
+ *   German railway traction power lines (Bahnstrom, DB Energie, 16.7 Hz)
+ *   are excluded at the Overpass query level — out of scope for VNB/
+ *   distribution-grid topology.
  *
  * Environment variables:
  *   OVERPASS_ENDPOINT   Override Overpass API URL (default: public instance)
@@ -110,6 +123,110 @@ function classifyVoltage(voltageTag) {
   return { level: bucket.level, volts: maxVolts };
 }
 
+/** Voltage bucket order, low to high, for adjacency checks. */
+const VOLTAGE_ORDER = ['NS', 'MS', 'HS', 'EHS'];
+
+/**
+ * Is it physically plausible for a topology node to attach to a way of the
+ * given voltage level? A transformer/substation is a boundary between two
+ * adjacent voltage levels (e.g. a distribution transformer bridges MS↔NS),
+ * so same-or-adjacent-bucket is allowed; anything further apart is rejected
+ * regardless of geometric proximity — a 380kV (EHS) transmission line does
+ * not connect to a household-scale (NS) transformer just because it happens
+ * to run past it.
+ *
+ * When the *node's own* voltage is unknown (no `voltage` tag — the common
+ * case for plain `power=transformer` points, which are overwhelmingly small
+ * pole/ground distribution transformers) it is restricted to NS/MS ways
+ * only, never auto-attached to HS/EHS transmission infrastructure.
+ * `power=substation` nodes span the full range (from small distribution
+ * substations to large EHS switching stations) and are left unrestricted
+ * when their own voltage is unknown.
+ *
+ * @param {string} nodeVoltageLevel  NS|MS|HS|EHS|UNKNOWN
+ * @param {string} nodeType          'substation'|'transformer'
+ * @param {string} wayVoltageLevel   NS|MS|HS|EHS|UNKNOWN
+ * @returns {boolean}
+ */
+function isVoltageCompatible(nodeVoltageLevel, nodeType, wayVoltageLevel) {
+  if (wayVoltageLevel === 'UNKNOWN') return true; // way itself unclassified — can't judge
+
+  if (nodeVoltageLevel === 'UNKNOWN') {
+    if (nodeType === 'transformer') return wayVoltageLevel === 'NS' || wayVoltageLevel === 'MS';
+    return true; // substation, unknown voltage — allow any level
+  }
+
+  const nodeIdx = VOLTAGE_ORDER.indexOf(nodeVoltageLevel);
+  const wayIdx = VOLTAGE_ORDER.indexOf(wayVoltageLevel);
+  return Math.abs(nodeIdx - wayIdx) <= 1;
+}
+
+// ─── Spatial geometry helpers ───────────────────────────────────────────────
+
+/** Metres per degree of latitude (approx, standard WGS84 mid-latitude value). */
+const M_PER_DEG_LAT = 110540;
+
+/** Metres per degree of longitude at a given reference latitude. */
+function mPerDegLon(refLatDeg) {
+  return 111320 * Math.cos((refLatDeg * Math.PI) / 180);
+}
+
+/**
+ * Projects a lat/lon point to local planar metres around a reference
+ * latitude (equirectangular approximation — accurate to well under 1% error
+ * at the few-kilometre scale of a single municipality query, more than
+ * sufficient for a tens-of-metres proximity threshold).
+ * @param {number} lat @param {number} lon @param {number} refLat
+ * @returns {{x: number, y: number}}
+ */
+function projectXY(lat, lon, refLat) {
+  return { x: lon * mPerDegLon(refLat), y: lat * M_PER_DEG_LAT };
+}
+
+/**
+ * Minimum distance from point P to segment AB (all in planar metres), plus
+ * how far along AB (in metres from A) the closest point falls.
+ * @returns {{distanceM: number, alongM: number}}
+ */
+function pointToSegment(px, py, ax, ay, bx, by) {
+  const abx = bx - ax;
+  const aby = by - ay;
+  const segLenSq = abx * abx + aby * aby;
+  let t = segLenSq > 0 ? ((px - ax) * abx + (py - ay) * aby) / segLenSq : 0;
+  t = Math.max(0, Math.min(1, t));
+  const cx = ax + t * abx;
+  const cy = ay + t * aby;
+  const dx = px - cx;
+  const dy = py - cy;
+  return { distanceM: Math.sqrt(dx * dx + dy * dy), alongM: t * Math.sqrt(segLenSq) };
+}
+
+/**
+ * Finds the closest point on a resolved way polyline to a given node
+ * location, returning the perpendicular distance and the cumulative
+ * distance along the polyline from its start to that point (used to order
+ * multiple attached nodes correctly along the same way).
+ * @param {number} nodeLat @param {number} nodeLon
+ * @param {Array<{lat:number, lon:number}>} wayCoords  Resolved way geometry, >= 2 points.
+ * @returns {{distanceM: number, alongM: number}}
+ */
+function nearestPointOnWay(nodeLat, nodeLon, wayCoords) {
+  const refLat = wayCoords[0].lat;
+  const p = projectXY(nodeLat, nodeLon, refLat);
+
+  let best = null;
+  let cumulativeM = 0;
+  for (let i = 0; i < wayCoords.length - 1; i++) {
+    const a = projectXY(wayCoords[i].lat, wayCoords[i].lon, refLat);
+    const b = projectXY(wayCoords[i + 1].lat, wayCoords[i + 1].lon, refLat);
+    const { distanceM, alongM } = pointToSegment(p.x, p.y, a.x, a.y, b.x, b.y);
+    const totalAlongM = cumulativeM + alongM;
+    if (!best || distanceM < best.distanceM) best = { distanceM, alongM: totalAlongM };
+    cumulativeM += Math.hypot(b.x - a.x, b.y - a.y);
+  }
+  return best;
+}
+
 // ─── Overpass fetch ─────────────────────────────────────────────────────────
 
 /**
@@ -119,11 +236,17 @@ function classifyVoltage(voltageTag) {
  * @returns {Promise<{nodes: Map<string, object>, ways: object[]}>}
  */
 async function fetchGridElements(bbox) {
+  // Excludes German railway traction power lines (Bahnstrom, operated by DB
+  // Energie) — out of scope for VNB/distribution-grid topology. These are
+  // reliably tagged frequency=16.7 (vs. 50 Hz for the public grid) in OSM;
+  // the operator regex is a defensive backup for the rarer case where
+  // frequency isn't tagged but the operator name still identifies it.
+  const NON_TRACTION = `["frequency"!="16.7"]["operator"!~"DB Energie|Bahnstrom",i]`;
   const query =
     `[out:json][timeout:30];` +
     `(` +
     `node["power"~"^(substation|transformer)$"](${bbox.south},${bbox.west},${bbox.north},${bbox.east});` +
-    `way["power"~"^(line|cable|minor_line)$"](${bbox.south},${bbox.west},${bbox.north},${bbox.east});` +
+    `way["power"~"^(line|cable|minor_line)$"]${NON_TRACTION}(${bbox.south},${bbox.west},${bbox.north},${bbox.east});` +
     `);` +
     `out body;>;out skel qt;`;
 
@@ -224,8 +347,40 @@ async function fetchAndBuildGraph(bbox, voltageLevelFilter, options = {}) {
 // ─── Graph construction ─────────────────────────────────────────────────────
 
 /**
+ * Distance within which a topology node is considered physically attached
+ * to a line way. Chosen to comfortably cover pole/ground distribution
+ * transformers sited right next to their line (often exactly on it — see
+ * the isVoltageCompatible / node-ID-membership case, distance 0, still
+ * within any positive threshold) as well as substations set back into a
+ * fenced compound reachable by a short, frequently-unmapped spur — while
+ * staying tight enough not to false-positive-connect unrelated nearby
+ * infrastructure.
+ */
+const PROXIMITY_THRESHOLD_M = 50;
+
+/**
  * Builds the topology graph: nodes = substation/transformer elements,
- * edges = derived from way node-membership adjacency (see module docstring).
+ * edges = derived from spatial proximity between topology nodes and line
+ * geometry, not exact OSM node-ID membership.
+ *
+ * Background: exact node-ID-membership (a topology node literally listed as
+ * a way-member of a line) was the original model and matched the pilot
+ * bbox (Hockenheim) by coincidence — that area happens to be mapped with
+ * lines traced topologically through the transformer points. A second real
+ * area (Weinheim) proved this is not the general OSM convention: 32 real,
+ * fully-fetched substation/transformer nodes, 0 of them way-members of any
+ * of 65 real nearby line ways — the community mapped them as geometrically
+ * close but topologically separate point features, which is in fact the
+ * more common OSM style for German distribution infrastructure. Node-ID
+ * membership is a proper subset of "within PROXIMITY_THRESHOLD_M of the
+ * line" (distance 0), so this model supersedes it without a separate code
+ * path.
+ *
+ * Every candidate attachment is additionally gated by isVoltageCompatible()
+ * — proximity alone is not sufficient plausibility: a 380kV transmission
+ * line must not connect to a low-voltage distribution transformer merely
+ * because it happens to run nearby.
+ *
  * @param {Map<string, object>} nodesById  All fetched OSM nodes (Overpass `>` recursion), keyed by id.
  * @param {object[]} ways                  power=line/cable/minor_line ways with `.nodes` id arrays.
  * @param {string|null} voltageLevelFilter NS|MS|HS|EHS or null for no filter.
@@ -256,47 +411,58 @@ function buildGraph(nodesById, ways, voltageLevelFilter) {
 
   const edgesByKey = new Map(); // dedupe: "node/a|node/b" (sorted) -> edge
   for (const way of ways) {
-    const wayNodeIds = way.nodes || [];
     const { level: wayVoltageLevel, volts } = classifyVoltage(way.tags.voltage);
     if (voltageLevelFilter && wayVoltageLevel !== voltageLevelFilter) continue;
 
-    // Walk the ordered node list, connecting consecutive topology-node members.
-    let prevIdx = -1;
-    for (let i = 0; i < wayNodeIds.length; i++) {
-      const id = String(wayNodeIds[i]);
-      if (!topologyNodeIds.has(id)) continue;
-      if (prevIdx === -1) {
-        prevIdx = i;
-        continue;
-      }
+    const wayCoords = (way.nodes || [])
+      .map((id) => nodesById.get(String(id)))
+      .filter((el) => el && el.lat != null && el.lon != null)
+      .map((el) => ({ lat: el.lat, lon: el.lon }));
+    if (wayCoords.length < 2) continue;
 
-      const fromId = `node/${wayNodeIds[prevIdx]}`;
-      const toId = `node/${id}`;
-      const key = [fromId, toId].sort().join('|');
-      if (!edgesByKey.has(key)) {
-        const fromNode = nodesByOsmId.get(fromId);
-        const toNode = nodesByOsmId.get(toId);
-        const lengthKm =
-          haversineDistanceM(
-            fromNode.location.lat,
-            fromNode.location.lon,
-            toNode.location.lat,
-            toNode.location.lon
-          ) / 1000;
-        edgesByKey.set(key, {
-          from: fromId,
-          to: toId,
-          voltageLevel: wayVoltageLevel,
-          voltageVolts: volts,
-          osmWayId: `way/${way.id}`,
-          ref: way.tags.ref || null,
-          operator: way.tags.operator || null,
-          lengthKmApprox: Number(lengthKm.toFixed(3)),
-        });
-        fromNode.degree += 1;
-        toNode.degree += 1;
+    // Find every topology node within the proximity threshold of this way,
+    // gated by voltage plausibility, ordered by position along the line so
+    // multiple attachments to the same way chain correctly rather than
+    // forming a clique.
+    const attachments = [];
+    for (const node of nodes) {
+      if (!isVoltageCompatible(node.voltageLevel, node.type, wayVoltageLevel)) continue;
+      const nearest = nearestPointOnWay(node.location.lat, node.location.lon, wayCoords);
+      if (nearest.distanceM <= PROXIMITY_THRESHOLD_M) {
+        attachments.push({ node, alongM: nearest.alongM });
       }
-      prevIdx = i;
+    }
+    attachments.sort((a, b) => a.alongM - b.alongM);
+
+    for (let i = 1; i < attachments.length; i++) {
+      const fromNode = attachments[i - 1].node;
+      const toNode = attachments[i].node;
+      if (fromNode.osmId === toNode.osmId) continue; // same node attached twice (shouldn't happen, defensive)
+
+      const key = [fromNode.osmId, toNode.osmId].sort().join('|');
+      if (edgesByKey.has(key)) continue;
+
+      const lengthKm =
+        haversineDistanceM(
+          fromNode.location.lat,
+          fromNode.location.lon,
+          toNode.location.lat,
+          toNode.location.lon
+        ) / 1000;
+      edgesByKey.set(key, {
+        from: fromNode.osmId,
+        to: toNode.osmId,
+        voltageLevel: wayVoltageLevel,
+        voltageVolts: volts,
+        osmWayId: `way/${way.id}`,
+        ref: way.tags.ref || null,
+        operator: way.tags.operator || null,
+        lengthKmApprox: Number(lengthKm.toFixed(3)),
+      });
+      const fromNodeRef = nodesByOsmId.get(fromNode.osmId);
+      const toNodeRef = nodesByOsmId.get(toNode.osmId);
+      fromNodeRef.degree += 1;
+      toNodeRef.degree += 1;
     }
   }
 
@@ -453,6 +619,8 @@ module.exports = {
   geocodeLocationToBbox,
   bboxAreaSqKm,
   classifyVoltage,
+  isVoltageCompatible,
+  nearestPointOnWay,
   fetchGridElements,
   fetchAndBuildGraph,
   buildGraph,
@@ -460,5 +628,6 @@ module.exports = {
   countConnectedComponents,
   shortestPath,
   MAX_BBOX_AREA_SQ_KM,
+  PROXIMITY_THRESHOLD_M,
   VOLTAGE_BUCKETS,
 };
