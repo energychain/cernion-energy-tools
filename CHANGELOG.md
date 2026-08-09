@@ -5,6 +5,17 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.99.14] — 2026-08-09
+
+### Added
+- **`osm-geo.gridTopology`: nearest-substation fallback for unattached distribution transformers, plus a padded Overpass fetch — the combination that finally produces real edges for both pilot areas (Hockenheim and Weinheim).** Requested explicitly after the v0.99.13 spatial-proximity model still returned `edges: 0` for Weinheim: German MS (~20kV) distribution cables are almost always underground and not mapped in OSM, but every `power=transformer` must physically be fed from *some* substation — German MS networks are predominantly radial from a local Umspannwerk. A `power=transformer` node left with zero mapped-line attachment is now paired with the nearest `power=substation` node (straight-line distance, bounded by `MAX_NEAREST_SUBSTATION_DISTANCE_M`, 5 km), tagged `evidenceType: 'nearest_substation_inferred'` (vs. `'mapped_line'` for real OSM-derived edges) so callers can tell the two apart. Deliberately **not** applied to orphaned `power=substation` nodes — pairing two substations just because they're geographically close is a much weaker assumption than the transformer→local-substation one, and could fabricate connections that don't exist.
+- **`fetchGridElements()` now pads the queried bbox by `FETCH_PADDING_M` (4 km) on every side before calling Overpass.** Live-diagnosed: Weinheim's 32 real substation/transformer nodes all happened to be tagged `power=substation` (not `transformer`), so the fallback above didn't apply to them at all until the fetch was widened — a substation's real feeding HS/EHS line, or a transformer's real nearest substation, can be just outside a caller's exact bbox purely by where the box happened to be drawn, not because the infrastructure is unmapped. Sized above the largest real gap measured in this investigation (a substation up to 3.4 km from the nearest mapped line). Live-verified after both changes: Weinheim now returns 155 nodes / 7 edges (1 mapped, 6 inferred) and Hockenheim 37 nodes / 16 edges (2 mapped, 14 inferred) — up from 0 edges each.
+
+### Testing
+- `tests/osm-grid-topology.test.js` — 10 new tests: nearest-substation fallback (pairs the nearer of two substations, respects `MAX_NEAREST_SUBSTATION_DISTANCE_M`, does not re-pair an already-connected transformer, requires at least one substation to exist, respects `voltageLevelFilter`, does not apply to orphaned substations) and `padBbox` (expands on every side, pads by approximately the requested metres, zero padding is a no-op) plus a `fetchGridElements` test confirming the padded coordinates are actually sent to Overpass.
+- Full suite: `osm-geo.service.test.js` + `osm-grid-topology.test.js` — 12 suites / 559 tests pass.
+- Live-verified against both real pilot bboxes post-fix (see above) — the first successful non-zero-edge result across this entire multi-release investigation.
+
 ## [0.99.13] — 2026-08-09
 
 ### Changed

@@ -33,6 +33,37 @@
  *            voltage plausibility (isVoltageCompatible()) — a 380kV
  *            transmission line must not connect to a low-voltage
  *            distribution transformer merely because it runs nearby.
+ *
+ *            Even proximity has a real ceiling, though: measured live for
+ *            Weinheim, the closest of 32 real substation/transformer nodes
+ *            to any real line was 60m, most were 300m–3.4km away — German
+ *            MS (~20kV) distribution cables are overwhelmingly underground
+ *            and essentially never mapped in OSM, unlike HS/EHS which are
+ *            overhead and reliably mapped. For a power=transformer node
+ *            left with zero mapped-line attachment, buildGraph() falls
+ *            back to pairing it with the nearest power=substation node
+ *            (straight-line distance, bounded by
+ *            MAX_NEAREST_SUBSTATION_DISTANCE_M) — a structural assumption
+ *            (German MS networks are predominantly radial from a local
+ *            substation), not a digitised connection. These inferred edges
+ *            are tagged `evidenceType: 'nearest_substation_inferred'`
+ *            (vs. `'mapped_line'` for the rest) so callers can tell real
+ *            OSM-derived topology apart from this approximation. This
+ *            fallback deliberately only applies to power=transformer nodes,
+ *            not orphaned power=substation nodes — a substation genuinely
+ *            not near any mapped line most likely reflects a real gap in
+ *            HS/EHS line coverage for that specific substation, and pairing
+ *            two substations just because they're geographically close is a
+ *            much weaker assumption than the transformer→local-substation
+ *            radial-network one (Weinheim's real 32 unattached nodes are, in
+ *            fact, all tagged power=substation, so this fallback does not
+ *            resolve that specific case — see FETCH_PADDING_M below for the
+ *            fix that does apply there).
+ *   fetchGridElements() also widens the queried bbox by FETCH_PADDING_M on
+ *   every side before calling Overpass, so a substation right at the edge
+ *   of the caller's bbox can still find its real feeding line (or, for the
+ *   transformer fallback, its real nearest substation) even if that
+ *   infrastructure's coordinates fall just outside the requested area.
  *   This intentionally does not model towers/poles as graph nodes — matches
  *   the coarse "which substations are grid-connected to which" question the
  *   original tool's output shape (topologyMetrics, voltageBreakdown) implies,
@@ -100,6 +131,36 @@ function bboxAreaSqKm(bbox) {
   const latKm = haversineDistanceM(bbox.south, bbox.west, bbox.north, bbox.west) / 1000;
   const lonKm = haversineDistanceM(bbox.south, bbox.west, bbox.south, bbox.east) / 1000;
   return latKm * lonKm;
+}
+
+/**
+ * Amount by which fetchGridElements() widens the queried bbox before
+ * calling Overpass. A power=substation right at the edge of the requested
+ * bbox may have its real feeding HS/EHS line — or, for the nearest-
+ * substation fallback, the actual nearest power=substation — just outside
+ * it; without padding, that connection is invisible not because it's
+ * unmapped but purely because of where the caller happened to draw the
+ * box. Sized generously above the largest real gap measured live in this
+ * investigation (Weinheim: up to 3.4km from a substation to the nearest
+ * mapped line).
+ */
+const FETCH_PADDING_M = 4000;
+
+/**
+ * Expands a bbox by a fixed distance in metres on every side.
+ * @param {{south,west,north,east}} bbox
+ * @param {number} paddingM
+ * @returns {{south,west,north,east}}
+ */
+function padBbox(bbox, paddingM) {
+  const latPad = paddingM / M_PER_DEG_LAT;
+  const lonPad = paddingM / mPerDegLon((bbox.south + bbox.north) / 2);
+  return {
+    south: bbox.south - latPad,
+    north: bbox.north + latPad,
+    west: bbox.west - lonPad,
+    east: bbox.east + lonPad,
+  };
 }
 
 // ─── Voltage classification ────────────────────────────────────────────────
@@ -232,10 +293,16 @@ function nearestPointOnWay(nodeLat, nodeLon, wayCoords) {
 /**
  * Fetches substation/transformer nodes and line/cable/minor_line ways
  * (with full node-membership lists) for a bbox in a single Overpass call.
+ * The queried bbox is widened by FETCH_PADDING_M on every side first (see
+ * its docstring) so that infrastructure just outside the caller's exact
+ * bbox is still visible for line/nearest-substation matching — the
+ * returned nodes/ways are NOT filtered back down to the original bbox.
  * @param {{south,west,north,east}} bbox
  * @returns {Promise<{nodes: Map<string, object>, ways: object[]}>}
  */
 async function fetchGridElements(bbox) {
+  const padded = padBbox(bbox, FETCH_PADDING_M);
+
   // Excludes German railway traction power lines (Bahnstrom, operated by DB
   // Energie) — out of scope for VNB/distribution-grid topology. These are
   // reliably tagged frequency=16.7 (vs. 50 Hz for the public grid) in OSM;
@@ -245,8 +312,8 @@ async function fetchGridElements(bbox) {
   const query =
     `[out:json][timeout:30];` +
     `(` +
-    `node["power"~"^(substation|transformer)$"](${bbox.south},${bbox.west},${bbox.north},${bbox.east});` +
-    `way["power"~"^(line|cable|minor_line)$"]${NON_TRACTION}(${bbox.south},${bbox.west},${bbox.north},${bbox.east});` +
+    `node["power"~"^(substation|transformer)$"](${padded.south},${padded.west},${padded.north},${padded.east});` +
+    `way["power"~"^(line|cable|minor_line)$"]${NON_TRACTION}(${padded.south},${padded.west},${padded.north},${padded.east});` +
     `);` +
     `out body;>;out skel qt;`;
 
@@ -359,6 +426,15 @@ async function fetchAndBuildGraph(bbox, voltageLevelFilter, options = {}) {
 const PROXIMITY_THRESHOLD_M = 50;
 
 /**
+ * Maximum distance for the nearest-substation fallback (see buildGraph()).
+ * Bounds how far a distribution transformer can be paired with a substation
+ * it isn't really confirmed to belong to — generously covers even a large
+ * rural MS feeder radius while refusing to pair transformers and
+ * substations in different, unrelated settlements.
+ */
+const MAX_NEAREST_SUBSTATION_DISTANCE_M = 5000;
+
+/**
  * Builds the topology graph: nodes = substation/transformer elements,
  * edges = derived from spatial proximity between topology nodes and line
  * geometry, not exact OSM node-ID membership.
@@ -458,11 +534,74 @@ function buildGraph(nodesById, ways, voltageLevelFilter) {
         ref: way.tags.ref || null,
         operator: way.tags.operator || null,
         lengthKmApprox: Number(lengthKm.toFixed(3)),
+        evidenceType: 'mapped_line',
       });
       const fromNodeRef = nodesByOsmId.get(fromNode.osmId);
       const toNodeRef = nodesByOsmId.get(toNode.osmId);
       fromNodeRef.degree += 1;
       toNodeRef.degree += 1;
+    }
+  }
+
+  // ─── Fallback: nearest-substation inference for still-isolated transformers ──
+  //
+  // MS (~20kV) distribution cables in Germany are overwhelmingly underground
+  // and essentially never mapped in OSM (unlike HS/EHS, which are overhead
+  // and reliably mapped — confirmed live for Hockenheim: 106 real, correctly
+  // tagged lines). A small distribution transformer (power=transformer) that
+  // found no real mapped-line attachment above is not actually disconnected
+  // in reality — physically, every such transformer must be fed from some
+  // substation (Umspannwerk), it's just that the connecting cable isn't in
+  // the data. The nearest power=substation node is used as a structural
+  // approximation of that real-but-unmapped connection (German MS networks
+  // are predominantly radial from a local substation), bounded by
+  // MAX_NEAREST_SUBSTATION_DISTANCE_M to avoid pairing a rural transformer
+  // with a substation towns away.
+  //
+  // This is fundamentally different evidence than a mapped_line edge — an
+  // assumption grounded in grid topology conventions, not a real digitised
+  // connection — so it's tagged evidenceType: 'nearest_substation_inferred'
+  // and callers should treat the two differently (e.g. exclude inferred
+  // edges from claims about "confirmed" OSM line coverage).
+  if (!voltageLevelFilter || voltageLevelFilter === 'MS') {
+    const substationNodes = nodes.filter((n) => n.type === 'substation');
+    if (substationNodes.length > 0) {
+      for (const node of nodes) {
+        if (node.type !== 'transformer' || node.degree > 0) continue;
+
+        let nearestSubstation = null;
+        let nearestDistanceM = Infinity;
+        for (const sub of substationNodes) {
+          const distanceM = haversineDistanceM(
+            node.location.lat,
+            node.location.lon,
+            sub.location.lat,
+            sub.location.lon
+          );
+          if (distanceM < nearestDistanceM) {
+            nearestDistanceM = distanceM;
+            nearestSubstation = sub;
+          }
+        }
+        if (!nearestSubstation || nearestDistanceM > MAX_NEAREST_SUBSTATION_DISTANCE_M) continue;
+
+        const key = [node.osmId, nearestSubstation.osmId].sort().join('|');
+        if (edgesByKey.has(key)) continue;
+
+        edgesByKey.set(key, {
+          from: node.osmId,
+          to: nearestSubstation.osmId,
+          voltageLevel: 'MS',
+          voltageVolts: null,
+          osmWayId: null,
+          ref: null,
+          operator: null,
+          lengthKmApprox: Number((nearestDistanceM / 1000).toFixed(3)),
+          evidenceType: 'nearest_substation_inferred',
+        });
+        node.degree += 1;
+        nearestSubstation.degree += 1;
+      }
     }
   }
 
@@ -618,6 +757,7 @@ function shortestPath(nodes, edges, fromOsmId, toOsmId) {
 module.exports = {
   geocodeLocationToBbox,
   bboxAreaSqKm,
+  padBbox,
   classifyVoltage,
   isVoltageCompatible,
   nearestPointOnWay,
@@ -629,5 +769,7 @@ module.exports = {
   shortestPath,
   MAX_BBOX_AREA_SQ_KM,
   PROXIMITY_THRESHOLD_M,
+  MAX_NEAREST_SUBSTATION_DISTANCE_M,
+  FETCH_PADDING_M,
   VOLTAGE_BUCKETS,
 };
