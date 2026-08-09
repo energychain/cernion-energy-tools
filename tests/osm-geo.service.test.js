@@ -3,9 +3,43 @@ const { ServiceBroker } = require('moleculer');
 jest.mock('../src/mcp-client', () => ({
   callWithNewSession: jest.fn(),
 }));
+jest.mock('axios');
 
 const { callWithNewSession } = require('../src/mcp-client');
+const axios = require('axios');
 const OsmGeoService = require('../services/osm-geo.service');
+
+// gridTopology now computes locally (Overpass + Nominatim via axios) instead
+// of proxying to mcp.cernion.de — see src/osm-grid-topology.js.
+const NOMINATIM_SEARCH_FIXTURE = [
+  {
+    boundingbox: ['49.273', '49.363', '8.483', '8.621'],
+    lat: '49.3188892',
+    lon: '8.5475467',
+    display_name: 'Hockenheim, VVG der Stadt Hockenheim, Rhein-Neckar-Kreis, Baden-Württemberg',
+  },
+];
+
+const GRID_TOPOLOGY_OVERPASS_FIXTURE = {
+  elements: [
+    { type: 'node', id: 1738604612, lat: 49.3, lon: 8.5, tags: { power: 'transformer' } },
+    { type: 'node', id: 1738604613, lat: 49.31, lon: 8.51, tags: { power: 'transformer' } },
+    { type: 'node', id: 1746960840, lat: 49.32, lon: 8.52, tags: { power: 'substation' } },
+    { type: 'node', id: 9999999999, lat: 49.305, lon: 8.505, tags: { power: 'tower' } },
+    {
+      type: 'way',
+      id: 500,
+      nodes: [1738604612, 9999999999, 1738604613],
+      tags: { power: 'line', voltage: '110000', ref: 'HOCKN-RHEIN', operator: 'Netze BW' },
+    },
+    {
+      type: 'way',
+      id: 501,
+      nodes: [1738604613, 1746960840],
+      tags: { power: 'minor_line', voltage: '20000' },
+    },
+  ],
+};
 
 describe('OSM Geo Service', () => {
   let broker;
@@ -83,6 +117,11 @@ describe('OSM Geo Service', () => {
 
   afterAll(async () => {
     await broker.stop();
+  });
+
+  beforeEach(() => {
+    axios.get.mockReset();
+    axios.post.mockReset();
   });
 
   // ─── validate ────────────────────────────────────────────────────────────────
@@ -338,55 +377,66 @@ describe('OSM Geo Service', () => {
       await expect(broker.call('osm-geo.gridTopology', {})).rejects.toThrow();
     });
 
-    it('should return topology metrics for a location', async () => {
+    it('should return topology metrics for a location (geocoded via Nominatim)', async () => {
+      axios.get.mockResolvedValueOnce({ data: NOMINATIM_SEARCH_FIXTURE });
+      axios.post.mockResolvedValueOnce({ data: GRID_TOPOLOGY_OVERPASS_FIXTURE });
       const result = await broker.call('osm-geo.gridTopology', {
-        location: 'Ludwigshafen am Rhein',
-        voltageLevel: 'MS',
+        location: 'Hockenheim',
       });
       expect(result.success).toBe(true);
+      expect(result.data.scopeSource).toBe('location_name');
       expect(result.data.topologyMetrics).toHaveProperty('topologyType');
-      expect(result.data.topologyMetrics).toHaveProperty('nodes');
-      expect(result.data.topologyMetrics).toHaveProperty('edges');
-      expect(callWithNewSession).toHaveBeenCalledWith(
-        'osm_grid_topology',
-        expect.objectContaining({ location: 'Ludwigshafen am Rhein', voltageLevel: 'MS' }),
-        undefined
+      expect(result.data.topologyMetrics.nodes).toBe(3);
+      // The tower node (id 9999999999) is not a topology node — the line still
+      // yields an edge between the two transformer nodes it connects.
+      expect(result.data.topologyMetrics.edges).toBe(2);
+      expect(axios.get).toHaveBeenCalledWith(
+        expect.stringContaining('nominatim'),
+        expect.objectContaining({ params: expect.objectContaining({ q: 'Hockenheim' }) })
       );
     });
 
-    it('should accept boundingBox scope', async () => {
+    it('should accept boundingBox scope directly, without geocoding', async () => {
+      axios.post.mockResolvedValueOnce({ data: GRID_TOPOLOGY_OVERPASS_FIXTURE });
       const result = await broker.call('osm-geo.gridTopology', {
         boundingBox: { north: 49.548, south: 49.427, east: 8.477, west: 8.298 },
         voltageLevel: 'MS',
         includeGraphData: true,
       });
       expect(result.success).toBe(true);
+      expect(result.data.scopeSource).toBe('explicit_bbox');
+      expect(axios.get).not.toHaveBeenCalled();
+      // voltageLevel:MS should keep only the 20kV minor_line edge (501), not the 110kV one.
+      expect(result.data.graphData.edges).toHaveLength(1);
+      expect(result.data.graphData.edges[0].voltageLevel).toBe('MS');
     });
 
-    it('should accept gridOperator as sole scope parameter', async () => {
+    it('should accept gridOperator as sole scope parameter (geocoded as a place-name hint)', async () => {
+      axios.get.mockResolvedValueOnce({ data: NOMINATIM_SEARCH_FIXTURE });
+      axios.post.mockResolvedValueOnce({ data: GRID_TOPOLOGY_OVERPASS_FIXTURE });
       const result = await broker.call('osm-geo.gridTopology', {
         gridOperator: 'STROMDAO Netze GmbH',
       });
       expect(result.success).toBe(true);
+      expect(result.data.scopeSource).toBe('grid_operator_name');
     });
 
-    it('should pass path analysis parameters through', async () => {
-      await broker.call('osm-geo.gridTopology', {
-        location: 'Ludwigshafen am Rhein',
-        voltageLevel: 'MS',
-        fromOsmId: 'node/123456789',
-        toOsmId: 'node/987654321',
+    it('computes path analysis between two real topology nodes', async () => {
+      axios.post.mockResolvedValueOnce({ data: GRID_TOPOLOGY_OVERPASS_FIXTURE });
+      const result = await broker.call('osm-geo.gridTopology', {
+        boundingBox: { north: 49.548, south: 49.427, east: 8.477, west: 8.298 },
+        fromOsmId: 'node/1738604612',
+        toOsmId: 'node/1746960840',
         includePathAnalysis: true,
       });
-      expect(callWithNewSession).toHaveBeenCalledWith(
-        'osm_grid_topology',
-        expect.objectContaining({
-          fromOsmId: 'node/123456789',
-          toOsmId: 'node/987654321',
-          includePathAnalysis: true,
-        }),
-        undefined
-      );
+      expect(result.data.pathAnalysis.requested).toBe(true);
+      expect(result.data.pathAnalysis.found).toBe(true);
+      expect(result.data.pathAnalysis.hopCount).toBe(2);
+      expect(result.data.pathAnalysis.path).toEqual([
+        'node/1738604612',
+        'node/1738604613',
+        'node/1746960840',
+      ]);
     });
 
     it('should validate voltageLevel enum', async () => {
@@ -398,15 +448,47 @@ describe('OSM Geo Service', () => {
       ).rejects.toThrow();
     });
 
-    it('should propagate MCP error response', async () => {
-      callWithNewSession.mockResolvedValueOnce({
-        success: false,
-        error: { code: 'OVERPASS_TIMEOUT', message: 'Area too large' },
-      });
+    it('should return a degraded response when Overpass fails', async () => {
+      axios.post.mockRejectedValueOnce(new Error('OVERPASS_TIMEOUT: query stalled'));
       const result = await broker.call('osm-geo.gridTopology', {
-        location: 'Bayern',
+        boundingBox: { north: 49.548, south: 49.427, east: 8.477, west: 8.298 },
       });
       expect(result.success).toBe(false);
+      expect(result.degradedReason).toBe('OVERPASS_TIMEOUT');
+    });
+
+    it('should return GEOCODING_FAILED when Nominatim finds no match', async () => {
+      axios.get.mockResolvedValueOnce({ data: [] });
+      const result = await broker.call('osm-geo.gridTopology', {
+        location: 'NichtExistierenderOrtXYZ',
+      });
+      expect(result.success).toBe(false);
+      expect(result.degradedReason).toBe('GEOCODING_FAILED');
+    });
+
+    it('should reject bounding boxes larger than the area guard', async () => {
+      const result = await broker.call('osm-geo.gridTopology', {
+        boundingBox: { north: 55, south: 47, east: 15, west: 5 }, // ~all of Germany
+      });
+      expect(result.success).toBe(false);
+      expect(result.degradedReason).toBe('AREA_TOO_BROAD');
+    });
+
+    it('gives an honest dataQuality message (no fabricated coverage %) when 0 edges are derived', async () => {
+      axios.post.mockResolvedValueOnce({
+        data: {
+          elements: [
+            { type: 'node', id: 1, lat: 49.3, lon: 8.5, tags: { power: 'transformer' } },
+          ],
+        },
+      });
+      const result = await broker.call('osm-geo.gridTopology', {
+        boundingBox: { north: 49.548, south: 49.427, east: 8.477, west: 8.298 },
+      });
+      expect(result.success).toBe(true);
+      expect(result.data.topologyMetrics.edges).toBe(0);
+      expect(result.data.dataQuality.osmEdgeCoverageEstimate).toBeNull();
+      expect(result.data.dataQuality.warning).not.toMatch(/0% in OSM erfasst/);
     });
   });
 
@@ -486,22 +568,24 @@ describe('OSM Geo Service', () => {
       expect(result.degradedReason).toBe('GEOCODING_FAILED');
     });
 
-    it('gridTopology: postalCode + location combined into location string sent to MCP', async () => {
+    it('gridTopology: postalCode + location combined into the geocoded location string', async () => {
+      axios.get.mockResolvedValueOnce({ data: NOMINATIM_SEARCH_FIXTURE });
+      axios.post.mockResolvedValueOnce({ data: GRID_TOPOLOGY_OVERPASS_FIXTURE });
       await broker.call('osm-geo.gridTopology', {
         location: 'Meckesheim',
         postalCode: '74909',
         includePathAnalysis: false,
         includeGraphData: false,
       });
-      expect(callWithNewSession).toHaveBeenCalledWith(
-        'osm_grid_topology',
-        expect.objectContaining({ location: '74909 Meckesheim' }),
-        undefined
+      expect(axios.get).toHaveBeenCalledWith(
+        expect.stringContaining('nominatim'),
+        expect.objectContaining({ params: expect.objectContaining({ q: '74909 Meckesheim' }) })
       );
     });
 
-    it('gridTopology: MCP exception returns structured degraded response', async () => {
-      callWithNewSession.mockRejectedValueOnce(new Error('OVERPASS_TIMEOUT: narrow query stalled'));
+    it('gridTopology: Overpass exception returns structured degraded response', async () => {
+      axios.get.mockResolvedValueOnce({ data: NOMINATIM_SEARCH_FIXTURE });
+      axios.post.mockRejectedValueOnce(new Error('OVERPASS_TIMEOUT: narrow query stalled'));
       const result = await broker.call('osm-geo.gridTopology', {
         location: 'Meckesheim',
         postalCode: '74909',
@@ -516,6 +600,8 @@ describe('OSM Geo Service', () => {
     });
 
     it('gridTopology: accepts postalCode as sole scope', async () => {
+      axios.get.mockResolvedValueOnce({ data: NOMINATIM_SEARCH_FIXTURE });
+      axios.post.mockResolvedValueOnce({ data: GRID_TOPOLOGY_OVERPASS_FIXTURE });
       const result = await broker.call('osm-geo.gridTopology', { postalCode: '74909' });
       expect(result.success).toBe(true);
     });

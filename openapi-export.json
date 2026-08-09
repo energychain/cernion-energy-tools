@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.99.8",
+    "version": "0.99.9",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.\n\nFor the public instance at https://api.cernion.de/, create your token at https://cernion.de/cet-token/."
   },
   "servers": [
@@ -53903,27 +53903,36 @@
                     "scopeSource": "location_name",
                     "voltageFilter": null,
                     "topologyMetrics": {
-                      "nodes": 847,
-                      "edges": 1203,
-                      "avgNodeDegree": 2.84,
-                      "topologyType": "RING",
-                      "topologyIndicator": 0.84,
+                      "nodes": 8,
+                      "edges": 6,
+                      "avgNodeDegree": 1.5,
+                      "topologyType": "RADIAL",
+                      "topologyIndicator": 0,
                       "voltageBreakdown": {
                         "NS": {
-                          "nodes": 721,
-                          "edges": 987
+                          "nodes": 0,
+                          "edges": 0,
+                          "lineLengthKmApprox": 0
                         },
                         "MS": {
-                          "nodes": 124,
-                          "edges": 214
+                          "nodes": 0,
+                          "edges": 0,
+                          "lineLengthKmApprox": 0
                         },
                         "HS": {
-                          "nodes": 2,
-                          "edges": 2
+                          "nodes": 0,
+                          "edges": 0,
+                          "lineLengthKmApprox": 0
+                        },
+                        "EHS": {
+                          "nodes": 0,
+                          "edges": 0,
+                          "lineLengthKmApprox": 0
                         },
                         "UNKNOWN": {
-                          "nodes": 0,
-                          "edges": 0
+                          "nodes": 8,
+                          "edges": 6,
+                          "lineLengthKmApprox": 12.4
                         }
                       }
                     },
@@ -53932,10 +53941,8 @@
                     },
                     "dataQuality": {
                       "source": "© OpenStreetMap contributors (ODbL 1.0)",
-                      "osmEdgeCoverageEstimate": 0.47,
-                      "coverageLabel": "MEDIUM",
-                      "warning": "Leitungsnetz ca. 47% in OSM erfasst. Topologiemetriken sind Untergrenzen.",
-                      "disclaimer": "© OpenStreetMap contributors (ODbL 1.0)"
+                      "coverageLabel": "DERIVED",
+                      "disclaimer": "OSM-Daten sind freiwillig gepflegt und können unvollständig oder veraltet sein."
                     }
                   }
                 }
@@ -53943,7 +53950,7 @@
             }
           }
         },
-        "description": "Analyses the visible grid topology within an area by extracting nodes (substations, transformers) and edges (lines, cables) from OpenStreetMap.\n\n**Graph metrics returned:**\n- Node and edge counts, average node degree\n- Topology type: `RADIAL` (indicator < 0.5), `MIXED` (0.5–0.7), `RING` (> 0.7 — higher redundancy)\n- Voltage-level breakdown\n\n**Optional path analysis** (`includePathAnalysis: true`): shortest path between `fromOsmId` → `toOsmId` with hop count, total length, and confidence rating.\n\n**Optional raw graph data** (`includeGraphData: true`): full node/edge list for downstream processing.\n\n**Scope input:** at least one of `location` (place name), `boundingBox`, or `gridOperator` name.\n\n**Coverage note:** Line coverage in OSM is ~40–60 % for German distribution networks. Topology metrics are therefore lower bounds.\n\n**Data:** © OpenStreetMap contributors, [ODbL 1.0](https://opendatacommons.org/licenses/odbl/)",
+        "description": "Analyses the visible grid topology within an area by extracting nodes (substations, transformers) and edges (lines, cables) directly from OpenStreetMap via Overpass (src/osm-grid-topology.js — computed locally, no external mcp.cernion.de dependency for this action).\n\n**Graph model:** nodes = OSM elements tagged `power=substation`/`power=transformer`; edges = derived by walking each `power=line|cable|minor_line` way's ordered node list and connecting consecutive pairs of those nodes found along it. Towers/poles are not modelled as graph nodes, so a line touching zero or one node of interest within the bbox contributes no edge from that way — a legitimate boundary effect, not missing data.\n\n**Graph metrics returned:**\n- Node and edge counts, average node degree\n- Topology type: `RADIAL` (indicator < 0.5), `MIXED` (0.5–0.7), `RING` (> 0.7 — higher redundancy). Indicator = cyclomatic number (E − V + components) normalised by edge count.\n- Voltage-level breakdown (NS/MS/HS/EHS, classified from the OSM `voltage` tag)\n\n**Optional path analysis** (`includePathAnalysis: true`): shortest path between `fromOsmId` → `toOsmId` (Dijkstra over derived edge lengths) with hop count, total length, and confidence rating.\n\n**Optional raw graph data** (`includeGraphData: true`): full node/edge list for downstream processing.\n\n**Scope input:** at least one of `location` (place name), `postalCode`, `boundingBox`, or `gridOperator` name. Named-place/postalCode/gridOperator scopes are forward-geocoded to a bounding box via Nominatim; `boundingBox` is used directly.\n\n**Data:** © OpenStreetMap contributors, [ODbL 1.0](https://opendatacommons.org/licenses/odbl/)",
         "requestBody": {
           "content": {
             "application/json": {
@@ -91368,5 +91375,5 @@
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.99.8"
+  "x-version": "0.99.9"
 }
