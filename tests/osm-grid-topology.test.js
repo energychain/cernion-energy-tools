@@ -318,6 +318,32 @@ describe('fetchAndBuildGraph', () => {
       },
     ],
   };
+  // Ways present, but *zero* tagged substation/transformer nodes at all --
+  // not wrong ones (that's IMPLAUSIBLE_RESPONSE above), literally none. The
+  // v0.99.11 regression: this fell through both the old "partially
+  // truncated" clause (required nodes.length > 0) and the "totally empty"
+  // clause (required ways.length === 0), so it was never retried.
+  const WAYS_BUT_NO_TAGGED_NODES_RESPONSE = {
+    elements: [
+      // Untagged skeleton node from way-recursion (`>`) -- present in
+      // nodesById but not a topology node, matching real Overpass output.
+      { type: 'node', id: 9999999999, lat: 49.305, lon: 8.505 },
+      {
+        type: 'way',
+        id: 500,
+        nodes: [1738604612, 9999999999, 1738604613],
+        tags: { power: 'line', voltage: '110000' },
+      },
+    ],
+  };
+
+  // No ways at all, but a real isolated tagged node -- a legitimate,
+  // non-implausible result (e.g. a small transformer with no nearby line
+  // within the queried bbox) that should NOT cost an extra retry.
+  const ISOLATED_NODE_NO_WAYS_RESPONSE = {
+    elements: [{ type: 'node', id: 42, lat: 49.3, lon: 8.5, tags: { power: 'transformer' } }],
+  };
+
   const bbox = { south: 49.27, west: 8.48, north: 49.36, east: 8.62 };
 
   it('returns the first result directly when it is plausible (no retry)', async () => {
@@ -367,6 +393,24 @@ describe('fetchAndBuildGraph', () => {
   it('propagates a hard fetch error without retrying', async () => {
     axios.post.mockRejectedValueOnce(new Error('OVERPASS_TIMEOUT'));
     await expect(fetchAndBuildGraph(bbox, null)).rejects.toThrow('OVERPASS_TIMEOUT');
+    expect(axios.post).toHaveBeenCalledTimes(1);
+  });
+
+  it('retries when ways are present but zero tagged topology nodes came back at all — the v0.99.11 regression pattern', async () => {
+    axios.post.mockResolvedValueOnce({ data: WAYS_BUT_NO_TAGGED_NODES_RESPONSE });
+    axios.post.mockResolvedValueOnce({ data: GOOD_RESPONSE });
+    const result = await fetchAndBuildGraph(bbox, null, { maxRetries: 1, backoffMs: 0 });
+    expect(result.edges).toHaveLength(1);
+    expect(result.retried).toBe(true);
+    expect(axios.post).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not retry a real isolated node with no nearby lines (legitimate, non-implausible result)', async () => {
+    axios.post.mockResolvedValueOnce({ data: ISOLATED_NODE_NO_WAYS_RESPONSE });
+    const result = await fetchAndBuildGraph(bbox, null);
+    expect(result.nodes).toHaveLength(1);
+    expect(result.edges).toHaveLength(0);
+    expect(result.retried).toBe(false);
     expect(axios.post).toHaveBeenCalledTimes(1);
   });
 });
