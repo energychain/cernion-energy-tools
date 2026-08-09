@@ -13,6 +13,7 @@
  */
 
 const CernionMCPClient = require('../src/mcp-client');
+const osmGridTopology = require('../src/osm-grid-topology');
 
 const DEFAULT_MCP_TIMEOUT_MS = 60000;
 
@@ -738,20 +739,20 @@ Returns both a detail list and **aggregated statistics**:
       openapi: {
         summary: 'Grid topology analysis (nodes, edges, graph metrics, optional path analysis)',
         tags: ['OSM Geo (OpenStreetMap)'],
-        description: `Analyses the visible grid topology within an area by extracting nodes (substations, transformers) and edges (lines, cables) from OpenStreetMap.
+        description: `Analyses the visible grid topology within an area by extracting nodes (substations, transformers) and edges (lines, cables) directly from OpenStreetMap via Overpass (src/osm-grid-topology.js — computed locally, no external mcp.cernion.de dependency for this action).
+
+**Graph model:** nodes = OSM elements tagged \`power=substation\`/\`power=transformer\`; edges = derived by walking each \`power=line|cable|minor_line\` way's ordered node list and connecting consecutive pairs of those nodes found along it. Towers/poles are not modelled as graph nodes, so a line touching zero or one node of interest within the bbox contributes no edge from that way — a legitimate boundary effect, not missing data.
 
 **Graph metrics returned:**
 - Node and edge counts, average node degree
-- Topology type: \`RADIAL\` (indicator < 0.5), \`MIXED\` (0.5–0.7), \`RING\` (> 0.7 — higher redundancy)
-- Voltage-level breakdown
+- Topology type: \`RADIAL\` (indicator < 0.5), \`MIXED\` (0.5–0.7), \`RING\` (> 0.7 — higher redundancy). Indicator = cyclomatic number (E − V + components) normalised by edge count.
+- Voltage-level breakdown (NS/MS/HS/EHS, classified from the OSM \`voltage\` tag)
 
-**Optional path analysis** (\`includePathAnalysis: true\`): shortest path between \`fromOsmId\` → \`toOsmId\` with hop count, total length, and confidence rating.
+**Optional path analysis** (\`includePathAnalysis: true\`): shortest path between \`fromOsmId\` → \`toOsmId\` (Dijkstra over derived edge lengths) with hop count, total length, and confidence rating.
 
 **Optional raw graph data** (\`includeGraphData: true\`): full node/edge list for downstream processing.
 
-**Scope input:** at least one of \`location\` (place name), \`boundingBox\`, or \`gridOperator\` name.
-
-**Coverage note:** Line coverage in OSM is ~40–60 % for German distribution networks. Topology metrics are therefore lower bounds.
+**Scope input:** at least one of \`location\` (place name), \`postalCode\`, \`boundingBox\`, or \`gridOperator\` name. Named-place/postalCode/gridOperator scopes are forward-geocoded to a bounding box via Nominatim; \`boundingBox\` is used directly.
 
 **Data:** © OpenStreetMap contributors, [ODbL 1.0](https://opendatacommons.org/licenses/odbl/)`,
         requestBody: {
@@ -865,26 +866,25 @@ Returns both a detail list and **aggregated statistics**:
                     scopeSource: 'location_name',
                     voltageFilter: null,
                     topologyMetrics: {
-                      nodes: 847,
-                      edges: 1203,
-                      avgNodeDegree: 2.84,
-                      topologyType: 'RING',
-                      topologyIndicator: 0.84,
+                      nodes: 8,
+                      edges: 6,
+                      avgNodeDegree: 1.5,
+                      topologyType: 'RADIAL',
+                      topologyIndicator: 0,
                       voltageBreakdown: {
-                        NS: { nodes: 721, edges: 987 },
-                        MS: { nodes: 124, edges: 214 },
-                        HS: { nodes: 2, edges: 2 },
-                        UNKNOWN: { nodes: 0, edges: 0 },
+                        NS: { nodes: 0, edges: 0, lineLengthKmApprox: 0 },
+                        MS: { nodes: 0, edges: 0, lineLengthKmApprox: 0 },
+                        HS: { nodes: 0, edges: 0, lineLengthKmApprox: 0 },
+                        EHS: { nodes: 0, edges: 0, lineLengthKmApprox: 0 },
+                        UNKNOWN: { nodes: 8, edges: 6, lineLengthKmApprox: 12.4 },
                       },
                     },
                     pathAnalysis: { requested: false },
                     dataQuality: {
                       source: '© OpenStreetMap contributors (ODbL 1.0)',
-                      osmEdgeCoverageEstimate: 0.47,
-                      coverageLabel: 'MEDIUM',
-                      warning:
-                        'Leitungsnetz ca. 47% in OSM erfasst. Topologiemetriken sind Untergrenzen.',
-                      disclaimer: '© OpenStreetMap contributors (ODbL 1.0)',
+                      coverageLabel: 'DERIVED',
+                      disclaimer:
+                        'OSM-Daten sind freiwillig gepflegt und können unvollständig oder veraltet sein.',
                     },
                   },
                 },
@@ -894,29 +894,109 @@ Returns both a detail list and **aggregated statistics**:
         },
       },
       async handler(ctx) {
-        const { location, postalCode, boundingBox, gridOperator } = ctx.params;
+        const {
+          location,
+          postalCode,
+          boundingBox,
+          gridOperator,
+          voltageLevel,
+          fromOsmId,
+          toOsmId,
+          includePathAnalysis,
+          includeGraphData,
+        } = ctx.params;
         if (!location && !postalCode && !boundingBox && !gridOperator) {
           throw new Error(
             'At least one scope parameter must be provided: location, postalCode, boundingBox, or gridOperator.'
           );
         }
-        const params = { ...ctx.params };
-        if (postalCode && location) {
-          params.location = `${postalCode} ${location}`;
-        } else if (postalCode && !location) {
-          params.location = postalCode;
+
+        let bbox;
+        let area;
+        let scopeSource;
+        if (boundingBox) {
+          bbox = boundingBox;
+          area = 'bbox';
+          scopeSource = 'explicit_bbox';
+        } else {
+          const locationName =
+            postalCode && location
+              ? `${postalCode} ${location}`
+              : postalCode || location || gridOperator;
+          try {
+            bbox = await osmGridTopology.geocodeLocationToBbox(locationName);
+          } catch (err) {
+            return _degraded(_classifyDegradedReason(err.message), err.message);
+          }
+          if (!bbox) {
+            return _degraded('GEOCODING_FAILED', `Could not resolve "${locationName}" to a bounding box.`);
+          }
+          area = locationName;
+          scopeSource = postalCode ? 'postal_code' : location ? 'location_name' : 'grid_operator_name';
         }
-        const queriedLocation = params.location || gridOperator || 'bbox';
-        try {
-          const result = await _callMcpWithTimeout(
-            'osm_grid_topology',
-            params,
-            ctx.meta.cernionToken
+
+        if (osmGridTopology.bboxAreaSqKm(bbox) > osmGridTopology.MAX_BBOX_AREA_SQ_KM) {
+          return _degraded(
+            'AREA_TOO_BROAD',
+            `Bounding box exceeds ${osmGridTopology.MAX_BBOX_AREA_SQ_KM} km² — narrow the query scope.`
           );
-          return _wrapMcpResult(result, queriedLocation);
+        }
+
+        let nodesById;
+        let ways;
+        try {
+          ({ nodesById, ways } = await osmGridTopology.fetchGridElements(bbox));
         } catch (err) {
           return _degraded(_classifyDegradedReason(err.message), err.message);
         }
+
+        const { nodes, edges } = osmGridTopology.buildGraph(nodesById, ways, voltageLevel || null);
+        const topologyMetrics = osmGridTopology.computeMetrics(nodes, edges);
+
+        let pathAnalysis = { requested: false };
+        if (includePathAnalysis) {
+          if (!fromOsmId || !toOsmId) {
+            pathAnalysis = { requested: true, found: false, error: 'fromOsmId and toOsmId are required' };
+          } else {
+            pathAnalysis = {
+              requested: true,
+              ...osmGridTopology.shortestPath(nodes, edges, fromOsmId, toOsmId),
+            };
+          }
+        }
+
+        const dataQuality =
+          edges.length === 0 && nodes.length > 0
+            ? {
+                source: '© OpenStreetMap contributors (ODbL 1.0)',
+                osmEdgeCoverageEstimate: null,
+                coverageLabel: 'UNKNOWN',
+                warning:
+                  'No line connectivity could be derived between the fetched substation/transformer ' +
+                  'nodes in this area. This does not necessarily mean OSM has no line coverage here — ' +
+                  'lines may connect via towers/poles (not modelled as graph nodes) or continue outside ' +
+                  'the queried bounding box.',
+                disclaimer: 'OSM-Daten sind freiwillig gepflegt und können unvollständig oder veraltet sein.',
+              }
+            : {
+                source: '© OpenStreetMap contributors (ODbL 1.0)',
+                coverageLabel: edges.length > 0 ? 'DERIVED' : 'NO_NODES',
+                disclaimer: 'OSM-Daten sind freiwillig gepflegt und können unvollständig oder veraltet sein.',
+              };
+
+        const data = {
+          area,
+          scopeSource,
+          voltageFilter: voltageLevel || null,
+          topologyMetrics,
+          pathAnalysis,
+          dataQuality,
+        };
+        if (includeGraphData) {
+          data.graphData = { nodes, edges };
+        }
+
+        return { success: true, data };
       },
     },
   },
