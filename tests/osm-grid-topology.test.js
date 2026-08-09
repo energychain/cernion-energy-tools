@@ -346,12 +346,22 @@ describe('fetchAndBuildGraph', () => {
     expect(axios.post).toHaveBeenCalledTimes(2);
   });
 
-  it('does not retry a genuinely empty area (no ways at all)', async () => {
+  it('retries a totally empty response (0 ways, 0 nodes) — the v0.99.10 regression pattern', async () => {
     axios.post.mockResolvedValueOnce({ data: { elements: [] } });
-    const result = await fetchAndBuildGraph(bbox, null);
+    axios.post.mockResolvedValueOnce({ data: GOOD_RESPONSE });
+    const result = await fetchAndBuildGraph(bbox, null, { maxRetries: 1, backoffMs: 0 });
+    expect(result.edges).toHaveLength(1);
+    expect(result.retried).toBe(true);
+    expect(axios.post).toHaveBeenCalledTimes(2);
+  });
+
+  it('gives up on a genuinely empty area after exhausting retries', async () => {
+    axios.post.mockResolvedValue({ data: { elements: [] } });
+    const result = await fetchAndBuildGraph(bbox, null, { maxRetries: 1, backoffMs: 0 });
+    expect(result.nodes).toHaveLength(0);
     expect(result.edges).toHaveLength(0);
-    expect(result.retried).toBe(false);
-    expect(axios.post).toHaveBeenCalledTimes(1);
+    expect(result.retried).toBe(true);
+    expect(axios.post).toHaveBeenCalledTimes(2);
   });
 
   it('propagates a hard fetch error without retrying', async () => {

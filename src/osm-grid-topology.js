@@ -151,22 +151,28 @@ async function fetchGridElements(bbox) {
 const RETRY_BACKOFF_MS = 2000;
 
 /**
- * Fetches grid elements and builds the graph, retrying the fetch once if the
- * result is topologically implausible: real line ways present, at least one
- * topology node present, but zero derivable edges.
+ * Fetches grid elements and builds the graph, retrying when the result looks
+ * like a truncated/degraded Overpass response rather than a genuinely empty
+ * area:
+ *   (a) real line ways present, at least one topology node present, but
+ *       zero derivable edges (v0.99.9 regression: node portion of a
+ *       compound query silently truncated while the way portion stayed
+ *       complete — identical query, back to back, alternated between
+ *       8 nodes/106 ways and 2 unrelated/wrong nodes/106 ways, no error,
+ *       no `remark` field);
+ *   (b) a completely empty response — zero ways AND zero nodes (v0.99.10
+ *       regression: the same known-populated bbox, reproduced 3x, returned
+ *       nothing at all with no error either — an even more severe version
+ *       of the same silent-truncation failure mode, not caught by (a)'s
+ *       `ways.length > 0` guard).
  *
- * This exists because the public Overpass instance was observed live to
- * silently truncate the node portion of a compound node+way query under
- * load while the way portion stayed complete (identical query, back to
- * back: 8 nodes/106 ways, then only 2 unrelated nodes/106 ways, with no
- * error or `remark` field either time) — a v0.99.9 regression report
- * reproduced the exact same 2 spurious node IDs independently, which is
- * consistent with a fixed internal processing/truncation order on an
- * overloaded shared instance rather than a bug in buildGraph() (already
- * covered by deterministic unit tests). A short-backoff retry resolves this
- * in practice; if it recurs, the caller gets an honest zero-edges result
- * (see osm-geo.service.js's dataQuality messaging) rather than a fabricated
- * explanation.
+ * This does mean a *genuinely* empty area (no power infrastructure at all
+ * within the bbox) pays for one extra retry before settling — an acceptable
+ * cost given this platform only ever queries real German municipality
+ * areas, which essentially always have some grid infrastructure. Not a bug
+ * in buildGraph() itself in either case (unchanged, still covered by its
+ * deterministic unit tests) — the failure is entirely at the Overpass fetch
+ * layer.
  *
  * @param {{south,west,north,east}} bbox
  * @param {string|null} voltageLevelFilter
@@ -174,7 +180,7 @@ const RETRY_BACKOFF_MS = 2000;
  * @returns {Promise<{nodes: object[], edges: object[], retried: boolean}>}
  */
 async function fetchAndBuildGraph(bbox, voltageLevelFilter, options = {}) {
-  const maxRetries = options.maxRetries ?? 1;
+  const maxRetries = options.maxRetries ?? 2;
   const backoffMs = options.backoffMs ?? RETRY_BACKOFF_MS;
   let result = { nodes: [], edges: [] };
   let retried = false;
@@ -188,8 +194,10 @@ async function fetchAndBuildGraph(bbox, voltageLevelFilter, options = {}) {
     const { nodesById, ways } = await fetchGridElements(bbox);
     result = buildGraph(nodesById, ways, voltageLevelFilter);
 
-    const implausible = ways.length > 0 && result.nodes.length > 0 && result.edges.length === 0;
-    if (!implausible) break;
+    const partiallyTruncated =
+      ways.length > 0 && result.nodes.length > 0 && result.edges.length === 0;
+    const totallyEmpty = ways.length === 0 && nodesById.size === 0;
+    if (!partiallyTruncated && !totallyEmpty) break;
   }
 
   return { ...result, retried };

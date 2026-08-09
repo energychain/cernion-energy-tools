@@ -5,6 +5,17 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.99.11] — 2026-08-09
+
+### Fixed
+- **v0.99.10's implausible-result retry had a gap: it only triggered when Overpass returned real line ways but zero derivable edges, not when the whole response came back completely empty.** A user regression report reproduced `osm-geo.gridTopology` returning 0 nodes/0 edges (`coverageLabel: "NO_NODES"`) 3x in a row for the same known-populated Hockenheim bbox — including with `voltageLevel` filters and `postalCode` scope — while `osm-geo.substationFinder` reliably found 75 real substations for the identical bbox in the same test session, proving the underlying data was available and this was not a data gap. Root cause: `fetchAndBuildGraph()`'s implausibility check (`ways.length > 0 && nodes.length > 0 && edges.length === 0`) required `ways.length > 0`, so a totally empty Overpass response (0 ways *and* 0 nodes — an even more severe version of the same silent-truncation failure mode fixed in v0.99.10) never entered the retry path at all.
+- **Fix:** the retry condition now also covers a completely empty response (`ways.length === 0 && nodesById.size === 0`), and `maxRetries` default raised from 1 to 2 given how persistently degraded the public Overpass instance has been observed to be across this investigation (up to 3 attempts total). A genuinely empty area (no power infrastructure at all in the bbox) now pays for one extra retry before settling — an acceptable cost, since this platform only ever queries real German municipality areas.
+
+### Testing
+- `tests/osm-grid-topology.test.js` — the "does not retry a genuinely empty area" test (encoding the old, now-wrong behavior) replaced with two tests: retry-and-recover on a totally-empty-then-good sequence (the exact v0.99.10 regression pattern), and honest give-up after exhausting retries on a persistently empty area.
+- Full suite: `osm-geo.service.test.js` + `osm-grid-topology.test.js` — 12 suites / 531 tests pass.
+- Live verification against the real Overpass instance was not possible for this fix — the public instance was still returning clean `504`s from this investigation's own preceding load at the time of shipping (itself confirmation that the error path added in v0.99.10 continues to surface real failures honestly rather than silently). Correctness rests on the deterministic unit tests above.
+
 ## [0.99.10] — 2026-08-09
 
 ### Fixed
