@@ -1747,6 +1747,7 @@ module.exports = {
           'POST /osm-geo/infrastructure-nearby': 'osm-geo.infrastructureNearby',
           'POST /osm-geo/substation-finder': 'osm-geo.substationFinder',
           'POST /osm-geo/grid-topology': 'osm-geo.gridTopology',
+          'POST /osm-geo/landuse-areas': 'osm-geo.landuseAreas',
           // Knowledge RAG (v0.39)
           'POST /knowledge-rag/query': 'knowledge-rag.query',
           'POST /knowledge-rag/semantic': 'knowledge-rag.semantic',

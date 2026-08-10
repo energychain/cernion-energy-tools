@@ -5,6 +5,19 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.99.15] — 2026-08-10
+
+### Added
+- **New `osm-geo.landuseAreas` action (`POST /osm-geo/landuse-areas`) — OSM `landuse=*` polygon areas by type, sector-split evidence for municipal load estimation.** Requested explicitly: `src/municipal-load-estimator.js`'s `sectorFractionsForProfile()` currently falls back to a population/density proxy (`evidenceStatus: 'heuristic-fallback'`) for the commercial/public/residential split, and its own `nextGateLabel` names the fix — "OSM-Gebäudenutzung, MaStR-Anlagenstandorte und kommunale Liegenschaften für lokalen Lastsplit verbinden." `src/osm-landuse-areas.js` fetches `landuse=residential|commercial|retail|industrial|institutional` way polygons (default set, filterable via `landuseTypes`) via the same Overpass data source and conventions as `osm-geo.gridTopology` (`location`/`postalCode`/`boundingBox` scope, same geocoding, same area guard), computing each polygon's area (shoelace formula) and centroid entirely locally — no external MCP dependency. **Scope limitation, documented rather than silently miscalculated:** only simple closed `way` polygons are handled in v1; multipolygon `relation`s (areas with excluded inner holes) are not fetched, understating totals for whichever areas happen to be relation-mapped.
+- **New `src/osm-geometry.js`** — the planar-projection geometry helpers (`projectXY`, `pointToSegment`, `bboxAreaSqKm`, `padBbox`, plus new `polygonAreaM2`/`polygonCentroid`) extracted from `src/osm-grid-topology.js` so `osm-landuse-areas.js` reuses the same local-metres projection instead of duplicating it, per this repo's shared-utility convention. `osm-grid-topology.js`'s own behavior and public API (`nearestPointOnWay`, `bboxAreaSqKm`, `padBbox`, etc.) are unchanged — pure internal refactor, verified via the full existing `osm-grid-topology`/`osm-geo.service` test suites passing unchanged.
+
+### Testing
+- `tests/osm-geometry.test.js` (new, 14 tests) — `polygonAreaM2` verified exactly against a known 100m × 100m square (10000 m² ±10m²), winding-direction independence, unclosed-ring handling, degenerate-input safety; `polygonCentroid`, `bboxAreaSqKm`, `padBbox`, `pointToSegment`, `nearestPointOnPolyline`.
+- `tests/osm-landuse-areas.test.js` (new, 11 tests) — way-polygon parsing into areas with computed area/centroid, default vs. filtered `landuseTypes` query construction, degenerate-geometry and non-way-element skipping, User-Agent header, error propagation, `summarizeLanduseAreas` aggregation.
+- `tests/osm-geo.service.test.js` extended (10 new tests) — `landuseAreas` action: scope resolution (bbox/location/postalCode, matching `gridTopology`'s conventions), `landuseTypes` enum validation, `GEOCODING_FAILED`/`AREA_TOO_BROAD`/Overpass-failure degraded responses, empty-result summary shape.
+- Full suite: `osm-geo.service.test.js` + `osm-grid-topology.test.js` + `osm-geometry.test.js` + `osm-landuse-areas.test.js` — 14 suites / 595 tests pass. `api.service.test.js` (touched for the new REST alias) — 11 suites / 974 tests pass unchanged.
+- Live-verified against the real Hockenheim bbox: 58 areas (industrial ~2.97 km², commercial ~0.86 km², retail ~0.16 km²), including the same named area ("Hägebüch") the requester's own preliminary feasibility check had found — closely matching their independent count of 59.
+
 ## [0.99.14] — 2026-08-09
 
 ### Added

@@ -1,15 +1,15 @@
 {
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
-  "packageVersion": "0.99.14",
-  "sourceOpenApiHash": "91e1d9b073a3e157dc69a7242990b0ef5e533b61cf2a91da20c8424a188d13ce",
+  "packageVersion": "0.99.15",
+  "sourceOpenApiHash": "91d0138191b1b474f72d813ccf844b8b7fdbfc3ab5988ea96541ac80ced0a950",
   "coverage": {
-    "rawOperationCount": 1137,
-    "operationCount": 881,
-    "agentableCount": 879,
+    "rawOperationCount": 1138,
+    "operationCount": 882,
+    "agentableCount": 880,
     "nonAgentableCount": 2,
     "byOperationKind": {
-      "data_read": 387,
+      "data_read": 388,
       "admin": 8,
       "object_store_write": 229,
       "process_step": 20,
@@ -66787,6 +66787,106 @@
         ],
         "examples": [
           "Please energy infrastructure near a location (sorted by distance)"
+        ],
+        "synonyms": [
+          "Netzbetrieb",
+          "grid operator",
+          "VNB",
+          "distribution grid"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "osm-geo_landuseAreas",
+      "method": "POST",
+      "path": "/api/osm-geo/landuse-areas",
+      "service": "osm-geo",
+      "action": "osm-geo.landuseAreas",
+      "summary": "OSM landuse areas (residential/commercial/retail/industrial/institutional)",
+      "tags": [
+        "OSM Geo (OpenStreetMap)"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "osm-geo.landuse_areas"
+      ],
+      "domains": [
+        "grid-ops"
+      ],
+      "dataSources": [
+        "OpenStreetMap"
+      ],
+      "entityTypes": [],
+      "requiredScopes": [
+        "osm-geo:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [],
+        "optional": [
+          {
+            "name": "location",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "postalCode",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "boundingBox",
+            "in": "body",
+            "type": "object",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "landuseTypes",
+            "in": "body",
+            "type": "array",
+            "description": "Restrict to these landuse types (default: all 5 supported).",
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "osm",
+          "geo",
+          "landuse",
+          "areas",
+          "(residential",
+          "commercial",
+          "retail",
+          "industrial",
+          "institutional)",
+          "(open",
+          "street",
+          "map)"
+        ],
+        "negativeCues": [
+          "spot price",
+          "energy sharing community"
+        ],
+        "examples": [
+          "Please osm landuse areas (residential/commercial/retail/industrial/institutional)"
         ],
         "synonyms": [
           "Netzbetrieb",

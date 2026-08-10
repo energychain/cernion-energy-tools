@@ -14,6 +14,7 @@
 
 const CernionMCPClient = require('../src/mcp-client');
 const osmGridTopology = require('../src/osm-grid-topology');
+const osmLanduseAreas = require('../src/osm-landuse-areas');
 
 const DEFAULT_MCP_TIMEOUT_MS = 60000;
 
@@ -996,6 +997,171 @@ Returns both a detail list and **aggregated statistics**:
         }
 
         return { success: true, data };
+      },
+    },
+
+    /**
+     * Tool: landuse_areas
+     *
+     * OSM landuse=* polygon areas grouped by type — sector-split evidence
+     * for municipal load estimation (src/municipal-load-estimator.js's
+     * sectorFractionsForProfile() currently falls back to a population/
+     * density proxy; its own nextGateLabel names this as the fix).
+     *
+     * POST /api/osm-geo/landuse-areas
+     */
+    landuseAreas: {
+      rest: 'POST /landuse-areas',
+      params: {
+        location: { type: 'string', optional: true },
+        postalCode: { type: 'string', optional: true },
+        boundingBox: { type: 'object', optional: true },
+        landuseTypes: {
+          type: 'array',
+          optional: true,
+          items: { type: 'enum', values: osmLanduseAreas.DEFAULT_LANDUSE_TYPES },
+        },
+      },
+      openapi: {
+        summary: 'OSM landuse areas (residential/commercial/retail/industrial/institutional)',
+        tags: ['OSM Geo (OpenStreetMap)'],
+        description:
+          'Fetches OSM `landuse=*` way polygons within an area and computes their area ' +
+          '(shoelace formula on a local planar projection) and centroid locally — no ' +
+          'external MCP dependency, same Overpass data source as osm-geo.gridTopology. ' +
+          'Intended as sector-split evidence for municipal load/consumption estimation ' +
+          '(area share by landuse type instead of equal distribution across a municipality). ' +
+          '**Scope limitation:** only simple closed way polygons are handled — multipolygon ' +
+          'relations (areas with excluded inner holes) are not fetched in v1, which ' +
+          'understates totals for whichever areas happen to be relation-mapped rather than ' +
+          'miscalculating them. **Scope input:** at least one of `location`, `postalCode`, ' +
+          'or `boundingBox`.',
+        requestBody: {
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  location: { type: 'string', example: 'Hockenheim' },
+                  postalCode: { type: 'string', example: '68766' },
+                  boundingBox: {
+                    type: 'object',
+                    example: { south: 49.273, west: 8.483, north: 49.363, east: 8.621 },
+                    properties: {
+                      north: { type: 'number' },
+                      south: { type: 'number' },
+                      east: { type: 'number' },
+                      west: { type: 'number' },
+                    },
+                  },
+                  landuseTypes: {
+                    type: 'array',
+                    items: { type: 'string', enum: osmLanduseAreas.DEFAULT_LANDUSE_TYPES },
+                    example: ['industrial', 'commercial', 'retail'],
+                    description: 'Restrict to these landuse types (default: all 5 supported).',
+                  },
+                },
+              },
+              examples: {
+                hockenheimIndustrial: {
+                  summary: 'Industrial/commercial/retail areas for Hockenheim',
+                  value: {
+                    boundingBox: { south: 49.273, west: 8.483, north: 49.363, east: 8.621 },
+                    landuseTypes: ['industrial', 'commercial', 'retail'],
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Landuse areas and per-type summary',
+            content: {
+              'application/json': {
+                example: {
+                  success: true,
+                  data: {
+                    areas: [
+                      {
+                        osmId: 'way/28300155',
+                        landuseType: 'industrial',
+                        name: 'Hägebüch',
+                        areaM2Approx: 123456,
+                        centroid: { lat: 49.33, lon: 8.55 },
+                      },
+                    ],
+                    summary: {
+                      totalAreaM2ByType: { industrial: 850000, commercial: 210000, retail: 95000 },
+                      areaCount: 59,
+                    },
+                    dataQuality: {
+                      source: '© OpenStreetMap contributors (ODbL 1.0)',
+                      disclaimer:
+                        'OSM-Daten sind freiwillig gepflegt und können unvollständig oder veraltet sein.',
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const { location, postalCode, boundingBox, landuseTypes } = ctx.params;
+        if (!location && !postalCode && !boundingBox) {
+          throw new Error('At least one scope parameter must be provided: location, postalCode, or boundingBox.');
+        }
+
+        let bbox;
+        let area;
+        let scopeSource;
+        if (boundingBox) {
+          bbox = boundingBox;
+          area = 'bbox';
+          scopeSource = 'explicit_bbox';
+        } else {
+          const locationName = postalCode && location ? `${postalCode} ${location}` : postalCode || location;
+          try {
+            bbox = await osmGridTopology.geocodeLocationToBbox(locationName);
+          } catch (err) {
+            return _degraded(_classifyDegradedReason(err.message), err.message);
+          }
+          if (!bbox) {
+            return _degraded('GEOCODING_FAILED', `Could not resolve "${locationName}" to a bounding box.`);
+          }
+          area = locationName;
+          scopeSource = postalCode ? 'postal_code' : 'location_name';
+        }
+
+        if (osmLanduseAreas.bboxAreaSqKm(bbox) > osmLanduseAreas.MAX_BBOX_AREA_SQ_KM) {
+          return _degraded(
+            'AREA_TOO_BROAD',
+            `Bounding box exceeds ${osmLanduseAreas.MAX_BBOX_AREA_SQ_KM} km² — narrow the query scope.`
+          );
+        }
+
+        let areas;
+        try {
+          areas = await osmLanduseAreas.fetchLanduseAreas(bbox, landuseTypes);
+        } catch (err) {
+          return _degraded(_classifyDegradedReason(err.message), err.message);
+        }
+
+        return {
+          success: true,
+          data: {
+            area,
+            scopeSource,
+            areas,
+            summary: osmLanduseAreas.summarizeLanduseAreas(areas),
+            dataQuality: {
+              source: '© OpenStreetMap contributors (ODbL 1.0)',
+              disclaimer:
+                'OSM-Daten sind freiwillig gepflegt und können unvollständig oder veraltet sein.',
+            },
+          },
+        };
       },
     },
   },

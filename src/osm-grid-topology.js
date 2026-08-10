@@ -79,6 +79,7 @@
 
 const axios = require('axios');
 const { haversineDistanceM } = require('./znp-clustering-heuristics');
+const { nearestPointOnPolyline, bboxAreaSqKm, padBbox } = require('./osm-geometry');
 
 const OVERPASS_ENDPOINT =
   process.env.OVERPASS_ENDPOINT || 'https://overpass-api.de/api/interpreter';
@@ -124,16 +125,6 @@ async function geocodeLocationToBbox(locationName) {
 }
 
 /**
- * @param {{south,west,north,east}} bbox
- * @returns {number} approximate area in km^2
- */
-function bboxAreaSqKm(bbox) {
-  const latKm = haversineDistanceM(bbox.south, bbox.west, bbox.north, bbox.west) / 1000;
-  const lonKm = haversineDistanceM(bbox.south, bbox.west, bbox.south, bbox.east) / 1000;
-  return latKm * lonKm;
-}
-
-/**
  * Amount by which fetchGridElements() widens the queried bbox before
  * calling Overpass. A power=substation right at the edge of the requested
  * bbox may have its real feeding HS/EHS line — or, for the nearest-
@@ -145,23 +136,6 @@ function bboxAreaSqKm(bbox) {
  * mapped line).
  */
 const FETCH_PADDING_M = 4000;
-
-/**
- * Expands a bbox by a fixed distance in metres on every side.
- * @param {{south,west,north,east}} bbox
- * @param {number} paddingM
- * @returns {{south,west,north,east}}
- */
-function padBbox(bbox, paddingM) {
-  const latPad = paddingM / M_PER_DEG_LAT;
-  const lonPad = paddingM / mPerDegLon((bbox.south + bbox.north) / 2);
-  return {
-    south: bbox.south - latPad,
-    north: bbox.north + latPad,
-    west: bbox.west - lonPad,
-    east: bbox.east + lonPad,
-  };
-}
 
 // ─── Voltage classification ────────────────────────────────────────────────
 
@@ -223,69 +197,19 @@ function isVoltageCompatible(nodeVoltageLevel, nodeType, wayVoltageLevel) {
 }
 
 // ─── Spatial geometry helpers ───────────────────────────────────────────────
-
-/** Metres per degree of latitude (approx, standard WGS84 mid-latitude value). */
-const M_PER_DEG_LAT = 110540;
-
-/** Metres per degree of longitude at a given reference latitude. */
-function mPerDegLon(refLatDeg) {
-  return 111320 * Math.cos((refLatDeg * Math.PI) / 180);
-}
+// The actual projection/distance math lives in src/osm-geometry.js, shared
+// with src/osm-landuse-areas.js (polygon area calculation needs the same
+// local-metres projection). nearestPointOnWay is kept as a name/param-order
+// compatible wrapper around nearestPointOnPolyline since it's part of this
+// module's existing public API (services/osm-geo.service.js, tests).
 
 /**
- * Projects a lat/lon point to local planar metres around a reference
- * latitude (equirectangular approximation — accurate to well under 1% error
- * at the few-kilometre scale of a single municipality query, more than
- * sufficient for a tens-of-metres proximity threshold).
- * @param {number} lat @param {number} lon @param {number} refLat
- * @returns {{x: number, y: number}}
- */
-function projectXY(lat, lon, refLat) {
-  return { x: lon * mPerDegLon(refLat), y: lat * M_PER_DEG_LAT };
-}
-
-/**
- * Minimum distance from point P to segment AB (all in planar metres), plus
- * how far along AB (in metres from A) the closest point falls.
- * @returns {{distanceM: number, alongM: number}}
- */
-function pointToSegment(px, py, ax, ay, bx, by) {
-  const abx = bx - ax;
-  const aby = by - ay;
-  const segLenSq = abx * abx + aby * aby;
-  let t = segLenSq > 0 ? ((px - ax) * abx + (py - ay) * aby) / segLenSq : 0;
-  t = Math.max(0, Math.min(1, t));
-  const cx = ax + t * abx;
-  const cy = ay + t * aby;
-  const dx = px - cx;
-  const dy = py - cy;
-  return { distanceM: Math.sqrt(dx * dx + dy * dy), alongM: t * Math.sqrt(segLenSq) };
-}
-
-/**
- * Finds the closest point on a resolved way polyline to a given node
- * location, returning the perpendicular distance and the cumulative
- * distance along the polyline from its start to that point (used to order
- * multiple attached nodes correctly along the same way).
  * @param {number} nodeLat @param {number} nodeLon
  * @param {Array<{lat:number, lon:number}>} wayCoords  Resolved way geometry, >= 2 points.
  * @returns {{distanceM: number, alongM: number}}
  */
 function nearestPointOnWay(nodeLat, nodeLon, wayCoords) {
-  const refLat = wayCoords[0].lat;
-  const p = projectXY(nodeLat, nodeLon, refLat);
-
-  let best = null;
-  let cumulativeM = 0;
-  for (let i = 0; i < wayCoords.length - 1; i++) {
-    const a = projectXY(wayCoords[i].lat, wayCoords[i].lon, refLat);
-    const b = projectXY(wayCoords[i + 1].lat, wayCoords[i + 1].lon, refLat);
-    const { distanceM, alongM } = pointToSegment(p.x, p.y, a.x, a.y, b.x, b.y);
-    const totalAlongM = cumulativeM + alongM;
-    if (!best || distanceM < best.distanceM) best = { distanceM, alongM: totalAlongM };
-    cumulativeM += Math.hypot(b.x - a.x, b.y - a.y);
-  }
-  return best;
+  return nearestPointOnPolyline(nodeLat, nodeLon, wayCoords);
 }
 
 // ─── Overpass fetch ─────────────────────────────────────────────────────────
