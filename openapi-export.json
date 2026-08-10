@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.99.15",
+    "version": "0.99.16",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.\n\nFor the public instance at https://api.cernion.de/, create your token at https://cernion.de/cet-token/."
   },
   "servers": [
@@ -45044,6 +45044,108 @@
         ],
         "x-oeo-class": [
           "https://openenergyplatform.org/ontology/oeo/OEO_00010082"
+        ]
+      }
+    },
+    "/api/grid-operations/market-actor-directory": {
+      "get": {
+        "operationId": "grid-operations_marketActorDirectory",
+        "summary": "Bulk, paginated directory of German energy market actors (VNB/LIEFERANT/MSB)",
+        "tags": [
+          "Grid Operations"
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated market actor list",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "results": [
+                      {
+                        "entityId": "662063",
+                        "companyName": "Stadtwerke Gronau GmbH",
+                        "bdewCodes": [
+                          "9900244000009"
+                        ],
+                        "marketRoles": [
+                          "VNB"
+                        ],
+                        "address": {
+                          "city": "Gronau",
+                          "postalCode": "48599",
+                          "state": null
+                        },
+                        "website": "http://www.stadtwerke-gronau.de",
+                        "mastrId": null,
+                        "lastUpdated": "2026-07-31T22:35:00.638935+00:00"
+                      }
+                    ],
+                    "pagination": {
+                      "limit": 100,
+                      "offset": 0,
+                      "total": 2123
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Enumerates German energy market actors (grid operators, suppliers, metering point operators) with real offset-based pagination — a bulk discovery seed, distinct from marketPartners/vnbLookup which are built for single/few-result identity resolution.\n\n**Use case:** organisation discovery seed list (e.g. iterating public websites for customer-service/FAQ pages) without needing the full MaStR export (~3GB) or scraping the MaStR web UI.\n\n**Response fields per entry:** `entityId`, `companyName`, `bdewCodes[]`, `marketRoles[]`, `address.{city,postalCode,state}`, `website`, `mastrId`, `lastUpdated`.\n\n**Known data gaps (source data, not this endpoint):** `address.state` is null for almost all entries; `mastrId` is only meaningful for VNB and depends on environment data.",
+        "parameters": [
+          {
+            "name": "marketRoles",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "VNB",
+                  "LIEFERANT",
+                  "MSB"
+                ]
+              },
+              "example": [
+                "VNB"
+              ]
+            },
+            "description": "Restrict to these market roles; omit for all roles."
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "Baden-Württemberg"
+            },
+            "description": "Bundesland filter — currently rarely populated in the source data."
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 100,
+              "minimum": 1,
+              "maximum": 500
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "minimum": 0
+            }
+          }
         ]
       }
     },
@@ -91502,5 +91604,5 @@
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.99.15"
+  "x-version": "0.99.16"
 }
