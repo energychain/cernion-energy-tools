@@ -975,7 +975,7 @@ module.exports = {
         title: 'Cernion Energy Tools API',
         version: packageVersion,
         description:
-          'MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.\n\nFor the public instance at https://api.cernion.de/, create your token at https://cernion.de/cet-token/.',
+          'API-first grid-intelligence and agentic energy-operations services for Cernion.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.\n\nFor the public instance at https://api.cernion.de/, create your token at https://cernion.de/cet-token/.',
       },
       tags: [
         { name: 'Energy', description: 'Energy market operations' },
