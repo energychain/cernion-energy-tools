@@ -1,9 +1,21 @@
 # Cernion Energy Tools
 
-> API-first Agentic Energy Operations Layer for Stadtwerke, DSOs and energy-service teams.
-> Cernion combines deterministic energy-domain services, curated capability routing,
-> evidence dossiers, VDMI role logic, HITL boundaries and read-only integration surfaces
-> for REST, Sidecar, Microsoft Copilot, n8n, OpenWebUI and OpenClaw.
+> API-first grid-intelligence and agentic energy-operations layer for Stadtwerke,
+> distribution-system operators and energy-service teams. Cernion combines deterministic
+> energy-domain services, curated capability routing, evidence dossiers, VDMI role logic,
+> HITL boundaries and governed integration surfaces for REST, MCP, Sidecar, Microsoft
+> Copilot, n8n, OpenWebUI and OpenClaw.
+
+## MCP and API access
+
+The hosted public API is documented at [api.cernion.de](https://api.cernion.de/api/docs)
+and through the OpenAPI export in this repository. MCP-compatible access is available at
+`https://api.cernion.de/api/mcp` for clients that authenticate with a Cernion bearer token.
+Public token onboarding starts at [cernion.de/cet-token](https://cernion.de/cet-token/).
+
+The repository version is maintained in `package.json` and the generated OpenAPI exports;
+this README intentionally avoids a copied static version sentence so public listings do not
+keep stale release numbers.
 
 [![Maintenance CI](https://github.com/energychain/cernion-energy-tools/actions/workflows/maintenance-ci.yml/badge.svg?branch=main)](https://github.com/energychain/cernion-energy-tools/actions/workflows/maintenance-ci.yml)
 [![CodeQL](https://github.com/energychain/cernion-energy-tools/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/energychain/cernion-energy-tools/actions/workflows/codeql.yml)
@@ -24,7 +36,6 @@ It is not just a chat frontend for energy APIs. The current platform contains:
 - **curated Copilot, Sidecar, OpenWebUI, n8n and OpenClaw integration surfaces** that expose only governed subsets of the backend
 - **agentic runtime components** for routing, receipts, dossiers, HITL, evidence, revalidation and observability
 
-Current package/OpenAPI version: **`0.99.0`**
 
 ### Public positioning
 

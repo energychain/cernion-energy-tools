@@ -323,7 +323,7 @@ function buildStaticSpec() {
       title: 'Cernion Energy Tools API',
       version: packageVersion,
       description:
-        'MicroService Agent System for Energy Markets - REST API with AI integration.\n\n' +
+        'API-first grid-intelligence and agentic energy-operations services for Cernion.\n\n' +
         'CERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.\n\n' +
         'For the public instance at https://api.cernion.de/, create your token at https://cernion.de/cet-token/.',
     },

@@ -1,7 +1,7 @@
 {
   "name": "cernion-energy-tools",
   "version": "0.99.17",
-  "description": "MicroService Agent System for Energy Markets",
+  "description": "API-first grid-intelligence and agentic energy-operations services for Cernion",
   "main": "index.js",
   "engines": {
     "node": ">=22"
