@@ -149,11 +149,18 @@ function selectLayer1ByName(key, stateHint) {
   return [...matches].sort((a, b) => (Number(b.ewz) || 0) - (Number(a.ewz) || 0))[0];
 }
 
-// ── Build Layer 2 indexes (PLZ → name+state, name → PLZ) ─────────────────────
+// ── Build Layer 2 indexes (PLZ → name+state, name → all matching PLZ) ────────
+//
+// A municipality name maps to *every* PLZ row that names it (a city the size
+// of Mannheim has 14+), not just the first one encountered — collected here
+// so buildFullProfile() can return a complete postalCodes[] instead of a
+// single-element array wrapping one arbitrary PLZ (the previous behaviour,
+// which silently discarded every PLZ after the first for any multi-PLZ
+// municipality).
 
 const l2PlzToOrt = new Map(); // '41569' → { name:'Rommerskirchen', state:'Nordrhein-Westfalen' }
-const l2NameToPlz = new Map(); // 'rommerskirchen' → '41569'
-const l2NameStateToPlz = new Map(); // 'leimen|Baden-Württemberg' → '69181'
+const l2NameToPlzList = new Map(); // 'mannheim' → ['68159', '68161', ...] (all PLZ for this name, any state)
+const l2NameStatePlzList = new Map(); // 'leimen|Baden-Württemberg' → ['69181', ...] (state-scoped subset)
 
 for (const row of rawPlzData) {
   const plzStr = String(row.plz).padStart(5, '0');
@@ -161,9 +168,25 @@ for (const row of rawPlzData) {
   if (!plzStr || !name) continue;
   if (!l2PlzToOrt.has(plzStr)) l2PlzToOrt.set(plzStr, { name, state: row.bundesland });
   const key = name.toLowerCase().trim();
-  if (!l2NameToPlz.has(key)) l2NameToPlz.set(key, plzStr);
+  if (!l2NameToPlzList.has(key)) l2NameToPlzList.set(key, []);
+  l2NameToPlzList.get(key).push(plzStr);
   const stateKey = `${key}|${row.bundesland || ''}`;
-  if (!l2NameStateToPlz.has(stateKey)) l2NameStateToPlz.set(stateKey, plzStr);
+  if (!l2NameStatePlzList.has(stateKey)) l2NameStatePlzList.set(stateKey, []);
+  l2NameStatePlzList.get(stateKey).push(plzStr);
+}
+
+/**
+ * All known PLZ for a municipality name, preferring the state-scoped set
+ * (avoids mixing in PLZ from a different, identically-named municipality in
+ * another Bundesland) and falling back to the name-only set otherwise.
+ * @param {string} nameKey  Lowercased, trimmed municipality name.
+ * @param {string} [state]
+ * @returns {string[]} deduplicated, numerically sorted PLZ list
+ */
+function allPostalCodesForName(nameKey, state) {
+  const stateList = l2NameStatePlzList.get(`${nameKey}|${state || ''}`);
+  const list = stateList && stateList.length ? stateList : l2NameToPlzList.get(nameKey) || [];
+  return [...new Set(list)].sort();
 }
 
 // ── Helper: build a full return profile from a Layer 1 entry ─────────────────
@@ -185,11 +208,9 @@ function buildFullProfile(l1Entry, resolvedPlz, fallbackName) {
   const nameKey = String(l1Entry.name || fallbackName || '')
     .toLowerCase()
     .trim();
-  const postalCode =
-    resolvedPlz ||
-    l2NameStateToPlz.get(`${nameKey}|${l1Entry.state || ''}`) ||
-    l2NameToPlz.get(nameKey) ||
-    null;
+  const postalCodes = allPostalCodesForName(nameKey, l1Entry.state);
+  if (resolvedPlz && !postalCodes.includes(resolvedPlz)) postalCodes.unshift(resolvedPlz);
+  const postalCode = resolvedPlz || postalCodes[0] || null;
 
   return {
     found: true,
@@ -197,7 +218,7 @@ function buildFullProfile(l1Entry, resolvedPlz, fallbackName) {
     bez: l1Entry.bez || null,
     ags: l1Entry.ags,
     postalCode,
-    postalCodes: postalCode ? [postalCode] : [],
+    postalCodes,
     state: l1Entry.state || null,
     district: null,
     population: pop || null,
@@ -276,7 +297,7 @@ function resolveMunicipalityProfile({ municipality, ags } = {}) {
     }
 
     if (!l1Entry) {
-      const plzStr = l2NameToPlz.get(key) || null;
+      const plzStr = (l2NameToPlzList.get(key) || [])[0] || null;
       if (plzStr) {
         resolvedPlz = plzStr;
         l2Result = l2PlzToOrt.get(plzStr) || null;
@@ -291,13 +312,15 @@ function resolveMunicipalityProfile({ municipality, ags } = {}) {
 
   // ─ Layer 2 only (PLZ→name resolved; no AGS/population) ───────────────────
   if (l2Result) {
+    const postalCodes = allPostalCodesForName(l2Result.name.toLowerCase().trim(), l2Result.state);
+    if (resolvedPlz && !postalCodes.includes(resolvedPlz)) postalCodes.unshift(resolvedPlz);
     return {
       found: true,
       name: l2Result.name,
       bez: null,
       ags: null,
-      postalCode: resolvedPlz,
-      postalCodes: resolvedPlz ? [resolvedPlz] : [],
+      postalCode: resolvedPlz || postalCodes[0] || null,
+      postalCodes,
       state: l2Result.state || null,
       district: null,
       population: null,

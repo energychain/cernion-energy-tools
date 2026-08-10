@@ -5,6 +5,17 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.99.17] — 2026-08-10
+
+### Fixed
+- **`municipality-resolver.js` (backing `municipality.lookup` and `dashboard-api/municipal-energy-value-analysis`'s `postalCodes` field) only ever returned a single postal code per municipality, even for large multi-PLZ cities.** Reported live for Mannheim (14 real PLZ, only `68159` returned) and, separately, Frankfurt am Main (`postalCodes` empty entirely — a distinct GV100-vs.-`german-zip-codes` name-format mismatch, intentionally **not** addressed by this fix, per explicit scoping). Root cause of the multi-PLZ truncation: the Layer 2 (`german-zip-codes`) name→PLZ index (`l2NameToPlz`/`l2NameStateToPlz`) kept only the *first* PLZ row encountered per municipality name and silently discarded the rest, even though the underlying dataset already has the complete list (confirmed live: 14 rows for Mannheim in the raw package data).
+- Replaced the single-value maps with array-collecting `l2NameToPlzList`/`l2NameStatePlzList` plus a new `allPostalCodesForName(nameKey, state)` helper (state-scoped list preferred, full-name list as fallback) that both `buildFullProfile()` and the Layer-2-only fallback path now use to populate a complete, deduplicated, sorted `postalCodes[]` array. The existing singular `postalCode` field is unchanged in both value and semantics (the specifically-resolved/first PLZ) — this is a strictly additive completeness fix to the array field, not a behavior change to the singular one.
+- Live-verified via direct resolver calls: Mannheim 14 PLZ, Stuttgart 35, Karlsruhe 13, Mainz 11, Heidelberg 8 (previously all count 1) — while a genuinely single-PLZ town (Hockenheim, `68766`) and the still-open Frankfurt am Main gap are both unchanged, confirming no regression.
+
+### Testing
+- **New `tests/municipality-resolver.test.js`** (8 tests) — this module had no dedicated test file before, only indirect coverage via `dashboard-api.test.js`/`municipality.service.test.js`. Covers: full multi-PLZ list for Mannheim and four other known multi-PLZ Großstädte, singular `postalCode` staying a member of `postalCodes[]`, single-PLZ towns unaffected, AGS-based and PLZ-based resolution returning the same complete list, state-scoped disambiguation not bleeding postal codes across same-named municipalities in different Bundesländer, and the documented still-open Frankfurt am Main gap (explicitly asserted as a known, out-of-scope limitation, not silently left untested).
+- Full suite, scoped to real repo paths (stray `.worktrees`/`.claude/worktrees` duplicate test files excluded): `tests/dashboard-api.test.js` + `tests/municipality.service.test.js` — 2 suites / 471 tests pass unchanged. New `tests/municipality-resolver.test.js` — 1 suite / 8 tests pass.
+
 ## [0.99.16] — 2026-08-10
 
 ### Added
