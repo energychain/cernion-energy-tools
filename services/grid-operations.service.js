@@ -2050,6 +2050,143 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
       },
     },
 
+    /**
+     * Bulk, paginated German market actor directory — requested explicitly
+     * as a discovery seed (avoids consumers needing the ~3GB MaStR full
+     * export or scraping the MaStR web UI just to enumerate market actors).
+     * Unlike marketPartners (single/few-result relevance search, and whose
+     * offset parameter cernion_market_partners silently ignores — verified
+     * live, not a documented limitation), this proxies the dedicated
+     * cernion_market_actor_directory MCP tool, which supports real
+     * offset-based pagination (verified live: offset=0 vs offset=5 return
+     * fully disjoint result sets, with an honest `pagination.total`).
+     *
+     * Known data gaps in the underlying source (not a bug in this proxy):
+     * - `address.state` is null almost always — not present in the
+     *   underlying bdew_codes/plz_vnb_mappings/MaStR marktakteure data for
+     *   these entities, and the municipality reference dataset it falls
+     *   back to only covers 10 municipalities.
+     * - `mastrId` is only meaningful for marketRoles containing VNB
+     *   (suppliers/MSBs have no MaStR SNB/GNB concept) and depends on the
+     *   PlzVnbMapping collection being populated in the calling environment.
+     */
+    marketActorDirectory: {
+      rest: 'GET /market-actor-directory',
+      params: {
+        marketRoles: {
+          type: 'array',
+          optional: true,
+          items: { type: 'enum', values: ['VNB', 'LIEFERANT', 'MSB'] },
+        },
+        state: { type: 'string', optional: true },
+        limit: { type: 'number', optional: true, default: 100, min: 1, max: 500, convert: true },
+        offset: { type: 'number', optional: true, default: 0, min: 0, convert: true },
+      },
+      openapi: {
+        summary: 'Bulk, paginated directory of German energy market actors (VNB/LIEFERANT/MSB)',
+        tags: ['Grid Operations'],
+        description: `Enumerates German energy market actors (grid operators, suppliers, metering point operators) with real offset-based pagination — a bulk discovery seed, distinct from marketPartners/vnbLookup which are built for single/few-result identity resolution.
+
+**Use case:** organisation discovery seed list (e.g. iterating public websites for customer-service/FAQ pages) without needing the full MaStR export (~3GB) or scraping the MaStR web UI.
+
+**Response fields per entry:** \`entityId\`, \`companyName\`, \`bdewCodes[]\`, \`marketRoles[]\`, \`address.{city,postalCode,state}\`, \`website\`, \`mastrId\`, \`lastUpdated\`.
+
+**Known data gaps (source data, not this endpoint):** \`address.state\` is null for almost all entries; \`mastrId\` is only meaningful for VNB and depends on environment data.`,
+        parameters: [
+          {
+            name: 'marketRoles',
+            in: 'query',
+            required: false,
+            schema: {
+              type: 'array',
+              items: { type: 'string', enum: ['VNB', 'LIEFERANT', 'MSB'] },
+              example: ['VNB'],
+            },
+            description: 'Restrict to these market roles; omit for all roles.',
+          },
+          {
+            name: 'state',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', example: 'Baden-Württemberg' },
+            description: 'Bundesland filter — currently rarely populated in the source data.',
+          },
+          {
+            name: 'limit',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', default: 100, minimum: 1, maximum: 500 },
+          },
+          {
+            name: 'offset',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', default: 0, minimum: 0 },
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Paginated market actor list',
+            content: {
+              'application/json': {
+                example: {
+                  success: true,
+                  data: {
+                    results: [
+                      {
+                        entityId: '662063',
+                        companyName: 'Stadtwerke Gronau GmbH',
+                        bdewCodes: ['9900244000009'],
+                        marketRoles: ['VNB'],
+                        address: { city: 'Gronau', postalCode: '48599', state: null },
+                        website: 'http://www.stadtwerke-gronau.de',
+                        mastrId: null,
+                        lastUpdated: '2026-07-31T22:35:00.638935+00:00',
+                      },
+                    ],
+                    pagination: { limit: 100, offset: 0, total: 2123 },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const { marketRoles, state, limit, offset } = ctx.params;
+        const mcpParams = { limit, offset };
+        if (marketRoles) mcpParams.marketRoles = marketRoles;
+        if (state) mcpParams.state = state;
+
+        const result = await CernionMCPClient.callWithNewSession(
+          'cernion_market_actor_directory',
+          mcpParams,
+          ctx.meta.cernionToken
+        );
+
+        if (result?.success === false) {
+          throw new MoleculerClientError(
+            result.error?.message || 'cernion_market_actor_directory call failed',
+            502,
+            result.error?.code || 'MCP_CALL_FAILED'
+          );
+        }
+
+        // CernionMCPClient's generic response handling nests this specific
+        // tool's own {success, data:{results, pagination}} payload one level
+        // deeper than usual (verified live) -- unwrap to a clean single-level
+        // response rather than exposing that plumbing detail to callers.
+        const payload = result?.data?.data || result?.data || {};
+        return {
+          success: true,
+          data: {
+            results: payload.results || [],
+            pagination: payload.pagination || { limit, offset, total: payload.results?.length || 0 },
+          },
+        };
+      },
+    },
+
     // -----------------------------------------------------------------------
     // Phase 5 — Netzfahrplan / fNAV generation (v0.51.5)
     // -----------------------------------------------------------------------

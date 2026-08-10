@@ -5,6 +5,18 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.99.16] — 2026-08-10
+
+### Added
+- **New `grid-operations.marketActorDirectory` action (`GET /grid-operations/market-actor-directory`) — bulk, paginated German market actor directory.** Requested explicitly as a discovery-seed replacement for consumers who would otherwise need the ~3GB MaStR full export or MaStR web-UI scraping. Investigated the existing lookup family first (`marketPartners`, `vnbdigitalSearch`, `vnbdigitalLookup`, `vnbLookup`, `vnbLookupCodes`) — all proxy to external `mcp.cernion.de` MCP tools with no local data backing, and `marketPartners`'s `offset` parameter was found live to be silently ignored by the underlying `cernion_market_partners` tool (identical results at `offset:0` and `offset:50000`) — genuine bulk enumeration was not possible through any existing capability. The Cernion MCP-side team subsequently shipped a dedicated `cernion_market_actor_directory` tool with real pagination; this action is a thin, verified proxy to it, matching the requester's exact proposed shape (`entityId`, `companyName`, `bdewCodes[]`, `marketRoles[]`, `address.{city,postalCode,state}`, `website`, `mastrId`, `lastUpdated`, plus `pagination.{limit,offset,total}`).
+- Live-verified before shipping: `offset=0` vs `offset=5` return fully disjoint result sets (0 overlap) with an honest `pagination.total` (2123 across all 3 roles); `marketRoles` filtering (`VNB`/`LIEFERANT`/`MSB`) works server-side; `website` coverage ~89% in a 100-entry sample (close to the ~93–96% reported by the MCP-side team). `address.state` and `mastrId` are documented as known, currently near-always-null data gaps in the underlying source (not a bug in this proxy) per the MCP-side team's own findings.
+- `limit` capped at 500 (the underlying tool's own server-side cap, confirmed live — requesting 1000 silently returns 500).
+
+### Testing
+- `tests/grid-operations.service.test.js` extended (7 new tests) — param pass-through incl. defaults, unwrapping the tool's double-nested response shape (verified live before writing the fixture) into a clean single-level result, `marketRoles`/`limit` validation, MCP-failure → clean 502, and pagination-fallback synthesis when the tool omits it.
+- Full suite: `tests/grid-operations.service.test.js` — 11 suites / 634 tests pass.
+- Live-verified end-to-end through a real Moleculer broker (not just mocked tests) with `marketRoles: ['VNB','LIEFERANT','MSB']` — correct shape, correct data, correct pagination.
+
 ## [0.99.15] — 2026-08-10
 
 ### Added

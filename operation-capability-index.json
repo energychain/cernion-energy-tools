@@ -1,15 +1,15 @@
 {
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
-  "packageVersion": "0.99.15",
-  "sourceOpenApiHash": "91d0138191b1b474f72d813ccf844b8b7fdbfc3ab5988ea96541ac80ced0a950",
+  "packageVersion": "0.99.16",
+  "sourceOpenApiHash": "423046080cbe2b7b5abbc144141d87d48ea3c5ef7966e194a0433ced88f5eb52",
   "coverage": {
-    "rawOperationCount": 1138,
-    "operationCount": 882,
-    "agentableCount": 880,
+    "rawOperationCount": 1139,
+    "operationCount": 883,
+    "agentableCount": 881,
     "nonAgentableCount": 2,
     "byOperationKind": {
-      "data_read": 388,
+      "data_read": 389,
       "admin": 8,
       "object_store_write": 229,
       "process_step": 20,
@@ -54613,6 +54613,108 @@
         ],
         "examples": [
           "Please grid operation data (load, frequency, flows, redispatch)"
+        ],
+        "synonyms": [
+          "Netzbetrieb",
+          "grid operator",
+          "VNB",
+          "distribution grid"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "grid-operations_marketActorDirectory",
+      "method": "GET",
+      "path": "/api/grid-operations/market-actor-directory",
+      "service": "grid-operations",
+      "action": "grid-operations.marketActorDirectory",
+      "summary": "Bulk, paginated directory of German energy market actors (VNB/LIEFERANT/MSB)",
+      "tags": [
+        "Grid Operations"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "grid-operations.market_actor_directory"
+      ],
+      "domains": [
+        "grid-ops"
+      ],
+      "dataSources": [
+        "MaStR",
+        "Grid Operator Registry"
+      ],
+      "entityTypes": [],
+      "requiredScopes": [
+        "grid-operations:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [],
+        "optional": [
+          {
+            "name": "marketRoles",
+            "in": "query",
+            "type": "array",
+            "description": "Restrict to these market roles; omit for all roles.",
+            "extractionHint": null
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "type": "string",
+            "description": "Bundesland filter — currently rarely populated in the source data.",
+            "extractionHint": null
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "type": "integer",
+            "description": null,
+            "extractionHint": "result_limit"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "type": "integer",
+            "description": null,
+            "extractionHint": "pagination_offset"
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "grid",
+          "operations",
+          "market",
+          "actor",
+          "directory",
+          "bulk,",
+          "paginated",
+          "german",
+          "energy",
+          "actors",
+          "(vnb",
+          "lieferant",
+          "msb)"
+        ],
+        "negativeCues": [
+          "spot price",
+          "energy sharing community"
+        ],
+        "examples": [
+          "Show me bulk, paginated directory of german energy market actors (vnb/lieferant/msb)"
         ],
         "synonyms": [
           "Netzbetrieb",

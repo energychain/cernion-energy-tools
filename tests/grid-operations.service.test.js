@@ -1049,4 +1049,105 @@ describe('Grid Operations Service', () => {
       if (svc) await broker.destroyService(svc);
     });
   });
+
+  // ─── marketActorDirectory (bulk, paginated discovery seed) ───────────────
+
+  describe('marketActorDirectory action', () => {
+    // Matches the real double-nested shape observed live from
+    // cernion_market_actor_directory via CernionMCPClient (verified before
+    // building this proxy — the client wraps the tool's own {success,
+    // data:{results,pagination}} payload one level deeper than usual).
+    const DOUBLE_NESTED_MOCK = {
+      success: true,
+      data: {
+        success: true,
+        data: {
+          results: [
+            {
+              entityId: '662063',
+              companyName: 'Stadtwerke Gronau GmbH',
+              bdewCodes: ['9900244000009'],
+              marketRoles: ['VNB'],
+              address: { city: 'Gronau', postalCode: '48599', state: null },
+              website: 'http://www.stadtwerke-gronau.de',
+              mastrId: null,
+              lastUpdated: '2026-07-31T22:35:00.638935+00:00',
+            },
+          ],
+          pagination: { limit: 100, offset: 0, total: 2123 },
+        },
+      },
+    };
+
+    beforeEach(() => callWithNewSession.mockReset());
+
+    it('calls cernion_market_actor_directory with marketRoles/state/limit/offset', async () => {
+      callWithNewSession.mockResolvedValueOnce(DOUBLE_NESTED_MOCK);
+      await broker.call('grid-operations.marketActorDirectory', {
+        marketRoles: ['VNB'],
+        state: 'Baden-Württemberg',
+        limit: 50,
+        offset: 10,
+      });
+      expect(callWithNewSession).toHaveBeenCalledWith(
+        'cernion_market_actor_directory',
+        { marketRoles: ['VNB'], state: 'Baden-Württemberg', limit: 50, offset: 10 },
+        undefined
+      );
+    });
+
+    it('applies default limit/offset when omitted', async () => {
+      callWithNewSession.mockResolvedValueOnce(DOUBLE_NESTED_MOCK);
+      await broker.call('grid-operations.marketActorDirectory', {});
+      expect(callWithNewSession).toHaveBeenCalledWith(
+        'cernion_market_actor_directory',
+        { limit: 100, offset: 0 },
+        undefined
+      );
+    });
+
+    it('unwraps the double-nested MCP response into a clean single-level result', async () => {
+      callWithNewSession.mockResolvedValueOnce(DOUBLE_NESTED_MOCK);
+      const result = await broker.call('grid-operations.marketActorDirectory', {});
+      expect(result.success).toBe(true);
+      expect(result.data.results).toHaveLength(1);
+      expect(result.data.results[0].companyName).toBe('Stadtwerke Gronau GmbH');
+      expect(result.data.results[0].website).toBe('http://www.stadtwerke-gronau.de');
+      expect(result.data.pagination).toEqual({ limit: 100, offset: 0, total: 2123 });
+    });
+
+    it('rejects an unsupported marketRoles value (enum validation)', async () => {
+      await expect(
+        broker.call('grid-operations.marketActorDirectory', { marketRoles: ['UEBERTRAGUNGSNETZ'] })
+      ).rejects.toThrow();
+    });
+
+    it('rejects limit above the 500 server cap', async () => {
+      await expect(
+        broker.call('grid-operations.marketActorDirectory', { limit: 501 })
+      ).rejects.toThrow();
+    });
+
+    it('propagates an MCP-level failure as a clean 502 error', async () => {
+      callWithNewSession.mockResolvedValueOnce({
+        success: false,
+        error: { code: 'TOOL_CALL_ERROR', message: 'directory unavailable' },
+      });
+      await expect(broker.call('grid-operations.marketActorDirectory', {})).rejects.toMatchObject({
+        code: 502,
+      });
+    });
+
+    it('falls back to a synthesised pagination object when the tool omits one', async () => {
+      callWithNewSession.mockResolvedValueOnce({
+        success: true,
+        data: { success: true, data: { results: [{ entityId: '1', companyName: 'X' }] } },
+      });
+      const result = await broker.call('grid-operations.marketActorDirectory', {
+        limit: 20,
+        offset: 0,
+      });
+      expect(result.data.pagination).toEqual({ limit: 20, offset: 0, total: 1 });
+    });
+  });
 });
