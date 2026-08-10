@@ -46,6 +46,33 @@ const GRID_TOPOLOGY_OVERPASS_FIXTURE = {
   ],
 };
 
+const LANDUSE_OVERPASS_FIXTURE = {
+  elements: [
+    {
+      type: 'way',
+      id: 28300155,
+      tags: { landuse: 'industrial', name: 'Hägebüch' },
+      geometry: [
+        { lat: 49.33, lon: 8.55 },
+        { lat: 49.33, lon: 8.551 },
+        { lat: 49.331, lon: 8.551 },
+        { lat: 49.331, lon: 8.55 },
+      ],
+    },
+    {
+      type: 'way',
+      id: 28300156,
+      tags: { landuse: 'retail' },
+      geometry: [
+        { lat: 49.34, lon: 8.56 },
+        { lat: 49.34, lon: 8.5605 },
+        { lat: 49.3405, lon: 8.5605 },
+        { lat: 49.3405, lon: 8.56 },
+      ],
+    },
+  ],
+};
+
 describe('OSM Geo Service', () => {
   let broker;
 
@@ -494,6 +521,107 @@ describe('OSM Geo Service', () => {
       expect(result.data.topologyMetrics.edges).toBe(0);
       expect(result.data.dataQuality.osmEdgeCoverageEstimate).toBeNull();
       expect(result.data.dataQuality.warning).not.toMatch(/0% in OSM erfasst/);
+    });
+  });
+
+  // ─── landuseAreas ────────────────────────────────────────────────────────────
+
+  describe('landuseAreas action', () => {
+    it('should be defined', () => {
+      expect(broker.getLocalService('osm-geo').schema.actions.landuseAreas).toBeDefined();
+    });
+
+    it('should have correct REST endpoint', () => {
+      const action = broker.getLocalService('osm-geo').schema.actions.landuseAreas;
+      expect(action.rest).toBe('POST /landuse-areas');
+    });
+
+    it('should reject when no scope parameter is provided', async () => {
+      await expect(broker.call('osm-geo.landuseAreas', {})).rejects.toThrow();
+    });
+
+    it('returns areas and a per-type summary for an explicit boundingBox', async () => {
+      axios.post.mockResolvedValueOnce({ data: LANDUSE_OVERPASS_FIXTURE });
+      const result = await broker.call('osm-geo.landuseAreas', {
+        boundingBox: { north: 49.363, south: 49.273, east: 8.621, west: 8.483 },
+        landuseTypes: ['industrial', 'retail'],
+      });
+      expect(result.success).toBe(true);
+      expect(result.data.scopeSource).toBe('explicit_bbox');
+      expect(result.data.areas).toHaveLength(2);
+      expect(result.data.areas[0].osmId).toBe('way/28300155');
+      expect(result.data.areas[0].name).toBe('Hägebüch');
+      expect(result.data.summary.areaCount).toBe(2);
+      expect(result.data.summary.totalAreaM2ByType).toHaveProperty('industrial');
+      expect(result.data.summary.totalAreaM2ByType).toHaveProperty('retail');
+      expect(axios.get).not.toHaveBeenCalled();
+    });
+
+    it('geocodes a location name via Nominatim before querying Overpass', async () => {
+      axios.get.mockResolvedValueOnce({ data: NOMINATIM_SEARCH_FIXTURE });
+      axios.post.mockResolvedValueOnce({ data: LANDUSE_OVERPASS_FIXTURE });
+      const result = await broker.call('osm-geo.landuseAreas', { location: 'Hockenheim' });
+      expect(result.success).toBe(true);
+      expect(result.data.scopeSource).toBe('location_name');
+      expect(axios.get).toHaveBeenCalledWith(
+        expect.stringContaining('nominatim'),
+        expect.objectContaining({ params: expect.objectContaining({ q: 'Hockenheim' }) })
+      );
+    });
+
+    it('combines postalCode + location the same way as gridTopology/substationFinder', async () => {
+      axios.get.mockResolvedValueOnce({ data: NOMINATIM_SEARCH_FIXTURE });
+      axios.post.mockResolvedValueOnce({ data: { elements: [] } });
+      await broker.call('osm-geo.landuseAreas', { location: 'Meckesheim', postalCode: '74909' });
+      expect(axios.get).toHaveBeenCalledWith(
+        expect.stringContaining('nominatim'),
+        expect.objectContaining({ params: expect.objectContaining({ q: '74909 Meckesheim' }) })
+      );
+    });
+
+    it('rejects an unsupported landuseTypes value (enum validation)', async () => {
+      await expect(
+        broker.call('osm-geo.landuseAreas', {
+          boundingBox: { north: 49.363, south: 49.273, east: 8.621, west: 8.483 },
+          landuseTypes: ['forest'],
+        })
+      ).rejects.toThrow();
+    });
+
+    it('returns GEOCODING_FAILED when Nominatim finds no match', async () => {
+      axios.get.mockResolvedValueOnce({ data: [] });
+      const result = await broker.call('osm-geo.landuseAreas', {
+        location: 'NichtExistierenderOrtXYZ',
+      });
+      expect(result.success).toBe(false);
+      expect(result.degradedReason).toBe('GEOCODING_FAILED');
+    });
+
+    it('rejects bounding boxes larger than the area guard', async () => {
+      const result = await broker.call('osm-geo.landuseAreas', {
+        boundingBox: { north: 55, south: 47, east: 15, west: 5 },
+      });
+      expect(result.success).toBe(false);
+      expect(result.degradedReason).toBe('AREA_TOO_BROAD');
+    });
+
+    it('returns a degraded response when Overpass fails', async () => {
+      axios.post.mockRejectedValueOnce(new Error('OVERPASS_TIMEOUT: query stalled'));
+      const result = await broker.call('osm-geo.landuseAreas', {
+        boundingBox: { north: 49.363, south: 49.273, east: 8.621, west: 8.483 },
+      });
+      expect(result.success).toBe(false);
+      expect(result.degradedReason).toBe('OVERPASS_TIMEOUT');
+    });
+
+    it('returns an empty areas list with a zero-count summary when nothing is found', async () => {
+      axios.post.mockResolvedValueOnce({ data: { elements: [] } });
+      const result = await broker.call('osm-geo.landuseAreas', {
+        boundingBox: { north: 49.363, south: 49.273, east: 8.621, west: 8.483 },
+      });
+      expect(result.success).toBe(true);
+      expect(result.data.areas).toEqual([]);
+      expect(result.data.summary).toEqual({ totalAreaM2ByType: {}, areaCount: 0 });
     });
   });
 

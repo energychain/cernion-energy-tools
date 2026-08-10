@@ -2,8 +2,8 @@
 
 ## Metadata
 - project: cernion-energy-tools
-- version: 0.99.14
-- changelog_latest_release: 0.99.14
+- version: 0.99.15
+- changelog_latest_release: 0.99.15
 
 ## Purpose
 This file is a navigation manifest for LLM/agent consumers. It lists cluster
@@ -135,7 +135,7 @@ recipes:
   prosumer-nap-wallet-onboarding "A prosumer wants to onboard to a NAP Wallet and share…"
 resolve: GET /api/_agent/operations?domain=energy-sharing
 
-### grid-ops (35 capabilities · 10 recipes · 115 operations)
+### grid-ops (35 capabilities · 10 recipes · 116 operations)
 capabilities: agnes_bottleneck, anschlusskapazitaet_evidence_queue, bess_screening, capacity_contract_risk_asset_cockpit, capex_prioritization, connection_deadline_evidence_queue, connection_rejection_evidence, connection_rejection_fnav_14a_evidence, controllability_asset_handover, controllability_data_alignment, controllability_submission_cockpit, cross_channel_vnb_signal_queue, e2e_connection_check, evidence_freshness_guard, flex_forecast_bess_grid_operations_advisory, flex_strategic_demand_intake, flexibilitaetskosten_raster, fnav_commercial_hedging, fnav_fast_track_contract_gate, gas_transformation_dependency_map, ghost_asset_alert, grid_connection_transformation_gate, grid_operator_identity_resolution, legacy_control_technology_transition, mastr_asset_inventory, netzfahrplan_fnav_assessment, netzsignal_delta_gating, non_escalation_control_evidence, renewable_generation_forecast, residual_load_forecast_for_dso, schedule_management_governance_roadmap, smgw_connector_readiness_status, tech_commercial_offer_cockpit, vnb_delta_signal_classifier, vnb_special_topic_workstate
 recipes:
   direktvermarkter-portfolio "A user asks for installations managed by a direct marketer…"
@@ -246,17 +246,17 @@ Agents resolving capabilities/recipes/operations do not need to read past this p
 - `tests/query.service.test.js`: `query.searchCopilot` body-based wrapper returns expected `query`, `domain`, and `results` shape.
 
 ## Source File Hashes
-- CHANGELOG.md: 35e72f7445c29cbca26e9d488646d347790a5d4a7d312c09da5ea62f036affa8
+- CHANGELOG.md: d6cf9616d25e3b5e028b6f31d6a1a887104e07743daad152b2ab4652fc48ba1d
 - README.md: e5c8aa36d7cd7195c83e00138361bd22d8cbe1860ff829bb026687d462d860ff
 - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
 - src/cookbook-recipes.js: 9e48573ca263ef129bc3944a83b013cff25157e25afc703be0ada62d5af8163d
 - src/capability-catalog.js: f62636a7c749d6a2502c8d1199c03d2f0d04d7be6d4ec9170b7cb81f79c6f2a4
-- openapi-export.json: 91e1d9b073a3e157dc69a7242990b0ef5e533b61cf2a91da20c8424a188d13ce
+- openapi-export.json: 91d0138191b1b474f72d813ccf844b8b7fdbfc3ab5988ea96541ac80ced0a950
 
 ## OpenAPI Surface (full contract, not embedded)
-- path_count: 1025
-- operation_count: 1137
+- path_count: 1026
+- operation_count: 1138
 - full_spec: openapi-export.json (repo root) or GET /api/openapi.json
 
 ## Integrity
-- llm_txt_sha256: 0fb4fc684b98bbf242e8e29278ee0e2a5795b4d69b6d2127186519b0bba897ee
+- llm_txt_sha256: 641fd3131c516a0d676282687a6ebd94e36101e742f02869017a5a4be9f4153c
