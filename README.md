@@ -10,9 +10,8 @@
 
 The hosted public API is documented at [api.cernion.de](https://api.cernion.de/api/docs)
 and through the OpenAPI export in this repository. MCP-compatible access is available at
-`https://api.cernion.de/api/mcp` for clients that authenticate with a Cernion bearer token
-or compatible OAuth flow. Public self-service token onboarding starts at
-[cernion.de/cet-token](https://cernion.de/cet-token/).
+`https://api.cernion.de/api/mcp` for clients that authenticate with a Cernion bearer token.
+Public token onboarding starts at [cernion.de/cet-token](https://cernion.de/cet-token/).
 
 The repository version is maintained in `package.json` and the generated OpenAPI exports;
 this README intentionally avoids a copied static version sentence so public listings do not
