@@ -701,6 +701,23 @@ describe('OSM Geo Service', () => {
       expect(result.degradedReason).toBe('GEOCODING_FAILED');
     });
 
+    it('substationFinder: exhausted MCP session error classified as SESSION_ERROR, not generic SERVICE_ABORT', async () => {
+      callWithNewSession.mockResolvedValueOnce({
+        success: false,
+        error: {
+          code: 'SESSION_ERROR_EXHAUSTED',
+          message:
+            'Streamable HTTP error: Error POSTing to endpoint: {"jsonrpc":"2.0","error":{"code":-32001,"message":"Session not found"},"id":null}',
+          toolName: 'osm_substation_finder',
+        },
+      });
+      const result = await broker.call('osm-geo.substationFinder', {
+        boundingBox: { north: 47.97, south: 47.88, east: 10.2968, west: 10.1538 },
+      });
+      expect(result.success).toBe(false);
+      expect(result.degradedReason).toBe('SESSION_ERROR');
+    });
+
     it('gridTopology: postalCode + location combined into the geocoded location string', async () => {
       axios.get.mockResolvedValueOnce({ data: NOMINATIM_SEARCH_FIXTURE });
       axios.post.mockResolvedValueOnce({ data: GRID_TOPOLOGY_OVERPASS_FIXTURE });

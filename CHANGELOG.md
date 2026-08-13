@@ -5,6 +5,20 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.99.18] — 2026-08-13
+
+### Fixed
+- **MCP calls that failed with JSON-RPC `-32001 "Session not found"` were never retried, even though the retry mechanism needed to fix them already existed.** Reported live: `osm-geo/substation-finder` intermittently returned `success:false` with a `-32001 "Session not found"` error at HTTP 200 (not a clean HTTP error — only visible via the body), for bounding boxes that returned real data seconds later via a different endpoint — i.e. not geodata-dependent, purely a transient server-side session/connection-pool condition. A separately-documented sustained multi-minute `assets/all` outage (every call timing out) shares the same underlying client code path (`src/async-job-poller.js` also calls `CernionMCPClient.callWithNewSession`).
+- Root cause: `callTool()`'s own catch block (`src/mcp-client.js`) converts a thrown transport error into a returned `{success:false, error:{...}}` object rather than re-throwing, so `callWithNewSession`'s retry-decision check (`_isQuotaError`, matching only "quota"/"rate limit"/"too many requests") never saw a `-32001`/"Session not found" message as retryable — it was returned immediately on the first attempt. The retry loop itself already builds a brand-new `CernionMCPClient` (and therefore a brand-new session) on every attempt, exactly the "expliziter Session-Neuaufbau" fix a drafted external bug report to Cernion was going to ask about — no external change needed for this part.
+- Added `CernionMCPClient._isSessionError()` (matches "session not found" / "-32001") and a combined `_isRetryableError()` gate used at all three retry-decision sites (the inner `connect()` retry-break, the per-attempt result check, and the catch-block check) in `callWithNewSession`. Exhausting all retries on a session-only error now returns `error.code: 'SESSION_ERROR_EXHAUSTED'` (previously indistinguishable from `QUOTA_EXHAUSTED`, or, before this fix, whatever ad-hoc code the SDK's transport error happened to carry — `404` in the reported case).
+- `services/osm-geo.service.js`'s shared `_classifyDegradedReason()` (used by all `osm-geo.*` actions) gained a `SESSION_ERROR` category (checked before the pre-existing `NOT_FOUND` match, since "Session not found" would otherwise be misclassified as `GEOCODING_FAILED`) so a caller's exhausted-retry session failure is distinguishable from a real "no data in this area" response and from the generic `SERVICE_ABORT` bucket it fell into before.
+
+### Testing
+- `tests/mcp-client.test.js` — 3 new tests: retries and succeeds on a `-32001` result returned from `callTool()` (the actual reported code path — a returned object, not a thrown exception), returns `SESSION_ERROR_EXHAUSTED` (not `QUOTA_EXHAUSTED`) after all retries fail, and retries when the session error instead surfaces as a thrown `connect()` exception (symmetry with the existing quota-error tests).
+- `tests/osm-geo.service.test.js` — 1 new test: an exhausted session error is classified as `SESSION_ERROR`, not `SERVICE_ABORT`.
+- Full suite: `mcp-client.test.js` + `osm-geo.service.test.js` + `async-job-poller.test.js` + `assets.service.test.js` + `grid-operations.service.test.js` (every direct/known consumer of the changed retry path) — 5 suites / 208 tests pass.
+- `callWithNewSession` is a heavily fanned-in shared facade (~25 services) — GitNexus impact analysis flagged this change HIGH risk. Verified the change is purely an additive widening of the retry-classification predicate (no change to existing quota-error or success-path behavior); confirmed via grep that no code or test elsewhere depends on the old, incidental `error.code: 404` shape for MCP session failures.
+
 ## [0.99.17] — 2026-08-10
 
 ### Fixed

@@ -36,10 +36,19 @@ function _mcpTimeoutMs() {
  *   OVERPASS_TIMEOUT     — Overpass upstream timed out
  *   AREA_TOO_BROAD       — query deliberately refused (area too large)
  *   RESPONSE_SIZE_LIMIT  — result truncated / withheld due to geometry/size limits
+ *   SESSION_ERROR        — MCP session expired/recycled mid-request (JSON-RPC -32001),
+ *                           all retries with a fresh session exhausted — transient,
+ *                           not evidence of "no data" in the queried area
  *   SERVICE_ABORT        — generic Cernion service error or unexpected exception
  */
 function _classifyDegradedReason(errCodeOrMessage) {
   const s = String(errCodeOrMessage || '').toUpperCase();
+  if (
+    s.includes('SESSION_ERROR_EXHAUSTED') ||
+    s.includes('SESSION NOT FOUND') ||
+    s.includes('-32001')
+  )
+    return 'SESSION_ERROR';
   if (
     s.includes('GEOCOD') ||
     s.includes('BBOX') ||

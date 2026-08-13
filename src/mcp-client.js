@@ -45,6 +45,35 @@ class CernionMCPClient {
   }
 
   /**
+   * Returns true when the error message indicates the server-side MCP
+   * session expired or was recycled mid-request (JSON-RPC -32001 "Session
+   * not found"). Distinct from a fresh connection failure: the transport
+   * successfully connected, but the session it was issued became invalid
+   * before (or during) the actual tool-call POST — a transient condition a
+   * brand-new session (i.e. a retry via callWithNewSession, which always
+   * builds a fresh CernionMCPClient/session per attempt) is expected to
+   * resolve, not something a caller should have to distinguish from "no
+   * data" itself.
+   * @param {string} msg
+   * @private
+   */
+  static _isSessionError(msg) {
+    const s = (msg || '').toLowerCase();
+    return s.includes('session not found') || s.includes('-32001');
+  }
+
+  /**
+   * Returns true when a failed attempt should be retried with a fresh
+   * session by callWithNewSession's outer loop, rather than surfaced
+   * immediately to the caller.
+   * @param {string} msg
+   * @private
+   */
+  static _isRetryableError(msg) {
+    return CernionMCPClient._isQuotaError(msg) || CernionMCPClient._isSessionError(msg);
+  }
+
+  /**
    * Redact sensitive token-like values from propagated error messages.
    * @param {string} message
    * @returns {string}
@@ -124,9 +153,9 @@ class CernionMCPClient {
           return true;
         } catch (error) {
           lastError = error;
-          // Quota/rate-limit errors are handled by callWithNewSession's outer retry loop.
+          // Quota/rate-limit/session errors are handled by callWithNewSession's outer retry loop.
           // Break immediately so we don't waste 3×exponential-backoff here.
-          if (CernionMCPClient._isQuotaError(error.message)) break;
+          if (CernionMCPClient._isRetryableError(error.message)) break;
           retries--;
           if (retries > 0) {
             // Wait before retry (exponential backoff)
@@ -524,7 +553,7 @@ class CernionMCPClient {
           }
           try {
             const result = await CernionMCPClient._executeCall(toolName, params, token);
-            if (CernionMCPClient._isQuotaError(result?.error?.message)) {
+            if (CernionMCPClient._isRetryableError(result?.error?.message)) {
               lastError = new Error(result.error.message);
               continue;
             }
@@ -555,7 +584,7 @@ class CernionMCPClient {
             return result;
           } catch (err) {
             lastError = err;
-            if (!CernionMCPClient._isQuotaError(err.message)) {
+            if (!CernionMCPClient._isRetryableError(err.message)) {
               const elapsedMs = Date.now() - startedAt;
 
               // Log MCP call error if jobId provided
@@ -612,10 +641,13 @@ class CernionMCPClient {
           status: 'quota_exhausted',
           durationMs: elapsedMs,
         });
+        const exhaustedBySessionErrorOnly =
+          CernionMCPClient._isSessionError(lastError?.message) &&
+          !CernionMCPClient._isQuotaError(lastError?.message);
         return {
           success: false,
           error: {
-            code: 'QUOTA_EXHAUSTED',
+            code: exhaustedBySessionErrorOnly ? 'SESSION_ERROR_EXHAUSTED' : 'QUOTA_EXHAUSTED',
             message: CernionMCPClient._sanitizeErrorMessage(
               lastError?.message || 'Quota exhausted after all retry attempts'
             ),
