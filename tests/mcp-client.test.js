@@ -374,4 +374,90 @@ describe('CernionMCPClient', () => {
       );
     });
   });
+
+  describe('MCP session-error retry (-32001 "Session not found")', () => {
+    // Reproduces the reported failure mode: connect() succeeds (a session was
+    // issued), but the actual tool-call POST later fails because that
+    // session expired/was recycled server-side. callTool()'s own catch block
+    // turns this into a returned {success:false, error:{...}} rather than a
+    // thrown exception, so the retry decision happens on the *returned*
+    // object, not via a caught exception like the quota-error tests above.
+
+    it('retries with a fresh session on a -32001 "Session not found" result and succeeds', async () => {
+      let attempts = 0;
+      jest.spyOn(CernionMCPClient.prototype, 'connect').mockResolvedValue(true);
+      jest.spyOn(CernionMCPClient.prototype, 'callTool').mockImplementation(async () => {
+        attempts++;
+        if (attempts < 2) {
+          return {
+            success: false,
+            error: {
+              code: 404,
+              message:
+                'Streamable HTTP error: Error POSTing to endpoint: {"jsonrpc":"2.0","error":{"code":-32001,"message":"Session not found"},"id":null}',
+              toolName: 'test_tool',
+            },
+          };
+        }
+        return { success: true, data: { ok: true } };
+      });
+      jest.spyOn(CernionMCPClient.prototype, 'disconnect').mockResolvedValue();
+
+      const origBase = CernionMCPClient.QUOTA_RETRY_BASE_MS;
+      CernionMCPClient.QUOTA_RETRY_BASE_MS = 0;
+
+      const result = await CernionMCPClient.callWithNewSession('test_tool', {}, 'tok');
+
+      CernionMCPClient.QUOTA_RETRY_BASE_MS = origBase;
+      expect(result.success).toBe(true);
+      expect(attempts).toBe(2); // failed once with a session error, succeeded on retry
+    });
+
+    it('returns SESSION_ERROR_EXHAUSTED (not QUOTA_EXHAUSTED) after all session-error retries fail', async () => {
+      jest.spyOn(CernionMCPClient.prototype, 'connect').mockResolvedValue(true);
+      jest.spyOn(CernionMCPClient.prototype, 'callTool').mockResolvedValue({
+        success: false,
+        error: { code: 404, message: 'Session not found', toolName: 'test_tool' },
+      });
+      jest.spyOn(CernionMCPClient.prototype, 'disconnect').mockResolvedValue();
+
+      const origBase = CernionMCPClient.QUOTA_RETRY_BASE_MS;
+      const origMax = CernionMCPClient.MAX_QUOTA_RETRIES;
+      CernionMCPClient.QUOTA_RETRY_BASE_MS = 0;
+      CernionMCPClient.MAX_QUOTA_RETRIES = 2;
+
+      const result = await CernionMCPClient.callWithNewSession('test_tool', {}, 'tok');
+
+      CernionMCPClient.QUOTA_RETRY_BASE_MS = origBase;
+      CernionMCPClient.MAX_QUOTA_RETRIES = origMax;
+
+      expect(result.success).toBe(false);
+      expect(result.error.code).toBe('SESSION_ERROR_EXHAUSTED');
+      expect(result.error.toolName).toBe('test_tool');
+    });
+
+    it('also retries when the session error surfaces as a thrown connect() exception', async () => {
+      let attempts = 0;
+      jest.spyOn(CernionMCPClient.prototype, 'connect').mockImplementation(async () => {
+        attempts++;
+        if (attempts < 2) {
+          throw new Error('Failed to connect to Cernion MCP: -32001 Session not found');
+        }
+        return true;
+      });
+      jest
+        .spyOn(CernionMCPClient.prototype, 'callTool')
+        .mockResolvedValue({ success: true, data: { ok: true } });
+      jest.spyOn(CernionMCPClient.prototype, 'disconnect').mockResolvedValue();
+
+      const origBase = CernionMCPClient.QUOTA_RETRY_BASE_MS;
+      CernionMCPClient.QUOTA_RETRY_BASE_MS = 0;
+
+      const result = await CernionMCPClient.callWithNewSession('test_tool', {}, 'tok');
+
+      CernionMCPClient.QUOTA_RETRY_BASE_MS = origBase;
+      expect(result.success).toBe(true);
+      expect(attempts).toBe(2);
+    });
+  });
 });
