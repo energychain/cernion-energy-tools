@@ -11,6 +11,17 @@ const {
   buildIntermunicipalComparison,
 } = require('./shared');
 
+// resolveMunicipalVnbdigitalOperator chains two sequential external
+// vnbdigital MCP calls with no local processing between them, so a slow or
+// hanging upstream response previously blocked the whole
+// municipal-energy-value-analysis endpoint for as long as the underlying MCP
+// SDK transport allowed (up to 120s per attempt, more with retries) —
+// reported live as a full 30-60s HTTP:000 (no response at all, not even
+// headers) once the caller's own client/proxy gave up first. Each call is
+// bounded so the endpoint degrades gracefully (existing 'missing-evidence'
+// shape below) instead of hanging.
+const VNBDIGITAL_CALL_TIMEOUT_MS = 12000;
+
 module.exports = {
   async resolveMunicipalVnbdigitalOperator(ctx, analysis = {}) {
     if (
@@ -34,7 +45,8 @@ module.exports = {
       { searchTerm },
       null,
       errors,
-      'grid-operations.vnbdigitalSearch'
+      'grid-operations.vnbdigitalSearch',
+      VNBDIGITAL_CALL_TIMEOUT_MS
     );
     const searchResult = this.pickMunicipalVnbdigitalSearchResult(
       this.unwrapVnbdigitalSearchResults(search)
@@ -55,7 +67,8 @@ module.exports = {
       lookupParams,
       null,
       errors,
-      'grid-operations.vnbdigitalLookup'
+      'grid-operations.vnbdigitalLookup',
+      VNBDIGITAL_CALL_TIMEOUT_MS
     );
     const vnb = this.pickMunicipalVnb(this.unwrapVnbdigitalLookupVnbs(lookup));
     if (!vnb?.name) {

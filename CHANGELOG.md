@@ -5,6 +5,18 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.99.19] — 2026-08-14
+
+### Fixed
+- **`dashboard-api/municipal-energy-value-analysis` hung completely (30-60s, `HTTP:000` — no response at all, not even headers) for some municipalities, reported live for Berlin and Hamburg, and correlating with 2,708 failed municipality lookups in a nationwide sweep.** Live investigation (timing the actual underlying `vnbdigital_search`/`vnbdigital_lookup` MCP calls directly) found the slowness is **not** deterministically tied to any specific municipality — a repeat test hung on München instead, one of the cities originally reported as reliably fast, while Berlin/Hamburg resolved quickly. The real, local, fixable defect: `dashboard-api`'s shared `safeCall()` helper had no timeout at all — a slow/hanging upstream `grid-operations.vnbdigitalSearch`/`vnbdigitalLookup` call (itself a thin proxy to an external MCP tool) blocked the entire endpoint for as long as the underlying MCP SDK transport allowed (120s per attempt, more with retries), while the calling client's own proxy/timeout gave up first with a bare connection-level `HTTP:000`.
+- Added an optional `timeoutMs` parameter to `safeCall()` (`services/dashboard-api/methods-part-01-of-14.js`) — unset by default, so every other one of its many existing call sites is unaffected. `resolveMunicipalVnbdigitalOperator()` (`services/dashboard-api/methods-part-13-of-14.js`) now bounds both its `vnbdigitalSearch` and `vnbdigitalLookup` calls to 12s each. On timeout, the existing `missing-evidence` degraded-response shape (already used for every other VNBdigital failure mode on this endpoint) is returned instead of hanging — matching this endpoint's own documented philosophy ("missing data is surfaced in missingEvidence and sourceRows, not as errors").
+- `osm-geo.service.js` already solved this exact problem for its own MCP calls (`_callMcpWithTimeout`) but the pattern had never been extended to `dashboard-api`; `safeCall`'s new parameter makes the same bounded-call capability available to its many other call sites without requiring each to hand-roll its own `Promise.race` wrapper.
+
+### Testing
+- New test in `tests/dashboard-api.test.js`: a mocked `vnbdigitalLookup` that resolves after 60s (well past the new 12s bound) — asserts the endpoint still responds in well under 20s with the correct `missing-evidence` degraded shape, not a hang.
+- Caught during test development: the initial `safeCall` timeout implementation never cleared its `setTimeout` on the fast/normal path, leaking a dangling timer on every timeout-bounded call (harmless in production, but surfaced immediately as a Jest "did not exit" warning once run across the full 456-test suite, each exercising `resolveMunicipalVnbdigitalOperator`'s two now-bounded calls). Fixed with `clearTimeout` in a `finally` block.
+- Full suite: `tests/dashboard-api.test.js` — 1 suite / 456 tests pass, clean exit (no dangling handles).
+
 ## [0.99.18] — 2026-08-13
 
 ### Fixed
