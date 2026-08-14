@@ -134,14 +134,33 @@ module.exports = {
     return promise;
   },
 
-  async safeCall(ctx, action, params, fallback = null, errors = [], label = null) {
+  async safeCall(
+    ctx,
+    action,
+    params,
+    fallback = null,
+    errors = [],
+    label = null,
+    timeoutMs = null
+  ) {
+    let timer;
     try {
-      return await ctx.call(action, params);
+      const callPromise = ctx.call(action, params);
+      if (!timeoutMs) return await callPromise;
+      const timeoutPromise = new Promise((_, reject) => {
+        timer = setTimeout(
+          () => reject(new Error(`${label || action} timed out after ${timeoutMs}ms`)),
+          timeoutMs
+        );
+      });
+      return await Promise.race([callPromise, timeoutPromise]);
     } catch (err) {
       const name = label || action;
       this.logger.warn(`dashboard-api: ${name} failed — ${err.message}`);
       if (errors) errors.push(name);
       return fallback;
+    } finally {
+      if (timer) clearTimeout(timer);
     }
   },
 

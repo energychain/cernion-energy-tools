@@ -13378,6 +13378,32 @@ describe('dashboard-api.service', () => {
       expect(source.sourceLabel).toContain('Netze BW GmbH');
     });
 
+    // Reported live: municipality-energy-value-analysis?municipality=Berlin/Hamburg
+    // hung 30-60s with no response at all (HTTP:000) — safeCall() had no
+    // timeout, so a slow/hanging grid-operations.vnbdigitalLookup call blocked
+    // the whole endpoint for as long as the underlying MCP transport allowed.
+    it('degrades gracefully instead of hanging when vnbdigitalLookup is slow', async () => {
+      handlers['vnbdigitalLookup'] = () =>
+        new Promise((resolve) => {
+          const t = setTimeout(() => resolve(MOCK_VNBDIGITAL_LOOKUP), 60000);
+          if (t.unref) t.unref(); // don't keep the Jest process alive past this test
+        });
+
+      const startedAt = Date.now();
+      const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
+        municipality: 'Wiesloch',
+        year: 2025,
+        scenario: 'baseline',
+      });
+      const elapsedMs = Date.now() - startedAt;
+
+      expect(elapsedMs).toBeLessThan(20000); // bounded well under the 60s mock delay
+      expect(result.gridOperatorName).toBeNull();
+      expect(result.gridOperatorEvidenceStatus).toBe('missing-evidence');
+      const source = result.sourceRows.find((r) => r.sourceKey === 'vnbdigital_operator_identity');
+      expect(source.evidenceStatus).toBe('missing-evidence');
+    }, 25000);
+
     it('returns scalar/display-safe budgetImpactRows with Konzessionsabgabe for Mauer', async () => {
       const result = await broker.call('dashboard-api.municipalEnergyValueAnalysisStatus', {
         municipality: 'Mauer',
