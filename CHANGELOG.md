@@ -5,6 +5,17 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.99.20] — 2026-08-14
+
+### Added
+- **New internal `mqtt-edm-ingest` service** (`services/mqtt-edm-ingest.service.js`) implementing the narrow first slice of #503: a deterministic Moleculer contract (`ingestMessage`, `ingestBatch`, `getStatus`, `listDeadLetters`) that validates and normalizes MQTT-shaped measurement messages and delegates all valid values to the existing `edm.importTimeseries` action with `overwriteExisting: false` — no direct SQLite writes, no external MQTT broker/TCP/WebSocket connection, and no REST/OpenAPI surface in this slice. `services/mqtt-broker.service.js` (command/QoS semantics) and `services/personal-agent.service.js` are unchanged.
+- Only the self-describing topic scheme `cernion/edm/{tenantId}/{meloId}/{obis}` is supported; `tenantId`/`meloId` are validated with a conservative charset check and `obis` against a conservative OBIS-code pattern. A payload that disagrees with the topic's `meloId`/`obis` is rejected (`TOPIC_PAYLOAD_CONFLICT`) rather than silently overriding it.
+- Invalid messages (`INVALID_TOPIC`, `INVALID_TENANT`, `TOPIC_PAYLOAD_CONFLICT`, `INVALID_TIMESTAMP`, `VALUE_NOT_NUMERIC`, `UNKNOWN_MELO`, or an unexpected `edm.importTimeseries` failure) are counted and recorded in a bounded, process-local, in-memory dead-letter list (default cap 200, oldest evicted first) holding only `id`, `topic`, `reason`, `receivedAt`, `source` and a SHA-256 `payloadHash` — never the raw payload. `getStatus` exposes cumulative `received`/`imported`/`skipped`/`deadLettered` counters and `lastReceivedAt`.
+
+### Testing
+- New `tests/mqtt-edm-ingest.service.test.js` (16 tests) against a real `edm` service instance on a temp SQLite path: single-message and `values[]` batch normalization, topic parsing, tenant/topic/conflict/timestamp/value rejection, `UNKNOWN_MELO` sanitization (no stack leakage), idempotent duplicate handling (`imported`/`skipped` delegated from `edm.importTimeseries`), bounded dead-letter metadata-only storage, status counters, and `ingestBatch` aggregation. Also asserts no REST alias is declared on any action and that `mqtt-broker`/`personal-agent` are not touched.
+- `NODE_OPTIONS=--experimental-vm-modules npx jest tests/mqtt-edm-ingest.service.test.js tests/edm.service.test.js --coverage=false --runInBand --forceExit` — 2 suites / 41 tests pass.
+
 ## [0.99.19] — 2026-08-14
 
 ### Fixed
