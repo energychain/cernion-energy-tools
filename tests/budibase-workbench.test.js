@@ -7156,4 +7156,476 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       'MSCONS Identifikatorwechsel Readiness-Gate panel binds'
     );
   });
+
+  it('adds the Municipality Public-Context Scope Readiness panel from exactly the six named existing dashboard reads (#555)', () => {
+    const names = [
+      'getMunicipalityPublicContextReadinessSelectorRows',
+      'getMunicipalityPublicContextReadinessMastrRows',
+      'getMunicipalityPublicContextReadinessQualityBoundaryRows',
+      'getMunicipalityPublicContextReadinessObservabilityBoundaryRows',
+      'getMunicipalityPublicContextReadinessVerifyRows',
+      'getMunicipalityPublicContextReadinessMatrixRows',
+      'getMunicipalityPublicContextReadinessEvidenceRows',
+      'getMunicipalityPublicContextReadinessTransferRows',
+      'getMunicipalityPublicContextReadinessNoCallRows',
+    ];
+    const queries = manifest.queries.filter((query) => names.includes(query.name));
+    expect(queries).toHaveLength(names.length);
+    expect(new Set(queries.map((query) => query.path))).toEqual(
+      new Set([
+        '/api/dashboard/municipal-energy-value-analysis',
+        '/api/dashboard/stadtwerk-mauer-mastr-data-overlay',
+        '/api/dashboard/quality-summary',
+        '/api/dashboard/observability-mini',
+        '/api/dashboard/stadtwerk-mauer-blueprint-pack-verify',
+        '/api/dashboard/stadtwerk-mauer-transfer-readiness',
+      ])
+    );
+    expect(
+      queries
+        .filter((query) => query.path.includes('blueprint-pack-verify'))
+        .every((query) =>
+          query.queryString.includes('stadtwerk-mauer-municipality-public-context-readiness-v1')
+        )
+    ).toBe(true);
+    const transferQuery = queries.find(
+      (query) => query.name === 'getMunicipalityPublicContextReadinessTransferRows'
+    );
+    expect(transferQuery.queryString).toContain(
+      'seedId=stadtwerk-mauer-municipality-public-context-readiness-v1'
+    );
+    expect(transferQuery.queryString).toContain(
+      'caseId=smm-municipality-public-context-review-001'
+    );
+    // No-call guards must never call municipality.lookup, OSM land-use or the market-actor
+    // directory ad hoc; they stay outside the six named composed endpoints.
+    expect(
+      queries.every(
+        (query) =>
+          !query.path.includes('/municipality/lookup') &&
+          !query.path.includes('/osm-geo/') &&
+          !query.path.includes('/market-actor-directory')
+      )
+    ).toBe(true);
+    expect(
+      manifest.sections
+        .filter((section) => section.id.startsWith('municipality_public_context_readiness'))
+        .map((section) => section.queryName)
+    ).toEqual(expect.arrayContaining(names));
+    expect(manifest.notes.join(' ')).toContain('Municipality Public-Context Scope Readiness panel (#555)');
+  });
+
+  it('renders scalar Municipality Public-Context Scope Readiness rows: selector, MaStR classification, quality/observability boundary, verify, matrix, evidence, transfer and no-call guards', () => {
+    const municipalityAvailable = {
+      capabilityKey: 'municipal_energy_value_analysis',
+      status: 'lagebild_partial',
+      municipality: 'Mauer',
+      ags: '08226048',
+      postalCode: '69256',
+      postalCodes: ['69256', '69257'],
+      population: 5200,
+      state: 'Baden-Württemberg',
+      district: 'Rhein-Neckar-Kreis',
+      derivedLoadProfileRows: [{ rowKey: 'derived_load_summary' }],
+      missingEvidence: [{ missingDataPoint: 'vnb_bnr', enablesDossierAddition: 'x' }],
+      positiveFollowUps: [
+        { missingDataPoint: 'vnb_bnr', enablesDossierAddition: 'Refresh MaStR overlay evidence.' },
+      ],
+    };
+    const municipalityUnresolved = {
+      capabilityKey: 'municipal_energy_value_analysis',
+      status: 'lagebild_municipality_unresolved',
+      municipality: 'Unbekannte Gemeinde',
+      ags: null,
+      postalCode: null,
+      postalCodes: [],
+      derivedLoadProfileRows: [],
+      missingEvidence: [],
+      positiveFollowUps: [],
+    };
+    const mastr = {
+      status: 'mastr_overlay_available',
+      tenantId: 'stadtwerk-mauer',
+      municipality: 'Mauer',
+      evidenceQuality: 'degraded',
+      publicContextRows: [
+        {
+          rowKey: 'mastr_id',
+          label: 'MaStR-ID',
+          value: 'missing',
+          evidenceStatus: 'missing-evidence',
+        },
+      ],
+      revalidationRows: [
+        {
+          rowKey: 'revalidation_watch',
+          revalidationStatus: 'stale',
+          evidenceStatus: 'missing-evidence',
+        },
+      ],
+    };
+    const quality = {
+      agents: [{ type: 'mastr-quality' }, { type: 'grid-connection' }],
+      businessKpis: null,
+      _errors: [],
+    };
+    const observabilityHealthy = {
+      cards: { health: { status: 'healthy' }, incidents: { errorCount: 0 } },
+      recentErrors: [],
+      slowestActions: [],
+    };
+    const observabilityDegraded = {
+      cards: { health: { status: 'degraded' }, incidents: { errorCount: 4 } },
+      recentErrors: [],
+      slowestActions: [],
+    };
+    const verify = {
+      status: 'completed',
+      tenantId: 'stadtwerk-mauer',
+      summary: { counts: { requiredEvidence: 16, demoProcessMatrixRows: 4, forbiddenActions: 28 } },
+      nextActions: [
+        'Render the verify read model in Budibase',
+        'Use /api/governance/role-workbench for role-specific case projection',
+      ],
+      data: {
+        seedId: 'stadtwerk-mauer-municipality-public-context-readiness-v1',
+        tenantId: 'stadtwerk-mauer',
+        processFamily: 'municipal_context_governance',
+        controlCase: 'municipality_public_context_scope_readiness',
+        validation: { valid: true },
+        forbiddenActions: [
+          'municipality_resolver_write',
+          'market_actor_assignment',
+          'market_actor_binding',
+          'public_context_correction',
+          'mastr_mutation',
+        ],
+        sourceActions: {
+          inspected: ['dashboard-api.stadtwerkMauerBlueprintPackVerifyStatus'],
+          referenced: [],
+          notCalled: ['tenant.provision', 'rundeck.execute', 'budibase.table.write'],
+        },
+        missingEvidence: [
+          {
+            missingDataPoint: 'municipalityIdentityEvidence',
+            state: 'clarification',
+            enablesDossierAddition: 'Adds the municipality identity row.',
+          },
+          {
+            missingDataPoint: 'agsEvidence',
+            state: 'clarification',
+            enablesDossierAddition: 'Enables an unambiguous municipality scope label.',
+          },
+          {
+            missingDataPoint: 'postalCodeScopeEvidence',
+            state: 'evidence_gap',
+            enablesDossierAddition: 'Enables a complete multi-PLZ scope summary.',
+          },
+          {
+            missingDataPoint: 'mastrContextEvidence',
+            state: 'evidence_gap',
+            enablesDossierAddition: 'Adds read-only MaStR public-context evidence.',
+          },
+        ],
+        demoProcessMatrixSync: {
+          synced: true,
+          roleLegendM: 'Mitwirkend',
+          rowCount: 4,
+          rowCountValid: true,
+          evidenceRequirements: ['municipalityIdentityEvidence', 'agsEvidence'],
+          downstreamHandoff: {
+            blueprintPack: 'complete',
+            landingRegistry: 'pending',
+            productiveDemoRoom: 'pending',
+          },
+          rows: [
+            {
+              phase: '1',
+              roles: {
+                V: 'ROLE_DATA_GOVERNANCE',
+                D: 'ROLE_CERNION_GOVERNANCE',
+                M: 'ROLE_MUNICIPAL_PLANNING',
+                I: 'ROLE_MANAGEMENT',
+              },
+              evidenceRequirements: [
+                'municipalityIdentityEvidence',
+                'agsEvidence',
+                'postalCodeScopeEvidence',
+              ],
+              status: 'clarification',
+              gateOutcome: 'municipality_identity_and_complete_postal_code_scope_pending',
+            },
+            {
+              phase: '2',
+              roles: {
+                V: 'ROLE_NETZPLANUNG',
+                D: 'ROLE_CERNION_GOVERNANCE',
+                M: 'ROLE_PUBLIC_CONTEXT_STEWARD',
+                I: 'ROLE_DATA_GOVERNANCE',
+              },
+              evidenceRequirements: ['mastrContextEvidence', 'osmContextEvidence'],
+              status: 'evidence_gap',
+              gateOutcome: 'public_context_classification_and_freshness_pending',
+            },
+            {
+              phase: '3',
+              roles: {
+                V: 'ROLE_MUNICIPAL_STRATEGY',
+                D: 'ROLE_CERNION_GOVERNANCE',
+                M: 'ROLE_ASSET_MANAGEMENT',
+                I: 'ROLE_MANAGEMENT',
+              },
+              evidenceRequirements: ['loadDerivationEvidence', 'landUseEvidence'],
+              status: 'evidence_gap',
+              gateOutcome: 'derived_evidence_heuristic_boundary_not_official_fact',
+            },
+            {
+              phase: '4',
+              roles: {
+                V: 'ROLE_MUNICIPAL_STRATEGY',
+                D: 'ROLE_CERNION_GOVERNANCE',
+                M: 'ROLE_DATA_GOVERNANCE',
+                I: 'ROLE_MANAGEMENT',
+              },
+              evidenceRequirements: ['reviewReadinessEvidence', 'downstreamSyncEvidence'],
+              status: 'clarification',
+              gateOutcome: 'refresh_or_verify_existing_read_only_context',
+            },
+          ],
+        },
+      },
+    };
+    const transfer = {
+      status: 'ready_for_onboarding_discussion',
+      transferSummaryRows: [
+        {
+          rowKey: 'transfer_readiness',
+          label: 'Transfer Readiness',
+          status: 'ready_for_onboarding_discussion',
+          sourceClass: 'transfer_readiness_summary',
+        },
+      ],
+      dataClassRows: [
+        {
+          rowKey: 'public_context_layer',
+          category: 'public_context',
+          transferState: 'reusable_read_only',
+          description: 'Municipality identity/AGS/PLZ context, MaStR/OSM context.',
+          examples: 'public municipality AGS/postalCodes[] context',
+          productionBlocked: false,
+          safeNextAction: 'inspect_public_context_baseline',
+          sourceClass: 'transfer_data_class',
+        },
+        {
+          rowKey: 'synthetic_tenant_seed',
+          category: 'synthetic_seed',
+          transferState: 'replace_for_real_tenant',
+          description: 'Invented Stadtwerk-Mauer case id, role mapping, review owner.',
+          examples: 'synthetic municipality case id, synthetic review owner',
+          productionBlocked: false,
+          safeNextAction: 'replace_with_tenant_parameters_before_onboarding',
+          sourceClass: 'transfer_data_class',
+        },
+        {
+          rowKey: 'sandbox_runtime_artifacts',
+          category: 'sandbox_runtime',
+          transferState: 'do_not_transfer',
+          description: 'Resettable verify/render proof only.',
+          examples: 'municipality public-context render proof',
+          productionBlocked: true,
+          safeNextAction: 'discard_or_regenerate_in_customer_sandbox',
+          sourceClass: 'transfer_data_class',
+        },
+      ],
+      safeNextGateRows: [
+        {
+          rowKey: 'inspect_blueprint_verify',
+          label: 'Inspect Blueprint verify panel',
+          safety: 'safe_read_only',
+          sourceClass: 'safe_next_gate',
+        },
+      ],
+      productionBoundaryRows: [
+        {
+          rowKey: 'market_actor_assignment',
+          boundary: 'market_actor_assignment',
+          status: 'blocked_in_transfer_readiness_slice',
+          disabled: true,
+          safeAlternative: 'read_or_verify_readiness_only',
+          sourceClass: 'blocked_production_boundary',
+        },
+      ],
+    };
+
+    for (const [name, fixture] of [
+      ['getMunicipalityPublicContextReadinessSelectorRows', municipalityAvailable],
+      ['getMunicipalityPublicContextReadinessSelectorRows', municipalityUnresolved],
+      ['getMunicipalityPublicContextReadinessMastrRows', mastr],
+      ['getMunicipalityPublicContextReadinessQualityBoundaryRows', quality],
+      ['getMunicipalityPublicContextReadinessObservabilityBoundaryRows', observabilityHealthy],
+      ['getMunicipalityPublicContextReadinessObservabilityBoundaryRows', observabilityDegraded],
+      ['getMunicipalityPublicContextReadinessVerifyRows', verify],
+      ['getMunicipalityPublicContextReadinessMatrixRows', verify],
+      ['getMunicipalityPublicContextReadinessEvidenceRows', verify],
+      ['getMunicipalityPublicContextReadinessTransferRows', transfer],
+      ['getMunicipalityPublicContextReadinessNoCallRows', verify],
+    ]) {
+      const rows = runTransformer(name, fixture);
+      expectScalarRows(rows);
+      expectNoRawObjectText(rows);
+    }
+
+    // Municipality identity, AGS and the complete postalCodes[] (not just the first PLZ)
+    // render as scalar/display-safe rows.
+    const selectorRows = runTransformer(
+      'getMunicipalityPublicContextReadinessSelectorRows',
+      municipalityAvailable
+    );
+    expect(selectorRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ rowKey: 'municipality_identity', value: 'Mauer' }),
+        expect.objectContaining({ rowKey: 'ags', value: '08226048' }),
+        expect.objectContaining({
+          rowKey: 'postal_codes_complete',
+          value: '69256, 69257',
+          evidenceStatus: 'available',
+        }),
+        expect.objectContaining({ rowKey: 'postal_code_count', value: '2' }),
+      ])
+    );
+
+    // Degraded/unresolved municipality context is missing evidence / clarification,
+    // never an empty negative fact.
+    const unresolvedRows = runTransformer(
+      'getMunicipalityPublicContextReadinessSelectorRows',
+      municipalityUnresolved
+    );
+    expect(unresolvedRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ rowKey: 'ags', value: 'missing-evidence', evidenceStatus: 'clarification' }),
+        expect.objectContaining({
+          rowKey: 'postal_codes_complete',
+          value: 'missing-evidence',
+          evidenceStatus: 'evidence_gap',
+        }),
+      ])
+    );
+
+    // MaStR/OSM public context and synthetic revalidation rows stay distinct data classes,
+    // and a degraded overlay renders as clarification, not a negative fact.
+    const mastrRows = runTransformer('getMunicipalityPublicContextReadinessMastrRows', mastr);
+    expect(mastrRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ rowKey: 'mastr_public_mastr_id', dataClass: 'publicContextLayer' }),
+        expect.objectContaining({
+          rowKey: 'mastr_revalidation_revalidation_watch',
+          dataClass: 'syntheticTenantSeed',
+        }),
+        expect.objectContaining({
+          rowKey: 'mastr_overlay_evidence_quality',
+          value: 'degraded',
+          evidenceStatus: 'clarification',
+        }),
+      ])
+    );
+
+    // Quality/observability context stays bounded and is explicitly not presented as
+    // municipality-specific completeness or source completeness.
+    const qualityRows = runTransformer(
+      'getMunicipalityPublicContextReadinessQualityBoundaryRows',
+      quality
+    );
+    expect(qualityRows[0].evidenceStatus).toBe('bounded_context_only');
+    expect(qualityRows[0].safeNextAction).toBe('do_not_present_as_municipality_specific_completeness');
+    const observabilityRows = runTransformer(
+      'getMunicipalityPublicContextReadinessObservabilityBoundaryRows',
+      observabilityDegraded
+    );
+    expect(observabilityRows[0].evidenceStatus).toBe('degraded');
+    expect(observabilityRows[0].safeNextAction).toBe('do_not_treat_availability_as_source_completeness');
+
+    const verifyRows = runTransformer('getMunicipalityPublicContextReadinessVerifyRows', verify);
+    expect(verifyRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'mpcr_selection',
+          value: expect.stringContaining('complete postalCodes[] scope unambiguous'),
+        }),
+        expect.objectContaining({ rowKey: 'mpcr_verify', valid: true, status: 'completed' }),
+      ])
+    );
+
+    // Exact canonical four-row matrix (plus one sync-summary row), roleLegend.M = Mitwirkend,
+    // and role cells are role ids only -- never a source or datapoint.
+    const matrixRows = runTransformer('getMunicipalityPublicContextReadinessMatrixRows', verify);
+    expect(matrixRows).toHaveLength(5);
+    const canonicalRows = matrixRows.filter((row) => row.rowKey !== 'mpcr_matrix_sync');
+    expect(canonicalRows).toHaveLength(4);
+    expect(canonicalRows.map((row) => row.phase)).toEqual(['1', '2', '3', '4']);
+    for (const row of canonicalRows) {
+      for (const cell of [row.v, row.d, row.m, row.i]) {
+        expect(cell).toMatch(/^ROLE_/);
+      }
+    }
+    expect(matrixRows[0]).toEqual(
+      expect.objectContaining({ roleLegendM: 'Mitwirkend', m: 'Mitwirkend' })
+    );
+    // Downstream sync stays honest: only the Blueprint-Pack leg is complete.
+    expect(matrixRows[0].downstreamHandoff).toBe('complete -> pending -> pending');
+
+    const evidenceRows = runTransformer('getMunicipalityPublicContextReadinessEvidenceRows', verify);
+    expect(evidenceRows.length).toBe(verify.data.missingEvidence.length);
+    expect(evidenceRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          missingDataPoint: 'postalCodeScopeEvidence',
+          group: 'identity_and_scope',
+        }),
+        expect.objectContaining({
+          missingDataPoint: 'mastrContextEvidence',
+          group: 'public_context_classification',
+        }),
+      ])
+    );
+
+    // Public context, synthetic seed and sandbox artifacts remain distinct data classes,
+    // and no market-actor/VNB assignment claim appears anywhere in the transfer rows.
+    const transferRows = runTransformer(
+      'getMunicipalityPublicContextReadinessTransferRows',
+      transfer
+    );
+    expect(new Set(transferRows.map((row) => row.dataClass))).toEqual(
+      new Set([
+        'transfer_readiness_summary',
+        'public_context',
+        'synthetic_seed',
+        'sandbox_runtime',
+        'safe_next_gate',
+        'blocked_production_boundary',
+      ])
+    );
+    expect(
+      transferRows.some((row) => row.rowKey === 'market_actor_assignment' && row.productionBlocked)
+    ).toBe(true);
+
+    const noCallRows = runTransformer('getMunicipalityPublicContextReadinessNoCallRows', verify);
+    expect(noCallRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'mpcr_hint_municipality_lookup',
+          invocation: 'source_hint_only',
+          status: 'not_called',
+        }),
+        expect.objectContaining({
+          rowKey: 'mpcr_hint_grid_operations_market_actor_directory',
+          invocation: 'source_hint_only',
+          status: 'not_called',
+        }),
+        expect.objectContaining({ boundary: 'market_actor_assignment', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'market_actor_binding', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'municipality_resolver_write', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'mastr_mutation', status: 'not_called' }),
+      ])
+    );
+  });
 });

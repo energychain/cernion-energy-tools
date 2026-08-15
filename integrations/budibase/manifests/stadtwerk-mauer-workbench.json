@@ -12076,6 +12076,453 @@
         }
       },
       "transformer": "const notCalled=((data.sourceActions||{}).notCalled)||[]; const fallback=['mail.fetch','teams.fetch','loop.fetch','external.connector.call','workflow.execute','notification.send','deadline.mutate','task.create','owner.assign','hitl.create','mscons.import','edm.mutate','mako.mutate','personal-agent.execute','budibase.table.write','production.mutate']; const unique=[...new Set(notCalled.concat(fallback))]; return unique.map((action,index)=>({rowKey:'mscons_identifikatorwechsel_no_call_'+(index+1)+'_'+String(action).replace(/[^a-zA-Z0-9]+/g,'_'),renderTarget:'budibase:stadtwerk-mauer-workbench:mscons-identifikatorwechsel-readiness-gate-panel',roleTarget:'ROLE_METERING',boundary:String(action),status:'not_called',safeAlternative:'render_existing_read_only_mscons_identifikatorwechsel_rows_only',sourceClass:'mscons_identifikatorwechsel_no_call_guard'}))"
+    },
+    {
+      "name": "getMunicipalityPublicContextReadinessSelectorRows",
+      "method": "GET",
+      "path": "/api/dashboard/municipal-energy-value-analysis",
+      "queryString": "municipality={{municipality}}&year={{year}}&scenario={{scenario}}",
+      "parameters": [
+        {
+          "name": "municipality",
+          "default": "Mauer"
+        },
+        {
+          "name": "year",
+          "default": "2025"
+        },
+        {
+          "name": "scenario",
+          "default": "baseline"
+        }
+      ],
+      "transformer": "const postalCodes=Array.isArray(data.postalCodes)?data.postalCodes:[]; const gaps=data.missingEvidence||[]; const loadRows=data.derivedLoadProfileRows||[]; const rows=[ {rowKey:'municipality_identity',label:'Gemeinde-Identitaet',value:String(data.municipality||'unbekannt'),dataClass:'publicContextLayer',evidenceStatus:data.municipality?'available':'missing-evidence'}, {rowKey:'ags',label:'AGS',value:String(data.ags||'missing-evidence'),dataClass:'publicContextLayer',evidenceStatus:data.ags?'available':'clarification'}, {rowKey:'postal_codes_complete',label:'Vollstaendiges PLZ-Set',value:postalCodes.length?postalCodes.join(', '):'missing-evidence',dataClass:'publicContextLayer',evidenceStatus:postalCodes.length?'available':'evidence_gap'}, {rowKey:'postal_code_count',label:'Anzahl PLZ',value:String(postalCodes.length),dataClass:'publicContextLayer',evidenceStatus:postalCodes.length?'available':'evidence_gap'}, {rowKey:'derived_load_status',label:'Abgeleitetes Lastprofil',value:loadRows.length?'derived-heuristic':'missing-evidence',dataClass:'syntheticTenantSeed',evidenceStatus:loadRows.length?'assumption-backed':'missing-evidence'}, {rowKey:'missing_evidence_count',label:'Offene Nachweise',value:String(gaps.length),dataClass:'syntheticTenantSeed',evidenceStatus:gaps.length?'evidence_gap':'review_ready'}, {rowKey:'safe_next_action',label:'Sicherer naechster Schritt',value:(data.positiveFollowUps||[])[0]?.enablesDossierAddition||'Bestehende Read-Modelle aktualisieren und Evidenz-Gate pruefen.',dataClass:'sandboxRuntimeArtifact',evidenceStatus:'advisory'} ]; return rows.map((row)=>({...row,renderTarget:'budibase:stadtwerk-mauer-workbench:municipality-public-context-readiness',roleTarget:'ROLE_DATA_GOVERNANCE',safeNextAction:'refresh_read_only_municipality_public_context_rows_only',sourceClass:'municipality_public_context_readiness_selector'}))",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "dataClass": {
+          "type": "string"
+        },
+        "evidenceStatus": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getMunicipalityPublicContextReadinessMastrRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-mastr-data-overlay",
+      "queryString": "tenantId={{tenantId}}&caseId={{caseId}}&limit={{limit}}",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "caseId",
+          "default": "smm-municipality-public-context-review-001"
+        },
+        {
+          "name": "limit",
+          "default": "5"
+        }
+      ],
+      "transformer": "const publicRows=(data.publicContextRows||[]).map((row,index)=>({rowKey:'mastr_public_'+String(row.rowKey||index+1),label:String(row.label||'MaStR/OSM public context'),value:String(row.value||'missing-evidence'),classification:'public_context',evidenceStatus:String(row.evidenceStatus||'missing-evidence'),dataClass:'publicContextLayer'})); const revalidationRows=(data.revalidationRows||[]).map((row,index)=>({rowKey:'mastr_revalidation_'+String(row.rowKey||index+1),label:'MaStR Revalidierung',value:String(row.revalidationStatus||'missing-evidence'),classification:'derived_synthetic_revalidation',evidenceStatus:String(row.evidenceStatus||'missing-evidence'),dataClass:'syntheticTenantSeed'})); const overlayStatusRow={rowKey:'mastr_overlay_evidence_quality',label:'MaStR Overlay Evidenzqualitaet',value:String(data.evidenceQuality||'missing-evidence'),classification:'degraded_or_missing_marker',evidenceStatus:String(data.evidenceQuality||'missing-evidence')==='missing-evidence'?'missing-evidence':'clarification',dataClass:'syntheticTenantSeed'}; const rows=[...publicRows,...revalidationRows,overlayStatusRow]; return rows.map((row)=>({...row,renderTarget:'budibase:stadtwerk-mauer-workbench:municipality-public-context-readiness',roleTarget:'ROLE_NETZPLANUNG',safeNextAction:'treat_timeout_or_degraded_as_missing_evidence_not_negative_fact',sourceClass:'municipality_public_context_readiness_mastr_classification'}))",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "evidenceStatus": {
+          "type": "string"
+        },
+        "dataClass": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getMunicipalityPublicContextReadinessQualityBoundaryRows",
+      "method": "GET",
+      "path": "/api/dashboard/quality-summary",
+      "queryString": "",
+      "parameters": [],
+      "transformer": "const agents=Array.isArray(data.agents)?data.agents:[]; const errors=Array.isArray(data._errors)?data._errors:[]; return [{rowKey:'platform_quality_boundary',label:'Plattform-Qualitaetskontext (nicht gemeindespezifisch)',value:String(agents.length)+' Agent-Pipelines, '+String(errors.length)+' Fehler',scope:'platform_wide_bounded_context_only',evidenceStatus:'bounded_context_only',renderTarget:'budibase:stadtwerk-mauer-workbench:municipality-public-context-readiness',roleTarget:'ROLE_MUNICIPAL_STRATEGY',safeNextAction:'do_not_present_as_municipality_specific_completeness',sourceClass:'municipality_public_context_readiness_quality_boundary'}]",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "scope": {
+          "type": "string"
+        },
+        "evidenceStatus": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getMunicipalityPublicContextReadinessObservabilityBoundaryRows",
+      "method": "GET",
+      "path": "/api/dashboard/observability-mini",
+      "queryString": "",
+      "parameters": [],
+      "transformer": "const cards=data.cards||{}; const health=cards.health||{}; const incidents=cards.incidents||{}; return [{rowKey:'service_observability_boundary',label:'Service-Verfuegbarkeitskontext (keine Quellvollstaendigkeit)',value:String(health.status||'unknown')+' (Fehler: '+String(incidents.errorCount!=null?incidents.errorCount:'unknown')+')',scope:'platform_wide_bounded_context_only',evidenceStatus:health.status==='degraded'?'degraded':'bounded_context_only',renderTarget:'budibase:stadtwerk-mauer-workbench:municipality-public-context-readiness',roleTarget:'ROLE_MUNICIPAL_STRATEGY',safeNextAction:'do_not_treat_availability_as_source_completeness',sourceClass:'municipality_public_context_readiness_observability_boundary'}]",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "scope": {
+          "type": "string"
+        },
+        "evidenceStatus": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "safeNextAction": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getMunicipalityPublicContextReadinessVerifyRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-municipality-public-context-readiness-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.data||{}; const counts=(data.summary||{}).counts||{}; const v=d.validation||{}; const base={seedId:d.seedId||'stadtwerk-mauer-municipality-public-context-readiness-v1',tenantId:d.tenantId||data.tenantId||'stadtwerk-mauer',caseId:'smm-municipality-public-context-review-001',renderTarget:'budibase:stadtwerk-mauer-workbench:municipality-public-context-readiness',roleTarget:'ROLE_DATA_GOVERNANCE',sourceClass:'municipality_public_context_readiness_verify'}; const selection={rowKey:'mpcr_selection',label:'Selected municipality scope and role question',value:'ROLE_DATA_GOVERNANCE / ROLE_NETZPLANUNG / ROLE_MUNICIPAL_STRATEGY: Is municipality identity, AGS and complete postalCodes[] scope unambiguous; which context is public vs. derived/heuristic; which evidence is missing; and what safe review gate follows?',status:String(data.status||'unknown'),safeNextGate:'refresh_read_only_verify_rows',...base}; const verify={rowKey:'mpcr_verify',label:'Blueprint-Pack verification',value:[d.processFamily||'municipal_context_governance',d.controlCase||'municipality_public_context_scope_readiness'].join(' / '),status:String(data.status||'unknown'),valid:Boolean(v.valid),requiredEvidenceCount:Number(counts.requiredEvidence||0),matrixRowCount:Number(counts.demoProcessMatrixRows||0),forbiddenActionCount:Number(counts.forbiddenActions||0),safeNextGate:String((data.nextActions||[])[0]||'refresh_read_only_verify_rows'),...base}; return [selection,verify];",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "valid": {
+          "type": "boolean"
+        },
+        "requiredEvidenceCount": {
+          "type": "number"
+        },
+        "matrixRowCount": {
+          "type": "number"
+        },
+        "forbiddenActionCount": {
+          "type": "number"
+        },
+        "safeNextGate": {
+          "type": "string"
+        },
+        "seedId": {
+          "type": "string"
+        },
+        "tenantId": {
+          "type": "string"
+        },
+        "caseId": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getMunicipalityPublicContextReadinessMatrixRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-municipality-public-context-readiness-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.data||{}; const m=d.demoProcessMatrixSync||{}; const handoff=m.downstreamHandoff||{}; const base={seedId:d.seedId||'stadtwerk-mauer-municipality-public-context-readiness-v1',roleLegendM:String(m.roleLegendM||'Mitwirkend'),rowCount:Number(m.rowCount||0),rowCountValid:Boolean(m.rowCountValid),syncChainLabel:'Blueprint-Pack/Cernion-Energy-Tools -> Landing-Registry -> Produktivseite',renderTarget:'budibase:stadtwerk-mauer-workbench:municipality-public-context-readiness',roleTarget:'ROLE_CERNION_GOVERNANCE',sourceClass:'municipality_public_context_readiness_matrix'}; const summary={rowKey:'mpcr_matrix_sync',phase:'sync',v:'ROLE_DATA_GOVERNANCE',d:'ROLE_CERNION_GOVERNANCE',m:base.roleLegendM,i:'ROLE_MANAGEMENT',nachweise:(m.evidenceRequirements||[]).map(String).join(', '),status:m.synced?'blueprint_pack_complete':'sync_proof_required',downstreamHandoff:[handoff.blueprintPack||'complete',handoff.landingRegistry||'pending',handoff.productiveDemoRoom||'pending'].join(' -> '),safeNextGate:'keep_landing_registry_and_productive_demo_room_blocked_until_sync_proof',...base}; const rows=(m.rows||[]).map((row,index)=>{const roles=row.roles||{}; return {rowKey:'mpcr_matrix_'+String(row.phase||index+1),phase:String(row.phase||index+1),v:String(roles.V||row.v||''),d:String(roles.D||row.d||''),m:String(roles.M||row.m||''),i:String(roles.I||row.i||''),nachweise:(row.evidenceRequirements||[]).map(String).join(', '),status:String(row.status||''),safeNextGate:String(row.gateOutcome||row.enablesDossierAddition||'refresh_read_only_matrix'),...base};}); return [summary].concat(rows);",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "phase": {
+          "type": "string"
+        },
+        "v": {
+          "type": "string"
+        },
+        "d": {
+          "type": "string"
+        },
+        "m": {
+          "type": "string"
+        },
+        "i": {
+          "type": "string"
+        },
+        "nachweise": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "downstreamHandoff": {
+          "type": "string"
+        },
+        "safeNextGate": {
+          "type": "string"
+        },
+        "seedId": {
+          "type": "string"
+        },
+        "roleLegendM": {
+          "type": "string"
+        },
+        "rowCount": {
+          "type": "number"
+        },
+        "rowCountValid": {
+          "type": "boolean"
+        },
+        "syncChainLabel": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getMunicipalityPublicContextReadinessEvidenceRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-municipality-public-context-readiness-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.data||{}; const missing=Array.isArray(d.missingEvidence)?d.missingEvidence:[]; const groups={municipalityIdentityEvidence:'identity_and_scope',agsEvidence:'identity_and_scope',postalCodeScopeEvidence:'identity_and_scope',sourceSnapshotEvidence:'identity_and_scope',mastrContextEvidence:'public_context_classification',osmContextEvidence:'public_context_classification',sourceFreshnessEvidence:'public_context_classification',publicContextBoundaryEvidence:'public_context_classification',loadDerivationEvidence:'derived_evidence_heuristic_boundary',landUseEvidence:'derived_evidence_heuristic_boundary',heuristicBoundaryEvidence:'derived_evidence_heuristic_boundary',missingEvidence:'derived_evidence_heuristic_boundary',reviewReadinessEvidence:'review_readiness_and_sync',nextSafeGateEvidence:'review_readiness_and_sync',noCallGuardEvidence:'review_readiness_and_sync',downstreamSyncEvidence:'review_readiness_and_sync'}; const base={seedId:d.seedId||'stadtwerk-mauer-municipality-public-context-readiness-v1',tenantId:d.tenantId||data.tenantId||'stadtwerk-mauer',caseId:'smm-municipality-public-context-review-001',renderTarget:'budibase:stadtwerk-mauer-workbench:municipality-public-context-readiness',roleTarget:'ROLE_MUNICIPAL_STRATEGY',sourceClass:'municipality_public_context_readiness_evidence'}; return missing.map((item)=>({rowKey:'mpcr_evidence_'+String(item.missingDataPoint||''),missingDataPoint:String(item.missingDataPoint||''),group:String(groups[item.missingDataPoint]||'other'),state:String(item.state||'evidence_gap'),enablesDossierAddition:String(item.enablesDossierAddition||''),...base}));",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "missingDataPoint": {
+          "type": "string"
+        },
+        "group": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        },
+        "enablesDossierAddition": {
+          "type": "string"
+        },
+        "seedId": {
+          "type": "string"
+        },
+        "tenantId": {
+          "type": "string"
+        },
+        "caseId": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getMunicipalityPublicContextReadinessTransferRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-transfer-readiness",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-municipality-public-context-readiness-v1&caseId=smm-municipality-public-context-review-001",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const rows=[...(data.transferSummaryRows||[]),...(data.dataClassRows||[]),...(data.safeNextGateRows||[]),...(data.productionBoundaryRows||[])]; const source=rows.length?rows:[{rowKey:'mpcr_transfer_pending',label:'Transfer readiness',status:data.status||'pending',description:'Blueprint-Pack canonical; Landing-Registry and Produktivseite sync pending'}]; return source.map((row,index)=>({rowKey:String(row.rowKey||'mpcr_transfer_'+(index+1)),label:String(row.label||row.category||'Transfer readiness'),status:String(row.status||row.transferState||data.status||'pending'),value:String(row.value||row.description||row.examples||row.boundary||row.safeNextGate||row.safety||''),dataClass:String(row.category||row.sourceClass||'transfer_readiness'),productionBlocked:Boolean(row.productionBlocked||row.disabled),safeNextGate:String(row.safeNextAction||row.safeNextGate||row.nextGate||'refresh_transfer_readiness'),renderTarget:'budibase:stadtwerk-mauer-workbench:municipality-public-context-readiness',roleTarget:'ROLE_DATA_GOVERNANCE',sourceClass:String(row.sourceClass||'municipality_public_context_readiness_transfer')}));",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "dataClass": {
+          "type": "string"
+        },
+        "productionBlocked": {
+          "type": "boolean"
+        },
+        "safeNextGate": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getMunicipalityPublicContextReadinessNoCallRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-municipality-public-context-readiness-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.data||{}; const forbidden=Array.isArray(d.forbiddenActions)?d.forbiddenActions:[]; const notCalled=Array.isArray((d.sourceActions||{}).notCalled)?d.sourceActions.notCalled:[]; const sourceHints=[['municipality_lookup','municipality.lookup','GET /api/municipality/lookup'],['osm_geo_landuse_areas','osm-geo.landuseAreas','POST /api/osm-geo/landuse-areas'],['grid_operations_market_actor_directory','grid-operations.marketActorDirectory','GET /api/grid-operations/market-actor-directory']]; const hintRows=sourceHints.map(([rowSuffix,operationId,operationPath])=>({rowKey:'mpcr_hint_'+rowSuffix,operationId,operationPath,invocation:'source_hint_only',boundary:operationId,status:'not_called',disabled:true,safeAlternative:'render_curated_source_hint_metadata_only_never_a_service_or_ownership_proof',sourceClass:'municipality_public_context_readiness_source_hint_boundary'})); const guardRows=[...new Set(forbidden.concat(notCalled).map(String))].map((action,index)=>({rowKey:'mpcr_guard_'+String(index+1),operationId:'',operationPath:'',invocation:'not_applicable',boundary:action,status:'not_called',disabled:true,safeAlternative:'refresh_existing_read_only_dashboard_rows_or_verify_blueprint_seed',sourceClass:'municipality_public_context_readiness_no_call_guard'})); return hintRows.concat(guardRows).map((row)=>({...row,renderTarget:'budibase:stadtwerk-mauer-workbench:municipality-public-context-readiness',roleTarget:'ROLE_MUNICIPAL_STRATEGY'}));",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "operationId": {
+          "type": "string"
+        },
+        "operationPath": {
+          "type": "string"
+        },
+        "invocation": {
+          "type": "string"
+        },
+        "boundary": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "disabled": {
+          "type": "boolean"
+        },
+        "safeAlternative": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        }
+      }
     }
   ],
   "sections": [
@@ -13668,6 +14115,60 @@
       "title": "MSCONS Identifikatorwechsel Readiness-Gate No-Call Guards",
       "queryName": "getMsconsIdentifikatorwechselNoCallRows",
       "tableTitle": "Forbidden and Not-Called Boundaries"
+    },
+    {
+      "id": "municipality_public_context_readiness_selector",
+      "title": "Municipality Public-Context Scope Readiness Selector",
+      "queryName": "getMunicipalityPublicContextReadinessSelectorRows",
+      "tableTitle": "Municipality Identity, AGS, Complete PLZ Set and Missing Evidence"
+    },
+    {
+      "id": "municipality_public_context_readiness_mastr_classification",
+      "title": "Municipality Public-Context MaStR/OSM Classification",
+      "queryName": "getMunicipalityPublicContextReadinessMastrRows",
+      "tableTitle": "Public vs. Derived/Heuristic Context and Revalidation State"
+    },
+    {
+      "id": "municipality_public_context_readiness_quality_boundary",
+      "title": "Municipality Public-Context Quality Boundary",
+      "queryName": "getMunicipalityPublicContextReadinessQualityBoundaryRows",
+      "tableTitle": "Bounded Platform-Quality Context (Not Municipality-Specific)"
+    },
+    {
+      "id": "municipality_public_context_readiness_observability_boundary",
+      "title": "Municipality Public-Context Observability Boundary",
+      "queryName": "getMunicipalityPublicContextReadinessObservabilityBoundaryRows",
+      "tableTitle": "Bounded Service/Freshness/Degraded Context"
+    },
+    {
+      "id": "municipality_public_context_readiness_verify",
+      "title": "Municipality Public-Context Scope Readiness Blueprint Verify",
+      "queryName": "getMunicipalityPublicContextReadinessVerifyRows",
+      "tableTitle": "Selected Scope and Blueprint-Pack Verification"
+    },
+    {
+      "id": "municipality_public_context_readiness_matrix",
+      "title": "Municipality Public-Context Scope Readiness Matrix",
+      "queryName": "getMunicipalityPublicContextReadinessMatrixRows",
+      "tableTitle": "Phase, V/D/M/I, Nachweise and Downstream Sync"
+    },
+    {
+      "id": "municipality_public_context_readiness_evidence",
+      "title": "Municipality Public-Context Scope Readiness Missing Evidence",
+      "queryName": "getMunicipalityPublicContextReadinessEvidenceRows",
+      "tableTitle": "Missing Data Point, Group, State and Enabled Dossier Addition"
+    },
+    {
+      "id": "municipality_public_context_readiness_transfer",
+      "title": "Municipality Public-Context Scope Readiness Transfer Readiness",
+      "queryName": "getMunicipalityPublicContextReadinessTransferRows",
+      "tableTitle": "Public Context, Synthetic Seed, Sandbox Artifacts and Production Boundaries"
+    },
+    {
+      "id": "municipality_public_context_readiness_no_call",
+      "title": "Municipality Public-Context Scope Readiness No-Call Guards",
+      "queryName": "getMunicipalityPublicContextReadinessNoCallRows",
+      "tableTitle": "Source Hints and Forbidden/Not-Called Boundaries"
     }
   ],
   "notes": [
@@ -13739,6 +14240,8 @@
     "Risikowert Validierungs-Gate panel binds the existing dashboard-api.decisionReadinessMatrixStatus read model with deterministic synthetic cross-Sparte risk-calibration defaults for ROLE_CERNION_GOVERNANCE, surfacing Herkunft (evidenceSource), Sparte (category), Owner, offene Rueckfrage (openEvidence), Ergebniswirkung (riskIfNotImplemented) and naechstes Entscheidungsgremium (committeeWindow/nextDecisionPoint) per the accepted dashboard-projection product cut (#486). It is a generic validation-gate view, not a new risk/regulatory calculation engine.",
     "Risikowert Validierungs-Gate rows stay scalar/generated: Budibase renders summary, measure, missing-evidence, positive-follow-up and no-call-guard rows only, without budget approval, finance booking, procurement, SAP/ERP writes, HITL/workflow/webhook creation, billing/settlement/tariff/MaKo/device-control mutation, Budibase table writes or Personal-Agent shortcuts.",
     "MSCONS Identifikatorwechsel Readiness-Gate panel binds the existing dashboard-api.ownerDeadlineEvidenceGateStatus read model with deterministic synthetic MaLo/technical-reference-id switch defaults for ROLE_METERING, surfacing source/target identifier, process type, owner, deadline, tested-processing evidence and blocked decision per the accepted dashboard-projection product cut (#476). It does not create an MSCONS importer, EDM mutation flow or MaKo production decision path.",
-    "MSCONS Identifikatorwechsel Readiness-Gate rows stay scalar/generated: Budibase renders summary, context/readiness-signal, missing-evidence, positive-follow-up and no-call-guard rows only, without mail/Teams/Loop ingestion, MSCONS import, EDM/MaKo mutation, deadline/task/owner mutation, workflow/notification execution, Budibase table writes or Personal-Agent shortcuts."
+    "MSCONS Identifikatorwechsel Readiness-Gate rows stay scalar/generated: Budibase renders summary, context/readiness-signal, missing-evidence, positive-follow-up and no-call-guard rows only, without mail/Teams/Loop ingestion, MSCONS import, EDM/MaKo mutation, deadline/task/owner mutation, workflow/notification execution, Budibase table writes or Personal-Agent shortcuts.",
+    "Municipality Public-Context Scope Readiness panel (#555) is generated manifest composition, not a new Cernion endpoint. It composes only the existing municipal-energy-value-analysis, stadtwerk-mauer-mastr-data-overlay, quality-summary, observability-mini, stadtwerk-mauer-blueprint-pack-verify and stadtwerk-mauer-transfer-readiness read models for the canonical stadtwerk-mauer-municipality-public-context-readiness-v1 Blueprint-Pack seed and synthetic case smm-municipality-public-context-review-001; municipality/lookup, OSM land-use and the market-actor directory remain source_hint_only and are never called.",
+    "Municipality Public-Context Scope Readiness rows stay scalar/generated and synthetic: Budibase renders selected municipality identity, AGS, the complete postalCodes[] scope, public-vs-derived/heuristic MaStR/OSM classification, bounded quality/observability context kept separate from municipality-specific facts, missing evidence, the canonical four-row V/D/M/I matrix with roleLegend.M = Mitwirkend, and the Blueprint-Pack/Cernion-Energy-Tools -> Landing-Registry -> Produktivseite sync chain with Landing-Registry and Produktivseite explicitly pending. A timeout or degraded source response is rendered as missing-evidence/clarification, never a negative fact, and a market-actor directory hit is never rendered as proof of municipal service or VNB assignment; no public-data correction, tenant mutation, market-actor binding, Rundeck execution, Budibase table write or Personal-Agent shortcut is introduced."
   ]
 }
