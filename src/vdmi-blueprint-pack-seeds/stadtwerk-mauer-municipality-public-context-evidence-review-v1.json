@@ -1,0 +1,312 @@
+{
+  "id": "stadtwerk-mauer-municipality-public-context-evidence-review-v1",
+  "kind": "vdmi_blueprint_pack_seed",
+  "version": "1.0.0",
+  "safetyClassification": "read_only_blueprint_seed",
+  "title": "Stadtwerk Mauer Municipality Public-Context Evidence Review seed",
+  "processFamily": "municipal_public_context_governance",
+  "controlCase": "municipality_public_context_evidence_review",
+  "sourceApi": {
+    "operation": "GET /api/dashboard/municipal-energy-value-analysis",
+    "path": "/api/dashboard/municipal-energy-value-analysis",
+    "method": "GET",
+    "workbenchBrick": "municipal_energy_value_analysis_status",
+    "capability": "dashboard-api.municipalEnergyValueAnalysisStatus",
+    "readOnly": true,
+    "invocation": "source_hint_only",
+    "relatedContextBricks": [
+      "GET /api/municipality/lookup",
+      "GET /api/municipality/reverse-geocode"
+    ]
+  },
+  "demoTenant": {
+    "tenantId": "stadtwerk-mauer",
+    "classification": "synthetic_demo_tenant",
+    "description": "Virtual Stadtwerk Mauer demo tenant; municipality scope, grid-operator/market-actor public-context hints, source-freshness and review-readiness markers are invented review data. A bounded upstream timeout or degraded VNBdigital response is missing public-context evidence only and must never be read as an authoritative negative municipality, VNB or market-actor fact."
+  },
+  "roleQuestion": {
+    "actor": "Netzplanung / Governance Owner",
+    "answerableIn": "under_one_minute",
+    "question": "Which municipality public-context evidence is present, missing or degraded right now, who owns the next review, and is a retry or connector call ever safe here?"
+  },
+  "dataClasses": {
+    "publicContextLayer": {
+      "description": "Read-only public municipality, grid-operator and market-actor context sourced from the bounded municipal-energy-value-analysis brick. A degraded or timed-out upstream response stays inside this layer as missing evidence and must never become synthetic tenant master data or a resettable baseline replacement.",
+      "examples": ["public municipality AGS/postalCodes[] context", "read-only grid-operator public-context hint", "read-only market-actor public-context hint"]
+    },
+    "syntheticTenantSeed": {
+      "description": "Invented Stadtwerk-Mauer municipality scope, grid-operator/market-actor public-context hints, source-freshness and review-readiness markers.",
+      "examples": ["synthetic municipality scope id", "synthetic source-freshness marker", "synthetic review-readiness owner hint"]
+    },
+    "sandboxRuntimeArtifact": {
+      "description": "Resettable output from Cernion/Rundeck or Workbench verification runs, separate from public context baselines.",
+      "examples": ["municipality public-context render proof", "matrix-sync render artifact", "read-model refresh proof"]
+    }
+  },
+  "roles": [
+    {
+      "roleId": "ROLE_NETZPLANUNG",
+      "relation": "verantwortlich",
+      "responsibility": "Owns the operational decision boundary for whether municipality public-context evidence is review-ready or still needs clarification."
+    },
+    {
+      "roleId": "ROLE_CERNION_GOVERNANCE",
+      "relation": "durchfuehrend",
+      "responsibility": "Verifies the Blueprint-Pack seed, matrix sync, no-call boundary and source API hint without creating runtime records."
+    },
+    {
+      "roleId": "ROLE_MUNICIPALITY_CONTEXT_ANALYST",
+      "relation": "mitwirkend",
+      "responsibility": "Provides municipality scope, grid-operator and market-actor public-context hints without calling external connectors or asserting a confirmed assignment."
+    },
+    {
+      "roleId": "ROLE_GOVERNANCE_OWNER",
+      "relation": "mitwirkend",
+      "responsibility": "Provides source-freshness and review-readiness context without triggering a retry, escalation or public-context mutation."
+    },
+    {
+      "roleId": "ROLE_MANAGEMENT",
+      "relation": "information",
+      "responsibility": "Receives review-readiness status and missing-evidence context without approving any operational or market-actor decision."
+    },
+    {
+      "roleId": "ROLE_COMMERCIAL_AUDIT",
+      "relation": "information",
+      "responsibility": "Receives safety-boundary and evidence-gap context without MaKo, billing, settlement or tariff effects."
+    }
+  ],
+  "evidenceRequirements": [
+    {
+      "id": "municipalityScopeEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds the municipality identity row before any public-context review."
+    },
+    {
+      "id": "postalCodeScopeEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds the complete postalCodes[] scope list, not just the first PLZ, so scope semantics stay complete."
+    },
+    {
+      "id": "gridOperatorPublicContextEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds the read-only grid-operator/VNB public-context hint without asserting a confirmed market-actor assignment."
+    },
+    {
+      "id": "marketActorPublicContextEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds the read-only market-actor public-context hint as metadata only, never as an authoritative market-actor binding."
+    },
+    {
+      "id": "sourceFreshnessEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds the checked-source freshness row once the bounded VNBdigital call returns; a timeout marks this evidence missing, never a negative municipality/VNB fact."
+    },
+    {
+      "id": "degradedRetrievalEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds the bounded degraded-retrieval marker so a 12s upstream timeout is visible as missing evidence instead of a silent gap."
+    },
+    {
+      "id": "reviewReadinessEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds the review-ready or needs-clarification marker as read-only dossier status; remains missing/clarification while source evidence is degraded."
+    },
+    {
+      "id": "noCallGuardEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "review",
+      "enablesDossierAddition": "Adds the explicit no-retry/no-call boundary as read-only status, not as an operational or market-actor decision."
+    }
+  ],
+  "demoProcessMatrix": {
+    "slug": "municipality-public-context-evidence-review",
+    "title": "Municipality Public-Context Evidence Review",
+    "roleLegend": {
+      "V": "Verantwortlich",
+      "D": "Durchfuehrend",
+      "M": "Mitwirkend",
+      "I": "Informiert"
+    },
+    "headers": [
+      "Phase",
+      "V = Verantwortlich",
+      "D = Durchfuehrend",
+      "M = Mitwirkend",
+      "I = Informiert",
+      "Nachweise"
+    ],
+    "allowedDataClasses": [
+      "publicContextLayer",
+      "syntheticTenantSeed",
+      "sandboxRuntimeArtifact"
+    ],
+    "downstreamHandoff": {
+      "blueprintPack": "complete",
+      "landingRegistry": "pending",
+      "productiveDemoRoom": "pending",
+      "acceptanceNote": "Blueprint-Pack/Cernion-Energy-Tools matrix is canonical; Landing-Registry and productive Demo-Raum sync remain downstream proof steps."
+    },
+    "rows": [
+      {
+        "phase": "1",
+        "v": "ROLE_NETZPLANUNG",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_MUNICIPALITY_CONTEXT_ANALYST",
+        "i": "ROLE_COMMERCIAL_AUDIT",
+        "evidenceRequirements": [
+          "municipalityScopeEvidence",
+          "postalCodeScopeEvidence"
+        ],
+        "dataClassRefs": [
+          "publicContextLayer",
+          "syntheticTenantSeed"
+        ],
+        "status": "clarification",
+        "gateOutcome": "municipality_scope_and_postal_code_list_pending",
+        "enablesDossierAddition": "Adds the municipality identity and complete postalCodes[] scope before any public-context review."
+      },
+      {
+        "phase": "2",
+        "v": "ROLE_NETZPLANUNG",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_MUNICIPALITY_CONTEXT_ANALYST",
+        "i": "ROLE_MANAGEMENT",
+        "evidenceRequirements": [
+          "gridOperatorPublicContextEvidence",
+          "marketActorPublicContextEvidence"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed"
+        ],
+        "status": "evidence_gap",
+        "gateOutcome": "grid_operator_and_market_actor_public_context_hints_only",
+        "enablesDossierAddition": "Adds read-only grid-operator and market-actor public-context hints without a confirmed assignment."
+      },
+      {
+        "phase": "3",
+        "v": "ROLE_GOVERNANCE_OWNER",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_MUNICIPALITY_CONTEXT_ANALYST",
+        "i": "ROLE_COMMERCIAL_AUDIT",
+        "evidenceRequirements": [
+          "sourceFreshnessEvidence",
+          "degradedRetrievalEvidence"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed",
+          "sandboxRuntimeArtifact"
+        ],
+        "status": "evidence_gap",
+        "gateOutcome": "source_freshness_bounded_degraded_evidence_gap_not_negative_fact",
+        "enablesDossierAddition": "Adds the bounded-timeout source-freshness evidence as a missing-evidence marker, never as a negative municipality/VNB/market-actor conclusion."
+      },
+      {
+        "phase": "4",
+        "v": "ROLE_GOVERNANCE_OWNER",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_NETZPLANUNG",
+        "i": "ROLE_MANAGEMENT",
+        "evidenceRequirements": [
+          "reviewReadinessEvidence",
+          "noCallGuardEvidence"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed",
+          "sandboxRuntimeArtifact"
+        ],
+        "status": "clarification",
+        "gateOutcome": "refresh_or_verify_existing_read_only_context",
+        "enablesDossierAddition": "Adds the review-readiness status and explicit no-retry/no-call boundary as read-only dossier evidence only."
+      }
+    ]
+  },
+  "decisionPolicy": {
+    "onMissingEvidence": "evidence_gap",
+    "onMissingOwner": "clarification",
+    "onReadyEvidence": "review_ready",
+    "allowedStates": ["clarification", "evidence_gap", "review", "review_ready"],
+    "mustNotTrigger": [
+      "vnbdigital_connector_retry",
+      "vnbdigital_connector_call",
+      "municipality_resolver_write",
+      "market_actor_assignment",
+      "market_actor_binding",
+      "grid_operator_confirmation_write",
+      "ad_hoc_retry_execution",
+      "tenant_provisioning",
+      "tenant_reset",
+      "tenant_import",
+      "workflow_create",
+      "hitl_create",
+      "mail_send",
+      "webhook_send",
+      "mako_write",
+      "billing",
+      "settlement",
+      "tariff_mutation",
+      "device_control",
+      "smgw_cls_device_control",
+      "external_connector_call",
+      "public_context_mutation",
+      "production_mutation",
+      "personal_agent_hardcoding"
+    ]
+  },
+  "allowedCommandHints": [
+    {
+      "id": "inspect-municipal-energy-value-analysis-brick",
+      "kind": "source_api_reference",
+      "execution": "metadata_only",
+      "description": "References the existing read-only, timeout-bounded dashboard brick; this seed must not invoke connectors, retry a bounded upstream call or mutate public-context state."
+    }
+  ],
+  "forbiddenActions": [
+    "vnbdigital_connector_retry",
+    "vnbdigital_connector_call",
+    "municipality_resolver_write",
+    "market_actor_assignment",
+    "market_actor_binding",
+    "grid_operator_confirmation_write",
+    "ad_hoc_retry_execution",
+    "tenant_provisioning",
+    "tenant_reset",
+    "tenant_import",
+    "workflow_create",
+    "hitl_create",
+    "mail_send",
+    "webhook_send",
+    "mako_write",
+    "billing",
+    "settlement",
+    "tariff_mutation",
+    "device_control",
+    "smgw_cls_device_control",
+    "external_connector_call",
+    "budibase_table_write",
+    "rundeck_execute",
+    "landing_registry_publication",
+    "cernion_de_publication",
+    "public_context_mutation",
+    "production_mutation",
+    "secret_key_handling",
+    "personal_agent_hardcoding"
+  ],
+  "publicContextMutationAllowed": false,
+  "tenantProvisioningAllowed": false,
+  "realWorldClaim": "synthetic_demo_only"
+}

@@ -5,6 +5,15 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.99.20] — 2026-08-15
+
+### Added
+- **New `stadtwerk-mauer-municipality-public-context-evidence-review-v1` VDMI Blueprint-Pack seed (#554) — sharpens the municipality public-context contract after #556's bounded VNBdigital timeout fix.** `dashboard-api/municipal-energy-value-analysis` now returns its existing `missing-evidence` degraded shape instead of hanging when the underlying VNBdigital calls are slow (#556); this seed encodes, as a read-only Blueprint-Pack review process, that a source timeout/degraded response is **missing public-context evidence only** and must never be represented as an authoritative negative municipality/VNB/market-actor fact. Four-row VDMI matrix: (1) municipality identity + complete `postalCodes[]` scope, (2) read-only grid-operator/market-actor public-context hints (no confirmed assignment), (3) bounded source-freshness/degraded-retrieval evidence, (4) review-readiness status with an explicit no-retry/no-call boundary — the phase-4 safe next gate is `refresh_or_verify_existing_read_only_context`.
+- Seed/helper only: registered in `src/vdmi-blueprint-pack-seeds.js` alongside the existing 18 seeds (new `REQUIRED_MUNICIPALITY_PUBLIC_CONTEXT_EVIDENCE`/`REQUIRED_MUNICIPALITY_PUBLIC_CONTEXT_ROLE_IDS` constants, `SEED_VALIDATION_REQUIREMENTS` entry, `buildWorkbenchClarificationItems` role hint). No new endpoint, Budibase panel, service action, external connector call, mutation, tenant provisioning, market-actor assignment, workflow/HITL or production action is introduced — `forbiddenActions`/`decisionPolicy.mustNotTrigger` explicitly list `ad_hoc_retry_execution`, `vnbdigital_connector_retry`, `external_connector_call`, `market_actor_assignment`, `market_actor_binding` and `public_context_mutation`.
+
+### Testing
+- `tests/vdmi-blueprint-pack-seeds.test.js` — 6 new tests covering: seed exposure, full validator pass, that a source timeout/degraded marker maps to a positive Workbench follow-up for `sourceFreshnessEvidence`/`reviewReadinessEvidence` without ever becoming an authoritative negative conclusion, that the no-call guards prohibit retry/connector/market-actor/mutation actions, workbench clarification-item mapping, and Demo-Raum matrix sync/draft derivation. Full suite: `tests/vdmi-blueprint-pack-seeds.test.js` — 1 suite / 70 tests pass.
+
 ## [0.99.19] — 2026-08-14
 
 ### Fixed

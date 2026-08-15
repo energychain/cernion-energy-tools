@@ -16,6 +16,7 @@ const {
   REQUIRED_MODEL_VIABILITY_MANAGEMENT_REVIEW_EVIDENCE,
   REQUIRED_TABULAR_DECISION_INPUT_READINESS_EVIDENCE,
   REQUIRED_MONITORING_NON_ESCALATION_STATUS_EVIDENCE,
+  REQUIRED_MUNICIPALITY_PUBLIC_CONTEXT_EVIDENCE,
   REQUIRED_PORTFOLIO_MARKET_VALUE_READINESS_EVIDENCE,
   REQUIRED_REDISPATCH_READINESS_EVIDENCE,
   REQUIRED_SUBSTATION_LOAD_ASSESSMENT_EVIDENCE,
@@ -36,6 +37,7 @@ const {
   stadtwerkMauerInvestmentOwnerDeadlineBudgetGate,
   stadtwerkMauerModelViabilityManagementReview,
   stadtwerkMauerMonitoringNonEscalationStatus,
+  stadtwerkMauerMunicipalityPublicContextEvidenceReview,
   stadtwerkMauerPvMissingNap,
   stadtwerkMauerPortfolioMarketValueReadiness,
   stadtwerkMauerRedispatchParticipationReadiness,
@@ -2605,5 +2607,262 @@ describe('VDMI Blueprint Pack seeds', () => {
         execution: 'none',
       })
     );
+  });
+
+  test('exposes the Municipality Public-Context Evidence Review seed as read-only metadata', () => {
+    expect(stadtwerkMauerMunicipalityPublicContextEvidenceReview).toMatchObject({
+      id: 'stadtwerk-mauer-municipality-public-context-evidence-review-v1',
+      kind: 'vdmi_blueprint_pack_seed',
+      version: '1.0.0',
+      safetyClassification: 'read_only_blueprint_seed',
+      processFamily: 'municipal_public_context_governance',
+      controlCase: 'municipality_public_context_evidence_review',
+      sourceApi: {
+        operation: 'GET /api/dashboard/municipal-energy-value-analysis',
+        path: '/api/dashboard/municipal-energy-value-analysis',
+        method: 'GET',
+        readOnly: true,
+        invocation: 'source_hint_only',
+      },
+      demoTenant: {
+        tenantId: 'stadtwerk-mauer',
+        classification: 'synthetic_demo_tenant',
+      },
+    });
+
+    expect(listVdmiBlueprintPackSeeds()).toContainEqual(
+      expect.objectContaining({
+        id: 'stadtwerk-mauer-municipality-public-context-evidence-review-v1',
+        demoTenantId: 'stadtwerk-mauer',
+      })
+    );
+    expect(
+      getVdmiBlueprintPackSeed('stadtwerk-mauer-municipality-public-context-evidence-review-v1')
+    ).toBe(stadtwerkMauerMunicipalityPublicContextEvidenceReview);
+  });
+
+  test('validates Municipality Public-Context Evidence Review without connector, retry or market-actor side effects', () => {
+    const result = validateVdmiBlueprintPackSeed(stadtwerkMauerMunicipalityPublicContextEvidenceReview);
+    expect(result).toEqual({ valid: true, errors: [] });
+
+    const evidenceIds = stadtwerkMauerMunicipalityPublicContextEvidenceReview.evidenceRequirements.map(
+      (item) => item.id
+    );
+    expect(evidenceIds).toEqual(
+      expect.arrayContaining(REQUIRED_MUNICIPALITY_PUBLIC_CONTEXT_EVIDENCE)
+    );
+    for (const item of stadtwerkMauerMunicipalityPublicContextEvidenceReview.evidenceRequirements) {
+      expect(item.dataClass).toBe('syntheticTenantSeed');
+      expect(item.enablesDossierAddition).toEqual(expect.any(String));
+    }
+
+    expect(stadtwerkMauerMunicipalityPublicContextEvidenceReview.demoProcessMatrix).toMatchObject({
+      slug: 'municipality-public-context-evidence-review',
+      roleLegend: {
+        M: 'Mitwirkend',
+      },
+      headers: [
+        'Phase',
+        'V = Verantwortlich',
+        'D = Durchfuehrend',
+        'M = Mitwirkend',
+        'I = Informiert',
+        'Nachweise',
+      ],
+      downstreamHandoff: {
+        blueprintPack: 'complete',
+        landingRegistry: 'pending',
+        productiveDemoRoom: 'pending',
+      },
+    });
+    expect(stadtwerkMauerMunicipalityPublicContextEvidenceReview.demoProcessMatrix.rows).toHaveLength(
+      4
+    );
+
+    expect(stadtwerkMauerMunicipalityPublicContextEvidenceReview.forbiddenActions).toEqual(
+      expect.arrayContaining([
+        'ad_hoc_retry_execution',
+        'vnbdigital_connector_retry',
+        'vnbdigital_connector_call',
+        'external_connector_call',
+        'market_actor_assignment',
+        'market_actor_binding',
+        'grid_operator_confirmation_write',
+        'tenant_provisioning',
+        'tenant_reset',
+        'tenant_import',
+        'mako_write',
+        'billing',
+        'settlement',
+        'smgw_cls_device_control',
+        'hitl_create',
+        'public_context_mutation',
+        'production_mutation',
+        'personal_agent_hardcoding',
+      ])
+    );
+    expect(stadtwerkMauerMunicipalityPublicContextEvidenceReview.publicContextMutationAllowed).toBe(
+      false
+    );
+    expect(stadtwerkMauerMunicipalityPublicContextEvidenceReview.tenantProvisioningAllowed).toBe(
+      false
+    );
+    expect(stadtwerkMauerMunicipalityPublicContextEvidenceReview.realWorldClaim).toBe(
+      'synthetic_demo_only'
+    );
+  });
+
+  test('maps bounded source-timeout/degraded evidence to a positive follow-up, never an authoritative negative fact', () => {
+    const evidence = stadtwerkMauerMunicipalityPublicContextEvidenceReview.evidenceRequirements;
+    const sourceFreshness = evidence.find((item) => item.id === 'sourceFreshnessEvidence');
+    const degradedRetrieval = evidence.find((item) => item.id === 'degradedRetrievalEvidence');
+    const reviewReadiness = evidence.find((item) => item.id === 'reviewReadinessEvidence');
+
+    // (1) a source timeout/degraded marker maps to a positive follow-up for
+    // sourceFreshnessEvidence / reviewReadinessEvidence
+    expect(sourceFreshness).toMatchObject({
+      dataClass: 'syntheticTenantSeed',
+      missingState: 'evidence_gap',
+      enablesDossierAddition: expect.stringContaining('never a negative municipality/VNB fact'),
+    });
+    expect(degradedRetrieval).toMatchObject({
+      dataClass: 'syntheticTenantSeed',
+      enablesDossierAddition: expect.stringContaining('missing evidence'),
+    });
+    expect(reviewReadiness).toMatchObject({
+      dataClass: 'syntheticTenantSeed',
+      missingState: 'clarification',
+      enablesDossierAddition: expect.stringContaining('remains missing/clarification'),
+    });
+
+    // (2) absence caused by degraded retrieval cannot be represented as an
+    // authoritative municipality/VNB/market-actor conclusion
+    expect(stadtwerkMauerMunicipalityPublicContextEvidenceReview.demoTenant.description).toEqual(
+      expect.stringContaining(
+        'must never be read as an authoritative negative municipality, VNB or market-actor fact'
+      )
+    );
+    expect(stadtwerkMauerMunicipalityPublicContextEvidenceReview.dataClasses.publicContextLayer.description).toEqual(
+      expect.stringContaining('must never become synthetic tenant master data')
+    );
+
+    const degradedRow = stadtwerkMauerMunicipalityPublicContextEvidenceReview.demoProcessMatrix.rows.find(
+      (row) => row.evidenceRequirements.includes('sourceFreshnessEvidence')
+    );
+    expect(degradedRow).toMatchObject({
+      status: 'evidence_gap',
+      gateOutcome: 'source_freshness_bounded_degraded_evidence_gap_not_negative_fact',
+    });
+    expect(degradedRow.enablesDossierAddition).toEqual(
+      expect.stringContaining('never as a negative municipality/VNB/market-actor conclusion')
+    );
+
+    const readinessRow = stadtwerkMauerMunicipalityPublicContextEvidenceReview.demoProcessMatrix.rows.find(
+      (row) => row.evidenceRequirements.includes('reviewReadinessEvidence')
+    );
+    expect(readinessRow).toMatchObject({
+      status: 'clarification',
+      gateOutcome: 'refresh_or_verify_existing_read_only_context',
+    });
+
+    // (3) the no-call guards still prohibit ad-hoc retry execution, external
+    // connector calls, market-actor binding and public-context mutation
+    const forbidden = stadtwerkMauerMunicipalityPublicContextEvidenceReview.forbiddenActions;
+    const mustNotTrigger =
+      stadtwerkMauerMunicipalityPublicContextEvidenceReview.decisionPolicy.mustNotTrigger;
+    for (const guard of [
+      'ad_hoc_retry_execution',
+      'vnbdigital_connector_retry',
+      'external_connector_call',
+      'market_actor_binding',
+      'market_actor_assignment',
+      'public_context_mutation',
+    ]) {
+      expect(forbidden).toContain(guard);
+      expect(mustNotTrigger).toContain(guard);
+    }
+  });
+
+  test('maps Municipality Public-Context Evidence Review missing evidence to non-executing workbench additions', () => {
+    const items = buildWorkbenchClarificationItems(
+      stadtwerkMauerMunicipalityPublicContextEvidenceReview
+    );
+
+    expect(items).toHaveLength(REQUIRED_MUNICIPALITY_PUBLIC_CONTEXT_EVIDENCE.length);
+    for (const item of items) {
+      expect(item.execution).toBe('none');
+      expect(item.sourceSeedId).toBe(stadtwerkMauerMunicipalityPublicContextEvidenceReview.id);
+    }
+    expect(items).toContainEqual(
+      expect.objectContaining({
+        evidenceId: 'sourceFreshnessEvidence',
+        state: 'evidence_gap',
+        roleHint: 'ROLE_MUNICIPALITY_CONTEXT_ANALYST',
+        execution: 'none',
+      })
+    );
+    expect(items).toContainEqual(
+      expect.objectContaining({
+        evidenceId: 'reviewReadinessEvidence',
+        state: 'clarification',
+        execution: 'none',
+      })
+    );
+  });
+
+  test('exposes a canonical Demo-Raum process matrix for Municipality Public-Context Evidence Review sync', () => {
+    const matrix = stadtwerkMauerMunicipalityPublicContextEvidenceReview.demoProcessMatrix;
+    const sync = buildDemoProcessMatrixSync(stadtwerkMauerMunicipalityPublicContextEvidenceReview);
+    const draft = buildLandingRegistryDraftFromBlueprintSeed(
+      stadtwerkMauerMunicipalityPublicContextEvidenceReview
+    );
+
+    expect(matrix.slug).toBe('municipality-public-context-evidence-review');
+    expect(matrix.roleLegend.M).toBe('Mitwirkend');
+    expect(matrix.rows).toHaveLength(4);
+    expect(matrix.allowedDataClasses).toEqual(REQUIRED_DATA_CLASSES);
+    expect(sync).toMatchObject({
+      slug: 'municipality-public-context-evidence-review',
+      synced: true,
+      rowCount: 4,
+      rowCountValid: true,
+      roleCellsClean: true,
+      dataClassesLimited: true,
+    });
+    expect(draft).toMatchObject({
+      slug: 'municipality-public-context-evidence-review',
+      seedId: 'stadtwerk-mauer-municipality-public-context-evidence-review-v1',
+      syncProof: {
+        blueprintPack: {
+          status: 'complete',
+        },
+        productiveDemoRoom: {
+          status: 'pending',
+        },
+      },
+    });
+
+    for (const row of matrix.rows) {
+      expect(row).toEqual(
+        expect.objectContaining({
+          phase: expect.any(String),
+          v: expect.stringMatching(/^ROLE_/),
+          d: expect.stringMatching(/^ROLE_/),
+          m: expect.stringMatching(/^ROLE_/),
+          i: expect.stringMatching(/^ROLE_/),
+          evidenceRequirements: expect.arrayContaining([expect.any(String)]),
+          dataClassRefs: expect.arrayContaining([expect.any(String)]),
+          gateOutcome: expect.any(String),
+          enablesDossierAddition: expect.any(String),
+        })
+      );
+
+      for (const roleCell of [row.v, row.d, row.m, row.i]) {
+        expect(REQUIRED_DATA_CLASSES).not.toContain(roleCell);
+        expect(roleCell).not.toMatch(
+          /Phase|Verantwortlich|Durchfuehrend|Mitwirkend|Informiert|Nachweise/
+        );
+      }
+    }
   });
 });

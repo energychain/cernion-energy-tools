@@ -18,6 +18,7 @@ const stadtwerkMauerDirectMarketerRiskGate = require('./vdmi-blueprint-pack-seed
 const stadtwerkMauerFlexibleGridConnectionReleaseFile = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-flexible-grid-connection-release-file-v1.json');
 const stadtwerkMauerModelViabilityManagementReview = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-model-viability-management-review-v1.json');
 const stadtwerkMauerTabularDecisionInputReadiness = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-tabular-decision-input-readiness-v1.json');
+const stadtwerkMauerMunicipalityPublicContextEvidenceReview = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-municipality-public-context-evidence-review-v1.json');
 
 const REQUIRED_EVIDENCE = Object.freeze([
   'napReference',
@@ -308,6 +309,21 @@ const REQUIRED_TABULAR_DECISION_INPUT_READINESS_ROLE_IDS = Object.freeze([
   'ROLE_COMMERCIAL_AUDIT',
   'ROLE_MANAGEMENT',
 ]);
+const REQUIRED_MUNICIPALITY_PUBLIC_CONTEXT_EVIDENCE = Object.freeze([
+  'municipalityScopeEvidence',
+  'postalCodeScopeEvidence',
+  'gridOperatorPublicContextEvidence',
+  'marketActorPublicContextEvidence',
+  'sourceFreshnessEvidence',
+  'degradedRetrievalEvidence',
+  'reviewReadinessEvidence',
+  'noCallGuardEvidence',
+]);
+const REQUIRED_MUNICIPALITY_PUBLIC_CONTEXT_ROLE_IDS = Object.freeze([
+  'ROLE_NETZPLANUNG',
+  'ROLE_CERNION_GOVERNANCE',
+  'ROLE_GOVERNANCE_OWNER',
+]);
 const REQUIRED_MATRIX_ROLE_KEYS = Object.freeze(['v', 'd', 'm', 'i']);
 const MATRIX_HEADER_WORDS = Object.freeze([
   'Phase',
@@ -337,6 +353,7 @@ const SEEDS = Object.freeze([
   stadtwerkMauerFlexibleGridConnectionReleaseFile,
   stadtwerkMauerModelViabilityManagementReview,
   stadtwerkMauerTabularDecisionInputReadiness,
+  stadtwerkMauerMunicipalityPublicContextEvidenceReview,
 ]);
 
 const SEED_VALIDATION_REQUIREMENTS = Object.freeze({
@@ -429,6 +446,11 @@ const SEED_VALIDATION_REQUIREMENTS = Object.freeze({
     requiredEvidence: REQUIRED_TABULAR_DECISION_INPUT_READINESS_EVIDENCE,
     requiredRoleIds: REQUIRED_TABULAR_DECISION_INPUT_READINESS_ROLE_IDS,
     expectedMatrixSlug: 'tabular-decision-input-readiness',
+  }),
+  [stadtwerkMauerMunicipalityPublicContextEvidenceReview.id]: Object.freeze({
+    requiredEvidence: REQUIRED_MUNICIPALITY_PUBLIC_CONTEXT_EVIDENCE,
+    requiredRoleIds: REQUIRED_MUNICIPALITY_PUBLIC_CONTEXT_ROLE_IDS,
+    expectedMatrixSlug: 'municipality-public-context-evidence-review',
   }),
 });
 
@@ -634,7 +656,9 @@ function buildWorkbenchClarificationItems(seed) {
     roleHint:
       item.id === 'napReference'
         ? 'ROLE_NETZPLANUNG'
-        : selectedSeed.id === stadtwerkMauerGasTransformationDataroomReview.id
+        : selectedSeed.id === stadtwerkMauerMunicipalityPublicContextEvidenceReview.id
+          ? 'ROLE_MUNICIPALITY_CONTEXT_ANALYST'
+          : selectedSeed.id === stadtwerkMauerGasTransformationDataroomReview.id
           ? 'ROLE_DATAROOM_OWNER'
           : selectedSeed.id === stadtwerkMauerPortfolioMarketValueReadiness.id
             ? 'ROLE_PORTFOLIO_OWNER'
@@ -860,6 +884,8 @@ module.exports = {
   REQUIRED_INVESTMENT_OWNER_DEADLINE_BUDGET_GATE_ROLE_IDS,
   REQUIRED_MODEL_VIABILITY_MANAGEMENT_REVIEW_EVIDENCE,
   REQUIRED_MODEL_VIABILITY_MANAGEMENT_REVIEW_ROLE_IDS,
+  REQUIRED_MUNICIPALITY_PUBLIC_CONTEXT_EVIDENCE,
+  REQUIRED_MUNICIPALITY_PUBLIC_CONTEXT_ROLE_IDS,
   REQUIRED_MONITORING_NON_ESCALATION_STATUS_EVIDENCE,
   REQUIRED_MONITORING_NON_ESCALATION_STATUS_ROLE_IDS,
   REQUIRED_PORTFOLIO_MARKET_VALUE_READINESS_EVIDENCE,
@@ -892,6 +918,7 @@ module.exports = {
   stadtwerkMauerInvestmentOwnerDeadlineBudgetGate,
   stadtwerkMauerModelViabilityManagementReview,
   stadtwerkMauerMonitoringNonEscalationStatus,
+  stadtwerkMauerMunicipalityPublicContextEvidenceReview,
   stadtwerkMauerPortfolioMarketValueReadiness,
   stadtwerkMauerTabularDecisionInputReadiness,
   validateVdmiBlueprintPackSeed,
