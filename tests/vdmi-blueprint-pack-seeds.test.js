@@ -37,7 +37,7 @@ const {
   stadtwerkMauerInvestmentOwnerDeadlineBudgetGate,
   stadtwerkMauerModelViabilityManagementReview,
   stadtwerkMauerMonitoringNonEscalationStatus,
-  stadtwerkMauerMunicipalityPublicContextEvidenceReview,
+  stadtwerkMauerMunicipalityPublicContextReadiness,
   stadtwerkMauerPvMissingNap,
   stadtwerkMauerPortfolioMarketValueReadiness,
   stadtwerkMauerRedispatchParticipationReadiness,
@@ -2609,14 +2609,14 @@ describe('VDMI Blueprint Pack seeds', () => {
     );
   });
 
-  test('exposes the Municipality Public-Context Evidence Review seed as read-only metadata', () => {
-    expect(stadtwerkMauerMunicipalityPublicContextEvidenceReview).toMatchObject({
-      id: 'stadtwerk-mauer-municipality-public-context-evidence-review-v1',
+  test('exposes the Municipality Public-Context Scope Readiness seed as read-only metadata', () => {
+    expect(stadtwerkMauerMunicipalityPublicContextReadiness).toMatchObject({
+      id: 'stadtwerk-mauer-municipality-public-context-readiness-v1',
       kind: 'vdmi_blueprint_pack_seed',
       version: '1.0.0',
       safetyClassification: 'read_only_blueprint_seed',
-      processFamily: 'municipal_public_context_governance',
-      controlCase: 'municipality_public_context_evidence_review',
+      processFamily: 'municipal_context_governance',
+      controlCase: 'municipality_public_context_scope_readiness',
       sourceApi: {
         operation: 'GET /api/dashboard/municipal-energy-value-analysis',
         path: '/api/dashboard/municipal-energy-value-analysis',
@@ -2632,32 +2632,62 @@ describe('VDMI Blueprint Pack seeds', () => {
 
     expect(listVdmiBlueprintPackSeeds()).toContainEqual(
       expect.objectContaining({
-        id: 'stadtwerk-mauer-municipality-public-context-evidence-review-v1',
+        id: 'stadtwerk-mauer-municipality-public-context-readiness-v1',
         demoTenantId: 'stadtwerk-mauer',
       })
     );
     expect(
-      getVdmiBlueprintPackSeed('stadtwerk-mauer-municipality-public-context-evidence-review-v1')
-    ).toBe(stadtwerkMauerMunicipalityPublicContextEvidenceReview);
+      getVdmiBlueprintPackSeed('stadtwerk-mauer-municipality-public-context-readiness-v1')
+    ).toBe(stadtwerkMauerMunicipalityPublicContextReadiness);
   });
 
-  test('validates Municipality Public-Context Evidence Review without connector, retry or market-actor side effects', () => {
-    const result = validateVdmiBlueprintPackSeed(stadtwerkMauerMunicipalityPublicContextEvidenceReview);
+  test('references municipality/OSM/market-actor bricks as metadata-only source hints, never executed', () => {
+    const seed = stadtwerkMauerMunicipalityPublicContextReadiness;
+    const expectedHints = [
+      ['GET', '/api/dashboard/municipal-energy-value-analysis'],
+      ['GET', '/api/dashboard/stadtwerk-mauer-mastr-data-overlay'],
+      ['GET', '/api/dashboard/quality-summary'],
+      ['GET', '/api/dashboard/observability-mini'],
+      ['GET', '/api/municipality/lookup'],
+      ['POST', '/api/osm-geo/landuse-areas'],
+      ['GET', '/api/grid-operations/market-actor-directory'],
+    ];
+    expect(seed.sourceHints).toHaveLength(expectedHints.length);
+    for (const [method, path] of expectedHints) {
+      expect(seed.sourceHints).toContainEqual(
+        expect.objectContaining({
+          method,
+          path,
+          readOnly: true,
+          invocation: 'source_hint_only',
+        })
+      );
+    }
+    for (const hint of seed.allowedCommandHints) {
+      expect(hint.execution).toBe('metadata_only');
+    }
+    expect(seed.budibaseRenderTarget).toBe(
+      'budibase:stadtwerk-mauer-workbench:municipality-public-context-readiness'
+    );
+  });
+
+  test('validates Municipality Public-Context Scope Readiness without connector, retry or market-actor side effects', () => {
+    const result = validateVdmiBlueprintPackSeed(stadtwerkMauerMunicipalityPublicContextReadiness);
     expect(result).toEqual({ valid: true, errors: [] });
 
-    const evidenceIds = stadtwerkMauerMunicipalityPublicContextEvidenceReview.evidenceRequirements.map(
+    const evidenceIds = stadtwerkMauerMunicipalityPublicContextReadiness.evidenceRequirements.map(
       (item) => item.id
     );
     expect(evidenceIds).toEqual(
       expect.arrayContaining(REQUIRED_MUNICIPALITY_PUBLIC_CONTEXT_EVIDENCE)
     );
-    for (const item of stadtwerkMauerMunicipalityPublicContextEvidenceReview.evidenceRequirements) {
+    for (const item of stadtwerkMauerMunicipalityPublicContextReadiness.evidenceRequirements) {
       expect(item.dataClass).toBe('syntheticTenantSeed');
       expect(item.enablesDossierAddition).toEqual(expect.any(String));
     }
 
-    expect(stadtwerkMauerMunicipalityPublicContextEvidenceReview.demoProcessMatrix).toMatchObject({
-      slug: 'municipality-public-context-evidence-review',
+    expect(stadtwerkMauerMunicipalityPublicContextReadiness.demoProcessMatrix).toMatchObject({
+      slug: 'municipality-public-context-readiness',
       roleLegend: {
         M: 'Mitwirkend',
       },
@@ -2675,19 +2705,18 @@ describe('VDMI Blueprint Pack seeds', () => {
         productiveDemoRoom: 'pending',
       },
     });
-    expect(stadtwerkMauerMunicipalityPublicContextEvidenceReview.demoProcessMatrix.rows).toHaveLength(
-      4
-    );
+    expect(stadtwerkMauerMunicipalityPublicContextReadiness.demoProcessMatrix.rows).toHaveLength(4);
 
-    expect(stadtwerkMauerMunicipalityPublicContextEvidenceReview.forbiddenActions).toEqual(
+    expect(stadtwerkMauerMunicipalityPublicContextReadiness.forbiddenActions).toEqual(
       expect.arrayContaining([
         'ad_hoc_retry_execution',
-        'vnbdigital_connector_retry',
-        'vnbdigital_connector_call',
         'external_connector_call',
         'market_actor_assignment',
         'market_actor_binding',
         'grid_operator_confirmation_write',
+        'public_context_correction',
+        'mastr_mutation',
+        'osm_mutation',
         'tenant_provisioning',
         'tenant_reset',
         'tenant_import',
@@ -2701,103 +2730,140 @@ describe('VDMI Blueprint Pack seeds', () => {
         'personal_agent_hardcoding',
       ])
     );
-    expect(stadtwerkMauerMunicipalityPublicContextEvidenceReview.publicContextMutationAllowed).toBe(
+    expect(stadtwerkMauerMunicipalityPublicContextReadiness.publicContextMutationAllowed).toBe(
       false
     );
-    expect(stadtwerkMauerMunicipalityPublicContextEvidenceReview.tenantProvisioningAllowed).toBe(
-      false
-    );
-    expect(stadtwerkMauerMunicipalityPublicContextEvidenceReview.realWorldClaim).toBe(
+    expect(stadtwerkMauerMunicipalityPublicContextReadiness.tenantProvisioningAllowed).toBe(false);
+    expect(stadtwerkMauerMunicipalityPublicContextReadiness.realWorldClaim).toBe(
       'synthetic_demo_only'
     );
   });
 
-  test('maps bounded source-timeout/degraded evidence to a positive follow-up, never an authoritative negative fact', () => {
-    const evidence = stadtwerkMauerMunicipalityPublicContextEvidenceReview.evidenceRequirements;
-    const sourceFreshness = evidence.find((item) => item.id === 'sourceFreshnessEvidence');
-    const degradedRetrieval = evidence.find((item) => item.id === 'degradedRetrievalEvidence');
-    const reviewReadiness = evidence.find((item) => item.id === 'reviewReadinessEvidence');
-
-    // (1) a source timeout/degraded marker maps to a positive follow-up for
-    // sourceFreshnessEvidence / reviewReadinessEvidence
-    expect(sourceFreshness).toMatchObject({
-      dataClass: 'syntheticTenantSeed',
-      missingState: 'evidence_gap',
-      enablesDossierAddition: expect.stringContaining('never a negative municipality/VNB fact'),
-    });
-    expect(degradedRetrieval).toMatchObject({
-      dataClass: 'syntheticTenantSeed',
-      enablesDossierAddition: expect.stringContaining('missing evidence'),
-    });
-    expect(reviewReadiness).toMatchObject({
-      dataClass: 'syntheticTenantSeed',
-      missingState: 'clarification',
-      enablesDossierAddition: expect.stringContaining('remains missing/clarification'),
-    });
-
-    // (2) absence caused by degraded retrieval cannot be represented as an
-    // authoritative municipality/VNB/market-actor conclusion
-    expect(stadtwerkMauerMunicipalityPublicContextEvidenceReview.demoTenant.description).toEqual(
+  test('keeps the three data classes and the immutable public-context boundary', () => {
+    const seed = stadtwerkMauerMunicipalityPublicContextReadiness;
+    expect(Object.keys(seed.dataClasses)).toEqual(
+      expect.arrayContaining(REQUIRED_DATA_CLASSES)
+    );
+    expect(seed.dataClasses.publicContextLayer.description).toEqual(
+      expect.stringContaining('never removed by demo reset/delete jobs')
+    );
+    expect(seed.syntheticDemoRule).toEqual(
       expect.stringContaining(
-        'must never be read as an authoritative negative municipality, VNB or market-actor fact'
+        'A market-actor directory hit must not be treated as proof that the actor serves or owns the selected municipality.'
       )
     );
-    expect(stadtwerkMauerMunicipalityPublicContextEvidenceReview.dataClasses.publicContextLayer.description).toEqual(
-      expect.stringContaining('must never become synthetic tenant master data')
+    expect(seed.demoTenant.description).toEqual(
+      expect.stringContaining(
+        'must never be silently upgraded into a fact'
+      )
     );
+  });
 
-    const degradedRow = stadtwerkMauerMunicipalityPublicContextEvidenceReview.demoProcessMatrix.rows.find(
-      (row) => row.evidenceRequirements.includes('sourceFreshnessEvidence')
+  test('represents complete postalCodes[] as a scope-list fact, not a single hardcoded PLZ', () => {
+    const seed = stadtwerkMauerMunicipalityPublicContextReadiness;
+    const postalCodeEvidence = seed.evidenceRequirements.find(
+      (item) => item.id === 'postalCodeScopeEvidence'
     );
-    expect(degradedRow).toMatchObject({
-      status: 'evidence_gap',
-      gateOutcome: 'source_freshness_bounded_degraded_evidence_gap_not_negative_fact',
-    });
-    expect(degradedRow.enablesDossierAddition).toEqual(
-      expect.stringContaining('never as a negative municipality/VNB/market-actor conclusion')
+    expect(postalCodeEvidence.enablesDossierAddition).toEqual(
+      expect.stringContaining('complete multi-PLZ scope summary')
     );
+    expect(postalCodeEvidence.enablesDossierAddition).not.toMatch(/\b\d{5}\b/);
 
-    const readinessRow = stadtwerkMauerMunicipalityPublicContextEvidenceReview.demoProcessMatrix.rows.find(
-      (row) => row.evidenceRequirements.includes('reviewReadinessEvidence')
+    const scopeRow = seed.demoProcessMatrix.rows.find((row) =>
+      row.evidenceRequirements.includes('postalCodeScopeEvidence')
     );
-    expect(readinessRow).toMatchObject({
-      status: 'clarification',
-      gateOutcome: 'refresh_or_verify_existing_read_only_context',
-    });
+    expect(scopeRow.enablesDossierAddition).toEqual(
+      expect.stringContaining('not just the first PLZ')
+    );
+  });
 
-    // (3) the no-call guards still prohibit ad-hoc retry execution, external
-    // connector calls, market-actor binding and public-context mutation
-    const forbidden = stadtwerkMauerMunicipalityPublicContextEvidenceReview.forbiddenActions;
-    const mustNotTrigger =
-      stadtwerkMauerMunicipalityPublicContextEvidenceReview.decisionPolicy.mustNotTrigger;
+  test('never claims MaStR, OSM, postal-code, market-actor or municipal-value context is complete, official or decision-ready without evidence', () => {
+    const seed = stadtwerkMauerMunicipalityPublicContextReadiness;
+    for (const row of seed.demoProcessMatrix.rows) {
+      expect(['clarification', 'evidence_gap']).toContain(row.status);
+    }
+    const derivedRow = seed.demoProcessMatrix.rows.find((row) =>
+      row.evidenceRequirements.includes('landUseEvidence')
+    );
+    expect(derivedRow.gateOutcome).toEqual(
+      expect.stringContaining('not_official_fact')
+    );
+    const heuristicBoundary = seed.evidenceRequirements.find(
+      (item) => item.id === 'heuristicBoundaryEvidence'
+    );
+    expect(heuristicBoundary.enablesDossierAddition).toEqual(
+      expect.stringContaining('never silently upgraded into a fact')
+    );
+  });
+
+  test('carries the required positive follow-up mappings', () => {
+    const seed = stadtwerkMauerMunicipalityPublicContextReadiness;
+    const byId = Object.fromEntries(
+      seed.positiveFollowUpMapping.map((item) => [item.evidenceId, item.enablesDossierAddition])
+    );
+    expect(byId.agsEvidence).toEqual(expect.stringContaining('unambiguous municipality scope label'));
+    expect(byId.postalCodeScopeEvidence).toEqual(
+      expect.stringContaining('complete multi-PLZ scope summary')
+    );
+    expect(byId.sourceFreshnessEvidence).toEqual(
+      expect.stringContaining('timestamped public-context review status')
+    );
+    expect(byId.landUseEvidence).toEqual(
+      expect.stringContaining('replacing/qualifying a heuristic sector split')
+    );
+    expect(byId.publicContextBoundaryEvidence).toEqual(
+      expect.stringContaining('explicit public-vs-synthetic provenance rows')
+    );
+    expect(byId.reviewReadinessEvidence).toEqual(
+      expect.stringContaining('next human municipal-context review gate')
+    );
+  });
+
+  test('keeps no-call guards and downstream Landing-Registry/productive-page sync pending', () => {
+    const seed = stadtwerkMauerMunicipalityPublicContextReadiness;
+    const forbidden = seed.forbiddenActions;
+    const mustNotTrigger = seed.decisionPolicy.mustNotTrigger;
     for (const guard of [
       'ad_hoc_retry_execution',
-      'vnbdigital_connector_retry',
       'external_connector_call',
       'market_actor_binding',
       'market_actor_assignment',
       'public_context_mutation',
+      'landing_registry_publication',
+      'cernion_de_publication',
     ]) {
       expect(forbidden).toContain(guard);
       expect(mustNotTrigger).toContain(guard);
     }
+
+    const gateRow = seed.demoProcessMatrix.rows.find((row) =>
+      row.evidenceRequirements.includes('noCallGuardEvidence')
+    );
+    expect(gateRow).toMatchObject({
+      status: 'clarification',
+      gateOutcome: 'refresh_or_verify_existing_read_only_context',
+    });
+
+    expect(seed.demoProcessMatrix.downstreamHandoff).toMatchObject({
+      blueprintPack: 'complete',
+      landingRegistry: 'pending',
+      productiveDemoRoom: 'pending',
+    });
   });
 
-  test('maps Municipality Public-Context Evidence Review missing evidence to non-executing workbench additions', () => {
-    const items = buildWorkbenchClarificationItems(
-      stadtwerkMauerMunicipalityPublicContextEvidenceReview
-    );
+  test('maps Municipality Public-Context Scope Readiness missing evidence to non-executing workbench additions', () => {
+    const items = buildWorkbenchClarificationItems(stadtwerkMauerMunicipalityPublicContextReadiness);
 
     expect(items).toHaveLength(REQUIRED_MUNICIPALITY_PUBLIC_CONTEXT_EVIDENCE.length);
     for (const item of items) {
       expect(item.execution).toBe('none');
-      expect(item.sourceSeedId).toBe(stadtwerkMauerMunicipalityPublicContextEvidenceReview.id);
+      expect(item.sourceSeedId).toBe(stadtwerkMauerMunicipalityPublicContextReadiness.id);
     }
     expect(items).toContainEqual(
       expect.objectContaining({
         evidenceId: 'sourceFreshnessEvidence',
         state: 'evidence_gap',
-        roleHint: 'ROLE_MUNICIPALITY_CONTEXT_ANALYST',
+        roleHint: 'ROLE_PUBLIC_CONTEXT_STEWARD',
         execution: 'none',
       })
     );
@@ -2810,19 +2876,19 @@ describe('VDMI Blueprint Pack seeds', () => {
     );
   });
 
-  test('exposes a canonical Demo-Raum process matrix for Municipality Public-Context Evidence Review sync', () => {
-    const matrix = stadtwerkMauerMunicipalityPublicContextEvidenceReview.demoProcessMatrix;
-    const sync = buildDemoProcessMatrixSync(stadtwerkMauerMunicipalityPublicContextEvidenceReview);
+  test('exposes a canonical Demo-Raum process matrix for Municipality Public-Context Scope Readiness sync', () => {
+    const matrix = stadtwerkMauerMunicipalityPublicContextReadiness.demoProcessMatrix;
+    const sync = buildDemoProcessMatrixSync(stadtwerkMauerMunicipalityPublicContextReadiness);
     const draft = buildLandingRegistryDraftFromBlueprintSeed(
-      stadtwerkMauerMunicipalityPublicContextEvidenceReview
+      stadtwerkMauerMunicipalityPublicContextReadiness
     );
 
-    expect(matrix.slug).toBe('municipality-public-context-evidence-review');
+    expect(matrix.slug).toBe('municipality-public-context-readiness');
     expect(matrix.roleLegend.M).toBe('Mitwirkend');
     expect(matrix.rows).toHaveLength(4);
     expect(matrix.allowedDataClasses).toEqual(REQUIRED_DATA_CLASSES);
     expect(sync).toMatchObject({
-      slug: 'municipality-public-context-evidence-review',
+      slug: 'municipality-public-context-readiness',
       synced: true,
       rowCount: 4,
       rowCountValid: true,
@@ -2830,8 +2896,8 @@ describe('VDMI Blueprint Pack seeds', () => {
       dataClassesLimited: true,
     });
     expect(draft).toMatchObject({
-      slug: 'municipality-public-context-evidence-review',
-      seedId: 'stadtwerk-mauer-municipality-public-context-evidence-review-v1',
+      slug: 'municipality-public-context-readiness',
+      seedId: 'stadtwerk-mauer-municipality-public-context-readiness-v1',
       syncProof: {
         blueprintPack: {
           status: 'complete',

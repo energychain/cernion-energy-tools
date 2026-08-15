@@ -18,7 +18,7 @@ const stadtwerkMauerDirectMarketerRiskGate = require('./vdmi-blueprint-pack-seed
 const stadtwerkMauerFlexibleGridConnectionReleaseFile = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-flexible-grid-connection-release-file-v1.json');
 const stadtwerkMauerModelViabilityManagementReview = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-model-viability-management-review-v1.json');
 const stadtwerkMauerTabularDecisionInputReadiness = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-tabular-decision-input-readiness-v1.json');
-const stadtwerkMauerMunicipalityPublicContextEvidenceReview = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-municipality-public-context-evidence-review-v1.json');
+const stadtwerkMauerMunicipalityPublicContextReadiness = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-municipality-public-context-readiness-v1.json');
 
 const REQUIRED_EVIDENCE = Object.freeze([
   'napReference',
@@ -310,19 +310,28 @@ const REQUIRED_TABULAR_DECISION_INPUT_READINESS_ROLE_IDS = Object.freeze([
   'ROLE_MANAGEMENT',
 ]);
 const REQUIRED_MUNICIPALITY_PUBLIC_CONTEXT_EVIDENCE = Object.freeze([
-  'municipalityScopeEvidence',
+  'municipalityIdentityEvidence',
+  'agsEvidence',
   'postalCodeScopeEvidence',
-  'gridOperatorPublicContextEvidence',
-  'marketActorPublicContextEvidence',
+  'sourceSnapshotEvidence',
+  'mastrContextEvidence',
+  'osmContextEvidence',
   'sourceFreshnessEvidence',
-  'degradedRetrievalEvidence',
+  'publicContextBoundaryEvidence',
+  'loadDerivationEvidence',
+  'landUseEvidence',
+  'heuristicBoundaryEvidence',
+  'missingEvidence',
   'reviewReadinessEvidence',
+  'nextSafeGateEvidence',
   'noCallGuardEvidence',
+  'downstreamSyncEvidence',
 ]);
 const REQUIRED_MUNICIPALITY_PUBLIC_CONTEXT_ROLE_IDS = Object.freeze([
+  'ROLE_DATA_GOVERNANCE',
   'ROLE_NETZPLANUNG',
+  'ROLE_MUNICIPAL_STRATEGY',
   'ROLE_CERNION_GOVERNANCE',
-  'ROLE_GOVERNANCE_OWNER',
 ]);
 const REQUIRED_MATRIX_ROLE_KEYS = Object.freeze(['v', 'd', 'm', 'i']);
 const MATRIX_HEADER_WORDS = Object.freeze([
@@ -353,7 +362,7 @@ const SEEDS = Object.freeze([
   stadtwerkMauerFlexibleGridConnectionReleaseFile,
   stadtwerkMauerModelViabilityManagementReview,
   stadtwerkMauerTabularDecisionInputReadiness,
-  stadtwerkMauerMunicipalityPublicContextEvidenceReview,
+  stadtwerkMauerMunicipalityPublicContextReadiness,
 ]);
 
 const SEED_VALIDATION_REQUIREMENTS = Object.freeze({
@@ -447,10 +456,10 @@ const SEED_VALIDATION_REQUIREMENTS = Object.freeze({
     requiredRoleIds: REQUIRED_TABULAR_DECISION_INPUT_READINESS_ROLE_IDS,
     expectedMatrixSlug: 'tabular-decision-input-readiness',
   }),
-  [stadtwerkMauerMunicipalityPublicContextEvidenceReview.id]: Object.freeze({
+  [stadtwerkMauerMunicipalityPublicContextReadiness.id]: Object.freeze({
     requiredEvidence: REQUIRED_MUNICIPALITY_PUBLIC_CONTEXT_EVIDENCE,
     requiredRoleIds: REQUIRED_MUNICIPALITY_PUBLIC_CONTEXT_ROLE_IDS,
-    expectedMatrixSlug: 'municipality-public-context-evidence-review',
+    expectedMatrixSlug: 'municipality-public-context-readiness',
   }),
 });
 
@@ -656,8 +665,8 @@ function buildWorkbenchClarificationItems(seed) {
     roleHint:
       item.id === 'napReference'
         ? 'ROLE_NETZPLANUNG'
-        : selectedSeed.id === stadtwerkMauerMunicipalityPublicContextEvidenceReview.id
-          ? 'ROLE_MUNICIPALITY_CONTEXT_ANALYST'
+        : selectedSeed.id === stadtwerkMauerMunicipalityPublicContextReadiness.id
+          ? 'ROLE_PUBLIC_CONTEXT_STEWARD'
           : selectedSeed.id === stadtwerkMauerGasTransformationDataroomReview.id
           ? 'ROLE_DATAROOM_OWNER'
           : selectedSeed.id === stadtwerkMauerPortfolioMarketValueReadiness.id
@@ -918,7 +927,7 @@ module.exports = {
   stadtwerkMauerInvestmentOwnerDeadlineBudgetGate,
   stadtwerkMauerModelViabilityManagementReview,
   stadtwerkMauerMonitoringNonEscalationStatus,
-  stadtwerkMauerMunicipalityPublicContextEvidenceReview,
+  stadtwerkMauerMunicipalityPublicContextReadiness,
   stadtwerkMauerPortfolioMarketValueReadiness,
   stadtwerkMauerTabularDecisionInputReadiness,
   validateVdmiBlueprintPackSeed,
