@@ -5,6 +5,14 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.99.22] — 2026-08-17
+
+### Added
+- **New internal `mqtt-edm-ingest` service (#503) — a deterministic MQTT-shaped measurement ingest contract, not an external MQTT broker.** Adds `services/mqtt-edm-ingest.service.js` with four actions (`ingestMessage`, `ingestBatch`, `getStatus`, `listDeadLetters`) that validate and normalize MQTT-topic-shaped messages and delegate all persistence to the existing `edm.importTimeseries` action with `overwriteExisting: false` — no direct SQLite access, no PouchDB registry, no REST alias/OpenAPI surface, and no external MQTT network listener/connector in this MVP slice. Supports only the self-describing topic schema `cernion/edm/{tenantId}/{meloId}/{obis}` plus single-reading or `values[]`-batch payloads. Rejects and dead-letters `INVALID_TOPIC`, `INVALID_TENANT`, `INVALID_TIMESTAMP`, `VALUE_NOT_NUMERIC`, `OBIS_CONFLICT` (topic/payload identifier mismatch) and `UNKNOWN_MELO` (sanitized, no stack trace leak) without ever writing an unrecognized MeLo. Dead letters are process-local, in-memory and bounded (default 500, ring-buffer eviction of the oldest), storing only `id`, `topic`, `reason`, `receivedAt`, `source` and a `payloadHash` — never the raw payload. `getStatus` reports `received`/`imported`/`skipped`/`deadLettered`/`lastReceivedAt` counters. `services/mqtt-broker.service.js` (command/QoS §14a-flex semantics) is unchanged and untouched.
+
+### Testing
+- New `tests/mqtt-edm-ingest.service.test.js` — 13 tests covering: single-message import via `edm.importTimeseries`, topic decomposition into `tenantId`/`meloId`/`obis`, `values[]` batch normalization into multiple EDM rows, idempotent duplicate `(meloId, obis, ts)` handling (`skipped` via EDM's existing `INSERT OR IGNORE`), `INVALID_TIMESTAMP`/`VALUE_NOT_NUMERIC`/`OBIS_CONFLICT` (meloId and obis variants)/`UNKNOWN_MELO`/`INVALID_TOPIC` dead-lettering with bounded hash-only metadata (no raw payload retained, no stack trace leaked), `getStatus` counters, `ingestBatch` aggregation across multiple envelope messages, and an assertion that no `/edm/mqtt/` REST route exists in `services/api.service.js`. Full suite: `tests/mqtt-edm-ingest.service.test.js` + `tests/edm.service.test.js` — 2 suites / 41 tests pass.
+
 ## [0.99.21] — 2026-08-15
 
 ### Added
