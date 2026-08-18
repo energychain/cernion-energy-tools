@@ -7628,4 +7628,448 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       ])
     );
   });
+
+  it('adds the Netzanschluss Transparenz Readiness Matrix panel from exactly the eight named existing dashboard reads (#530)', () => {
+    const names = [
+      'getNetzanschlussTransparenzCaseRows',
+      'getNetzanschlussTransparenzCapacityRows',
+      'getNetzanschlussTransparenzTechnicalRows',
+      'getNetzanschlussTransparenzDeadlineRows',
+      'getNetzanschlussTransparenzOfferRows',
+      'getNetzanschlussTransparenzCommunicationRows',
+      'getNetzanschlussTransparenzVerifyRows',
+      'getNetzanschlussTransparenzMatrixRows',
+      'getNetzanschlussTransparenzEvidenceRows',
+      'getNetzanschlussTransparenzTransferRows',
+      'getNetzanschlussTransparenzNoCallRows',
+    ];
+    const queries = manifest.queries.filter((query) => names.includes(query.name));
+    expect(queries).toHaveLength(names.length);
+    expect(new Set(queries.map((query) => query.path))).toEqual(
+      new Set([
+        '/api/dashboard/grossspeicher-anschluss-readiness-gate',
+        '/api/dashboard/anschlusskapazitaet-evidence-queue',
+        '/api/dashboard/grid-connection-transformation-gate',
+        '/api/dashboard/fnav-fast-track-contract-gate',
+        '/api/dashboard/areal-network-integration-offer-gate',
+        '/api/dashboard/cross-domain-special-topics-queue',
+        '/api/dashboard/stadtwerk-mauer-blueprint-pack-verify',
+        '/api/dashboard/stadtwerk-mauer-transfer-readiness',
+      ])
+    );
+    // The earlier /fnav-fast-track-vertragsgate spelling is not the public REST contract
+    // and must never be copied into the manifest.
+    expect(queries.every((query) => !query.path.includes('vertragsgate'))).toBe(true);
+    expect(
+      queries.every((query) => !query.queryString.includes('vertragsgate'))
+    ).toBe(true);
+    expect(
+      queries
+        .filter((query) => query.path.includes('blueprint-pack-verify'))
+        .every((query) =>
+          query.queryString.includes('stadtwerk-mauer-grid-connection-transformation-gate-v1')
+        )
+    ).toBe(true);
+    const transferQuery = queries.find(
+      (query) => query.name === 'getNetzanschlussTransparenzTransferRows'
+    );
+    expect(transferQuery.queryString).toContain(
+      'seedId=stadtwerk-mauer-grid-connection-transformation-gate-v1'
+    );
+    expect(transferQuery.queryString).toContain(
+      'caseId=smm-netzanschluss-transparenz-review-001'
+    );
+    expect(
+      manifest.sections
+        .filter((section) => section.id.startsWith('netzanschluss_transparenz'))
+        .map((section) => section.queryName)
+    ).toEqual(expect.arrayContaining(names));
+    expect(manifest.notes.join(' ')).toContain(
+      'Netzanschluss Transparenz Readiness Matrix panel (#530)'
+    );
+    expect(manifest.notes.join(' ')).toContain('no new demoProcessMatrix is introduced');
+  });
+
+  it('renders scalar Netzanschluss Transparenz rows: case, capacity, technical, deadlines, offer, communication, verify, matrix, evidence, transfer and no-call guards', () => {
+    const caseFixture = {
+      status: 'needs_asset_context',
+      gateStatus: 'incomplete',
+      tenantId: 'stadtwerk-mauer',
+      projectContext: { projectId: 'nt-case-001', location: 'Netzgebiet Stadtwerk Mauer Ost' },
+      readinessSignals: [
+        {
+          code: 'asset_context',
+          label: 'Storage Asset Context',
+          status: 'ready',
+          rawStatus: 'ready',
+          finding: null,
+        },
+        {
+          code: 'fnav_contract_boundary',
+          label: 'fNAV Contract Boundary',
+          status: 'missing',
+          rawStatus: null,
+          finding: 'add fNAV profile and contract-boundary evidence',
+        },
+        {
+          code: 'control_room_handover',
+          label: 'Control-Room Handover',
+          status: 'missing',
+          rawStatus: null,
+          finding: 'add control-room handover proof and operational owner',
+        },
+      ],
+    };
+    const capacityFixture = {
+      status: 'needs_legal_review',
+      tenantId: 'stadtwerk-mauer',
+      readinessScore: 0.6,
+      evidenceQueue: {
+        connectionRequestId: 'NT-REQ-2026-001',
+        netzverknuepfungspunktHint: 'NVP Ortsnetzstation Mauer-Ost',
+        capacityAssumptionKw: 250,
+        gridRestrictionHint: null,
+        legalQuestionMarker: null,
+        fnavOptionMarker: null,
+        owner: 'ROLE_NETZPLANUNG',
+        dueDate: '2026-09-15',
+        nextGate: 'Kapazitaetspruefung Netzplanung',
+      },
+      missingEvidence: [
+        {
+          missingDataPoint: 'grid_restriction_hint',
+          enablesDossierAddition: 'add grid restriction evidence or the explicit no-restriction basis',
+        },
+        {
+          missingDataPoint: 'legal_question_marker',
+          enablesDossierAddition: 'route the open legal question without automated legal qualification',
+        },
+        {
+          missingDataPoint: 'fnav_option_marker',
+          enablesDossierAddition: 'state whether fNAV is an option, blocker or not applicable',
+        },
+      ],
+    };
+    const technicalFixture = {
+      status: 'needs_transformation_option',
+      gateStatus: 'needs_evidence',
+      tenantId: 'stadtwerk-mauer',
+      evidenceItems: [
+        { id: 'division', label: 'Sparte', value: 'strom' },
+        { id: 'data_quality_status', label: 'Datenqualitaetsstatus', value: 'validated' },
+        { id: 'owner', label: 'Owner', value: 'ROLE_NETZPLANUNG' },
+      ],
+      missingEvidence: [
+        {
+          missingDataPoint: 'transformation_option',
+          label: 'Transformationsoption',
+          enablesDossierAddition:
+            'specify the transformation option or scenario (e.g. h2_ready, electrification, hybrid, decommission)',
+        },
+        {
+          missingDataPoint: 'investment_path',
+          label: 'Investitionspfad',
+          enablesDossierAddition: 'identify required investment path (e.g. capex_approved, budget_needed)',
+        },
+      ],
+    };
+    const deadlineFixture = {
+      status: 'requires_governance_decision',
+      decisionReadiness: 'requires_governance_decision',
+      tenantId: 'stadtwerk-mauer',
+      technicalGate: { netzsignalPriorityPolicy: null },
+      contractGate: { contractStatus: 'draft', legalStatus: null },
+      escalationPath: { escalationOwner: 'ROLE_ANSCHLUSSWESEN' },
+      lifecycleEvidence: { rows: [] },
+      missingEvidence: [
+        {
+          missingDataPoint: 'netzsignal_priority_policy',
+          enablesDossierAddition: 'add the network-signal priority boundary for the fast-track decision',
+        },
+        {
+          missingDataPoint: 'legal_status',
+          enablesDossierAddition: 'state whether legal release is approved or still pending',
+        },
+      ],
+    };
+    const offerFixture = {
+      status: 'needs_target_grid_path',
+      tenantId: 'stadtwerk-mauer',
+      readinessScore: 0.45,
+      zielnetzEvidence: { zielnetzPath: null },
+      investmentEvidence: { investmentReference: null, capexReference: null },
+      regulatoryBoundaryEvidence: { regulatoryImpactBoundary: 'no_special_grid_usage_identified' },
+      commercialAssumptionEvidence: { commercialOfferAssumptions: null },
+      owner: { owner: 'ROLE_NETZPLANUNG', gateOwner: null },
+      decisionWindow: { nextDecisionDate: '2026-10-01', offerDecisionStatus: 'pending_review' },
+      missingEvidence: [
+        {
+          missingDataPoint: 'target_grid_path',
+          enablesDossierAddition: 'add target-grid path evidence',
+        },
+        {
+          missingDataPoint: 'investment_capex_reference',
+          enablesDossierAddition: 'add investment / CAPEX impact reference',
+        },
+        {
+          missingDataPoint: 'commercial_offer_assumptions',
+          enablesDossierAddition: 'add commercial offer-assumption evidence',
+        },
+      ],
+    };
+    const communicationFixture = {
+      status: 'needs_management_evidence',
+      tenantId: 'stadtwerk-mauer',
+      queueRows: [
+        {
+          topicKey: 'netzanschluss-transparenz-externe-kommunikation',
+          topicLabel: 'Netzanschluss Transparenz externe Kommunikation',
+          domainLane: 'netzanschluss_transparenz',
+          decisionStatus: 'needs_management_evidence',
+          nextGovernanceGate: null,
+          missingEvidence: ['due_date', 'next_governance_gate'],
+          positiveFollowUps: [
+            {
+              missingDataPoint: 'due_date',
+              enablesDossierAddition: 'add due date to rank governance urgency',
+            },
+            {
+              missingDataPoint: 'next_governance_gate',
+              enablesDossierAddition: 'add next governance gate to prepare the responsible committee',
+            },
+          ],
+        },
+      ],
+    };
+    const verify = {
+      status: 'completed',
+      tenantId: 'stadtwerk-mauer',
+      summary: { counts: { requiredEvidence: 8, demoProcessMatrixRows: 3, forbiddenActions: 12 } },
+      nextActions: ['Render the verify read model in Budibase'],
+      data: {
+        seedId: 'stadtwerk-mauer-grid-connection-transformation-gate-v1',
+        tenantId: 'stadtwerk-mauer',
+        processFamily: 'grid_connection_transformation',
+        controlCase: 'grid_connection_transformation_gate',
+        validation: { valid: true },
+        forbiddenActions: ['grid_capacity_reservation', 'connection_approval'],
+        sourceActions: { notCalled: ['rundeck.execute', 'budibase.table.write'] },
+        missingEvidence: [
+          {
+            missingDataPoint: 'transformation_option',
+            state: 'evidence_gap',
+            enablesDossierAddition: 'specify the transformation option or scenario',
+          },
+          {
+            missingDataPoint: 'owner',
+            state: 'clarification',
+            enablesDossierAddition: 'assign an accountable owner role or process sponsor',
+          },
+        ],
+        demoProcessMatrixSync: {
+          synced: true,
+          roleLegendM: 'Mitwirkend',
+          rowCount: 3,
+          rowCountValid: true,
+          evidenceRequirements: ['division', 'transformation_option'],
+          downstreamHandoff: {
+            blueprintPack: 'complete',
+            landingRegistry: 'pending',
+            productiveDemoRoom: 'pending',
+          },
+          rows: [
+            {
+              phase: '1',
+              roles: {
+                V: 'ROLE_NETZPLANUNG',
+                D: 'ROLE_ANSCHLUSSWESEN',
+                M: 'ROLE_GRID_CAPACITY_PLANNING',
+                I: 'ROLE_MANAGEMENT',
+              },
+              evidenceRequirements: ['division', 'transformation_option'],
+              status: 'evidence_gap',
+              gateOutcome: 'supply_nap_reference_then_refresh',
+            },
+          ],
+        },
+      },
+    };
+    const transfer = {
+      status: 'ready_for_onboarding_discussion',
+      transferSummaryRows: [
+        {
+          rowKey: 'nt_transfer_readiness',
+          label: 'Transfer Readiness',
+          status: 'ready_for_onboarding_discussion',
+          sourceClass: 'transfer_readiness_summary',
+        },
+      ],
+      dataClassRows: [
+        {
+          rowKey: 'synthetic_tenant_seed',
+          category: 'synthetic_seed',
+          transferState: 'replace_for_real_tenant',
+          examples: 'synthetic connection case id, synthetic review owner',
+          productionBlocked: false,
+          safeNextAction: 'replace_with_tenant_parameters_before_onboarding',
+          sourceClass: 'transfer_data_class',
+        },
+      ],
+      safeNextGateRows: [],
+      productionBoundaryRows: [
+        {
+          rowKey: 'grid_capacity_reservation',
+          boundary: 'grid_capacity_reservation',
+          status: 'blocked_in_transfer_readiness_slice',
+          disabled: true,
+          safeAlternative: 'read_or_verify_readiness_only',
+          sourceClass: 'blocked_production_boundary',
+        },
+      ],
+    };
+
+    for (const [name, fixture] of [
+      ['getNetzanschlussTransparenzCaseRows', caseFixture],
+      ['getNetzanschlussTransparenzCapacityRows', capacityFixture],
+      ['getNetzanschlussTransparenzTechnicalRows', technicalFixture],
+      ['getNetzanschlussTransparenzDeadlineRows', deadlineFixture],
+      ['getNetzanschlussTransparenzOfferRows', offerFixture],
+      ['getNetzanschlussTransparenzCommunicationRows', communicationFixture],
+      ['getNetzanschlussTransparenzVerifyRows', verify],
+      ['getNetzanschlussTransparenzMatrixRows', verify],
+      ['getNetzanschlussTransparenzEvidenceRows', verify],
+      ['getNetzanschlussTransparenzTransferRows', transfer],
+      ['getNetzanschlussTransparenzNoCallRows', verify],
+    ]) {
+      const rows = runTransformer(name, fixture);
+      expectScalarRows(rows);
+      expectNoRawObjectText(rows);
+    }
+
+    const caseRows = runTransformer('getNetzanschlussTransparenzCaseRows', caseFixture);
+    expect(caseRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ rowKey: 'nt_case_identity', value: 'nt-case-001' }),
+        expect.objectContaining({
+          rowKey: 'nt_case_signal_fnav_contract_boundary',
+          evidenceStatus: 'evidence_gap',
+        }),
+      ])
+    );
+
+    const capacityRows = runTransformer('getNetzanschlussTransparenzCapacityRows', capacityFixture);
+    expect(capacityRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'nt_capacity_capacity_assumption',
+          value: '250',
+          evidenceStatus: 'available',
+        }),
+        expect.objectContaining({
+          rowKey: 'nt_capacity_grid_restriction_hint',
+          value: 'missing-evidence',
+          evidenceStatus: 'evidence_gap',
+        }),
+      ])
+    );
+
+    const technicalRows = runTransformer('getNetzanschlussTransparenzTechnicalRows', technicalFixture);
+    expect(technicalRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ rowKey: 'nt_technical_division', value: 'strom' }),
+        expect.objectContaining({
+          rowKey: 'nt_technical_transformation_option',
+          value: 'missing-evidence',
+          evidenceStatus: 'evidence_gap',
+        }),
+      ])
+    );
+
+    const deadlineRows = runTransformer('getNetzanschlussTransparenzDeadlineRows', deadlineFixture);
+    expect(deadlineRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'nt_deadline_legal_status',
+          value: 'missing-evidence',
+          evidenceStatus: 'evidence_gap',
+        }),
+        expect.objectContaining({ rowKey: 'nt_deadline_contract_status', value: 'draft' }),
+      ])
+    );
+
+    const offerRows = runTransformer('getNetzanschlussTransparenzOfferRows', offerFixture);
+    expect(offerRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'nt_offer_target_grid_path',
+          value: 'missing-evidence',
+          evidenceStatus: 'evidence_gap',
+        }),
+        expect.objectContaining({
+          rowKey: 'nt_offer_regulatory_impact_boundary',
+          value: 'no_special_grid_usage_identified',
+          evidenceStatus: 'available',
+        }),
+      ])
+    );
+
+    const communicationRows = runTransformer(
+      'getNetzanschlussTransparenzCommunicationRows',
+      communicationFixture
+    );
+    expect(communicationRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'nt_comm_topic_netzanschluss-transparenz-externe-kommunikation',
+          evidenceStatus: 'evidence_gap',
+        }),
+        expect.objectContaining({
+          rowKey: 'nt_comm_gap_netzanschluss-transparenz-externe-kommunikation_due_date',
+        }),
+      ])
+    );
+
+    const verifyRows = runTransformer('getNetzanschlussTransparenzVerifyRows', verify);
+    expect(verifyRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ rowKey: 'nt_verify_selection' }),
+        expect.objectContaining({ rowKey: 'nt_verify_blueprint', valid: true, requiredEvidenceCount: 8 }),
+      ])
+    );
+
+    const matrixRows = runTransformer('getNetzanschlussTransparenzMatrixRows', verify);
+    expect(matrixRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ rowKey: 'nt_matrix_sync', m: 'Mitwirkend' }),
+        expect.objectContaining({ rowKey: 'nt_matrix_1', v: 'ROLE_NETZPLANUNG', m: 'ROLE_GRID_CAPACITY_PLANNING' }),
+      ])
+    );
+
+    const evidenceRows = runTransformer('getNetzanschlussTransparenzEvidenceRows', verify);
+    expect(evidenceRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ missingDataPoint: 'transformation_option', group: 'technical_check' }),
+        expect.objectContaining({ missingDataPoint: 'owner', group: 'ownership_and_audit' }),
+      ])
+    );
+
+    const transferRows = runTransformer('getNetzanschlussTransparenzTransferRows', transfer);
+    expect(transferRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ rowKey: 'nt_transfer_readiness' }),
+        expect.objectContaining({ rowKey: 'grid_capacity_reservation', productionBlocked: true }),
+      ])
+    );
+
+    const noCallRows = runTransformer('getNetzanschlussTransparenzNoCallRows', verify);
+    expect(noCallRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ boundary: 'grid_capacity_reservation', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'grid-connection.reserveCapacity', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'gis.mutate', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'rundeck.execute', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'budibase.table.write', status: 'not_called' }),
+      ])
+    );
+  });
 });

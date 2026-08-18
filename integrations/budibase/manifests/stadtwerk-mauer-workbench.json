@@ -12523,6 +12523,687 @@
           "type": "string"
         }
       }
+    },
+    {
+      "name": "getNetzanschlussTransparenzCaseRows",
+      "method": "GET",
+      "path": "/api/dashboard/grossspeicher-anschluss-readiness-gate",
+      "queryString": "tenantId={{tenantId}}&gridOperatorId={{gridOperatorId}}&projectId={{projectId}}&location={{location}}&napMastrNummer={{napMastrNummer}}&connectionRequestStatus={{connectionRequestStatus}}&controllabilityStatus={{controllabilityStatus}}&owner={{owner}}&nextDecision={{nextDecision}}",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "gridOperatorId",
+          "default": "stadtwerk-mauer-vnb"
+        },
+        {
+          "name": "projectId",
+          "default": "nt-case-001"
+        },
+        {
+          "name": "location",
+          "default": "Netzgebiet Stadtwerk Mauer Ost"
+        },
+        {
+          "name": "napMastrNummer",
+          "default": "SME2026NT001234"
+        },
+        {
+          "name": "connectionRequestStatus",
+          "default": "ready"
+        },
+        {
+          "name": "controllabilityStatus",
+          "default": "partial"
+        },
+        {
+          "name": "owner",
+          "default": "ROLE_ANSCHLUSSWESEN"
+        },
+        {
+          "name": "nextDecision",
+          "default": "fNAV-Vertragsgrenze und Kontrollraum-Uebergabe klaeren"
+        }
+      ],
+      "transformer": "const projectContext=data.projectContext||{}; const signals=Array.isArray(data.readinessSignals)?data.readinessSignals:[]; const base={caseId:'nt-case-001',tenantId:String(data.tenantId||'stadtwerk-mauer'),renderTarget:'budibase:stadtwerk-mauer-workbench:netzanschluss-transparenz-readiness',roleTarget:'ROLE_ANSCHLUSSWESEN',sourceClass:'netzanschluss_transparenz_case'}; const identity={rowKey:'nt_case_identity',label:'Anschlussfall',value:String(projectContext.projectId||projectContext.location||'nt-case-001'),status:String(data.status||'unknown'),evidenceStatus:'available',safeNextGate:'refresh_read_only_case_rows',...base}; const gate={rowKey:'nt_case_gate_status',label:'Anschlussstatus (Gate)',value:String(data.gateStatus||'unknown'),status:String(data.status||'unknown'),evidenceStatus:data.gateStatus==='ready'?'available':'evidence_gap',safeNextGate:'refresh_read_only_case_rows',...base}; const signalRows=signals.map((signal)=>({rowKey:'nt_case_signal_'+String(signal.code||''),label:String(signal.label||signal.code||''),value:String(signal.rawStatus||signal.status||'missing-evidence'),status:String(signal.status||'missing'),evidenceStatus:signal.status==='ready'?'available':(signal.status==='blocked'?'blocked':'evidence_gap'),safeNextGate:String(signal.finding||'refresh_read_only_case_rows'),...base})); return [identity,gate,...signalRows];",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "evidenceStatus": {
+          "type": "string"
+        },
+        "safeNextGate": {
+          "type": "string"
+        },
+        "caseId": {
+          "type": "string"
+        },
+        "tenantId": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getNetzanschlussTransparenzCapacityRows",
+      "method": "GET",
+      "path": "/api/dashboard/anschlusskapazitaet-evidence-queue",
+      "queryString": "tenantId={{tenantId}}&connectionRequestId={{connectionRequestId}}&netzverknuepfungspunktHint={{netzverknuepfungspunktHint}}&capacityAssumptionKw={{capacityAssumptionKw}}&owner={{owner}}&dueDate={{dueDate}}&nextGate={{nextGate}}",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "connectionRequestId",
+          "default": "NT-REQ-2026-001"
+        },
+        {
+          "name": "netzverknuepfungspunktHint",
+          "default": "NVP Ortsnetzstation Mauer-Ost"
+        },
+        {
+          "name": "capacityAssumptionKw",
+          "default": "250"
+        },
+        {
+          "name": "owner",
+          "default": "ROLE_NETZPLANUNG"
+        },
+        {
+          "name": "dueDate",
+          "default": "2026-09-15"
+        },
+        {
+          "name": "nextGate",
+          "default": "Kapazitaetspruefung Netzplanung"
+        }
+      ],
+      "transformer": "const queue=data.evidenceQueue||{}; const missing=Array.isArray(data.missingEvidence)?data.missingEvidence:[]; const missingMap=new Map(missing.map((gap)=>[gap.missingDataPoint,gap])); const base={caseId:'nt-case-001',tenantId:String(data.tenantId||'stadtwerk-mauer'),renderTarget:'budibase:stadtwerk-mauer-workbench:netzanschluss-transparenz-readiness',roleTarget:'ROLE_NETZPLANUNG',sourceClass:'netzanschluss_transparenz_capacity'}; const fields=[['connection_request_id','Anschlussantrag-ID',queue.connectionRequestId],['netzverknuepfungspunkt_hint','NVP-Hinweis',queue.netzverknuepfungspunktHint],['capacity_assumption','Kapazitaetsannahme (kW)',queue.capacityAssumptionKw],['grid_restriction_hint','Netzrestriktion',queue.gridRestrictionHint],['legal_question_marker','Offene Rechtsfrage',queue.legalQuestionMarker],['fnav_option_marker','fNAV-Option',queue.fnavOptionMarker],['owner_due_date','Owner / Frist',(queue.owner&&queue.dueDate)?(queue.owner+' / '+queue.dueDate):null],['next_gate','Naechstes Gate',queue.nextGate]]; const rows=fields.map(([key,label,value])=>{const gap=missingMap.get(key); const present=value!==null&&value!==undefined&&value!==''; return {rowKey:'nt_capacity_'+key,label,value:present?String(value):'missing-evidence',status:String(data.status||'unknown'),evidenceStatus:present?'available':'evidence_gap',safeNextGate:!present&&gap?String(gap.enablesDossierAddition||'supply_evidence_then_refresh'):'refresh_read_only_capacity_rows',...base};}); const scoreRow={rowKey:'nt_capacity_readiness_score',label:'Readiness-Score',value:String(data.readinessScore!=null?data.readinessScore:'0'),status:String(data.status||'unknown'),evidenceStatus:'available',safeNextGate:'refresh_read_only_capacity_rows',...base}; return [scoreRow,...rows];",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "evidenceStatus": {
+          "type": "string"
+        },
+        "safeNextGate": {
+          "type": "string"
+        },
+        "caseId": {
+          "type": "string"
+        },
+        "tenantId": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getNetzanschlussTransparenzTechnicalRows",
+      "method": "GET",
+      "path": "/api/dashboard/grid-connection-transformation-gate",
+      "queryString": "tenantId={{tenantId}}&meteringPointId={{meteringPointId}}&division={{division}}&dataQualityStatus={{dataQualityStatus}}&owner={{owner}}",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "meteringPointId",
+          "default": "DE-MALO-NT-CASE-001"
+        },
+        {
+          "name": "division",
+          "default": "strom"
+        },
+        {
+          "name": "dataQualityStatus",
+          "default": "validated"
+        },
+        {
+          "name": "owner",
+          "default": "ROLE_NETZPLANUNG"
+        }
+      ],
+      "transformer": "const evidence=(data.evidenceItems||[]).map((row)=>({rowKey:'nt_technical_'+String(row.id||''),label:String(row.label||row.id||''),value:String(row.value!=null?row.value:''),status:String(data.status||'unknown'),evidenceStatus:'available',safeNextGate:'refresh_read_only_technical_rows',caseId:'nt-case-001',tenantId:String(data.tenantId||'stadtwerk-mauer'),renderTarget:'budibase:stadtwerk-mauer-workbench:netzanschluss-transparenz-readiness',roleTarget:'ROLE_NETZPLANUNG',sourceClass:'netzanschluss_transparenz_technical'})); const gaps=(data.missingEvidence||[]).map((row)=>({rowKey:'nt_technical_'+String(row.missingDataPoint||''),label:String(row.label||row.missingDataPoint||''),value:'missing-evidence',status:String(data.status||'unknown'),evidenceStatus:'evidence_gap',safeNextGate:String(row.enablesDossierAddition||'supply_evidence_then_refresh'),caseId:'nt-case-001',tenantId:String(data.tenantId||'stadtwerk-mauer'),renderTarget:'budibase:stadtwerk-mauer-workbench:netzanschluss-transparenz-readiness',roleTarget:'ROLE_NETZPLANUNG',sourceClass:'netzanschluss_transparenz_technical'})); const gateRow={rowKey:'nt_technical_gate_status',label:'Technischer Gate-Status',value:String(data.gateStatus||'unknown'),status:String(data.status||'unknown'),evidenceStatus:data.gateStatus&&data.gateStatus!=='needs_evidence'?'available':'evidence_gap',safeNextGate:'refresh_read_only_technical_rows',caseId:'nt-case-001',tenantId:String(data.tenantId||'stadtwerk-mauer'),renderTarget:'budibase:stadtwerk-mauer-workbench:netzanschluss-transparenz-readiness',roleTarget:'ROLE_NETZPLANUNG',sourceClass:'netzanschluss_transparenz_technical'}; return [gateRow,...evidence,...gaps];",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "evidenceStatus": {
+          "type": "string"
+        },
+        "safeNextGate": {
+          "type": "string"
+        },
+        "caseId": {
+          "type": "string"
+        },
+        "tenantId": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getNetzanschlussTransparenzDeadlineRows",
+      "method": "GET",
+      "path": "/api/dashboard/fnav-fast-track-contract-gate",
+      "queryString": "tenantId={{tenantId}}&gateId={{gateId}}&gridOperatorId={{gridOperatorId}}&requestType={{requestType}}&contractStatus={{contractStatus}}&escalationOwner={{escalationOwner}}",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "gateId",
+          "default": "nt-case-001-fnav"
+        },
+        {
+          "name": "gridOperatorId",
+          "default": "stadtwerk-mauer-vnb"
+        },
+        {
+          "name": "requestType",
+          "default": "netzanschluss_transparenz_fast_track"
+        },
+        {
+          "name": "contractStatus",
+          "default": "draft"
+        },
+        {
+          "name": "escalationOwner",
+          "default": "ROLE_ANSCHLUSSWESEN"
+        }
+      ],
+      "transformer": "const missing=Array.isArray(data.missingEvidence)?data.missingEvidence:[]; const missingMap=new Map(missing.map((gap)=>[gap.missingDataPoint,gap])); const technicalGate=data.technicalGate||{}; const contractGate=data.contractGate||{}; const escalationPath=data.escalationPath||{}; const govRow=((data.lifecycleEvidence&&data.lifecycleEvidence.rows)||[]).find((row)=>row.code==='evidence_governance')||{}; const base={caseId:'nt-case-001',tenantId:String(data.tenantId||'stadtwerk-mauer'),renderTarget:'budibase:stadtwerk-mauer-workbench:netzanschluss-transparenz-readiness',roleTarget:'ROLE_ANSCHLUSSWESEN',sourceClass:'netzanschluss_transparenz_deadlines'}; const statusRow={rowKey:'nt_deadline_decision_readiness',label:'fNAV Entscheidungsbereitschaft',value:String(data.decisionReadiness||data.status||'unknown'),status:String(data.status||data.decisionReadiness||'unknown'),evidenceStatus:String(data.decisionReadiness||'')==='ready_for_fast_track'?'available':'evidence_gap',safeNextGate:'refresh_read_only_deadline_rows',...base}; const fields=[['netzsignal_priority_policy','Netzsignal-Prioritaetspolicy',technicalGate.netzsignalPriorityPolicy],['contract_status','Vertragsstatus',contractGate.contractStatus],['legal_status','Rechtsstatus',contractGate.legalStatus],['owner_contact','Eskalations-Owner',escalationPath.escalationOwner||escalationPath.ownerContact],['evidence_governance','Naechstes Review-Gate',govRow.nextReviewGate]]; const rows=fields.map(([key,label,value])=>{const gap=missingMap.get(key); const present=value!==null&&value!==undefined&&value!==''; return {rowKey:'nt_deadline_'+key,label,value:present?String(value):'missing-evidence',status:String(data.status||data.decisionReadiness||'unknown'),evidenceStatus:present?'available':'evidence_gap',safeNextGate:!present&&gap?String(gap.enablesDossierAddition||'supply_evidence_then_refresh'):'refresh_read_only_deadline_rows',...base};}); return [statusRow,...rows];",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "evidenceStatus": {
+          "type": "string"
+        },
+        "safeNextGate": {
+          "type": "string"
+        },
+        "caseId": {
+          "type": "string"
+        },
+        "tenantId": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getNetzanschlussTransparenzOfferRows",
+      "method": "GET",
+      "path": "/api/dashboard/areal-network-integration-offer-gate",
+      "queryString": "tenantId={{tenantId}}&caseId={{caseId}}&siteReference={{siteReference}}&regulatoryImpactBoundary={{regulatoryImpactBoundary}}&owner={{owner}}&nextDecisionDate={{nextDecisionDate}}&offerDecisionStatus={{offerDecisionStatus}}",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "caseId",
+          "default": "smm-netzanschluss-transparenz-review-001"
+        },
+        {
+          "name": "siteReference",
+          "default": "Netzgebiet Stadtwerk Mauer Ost"
+        },
+        {
+          "name": "regulatoryImpactBoundary",
+          "default": "no_special_grid_usage_identified"
+        },
+        {
+          "name": "owner",
+          "default": "ROLE_NETZPLANUNG"
+        },
+        {
+          "name": "nextDecisionDate",
+          "default": "2026-10-01"
+        },
+        {
+          "name": "offerDecisionStatus",
+          "default": "pending_review"
+        }
+      ],
+      "transformer": "const missing=Array.isArray(data.missingEvidence)?data.missingEvidence:[]; const missingMap=new Map(missing.map((gap)=>[gap.missingDataPoint,gap])); const zielnetz=data.zielnetzEvidence||{}; const investment=data.investmentEvidence||{}; const regulatory=data.regulatoryBoundaryEvidence||{}; const commercial=data.commercialAssumptionEvidence||{}; const ownerBlock=data.owner||{}; const decisionWindow=data.decisionWindow||{}; const base={caseId:'nt-case-001',tenantId:String(data.tenantId||'stadtwerk-mauer'),renderTarget:'budibase:stadtwerk-mauer-workbench:netzanschluss-transparenz-readiness',roleTarget:'ROLE_NETZPLANUNG',sourceClass:'netzanschluss_transparenz_offer'}; const fields=[['target_grid_path','Zielnetzpfad',zielnetz.zielnetzPath],['investment_capex_reference','Investition/CAPEX-Referenz',investment.investmentReference||investment.capexReference],['regulatory_impact_boundary','Regulatorische Grenze',regulatory.regulatoryImpactBoundary],['commercial_offer_assumptions','Angebotsannahmen',commercial.commercialOfferAssumptions],['owner','Owner',ownerBlock.owner||ownerBlock.gateOwner],['next_decision_date','Entscheidungsfenster',decisionWindow.nextDecisionDate],['offer_decision_status','Angebotsentscheidung',decisionWindow.offerDecisionStatus]]; const rows=fields.map(([key,label,value])=>{const gap=missingMap.get(key); const present=value!==null&&value!==undefined&&value!==''; return {rowKey:'nt_offer_'+key,label,value:present?String(value):'missing-evidence',status:String(data.status||'unknown'),evidenceStatus:present?'available':'evidence_gap',safeNextGate:!present&&gap?String(gap.enablesDossierAddition||'supply_evidence_then_refresh'):'refresh_read_only_offer_rows',...base};}); const scoreRow={rowKey:'nt_offer_readiness_score',label:'Readiness-Score',value:String(data.readinessScore!=null?data.readinessScore:'0'),status:String(data.status||'unknown'),evidenceStatus:'available',safeNextGate:'refresh_read_only_offer_rows',...base}; return [scoreRow,...rows];",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "evidenceStatus": {
+          "type": "string"
+        },
+        "safeNextGate": {
+          "type": "string"
+        },
+        "caseId": {
+          "type": "string"
+        },
+        "tenantId": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getNetzanschlussTransparenzCommunicationRows",
+      "method": "GET",
+      "path": "/api/dashboard/cross-domain-special-topics-queue",
+      "queryString": "tenantId={{tenantId}}&caseId={{caseId}}&topic={{topic}}&domainLane={{domainLane}}&ownerRole={{ownerRole}}",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        },
+        {
+          "name": "caseId",
+          "default": "smm-netzanschluss-transparenz-review-001"
+        },
+        {
+          "name": "topic",
+          "default": "Netzanschluss Transparenz externe Kommunikation"
+        },
+        {
+          "name": "domainLane",
+          "default": "netzanschluss_transparenz"
+        },
+        {
+          "name": "ownerRole",
+          "default": "ROLE_ANSCHLUSSWESEN"
+        }
+      ],
+      "transformer": "const rows=Array.isArray(data.queueRows)?data.queueRows:[]; const base={caseId:'nt-case-001',tenantId:String(data.tenantId||'stadtwerk-mauer'),renderTarget:'budibase:stadtwerk-mauer-workbench:netzanschluss-transparenz-readiness',roleTarget:'ROLE_ANSCHLUSSWESEN',sourceClass:'netzanschluss_transparenz_communication'}; const topicRows=rows.map((row)=>({rowKey:'nt_comm_topic_'+String(row.topicKey||''),label:String(row.topicLabel||row.topicKey||''),value:String(row.decisionStatus||'unknown'),status:String(row.decisionStatus||data.status||'unknown'),evidenceStatus:(row.missingEvidence&&row.missingEvidence.length)?'evidence_gap':'available',safeNextGate:String(row.nextGovernanceGate||'refresh_read_only_communication_rows'),...base})); const gapRows=rows.flatMap((row)=>(row.positiveFollowUps||[]).map((gap,index)=>({rowKey:'nt_comm_gap_'+String(row.topicKey||'topic')+'_'+String(gap.missingDataPoint||index+1),label:String(gap.missingDataPoint||''),value:'missing-evidence',status:String(row.decisionStatus||data.status||'unknown'),evidenceStatus:'evidence_gap',safeNextGate:String(gap.enablesDossierAddition||'supply_evidence_then_refresh'),...base}))); return [...topicRows,...gapRows];",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "evidenceStatus": {
+          "type": "string"
+        },
+        "safeNextGate": {
+          "type": "string"
+        },
+        "caseId": {
+          "type": "string"
+        },
+        "tenantId": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getNetzanschlussTransparenzVerifyRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-grid-connection-transformation-gate-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.data||{}; const counts=(data.summary||{}).counts||{}; const v=d.validation||{}; const base={seedId:d.seedId||'stadtwerk-mauer-grid-connection-transformation-gate-v1',tenantId:String(d.tenantId||data.tenantId||'stadtwerk-mauer'),caseId:'smm-netzanschluss-transparenz-review-001',renderTarget:'budibase:stadtwerk-mauer-workbench:netzanschluss-transparenz-readiness',roleTarget:'ROLE_NETZPLANUNG',sourceClass:'netzanschluss_transparenz_verify'}; const selection={rowKey:'nt_verify_selection',label:'Ausgewaehlter Anschlussfall und Rollenfrage',value:'ROLE_NETZPLANUNG / ROLE_ANSCHLUSSWESEN: Welcher synthetische Anschlussfall ist ausgewaehlt; welche Kapazitaets-, Technik-, Fristen- und Kommunikationsevidenz liegt vor oder fehlt; wer ist Owner; welches sichere naechste Gate folgt?',status:String(data.status||'unknown'),safeNextGate:'refresh_read_only_verify_rows',...base}; const verify={rowKey:'nt_verify_blueprint',label:'Blueprint-Pack Verifikation',value:[d.processFamily||'grid_connection_transformation',d.controlCase||'grid_connection_transformation_gate'].join(' / '),status:String(data.status||'unknown'),valid:Boolean(v.valid),requiredEvidenceCount:Number(counts.requiredEvidence||0),matrixRowCount:Number(counts.demoProcessMatrixRows||0),forbiddenActionCount:Number(counts.forbiddenActions||0),safeNextGate:String((data.nextActions||[])[0]||'refresh_read_only_verify_rows'),...base}; return [selection,verify];",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "safeNextGate": {
+          "type": "string"
+        },
+        "valid": {
+          "type": "boolean"
+        },
+        "requiredEvidenceCount": {
+          "type": "number"
+        },
+        "matrixRowCount": {
+          "type": "number"
+        },
+        "forbiddenActionCount": {
+          "type": "number"
+        },
+        "seedId": {
+          "type": "string"
+        },
+        "tenantId": {
+          "type": "string"
+        },
+        "caseId": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getNetzanschlussTransparenzMatrixRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-grid-connection-transformation-gate-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.data||{}; const m=d.demoProcessMatrixSync||{}; const handoff=m.downstreamHandoff||{}; const base={seedId:d.seedId||'stadtwerk-mauer-grid-connection-transformation-gate-v1',roleLegendM:String(m.roleLegendM||'Mitwirkend'),rowCount:Number(m.rowCount||0),rowCountValid:Boolean(m.rowCountValid),syncChainLabel:'Blueprint-Pack/Cernion-Energy-Tools -> Landing-Registry -> Produktivseite',renderTarget:'budibase:stadtwerk-mauer-workbench:netzanschluss-transparenz-readiness',roleTarget:'ROLE_CERNION_GOVERNANCE',sourceClass:'netzanschluss_transparenz_matrix'}; const summary={rowKey:'nt_matrix_sync',phase:'sync',v:'ROLE_NETZPLANUNG',d:'ROLE_CERNION_GOVERNANCE',m:base.roleLegendM,i:'ROLE_MANAGEMENT',nachweise:(m.evidenceRequirements||[]).map(String).join(', '),status:m.synced?'blueprint_pack_complete':'sync_proof_required',downstreamHandoff:[handoff.blueprintPack||'complete',handoff.landingRegistry||'pending',handoff.productiveDemoRoom||'pending'].join(' -> '),safeNextGate:'keep_landing_registry_and_productive_demo_room_blocked_until_sync_proof',...base}; const rows=(m.rows||[]).map((row,index)=>{const roles=row.roles||{}; return {rowKey:'nt_matrix_'+String(row.phase||index+1),phase:String(row.phase||index+1),v:String(roles.V||row.v||''),d:String(roles.D||row.d||''),m:String(roles.M||row.m||''),i:String(roles.I||row.i||''),nachweise:(row.evidenceRequirements||[]).map(String).join(', '),status:String(row.status||''),safeNextGate:String(row.gateOutcome||row.enablesDossierAddition||'refresh_read_only_matrix'),...base};}); return [summary].concat(rows);",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "phase": {
+          "type": "string"
+        },
+        "v": {
+          "type": "string"
+        },
+        "d": {
+          "type": "string"
+        },
+        "m": {
+          "type": "string"
+        },
+        "i": {
+          "type": "string"
+        },
+        "nachweise": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "downstreamHandoff": {
+          "type": "string"
+        },
+        "safeNextGate": {
+          "type": "string"
+        },
+        "seedId": {
+          "type": "string"
+        },
+        "roleLegendM": {
+          "type": "string"
+        },
+        "rowCount": {
+          "type": "number"
+        },
+        "rowCountValid": {
+          "type": "boolean"
+        },
+        "syncChainLabel": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getNetzanschlussTransparenzEvidenceRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-grid-connection-transformation-gate-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.data||{}; const missing=Array.isArray(d.missingEvidence)?d.missingEvidence:[]; const groups={division:'technical_check',transformation_option:'technical_check',data_quality_status:'technical_check',investment_path:'technical_check',decommission_path:'technical_check',owner:'ownership_and_audit',next_action:'technical_check',source_refs:'ownership_and_audit'}; const base={seedId:d.seedId||'stadtwerk-mauer-grid-connection-transformation-gate-v1',tenantId:String(d.tenantId||data.tenantId||'stadtwerk-mauer'),caseId:'smm-netzanschluss-transparenz-review-001',renderTarget:'budibase:stadtwerk-mauer-workbench:netzanschluss-transparenz-readiness',roleTarget:'ROLE_ANSCHLUSSWESEN',sourceClass:'netzanschluss_transparenz_evidence'}; return missing.map((item)=>({rowKey:'nt_evidence_'+String(item.missingDataPoint||''),missingDataPoint:String(item.missingDataPoint||''),group:String(groups[item.missingDataPoint]||'other'),state:String(item.state||'evidence_gap'),enablesDossierAddition:String(item.enablesDossierAddition||''),...base}));",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "missingDataPoint": {
+          "type": "string"
+        },
+        "group": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        },
+        "enablesDossierAddition": {
+          "type": "string"
+        },
+        "seedId": {
+          "type": "string"
+        },
+        "tenantId": {
+          "type": "string"
+        },
+        "caseId": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getNetzanschlussTransparenzTransferRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-transfer-readiness",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-grid-connection-transformation-gate-v1&caseId=smm-netzanschluss-transparenz-review-001",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const rows=[...(data.transferSummaryRows||[]),...(data.dataClassRows||[]),...(data.safeNextGateRows||[]),...(data.productionBoundaryRows||[])]; const source=rows.length?rows:[{rowKey:'nt_transfer_pending',label:'Transfer readiness',status:data.status||'pending',description:'Blueprint-Pack canonical; Landing-Registry and Produktivseite sync pending'}]; return source.map((row,index)=>({rowKey:String(row.rowKey||'nt_transfer_'+(index+1)),label:String(row.label||row.category||'Transfer readiness'),status:String(row.status||row.transferState||data.status||'pending'),value:String(row.value||row.description||row.examples||row.boundary||row.safeNextGate||row.safety||''),dataClass:String(row.category||row.sourceClass||'transfer_readiness'),productionBlocked:Boolean(row.productionBlocked||row.disabled),safeNextGate:String(row.safeNextAction||row.safeNextGate||row.nextGate||'refresh_transfer_readiness'),renderTarget:'budibase:stadtwerk-mauer-workbench:netzanschluss-transparenz-readiness',roleTarget:'ROLE_ANSCHLUSSWESEN',sourceClass:String(row.sourceClass||'netzanschluss_transparenz_transfer')}));",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "dataClass": {
+          "type": "string"
+        },
+        "productionBlocked": {
+          "type": "boolean"
+        },
+        "safeNextGate": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getNetzanschlussTransparenzNoCallRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-grid-connection-transformation-gate-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.data||{}; const forbidden=Array.isArray(d.forbiddenActions)?d.forbiddenActions:[]; const notCalled=Array.isArray((d.sourceActions||{}).notCalled)?d.sourceActions.notCalled:[]; const staticBoundaries=['grid-connection.reserveCapacity','grid-connection.approve','grid-connection.reject','offer.calculate','contract.approve','contract.release','gis.mutate','erp.mutate','mdm.mutate','mastr.mutate','znp.mutate','mail.connector.ingest','notification.dispatchInternal','mako.dispatch','billing.execute','settlement.execute','tariff.mutate','dispatch.execute','device-control.execute','hitl.create','workflow.create','rundeck.execute','budibase.table.write','personal-agent.execute','external.connector.call']; const guardRows=[...new Set(forbidden.concat(notCalled).concat(staticBoundaries).map(String))].map((action,index)=>({rowKey:'nt_guard_'+String(index+1),boundary:action,status:'not_called',disabled:true,safeAlternative:'refresh_existing_read_only_dashboard_rows_or_verify_blueprint_seed',renderTarget:'budibase:stadtwerk-mauer-workbench:netzanschluss-transparenz-readiness',roleTarget:'ROLE_ANSCHLUSSWESEN',sourceClass:'netzanschluss_transparenz_no_call_guard'})); return guardRows;",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "boundary": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "disabled": {
+          "type": "boolean"
+        },
+        "safeAlternative": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
     }
   ],
   "sections": [
@@ -14169,6 +14850,72 @@
       "title": "Municipality Public-Context Scope Readiness No-Call Guards",
       "queryName": "getMunicipalityPublicContextReadinessNoCallRows",
       "tableTitle": "Source Hints and Forbidden/Not-Called Boundaries"
+    },
+    {
+      "id": "netzanschluss_transparenz_case",
+      "title": "Netzanschluss Transparenz Anschlussfall & Status",
+      "queryName": "getNetzanschlussTransparenzCaseRows",
+      "tableTitle": "Anschlussfall, NAP/MaStR, fNAV-Grenze, Steuerbarkeit, Kontrollraum-Uebergabe"
+    },
+    {
+      "id": "netzanschluss_transparenz_capacity",
+      "title": "Netzanschluss Transparenz Kapazitaetsauskunft",
+      "queryName": "getNetzanschlussTransparenzCapacityRows",
+      "tableTitle": "Anschlussantrag, NVP, Kapazitaetsannahme, Netzrestriktion, Owner/Frist"
+    },
+    {
+      "id": "netzanschluss_transparenz_technical",
+      "title": "Netzanschluss Transparenz Technische Pruefung",
+      "queryName": "getNetzanschlussTransparenzTechnicalRows",
+      "tableTitle": "Sparte, Transformationsoption, Datenqualitaet, Investitions-/Stilllegungspfad"
+    },
+    {
+      "id": "netzanschluss_transparenz_deadlines",
+      "title": "Netzanschluss Transparenz Fristen & fNAV-Rechtssicherheit",
+      "queryName": "getNetzanschlussTransparenzDeadlineRows",
+      "tableTitle": "fNAV Entscheidungsbereitschaft, Vertrags-/Rechtsstatus, Eskalations-Owner"
+    },
+    {
+      "id": "netzanschluss_transparenz_offer",
+      "title": "Netzanschluss Transparenz Zielnetzpfad, CAPEX & Angebotsfenster",
+      "queryName": "getNetzanschlussTransparenzOfferRows",
+      "tableTitle": "Zielnetzpfad, Investition/CAPEX, regulatorische Grenze, Entscheidungsfenster"
+    },
+    {
+      "id": "netzanschluss_transparenz_communication",
+      "title": "Netzanschluss Transparenz Kommunikationsbausteine",
+      "queryName": "getNetzanschlussTransparenzCommunicationRows",
+      "tableTitle": "Cross-Domain Topic, Owner-Rolle, naechstes Governance-Gate"
+    },
+    {
+      "id": "netzanschluss_transparenz_verify",
+      "title": "Netzanschluss Transparenz Blueprint Verify",
+      "queryName": "getNetzanschlussTransparenzVerifyRows",
+      "tableTitle": "Ausgewaehlter Fall und Blueprint-Pack Verifikation"
+    },
+    {
+      "id": "netzanschluss_transparenz_matrix",
+      "title": "Netzanschluss Transparenz Matrix",
+      "queryName": "getNetzanschlussTransparenzMatrixRows",
+      "tableTitle": "Phase, V/D/M/I, Nachweise und Downstream Sync"
+    },
+    {
+      "id": "netzanschluss_transparenz_evidence",
+      "title": "Netzanschluss Transparenz Fehlende Evidenz",
+      "queryName": "getNetzanschlussTransparenzEvidenceRows",
+      "tableTitle": "Missing Data Point, Gruppe, Status"
+    },
+    {
+      "id": "netzanschluss_transparenz_transfer",
+      "title": "Netzanschluss Transparenz Transfer Readiness",
+      "queryName": "getNetzanschlussTransparenzTransferRows",
+      "tableTitle": "Owner, Audit, Sync-Kette und Produktions-Grenzen"
+    },
+    {
+      "id": "netzanschluss_transparenz_no_call",
+      "title": "Netzanschluss Transparenz No-Call Guards",
+      "queryName": "getNetzanschlussTransparenzNoCallRows",
+      "tableTitle": "Verbotene/Nicht aufgerufene Operationen"
     }
   ],
   "notes": [
@@ -14242,6 +14989,8 @@
     "MSCONS Identifikatorwechsel Readiness-Gate panel binds the existing dashboard-api.ownerDeadlineEvidenceGateStatus read model with deterministic synthetic MaLo/technical-reference-id switch defaults for ROLE_METERING, surfacing source/target identifier, process type, owner, deadline, tested-processing evidence and blocked decision per the accepted dashboard-projection product cut (#476). It does not create an MSCONS importer, EDM mutation flow or MaKo production decision path.",
     "MSCONS Identifikatorwechsel Readiness-Gate rows stay scalar/generated: Budibase renders summary, context/readiness-signal, missing-evidence, positive-follow-up and no-call-guard rows only, without mail/Teams/Loop ingestion, MSCONS import, EDM/MaKo mutation, deadline/task/owner mutation, workflow/notification execution, Budibase table writes or Personal-Agent shortcuts.",
     "Municipality Public-Context Scope Readiness panel (#555) is generated manifest composition, not a new Cernion endpoint. It composes only the existing municipal-energy-value-analysis, stadtwerk-mauer-mastr-data-overlay, quality-summary, observability-mini, stadtwerk-mauer-blueprint-pack-verify and stadtwerk-mauer-transfer-readiness read models for the canonical stadtwerk-mauer-municipality-public-context-readiness-v1 Blueprint-Pack seed and synthetic case smm-municipality-public-context-review-001; municipality/lookup, OSM land-use and the market-actor directory remain source_hint_only and are never called.",
-    "Municipality Public-Context Scope Readiness rows stay scalar/generated and synthetic: Budibase renders selected municipality identity, AGS, the complete postalCodes[] scope, public-vs-derived/heuristic MaStR/OSM classification, bounded quality/observability context kept separate from municipality-specific facts, missing evidence, the canonical four-row V/D/M/I matrix with roleLegend.M = Mitwirkend, and the Blueprint-Pack/Cernion-Energy-Tools -> Landing-Registry -> Produktivseite sync chain with Landing-Registry and Produktivseite explicitly pending. A timeout or degraded source response is rendered as missing-evidence/clarification, never a negative fact, and a market-actor directory hit is never rendered as proof of municipal service or VNB assignment; no public-data correction, tenant mutation, market-actor binding, Rundeck execution, Budibase table write or Personal-Agent shortcut is introduced."
+    "Municipality Public-Context Scope Readiness rows stay scalar/generated and synthetic: Budibase renders selected municipality identity, AGS, the complete postalCodes[] scope, public-vs-derived/heuristic MaStR/OSM classification, bounded quality/observability context kept separate from municipality-specific facts, missing evidence, the canonical four-row V/D/M/I matrix with roleLegend.M = Mitwirkend, and the Blueprint-Pack/Cernion-Energy-Tools -> Landing-Registry -> Produktivseite sync chain with Landing-Registry and Produktivseite explicitly pending. A timeout or degraded source response is rendered as missing-evidence/clarification, never a negative fact, and a market-actor directory hit is never rendered as proof of municipal service or VNB assignment; no public-data correction, tenant mutation, market-actor binding, Rundeck execution, Budibase table write or Personal-Agent shortcut is introduced.",
+    "Netzanschluss Transparenz Readiness Matrix panel (#530) is generated manifest composition, not a new Cernion endpoint. It composes only the existing grossspeicher-anschluss-readiness-gate, anschlusskapazitaet-evidence-queue, grid-connection-transformation-gate, fnav-fast-track-contract-gate, areal-network-integration-offer-gate, cross-domain-special-topics-queue, stadtwerk-mauer-blueprint-pack-verify and stadtwerk-mauer-transfer-readiness read models for the reused stadtwerk-mauer-grid-connection-transformation-gate-v1 Blueprint-Pack seed and synthetic case smm-netzanschluss-transparenz-review-001; no new demoProcessMatrix is introduced and the invalid /fnav-fast-track-vertragsgate route spelling is never used.",
+    "Netzanschluss Transparenz Readiness Matrix rows stay scalar/generated and synthetic: Budibase renders the selected Anschlussfall and status, capacity/technical/deadline/communication evidence present or missing, the canonical four-row V/D/M/I matrix with roleLegend.M = Mitwirkend, owner/audit transfer-readiness rows, and the Blueprint-Pack/Cernion-Energy-Tools -> Landing-Registry -> Produktivseite sync chain with Landing-Registry and Produktivseite explicitly pending; no capacity reservation, connection approval/rejection, external communication, GIS/ERP/MDM/MaStR/ZNP write, MaKo, billing, settlement, tariff, dispatch, device control, workflow/HITL, Rundeck execution, arbitrary Budibase table write or Personal-Agent shortcut is introduced."
   ]
 }
