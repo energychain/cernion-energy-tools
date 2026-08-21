@@ -8072,4 +8072,267 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       ])
     );
   });
+
+  it('adds the Investment Portfolio Governance Review panel from exactly the four named existing dashboard reads (#529)', () => {
+    const queries = manifest.queries.filter((query) =>
+      query.name.includes('PortfolioGovernanceReview')
+    );
+    const paths = new Set(queries.map((query) => query.path));
+
+    expect(paths).toEqual(
+      new Set([
+        '/api/dashboard/investment-data-review-queue',
+        '/api/dashboard/investment-committee-steering-cards',
+        '/api/dashboard/investment-owner-deadline-budget-gate',
+      ])
+    );
+    expect(
+      manifest.sections
+        .filter((section) => section.id.startsWith('investment_portfolio_governance_review'))
+        .every((section) => manifest.queries.some((query) => query.name === section.queryName))
+    ).toBe(true);
+    // The canonical Blueprint verify/matrix rows are reused, not duplicated: no new demoProcessMatrix.
+    const verifySection = manifest.sections.find(
+      (section) => section.id === 'investment_portfolio_governance_review_blueprint_verify'
+    );
+    const matrixSection = manifest.sections.find(
+      (section) => section.id === 'investment_portfolio_governance_review_blueprint_matrix'
+    );
+    expect(verifySection.queryName).toBe('getInvestmentOwnerDeadlineBudgetGateVerifySummaryRows');
+    expect(matrixSection.queryName).toBe('getInvestmentOwnerDeadlineBudgetGateMatrixRows');
+    expect(
+      manifest.queries.filter((query) => query.name === 'getInvestmentOwnerDeadlineBudgetGateMatrixRows')
+    ).toHaveLength(1);
+    expect(manifest.notes.join(' ')).toContain('Investment Portfolio Governance Review binds');
+  });
+
+  it('renders exactly three synthetic cross-division measures with operator-facing governance labels only, never a numeric score/rank', () => {
+    const stromFixture = {
+      status: 'review_ready',
+      missingEvidence: [],
+      reviewContext: {
+        assetRef: 'teilnetz-strom-nord',
+        qualityStatus: 'verified',
+        committeeWindow: '2026-Q4-Investitionsausschuss',
+        blockedDecision: 'freigabe-baubeginn',
+      },
+    };
+    const gasFixture = {
+      status: 'needs_owner',
+      missingEvidence: [
+        { missingDataPoint: 'owner' },
+        { missingDataPoint: 'committee_window' },
+        { missingDataPoint: 'source_refs' },
+      ],
+      reviewContext: {
+        assetRef: 'teilnetz-gas-umstellung',
+        qualityStatus: 'review-pending',
+        committeeWindow: null,
+        blockedDecision: 'freigabe-umstellungskonzept',
+      },
+    };
+    const waermeFixture = {
+      status: 'needs_committee_window',
+      missingEvidence: [{ missingDataPoint: 'committee_window' }],
+      reviewContext: {
+        assetRef: 'teilnetz-waerme-sued',
+        qualityStatus: 'verified',
+        committeeWindow: null,
+        blockedDecision: 'committee-window-not-scheduled',
+      },
+    };
+
+    const selectorRows = runTransformer('getInvestmentPortfolioGovernanceReviewSelectorRows', {});
+    expectScalarRows(selectorRows);
+    expectNoRawObjectText(selectorRows);
+    expect(selectorRows).toHaveLength(3);
+    expect(selectorRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ division: 'Strom', selected: false }),
+        expect.objectContaining({
+          division: 'Gas',
+          selected: true,
+          selectedMeasureId: 'smm-portfolio-gas-2026-001',
+        }),
+        expect.objectContaining({ division: 'Waerme', selected: false }),
+      ])
+    );
+
+    const stromRow = runTransformer('getInvestmentPortfolioGovernanceReviewStromRow', stromFixture);
+    expectScalarRows(stromRow);
+    expectNoRawObjectText(stromRow);
+    expect(stromRow).toEqual([
+      expect.objectContaining({
+        division: 'Strom',
+        selectedState: 'not_selected',
+        evidenceStatus: 'available',
+        dataQualityStatus: 'verified',
+        governanceLabel: 'review_ready',
+      }),
+    ]);
+
+    const gasRow = runTransformer('getInvestmentPortfolioGovernanceReviewGasRow', gasFixture);
+    expectScalarRows(gasRow);
+    expectNoRawObjectText(gasRow);
+    expect(gasRow).toEqual([
+      expect.objectContaining({
+        division: 'Gas',
+        selectedState: 'selected',
+        evidenceStatus: 'evidence_gap',
+        committeeWindow: 'missing',
+        governanceLabel: 'blocked_missing_evidence',
+      }),
+    ]);
+
+    const waermeRow = runTransformer(
+      'getInvestmentPortfolioGovernanceReviewWaermeRow',
+      waermeFixture
+    );
+    expectScalarRows(waermeRow);
+    expectNoRawObjectText(waermeRow);
+    expect(waermeRow).toEqual([
+      expect.objectContaining({
+        division: 'Waerme',
+        selectedState: 'not_selected',
+        evidenceStatus: 'evidence_gap',
+        committeeWindow: 'missing',
+        governanceLabel: 'needs_committee_window',
+      }),
+    ]);
+
+    // Only the four operator-facing governance labels appear; never a numeric score, rank or weighted ranking.
+    const allowedLabels = new Set([
+      'review_ready',
+      'blocked_missing_evidence',
+      'budget_path_gap',
+      'needs_committee_window',
+    ]);
+    for (const row of [...stromRow, ...gasRow, ...waermeRow]) {
+      expect(allowedLabels.has(row.governanceLabel)).toBe(true);
+      expect(row).not.toHaveProperty('score');
+      expect(row).not.toHaveProperty('rank');
+      expect(row).not.toHaveProperty('readinessScore');
+    }
+  });
+
+  it('renders selected-measure detail rows composed from the three investment read models plus owner/deadline/budget-path/committee-gate and no-call rows', () => {
+    const committeeCardsFixture = {
+      status: 'needs_owner',
+      committeeContext: {
+        reviewStatus: 'technical-review-in-progress',
+        evidenceStatus: 'incomplete',
+        committeeWindow: null,
+        owner: null,
+      },
+      missingEvidence: [
+        { missingDataPoint: 'owner', label: 'Owner', enablesDossierAddition: 'add accountable owner' },
+        {
+          missingDataPoint: 'committee_window',
+          label: 'Committee window',
+          enablesDossierAddition: 'add committee or board decision window',
+        },
+      ],
+      positiveFollowUps: [
+        { missingDataPoint: 'owner', enablesDossierAddition: 'add accountable owner' },
+      ],
+    };
+    const committeeRows = runTransformer(
+      'getInvestmentPortfolioGovernanceReviewCommitteeCardsFocusRows',
+      committeeCardsFixture
+    );
+    expectScalarRows(committeeRows);
+    expectNoRawObjectText(committeeRows);
+    expect(committeeRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ rowKey: 'ipgr_ccards_measure', value: 'smm-portfolio-gas-2026-001' }),
+        expect.objectContaining({ rowKey: 'ipgr_ccards_committee_window', value: 'missing' }),
+        expect.objectContaining({ rowKey: 'ipgr_ccards_gap_owner' }),
+        expect.objectContaining({ rowKey: 'ipgr_ccards_followup_owner' }),
+      ])
+    );
+
+    const ownerBudgetGateFixture = {
+      status: 'needs_owner_deadline_budget_evidence',
+      gateEvidence: {
+        owner: null,
+        deadline: null,
+        budgetEffect: null,
+        blockedFollowUpDecision: 'freigabe-umstellungskonzept',
+        nextEscalationStep: 'gas-transformation-dataroom-review',
+      },
+      missingEvidence: [
+        { missingDataPoint: 'owner', enablesDossierAddition: 'assign or confirm the accountable investment measure owner' },
+        { missingDataPoint: 'budget_effect', enablesDossierAddition: 'clarify budget effect, envelope, overhang or funding impact' },
+      ],
+      positiveFollowUps: [
+        { missingDataPoint: 'owner', enablesDossierAddition: 'assign or confirm the accountable investment measure owner' },
+      ],
+    };
+    const gateRows = runTransformer(
+      'getInvestmentPortfolioGovernanceReviewOwnerBudgetGateFocusRows',
+      ownerBudgetGateFixture
+    );
+    expectScalarRows(gateRows);
+    expectNoRawObjectText(gateRows);
+    expect(gateRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ rowKey: 'ipgr_gate_owner', value: 'missing', status: 'blocked_missing_evidence' }),
+        expect.objectContaining({ rowKey: 'ipgr_gate_budget_path', value: 'missing', status: 'budget_path_gap' }),
+        expect.objectContaining({
+          rowKey: 'ipgr_gate_committee_gate',
+          value: 'freigabe-umstellungskonzept',
+          status: 'available',
+        }),
+        expect.objectContaining({
+          rowKey: 'ipgr_gate_next_escalation',
+          value: 'gas-transformation-dataroom-review',
+          status: 'available',
+        }),
+        expect.objectContaining({ rowKey: 'ipgr_gate_gap_owner', status: 'evidence_gap' }),
+        expect.objectContaining({ rowKey: 'ipgr_gate_followup_owner', status: 'positive_followup' }),
+      ])
+    );
+
+    const dataReviewQueueFixture = {
+      status: 'needs_owner',
+      reviewContext: {
+        division: 'Gas',
+        qualityStatus: 'review-pending',
+        owner: null,
+        committeeWindow: null,
+        blockedDecision: 'freigabe-umstellungskonzept',
+      },
+      missingEvidence: [
+        { missingDataPoint: 'owner', label: 'Owner', enablesDossierAddition: 'add accountable review owner' },
+      ],
+      positiveFollowUps: [],
+    };
+    const dataReviewRows = runTransformer(
+      'getInvestmentPortfolioGovernanceReviewDataReviewQueueFocusRows',
+      dataReviewQueueFixture
+    );
+    expectScalarRows(dataReviewRows);
+    expectNoRawObjectText(dataReviewRows);
+    expect(dataReviewRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ rowKey: 'ipgr_drq_division', value: 'Gas' }),
+        expect.objectContaining({ rowKey: 'ipgr_drq_owner', value: 'missing' }),
+        expect.objectContaining({ rowKey: 'ipgr_drq_gap_owner' }),
+      ])
+    );
+
+    const noCallRows = runTransformer('getInvestmentPortfolioGovernanceReviewNoCallRows', {
+      sourceActions: { notCalled: ['investment.approve'] },
+    });
+    expectScalarRows(noCallRows);
+    expect(noCallRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ boundary: 'investment.approve', status: 'not_called', disabled: true }),
+        expect.objectContaining({ boundary: 'budget.approve', status: 'not_called', disabled: true }),
+        expect.objectContaining({ boundary: 'committee.execute', status: 'not_called', disabled: true }),
+        expect.objectContaining({ boundary: 'budibase.table.write', status: 'not_called', disabled: true }),
+        expect.objectContaining({ boundary: 'personal-agent.execute', status: 'not_called', disabled: true }),
+      ])
+    );
+  });
 });

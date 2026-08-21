@@ -7640,7 +7640,10 @@
             "receivedAt": "2026-06-28T08:30:00.000Z",
             "subject": "VNB Kapazitaetsfenster neu priorisieren",
             "bodyExcerpt": "Synthetic demo: Anschlussfall braucht Kapazitaetsfenster und Owner bis Freitag.",
-            "knownContextAnchors": ["smm-budibase-workbench", "vnb-demo-001"],
+            "knownContextAnchors": [
+              "smm-budibase-workbench",
+              "vnb-demo-001"
+            ],
             "processHint": "grid_connection_capacity",
             "ownerHint": "ROLE_NETZPLANUNG",
             "dueDateHint": "2026-07-03",
@@ -7874,7 +7877,10 @@
             "receivedAt": "2026-06-28T08:30:00.000Z",
             "subject": "VNB Kapazitaetsfenster neu priorisieren",
             "bodyExcerpt": "Synthetic demo: Anschlussfall braucht Kapazitaetsfenster und Owner bis Freitag.",
-            "knownContextAnchors": ["smm-budibase-workbench", "vnb-demo-001"],
+            "knownContextAnchors": [
+              "smm-budibase-workbench",
+              "vnb-demo-001"
+            ],
             "processHint": "grid_connection_capacity",
             "ownerHint": "ROLE_NETZPLANUNG",
             "dueDateHint": "2026-07-03",
@@ -13204,6 +13210,393 @@
           "type": "string"
         }
       }
+    },
+    {
+      "name": "getInvestmentPortfolioGovernanceReviewSelectorRows",
+      "method": "GET",
+      "path": "/api/dashboard/investment-data-review-queue",
+      "queryString": "tenantId={{tenantId}}&sourceId=samp-plan-2026-gas&assetRef=teilnetz-gas-umstellung&qualityStatus=review-pending&division=Gas&bottleneckRef=ortsnetz-gas-umstellung-tp1&blockedDecision=freigabe-umstellungskonzept&reviewStatus=technical-review-in-progress&caseId=smm-budibase-workbench",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const selectedDivision='Gas'; const measures=[{measureId:'smm-portfolio-strom-2026-001',division:'Strom',label:'Netzausbau Ortsteil Nord (synthetic)',capexBand:'250-500 TEUR (synthetic capex band)'},{measureId:'smm-portfolio-gas-2026-001',division:'Gas',label:'Gasnetz Teilstilllegung Umstellungspruefung (synthetic)',capexBand:'100-250 TEUR (synthetic capex band)'},{measureId:'smm-portfolio-waerme-2026-001',division:'Waerme',label:'Waermenetz Anschlusserweiterung Sued (synthetic)',capexBand:'50-100 TEUR (synthetic capex band)'}]; return measures.map((m)=>({rowKey:'ipgr_selector_'+m.division.toLowerCase(),renderTarget:'budibase:stadtwerk-mauer-workbench:investment-portfolio-governance-review',roleTarget:'ROLE_ASSET_MANAGEMENT',measureId:m.measureId,division:m.division,label:m.label,capexBand:m.capexBand,selected:m.division===selectedDivision,selectedMeasureId:'smm-portfolio-gas-2026-001',roleQuestion:'Which of the three synthetic cross-division measures needs human review, what is missing, and what safe gate is next?',sourceClass:'investment_portfolio_governance_review_selector'}))",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "measureId": {
+          "type": "string"
+        },
+        "division": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "capexBand": {
+          "type": "string"
+        },
+        "selected": {
+          "type": "string"
+        },
+        "selectedMeasureId": {
+          "type": "string"
+        },
+        "roleQuestion": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getInvestmentPortfolioGovernanceReviewStromRow",
+      "method": "GET",
+      "path": "/api/dashboard/investment-data-review-queue",
+      "queryString": "tenantId={{tenantId}}&sourceId=samp-plan-2026-strom&assetRef=teilnetz-strom-nord&qualityStatus=verified&division=Strom&bottleneckRef=ortsnetz-strom-nord-tp3&owner=ROLE_ASSET_MANAGEMENT&committeeWindow=2026-Q4-Investitionsausschuss&blockedDecision=freigabe-baubeginn&reviewStatus=technical-review-complete&sourceRef=wirtschaftsplan-2026%2Cnetzausbauplan-abschnitt-3&caseId=smm-budibase-workbench",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const missing=(data.missingEvidence||[]).map((g)=>g.missingDataPoint); const label=missing.length===0?'review_ready':(missing.includes('committee_window')&&missing.length===1?'needs_committee_window':'blocked_missing_evidence'); const ctx=data.reviewContext||{}; return [{rowKey:'ipgr_portfolio_strom',renderTarget:'budibase:stadtwerk-mauer-workbench:investment-portfolio-governance-review',roleTarget:'ROLE_ASSET_MANAGEMENT',measure:'Netzausbau Ortsteil Nord (synthetic)',division:'Strom',selectedState:'not_selected',assetProjectRef:ctx.assetRef||'teilnetz-strom-nord',evidenceStatus:missing.length===0?'available':'evidence_gap',dataQualityStatus:String(ctx.qualityStatus||'missing'),committeeWindow:String(ctx.committeeWindow||'missing'),blockedDecision:String(ctx.blockedDecision||'none'),nextGate:missing.length===0?'ready_for_committee_prep_review':'complete_missing_evidence_then_refresh_portfolio_row',governanceLabel:label,status:String(data.status||''),sourceClass:'investment_portfolio_governance_review_portfolio_row'}]",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "measure": {
+          "type": "string"
+        },
+        "division": {
+          "type": "string"
+        },
+        "selectedState": {
+          "type": "string"
+        },
+        "assetProjectRef": {
+          "type": "string"
+        },
+        "evidenceStatus": {
+          "type": "string"
+        },
+        "dataQualityStatus": {
+          "type": "string"
+        },
+        "committeeWindow": {
+          "type": "string"
+        },
+        "blockedDecision": {
+          "type": "string"
+        },
+        "nextGate": {
+          "type": "string"
+        },
+        "governanceLabel": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getInvestmentPortfolioGovernanceReviewGasRow",
+      "method": "GET",
+      "path": "/api/dashboard/investment-data-review-queue",
+      "queryString": "tenantId={{tenantId}}&sourceId=samp-plan-2026-gas&assetRef=teilnetz-gas-umstellung&qualityStatus=review-pending&division=Gas&bottleneckRef=ortsnetz-gas-umstellung-tp1&blockedDecision=freigabe-umstellungskonzept&reviewStatus=technical-review-in-progress&caseId=smm-budibase-workbench",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const missing=(data.missingEvidence||[]).map((g)=>g.missingDataPoint); const label=missing.length===0?'review_ready':(missing.includes('committee_window')&&missing.length===1?'needs_committee_window':'blocked_missing_evidence'); const ctx=data.reviewContext||{}; return [{rowKey:'ipgr_portfolio_gas',renderTarget:'budibase:stadtwerk-mauer-workbench:investment-portfolio-governance-review',roleTarget:'ROLE_ASSET_MANAGEMENT',measure:'Gasnetz Teilstilllegung Umstellungspruefung (synthetic)',division:'Gas',selectedState:'selected',assetProjectRef:ctx.assetRef||'teilnetz-gas-umstellung',evidenceStatus:missing.length===0?'available':'evidence_gap',dataQualityStatus:String(ctx.qualityStatus||'missing'),committeeWindow:String(ctx.committeeWindow||'missing'),blockedDecision:String(ctx.blockedDecision||'none'),nextGate:missing.length===0?'ready_for_committee_prep_review':'complete_missing_evidence_then_refresh_portfolio_row',governanceLabel:label,status:String(data.status||''),sourceClass:'investment_portfolio_governance_review_portfolio_row'}]",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "measure": {
+          "type": "string"
+        },
+        "division": {
+          "type": "string"
+        },
+        "selectedState": {
+          "type": "string"
+        },
+        "assetProjectRef": {
+          "type": "string"
+        },
+        "evidenceStatus": {
+          "type": "string"
+        },
+        "dataQualityStatus": {
+          "type": "string"
+        },
+        "committeeWindow": {
+          "type": "string"
+        },
+        "blockedDecision": {
+          "type": "string"
+        },
+        "nextGate": {
+          "type": "string"
+        },
+        "governanceLabel": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getInvestmentPortfolioGovernanceReviewWaermeRow",
+      "method": "GET",
+      "path": "/api/dashboard/investment-data-review-queue",
+      "queryString": "tenantId={{tenantId}}&sourceId=samp-plan-2026-waerme&assetRef=teilnetz-waerme-sued&qualityStatus=verified&division=Waerme&bottleneckRef=fernwaerme-sued-tp2&owner=ROLE_ASSET_MANAGEMENT&blockedDecision=committee-window-not-scheduled&reviewStatus=technical-review-in-progress&sourceRef=waermeplanung-kommunal-2026&caseId=smm-budibase-workbench",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const missing=(data.missingEvidence||[]).map((g)=>g.missingDataPoint); const label=missing.length===0?'review_ready':(missing.includes('committee_window')&&missing.length===1?'needs_committee_window':'blocked_missing_evidence'); const ctx=data.reviewContext||{}; return [{rowKey:'ipgr_portfolio_waerme',renderTarget:'budibase:stadtwerk-mauer-workbench:investment-portfolio-governance-review',roleTarget:'ROLE_ASSET_MANAGEMENT',measure:'Waermenetz Anschlusserweiterung Sued (synthetic)',division:'Waerme',selectedState:'not_selected',assetProjectRef:ctx.assetRef||'teilnetz-waerme-sued',evidenceStatus:missing.length===0?'available':'evidence_gap',dataQualityStatus:String(ctx.qualityStatus||'missing'),committeeWindow:String(ctx.committeeWindow||'missing'),blockedDecision:String(ctx.blockedDecision||'none'),nextGate:missing.length===0?'ready_for_committee_prep_review':'complete_missing_evidence_then_refresh_portfolio_row',governanceLabel:label,status:String(data.status||''),sourceClass:'investment_portfolio_governance_review_portfolio_row'}]",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "measure": {
+          "type": "string"
+        },
+        "division": {
+          "type": "string"
+        },
+        "selectedState": {
+          "type": "string"
+        },
+        "assetProjectRef": {
+          "type": "string"
+        },
+        "evidenceStatus": {
+          "type": "string"
+        },
+        "dataQualityStatus": {
+          "type": "string"
+        },
+        "committeeWindow": {
+          "type": "string"
+        },
+        "blockedDecision": {
+          "type": "string"
+        },
+        "nextGate": {
+          "type": "string"
+        },
+        "governanceLabel": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getInvestmentPortfolioGovernanceReviewCommitteeCardsFocusRows",
+      "method": "GET",
+      "path": "/api/dashboard/investment-committee-steering-cards",
+      "queryString": "tenantId={{tenantId}}&investmentItemId=smm-portfolio-gas-2026-001&assetId=teilnetz-gas-umstellung&reviewStatus=technical-review-in-progress&evidenceStatus=incomplete&capexEur=180000&riskFlag=medium&caseId=smm-budibase-workbench",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const ctx=data.committeeContext||{}; const gaps=data.missingEvidence||[]; const followUps=data.positiveFollowUps||[]; const rows=[{rowKey:'ipgr_ccards_measure',label:'Measure',value:'smm-portfolio-gas-2026-001'},{rowKey:'ipgr_ccards_review_status',label:'Review status',value:String(ctx.reviewStatus||'missing')},{rowKey:'ipgr_ccards_evidence_status',label:'Evidence status',value:String(ctx.evidenceStatus||'missing')},{rowKey:'ipgr_ccards_committee_window',label:'Committee window',value:String(ctx.committeeWindow||'missing')},{rowKey:'ipgr_ccards_owner',label:'Owner',value:String(ctx.owner||'missing')}]; const gapRows=gaps.map((g)=>({rowKey:'ipgr_ccards_gap_'+String(g.missingDataPoint||''),label:'Gap: '+String(g.label||g.missingDataPoint||''),value:String(g.enablesDossierAddition||'')})); const followRows=followUps.map((f)=>({rowKey:'ipgr_ccards_followup_'+String(f.missingDataPoint||''),label:'Follow-up: '+String(f.missingDataPoint||''),value:String(f.enablesDossierAddition||'')})); return rows.concat(gapRows,followRows).map((r)=>({...r,renderTarget:'budibase:stadtwerk-mauer-workbench:investment-portfolio-governance-review',roleTarget:'ROLE_ASSET_MANAGEMENT',selectedMeasureId:'smm-portfolio-gas-2026-001',status:String(data.status||''),sourceClass:'investment_portfolio_governance_review_committee_cards_detail'}))",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "selectedMeasureId": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getInvestmentPortfolioGovernanceReviewOwnerBudgetGateFocusRows",
+      "method": "GET",
+      "path": "/api/dashboard/investment-owner-deadline-budget-gate",
+      "queryString": "tenantId={{tenantId}}&measureId=smm-portfolio-gas-2026-001&measureTitle=Gasnetz%20Teilstilllegung%20Umstellungspruefung%20(synthetic)&blockedFollowUpDecision=freigabe-umstellungskonzept&nextEscalationStep=gas-transformation-dataroom-review&caseId=smm-budibase-workbench",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const g=data.gateEvidence||{}; const gaps=data.missingEvidence||[]; const followUps=data.positiveFollowUps||[]; const rows=[{rowKey:'ipgr_gate_owner',label:'Owner',value:g.owner?String(g.owner):'missing',status:g.owner?'available':'blocked_missing_evidence'},{rowKey:'ipgr_gate_deadline',label:'Deadline',value:g.deadline?String(g.deadline):'missing',status:g.deadline?'available':'blocked_missing_evidence'},{rowKey:'ipgr_gate_budget_path',label:'Budget-path status',value:g.budgetEffect?String(g.budgetEffect):'missing',status:g.budgetEffect?'review_ready':'budget_path_gap'},{rowKey:'ipgr_gate_committee_gate',label:'Committee-gate follow-up',value:g.blockedFollowUpDecision?String(g.blockedFollowUpDecision):'missing',status:g.blockedFollowUpDecision?'available':'blocked_missing_evidence'},{rowKey:'ipgr_gate_next_escalation',label:'Next escalation step',value:g.nextEscalationStep?String(g.nextEscalationStep):'missing',status:g.nextEscalationStep?'available':'blocked_missing_evidence'}]; const gapRows=gaps.map((gap)=>({rowKey:'ipgr_gate_gap_'+String(gap.missingDataPoint||''),label:'Gap: '+String(gap.missingDataPoint||''),value:String(gap.enablesDossierAddition||''),status:'evidence_gap'})); const followRows=followUps.map((f)=>({rowKey:'ipgr_gate_followup_'+String(f.missingDataPoint||''),label:'Follow-up: '+String(f.missingDataPoint||''),value:String(f.enablesDossierAddition||''),status:'positive_followup'})); return rows.concat(gapRows,followRows).map((r)=>({...r,renderTarget:'budibase:stadtwerk-mauer-workbench:investment-portfolio-governance-review',roleTarget:'ROLE_ASSET_MANAGEMENT',selectedMeasureId:'smm-portfolio-gas-2026-001',governanceStatus:String(data.status||''),sourceClass:'investment_portfolio_governance_review_owner_budget_gate_detail'}))",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "selectedMeasureId": {
+          "type": "string"
+        },
+        "governanceStatus": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getInvestmentPortfolioGovernanceReviewDataReviewQueueFocusRows",
+      "method": "GET",
+      "path": "/api/dashboard/investment-data-review-queue",
+      "queryString": "tenantId={{tenantId}}&sourceId=samp-plan-2026-gas&assetRef=teilnetz-gas-umstellung&qualityStatus=review-pending&division=Gas&bottleneckRef=ortsnetz-gas-umstellung-tp1&blockedDecision=freigabe-umstellungskonzept&reviewStatus=technical-review-in-progress&caseId=smm-budibase-workbench",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const ctx=data.reviewContext||{}; const gaps=data.missingEvidence||[]; const followUps=data.positiveFollowUps||[]; const rows=[{rowKey:'ipgr_drq_division',label:'Division',value:String(ctx.division||'missing')},{rowKey:'ipgr_drq_data_quality',label:'Data-quality status',value:String(ctx.qualityStatus||'missing')},{rowKey:'ipgr_drq_owner',label:'Owner',value:String(ctx.owner||'missing')},{rowKey:'ipgr_drq_committee_window',label:'Committee window',value:String(ctx.committeeWindow||'missing')},{rowKey:'ipgr_drq_blocked_decision',label:'Blocked decision',value:String(ctx.blockedDecision||'missing')}]; const gapRows=gaps.map((g)=>({rowKey:'ipgr_drq_gap_'+String(g.missingDataPoint||''),label:'Gap: '+String(g.label||g.missingDataPoint||''),value:String(g.enablesDossierAddition||'')})); const followRows=followUps.map((f)=>({rowKey:'ipgr_drq_followup_'+String(f.missingDataPoint||''),label:'Follow-up: '+String(f.missingDataPoint||''),value:String(f.enablesDossierAddition||'')})); return rows.concat(gapRows,followRows).map((r)=>({...r,renderTarget:'budibase:stadtwerk-mauer-workbench:investment-portfolio-governance-review',roleTarget:'ROLE_ASSET_MANAGEMENT',selectedMeasureId:'smm-portfolio-gas-2026-001',status:String(data.status||''),sourceClass:'investment_portfolio_governance_review_data_review_queue_detail'}))",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "selectedMeasureId": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getInvestmentPortfolioGovernanceReviewNoCallRows",
+      "method": "GET",
+      "path": "/api/dashboard/investment-owner-deadline-budget-gate",
+      "queryString": "tenantId={{tenantId}}&measureId=smm-portfolio-gas-2026-001&measureTitle=Gasnetz%20Teilstilllegung%20Umstellungspruefung%20(synthetic)&blockedFollowUpDecision=freigabe-umstellungskonzept&nextEscalationStep=gas-transformation-dataroom-review&caseId=smm-budibase-workbench",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const notCalled=((data.sourceActions||{}).notCalled)||[]; const fallback=['erp.write','sap.write','accounting.post','budget.approve','committee.execute','treasury.transfer','workflow.create','hitl.create','mail.send','webhook.send','mako.dispatch','billing.release','settlement.exportA96','tariff.mutate','smgw-cls.execute','device-control.execute','external.connector.call','production.mutate','public-context.mutate','budibase.table.write','personal-agent.execute']; const unique=[...new Set(notCalled.concat(fallback))]; return unique.map((action,index)=>({rowKey:'ipgr_no_call_'+(index+1)+'_'+String(action).replace(/[^a-zA-Z0-9]+/g,'_'),renderTarget:'budibase:stadtwerk-mauer-workbench:investment-portfolio-governance-review',roleTarget:'ROLE_ASSET_MANAGEMENT',boundary:String(action),status:'not_called',disabled:true,safeAlternative:'render_existing_read_only_investment_portfolio_governance_review_rows_only',sourceClass:'investment_portfolio_governance_review_no_call_guard'}))",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "boundary": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "disabled": {
+          "type": "string"
+        },
+        "safeAlternative": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
     }
   ],
   "sections": [
@@ -14708,6 +15101,66 @@
       "tableTitle": "Forbidden and Not-Called Boundaries"
     },
     {
+      "id": "investment_portfolio_governance_review_selector",
+      "title": "Investment Portfolio Governance Review -- Measure Selector",
+      "queryName": "getInvestmentPortfolioGovernanceReviewSelectorRows",
+      "tableTitle": "Measure, Division, Capex Band, Selected"
+    },
+    {
+      "id": "investment_portfolio_governance_review_portfolio_strom",
+      "title": "Investment Portfolio -- Strom",
+      "queryName": "getInvestmentPortfolioGovernanceReviewStromRow",
+      "tableTitle": "Measure, Division, Evidence, Data-Quality, Governance Label"
+    },
+    {
+      "id": "investment_portfolio_governance_review_portfolio_gas",
+      "title": "Investment Portfolio -- Gas",
+      "queryName": "getInvestmentPortfolioGovernanceReviewGasRow",
+      "tableTitle": "Measure, Division, Evidence, Data-Quality, Governance Label"
+    },
+    {
+      "id": "investment_portfolio_governance_review_portfolio_waerme",
+      "title": "Investment Portfolio -- Waerme",
+      "queryName": "getInvestmentPortfolioGovernanceReviewWaermeRow",
+      "tableTitle": "Measure, Division, Evidence, Data-Quality, Governance Label"
+    },
+    {
+      "id": "investment_portfolio_governance_review_committee_cards_detail",
+      "title": "Selected Measure -- Committee Steering Cards Detail",
+      "queryName": "getInvestmentPortfolioGovernanceReviewCommitteeCardsFocusRows",
+      "tableTitle": "Label, Value (Detail, Evidence Gap, Positive Follow-Up)"
+    },
+    {
+      "id": "investment_portfolio_governance_review_owner_budget_gate_detail",
+      "title": "Selected Measure -- Owner/Deadline/Budget-Path/Committee-Gate",
+      "queryName": "getInvestmentPortfolioGovernanceReviewOwnerBudgetGateFocusRows",
+      "tableTitle": "Label, Value, Status"
+    },
+    {
+      "id": "investment_portfolio_governance_review_data_review_queue_detail",
+      "title": "Selected Measure -- Data Review Queue Detail",
+      "queryName": "getInvestmentPortfolioGovernanceReviewDataReviewQueueFocusRows",
+      "tableTitle": "Label, Value (Division, Data-Quality, Evidence Gap)"
+    },
+    {
+      "id": "investment_portfolio_governance_review_blueprint_verify",
+      "title": "Investment Portfolio Governance Review -- Blueprint-Pack Verify",
+      "queryName": "getInvestmentOwnerDeadlineBudgetGateVerifySummaryRows",
+      "tableTitle": "Canonical Blueprint-Pack Verify Summary (Reused Seed)"
+    },
+    {
+      "id": "investment_portfolio_governance_review_blueprint_matrix",
+      "title": "Investment Portfolio Governance Review -- Demo Process Matrix",
+      "queryName": "getInvestmentOwnerDeadlineBudgetGateMatrixRows",
+      "tableTitle": "Phase, V = Verantwortlich, D = Durchfuehrend, M = Mitwirkend, I = Informiert, Nachweise"
+    },
+    {
+      "id": "investment_portfolio_governance_review_no_call_guards",
+      "title": "Investment Portfolio Governance Review -- No-Call Guards",
+      "queryName": "getInvestmentPortfolioGovernanceReviewNoCallRows",
+      "tableTitle": "Boundary, Status, Safe Alternative"
+    },
+    {
       "id": "eog_model_summary",
       "title": "EOG Scenario Akte Summary",
       "queryName": "getEogModelSummaryRows",
@@ -14991,6 +15444,7 @@
     "Municipality Public-Context Scope Readiness panel (#555) is generated manifest composition, not a new Cernion endpoint. It composes only the existing municipal-energy-value-analysis, stadtwerk-mauer-mastr-data-overlay, quality-summary, observability-mini, stadtwerk-mauer-blueprint-pack-verify and stadtwerk-mauer-transfer-readiness read models for the canonical stadtwerk-mauer-municipality-public-context-readiness-v1 Blueprint-Pack seed and synthetic case smm-municipality-public-context-review-001; municipality/lookup, OSM land-use and the market-actor directory remain source_hint_only and are never called.",
     "Municipality Public-Context Scope Readiness rows stay scalar/generated and synthetic: Budibase renders selected municipality identity, AGS, the complete postalCodes[] scope, public-vs-derived/heuristic MaStR/OSM classification, bounded quality/observability context kept separate from municipality-specific facts, missing evidence, the canonical four-row V/D/M/I matrix with roleLegend.M = Mitwirkend, and the Blueprint-Pack/Cernion-Energy-Tools -> Landing-Registry -> Produktivseite sync chain with Landing-Registry and Produktivseite explicitly pending. A timeout or degraded source response is rendered as missing-evidence/clarification, never a negative fact, and a market-actor directory hit is never rendered as proof of municipal service or VNB assignment; no public-data correction, tenant mutation, market-actor binding, Rundeck execution, Budibase table write or Personal-Agent shortcut is introduced.",
     "Netzanschluss Transparenz Readiness Matrix panel (#530) is generated manifest composition, not a new Cernion endpoint. It composes only the existing grossspeicher-anschluss-readiness-gate, anschlusskapazitaet-evidence-queue, grid-connection-transformation-gate, fnav-fast-track-contract-gate, areal-network-integration-offer-gate, cross-domain-special-topics-queue, stadtwerk-mauer-blueprint-pack-verify and stadtwerk-mauer-transfer-readiness read models for the reused stadtwerk-mauer-grid-connection-transformation-gate-v1 Blueprint-Pack seed and synthetic case smm-netzanschluss-transparenz-review-001; no new demoProcessMatrix is introduced and the invalid /fnav-fast-track-vertragsgate route spelling is never used.",
-    "Netzanschluss Transparenz Readiness Matrix rows stay scalar/generated and synthetic: Budibase renders the selected Anschlussfall and status, capacity/technical/deadline/communication evidence present or missing, the canonical four-row V/D/M/I matrix with roleLegend.M = Mitwirkend, owner/audit transfer-readiness rows, and the Blueprint-Pack/Cernion-Energy-Tools -> Landing-Registry -> Produktivseite sync chain with Landing-Registry and Produktivseite explicitly pending; no capacity reservation, connection approval/rejection, external communication, GIS/ERP/MDM/MaStR/ZNP write, MaKo, billing, settlement, tariff, dispatch, device control, workflow/HITL, Rundeck execution, arbitrary Budibase table write or Personal-Agent shortcut is introduced."
+    "Netzanschluss Transparenz Readiness Matrix rows stay scalar/generated and synthetic: Budibase renders the selected Anschlussfall and status, capacity/technical/deadline/communication evidence present or missing, the canonical four-row V/D/M/I matrix with roleLegend.M = Mitwirkend, owner/audit transfer-readiness rows, and the Blueprint-Pack/Cernion-Energy-Tools -> Landing-Registry -> Produktivseite sync chain with Landing-Registry and Produktivseite explicitly pending; no capacity reservation, connection approval/rejection, external communication, GIS/ERP/MDM/MaStR/ZNP write, MaKo, billing, settlement, tariff, dispatch, device control, workflow/HITL, Rundeck execution, arbitrary Budibase table write or Personal-Agent shortcut is introduced.",
+    "Investment Portfolio Governance Review binds to a bounded scalar portfolio table for exactly three explicitly synthetic cross-division measures (Strom, Gas, Waerme), a selected-measure selector, detail rows composed from the three investment read models (investment-committee-steering-cards, investment-data-review-queue, investment-owner-deadline-budget-gate), owner/deadline/budget-path/committee-gate rows, evidence-gap and positive-follow-up rows, and the reused canonical Blueprint-Pack verify/matrix rows for stadtwerk-mauer-investment-owner-deadline-budget-gate-v1. Governance labels are limited to review_ready, blocked_missing_evidence, budget_path_gap and needs_committee_window; there is no numeric score, rank, weighted ranking, winner selection or automatic priority, and all consequential actions stay disabled no-call rows."
   ]
 }
