@@ -8335,4 +8335,264 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       ])
     );
   });
+
+  it('adds the Digitalprogramm Protokoll Feedback Gate panel from exactly the four named existing dashboard reads (#565)', () => {
+    const queries = manifest.queries.filter((query) =>
+      query.name.includes('DigitalprogrammProtokollFeedback')
+    );
+    const paths = new Set(queries.map((query) => query.path));
+
+    expect(paths).toEqual(
+      new Set([
+        '/api/dashboard/jour-fixe-decision-closure',
+        '/api/dashboard/gremiencoach-workbook-readiness',
+        '/api/dashboard/steering-artifact-acceptance-gate',
+        '/api/dashboard/owner-deadline-evidence-gate',
+      ])
+    );
+    expect(
+      manifest.sections
+        .filter((section) => section.id.startsWith('digitalprogramm_protokoll_feedback'))
+        .every((section) => manifest.queries.some((query) => query.name === section.queryName))
+    ).toBe(true);
+    // No new demoProcessMatrix/Landing-Registry section is introduced for this internal role-workbench slice.
+    expect(
+      manifest.sections.some(
+        (section) =>
+          section.id.startsWith('digitalprogramm_protokoll_feedback') &&
+          (section.id.includes('matrix') || section.id.includes('blueprint') || section.id.includes('landing'))
+      )
+    ).toBe(false);
+    expect(manifest.notes.join(' ')).toContain('Digitalprogramm Protokoll Feedback Gate panel (#565)');
+  });
+
+  it('renders exactly three bounded synthetic selector items with exactly one selected', () => {
+    const selectorRows = runTransformer('getDigitalprogrammProtokollFeedbackSelectorRows', {});
+    expectScalarRows(selectorRows);
+    expectNoRawObjectText(selectorRows);
+    expect(selectorRows).toHaveLength(3);
+    expect(selectorRows.map((row) => row.state).sort()).toEqual(
+      ['closure_or_committee_review_ready', 'feedback_or_correction_open', 'owner_or_deadline_evidence_gap'].sort()
+    );
+    expect(selectorRows.filter((row) => row.selected === true)).toHaveLength(1);
+    expect(selectorRows.every((row) => row.roleTarget === 'ROLE_PROGRAMMSTEUERUNG')).toBe(true);
+    expect(selectorRows.every((row) => row.vdmiRole === 'V')).toBe(true);
+    for (const row of selectorRows) {
+      expect(typeof row.roleQuestion).toBe('string');
+      expect(row.roleQuestion.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('renders scalar protocol-decision, owner/deadline, committee and steering-acceptance rows with clarification (never negative-conclusion) missing-evidence mapping', () => {
+    const jourFixeFixture = {
+      status: 'escalated',
+      topic: { topicId: 'synthetic-jf-topic-001', topicTitle: null, jourFixeId: 'synthetic-jourfixe-2026-08' },
+      closureEvidence: {
+        owner: 'synthetic-owner-programmsteuerung',
+        kpi: 'synthetic-kpi-teilnahmequote',
+        decisionCriterion: 'synthetic-freigabe-nach-korrektur',
+        nextGate: 'synthetic-review-gate-2026-09',
+        closureStatus: 'open',
+        closureProof: null,
+        blockedFollowUpAction: 'synthetic-open-rueckfrage-fachbereich',
+        sourceSnapshotRef: 'synthetic-protokoll-snapshot-ref-001',
+      },
+      missingEvidence: [
+        {
+          missingDataPoint: 'closure_proof',
+          label: 'Closure proof',
+          enablesDossierAddition: 'mark the topic as done with evidence',
+        },
+      ],
+      positiveFollowUps: [
+        { missingDataPoint: 'closure_proof', enablesDossierAddition: 'mark the topic as done with evidence' },
+      ],
+    };
+    const jourFixeRows = runTransformer(
+      'getDigitalprogrammProtokollFeedbackJourFixeDecisionRows',
+      jourFixeFixture
+    );
+    expectScalarRows(jourFixeRows);
+    expectNoRawObjectText(jourFixeRows);
+    expect(jourFixeRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ rowKey: 'dpf_jf_topic', value: 'synthetic-jf-topic-001' }),
+        expect.objectContaining({
+          rowKey: 'dpf_jf_feedback_correction',
+          value: 'synthetic-open-rueckfrage-fachbereich',
+          evidenceClass: 'blocked_follow_up',
+        }),
+        expect.objectContaining({
+          rowKey: 'dpf_jf_closure_proof',
+          value: 'human_review_required',
+          evidenceClass: 'clarification',
+        }),
+        expect.objectContaining({
+          rowKey: 'dpf_jf_next_gate',
+          value: 'synthetic-review-gate-2026-09',
+          evidenceClass: 'provided',
+        }),
+        expect.objectContaining({ rowKey: 'dpf_jf_gap_closure_proof', evidenceClass: 'clarification' }),
+        expect.objectContaining({ rowKey: 'dpf_jf_followup_closure_proof', evidenceClass: 'positive_followup' }),
+      ])
+    );
+    expect(jourFixeRows.every((row) => row.roleTarget === 'ROLE_PROGRAMMSTEUERUNG' && row.vdmiRole === 'D')).toBe(
+      true
+    );
+
+    const ownerDeadlineFixture = {
+      status: 'needs_owner',
+      ownerContext: { ownerRole: null, ownerContact: null, dueAt: '2026-09-15' },
+      signalContext: { signalId: 'synthetic-signal-001', blockedDecision: 'synthetic-blocked-rollout-entscheidung' },
+      evidenceGaps: [
+        { missingDataPoint: 'owner', status: 'missing', enablesDossierAddition: 'add accountable owner' },
+      ],
+      positiveFollowUps: [{ missingDataPoint: 'owner', enablesDossierAddition: 'add accountable owner' }],
+    };
+    const ownerDeadlineRows = runTransformer(
+      'getDigitalprogrammProtokollFeedbackOwnerDeadlineRows',
+      ownerDeadlineFixture
+    );
+    expectScalarRows(ownerDeadlineRows);
+    expectNoRawObjectText(ownerDeadlineRows);
+    expect(ownerDeadlineRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ rowKey: 'dpf_od_owner', value: 'human_review_required', evidenceClass: 'clarification' }),
+        expect.objectContaining({ rowKey: 'dpf_od_due_date', value: '2026-09-15', evidenceClass: 'provided' }),
+        expect.objectContaining({
+          rowKey: 'dpf_od_blocked_decision',
+          value: 'synthetic-blocked-rollout-entscheidung',
+          evidenceClass: 'blocked_follow_up',
+        }),
+        expect.objectContaining({ rowKey: 'dpf_od_gap_owner', evidenceClass: 'clarification' }),
+      ])
+    );
+    expect(
+      ownerDeadlineRows.every((row) => row.roleTarget === 'ROLE_FACHBEREICH, ROLE_IT_GOVERNANCE' && row.vdmiRole === 'M')
+    ).toBe(true);
+
+    const committeeFixture = {
+      status: 'needs_source_evidence',
+      requestContext: {
+        tenantId: 'stadtwerk-mauer',
+        workbookId: 'synthetic-workbook-001',
+        committeeContext: 'synthetic-gremium-digitalprogramm',
+      },
+      evidenceGapRows: [
+        {
+          missingDataPoint: 'source_register',
+          label: 'Source register',
+          enablesDossierAddition: 'add evidence-backed source register for committee-safe claims',
+        },
+      ],
+      positiveFollowUpRows: [
+        {
+          missingDataPoint: 'source_register',
+          enablesDossierAddition: 'add evidence-backed source register for committee-safe claims',
+        },
+      ],
+      processContextRows: [
+        { rowId: 'context:committee', label: 'Committee context', value: 'synthetic-gremium-digitalprogramm', vdmiClass: 'I' },
+        { rowId: 'context:process-role', label: 'Process role', value: 'missing', vdmiClass: 'M' },
+      ],
+    };
+    const committeeRows = runTransformer(
+      'getDigitalprogrammProtokollFeedbackCommitteeWorkbookRows',
+      committeeFixture
+    );
+    expectScalarRows(committeeRows);
+    expectNoRawObjectText(committeeRows);
+    expect(committeeRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'dpf_cw_context_committee',
+          value: 'synthetic-gremium-digitalprogramm',
+          evidenceClass: 'provided',
+        }),
+        expect.objectContaining({
+          rowKey: 'dpf_cw_context_process_role',
+          value: 'human_review_required',
+          evidenceClass: 'clarification',
+        }),
+        expect.objectContaining({ rowKey: 'dpf_cw_gap_source_register', evidenceClass: 'clarification' }),
+      ])
+    );
+
+    const steeringFixture = {
+      status: 'missing_acceptance_evidence',
+      artifact: { artifactType: 'jour-fixe-protokoll-feedback-artifact', artifactName: null },
+      ownerContext: { owner: null, deputyOwner: null },
+      rolloutDecision: null,
+      escalationCriterion: 'synthetic-offene-rueckfrage-fachbereich',
+      missingEvidence: [
+        { missingDataPoint: 'owner', label: 'Owner', enablesDossierAddition: 'add accountable owner assignment' },
+      ],
+      positiveFollowUps: [
+        { missingDataPoint: 'owner', enablesDossierAddition: 'add accountable owner assignment' },
+      ],
+    };
+    const steeringRows = runTransformer(
+      'getDigitalprogrammProtokollFeedbackSteeringAcceptanceRows',
+      steeringFixture
+    );
+    expectScalarRows(steeringRows);
+    expectNoRawObjectText(steeringRows);
+    expect(steeringRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'dpf_sa_escalation_criterion',
+          value: 'synthetic-offene-rueckfrage-fachbereich',
+          evidenceClass: 'blocked_follow_up',
+        }),
+        expect.objectContaining({
+          rowKey: 'dpf_sa_owner',
+          value: 'human_review_required',
+          evidenceClass: 'clarification',
+        }),
+        expect.objectContaining({ rowKey: 'dpf_sa_gap_owner', evidenceClass: 'clarification' }),
+        expect.objectContaining({ rowKey: 'dpf_sa_followup_owner', evidenceClass: 'positive_followup' }),
+      ])
+    );
+
+    // Missing evidence never resolves to a negative factual conclusion or automatic closure/assignment/execution.
+    for (const row of [...jourFixeRows, ...ownerDeadlineRows, ...committeeRows, ...steeringRows]) {
+      if (row.evidenceClass === 'clarification') {
+        expect(String(row.value)).not.toMatch(/not[_-]?done|failed|denied|rejected|no[_-]?action/i);
+      }
+    }
+  });
+
+  it('renders no-call guards for every consequential action class plus an informed-only management-review row, and never calls a 5th route', () => {
+    const noCallRows = runTransformer('getDigitalprogrammProtokollFeedbackNoCallRows', {
+      sourceActions: { notCalled: ['vdmi.mutate'] },
+    });
+    expectScalarRows(noCallRows);
+    expectNoRawObjectText(noCallRows);
+    expect(noCallRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ boundary: 'vdmi.mutate', status: 'not_called', disabled: true }),
+        expect.objectContaining({ boundary: 'protocol.mutate', status: 'not_called', disabled: true }),
+        expect.objectContaining({ boundary: 'task.create', status: 'not_called', disabled: true }),
+        expect.objectContaining({ boundary: 'owner.assign', status: 'not_called', disabled: true }),
+        expect.objectContaining({ boundary: 'decision.approve', status: 'not_called', disabled: true }),
+        expect.objectContaining({ boundary: 'decision.reject', status: 'not_called', disabled: true }),
+        expect.objectContaining({ boundary: 'mail.send', status: 'not_called', disabled: true }),
+        expect.objectContaining({ boundary: 'webhook.send', status: 'not_called', disabled: true }),
+        expect.objectContaining({ boundary: 'teams.connector.call', status: 'not_called', disabled: true }),
+        expect.objectContaining({ boundary: 'workflow.execute', status: 'not_called', disabled: true }),
+        expect.objectContaining({ boundary: 'hitl.create', status: 'not_called', disabled: true }),
+        expect.objectContaining({ boundary: 'budibase.table.write', status: 'not_called', disabled: true }),
+        expect.objectContaining({ boundary: 'personal-agent.execute', status: 'not_called', disabled: true }),
+      ])
+    );
+    const informedRow = noCallRows.find((row) => row.vdmiRole === 'I');
+    expect(informedRow).toEqual(
+      expect.objectContaining({ roleTarget: 'ROLE_MANAGEMENT_REVIEW', status: 'informed', disabled: true })
+    );
+    // Reused route stays inside the four canonical bricks; no 5th dashboard endpoint is introduced.
+    const noCallQuery = manifest.queries.find(
+      (query) => query.name === 'getDigitalprogrammProtokollFeedbackNoCallRows'
+    );
+    expect(noCallQuery.path).toBe('/api/dashboard/owner-deadline-evidence-gate');
+  });
 });
