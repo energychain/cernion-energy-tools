@@ -13597,6 +13597,273 @@
           "type": "string"
         }
       }
+    },
+    {
+      "name": "getDigitalprogrammProtokollFeedbackSelectorRows",
+      "method": "GET",
+      "path": "/api/dashboard/jour-fixe-decision-closure",
+      "queryString": "tenantId={{tenantId}}&topicId=synthetic-jf-topic-001&topicTitle=Beispielhafte%20Programmentscheidung%20(synthetic)&jourFixeId=synthetic-jourfixe-2026-08&owner=synthetic-owner-programmsteuerung&kpi=synthetic-kpi-teilnahmequote&decisionCriterion=synthetic-freigabe-nach-korrektur&nextGate=synthetic-review-gate-2026-09&closureStatus=open&blockedFollowUpAction=synthetic-open-rueckfrage-fachbereich&evidenceRef=synthetic-protokoll-snapshot-ref-001&caseId=smm-budibase-workbench",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const items=[{itemId:'synthetic-jf-topic-001',state:'feedback_or_correction_open',label:'Feedback/Korrektur offen (synthetic)'},{itemId:'synthetic-jf-topic-002',state:'owner_or_deadline_evidence_gap',label:'Owner/Frist-Evidenz Luecke (synthetic)'},{itemId:'synthetic-jf-topic-003',state:'closure_or_committee_review_ready',label:'Abschluss/Gremien-Review bereit (synthetic)'}];const selectedState='feedback_or_correction_open';return items.map((item)=>({rowKey:'dpf_selector_'+item.state,renderTarget:'budibase:stadtwerk-mauer-workbench:digitalprogramm-protokoll-feedback-gate-panel',roleTarget:'ROLE_PROGRAMMSTEUERUNG',vdmiRole:'V',itemId:item.itemId,state:item.state,label:item.label,selected:item.state===selectedState,selectedItemId:'synthetic-jf-topic-001',roleQuestion:'Which supplied protocol decision or feedback item is still blocked by missing correction, owner/deadline, closure proof, committee context or rollout evidence, and what is the next safe human review gate?',sourceClass:'digitalprogramm_protokoll_feedback_selector'}))",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "vdmiRole": {
+          "type": "string"
+        },
+        "itemId": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "selected": {
+          "type": "boolean"
+        },
+        "selectedItemId": {
+          "type": "string"
+        },
+        "roleQuestion": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getDigitalprogrammProtokollFeedbackJourFixeDecisionRows",
+      "method": "GET",
+      "path": "/api/dashboard/jour-fixe-decision-closure",
+      "queryString": "tenantId={{tenantId}}&topicId=synthetic-jf-topic-001&topicTitle=Beispielhafte%20Programmentscheidung%20(synthetic)&jourFixeId=synthetic-jourfixe-2026-08&owner=synthetic-owner-programmsteuerung&kpi=synthetic-kpi-teilnahmequote&decisionCriterion=synthetic-freigabe-nach-korrektur&nextGate=synthetic-review-gate-2026-09&closureStatus=open&blockedFollowUpAction=synthetic-open-rueckfrage-fachbereich&sourceSnapshotRef=synthetic-protokoll-snapshot-ref-001&evidenceRef=synthetic-protokoll-snapshot-ref-001&caseId=smm-budibase-workbench",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const topic=data.topic||{};const ce=data.closureEvidence||{};const missing=data.missingEvidence||[];const followUps=data.positiveFollowUps||[];const coreRows=[{rowKey:'dpf_jf_topic',label:'Protokoll-Eintrag / Beschluss',value:topic.topicId||topic.topicTitle?String(topic.topicId||topic.topicTitle):'human_review_required',evidenceClass:(topic.topicId||topic.topicTitle)?'provided':'clarification'},{rowKey:'dpf_jf_decision_status',label:'Decision status',value:String(data.status||'missing'),evidenceClass:'status'},{rowKey:'dpf_jf_feedback_correction',label:'Feedback/Rueckfrage/Korrektur',value:ce.blockedFollowUpAction?String(ce.blockedFollowUpAction):'no_open_feedback_supplied',evidenceClass:ce.blockedFollowUpAction?'blocked_follow_up':'clear'},{rowKey:'dpf_jf_owner',label:'Owner',value:ce.owner?String(ce.owner):'human_review_required',evidenceClass:ce.owner?'provided':'clarification'},{rowKey:'dpf_jf_evidence_ref',label:'Evidence / Source Snapshot',value:ce.sourceSnapshotRef?String(ce.sourceSnapshotRef):'human_review_required',evidenceClass:ce.sourceSnapshotRef?'provided':'clarification'},{rowKey:'dpf_jf_closure_proof',label:'Closure proof',value:ce.closureProof?String(ce.closureProof):'human_review_required',evidenceClass:ce.closureProof?'provided':'clarification'},{rowKey:'dpf_jf_next_gate',label:'Next review gate',value:ce.nextGate?String(ce.nextGate):'human_review_required',evidenceClass:ce.nextGate?'provided':'clarification'}];const gapRows=missing.map((g)=>({rowKey:'dpf_jf_gap_'+String(g.missingDataPoint||''),label:'Gap: '+String(g.label||g.missingDataPoint||''),value:'human_review_required',evidenceClass:'clarification'}));const followRows=followUps.map((f)=>({rowKey:'dpf_jf_followup_'+String(f.missingDataPoint||''),label:'Positive follow-up: '+String(f.missingDataPoint||''),value:String(f.enablesDossierAddition||''),evidenceClass:'positive_followup'}));return coreRows.concat(gapRows,followRows).map((r)=>({...r,renderTarget:'budibase:stadtwerk-mauer-workbench:digitalprogramm-protokoll-feedback-gate-panel',roleTarget:'ROLE_PROGRAMMSTEUERUNG',vdmiRole:'D',selectedItemId:'synthetic-jf-topic-001',status:String(data.status||''),sourceClass:'digitalprogramm_protokoll_feedback_jour_fixe_decision'}))",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "evidenceClass": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "vdmiRole": {
+          "type": "string"
+        },
+        "selectedItemId": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getDigitalprogrammProtokollFeedbackOwnerDeadlineRows",
+      "method": "GET",
+      "path": "/api/dashboard/owner-deadline-evidence-gate",
+      "queryString": "tenantId={{tenantId}}&signalId=synthetic-signal-001&sourceType=synthetic-jourfixe-protokoll&processType=digital_program_governance&ownerRole=synthetic-role-it-governance&dueAt=2026-09-15&evidenceRef=synthetic-evidence-ref-001&blockedDecision=synthetic-blocked-rollout-entscheidung&linkedEntity=synthetic-jf-topic-001&caseId=smm-budibase-workbench",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const oc=data.ownerContext||{};const sc=data.signalContext||{};const gaps=data.evidenceGaps||[];const followUps=data.positiveFollowUps||[];const overdue=gaps.some((g)=>g.missingDataPoint==='overdue_deadline');const coreRows=[{rowKey:'dpf_od_owner',label:'Owner',value:oc.ownerRole?String(oc.ownerRole):'human_review_required',evidenceClass:oc.ownerRole?'provided':'clarification'},{rowKey:'dpf_od_due_date',label:'Due date',value:oc.dueAt?String(oc.dueAt):'human_review_required',evidenceClass:oc.dueAt?'provided':'clarification'},{rowKey:'dpf_od_overdue',label:'Overdue state',value:overdue?'overdue':'not_overdue',evidenceClass:overdue?'clarification':'provided'},{rowKey:'dpf_od_evidence_state',label:'Evidence gate status',value:String(data.status||'missing'),evidenceClass:'status'},{rowKey:'dpf_od_blocked_decision',label:'Blockierte Folgeentscheidung',value:sc.blockedDecision?String(sc.blockedDecision):'no_blocked_decision_supplied',evidenceClass:sc.blockedDecision?'blocked_follow_up':'clear'}];const gapRows=gaps.map((g)=>({rowKey:'dpf_od_gap_'+String(g.missingDataPoint||''),label:'Gap: '+String(g.missingDataPoint||''),value:'human_review_required',evidenceClass:'clarification'}));const followRows=followUps.map((f)=>({rowKey:'dpf_od_followup_'+String(f.missingDataPoint||''),label:'Positive follow-up: '+String(f.missingDataPoint||''),value:String(f.enablesDossierAddition||''),evidenceClass:'positive_followup'}));return coreRows.concat(gapRows,followRows).map((r)=>({...r,renderTarget:'budibase:stadtwerk-mauer-workbench:digitalprogramm-protokoll-feedback-gate-panel',roleTarget:'ROLE_FACHBEREICH, ROLE_IT_GOVERNANCE',vdmiRole:'M',selectedItemId:'synthetic-jf-topic-001',status:String(data.status||''),sourceClass:'digitalprogramm_protokoll_feedback_owner_deadline'}))",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "evidenceClass": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "vdmiRole": {
+          "type": "string"
+        },
+        "selectedItemId": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getDigitalprogrammProtokollFeedbackCommitteeWorkbookRows",
+      "method": "GET",
+      "path": "/api/dashboard/gremiencoach-workbook-readiness",
+      "queryString": "tenantId={{tenantId}}&workbookId=synthetic-workbook-001&committeeContext=synthetic-gremium-digitalprogramm&processHint=digital_program_governance&processRole=synthetic-role-programmsteuerung&caseId=smm-budibase-workbench",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const gaps=data.evidenceGapRows||[];const followUps=data.positiveFollowUpRows||[];const contextRows=(data.processContextRows||[]).map((c)=>({rowKey:'dpf_cw_'+String(c.rowId||'').replace(/[^a-zA-Z0-9]+/g,'_'),label:String(c.label||''),value:c.value&&c.value!=='missing'?String(c.value):'human_review_required',evidenceClass:c.value&&c.value!=='missing'?'provided':'clarification'}));const statusRow=[{rowKey:'dpf_cw_status',label:'Steering-artifact acceptance state (committee angle)',value:String(data.status||'missing'),evidenceClass:'status'}];const gapRows=gaps.map((g)=>({rowKey:'dpf_cw_gap_'+String(g.missingDataPoint||''),label:'Gap: '+String(g.label||g.missingDataPoint||''),value:'human_review_required',evidenceClass:'clarification'}));const followRows=followUps.map((f)=>({rowKey:'dpf_cw_followup_'+String(f.missingDataPoint||''),label:'Positive follow-up: '+String(f.missingDataPoint||''),value:String(f.enablesDossierAddition||''),evidenceClass:'positive_followup'}));return statusRow.concat(contextRows,gapRows,followRows).map((r)=>({...r,renderTarget:'budibase:stadtwerk-mauer-workbench:digitalprogramm-protokoll-feedback-gate-panel',roleTarget:'ROLE_FACHBEREICH, ROLE_IT_GOVERNANCE',vdmiRole:'M',selectedItemId:'synthetic-jf-topic-001',sourceClass:'digitalprogramm_protokoll_feedback_committee_workbook'}))",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "evidenceClass": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "vdmiRole": {
+          "type": "string"
+        },
+        "selectedItemId": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getDigitalprogrammProtokollFeedbackSteeringAcceptanceRows",
+      "method": "GET",
+      "path": "/api/dashboard/steering-artifact-acceptance-gate",
+      "queryString": "tenantId={{tenantId}}&artifactType=jour-fixe-protokoll-feedback-artifact&targetRole=ROLE_PROGRAMMSTEUERUNG&useCase=digitalprogramm-protokoll-feedback-review&escalationCriterion=synthetic-offene-rueckfrage-fachbereich&caseId=smm-budibase-workbench",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const art=data.artifact||{};const oc=data.ownerContext||{};const gaps=data.missingEvidence||[];const followUps=data.positiveFollowUps||[];const coreRows=[{rowKey:'dpf_sa_artifact',label:'Steering artifact',value:art.artifactType||art.artifactName?String(art.artifactType||art.artifactName):'human_review_required',evidenceClass:(art.artifactType||art.artifactName)?'provided':'clarification'},{rowKey:'dpf_sa_acceptance_state',label:'Steering-artifact acceptance state',value:String(data.status||'missing'),evidenceClass:'status'},{rowKey:'dpf_sa_escalation_criterion',label:'Feedback/Korrektur (escalation criterion)',value:data.escalationCriterion?String(data.escalationCriterion):'human_review_required',evidenceClass:data.escalationCriterion?'blocked_follow_up':'clarification'},{rowKey:'dpf_sa_owner',label:'Owner',value:oc.owner?String(oc.owner):'human_review_required',evidenceClass:oc.owner?'provided':'clarification'},{rowKey:'dpf_sa_rollout_decision',label:'Rollout decision / next gate',value:data.rolloutDecision?String(data.rolloutDecision):'human_review_required',evidenceClass:data.rolloutDecision?'provided':'clarification'}];const gapRows=gaps.map((g)=>({rowKey:'dpf_sa_gap_'+String(g.missingDataPoint||''),label:'Gap: '+String(g.label||g.missingDataPoint||''),value:'human_review_required',evidenceClass:'clarification'}));const followRows=followUps.map((f)=>({rowKey:'dpf_sa_followup_'+String(f.missingDataPoint||''),label:'Positive follow-up: '+String(f.missingDataPoint||''),value:String(f.enablesDossierAddition||''),evidenceClass:'positive_followup'}));return coreRows.concat(gapRows,followRows).map((r)=>({...r,renderTarget:'budibase:stadtwerk-mauer-workbench:digitalprogramm-protokoll-feedback-gate-panel',roleTarget:'ROLE_FACHBEREICH, ROLE_IT_GOVERNANCE',vdmiRole:'M',selectedItemId:'synthetic-jf-topic-001',sourceClass:'digitalprogramm_protokoll_feedback_steering_acceptance'}))",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "evidenceClass": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "vdmiRole": {
+          "type": "string"
+        },
+        "selectedItemId": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getDigitalprogrammProtokollFeedbackNoCallRows",
+      "method": "GET",
+      "path": "/api/dashboard/owner-deadline-evidence-gate",
+      "queryString": "tenantId={{tenantId}}&signalId=synthetic-signal-001&sourceType=synthetic-jourfixe-protokoll&processType=digital_program_governance&ownerRole=synthetic-role-it-governance&dueAt=2026-09-15&evidenceRef=synthetic-evidence-ref-001&blockedDecision=synthetic-blocked-rollout-entscheidung&linkedEntity=synthetic-jf-topic-001&caseId=smm-budibase-workbench",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const notCalled=((data.sourceActions||{}).notCalled)||[];const staticBoundaries=['protocol.mutate','decision.approve','decision.reject','task.create','owner.assign','workflow.execute','hitl.create','mail.send','webhook.send','teams.connector.call','sharepoint.write','calendar.create','transcript.ingest','erp.mutate','crm.mutate','mdm.mutate','mako.dispatch','billing.release','settlement.exportA96','tariff.mutate','dispatch.execute','device-control.execute','external.connector.call','budibase.table.write','personal-agent.execute'];const unique=[...new Set(notCalled.concat(staticBoundaries).map(String))];const guardRows=unique.map((action,index)=>({rowKey:'dpf_no_call_'+(index+1)+'_'+String(action).replace(/[^a-zA-Z0-9]+/g,'_'),renderTarget:'budibase:stadtwerk-mauer-workbench:digitalprogramm-protokoll-feedback-gate-panel',roleTarget:'ROLE_PROGRAMMSTEUERUNG',vdmiRole:'D',boundary:String(action),status:'not_called',disabled:true,safeAlternative:'select_synthetic_item_refresh_existing_read_only_rows_or_inspect_evidence_only',selectedItemId:'synthetic-jf-topic-001',sourceClass:'digitalprogramm_protokoll_feedback_no_call_guard'}));const informedRow=[{rowKey:'dpf_informed_management_review',renderTarget:'budibase:stadtwerk-mauer-workbench:digitalprogramm-protokoll-feedback-gate-panel',roleTarget:'ROLE_MANAGEMENT_REVIEW',vdmiRole:'I',boundary:'informed_only_no_execution',status:'informed',disabled:true,safeAlternative:'management_review_receives_next_gate_summary_only',selectedItemId:'synthetic-jf-topic-001',sourceClass:'digitalprogramm_protokoll_feedback_informed_role'}];return guardRows.concat(informedRow)",
+      "schema": {
+        "rowKey": {
+          "type": "string"
+        },
+        "renderTarget": {
+          "type": "string"
+        },
+        "roleTarget": {
+          "type": "string"
+        },
+        "vdmiRole": {
+          "type": "string"
+        },
+        "boundary": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "disabled": {
+          "type": "boolean"
+        },
+        "safeAlternative": {
+          "type": "string"
+        },
+        "selectedItemId": {
+          "type": "string"
+        },
+        "sourceClass": {
+          "type": "string"
+        }
+      }
     }
   ],
   "sections": [
@@ -15369,6 +15636,42 @@
       "title": "Netzanschluss Transparenz No-Call Guards",
       "queryName": "getNetzanschlussTransparenzNoCallRows",
       "tableTitle": "Verbotene/Nicht aufgerufene Operationen"
+    },
+    {
+      "id": "digitalprogramm_protokoll_feedback_selector",
+      "title": "Digitalprogramm Protokoll Feedback Gate -- Item Selector",
+      "queryName": "getDigitalprogrammProtokollFeedbackSelectorRows",
+      "tableTitle": "Item, State, Selected, Role Question"
+    },
+    {
+      "id": "digitalprogramm_protokoll_feedback_decision",
+      "title": "Selected Item -- Protocol Decision, Feedback & Closure",
+      "queryName": "getDigitalprogrammProtokollFeedbackJourFixeDecisionRows",
+      "tableTitle": "Topic, Decision Status, Feedback/Correction, Owner, Evidence, Closure Proof, Next Gate"
+    },
+    {
+      "id": "digitalprogramm_protokoll_feedback_owner_deadline",
+      "title": "Selected Item -- Owner/Deadline/Evidence Gate",
+      "queryName": "getDigitalprogrammProtokollFeedbackOwnerDeadlineRows",
+      "tableTitle": "Owner, Due Date, Overdue/Evidence State, Blocked Decision"
+    },
+    {
+      "id": "digitalprogramm_protokoll_feedback_committee",
+      "title": "Selected Item -- Committee/Workbook Context",
+      "queryName": "getDigitalprogrammProtokollFeedbackCommitteeWorkbookRows",
+      "tableTitle": "Committee Context, Workbook, Process Role, Evidence Profile"
+    },
+    {
+      "id": "digitalprogramm_protokoll_feedback_steering_acceptance",
+      "title": "Selected Item -- Steering-Artifact Acceptance Gate",
+      "queryName": "getDigitalprogrammProtokollFeedbackSteeringAcceptanceRows",
+      "tableTitle": "Artifact, Acceptance State, Escalation Criterion, Owner, Rollout Decision"
+    },
+    {
+      "id": "digitalprogramm_protokoll_feedback_no_call",
+      "title": "Digitalprogramm Protokoll Feedback Gate -- No-Call Guards & Informed Role",
+      "queryName": "getDigitalprogrammProtokollFeedbackNoCallRows",
+      "tableTitle": "Boundary, Status, Safe Alternative, Role"
     }
   ],
   "notes": [
@@ -15445,6 +15748,8 @@
     "Municipality Public-Context Scope Readiness rows stay scalar/generated and synthetic: Budibase renders selected municipality identity, AGS, the complete postalCodes[] scope, public-vs-derived/heuristic MaStR/OSM classification, bounded quality/observability context kept separate from municipality-specific facts, missing evidence, the canonical four-row V/D/M/I matrix with roleLegend.M = Mitwirkend, and the Blueprint-Pack/Cernion-Energy-Tools -> Landing-Registry -> Produktivseite sync chain with Landing-Registry and Produktivseite explicitly pending. A timeout or degraded source response is rendered as missing-evidence/clarification, never a negative fact, and a market-actor directory hit is never rendered as proof of municipal service or VNB assignment; no public-data correction, tenant mutation, market-actor binding, Rundeck execution, Budibase table write or Personal-Agent shortcut is introduced.",
     "Netzanschluss Transparenz Readiness Matrix panel (#530) is generated manifest composition, not a new Cernion endpoint. It composes only the existing grossspeicher-anschluss-readiness-gate, anschlusskapazitaet-evidence-queue, grid-connection-transformation-gate, fnav-fast-track-contract-gate, areal-network-integration-offer-gate, cross-domain-special-topics-queue, stadtwerk-mauer-blueprint-pack-verify and stadtwerk-mauer-transfer-readiness read models for the reused stadtwerk-mauer-grid-connection-transformation-gate-v1 Blueprint-Pack seed and synthetic case smm-netzanschluss-transparenz-review-001; no new demoProcessMatrix is introduced and the invalid /fnav-fast-track-vertragsgate route spelling is never used.",
     "Netzanschluss Transparenz Readiness Matrix rows stay scalar/generated and synthetic: Budibase renders the selected Anschlussfall and status, capacity/technical/deadline/communication evidence present or missing, the canonical four-row V/D/M/I matrix with roleLegend.M = Mitwirkend, owner/audit transfer-readiness rows, and the Blueprint-Pack/Cernion-Energy-Tools -> Landing-Registry -> Produktivseite sync chain with Landing-Registry and Produktivseite explicitly pending; no capacity reservation, connection approval/rejection, external communication, GIS/ERP/MDM/MaStR/ZNP write, MaKo, billing, settlement, tariff, dispatch, device control, workflow/HITL, Rundeck execution, arbitrary Budibase table write or Personal-Agent shortcut is introduced.",
-    "Investment Portfolio Governance Review binds to a bounded scalar portfolio table for exactly three explicitly synthetic cross-division measures (Strom, Gas, Waerme), a selected-measure selector, detail rows composed from the three investment read models (investment-committee-steering-cards, investment-data-review-queue, investment-owner-deadline-budget-gate), owner/deadline/budget-path/committee-gate rows, evidence-gap and positive-follow-up rows, and the reused canonical Blueprint-Pack verify/matrix rows for stadtwerk-mauer-investment-owner-deadline-budget-gate-v1. Governance labels are limited to review_ready, blocked_missing_evidence, budget_path_gap and needs_committee_window; there is no numeric score, rank, weighted ranking, winner selection or automatic priority, and all consequential actions stay disabled no-call rows."
+    "Investment Portfolio Governance Review binds to a bounded scalar portfolio table for exactly three explicitly synthetic cross-division measures (Strom, Gas, Waerme), a selected-measure selector, detail rows composed from the three investment read models (investment-committee-steering-cards, investment-data-review-queue, investment-owner-deadline-budget-gate), owner/deadline/budget-path/committee-gate rows, evidence-gap and positive-follow-up rows, and the reused canonical Blueprint-Pack verify/matrix rows for stadtwerk-mauer-investment-owner-deadline-budget-gate-v1. Governance labels are limited to review_ready, blocked_missing_evidence, budget_path_gap and needs_committee_window; there is no numeric score, rank, weighted ranking, winner selection or automatic priority, and all consequential actions stay disabled no-call rows.",
+    "Digitalprogramm Protokoll Feedback Gate panel (#565) is generated manifest composition over #531's docs-only evidence contract, not a new endpoint, protocol store, task system or meeting integration. It composes only the four existing read-only routes GET /api/dashboard/jour-fixe-decision-closure, GET /api/dashboard/gremiencoach-workbook-readiness, GET /api/dashboard/steering-artifact-acceptance-gate and GET /api/dashboard/owner-deadline-evidence-gate for one default-selected explicitly synthetic item (synthetic-jf-topic-001) out of exactly three bounded selector states -- feedback_or_correction_open, owner_or_deadline_evidence_gap, closure_or_committee_review_ready; no new demoProcessMatrix, Landing-Registry entry or productive cernion.de page is introduced.",
+    "Digitalprogramm Protokoll Feedback Gate rows stay scalar/display-safe and role-labeled: ROLE_PROGRAMMSTEUERUNG (V/D) drives the selector and protocol-decision/closure rows, ROLE_FACHBEREICH/ROLE_IT_GOVERNANCE (M) contributes owner/deadline, committee/workbook and steering-artifact acceptance rows, and ROLE_MANAGEMENT_REVIEW (I) appears only as an informed, disabled no-call row. Missing evidence renders as 'human_review_required' / evidenceClass 'clarification' with a positive follow-up, never automatic closure or a negative factual conclusion; protocol/document mutation, task creation, owner assignment, approval/rejection, mail/webhook, external connector and workflow/HITL execution render only as disabled not_called no-call rows."
   ]
 }
