@@ -33,3 +33,7 @@ Make budget, plan value, committed value, PSP carry-over, owner, approval state,
 ## Evidence Flow
 
 Capability Broker routes SAP Budget / PSP / Budgetueberhang / interner Auftrag / Finance Gate / Massnahmenpriorisierung / Assetnutzen prompts to `dashboard-api.sapBudgetPspGateStatus`. The Hydration Registry allowlists only this read-only action and formats a slim dossier summary with gate status, readiness, measure, PSP, budget gap, owner, finance gate, leading gap and side-effect guard.
+
+## Related
+
+For a budget-cap exception decision dossier centered on no-regret/technical/KPI exception justification and committee readiness (rather than the SAP migration/finance-gate angle above), see [investment-budget-cap-exception-governance.md](investment-budget-cap-exception-governance.md) (issue #518).

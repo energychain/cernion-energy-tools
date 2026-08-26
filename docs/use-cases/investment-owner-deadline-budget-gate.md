@@ -15,3 +15,7 @@
 ## Guards
 
 The gate never approves budgets, creates bookings, mutates investment workflows, creates HITL items, triggers MaKo/A96/billing/settlement/tariff effects, calls external connectors or adds Personal-Agent shortcuts.
+
+## Related
+
+For a PSP/budget-cap overrun decision dossier (measure/PSP reference, cap, variance, cause/effect, risk of deferral) that reuses this same read-only pattern, see [investment-budget-cap-exception-governance.md](investment-budget-cap-exception-governance.md) (issue #518).

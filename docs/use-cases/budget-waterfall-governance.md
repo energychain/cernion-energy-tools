@@ -53,3 +53,7 @@ investment workflow engine, chart renderer, legal/accounting authority claim,
 external ingestion connector, HITL queue or Personal Agent shortcut.
 
 `Capability Broker -> dashboard-api.budgetWaterfallGovernanceStatus -> Hydration Registry -> Slim Answer Dossier`
+
+## Related
+
+For a measure-level PSP/budget-cap exception decision dossier (cap, variance, cause/effect, risk of deferral, committee readiness), see [investment-budget-cap-exception-governance.md](investment-budget-cap-exception-governance.md) (issue #518).
