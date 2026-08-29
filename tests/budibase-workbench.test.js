@@ -8335,4 +8335,302 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       ])
     );
   });
+
+  it('adds the Datenpunktlisten Change-Control Gate panel from exactly the six named existing dashboard reads (#521)', () => {
+    const names = [
+      'getDatenpunktlistenChangeControlSelectorRows',
+      'getDatenpunktlistenChangeControlAlignmentRows',
+      'getDatenpunktlistenChangeControlTestCallReadinessRows',
+      'getDatenpunktlistenChangeControlKpiCockpitRows',
+      'getDatenpunktlistenChangeControlOwnerDeadlineRows',
+      'getDatenpunktlistenChangeControlVerifyRows',
+      'getDatenpunktlistenChangeControlMatrixRows',
+      'getDatenpunktlistenChangeControlTransferRows',
+      'getDatenpunktlistenChangeControlNoCallRows',
+    ];
+    const queries = manifest.queries.filter((query) => names.includes(query.name));
+    expect(queries).toHaveLength(names.length);
+    expect(new Set(queries.map((query) => query.path))).toEqual(
+      new Set([
+        '/api/dashboard/controllability-data-alignment',
+        '/api/dashboard/redispatch-participation-readiness-status',
+        '/api/dashboard/redispatch-project-controlling-kpi-cockpit',
+        '/api/dashboard/owner-deadline-evidence-gate',
+        '/api/dashboard/stadtwerk-mauer-blueprint-pack-verify',
+        '/api/dashboard/stadtwerk-mauer-transfer-readiness',
+      ])
+    );
+    expect(
+      queries
+        .filter((query) => query.path.includes('blueprint-pack-verify'))
+        .every((query) =>
+          query.queryString.includes('seedId=stadtwerk-mauer-redispatch-participation-readiness-v1')
+        )
+    ).toBe(true);
+    const transferQuery = queries.find(
+      (query) => query.name === 'getDatenpunktlistenChangeControlTransferRows'
+    );
+    expect(transferQuery.queryString).toContain(
+      'seedId=stadtwerk-mauer-redispatch-participation-readiness-v1'
+    );
+    expect(
+      manifest.sections
+        .filter((section) => section.id.startsWith('datenpunktlisten_change_control'))
+        .map((section) => section.queryName)
+    ).toEqual(expect.arrayContaining(names));
+    expect(manifest.notes.join(' ')).toContain('Datenpunktlisten Change-Control Gate panel (#521)');
+    expect(manifest.notes.join(' ')).toContain('no new datapoint-list persistence');
+    expect(manifest.notes.join(' ')).toContain('second demoProcessMatrix is introduced');
+  });
+
+  it('renders exactly three explicitly synthetic Datenpunktlisten Change-Control selector cases, never persisted', () => {
+    const selectorRows = runTransformer('getDatenpunktlistenChangeControlSelectorRows', {});
+    expectScalarRows(selectorRows);
+    expectNoRawObjectText(selectorRows);
+    expect(selectorRows).toHaveLength(3);
+    expect(new Set(selectorRows.map((row) => row.selectorCase))).toEqual(
+      new Set([
+        'existing_control_group_sufficient',
+        'data_point_version_or_control_group_clarification',
+        'test_call_evidence_or_owner_deadline_gap',
+      ])
+    );
+    expect(selectorRows.every((row) => row.dataClass === 'synthetic_tenant_seed')).toBe(true);
+    expect(selectorRows.every((row) => row.seedId === 'stadtwerk-mauer-redispatch-participation-readiness-v1')).toBe(
+      true
+    );
+    expect(selectorRows.filter((row) => row.selected === true)).toHaveLength(1);
+    expect(selectorRows.find((row) => row.selected === true).selectorCase).toBe(
+      'data_point_version_or_control_group_clarification'
+    );
+  });
+
+  it('renders scalar Datenpunktlisten Change-Control alignment, test-call readiness, KPI, owner/deadline, verify, matrix, transfer and no-call rows', () => {
+    const alignmentFixture = {
+      status: 'needs_owner_deadline',
+      checklist: {
+        checklistId: 'dpl-v2026-08-clarification-needed-synthetic',
+        assetId: 'synthetic-asset-mauer-202',
+        mastrId: 'synthetic-mastr-202',
+        assetMatch: 'matched',
+        mastrMatch: 'review_pending',
+        internalAssetMatch: null,
+      },
+      alignmentRows: [
+        { id: 'control_technology_status', value: 'steuergruppe-clarification-synthetic' },
+      ],
+      exceptionReason: 'provider assumes existing group covers new asset (unverified)',
+      safeNextGate: 'complete_alignment_evidence',
+    };
+    const testCallFixture = {
+      status: 'needs_review',
+      forecastDispatchTestProof: null,
+      remoteControlCommunicationTestEvidence: 'communication-test-success',
+      missingEvidence: [
+        { missingDataPoint: 'forecast_dispatch_test_proof', enablesDossierAddition: 'add forecast/dispatch test proof' },
+      ],
+      positiveFollowUps: [
+        { missingDataPoint: 'forecast_dispatch_test_proof', enablesDossierAddition: 'add forecast/dispatch test proof' },
+      ],
+      safeNextGate: 'resolve_redispatch_participation_evidence_gaps_first',
+    };
+    const kpiFixture = {
+      status: 'needs_project_review',
+      taskSignals: [{ owner: 'ROLE_GRID_OPERATIONS_LEAD', dueDate: '2026-09-05', decisionBlocker: 'data-point-version-clarification-pending', blockedDecision: 'Datenpunktlisten Change-Control Review' }],
+      sourceHealth: ['datasource=ready; freshness=ready; quality=review-pending'],
+      evidenceGaps: [
+        { missingDataPoint: 'data_point_version_clarification', enablesDossierAddition: 'clarify data-point-list version' },
+      ],
+    };
+    const ownerDeadlineFixture = {
+      readinessSignals: [
+        { code: 'owner', label: 'Owner', ownerRole: 'ROLE_GRID_OPERATIONS_LEAD', dueAt: '2026-09-05T12:00:00.000Z', status: 'ready', finding: null },
+        { code: 'evidence_ref', label: 'Evidence Reference', ownerRole: 'ROLE_GRID_OPERATIONS_LEAD', dueAt: '2026-09-05T12:00:00.000Z', status: 'missing', finding: 'attach the blocking evidence proof' },
+      ],
+    };
+    const verify = {
+      status: 'completed',
+      tenantId: 'stadtwerk-mauer',
+      summary: { counts: { requiredEvidence: 6, demoProcessMatrixRows: 5, forbiddenActions: 14 } },
+      nextActions: ['Render the verify read model in Budibase'],
+      data: {
+        seedId: 'stadtwerk-mauer-redispatch-participation-readiness-v1',
+        tenantId: 'stadtwerk-mauer',
+        processFamily: 'redispatch_participation_readiness',
+        controlCase: 'redispatch_participation_readiness_gate',
+        validation: { valid: true },
+        forbiddenActions: ['redispatch.dispatch', 'device-control.execute'],
+        sourceActions: { notCalled: ['rundeck.execute', 'budibase.table.write'] },
+        demoProcessMatrixSync: {
+          synced: true,
+          roleLegendM: 'Mitwirkend',
+          rowCount: 5,
+          rowCountValid: true,
+          evidenceRequirements: ['control_group', 'data_point_version'],
+          downstreamHandoff: { blueprintPack: 'complete', landingRegistry: 'pending', productiveDemoRoom: 'pending' },
+          rows: [
+            {
+              phase: '1',
+              roles: { V: 'ROLE_GRID_OPERATIONS_LEAD', D: 'ROLE_CERNION_GOVERNANCE', M: 'ROLE_ASSET_MANAGEMENT', I: 'ROLE_MANAGEMENT' },
+              evidenceRequirements: ['control_group', 'data_point_version'],
+              status: 'evidence_gap',
+              gateOutcome: 'supply_data_point_version_then_refresh',
+            },
+          ],
+        },
+      },
+    };
+    const transfer = {
+      status: 'ready_for_review',
+      transferSummaryRows: [
+        { rowKey: 'dplcc_transfer_readiness', label: 'Transfer Readiness', status: 'ready_for_review', sourceClass: 'transfer_readiness_summary' },
+      ],
+      dataClassRows: [
+        {
+          rowKey: 'synthetic_tenant_seed',
+          category: 'synthetic_seed',
+          transferState: 'replace_for_real_tenant',
+          examples: 'synthetic case id, synthetic owner',
+          productionBlocked: false,
+          safeNextAction: 'replace_with_tenant_parameters_before_onboarding',
+          sourceClass: 'transfer_data_class',
+        },
+      ],
+      safeNextGateRows: [],
+      productionBoundaryRows: [
+        { rowKey: 'redispatch_dispatch', boundary: 'redispatch.dispatch', status: 'blocked_in_transfer_readiness_slice', disabled: true, safeAlternative: 'read_or_verify_readiness_only', sourceClass: 'blocked_production_boundary' },
+      ],
+    };
+
+    for (const [name, fixture] of [
+      ['getDatenpunktlistenChangeControlAlignmentRows', alignmentFixture],
+      ['getDatenpunktlistenChangeControlTestCallReadinessRows', testCallFixture],
+      ['getDatenpunktlistenChangeControlKpiCockpitRows', kpiFixture],
+      ['getDatenpunktlistenChangeControlOwnerDeadlineRows', ownerDeadlineFixture],
+      ['getDatenpunktlistenChangeControlVerifyRows', verify],
+      ['getDatenpunktlistenChangeControlMatrixRows', verify],
+      ['getDatenpunktlistenChangeControlTransferRows', transfer],
+      ['getDatenpunktlistenChangeControlNoCallRows', verify],
+    ]) {
+      const rows = runTransformer(name, fixture);
+      expectScalarRows(rows);
+      expectNoRawObjectText(rows);
+    }
+
+    const alignmentRows = runTransformer('getDatenpunktlistenChangeControlAlignmentRows', alignmentFixture);
+    expect(alignmentRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'dplcc_alignment_version',
+          value: 'dpl-v2026-08-clarification-needed-synthetic',
+        }),
+        expect.objectContaining({
+          rowKey: 'dplcc_alignment_scope',
+          value: 'steuergruppe-clarification-synthetic / synthetic-asset-mauer-202',
+        }),
+        expect.objectContaining({
+          rowKey: 'dplcc_alignment_match',
+          value: 'matched / review_pending',
+          publicContextProvenance: 'kept_separate_not_merged',
+        }),
+        expect.objectContaining({
+          rowKey: 'dplcc_alignment_change_requirement',
+          value: 'clarification',
+        }),
+        expect.objectContaining({
+          rowKey: 'dplcc_alignment_provider_assumption',
+          evidencePointerOnly: true,
+        }),
+      ])
+    );
+    // change requirement is never derived as a numeric score or auto-approval, only the three named states
+    expect(
+      ['not_required', 'clarification', 'evidence_gap'].includes(
+        alignmentRows.find((row) => row.rowKey === 'dplcc_alignment_change_requirement').value
+      )
+    ).toBe(true);
+
+    const testCallRows = runTransformer('getDatenpunktlistenChangeControlTestCallReadinessRows', testCallFixture);
+    expect(testCallRows[0]).toEqual(
+      expect.objectContaining({
+        rowKey: 'dplcc_test_call_summary',
+        value: 'test_call_may_be_blocked_until_evidence_complete',
+      })
+    );
+    expect(testCallRows.slice(1).every((row) => row.state === 'human_review_required')).toBe(true);
+
+    const kpiRows = runTransformer('getDatenpunktlistenChangeControlKpiCockpitRows', kpiFixture);
+    expect(kpiRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ rowKey: 'dplcc_kpi_summary', owner: 'ROLE_GRID_OPERATIONS_LEAD' }),
+        expect.objectContaining({ rowKey: 'dplcc_kpi_gap_1', state: 'human_review_required' }),
+      ])
+    );
+
+    const ownerDeadlineRows = runTransformer(
+      'getDatenpunktlistenChangeControlOwnerDeadlineRows',
+      ownerDeadlineFixture
+    );
+    expect(ownerDeadlineRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ rowKey: 'dplcc_owner_deadline_owner', state: 'ready', humanReviewRequired: false }),
+        expect.objectContaining({
+          rowKey: 'dplcc_owner_deadline_evidence_ref',
+          state: 'clarification',
+          humanReviewRequired: true,
+          positiveFollowUp: 'attach the blocking evidence proof',
+        }),
+      ])
+    );
+    // missing evidence never collapses to a bare negative/blocked verdict without a positive follow-up
+    expect(
+      ownerDeadlineRows
+        .filter((row) => row.state !== 'ready')
+        .every((row) => typeof row.positiveFollowUp === 'string' && row.positiveFollowUp.length > 0)
+    ).toBe(true);
+
+    const verifyRows = runTransformer('getDatenpunktlistenChangeControlVerifyRows', verify);
+    expect(verifyRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ rowKey: 'dplcc_verify_blueprint', valid: true, matrixRowCount: 5 }),
+      ])
+    );
+
+    const matrixRows = runTransformer('getDatenpunktlistenChangeControlMatrixRows', verify);
+    expect(matrixRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ rowKey: 'dplcc_matrix_sync', m: 'Mitwirkend', rowCount: 5 }),
+        expect.objectContaining({ rowKey: 'dplcc_matrix_1', v: 'ROLE_GRID_OPERATIONS_LEAD' }),
+      ])
+    );
+
+    const transferRows = runTransformer('getDatenpunktlistenChangeControlTransferRows', transfer);
+    expect(transferRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ rowKey: 'dplcc_transfer_readiness', status: 'ready_for_review' }),
+        expect.objectContaining({ rowKey: 'redispatch_dispatch', productionBlocked: true }),
+      ])
+    );
+
+    const noCallRows = runTransformer('getDatenpunktlistenChangeControlNoCallRows', verify);
+    expect(noCallRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ boundary: 'redispatch.dispatch', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'excel.import', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'datapoint-list.write', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'asset-mdm.mutate', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'mastr.mutate', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'test-call.execute', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'mako.dispatch', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'billing.execute', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'settlement.execute', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'smgw.control', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'webhook.send', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'hitl.create', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'rundeck.execute', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'budibase.table.write', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'personal-agent.execute', status: 'not_called' }),
+      ])
+    );
+  });
 });

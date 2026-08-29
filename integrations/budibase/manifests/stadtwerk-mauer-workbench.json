@@ -13597,6 +13597,272 @@
           "type": "string"
         }
       }
+    },
+    {
+      "name": "getDatenpunktlistenChangeControlSelectorRows",
+      "method": "GET",
+      "path": "/api/dashboard/controllability-data-alignment",
+      "queryString": "tenantId={{tenantId}}&checklistId=smm-dplcc-case-002&assetId=synthetic-asset-mauer-202",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const tenantId=data.tenantId||'stadtwerk-mauer'; const cases=[{caseId:'smm-dplcc-case-001',selectorCase:'existing_control_group_sufficient',label:'Bestehende Steuergruppe ausreichend (synthetic)',assetId:'synthetic-asset-mauer-101',dataPointListVersion:'dpl-v2026-07-synthetic',controlGroupId:'steuergruppe-bestand-ost-synthetic',changeRequirement:'not_required',owner:'ROLE_ASSET_MANAGEMENT',dueAt:'2026-09-10',evidenceRef:'synthetic-evidence-ref-001',selected:false},{caseId:'smm-dplcc-case-002',selectorCase:'data_point_version_or_control_group_clarification',label:'Datenpunktversion/Steuergruppe Klaerung erforderlich (synthetic)',assetId:'synthetic-asset-mauer-202',dataPointListVersion:'dpl-v2026-08-clarification-needed-synthetic',controlGroupId:'steuergruppe-clarification-synthetic',changeRequirement:'clarification',owner:'ROLE_GRID_OPERATIONS_LEAD',dueAt:'2026-09-05',evidenceRef:'synthetic-evidence-ref-002',selected:true},{caseId:'smm-dplcc-case-003',selectorCase:'test_call_evidence_or_owner_deadline_gap',label:'Testabruf-Evidenz oder Owner/Frist-Luecke (synthetic)',assetId:'synthetic-asset-mauer-303',dataPointListVersion:'dpl-v2026-08-synthetic',controlGroupId:'steuergruppe-neu-synthetic',changeRequirement:'evidence_gap',owner:'ROLE_METERING',dueAt:'2026-09-20',evidenceRef:'synthetic-evidence-ref-003',selected:false}]; return cases.map((c,index)=>({rowKey:'dplcc_selector_'+(index+1)+'_'+c.selectorCase,renderTarget:'budibase:stadtwerk-mauer-workbench:datenpunktlisten-change-control-gate',roleTarget:'ROLE_GRID_OPERATIONS_LEAD',tenantId,caseId:c.caseId,selectorCase:c.selectorCase,label:c.label,assetId:c.assetId,dataPointListVersion:c.dataPointListVersion,controlGroupId:c.controlGroupId,changeRequirement:c.changeRequirement,owner:c.owner,dueAt:c.dueAt,evidenceRef:c.evidenceRef,seedId:'stadtwerk-mauer-redispatch-participation-readiness-v1',selected:c.selected,selectedCaseId:'smm-dplcc-case-002',roleQuestion:'Braucht dieser synthetische Redispatch-Anlagenfall wirklich eine Aenderung der Datenpunktliste oder Steuergruppe, welcher Nachweis fehlt, wer prueft ihn und welches sichere Review-Gate folgt?',dataClass:'synthetic_tenant_seed',sourceClass:'datenpunktlisten_change_control_selector'}))",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "renderTarget": { "type": "string" },
+        "roleTarget": { "type": "string" },
+        "tenantId": { "type": "string" },
+        "caseId": { "type": "string" },
+        "selectorCase": { "type": "string" },
+        "label": { "type": "string" },
+        "assetId": { "type": "string" },
+        "dataPointListVersion": { "type": "string" },
+        "controlGroupId": { "type": "string" },
+        "changeRequirement": { "type": "string" },
+        "owner": { "type": "string" },
+        "dueAt": { "type": "string" },
+        "evidenceRef": { "type": "string" },
+        "seedId": { "type": "string" },
+        "selected": { "type": "boolean" },
+        "selectedCaseId": { "type": "string" },
+        "roleQuestion": { "type": "string" },
+        "dataClass": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getDatenpunktlistenChangeControlAlignmentRows",
+      "method": "GET",
+      "path": "/api/dashboard/controllability-data-alignment",
+      "queryString": "tenantId={{tenantId}}&checklistId=dpl-v2026-08-clarification-needed-synthetic&assetId=synthetic-asset-mauer-202&mastrId=synthetic-mastr-202&assetMatch=matched&mastrMatch=review_pending&controlTechStatus=steuergruppe-clarification-synthetic&thresholdClass=above-135kw&testability=testable&owner=ROLE_GRID_OPERATIONS_LEAD&dueDate=2026-09-05&exportReadiness=pending",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const base={tenantId:data.tenantId||'stadtwerk-mauer',caseId:'smm-dplcc-case-002',seedId:'stadtwerk-mauer-redispatch-participation-readiness-v1',renderTarget:'budibase:stadtwerk-mauer-workbench:datenpunktlisten-change-control-gate',roleTarget:'ROLE_ASSET_MANAGEMENT'}; const c=data.checklist||{}; const rows=data.alignmentRows||[]; const controlRow=rows.find((r)=>r.id==='control_technology_status')||{}; const status=String(data.status||''); const changeRequirement=status==='ready_for_evidence_export'?'not_required':(status==='needs_owner_deadline'||status==='needs_alignment_evidence')?'clarification':'evidence_gap'; const version={rowKey:'dplcc_alignment_version',label:'Datenpunktlisten-Version & Quelle',value:String(c.checklistId||''),dataClass:'checklist_reference',...base}; const scope={rowKey:'dplcc_alignment_scope',label:'Steuergruppe & Anlagen-Scope',value:[String(controlRow.value||''),String(c.assetId||'')].filter(Boolean).join(' / '),dataClass:'control_group_asset_scope',...base}; const match={rowKey:'dplcc_alignment_match',label:'Asset/MaStR/Internal Match',value:[c.assetMatch,c.mastrMatch,c.internalAssetMatch].filter(Boolean).join(' / '),publicContextProvenance:'kept_separate_not_merged',dataClass:'asset_mastr_internal_match',...base}; const requirement={rowKey:'dplcc_alignment_change_requirement',label:'Aenderungsbedarf',value:changeRequirement,status,dataClass:'change_requirement',...base}; const provider={rowKey:'dplcc_alignment_provider_assumption',label:'Dienstleisterannahme (Evidence Pointer)',value:String(data.exceptionReason||'no_provider_assumption_supplied'),evidencePointerOnly:true,dataClass:'synthetic_tenant_seed',...base}; return [version,scope,match,requirement,provider]",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "label": { "type": "string" },
+        "value": { "type": "string" },
+        "status": { "type": "string" },
+        "publicContextProvenance": { "type": "string" },
+        "evidencePointerOnly": { "type": "boolean" },
+        "dataClass": { "type": "string" },
+        "tenantId": { "type": "string" },
+        "caseId": { "type": "string" },
+        "seedId": { "type": "string" },
+        "renderTarget": { "type": "string" },
+        "roleTarget": { "type": "string" }
+      }
+    },
+    {
+      "name": "getDatenpunktlistenChangeControlTestCallReadinessRows",
+      "method": "GET",
+      "path": "/api/dashboard/redispatch-participation-readiness-status",
+      "queryString": "tenantId={{tenantId}}&syntheticRedispatchAssetPortfolio=synthetic-portfolio-mauer-dplcc&installationGridLocationEvidence=mastr-and-osm-reviewed&remoteControlCommunicationTestEvidence=communication-test-success&forecastDispatchTestProof=test-dispatch-forecast-matching&readinessReviewDecision=redispatch-readiness-reviewed-by-ops-lead",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const base={tenantId:data.tenantId||'stadtwerk-mauer',caseId:'smm-dplcc-case-002',seedId:'stadtwerk-mauer-redispatch-participation-readiness-v1',renderTarget:'budibase:stadtwerk-mauer-workbench:datenpunktlisten-change-control-gate',roleTarget:'ROLE_METERING'}; const status=String(data.status||''); const testCallImpact=status==='ready_for_review'?'no_impact_expected':'test_call_may_be_blocked_until_evidence_complete'; const summary={rowKey:'dplcc_test_call_summary',label:'Erwartete Auswirkung auf Testabruf',value:testCallImpact,status,forecastDispatchTestProof:String(data.forecastDispatchTestProof||''),remoteControlCommunicationTestEvidence:String(data.remoteControlCommunicationTestEvidence||''),missingCount:(data.missingEvidence||[]).length,safeNextGate:String(data.safeNextGate||''),dataClass:'test_call_readiness_impact',...base}; const gaps=(data.positiveFollowUps||data.missingEvidence||[]).map((row,index)=>({rowKey:'dplcc_test_call_gap_'+(index+1),label:String(row.label||row.missingDataPoint||''),value:'clarification',state:'human_review_required',enablesDossierAddition:String(row.enablesDossierAddition||'supply missing synthetic test-call evidence'),dataClass:'test_call_readiness_gap',...base})); return [summary].concat(gaps)",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "label": { "type": "string" },
+        "value": { "type": "string" },
+        "status": { "type": "string" },
+        "forecastDispatchTestProof": { "type": "string" },
+        "remoteControlCommunicationTestEvidence": { "type": "string" },
+        "missingCount": { "type": "number" },
+        "safeNextGate": { "type": "string" },
+        "state": { "type": "string" },
+        "enablesDossierAddition": { "type": "string" },
+        "dataClass": { "type": "string" },
+        "tenantId": { "type": "string" },
+        "caseId": { "type": "string" },
+        "seedId": { "type": "string" },
+        "renderTarget": { "type": "string" },
+        "roleTarget": { "type": "string" }
+      }
+    },
+    {
+      "name": "getDatenpunktlistenChangeControlKpiCockpitRows",
+      "method": "GET",
+      "path": "/api/dashboard/redispatch-project-controlling-kpi-cockpit",
+      "queryString": "cockpitId=rdp-dplcc-mauer-002&gridOperatorId=SNB000000000000&period=2026-Q3&redispatchAuditId=synthetic-audit-mauer-dplcc&hasRedispatchAudit=true&datasourceHealth=ready&sourceFreshness=ready&qualityStatus=review-pending&taskId=dplcc-review-mauer&taskOwner=ROLE_GRID_OPERATIONS_LEAD&dueDate=2026-09-05&blockedDecision=Datenpunktlisten%20Change-Control%20Review&decisionBlocker=data-point-version-clarification-pending",
+      "parameters": [
+        {
+          "name": "cockpitId",
+          "default": "rdp-dplcc-mauer-002"
+        }
+      ],
+      "transformer": "const base={tenantId:data.tenantId||'stadtwerk-mauer',caseId:'smm-dplcc-case-002',seedId:'stadtwerk-mauer-redispatch-participation-readiness-v1',renderTarget:'budibase:stadtwerk-mauer-workbench:datenpunktlisten-change-control-gate',roleTarget:'ROLE_GRID_OPERATIONS_LEAD'}; const task=(data.taskSignals||[])[0]||{}; const summary={rowKey:'dplcc_kpi_summary',label:'Datenpunktlisten Change-Control Projektsteuerung',status:String(data.status||'unknown'),owner:String(task.owner||''),dueDate:String(task.dueDate||''),decisionBlocker:String(task.decisionBlocker||task.blockedDecision||''),dataSourceHealth:String((data.sourceHealth||[])[0]||''),safeNextGate:data.status==='ready_for_project_review'?'inspect_next_change_control_evidence_block':'resolve_project_controlling_kpi_gaps_first',dataClass:'kpi_cockpit_summary',...base}; const gaps=(data.evidenceGaps||[]).map((gap,index)=>({rowKey:'dplcc_kpi_gap_'+(index+1),label:'Change-Control Evidence Gap',value:String(gap.missingDataPoint||''),state:'human_review_required',owner:String(task.owner||''),enablesDossierAddition:String(gap.enablesDossierAddition||''),dataClass:'kpi_cockpit_gap',...base})); return [summary].concat(gaps)",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "label": { "type": "string" },
+        "status": { "type": "string" },
+        "value": { "type": "string" },
+        "owner": { "type": "string" },
+        "dueDate": { "type": "string" },
+        "decisionBlocker": { "type": "string" },
+        "dataSourceHealth": { "type": "string" },
+        "safeNextGate": { "type": "string" },
+        "state": { "type": "string" },
+        "enablesDossierAddition": { "type": "string" },
+        "dataClass": { "type": "string" },
+        "tenantId": { "type": "string" },
+        "caseId": { "type": "string" },
+        "seedId": { "type": "string" },
+        "renderTarget": { "type": "string" },
+        "roleTarget": { "type": "string" }
+      }
+    },
+    {
+      "name": "getDatenpunktlistenChangeControlOwnerDeadlineRows",
+      "method": "GET",
+      "path": "/api/dashboard/owner-deadline-evidence-gate",
+      "queryString": "signalId=dplcc-case-002-demo-mauer&sourceType=synthetic-demo&sourceRef=dplcc-demo-002&processType=datenpunktlisten_change_control&riskLevel=medium&ownerRole=ROLE_GRID_OPERATIONS_LEAD&dueAt=2026-09-05T12%3A00%3A00.000Z&evidenceStatus=missing&blockedDecision=Datenpunktlisten%20Change-Control%20Review&missingEvidence=data-point-version-clarification&caseId=smm-dplcc-case-002",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const base={tenantId:data.tenantId||'stadtwerk-mauer',caseId:'smm-dplcc-case-002',seedId:'stadtwerk-mauer-redispatch-participation-readiness-v1',renderTarget:'budibase:stadtwerk-mauer-workbench:datenpunktlisten-change-control-gate',roleTarget:'ROLE_GRID_OPERATIONS_LEAD'}; return (data.readinessSignals||[]).map((row)=>({rowKey:'dplcc_owner_deadline_'+String(row.code||''),label:String(row.label||''),verifyingRole:String(row.ownerRole||''),owner:String(row.ownerRole||''),dueAt:String(row.dueAt||''),state:row.status==='ready'?'ready':'clarification',humanReviewRequired:row.status!=='ready',positiveFollowUp:String(row.finding||'no gap; evidence provided'),safeNextGate:row.status==='ready'?'inspect_next_change_control_evidence_block':'resolve_owner_deadline_evidence_gap_then_refresh',dataClass:'owner_deadline_evidence',...base}))",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "label": { "type": "string" },
+        "verifyingRole": { "type": "string" },
+        "owner": { "type": "string" },
+        "dueAt": { "type": "string" },
+        "state": { "type": "string" },
+        "humanReviewRequired": { "type": "boolean" },
+        "positiveFollowUp": { "type": "string" },
+        "safeNextGate": { "type": "string" },
+        "dataClass": { "type": "string" },
+        "tenantId": { "type": "string" },
+        "caseId": { "type": "string" },
+        "seedId": { "type": "string" },
+        "renderTarget": { "type": "string" },
+        "roleTarget": { "type": "string" }
+      }
+    },
+    {
+      "name": "getDatenpunktlistenChangeControlVerifyRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-redispatch-participation-readiness-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.data||{}; const counts=(data.summary||{}).counts||{}; const v=d.validation||{}; const base={seedId:d.seedId||'stadtwerk-mauer-redispatch-participation-readiness-v1',tenantId:String(d.tenantId||data.tenantId||'stadtwerk-mauer'),caseId:'smm-dplcc-case-002',renderTarget:'budibase:stadtwerk-mauer-workbench:datenpunktlisten-change-control-gate',roleTarget:'ROLE_CERNION_GOVERNANCE',sourceClass:'datenpunktlisten_change_control_verify'}; const selection={rowKey:'dplcc_verify_selection',label:'Blueprint/Matrix Validation fuer ausgewaehlten Fall',value:'ROLE_GRID_OPERATIONS_LEAD: Ist die Steuergruppe/Datenpunktliste fuer den ausgewaehlten synthetischen Fall Blueprint-valide, welche Evidenz fehlt, welches sichere Gate folgt?',status:String(data.status||'unknown'),safeNextGate:'refresh_read_only_verify_rows',...base}; const verify={rowKey:'dplcc_verify_blueprint',label:'Blueprint-Pack Verifikation',value:[d.processFamily||'redispatch_participation_readiness',d.controlCase||'redispatch_participation_readiness_gate'].join(' / '),status:String(data.status||'unknown'),valid:Boolean(v.valid),requiredEvidenceCount:Number(counts.requiredEvidence||0),matrixRowCount:Number(counts.demoProcessMatrixRows||0),forbiddenActionCount:Number(counts.forbiddenActions||0),safeNextGate:String((data.nextActions||[])[0]||'refresh_read_only_verify_rows'),...base}; return [selection,verify]",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "label": { "type": "string" },
+        "value": { "type": "string" },
+        "status": { "type": "string" },
+        "safeNextGate": { "type": "string" },
+        "valid": { "type": "boolean" },
+        "requiredEvidenceCount": { "type": "number" },
+        "matrixRowCount": { "type": "number" },
+        "forbiddenActionCount": { "type": "number" },
+        "seedId": { "type": "string" },
+        "tenantId": { "type": "string" },
+        "caseId": { "type": "string" },
+        "renderTarget": { "type": "string" },
+        "roleTarget": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getDatenpunktlistenChangeControlMatrixRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-redispatch-participation-readiness-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.data||{}; const m=d.demoProcessMatrixSync||{}; const handoff=m.downstreamHandoff||{}; const base={seedId:d.seedId||'stadtwerk-mauer-redispatch-participation-readiness-v1',roleLegendM:String(m.roleLegendM||'Mitwirkend'),rowCount:Number(m.rowCount||0),rowCountValid:Boolean(m.rowCountValid),syncChainLabel:'Blueprint-Pack/Cernion-Energy-Tools -> Landing-Registry -> Produktivseite',renderTarget:'budibase:stadtwerk-mauer-workbench:datenpunktlisten-change-control-gate',roleTarget:'ROLE_CERNION_GOVERNANCE',sourceClass:'datenpunktlisten_change_control_matrix'}; const summary={rowKey:'dplcc_matrix_sync',phase:'sync',v:'ROLE_GRID_OPERATIONS_LEAD',d:'ROLE_CERNION_GOVERNANCE',m:base.roleLegendM,i:'ROLE_MANAGEMENT',nachweise:(m.evidenceRequirements||[]).map(String).join(', '),status:m.synced?'blueprint_pack_complete':'sync_proof_required',downstreamHandoff:[handoff.blueprintPack||'complete',handoff.landingRegistry||'pending',handoff.productiveDemoRoom||'pending'].join(' -> '),safeNextGate:'keep_landing_registry_and_productive_demo_room_blocked_until_sync_proof',...base}; const rows=(m.rows||[]).map((row,index)=>{const roles=row.roles||{}; return {rowKey:'dplcc_matrix_'+String(row.phase||index+1),phase:String(row.phase||index+1),v:String(roles.V||row.v||''),d:String(roles.D||row.d||''),m:String(roles.M||row.m||''),i:String(roles.I||row.i||''),nachweise:(row.evidenceRequirements||[]).map(String).join(', '),status:String(row.status||''),safeNextGate:String(row.gateOutcome||row.enablesDossierAddition||'refresh_read_only_matrix'),...base};}); return [summary].concat(rows)",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "phase": { "type": "string" },
+        "v": { "type": "string" },
+        "d": { "type": "string" },
+        "m": { "type": "string" },
+        "i": { "type": "string" },
+        "nachweise": { "type": "string" },
+        "status": { "type": "string" },
+        "downstreamHandoff": { "type": "string" },
+        "safeNextGate": { "type": "string" },
+        "seedId": { "type": "string" },
+        "roleLegendM": { "type": "string" },
+        "rowCount": { "type": "number" },
+        "rowCountValid": { "type": "boolean" },
+        "syncChainLabel": { "type": "string" },
+        "renderTarget": { "type": "string" },
+        "roleTarget": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getDatenpunktlistenChangeControlTransferRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-transfer-readiness",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-redispatch-participation-readiness-v1&caseId=smm-dplcc-case-002",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const rows=[...(data.transferSummaryRows||[]),...(data.dataClassRows||[]),...(data.safeNextGateRows||[]),...(data.productionBoundaryRows||[]),...(data.boundaryRows||[])]; const source=rows.length?rows:[{rowKey:'dplcc_transfer_pending',label:'Transfer readiness',status:data.status||'pending',description:'Blueprint-Pack canonical; Landing-Registry and Produktivseite sync pending'}]; return source.map((row,index)=>({rowKey:String(row.rowKey||'dplcc_transfer_'+(index+1)),label:String(row.label||row.category||'Transfer readiness'),status:String(row.status||row.transferState||data.status||'pending'),value:String(row.value||row.description||row.examples||row.boundary||row.safeNextGate||row.safety||''),dataClass:String(row.category||row.sourceClass||'transfer_readiness'),productionBlocked:Boolean(row.productionBlocked||row.disabled),safeNextGate:String(row.safeNextAction||row.safeNextGate||row.nextGate||'refresh_transfer_readiness'),renderTarget:'budibase:stadtwerk-mauer-workbench:datenpunktlisten-change-control-gate',roleTarget:'ROLE_GRID_OPERATIONS_LEAD',sourceClass:String(row.sourceClass||'datenpunktlisten_change_control_transfer')}))",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "label": { "type": "string" },
+        "status": { "type": "string" },
+        "value": { "type": "string" },
+        "dataClass": { "type": "string" },
+        "productionBlocked": { "type": "boolean" },
+        "safeNextGate": { "type": "string" },
+        "renderTarget": { "type": "string" },
+        "roleTarget": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getDatenpunktlistenChangeControlNoCallRows",
+      "method": "GET",
+      "path": "/api/dashboard/stadtwerk-mauer-blueprint-pack-verify",
+      "queryString": "tenantId={{tenantId}}&seedId=stadtwerk-mauer-redispatch-participation-readiness-v1",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const d=data.data||{}; const forbidden=Array.isArray(d.forbiddenActions)?d.forbiddenActions:[]; const notCalled=Array.isArray((d.sourceActions||{}).notCalled)?d.sourceActions.notCalled:[]; const staticBoundaries=['excel.import','datapoint-list.write','asset-mdm.mutate','mastr.mutate','cls.executeSwitching','smgw.control','device-control.execute','test-call.execute','redispatch.enroll','redispatch.dispatch','mako.dispatch','billing.execute','settlement.execute','tariff.mutate','provider.call','webhook.send','workflow.create','hitl.create','task.create','rundeck.execute','budibase.table.write','personal-agent.execute','external.connector.call']; const guardRows=[...new Set(forbidden.concat(notCalled).concat(staticBoundaries).map(String))].map((action,index)=>({rowKey:'dplcc_guard_'+String(index+1),boundary:action,status:'not_called',disabled:true,safeAlternative:'refresh_existing_read_only_datenpunktlisten_change_control_rows_or_verify_blueprint_seed',renderTarget:'budibase:stadtwerk-mauer-workbench:datenpunktlisten-change-control-gate',roleTarget:'ROLE_GRID_OPERATIONS_LEAD',sourceClass:'datenpunktlisten_change_control_no_call_guard'})); return guardRows",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "boundary": { "type": "string" },
+        "status": { "type": "string" },
+        "disabled": { "type": "boolean" },
+        "safeAlternative": { "type": "string" },
+        "renderTarget": { "type": "string" },
+        "roleTarget": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
     }
   ],
   "sections": [
@@ -15369,6 +15635,60 @@
       "title": "Netzanschluss Transparenz No-Call Guards",
       "queryName": "getNetzanschlussTransparenzNoCallRows",
       "tableTitle": "Verbotene/Nicht aufgerufene Operationen"
+    },
+    {
+      "id": "datenpunktlisten_change_control_selector",
+      "title": "Datenpunktlisten Change-Control Fallauswahl",
+      "queryName": "getDatenpunktlistenChangeControlSelectorRows",
+      "tableTitle": "Drei synthetische Faelle: Steuergruppe ausreichend, Klaerung noetig, Testabruf-/Owner-Luecke"
+    },
+    {
+      "id": "datenpunktlisten_change_control_alignment",
+      "title": "Datenpunktlisten Change-Control Version & Scope",
+      "queryName": "getDatenpunktlistenChangeControlAlignmentRows",
+      "tableTitle": "Datenpunktversion, Steuergruppe/Anlagen-Scope, Asset/MaStR-Match, Aenderungsbedarf, Dienstleisterannahme"
+    },
+    {
+      "id": "datenpunktlisten_change_control_test_call_readiness",
+      "title": "Datenpunktlisten Change-Control Testabruf-Auswirkung",
+      "queryName": "getDatenpunktlistenChangeControlTestCallReadinessRows",
+      "tableTitle": "Erwartete Auswirkung auf Testabrufe und offene Nachweise"
+    },
+    {
+      "id": "datenpunktlisten_change_control_kpi_cockpit",
+      "title": "Datenpunktlisten Change-Control Projektsteuerung/KPI",
+      "queryName": "getDatenpunktlistenChangeControlKpiCockpitRows",
+      "tableTitle": "Decision Blocker, Owner, Faelligkeit und fehlende Evidenz"
+    },
+    {
+      "id": "datenpunktlisten_change_control_owner_deadline",
+      "title": "Datenpunktlisten Change-Control Owner/Frist-Evidenz",
+      "queryName": "getDatenpunktlistenChangeControlOwnerDeadlineRows",
+      "tableTitle": "Verifizierende Rolle, Owner, Frist und positive Klaerungsschritte"
+    },
+    {
+      "id": "datenpunktlisten_change_control_verify",
+      "title": "Datenpunktlisten Change-Control Blueprint Verify",
+      "queryName": "getDatenpunktlistenChangeControlVerifyRows",
+      "tableTitle": "Ausgewaehlter Fall und Blueprint-Pack Verifikation"
+    },
+    {
+      "id": "datenpunktlisten_change_control_matrix",
+      "title": "Datenpunktlisten Change-Control Matrix",
+      "queryName": "getDatenpunktlistenChangeControlMatrixRows",
+      "tableTitle": "Phase, V/D/M/I, Nachweise und Downstream Sync"
+    },
+    {
+      "id": "datenpunktlisten_change_control_transfer",
+      "title": "Datenpunktlisten Change-Control Transfer Readiness",
+      "queryName": "getDatenpunktlistenChangeControlTransferRows",
+      "tableTitle": "Naechstes sicheres Review-Gate, Sync-Kette und Produktions-Grenzen"
+    },
+    {
+      "id": "datenpunktlisten_change_control_no_call",
+      "title": "Datenpunktlisten Change-Control No-Call Guards",
+      "queryName": "getDatenpunktlistenChangeControlNoCallRows",
+      "tableTitle": "Verbotene/Nicht aufgerufene Operationen"
     }
   ],
   "notes": [
@@ -15445,6 +15765,8 @@
     "Municipality Public-Context Scope Readiness rows stay scalar/generated and synthetic: Budibase renders selected municipality identity, AGS, the complete postalCodes[] scope, public-vs-derived/heuristic MaStR/OSM classification, bounded quality/observability context kept separate from municipality-specific facts, missing evidence, the canonical four-row V/D/M/I matrix with roleLegend.M = Mitwirkend, and the Blueprint-Pack/Cernion-Energy-Tools -> Landing-Registry -> Produktivseite sync chain with Landing-Registry and Produktivseite explicitly pending. A timeout or degraded source response is rendered as missing-evidence/clarification, never a negative fact, and a market-actor directory hit is never rendered as proof of municipal service or VNB assignment; no public-data correction, tenant mutation, market-actor binding, Rundeck execution, Budibase table write or Personal-Agent shortcut is introduced.",
     "Netzanschluss Transparenz Readiness Matrix panel (#530) is generated manifest composition, not a new Cernion endpoint. It composes only the existing grossspeicher-anschluss-readiness-gate, anschlusskapazitaet-evidence-queue, grid-connection-transformation-gate, fnav-fast-track-contract-gate, areal-network-integration-offer-gate, cross-domain-special-topics-queue, stadtwerk-mauer-blueprint-pack-verify and stadtwerk-mauer-transfer-readiness read models for the reused stadtwerk-mauer-grid-connection-transformation-gate-v1 Blueprint-Pack seed and synthetic case smm-netzanschluss-transparenz-review-001; no new demoProcessMatrix is introduced and the invalid /fnav-fast-track-vertragsgate route spelling is never used.",
     "Netzanschluss Transparenz Readiness Matrix rows stay scalar/generated and synthetic: Budibase renders the selected Anschlussfall and status, capacity/technical/deadline/communication evidence present or missing, the canonical four-row V/D/M/I matrix with roleLegend.M = Mitwirkend, owner/audit transfer-readiness rows, and the Blueprint-Pack/Cernion-Energy-Tools -> Landing-Registry -> Produktivseite sync chain with Landing-Registry and Produktivseite explicitly pending; no capacity reservation, connection approval/rejection, external communication, GIS/ERP/MDM/MaStR/ZNP write, MaKo, billing, settlement, tariff, dispatch, device control, workflow/HITL, Rundeck execution, arbitrary Budibase table write or Personal-Agent shortcut is introduced.",
-    "Investment Portfolio Governance Review binds to a bounded scalar portfolio table for exactly three explicitly synthetic cross-division measures (Strom, Gas, Waerme), a selected-measure selector, detail rows composed from the three investment read models (investment-committee-steering-cards, investment-data-review-queue, investment-owner-deadline-budget-gate), owner/deadline/budget-path/committee-gate rows, evidence-gap and positive-follow-up rows, and the reused canonical Blueprint-Pack verify/matrix rows for stadtwerk-mauer-investment-owner-deadline-budget-gate-v1. Governance labels are limited to review_ready, blocked_missing_evidence, budget_path_gap and needs_committee_window; there is no numeric score, rank, weighted ranking, winner selection or automatic priority, and all consequential actions stay disabled no-call rows."
+    "Investment Portfolio Governance Review binds to a bounded scalar portfolio table for exactly three explicitly synthetic cross-division measures (Strom, Gas, Waerme), a selected-measure selector, detail rows composed from the three investment read models (investment-committee-steering-cards, investment-data-review-queue, investment-owner-deadline-budget-gate), owner/deadline/budget-path/committee-gate rows, evidence-gap and positive-follow-up rows, and the reused canonical Blueprint-Pack verify/matrix rows for stadtwerk-mauer-investment-owner-deadline-budget-gate-v1. Governance labels are limited to review_ready, blocked_missing_evidence, budget_path_gap and needs_committee_window; there is no numeric score, rank, weighted ranking, winner selection or automatic priority, and all consequential actions stay disabled no-call rows.",
+    "Datenpunktlisten Change-Control Gate panel (#521) is generated manifest composition, not a new Cernion endpoint. It composes only the existing controllability-data-alignment, redispatch-participation-readiness-status, redispatch-project-controlling-kpi-cockpit, owner-deadline-evidence-gate, stadtwerk-mauer-blueprint-pack-verify and stadtwerk-mauer-transfer-readiness read models for the canonical stadtwerk-mauer-redispatch-participation-readiness-v1 Blueprint-Pack seed; no new datapoint-list persistence, Excel importer, Asset-MDM/MaStR mutation, Redispatch test engine or second demoProcessMatrix is introduced.",
+    "Datenpunktlisten Change-Control Gate rows stay scalar/generated and synthetic: Budibase renders exactly three explicitly synthetic selector cases (existing_control_group_sufficient, data_point_version_or_control_group_clarification, test_call_evidence_or_owner_deadline_gap), data-point-list version/source snapshot, control-group/asset-scope and Asset/MaStR/internal match with public-context provenance kept separate, a change requirement of not_required/clarification/evidence_gap, verifying role/owner/due date, a provider assumption rendered only as an evidence pointer, expected test-call readiness impact, project-controlling/KPI evidence gaps, the reused canonical V/D/M/I matrix with roleLegend.M = Mitwirkend, transfer readiness and the Blueprint-Pack/Cernion-Energy-Tools -> Landing-Registry -> Produktivseite sync chain with Landing-Registry and Produktivseite explicitly pending. Missing evidence always maps to clarification/human_review_required with a positive follow-up, never an automatic negative conclusion, approval or execution; no Excel/list import, data-point-list write, Asset-MDM/MaStR mutation, test call, Redispatch enrolment/dispatch, SMGW/CLS/device control, MaKo, billing, settlement, tariff, provider call, webhook, workflow/HITL/task creation, arbitrary Budibase table write, Personal-Agent branch or Rundeck execution is introduced."
   ]
 }
