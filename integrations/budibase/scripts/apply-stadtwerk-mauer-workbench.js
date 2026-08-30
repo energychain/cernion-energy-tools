@@ -9,6 +9,8 @@ const DEFAULT_MANIFEST = path.join(__dirname, '..', 'manifests', 'stadtwerk-maue
 function usage() {
   return `Usage:
   node integrations/budibase/scripts/apply-stadtwerk-mauer-workbench.js [--manifest <file>] [--dry-run]
+  node integrations/budibase/scripts/apply-stadtwerk-mauer-workbench.js --preflight-existing
+  node integrations/budibase/scripts/apply-stadtwerk-mauer-workbench.js --require-existing
 
 Required authentication:
   BUDIBASE_BASE_URL=http://localhost:10000
@@ -20,15 +22,38 @@ Alternative authentication for local smoke runs:
 
 Optional:
   CERNION_BASE_URL=http://172.17.0.1:3900
+
+Modes:
+  --dry-run             Static manifest validation only. No network calls.
+  --preflight-existing  Read-only catalog inspection (GET only). Prints a secret-free
+                         target-readiness receipt and exits 0 only when the manifest's
+                         application and workspace app both resolve uniquely.
+  --require-existing    Fail-closed apply. Runs the same existing-target resolution as
+                         --preflight-existing and aborts before any write if the target is
+                         missing, ambiguous or mismatched. Never creates a new application
+                         or workspace app.
+  (no mode)             Legacy create-or-update apply. May create the application and/or
+                         workspace app if no exact name match exists. Prefer
+                         --preflight-existing followed by --require-existing for unattended
+                         issue waves.
 `;
 }
 
 function parseArgs(argv) {
-  const args = { manifest: DEFAULT_MANIFEST, dryRun: false };
+  const args = {
+    manifest: DEFAULT_MANIFEST,
+    dryRun: false,
+    preflightExisting: false,
+    requireExisting: false,
+  };
   for (let i = 2; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === '--dry-run') {
       args.dryRun = true;
+    } else if (arg === '--preflight-existing') {
+      args.preflightExisting = true;
+    } else if (arg === '--require-existing') {
+      args.requireExisting = true;
     } else if (arg === '--manifest') {
       args.manifest = argv[++i];
     } else if (arg === '--help' || arg === '-h') {
@@ -36,6 +61,9 @@ function parseArgs(argv) {
     } else {
       throw new Error(`Unknown argument: ${arg}`);
     }
+  }
+  if (args.preflightExisting && args.requireExisting) {
+    throw new Error('Cannot combine --preflight-existing and --require-existing');
   }
   return args;
 }
@@ -308,6 +336,157 @@ async function ensureWorkspaceApp(client, appId, manifest) {
   });
 }
 
+function sanitizeClientError(error, boundary) {
+  const statusMatch = /\((\d{3})\)/.exec((error && error.message) || '');
+  const status = statusMatch ? statusMatch[1] : 'unknown';
+  return new Error(`Budibase catalog request failed at ${boundary} (status ${status})`);
+}
+
+function summarizeApp(app) {
+  return { appId: app.appId, name: app.name, url: app.url, status: app.status };
+}
+
+function summarizeWorkspaceApp(workspaceApp) {
+  return { id: workspaceApp._id, name: workspaceApp.name, url: workspaceApp.url };
+}
+
+async function resolveApplicationTarget(client, manifest) {
+  let apps;
+  try {
+    apps = await client.request('GET', '/api/applications?status=all');
+  } catch (error) {
+    throw sanitizeClientError(error, 'application_lookup');
+  }
+  const matches = (apps || []).filter((app) => app.name === manifest.name);
+  if (matches.length === 0) {
+    return { state: 'missing_application', matchCount: 0 };
+  }
+  if (matches.length > 1) {
+    return { state: 'ambiguous_application', matchCount: matches.length };
+  }
+  const app = matches[0];
+  if (manifest.url && app.url && app.url !== manifest.url) {
+    return { state: 'manifest_mismatch', matchCount: 1, app };
+  }
+  return { state: 'ready', matchCount: 1, app };
+}
+
+async function resolveWorkspaceAppTarget(client, appId, manifest) {
+  let response;
+  try {
+    response = await client.request('GET', '/api/workspaceApp', { appId });
+  } catch (error) {
+    throw sanitizeClientError(error, 'workspace_app_lookup');
+  }
+  const apps = response.workspaceApps || response || [];
+  const matches = apps.filter((item) => item.name === manifest.workspaceApp.name);
+  if (matches.length === 0) {
+    return { state: 'missing_workspace_app', matchCount: 0 };
+  }
+  if (matches.length > 1) {
+    return { state: 'ambiguous_workspace_app', matchCount: matches.length };
+  }
+  const workspaceApp = matches[0];
+  if (
+    manifest.workspaceApp.url &&
+    workspaceApp.url &&
+    workspaceApp.url !== manifest.workspaceApp.url
+  ) {
+    return { state: 'manifest_mismatch', matchCount: 1, workspaceApp };
+  }
+  return { state: 'ready', matchCount: 1, workspaceApp };
+}
+
+async function resolveExistingTarget(client, manifest) {
+  const appResult = await resolveApplicationTarget(client, manifest);
+  if (appResult.state !== 'ready') {
+    return {
+      targetState: appResult.state,
+      applicationMatchCount: appResult.matchCount,
+      application: appResult.app ? summarizeApp(appResult.app) : null,
+      workspaceAppMatchCount: 0,
+      workspaceApp: null,
+      resolvedApp: null,
+      resolvedWorkspaceApp: null,
+    };
+  }
+  const wsResult = await resolveWorkspaceAppTarget(client, appResult.app.appId, manifest);
+  if (wsResult.state !== 'ready') {
+    return {
+      targetState: wsResult.state,
+      applicationMatchCount: 1,
+      application: summarizeApp(appResult.app),
+      workspaceAppMatchCount: wsResult.matchCount,
+      workspaceApp: wsResult.workspaceApp ? summarizeWorkspaceApp(wsResult.workspaceApp) : null,
+      resolvedApp: appResult.app,
+      resolvedWorkspaceApp: null,
+    };
+  }
+  return {
+    targetState: 'ready_existing',
+    applicationMatchCount: 1,
+    application: summarizeApp(appResult.app),
+    workspaceAppMatchCount: 1,
+    workspaceApp: summarizeWorkspaceApp(wsResult.workspaceApp),
+    resolvedApp: appResult.app,
+    resolvedWorkspaceApp: wsResult.workspaceApp,
+  };
+}
+
+function buildReceipt(mode, manifestPath, manifest, resolution) {
+  return {
+    mode,
+    manifestPath,
+    manifestName: manifest.name,
+    screenRoute: manifest.screen.route,
+    expectedApplication: { name: manifest.name, url: manifest.url },
+    expectedWorkspaceApp: { name: manifest.workspaceApp.name, url: manifest.workspaceApp.url },
+    applicationMatchCount: resolution.applicationMatchCount,
+    application: resolution.application,
+    workspaceAppMatchCount: resolution.workspaceAppMatchCount,
+    workspaceApp: resolution.workspaceApp,
+    targetState: resolution.targetState,
+    mutationPerformed: false,
+    nextSafeGate:
+      resolution.targetState === 'ready_existing'
+        ? 'require_existing_apply'
+        : 'human_review_or_explicit_first_create',
+  };
+}
+
+async function runPreflightExisting(client, manifest, manifestPath) {
+  const resolution = await resolveExistingTarget(client, manifest);
+  return buildReceipt('preflight-existing', manifestPath, manifest, resolution);
+}
+
+async function runRequireExistingApply(client, manifest, manifestPath, cernionBaseUrl) {
+  const resolution = await resolveExistingTarget(client, manifest);
+  const receipt = buildReceipt('require-existing', manifestPath, manifest, resolution);
+  if (resolution.targetState !== 'ready_existing') {
+    return { ready: false, receipt };
+  }
+  const app = resolution.resolvedApp;
+  const workspaceApp = resolution.resolvedWorkspaceApp;
+  const datasource = await ensureDatasource(client, app.appId, manifest, cernionBaseUrl);
+  const queries = await ensureQueries(client, app.appId, manifest, datasource, cernionBaseUrl);
+  const screen = await ensureScreen(client, app.appId, manifest, workspaceApp, queries);
+  return {
+    ready: true,
+    receipt,
+    applied: {
+      app: summarizeApp(app),
+      workspaceApp: summarizeWorkspaceApp(workspaceApp),
+      datasource: { name: datasource.name, id: datasource._id, url: datasource.config?.url },
+      queries: queries.map((query) => ({
+        name: query.name,
+        id: query._id,
+        schemaFields: Object.keys(query.schema || {}),
+      })),
+      screen: { name: screen.name, id: screen._id, rev: screen._rev, route: screen.routing?.route },
+    },
+  };
+}
+
 async function ensureDatasource(client, appId, manifest, cernionBaseUrl) {
   const datasources = await client.request('GET', '/api/datasources', { appId });
   const existing = datasources.find((item) => item.name === manifest.datasource.name);
@@ -402,6 +581,27 @@ async function main() {
     await client.login({ email, password });
   }
 
+  if (args.preflightExisting) {
+    const receipt = await runPreflightExisting(client, manifest, args.manifest);
+    console.log(JSON.stringify(receipt, null, 2));
+    process.exitCode = receipt.targetState === 'ready_existing' ? 0 : 1;
+    return;
+  }
+
+  if (args.requireExisting) {
+    const outcome = await runRequireExistingApply(
+      client,
+      manifest,
+      args.manifest,
+      cernionBaseUrl
+    );
+    console.log(
+      JSON.stringify(outcome.ready ? { ...outcome.receipt, applied: outcome.applied } : outcome.receipt, null, 2)
+    );
+    process.exitCode = outcome.ready ? 0 : 1;
+    return;
+  }
+
   const app = await ensureApp(client, manifest);
   const workspaceApp = await ensureWorkspaceApp(client, app.appId, manifest);
   const datasource = await ensureDatasource(client, app.appId, manifest, cernionBaseUrl);
@@ -434,7 +634,23 @@ async function main() {
   );
 }
 
-main().catch((error) => {
-  console.error(error.message);
-  process.exit(1);
-});
+module.exports = {
+  parseArgs,
+  BudibaseClient,
+  resolveExistingTarget,
+  buildReceipt,
+  runPreflightExisting,
+  runRequireExistingApply,
+  ensureApp,
+  ensureWorkspaceApp,
+  ensureDatasource,
+  ensureQueries,
+  ensureScreen,
+};
+
+if (require.main === module) {
+  main().catch((error) => {
+    console.error(error.message);
+    process.exit(1);
+  });
+}

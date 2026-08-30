@@ -352,13 +352,51 @@ CERNION_BASE_URL=http://172.17.0.1:3900 \
 node integrations/budibase/scripts/apply-stadtwerk-mauer-workbench.js
 ```
 
-The script is idempotent for the local spike:
+This legacy no-flag mode is create-capable: it finds or creates the Budibase app, finds or
+creates the workspace app, then upserts the Cernion REST datasource, the REST queries and the
+generated screen. It may perform a Budibase First Create if no exact name match exists, so
+it must not be used unattended for issue waves that only expect an update to an existing target.
 
-1. finds or creates the Budibase app,
-2. finds or creates the workspace app,
-3. upserts the Cernion REST datasource,
-4. upserts the REST queries with explicit schemas,
-5. upserts the generated screen with query-backed table blocks.
+### Existing-Target Preflight and Fail-Closed Apply (#572)
+
+For unattended issue-wave smoke, use the update-safe flow instead of the legacy no-flag mode.
+It never creates a new application or workspace app:
+
+1. **`--preflight-existing`** — read-only. Authenticates, then only issues `GET` requests
+   against the Budibase catalog (`/api/applications`, and after exactly one application match,
+   `/api/workspaceApp`). Prints one machine-readable, secret-free receipt with `targetState`
+   (`ready_existing`, `missing_application`, `ambiguous_application`, `missing_workspace_app`,
+   `ambiguous_workspace_app` or `manifest_mismatch`) and `mutationPerformed: false`. Exits `0`
+   only when `targetState` is `ready_existing`.
+2. **`--require-existing`** — runs the identical existing-target resolution. If the target is
+   missing, ambiguous or mismatched, it exits non-zero *before* any `POST`/`PUT`/`PATCH`/`DELETE`
+   request — it never calls the create branches of `ensureApp`/`ensureWorkspaceApp`. Only when
+   the target resolves uniquely does it reuse the resolved application/workspace app to upsert
+   the datasource, queries and screen.
+3. **Read-query and presentation smoke** — after a successful `--require-existing` apply, verify
+   the panel's queries and rendered rows against the existing Workbench (see the panel-specific
+   presentation acceptance notes elsewhere in this document; this preflight/gate slice does not
+   replace panel-specific presentation acceptance).
+
+```bash
+BUDIBASE_BASE_URL=http://localhost:10000 \
+BUDIBASE_COOKIE_FILE=/path/to/budibase.cookies \
+CERNION_BASE_URL=http://172.17.0.1:3900 \
+node integrations/budibase/scripts/apply-stadtwerk-mauer-workbench.js --preflight-existing
+```
+
+```bash
+BUDIBASE_BASE_URL=http://localhost:10000 \
+BUDIBASE_COOKIE_FILE=/path/to/budibase.cookies \
+CERNION_BASE_URL=http://172.17.0.1:3900 \
+node integrations/budibase/scripts/apply-stadtwerk-mauer-workbench.js --require-existing
+```
+
+No Budibase runtime IDs are hardcoded in the manifest; `appId`/workspace-app IDs are read-only
+evidence in the receipt, resolved at run time against the environment's own catalog. The receipt
+never includes request headers, cookies, password/token values or raw Budibase response bodies.
+A missing or unreachable target is reported as a delivery blocker for human review or an explicit,
+separately authorized First Create — it is never silently created.
 
 ## Dev Loop Apply Gate
 
