@@ -13863,6 +13863,261 @@
         "roleTarget": { "type": "string" },
         "sourceClass": { "type": "string" }
       }
+    },
+    {
+      "name": "getInfrastructureDisruptionOperatingRiskSelectorRows",
+      "method": "GET",
+      "path": "/api/dashboard/communication-break-process-risk",
+      "queryString": "processDomain=infrastructure_disruption_operating_risk_selector&affectedDecision=case_selection_only&owner=ROLE_GRID_OPERATIONS_LEAD&dueDate=2026-09-08",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const tenantId=data.tenantId||'stadtwerk-mauer'; const cases=[{caseId:'smm-incident-datacenter-communication-001',selectorCase:'communication_process_impact_gap',label:'Rechenzentrums-Stoerung: Kommunikations-/Prozesswirkungs-Luecke (synthetic)',disruptionType:'datacenter_disruption',affectedProcess:'marktkommunikation_versand_mscons',ownerRole:'ROLE_GRID_OPERATIONS_LEAD',contributingRole:'ROLE_IT_OPERATIONS',informedRole:'ROLE_MANAGEMENT',dueAt:'2026-09-06',evidenceRef:'synthetic-evidence-ref-dc-001',evidenceState:'communication_process_impact_gap',selected:false},{caseId:'smm-incident-field-terminal-fallback-002',selectorCase:'fallback_evidence_review',label:'Standort-/Terminalstoerung Aussendienst: Fallback-Evidenz-Review (synthetic)',disruptionType:'field_terminal_disruption',affectedProcess:'zaehlerwechsel_dokumentation_feld',ownerRole:'ROLE_GRID_OPERATIONS_LEAD',contributingRole:'ROLE_METERING',informedRole:'ROLE_IT_OPERATIONS',dueAt:'2026-09-08',evidenceRef:'synthetic-evidence-ref-terminal-002',evidenceState:'fallback_evidence_review',selected:true},{caseId:'smm-incident-service-provider-delay-003',selectorCase:'stale_provider_completion_evidence',label:'Leitungsstoerung Ersatzstandort: veraltete Dienstleister-Abschlussevidenz (synthetic)',disruptionType:'service_provider_delay',affectedProcess:'netzleitstellen_anbindung_ersatzstandort',ownerRole:'ROLE_GRID_OPERATIONS_LEAD',contributingRole:'ROLE_IT_OPERATIONS',informedRole:'ROLE_MANAGEMENT',dueAt:'2026-09-04',evidenceRef:'synthetic-evidence-ref-provider-003',evidenceState:'stale_provider_completion_evidence',selected:false}]; return cases.map((c,index)=>({rowKey:'idor_selector_'+(index+1)+'_'+c.selectorCase,renderTarget:'budibase:stadtwerk-mauer-workbench:infrastructure-disruption-operating-risk-panel',roleTarget:c.ownerRole,tenantId,caseId:c.caseId,selectorCase:c.selectorCase,label:c.label,disruptionType:c.disruptionType,affectedProcess:c.affectedProcess,contributingRole:c.contributingRole,informedRole:c.informedRole,dueAt:c.dueAt,evidenceRef:c.evidenceRef,evidenceState:c.evidenceState,selected:c.selected,selectedCaseId:'smm-incident-field-terminal-fallback-002',roleQuestion:'Welcher der drei synthetischen Infrastruktur-Stoerungsfaelle braucht wirklich menschliche Klaerung, welche Fachprozess-, Fallback- oder Dienstleisterevidenz fehlt, wer ist Owner, und welches sichere Entstoerungs- oder Abschluss-Gate folgt?',dataClass:'synthetic_tenant_seed',sourceClass:'infrastructure_disruption_operating_risk_selector'}))",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "renderTarget": { "type": "string" },
+        "roleTarget": { "type": "string" },
+        "tenantId": { "type": "string" },
+        "caseId": { "type": "string" },
+        "selectorCase": { "type": "string" },
+        "label": { "type": "string" },
+        "disruptionType": { "type": "string" },
+        "affectedProcess": { "type": "string" },
+        "contributingRole": { "type": "string" },
+        "informedRole": { "type": "string" },
+        "dueAt": { "type": "string" },
+        "evidenceRef": { "type": "string" },
+        "evidenceState": { "type": "string" },
+        "selected": { "type": "boolean" },
+        "selectedCaseId": { "type": "string" },
+        "roleQuestion": { "type": "string" },
+        "dataClass": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getInfrastructureDisruptionOperatingRiskCaseImpactRows",
+      "method": "GET",
+      "path": "/api/dashboard/communication-break-process-risk",
+      "queryString": "processDomain=field_terminal_disruption_meter_replacement&affectedDecision=Nachbuchung%20Zaehlerwechsel-Dokumentation%20Feld&fachlicheBegleitung=ROLE_METERING&informationDuty=Betriebsrisiko-Kommunikation%20an%20Fachbereich&owner=ROLE_GRID_OPERATIONS_LEAD&deputy=ROLE_METERING&blockedDecision=Ob%20Nachbuchung%20der%20Feld-Dokumentation%20erforderlich%20ist&nextEvidencePoint=Bestaetigung%20des%20Fallback-Nachweises%20durch%20ROLE_METERING&dueDate=2026-09-08",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const p=data.process||{}; const gov=data.governanceContext||{}; const own=data.ownerContext||{}; const missing=data.missingEvidence||[]; const followUps=data.positiveFollowUps||[]; const base={renderTarget:'budibase:stadtwerk-mauer-workbench:infrastructure-disruption-operating-risk-panel',roleTarget:'ROLE_GRID_OPERATIONS_LEAD',caseId:'smm-incident-field-terminal-fallback-002',contributingRole:'ROLE_METERING',informedRole:'ROLE_IT_OPERATIONS',selectedCaseId:'smm-incident-field-terminal-fallback-002',sourceClass:'infrastructure_disruption_operating_risk_case_impact'}; const identity={rowKey:'idor_case_identity',label:'Stoerungsart & betroffener Fachprozess',value:[String(p.processDomain||'missing'),String(p.affectedDecision||'missing')].join(' / '),status:String(data.status||'unknown'),...base}; const blocked={rowKey:'idor_blocked_review',label:'Blockierte fachliche Entscheidung',value:String(p.blockedDecision||'missing'),status:p.blockedDecision?'available':'clarification',...base}; const nextEvidence={rowKey:'idor_next_evidence',label:'Naechster Evidenzpunkt',value:String(p.nextEvidencePoint||'missing'),status:p.nextEvidencePoint?'available':'clarification',...base}; const escalation={rowKey:'idor_escalation_criterion',label:'Eskalations-/Rueckzugskriterium',value:String(gov.escalationCriterion||'missing'),status:gov.escalationCriterion?'available':'clarification',...base}; const owner={rowKey:'idor_owner_deputy',label:'Owner & Vertretung',value:[String(own.owner||'missing'),String(own.deputy||'missing')].join(' / '),status:String(data.status||'unknown'),...base}; const gaps=missing.map((g,i)=>({rowKey:'idor_case_gap_'+(i+1),label:'Gap: '+String(g.label||g.missingDataPoint||''),value:'clarification',state:'human_review_required',missingDataPoint:String(g.missingDataPoint||''),enablesDossierAddition:String(g.enablesDossierAddition||''),...base})); const follow=followUps.map((f,i)=>({rowKey:'idor_case_followup_'+(i+1),label:'Positive Follow-up',value:String(f.enablesDossierAddition||''),missingDataPoint:String(f.missingDataPoint||''),state:'positive_followup',...base})); return [identity,blocked,nextEvidence,escalation,owner].concat(gaps,follow)",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "label": { "type": "string" },
+        "value": { "type": "string" },
+        "status": { "type": "string" },
+        "state": { "type": "string" },
+        "missingDataPoint": { "type": "string" },
+        "enablesDossierAddition": { "type": "string" },
+        "renderTarget": { "type": "string" },
+        "roleTarget": { "type": "string" },
+        "caseId": { "type": "string" },
+        "contributingRole": { "type": "string" },
+        "informedRole": { "type": "string" },
+        "selectedCaseId": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getInfrastructureDisruptionOperatingRiskFallbackEvidenceRows",
+      "method": "GET",
+      "path": "/api/dashboard/cross-channel-vnb-signal-queue",
+      "queryString": "signalId=smm-incident-field-terminal-fallback-002&channel=field_operations_app&sourceSystem=aussendienst-mobilterminal-monitoring&sourceRef=fallback-log-ref-terminal-002&receivedAt=2026-09-01T07%3A15%3A00.000Z&affectedProcess=field_meter_replacement_documentation&processType=field_operations&riskType=fallback_process_activation&riskSeverity=medium&ownerRole=ROLE_GRID_OPERATIONS_LEAD&dueAt=2026-09-08T12%3A00%3A00.000Z&nextDatapoint=confirm-fallback-completion-evidence&dedupeKey=field-terminal-fallback-002-dedupe",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const s=(data.normalizedSignals||[])[0]||{}; const missing=data.missingEvidence||[]; const followUps=data.positiveFollowUps||[]; const base={renderTarget:'budibase:stadtwerk-mauer-workbench:infrastructure-disruption-operating-risk-panel',roleTarget:'ROLE_GRID_OPERATIONS_LEAD',caseId:'smm-incident-field-terminal-fallback-002',selectedCaseId:'smm-incident-field-terminal-fallback-002',sourceClass:'infrastructure_disruption_operating_risk_fallback_evidence'}; const fallbackRef={rowKey:'idor_fallback_evidence_ref',label:'Fallback-/Evidenzreferenz',value:(s.evidenceRefs&&s.evidenceRefs.length)?s.evidenceRefs.join(', '):String(s.evidenceStatus||'missing'),status:s.evidenceStatus?'available':'evidence_gap',interactionClass:'inspect_fallback_evidence',...base}; const providerStatus={rowKey:'idor_provider_status',label:'Synthetischer Dienstleister-/Systemstatus',value:String(s.sourceSystem||'missing'),status:s.sourceSystem?'reported':'no_provider_status_confirmed_yet',...base}; const dedupe={rowKey:'idor_dedupe_state',label:'Kommunikations-/Dedupe-Status',value:[String(s.channel||'missing'),String(s.dedupeKey||'missing')].join(' / '),queueStatus:String(data.queueStatus||'unknown'),...base}; const ownerDue={rowKey:'idor_fallback_owner_due',label:'Owner & Faelligkeit (Fallback)',value:[String(s.ownerRole||'missing'),String(s.dueAt||'missing')].join(' / '),...base}; const gaps=missing.map((g,i)=>({rowKey:'idor_fallback_gap_'+(i+1),label:'Gap: '+String(g.missingDataPoint||''),value:'clarification',state:'human_review_required',missingDataPoint:String(g.missingDataPoint||''),enablesDossierAddition:String(g.enablesDossierAddition||''),...base})); const follow=followUps.map((f,i)=>({rowKey:'idor_fallback_followup_'+(i+1),label:'Positive Follow-up',value:String(f.enablesDossierAddition||''),state:'positive_followup',...base})); return [fallbackRef,providerStatus,dedupe,ownerDue].concat(gaps,follow)",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "label": { "type": "string" },
+        "value": { "type": "string" },
+        "status": { "type": "string" },
+        "queueStatus": { "type": "string" },
+        "interactionClass": { "type": "string" },
+        "state": { "type": "string" },
+        "missingDataPoint": { "type": "string" },
+        "enablesDossierAddition": { "type": "string" },
+        "renderTarget": { "type": "string" },
+        "roleTarget": { "type": "string" },
+        "caseId": { "type": "string" },
+        "selectedCaseId": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getInfrastructureDisruptionOperatingRiskMonitoringRows",
+      "method": "GET",
+      "path": "/api/dashboard/monitoring-non-escalation",
+      "queryString": "signalId=smm-incident-field-terminal-fallback-002&domain=field_terminal_monitoring&assetContext=aussendienst-mobilterminal-flotte&sourceName=mdm-mobile-device-monitoring&sourceCheckedAt=2026-09-01T08%3A00%3A00.000Z&novelty=known_recurring_pattern&blockingFinding=none&nextCheckAt=2026-09-02T08%3A00%3A00.000Z&owner=ROLE_IT_OPERATIONS",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const sig=data.signal||{}; const src=data.checkedSource||{}; const ab=data.absentBlocker||{}; const missing=data.missingEvidence||[]; const base={renderTarget:'budibase:stadtwerk-mauer-workbench:infrastructure-disruption-operating-risk-panel',roleTarget:'ROLE_GRID_OPERATIONS_LEAD',caseId:'smm-incident-field-terminal-fallback-002',selectedCaseId:'smm-incident-field-terminal-fallback-002',sourceClass:'infrastructure_disruption_operating_risk_monitoring'}; const summary={rowKey:'idor_monitoring_summary',label:'Monitoring/Nicht-Eskalation',value:String(data.status||'unknown'),checkedSource:String(src.sourceName||'missing'),novelty:String(sig.novelty||data.novelty||'missing'),blockerClassification:String(ab.classification||'unknown'),...base}; const gaps=missing.map((g,i)=>({rowKey:'idor_monitoring_gap_'+(i+1),label:'Gap: '+String(g.label||g.missingDataPoint||''),value:'clarification',state:'human_review_required',missingDataPoint:String(g.missingDataPoint||''),enablesDossierAddition:String(g.enablesDossierAddition||''),...base})); return [summary].concat(gaps)",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "label": { "type": "string" },
+        "value": { "type": "string" },
+        "checkedSource": { "type": "string" },
+        "novelty": { "type": "string" },
+        "blockerClassification": { "type": "string" },
+        "state": { "type": "string" },
+        "missingDataPoint": { "type": "string" },
+        "enablesDossierAddition": { "type": "string" },
+        "renderTarget": { "type": "string" },
+        "roleTarget": { "type": "string" },
+        "caseId": { "type": "string" },
+        "selectedCaseId": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getInfrastructureDisruptionOperatingRiskFreshnessRows",
+      "method": "GET",
+      "path": "/api/dashboard/evidence-freshness-guard",
+      "queryString": "signalId=smm-incident-field-terminal-fallback-002&sourceKind=field_terminal_fallback_log&sourceTimestamp=2026-08-29T09%3A00%3A00.000Z&receivedTimestamp=2026-09-01T09%3A00%3A00.000Z&processArea=field_operations&owner=ROLE_GRID_OPERATIONS_LEAD&dueDate=2026-09-08&blockedDecision=Ob%20Nachbuchung%20der%20Feld-Dokumentation%20erforderlich%20ist&escalationThresholdDays=7",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const gaps=data.evidenceGaps||data.missingEvidence||[]; const followUps=data.positiveFollowUps||[]; const base={renderTarget:'budibase:stadtwerk-mauer-workbench:infrastructure-disruption-operating-risk-panel',roleTarget:'ROLE_GRID_OPERATIONS_LEAD',caseId:'smm-incident-field-terminal-fallback-002',selectedCaseId:'smm-incident-field-terminal-fallback-002',sourceClass:'infrastructure_disruption_operating_risk_freshness'}; const summary={rowKey:'idor_freshness_summary',label:'Evidenz-Aktualitaet',value:String(data.freshnessState||'unknown'),deltaState:String(data.deltaState||'unknown'),escalationRecommended:Boolean(data.escalationRecommended),status:String(data.status||'unknown'),...base}; const gapRows=gaps.map((g,i)=>({rowKey:'idor_freshness_gap_'+(i+1),label:'Gap: '+String(g.missingDataPoint||''),value:'clarification',state:'human_review_required',missingDataPoint:String(g.missingDataPoint||''),enablesDossierAddition:String(g.enablesDossierAddition||''),...base})); const follow=followUps.map((f,i)=>({rowKey:'idor_freshness_followup_'+(i+1),label:'Positive Follow-up',value:String(f.enablesDossierAddition||''),state:'positive_followup',...base})); return [summary].concat(gapRows,follow)",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "label": { "type": "string" },
+        "value": { "type": "string" },
+        "deltaState": { "type": "string" },
+        "escalationRecommended": { "type": "boolean" },
+        "status": { "type": "string" },
+        "state": { "type": "string" },
+        "missingDataPoint": { "type": "string" },
+        "enablesDossierAddition": { "type": "string" },
+        "renderTarget": { "type": "string" },
+        "roleTarget": { "type": "string" },
+        "caseId": { "type": "string" },
+        "selectedCaseId": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getInfrastructureDisruptionOperatingRiskDeescalationGateRows",
+      "method": "GET",
+      "path": "/api/dashboard/automation-risk-gate",
+      "queryString": "processId=field-terminal-fallback-002-process&processName=Manuelle%20Fallback-Erfassung%20Zaehlerwechsel%20Feld&processClass=fallback_manual_process&runFrequency=ad_hoc&affectedDomains=messwesen%2Caussendienst&customerCommunicationImpact=none&billingImpact=low&marketCommunicationImpact=none&massDataImpact=none&testCaseCoverage=partial&edgeCaseCatalog=documented&acceptanceMethod=governance-review&monitoringSignals=present&stopCriteria=documented&processOwner=ROLE_GRID_OPERATIONS_LEAD&operationsOwner=ROLE_METERING&blockedDecision=Ob%20Nachbuchung%20der%20Feld-Dokumentation%20erforderlich%20ist&riskLevel=medium&source=field-terminal-fallback-monitor&sourceRef=job-run-2026-09-01",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const risk=data.riskContext||{}; const gaps=data.missingEvidence||data.evidenceGaps||[]; const readiness=data.readinessSignals||[]; const stop=readiness.find((r)=>r.code==='stop_criteria')||{}; const rollback=readiness.find((r)=>r.code==='rollback_path')||{}; const base={renderTarget:'budibase:stadtwerk-mauer-workbench:infrastructure-disruption-operating-risk-panel',roleTarget:'ROLE_GRID_OPERATIONS_LEAD',caseId:'smm-incident-field-terminal-fallback-002',selectedCaseId:'smm-incident-field-terminal-fallback-002',sourceClass:'infrastructure_disruption_operating_risk_deescalation_gate'}; const summary={rowKey:'idor_deescalation_summary',label:'Naechstes sicheres Entstoerungs-/Abschluss-Gate',value:String(data.status||'unknown'),riskLevel:String(risk.riskLevel||'unknown'),stopCriterion:String(stop.rawStatus||'missing'),rollbackPath:String(rollback.rawStatus||'missing'),...base}; const gapRows=gaps.map((g,i)=>({rowKey:'idor_deescalation_gap_'+(i+1),label:'Gap: '+String(g.missingDataPoint||''),value:'clarification',state:'human_review_required',missingDataPoint:String(g.missingDataPoint||''),enablesDossierAddition:String(g.enablesDossierAddition||''),...base})); return [summary].concat(gapRows)",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "label": { "type": "string" },
+        "value": { "type": "string" },
+        "riskLevel": { "type": "string" },
+        "stopCriterion": { "type": "string" },
+        "rollbackPath": { "type": "string" },
+        "state": { "type": "string" },
+        "missingDataPoint": { "type": "string" },
+        "enablesDossierAddition": { "type": "string" },
+        "renderTarget": { "type": "string" },
+        "roleTarget": { "type": "string" },
+        "caseId": { "type": "string" },
+        "selectedCaseId": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getInfrastructureDisruptionOperatingRiskOwnerDeadlineRows",
+      "method": "GET",
+      "path": "/api/dashboard/owner-deadline-evidence-gate",
+      "queryString": "signalId=smm-incident-field-terminal-fallback-002&sourceType=synthetic-demo&sourceRef=field-terminal-fallback-002-evidence&processType=infrastructure_disruption_operating_risk&riskLevel=medium&ownerRole=ROLE_GRID_OPERATIONS_LEAD&dueAt=2026-09-08T12%3A00%3A00.000Z&blockedDecision=Ob%20Nachbuchung%20der%20Feld-Dokumentation%20erforderlich%20ist&linkedEntity=field_meter_replacement_documentation&caseId=smm-incident-field-terminal-fallback-002",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const oc=data.ownerContext||{}; const sc=data.signalContext||{}; const gaps=data.missingEvidence||data.evidenceGaps||[]; const followUps=data.positiveFollowUps||[]; const base={renderTarget:'budibase:stadtwerk-mauer-workbench:infrastructure-disruption-operating-risk-panel',roleTarget:'ROLE_GRID_OPERATIONS_LEAD',caseId:'smm-incident-field-terminal-fallback-002',selectedCaseId:'smm-incident-field-terminal-fallback-002',sourceClass:'infrastructure_disruption_operating_risk_owner_deadline'}; const summary={rowKey:'idor_owner_deadline_summary',label:'Owner & Frist (Klaerung)',value:[String(oc.ownerRole||'missing'),String(oc.dueAt||'missing')].join(' / '),status:String(data.status||'unknown'),blockedDecision:String(sc.blockedDecision||'missing'),interactionClass:'open_owner_clarification',...base}; const gapRows=gaps.map((g,i)=>({rowKey:'idor_owner_deadline_gap_'+(i+1),label:'Gap: '+String(g.missingDataPoint||''),value:'clarification',state:'human_review_required',missingDataPoint:String(g.missingDataPoint||''),enablesDossierAddition:String(g.enablesDossierAddition||''),...base})); const follow=followUps.map((f,i)=>({rowKey:'idor_owner_deadline_followup_'+(i+1),label:'Positive Follow-up',value:String(f.enablesDossierAddition||''),state:'positive_followup',...base})); return [summary].concat(gapRows,follow)",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "label": { "type": "string" },
+        "value": { "type": "string" },
+        "status": { "type": "string" },
+        "blockedDecision": { "type": "string" },
+        "interactionClass": { "type": "string" },
+        "state": { "type": "string" },
+        "missingDataPoint": { "type": "string" },
+        "enablesDossierAddition": { "type": "string" },
+        "renderTarget": { "type": "string" },
+        "roleTarget": { "type": "string" },
+        "caseId": { "type": "string" },
+        "selectedCaseId": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getInfrastructureDisruptionOperatingRiskInteractionRows",
+      "method": "GET",
+      "path": "/api/dashboard/owner-deadline-evidence-gate",
+      "queryString": "signalId=smm-incident-field-terminal-fallback-002&sourceType=synthetic-demo&sourceRef=field-terminal-fallback-002-evidence&processType=infrastructure_disruption_operating_risk&riskLevel=medium&ownerRole=ROLE_GRID_OPERATIONS_LEAD&dueAt=2026-09-08T12%3A00%3A00.000Z&blockedDecision=Ob%20Nachbuchung%20der%20Feld-Dokumentation%20erforderlich%20ist&linkedEntity=field_meter_replacement_documentation&caseId=smm-incident-field-terminal-fallback-002",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const interactions=[{code:'select_synthetic_case',label:'Einen von genau drei synthetischen Stoerungsfaellen auswaehlen',enabled:true},{code:'refresh_read_models',label:'Die sechs read-only Dashboard-Lesemodelle aktualisieren',enabled:true},{code:'inspect_fallback_evidence',label:'Fallback-/Evidenzreferenz des ausgewaehlten Falls pruefen',enabled:true},{code:'open_owner_clarification',label:'Owner-Klaerung oeffnen (nur Anzeige-/Navigationshinweis, keine Task-Erstellung)',enabled:true}]; return interactions.map((it,i)=>({rowKey:'idor_interaction_'+(i+1)+'_'+it.code,renderTarget:'budibase:stadtwerk-mauer-workbench:infrastructure-disruption-operating-risk-panel',roleTarget:'ROLE_GRID_OPERATIONS_LEAD',caseId:'smm-incident-field-terminal-fallback-002',selectedCaseId:'smm-incident-field-terminal-fallback-002',interactionClass:it.code,label:it.label,enabled:it.enabled,sourceClass:'infrastructure_disruption_operating_risk_interaction'}))",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "renderTarget": { "type": "string" },
+        "roleTarget": { "type": "string" },
+        "caseId": { "type": "string" },
+        "selectedCaseId": { "type": "string" },
+        "interactionClass": { "type": "string" },
+        "label": { "type": "string" },
+        "enabled": { "type": "boolean" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getInfrastructureDisruptionOperatingRiskNoCallRows",
+      "method": "GET",
+      "path": "/api/dashboard/communication-break-process-risk",
+      "queryString": "processDomain=field_terminal_disruption_meter_replacement&affectedDecision=Nachbuchung%20Zaehlerwechsel-Dokumentation%20Feld&fachlicheBegleitung=ROLE_METERING&informationDuty=Betriebsrisiko-Kommunikation%20an%20Fachbereich&owner=ROLE_GRID_OPERATIONS_LEAD&deputy=ROLE_METERING&blockedDecision=Ob%20Nachbuchung%20der%20Feld-Dokumentation%20erforderlich%20ist&nextEvidencePoint=Bestaetigung%20des%20Fallback-Nachweises%20durch%20ROLE_METERING&dueDate=2026-09-08",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const notCalled=((data.sourceActions||{}).notCalled)||[]; const fallback=['incident.create','ticket.create','task.create','pager.escalate','alerting.escalate','owner.assign','provider.call','mail.send','webhook.emit','workflow.execute','hitl.create','log.directAccess','monitoring.mutate','budibase.table.write','rundeck.execute','mako.dispatch','billing.release','settlement.exportA96','tariff.mutate','redispatch.dispatch','device-control.execute','external.connector.call','personal-agent.execute']; const unique=[...new Set(notCalled.concat(fallback))]; return unique.map((action,index)=>({rowKey:'idor_no_call_'+(index+1)+'_'+String(action).replace(/[^a-zA-Z0-9]+/g,'_'),renderTarget:'budibase:stadtwerk-mauer-workbench:infrastructure-disruption-operating-risk-panel',roleTarget:'ROLE_GRID_OPERATIONS_LEAD',boundary:String(action),status:'not_called',disabled:true,safeAlternative:'render_existing_read_only_infrastructure_disruption_operating_risk_rows_only',sourceClass:'infrastructure_disruption_operating_risk_no_call_guard'}))",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "renderTarget": { "type": "string" },
+        "roleTarget": { "type": "string" },
+        "boundary": { "type": "string" },
+        "status": { "type": "string" },
+        "disabled": { "type": "boolean" },
+        "safeAlternative": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
     }
   ],
   "sections": [
@@ -15689,6 +15944,60 @@
       "title": "Datenpunktlisten Change-Control No-Call Guards",
       "queryName": "getDatenpunktlistenChangeControlNoCallRows",
       "tableTitle": "Verbotene/Nicht aufgerufene Operationen"
+    },
+    {
+      "id": "infrastructure_disruption_operating_risk_selector",
+      "title": "Infrastruktur-Stoerung Betriebsrisiko Fallauswahl",
+      "queryName": "getInfrastructureDisruptionOperatingRiskSelectorRows",
+      "tableTitle": "Drei synthetische Faelle: Kommunikations-/Prozesswirkungs-Luecke, Fallback-Evidenz-Review, veraltete Dienstleister-Abschlussevidenz"
+    },
+    {
+      "id": "infrastructure_disruption_operating_risk_case_impact",
+      "title": "Infrastruktur-Stoerung Betriebsrisiko Fachprozesswirkung",
+      "queryName": "getInfrastructureDisruptionOperatingRiskCaseImpactRows",
+      "tableTitle": "Stoerungsart, betroffener Fachprozess, blockierte Entscheidung, Eskalationskriterium und Owner/Vertretung"
+    },
+    {
+      "id": "infrastructure_disruption_operating_risk_fallback_evidence",
+      "title": "Infrastruktur-Stoerung Betriebsrisiko Fallback-Evidenz",
+      "queryName": "getInfrastructureDisruptionOperatingRiskFallbackEvidenceRows",
+      "tableTitle": "Fallback-/Evidenzreferenz, synthetischer Dienstleister-/Systemstatus und Kommunikations-/Dedupe-Status"
+    },
+    {
+      "id": "infrastructure_disruption_operating_risk_monitoring",
+      "title": "Infrastruktur-Stoerung Betriebsrisiko Monitoring/Nicht-Eskalation",
+      "queryName": "getInfrastructureDisruptionOperatingRiskMonitoringRows",
+      "tableTitle": "Geprueftes Monitoring, Neuheit und dokumentiert abwesender Blocker"
+    },
+    {
+      "id": "infrastructure_disruption_operating_risk_freshness",
+      "title": "Infrastruktur-Stoerung Betriebsrisiko Evidenz-Aktualitaet",
+      "queryName": "getInfrastructureDisruptionOperatingRiskFreshnessRows",
+      "tableTitle": "Freshness-/Delta-Status und fehlende Evidenz, ohne automatische Eskalation"
+    },
+    {
+      "id": "infrastructure_disruption_operating_risk_deescalation_gate",
+      "title": "Infrastruktur-Stoerung Betriebsrisiko Entstoerungs-/Abschluss-Gate",
+      "queryName": "getInfrastructureDisruptionOperatingRiskDeescalationGateRows",
+      "tableTitle": "Naechstes sicheres Review-Gate, Stopp-/Rollback-Kriterium"
+    },
+    {
+      "id": "infrastructure_disruption_operating_risk_owner_deadline",
+      "title": "Infrastruktur-Stoerung Betriebsrisiko Owner/Frist",
+      "queryName": "getInfrastructureDisruptionOperatingRiskOwnerDeadlineRows",
+      "tableTitle": "Verifizierende Rolle, Owner, Frist und positive Klaerungsschritte"
+    },
+    {
+      "id": "infrastructure_disruption_operating_risk_interactions",
+      "title": "Infrastruktur-Stoerung Betriebsrisiko Interaktionen",
+      "queryName": "getInfrastructureDisruptionOperatingRiskInteractionRows",
+      "tableTitle": "Erlaubte Interaktionsklassen: Fallauswahl, Aktualisierung, Fallback-Evidenz-Pruefung, Owner-Klaerung"
+    },
+    {
+      "id": "infrastructure_disruption_operating_risk_no_call",
+      "title": "Infrastruktur-Stoerung Betriebsrisiko No-Call Guards",
+      "queryName": "getInfrastructureDisruptionOperatingRiskNoCallRows",
+      "tableTitle": "Verbotene/Nicht aufgerufene Operationen"
     }
   ],
   "notes": [
@@ -15767,6 +16076,8 @@
     "Netzanschluss Transparenz Readiness Matrix rows stay scalar/generated and synthetic: Budibase renders the selected Anschlussfall and status, capacity/technical/deadline/communication evidence present or missing, the canonical four-row V/D/M/I matrix with roleLegend.M = Mitwirkend, owner/audit transfer-readiness rows, and the Blueprint-Pack/Cernion-Energy-Tools -> Landing-Registry -> Produktivseite sync chain with Landing-Registry and Produktivseite explicitly pending; no capacity reservation, connection approval/rejection, external communication, GIS/ERP/MDM/MaStR/ZNP write, MaKo, billing, settlement, tariff, dispatch, device control, workflow/HITL, Rundeck execution, arbitrary Budibase table write or Personal-Agent shortcut is introduced.",
     "Investment Portfolio Governance Review binds to a bounded scalar portfolio table for exactly three explicitly synthetic cross-division measures (Strom, Gas, Waerme), a selected-measure selector, detail rows composed from the three investment read models (investment-committee-steering-cards, investment-data-review-queue, investment-owner-deadline-budget-gate), owner/deadline/budget-path/committee-gate rows, evidence-gap and positive-follow-up rows, and the reused canonical Blueprint-Pack verify/matrix rows for stadtwerk-mauer-investment-owner-deadline-budget-gate-v1. Governance labels are limited to review_ready, blocked_missing_evidence, budget_path_gap and needs_committee_window; there is no numeric score, rank, weighted ranking, winner selection or automatic priority, and all consequential actions stay disabled no-call rows.",
     "Datenpunktlisten Change-Control Gate panel (#521) is generated manifest composition, not a new Cernion endpoint. It composes only the existing controllability-data-alignment, redispatch-participation-readiness-status, redispatch-project-controlling-kpi-cockpit, owner-deadline-evidence-gate, stadtwerk-mauer-blueprint-pack-verify and stadtwerk-mauer-transfer-readiness read models for the canonical stadtwerk-mauer-redispatch-participation-readiness-v1 Blueprint-Pack seed; no new datapoint-list persistence, Excel importer, Asset-MDM/MaStR mutation, Redispatch test engine or second demoProcessMatrix is introduced.",
-    "Datenpunktlisten Change-Control Gate rows stay scalar/generated and synthetic: Budibase renders exactly three explicitly synthetic selector cases (existing_control_group_sufficient, data_point_version_or_control_group_clarification, test_call_evidence_or_owner_deadline_gap), data-point-list version/source snapshot, control-group/asset-scope and Asset/MaStR/internal match with public-context provenance kept separate, a change requirement of not_required/clarification/evidence_gap, verifying role/owner/due date, a provider assumption rendered only as an evidence pointer, expected test-call readiness impact, project-controlling/KPI evidence gaps, the reused canonical V/D/M/I matrix with roleLegend.M = Mitwirkend, transfer readiness and the Blueprint-Pack/Cernion-Energy-Tools -> Landing-Registry -> Produktivseite sync chain with Landing-Registry and Produktivseite explicitly pending. Missing evidence always maps to clarification/human_review_required with a positive follow-up, never an automatic negative conclusion, approval or execution; no Excel/list import, data-point-list write, Asset-MDM/MaStR mutation, test call, Redispatch enrolment/dispatch, SMGW/CLS/device control, MaKo, billing, settlement, tariff, provider call, webhook, workflow/HITL/task creation, arbitrary Budibase table write, Personal-Agent branch or Rundeck execution is introduced."
+    "Datenpunktlisten Change-Control Gate rows stay scalar/generated and synthetic: Budibase renders exactly three explicitly synthetic selector cases (existing_control_group_sufficient, data_point_version_or_control_group_clarification, test_call_evidence_or_owner_deadline_gap), data-point-list version/source snapshot, control-group/asset-scope and Asset/MaStR/internal match with public-context provenance kept separate, a change requirement of not_required/clarification/evidence_gap, verifying role/owner/due date, a provider assumption rendered only as an evidence pointer, expected test-call readiness impact, project-controlling/KPI evidence gaps, the reused canonical V/D/M/I matrix with roleLegend.M = Mitwirkend, transfer readiness and the Blueprint-Pack/Cernion-Energy-Tools -> Landing-Registry -> Produktivseite sync chain with Landing-Registry and Produktivseite explicitly pending. Missing evidence always maps to clarification/human_review_required with a positive follow-up, never an automatic negative conclusion, approval or execution; no Excel/list import, data-point-list write, Asset-MDM/MaStR mutation, test call, Redispatch enrolment/dispatch, SMGW/CLS/device control, MaKo, billing, settlement, tariff, provider call, webhook, workflow/HITL/task creation, arbitrary Budibase table write, Personal-Agent branch or Rundeck execution is introduced.",
+    "Infrastructure Disruption Operating Risk panel (#527) is generated manifest composition, not a new Cernion endpoint, ITSM/ticket system or Personal-Agent branch. It composes only the existing communication-break-process-risk, cross-channel-vnb-signal-queue, monitoring-non-escalation, evidence-freshness-guard, automation-risk-gate and owner-deadline-evidence-gate read models for exactly three explicitly synthetic disruption cases (smm-incident-datacenter-communication-001, smm-incident-field-terminal-fallback-002 default-selected, smm-incident-service-provider-delay-003); no Blueprint-Pack seed, demoProcessMatrix, Landing-Registry item or productive page is created for this internal panel.",
+    "Infrastructure Disruption Operating Risk rows stay scalar/generated and synthetic: Budibase renders the three-case selector with distinct evidence states (communication/process-impact gap, fallback-evidence review, stale provider/completion evidence), fachliche Prozesswirkung/blockierte Entscheidung/Eskalationskriterium, Fallback-/Evidenzreferenz and synthetic Dienstleister-/Systemstatus, Monitoring/Nicht-Eskalation, Evidenz-Aktualitaet ohne automatische Eskalation, ein sicheres Entstoerungs-/Abschluss-Gate, Owner/Frist-Evidenz, and exactly four enabled interaction classes (select_synthetic_case, refresh_read_models, inspect_fallback_evidence, open_owner_clarification as display/navigation hint only). Missing or stale evidence always maps to clarification/human_review_required with a positive follow-up, never an inferred real outage, provider failure, recovery or automatic closure; incident/ticket/task creation, pager/escalation, owner assignment, provider calls, mail/webhook, workflow/HITL, direct log access, monitoring mutation, arbitrary Budibase table writes, direct Rundeck execution, MaKo, billing, settlement, tariff, dispatch and device control render only as disabled not_called no-call rows."
   ]
 }
