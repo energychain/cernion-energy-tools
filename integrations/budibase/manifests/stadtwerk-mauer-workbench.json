@@ -13863,6 +13863,253 @@
         "roleTarget": { "type": "string" },
         "sourceClass": { "type": "string" }
       }
+    },
+    {
+      "name": "getVersandbatchCompletionEvidenceSelectorRows",
+      "method": "GET",
+      "path": "/api/dashboard/cross-channel-vnb-signal-queue",
+      "queryString": "tenantId={{tenantId}}&signalId=vsb-case-002&channel=manual_email_workaround&sourceSystem=synthetic-demo&sourceRef=vsb-demo-002&affectedProcess=versandbatch_completion_evidence&processType=versandbatch_completion_evidence&riskType=manual_handover_gap&riskSeverity=medium&ownerRole=ROLE_PROCESS_OWNER&dueAt=2026-09-05T12%3A00%3A00.000Z&evidenceStatus=missing&nextDatapoint=manual-handover-confirmation&dedupeKey=vsb-demo-002%3Amanual-handover&status=open",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const cases=[{batchId:'vsb-case-001',selectorCase:'release_ready_receipt_missing',label:'Freigabe bereit, Abschlussnachweis fehlt (synthetic)',caseGroup:'redispatch_dispatch_note_batch',documentVersion:'doc-v2026-08-final',releaseEvidenceStatus:'ready',channel:'e-invoice-portal',sourceRef:'vsb-demo-001',shipmentStatusReference:'dispatched_caller_supplied',manualHandoverState:'not_required',ownerRole:'ROLE_MARKET_OPERATIONS',dueAt:'2026-09-08',evidenceStatus:'partial',completionEvidenceRef:'missing',selected:false},{batchId:'vsb-case-002',selectorCase:'manual_handover_owner_due_gap',label:'Manuelle Uebernahme / Owner-Frist-Luecke (synthetic)',caseGroup:'netzkunden_abrechnung_manual_workaround',documentVersion:'doc-v2026-08-manual-workaround',releaseEvidenceStatus:'clarification',channel:'manual_email_workaround',sourceRef:'vsb-demo-002',shipmentStatusReference:'manual_handover_pending',manualHandoverState:'pending',ownerRole:'ROLE_PROCESS_OWNER',dueAt:'2026-09-05',evidenceStatus:'missing',completionEvidenceRef:'missing',selected:true},{batchId:'vsb-case-003',selectorCase:'return_or_completion_evidence_stale',label:'Ruecklaeufer / Abschlussnachweis veraltet (synthetic)',caseGroup:'redispatch_customer_service_return',documentVersion:'doc-v2026-07-stale',releaseEvidenceStatus:'ready',channel:'postal_return_scan',sourceRef:'vsb-demo-003',shipmentStatusReference:'returned_undeliverable_caller_supplied',manualHandoverState:'not_required',ownerRole:'ROLE_MARKET_OPERATIONS',dueAt:'2026-08-20',evidenceStatus:'stale',completionEvidenceRef:'synthetic-evidence-ref-003-stale',selected:false}]; return cases.map((c,index)=>({rowKey:'vsb_selector_'+(index+1)+'_'+c.selectorCase,renderTarget:'budibase:stadtwerk-mauer-workbench:versandbatch-completion-evidence-review',roleTarget:'ROLE_PROCESS_OWNER',batchId:c.batchId,selectorCase:c.selectorCase,label:c.label,caseGroup:c.caseGroup,documentVersion:c.documentVersion,releaseEvidenceStatus:c.releaseEvidenceStatus,channel:c.channel,sourceRef:c.sourceRef,shipmentStatusReference:c.shipmentStatusReference,manualHandoverState:c.manualHandoverState,ownerRole:c.ownerRole,dueAt:c.dueAt,evidenceStatus:c.evidenceStatus,completionEvidenceRef:c.completionEvidenceRef,selected:c.selected,selectedBatchId:'vsb-case-002',roleQuestion:'Ist der ausgewaehlte synthetische Versandbatch anhand von Dokumentenstand, Freigabe, Kanal-/Statusreferenz, Ruecklaeufer, Owner/Frist und Abschlussnachweis pruefbar abgeschlossen - oder welche positive menschliche Klaerung ist als Naechstes noetig?',dataClass:'synthetic_tenant_seed',sourceClass:'versandbatch_completion_evidence_selector'}))",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "renderTarget": { "type": "string" },
+        "roleTarget": { "type": "string" },
+        "batchId": { "type": "string" },
+        "selectorCase": { "type": "string" },
+        "label": { "type": "string" },
+        "caseGroup": { "type": "string" },
+        "documentVersion": { "type": "string" },
+        "releaseEvidenceStatus": { "type": "string" },
+        "channel": { "type": "string" },
+        "sourceRef": { "type": "string" },
+        "shipmentStatusReference": { "type": "string" },
+        "manualHandoverState": { "type": "string" },
+        "ownerRole": { "type": "string" },
+        "dueAt": { "type": "string" },
+        "evidenceStatus": { "type": "string" },
+        "completionEvidenceRef": { "type": "string" },
+        "selected": { "type": "boolean" },
+        "selectedBatchId": { "type": "string" },
+        "roleQuestion": { "type": "string" },
+        "dataClass": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
+    },
+    {
+      "name": "getVersandbatchCompletionEvidenceDocumentChannelRows",
+      "method": "GET",
+      "path": "/api/dashboard/cross-channel-vnb-signal-queue",
+      "queryString": "tenantId={{tenantId}}&signalId=vsb-case-002&channel=manual_email_workaround&sourceSystem=synthetic-demo&sourceRef=vsb-demo-002&affectedProcess=versandbatch_completion_evidence&processType=versandbatch_completion_evidence&riskType=manual_handover_gap&riskSeverity=medium&ownerRole=ROLE_PROCESS_OWNER&dueAt=2026-09-05T12%3A00%3A00.000Z&evidenceStatus=missing&nextDatapoint=manual-handover-confirmation&dedupeKey=vsb-demo-002%3Amanual-handover&status=open",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const signal=(data.normalizedSignals||[])[0]||{}; const base={batchId:'vsb-case-002',caseGroup:'netzkunden_abrechnung_manual_workaround',renderTarget:'budibase:stadtwerk-mauer-workbench:versandbatch-completion-evidence-review',roleTarget:'ROLE_MARKET_OPERATIONS'}; const identity={rowKey:'vsb_batch_identity',label:'Batch/Fallgruppen-ID',value:base.batchId+' / '+base.caseGroup,dataClass:'synthetic_tenant_seed',sourceClass:'versandbatch_completion_evidence_source_class',...base}; const release={rowKey:'vsb_document_release',label:'Dokumentenstand & Freigabe',value:'doc-v2026-08-manual-workaround / clarification',dataClass:'versandbatch_completion_evidence_document',...base}; const channelStatus={rowKey:'vsb_channel_status',label:'Versandkanal & Statusreferenz',value:(signal.channel||'manual_email_workaround')+' / '+(signal.status||'unknown'),evidenceCaveat:'caller_supplied_not_verified_delivery_fact',dataClass:'versandbatch_completion_evidence_channel_status',...base}; return [identity,release,channelStatus]",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "label": { "type": "string" },
+        "value": { "type": "string" },
+        "evidenceCaveat": { "type": "string" },
+        "dataClass": { "type": "string" },
+        "sourceClass": { "type": "string" },
+        "batchId": { "type": "string" },
+        "caseGroup": { "type": "string" },
+        "renderTarget": { "type": "string" },
+        "roleTarget": { "type": "string" }
+      }
+    },
+    {
+      "name": "getVersandbatchCompletionEvidenceManualHandoverRows",
+      "method": "GET",
+      "path": "/api/dashboard/owner-deadline-evidence-gate",
+      "queryString": "signalId=vsb-case-002-demo-mauer&sourceType=synthetic-demo&sourceRef=vsb-demo-002&processType=versandbatch_completion_evidence&riskLevel=medium&ownerRole=ROLE_PROCESS_OWNER&dueAt=2026-09-05T12%3A00%3A00.000Z&evidenceStatus=missing&blockedDecision=Versandbatch+Abschluss+Review&missingEvidence=manual-handover-confirmation&caseId=vsb-case-002",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const base={batchId:'vsb-case-002',renderTarget:'budibase:stadtwerk-mauer-workbench:versandbatch-completion-evidence-review',roleTarget:'ROLE_PROCESS_OWNER'}; const signals=data.readinessSignals||[]; const ownerCtx=data.ownerContext||{}; const ownerSignal=signals.find((s)=>s.code==='owner')||{}; const deadlineSignal=signals.find((s)=>s.code==='deadline')||{}; const manualHandoverState=(ownerSignal.status==='ready'&&deadlineSignal.status==='ready')?'confirmed':'pending'; const summary={rowKey:'vsb_manual_handover_summary',label:'Manuelle Uebernahme',manualHandoverState,owner:String(ownerCtx.ownerRole||ownerSignal.ownerRole||''),dueAt:String(ownerCtx.dueAt||deadlineSignal.dueAt||''),status:String(data.status||'unknown'),sourceClass:'versandbatch_completion_evidence_manual_handover',...base}; const gaps=signals.filter((s)=>s.status!=='ready').map((row)=>({rowKey:'vsb_manual_handover_gap_'+String(row.code||''),label:String(row.label||''),state:'human_review_required',positiveFollowUp:String(row.finding||row.enablesDossierAddition||''),sourceClass:'versandbatch_completion_evidence_manual_handover_gap',...base})); return [summary].concat(gaps)",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "label": { "type": "string" },
+        "manualHandoverState": { "type": "string" },
+        "owner": { "type": "string" },
+        "dueAt": { "type": "string" },
+        "status": { "type": "string" },
+        "state": { "type": "string" },
+        "positiveFollowUp": { "type": "string" },
+        "sourceClass": { "type": "string" },
+        "batchId": { "type": "string" },
+        "renderTarget": { "type": "string" },
+        "roleTarget": { "type": "string" }
+      }
+    },
+    {
+      "name": "getVersandbatchCompletionEvidenceReturnFreshnessRows",
+      "method": "GET",
+      "path": "/api/dashboard/evidence-freshness-guard",
+      "queryString": "signalId=vsb-case-002-demo-mauer&sourceKind=synthetic-demo&sourceTimestamp=2026-08-20T09%3A00%3A00.000Z&receivedTimestamp=2026-08-20T09%3A05%3A00.000Z&lastSeenTimestamp=2026-08-15T09%3A00%3A00.000Z&processArea=versandbatch_completion_evidence&owner=ROLE_PROCESS_OWNER&dueDate=2026-09-05&knownSnapshotHash=vsb-manual-handover-old&currentSnapshotHash=vsb-manual-handover-new&severityHint=medium&blockedDecision=Versandbatch+Abschluss+Review",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const base={batchId:'vsb-case-002',renderTarget:'budibase:stadtwerk-mauer-workbench:versandbatch-completion-evidence-review',roleTarget:'ROLE_MARKET_OPERATIONS'}; return [{rowKey:'vsb_return_freshness_summary',label:'Ruecklaeufer-/Abschluss-Freshness',status:String(data.status||''),freshnessState:String(data.freshnessState||''),deltaState:String(data.deltaState||''),stalenessDays:data.stalenessDays==null?'unknown':String(data.stalenessDays),isKnownAnchor:Boolean(data.isKnownAnchor),isNewDelta:Boolean(data.isNewDelta),escalationRecommended:Boolean(data.escalationRecommended),nonEscalationReason:String(data.nonEscalationReason||''),blockedDecision:String(data.blockedDecision||''),sourceClass:'versandbatch_completion_evidence_return_freshness',...base}]",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "label": { "type": "string" },
+        "status": { "type": "string" },
+        "freshnessState": { "type": "string" },
+        "deltaState": { "type": "string" },
+        "stalenessDays": { "type": "string" },
+        "isKnownAnchor": { "type": "boolean" },
+        "isNewDelta": { "type": "boolean" },
+        "escalationRecommended": { "type": "boolean" },
+        "nonEscalationReason": { "type": "string" },
+        "blockedDecision": { "type": "string" },
+        "sourceClass": { "type": "string" },
+        "batchId": { "type": "string" },
+        "renderTarget": { "type": "string" },
+        "roleTarget": { "type": "string" }
+      }
+    },
+    {
+      "name": "getVersandbatchCompletionEvidenceExceptionRows",
+      "method": "GET",
+      "path": "/api/dashboard/owner-deadline-evidence-gate",
+      "queryString": "signalId=vsb-case-002-demo-mauer&sourceType=synthetic-demo&sourceRef=vsb-demo-002&processType=versandbatch_completion_evidence&riskLevel=medium&ownerRole=ROLE_PROCESS_OWNER&dueAt=2026-09-05T12%3A00%3A00.000Z&evidenceStatus=missing&blockedDecision=Versandbatch+Abschluss+Review&missingEvidence=manual-handover-confirmation&caseId=vsb-case-002",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const base={batchId:'vsb-case-002',renderTarget:'budibase:stadtwerk-mauer-workbench:versandbatch-completion-evidence-review',roleTarget:'ROLE_PROCESS_OWNER'}; const gaps=data.evidenceGaps||data.missingEvidence||[]; if(!gaps.length){return [{rowKey:'vsb_exception_none',label:'Ausnahme / fehlende Evidenz',value:'none',blockedDecision:'none',state:'ready',positiveFollowUp:'all named evidence is present',sourceClass:'versandbatch_completion_evidence_exception',...base}];} return gaps.map((gap,index)=>({rowKey:'vsb_exception_'+(index+1)+'_'+String(gap.missingDataPoint||index+1),label:'Ausnahme / fehlende Evidenz',value:String(gap.missingDataPoint||''),blockedDecision:String((data.signalContext||{}).blockedDecision||''),state:'human_review_required',positiveFollowUp:String(gap.enablesDossierAddition||''),sourceClass:'versandbatch_completion_evidence_exception',...base}))",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "label": { "type": "string" },
+        "value": { "type": "string" },
+        "blockedDecision": { "type": "string" },
+        "state": { "type": "string" },
+        "positiveFollowUp": { "type": "string" },
+        "sourceClass": { "type": "string" },
+        "batchId": { "type": "string" },
+        "renderTarget": { "type": "string" },
+        "roleTarget": { "type": "string" }
+      }
+    },
+    {
+      "name": "getVersandbatchCompletionEvidenceCompletionPointerRows",
+      "method": "GET",
+      "path": "/api/dashboard/evidence-freshness-guard",
+      "queryString": "signalId=vsb-case-002-demo-mauer&sourceKind=synthetic-demo&sourceTimestamp=2026-08-20T09%3A00%3A00.000Z&receivedTimestamp=2026-08-20T09%3A05%3A00.000Z&lastSeenTimestamp=2026-08-15T09%3A00%3A00.000Z&processArea=versandbatch_completion_evidence&owner=ROLE_PROCESS_OWNER&dueDate=2026-09-05&knownSnapshotHash=vsb-manual-handover-old&currentSnapshotHash=vsb-manual-handover-new&severityHint=medium&blockedDecision=Versandbatch+Abschluss+Review",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const base={batchId:'vsb-case-002',renderTarget:'budibase:stadtwerk-mauer-workbench:versandbatch-completion-evidence-review',roleTarget:'ROLE_PROCESS_OWNER'}; return [{rowKey:'vsb_completion_evidence_pointer',label:'Abschluss-/Empfangsnachweis (Evidence Pointer)',value:'missing',evidencePointerOnly:true,status:String(data.status||''),owner:String(data.owner||''),dueDate:String(data.dueDate||''),blockedDecision:String(data.blockedDecision||''),safeNextGate:data.escalationRecommended?'human_review_before_any_escalation':'request_completion_receipt_then_refresh_panel',sourceClass:'versandbatch_completion_evidence_completion_pointer',...base}]",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "label": { "type": "string" },
+        "value": { "type": "string" },
+        "evidencePointerOnly": { "type": "boolean" },
+        "status": { "type": "string" },
+        "owner": { "type": "string" },
+        "dueDate": { "type": "string" },
+        "blockedDecision": { "type": "string" },
+        "safeNextGate": { "type": "string" },
+        "sourceClass": { "type": "string" },
+        "batchId": { "type": "string" },
+        "renderTarget": { "type": "string" },
+        "roleTarget": { "type": "string" }
+      }
+    },
+    {
+      "name": "getVersandbatchCompletionEvidenceAutomationRiskRows",
+      "method": "GET",
+      "path": "/api/dashboard/automation-risk-gate",
+      "queryString": "processId=vsb-versandbatch-completion-evidence-002&processName=Versandbatch+Completion+Evidence+Review&processClass=versand_abrechnung_batch&runFrequency=batch&massRunVolume=120&affectedDomains=abrechnung%2Cversand&customerCommunicationImpact=caller-supplied-evidence-only&billingImpact=review-only&marketCommunicationImpact=review-only&massDataImpact=low&testCaseCoverage=documented&edgeCaseCatalog=documented&acceptanceMethod=governance-review&monitoringSignals=documented&stopCriteria=documented&rollbackPath=documented&processOwner=ROLE_MARKET_OPERATIONS&operationsOwner=ROLE_PROCESS_OWNER&blockedDecision=Versandbatch+Abschluss+Review&riskLevel=medium&source=versandbatch-completion-monitor&sourceRef=vsb-demo-002",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const ctx=data.processContext||{}; const risk=data.riskContext||{}; const base={batchId:'vsb-case-002',renderTarget:'budibase:stadtwerk-mauer-workbench:versandbatch-completion-evidence-review',roleTarget:'ROLE_REGULATORY_AFFAIRS'}; return [{rowKey:'vsb_automation_risk_context',label:'Automation-Risiko-Kontext (nur Kontext)',status:String(data.status||'unknown'),riskLevel:String(risk.riskLevel||'unknown'),billingImpact:String(risk.billingImpact||'unknown'),marketCommunicationImpact:String(risk.marketCommunicationImpact||'unknown'),massRunVolume:ctx.massRunVolume==null?'unknown':String(ctx.massRunVolume),affectedDomains:(ctx.affectedDomains||[]).join(', ')||'none',contextOnly:true,sourceClass:'versandbatch_completion_evidence_automation_risk_context',...base}]",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "label": { "type": "string" },
+        "status": { "type": "string" },
+        "riskLevel": { "type": "string" },
+        "billingImpact": { "type": "string" },
+        "marketCommunicationImpact": { "type": "string" },
+        "massRunVolume": { "type": "string" },
+        "affectedDomains": { "type": "string" },
+        "contextOnly": { "type": "boolean" },
+        "sourceClass": { "type": "string" },
+        "batchId": { "type": "string" },
+        "renderTarget": { "type": "string" },
+        "roleTarget": { "type": "string" }
+      }
+    },
+    {
+      "name": "getVersandbatchCompletionEvidenceFollowUpRows",
+      "method": "GET",
+      "path": "/api/dashboard/owner-deadline-evidence-gate",
+      "queryString": "signalId=vsb-case-002-demo-mauer&sourceType=synthetic-demo&sourceRef=vsb-demo-002&processType=versandbatch_completion_evidence&riskLevel=medium&ownerRole=ROLE_PROCESS_OWNER&dueAt=2026-09-05T12%3A00%3A00.000Z&evidenceStatus=missing&blockedDecision=Versandbatch+Abschluss+Review&missingEvidence=manual-handover-confirmation&caseId=vsb-case-002",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const base={batchId:'vsb-case-002',renderTarget:'budibase:stadtwerk-mauer-workbench:versandbatch-completion-evidence-review',roleTarget:'ROLE_PROCESS_OWNER'}; const rows=data.positiveFollowUps||[]; if(!rows.length){return [{rowKey:'vsb_followup_none',missingDataPoint:'none',category:'versandbatch_completion_evidence',enablesDossierAddition:'document version, release, channel/status, owner/deadline and completion evidence are already display-ready',safeNextGate:'keep_refresh_read_only',sourceClass:'versandbatch_completion_evidence_positive_follow_up',...base}];} return rows.map((row,index)=>({rowKey:'vsb_followup_'+(index+1)+'_'+String(row.missingDataPoint||index+1),missingDataPoint:String(row.missingDataPoint||''),category:String(row.category||'versandbatch_completion_evidence'),enablesDossierAddition:String(row.enablesDossierAddition||''),safeNextGate:'add_evidence_then_refresh_read_only_panel',sourceClass:'versandbatch_completion_evidence_positive_follow_up',...base}))",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "missingDataPoint": { "type": "string" },
+        "category": { "type": "string" },
+        "enablesDossierAddition": { "type": "string" },
+        "safeNextGate": { "type": "string" },
+        "sourceClass": { "type": "string" },
+        "batchId": { "type": "string" },
+        "renderTarget": { "type": "string" },
+        "roleTarget": { "type": "string" }
+      }
+    },
+    {
+      "name": "getVersandbatchCompletionEvidenceNoCallRows",
+      "method": "GET",
+      "path": "/api/dashboard/cross-channel-vnb-signal-queue",
+      "queryString": "tenantId={{tenantId}}&signalId=vsb-case-002&channel=manual_email_workaround&sourceSystem=synthetic-demo&sourceRef=vsb-demo-002&affectedProcess=versandbatch_completion_evidence&processType=versandbatch_completion_evidence&riskType=manual_handover_gap&riskSeverity=medium&ownerRole=ROLE_PROCESS_OWNER&dueAt=2026-09-05T12%3A00%3A00.000Z&evidenceStatus=missing&nextDatapoint=manual-handover-confirmation&dedupeKey=vsb-demo-002%3Amanual-handover&status=open",
+      "parameters": [
+        {
+          "name": "tenantId",
+          "default": "stadtwerk-mauer"
+        }
+      ],
+      "transformer": "const notCalled=((data.sourceActions||{}).notCalled)||[]; const staticBoundaries=['document.send','document.resend','delivery.confirmation','customer-contact.initiate','mailbox.connector.read','portal.connector.write','erp.connector.write','crm.connector.write','billing.execute','invoicing.execute','settlement.execute','settlement.prepareBilling','mako.dispatch','redispatch.dispatch','tariff.mutate','legal.determination.execute','webhook.send','workflow.execute','workflow.create','hitl.create','task.create','escalation.trigger','budibase.table.write','personal-agent.execute','rundeck.execute','device-control.execute','external.connector.call','production.mutate']; const unique=[...new Set(notCalled.concat(staticBoundaries).map(String))]; return unique.map((action,index)=>({rowKey:'vsb_no_call_'+(index+1)+'_'+String(action).replace(/[^a-zA-Z0-9]+/g,'_'),renderTarget:'budibase:stadtwerk-mauer-workbench:versandbatch-completion-evidence-review',roleTarget:'ROLE_PROCESS_OWNER',boundary:String(action),status:'not_called',safeAlternative:'render_existing_read_only_versandbatch_completion_evidence_rows_only',batchId:'vsb-case-002',sourceClass:'versandbatch_completion_evidence_no_call_guard'}))",
+      "schema": {
+        "rowKey": { "type": "string" },
+        "renderTarget": { "type": "string" },
+        "roleTarget": { "type": "string" },
+        "boundary": { "type": "string" },
+        "status": { "type": "string" },
+        "safeAlternative": { "type": "string" },
+        "batchId": { "type": "string" },
+        "sourceClass": { "type": "string" }
+      }
     }
   ],
   "sections": [
@@ -15689,6 +15936,60 @@
       "title": "Datenpunktlisten Change-Control No-Call Guards",
       "queryName": "getDatenpunktlistenChangeControlNoCallRows",
       "tableTitle": "Verbotene/Nicht aufgerufene Operationen"
+    },
+    {
+      "id": "versandbatch_completion_evidence_selector",
+      "title": "Versandbatch Completion-Evidence Fallauswahl",
+      "queryName": "getVersandbatchCompletionEvidenceSelectorRows",
+      "tableTitle": "Drei synthetische Faelle: Freigabe/Nachweis fehlt, Manuelle Uebernahme/Owner-Frist-Luecke, Ruecklaeufer/Nachweis veraltet"
+    },
+    {
+      "id": "versandbatch_completion_evidence_document_channel",
+      "title": "Versandbatch Dokumentenstand, Freigabe & Kanal/Status",
+      "queryName": "getVersandbatchCompletionEvidenceDocumentChannelRows",
+      "tableTitle": "Batch-ID, Dokumentenversion, Freigabe, Versandkanal & Statusreferenz (caller-supplied)"
+    },
+    {
+      "id": "versandbatch_completion_evidence_manual_handover",
+      "title": "Versandbatch Manuelle Uebernahme, Owner & Frist",
+      "queryName": "getVersandbatchCompletionEvidenceManualHandoverRows",
+      "tableTitle": "Manuelle Uebernahme, Owner-Rolle, Faelligkeit und Luecken"
+    },
+    {
+      "id": "versandbatch_completion_evidence_return_freshness",
+      "title": "Versandbatch Ruecklaeufer-/Abschluss-Freshness",
+      "queryName": "getVersandbatchCompletionEvidenceReturnFreshnessRows",
+      "tableTitle": "Freshness-/Delta-Status und Snapshot-Vergleich"
+    },
+    {
+      "id": "versandbatch_completion_evidence_exception",
+      "title": "Versandbatch Ausnahme & fehlende Evidenz",
+      "queryName": "getVersandbatchCompletionEvidenceExceptionRows",
+      "tableTitle": "Ausnahme, fehlende Evidenz und blockierte Entscheidung"
+    },
+    {
+      "id": "versandbatch_completion_evidence_completion_pointer",
+      "title": "Versandbatch Abschluss-/Empfangsnachweis",
+      "queryName": "getVersandbatchCompletionEvidenceCompletionPointerRows",
+      "tableTitle": "Abschluss-/Empfangsnachweis nur als Evidence Pointer"
+    },
+    {
+      "id": "versandbatch_completion_evidence_automation_risk",
+      "title": "Versandbatch Automation-Risiko-Kontext",
+      "queryName": "getVersandbatchCompletionEvidenceAutomationRiskRows",
+      "tableTitle": "Automation-/Massenlauf-Risiko nur als Kontext"
+    },
+    {
+      "id": "versandbatch_completion_evidence_follow_up",
+      "title": "Versandbatch Positive Klaerung & naechstes Review-Gate",
+      "queryName": "getVersandbatchCompletionEvidenceFollowUpRows",
+      "tableTitle": "Positive menschliche Klaerung und sicheres naechstes Gate"
+    },
+    {
+      "id": "versandbatch_completion_evidence_no_call",
+      "title": "Versandbatch No-Call/No-Write Guards",
+      "queryName": "getVersandbatchCompletionEvidenceNoCallRows",
+      "tableTitle": "Verbotene/Nicht aufgerufene Operationen"
     }
   ],
   "notes": [
@@ -15767,6 +16068,8 @@
     "Netzanschluss Transparenz Readiness Matrix rows stay scalar/generated and synthetic: Budibase renders the selected Anschlussfall and status, capacity/technical/deadline/communication evidence present or missing, the canonical four-row V/D/M/I matrix with roleLegend.M = Mitwirkend, owner/audit transfer-readiness rows, and the Blueprint-Pack/Cernion-Energy-Tools -> Landing-Registry -> Produktivseite sync chain with Landing-Registry and Produktivseite explicitly pending; no capacity reservation, connection approval/rejection, external communication, GIS/ERP/MDM/MaStR/ZNP write, MaKo, billing, settlement, tariff, dispatch, device control, workflow/HITL, Rundeck execution, arbitrary Budibase table write or Personal-Agent shortcut is introduced.",
     "Investment Portfolio Governance Review binds to a bounded scalar portfolio table for exactly three explicitly synthetic cross-division measures (Strom, Gas, Waerme), a selected-measure selector, detail rows composed from the three investment read models (investment-committee-steering-cards, investment-data-review-queue, investment-owner-deadline-budget-gate), owner/deadline/budget-path/committee-gate rows, evidence-gap and positive-follow-up rows, and the reused canonical Blueprint-Pack verify/matrix rows for stadtwerk-mauer-investment-owner-deadline-budget-gate-v1. Governance labels are limited to review_ready, blocked_missing_evidence, budget_path_gap and needs_committee_window; there is no numeric score, rank, weighted ranking, winner selection or automatic priority, and all consequential actions stay disabled no-call rows.",
     "Datenpunktlisten Change-Control Gate panel (#521) is generated manifest composition, not a new Cernion endpoint. It composes only the existing controllability-data-alignment, redispatch-participation-readiness-status, redispatch-project-controlling-kpi-cockpit, owner-deadline-evidence-gate, stadtwerk-mauer-blueprint-pack-verify and stadtwerk-mauer-transfer-readiness read models for the canonical stadtwerk-mauer-redispatch-participation-readiness-v1 Blueprint-Pack seed; no new datapoint-list persistence, Excel importer, Asset-MDM/MaStR mutation, Redispatch test engine or second demoProcessMatrix is introduced.",
-    "Datenpunktlisten Change-Control Gate rows stay scalar/generated and synthetic: Budibase renders exactly three explicitly synthetic selector cases (existing_control_group_sufficient, data_point_version_or_control_group_clarification, test_call_evidence_or_owner_deadline_gap), data-point-list version/source snapshot, control-group/asset-scope and Asset/MaStR/internal match with public-context provenance kept separate, a change requirement of not_required/clarification/evidence_gap, verifying role/owner/due date, a provider assumption rendered only as an evidence pointer, expected test-call readiness impact, project-controlling/KPI evidence gaps, the reused canonical V/D/M/I matrix with roleLegend.M = Mitwirkend, transfer readiness and the Blueprint-Pack/Cernion-Energy-Tools -> Landing-Registry -> Produktivseite sync chain with Landing-Registry and Produktivseite explicitly pending. Missing evidence always maps to clarification/human_review_required with a positive follow-up, never an automatic negative conclusion, approval or execution; no Excel/list import, data-point-list write, Asset-MDM/MaStR mutation, test call, Redispatch enrolment/dispatch, SMGW/CLS/device control, MaKo, billing, settlement, tariff, provider call, webhook, workflow/HITL/task creation, arbitrary Budibase table write, Personal-Agent branch or Rundeck execution is introduced."
+    "Datenpunktlisten Change-Control Gate rows stay scalar/generated and synthetic: Budibase renders exactly three explicitly synthetic selector cases (existing_control_group_sufficient, data_point_version_or_control_group_clarification, test_call_evidence_or_owner_deadline_gap), data-point-list version/source snapshot, control-group/asset-scope and Asset/MaStR/internal match with public-context provenance kept separate, a change requirement of not_required/clarification/evidence_gap, verifying role/owner/due date, a provider assumption rendered only as an evidence pointer, expected test-call readiness impact, project-controlling/KPI evidence gaps, the reused canonical V/D/M/I matrix with roleLegend.M = Mitwirkend, transfer readiness and the Blueprint-Pack/Cernion-Energy-Tools -> Landing-Registry -> Produktivseite sync chain with Landing-Registry and Produktivseite explicitly pending. Missing evidence always maps to clarification/human_review_required with a positive follow-up, never an automatic negative conclusion, approval or execution; no Excel/list import, data-point-list write, Asset-MDM/MaStR mutation, test call, Redispatch enrolment/dispatch, SMGW/CLS/device control, MaKo, billing, settlement, tariff, provider call, webhook, workflow/HITL/task creation, arbitrary Budibase table write, Personal-Agent branch or Rundeck execution is introduced.",
+    "Versandbatch Completion-Evidence Review panel (#517) is generated manifest composition, not a new Cernion endpoint, Versand-, Billing- or Workflow-Engine. It composes only the existing cross-channel-vnb-signal-queue, owner-deadline-evidence-gate, evidence-freshness-guard and automation-risk-gate read models for exactly three explicitly synthetic selector cases (release_ready_receipt_missing, manual_handover_owner_due_gap — default-selected, return_or_completion_evidence_stale); no new endpoint, alias, dashboard action/builder, service, persistence model, connector, import path, process command, scheduler, notification or second generic signal queue is introduced.",
+    "Versandbatch Completion-Evidence Review rows stay scalar/generated and synthetic: Budibase renders batch/case-group id and explicitly synthetic source class, document version and release-evidence status, channel and shipment-status reference always as caller-supplied evidence rather than a verified delivery fact, manual handover state/owner role/due date, return/response freshness and snapshot-delta comparison, exception/missing-evidence/blocked-decision rows, a completion/receipt evidence pointer, an automation-risk summary rendered only as context, and positive human follow-up/next safe review gate rows. Missing or stale evidence always maps to clarification/human_review_required, never to automatic rejection, successful delivery, legal completion, billing correctness or settlement completion; no email/document sending, resend, delivery confirmation, billing, invoicing, posting, payment, settlement, MaKo, Redispatch dispatch, tariff/legal determination, mailbox/portal/ERP/CRM connector, customer contact, webhook, workflow/HITL/task creation, escalation, arbitrary Budibase table write, production data or Personal-Agent hardcoding is introduced."
   ]
 }

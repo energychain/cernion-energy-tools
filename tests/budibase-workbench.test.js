@@ -8633,4 +8633,221 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       ])
     );
   });
+
+  it('adds the Versandbatch Completion-Evidence Review panel from exactly the four named existing dashboard reads (#517)', () => {
+    const names = [
+      'getVersandbatchCompletionEvidenceSelectorRows',
+      'getVersandbatchCompletionEvidenceDocumentChannelRows',
+      'getVersandbatchCompletionEvidenceManualHandoverRows',
+      'getVersandbatchCompletionEvidenceReturnFreshnessRows',
+      'getVersandbatchCompletionEvidenceExceptionRows',
+      'getVersandbatchCompletionEvidenceCompletionPointerRows',
+      'getVersandbatchCompletionEvidenceAutomationRiskRows',
+      'getVersandbatchCompletionEvidenceFollowUpRows',
+      'getVersandbatchCompletionEvidenceNoCallRows',
+    ];
+    const queries = manifest.queries.filter((query) => names.includes(query.name));
+    expect(queries).toHaveLength(names.length);
+    expect(new Set(queries.map((query) => query.path))).toEqual(
+      new Set([
+        '/api/dashboard/cross-channel-vnb-signal-queue',
+        '/api/dashboard/owner-deadline-evidence-gate',
+        '/api/dashboard/evidence-freshness-guard',
+        '/api/dashboard/automation-risk-gate',
+      ])
+    );
+    expect(
+      manifest.sections
+        .filter((section) => section.id.startsWith('versandbatch_completion_evidence'))
+        .map((section) => section.queryName)
+    ).toEqual(expect.arrayContaining(names));
+    expect(manifest.notes.join(' ')).toContain('Versandbatch Completion-Evidence Review panel (#517)');
+    expect(manifest.notes.join(' ')).toContain('not a new Cernion endpoint, Versand-, Billing- or Workflow-Engine');
+    expect(manifest.notes.join(' ')).toContain('second generic signal queue is introduced');
+  });
+
+  it('renders exactly three explicitly synthetic Versandbatch selector cases, never persisted', () => {
+    const selectorRows = runTransformer('getVersandbatchCompletionEvidenceSelectorRows', {});
+    expectScalarRows(selectorRows);
+    expectNoRawObjectText(selectorRows);
+    expect(selectorRows).toHaveLength(3);
+    expect(new Set(selectorRows.map((row) => row.selectorCase))).toEqual(
+      new Set([
+        'release_ready_receipt_missing',
+        'manual_handover_owner_due_gap',
+        'return_or_completion_evidence_stale',
+      ])
+    );
+    expect(selectorRows.every((row) => row.dataClass === 'synthetic_tenant_seed')).toBe(true);
+    expect(selectorRows.every((row) => row.roleTarget === 'ROLE_PROCESS_OWNER')).toBe(true);
+    expect(selectorRows.filter((row) => row.selected === true)).toHaveLength(1);
+    expect(selectorRows.find((row) => row.selected === true).selectorCase).toBe(
+      'manual_handover_owner_due_gap'
+    );
+    expect(selectorRows[0].roleQuestion).toContain('Abschlussnachweis');
+    // channel/status is always caller-supplied evidence, never a verified delivery fact
+    expect(selectorRows.every((row) => typeof row.shipmentStatusReference === 'string')).toBe(true);
+  });
+
+  it('renders scalar Versandbatch document/channel, manual-handover, freshness, exception, completion-pointer, automation-risk, follow-up and no-call rows', () => {
+    const queueFixture = {
+      queueStatus: 'needs_owner',
+      status: 'needs_owner',
+      normalizedSignals: [
+        {
+          signalId: 'vsb-case-002',
+          channel: 'manual_email_workaround',
+          status: 'needs_owner',
+          dueAt: '2026-09-05T12:00:00.000Z',
+        },
+      ],
+      sourceActions: { notCalled: ['mail.connector.ingest', 'hitl.create'] },
+    };
+    const ownerFixture = {
+      status: 'needs_evidence_ref',
+      readinessSignals: [
+        {
+          code: 'owner',
+          label: 'Owner',
+          ownerRole: 'ROLE_PROCESS_OWNER',
+          dueAt: '2026-09-05T12:00:00.000Z',
+          status: 'ready',
+          finding: null,
+        },
+        {
+          code: 'evidence_ref',
+          label: 'Evidence Reference',
+          status: 'missing',
+          finding: 'attach the blocking evidence proof',
+        },
+      ],
+      ownerContext: { ownerRole: 'ROLE_PROCESS_OWNER', dueAt: '2026-09-05T12:00:00.000Z' },
+      evidenceGaps: [
+        { missingDataPoint: 'evidence_ref', enablesDossierAddition: 'attach the blocking evidence proof' },
+      ],
+      signalContext: { blockedDecision: 'Versandbatch Abschluss Review' },
+      positiveFollowUps: [
+        {
+          missingDataPoint: 'evidence_ref',
+          category: 'owner_deadline_evidence_gate',
+          enablesDossierAddition: 'attach the blocking evidence proof',
+        },
+      ],
+    };
+    const freshFixture = {
+      status: 'freshness_classification_with_gaps',
+      freshnessState: 'stale_context',
+      deltaState: 'new_delta',
+      stalenessDays: 5.2,
+      isKnownAnchor: false,
+      isNewDelta: true,
+      escalationRecommended: true,
+      nonEscalationReason: null,
+      blockedDecision: 'Versandbatch Abschluss Review',
+      owner: 'ROLE_PROCESS_OWNER',
+      dueDate: '2026-09-05',
+    };
+    const riskFixture = {
+      status: 'ready_for_automation_decision',
+      processContext: { massRunVolume: 120, affectedDomains: ['abrechnung', 'versand'] },
+      riskContext: {
+        riskLevel: 'medium',
+        billingImpact: 'review-only',
+        marketCommunicationImpact: 'review-only',
+      },
+    };
+
+    for (const [name, fixture] of [
+      ['getVersandbatchCompletionEvidenceDocumentChannelRows', queueFixture],
+      ['getVersandbatchCompletionEvidenceManualHandoverRows', ownerFixture],
+      ['getVersandbatchCompletionEvidenceExceptionRows', ownerFixture],
+      ['getVersandbatchCompletionEvidenceCompletionPointerRows', freshFixture],
+      ['getVersandbatchCompletionEvidenceReturnFreshnessRows', freshFixture],
+      ['getVersandbatchCompletionEvidenceAutomationRiskRows', riskFixture],
+      ['getVersandbatchCompletionEvidenceFollowUpRows', ownerFixture],
+      ['getVersandbatchCompletionEvidenceNoCallRows', queueFixture],
+    ]) {
+      const rows = runTransformer(name, fixture);
+      expectScalarRows(rows);
+      expectNoRawObjectText(rows);
+    }
+
+    const channelRows = runTransformer('getVersandbatchCompletionEvidenceDocumentChannelRows', queueFixture);
+    expect(channelRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ rowKey: 'vsb_batch_identity', sourceClass: 'versandbatch_completion_evidence_source_class' }),
+        expect.objectContaining({ rowKey: 'vsb_document_release' }),
+        expect.objectContaining({
+          rowKey: 'vsb_channel_status',
+          evidenceCaveat: 'caller_supplied_not_verified_delivery_fact',
+        }),
+      ])
+    );
+
+    const manualHandoverRows = runTransformer('getVersandbatchCompletionEvidenceManualHandoverRows', ownerFixture);
+    expect(manualHandoverRows[0]).toEqual(
+      expect.objectContaining({ rowKey: 'vsb_manual_handover_summary', owner: 'ROLE_PROCESS_OWNER' })
+    );
+    expect(manualHandoverRows.slice(1).every((row) => row.state === 'human_review_required')).toBe(true);
+    // missing evidence never collapses to a bare negative verdict without a positive follow-up
+    expect(
+      manualHandoverRows.slice(1).every((row) => typeof row.positiveFollowUp === 'string' && row.positiveFollowUp.length > 0)
+    ).toBe(true);
+
+    const exceptionRows = runTransformer('getVersandbatchCompletionEvidenceExceptionRows', ownerFixture);
+    expect(exceptionRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'vsb_exception_1_evidence_ref',
+          blockedDecision: 'Versandbatch Abschluss Review',
+          state: 'human_review_required',
+        }),
+      ])
+    );
+    // missing/stale evidence maps to clarification/human_review_required, never automatic rejection or completion
+    expect(exceptionRows.every((row) => ['human_review_required', 'ready'].includes(row.state))).toBe(true);
+
+    const freshnessRows = runTransformer('getVersandbatchCompletionEvidenceReturnFreshnessRows', freshFixture);
+    expect(freshnessRows[0]).toEqual(
+      expect.objectContaining({ freshnessState: 'stale_context', deltaState: 'new_delta', isNewDelta: true })
+    );
+
+    const completionPointerRows = runTransformer(
+      'getVersandbatchCompletionEvidenceCompletionPointerRows',
+      freshFixture
+    );
+    expect(completionPointerRows[0]).toEqual(
+      expect.objectContaining({ rowKey: 'vsb_completion_evidence_pointer', evidencePointerOnly: true, value: 'missing' })
+    );
+
+    const riskRows = runTransformer('getVersandbatchCompletionEvidenceAutomationRiskRows', riskFixture);
+    expect(riskRows[0]).toEqual(
+      expect.objectContaining({ contextOnly: true, roleTarget: 'ROLE_REGULATORY_AFFAIRS', riskLevel: 'medium' })
+    );
+
+    const followUpRows = runTransformer('getVersandbatchCompletionEvidenceFollowUpRows', ownerFixture);
+    expect(followUpRows).toEqual(
+      expect.arrayContaining([expect.objectContaining({ missingDataPoint: 'evidence_ref' })])
+    );
+
+    const noCallRows = runTransformer('getVersandbatchCompletionEvidenceNoCallRows', queueFixture);
+    expect(noCallRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ boundary: 'document.send', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'document.resend', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'delivery.confirmation', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'billing.execute', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'settlement.execute', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'mako.dispatch', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'redispatch.dispatch', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'webhook.send', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'hitl.create', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'task.create', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'budibase.table.write', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'personal-agent.execute', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'rundeck.execute', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'external.connector.call', status: 'not_called' }),
+      ])
+    );
+  });
 });
