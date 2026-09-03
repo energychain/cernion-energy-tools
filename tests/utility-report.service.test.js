@@ -391,6 +391,57 @@ describe('Utility Report Service', () => {
     });
   });
 
+  // ─── getBdewOptions action ─────────────────────────────────────────────────
+
+  describe('getBdewOptions action', () => {
+    it('uses a marketPartners limit accepted by grid-operations validation (regression)', async () => {
+      const strictBroker = new ServiceBroker({ logger: false, requestTimeout: 60000 });
+      strictBroker.createService(UtilityReportService);
+      strictBroker.createService({
+        name: 'grid-operations',
+        actions: {
+          marketPartners: {
+            params: {
+              query: { type: 'string', min: 1 },
+              limit: { type: 'number', optional: true, default: 10, min: 1, max: 20, convert: true },
+            },
+            handler: jest.fn(async () => ({
+              success: true,
+              data: {
+                results: [
+                  {
+                    companyName: 'Stadtwerke Heidelberg Netze GmbH',
+                    bdewCode: '9900277000000',
+                    marketRoles: ['VNB'],
+                    contacts: [{ city: 'Heidelberg' }],
+                  },
+                ],
+              },
+            })),
+          },
+        },
+      });
+
+      await strictBroker.start();
+      try {
+        const result = await strictBroker.call(
+          'utility-report.getBdewOptions',
+          { utilityName: 'Stadtwerke Heidelberg GmbH', region: 'Heidelberg' },
+          { meta: { cernionToken: 'test-token' } }
+        );
+
+        expect(result.success).toBe(true);
+        expect(result.optionsCount).toBe(1);
+        expect(result.options[0]).toMatchObject({
+          bdew: '9900277000000',
+          name: 'Stadtwerke Heidelberg Netze GmbH',
+        });
+      } finally {
+        await strictBroker.stop();
+      }
+    });
+  });
+
   // ─── generate action ───────────────────────────────────────────────────────
 
   describe('generate action', () => {

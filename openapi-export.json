@@ -34176,6 +34176,7 @@
               "application/json": {
                 "example": {
                   "success": true,
+                  "degraded": false,
                   "co2_intensity_gco2eq_kwh": 380,
                   "average_today_gco2eq_kwh": 364.5,
                   "data": {
@@ -34210,7 +34211,7 @@
             }
           }
         },
-        "description": "Query CO2 intensity for a specific location in Germany from GrünstromIndex.\n\n**'location' is required** — provide a German city name or 5-digit postal code.\n\n**Parameter Details:**\n- **location**: German city name or postal code (required, e.g. a city name or 5-digit postal code)\n- **timestamp**: Specific timestamp (ISO 8601 or natural language like \"now\", \"tomorrow 14:00\")\n- **forecast**: Get 36-hour forecast instead of current value (default: false)\n- **format**: Output format — \"json\" (default), \"csv\", \"xlsx\"/\"xls\". CSV includes `# Location`, `# Current CO2 Intensity`, `# Average Today` header comments followed by the hourly forecast rows.\n\n**Use Cases:**\n- CO₂-optimized dynamic tariffs\n- Smart EV charging (charge when grid is greenest)\n- Load shifting for industrial consumers\n- Green energy certificates\n- Power BI / Excel import with `format=csv`\n\n**Data Source:** GrünstromIndex provides regional green energy forecasts with 36-hour horizon, factoring in renewable generation, grid mix, and transmission constraints.",
+        "description": "Query CO2 intensity for a specific location in Germany from GrünstromIndex.\n\n**'location' is required** — provide a German city name or 5-digit postal code.\n\n**Parameter Details:**\n- **location**: German city name or postal code (required, e.g. a city name or 5-digit postal code)\n- **timestamp**: Specific timestamp (ISO 8601 or natural language like \"now\", \"tomorrow 14:00\")\n- **forecast**: Get 36-hour forecast instead of current value (default: false)\n- **format**: Output format — \"json\" (default), \"csv\", \"xlsx\"/\"xls\". CSV includes `# Location`, `# Current CO2 Intensity`, `# Average Today` header comments followed by the hourly forecast rows.\n\n**Use Cases:**\n- CO₂-optimized dynamic tariffs\n- Smart EV charging (charge when grid is greenest)\n- Load shifting for industrial consumers\n- Green energy certificates\n- Power BI / Excel import with `format=csv`\n\n**Reliability note:** When GrünstromIndex returns nullable standard CO₂ fields, CET uses populated\n`co2_g_oekostrom` values as an explicitly marked degraded fallback. If no numeric CO₂ source field\nis available, the response is `success:false`/`status:\"unavailable\"` with warnings instead of a\nfabricated all-zero forecast.\n\n**Data Source:** GrünstromIndex provides regional green energy forecasts with 36-hour horizon, factoring in renewable generation, grid mix, and transmission constraints.",
         "requestBody": {
           "content": {
             "application/json": {
@@ -62330,17 +62331,74 @@
     "/api/vnb-100-tage-assessment/assessments": {
       "post": {
         "operationId": "vnb-100-tage-assessment_assess",
-        "summary": "vnb-100-tage-assessment.assess",
+        "summary": "Run a 100-day quick assessment for a grid operator",
         "tags": [
-          "vnb-100-tage-assessment"
+          "VNB 100-Tage Assessment"
         ],
         "responses": {
           "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
+            "description": "100-day assessment result with management template"
+          }
+        },
+        "description": "Runs a structured 100-day assessment across 6 domains. Scores KPIs against benchmarks, identifies top ROI levers, and produces a management decision template.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "gridOperatorId",
+                  "kpiValues"
+                ],
+                "properties": {
+                  "gridOperatorId": {
+                    "type": "string"
+                  },
+                  "kpiValues": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "number"
+                    },
+                    "description": "Map of KPI ID to current numeric value, e.g. capex_efficiency_pct, saidi_minutes, mastr_accuracy_pct."
+                  },
+                  "roiMeasures": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "measureId": {
+                          "type": "string"
+                        },
+                        "description": {
+                          "type": "string"
+                        },
+                        "estimatedRoiEurPerYear": {
+                          "type": "number"
+                        },
+                        "implementationCostEur": {
+                          "type": "number"
+                        },
+                        "paybackMonths": {
+                          "type": "number"
+                        }
+                      }
+                    },
+                    "default": []
+                  },
+                  "forbiddenAssumptions": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "default": []
+                  },
+                  "assessorRole": {
+                    "type": "string"
+                  },
+                  "label": {
+                    "type": "string"
+                  }
                 }
               }
             }
@@ -64741,6 +64799,27 @@
             }
           }
         ]
+      }
+    },
+    "/api/znp/projects/:id/layers": {
+      "post": {
+        "operationId": "znp_layers",
+        "summary": "znp.layers",
+        "tags": [
+          "znp"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/v1/chat/completions": {

@@ -204,6 +204,58 @@ module.exports = {
         assessorRole: { type: 'string', optional: true },
         label: { type: 'string', optional: true },
       },
+      openapi: {
+        summary: 'Run a 100-day quick assessment for a grid operator',
+        tags: ['VNB 100-Tage Assessment'],
+        description:
+          'Runs a structured 100-day assessment across 6 domains. Scores KPIs against benchmarks, identifies top ROI levers, and produces a management decision template.',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['gridOperatorId', 'kpiValues'],
+                properties: {
+                  gridOperatorId: { type: 'string' },
+                  kpiValues: {
+                    type: 'object',
+                    additionalProperties: { type: 'number' },
+                    description:
+                      'Map of KPI ID to current numeric value, e.g. capex_efficiency_pct, saidi_minutes, mastr_accuracy_pct.',
+                  },
+                  roiMeasures: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        measureId: { type: 'string' },
+                        description: { type: 'string' },
+                        estimatedRoiEurPerYear: { type: 'number' },
+                        implementationCostEur: { type: 'number' },
+                        paybackMonths: { type: 'number' },
+                      },
+                    },
+                    default: [],
+                  },
+                  forbiddenAssumptions: {
+                    type: 'array',
+                    items: { type: 'string' },
+                    default: [],
+                  },
+                  assessorRole: { type: 'string' },
+                  label: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: '100-day assessment result with management template',
+          },
+        },
+      },
       async handler(ctx) {
         const tenantId = getTenantId(ctx);
         const {

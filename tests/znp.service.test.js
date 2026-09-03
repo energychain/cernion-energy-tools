@@ -645,6 +645,46 @@ describe('ZNP Service', () => {
       ).rejects.toMatchObject({ code: 404, type: 'ZNP_PROJECT_NOT_FOUND' });
     });
 
+    it('cleans up commodity layer docs (gas/heat) and activeGraphs on delete', async () => {
+      const tenantMeta = { meta: { tenantId: 'default' } };
+      const { projectId } = await broker.call(
+        'znp.createProject',
+        { bbox: makeBbox(), name: 'CommodityCleanupTest' },
+        tenantMeta
+      );
+
+      await broker.call('znp.layers', { id: projectId, commodity: 'gas' }, tenantMeta);
+      await broker.call('znp.layers', { id: projectId, commodity: 'heat' }, tenantMeta);
+
+      const znpService = broker.getLocalService('znp');
+
+      // Sanity check: commodity docs/activeGraphs exist before delete
+      await expect(znpService.db.get(`znp:meta:${projectId}:gas`)).resolves.toBeDefined();
+      await expect(znpService.db.get(`znp:graph:${projectId}:gas`)).resolves.toBeDefined();
+      await expect(znpService.db.get(`znp:meta:${projectId}:heat`)).resolves.toBeDefined();
+      await expect(znpService.db.get(`znp:graph:${projectId}:heat`)).resolves.toBeDefined();
+      expect(znpService.activeGraphs.has(`${projectId}:gas`)).toBe(true);
+      expect(znpService.activeGraphs.has(`${projectId}:heat`)).toBe(true);
+
+      const deleteResult = await broker.call('znp.deleteProject', { projectId }, tenantMeta);
+      expect(deleteResult.success).toBe(true);
+
+      // Base project docs gone
+      await expect(znpService.db.get(`znp:meta:${projectId}`)).rejects.toMatchObject({ status: 404 });
+      await expect(znpService.db.get(`znp:graph:${projectId}`)).rejects.toMatchObject({ status: 404 });
+
+      // Commodity layer docs gone
+      await expect(znpService.db.get(`znp:meta:${projectId}:gas`)).rejects.toMatchObject({ status: 404 });
+      await expect(znpService.db.get(`znp:graph:${projectId}:gas`)).rejects.toMatchObject({ status: 404 });
+      await expect(znpService.db.get(`znp:meta:${projectId}:heat`)).rejects.toMatchObject({ status: 404 });
+      await expect(znpService.db.get(`znp:graph:${projectId}:heat`)).rejects.toMatchObject({ status: 404 });
+
+      // In-memory activeGraphs cleaned up too
+      expect(znpService.activeGraphs.has(projectId)).toBe(false);
+      expect(znpService.activeGraphs.has(`${projectId}:gas`)).toBe(false);
+      expect(znpService.activeGraphs.has(`${projectId}:heat`)).toBe(false);
+    });
+
     it('cleans up PouchDB documents (meta and graph)', async () => {
       const { projectId } = await broker.call('znp.createProject', {
         bbox: makeBbox(),

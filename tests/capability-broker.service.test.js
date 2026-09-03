@@ -890,15 +890,16 @@ describe('Capability Broker Service', () => {
   });
 
   // energychain/cernion-energy-tools#498 — generic MaKo/EDIFACT code-context routing.
-  // Z17 is used here only as an acceptance-test example; the routing signal itself
-  // (see findBestCapability's hasMakoEdifactCodeContextSignal block) is generic and
-  // must not special-case Z17.
+  // Z17 and EVUCL/A06 are used here only as acceptance-test examples; the routing
+  // signal itself (see findBestCapability's hasMakoEdifactCodeContextSignal block)
+  // is generic and must not special-case one code.
   describe('generic MaKo/EDIFACT code-context routing (#498)', () => {
     it.each([
       ['was bedeutet eine Z17 in einer APERAK?'],
       ['APERAK Fehlercode Z18 erklären'],
       ['Welche UTILMD-Segmentstruktur ist für Lieferantenwechsel relevant?'],
       ['Was bedeutet ein MSCONS Prüfhinweis im MaKo-Kontext?'],
+      ['EVUCL A06 andere Anmeldung wird verarbeitet'],
     ])(
       'routes "%s" to the read-only market-communication capability with Willi-Mako support',
       async (task) => {

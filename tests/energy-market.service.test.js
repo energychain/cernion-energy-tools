@@ -368,6 +368,76 @@ describe('Energy Market Service', () => {
       expect(Array.isArray(result.data.forecast)).toBe(true);
       expect(result.data.forecast[0]).toHaveProperty('gCO2eqPerKWh', 250);
     });
+
+    it('falls back to populated co2_g_oekostrom when standard CO2 fields are null', async () => {
+      callWithNewSession.mockResolvedValueOnce({
+        success: true,
+        co2_intensity_gco2eq_kwh: null,
+        average_today_gco2eq_kwh: 0,
+        timestamp: '2026-08-25T10:00:00.000Z',
+        data: {
+          location: '70173',
+          timestamp: '2026-08-25T10:00:00.000Z',
+          forecast_next_24h_gco2eq_kwh: [
+            {
+              timeStamp: 1787652000000,
+              co2_avg: null,
+              co2_g_standard: null,
+              co2_g_oekostrom: 71,
+            },
+            {
+              timeStamp: 1787655600000,
+              co2_avg: null,
+              co2_g_standard: null,
+              co2_g_oekostrom: 73,
+            },
+          ],
+        },
+      });
+
+      const result = await broker.call('energy-market.co2Intensity', {
+        location: '70173',
+        forecast: true,
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.degraded).toBe(true);
+      expect(result.co2_intensity_gco2eq_kwh).toBe(71);
+      expect(result.average_today_gco2eq_kwh).toBe(72);
+      expect(result.data.forecast).toEqual([
+        { timestamp: '2026-08-25T10:00:00.000Z', gCO2eqPerKWh: 71, sourceField: 'co2_g_oekostrom' },
+        { timestamp: '2026-08-25T11:00:00.000Z', gCO2eqPerKWh: 73, sourceField: 'co2_g_oekostrom' },
+      ]);
+    });
+
+    it('returns structured unavailable response instead of fabricated zero forecast', async () => {
+      callWithNewSession.mockResolvedValueOnce({
+        success: true,
+        co2_intensity_gco2eq_kwh: null,
+        average_today_gco2eq_kwh: 0,
+        timestamp: '2026-08-25T10:00:00.000Z',
+        data: {
+          location: '70173',
+          timestamp: '2026-08-25T10:00:00.000Z',
+          forecast_next_24h_gco2eq_kwh: [
+            { co2_avg: null, co2_g_standard: null, co2_g_oekostrom: null },
+            { co2_avg: null, co2_g_standard: null, co2_g_oekostrom: null },
+          ],
+        },
+      });
+
+      const result = await broker.call('energy-market.co2Intensity', {
+        location: '70173',
+        forecast: true,
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.status).toBe('unavailable');
+      expect(result.co2_intensity_gco2eq_kwh).toBeNull();
+      expect(result.average_today_gco2eq_kwh).toBeNull();
+      expect(result.data.forecast).toEqual([]);
+      expect(result.warnings).toContain('co2_forecast_unavailable_no_numeric_source_field');
+    });
   });
 
   describe('installations action', () => {

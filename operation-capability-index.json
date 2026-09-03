@@ -2,18 +2,18 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.99.19",
-  "sourceOpenApiHash": "13fa54ecadbfc5629e279a1ad5fbb424583f5a28ecc85bd97579cedd9686bf21",
+  "sourceOpenApiHash": "4889f16d6b2e43aacc3986910c220eff7cc2a6e5c01afe753a0da997ed5b6d17",
   "coverage": {
-    "rawOperationCount": 1139,
-    "operationCount": 883,
-    "agentableCount": 881,
+    "rawOperationCount": 1140,
+    "operationCount": 884,
+    "agentableCount": 882,
     "nonAgentableCount": 2,
     "byOperationKind": {
       "data_read": 389,
       "admin": 8,
       "object_store_write": 229,
       "process_step": 20,
-      "process_start": 42,
+      "process_start": 43,
       "advisory_plan": 46,
       "draft_write": 13,
       "external_effect": 4,
@@ -78503,15 +78503,15 @@
       "path": "/api/vnb-100-tage-assessment/assessments",
       "service": "vnb-100-tage-assessment",
       "action": "vnb-100-tage-assessment.assess",
-      "summary": "vnb-100-tage-assessment.assess",
+      "summary": "Run a 100-day quick assessment for a grid operator",
       "tags": [
-        "vnb-100-tage-assessment"
+        "VNB 100-Tage Assessment"
       ],
       "uiPage": null,
       "oeoClass": null,
-      "operationKind": "object_store_write",
-      "consequenceLevel": "medium",
-      "recommendedExecutionMode": "prepare",
+      "operationKind": "process_start",
+      "consequenceLevel": "high",
+      "recommendedExecutionMode": "confirm",
       "agentable": true,
       "nonAgentableReason": null,
       "capabilityCandidates": [
@@ -78532,13 +78532,57 @@
         "vnb-100-tage-assessment"
       ],
       "sideEffects": [
-        "creates_or_modifies_stored_object"
+        "starts_new_process_instance"
       ],
       "idempotency": "not_idempotent",
-      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "rollbackHint": "No companion rollback operation detected in this service - verify reversibility with backend/tenant admin before invoking.",
       "parameters": {
-        "required": [],
-        "optional": []
+        "required": [
+          {
+            "name": "gridOperatorId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "kpiValues",
+            "in": "body",
+            "type": "object",
+            "description": "Map of KPI ID to current numeric value, e.g. capex_efficiency_pct, saidi_minutes, mastr_accuracy_pct.",
+            "extractionHint": null
+          }
+        ],
+        "optional": [
+          {
+            "name": "roiMeasures",
+            "in": "body",
+            "type": "array",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "forbiddenAssumptions",
+            "in": "body",
+            "type": "array",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "assessorRole",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "label",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
       },
       "rankingSignals": {
         "positiveKeywords": [
@@ -78546,11 +78590,16 @@
           "100",
           "tage",
           "assessment",
-          "assess"
+          "assess",
+          "run",
+          "day",
+          "quick",
+          "grid",
+          "operator"
         ],
         "negativeCues": [],
         "examples": [
-          "Please vnb-100-tage-assessment.assess"
+          "Please run a 100-day quick assessment for a grid operator"
         ],
         "synonyms": [
           "Netzplanung",
@@ -81606,6 +81655,65 @@
         "negativeCues": [],
         "examples": [
           "Please create a new znp project workspace"
+        ],
+        "synonyms": [
+          "Netzplanung",
+          "Zielnetzplanung",
+          "investment planning"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "znp_layers",
+      "method": "POST",
+      "path": "/api/znp/projects/:id/layers",
+      "service": "znp",
+      "action": "znp.layers",
+      "summary": "znp.layers",
+      "tags": [
+        "znp"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "znp.layers"
+      ],
+      "domains": [
+        "grid-planning"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "znp:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "znp"
+      ],
+      "sideEffects": [
+        "creates_or_modifies_stored_object"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "znp",
+          "layers"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please znp.layers"
         ],
         "synonyms": [
           "Netzplanung",

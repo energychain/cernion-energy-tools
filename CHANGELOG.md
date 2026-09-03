@@ -5,6 +5,14 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- **`energy-market.co2Intensity` no longer publishes fabricated all-zero CO₂ forecasts when the GrünstromIndex/Corrently source shape contains nullable standard CO₂ fields.** The CET wrapper now accepts raw forecast rows with `co2_avg:null` and `co2_g_standard:null`, falls back to populated `co2_g_oekostrom` values with `degraded:true`/`fallback_co2_field:"co2_g_oekostrom"`, and returns a structured `success:false`, `status:"unavailable"` response with warnings when no numeric CO₂ field is available. This preserves integrator trust for EV charging and load-shifting consumers while avoiding claims that the upstream field behavior is intentionally deprecated.
+
+### Testing
+- Added regression coverage in `tests/energy-market.service.test.js` for the current raw upstream shape (`co2_avg:null`, `co2_g_standard:null`, populated `co2_g_oekostrom`) and for the no-CO₂-field case, asserting CET never exposes a successful all-zero forecast from null source values.
+
 ## [0.99.19] — 2026-08-14
 
 ### Fixed

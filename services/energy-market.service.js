@@ -33,6 +33,153 @@ const BACKTEST_ORIENTATION_YIELD_KWH_KW = {
   wind_offshore: 3500,
 };
 
+const CO2_FORECAST_VALUE_FIELDS = [
+  'co2_avg',
+  'co2_g_standard',
+  'co2_intensity_gco2eq_kwh',
+  'gCO2eqPerKWh',
+  'co2gPerKWh',
+  'co2Intensity',
+  'value',
+  'co2_g_oekostrom',
+];
+
+function _co2FiniteNumber(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
+function _co2PickForecastValue(point) {
+  if (typeof point !== 'object' || point === null) {
+    const value = _co2FiniteNumber(point);
+    return value === null ? null : { value };
+  }
+
+  for (const field of CO2_FORECAST_VALUE_FIELDS) {
+    const value = _co2FiniteNumber(point[field]);
+    if (value !== null) return { value, sourceField: field };
+  }
+  return null;
+}
+
+function _co2BuildForecastPoint(point, index, baseDate, hasValidBaseDate) {
+  const picked = _co2PickForecastValue(point);
+  if (!picked) return null;
+  const explicitTimestamp =
+    typeof point === 'object' && point !== null ? point.timestamp || point.ts || point.date : null;
+  const explicitDate = explicitTimestamp ? new Date(explicitTimestamp) : null;
+  const hasExplicitDate = explicitDate && !isNaN(explicitDate.getTime());
+  const timestamp = hasExplicitDate
+    ? explicitDate.toISOString()
+    : hasValidBaseDate
+      ? new Date(baseDate.getTime() + index * 60 * 60 * 1000).toISOString()
+      : null;
+  return {
+    timestamp,
+    gCO2eqPerKWh: picked.value,
+    ...(picked.sourceField ? { sourceField: picked.sourceField } : {}),
+  };
+}
+
+function _co2UnavailableResult(result, mcpParams, warning) {
+  return {
+    ...result,
+    success: false,
+    status: 'unavailable',
+    degraded: true,
+    co2_intensity_gco2eq_kwh: null,
+    average_today_gco2eq_kwh: null,
+    warnings: Array.from(new Set([...(result?.warnings || []), warning])),
+    data: {
+      ...(result?.data || {}),
+      location: result?.data?.location || result?.location || mcpParams.location,
+      timestamp: result?.data?.timestamp || result?.timestamp || null,
+      forecast: [],
+    },
+  };
+}
+
+function _co2NormalizeResult(result, mcpParams) {
+  const forecastValues =
+    result?.data?.forecast_next_24h_gco2eq_kwh || result?.forecast_next_24h_gco2eq_kwh || null;
+
+  if (!Array.isArray(forecastValues)) return result;
+
+  const baseTimestamp = result?.data?.timestamp || result?.timestamp;
+  const baseDate = baseTimestamp ? new Date(baseTimestamp) : null;
+  const hasValidBaseDate = baseDate && !isNaN(baseDate.getTime());
+  const hasObjectForecastRows = forecastValues.some(
+    (value) => typeof value === 'object' && value !== null
+  );
+  const numericForecastValues = forecastValues
+    .map(_co2FiniteNumber)
+    .filter((value) => value !== null);
+  const currentValue = _co2FiniteNumber(result?.co2_intensity_gco2eq_kwh);
+  const averageToday = _co2FiniteNumber(result?.average_today_gco2eq_kwh);
+  const allNumericForecastZeros =
+    numericForecastValues.length > 0 && numericForecastValues.every((value) => value === 0);
+
+  const forecast = forecastValues
+    .map((value, index) => _co2BuildForecastPoint(value, index, baseDate, hasValidBaseDate))
+    .filter(Boolean);
+
+  if (forecast.length === 0 && hasObjectForecastRows) {
+    return _co2UnavailableResult(
+      result,
+      mcpParams,
+      'co2_forecast_unavailable_no_numeric_source_field'
+    );
+  }
+
+  if (
+    allNumericForecastZeros &&
+    currentValue === null &&
+    (averageToday === null || averageToday === 0) &&
+    forecastValues.length > 1
+  ) {
+    return _co2UnavailableResult(result, mcpParams, 'co2_forecast_unavailable_all_zero_guard');
+  }
+
+  const fallbackFields = new Set(
+    forecast.map((point) => point.sourceField).filter((field) => field === 'co2_g_oekostrom')
+  );
+  const usedOekostromFallback = fallbackFields.size > 0;
+  const forecastAverage =
+    forecast.length > 0
+      ? forecast.reduce((sum, point) => sum + point.gCO2eqPerKWh, 0) / forecast.length
+      : null;
+
+  return {
+    ...result,
+    ...(usedOekostromFallback ? { degraded: true, fallback_co2_field: 'co2_g_oekostrom' } : {}),
+    warnings: usedOekostromFallback
+      ? Array.from(
+          new Set([
+            ...(result?.warnings || []),
+            'co2_standard_fields_null_using_oekostrom_fallback',
+          ])
+        )
+      : result?.warnings,
+    co2_intensity_gco2eq_kwh:
+      currentValue !== null
+        ? currentValue
+        : forecast[0]
+          ? forecast[0].gCO2eqPerKWh
+          : result?.co2_intensity_gco2eq_kwh,
+    average_today_gco2eq_kwh:
+      averageToday !== null && !(usedOekostromFallback && averageToday === 0)
+        ? averageToday
+        : forecastAverage,
+    data: {
+      ...(result.data || {}),
+      location: result?.data?.location || result?.location || mcpParams.location,
+      timestamp: result?.data?.timestamp || result?.timestamp || null,
+      forecast,
+    },
+  };
+}
+
 function _btHourTimestamp(timestamp) {
   const d = new Date(timestamp);
   if (!Number.isFinite(d.getTime())) return null;
@@ -684,6 +831,11 @@ module.exports = {
 - Green energy certificates
 - Power BI / Excel import with \`format=csv\`
 
+**Reliability note:** When GrünstromIndex returns nullable standard CO₂ fields, CET uses populated
+\`co2_g_oekostrom\` values as an explicitly marked degraded fallback. If no numeric CO₂ source field
+is available, the response is \`success:false\`/\`status:"unavailable"\` with warnings instead of a
+fabricated all-zero forecast.
+
 **Data Source:** GrünstromIndex provides regional green energy forecasts with 36-hour horizon, factoring in renewable generation, grid mix, and transmission constraints.`,
         requestBody: {
           content: {
@@ -756,6 +908,7 @@ module.exports = {
               'application/json': {
                 example: {
                   success: true,
+                  degraded: false,
                   co2_intensity_gco2eq_kwh: 380,
                   average_today_gco2eq_kwh: 364.5,
                   data: {
@@ -777,40 +930,17 @@ module.exports = {
         // Strip `format` before forwarding to MCP tool — it has no such parameter.
         const { format, ...mcpParams } = ctx.params;
 
-        const result = await CernionMCPClient.callWithNewSession(
+        let result = await CernionMCPClient.callWithNewSession(
           'cernion_co2_intensity',
           mcpParams,
           ctx.meta.cernionToken
         );
 
-        // Normalise forecast array: MCP returns an array of raw numbers under
-        // forecast_next_24h_gco2eq_kwh; convert to [{timestamp, gCO2eqPerKWh}] objects.
-        const forecastValues =
-          result?.data?.forecast_next_24h_gco2eq_kwh ||
-          result?.forecast_next_24h_gco2eq_kwh ||
-          null;
-
-        if (Array.isArray(forecastValues)) {
-          const baseTimestamp = result?.data?.timestamp || result?.timestamp;
-          const baseDate = baseTimestamp ? new Date(baseTimestamp) : null;
-          const isValidBaseDate = baseDate && !isNaN(baseDate.getTime());
-          const forecast = forecastValues.map((value, index) => {
-            const timestamp = isValidBaseDate
-              ? new Date(baseDate.getTime() + index * 60 * 60 * 1000).toISOString()
-              : null;
-            return {
-              timestamp,
-              gCO2eqPerKWh: value,
-            };
-          });
-
-          result.data = {
-            ...(result.data || {}),
-            location: result?.data?.location || result?.location || mcpParams.location,
-            timestamp: result?.data?.timestamp || result?.timestamp || null,
-            forecast,
-          };
-        }
+        // Normalise forecast array. MCP historically returns raw numbers under
+        // forecast_next_24h_gco2eq_kwh; newer/raw GSI-shaped fixtures may contain
+        // rows with nullable co2_avg/co2_g_standard and populated co2_g_oekostrom.
+        // Never turn unavailable/null CO2 source fields into fabricated zero forecasts.
+        result = _co2NormalizeResult(result, mcpParams);
 
         // CSV export: forecast rows + scalar metadata as # comment lines
         if (format === 'csv') {

@@ -878,7 +878,10 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
           for (const query of searchQueries) {
             const mp = await callBroker(ctx, 'grid-operations.marketPartners', {
               query,
-              limit: 50, // Get all available options
+              // grid-operations.marketPartners validates limit with max:20.
+              // Keep this in sync so this helper does not silently drop every lookup
+              // through callBroker's degraded-path error handling.
+              limit: 20,
             });
 
             if (mp?.available === false) {

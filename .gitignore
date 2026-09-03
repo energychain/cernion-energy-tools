@@ -155,3 +155,10 @@ tmp/
 scripts/local/
 .gitnexus
 rcs-test-runs-*
+
+# Scratch/agent working artifacts (not part of repo deliverables)
+.hermes-work/
+data-backups/
+mail.json
+reports/kanban_cockpit_*
+tmp_create_*.py
