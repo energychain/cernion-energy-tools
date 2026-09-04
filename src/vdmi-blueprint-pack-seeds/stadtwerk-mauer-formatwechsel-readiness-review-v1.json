@@ -1,0 +1,470 @@
+{
+  "id": "stadtwerk-mauer-formatwechsel-readiness-review-v1",
+  "kind": "vdmi_blueprint_pack_seed",
+  "version": "1.0.0",
+  "safetyClassification": "read_only_blueprint_seed",
+  "title": "Stadtwerk Mauer Formatwechsel Readiness Review seed",
+  "processFamily": "market_communication_format_change_governance",
+  "controlCase": "selected_format_change_readiness_review",
+  "sourceHints": [
+    {
+      "operation": "GET /api/dashboard/evu-api-migration-diagnostics",
+      "path": "/api/dashboard/evu-api-migration-diagnostics",
+      "method": "GET",
+      "workbenchBrick": "evu_api_migration_diagnostics",
+      "capability": "dashboard-api.evuApiMigrationDiagnosticsStatus",
+      "readOnly": true,
+      "invocation": "source_hint_only"
+    },
+    {
+      "operation": "GET /api/dashboard/market-communication-evidence-chain",
+      "path": "/api/dashboard/market-communication-evidence-chain",
+      "method": "GET",
+      "workbenchBrick": "market_communication_evidence_chain",
+      "capability": "dashboard-api.marketCommunicationEvidenceChainStatus",
+      "readOnly": true,
+      "invocation": "source_hint_only"
+    },
+    {
+      "operation": "GET /api/dashboard/automation-risk-gate",
+      "path": "/api/dashboard/automation-risk-gate",
+      "method": "GET",
+      "workbenchBrick": "automation_risk_gate",
+      "capability": "dashboard-api.automationRiskGateStatus",
+      "readOnly": true,
+      "invocation": "source_hint_only"
+    },
+    {
+      "operation": "GET /api/dashboard/owner-deadline-evidence-gate",
+      "path": "/api/dashboard/owner-deadline-evidence-gate",
+      "method": "GET",
+      "workbenchBrick": "owner_deadline_evidence_gate",
+      "capability": "dashboard-api.ownerDeadlineEvidenceGateStatus",
+      "readOnly": true,
+      "invocation": "source_hint_only"
+    },
+    {
+      "operation": "GET /api/dashboard/decision-readiness-matrix",
+      "path": "/api/dashboard/decision-readiness-matrix",
+      "method": "GET",
+      "workbenchBrick": "decision_readiness_matrix",
+      "capability": "dashboard-api.decisionReadinessMatrixStatus",
+      "readOnly": true,
+      "invocation": "source_hint_only"
+    }
+  ],
+  "budibaseRenderTarget": "budibase:stadtwerk-mauer-workbench:formatwechsel-readiness-panel",
+  "operationsBoundary": {
+    "verificationWrapper": "/api/operations-runbook/**",
+    "directRundeckExecution": false,
+    "note": "Any later operational verification stays behind a separately curated operations-runbook wrapper; this seed never calls Rundeck directly."
+  },
+  "demoTenant": {
+    "tenantId": "stadtwerk-mauer",
+    "classification": "synthetic_demo_tenant",
+    "description": "Virtual Stadtwerk Mauer demo tenant; system, patch, format, process, Fachtest, owner, deadline and evidence references for this format-change readiness review are invented."
+  },
+  "roleQuestion": {
+    "actor": "Marktkommunikation / IT Operations / Cernion Governance",
+    "answerableIn": "under_one_minute",
+    "question": "Sind System-/Patch-/Formatumfang, Fachtest und Prozesskette, Stop-/Rollback-Evidenz sowie Owner/Frist fuer ein menschliches Go-live-Review vollstaendig - oder welche Evidenz und welches sichere Review-Gate fehlen?"
+  },
+  "dataClasses": {
+    "publicContextLayer": {
+      "description": "Optional read-only public regulatory or format-context hints; not mutable and not removable by reset/delete.",
+      "examples": ["public format-version advisory", "read-only regulatory changelog reference", "non-binding governance vocabulary"]
+    },
+    "syntheticTenantSeed": {
+      "description": "Invented Stadtwerk-Mauer system, patch, format, process, Fachtest, owner, deadline and evidence references for this readiness review.",
+      "examples": ["synthetic system landscape entry", "synthetic patch level marker", "synthetic Fachtest case reference"]
+    },
+    "sandboxRuntimeArtifact": {
+      "description": "Resettable validator/render/smoke proof from Cernion or Workbench verification runs, separate from public context baselines.",
+      "examples": ["matrix-sync render artifact", "read-model refresh proof", "smoke validation proof"]
+    }
+  },
+  "roles": [
+    {
+      "roleId": "ROLE_MARKTKOMMUNIKATION",
+      "relation": "verantwortlich",
+      "responsibility": "Owns the review-readiness decision boundary for the format-change readiness review; surfaces missing evidence without granting format or Go-live approval."
+    },
+    {
+      "roleId": "ROLE_IT_OPERATIONS",
+      "relation": "durchfuehrend",
+      "responsibility": "Provides system/patch/format scope and affected-process-chain/Fachtest evidence without SAP/ERP writes, EDIFACT retries or format conversion."
+    },
+    {
+      "roleId": "ROLE_CERNION_GOVERNANCE",
+      "relation": "durchfuehrend",
+      "responsibility": "Verifies operational-safety and decision-readiness evidence, the Blueprint-Pack seed, matrix sync and no-call boundary without creating runtime records."
+    },
+    {
+      "roleId": "ROLE_PROCESS_OWNER",
+      "relation": "mitwirkend",
+      "responsibility": "Provides scope-boundary context for the affected process family without approving the format change."
+    },
+    {
+      "roleId": "ROLE_BILLING_GOVERNANCE",
+      "relation": "mitwirkend",
+      "responsibility": "Provides Fachtest, validation and decision-readiness context without executing billing, settlement or tariff mutation."
+    },
+    {
+      "roleId": "ROLE_MANAGEMENT_REVIEW",
+      "relation": "information",
+      "responsibility": "Receives review-readiness status and missing-evidence context without approving Go-live, format conversion or a MaKo/SAP/Billing action."
+    }
+  ],
+  "evidenceRequirements": [
+    {
+      "id": "systemLandscapeEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds the synthetic system landscape row so the reviewed format scope can be located within the tenant's system inventory."
+    },
+    {
+      "id": "patchLevelEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds the synthetic patch level so the review can confirm which patch introduces the format change."
+    },
+    {
+      "id": "formatVersionEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds the synthetic format version pairing so the review can confirm old-to-new format scope."
+    },
+    {
+      "id": "scopeBoundaryEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds the scope-boundary note so the review can confirm what is explicitly out of scope for this format change."
+    },
+    {
+      "id": "affectedProcessChainEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds the affected market-communication process chain so the review can see downstream impact before Fachtest."
+    },
+    {
+      "id": "fachtestCaseEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds the synthetic Fachtest case reference proving the format change was exercised in a test lane."
+    },
+    {
+      "id": "validationResultEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds the Fachtest validation result so the review can see pass/fail status without re-running the test."
+    },
+    {
+      "id": "sourceSnapshotEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds the source snapshot reference used for the Fachtest so the review can trace which data was exercised."
+    },
+    {
+      "id": "automationRiskEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds the automation-risk classification so the review can see whether downstream automation is affected."
+    },
+    {
+      "id": "monitoringEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds the monitoring-coverage note so the review can confirm the format change is observable after cutover."
+    },
+    {
+      "id": "stopCriterionEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds the stop-criterion definition so the review can see what safely halts the format change."
+    },
+    {
+      "id": "rollbackEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds the rollback-path note so the review can confirm a safe reversal exists before Go-live."
+    },
+    {
+      "id": "ownerDeadlineEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "evidence_gap",
+      "enablesDossierAddition": "Adds the accountable owner and deadline so operational-safety accountability is visible without creating a workflow or HITL task."
+    },
+    {
+      "id": "decisionReadinessEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds the decision-readiness marker so the review can see whether the case is ready for a human Go-live review."
+    },
+    {
+      "id": "positiveFollowUpEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds the remaining evidence gaps as positive Workbench additions for the next human review."
+    },
+    {
+      "id": "nextHumanGateEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds the next safe human review gate without granting Go-live, format or MaKo/SAP/Billing approval."
+    },
+    {
+      "id": "noCallGuardEvidence",
+      "required": true,
+      "dataClass": "syntheticTenantSeed",
+      "missingState": "clarification",
+      "enablesDossierAddition": "Adds confirmation that no dashboard source hint, connector or Rundeck call was executed while assembling this review."
+    }
+  ],
+  "demoProcessMatrix": {
+    "slug": "formatwechsel-readiness-review",
+    "title": "Formatwechsel Readiness Review",
+    "roleLegend": {
+      "V": "Verantwortlich",
+      "D": "Durchfuehrend",
+      "M": "Mitwirkend",
+      "I": "Informiert"
+    },
+    "headers": [
+      "Phase",
+      "V = Verantwortlich",
+      "D = Durchfuehrend",
+      "M = Mitwirkend",
+      "I = Informiert",
+      "Nachweise"
+    ],
+    "allowedDataClasses": [
+      "publicContextLayer",
+      "syntheticTenantSeed",
+      "sandboxRuntimeArtifact"
+    ],
+    "downstreamHandoff": {
+      "blueprintPack": "complete",
+      "landingRegistry": "pending",
+      "productiveDemoRoom": "pending",
+      "acceptanceNote": "Blueprint-Pack/Cernion-Energy-Tools matrix is canonical; Landing-Registry and productive Demo-Raum sync remain downstream proof steps."
+    },
+    "rows": [
+      {
+        "phase": "1",
+        "v": "ROLE_MARKTKOMMUNIKATION",
+        "d": "ROLE_IT_OPERATIONS",
+        "m": "ROLE_PROCESS_OWNER",
+        "i": "ROLE_MANAGEMENT_REVIEW",
+        "evidenceRequirements": [
+          "systemLandscapeEvidence",
+          "patchLevelEvidence",
+          "formatVersionEvidence",
+          "scopeBoundaryEvidence"
+        ],
+        "dataClassRefs": [
+          "publicContextLayer",
+          "syntheticTenantSeed"
+        ],
+        "status": "clarification",
+        "gateOutcome": "scope_and_version_review_pending",
+        "enablesDossierAddition": "Adds system/patch/format scope so the review can confirm what is changing before any Fachtest evidence is requested."
+      },
+      {
+        "phase": "2",
+        "v": "ROLE_MARKTKOMMUNIKATION",
+        "d": "ROLE_IT_OPERATIONS",
+        "m": "ROLE_BILLING_GOVERNANCE",
+        "i": "ROLE_MANAGEMENT_REVIEW",
+        "evidenceRequirements": [
+          "affectedProcessChainEvidence",
+          "fachtestCaseEvidence",
+          "validationResultEvidence",
+          "sourceSnapshotEvidence"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed"
+        ],
+        "status": "evidence_gap",
+        "gateOutcome": "fachtest_and_process_chain_evidence_pending",
+        "enablesDossierAddition": "Adds the affected process chain and Fachtest evidence without approving Fach- or Go-live readiness."
+      },
+      {
+        "phase": "3",
+        "v": "ROLE_MARKTKOMMUNIKATION",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_IT_OPERATIONS",
+        "i": "ROLE_MANAGEMENT_REVIEW",
+        "evidenceRequirements": [
+          "automationRiskEvidence",
+          "monitoringEvidence",
+          "stopCriterionEvidence",
+          "rollbackEvidence",
+          "ownerDeadlineEvidence"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed",
+          "sandboxRuntimeArtifact"
+        ],
+        "status": "evidence_gap",
+        "gateOutcome": "operational_safety_evidence_pending",
+        "enablesDossierAddition": "Adds automation-risk, monitoring, stop-criterion, rollback and owner-deadline evidence needed before any human Go-live review."
+      },
+      {
+        "phase": "4",
+        "v": "ROLE_MARKTKOMMUNIKATION",
+        "d": "ROLE_CERNION_GOVERNANCE",
+        "m": "ROLE_BILLING_GOVERNANCE",
+        "i": "ROLE_MANAGEMENT_REVIEW",
+        "evidenceRequirements": [
+          "decisionReadinessEvidence",
+          "positiveFollowUpEvidence",
+          "nextHumanGateEvidence",
+          "noCallGuardEvidence"
+        ],
+        "dataClassRefs": [
+          "syntheticTenantSeed",
+          "sandboxRuntimeArtifact"
+        ],
+        "status": "clarification",
+        "gateOutcome": "human_go_live_review_ready_or_evidence_gap",
+        "enablesDossierAddition": "Adds the final read-only readiness status for the next human Go-live review, never the Go-live decision itself."
+      }
+    ]
+  },
+  "positiveFollowUps": [
+    {
+      "missingDataPoint": "scope_and_version_evidence",
+      "enablesDossierAddition": "completes the system/patch/format scope row for the phase 1 human review"
+    },
+    {
+      "missingDataPoint": "process_chain_and_fachtest_evidence",
+      "enablesDossierAddition": "completes the affected-chain and validation review row for the phase 2 human review"
+    },
+    {
+      "missingDataPoint": "operational_safety_evidence",
+      "enablesDossierAddition": "completes monitoring, stop-criterion, rollback and owner-deadline facts for the phase 3 human review"
+    },
+    {
+      "missingDataPoint": "decision_readiness_and_next_gate_evidence",
+      "enablesDossierAddition": "enables a human Go-live review status marker for phase 4, never the Go-live action itself"
+    }
+  ],
+  "decisionPolicy": {
+    "onMissingEvidence": "evidence_gap",
+    "onMissingOwner": "clarification",
+    "onReadyEvidence": "review_ready",
+    "allowedStates": ["clarification", "evidence_gap", "review", "review_ready"],
+    "mustNotTrigger": [
+      "format_conversion_execute",
+      "edifact_api_retry",
+      "oauth_secret_handling",
+      "json_patch_apply",
+      "sap_erp_write",
+      "a96_creation_dispatch",
+      "mscons_creation_dispatch",
+      "fach_approval_automatic",
+      "go_live_approval_automatic",
+      "workflow_create",
+      "task_create",
+      "hitl_create",
+      "mail_send",
+      "webhook_send",
+      "mako_write",
+      "billing",
+      "settlement",
+      "tariff_mutation",
+      "device_control",
+      "smgw_cls_device_control",
+      "external_connector_call",
+      "tenant_mutation",
+      "public_context_mutation",
+      "production_mutation",
+      "personal_agent_hardcoding"
+    ]
+  },
+  "allowedCommandHints": [
+    {
+      "id": "inspect-evu-api-migration-diagnostics-brick",
+      "kind": "source_api_reference",
+      "execution": "metadata_only",
+      "description": "References the existing read-only EVU-API migration diagnostics brick; this seed must not invoke it, run a format conversion or SAP/ERP write."
+    },
+    {
+      "id": "inspect-market-communication-evidence-chain-brick",
+      "kind": "source_api_reference",
+      "execution": "metadata_only",
+      "description": "References the existing read-only market-communication evidence-chain brick; this seed must not invoke it or create a MaKo/A96/MSCONS message."
+    },
+    {
+      "id": "inspect-automation-risk-gate-brick",
+      "kind": "source_api_reference",
+      "execution": "metadata_only",
+      "description": "References the existing read-only automation-risk-gate brick; this seed must not invoke it or trigger automated Fach-/Go-live approval."
+    },
+    {
+      "id": "inspect-owner-deadline-evidence-gate-brick",
+      "kind": "source_api_reference",
+      "execution": "metadata_only",
+      "description": "References the existing read-only owner-deadline evidence-gate brick; this seed must not invoke it or create a workflow/HITL task."
+    },
+    {
+      "id": "inspect-decision-readiness-matrix-brick",
+      "kind": "source_api_reference",
+      "execution": "metadata_only",
+      "description": "References the existing read-only decision-readiness-matrix brick; this seed must not invoke it or publish to Landing-Registry/cernion.de."
+    }
+  ],
+  "forbiddenActions": [
+    "format_conversion_execute",
+    "edifact_api_retry",
+    "oauth_secret_handling",
+    "json_patch_apply",
+    "sap_erp_write",
+    "a96_creation_dispatch",
+    "mscons_creation_dispatch",
+    "fach_approval_automatic",
+    "go_live_approval_automatic",
+    "workflow_create",
+    "task_create",
+    "hitl_create",
+    "mail_send",
+    "webhook_send",
+    "mako_write",
+    "billing",
+    "settlement",
+    "tariff_mutation",
+    "device_control",
+    "smgw_cls_device_control",
+    "external_connector_call",
+    "tenant_mutation",
+    "public_context_mutation",
+    "production_mutation",
+    "budibase_table_write",
+    "rundeck_execute",
+    "landing_registry_publication",
+    "cernion_de_publication",
+    "secret_key_handling",
+    "wallet_key_material_handling",
+    "personal_agent_hardcoding",
+    "personal_agent_execution"
+  ],
+  "publicContextMutationAllowed": false,
+  "tenantProvisioningAllowed": false,
+  "realWorldClaim": "synthetic_demo_only"
+}

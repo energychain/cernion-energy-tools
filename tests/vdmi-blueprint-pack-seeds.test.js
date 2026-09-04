@@ -9,6 +9,7 @@ const {
   REQUIRED_ENERGY_SHARING_COLLECTIVE_APPROVAL_EVIDENCE,
   REQUIRED_EVIDENCE,
   REQUIRED_FLEXIBLE_GRID_CONNECTION_RELEASE_FILE_EVIDENCE,
+  REQUIRED_FORMATWECHSEL_READINESS_REVIEW_EVIDENCE,
   REQUIRED_GAS_TRANSFORMATION_DATAROOM_REVIEW_EVIDENCE,
   REQUIRED_INVESTMENT_OWNER_DEADLINE_BUDGET_GATE_EVIDENCE,
   REQUIRED_MASTR_SYNC_GAP_ALERTING_EVIDENCE,
@@ -31,6 +32,7 @@ const {
   stadtwerkMauerDirectMarketerRiskGate,
   stadtwerkMauerEnergySharingCollectiveApproval,
   stadtwerkMauerFlexibleGridConnectionReleaseFile,
+  stadtwerkMauerFormatwechselReadinessReview,
   stadtwerkMauerGasTransformationDataroomReview,
   stadtwerkMauerMastrSyncGapAlerting,
   stadtwerkMauerGridConnectionTransformationGate,
@@ -2930,5 +2932,284 @@ describe('VDMI Blueprint Pack seeds', () => {
         );
       }
     }
+  });
+
+  test('exposes the Formatwechsel Readiness Review seed as read-only metadata', () => {
+    expect(stadtwerkMauerFormatwechselReadinessReview).toMatchObject({
+      id: 'stadtwerk-mauer-formatwechsel-readiness-review-v1',
+      kind: 'vdmi_blueprint_pack_seed',
+      version: '1.0.0',
+      safetyClassification: 'read_only_blueprint_seed',
+      processFamily: 'market_communication_format_change_governance',
+      controlCase: 'selected_format_change_readiness_review',
+      demoTenant: {
+        tenantId: 'stadtwerk-mauer',
+        classification: 'synthetic_demo_tenant',
+      },
+      budibaseRenderTarget: 'budibase:stadtwerk-mauer-workbench:formatwechsel-readiness-panel',
+    });
+
+    expect(listVdmiBlueprintPackSeeds()).toContainEqual(
+      expect.objectContaining({
+        id: 'stadtwerk-mauer-formatwechsel-readiness-review-v1',
+        demoTenantId: 'stadtwerk-mauer',
+      })
+    );
+    expect(getVdmiBlueprintPackSeed('stadtwerk-mauer-formatwechsel-readiness-review-v1')).toBe(
+      stadtwerkMauerFormatwechselReadinessReview
+    );
+  });
+
+  test('references only the five existing Formatwechsel dashboard bricks as metadata-only source hints, never executed', () => {
+    const seed = stadtwerkMauerFormatwechselReadinessReview;
+    const expectedHints = [
+      '/api/dashboard/evu-api-migration-diagnostics',
+      '/api/dashboard/market-communication-evidence-chain',
+      '/api/dashboard/automation-risk-gate',
+      '/api/dashboard/owner-deadline-evidence-gate',
+      '/api/dashboard/decision-readiness-matrix',
+    ];
+    expect(seed.sourceHints).toHaveLength(expectedHints.length);
+    for (const path of expectedHints) {
+      expect(seed.sourceHints).toContainEqual(
+        expect.objectContaining({
+          operation: `GET ${path}`,
+          path,
+          method: 'GET',
+          readOnly: true,
+          invocation: 'source_hint_only',
+        })
+      );
+    }
+    expect(seed.allowedCommandHints).toHaveLength(expectedHints.length);
+    for (const hint of seed.allowedCommandHints) {
+      expect(hint.execution).toBe('metadata_only');
+    }
+    expect(seed.operationsBoundary).toMatchObject({
+      verificationWrapper: '/api/operations-runbook/**',
+      directRundeckExecution: false,
+    });
+  });
+
+  test('validates Formatwechsel Readiness Review evidence without conversion, MaKo, SAP or billing side effects', () => {
+    const result = validateVdmiBlueprintPackSeed(stadtwerkMauerFormatwechselReadinessReview);
+    expect(result).toEqual({ valid: true, errors: [] });
+
+    const evidenceIds = stadtwerkMauerFormatwechselReadinessReview.evidenceRequirements.map(
+      (item) => item.id
+    );
+    expect(evidenceIds).toEqual(
+      expect.arrayContaining(REQUIRED_FORMATWECHSEL_READINESS_REVIEW_EVIDENCE)
+    );
+    for (const item of stadtwerkMauerFormatwechselReadinessReview.evidenceRequirements) {
+      expect(item.dataClass).toBe('syntheticTenantSeed');
+      expect(item.enablesDossierAddition).toEqual(expect.any(String));
+    }
+
+    expect(stadtwerkMauerFormatwechselReadinessReview.forbiddenActions).toEqual(
+      expect.arrayContaining([
+        'format_conversion_execute',
+        'edifact_api_retry',
+        'oauth_secret_handling',
+        'json_patch_apply',
+        'sap_erp_write',
+        'a96_creation_dispatch',
+        'mscons_creation_dispatch',
+        'fach_approval_automatic',
+        'go_live_approval_automatic',
+        'workflow_create',
+        'task_create',
+        'hitl_create',
+        'mail_send',
+        'webhook_send',
+        'mako_write',
+        'billing',
+        'settlement',
+        'tariff_mutation',
+        'device_control',
+        'smgw_cls_device_control',
+        'external_connector_call',
+        'tenant_mutation',
+        'public_context_mutation',
+        'production_mutation',
+        'budibase_table_write',
+        'rundeck_execute',
+        'landing_registry_publication',
+        'cernion_de_publication',
+        'secret_key_handling',
+        'wallet_key_material_handling',
+        'personal_agent_hardcoding',
+        'personal_agent_execution',
+      ])
+    );
+    expect(stadtwerkMauerFormatwechselReadinessReview.publicContextMutationAllowed).toBe(false);
+    expect(stadtwerkMauerFormatwechselReadinessReview.tenantProvisioningAllowed).toBe(false);
+    expect(stadtwerkMauerFormatwechselReadinessReview.realWorldClaim).toBe('synthetic_demo_only');
+  });
+
+  test('exposes a canonical four-row Demo-Raum process matrix for Formatwechsel Readiness Review sync', () => {
+    const matrix = stadtwerkMauerFormatwechselReadinessReview.demoProcessMatrix;
+    const sync = buildDemoProcessMatrixSync(stadtwerkMauerFormatwechselReadinessReview);
+    const draft = buildLandingRegistryDraftFromBlueprintSeed(
+      stadtwerkMauerFormatwechselReadinessReview
+    );
+
+    expect(matrix.slug).toBe('formatwechsel-readiness-review');
+    expect(matrix.roleLegend.M).toBe('Mitwirkend');
+    expect(matrix.headers).toEqual([
+      'Phase',
+      'V = Verantwortlich',
+      'D = Durchfuehrend',
+      'M = Mitwirkend',
+      'I = Informiert',
+      'Nachweise',
+    ]);
+    expect(matrix.rows).toHaveLength(4);
+    expect(matrix.allowedDataClasses).toEqual(REQUIRED_DATA_CLASSES);
+    expect(matrix.downstreamHandoff).toMatchObject({
+      blueprintPack: 'complete',
+      landingRegistry: 'pending',
+      productiveDemoRoom: 'pending',
+    });
+
+    expect(matrix.rows).toEqual([
+      expect.objectContaining({
+        phase: '1',
+        v: 'ROLE_MARKTKOMMUNIKATION',
+        d: 'ROLE_IT_OPERATIONS',
+        m: 'ROLE_PROCESS_OWNER',
+        i: 'ROLE_MANAGEMENT_REVIEW',
+        status: 'clarification',
+        gateOutcome: 'scope_and_version_review_pending',
+      }),
+      expect.objectContaining({
+        phase: '2',
+        v: 'ROLE_MARKTKOMMUNIKATION',
+        d: 'ROLE_IT_OPERATIONS',
+        m: 'ROLE_BILLING_GOVERNANCE',
+        i: 'ROLE_MANAGEMENT_REVIEW',
+        status: 'evidence_gap',
+        gateOutcome: 'fachtest_and_process_chain_evidence_pending',
+      }),
+      expect.objectContaining({
+        phase: '3',
+        v: 'ROLE_MARKTKOMMUNIKATION',
+        d: 'ROLE_CERNION_GOVERNANCE',
+        m: 'ROLE_IT_OPERATIONS',
+        i: 'ROLE_MANAGEMENT_REVIEW',
+        status: 'evidence_gap',
+        gateOutcome: 'operational_safety_evidence_pending',
+      }),
+      expect.objectContaining({
+        phase: '4',
+        v: 'ROLE_MARKTKOMMUNIKATION',
+        d: 'ROLE_CERNION_GOVERNANCE',
+        m: 'ROLE_BILLING_GOVERNANCE',
+        i: 'ROLE_MANAGEMENT_REVIEW',
+        status: 'clarification',
+        gateOutcome: 'human_go_live_review_ready_or_evidence_gap',
+      }),
+    ]);
+
+    expect(sync).toMatchObject({
+      slug: 'formatwechsel-readiness-review',
+      synced: true,
+      rowCount: 4,
+      rowCountValid: true,
+      roleCellsClean: true,
+      dataClassesLimited: true,
+    });
+    expect(draft).toMatchObject({
+      slug: 'formatwechsel-readiness-review',
+      seedId: 'stadtwerk-mauer-formatwechsel-readiness-review-v1',
+      syncProof: {
+        blueprintPack: { status: 'complete' },
+        landingRegistryDraft: { status: 'draft_ready' },
+        productiveDemoRoom: { status: 'pending' },
+      },
+    });
+
+    for (const row of matrix.rows) {
+      expect(row).toEqual(
+        expect.objectContaining({
+          phase: expect.any(String),
+          v: expect.stringMatching(/^ROLE_/),
+          d: expect.stringMatching(/^ROLE_/),
+          m: expect.stringMatching(/^ROLE_/),
+          i: expect.stringMatching(/^ROLE_/),
+          evidenceRequirements: expect.arrayContaining([expect.any(String)]),
+          dataClassRefs: expect.arrayContaining([expect.any(String)]),
+          gateOutcome: expect.any(String),
+          enablesDossierAddition: expect.any(String),
+        })
+      );
+      expect(row.evidenceRequirements.length).toBeGreaterThan(0);
+      for (const dataClass of row.dataClassRefs) {
+        expect(REQUIRED_DATA_CLASSES).toContain(dataClass);
+      }
+      for (const roleCell of [row.v, row.d, row.m, row.i]) {
+        expect(REQUIRED_DATA_CLASSES).not.toContain(roleCell);
+        expect(roleCell).not.toMatch(
+          /Phase|Verantwortlich|Durchfuehrend|Mitwirkend|Informiert|Nachweise/
+        );
+      }
+    }
+  });
+
+  test('keeps Formatwechsel Readiness Review evidence as review-readiness only, never a Go-live or format decision', () => {
+    const seed = stadtwerkMauerFormatwechselReadinessReview;
+    for (const row of seed.demoProcessMatrix.rows) {
+      expect(['clarification', 'evidence_gap']).toContain(row.status);
+    }
+    expect(seed.roleQuestion.question).toEqual(expect.stringContaining('Go-live-Review'));
+    const nextGateEvidence = seed.evidenceRequirements.find(
+      (item) => item.id === 'nextHumanGateEvidence'
+    );
+    expect(nextGateEvidence.enablesDossierAddition).toEqual(
+      expect.stringContaining('without granting Go-live')
+    );
+    const finalRow = seed.demoProcessMatrix.rows[seed.demoProcessMatrix.rows.length - 1];
+    expect(finalRow.enablesDossierAddition).toEqual(
+      expect.stringContaining('never the Go-live decision itself')
+    );
+  });
+
+  test('carries the four positive follow-up mappings for Formatwechsel Readiness Review', () => {
+    const seed = stadtwerkMauerFormatwechselReadinessReview;
+    expect(seed.positiveFollowUps).toHaveLength(4);
+    const byId = Object.fromEntries(
+      seed.positiveFollowUps.map((item) => [item.missingDataPoint, item.enablesDossierAddition])
+    );
+    expect(byId.scope_and_version_evidence).toEqual(expect.any(String));
+    expect(byId.process_chain_and_fachtest_evidence).toEqual(expect.any(String));
+    expect(byId.operational_safety_evidence).toEqual(expect.any(String));
+    expect(byId.decision_readiness_and_next_gate_evidence).toEqual(
+      expect.stringContaining('never the Go-live action itself')
+    );
+  });
+
+  test('maps Formatwechsel Readiness Review missing evidence to non-executing workbench additions', () => {
+    const items = buildWorkbenchClarificationItems(stadtwerkMauerFormatwechselReadinessReview);
+
+    expect(items).toHaveLength(REQUIRED_FORMATWECHSEL_READINESS_REVIEW_EVIDENCE.length);
+    for (const item of items) {
+      expect(item.execution).toBe('none');
+      expect(item.sourceSeedId).toBe(stadtwerkMauerFormatwechselReadinessReview.id);
+      expect(item.roleHint).toBe('ROLE_MARKTKOMMUNIKATION');
+    }
+    expect(items).toContainEqual(
+      expect.objectContaining({
+        evidenceId: 'rollbackEvidence',
+        state: 'evidence_gap',
+        execution: 'none',
+      })
+    );
+    expect(items).toContainEqual(
+      expect.objectContaining({
+        evidenceId: 'noCallGuardEvidence',
+        state: 'clarification',
+        execution: 'none',
+      })
+    );
   });
 });

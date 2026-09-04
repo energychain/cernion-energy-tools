@@ -19,6 +19,7 @@ const stadtwerkMauerFlexibleGridConnectionReleaseFile = require('./vdmi-blueprin
 const stadtwerkMauerModelViabilityManagementReview = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-model-viability-management-review-v1.json');
 const stadtwerkMauerTabularDecisionInputReadiness = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-tabular-decision-input-readiness-v1.json');
 const stadtwerkMauerMunicipalityPublicContextReadiness = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-municipality-public-context-readiness-v1.json');
+const stadtwerkMauerFormatwechselReadinessReview = require('./vdmi-blueprint-pack-seeds/stadtwerk-mauer-formatwechsel-readiness-review-v1.json');
 
 const REQUIRED_EVIDENCE = Object.freeze([
   'napReference',
@@ -169,6 +170,26 @@ const REQUIRED_FLEXIBLE_GRID_CONNECTION_RELEASE_FILE_EVIDENCE = Object.freeze([
   'deadlineDate',
   'contractBoundaryStatus',
   'nextGate',
+]);
+
+const REQUIRED_FORMATWECHSEL_READINESS_REVIEW_EVIDENCE = Object.freeze([
+  'systemLandscapeEvidence',
+  'patchLevelEvidence',
+  'formatVersionEvidence',
+  'scopeBoundaryEvidence',
+  'affectedProcessChainEvidence',
+  'fachtestCaseEvidence',
+  'validationResultEvidence',
+  'sourceSnapshotEvidence',
+  'automationRiskEvidence',
+  'monitoringEvidence',
+  'stopCriterionEvidence',
+  'rollbackEvidence',
+  'ownerDeadlineEvidence',
+  'decisionReadinessEvidence',
+  'positiveFollowUpEvidence',
+  'nextHumanGateEvidence',
+  'noCallGuardEvidence',
 ]);
 
 const REQUIRED_DATA_CLASSES = Object.freeze([
@@ -333,6 +354,14 @@ const REQUIRED_MUNICIPALITY_PUBLIC_CONTEXT_ROLE_IDS = Object.freeze([
   'ROLE_MUNICIPAL_STRATEGY',
   'ROLE_CERNION_GOVERNANCE',
 ]);
+const REQUIRED_FORMATWECHSEL_READINESS_REVIEW_ROLE_IDS = Object.freeze([
+  'ROLE_MARKTKOMMUNIKATION',
+  'ROLE_IT_OPERATIONS',
+  'ROLE_CERNION_GOVERNANCE',
+  'ROLE_PROCESS_OWNER',
+  'ROLE_BILLING_GOVERNANCE',
+  'ROLE_MANAGEMENT_REVIEW',
+]);
 const REQUIRED_MATRIX_ROLE_KEYS = Object.freeze(['v', 'd', 'm', 'i']);
 const MATRIX_HEADER_WORDS = Object.freeze([
   'Phase',
@@ -363,6 +392,7 @@ const SEEDS = Object.freeze([
   stadtwerkMauerModelViabilityManagementReview,
   stadtwerkMauerTabularDecisionInputReadiness,
   stadtwerkMauerMunicipalityPublicContextReadiness,
+  stadtwerkMauerFormatwechselReadinessReview,
 ]);
 
 const SEED_VALIDATION_REQUIREMENTS = Object.freeze({
@@ -460,6 +490,11 @@ const SEED_VALIDATION_REQUIREMENTS = Object.freeze({
     requiredEvidence: REQUIRED_MUNICIPALITY_PUBLIC_CONTEXT_EVIDENCE,
     requiredRoleIds: REQUIRED_MUNICIPALITY_PUBLIC_CONTEXT_ROLE_IDS,
     expectedMatrixSlug: 'municipality-public-context-readiness',
+  }),
+  [stadtwerkMauerFormatwechselReadinessReview.id]: Object.freeze({
+    requiredEvidence: REQUIRED_FORMATWECHSEL_READINESS_REVIEW_EVIDENCE,
+    requiredRoleIds: REQUIRED_FORMATWECHSEL_READINESS_REVIEW_ROLE_IDS,
+    expectedMatrixSlug: 'formatwechsel-readiness-review',
   }),
 });
 
@@ -694,7 +729,9 @@ function buildWorkbenchClarificationItems(seed) {
                                 : selectedSeed.id ===
                                     stadtwerkMauerRedispatchParticipationReadiness.id
                                   ? 'ROLE_GRID_OPERATIONS_LEAD'
-                                  : 'ROLE_GRID_OPERATOR',
+                                  : selectedSeed.id === stadtwerkMauerFormatwechselReadinessReview.id
+                                    ? 'ROLE_MARKTKOMMUNIKATION'
+                                    : 'ROLE_GRID_OPERATOR',
     enablesDossierAddition: item.enablesDossierAddition,
     sourceSeedId: selectedSeed.id,
     execution: 'none',
@@ -883,6 +920,8 @@ module.exports = {
   REQUIRED_EVIDENCE,
   REQUIRED_FLEXIBLE_GRID_CONNECTION_RELEASE_FILE_EVIDENCE,
   REQUIRED_FLEXIBLE_GRID_CONNECTION_RELEASE_FILE_ROLE_IDS,
+  REQUIRED_FORMATWECHSEL_READINESS_REVIEW_EVIDENCE,
+  REQUIRED_FORMATWECHSEL_READINESS_REVIEW_ROLE_IDS,
   REQUIRED_GAS_TRANSFORMATION_DATAROOM_REVIEW_EVIDENCE,
   REQUIRED_GAS_TRANSFORMATION_DATAROOM_REVIEW_ROLE_IDS,
   REQUIRED_MASTR_SYNC_GAP_ALERTING_EVIDENCE,
@@ -921,6 +960,7 @@ module.exports = {
   stadtwerkMauerDecommissionedAssetReconciliation,
   stadtwerkMauerDirectMarketerRiskGate,
   stadtwerkMauerFlexibleGridConnectionReleaseFile,
+  stadtwerkMauerFormatwechselReadinessReview,
   stadtwerkMauerGasTransformationDataroomReview,
   stadtwerkMauerMastrSyncGapAlerting,
   stadtwerkMauerGridConnectionTransformationGate,
