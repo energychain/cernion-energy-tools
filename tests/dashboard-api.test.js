@@ -2296,6 +2296,39 @@ describe('dashboard-api.service', () => {
           error: 'MAKO_KNOWLEDGE_UNAVAILABLE',
         });
       });
+
+      it('degrades quickly to available:false when optional willi-mako context times out', async () => {
+        const svc = broker.getLocalService('dashboard-api');
+        const originalTimeoutMs = svc.settings.makoKnowledgeTimeoutMs;
+        svc.settings.makoKnowledgeTimeoutMs = 25;
+        handlers.williMakoResolveStructure = () => new Promise(() => {});
+
+        let result;
+        const startedAt = Date.now();
+        try {
+          result = await broker.call('dashboard-api.marketCommunicationEvidenceChainStatus', {
+            maloId: 'DE-MALO-1',
+            includeMakoKnowledge: true,
+          });
+        } finally {
+          svc.settings.makoKnowledgeTimeoutMs = originalTimeoutMs;
+        }
+
+        expect(Date.now() - startedAt).toBeLessThan(250);
+        expect(result.status).toBeDefined();
+        expect(result.safety).toBe('read_only');
+        expect(result.makoKnowledgeContext).toEqual({
+          available: false,
+          error: 'MAKO_KNOWLEDGE_TIMEOUT',
+        });
+        expect(result.sourceActions.notCalled).toEqual(
+          expect.arrayContaining([
+            'settlement.exportA96',
+            'settlement.prepareBilling',
+            'hitl.create',
+          ])
+        );
+      });
     });
 
     // ── e2eControllabilityGovernanceStatus ──────────────────────────────────

@@ -55,6 +55,7 @@ const { generateStructured, SchemaType } = require('../src/llm-client');
 const { normaliseBoolFlag } = require('../src/redispatch-utils');
 const { getTenantId } = require('../src/tenant-context');
 const { computePortfolioAssessment } = require('../src/znp-portfolio-logic');
+const { buildGasGraphFromScigrid } = require('../tools/gas_layer_ingest');
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -155,6 +156,11 @@ module.exports = {
           },
         },
         name: { type: 'string', optional: true, max: 120 },
+        municipalityKey: {
+          type: 'string',
+          optional: true,
+          pattern: /^\d{8}$/,
+        },
       },
       openapi: {
         summary: 'Create a new ZNP project workspace',
@@ -185,6 +191,12 @@ module.exports = {
                     },
                   },
                   name: { type: 'string', example: 'Ludwigshafen Nord Q3-2026' },
+                  municipalityKey: {
+                    type: 'string',
+                    nullable: true,
+                    description: 'Optional 8-digit AGS (Amtlicher Gemeindeschlüssel) municipality code.',
+                    example: '05513000',
+                  },
                 },
               },
               examples: {
@@ -192,6 +204,7 @@ module.exports = {
                   value: {
                     bbox: { south: 49.47, west: 8.43, north: 49.52, east: 8.52 },
                     name: 'Ludwigshafen Nord Q3-2026',
+                    municipalityKey: '05513000',
                   },
                 },
               },
@@ -211,6 +224,7 @@ module.exports = {
                     bbox: { type: 'object' },
                     createdAt: { type: 'string', format: 'date-time' },
                     tenantId: { type: 'string', nullable: true },
+                    municipalityKey: { type: 'string', nullable: true, example: '05513000' },
                     graphStats: { type: 'object' },
                   },
                 },
@@ -220,7 +234,7 @@ module.exports = {
         },
       },
       async handler(ctx) {
-        const { bbox, name } = ctx.params;
+        const { bbox, name, municipalityKey } = ctx.params;
         const tenantId = getTenantId(ctx);
         const projectId = crypto.randomUUID();
         const createdAt = new Date().toISOString();
@@ -244,6 +258,7 @@ module.exports = {
           name: projectName,
           createdAt,
           tenantId,
+          municipalityKey: municipalityKey ?? null,
           layers: [],
           layer1GFactorAdjustment: 1.0, // updated by addLayer1 when clustering is computed
           layer2CalibrationFactor: 0,
@@ -261,6 +276,7 @@ module.exports = {
           bbox,
           createdAt,
           layers: [],
+          municipalityKey: municipalityKey ?? null,
           layer1GFactorAdjustment: 1.0,
           layer2CalibrationFactor: 0,
           layer2MeasuredPeakLoadKw: 0,
@@ -284,6 +300,7 @@ module.exports = {
           bbox,
           createdAt,
           tenantId,
+          municipalityKey: municipalityKey ?? null,
           graphStats: { nodes: graph.order, edges: graph.size },
         };
       },
@@ -2342,6 +2359,7 @@ module.exports = {
           bbox: project.bbox,
           createdAt: project.createdAt,
           tenantId: project.tenantId,
+          municipalityKey: project.municipalityKey ?? null,
           layers: project.layers,
           graphStats: {
             nodes: project.graph.order,
@@ -2378,6 +2396,7 @@ module.exports = {
             bbox: project.bbox,
             createdAt: project.createdAt,
             tenantId: project.tenantId,
+            municipalityKey: project.municipalityKey ?? null,
             layers: project.layers,
             graphStats: {
               nodes: project.graph.order,
@@ -2567,11 +2586,31 @@ module.exports = {
         const createdAt = new Date().toISOString();
         const rootNodeId = commodity === 'gas' ? 'GAS_FEED_1' : 'HEAT_PLANT_1';
 
-        const graph = new Graph({ type: 'directed', multi: false });
-        graph.addNode(rootNodeId, {
-          type: commodity === 'gas' ? 'gas_feed' : 'heat_plant',
-          label: `Virtual ${commodity} root`,
-        });
+        let graph;
+        if (commodity === 'gas' && source) {
+          // `source` is expected to be a directory containing SciGRID_gas
+          // `nodes.csv` / `edges.csv` (see tools/scigrid_gas_to_znp.py docstring
+          // for required columns). Falls back to the virtual-root-only graph
+          // on any ingestion failure so the endpoint stays idempotent/available.
+          try {
+            const built = buildGasGraphFromScigrid({
+              nodesPath: path.join(source, 'nodes.csv'),
+              edgesPath: path.join(source, 'edges.csv'),
+              projectId,
+              rootNodeId,
+            });
+            graph = built.graph;
+          } catch (err) {
+            this.logger.warn(`gas layer ingest failed for ${projectId}, falling back to virtual root: ${err.message}`);
+          }
+        }
+        if (!graph) {
+          graph = new Graph({ type: 'directed', multi: false });
+          graph.addNode(rootNodeId, {
+            type: commodity === 'gas' ? 'gas_feed' : 'heat_plant',
+            label: `Virtual ${commodity} root`,
+          });
+        }
 
         this.activeGraphs.set(commodityKey, {
           graph,
@@ -2697,6 +2736,7 @@ module.exports = {
         name: meta.name,
         createdAt: meta.createdAt,
         tenantId: meta.tenantId || null,
+        municipalityKey: meta.municipalityKey ?? null,
         layers: meta.layers || [],
         layer1GFactorAdjustment: meta.layer1GFactorAdjustment || 1.0,
         layer2CalibrationFactor: meta.layer2CalibrationFactor || 0,

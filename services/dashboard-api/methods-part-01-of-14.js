@@ -7,8 +7,32 @@
 module.exports = {
   async maybeAttachMakoKnowledge(ctx, enabled, query) {
     if (!enabled || !query) return null;
+    const timeoutMs = Number(this.settings?.makoKnowledgeTimeoutMs) || 1000;
+    let timeoutHandle;
     try {
-      const result = await ctx.call('willi-mako.resolveStructure', { query, limit: 3 });
+      const callPromise = ctx
+        .call('willi-mako.resolveStructure', { query, limit: 3 }, { timeout: timeoutMs })
+        .catch((err) => ({ __makoKnowledgeError: err }));
+      const timeoutPromise = new Promise((resolve) => {
+        timeoutHandle = setTimeout(
+          () =>
+            resolve({
+              success: false,
+              error: { code: 'MAKO_KNOWLEDGE_TIMEOUT' },
+            }),
+          timeoutMs
+        );
+        if (typeof timeoutHandle.unref === 'function') timeoutHandle.unref();
+      });
+      const result = await Promise.race([callPromise, timeoutPromise]);
+      if (timeoutHandle) clearTimeout(timeoutHandle);
+      if (result?.__makoKnowledgeError) {
+        const message = String(result.__makoKnowledgeError.message || '').toLowerCase();
+        if (message.includes('timed out') || message.includes('timeout')) {
+          return { available: false, error: 'MAKO_KNOWLEDGE_TIMEOUT' };
+        }
+        throw result.__makoKnowledgeError;
+      }
       if (!result || result.success === false) {
         return {
           available: false,
