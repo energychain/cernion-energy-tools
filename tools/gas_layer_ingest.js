@@ -68,16 +68,26 @@ function buildGasGraphFromScigrid({ nodesPath, edgesPath, projectId, rootNodeId 
   const graphExport = JSON.parse(fs.readFileSync(graphOut, 'utf-8'));
   const meta = JSON.parse(fs.readFileSync(metaOut, 'utf-8'));
 
-  const graph = new Graph({ type: 'directed', multi: false });
+  const graph = new Graph({ type: 'directed', multi: true });
   for (const n of graphExport.nodes) {
     graph.addNode(n.key, n.attributes);
   }
+  // Real SciGRID_gas exports contain parallel PipeSegment records between
+  // the same node pair. Using addEdgeWithKey on a multi-graph (instead of
+  // mergeEdgeWithKey on a simple graph) keeps every parallel segment as its
+  // own edge instead of silently last-write-wins merging capacity_Nm3_per_h
+  // / length_km into a single edge (see t_81b69548 REPORT.md). A running
+  // per-key suffix disambiguates any exact key collisions.
+  const usedKeys = new Set();
   for (const e of graphExport.edges) {
-    // Real SciGRID_gas exports contain parallel pipe segments between the
-    // same node pair (e.g. multiple PipeSegments records). Use mergeEdgeWithKey
-    // instead of addEdgeWithKey so duplicates are tolerated (existing edge
-    // attributes are merged) instead of throwing on the full-scale dataset.
-    graph.mergeEdgeWithKey(e.key, e.source, e.target, e.attributes);
+    let key = e.key;
+    if (usedKeys.has(key)) {
+      let i = 1;
+      while (usedKeys.has(`${e.key}__seg${i}`)) i += 1;
+      key = `${e.key}__seg${i}`;
+    }
+    usedKeys.add(key);
+    graph.addEdgeWithKey(key, e.source, e.target, e.attributes);
   }
 
   fs.rmSync(tmpDir, { recursive: true, force: true });

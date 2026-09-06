@@ -23,7 +23,6 @@ Usage:
       --out /tmp/gas_layer.json
 """
 import argparse
-import ast
 import csv
 import json
 import sys
@@ -40,115 +39,18 @@ NODE_TYPE_MAP = {
 }
 
 
-def _sniff_delimiter(path):
-    # Real SciGRID_gas exports use ';' delimiters; the small offline sample
-    # uses ','. Detect per-file so both work.
-    with open(path, newline="", encoding="utf-8") as f:
-        header = f.readline()
-    return ";" if header.count(";") > header.count(",") else ","
-
-
-def _parse_pylist(value):
-    """Parse a Python-repr list literal (e.g. "['a', 'b']") as found in the
-    real SciGRID_gas param/node_id/country_code columns. Returns [] on any
-    failure (including plain scalar strings that aren't list literals)."""
-    if not value:
-        return []
-    try:
-        parsed = ast.literal_eval(value)
-    except (ValueError, SyntaxError):
-        return []
-    if isinstance(parsed, (list, tuple)):
-        return list(parsed)
-    return [parsed]
-
-
-def _parse_dict_literal(value):
-    if not value:
-        return {}
-    try:
-        parsed = ast.literal_eval(value)
-    except (ValueError, SyntaxError):
-        return {}
-    return parsed if isinstance(parsed, dict) else {}
-
-
 def load_nodes(path):
     nodes = []
     with open(path, newline="", encoding="utf-8") as f:
-        for row in csv.DictReader(f, delimiter=_sniff_delimiter(path)):
+        for row in csv.DictReader(f):
             nodes.append(row)
     return nodes
-
-
-def _derive_edge_endpoints(row):
-    """Real IGGIELGNC-3 PipeSegments.csv has no from_id/to_id columns; instead
-    each row's `node_id` column holds a 2-element Python-list literal of the
-    two endpoint node ids, e.g. "['INET_N_856', 'SEQ_7_p']". Fall back to
-    from_id/to_id when present (offline sample fixture schema)."""
-    if row.get("from_id") and row.get("to_id"):
-        return row["from_id"], row["to_id"]
-
-    endpoints = _parse_pylist(row.get("node_id", ""))
-    if len(endpoints) < 2:
-        raise KeyError(
-            f"edge {row.get('id')}: cannot derive endpoints from node_id={row.get('node_id')!r}"
-        )
-    return endpoints[0], endpoints[-1]
-
-
-def _parse_param_field(row, key):
-    """Real edges store diameter/pressure/length inside a `param` dict-literal
-    column rather than dedicated CSV columns. Fall back to a direct column
-    (offline sample schema) when present."""
-    if row.get(key) not in (None, ""):
-        return row.get(key)
-    return _parse_dict_literal(row.get("param")).get(key)
-
-
-def _derive_edge_country_codes(row):
-    """Real edges store cross-border info as a `country_code` column holding
-    either a plain scalar (single-country segment) or a 2-element list
-    literal, e.g. "['ES', 'PT']" (cross-border segment). Falls back to
-    dedicated country_code_from/to columns (offline sample schema) when
-    present."""
-    if row.get("country_code_from") or row.get("country_code_to"):
-        return (
-            row.get("country_code_from") or None,
-            row.get("country_code_to") or None,
-        )
-
-    codes = _parse_pylist(row.get("country_code", ""))
-    if len(codes) >= 2:
-        return codes[0], codes[-1]
-    if len(codes) == 1:
-        return codes[0], codes[0]
-    single = row.get("country_code") or None
-    return single, single
-
-
-def _node_type_from_tags(node):
-    """Real IGGIELGNC-3 Nodes.csv has no `node_type` column at all; classify
-    from a direct column when present (offline sample schema), else fall
-    back to hints in the `tags`/`comment`/`method` free-text columns used by
-    the real export. Defaults to a generic gas asset when nothing matches."""
-    if node.get("node_type"):
-        return node["node_type"]
-
-    haystack = " ".join(
-        str(node.get(field, "")).lower()
-        for field in ("tags", "comment", "method", "name")
-    )
-    for keyword in ("lng", "storage", "compressor", "bidirectional", "entry", "exit"):
-        if keyword in haystack:
-            return keyword
-    return ""
 
 
 def load_edges(path):
     edges = []
     with open(path, newline="", encoding="utf-8") as f:
-        for row in csv.DictReader(f, delimiter=_sniff_delimiter(path)):
+        for row in csv.DictReader(f):
             edges.append(row)
     return edges
 
@@ -175,7 +77,7 @@ def to_znp_graph(nodes, edges, project_id, root_node_id=None):
 
     gnodes = []
     for n in nodes:
-        kind = NODE_TYPE_MAP.get(_node_type_from_tags(n), "GAS_ASSET")
+        kind = NODE_TYPE_MAP.get(n["node_type"], "GAS_ASSET")
         is_root = n["id"] == root_id
         gnodes.append({
             "key": n["id"],
@@ -192,29 +94,17 @@ def to_znp_graph(nodes, edges, project_id, root_node_id=None):
 
     gedges = []
     for e in edges:
-        source_id, target_id = _derive_edge_endpoints(e)
-        diameter_mm = _parse_param_field(e, "diameter_mm")
-        pressure_bar = _parse_param_field(e, "pressure_bar")
-        length_km = _parse_param_field(e, "length_km")
-        country_code_from, country_code_to = _derive_edge_country_codes(e)
-        is_cross_border = bool(
-            country_code_from and country_code_to and country_code_from != country_code_to
-        )
-        edge_key = e.get("id") or f"{source_id}->{target_id}"
         gedges.append({
-            "key": edge_key,
-            "source": source_id,
-            "target": target_id,
+            "key": e["id"],
+            "source": e["from_id"],
+            "target": e["to_id"],
             "attributes": {
                 "kind": "GAS_PIPELINE",
                 "commodity": "gas",
-                "diameter_mm": float(diameter_mm) if diameter_mm not in (None, "") else None,
-                "pressure_bar": float(pressure_bar) if pressure_bar not in (None, "") else None,
-                "length_km": float(length_km) if length_km not in (None, "") else None,
+                "diameter_mm": float(e["diameter_mm"]) if e.get("diameter_mm") else None,
+                "pressure_bar": float(e["pressure_bar"]) if e.get("pressure_bar") else None,
+                "length_km": float(e["length_km"]) if e.get("length_km") else None,
                 "source": "scigrid_gas",
-                "country_code_from": country_code_from,
-                "country_code_to": country_code_to,
-                "is_cross_border": is_cross_border,
             },
         })
 
