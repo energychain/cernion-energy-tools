@@ -132,6 +132,7 @@ const CAPABILITY_DOMAIN_MAP = {
   // iMSys/CLS smart-meter-gateway value chain — internal metering infrastructure
   imsys_cls_value_chain: 'inhouse-data',
   metering_governance: 'inhouse-data',
+  metering_data_governance: 'inhouse-data',
   // CLS (Controllable Local System) compliance — regulatory compliance gate
   cls_compliance_governance: 'regulatory',
   // legacy/operational grid control systems

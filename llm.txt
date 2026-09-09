@@ -150,8 +150,8 @@ recipes:
   vnb-full-snapshot "A grid operator needs a full health check combining KPI…"
 resolve: GET /api/_agent/operations?domain=grid-ops
 
-### inhouse-data (8 capabilities · 3 recipes · 38 operations)
-capabilities: bilanzkreis_slp_edm_operations, edm_customer_moveout_billing_evidence, edm_metering_concept_evidence, imsys_schedule_value_chain_readiness, imsys_taf2_compliance_status, inhouse_timeseries_analysis, load_profile_stream_monitor, metering_rollout_process_indicator
+### inhouse-data (9 capabilities · 3 recipes · 38 operations)
+capabilities: bilanzkreis_slp_edm_operations, edm_customer_moveout_billing_evidence, edm_metering_concept_evidence, imsys_schedule_value_chain_readiness, imsys_taf2_compliance_status, inhouse_timeseries_analysis, load_profile_stream_monitor, metering_rollout_process_indicator, smart_meter_cls_data_governance_receipt
 recipes:
   datasource-register-and-classify "A user has uploaded a CSV or XLSX file and needs to…"
   in-memory-multi-join "Two uploaded inhouse datasets (e.g., metering and plant…"
@@ -216,8 +216,8 @@ Agents resolving capabilities/recipes/operations do not need to read past this p
 - README.md: e5c8aa36d7cd7195c83e00138361bd22d8cbe1860ff829bb026687d462d860ff
 - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
 - src/cookbook-recipes.js: 9e48573ca263ef129bc3944a83b013cff25157e25afc703be0ada62d5af8163d
-- src/capability-catalog.js: f62636a7c749d6a2502c8d1199c03d2f0d04d7be6d4ec9170b7cb81f79c6f2a4
-- openapi-export.json: 4889f16d6b2e43aacc3986910c220eff7cc2a6e5c01afe753a0da997ed5b6d17
+- src/capability-catalog.js: 36dea47cc8a157233f709c2e9acda65bc5a453f81bc96e04ced013f9db443ec8
+- openapi-export.json: 3cf02ddb2f81bfe746d9ca488d1039620ce5041ec7e92b151e2dfc6cf8527e62
 
 ## OpenAPI Surface (full contract, not embedded)
 - path_count: 1028
@@ -225,4 +225,4 @@ Agents resolving capabilities/recipes/operations do not need to read past this p
 - full_spec: openapi-export.json (repo root) or GET /api/openapi.json
 
 ## Integrity
-- llm_txt_sha256: 51e0d9432893ca091ae03bea6e56ce576eeaa157a1e58a176ea5a32a256927d8
+- llm_txt_sha256: f6a77e946d1db153240dbcbe7239a5a6656dab7e8bf72b786f18ee22cae6c71c

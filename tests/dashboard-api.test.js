@@ -5246,11 +5246,11 @@ describe('dashboard-api.service', () => {
           topicName: 'Flexibilitaetsfahrplan',
           domain: 'flexibility',
           leadingSource: 'SharePoint',
-          leadingSourceTimestamp: '2026-07-02T12:00:00.000Z',
+          leadingSourceTimestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
           leadingSourceVersion: 'v1',
           owner: 'netzstrategie',
           allowedSideSources: 'Teams,Outlook',
-          sideSourceFreshness: 'Teams@2026-07-01T12:00:00.000Z',
+          sideSourceFreshness: `Teams@${new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()}`,
         });
 
         expect(result.capabilityKey).toBe('vnb_special_topic_workstate');

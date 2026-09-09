@@ -63700,6 +63700,11 @@
                       "type": "string",
                       "nullable": true
                     },
+                    "municipalityKey": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "05513000"
+                    },
                     "graphStats": {
                       "type": "object"
                     }
@@ -63755,6 +63760,12 @@
                   "name": {
                     "type": "string",
                     "example": "Ludwigshafen Nord Q3-2026"
+                  },
+                  "municipalityKey": {
+                    "type": "string",
+                    "nullable": true,
+                    "description": "Optional 8-digit AGS (Amtlicher Gemeindeschlüssel) municipality code.",
+                    "example": "05513000"
                   }
                 }
               },
@@ -63767,7 +63778,8 @@
                       "north": 49.52,
                       "east": 8.52
                     },
-                    "name": "Ludwigshafen Nord Q3-2026"
+                    "name": "Ludwigshafen Nord Q3-2026",
+                    "municipalityKey": "05513000"
                   }
                 }
               }

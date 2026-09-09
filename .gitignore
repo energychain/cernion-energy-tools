@@ -162,3 +162,9 @@ data-backups/
 mail.json
 reports/kanban_cockpit_*
 tmp_create_*.py
+
+# Shared-tree hygiene (t_c8464523): nested/unmanaged repos, sandboxes, evidence dumps
+.worktrees/
+cet-token-signal-queue/
+evidence/
+modal-hermes-*/

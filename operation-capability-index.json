@@ -2,7 +2,7 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.99.19",
-  "sourceOpenApiHash": "4889f16d6b2e43aacc3986910c220eff7cc2a6e5c01afe753a0da997ed5b6d17",
+  "sourceOpenApiHash": "3cf02ddb2f81bfe746d9ca488d1039620ce5041ec7e92b151e2dfc6cf8527e62",
   "coverage": {
     "rawOperationCount": 1140,
     "operationCount": 884,
@@ -77617,6 +77617,7 @@
         "cross_channel_vnb_signal_queue",
         "live_update_stream_contract_status",
         "smgw_connector_readiness_status",
+        "smart_meter_cls_data_governance_receipt",
         "vnb_special_topic_workstate",
         "non_escalation_control_evidence",
         "leadership_delta_cockpit",
@@ -81638,6 +81639,13 @@
             "in": "body",
             "type": "string",
             "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "municipalityKey",
+            "in": "body",
+            "type": "string",
+            "description": "Optional 8-digit AGS (Amtlicher Gemeindeschlüssel) municipality code.",
             "extractionHint": null
           }
         ]
