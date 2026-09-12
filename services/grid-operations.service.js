@@ -2181,7 +2181,11 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
           success: true,
           data: {
             results: payload.results || [],
-            pagination: payload.pagination || { limit, offset, total: payload.results?.length || 0 },
+            pagination: payload.pagination || {
+              limit,
+              offset,
+              total: payload.results?.length || 0,
+            },
           },
         };
       },

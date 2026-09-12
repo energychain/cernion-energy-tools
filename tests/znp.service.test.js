@@ -677,14 +677,26 @@ describe('ZNP Service', () => {
       expect(deleteResult.success).toBe(true);
 
       // Base project docs gone
-      await expect(znpService.db.get(`znp:meta:${projectId}`)).rejects.toMatchObject({ status: 404 });
-      await expect(znpService.db.get(`znp:graph:${projectId}`)).rejects.toMatchObject({ status: 404 });
+      await expect(znpService.db.get(`znp:meta:${projectId}`)).rejects.toMatchObject({
+        status: 404,
+      });
+      await expect(znpService.db.get(`znp:graph:${projectId}`)).rejects.toMatchObject({
+        status: 404,
+      });
 
       // Commodity layer docs gone
-      await expect(znpService.db.get(`znp:meta:${projectId}:gas`)).rejects.toMatchObject({ status: 404 });
-      await expect(znpService.db.get(`znp:graph:${projectId}:gas`)).rejects.toMatchObject({ status: 404 });
-      await expect(znpService.db.get(`znp:meta:${projectId}:heat`)).rejects.toMatchObject({ status: 404 });
-      await expect(znpService.db.get(`znp:graph:${projectId}:heat`)).rejects.toMatchObject({ status: 404 });
+      await expect(znpService.db.get(`znp:meta:${projectId}:gas`)).rejects.toMatchObject({
+        status: 404,
+      });
+      await expect(znpService.db.get(`znp:graph:${projectId}:gas`)).rejects.toMatchObject({
+        status: 404,
+      });
+      await expect(znpService.db.get(`znp:meta:${projectId}:heat`)).rejects.toMatchObject({
+        status: 404,
+      });
+      await expect(znpService.db.get(`znp:graph:${projectId}:heat`)).rejects.toMatchObject({
+        status: 404,
+      });
 
       // In-memory activeGraphs cleaned up too
       expect(znpService.activeGraphs.has(projectId)).toBe(false);
@@ -723,12 +735,20 @@ describe('ZNP Service', () => {
       mockBuildGasGraphFromScigrid.mockReturnValue({ graph: scigridGraph, meta: {} });
 
       const tenantMeta = { meta: { tenantId: 'default' } };
-      const { projectId } = await broker.call('znp.createProject', { bbox: makeBbox() }, tenantMeta);
-      const result = await broker.call('znp.layers', {
-        id: projectId,
-        commodity: 'gas',
-        source: '/tmp/some-scigrid-export',
-      }, tenantMeta);
+      const { projectId } = await broker.call(
+        'znp.createProject',
+        { bbox: makeBbox() },
+        tenantMeta
+      );
+      const result = await broker.call(
+        'znp.layers',
+        {
+          id: projectId,
+          commodity: 'gas',
+          source: '/tmp/some-scigrid-export',
+        },
+        tenantMeta
+      );
 
       expect(mockBuildGasGraphFromScigrid).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -752,12 +772,20 @@ describe('ZNP Service', () => {
       });
 
       const tenantMeta = { meta: { tenantId: 'default' } };
-      const { projectId } = await broker.call('znp.createProject', { bbox: makeBbox() }, tenantMeta);
-      const result = await broker.call('znp.layers', {
-        id: projectId,
-        commodity: 'gas',
-        source: '/tmp/malformed-scigrid-export',
-      }, tenantMeta);
+      const { projectId } = await broker.call(
+        'znp.createProject',
+        { bbox: makeBbox() },
+        tenantMeta
+      );
+      const result = await broker.call(
+        'znp.layers',
+        {
+          id: projectId,
+          commodity: 'gas',
+          source: '/tmp/malformed-scigrid-export',
+        },
+        tenantMeta
+      );
 
       expect(mockBuildGasGraphFromScigrid).toHaveBeenCalled();
       expect(result.commodity).toBe('gas');
@@ -772,8 +800,16 @@ describe('ZNP Service', () => {
 
     it('does not invoke SciGRID ingest when no source is provided (existing virtual-root behaviour)', async () => {
       const tenantMeta = { meta: { tenantId: 'default' } };
-      const { projectId } = await broker.call('znp.createProject', { bbox: makeBbox() }, tenantMeta);
-      const result = await broker.call('znp.layers', { id: projectId, commodity: 'gas' }, tenantMeta);
+      const { projectId } = await broker.call(
+        'znp.createProject',
+        { bbox: makeBbox() },
+        tenantMeta
+      );
+      const result = await broker.call(
+        'znp.layers',
+        { id: projectId, commodity: 'gas' },
+        tenantMeta
+      );
 
       expect(mockBuildGasGraphFromScigrid).not.toHaveBeenCalled();
       expect(result.commodity).toBe('gas');

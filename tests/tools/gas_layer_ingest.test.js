@@ -30,10 +30,14 @@ describe('buildGasGraphFromScigrid (real IGGIELGNC-3 fixture)', () => {
 
     execFileSync('python3', [
       CONVERTER_PATH,
-      '--nodes', path.join(FIXTURES_DIR, 'IGGIELGNC3_Nodes.csv'),
-      '--edges', path.join(FIXTURES_DIR, 'IGGIELGNC3_PipeSegments.csv'),
-      '--out-nodes', mappedNodesPath,
-      '--out-edges', mappedEdgesPath,
+      '--nodes',
+      path.join(FIXTURES_DIR, 'IGGIELGNC3_Nodes.csv'),
+      '--edges',
+      path.join(FIXTURES_DIR, 'IGGIELGNC3_PipeSegments.csv'),
+      '--out-nodes',
+      mappedNodesPath,
+      '--out-edges',
+      mappedEdgesPath,
     ]);
   });
 

@@ -194,7 +194,8 @@ module.exports = {
                   municipalityKey: {
                     type: 'string',
                     nullable: true,
-                    description: 'Optional 8-digit AGS (Amtlicher Gemeindeschlüssel) municipality code.',
+                    description:
+                      'Optional 8-digit AGS (Amtlicher Gemeindeschlüssel) municipality code.',
                     example: '05513000',
                   },
                 },
@@ -2462,9 +2463,7 @@ module.exports = {
         // implicit "electricity" key refers to the base project itself and
         // must be excluded to avoid deleting znp:meta:<id>:electricity (which
         // was never written — the base docs use znp:meta:<id> directly).
-        const layerMap = this.normalizeLayers(
-          project.commodityLayers || project.layers
-        );
+        const layerMap = this.normalizeLayers(project.commodityLayers || project.layers);
         const commodityKeys = Object.keys(layerMap).filter(
           (commodity) => commodity !== 'electricity'
         );
@@ -2498,9 +2497,7 @@ module.exports = {
             deletePromises.push(
               this.db.remove(metaDocId, metaRev).catch((err) => {
                 if (err.status !== 404) {
-                  this.logger.warn(
-                    `[znp] Failed to delete meta doc for "${key}": ${err.message}`
-                  );
+                  this.logger.warn(`[znp] Failed to delete meta doc for "${key}": ${err.message}`);
                 }
               })
             );
@@ -2509,9 +2506,7 @@ module.exports = {
             deletePromises.push(
               this.db.remove(graphDocId, graphRev).catch((err) => {
                 if (err.status !== 404) {
-                  this.logger.warn(
-                    `[znp] Failed to delete graph doc for "${key}": ${err.message}`
-                  );
+                  this.logger.warn(`[znp] Failed to delete graph doc for "${key}": ${err.message}`);
                 }
               })
             );
@@ -2531,9 +2526,7 @@ module.exports = {
 
         this.logger.info(
           `[znp] Deleted project ${projectId}` +
-            (commodityKeys.length
-              ? ` and commodity layers: ${commodityKeys.join(', ')}`
-              : '')
+            (commodityKeys.length ? ` and commodity layers: ${commodityKeys.join(', ')}` : '')
         );
 
         return {
@@ -2601,7 +2594,9 @@ module.exports = {
             });
             graph = built.graph;
           } catch (err) {
-            this.logger.warn(`gas layer ingest failed for ${projectId}, falling back to virtual root: ${err.message}`);
+            this.logger.warn(
+              `gas layer ingest failed for ${projectId}, falling back to virtual root: ${err.message}`
+            );
           }
         }
         if (!graph) {

@@ -88,7 +88,12 @@ describe('polygonAreaM2', () => {
   it('returns 0 for fewer than 3 points or empty input', () => {
     expect(polygonAreaM2([])).toBe(0);
     expect(polygonAreaM2([{ lat: 0, lon: 0 }])).toBe(0);
-    expect(polygonAreaM2([{ lat: 0, lon: 0 }, { lat: 1, lon: 1 }])).toBe(0);
+    expect(
+      polygonAreaM2([
+        { lat: 0, lon: 0 },
+        { lat: 1, lon: 1 },
+      ])
+    ).toBe(0);
   });
 
   it('handles a ring that is not explicitly closed (first point not repeated as last)', () => {

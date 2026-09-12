@@ -48,11 +48,16 @@ function buildGasGraphFromScigrid({ nodesPath, edgesPath, projectId, rootNodeId 
 
   const args = [
     SCRIPT_PATH,
-    '--nodes', nodesPath,
-    '--edges', edgesPath,
-    '--project-id', projectId,
-    '--out', graphOut,
-    '--meta-out', metaOut,
+    '--nodes',
+    nodesPath,
+    '--edges',
+    edgesPath,
+    '--project-id',
+    projectId,
+    '--out',
+    graphOut,
+    '--meta-out',
+    metaOut,
   ];
   if (rootNodeId) {
     args.push('--root-node-id', rootNodeId);

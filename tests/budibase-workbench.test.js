@@ -7212,7 +7212,9 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
         .filter((section) => section.id.startsWith('municipality_public_context_readiness'))
         .map((section) => section.queryName)
     ).toEqual(expect.arrayContaining(names));
-    expect(manifest.notes.join(' ')).toContain('Municipality Public-Context Scope Readiness panel (#555)');
+    expect(manifest.notes.join(' ')).toContain(
+      'Municipality Public-Context Scope Readiness panel (#555)'
+    );
   });
 
   it('renders scalar Municipality Public-Context Scope Readiness rows: selector, MaStR classification, quality/observability boundary, verify, matrix, evidence, transfer and no-call guards', () => {
@@ -7502,7 +7504,11 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
     );
     expect(unresolvedRows).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ rowKey: 'ags', value: 'missing-evidence', evidenceStatus: 'clarification' }),
+        expect.objectContaining({
+          rowKey: 'ags',
+          value: 'missing-evidence',
+          evidenceStatus: 'clarification',
+        }),
         expect.objectContaining({
           rowKey: 'postal_codes_complete',
           value: 'missing-evidence',
@@ -7516,7 +7522,10 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
     const mastrRows = runTransformer('getMunicipalityPublicContextReadinessMastrRows', mastr);
     expect(mastrRows).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ rowKey: 'mastr_public_mastr_id', dataClass: 'publicContextLayer' }),
+        expect.objectContaining({
+          rowKey: 'mastr_public_mastr_id',
+          dataClass: 'publicContextLayer',
+        }),
         expect.objectContaining({
           rowKey: 'mastr_revalidation_revalidation_watch',
           dataClass: 'syntheticTenantSeed',
@@ -7536,13 +7545,17 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       quality
     );
     expect(qualityRows[0].evidenceStatus).toBe('bounded_context_only');
-    expect(qualityRows[0].safeNextAction).toBe('do_not_present_as_municipality_specific_completeness');
+    expect(qualityRows[0].safeNextAction).toBe(
+      'do_not_present_as_municipality_specific_completeness'
+    );
     const observabilityRows = runTransformer(
       'getMunicipalityPublicContextReadinessObservabilityBoundaryRows',
       observabilityDegraded
     );
     expect(observabilityRows[0].evidenceStatus).toBe('degraded');
-    expect(observabilityRows[0].safeNextAction).toBe('do_not_treat_availability_as_source_completeness');
+    expect(observabilityRows[0].safeNextAction).toBe(
+      'do_not_treat_availability_as_source_completeness'
+    );
 
     const verifyRows = runTransformer('getMunicipalityPublicContextReadinessVerifyRows', verify);
     expect(verifyRows).toEqual(
@@ -7573,7 +7586,10 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
     // Downstream sync stays honest: only the Blueprint-Pack leg is complete.
     expect(matrixRows[0].downstreamHandoff).toBe('complete -> pending -> pending');
 
-    const evidenceRows = runTransformer('getMunicipalityPublicContextReadinessEvidenceRows', verify);
+    const evidenceRows = runTransformer(
+      'getMunicipalityPublicContextReadinessEvidenceRows',
+      verify
+    );
     expect(evidenceRows.length).toBe(verify.data.missingEvidence.length);
     expect(evidenceRows).toEqual(
       expect.arrayContaining([
@@ -7660,9 +7676,7 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
     // The earlier /fnav-fast-track-vertragsgate spelling is not the public REST contract
     // and must never be copied into the manifest.
     expect(queries.every((query) => !query.path.includes('vertragsgate'))).toBe(true);
-    expect(
-      queries.every((query) => !query.queryString.includes('vertragsgate'))
-    ).toBe(true);
+    expect(queries.every((query) => !query.queryString.includes('vertragsgate'))).toBe(true);
     expect(
       queries
         .filter((query) => query.path.includes('blueprint-pack-verify'))
@@ -7676,9 +7690,7 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
     expect(transferQuery.queryString).toContain(
       'seedId=stadtwerk-mauer-grid-connection-transformation-gate-v1'
     );
-    expect(transferQuery.queryString).toContain(
-      'caseId=smm-netzanschluss-transparenz-review-001'
-    );
+    expect(transferQuery.queryString).toContain('caseId=smm-netzanschluss-transparenz-review-001');
     expect(
       manifest.sections
         .filter((section) => section.id.startsWith('netzanschluss_transparenz'))
@@ -7738,11 +7750,13 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       missingEvidence: [
         {
           missingDataPoint: 'grid_restriction_hint',
-          enablesDossierAddition: 'add grid restriction evidence or the explicit no-restriction basis',
+          enablesDossierAddition:
+            'add grid restriction evidence or the explicit no-restriction basis',
         },
         {
           missingDataPoint: 'legal_question_marker',
-          enablesDossierAddition: 'route the open legal question without automated legal qualification',
+          enablesDossierAddition:
+            'route the open legal question without automated legal qualification',
         },
         {
           missingDataPoint: 'fnav_option_marker',
@@ -7769,7 +7783,8 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
         {
           missingDataPoint: 'investment_path',
           label: 'Investitionspfad',
-          enablesDossierAddition: 'identify required investment path (e.g. capex_approved, budget_needed)',
+          enablesDossierAddition:
+            'identify required investment path (e.g. capex_approved, budget_needed)',
         },
       ],
     };
@@ -7784,7 +7799,8 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       missingEvidence: [
         {
           missingDataPoint: 'netzsignal_priority_policy',
-          enablesDossierAddition: 'add the network-signal priority boundary for the fast-track decision',
+          enablesDossierAddition:
+            'add the network-signal priority boundary for the fast-track decision',
         },
         {
           missingDataPoint: 'legal_status',
@@ -7835,7 +7851,8 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
             },
             {
               missingDataPoint: 'next_governance_gate',
-              enablesDossierAddition: 'add next governance gate to prepare the responsible committee',
+              enablesDossierAddition:
+                'add next governance gate to prepare the responsible committee',
             },
           ],
         },
@@ -7973,7 +7990,10 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       ])
     );
 
-    const technicalRows = runTransformer('getNetzanschlussTransparenzTechnicalRows', technicalFixture);
+    const technicalRows = runTransformer(
+      'getNetzanschlussTransparenzTechnicalRows',
+      technicalFixture
+    );
     expect(technicalRows).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ rowKey: 'nt_technical_division', value: 'strom' }),
@@ -8033,7 +8053,11 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
     expect(verifyRows).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ rowKey: 'nt_verify_selection' }),
-        expect.objectContaining({ rowKey: 'nt_verify_blueprint', valid: true, requiredEvidenceCount: 8 }),
+        expect.objectContaining({
+          rowKey: 'nt_verify_blueprint',
+          valid: true,
+          requiredEvidenceCount: 8,
+        }),
       ])
     );
 
@@ -8041,14 +8065,21 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
     expect(matrixRows).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ rowKey: 'nt_matrix_sync', m: 'Mitwirkend' }),
-        expect.objectContaining({ rowKey: 'nt_matrix_1', v: 'ROLE_NETZPLANUNG', m: 'ROLE_GRID_CAPACITY_PLANNING' }),
+        expect.objectContaining({
+          rowKey: 'nt_matrix_1',
+          v: 'ROLE_NETZPLANUNG',
+          m: 'ROLE_GRID_CAPACITY_PLANNING',
+        }),
       ])
     );
 
     const evidenceRows = runTransformer('getNetzanschlussTransparenzEvidenceRows', verify);
     expect(evidenceRows).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ missingDataPoint: 'transformation_option', group: 'technical_check' }),
+        expect.objectContaining({
+          missingDataPoint: 'transformation_option',
+          group: 'technical_check',
+        }),
         expect.objectContaining({ missingDataPoint: 'owner', group: 'ownership_and_audit' }),
       ])
     );
@@ -8065,7 +8096,10 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
     expect(noCallRows).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ boundary: 'grid_capacity_reservation', status: 'not_called' }),
-        expect.objectContaining({ boundary: 'grid-connection.reserveCapacity', status: 'not_called' }),
+        expect.objectContaining({
+          boundary: 'grid-connection.reserveCapacity',
+          status: 'not_called',
+        }),
         expect.objectContaining({ boundary: 'gis.mutate', status: 'not_called' }),
         expect.objectContaining({ boundary: 'rundeck.execute', status: 'not_called' }),
         expect.objectContaining({ boundary: 'budibase.table.write', status: 'not_called' }),
@@ -8101,7 +8135,9 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
     expect(verifySection.queryName).toBe('getInvestmentOwnerDeadlineBudgetGateVerifySummaryRows');
     expect(matrixSection.queryName).toBe('getInvestmentOwnerDeadlineBudgetGateMatrixRows');
     expect(
-      manifest.queries.filter((query) => query.name === 'getInvestmentOwnerDeadlineBudgetGateMatrixRows')
+      manifest.queries.filter(
+        (query) => query.name === 'getInvestmentOwnerDeadlineBudgetGateMatrixRows'
+      )
     ).toHaveLength(1);
     expect(manifest.notes.join(' ')).toContain('Investment Portfolio Governance Review binds');
   });
@@ -8225,7 +8261,11 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
         owner: null,
       },
       missingEvidence: [
-        { missingDataPoint: 'owner', label: 'Owner', enablesDossierAddition: 'add accountable owner' },
+        {
+          missingDataPoint: 'owner',
+          label: 'Owner',
+          enablesDossierAddition: 'add accountable owner',
+        },
         {
           missingDataPoint: 'committee_window',
           label: 'Committee window',
@@ -8244,7 +8284,10 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
     expectNoRawObjectText(committeeRows);
     expect(committeeRows).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ rowKey: 'ipgr_ccards_measure', value: 'smm-portfolio-gas-2026-001' }),
+        expect.objectContaining({
+          rowKey: 'ipgr_ccards_measure',
+          value: 'smm-portfolio-gas-2026-001',
+        }),
         expect.objectContaining({ rowKey: 'ipgr_ccards_committee_window', value: 'missing' }),
         expect.objectContaining({ rowKey: 'ipgr_ccards_gap_owner' }),
         expect.objectContaining({ rowKey: 'ipgr_ccards_followup_owner' }),
@@ -8261,11 +8304,20 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
         nextEscalationStep: 'gas-transformation-dataroom-review',
       },
       missingEvidence: [
-        { missingDataPoint: 'owner', enablesDossierAddition: 'assign or confirm the accountable investment measure owner' },
-        { missingDataPoint: 'budget_effect', enablesDossierAddition: 'clarify budget effect, envelope, overhang or funding impact' },
+        {
+          missingDataPoint: 'owner',
+          enablesDossierAddition: 'assign or confirm the accountable investment measure owner',
+        },
+        {
+          missingDataPoint: 'budget_effect',
+          enablesDossierAddition: 'clarify budget effect, envelope, overhang or funding impact',
+        },
       ],
       positiveFollowUps: [
-        { missingDataPoint: 'owner', enablesDossierAddition: 'assign or confirm the accountable investment measure owner' },
+        {
+          missingDataPoint: 'owner',
+          enablesDossierAddition: 'assign or confirm the accountable investment measure owner',
+        },
       ],
     };
     const gateRows = runTransformer(
@@ -8276,8 +8328,16 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
     expectNoRawObjectText(gateRows);
     expect(gateRows).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ rowKey: 'ipgr_gate_owner', value: 'missing', status: 'blocked_missing_evidence' }),
-        expect.objectContaining({ rowKey: 'ipgr_gate_budget_path', value: 'missing', status: 'budget_path_gap' }),
+        expect.objectContaining({
+          rowKey: 'ipgr_gate_owner',
+          value: 'missing',
+          status: 'blocked_missing_evidence',
+        }),
+        expect.objectContaining({
+          rowKey: 'ipgr_gate_budget_path',
+          value: 'missing',
+          status: 'budget_path_gap',
+        }),
         expect.objectContaining({
           rowKey: 'ipgr_gate_committee_gate',
           value: 'freigabe-umstellungskonzept',
@@ -8289,7 +8349,10 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
           status: 'available',
         }),
         expect.objectContaining({ rowKey: 'ipgr_gate_gap_owner', status: 'evidence_gap' }),
-        expect.objectContaining({ rowKey: 'ipgr_gate_followup_owner', status: 'positive_followup' }),
+        expect.objectContaining({
+          rowKey: 'ipgr_gate_followup_owner',
+          status: 'positive_followup',
+        }),
       ])
     );
 
@@ -8303,7 +8366,11 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
         blockedDecision: 'freigabe-umstellungskonzept',
       },
       missingEvidence: [
-        { missingDataPoint: 'owner', label: 'Owner', enablesDossierAddition: 'add accountable review owner' },
+        {
+          missingDataPoint: 'owner',
+          label: 'Owner',
+          enablesDossierAddition: 'add accountable review owner',
+        },
       ],
       positiveFollowUps: [],
     };
@@ -8327,11 +8394,31 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
     expectScalarRows(noCallRows);
     expect(noCallRows).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ boundary: 'investment.approve', status: 'not_called', disabled: true }),
-        expect.objectContaining({ boundary: 'budget.approve', status: 'not_called', disabled: true }),
-        expect.objectContaining({ boundary: 'committee.execute', status: 'not_called', disabled: true }),
-        expect.objectContaining({ boundary: 'budibase.table.write', status: 'not_called', disabled: true }),
-        expect.objectContaining({ boundary: 'personal-agent.execute', status: 'not_called', disabled: true }),
+        expect.objectContaining({
+          boundary: 'investment.approve',
+          status: 'not_called',
+          disabled: true,
+        }),
+        expect.objectContaining({
+          boundary: 'budget.approve',
+          status: 'not_called',
+          disabled: true,
+        }),
+        expect.objectContaining({
+          boundary: 'committee.execute',
+          status: 'not_called',
+          disabled: true,
+        }),
+        expect.objectContaining({
+          boundary: 'budibase.table.write',
+          status: 'not_called',
+          disabled: true,
+        }),
+        expect.objectContaining({
+          boundary: 'personal-agent.execute',
+          status: 'not_called',
+          disabled: true,
+        }),
       ])
     );
   });
@@ -8396,9 +8483,11 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       ])
     );
     expect(selectorRows.every((row) => row.dataClass === 'synthetic_tenant_seed')).toBe(true);
-    expect(selectorRows.every((row) => row.seedId === 'stadtwerk-mauer-redispatch-participation-readiness-v1')).toBe(
-      true
-    );
+    expect(
+      selectorRows.every(
+        (row) => row.seedId === 'stadtwerk-mauer-redispatch-participation-readiness-v1'
+      )
+    ).toBe(true);
     expect(selectorRows.filter((row) => row.selected === true)).toHaveLength(1);
     expect(selectorRows.find((row) => row.selected === true).selectorCase).toBe(
       'data_point_version_or_control_group_clarification'
@@ -8427,25 +8516,55 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       forecastDispatchTestProof: null,
       remoteControlCommunicationTestEvidence: 'communication-test-success',
       missingEvidence: [
-        { missingDataPoint: 'forecast_dispatch_test_proof', enablesDossierAddition: 'add forecast/dispatch test proof' },
+        {
+          missingDataPoint: 'forecast_dispatch_test_proof',
+          enablesDossierAddition: 'add forecast/dispatch test proof',
+        },
       ],
       positiveFollowUps: [
-        { missingDataPoint: 'forecast_dispatch_test_proof', enablesDossierAddition: 'add forecast/dispatch test proof' },
+        {
+          missingDataPoint: 'forecast_dispatch_test_proof',
+          enablesDossierAddition: 'add forecast/dispatch test proof',
+        },
       ],
       safeNextGate: 'resolve_redispatch_participation_evidence_gaps_first',
     };
     const kpiFixture = {
       status: 'needs_project_review',
-      taskSignals: [{ owner: 'ROLE_GRID_OPERATIONS_LEAD', dueDate: '2026-09-05', decisionBlocker: 'data-point-version-clarification-pending', blockedDecision: 'Datenpunktlisten Change-Control Review' }],
+      taskSignals: [
+        {
+          owner: 'ROLE_GRID_OPERATIONS_LEAD',
+          dueDate: '2026-09-05',
+          decisionBlocker: 'data-point-version-clarification-pending',
+          blockedDecision: 'Datenpunktlisten Change-Control Review',
+        },
+      ],
       sourceHealth: ['datasource=ready; freshness=ready; quality=review-pending'],
       evidenceGaps: [
-        { missingDataPoint: 'data_point_version_clarification', enablesDossierAddition: 'clarify data-point-list version' },
+        {
+          missingDataPoint: 'data_point_version_clarification',
+          enablesDossierAddition: 'clarify data-point-list version',
+        },
       ],
     };
     const ownerDeadlineFixture = {
       readinessSignals: [
-        { code: 'owner', label: 'Owner', ownerRole: 'ROLE_GRID_OPERATIONS_LEAD', dueAt: '2026-09-05T12:00:00.000Z', status: 'ready', finding: null },
-        { code: 'evidence_ref', label: 'Evidence Reference', ownerRole: 'ROLE_GRID_OPERATIONS_LEAD', dueAt: '2026-09-05T12:00:00.000Z', status: 'missing', finding: 'attach the blocking evidence proof' },
+        {
+          code: 'owner',
+          label: 'Owner',
+          ownerRole: 'ROLE_GRID_OPERATIONS_LEAD',
+          dueAt: '2026-09-05T12:00:00.000Z',
+          status: 'ready',
+          finding: null,
+        },
+        {
+          code: 'evidence_ref',
+          label: 'Evidence Reference',
+          ownerRole: 'ROLE_GRID_OPERATIONS_LEAD',
+          dueAt: '2026-09-05T12:00:00.000Z',
+          status: 'missing',
+          finding: 'attach the blocking evidence proof',
+        },
       ],
     };
     const verify = {
@@ -8467,11 +8586,20 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
           rowCount: 5,
           rowCountValid: true,
           evidenceRequirements: ['control_group', 'data_point_version'],
-          downstreamHandoff: { blueprintPack: 'complete', landingRegistry: 'pending', productiveDemoRoom: 'pending' },
+          downstreamHandoff: {
+            blueprintPack: 'complete',
+            landingRegistry: 'pending',
+            productiveDemoRoom: 'pending',
+          },
           rows: [
             {
               phase: '1',
-              roles: { V: 'ROLE_GRID_OPERATIONS_LEAD', D: 'ROLE_CERNION_GOVERNANCE', M: 'ROLE_ASSET_MANAGEMENT', I: 'ROLE_MANAGEMENT' },
+              roles: {
+                V: 'ROLE_GRID_OPERATIONS_LEAD',
+                D: 'ROLE_CERNION_GOVERNANCE',
+                M: 'ROLE_ASSET_MANAGEMENT',
+                I: 'ROLE_MANAGEMENT',
+              },
               evidenceRequirements: ['control_group', 'data_point_version'],
               status: 'evidence_gap',
               gateOutcome: 'supply_data_point_version_then_refresh',
@@ -8483,7 +8611,12 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
     const transfer = {
       status: 'ready_for_review',
       transferSummaryRows: [
-        { rowKey: 'dplcc_transfer_readiness', label: 'Transfer Readiness', status: 'ready_for_review', sourceClass: 'transfer_readiness_summary' },
+        {
+          rowKey: 'dplcc_transfer_readiness',
+          label: 'Transfer Readiness',
+          status: 'ready_for_review',
+          sourceClass: 'transfer_readiness_summary',
+        },
       ],
       dataClassRows: [
         {
@@ -8498,7 +8631,14 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       ],
       safeNextGateRows: [],
       productionBoundaryRows: [
-        { rowKey: 'redispatch_dispatch', boundary: 'redispatch.dispatch', status: 'blocked_in_transfer_readiness_slice', disabled: true, safeAlternative: 'read_or_verify_readiness_only', sourceClass: 'blocked_production_boundary' },
+        {
+          rowKey: 'redispatch_dispatch',
+          boundary: 'redispatch.dispatch',
+          status: 'blocked_in_transfer_readiness_slice',
+          disabled: true,
+          safeAlternative: 'read_or_verify_readiness_only',
+          sourceClass: 'blocked_production_boundary',
+        },
       ],
     };
 
@@ -8517,7 +8657,10 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       expectNoRawObjectText(rows);
     }
 
-    const alignmentRows = runTransformer('getDatenpunktlistenChangeControlAlignmentRows', alignmentFixture);
+    const alignmentRows = runTransformer(
+      'getDatenpunktlistenChangeControlAlignmentRows',
+      alignmentFixture
+    );
     expect(alignmentRows).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -8550,7 +8693,10 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       )
     ).toBe(true);
 
-    const testCallRows = runTransformer('getDatenpunktlistenChangeControlTestCallReadinessRows', testCallFixture);
+    const testCallRows = runTransformer(
+      'getDatenpunktlistenChangeControlTestCallReadinessRows',
+      testCallFixture
+    );
     expect(testCallRows[0]).toEqual(
       expect.objectContaining({
         rowKey: 'dplcc_test_call_summary',
@@ -8562,7 +8708,10 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
     const kpiRows = runTransformer('getDatenpunktlistenChangeControlKpiCockpitRows', kpiFixture);
     expect(kpiRows).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ rowKey: 'dplcc_kpi_summary', owner: 'ROLE_GRID_OPERATIONS_LEAD' }),
+        expect.objectContaining({
+          rowKey: 'dplcc_kpi_summary',
+          owner: 'ROLE_GRID_OPERATIONS_LEAD',
+        }),
         expect.objectContaining({ rowKey: 'dplcc_kpi_gap_1', state: 'human_review_required' }),
       ])
     );
@@ -8573,7 +8722,11 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
     );
     expect(ownerDeadlineRows).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ rowKey: 'dplcc_owner_deadline_owner', state: 'ready', humanReviewRequired: false }),
+        expect.objectContaining({
+          rowKey: 'dplcc_owner_deadline_owner',
+          state: 'ready',
+          humanReviewRequired: false,
+        }),
         expect.objectContaining({
           rowKey: 'dplcc_owner_deadline_evidence_ref',
           state: 'clarification',
@@ -8592,7 +8745,11 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
     const verifyRows = runTransformer('getDatenpunktlistenChangeControlVerifyRows', verify);
     expect(verifyRows).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ rowKey: 'dplcc_verify_blueprint', valid: true, matrixRowCount: 5 }),
+        expect.objectContaining({
+          rowKey: 'dplcc_verify_blueprint',
+          valid: true,
+          matrixRowCount: 5,
+        }),
       ])
     );
 
@@ -8661,8 +8818,12 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
         .filter((section) => section.id.startsWith('versandbatch_completion_evidence'))
         .map((section) => section.queryName)
     ).toEqual(expect.arrayContaining(names));
-    expect(manifest.notes.join(' ')).toContain('Versandbatch Completion-Evidence Review panel (#517)');
-    expect(manifest.notes.join(' ')).toContain('not a new Cernion endpoint, Versand-, Billing- or Workflow-Engine');
+    expect(manifest.notes.join(' ')).toContain(
+      'Versandbatch Completion-Evidence Review panel (#517)'
+    );
+    expect(manifest.notes.join(' ')).toContain(
+      'not a new Cernion endpoint, Versand-, Billing- or Workflow-Engine'
+    );
     expect(manifest.notes.join(' ')).toContain('second generic signal queue is introduced');
   });
 
@@ -8723,7 +8884,10 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       ],
       ownerContext: { ownerRole: 'ROLE_PROCESS_OWNER', dueAt: '2026-09-05T12:00:00.000Z' },
       evidenceGaps: [
-        { missingDataPoint: 'evidence_ref', enablesDossierAddition: 'attach the blocking evidence proof' },
+        {
+          missingDataPoint: 'evidence_ref',
+          enablesDossierAddition: 'attach the blocking evidence proof',
+        },
       ],
       signalContext: { blockedDecision: 'Versandbatch Abschluss Review' },
       positiveFollowUps: [
@@ -8772,10 +8936,16 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       expectNoRawObjectText(rows);
     }
 
-    const channelRows = runTransformer('getVersandbatchCompletionEvidenceDocumentChannelRows', queueFixture);
+    const channelRows = runTransformer(
+      'getVersandbatchCompletionEvidenceDocumentChannelRows',
+      queueFixture
+    );
     expect(channelRows).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ rowKey: 'vsb_batch_identity', sourceClass: 'versandbatch_completion_evidence_source_class' }),
+        expect.objectContaining({
+          rowKey: 'vsb_batch_identity',
+          sourceClass: 'versandbatch_completion_evidence_source_class',
+        }),
         expect.objectContaining({ rowKey: 'vsb_document_release' }),
         expect.objectContaining({
           rowKey: 'vsb_channel_status',
@@ -8784,17 +8954,30 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       ])
     );
 
-    const manualHandoverRows = runTransformer('getVersandbatchCompletionEvidenceManualHandoverRows', ownerFixture);
-    expect(manualHandoverRows[0]).toEqual(
-      expect.objectContaining({ rowKey: 'vsb_manual_handover_summary', owner: 'ROLE_PROCESS_OWNER' })
+    const manualHandoverRows = runTransformer(
+      'getVersandbatchCompletionEvidenceManualHandoverRows',
+      ownerFixture
     );
-    expect(manualHandoverRows.slice(1).every((row) => row.state === 'human_review_required')).toBe(true);
+    expect(manualHandoverRows[0]).toEqual(
+      expect.objectContaining({
+        rowKey: 'vsb_manual_handover_summary',
+        owner: 'ROLE_PROCESS_OWNER',
+      })
+    );
+    expect(manualHandoverRows.slice(1).every((row) => row.state === 'human_review_required')).toBe(
+      true
+    );
     // missing evidence never collapses to a bare negative verdict without a positive follow-up
     expect(
-      manualHandoverRows.slice(1).every((row) => typeof row.positiveFollowUp === 'string' && row.positiveFollowUp.length > 0)
+      manualHandoverRows
+        .slice(1)
+        .every((row) => typeof row.positiveFollowUp === 'string' && row.positiveFollowUp.length > 0)
     ).toBe(true);
 
-    const exceptionRows = runTransformer('getVersandbatchCompletionEvidenceExceptionRows', ownerFixture);
+    const exceptionRows = runTransformer(
+      'getVersandbatchCompletionEvidenceExceptionRows',
+      ownerFixture
+    );
     expect(exceptionRows).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -8805,11 +8988,20 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       ])
     );
     // missing/stale evidence maps to clarification/human_review_required, never automatic rejection or completion
-    expect(exceptionRows.every((row) => ['human_review_required', 'ready'].includes(row.state))).toBe(true);
+    expect(
+      exceptionRows.every((row) => ['human_review_required', 'ready'].includes(row.state))
+    ).toBe(true);
 
-    const freshnessRows = runTransformer('getVersandbatchCompletionEvidenceReturnFreshnessRows', freshFixture);
+    const freshnessRows = runTransformer(
+      'getVersandbatchCompletionEvidenceReturnFreshnessRows',
+      freshFixture
+    );
     expect(freshnessRows[0]).toEqual(
-      expect.objectContaining({ freshnessState: 'stale_context', deltaState: 'new_delta', isNewDelta: true })
+      expect.objectContaining({
+        freshnessState: 'stale_context',
+        deltaState: 'new_delta',
+        isNewDelta: true,
+      })
     );
 
     const completionPointerRows = runTransformer(
@@ -8817,15 +9009,29 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       freshFixture
     );
     expect(completionPointerRows[0]).toEqual(
-      expect.objectContaining({ rowKey: 'vsb_completion_evidence_pointer', evidencePointerOnly: true, value: 'missing' })
+      expect.objectContaining({
+        rowKey: 'vsb_completion_evidence_pointer',
+        evidencePointerOnly: true,
+        value: 'missing',
+      })
     );
 
-    const riskRows = runTransformer('getVersandbatchCompletionEvidenceAutomationRiskRows', riskFixture);
+    const riskRows = runTransformer(
+      'getVersandbatchCompletionEvidenceAutomationRiskRows',
+      riskFixture
+    );
     expect(riskRows[0]).toEqual(
-      expect.objectContaining({ contextOnly: true, roleTarget: 'ROLE_REGULATORY_AFFAIRS', riskLevel: 'medium' })
+      expect.objectContaining({
+        contextOnly: true,
+        roleTarget: 'ROLE_REGULATORY_AFFAIRS',
+        riskLevel: 'medium',
+      })
     );
 
-    const followUpRows = runTransformer('getVersandbatchCompletionEvidenceFollowUpRows', ownerFixture);
+    const followUpRows = runTransformer(
+      'getVersandbatchCompletionEvidenceFollowUpRows',
+      ownerFixture
+    );
     expect(followUpRows).toEqual(
       expect.arrayContaining([expect.objectContaining({ missingDataPoint: 'evidence_ref' })])
     );

@@ -138,7 +138,8 @@ module.exports = {
         ],
         responses: {
           200: {
-            description: 'Municipality profile resolved from coordinates (found:false if unresolved)',
+            description:
+              'Municipality profile resolved from coordinates (found:false if unresolved)',
             content: {
               'application/json': {
                 schema: {

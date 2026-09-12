@@ -509,9 +509,7 @@ describe('OSM Geo Service', () => {
     it('gives an honest dataQuality message (no fabricated coverage %) when 0 edges are derived', async () => {
       axios.post.mockResolvedValueOnce({
         data: {
-          elements: [
-            { type: 'node', id: 1, lat: 49.3, lon: 8.5, tags: { power: 'transformer' } },
-          ],
+          elements: [{ type: 'node', id: 1, lat: 49.3, lon: 8.5, tags: { power: 'transformer' } }],
         },
       });
       const result = await broker.call('osm-geo.gridTopology', {

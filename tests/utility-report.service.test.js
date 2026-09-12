@@ -403,7 +403,14 @@ describe('Utility Report Service', () => {
           marketPartners: {
             params: {
               query: { type: 'string', min: 1 },
-              limit: { type: 'number', optional: true, default: 10, min: 1, max: 20, convert: true },
+              limit: {
+                type: 'number',
+                optional: true,
+                default: 10,
+                min: 1,
+                max: 20,
+                convert: true,
+              },
             },
             handler: jest.fn(async () => ({
               success: true,

@@ -2741,9 +2741,7 @@ describe('VDMI Blueprint Pack seeds', () => {
 
   test('keeps the three data classes and the immutable public-context boundary', () => {
     const seed = stadtwerkMauerMunicipalityPublicContextReadiness;
-    expect(Object.keys(seed.dataClasses)).toEqual(
-      expect.arrayContaining(REQUIRED_DATA_CLASSES)
-    );
+    expect(Object.keys(seed.dataClasses)).toEqual(expect.arrayContaining(REQUIRED_DATA_CLASSES));
     expect(seed.dataClasses.publicContextLayer.description).toEqual(
       expect.stringContaining('never removed by demo reset/delete jobs')
     );
@@ -2753,9 +2751,7 @@ describe('VDMI Blueprint Pack seeds', () => {
       )
     );
     expect(seed.demoTenant.description).toEqual(
-      expect.stringContaining(
-        'must never be silently upgraded into a fact'
-      )
+      expect.stringContaining('must never be silently upgraded into a fact')
     );
   });
 
@@ -2785,9 +2781,7 @@ describe('VDMI Blueprint Pack seeds', () => {
     const derivedRow = seed.demoProcessMatrix.rows.find((row) =>
       row.evidenceRequirements.includes('landUseEvidence')
     );
-    expect(derivedRow.gateOutcome).toEqual(
-      expect.stringContaining('not_official_fact')
-    );
+    expect(derivedRow.gateOutcome).toEqual(expect.stringContaining('not_official_fact'));
     const heuristicBoundary = seed.evidenceRequirements.find(
       (item) => item.id === 'heuristicBoundaryEvidence'
     );
@@ -2801,7 +2795,9 @@ describe('VDMI Blueprint Pack seeds', () => {
     const byId = Object.fromEntries(
       seed.positiveFollowUpMapping.map((item) => [item.evidenceId, item.enablesDossierAddition])
     );
-    expect(byId.agsEvidence).toEqual(expect.stringContaining('unambiguous municipality scope label'));
+    expect(byId.agsEvidence).toEqual(
+      expect.stringContaining('unambiguous municipality scope label')
+    );
     expect(byId.postalCodeScopeEvidence).toEqual(
       expect.stringContaining('complete multi-PLZ scope summary')
     );
@@ -2852,7 +2848,9 @@ describe('VDMI Blueprint Pack seeds', () => {
   });
 
   test('maps Municipality Public-Context Scope Readiness missing evidence to non-executing workbench additions', () => {
-    const items = buildWorkbenchClarificationItems(stadtwerkMauerMunicipalityPublicContextReadiness);
+    const items = buildWorkbenchClarificationItems(
+      stadtwerkMauerMunicipalityPublicContextReadiness
+    );
 
     expect(items).toHaveLength(REQUIRED_MUNICIPALITY_PUBLIC_CONTEXT_EVIDENCE.length);
     for (const item of items) {
