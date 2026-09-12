@@ -27,29 +27,43 @@ import csv
 import json
 import os
 import sys
+import tempfile
 from datetime import datetime, timezone
+
+# Confinement roots for CLI-supplied paths: the invoking working directory
+# (covers the documented relative-fixture usage) and the system temp dir
+# (covers the documented /tmp output usage). A path resolving outside both
+# is rejected outright — this is the actual sanitizer; realpath() alone only
+# normalises, it doesn't bound where the result can land, so a caller whose
+# arguments were generated rather than hand-typed (e.g. an LLM agent acting
+# on untrusted instructions) can't be tricked into reading/writing outside
+# this script's intended scope via a crafted `../` segment or absolute path.
+_ALLOWED_ROOTS = [os.path.realpath(os.getcwd()), os.path.realpath(tempfile.gettempdir())]
+
+
+def _is_within_allowed_roots(resolved):
+    return any(
+        resolved == root or resolved.startswith(root + os.sep) for root in _ALLOWED_ROOTS
+    )
 
 
 def _resolve_input_path(raw):
-    """Canonicalise a user-supplied input path and confirm it is a real file.
-
-    Breaks the direct taint flow from CLI/argparse input to `open()` (a CLI
-    argument could otherwise carry an unvalidated `../` traversal segment if
-    this script is ever invoked with machine-generated rather than
-    human-typed arguments) and fails fast with a clear error instead of a
-    raw stack trace on a bad path.
-    """
+    """Canonicalise a user-supplied input path, confirm it stays within the
+    allowed roots, and confirm it is a real file."""
     resolved = os.path.realpath(raw)
+    if not _is_within_allowed_roots(resolved):
+        raise SystemExit(f"error: input path escapes allowed directories: {resolved}")
     if not os.path.isfile(resolved):
         raise SystemExit(f"error: input file not found: {resolved}")
     return resolved
 
 
 def _resolve_output_path(raw):
-    """Canonicalise a user-supplied output path; same taint-flow rationale
-    as `_resolve_input_path`, plus a clear error if the parent dir is missing.
-    """
+    """Canonicalise a user-supplied output path and confirm it stays within
+    the allowed roots, with a clear error if the parent dir is missing."""
     resolved = os.path.realpath(raw)
+    if not _is_within_allowed_roots(resolved):
+        raise SystemExit(f"error: output path escapes allowed directories: {resolved}")
     parent = os.path.dirname(resolved)
     if parent and not os.path.isdir(parent):
         raise SystemExit(f"error: output directory does not exist: {parent}")
