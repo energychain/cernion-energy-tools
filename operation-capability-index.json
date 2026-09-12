@@ -2,19 +2,19 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.99.19",
-  "sourceOpenApiHash": "3cf02ddb2f81bfe746d9ca488d1039620ce5041ec7e92b151e2dfc6cf8527e62",
+  "sourceOpenApiHash": "846cd5105ee5a3215a1756f66f56d2ec2df4cea5a465611c860aae138478f66f",
   "coverage": {
-    "rawOperationCount": 1140,
-    "operationCount": 884,
-    "agentableCount": 882,
+    "rawOperationCount": 1144,
+    "operationCount": 888,
+    "agentableCount": 886,
     "nonAgentableCount": 2,
     "byOperationKind": {
-      "data_read": 389,
+      "data_read": 390,
       "admin": 8,
-      "object_store_write": 229,
+      "object_store_write": 231,
       "process_step": 20,
       "process_start": 43,
-      "advisory_plan": 46,
+      "advisory_plan": 47,
       "draft_write": 13,
       "external_effect": 4,
       "dashboard_read": 125,
@@ -50589,6 +50589,334 @@
           "grid operator",
           "VNB",
           "distribution grid"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "forecast-sandbox_backtestConsumption",
+      "method": "POST",
+      "path": "/api/forecast-sandbox/consumption/backtest",
+      "service": "forecast-sandbox",
+      "action": "forecast-sandbox.backtestConsumption",
+      "summary": "Backtest the baseline forecast against historical actuals",
+      "tags": [
+        "Forecast Sandbox"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "forecast-sandbox.backtest_consumption"
+      ],
+      "domains": [
+        "market-data"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "forecast-sandbox:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "forecast-sandbox"
+      ],
+      "sideEffects": [
+        "creates_or_modifies_stored_object"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "forecast",
+          "sandbox",
+          "backtest",
+          "consumption",
+          "baseline",
+          "against",
+          "historical",
+          "actuals"
+        ],
+        "negativeCues": [
+          "redispatch settlement",
+          "grid connection request",
+          "metering data"
+        ],
+        "examples": [
+          "Please backtest the baseline forecast against historical actuals"
+        ],
+        "synonyms": [
+          "spot price",
+          "day-ahead",
+          "EPEX",
+          "ENTSO-E",
+          "intraday",
+          "wholesale market"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "forecast-sandbox_dayAheadConsumption",
+      "method": "POST",
+      "path": "/api/forecast-sandbox/consumption/day-ahead",
+      "service": "forecast-sandbox",
+      "action": "forecast-sandbox.dayAheadConsumption",
+      "summary": "Generate a baseline day-ahead consumption forecast",
+      "tags": [
+        "Forecast Sandbox"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "forecast-sandbox.day_ahead_consumption"
+      ],
+      "domains": [
+        "market-data"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "forecast-sandbox:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "forecast-sandbox"
+      ],
+      "sideEffects": [
+        "creates_or_modifies_stored_object"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "forecast",
+          "sandbox",
+          "day",
+          "ahead",
+          "consumption",
+          "generate",
+          "baseline"
+        ],
+        "negativeCues": [
+          "redispatch settlement",
+          "grid connection request",
+          "metering data"
+        ],
+        "examples": [
+          "Please generate a baseline day-ahead consumption forecast"
+        ],
+        "synonyms": [
+          "spot price",
+          "day-ahead",
+          "EPEX",
+          "ENTSO-E",
+          "intraday",
+          "wholesale market"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "forecast-sandbox_validateConsumptionSeries",
+      "method": "POST",
+      "path": "/api/forecast-sandbox/consumption/validate",
+      "service": "forecast-sandbox",
+      "action": "forecast-sandbox.validateConsumptionSeries",
+      "summary": "Validate a quarter-hourly consumption series",
+      "tags": [
+        "Forecast Sandbox"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "advisory_plan",
+      "consequenceLevel": "low",
+      "recommendedExecutionMode": "explain_only",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "forecast-sandbox.validate_consumption_series"
+      ],
+      "domains": [
+        "market-data"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "forecast-sandbox:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [
+          {
+            "name": "seriesId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "granularity",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "timezone",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": "country_code"
+          },
+          {
+            "name": "unit",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "values",
+            "in": "body",
+            "type": "array",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": [
+          {
+            "name": "meteringType",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "options",
+            "in": "body",
+            "type": "object",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "forecast",
+          "sandbox",
+          "validate",
+          "consumption",
+          "series",
+          "quarter",
+          "hourly"
+        ],
+        "negativeCues": [
+          "redispatch settlement",
+          "grid connection request",
+          "metering data"
+        ],
+        "examples": [
+          "Please validate a quarter-hourly consumption series"
+        ],
+        "synonyms": [
+          "spot price",
+          "day-ahead",
+          "EPEX",
+          "ENTSO-E",
+          "intraday",
+          "wholesale market"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "forecast-sandbox_openapi",
+      "method": "GET",
+      "path": "/api/forecast-sandbox/openapi.json",
+      "service": "forecast-sandbox",
+      "action": "forecast-sandbox.openapi",
+      "summary": "Isolated OpenAPI document for the Forecast Sandbox endpoints",
+      "tags": [
+        "Forecast Sandbox"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "forecast-sandbox.openapi"
+      ],
+      "domains": [
+        "market-data"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "forecast-sandbox:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "forecast",
+          "sandbox",
+          "openapi",
+          "isolated",
+          "open",
+          "document",
+          "endpoints"
+        ],
+        "negativeCues": [
+          "redispatch settlement",
+          "grid connection request",
+          "metering data"
+        ],
+        "examples": [
+          "Show me isolated openapi document for the forecast sandbox endpoints"
+        ],
+        "synonyms": [
+          "spot price",
+          "day-ahead",
+          "EPEX",
+          "ENTSO-E",
+          "intraday",
+          "wholesale market"
         ],
         "curated": false
       },

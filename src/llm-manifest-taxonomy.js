@@ -216,6 +216,7 @@ const OPENAPI_TAG_DOMAIN_MAP = {
   'fnav-commercial-hedging': 'grid-ops',
   'Forecast (Prognostik)': 'market-data',
   'Renewable Energy Forecasting': 'market-data',
+  'Forecast Sandbox': 'market-data',
   'Gas Storage (AGSI)': 'market-data',
   'gasnetz-waermeplanung': 'regulatory',
   'German Grid Data': 'grid-ops',
