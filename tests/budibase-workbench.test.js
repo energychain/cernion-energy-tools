@@ -7156,4 +7156,1698 @@ describe('Budibase Stadtwerk Mauer workbench manifest', () => {
       'MSCONS Identifikatorwechsel Readiness-Gate panel binds'
     );
   });
+
+  it('adds the Municipality Public-Context Scope Readiness panel from exactly the six named existing dashboard reads (#555)', () => {
+    const names = [
+      'getMunicipalityPublicContextReadinessSelectorRows',
+      'getMunicipalityPublicContextReadinessMastrRows',
+      'getMunicipalityPublicContextReadinessQualityBoundaryRows',
+      'getMunicipalityPublicContextReadinessObservabilityBoundaryRows',
+      'getMunicipalityPublicContextReadinessVerifyRows',
+      'getMunicipalityPublicContextReadinessMatrixRows',
+      'getMunicipalityPublicContextReadinessEvidenceRows',
+      'getMunicipalityPublicContextReadinessTransferRows',
+      'getMunicipalityPublicContextReadinessNoCallRows',
+    ];
+    const queries = manifest.queries.filter((query) => names.includes(query.name));
+    expect(queries).toHaveLength(names.length);
+    expect(new Set(queries.map((query) => query.path))).toEqual(
+      new Set([
+        '/api/dashboard/municipal-energy-value-analysis',
+        '/api/dashboard/stadtwerk-mauer-mastr-data-overlay',
+        '/api/dashboard/quality-summary',
+        '/api/dashboard/observability-mini',
+        '/api/dashboard/stadtwerk-mauer-blueprint-pack-verify',
+        '/api/dashboard/stadtwerk-mauer-transfer-readiness',
+      ])
+    );
+    expect(
+      queries
+        .filter((query) => query.path.includes('blueprint-pack-verify'))
+        .every((query) =>
+          query.queryString.includes('stadtwerk-mauer-municipality-public-context-readiness-v1')
+        )
+    ).toBe(true);
+    const transferQuery = queries.find(
+      (query) => query.name === 'getMunicipalityPublicContextReadinessTransferRows'
+    );
+    expect(transferQuery.queryString).toContain(
+      'seedId=stadtwerk-mauer-municipality-public-context-readiness-v1'
+    );
+    expect(transferQuery.queryString).toContain(
+      'caseId=smm-municipality-public-context-review-001'
+    );
+    // No-call guards must never call municipality.lookup, OSM land-use or the market-actor
+    // directory ad hoc; they stay outside the six named composed endpoints.
+    expect(
+      queries.every(
+        (query) =>
+          !query.path.includes('/municipality/lookup') &&
+          !query.path.includes('/osm-geo/') &&
+          !query.path.includes('/market-actor-directory')
+      )
+    ).toBe(true);
+    expect(
+      manifest.sections
+        .filter((section) => section.id.startsWith('municipality_public_context_readiness'))
+        .map((section) => section.queryName)
+    ).toEqual(expect.arrayContaining(names));
+    expect(manifest.notes.join(' ')).toContain('Municipality Public-Context Scope Readiness panel (#555)');
+  });
+
+  it('renders scalar Municipality Public-Context Scope Readiness rows: selector, MaStR classification, quality/observability boundary, verify, matrix, evidence, transfer and no-call guards', () => {
+    const municipalityAvailable = {
+      capabilityKey: 'municipal_energy_value_analysis',
+      status: 'lagebild_partial',
+      municipality: 'Mauer',
+      ags: '08226048',
+      postalCode: '69256',
+      postalCodes: ['69256', '69257'],
+      population: 5200,
+      state: 'Baden-Württemberg',
+      district: 'Rhein-Neckar-Kreis',
+      derivedLoadProfileRows: [{ rowKey: 'derived_load_summary' }],
+      missingEvidence: [{ missingDataPoint: 'vnb_bnr', enablesDossierAddition: 'x' }],
+      positiveFollowUps: [
+        { missingDataPoint: 'vnb_bnr', enablesDossierAddition: 'Refresh MaStR overlay evidence.' },
+      ],
+    };
+    const municipalityUnresolved = {
+      capabilityKey: 'municipal_energy_value_analysis',
+      status: 'lagebild_municipality_unresolved',
+      municipality: 'Unbekannte Gemeinde',
+      ags: null,
+      postalCode: null,
+      postalCodes: [],
+      derivedLoadProfileRows: [],
+      missingEvidence: [],
+      positiveFollowUps: [],
+    };
+    const mastr = {
+      status: 'mastr_overlay_available',
+      tenantId: 'stadtwerk-mauer',
+      municipality: 'Mauer',
+      evidenceQuality: 'degraded',
+      publicContextRows: [
+        {
+          rowKey: 'mastr_id',
+          label: 'MaStR-ID',
+          value: 'missing',
+          evidenceStatus: 'missing-evidence',
+        },
+      ],
+      revalidationRows: [
+        {
+          rowKey: 'revalidation_watch',
+          revalidationStatus: 'stale',
+          evidenceStatus: 'missing-evidence',
+        },
+      ],
+    };
+    const quality = {
+      agents: [{ type: 'mastr-quality' }, { type: 'grid-connection' }],
+      businessKpis: null,
+      _errors: [],
+    };
+    const observabilityHealthy = {
+      cards: { health: { status: 'healthy' }, incidents: { errorCount: 0 } },
+      recentErrors: [],
+      slowestActions: [],
+    };
+    const observabilityDegraded = {
+      cards: { health: { status: 'degraded' }, incidents: { errorCount: 4 } },
+      recentErrors: [],
+      slowestActions: [],
+    };
+    const verify = {
+      status: 'completed',
+      tenantId: 'stadtwerk-mauer',
+      summary: { counts: { requiredEvidence: 16, demoProcessMatrixRows: 4, forbiddenActions: 28 } },
+      nextActions: [
+        'Render the verify read model in Budibase',
+        'Use /api/governance/role-workbench for role-specific case projection',
+      ],
+      data: {
+        seedId: 'stadtwerk-mauer-municipality-public-context-readiness-v1',
+        tenantId: 'stadtwerk-mauer',
+        processFamily: 'municipal_context_governance',
+        controlCase: 'municipality_public_context_scope_readiness',
+        validation: { valid: true },
+        forbiddenActions: [
+          'municipality_resolver_write',
+          'market_actor_assignment',
+          'market_actor_binding',
+          'public_context_correction',
+          'mastr_mutation',
+        ],
+        sourceActions: {
+          inspected: ['dashboard-api.stadtwerkMauerBlueprintPackVerifyStatus'],
+          referenced: [],
+          notCalled: ['tenant.provision', 'rundeck.execute', 'budibase.table.write'],
+        },
+        missingEvidence: [
+          {
+            missingDataPoint: 'municipalityIdentityEvidence',
+            state: 'clarification',
+            enablesDossierAddition: 'Adds the municipality identity row.',
+          },
+          {
+            missingDataPoint: 'agsEvidence',
+            state: 'clarification',
+            enablesDossierAddition: 'Enables an unambiguous municipality scope label.',
+          },
+          {
+            missingDataPoint: 'postalCodeScopeEvidence',
+            state: 'evidence_gap',
+            enablesDossierAddition: 'Enables a complete multi-PLZ scope summary.',
+          },
+          {
+            missingDataPoint: 'mastrContextEvidence',
+            state: 'evidence_gap',
+            enablesDossierAddition: 'Adds read-only MaStR public-context evidence.',
+          },
+        ],
+        demoProcessMatrixSync: {
+          synced: true,
+          roleLegendM: 'Mitwirkend',
+          rowCount: 4,
+          rowCountValid: true,
+          evidenceRequirements: ['municipalityIdentityEvidence', 'agsEvidence'],
+          downstreamHandoff: {
+            blueprintPack: 'complete',
+            landingRegistry: 'pending',
+            productiveDemoRoom: 'pending',
+          },
+          rows: [
+            {
+              phase: '1',
+              roles: {
+                V: 'ROLE_DATA_GOVERNANCE',
+                D: 'ROLE_CERNION_GOVERNANCE',
+                M: 'ROLE_MUNICIPAL_PLANNING',
+                I: 'ROLE_MANAGEMENT',
+              },
+              evidenceRequirements: [
+                'municipalityIdentityEvidence',
+                'agsEvidence',
+                'postalCodeScopeEvidence',
+              ],
+              status: 'clarification',
+              gateOutcome: 'municipality_identity_and_complete_postal_code_scope_pending',
+            },
+            {
+              phase: '2',
+              roles: {
+                V: 'ROLE_NETZPLANUNG',
+                D: 'ROLE_CERNION_GOVERNANCE',
+                M: 'ROLE_PUBLIC_CONTEXT_STEWARD',
+                I: 'ROLE_DATA_GOVERNANCE',
+              },
+              evidenceRequirements: ['mastrContextEvidence', 'osmContextEvidence'],
+              status: 'evidence_gap',
+              gateOutcome: 'public_context_classification_and_freshness_pending',
+            },
+            {
+              phase: '3',
+              roles: {
+                V: 'ROLE_MUNICIPAL_STRATEGY',
+                D: 'ROLE_CERNION_GOVERNANCE',
+                M: 'ROLE_ASSET_MANAGEMENT',
+                I: 'ROLE_MANAGEMENT',
+              },
+              evidenceRequirements: ['loadDerivationEvidence', 'landUseEvidence'],
+              status: 'evidence_gap',
+              gateOutcome: 'derived_evidence_heuristic_boundary_not_official_fact',
+            },
+            {
+              phase: '4',
+              roles: {
+                V: 'ROLE_MUNICIPAL_STRATEGY',
+                D: 'ROLE_CERNION_GOVERNANCE',
+                M: 'ROLE_DATA_GOVERNANCE',
+                I: 'ROLE_MANAGEMENT',
+              },
+              evidenceRequirements: ['reviewReadinessEvidence', 'downstreamSyncEvidence'],
+              status: 'clarification',
+              gateOutcome: 'refresh_or_verify_existing_read_only_context',
+            },
+          ],
+        },
+      },
+    };
+    const transfer = {
+      status: 'ready_for_onboarding_discussion',
+      transferSummaryRows: [
+        {
+          rowKey: 'transfer_readiness',
+          label: 'Transfer Readiness',
+          status: 'ready_for_onboarding_discussion',
+          sourceClass: 'transfer_readiness_summary',
+        },
+      ],
+      dataClassRows: [
+        {
+          rowKey: 'public_context_layer',
+          category: 'public_context',
+          transferState: 'reusable_read_only',
+          description: 'Municipality identity/AGS/PLZ context, MaStR/OSM context.',
+          examples: 'public municipality AGS/postalCodes[] context',
+          productionBlocked: false,
+          safeNextAction: 'inspect_public_context_baseline',
+          sourceClass: 'transfer_data_class',
+        },
+        {
+          rowKey: 'synthetic_tenant_seed',
+          category: 'synthetic_seed',
+          transferState: 'replace_for_real_tenant',
+          description: 'Invented Stadtwerk-Mauer case id, role mapping, review owner.',
+          examples: 'synthetic municipality case id, synthetic review owner',
+          productionBlocked: false,
+          safeNextAction: 'replace_with_tenant_parameters_before_onboarding',
+          sourceClass: 'transfer_data_class',
+        },
+        {
+          rowKey: 'sandbox_runtime_artifacts',
+          category: 'sandbox_runtime',
+          transferState: 'do_not_transfer',
+          description: 'Resettable verify/render proof only.',
+          examples: 'municipality public-context render proof',
+          productionBlocked: true,
+          safeNextAction: 'discard_or_regenerate_in_customer_sandbox',
+          sourceClass: 'transfer_data_class',
+        },
+      ],
+      safeNextGateRows: [
+        {
+          rowKey: 'inspect_blueprint_verify',
+          label: 'Inspect Blueprint verify panel',
+          safety: 'safe_read_only',
+          sourceClass: 'safe_next_gate',
+        },
+      ],
+      productionBoundaryRows: [
+        {
+          rowKey: 'market_actor_assignment',
+          boundary: 'market_actor_assignment',
+          status: 'blocked_in_transfer_readiness_slice',
+          disabled: true,
+          safeAlternative: 'read_or_verify_readiness_only',
+          sourceClass: 'blocked_production_boundary',
+        },
+      ],
+    };
+
+    for (const [name, fixture] of [
+      ['getMunicipalityPublicContextReadinessSelectorRows', municipalityAvailable],
+      ['getMunicipalityPublicContextReadinessSelectorRows', municipalityUnresolved],
+      ['getMunicipalityPublicContextReadinessMastrRows', mastr],
+      ['getMunicipalityPublicContextReadinessQualityBoundaryRows', quality],
+      ['getMunicipalityPublicContextReadinessObservabilityBoundaryRows', observabilityHealthy],
+      ['getMunicipalityPublicContextReadinessObservabilityBoundaryRows', observabilityDegraded],
+      ['getMunicipalityPublicContextReadinessVerifyRows', verify],
+      ['getMunicipalityPublicContextReadinessMatrixRows', verify],
+      ['getMunicipalityPublicContextReadinessEvidenceRows', verify],
+      ['getMunicipalityPublicContextReadinessTransferRows', transfer],
+      ['getMunicipalityPublicContextReadinessNoCallRows', verify],
+    ]) {
+      const rows = runTransformer(name, fixture);
+      expectScalarRows(rows);
+      expectNoRawObjectText(rows);
+    }
+
+    // Municipality identity, AGS and the complete postalCodes[] (not just the first PLZ)
+    // render as scalar/display-safe rows.
+    const selectorRows = runTransformer(
+      'getMunicipalityPublicContextReadinessSelectorRows',
+      municipalityAvailable
+    );
+    expect(selectorRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ rowKey: 'municipality_identity', value: 'Mauer' }),
+        expect.objectContaining({ rowKey: 'ags', value: '08226048' }),
+        expect.objectContaining({
+          rowKey: 'postal_codes_complete',
+          value: '69256, 69257',
+          evidenceStatus: 'available',
+        }),
+        expect.objectContaining({ rowKey: 'postal_code_count', value: '2' }),
+      ])
+    );
+
+    // Degraded/unresolved municipality context is missing evidence / clarification,
+    // never an empty negative fact.
+    const unresolvedRows = runTransformer(
+      'getMunicipalityPublicContextReadinessSelectorRows',
+      municipalityUnresolved
+    );
+    expect(unresolvedRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ rowKey: 'ags', value: 'missing-evidence', evidenceStatus: 'clarification' }),
+        expect.objectContaining({
+          rowKey: 'postal_codes_complete',
+          value: 'missing-evidence',
+          evidenceStatus: 'evidence_gap',
+        }),
+      ])
+    );
+
+    // MaStR/OSM public context and synthetic revalidation rows stay distinct data classes,
+    // and a degraded overlay renders as clarification, not a negative fact.
+    const mastrRows = runTransformer('getMunicipalityPublicContextReadinessMastrRows', mastr);
+    expect(mastrRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ rowKey: 'mastr_public_mastr_id', dataClass: 'publicContextLayer' }),
+        expect.objectContaining({
+          rowKey: 'mastr_revalidation_revalidation_watch',
+          dataClass: 'syntheticTenantSeed',
+        }),
+        expect.objectContaining({
+          rowKey: 'mastr_overlay_evidence_quality',
+          value: 'degraded',
+          evidenceStatus: 'clarification',
+        }),
+      ])
+    );
+
+    // Quality/observability context stays bounded and is explicitly not presented as
+    // municipality-specific completeness or source completeness.
+    const qualityRows = runTransformer(
+      'getMunicipalityPublicContextReadinessQualityBoundaryRows',
+      quality
+    );
+    expect(qualityRows[0].evidenceStatus).toBe('bounded_context_only');
+    expect(qualityRows[0].safeNextAction).toBe('do_not_present_as_municipality_specific_completeness');
+    const observabilityRows = runTransformer(
+      'getMunicipalityPublicContextReadinessObservabilityBoundaryRows',
+      observabilityDegraded
+    );
+    expect(observabilityRows[0].evidenceStatus).toBe('degraded');
+    expect(observabilityRows[0].safeNextAction).toBe('do_not_treat_availability_as_source_completeness');
+
+    const verifyRows = runTransformer('getMunicipalityPublicContextReadinessVerifyRows', verify);
+    expect(verifyRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'mpcr_selection',
+          value: expect.stringContaining('complete postalCodes[] scope unambiguous'),
+        }),
+        expect.objectContaining({ rowKey: 'mpcr_verify', valid: true, status: 'completed' }),
+      ])
+    );
+
+    // Exact canonical four-row matrix (plus one sync-summary row), roleLegend.M = Mitwirkend,
+    // and role cells are role ids only -- never a source or datapoint.
+    const matrixRows = runTransformer('getMunicipalityPublicContextReadinessMatrixRows', verify);
+    expect(matrixRows).toHaveLength(5);
+    const canonicalRows = matrixRows.filter((row) => row.rowKey !== 'mpcr_matrix_sync');
+    expect(canonicalRows).toHaveLength(4);
+    expect(canonicalRows.map((row) => row.phase)).toEqual(['1', '2', '3', '4']);
+    for (const row of canonicalRows) {
+      for (const cell of [row.v, row.d, row.m, row.i]) {
+        expect(cell).toMatch(/^ROLE_/);
+      }
+    }
+    expect(matrixRows[0]).toEqual(
+      expect.objectContaining({ roleLegendM: 'Mitwirkend', m: 'Mitwirkend' })
+    );
+    // Downstream sync stays honest: only the Blueprint-Pack leg is complete.
+    expect(matrixRows[0].downstreamHandoff).toBe('complete -> pending -> pending');
+
+    const evidenceRows = runTransformer('getMunicipalityPublicContextReadinessEvidenceRows', verify);
+    expect(evidenceRows.length).toBe(verify.data.missingEvidence.length);
+    expect(evidenceRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          missingDataPoint: 'postalCodeScopeEvidence',
+          group: 'identity_and_scope',
+        }),
+        expect.objectContaining({
+          missingDataPoint: 'mastrContextEvidence',
+          group: 'public_context_classification',
+        }),
+      ])
+    );
+
+    // Public context, synthetic seed and sandbox artifacts remain distinct data classes,
+    // and no market-actor/VNB assignment claim appears anywhere in the transfer rows.
+    const transferRows = runTransformer(
+      'getMunicipalityPublicContextReadinessTransferRows',
+      transfer
+    );
+    expect(new Set(transferRows.map((row) => row.dataClass))).toEqual(
+      new Set([
+        'transfer_readiness_summary',
+        'public_context',
+        'synthetic_seed',
+        'sandbox_runtime',
+        'safe_next_gate',
+        'blocked_production_boundary',
+      ])
+    );
+    expect(
+      transferRows.some((row) => row.rowKey === 'market_actor_assignment' && row.productionBlocked)
+    ).toBe(true);
+
+    const noCallRows = runTransformer('getMunicipalityPublicContextReadinessNoCallRows', verify);
+    expect(noCallRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'mpcr_hint_municipality_lookup',
+          invocation: 'source_hint_only',
+          status: 'not_called',
+        }),
+        expect.objectContaining({
+          rowKey: 'mpcr_hint_grid_operations_market_actor_directory',
+          invocation: 'source_hint_only',
+          status: 'not_called',
+        }),
+        expect.objectContaining({ boundary: 'market_actor_assignment', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'market_actor_binding', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'municipality_resolver_write', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'mastr_mutation', status: 'not_called' }),
+      ])
+    );
+  });
+
+  it('adds the Netzanschluss Transparenz Readiness Matrix panel from exactly the eight named existing dashboard reads (#530)', () => {
+    const names = [
+      'getNetzanschlussTransparenzCaseRows',
+      'getNetzanschlussTransparenzCapacityRows',
+      'getNetzanschlussTransparenzTechnicalRows',
+      'getNetzanschlussTransparenzDeadlineRows',
+      'getNetzanschlussTransparenzOfferRows',
+      'getNetzanschlussTransparenzCommunicationRows',
+      'getNetzanschlussTransparenzVerifyRows',
+      'getNetzanschlussTransparenzMatrixRows',
+      'getNetzanschlussTransparenzEvidenceRows',
+      'getNetzanschlussTransparenzTransferRows',
+      'getNetzanschlussTransparenzNoCallRows',
+    ];
+    const queries = manifest.queries.filter((query) => names.includes(query.name));
+    expect(queries).toHaveLength(names.length);
+    expect(new Set(queries.map((query) => query.path))).toEqual(
+      new Set([
+        '/api/dashboard/grossspeicher-anschluss-readiness-gate',
+        '/api/dashboard/anschlusskapazitaet-evidence-queue',
+        '/api/dashboard/grid-connection-transformation-gate',
+        '/api/dashboard/fnav-fast-track-contract-gate',
+        '/api/dashboard/areal-network-integration-offer-gate',
+        '/api/dashboard/cross-domain-special-topics-queue',
+        '/api/dashboard/stadtwerk-mauer-blueprint-pack-verify',
+        '/api/dashboard/stadtwerk-mauer-transfer-readiness',
+      ])
+    );
+    // The earlier /fnav-fast-track-vertragsgate spelling is not the public REST contract
+    // and must never be copied into the manifest.
+    expect(queries.every((query) => !query.path.includes('vertragsgate'))).toBe(true);
+    expect(
+      queries.every((query) => !query.queryString.includes('vertragsgate'))
+    ).toBe(true);
+    expect(
+      queries
+        .filter((query) => query.path.includes('blueprint-pack-verify'))
+        .every((query) =>
+          query.queryString.includes('stadtwerk-mauer-grid-connection-transformation-gate-v1')
+        )
+    ).toBe(true);
+    const transferQuery = queries.find(
+      (query) => query.name === 'getNetzanschlussTransparenzTransferRows'
+    );
+    expect(transferQuery.queryString).toContain(
+      'seedId=stadtwerk-mauer-grid-connection-transformation-gate-v1'
+    );
+    expect(transferQuery.queryString).toContain(
+      'caseId=smm-netzanschluss-transparenz-review-001'
+    );
+    expect(
+      manifest.sections
+        .filter((section) => section.id.startsWith('netzanschluss_transparenz'))
+        .map((section) => section.queryName)
+    ).toEqual(expect.arrayContaining(names));
+    expect(manifest.notes.join(' ')).toContain(
+      'Netzanschluss Transparenz Readiness Matrix panel (#530)'
+    );
+    expect(manifest.notes.join(' ')).toContain('no new demoProcessMatrix is introduced');
+  });
+
+  it('renders scalar Netzanschluss Transparenz rows: case, capacity, technical, deadlines, offer, communication, verify, matrix, evidence, transfer and no-call guards', () => {
+    const caseFixture = {
+      status: 'needs_asset_context',
+      gateStatus: 'incomplete',
+      tenantId: 'stadtwerk-mauer',
+      projectContext: { projectId: 'nt-case-001', location: 'Netzgebiet Stadtwerk Mauer Ost' },
+      readinessSignals: [
+        {
+          code: 'asset_context',
+          label: 'Storage Asset Context',
+          status: 'ready',
+          rawStatus: 'ready',
+          finding: null,
+        },
+        {
+          code: 'fnav_contract_boundary',
+          label: 'fNAV Contract Boundary',
+          status: 'missing',
+          rawStatus: null,
+          finding: 'add fNAV profile and contract-boundary evidence',
+        },
+        {
+          code: 'control_room_handover',
+          label: 'Control-Room Handover',
+          status: 'missing',
+          rawStatus: null,
+          finding: 'add control-room handover proof and operational owner',
+        },
+      ],
+    };
+    const capacityFixture = {
+      status: 'needs_legal_review',
+      tenantId: 'stadtwerk-mauer',
+      readinessScore: 0.6,
+      evidenceQueue: {
+        connectionRequestId: 'NT-REQ-2026-001',
+        netzverknuepfungspunktHint: 'NVP Ortsnetzstation Mauer-Ost',
+        capacityAssumptionKw: 250,
+        gridRestrictionHint: null,
+        legalQuestionMarker: null,
+        fnavOptionMarker: null,
+        owner: 'ROLE_NETZPLANUNG',
+        dueDate: '2026-09-15',
+        nextGate: 'Kapazitaetspruefung Netzplanung',
+      },
+      missingEvidence: [
+        {
+          missingDataPoint: 'grid_restriction_hint',
+          enablesDossierAddition: 'add grid restriction evidence or the explicit no-restriction basis',
+        },
+        {
+          missingDataPoint: 'legal_question_marker',
+          enablesDossierAddition: 'route the open legal question without automated legal qualification',
+        },
+        {
+          missingDataPoint: 'fnav_option_marker',
+          enablesDossierAddition: 'state whether fNAV is an option, blocker or not applicable',
+        },
+      ],
+    };
+    const technicalFixture = {
+      status: 'needs_transformation_option',
+      gateStatus: 'needs_evidence',
+      tenantId: 'stadtwerk-mauer',
+      evidenceItems: [
+        { id: 'division', label: 'Sparte', value: 'strom' },
+        { id: 'data_quality_status', label: 'Datenqualitaetsstatus', value: 'validated' },
+        { id: 'owner', label: 'Owner', value: 'ROLE_NETZPLANUNG' },
+      ],
+      missingEvidence: [
+        {
+          missingDataPoint: 'transformation_option',
+          label: 'Transformationsoption',
+          enablesDossierAddition:
+            'specify the transformation option or scenario (e.g. h2_ready, electrification, hybrid, decommission)',
+        },
+        {
+          missingDataPoint: 'investment_path',
+          label: 'Investitionspfad',
+          enablesDossierAddition: 'identify required investment path (e.g. capex_approved, budget_needed)',
+        },
+      ],
+    };
+    const deadlineFixture = {
+      status: 'requires_governance_decision',
+      decisionReadiness: 'requires_governance_decision',
+      tenantId: 'stadtwerk-mauer',
+      technicalGate: { netzsignalPriorityPolicy: null },
+      contractGate: { contractStatus: 'draft', legalStatus: null },
+      escalationPath: { escalationOwner: 'ROLE_ANSCHLUSSWESEN' },
+      lifecycleEvidence: { rows: [] },
+      missingEvidence: [
+        {
+          missingDataPoint: 'netzsignal_priority_policy',
+          enablesDossierAddition: 'add the network-signal priority boundary for the fast-track decision',
+        },
+        {
+          missingDataPoint: 'legal_status',
+          enablesDossierAddition: 'state whether legal release is approved or still pending',
+        },
+      ],
+    };
+    const offerFixture = {
+      status: 'needs_target_grid_path',
+      tenantId: 'stadtwerk-mauer',
+      readinessScore: 0.45,
+      zielnetzEvidence: { zielnetzPath: null },
+      investmentEvidence: { investmentReference: null, capexReference: null },
+      regulatoryBoundaryEvidence: { regulatoryImpactBoundary: 'no_special_grid_usage_identified' },
+      commercialAssumptionEvidence: { commercialOfferAssumptions: null },
+      owner: { owner: 'ROLE_NETZPLANUNG', gateOwner: null },
+      decisionWindow: { nextDecisionDate: '2026-10-01', offerDecisionStatus: 'pending_review' },
+      missingEvidence: [
+        {
+          missingDataPoint: 'target_grid_path',
+          enablesDossierAddition: 'add target-grid path evidence',
+        },
+        {
+          missingDataPoint: 'investment_capex_reference',
+          enablesDossierAddition: 'add investment / CAPEX impact reference',
+        },
+        {
+          missingDataPoint: 'commercial_offer_assumptions',
+          enablesDossierAddition: 'add commercial offer-assumption evidence',
+        },
+      ],
+    };
+    const communicationFixture = {
+      status: 'needs_management_evidence',
+      tenantId: 'stadtwerk-mauer',
+      queueRows: [
+        {
+          topicKey: 'netzanschluss-transparenz-externe-kommunikation',
+          topicLabel: 'Netzanschluss Transparenz externe Kommunikation',
+          domainLane: 'netzanschluss_transparenz',
+          decisionStatus: 'needs_management_evidence',
+          nextGovernanceGate: null,
+          missingEvidence: ['due_date', 'next_governance_gate'],
+          positiveFollowUps: [
+            {
+              missingDataPoint: 'due_date',
+              enablesDossierAddition: 'add due date to rank governance urgency',
+            },
+            {
+              missingDataPoint: 'next_governance_gate',
+              enablesDossierAddition: 'add next governance gate to prepare the responsible committee',
+            },
+          ],
+        },
+      ],
+    };
+    const verify = {
+      status: 'completed',
+      tenantId: 'stadtwerk-mauer',
+      summary: { counts: { requiredEvidence: 8, demoProcessMatrixRows: 3, forbiddenActions: 12 } },
+      nextActions: ['Render the verify read model in Budibase'],
+      data: {
+        seedId: 'stadtwerk-mauer-grid-connection-transformation-gate-v1',
+        tenantId: 'stadtwerk-mauer',
+        processFamily: 'grid_connection_transformation',
+        controlCase: 'grid_connection_transformation_gate',
+        validation: { valid: true },
+        forbiddenActions: ['grid_capacity_reservation', 'connection_approval'],
+        sourceActions: { notCalled: ['rundeck.execute', 'budibase.table.write'] },
+        missingEvidence: [
+          {
+            missingDataPoint: 'transformation_option',
+            state: 'evidence_gap',
+            enablesDossierAddition: 'specify the transformation option or scenario',
+          },
+          {
+            missingDataPoint: 'owner',
+            state: 'clarification',
+            enablesDossierAddition: 'assign an accountable owner role or process sponsor',
+          },
+        ],
+        demoProcessMatrixSync: {
+          synced: true,
+          roleLegendM: 'Mitwirkend',
+          rowCount: 3,
+          rowCountValid: true,
+          evidenceRequirements: ['division', 'transformation_option'],
+          downstreamHandoff: {
+            blueprintPack: 'complete',
+            landingRegistry: 'pending',
+            productiveDemoRoom: 'pending',
+          },
+          rows: [
+            {
+              phase: '1',
+              roles: {
+                V: 'ROLE_NETZPLANUNG',
+                D: 'ROLE_ANSCHLUSSWESEN',
+                M: 'ROLE_GRID_CAPACITY_PLANNING',
+                I: 'ROLE_MANAGEMENT',
+              },
+              evidenceRequirements: ['division', 'transformation_option'],
+              status: 'evidence_gap',
+              gateOutcome: 'supply_nap_reference_then_refresh',
+            },
+          ],
+        },
+      },
+    };
+    const transfer = {
+      status: 'ready_for_onboarding_discussion',
+      transferSummaryRows: [
+        {
+          rowKey: 'nt_transfer_readiness',
+          label: 'Transfer Readiness',
+          status: 'ready_for_onboarding_discussion',
+          sourceClass: 'transfer_readiness_summary',
+        },
+      ],
+      dataClassRows: [
+        {
+          rowKey: 'synthetic_tenant_seed',
+          category: 'synthetic_seed',
+          transferState: 'replace_for_real_tenant',
+          examples: 'synthetic connection case id, synthetic review owner',
+          productionBlocked: false,
+          safeNextAction: 'replace_with_tenant_parameters_before_onboarding',
+          sourceClass: 'transfer_data_class',
+        },
+      ],
+      safeNextGateRows: [],
+      productionBoundaryRows: [
+        {
+          rowKey: 'grid_capacity_reservation',
+          boundary: 'grid_capacity_reservation',
+          status: 'blocked_in_transfer_readiness_slice',
+          disabled: true,
+          safeAlternative: 'read_or_verify_readiness_only',
+          sourceClass: 'blocked_production_boundary',
+        },
+      ],
+    };
+
+    for (const [name, fixture] of [
+      ['getNetzanschlussTransparenzCaseRows', caseFixture],
+      ['getNetzanschlussTransparenzCapacityRows', capacityFixture],
+      ['getNetzanschlussTransparenzTechnicalRows', technicalFixture],
+      ['getNetzanschlussTransparenzDeadlineRows', deadlineFixture],
+      ['getNetzanschlussTransparenzOfferRows', offerFixture],
+      ['getNetzanschlussTransparenzCommunicationRows', communicationFixture],
+      ['getNetzanschlussTransparenzVerifyRows', verify],
+      ['getNetzanschlussTransparenzMatrixRows', verify],
+      ['getNetzanschlussTransparenzEvidenceRows', verify],
+      ['getNetzanschlussTransparenzTransferRows', transfer],
+      ['getNetzanschlussTransparenzNoCallRows', verify],
+    ]) {
+      const rows = runTransformer(name, fixture);
+      expectScalarRows(rows);
+      expectNoRawObjectText(rows);
+    }
+
+    const caseRows = runTransformer('getNetzanschlussTransparenzCaseRows', caseFixture);
+    expect(caseRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ rowKey: 'nt_case_identity', value: 'nt-case-001' }),
+        expect.objectContaining({
+          rowKey: 'nt_case_signal_fnav_contract_boundary',
+          evidenceStatus: 'evidence_gap',
+        }),
+      ])
+    );
+
+    const capacityRows = runTransformer('getNetzanschlussTransparenzCapacityRows', capacityFixture);
+    expect(capacityRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'nt_capacity_capacity_assumption',
+          value: '250',
+          evidenceStatus: 'available',
+        }),
+        expect.objectContaining({
+          rowKey: 'nt_capacity_grid_restriction_hint',
+          value: 'missing-evidence',
+          evidenceStatus: 'evidence_gap',
+        }),
+      ])
+    );
+
+    const technicalRows = runTransformer('getNetzanschlussTransparenzTechnicalRows', technicalFixture);
+    expect(technicalRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ rowKey: 'nt_technical_division', value: 'strom' }),
+        expect.objectContaining({
+          rowKey: 'nt_technical_transformation_option',
+          value: 'missing-evidence',
+          evidenceStatus: 'evidence_gap',
+        }),
+      ])
+    );
+
+    const deadlineRows = runTransformer('getNetzanschlussTransparenzDeadlineRows', deadlineFixture);
+    expect(deadlineRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'nt_deadline_legal_status',
+          value: 'missing-evidence',
+          evidenceStatus: 'evidence_gap',
+        }),
+        expect.objectContaining({ rowKey: 'nt_deadline_contract_status', value: 'draft' }),
+      ])
+    );
+
+    const offerRows = runTransformer('getNetzanschlussTransparenzOfferRows', offerFixture);
+    expect(offerRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'nt_offer_target_grid_path',
+          value: 'missing-evidence',
+          evidenceStatus: 'evidence_gap',
+        }),
+        expect.objectContaining({
+          rowKey: 'nt_offer_regulatory_impact_boundary',
+          value: 'no_special_grid_usage_identified',
+          evidenceStatus: 'available',
+        }),
+      ])
+    );
+
+    const communicationRows = runTransformer(
+      'getNetzanschlussTransparenzCommunicationRows',
+      communicationFixture
+    );
+    expect(communicationRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'nt_comm_topic_netzanschluss-transparenz-externe-kommunikation',
+          evidenceStatus: 'evidence_gap',
+        }),
+        expect.objectContaining({
+          rowKey: 'nt_comm_gap_netzanschluss-transparenz-externe-kommunikation_due_date',
+        }),
+      ])
+    );
+
+    const verifyRows = runTransformer('getNetzanschlussTransparenzVerifyRows', verify);
+    expect(verifyRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ rowKey: 'nt_verify_selection' }),
+        expect.objectContaining({ rowKey: 'nt_verify_blueprint', valid: true, requiredEvidenceCount: 8 }),
+      ])
+    );
+
+    const matrixRows = runTransformer('getNetzanschlussTransparenzMatrixRows', verify);
+    expect(matrixRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ rowKey: 'nt_matrix_sync', m: 'Mitwirkend' }),
+        expect.objectContaining({ rowKey: 'nt_matrix_1', v: 'ROLE_NETZPLANUNG', m: 'ROLE_GRID_CAPACITY_PLANNING' }),
+      ])
+    );
+
+    const evidenceRows = runTransformer('getNetzanschlussTransparenzEvidenceRows', verify);
+    expect(evidenceRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ missingDataPoint: 'transformation_option', group: 'technical_check' }),
+        expect.objectContaining({ missingDataPoint: 'owner', group: 'ownership_and_audit' }),
+      ])
+    );
+
+    const transferRows = runTransformer('getNetzanschlussTransparenzTransferRows', transfer);
+    expect(transferRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ rowKey: 'nt_transfer_readiness' }),
+        expect.objectContaining({ rowKey: 'grid_capacity_reservation', productionBlocked: true }),
+      ])
+    );
+
+    const noCallRows = runTransformer('getNetzanschlussTransparenzNoCallRows', verify);
+    expect(noCallRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ boundary: 'grid_capacity_reservation', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'grid-connection.reserveCapacity', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'gis.mutate', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'rundeck.execute', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'budibase.table.write', status: 'not_called' }),
+      ])
+    );
+  });
+
+  it('adds the Investment Portfolio Governance Review panel from exactly the four named existing dashboard reads (#529)', () => {
+    const queries = manifest.queries.filter((query) =>
+      query.name.includes('PortfolioGovernanceReview')
+    );
+    const paths = new Set(queries.map((query) => query.path));
+
+    expect(paths).toEqual(
+      new Set([
+        '/api/dashboard/investment-data-review-queue',
+        '/api/dashboard/investment-committee-steering-cards',
+        '/api/dashboard/investment-owner-deadline-budget-gate',
+      ])
+    );
+    expect(
+      manifest.sections
+        .filter((section) => section.id.startsWith('investment_portfolio_governance_review'))
+        .every((section) => manifest.queries.some((query) => query.name === section.queryName))
+    ).toBe(true);
+    // The canonical Blueprint verify/matrix rows are reused, not duplicated: no new demoProcessMatrix.
+    const verifySection = manifest.sections.find(
+      (section) => section.id === 'investment_portfolio_governance_review_blueprint_verify'
+    );
+    const matrixSection = manifest.sections.find(
+      (section) => section.id === 'investment_portfolio_governance_review_blueprint_matrix'
+    );
+    expect(verifySection.queryName).toBe('getInvestmentOwnerDeadlineBudgetGateVerifySummaryRows');
+    expect(matrixSection.queryName).toBe('getInvestmentOwnerDeadlineBudgetGateMatrixRows');
+    expect(
+      manifest.queries.filter((query) => query.name === 'getInvestmentOwnerDeadlineBudgetGateMatrixRows')
+    ).toHaveLength(1);
+    expect(manifest.notes.join(' ')).toContain('Investment Portfolio Governance Review binds');
+  });
+
+  it('renders exactly three synthetic cross-division measures with operator-facing governance labels only, never a numeric score/rank', () => {
+    const stromFixture = {
+      status: 'review_ready',
+      missingEvidence: [],
+      reviewContext: {
+        assetRef: 'teilnetz-strom-nord',
+        qualityStatus: 'verified',
+        committeeWindow: '2026-Q4-Investitionsausschuss',
+        blockedDecision: 'freigabe-baubeginn',
+      },
+    };
+    const gasFixture = {
+      status: 'needs_owner',
+      missingEvidence: [
+        { missingDataPoint: 'owner' },
+        { missingDataPoint: 'committee_window' },
+        { missingDataPoint: 'source_refs' },
+      ],
+      reviewContext: {
+        assetRef: 'teilnetz-gas-umstellung',
+        qualityStatus: 'review-pending',
+        committeeWindow: null,
+        blockedDecision: 'freigabe-umstellungskonzept',
+      },
+    };
+    const waermeFixture = {
+      status: 'needs_committee_window',
+      missingEvidence: [{ missingDataPoint: 'committee_window' }],
+      reviewContext: {
+        assetRef: 'teilnetz-waerme-sued',
+        qualityStatus: 'verified',
+        committeeWindow: null,
+        blockedDecision: 'committee-window-not-scheduled',
+      },
+    };
+
+    const selectorRows = runTransformer('getInvestmentPortfolioGovernanceReviewSelectorRows', {});
+    expectScalarRows(selectorRows);
+    expectNoRawObjectText(selectorRows);
+    expect(selectorRows).toHaveLength(3);
+    expect(selectorRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ division: 'Strom', selected: false }),
+        expect.objectContaining({
+          division: 'Gas',
+          selected: true,
+          selectedMeasureId: 'smm-portfolio-gas-2026-001',
+        }),
+        expect.objectContaining({ division: 'Waerme', selected: false }),
+      ])
+    );
+
+    const stromRow = runTransformer('getInvestmentPortfolioGovernanceReviewStromRow', stromFixture);
+    expectScalarRows(stromRow);
+    expectNoRawObjectText(stromRow);
+    expect(stromRow).toEqual([
+      expect.objectContaining({
+        division: 'Strom',
+        selectedState: 'not_selected',
+        evidenceStatus: 'available',
+        dataQualityStatus: 'verified',
+        governanceLabel: 'review_ready',
+      }),
+    ]);
+
+    const gasRow = runTransformer('getInvestmentPortfolioGovernanceReviewGasRow', gasFixture);
+    expectScalarRows(gasRow);
+    expectNoRawObjectText(gasRow);
+    expect(gasRow).toEqual([
+      expect.objectContaining({
+        division: 'Gas',
+        selectedState: 'selected',
+        evidenceStatus: 'evidence_gap',
+        committeeWindow: 'missing',
+        governanceLabel: 'blocked_missing_evidence',
+      }),
+    ]);
+
+    const waermeRow = runTransformer(
+      'getInvestmentPortfolioGovernanceReviewWaermeRow',
+      waermeFixture
+    );
+    expectScalarRows(waermeRow);
+    expectNoRawObjectText(waermeRow);
+    expect(waermeRow).toEqual([
+      expect.objectContaining({
+        division: 'Waerme',
+        selectedState: 'not_selected',
+        evidenceStatus: 'evidence_gap',
+        committeeWindow: 'missing',
+        governanceLabel: 'needs_committee_window',
+      }),
+    ]);
+
+    // Only the four operator-facing governance labels appear; never a numeric score, rank or weighted ranking.
+    const allowedLabels = new Set([
+      'review_ready',
+      'blocked_missing_evidence',
+      'budget_path_gap',
+      'needs_committee_window',
+    ]);
+    for (const row of [...stromRow, ...gasRow, ...waermeRow]) {
+      expect(allowedLabels.has(row.governanceLabel)).toBe(true);
+      expect(row).not.toHaveProperty('score');
+      expect(row).not.toHaveProperty('rank');
+      expect(row).not.toHaveProperty('readinessScore');
+    }
+  });
+
+  it('renders selected-measure detail rows composed from the three investment read models plus owner/deadline/budget-path/committee-gate and no-call rows', () => {
+    const committeeCardsFixture = {
+      status: 'needs_owner',
+      committeeContext: {
+        reviewStatus: 'technical-review-in-progress',
+        evidenceStatus: 'incomplete',
+        committeeWindow: null,
+        owner: null,
+      },
+      missingEvidence: [
+        { missingDataPoint: 'owner', label: 'Owner', enablesDossierAddition: 'add accountable owner' },
+        {
+          missingDataPoint: 'committee_window',
+          label: 'Committee window',
+          enablesDossierAddition: 'add committee or board decision window',
+        },
+      ],
+      positiveFollowUps: [
+        { missingDataPoint: 'owner', enablesDossierAddition: 'add accountable owner' },
+      ],
+    };
+    const committeeRows = runTransformer(
+      'getInvestmentPortfolioGovernanceReviewCommitteeCardsFocusRows',
+      committeeCardsFixture
+    );
+    expectScalarRows(committeeRows);
+    expectNoRawObjectText(committeeRows);
+    expect(committeeRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ rowKey: 'ipgr_ccards_measure', value: 'smm-portfolio-gas-2026-001' }),
+        expect.objectContaining({ rowKey: 'ipgr_ccards_committee_window', value: 'missing' }),
+        expect.objectContaining({ rowKey: 'ipgr_ccards_gap_owner' }),
+        expect.objectContaining({ rowKey: 'ipgr_ccards_followup_owner' }),
+      ])
+    );
+
+    const ownerBudgetGateFixture = {
+      status: 'needs_owner_deadline_budget_evidence',
+      gateEvidence: {
+        owner: null,
+        deadline: null,
+        budgetEffect: null,
+        blockedFollowUpDecision: 'freigabe-umstellungskonzept',
+        nextEscalationStep: 'gas-transformation-dataroom-review',
+      },
+      missingEvidence: [
+        { missingDataPoint: 'owner', enablesDossierAddition: 'assign or confirm the accountable investment measure owner' },
+        { missingDataPoint: 'budget_effect', enablesDossierAddition: 'clarify budget effect, envelope, overhang or funding impact' },
+      ],
+      positiveFollowUps: [
+        { missingDataPoint: 'owner', enablesDossierAddition: 'assign or confirm the accountable investment measure owner' },
+      ],
+    };
+    const gateRows = runTransformer(
+      'getInvestmentPortfolioGovernanceReviewOwnerBudgetGateFocusRows',
+      ownerBudgetGateFixture
+    );
+    expectScalarRows(gateRows);
+    expectNoRawObjectText(gateRows);
+    expect(gateRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ rowKey: 'ipgr_gate_owner', value: 'missing', status: 'blocked_missing_evidence' }),
+        expect.objectContaining({ rowKey: 'ipgr_gate_budget_path', value: 'missing', status: 'budget_path_gap' }),
+        expect.objectContaining({
+          rowKey: 'ipgr_gate_committee_gate',
+          value: 'freigabe-umstellungskonzept',
+          status: 'available',
+        }),
+        expect.objectContaining({
+          rowKey: 'ipgr_gate_next_escalation',
+          value: 'gas-transformation-dataroom-review',
+          status: 'available',
+        }),
+        expect.objectContaining({ rowKey: 'ipgr_gate_gap_owner', status: 'evidence_gap' }),
+        expect.objectContaining({ rowKey: 'ipgr_gate_followup_owner', status: 'positive_followup' }),
+      ])
+    );
+
+    const dataReviewQueueFixture = {
+      status: 'needs_owner',
+      reviewContext: {
+        division: 'Gas',
+        qualityStatus: 'review-pending',
+        owner: null,
+        committeeWindow: null,
+        blockedDecision: 'freigabe-umstellungskonzept',
+      },
+      missingEvidence: [
+        { missingDataPoint: 'owner', label: 'Owner', enablesDossierAddition: 'add accountable review owner' },
+      ],
+      positiveFollowUps: [],
+    };
+    const dataReviewRows = runTransformer(
+      'getInvestmentPortfolioGovernanceReviewDataReviewQueueFocusRows',
+      dataReviewQueueFixture
+    );
+    expectScalarRows(dataReviewRows);
+    expectNoRawObjectText(dataReviewRows);
+    expect(dataReviewRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ rowKey: 'ipgr_drq_division', value: 'Gas' }),
+        expect.objectContaining({ rowKey: 'ipgr_drq_owner', value: 'missing' }),
+        expect.objectContaining({ rowKey: 'ipgr_drq_gap_owner' }),
+      ])
+    );
+
+    const noCallRows = runTransformer('getInvestmentPortfolioGovernanceReviewNoCallRows', {
+      sourceActions: { notCalled: ['investment.approve'] },
+    });
+    expectScalarRows(noCallRows);
+    expect(noCallRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ boundary: 'investment.approve', status: 'not_called', disabled: true }),
+        expect.objectContaining({ boundary: 'budget.approve', status: 'not_called', disabled: true }),
+        expect.objectContaining({ boundary: 'committee.execute', status: 'not_called', disabled: true }),
+        expect.objectContaining({ boundary: 'budibase.table.write', status: 'not_called', disabled: true }),
+        expect.objectContaining({ boundary: 'personal-agent.execute', status: 'not_called', disabled: true }),
+      ])
+    );
+  });
+
+  it('adds the Datenpunktlisten Change-Control Gate panel from exactly the six named existing dashboard reads (#521)', () => {
+    const names = [
+      'getDatenpunktlistenChangeControlSelectorRows',
+      'getDatenpunktlistenChangeControlAlignmentRows',
+      'getDatenpunktlistenChangeControlTestCallReadinessRows',
+      'getDatenpunktlistenChangeControlKpiCockpitRows',
+      'getDatenpunktlistenChangeControlOwnerDeadlineRows',
+      'getDatenpunktlistenChangeControlVerifyRows',
+      'getDatenpunktlistenChangeControlMatrixRows',
+      'getDatenpunktlistenChangeControlTransferRows',
+      'getDatenpunktlistenChangeControlNoCallRows',
+    ];
+    const queries = manifest.queries.filter((query) => names.includes(query.name));
+    expect(queries).toHaveLength(names.length);
+    expect(new Set(queries.map((query) => query.path))).toEqual(
+      new Set([
+        '/api/dashboard/controllability-data-alignment',
+        '/api/dashboard/redispatch-participation-readiness-status',
+        '/api/dashboard/redispatch-project-controlling-kpi-cockpit',
+        '/api/dashboard/owner-deadline-evidence-gate',
+        '/api/dashboard/stadtwerk-mauer-blueprint-pack-verify',
+        '/api/dashboard/stadtwerk-mauer-transfer-readiness',
+      ])
+    );
+    expect(
+      queries
+        .filter((query) => query.path.includes('blueprint-pack-verify'))
+        .every((query) =>
+          query.queryString.includes('seedId=stadtwerk-mauer-redispatch-participation-readiness-v1')
+        )
+    ).toBe(true);
+    const transferQuery = queries.find(
+      (query) => query.name === 'getDatenpunktlistenChangeControlTransferRows'
+    );
+    expect(transferQuery.queryString).toContain(
+      'seedId=stadtwerk-mauer-redispatch-participation-readiness-v1'
+    );
+    expect(
+      manifest.sections
+        .filter((section) => section.id.startsWith('datenpunktlisten_change_control'))
+        .map((section) => section.queryName)
+    ).toEqual(expect.arrayContaining(names));
+    expect(manifest.notes.join(' ')).toContain('Datenpunktlisten Change-Control Gate panel (#521)');
+    expect(manifest.notes.join(' ')).toContain('no new datapoint-list persistence');
+    expect(manifest.notes.join(' ')).toContain('second demoProcessMatrix is introduced');
+  });
+
+  it('renders exactly three explicitly synthetic Datenpunktlisten Change-Control selector cases, never persisted', () => {
+    const selectorRows = runTransformer('getDatenpunktlistenChangeControlSelectorRows', {});
+    expectScalarRows(selectorRows);
+    expectNoRawObjectText(selectorRows);
+    expect(selectorRows).toHaveLength(3);
+    expect(new Set(selectorRows.map((row) => row.selectorCase))).toEqual(
+      new Set([
+        'existing_control_group_sufficient',
+        'data_point_version_or_control_group_clarification',
+        'test_call_evidence_or_owner_deadline_gap',
+      ])
+    );
+    expect(selectorRows.every((row) => row.dataClass === 'synthetic_tenant_seed')).toBe(true);
+    expect(selectorRows.every((row) => row.seedId === 'stadtwerk-mauer-redispatch-participation-readiness-v1')).toBe(
+      true
+    );
+    expect(selectorRows.filter((row) => row.selected === true)).toHaveLength(1);
+    expect(selectorRows.find((row) => row.selected === true).selectorCase).toBe(
+      'data_point_version_or_control_group_clarification'
+    );
+  });
+
+  it('renders scalar Datenpunktlisten Change-Control alignment, test-call readiness, KPI, owner/deadline, verify, matrix, transfer and no-call rows', () => {
+    const alignmentFixture = {
+      status: 'needs_owner_deadline',
+      checklist: {
+        checklistId: 'dpl-v2026-08-clarification-needed-synthetic',
+        assetId: 'synthetic-asset-mauer-202',
+        mastrId: 'synthetic-mastr-202',
+        assetMatch: 'matched',
+        mastrMatch: 'review_pending',
+        internalAssetMatch: null,
+      },
+      alignmentRows: [
+        { id: 'control_technology_status', value: 'steuergruppe-clarification-synthetic' },
+      ],
+      exceptionReason: 'provider assumes existing group covers new asset (unverified)',
+      safeNextGate: 'complete_alignment_evidence',
+    };
+    const testCallFixture = {
+      status: 'needs_review',
+      forecastDispatchTestProof: null,
+      remoteControlCommunicationTestEvidence: 'communication-test-success',
+      missingEvidence: [
+        { missingDataPoint: 'forecast_dispatch_test_proof', enablesDossierAddition: 'add forecast/dispatch test proof' },
+      ],
+      positiveFollowUps: [
+        { missingDataPoint: 'forecast_dispatch_test_proof', enablesDossierAddition: 'add forecast/dispatch test proof' },
+      ],
+      safeNextGate: 'resolve_redispatch_participation_evidence_gaps_first',
+    };
+    const kpiFixture = {
+      status: 'needs_project_review',
+      taskSignals: [{ owner: 'ROLE_GRID_OPERATIONS_LEAD', dueDate: '2026-09-05', decisionBlocker: 'data-point-version-clarification-pending', blockedDecision: 'Datenpunktlisten Change-Control Review' }],
+      sourceHealth: ['datasource=ready; freshness=ready; quality=review-pending'],
+      evidenceGaps: [
+        { missingDataPoint: 'data_point_version_clarification', enablesDossierAddition: 'clarify data-point-list version' },
+      ],
+    };
+    const ownerDeadlineFixture = {
+      readinessSignals: [
+        { code: 'owner', label: 'Owner', ownerRole: 'ROLE_GRID_OPERATIONS_LEAD', dueAt: '2026-09-05T12:00:00.000Z', status: 'ready', finding: null },
+        { code: 'evidence_ref', label: 'Evidence Reference', ownerRole: 'ROLE_GRID_OPERATIONS_LEAD', dueAt: '2026-09-05T12:00:00.000Z', status: 'missing', finding: 'attach the blocking evidence proof' },
+      ],
+    };
+    const verify = {
+      status: 'completed',
+      tenantId: 'stadtwerk-mauer',
+      summary: { counts: { requiredEvidence: 6, demoProcessMatrixRows: 5, forbiddenActions: 14 } },
+      nextActions: ['Render the verify read model in Budibase'],
+      data: {
+        seedId: 'stadtwerk-mauer-redispatch-participation-readiness-v1',
+        tenantId: 'stadtwerk-mauer',
+        processFamily: 'redispatch_participation_readiness',
+        controlCase: 'redispatch_participation_readiness_gate',
+        validation: { valid: true },
+        forbiddenActions: ['redispatch.dispatch', 'device-control.execute'],
+        sourceActions: { notCalled: ['rundeck.execute', 'budibase.table.write'] },
+        demoProcessMatrixSync: {
+          synced: true,
+          roleLegendM: 'Mitwirkend',
+          rowCount: 5,
+          rowCountValid: true,
+          evidenceRequirements: ['control_group', 'data_point_version'],
+          downstreamHandoff: { blueprintPack: 'complete', landingRegistry: 'pending', productiveDemoRoom: 'pending' },
+          rows: [
+            {
+              phase: '1',
+              roles: { V: 'ROLE_GRID_OPERATIONS_LEAD', D: 'ROLE_CERNION_GOVERNANCE', M: 'ROLE_ASSET_MANAGEMENT', I: 'ROLE_MANAGEMENT' },
+              evidenceRequirements: ['control_group', 'data_point_version'],
+              status: 'evidence_gap',
+              gateOutcome: 'supply_data_point_version_then_refresh',
+            },
+          ],
+        },
+      },
+    };
+    const transfer = {
+      status: 'ready_for_review',
+      transferSummaryRows: [
+        { rowKey: 'dplcc_transfer_readiness', label: 'Transfer Readiness', status: 'ready_for_review', sourceClass: 'transfer_readiness_summary' },
+      ],
+      dataClassRows: [
+        {
+          rowKey: 'synthetic_tenant_seed',
+          category: 'synthetic_seed',
+          transferState: 'replace_for_real_tenant',
+          examples: 'synthetic case id, synthetic owner',
+          productionBlocked: false,
+          safeNextAction: 'replace_with_tenant_parameters_before_onboarding',
+          sourceClass: 'transfer_data_class',
+        },
+      ],
+      safeNextGateRows: [],
+      productionBoundaryRows: [
+        { rowKey: 'redispatch_dispatch', boundary: 'redispatch.dispatch', status: 'blocked_in_transfer_readiness_slice', disabled: true, safeAlternative: 'read_or_verify_readiness_only', sourceClass: 'blocked_production_boundary' },
+      ],
+    };
+
+    for (const [name, fixture] of [
+      ['getDatenpunktlistenChangeControlAlignmentRows', alignmentFixture],
+      ['getDatenpunktlistenChangeControlTestCallReadinessRows', testCallFixture],
+      ['getDatenpunktlistenChangeControlKpiCockpitRows', kpiFixture],
+      ['getDatenpunktlistenChangeControlOwnerDeadlineRows', ownerDeadlineFixture],
+      ['getDatenpunktlistenChangeControlVerifyRows', verify],
+      ['getDatenpunktlistenChangeControlMatrixRows', verify],
+      ['getDatenpunktlistenChangeControlTransferRows', transfer],
+      ['getDatenpunktlistenChangeControlNoCallRows', verify],
+    ]) {
+      const rows = runTransformer(name, fixture);
+      expectScalarRows(rows);
+      expectNoRawObjectText(rows);
+    }
+
+    const alignmentRows = runTransformer('getDatenpunktlistenChangeControlAlignmentRows', alignmentFixture);
+    expect(alignmentRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'dplcc_alignment_version',
+          value: 'dpl-v2026-08-clarification-needed-synthetic',
+        }),
+        expect.objectContaining({
+          rowKey: 'dplcc_alignment_scope',
+          value: 'steuergruppe-clarification-synthetic / synthetic-asset-mauer-202',
+        }),
+        expect.objectContaining({
+          rowKey: 'dplcc_alignment_match',
+          value: 'matched / review_pending',
+          publicContextProvenance: 'kept_separate_not_merged',
+        }),
+        expect.objectContaining({
+          rowKey: 'dplcc_alignment_change_requirement',
+          value: 'clarification',
+        }),
+        expect.objectContaining({
+          rowKey: 'dplcc_alignment_provider_assumption',
+          evidencePointerOnly: true,
+        }),
+      ])
+    );
+    // change requirement is never derived as a numeric score or auto-approval, only the three named states
+    expect(
+      ['not_required', 'clarification', 'evidence_gap'].includes(
+        alignmentRows.find((row) => row.rowKey === 'dplcc_alignment_change_requirement').value
+      )
+    ).toBe(true);
+
+    const testCallRows = runTransformer('getDatenpunktlistenChangeControlTestCallReadinessRows', testCallFixture);
+    expect(testCallRows[0]).toEqual(
+      expect.objectContaining({
+        rowKey: 'dplcc_test_call_summary',
+        value: 'test_call_may_be_blocked_until_evidence_complete',
+      })
+    );
+    expect(testCallRows.slice(1).every((row) => row.state === 'human_review_required')).toBe(true);
+
+    const kpiRows = runTransformer('getDatenpunktlistenChangeControlKpiCockpitRows', kpiFixture);
+    expect(kpiRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ rowKey: 'dplcc_kpi_summary', owner: 'ROLE_GRID_OPERATIONS_LEAD' }),
+        expect.objectContaining({ rowKey: 'dplcc_kpi_gap_1', state: 'human_review_required' }),
+      ])
+    );
+
+    const ownerDeadlineRows = runTransformer(
+      'getDatenpunktlistenChangeControlOwnerDeadlineRows',
+      ownerDeadlineFixture
+    );
+    expect(ownerDeadlineRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ rowKey: 'dplcc_owner_deadline_owner', state: 'ready', humanReviewRequired: false }),
+        expect.objectContaining({
+          rowKey: 'dplcc_owner_deadline_evidence_ref',
+          state: 'clarification',
+          humanReviewRequired: true,
+          positiveFollowUp: 'attach the blocking evidence proof',
+        }),
+      ])
+    );
+    // missing evidence never collapses to a bare negative/blocked verdict without a positive follow-up
+    expect(
+      ownerDeadlineRows
+        .filter((row) => row.state !== 'ready')
+        .every((row) => typeof row.positiveFollowUp === 'string' && row.positiveFollowUp.length > 0)
+    ).toBe(true);
+
+    const verifyRows = runTransformer('getDatenpunktlistenChangeControlVerifyRows', verify);
+    expect(verifyRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ rowKey: 'dplcc_verify_blueprint', valid: true, matrixRowCount: 5 }),
+      ])
+    );
+
+    const matrixRows = runTransformer('getDatenpunktlistenChangeControlMatrixRows', verify);
+    expect(matrixRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ rowKey: 'dplcc_matrix_sync', m: 'Mitwirkend', rowCount: 5 }),
+        expect.objectContaining({ rowKey: 'dplcc_matrix_1', v: 'ROLE_GRID_OPERATIONS_LEAD' }),
+      ])
+    );
+
+    const transferRows = runTransformer('getDatenpunktlistenChangeControlTransferRows', transfer);
+    expect(transferRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ rowKey: 'dplcc_transfer_readiness', status: 'ready_for_review' }),
+        expect.objectContaining({ rowKey: 'redispatch_dispatch', productionBlocked: true }),
+      ])
+    );
+
+    const noCallRows = runTransformer('getDatenpunktlistenChangeControlNoCallRows', verify);
+    expect(noCallRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ boundary: 'redispatch.dispatch', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'excel.import', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'datapoint-list.write', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'asset-mdm.mutate', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'mastr.mutate', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'test-call.execute', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'mako.dispatch', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'billing.execute', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'settlement.execute', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'smgw.control', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'webhook.send', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'hitl.create', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'rundeck.execute', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'budibase.table.write', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'personal-agent.execute', status: 'not_called' }),
+      ])
+    );
+  });
+
+  it('adds the Versandbatch Completion-Evidence Review panel from exactly the four named existing dashboard reads (#517)', () => {
+    const names = [
+      'getVersandbatchCompletionEvidenceSelectorRows',
+      'getVersandbatchCompletionEvidenceDocumentChannelRows',
+      'getVersandbatchCompletionEvidenceManualHandoverRows',
+      'getVersandbatchCompletionEvidenceReturnFreshnessRows',
+      'getVersandbatchCompletionEvidenceExceptionRows',
+      'getVersandbatchCompletionEvidenceCompletionPointerRows',
+      'getVersandbatchCompletionEvidenceAutomationRiskRows',
+      'getVersandbatchCompletionEvidenceFollowUpRows',
+      'getVersandbatchCompletionEvidenceNoCallRows',
+    ];
+    const queries = manifest.queries.filter((query) => names.includes(query.name));
+    expect(queries).toHaveLength(names.length);
+    expect(new Set(queries.map((query) => query.path))).toEqual(
+      new Set([
+        '/api/dashboard/cross-channel-vnb-signal-queue',
+        '/api/dashboard/owner-deadline-evidence-gate',
+        '/api/dashboard/evidence-freshness-guard',
+        '/api/dashboard/automation-risk-gate',
+      ])
+    );
+    expect(
+      manifest.sections
+        .filter((section) => section.id.startsWith('versandbatch_completion_evidence'))
+        .map((section) => section.queryName)
+    ).toEqual(expect.arrayContaining(names));
+    expect(manifest.notes.join(' ')).toContain('Versandbatch Completion-Evidence Review panel (#517)');
+    expect(manifest.notes.join(' ')).toContain('not a new Cernion endpoint, Versand-, Billing- or Workflow-Engine');
+    expect(manifest.notes.join(' ')).toContain('second generic signal queue is introduced');
+  });
+
+  it('renders exactly three explicitly synthetic Versandbatch selector cases, never persisted', () => {
+    const selectorRows = runTransformer('getVersandbatchCompletionEvidenceSelectorRows', {});
+    expectScalarRows(selectorRows);
+    expectNoRawObjectText(selectorRows);
+    expect(selectorRows).toHaveLength(3);
+    expect(new Set(selectorRows.map((row) => row.selectorCase))).toEqual(
+      new Set([
+        'release_ready_receipt_missing',
+        'manual_handover_owner_due_gap',
+        'return_or_completion_evidence_stale',
+      ])
+    );
+    expect(selectorRows.every((row) => row.dataClass === 'synthetic_tenant_seed')).toBe(true);
+    expect(selectorRows.every((row) => row.roleTarget === 'ROLE_PROCESS_OWNER')).toBe(true);
+    expect(selectorRows.filter((row) => row.selected === true)).toHaveLength(1);
+    expect(selectorRows.find((row) => row.selected === true).selectorCase).toBe(
+      'manual_handover_owner_due_gap'
+    );
+    expect(selectorRows[0].roleQuestion).toContain('Abschlussnachweis');
+    // channel/status is always caller-supplied evidence, never a verified delivery fact
+    expect(selectorRows.every((row) => typeof row.shipmentStatusReference === 'string')).toBe(true);
+  });
+
+  it('renders scalar Versandbatch document/channel, manual-handover, freshness, exception, completion-pointer, automation-risk, follow-up and no-call rows', () => {
+    const queueFixture = {
+      queueStatus: 'needs_owner',
+      status: 'needs_owner',
+      normalizedSignals: [
+        {
+          signalId: 'vsb-case-002',
+          channel: 'manual_email_workaround',
+          status: 'needs_owner',
+          dueAt: '2026-09-05T12:00:00.000Z',
+        },
+      ],
+      sourceActions: { notCalled: ['mail.connector.ingest', 'hitl.create'] },
+    };
+    const ownerFixture = {
+      status: 'needs_evidence_ref',
+      readinessSignals: [
+        {
+          code: 'owner',
+          label: 'Owner',
+          ownerRole: 'ROLE_PROCESS_OWNER',
+          dueAt: '2026-09-05T12:00:00.000Z',
+          status: 'ready',
+          finding: null,
+        },
+        {
+          code: 'evidence_ref',
+          label: 'Evidence Reference',
+          status: 'missing',
+          finding: 'attach the blocking evidence proof',
+        },
+      ],
+      ownerContext: { ownerRole: 'ROLE_PROCESS_OWNER', dueAt: '2026-09-05T12:00:00.000Z' },
+      evidenceGaps: [
+        { missingDataPoint: 'evidence_ref', enablesDossierAddition: 'attach the blocking evidence proof' },
+      ],
+      signalContext: { blockedDecision: 'Versandbatch Abschluss Review' },
+      positiveFollowUps: [
+        {
+          missingDataPoint: 'evidence_ref',
+          category: 'owner_deadline_evidence_gate',
+          enablesDossierAddition: 'attach the blocking evidence proof',
+        },
+      ],
+    };
+    const freshFixture = {
+      status: 'freshness_classification_with_gaps',
+      freshnessState: 'stale_context',
+      deltaState: 'new_delta',
+      stalenessDays: 5.2,
+      isKnownAnchor: false,
+      isNewDelta: true,
+      escalationRecommended: true,
+      nonEscalationReason: null,
+      blockedDecision: 'Versandbatch Abschluss Review',
+      owner: 'ROLE_PROCESS_OWNER',
+      dueDate: '2026-09-05',
+    };
+    const riskFixture = {
+      status: 'ready_for_automation_decision',
+      processContext: { massRunVolume: 120, affectedDomains: ['abrechnung', 'versand'] },
+      riskContext: {
+        riskLevel: 'medium',
+        billingImpact: 'review-only',
+        marketCommunicationImpact: 'review-only',
+      },
+    };
+
+    for (const [name, fixture] of [
+      ['getVersandbatchCompletionEvidenceDocumentChannelRows', queueFixture],
+      ['getVersandbatchCompletionEvidenceManualHandoverRows', ownerFixture],
+      ['getVersandbatchCompletionEvidenceExceptionRows', ownerFixture],
+      ['getVersandbatchCompletionEvidenceCompletionPointerRows', freshFixture],
+      ['getVersandbatchCompletionEvidenceReturnFreshnessRows', freshFixture],
+      ['getVersandbatchCompletionEvidenceAutomationRiskRows', riskFixture],
+      ['getVersandbatchCompletionEvidenceFollowUpRows', ownerFixture],
+      ['getVersandbatchCompletionEvidenceNoCallRows', queueFixture],
+    ]) {
+      const rows = runTransformer(name, fixture);
+      expectScalarRows(rows);
+      expectNoRawObjectText(rows);
+    }
+
+    const channelRows = runTransformer('getVersandbatchCompletionEvidenceDocumentChannelRows', queueFixture);
+    expect(channelRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ rowKey: 'vsb_batch_identity', sourceClass: 'versandbatch_completion_evidence_source_class' }),
+        expect.objectContaining({ rowKey: 'vsb_document_release' }),
+        expect.objectContaining({
+          rowKey: 'vsb_channel_status',
+          evidenceCaveat: 'caller_supplied_not_verified_delivery_fact',
+        }),
+      ])
+    );
+
+    const manualHandoverRows = runTransformer('getVersandbatchCompletionEvidenceManualHandoverRows', ownerFixture);
+    expect(manualHandoverRows[0]).toEqual(
+      expect.objectContaining({ rowKey: 'vsb_manual_handover_summary', owner: 'ROLE_PROCESS_OWNER' })
+    );
+    expect(manualHandoverRows.slice(1).every((row) => row.state === 'human_review_required')).toBe(true);
+    // missing evidence never collapses to a bare negative verdict without a positive follow-up
+    expect(
+      manualHandoverRows.slice(1).every((row) => typeof row.positiveFollowUp === 'string' && row.positiveFollowUp.length > 0)
+    ).toBe(true);
+
+    const exceptionRows = runTransformer('getVersandbatchCompletionEvidenceExceptionRows', ownerFixture);
+    expect(exceptionRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rowKey: 'vsb_exception_1_evidence_ref',
+          blockedDecision: 'Versandbatch Abschluss Review',
+          state: 'human_review_required',
+        }),
+      ])
+    );
+    // missing/stale evidence maps to clarification/human_review_required, never automatic rejection or completion
+    expect(exceptionRows.every((row) => ['human_review_required', 'ready'].includes(row.state))).toBe(true);
+
+    const freshnessRows = runTransformer('getVersandbatchCompletionEvidenceReturnFreshnessRows', freshFixture);
+    expect(freshnessRows[0]).toEqual(
+      expect.objectContaining({ freshnessState: 'stale_context', deltaState: 'new_delta', isNewDelta: true })
+    );
+
+    const completionPointerRows = runTransformer(
+      'getVersandbatchCompletionEvidenceCompletionPointerRows',
+      freshFixture
+    );
+    expect(completionPointerRows[0]).toEqual(
+      expect.objectContaining({ rowKey: 'vsb_completion_evidence_pointer', evidencePointerOnly: true, value: 'missing' })
+    );
+
+    const riskRows = runTransformer('getVersandbatchCompletionEvidenceAutomationRiskRows', riskFixture);
+    expect(riskRows[0]).toEqual(
+      expect.objectContaining({ contextOnly: true, roleTarget: 'ROLE_REGULATORY_AFFAIRS', riskLevel: 'medium' })
+    );
+
+    const followUpRows = runTransformer('getVersandbatchCompletionEvidenceFollowUpRows', ownerFixture);
+    expect(followUpRows).toEqual(
+      expect.arrayContaining([expect.objectContaining({ missingDataPoint: 'evidence_ref' })])
+    );
+
+    const noCallRows = runTransformer('getVersandbatchCompletionEvidenceNoCallRows', queueFixture);
+    expect(noCallRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ boundary: 'document.send', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'document.resend', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'delivery.confirmation', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'billing.execute', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'settlement.execute', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'mako.dispatch', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'redispatch.dispatch', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'webhook.send', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'hitl.create', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'task.create', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'budibase.table.write', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'personal-agent.execute', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'rundeck.execute', status: 'not_called' }),
+        expect.objectContaining({ boundary: 'external.connector.call', status: 'not_called' }),
+      ])
+    );
+  });
 });
