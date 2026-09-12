@@ -2296,6 +2296,39 @@ describe('dashboard-api.service', () => {
           error: 'MAKO_KNOWLEDGE_UNAVAILABLE',
         });
       });
+
+      it('degrades quickly to available:false when optional willi-mako context times out', async () => {
+        const svc = broker.getLocalService('dashboard-api');
+        const originalTimeoutMs = svc.settings.makoKnowledgeTimeoutMs;
+        svc.settings.makoKnowledgeTimeoutMs = 25;
+        handlers.williMakoResolveStructure = () => new Promise(() => {});
+
+        let result;
+        const startedAt = Date.now();
+        try {
+          result = await broker.call('dashboard-api.marketCommunicationEvidenceChainStatus', {
+            maloId: 'DE-MALO-1',
+            includeMakoKnowledge: true,
+          });
+        } finally {
+          svc.settings.makoKnowledgeTimeoutMs = originalTimeoutMs;
+        }
+
+        expect(Date.now() - startedAt).toBeLessThan(250);
+        expect(result.status).toBeDefined();
+        expect(result.safety).toBe('read_only');
+        expect(result.makoKnowledgeContext).toEqual({
+          available: false,
+          error: 'MAKO_KNOWLEDGE_TIMEOUT',
+        });
+        expect(result.sourceActions.notCalled).toEqual(
+          expect.arrayContaining([
+            'settlement.exportA96',
+            'settlement.prepareBilling',
+            'hitl.create',
+          ])
+        );
+      });
     });
 
     // ── e2eControllabilityGovernanceStatus ──────────────────────────────────
@@ -5213,11 +5246,11 @@ describe('dashboard-api.service', () => {
           topicName: 'Flexibilitaetsfahrplan',
           domain: 'flexibility',
           leadingSource: 'SharePoint',
-          leadingSourceTimestamp: '2026-07-02T12:00:00.000Z',
+          leadingSourceTimestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
           leadingSourceVersion: 'v1',
           owner: 'netzstrategie',
           allowedSideSources: 'Teams,Outlook',
-          sideSourceFreshness: 'Teams@2026-07-01T12:00:00.000Z',
+          sideSourceFreshness: `Teams@${new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()}`,
         });
 
         expect(result.capabilityKey).toBe('vnb_special_topic_workstate');

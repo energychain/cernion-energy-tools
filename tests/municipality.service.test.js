@@ -12,7 +12,8 @@ const MunicipalityService = require('../services/municipality.service');
 
 const HOCKENHEIM_NOMINATIM_FIXTURE = {
   name: 'Hockenheim',
-  display_name: 'Hockenheim, VVG der Stadt Hockenheim, Rhein-Neckar-Kreis, Baden-Württemberg, 68766, Deutschland',
+  display_name:
+    'Hockenheim, VVG der Stadt Hockenheim, Rhein-Neckar-Kreis, Baden-Württemberg, 68766, Deutschland',
   address: {
     town: 'Hockenheim',
     county: 'Rhein-Neckar-Kreis',

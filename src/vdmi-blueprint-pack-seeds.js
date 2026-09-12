@@ -668,33 +668,33 @@ function buildWorkbenchClarificationItems(seed) {
         : selectedSeed.id === stadtwerkMauerMunicipalityPublicContextReadiness.id
           ? 'ROLE_PUBLIC_CONTEXT_STEWARD'
           : selectedSeed.id === stadtwerkMauerGasTransformationDataroomReview.id
-          ? 'ROLE_DATAROOM_OWNER'
-          : selectedSeed.id === stadtwerkMauerPortfolioMarketValueReadiness.id
-            ? 'ROLE_PORTFOLIO_OWNER'
-            : selectedSeed.id === stadtwerkMauerMonitoringNonEscalationStatus.id
-              ? 'ROLE_GOVERNANCE_OWNER'
-              : selectedSeed.id === stadtwerkMauerCrossSystemVarianceEvidenceMatrix.id
+            ? 'ROLE_DATAROOM_OWNER'
+            : selectedSeed.id === stadtwerkMauerPortfolioMarketValueReadiness.id
+              ? 'ROLE_PORTFOLIO_OWNER'
+              : selectedSeed.id === stadtwerkMauerMonitoringNonEscalationStatus.id
                 ? 'ROLE_GOVERNANCE_OWNER'
-                : selectedSeed.id === stadtwerkMauerMastrSyncGapAlerting.id
-                  ? 'ROLE_REDISPATCH_KOORDINATOR'
-                  : selectedSeed.id === stadtwerkMauerCostReviewCommitteeReadiness.id
-                    ? 'ROLE_CONTROLLING'
-                    : selectedSeed.id === stadtwerkMauerConnectionDeadlineEvidenceQueue.id
-                      ? 'ROLE_ANSCHLUSSWESEN'
-                      : selectedSeed.id === stadtwerkMauerInvestmentOwnerDeadlineBudgetGate.id
-                        ? 'ROLE_ASSET_MANAGEMENT'
-                        : selectedSeed.id === stadtwerkMauerDirectMarketerRiskGate.id
-                          ? 'ROLE_MARKET_OPERATIONS'
-                          : selectedSeed.id === stadtwerkMauerFlexibleGridConnectionReleaseFile.id
-                            ? 'ROLE_ANSCHLUSSWESEN'
-                            : selectedSeed.id === stadtwerkMauerEnergySharingCollectiveApproval.id
-                              ? 'ROLE_ENERGY_SHARING_PRODUCT_OWNER'
-                              : selectedSeed.id === stadtwerkMauerSubstationLoadAssessment.id
-                                ? 'ROLE_ASSET_PLANNING_LEAD'
-                                : selectedSeed.id ===
-                                    stadtwerkMauerRedispatchParticipationReadiness.id
-                                  ? 'ROLE_GRID_OPERATIONS_LEAD'
-                                  : 'ROLE_GRID_OPERATOR',
+                : selectedSeed.id === stadtwerkMauerCrossSystemVarianceEvidenceMatrix.id
+                  ? 'ROLE_GOVERNANCE_OWNER'
+                  : selectedSeed.id === stadtwerkMauerMastrSyncGapAlerting.id
+                    ? 'ROLE_REDISPATCH_KOORDINATOR'
+                    : selectedSeed.id === stadtwerkMauerCostReviewCommitteeReadiness.id
+                      ? 'ROLE_CONTROLLING'
+                      : selectedSeed.id === stadtwerkMauerConnectionDeadlineEvidenceQueue.id
+                        ? 'ROLE_ANSCHLUSSWESEN'
+                        : selectedSeed.id === stadtwerkMauerInvestmentOwnerDeadlineBudgetGate.id
+                          ? 'ROLE_ASSET_MANAGEMENT'
+                          : selectedSeed.id === stadtwerkMauerDirectMarketerRiskGate.id
+                            ? 'ROLE_MARKET_OPERATIONS'
+                            : selectedSeed.id === stadtwerkMauerFlexibleGridConnectionReleaseFile.id
+                              ? 'ROLE_ANSCHLUSSWESEN'
+                              : selectedSeed.id === stadtwerkMauerEnergySharingCollectiveApproval.id
+                                ? 'ROLE_ENERGY_SHARING_PRODUCT_OWNER'
+                                : selectedSeed.id === stadtwerkMauerSubstationLoadAssessment.id
+                                  ? 'ROLE_ASSET_PLANNING_LEAD'
+                                  : selectedSeed.id ===
+                                      stadtwerkMauerRedispatchParticipationReadiness.id
+                                    ? 'ROLE_GRID_OPERATIONS_LEAD'
+                                    : 'ROLE_GRID_OPERATOR',
     enablesDossierAddition: item.enablesDossierAddition,
     sourceSeedId: selectedSeed.id,
     execution: 'none',

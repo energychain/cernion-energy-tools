@@ -132,6 +132,7 @@ const CAPABILITY_DOMAIN_MAP = {
   // iMSys/CLS smart-meter-gateway value chain — internal metering infrastructure
   imsys_cls_value_chain: 'inhouse-data',
   metering_governance: 'inhouse-data',
+  metering_data_governance: 'inhouse-data',
   // CLS (Controllable Local System) compliance — regulatory compliance gate
   cls_compliance_governance: 'regulatory',
   // legacy/operational grid control systems
@@ -215,6 +216,7 @@ const OPENAPI_TAG_DOMAIN_MAP = {
   'fnav-commercial-hedging': 'grid-ops',
   'Forecast (Prognostik)': 'market-data',
   'Renewable Energy Forecasting': 'market-data',
+  'Forecast Sandbox': 'market-data',
   'Gas Storage (AGSI)': 'market-data',
   'gasnetz-waermeplanung': 'regulatory',
   'German Grid Data': 'grid-ops',
@@ -262,6 +264,7 @@ const OPENAPI_TAG_DOMAIN_MAP = {
   'vdmi-governance-templates': 'governance',
   VDMI: 'governance',
   'vnb-100-tage-assessment': 'grid-planning',
+  'VNB 100-Tage Assessment': 'grid-planning',
   'Web Search': 'platform',
   Webhooks: 'platform',
   'Willi-Mako Marktkommunikation': 'market-data',
@@ -271,6 +274,7 @@ const OPENAPI_TAG_DOMAIN_MAP = {
   'Willi-Federated': 'regulatory',
   'Zielnetzplanung (ZNP)': 'grid-planning',
   ZNP: 'grid-planning',
+  znp: 'grid-planning',
   'vdmi-human-override': 'governance',
   'vdmi-spectator': 'governance',
   'vdmi-findings': 'governance',

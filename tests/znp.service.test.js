@@ -43,6 +43,11 @@ jest.mock('../src/znp-clustering-heuristics', () => ({
   computeGFactorAdjustment: jest.fn().mockReturnValue(1.0),
 }));
 
+const mockBuildGasGraphFromScigrid = jest.fn();
+jest.mock('../tools/gas_layer_ingest', () => ({
+  buildGasGraphFromScigrid: (...args) => mockBuildGasGraphFromScigrid(...args),
+}));
+
 // Mock centralized llm-client (Issue 2 + 3: strategicPrompts, addAssumption)
 const mockGenerateStructured = jest.fn();
 jest.mock('../src/llm-client', () => ({
@@ -66,6 +71,7 @@ const jobStore = require('../src/job-store');
 
 const { ServiceBroker } = require('moleculer');
 const ZnpService = require('../services/znp.service');
+const Graph = require('graphology');
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -164,6 +170,7 @@ describe('ZNP Service', () => {
 
   beforeEach(() => {
     placeholderStore.length = 0;
+    mockBuildGasGraphFromScigrid.mockReset();
   });
 
   afterAll(async () => {
@@ -645,6 +652,58 @@ describe('ZNP Service', () => {
       ).rejects.toMatchObject({ code: 404, type: 'ZNP_PROJECT_NOT_FOUND' });
     });
 
+    it('cleans up commodity layer docs (gas/heat) and activeGraphs on delete', async () => {
+      const tenantMeta = { meta: { tenantId: 'default' } };
+      const { projectId } = await broker.call(
+        'znp.createProject',
+        { bbox: makeBbox(), name: 'CommodityCleanupTest' },
+        tenantMeta
+      );
+
+      await broker.call('znp.layers', { id: projectId, commodity: 'gas' }, tenantMeta);
+      await broker.call('znp.layers', { id: projectId, commodity: 'heat' }, tenantMeta);
+
+      const znpService = broker.getLocalService('znp');
+
+      // Sanity check: commodity docs/activeGraphs exist before delete
+      await expect(znpService.db.get(`znp:meta:${projectId}:gas`)).resolves.toBeDefined();
+      await expect(znpService.db.get(`znp:graph:${projectId}:gas`)).resolves.toBeDefined();
+      await expect(znpService.db.get(`znp:meta:${projectId}:heat`)).resolves.toBeDefined();
+      await expect(znpService.db.get(`znp:graph:${projectId}:heat`)).resolves.toBeDefined();
+      expect(znpService.activeGraphs.has(`${projectId}:gas`)).toBe(true);
+      expect(znpService.activeGraphs.has(`${projectId}:heat`)).toBe(true);
+
+      const deleteResult = await broker.call('znp.deleteProject', { projectId }, tenantMeta);
+      expect(deleteResult.success).toBe(true);
+
+      // Base project docs gone
+      await expect(znpService.db.get(`znp:meta:${projectId}`)).rejects.toMatchObject({
+        status: 404,
+      });
+      await expect(znpService.db.get(`znp:graph:${projectId}`)).rejects.toMatchObject({
+        status: 404,
+      });
+
+      // Commodity layer docs gone
+      await expect(znpService.db.get(`znp:meta:${projectId}:gas`)).rejects.toMatchObject({
+        status: 404,
+      });
+      await expect(znpService.db.get(`znp:graph:${projectId}:gas`)).rejects.toMatchObject({
+        status: 404,
+      });
+      await expect(znpService.db.get(`znp:meta:${projectId}:heat`)).rejects.toMatchObject({
+        status: 404,
+      });
+      await expect(znpService.db.get(`znp:graph:${projectId}:heat`)).rejects.toMatchObject({
+        status: 404,
+      });
+
+      // In-memory activeGraphs cleaned up too
+      expect(znpService.activeGraphs.has(projectId)).toBe(false);
+      expect(znpService.activeGraphs.has(`${projectId}:gas`)).toBe(false);
+      expect(znpService.activeGraphs.has(`${projectId}:heat`)).toBe(false);
+    });
+
     it('cleans up PouchDB documents (meta and graph)', async () => {
       const { projectId } = await broker.call('znp.createProject', {
         bbox: makeBbox(),
@@ -662,6 +721,131 @@ describe('ZNP Service', () => {
       // Both docs should be gone
       await expect(znpService.db.get(metaDocId)).rejects.toMatchObject({ status: 404 });
       await expect(znpService.db.get(graphDocId)).rejects.toMatchObject({ status: 404 });
+    });
+  });
+
+  // ─── layers — gas SciGRID ingestion ────────────────────────────────────────
+
+  describe('layers — gas SciGRID ingestion', () => {
+    it('uses the SciGRID-built graph when commodity=gas and source is provided (happy path)', async () => {
+      const scigridGraph = new Graph({ type: 'directed', multi: false });
+      scigridGraph.addNode('GAS_FEED_1', { type: 'gas_feed', label: 'SciGRID gas feed' });
+      scigridGraph.addNode('GAS_NODE_2', { type: 'gas_node', label: 'SciGRID node' });
+      scigridGraph.addEdge('GAS_FEED_1', 'GAS_NODE_2');
+      mockBuildGasGraphFromScigrid.mockReturnValue({ graph: scigridGraph, meta: {} });
+
+      const tenantMeta = { meta: { tenantId: 'default' } };
+      const { projectId } = await broker.call(
+        'znp.createProject',
+        { bbox: makeBbox() },
+        tenantMeta
+      );
+      const result = await broker.call(
+        'znp.layers',
+        {
+          id: projectId,
+          commodity: 'gas',
+          source: '/tmp/some-scigrid-export',
+        },
+        tenantMeta
+      );
+
+      expect(mockBuildGasGraphFromScigrid).toHaveBeenCalledWith(
+        expect.objectContaining({
+          nodesPath: expect.stringContaining('nodes.csv'),
+          edgesPath: expect.stringContaining('edges.csv'),
+          projectId,
+          rootNodeId: 'GAS_FEED_1',
+        })
+      );
+      expect(result.commodity).toBe('gas');
+
+      const znpService = broker.getLocalService('znp');
+      const active = znpService.activeGraphs.get(`${projectId}:gas`);
+      expect(active.graph.order).toBe(2);
+      expect(active.graph.hasNode('GAS_NODE_2')).toBe(true);
+    });
+
+    it('falls back to the virtual-root graph when SciGRID ingest throws', async () => {
+      mockBuildGasGraphFromScigrid.mockImplementation(() => {
+        throw new Error('bad CSV: missing required column "lat"');
+      });
+
+      const tenantMeta = { meta: { tenantId: 'default' } };
+      const { projectId } = await broker.call(
+        'znp.createProject',
+        { bbox: makeBbox() },
+        tenantMeta
+      );
+      const result = await broker.call(
+        'znp.layers',
+        {
+          id: projectId,
+          commodity: 'gas',
+          source: '/tmp/malformed-scigrid-export',
+        },
+        tenantMeta
+      );
+
+      expect(mockBuildGasGraphFromScigrid).toHaveBeenCalled();
+      expect(result.commodity).toBe('gas');
+
+      const znpService = broker.getLocalService('znp');
+      const active = znpService.activeGraphs.get(`${projectId}:gas`);
+      // Falls back to the single virtual-root node graph.
+      expect(active.graph.order).toBe(1);
+      expect(active.graph.hasNode('GAS_FEED_1')).toBe(true);
+      expect(active.graph.getNodeAttribute('GAS_FEED_1', 'type')).toBe('gas_feed');
+    });
+
+    it('does not invoke SciGRID ingest when no source is provided (existing virtual-root behaviour)', async () => {
+      const tenantMeta = { meta: { tenantId: 'default' } };
+      const { projectId } = await broker.call(
+        'znp.createProject',
+        { bbox: makeBbox() },
+        tenantMeta
+      );
+      const result = await broker.call(
+        'znp.layers',
+        { id: projectId, commodity: 'gas' },
+        tenantMeta
+      );
+
+      expect(mockBuildGasGraphFromScigrid).not.toHaveBeenCalled();
+      expect(result.commodity).toBe('gas');
+
+      const znpService = broker.getLocalService('znp');
+      const active = znpService.activeGraphs.get(`${projectId}:gas`);
+      expect(active.graph.order).toBe(1);
+    });
+
+    it('rejects a source path outside the allowed roots and falls back to the virtual-root graph (path-traversal guard)', async () => {
+      const tenantMeta = { meta: { tenantId: 'default' } };
+      const { projectId } = await broker.call(
+        'znp.createProject',
+        { bbox: makeBbox() },
+        tenantMeta
+      );
+      const result = await broker.call(
+        'znp.layers',
+        {
+          id: projectId,
+          commodity: 'gas',
+          source: '/etc/passwd/../../etc',
+        },
+        tenantMeta
+      );
+
+      // A caller-supplied source outside cwd/uploads/tmp must never reach
+      // buildGasGraphFromScigrid (which would in turn shell out to Python
+      // with that path as a CLI argument).
+      expect(mockBuildGasGraphFromScigrid).not.toHaveBeenCalled();
+      expect(result.commodity).toBe('gas');
+
+      const znpService = broker.getLocalService('znp');
+      const active = znpService.activeGraphs.get(`${projectId}:gas`);
+      expect(active.graph.order).toBe(1);
+      expect(active.graph.hasNode('GAS_FEED_1')).toBe(true);
     });
   });
 

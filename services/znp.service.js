@@ -1,6 +1,36 @@
 'use strict';
 
 const path = require('path');
+const os = require('os');
+
+// Confinement roots for the gas-layer `source` directory (POST
+// /projects/:id/layers, commodity=gas): the repo root (covers the documented
+// fixtures_real/fixtures_parallel dev usage), the shared uploads directory
+// used elsewhere in the gateway (services/api.service.js's UPLOAD_DIR), and
+// the system temp dir (covers server-staged CSVs). `source` is a REST
+// request parameter, so an unconfined path.join(source, 'nodes.csv') would
+// let a caller (human or an agent acting on injected instructions) read
+// arbitrary files on the server via a crafted absolute path or `../`
+// traversal — resolveGasLayerSourceDir() rejects anything outside these
+// roots before it ever reaches the CLI. Existence is deliberately not
+// checked here: a missing/malformed source still fails clearly downstream
+// in buildGasGraphFromScigrid, which the caller already handles.
+const GAS_LAYER_SOURCE_ROOTS = [
+  path.resolve(process.cwd()),
+  path.resolve(__dirname, '..', 'uploads'),
+  path.resolve(os.tmpdir()),
+];
+
+function resolveGasLayerSourceDir(rawSource) {
+  const resolved = path.resolve(rawSource);
+  const withinAllowedRoot = GAS_LAYER_SOURCE_ROOTS.some(
+    (root) => resolved === root || resolved.startsWith(root + path.sep)
+  );
+  if (!withinAllowedRoot) {
+    throw new Error(`gas layer source escapes allowed directories: ${resolved}`);
+  }
+  return resolved;
+}
 
 /**
  * ZNP — Zielnetzplanung Workspace API (v0.20.4)
@@ -55,6 +85,7 @@ const { generateStructured, SchemaType } = require('../src/llm-client');
 const { normaliseBoolFlag } = require('../src/redispatch-utils');
 const { getTenantId } = require('../src/tenant-context');
 const { computePortfolioAssessment } = require('../src/znp-portfolio-logic');
+const { buildGasGraphFromScigrid } = require('../tools/gas_layer_ingest');
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -155,6 +186,11 @@ module.exports = {
           },
         },
         name: { type: 'string', optional: true, max: 120 },
+        municipalityKey: {
+          type: 'string',
+          optional: true,
+          pattern: /^\d{8}$/,
+        },
       },
       openapi: {
         summary: 'Create a new ZNP project workspace',
@@ -185,6 +221,13 @@ module.exports = {
                     },
                   },
                   name: { type: 'string', example: 'Ludwigshafen Nord Q3-2026' },
+                  municipalityKey: {
+                    type: 'string',
+                    nullable: true,
+                    description:
+                      'Optional 8-digit AGS (Amtlicher Gemeindeschlüssel) municipality code.',
+                    example: '05513000',
+                  },
                 },
               },
               examples: {
@@ -192,6 +235,7 @@ module.exports = {
                   value: {
                     bbox: { south: 49.47, west: 8.43, north: 49.52, east: 8.52 },
                     name: 'Ludwigshafen Nord Q3-2026',
+                    municipalityKey: '05513000',
                   },
                 },
               },
@@ -211,6 +255,7 @@ module.exports = {
                     bbox: { type: 'object' },
                     createdAt: { type: 'string', format: 'date-time' },
                     tenantId: { type: 'string', nullable: true },
+                    municipalityKey: { type: 'string', nullable: true, example: '05513000' },
                     graphStats: { type: 'object' },
                   },
                 },
@@ -220,7 +265,7 @@ module.exports = {
         },
       },
       async handler(ctx) {
-        const { bbox, name } = ctx.params;
+        const { bbox, name, municipalityKey } = ctx.params;
         const tenantId = getTenantId(ctx);
         const projectId = crypto.randomUUID();
         const createdAt = new Date().toISOString();
@@ -244,6 +289,7 @@ module.exports = {
           name: projectName,
           createdAt,
           tenantId,
+          municipalityKey: municipalityKey ?? null,
           layers: [],
           layer1GFactorAdjustment: 1.0, // updated by addLayer1 when clustering is computed
           layer2CalibrationFactor: 0,
@@ -261,6 +307,7 @@ module.exports = {
           bbox,
           createdAt,
           layers: [],
+          municipalityKey: municipalityKey ?? null,
           layer1GFactorAdjustment: 1.0,
           layer2CalibrationFactor: 0,
           layer2MeasuredPeakLoadKw: 0,
@@ -284,6 +331,7 @@ module.exports = {
           bbox,
           createdAt,
           tenantId,
+          municipalityKey: municipalityKey ?? null,
           graphStats: { nodes: graph.order, edges: graph.size },
         };
       },
@@ -2342,6 +2390,7 @@ module.exports = {
           bbox: project.bbox,
           createdAt: project.createdAt,
           tenantId: project.tenantId,
+          municipalityKey: project.municipalityKey ?? null,
           layers: project.layers,
           graphStats: {
             nodes: project.graph.order,
@@ -2378,6 +2427,7 @@ module.exports = {
             bbox: project.bbox,
             createdAt: project.createdAt,
             tenantId: project.tenantId,
+            municipalityKey: project.municipalityKey ?? null,
             layers: project.layers,
             graphStats: {
               nodes: project.graph.order,
@@ -2437,64 +2487,190 @@ module.exports = {
         const project = this.activeGraphs.get(projectId);
         this.requireProjectTenant(project, tenantId, projectId);
 
-        const metaDocId = `${DOC_PREFIX_META}${projectId}`;
-        const graphDocId = `${DOC_PREFIX_GRAPH}${projectId}`;
+        // Build the list of doc "keys" to purge: the base project plus any
+        // commodity layers (gas/heat) attached to it. `project.layers` /
+        // `project.commodityLayers` is a map keyed by commodity name; the
+        // implicit "electricity" key refers to the base project itself and
+        // must be excluded to avoid deleting znp:meta:<id>:electricity (which
+        // was never written — the base docs use znp:meta:<id> directly).
+        const layerMap = this.normalizeLayers(project.commodityLayers || project.layers);
+        const commodityKeys = Object.keys(layerMap).filter(
+          (commodity) => commodity !== 'electricity'
+        );
+        const docKeys = [projectId, ...commodityKeys.map((c) => `${projectId}:${c}`)];
 
         // Fetch current revisions before deletion (PouchDB requires _rev for delete)
-        let metaRev;
-        let graphRev;
-        try {
-          const metaDoc = await this.db.get(metaDocId);
-          metaRev = metaDoc._rev;
-        } catch (err) {
-          if (err.status !== 404) throw err;
-          // meta doc missing — continue
-        }
-        try {
-          const graphDoc = await this.db.get(graphDocId);
-          graphRev = graphDoc._rev;
-        } catch (err) {
-          if (err.status !== 404) throw err;
-          // graph doc missing — continue
-        }
-
-        // Delete PouchDB documents if they exist
+        // and delete each project/commodity-layer pair of documents.
         const deletePromises = [];
-        if (metaRev) {
-          deletePromises.push(
-            this.db.remove(metaDocId, metaRev).catch((err) => {
-              if (err.status !== 404) {
-                this.logger.warn(
-                  `[znp] Failed to delete meta doc for "${projectId}": ${err.message}`
-                );
-              }
-            })
-          );
-        }
-        if (graphRev) {
-          deletePromises.push(
-            this.db.remove(graphDocId, graphRev).catch((err) => {
-              if (err.status !== 404) {
-                this.logger.warn(
-                  `[znp] Failed to delete graph doc for "${projectId}": ${err.message}`
-                );
-              }
-            })
-          );
+        for (const key of docKeys) {
+          const metaDocId = `${DOC_PREFIX_META}${key}`;
+          const graphDocId = `${DOC_PREFIX_GRAPH}${key}`;
+
+          let metaRev;
+          let graphRev;
+          try {
+            const metaDoc = await this.db.get(metaDocId);
+            metaRev = metaDoc._rev;
+          } catch (err) {
+            if (err.status !== 404) throw err;
+            // meta doc missing — continue
+          }
+          try {
+            const graphDoc = await this.db.get(graphDocId);
+            graphRev = graphDoc._rev;
+          } catch (err) {
+            if (err.status !== 404) throw err;
+            // graph doc missing — continue
+          }
+
+          if (metaRev) {
+            deletePromises.push(
+              this.db.remove(metaDocId, metaRev).catch((err) => {
+                if (err.status !== 404) {
+                  this.logger.warn(`[znp] Failed to delete meta doc for "${key}": ${err.message}`);
+                }
+              })
+            );
+          }
+          if (graphRev) {
+            deletePromises.push(
+              this.db.remove(graphDocId, graphRev).catch((err) => {
+                if (err.status !== 404) {
+                  this.logger.warn(`[znp] Failed to delete graph doc for "${key}": ${err.message}`);
+                }
+              })
+            );
+          }
+
+          // Remove commodity layers from the in-memory registry too
+          // (base projectId is removed once below, after the loop).
+          if (key !== projectId) {
+            this.activeGraphs.delete(key);
+          }
         }
 
         await Promise.all(deletePromises);
 
-        // Remove from in-memory registry
+        // Remove base project from in-memory registry
         this.activeGraphs.delete(projectId);
 
-        this.logger.info(`[znp] Deleted project ${projectId}`);
+        this.logger.info(
+          `[znp] Deleted project ${projectId}` +
+            (commodityKeys.length ? ` and commodity layers: ${commodityKeys.join(', ')}` : '')
+        );
 
         return {
           success: true,
           projectId,
           message: `Project "${projectId}" has been permanently deleted.`,
         };
+      },
+    },
+
+    /**
+     * layers — Create (idempotently) a gas/heat commodity graph attached to a project.
+     * POST /api/znp/projects/:id/layers
+     */
+    layers: {
+      rest: 'POST /projects/:id/layers',
+      params: {
+        id: 'string',
+        commodity: { type: 'enum', values: ['gas', 'heat'] },
+        bbox: { type: 'object', optional: true },
+        source: { type: 'string', optional: true },
+      },
+      async handler(ctx) {
+        const { id: projectId, commodity, bbox: bboxOverride, source } = ctx.params;
+        const tenantId = ctx.meta?.tenantId || null;
+
+        await this.ensureProjectHydrated(projectId);
+        const parent = this.getProject(projectId);
+        this.requireProjectTenant(parent, tenantId, projectId);
+
+        const commodityKey = `${projectId}:${commodity}`;
+        const metaDocId = `${DOC_PREFIX_META}${commodityKey}`;
+        const graphDocId = `${DOC_PREFIX_GRAPH}${commodityKey}`;
+
+        // Idempotent: return existing layer doc if already created (PATCH-like, no 409).
+        try {
+          const existingMeta = await this.db.get(metaDocId);
+          return {
+            projectId,
+            commodity,
+            bbox: existingMeta.bbox,
+            createdAt: existingMeta.createdAt,
+            alreadyExisted: true,
+          };
+        } catch (_) {
+          /* not found — proceed to create */
+        }
+
+        const bbox = bboxOverride || parent.bbox;
+        const createdAt = new Date().toISOString();
+        const rootNodeId = commodity === 'gas' ? 'GAS_FEED_1' : 'HEAT_PLANT_1';
+
+        let graph;
+        if (commodity === 'gas' && source) {
+          // `source` is expected to be a directory containing SciGRID_gas
+          // `nodes.csv` / `edges.csv` (see tools/scigrid_gas_to_znp.py docstring
+          // for required columns). Falls back to the virtual-root-only graph
+          // on any ingestion failure so the endpoint stays idempotent/available.
+          try {
+            const sourceDir = resolveGasLayerSourceDir(source);
+            const built = buildGasGraphFromScigrid({
+              nodesPath: path.join(sourceDir, 'nodes.csv'),
+              edgesPath: path.join(sourceDir, 'edges.csv'),
+              projectId,
+              rootNodeId,
+            });
+            graph = built.graph;
+          } catch (err) {
+            this.logger.warn(
+              `gas layer ingest failed for ${projectId}, falling back to virtual root: ${err.message}`
+            );
+          }
+        }
+        if (!graph) {
+          graph = new Graph({ type: 'directed', multi: false });
+          graph.addNode(rootNodeId, {
+            type: commodity === 'gas' ? 'gas_feed' : 'heat_plant',
+            label: `Virtual ${commodity} root`,
+          });
+        }
+
+        this.activeGraphs.set(commodityKey, {
+          graph,
+          bbox,
+          name: `${parent.name} (${commodity})`,
+          createdAt,
+          tenantId,
+          layers: { [commodity]: [] },
+          source: source || null,
+        });
+
+        await this.db.put({
+          _id: metaDocId,
+          projectId,
+          commodity,
+          tenantId,
+          bbox,
+          createdAt,
+          source: source || null,
+          layers: { [commodity]: [] },
+          nodeCount: graph.order,
+          edgeCount: graph.size,
+        });
+        await this.persistGraph(commodityKey, graph, graphDocId);
+
+        // Update parent meta: layers.<commodity> attachment record
+        const parentMetaId = `${DOC_PREFIX_META}${projectId}`;
+        const parentMeta = await this.db.get(parentMetaId);
+        const layers = this.normalizeLayers(parentMeta.layers);
+        layers[commodity] = layers[commodity] || [];
+        await this.db.put({ ...parentMeta, layers, updatedAt: createdAt });
+        parent.commodityLayers = layers;
+
+        return { projectId, commodity, bbox, createdAt, alreadyExisted: false };
       },
     },
   },
@@ -2566,9 +2742,10 @@ module.exports = {
      * @param {string} projectId
      * @returns {Promise<object>} hydrated project descriptor
      */
-    async hydrateGraph(projectId) {
-      const metaDocId = `${DOC_PREFIX_META}${projectId}`;
-      const graphDocId = `${DOC_PREFIX_GRAPH}${projectId}`;
+    async hydrateGraph(projectId, commodity = null) {
+      const suffix = commodity ? `:${commodity}` : '';
+      const metaDocId = `${DOC_PREFIX_META}${projectId}${suffix}`;
+      const graphDocId = `${DOC_PREFIX_GRAPH}${projectId}${suffix}`;
 
       const [meta, graphDoc] = await Promise.all([this.db.get(metaDocId), this.db.get(graphDocId)]);
 
@@ -2585,6 +2762,7 @@ module.exports = {
         name: meta.name,
         createdAt: meta.createdAt,
         tenantId: meta.tenantId || null,
+        municipalityKey: meta.municipalityKey ?? null,
         layers: meta.layers || [],
         layer1GFactorAdjustment: meta.layer1GFactorAdjustment || 1.0,
         layer2CalibrationFactor: meta.layer2CalibrationFactor || 0,
@@ -2593,8 +2771,20 @@ module.exports = {
         layer2NominalCapacityKw: meta.layer2NominalCapacityKw || 0,
       };
 
-      this.activeGraphs.set(projectId, project);
+      this.activeGraphs.set(`${projectId}${suffix}`, project);
       return project;
+    },
+
+    /**
+     * normalizeLayers — back-compat shim: flat array (legacy) -> object keyed by commodity.
+     * @param {Array|Object|undefined} layers
+     * @returns {Object}
+     */
+    normalizeLayers(layers) {
+      if (Array.isArray(layers)) {
+        return { electricity: layers };
+      }
+      return layers && typeof layers === 'object' ? layers : { electricity: [] };
     },
 
     /**
@@ -2841,8 +3031,7 @@ module.exports = {
      * @param {string} projectId
      * @param {Graph}  graph
      */
-    async persistGraph(projectId, graph) {
-      const docId = `${DOC_PREFIX_GRAPH}${projectId}`;
+    async persistGraph(projectId, graph, docId = `${DOC_PREFIX_GRAPH}${projectId}`) {
       const maxAttempts = 3;
       const graphData = graph.export();
 

@@ -26,6 +26,7 @@ module.exports = {
   name: 'dashboard-api',
 
   settings: {
+    makoKnowledgeTimeoutMs: 1000,
     cacheTtlMs: {
       vnbOverview: 5 * 60 * 1000, // 5 min
       redispatchMeteringCockpit: 5 * 60 * 1000, // 5 min

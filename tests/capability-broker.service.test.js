@@ -295,6 +295,67 @@ describe('Capability Broker Service', () => {
     );
   });
 
+  // ── Regulatory marathon / Smart-Meter-CLS governance routing ───────────────
+
+  it('routes GeLi Gas 2.0 UTILMD MSCONS Energy Sharing Smart Meter Rollout readiness away from Zaehlpark finance', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'GeLi Gas 2.0 UTILMD MSCONS Energy Sharing Smart Meter Rollout Readiness pruefen',
+    });
+
+    expect([
+      'regulatory_signal_process_translator',
+      'regulatory_change_simulator_readiness',
+      'market_communication_evidence_chain',
+    ]).toContain(result.recommendedCapabilities[0].capability);
+    expect(result.recommendedCapabilities[0].capability).not.toBe(
+      'zaehlpark_finanzierung_szenario_cockpit'
+    );
+  });
+
+  it('routes explicit regulatory change readiness Smart Meter Rollout prompt away from Zaehlpark finance', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Regulatory change readiness fuer GeLi Gas 2.0 Smart Meter Rollout pruefen: Fristenmatrix, Testfallpaket, UTILMD und MSCONS Prozessfolgen einordnen.',
+    });
+
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'regulatory_change_simulator_readiness'
+    );
+    expect(result.recommendedCapabilities[0].capability).not.toBe(
+      'zaehlpark_finanzierung_szenario_cockpit'
+    );
+  });
+
+  it('routes SMGW/CLS data-governance receipt prompts away from flex, VDMI, Re4DE, and Zaehlpark finance heads', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Bitte ein read-only SMGW/CLS Data-Governance Receipt erstellen: Zweckbindung, Datenpfad, Messstellenbetrieb, Marktkommunikation, UTILMD/MSCONS Evidence, Owner und Missing Evidence trennen. Keine Geraetesteuerung, keine Tarifberechnung, keine VDMI-Mutation.',
+    });
+
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'smart_meter_cls_data_governance_receipt'
+    );
+    expect(result.recommendedCapabilities[0].capability).not.toBe(
+      'vdmi_asset_validation_governance'
+    );
+    expect(result.recommendedCapabilities[0].capability).not.toBe('flex_device_management_v1');
+    expect(result.recommendedCapabilities[0].capability).not.toBe('re4de_variable_grid_fee_layer3');
+    expect(result.recommendedCapabilities[0].capability).not.toBe(
+      'zaehlpark_finanzierung_szenario_cockpit'
+    );
+  });
+
+  it('still routes explicit Zaehlpark iMSys financing TOTEX scenario prompts to Zaehlpark finance', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Zaehlpark Finanzierung Szenario fuer iMSys Rollout bewerten: TOTEX, CAPEX, OPEX, Leasing und Contracting vergleichen.',
+    });
+
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'zaehlpark_finanzierung_szenario_cockpit'
+    );
+    expect(result.recommendedPlan[0].action).toBe(
+      'dashboard-api.zaehlparkFinanzierungSzenarioCockpitStatus'
+    );
+  });
+
   it('routes role-boundary governance prompts to VDMI governance capability (not pure VNB identity)', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Schritt 1: Rollen und Schnittstellen klären – Projektträger ist nicht Netzbetreiber und die Gatekeeper-Rolle liegt beim DSO (§17 EnWG, Arealnetzbetreiber).',
@@ -890,15 +951,16 @@ describe('Capability Broker Service', () => {
   });
 
   // energychain/cernion-energy-tools#498 — generic MaKo/EDIFACT code-context routing.
-  // Z17 is used here only as an acceptance-test example; the routing signal itself
-  // (see findBestCapability's hasMakoEdifactCodeContextSignal block) is generic and
-  // must not special-case Z17.
+  // Z17 and EVUCL/A06 are used here only as acceptance-test examples; the routing
+  // signal itself (see findBestCapability's hasMakoEdifactCodeContextSignal block)
+  // is generic and must not special-case one code.
   describe('generic MaKo/EDIFACT code-context routing (#498)', () => {
     it.each([
       ['was bedeutet eine Z17 in einer APERAK?'],
       ['APERAK Fehlercode Z18 erklären'],
       ['Welche UTILMD-Segmentstruktur ist für Lieferantenwechsel relevant?'],
       ['Was bedeutet ein MSCONS Prüfhinweis im MaKo-Kontext?'],
+      ['EVUCL A06 andere Anmeldung wird verarbeitet'],
     ])(
       'routes "%s" to the read-only market-communication capability with Willi-Mako support',
       async (task) => {

@@ -1481,6 +1481,69 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
+  // ── Smart-Meter/CLS data-governance receipt
+  // Must precede generic MaKo evidence and Zaehlpark finance. Receipt prompts
+  // contain data-governance/evidence wording but ask for a read-only SMGW/CLS
+  // handover, not flex-device inventory, Re4DE tariff evidence, VDMI asset
+  // validation, or metering-finance scenarios.
+  const hasSmartMeterClsDataGovernanceReceiptSignal =
+    /(smgw|cls|smart.?meter|imsys)/i.test(haystack) &&
+    /(data.?governance|daten.?governance|receipt|beleg|evidence|evidenz|nachweis)/i.test(
+      haystack
+    ) &&
+    /(zweckbindung|datenpfad|messstellenbetrieb|marktkommunikation|utilmd|mscons|owner|missing evidence|fehlende evidence|missing evidenz)/i.test(
+      haystack
+    ) &&
+    !/(geraetesteuerung ausfuehren|gerätesteuerung ausführen|device.?control execute|tarif berechnen|tariff calculate|vdmi\.mutate)/i.test(
+      haystack
+    );
+
+  if (hasSmartMeterClsDataGovernanceReceiptSignal) {
+    const smartMeterClsReceiptCapability = findCapabilityByName(
+      'smart_meter_cls_data_governance_receipt'
+    );
+    if (smartMeterClsReceiptCapability) {
+      return { capability: smartMeterClsReceiptCapability, score: 136, usedFallback: false };
+    }
+  }
+
+  // ── Regulatory marathon / deadline-cluster readiness
+  // Guard regulatory and MaKo deadline-cluster wording away from the later
+  // Smart-Meter + Rollout Zaehlpark finance override.
+  const hasExplicitRegulatoryChangeReadinessSignal =
+    /(regulatory change readiness|regulatory readiness gate|regulatory change simulator|regulatorische aenderung|regulatorische anderung)/i.test(
+      haystack
+    ) &&
+    /(smart.?meter|imsys|rollout|geli gas|energy sharing|utilmd|mscons|fristenmatrix|testfallpaket)/i.test(
+      haystack
+    );
+
+  if (hasExplicitRegulatoryChangeReadinessSignal) {
+    const regulatoryChangeCapability = findCapabilityByName(
+      'regulatory_change_simulator_readiness'
+    );
+    if (regulatoryChangeCapability) {
+      return { capability: regulatoryChangeCapability, score: 136, usedFallback: false };
+    }
+  }
+
+  const hasRegulatoryMarathonMakoClusterSignal =
+    (/(geli gas|regulatory marathon|regulatorischer marathon|fristencluster|deadline cluster)/i.test(
+      haystack
+    ) ||
+      (/energy sharing/i.test(haystack) &&
+        /(utilmd|mscons|smart.?meter rollout|imsys rollout|geli gas)/i.test(haystack))) &&
+    /(utilmd|mscons|mako|marktkommunikation|smart.?meter|imsys|rollout|readiness)/i.test(haystack);
+
+  if (hasRegulatoryMarathonMakoClusterSignal) {
+    const regulatoryTranslatorCapability = findCapabilityByName(
+      'regulatory_signal_process_translator'
+    );
+    if (regulatoryTranslatorCapability) {
+      return { capability: regulatoryTranslatorCapability, score: 135, usedFallback: false };
+    }
+  }
+
   // ── Market communication evidence chain
   // Generic "Evidenz/Nachweis" terms otherwise match VDMI asset validation.
   const marketCommunicationEvidenceSignals = [
@@ -1489,6 +1552,7 @@ function findBestCapability(taskText, options = {}) {
     'mako evidenzkette',
     'malo melo',
     'utilmd stammdatenweg',
+    'utilmd mscons',
     'verbrauchsdatenabruf',
     'edm datenqualitaet',
     'edm datenqualität',

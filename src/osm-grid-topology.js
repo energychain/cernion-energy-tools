@@ -619,7 +619,13 @@ function computeMetrics(nodes, edges) {
 function shortestPath(nodes, edges, fromOsmId, toOsmId) {
   const nodeIds = new Set(nodes.map((n) => n.osmId));
   if (!nodeIds.has(fromOsmId) || !nodeIds.has(toOsmId)) {
-    return { found: false, hopCount: null, totalLengthKmApprox: null, path: null, confidence: 'low' };
+    return {
+      found: false,
+      hopCount: null,
+      totalLengthKmApprox: null,
+      path: null,
+      confidence: 'low',
+    };
   }
 
   const adjacency = new Map(nodes.map((n) => [n.osmId, []]));
@@ -659,7 +665,13 @@ function shortestPath(nodes, edges, fromOsmId, toOsmId) {
   }
 
   if (!prev.has(toOsmId) && fromOsmId !== toOsmId) {
-    return { found: false, hopCount: null, totalLengthKmApprox: null, path: null, confidence: 'low' };
+    return {
+      found: false,
+      hopCount: null,
+      totalLengthKmApprox: null,
+      path: null,
+      confidence: 'low',
+    };
   }
 
   const path = [toOsmId];

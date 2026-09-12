@@ -130,7 +130,8 @@ const CERNION_RELEVANT_OEP_TABLES = Object.freeze([
       'Zensus 2011 Bevölkerungsdaten je Gemeinde (census_sum, census_count, census_density), ' +
       'aggregiert über BKG-VG250-Verwaltungsgrenzen und referenziert per Amtlichem ' +
       'Gemeindeschlüssel (Feld ags_0).',
-    cernionUseCase: 'OSM-unabhängige Verbrauchsprognose über Gemeindeschlüssel (AGS) statt OSM-Gebäude-Clustering',
+    cernionUseCase:
+      'OSM-unabhängige Verbrauchsprognose über Gemeindeschlüssel (AGS) statt OSM-Gebäude-Clustering',
     oeoClass: 'oeo:PopulationStatistic',
   },
 ]);

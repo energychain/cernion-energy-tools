@@ -939,10 +939,17 @@ Returns both a detail list and **aggregated statistics**:
             return _degraded(_classifyDegradedReason(err.message), err.message);
           }
           if (!bbox) {
-            return _degraded('GEOCODING_FAILED', `Could not resolve "${locationName}" to a bounding box.`);
+            return _degraded(
+              'GEOCODING_FAILED',
+              `Could not resolve "${locationName}" to a bounding box.`
+            );
           }
           area = locationName;
-          scopeSource = postalCode ? 'postal_code' : location ? 'location_name' : 'grid_operator_name';
+          scopeSource = postalCode
+            ? 'postal_code'
+            : location
+              ? 'location_name'
+              : 'grid_operator_name';
         }
 
         if (osmGridTopology.bboxAreaSqKm(bbox) > osmGridTopology.MAX_BBOX_AREA_SQ_KM) {
@@ -965,7 +972,11 @@ Returns both a detail list and **aggregated statistics**:
         let pathAnalysis = { requested: false };
         if (includePathAnalysis) {
           if (!fromOsmId || !toOsmId) {
-            pathAnalysis = { requested: true, found: false, error: 'fromOsmId and toOsmId are required' };
+            pathAnalysis = {
+              requested: true,
+              found: false,
+              error: 'fromOsmId and toOsmId are required',
+            };
           } else {
             pathAnalysis = {
               requested: true,
@@ -985,12 +996,14 @@ Returns both a detail list and **aggregated statistics**:
                   'nodes in this area. This does not necessarily mean OSM has no line coverage here — ' +
                   'lines may connect via towers/poles (not modelled as graph nodes) or continue outside ' +
                   'the queried bounding box.',
-                disclaimer: 'OSM-Daten sind freiwillig gepflegt und können unvollständig oder veraltet sein.',
+                disclaimer:
+                  'OSM-Daten sind freiwillig gepflegt und können unvollständig oder veraltet sein.',
               }
             : {
                 source: '© OpenStreetMap contributors (ODbL 1.0)',
                 coverageLabel: edges.length > 0 ? 'DERIVED' : 'NO_NODES',
-                disclaimer: 'OSM-Daten sind freiwillig gepflegt und können unvollständig oder veraltet sein.',
+                disclaimer:
+                  'OSM-Daten sind freiwillig gepflegt und können unvollständig oder veraltet sein.',
               };
 
         const data = {
@@ -1119,7 +1132,9 @@ Returns both a detail list and **aggregated statistics**:
       async handler(ctx) {
         const { location, postalCode, boundingBox, landuseTypes } = ctx.params;
         if (!location && !postalCode && !boundingBox) {
-          throw new Error('At least one scope parameter must be provided: location, postalCode, or boundingBox.');
+          throw new Error(
+            'At least one scope parameter must be provided: location, postalCode, or boundingBox.'
+          );
         }
 
         let bbox;
@@ -1130,14 +1145,18 @@ Returns both a detail list and **aggregated statistics**:
           area = 'bbox';
           scopeSource = 'explicit_bbox';
         } else {
-          const locationName = postalCode && location ? `${postalCode} ${location}` : postalCode || location;
+          const locationName =
+            postalCode && location ? `${postalCode} ${location}` : postalCode || location;
           try {
             bbox = await osmGridTopology.geocodeLocationToBbox(locationName);
           } catch (err) {
             return _degraded(_classifyDegradedReason(err.message), err.message);
           }
           if (!bbox) {
-            return _degraded('GEOCODING_FAILED', `Could not resolve "${locationName}" to a bounding box.`);
+            return _degraded(
+              'GEOCODING_FAILED',
+              `Could not resolve "${locationName}" to a bounding box.`
+            );
           }
           area = locationName;
           scopeSource = postalCode ? 'postal_code' : 'location_name';

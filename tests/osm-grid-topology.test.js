@@ -192,7 +192,12 @@ describe('geocodeLocationToBbox', () => {
       data: [{ boundingbox: ['49.3034154', '49.3593176', '8.4554738', '8.6040426'] }],
     });
     const bbox = await geocodeLocationToBbox('Hockenheim');
-    expect(bbox).toEqual({ south: 49.3034154, north: 49.3593176, west: 8.4554738, east: 8.6040426 });
+    expect(bbox).toEqual({
+      south: 49.3034154,
+      north: 49.3593176,
+      west: 8.4554738,
+      east: 8.6040426,
+    });
   });
 
   it('sends an identifying User-Agent (Nominatim usage-policy requirement)', async () => {
@@ -514,7 +519,12 @@ describe('computeMetrics', () => {
     const edges = [];
     for (let i = 0; i < nodes.length; i++) {
       for (let j = i + 1; j < nodes.length; j++) {
-        edges.push({ from: nodes[i].osmId, to: nodes[j].osmId, voltageLevel: 'HS', lengthKmApprox: 1 });
+        edges.push({
+          from: nodes[i].osmId,
+          to: nodes[j].osmId,
+          voltageLevel: 'HS',
+          lengthKmApprox: 1,
+        });
       }
     }
     const metrics = computeMetrics(nodes, edges);

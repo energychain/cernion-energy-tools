@@ -34176,6 +34176,7 @@
               "application/json": {
                 "example": {
                   "success": true,
+                  "degraded": false,
                   "co2_intensity_gco2eq_kwh": 380,
                   "average_today_gco2eq_kwh": 364.5,
                   "data": {
@@ -34210,7 +34211,7 @@
             }
           }
         },
-        "description": "Query CO2 intensity for a specific location in Germany from GrünstromIndex.\n\n**'location' is required** — provide a German city name or 5-digit postal code.\n\n**Parameter Details:**\n- **location**: German city name or postal code (required, e.g. a city name or 5-digit postal code)\n- **timestamp**: Specific timestamp (ISO 8601 or natural language like \"now\", \"tomorrow 14:00\")\n- **forecast**: Get 36-hour forecast instead of current value (default: false)\n- **format**: Output format — \"json\" (default), \"csv\", \"xlsx\"/\"xls\". CSV includes `# Location`, `# Current CO2 Intensity`, `# Average Today` header comments followed by the hourly forecast rows.\n\n**Use Cases:**\n- CO₂-optimized dynamic tariffs\n- Smart EV charging (charge when grid is greenest)\n- Load shifting for industrial consumers\n- Green energy certificates\n- Power BI / Excel import with `format=csv`\n\n**Data Source:** GrünstromIndex provides regional green energy forecasts with 36-hour horizon, factoring in renewable generation, grid mix, and transmission constraints.",
+        "description": "Query CO2 intensity for a specific location in Germany from GrünstromIndex.\n\n**'location' is required** — provide a German city name or 5-digit postal code.\n\n**Parameter Details:**\n- **location**: German city name or postal code (required, e.g. a city name or 5-digit postal code)\n- **timestamp**: Specific timestamp (ISO 8601 or natural language like \"now\", \"tomorrow 14:00\")\n- **forecast**: Get 36-hour forecast instead of current value (default: false)\n- **format**: Output format — \"json\" (default), \"csv\", \"xlsx\"/\"xls\". CSV includes `# Location`, `# Current CO2 Intensity`, `# Average Today` header comments followed by the hourly forecast rows.\n\n**Use Cases:**\n- CO₂-optimized dynamic tariffs\n- Smart EV charging (charge when grid is greenest)\n- Load shifting for industrial consumers\n- Green energy certificates\n- Power BI / Excel import with `format=csv`\n\n**Reliability note:** When GrünstromIndex returns nullable standard CO₂ fields, CET uses populated\n`co2_g_oekostrom` values as an explicitly marked degraded fallback. If no numeric CO₂ source field\nis available, the response is `success:false`/`status:\"unavailable\"` with warnings instead of a\nfabricated all-zero forecast.\n\n**Data Source:** GrünstromIndex provides regional green energy forecasts with 36-hour horizon, factoring in renewable generation, grid mix, and transmission constraints.",
         "requestBody": {
           "content": {
             "application/json": {
@@ -41125,6 +41126,150 @@
             }
           }
         ]
+      }
+    },
+    "/api/forecast-sandbox/consumption/validate": {
+      "post": {
+        "operationId": "forecast-sandbox_validateConsumptionSeries",
+        "summary": "Validate a quarter-hourly consumption series",
+        "tags": [
+          "Forecast Sandbox"
+        ],
+        "responses": {
+          "200": {
+            "description": "Validation processed (see `validation.accepted` and `errors`)."
+          }
+        },
+        "description": "Checks whether a submitted PT15M consumption series is technically fit for a forecast/backtest path: grid alignment, missing/duplicate intervals, negative values, and outliers. Sandbox/evaluation use only — see `commercialBoundary`.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "seriesId",
+                  "granularity",
+                  "timezone",
+                  "unit",
+                  "values"
+                ],
+                "properties": {
+                  "seriesId": {
+                    "type": "string",
+                    "example": "cells-demo-001"
+                  },
+                  "meteringType": {
+                    "type": "string",
+                    "enum": [
+                      "RLM",
+                      "iMSys"
+                    ],
+                    "example": "RLM"
+                  },
+                  "granularity": {
+                    "type": "string",
+                    "enum": [
+                      "PT15M"
+                    ],
+                    "example": "PT15M"
+                  },
+                  "timezone": {
+                    "type": "string",
+                    "example": "Europe/Berlin"
+                  },
+                  "unit": {
+                    "type": "string",
+                    "enum": [
+                      "kWh",
+                      "kW"
+                    ],
+                    "example": "kWh"
+                  },
+                  "values": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "ts": {
+                          "type": "string",
+                          "format": "date-time",
+                          "example": "2025-01-01T00:00:00+01:00"
+                        },
+                        "value": {
+                          "type": "number",
+                          "example": 12.34
+                        }
+                      }
+                    }
+                  },
+                  "options": {
+                    "type": "object",
+                    "properties": {
+                      "allowNegativeValues": {
+                        "type": "boolean",
+                        "default": false
+                      },
+                      "detectOutliers": {
+                        "type": "boolean",
+                        "default": true
+                      },
+                      "strictQuarterHourGrid": {
+                        "type": "boolean",
+                        "default": true
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/forecast-sandbox/consumption/day-ahead": {
+      "post": {
+        "operationId": "forecast-sandbox_dayAheadConsumption",
+        "summary": "Generate a baseline day-ahead consumption forecast",
+        "tags": [
+          "Forecast Sandbox"
+        ],
+        "responses": {
+          "200": {
+            "description": "Forecast generated (see `method` for the baseline method used)."
+          }
+        },
+        "description": "Deterministic weekday-profile baseline forecast (method `baseline_weekday_profile_v0`) for one calendar day, from historical PT15M consumption values. Baseline only — no ML, no production commitment."
+      }
+    },
+    "/api/forecast-sandbox/consumption/backtest": {
+      "post": {
+        "operationId": "forecast-sandbox_backtestConsumption",
+        "summary": "Backtest the baseline forecast against historical actuals",
+        "tags": [
+          "Forecast Sandbox"
+        ],
+        "responses": {
+          "200": {
+            "description": "Backtest computed (see `metrics` and `readiness`)."
+          }
+        },
+        "description": "Trains the weekday-profile baseline on [trainFrom, trainTo] and evaluates it against actualValues in [testFrom, testTo]. Returns MAE/RMSE/MAPE/bias (via the same calculateForecastQuality helper used by /api/forecast/quality), an absolute-error-only aeRiskProxy, and a readiness verdict. No cost/€ guarantee."
+      }
+    },
+    "/api/forecast-sandbox/openapi.json": {
+      "get": {
+        "operationId": "forecast-sandbox_openapi",
+        "summary": "Isolated OpenAPI document for the Forecast Sandbox endpoints",
+        "tags": [
+          "Forecast Sandbox"
+        ],
+        "responses": {
+          "200": {
+            "description": "OpenAPI 3.x document."
+          }
+        },
+        "description": "Returns a standalone OpenAPI 3.x document containing only the /api/forecast-sandbox/* paths — meant to be linked directly to a B2B lead, without the rest of the CET API surface."
       }
     },
     "/api/forecast/generation-forecast": {
@@ -62330,17 +62475,74 @@
     "/api/vnb-100-tage-assessment/assessments": {
       "post": {
         "operationId": "vnb-100-tage-assessment_assess",
-        "summary": "vnb-100-tage-assessment.assess",
+        "summary": "Run a 100-day quick assessment for a grid operator",
         "tags": [
-          "vnb-100-tage-assessment"
+          "VNB 100-Tage Assessment"
         ],
         "responses": {
           "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
+            "description": "100-day assessment result with management template"
+          }
+        },
+        "description": "Runs a structured 100-day assessment across 6 domains. Scores KPIs against benchmarks, identifies top ROI levers, and produces a management decision template.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "gridOperatorId",
+                  "kpiValues"
+                ],
+                "properties": {
+                  "gridOperatorId": {
+                    "type": "string"
+                  },
+                  "kpiValues": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "number"
+                    },
+                    "description": "Map of KPI ID to current numeric value, e.g. capex_efficiency_pct, saidi_minutes, mastr_accuracy_pct."
+                  },
+                  "roiMeasures": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "measureId": {
+                          "type": "string"
+                        },
+                        "description": {
+                          "type": "string"
+                        },
+                        "estimatedRoiEurPerYear": {
+                          "type": "number"
+                        },
+                        "implementationCostEur": {
+                          "type": "number"
+                        },
+                        "paybackMonths": {
+                          "type": "number"
+                        }
+                      }
+                    },
+                    "default": []
+                  },
+                  "forbiddenAssumptions": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "default": []
+                  },
+                  "assessorRole": {
+                    "type": "string"
+                  },
+                  "label": {
+                    "type": "string"
+                  }
                 }
               }
             }
@@ -63642,6 +63844,11 @@
                       "type": "string",
                       "nullable": true
                     },
+                    "municipalityKey": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "05513000"
+                    },
                     "graphStats": {
                       "type": "object"
                     }
@@ -63697,6 +63904,12 @@
                   "name": {
                     "type": "string",
                     "example": "Ludwigshafen Nord Q3-2026"
+                  },
+                  "municipalityKey": {
+                    "type": "string",
+                    "nullable": true,
+                    "description": "Optional 8-digit AGS (Amtlicher Gemeindeschlüssel) municipality code.",
+                    "example": "05513000"
                   }
                 }
               },
@@ -63709,7 +63922,8 @@
                       "north": 49.52,
                       "east": 8.52
                     },
-                    "name": "Ludwigshafen Nord Q3-2026"
+                    "name": "Ludwigshafen Nord Q3-2026",
+                    "municipalityKey": "05513000"
                   }
                 }
               }
@@ -64741,6 +64955,27 @@
             }
           }
         ]
+      }
+    },
+    "/api/znp/projects/:id/layers": {
+      "post": {
+        "operationId": "znp_layers",
+        "summary": "znp.layers",
+        "tags": [
+          "znp"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/v1/chat/completions": {

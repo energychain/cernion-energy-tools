@@ -18,6 +18,25 @@ const {
   FORMAT_RESPONSE_CONTENT,
 } = require('../src/format-response');
 
+function withSafeUpstreamDiagnostic(result, toolName) {
+  if (result?.data?.isError !== true || result?.data?.content?.[0]?.text) {
+    return result;
+  }
+
+  return {
+    ...result,
+    data: {
+      ...result.data,
+      content: [
+        {
+          type: 'text',
+          text: `EWK upstream MCP tool ${toolName} failed without details (upstream_mcp_error_no_details). Check MCP data source/token/config outside CET; request parameters were accepted by CET.`,
+        },
+      ],
+    },
+  };
+}
+
 module.exports = {
   name: 'ewk-monitoring',
 
@@ -219,7 +238,13 @@ module.exports = {
           mcpParams,
           ctx.meta.cernionToken
         );
-        return applyFormat(ctx, result, format, 'ewk-anschlussdauer', 'Anschlussdauer');
+        return applyFormat(
+          ctx,
+          withSafeUpstreamDiagnostic(result, 'ewk_anschlussdauer'),
+          format,
+          'ewk-anschlussdauer',
+          'Anschlussdauer'
+        );
       },
     },
 
@@ -406,7 +431,7 @@ module.exports = {
         );
         return applyFormat(
           ctx,
-          result,
+          withSafeUpstreamDiagnostic(result, 'ewk_digitalisierungsindex'),
           format,
           'ewk-digitalisierungsindex',
           'Digitalisierungsindex'
@@ -601,7 +626,13 @@ module.exports = {
           mcpParams,
           ctx.meta.cernionToken
         );
-        return applyFormat(ctx, result, format, 'ewk-umsetzungsquote', 'Umsetzungsquote');
+        return applyFormat(
+          ctx,
+          withSafeUpstreamDiagnostic(result, 'ewk_umsetzungsquote'),
+          format,
+          'ewk-umsetzungsquote',
+          'Umsetzungsquote'
+        );
       },
     },
 
@@ -716,7 +747,13 @@ module.exports = {
           mcpParams,
           ctx.meta.cernionToken
         );
-        return applyFormat(ctx, result, format, 'ewk-benchmark-vnb', 'EWK Benchmark');
+        return applyFormat(
+          ctx,
+          withSafeUpstreamDiagnostic(result, 'ewk_benchmark_vnb'),
+          format,
+          'ewk-benchmark-vnb',
+          'EWK Benchmark'
+        );
       },
     },
   },

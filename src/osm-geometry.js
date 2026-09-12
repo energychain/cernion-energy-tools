@@ -106,10 +106,10 @@ function polygonAreaM2(coords) {
  */
 function polygonCentroid(coords) {
   if (!coords || coords.length === 0) return null;
-  const sum = coords.reduce(
-    (acc, c) => ({ lat: acc.lat + c.lat, lon: acc.lon + c.lon }),
-    { lat: 0, lon: 0 }
-  );
+  const sum = coords.reduce((acc, c) => ({ lat: acc.lat + c.lat, lon: acc.lon + c.lon }), {
+    lat: 0,
+    lon: 0,
+  });
   return { lat: sum.lat / coords.length, lon: sum.lon / coords.length };
 }
 

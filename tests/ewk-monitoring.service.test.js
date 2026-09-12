@@ -414,6 +414,22 @@ describe('EWK Monitoring Service', () => {
       expect(calledParams).not.toHaveProperty('format');
     });
 
+    it('should surface a safe diagnostic when upstream returns an error without details', async () => {
+      callWithNewSession.mockResolvedValueOnce({
+        success: false,
+        data: {
+          isError: true,
+          content: [],
+        },
+      });
+
+      await expect(
+        broker.call('ewk-monitoring.benchmarkVnb', { vnbName: 'Netze BW' })
+      ).rejects.toThrow(
+        'EWK upstream MCP tool ewk_benchmark_vnb failed without details (upstream_mcp_error_no_details)'
+      );
+    });
+
     it('should pass vnbName correctly to MCP tool', async () => {
       callWithNewSession.mockClear();
       await broker.call('ewk-monitoring.benchmarkVnb', { vnbName: 'Stadtwerke Heidelberg' });

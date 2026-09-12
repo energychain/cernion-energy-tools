@@ -64,6 +64,7 @@ describe('askCernionAgent Willi-Mako MaKo/EDIFACT evidence (#498)', () => {
     'APERAK Fehlercode Z18 erklären',
     'Welche UTILMD-Segmentstruktur ist für Lieferantenwechsel relevant?',
     'Was bedeutet ein MSCONS Prüfhinweis im MaKo-Kontext?',
+    'EVUCL A06 andere Anmeldung wird verarbeitet',
   ])(
     'calls willi-mako.resolveStructure (read-only) for generic MaKo question: %s',
     async (question) => {

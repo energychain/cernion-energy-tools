@@ -271,11 +271,7 @@ module.exports = {
           data = await this._oepGet('/schema/');
         } catch (err) {
           if (err.response?.status === 404) {
-            throw new MoleculerClientError(
-              'OEP schema listing is not available',
-              404,
-              'NOT_FOUND'
-            );
+            throw new MoleculerClientError('OEP schema listing is not available', 404, 'NOT_FOUND');
           }
           throw err;
         }
