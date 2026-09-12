@@ -1,6 +1,36 @@
 'use strict';
 
 const path = require('path');
+const os = require('os');
+
+// Confinement roots for the gas-layer `source` directory (POST
+// /projects/:id/layers, commodity=gas): the repo root (covers the documented
+// fixtures_real/fixtures_parallel dev usage), the shared uploads directory
+// used elsewhere in the gateway (services/api.service.js's UPLOAD_DIR), and
+// the system temp dir (covers server-staged CSVs). `source` is a REST
+// request parameter, so an unconfined path.join(source, 'nodes.csv') would
+// let a caller (human or an agent acting on injected instructions) read
+// arbitrary files on the server via a crafted absolute path or `../`
+// traversal — resolveGasLayerSourceDir() rejects anything outside these
+// roots before it ever reaches the CLI. Existence is deliberately not
+// checked here: a missing/malformed source still fails clearly downstream
+// in buildGasGraphFromScigrid, which the caller already handles.
+const GAS_LAYER_SOURCE_ROOTS = [
+  path.resolve(process.cwd()),
+  path.resolve(__dirname, '..', 'uploads'),
+  path.resolve(os.tmpdir()),
+];
+
+function resolveGasLayerSourceDir(rawSource) {
+  const resolved = path.resolve(rawSource);
+  const withinAllowedRoot = GAS_LAYER_SOURCE_ROOTS.some(
+    (root) => resolved === root || resolved.startsWith(root + path.sep)
+  );
+  if (!withinAllowedRoot) {
+    throw new Error(`gas layer source escapes allowed directories: ${resolved}`);
+  }
+  return resolved;
+}
 
 /**
  * ZNP — Zielnetzplanung Workspace API (v0.20.4)
@@ -2586,9 +2616,10 @@ module.exports = {
           // for required columns). Falls back to the virtual-root-only graph
           // on any ingestion failure so the endpoint stays idempotent/available.
           try {
+            const sourceDir = resolveGasLayerSourceDir(source);
             const built = buildGasGraphFromScigrid({
-              nodesPath: path.join(source, 'nodes.csv'),
-              edgesPath: path.join(source, 'edges.csv'),
+              nodesPath: path.join(sourceDir, 'nodes.csv'),
+              edgesPath: path.join(sourceDir, 'edges.csv'),
               projectId,
               rootNodeId,
             });

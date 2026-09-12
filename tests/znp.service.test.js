@@ -818,6 +818,35 @@ describe('ZNP Service', () => {
       const active = znpService.activeGraphs.get(`${projectId}:gas`);
       expect(active.graph.order).toBe(1);
     });
+
+    it('rejects a source path outside the allowed roots and falls back to the virtual-root graph (path-traversal guard)', async () => {
+      const tenantMeta = { meta: { tenantId: 'default' } };
+      const { projectId } = await broker.call(
+        'znp.createProject',
+        { bbox: makeBbox() },
+        tenantMeta
+      );
+      const result = await broker.call(
+        'znp.layers',
+        {
+          id: projectId,
+          commodity: 'gas',
+          source: '/etc/passwd/../../etc',
+        },
+        tenantMeta
+      );
+
+      // A caller-supplied source outside cwd/uploads/tmp must never reach
+      // buildGasGraphFromScigrid (which would in turn shell out to Python
+      // with that path as a CLI argument).
+      expect(mockBuildGasGraphFromScigrid).not.toHaveBeenCalled();
+      expect(result.commodity).toBe('gas');
+
+      const znpService = broker.getLocalService('znp');
+      const active = znpService.activeGraphs.get(`${projectId}:gas`);
+      expect(active.graph.order).toBe(1);
+      expect(active.graph.hasNode('GAS_FEED_1')).toBe(true);
+    });
   });
 
   // ─── addLayer2 ─────────────────────────────────────────────────────────────
