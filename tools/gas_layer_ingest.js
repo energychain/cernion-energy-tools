@@ -24,6 +24,23 @@ const Graph = require('graphology');
 
 const SCRIPT_PATH = path.join(__dirname, 'scigrid_gas_to_znp.py');
 
+// Fixed, unwriteable candidate locations for the python3 interpreter, checked
+// before falling back to a bare 'python3' PATH lookup — avoids letting an
+// attacker-controlled PATH entry (e.g. a writable directory prepended ahead
+// of the real interpreter) get picked up by execFileSync.
+const PYTHON3_CANDIDATES = [
+  '/usr/bin/python3',
+  '/usr/local/bin/python3',
+  '/opt/homebrew/bin/python3',
+];
+
+function resolvePython3Executable() {
+  for (const candidate of PYTHON3_CANDIDATES) {
+    if (fs.existsSync(candidate)) return candidate;
+  }
+  return 'python3';
+}
+
 /**
  * Build a gas-layer graphology Graph from a SciGRID_gas nodes/edges CSV pair.
  *
@@ -64,7 +81,7 @@ function buildGasGraphFromScigrid({ nodesPath, edgesPath, projectId, rootNodeId 
   }
 
   try {
-    execFileSync('python3', args, { stdio: ['ignore', 'pipe', 'pipe'] });
+    execFileSync(resolvePython3Executable(), args, { stdio: ['ignore', 'pipe', 'pipe'] });
   } catch (err) {
     const stderr = err.stderr ? err.stderr.toString() : err.message;
     throw new Error(`gas ingest: scigrid_gas_to_znp.py failed: ${stderr}`);

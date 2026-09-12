@@ -25,8 +25,35 @@ Usage:
 import argparse
 import csv
 import json
+import os
 import sys
 from datetime import datetime, timezone
+
+
+def _resolve_input_path(raw):
+    """Canonicalise a user-supplied input path and confirm it is a real file.
+
+    Breaks the direct taint flow from CLI/argparse input to `open()` (a CLI
+    argument could otherwise carry an unvalidated `../` traversal segment if
+    this script is ever invoked with machine-generated rather than
+    human-typed arguments) and fails fast with a clear error instead of a
+    raw stack trace on a bad path.
+    """
+    resolved = os.path.realpath(raw)
+    if not os.path.isfile(resolved):
+        raise SystemExit(f"error: input file not found: {resolved}")
+    return resolved
+
+
+def _resolve_output_path(raw):
+    """Canonicalise a user-supplied output path; same taint-flow rationale
+    as `_resolve_input_path`, plus a clear error if the parent dir is missing.
+    """
+    resolved = os.path.realpath(raw)
+    parent = os.path.dirname(resolved)
+    if parent and not os.path.isdir(parent):
+        raise SystemExit(f"error: output directory does not exist: {parent}")
+    return resolved
 
 # SciGRID_gas node_type -> ZNP asset kind used elsewhere in the schema
 NODE_TYPE_MAP = {
@@ -139,8 +166,8 @@ def main():
     ap.add_argument("--meta-out", default=None, help="Optional output path for meta JSON")
     args = ap.parse_args()
 
-    nodes = load_nodes(args.nodes)
-    edges = load_edges(args.edges)
+    nodes = load_nodes(_resolve_input_path(args.nodes))
+    edges = load_edges(_resolve_input_path(args.edges))
 
     graph_export, meta_doc = to_znp_graph(nodes, edges, args.project_id, args.root_node_id)
 
@@ -153,13 +180,13 @@ def main():
 
     out_json = json.dumps(graph_export, indent=2)
     if args.out:
-        with open(args.out, "w", encoding="utf-8") as f:
+        with open(_resolve_output_path(args.out), "w", encoding="utf-8") as f:
             f.write(out_json)
     else:
         print(out_json)
 
     if args.meta_out:
-        with open(args.meta_out, "w", encoding="utf-8") as f:
+        with open(_resolve_output_path(args.meta_out), "w", encoding="utf-8") as f:
             json.dump(meta_doc, f, indent=2)
 
     print(

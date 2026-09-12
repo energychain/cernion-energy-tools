@@ -29,7 +29,34 @@ Usage:
 import argparse
 import ast
 import csv
+import os
 import sys
+
+
+def _resolve_input_path(raw):
+    """Canonicalise a user-supplied input path and confirm it is a real file.
+
+    Breaks the direct taint flow from CLI/argparse input to `open()` (a CLI
+    argument could otherwise carry an unvalidated `../` traversal segment if
+    this script is ever invoked with machine-generated rather than
+    human-typed arguments) and fails fast with a clear error instead of a
+    raw stack trace on a bad path.
+    """
+    resolved = os.path.realpath(raw)
+    if not os.path.isfile(resolved):
+        raise SystemExit(f"error: input file not found: {resolved}")
+    return resolved
+
+
+def _resolve_output_path(raw):
+    """Canonicalise a user-supplied output path; same taint-flow rationale
+    as `_resolve_input_path`, plus a clear error if the parent dir is missing.
+    """
+    resolved = os.path.realpath(raw)
+    parent = os.path.dirname(resolved)
+    if parent and not os.path.isdir(parent):
+        raise SystemExit(f"error: output directory does not exist: {parent}")
+    return resolved
 
 
 def _parse_pylist(raw):
@@ -111,8 +138,8 @@ def main():
     ap.add_argument("--out-edges", required=True)
     args = ap.parse_args()
 
-    n = convert_nodes(args.nodes, args.out_nodes)
-    e = convert_edges(args.edges, args.out_edges)
+    n = convert_nodes(_resolve_input_path(args.nodes), _resolve_output_path(args.out_nodes))
+    e = convert_edges(_resolve_input_path(args.edges), _resolve_output_path(args.out_edges))
     print(f"OK: wrote {n} nodes -> {args.out_nodes}, {e} edges -> {args.out_edges}", file=sys.stderr)
 
 
