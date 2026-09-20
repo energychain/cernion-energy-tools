@@ -124,7 +124,7 @@ function cloneJsonLike(value) {
 }
 
 function cloneStringArray(value) {
-  return Array.isArray(value) ? value.map((entry) => String(entry)) : [];
+  return Array.isArray(value) ? value.map(String) : [];
 }
 
 function buildGovernanceArchitecture(task, role) {
@@ -149,7 +149,7 @@ function buildGovernanceArchitecture(task, role) {
   };
 
   for (const key of ['candidateId', 'workedExample', 'readiness', 'resolutionValue']) {
-    if (Object.prototype.hasOwnProperty.call(governanceArchitecture, key)) {
+    if (Object.hasOwn(governanceArchitecture, key)) {
       enrichment[key] = cloneJsonLike(governanceArchitecture[key]);
     }
   }
