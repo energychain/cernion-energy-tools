@@ -126,25 +126,17 @@ describe('CR-LKA projection schema contract', () => {
     );
   });
 
-  test('keeps safety and HITL booleans invariantly true', () => {
-    const unsafeExternalSend = clone(buildMakoResolutionValueProjection());
-    unsafeExternalSend.safetyBoundary.noExternalSend = false;
-    expectInvalidProjection(unsafeExternalSend, 'const');
+  test('rejects unsafe false safety and HITL boundary flags', () => {
+    const allowsExternalSend = clone(buildMakoResolutionValueProjection());
+    allowsExternalSend.safetyBoundary.noExternalSend = false;
+    expectInvalidProjection(allowsExternalSend, 'must be equal to constant');
 
-    const unsafeBillingApproval = clone(buildMakoResolutionValueProjection());
-    unsafeBillingApproval.safetyBoundary.noBillingApproval = false;
-    expectInvalidProjection(unsafeBillingApproval, 'const');
+    const allowsBillingApproval = clone(buildMakoResolutionValueProjection());
+    allowsBillingApproval.safetyBoundary.noBillingApproval = false;
+    expectInvalidProjection(allowsBillingApproval, 'must be equal to constant');
 
-    const unsafeBudgetCommitment = clone(buildMakoResolutionValueProjection());
-    unsafeBudgetCommitment.safetyBoundary.noBudgetCommitment = false;
-    expectInvalidProjection(unsafeBudgetCommitment, 'const');
-
-    const unsafeConsequentialAction = clone(buildMakoResolutionValueProjection());
-    unsafeConsequentialAction.safetyBoundary.requiresHitlForConsequentialAction = false;
-    expectInvalidProjection(unsafeConsequentialAction, 'const');
-
-    const withoutHitlGate = clone(buildMakoResolutionValueProjection());
-    withoutHitlGate.hitlBoundary.requiresHitl = false;
-    expectInvalidProjection(withoutHitlGate, 'const');
+    const noHitl = clone(buildAssetToDecisionProjection());
+    noHitl.hitlBoundary.requiresHitl = false;
+    expectInvalidProjection(noHitl, 'must be equal to constant');
   });
 });

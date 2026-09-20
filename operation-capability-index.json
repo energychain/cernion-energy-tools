@@ -2,7 +2,7 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.99.21",
-  "sourceOpenApiHash": "ad6b91173ab47e3c0d602dba75834cf7c5c44e03eb693868e981a0d576c34699",
+  "sourceOpenApiHash": "642ef288e69501cc63729223c22b6a43f72226c5df503adf4ea928bcb43b7a4f",
   "coverage": {
     "rawOperationCount": 1144,
     "operationCount": 888,
@@ -38354,7 +38354,7 @@
             "name": "metadata",
             "in": "body",
             "type": "object",
-            "description": "Optional persisted governance metadata, including CR-LKA-RV-001 governanceArchitecture fields.",
+            "description": "Optional governance or process metadata persisted with the frame. For CR-LKA, metadata.governanceArchitecture may carry changeRequest, candidateId, runCardId, workedExample, readiness, resolutionValue and role/action boundaries.",
             "extractionHint": null
           }
         ]
@@ -38497,7 +38497,57 @@
       "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
       "parameters": {
         "required": [],
-        "optional": []
+        "optional": [
+          {
+            "name": "situation",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "complication",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "question",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "answer",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "status",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "role",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "metadata",
+            "in": "body",
+            "type": "object",
+            "description": "Optional governance or process metadata persisted with the frame. For CR-LKA, metadata.governanceArchitecture may carry changeRequest, candidateId, runCardId, workedExample, readiness, resolutionValue and role/action boundaries.",
+            "extractionHint": null
+          }
+        ]
       },
       "rankingSignals": {
         "positiveKeywords": [

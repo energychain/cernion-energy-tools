@@ -26,6 +26,91 @@ const ENTITY_TYPE_VALUES = [
   'process_intent',
 ];
 
+const DECISION_FRAME_METADATA_SCHEMA = {
+  type: 'object',
+  additionalProperties: true,
+  description:
+    'Optional governance or process metadata persisted with the frame. For CR-LKA, ' +
+    'metadata.governanceArchitecture may carry changeRequest, candidateId, runCardId, ' +
+    'workedExample, readiness, resolutionValue and role/action boundaries.',
+  example: {
+    governanceArchitecture: {
+      changeRequest: 'CR-LKA-RV-001',
+      candidateId: 'CRC001',
+      runCardId: 'RC002_mako_clarification_to_m2c_revenue_risk',
+      workedExample: 'mako_m2c_resolution_value',
+      sideEffects: 'none',
+    },
+  },
+};
+
+const DECISION_FRAME_CREATE_REQUEST_BODY = {
+  required: true,
+  content: {
+    'application/json': {
+      schema: {
+        type: 'object',
+        required: ['situation', 'complication', 'question', 'domain'],
+        properties: {
+          situation: { type: 'string', minLength: 10 },
+          complication: { type: 'string', minLength: 10 },
+          question: { type: 'string', minLength: 5 },
+          answer: { type: 'string' },
+          domain: { type: 'string', enum: DOMAIN_VALUES },
+          role: { type: 'string', enum: ROLE_VALUES },
+          createdBy: { type: 'string' },
+          metadata: DECISION_FRAME_METADATA_SCHEMA,
+        },
+      },
+      examples: {
+        governanceFrame: {
+          summary: 'Create a decision frame with governance metadata',
+          value: {
+            situation: 'A MaKo clarification blocks cashflow attribution for a resolution candidate.',
+            complication:
+              'Evidence is incomplete and consequential actions must remain behind HITL.',
+            question: 'Which role can resolve the next governance step?',
+            domain: 'operational',
+            role: 'operations',
+            createdBy: 'agent-os',
+            metadata: DECISION_FRAME_METADATA_SCHEMA.example,
+          },
+        },
+      },
+    },
+  },
+};
+
+const DECISION_FRAME_UPDATE_REQUEST_BODY = {
+  required: true,
+  content: {
+    'application/json': {
+      schema: {
+        type: 'object',
+        properties: {
+          situation: { type: 'string', minLength: 10 },
+          complication: { type: 'string', minLength: 10 },
+          question: { type: 'string', minLength: 5 },
+          answer: { type: 'string' },
+          status: { type: 'string', enum: STATUS_VALUES },
+          role: { type: 'string', enum: ROLE_VALUES },
+          metadata: DECISION_FRAME_METADATA_SCHEMA,
+        },
+      },
+      examples: {
+        governanceFrameUpdate: {
+          summary: 'Update persisted governance metadata',
+          value: {
+            answer: 'Route to billing operations for evidence completion before approval.',
+            status: 'active',
+            metadata: DECISION_FRAME_METADATA_SCHEMA.example,
+          },
+        },
+      },
+    },
+  },
+};
+
 // ─── Schema for AI-assisted starter generation ────────────────────────────────
 
 const STARTER_SCHEMA = {
@@ -56,7 +141,7 @@ function isPlainObject(value) {
 
 function cloneMetadata(value) {
   if (!isPlainObject(value)) return {};
-  return structuredClone(value);
+  return JSON.parse(JSON.stringify(value));
 }
 
 function hasNonEmptyObject(value) {
@@ -134,33 +219,7 @@ module.exports = {
       openapi: {
         summary: 'Create a SCQA decision frame',
         tags: [OPENAPI_TAG],
-        requestBody: {
-          required: true,
-          content: {
-            'application/json': {
-              schema: {
-                type: 'object',
-                additionalProperties: false,
-                required: ['situation', 'complication', 'question', 'domain'],
-                properties: {
-                  situation: { type: 'string', minLength: 10 },
-                  complication: { type: 'string', minLength: 10 },
-                  question: { type: 'string', minLength: 5 },
-                  answer: { type: 'string' },
-                  domain: { type: 'string', enum: DOMAIN_VALUES },
-                  role: { type: 'string', enum: ROLE_VALUES },
-                  createdBy: { type: 'string' },
-                  metadata: {
-                    type: 'object',
-                    description:
-                      'Optional persisted governance metadata, including CR-LKA-RV-001 governanceArchitecture fields.',
-                    additionalProperties: true,
-                  },
-                },
-              },
-            },
-          },
-        },
+        requestBody: DECISION_FRAME_CREATE_REQUEST_BODY,
       },
       params: {
         situation: { type: 'string', min: 10 },
@@ -299,6 +358,7 @@ module.exports = {
       openapi: {
         summary: 'Update a SCQA decision frame (patch answer, status, etc.)',
         tags: [OPENAPI_TAG],
+        requestBody: DECISION_FRAME_UPDATE_REQUEST_BODY,
       },
       params: {
         frameId: { type: 'string' },
