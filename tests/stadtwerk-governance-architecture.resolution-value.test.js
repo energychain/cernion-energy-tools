@@ -49,4 +49,40 @@ describe('stadtwerk governance architecture MaKo resolution value projection', (
     expect(projection.forbiddenActions).toEqual(expect.arrayContaining(fixture.forbiddenActions));
     expect(projection.allowedActions).not.toContain('approve_invoice');
   });
+
+  test('defaults to partial, low-confidence status until required evidence is explicitly provided', () => {
+    const projection = buildMakoResolutionValueProjection();
+
+    expect(projection.evidenceState.missingEvidence).toEqual(
+      expect.arrayContaining([
+        'confirmed_invoice_amount',
+        'market_partner_confirmation',
+        'owner_approval',
+      ])
+    );
+    expect(projection.resolutionValue[0]).toEqual(
+      expect.objectContaining({
+        evidenceStatus: 'partial',
+        confidence: 'low',
+      })
+    );
+  });
+
+  test('marks MaKo resolution value validated only when required evidence is provided', () => {
+    const projection = buildMakoResolutionValueProjection({
+      providedEvidence: [
+        'confirmed_invoice_amount',
+        'market_partner_confirmation',
+        'owner_approval',
+      ],
+    });
+
+    expect(projection.evidenceState.missingEvidence).toEqual([]);
+    expect(projection.resolutionValue[0]).toEqual(
+      expect.objectContaining({
+        evidenceStatus: 'validated',
+        confidence: 'medium',
+      })
+    );
+  });
 });

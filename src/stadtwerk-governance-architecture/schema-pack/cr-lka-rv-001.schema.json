@@ -27,10 +27,7 @@
     },
     "workedExample": {
       "type": "string",
-      "enum": [
-        "mako_m2c_resolution_value",
-        "asset_to_decision"
-      ]
+      "enum": ["mako_m2c_resolution_value", "asset_to_decision"]
     },
     "roleProjection": {
       "type": "object",
@@ -41,12 +38,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "dimension",
-          "evidenceStatus",
-          "qualitativeImpact",
-          "confidence"
-        ],
+        "required": ["dimension", "evidenceStatus", "qualitativeImpact", "confidence"],
         "properties": {
           "dimension": {
             "type": "string",
@@ -63,23 +55,14 @@
           },
           "evidenceStatus": {
             "type": "string",
-            "enum": [
-              "missing",
-              "partial",
-              "validated",
-              "blocked"
-            ]
+            "enum": ["missing", "partial", "validated", "blocked"]
           },
           "qualitativeImpact": {
             "type": "string"
           },
           "confidence": {
             "type": "string",
-            "enum": [
-              "low",
-              "medium",
-              "high"
-            ]
+            "enum": ["low", "medium", "high"]
           },
           "requiredEvidence": {
             "type": "array",
@@ -105,11 +88,7 @@
     "readiness": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "drl",
-        "rcr",
-        "committeeReady"
-      ],
+      "required": ["drl", "rcr", "committeeReady"],
       "properties": {
         "drl": {
           "type": "integer",
@@ -137,30 +116,31 @@
       ],
       "properties": {
         "noExternalSend": {
-          "type": "boolean"
+          "type": "boolean",
+          "const": true
         },
         "noBillingApproval": {
-          "type": "boolean"
+          "type": "boolean",
+          "const": true
         },
         "noBudgetCommitment": {
-          "type": "boolean"
+          "type": "boolean",
+          "const": true
         },
         "requiresHitlForConsequentialAction": {
-          "type": "boolean"
+          "type": "boolean",
+          "const": true
         }
       }
     },
     "hitlBoundary": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "requiresHitl",
-        "requiredResolverRoles",
-        "pendingConfirmationActions"
-      ],
+      "required": ["requiresHitl", "requiredResolverRoles", "pendingConfirmationActions"],
       "properties": {
         "requiresHitl": {
-          "type": "boolean"
+          "type": "boolean",
+          "const": true
         },
         "requiredResolverRoles": {
           "type": "array",

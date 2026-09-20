@@ -134,6 +134,33 @@ module.exports = {
       openapi: {
         summary: 'Create a SCQA decision frame',
         tags: [OPENAPI_TAG],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                additionalProperties: false,
+                required: ['situation', 'complication', 'question', 'domain'],
+                properties: {
+                  situation: { type: 'string', minLength: 10 },
+                  complication: { type: 'string', minLength: 10 },
+                  question: { type: 'string', minLength: 5 },
+                  answer: { type: 'string' },
+                  domain: { type: 'string', enum: DOMAIN_VALUES },
+                  role: { type: 'string', enum: ROLE_VALUES },
+                  createdBy: { type: 'string' },
+                  metadata: {
+                    type: 'object',
+                    description:
+                      'Optional persisted governance metadata, including CR-LKA-RV-001 governanceArchitecture fields.',
+                    additionalProperties: true,
+                  },
+                },
+              },
+            },
+          },
+        },
       },
       params: {
         situation: { type: 'string', min: 10 },

@@ -33,7 +33,20 @@ function uniqueStrings(values = []) {
 }
 
 function buildMakoResolutionValueProjection(input = {}) {
-  const missingEvidence = uniqueStrings(input.missingEvidence || []);
+  const requiredEvidence = uniqueStrings([
+    'confirmed_invoice_amount',
+    'market_partner_confirmation',
+    'owner_approval',
+  ]);
+  const suppliedEvidence = uniqueStrings(input.providedEvidence || input.validatedEvidence || []);
+  const missingEvidence = uniqueStrings(
+    Array.isArray(input.missingEvidence)
+      ? input.missingEvidence
+      : requiredEvidence.filter((evidence) => !suppliedEvidence.includes(evidence))
+  );
+  const evidenceComplete = requiredEvidence.every((evidence) =>
+    suppliedEvidence.includes(evidence)
+  );
   const forbiddenActions = uniqueStrings([
     ...FORBIDDEN_MAKO_ACTIONS,
     ...(input.forbiddenActions || []),
@@ -64,16 +77,11 @@ function buildMakoResolutionValueProjection(input = {}) {
     resolutionValue: [
       {
         dimension: 'cashflow_acceleration',
-        evidenceStatus: missingEvidence.length > 0 ? 'partial' : 'validated',
+        evidenceStatus: evidenceComplete ? 'validated' : 'partial',
         qualitativeImpact:
           'Cashflow acceleration is qualitative only until invoice amount, market partner confirmation, and owner approval evidence are complete.',
         confidence: missingEvidence.length > 0 ? 'low' : 'medium',
-        requiredEvidence: uniqueStrings([
-          'confirmed_invoice_amount',
-          'market_partner_confirmation',
-          'owner_approval',
-          ...missingEvidence,
-        ]),
+        requiredEvidence,
         forbiddenClaims: ['final_cashflow_amount', 'approved_invoice_state'],
       },
     ],

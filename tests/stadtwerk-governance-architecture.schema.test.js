@@ -125,4 +125,26 @@ describe('CR-LKA projection schema contract', () => {
       "must have required property 'requiredResolverRoles'"
     );
   });
+
+  test('keeps safety and HITL booleans invariantly true', () => {
+    const unsafeExternalSend = clone(buildMakoResolutionValueProjection());
+    unsafeExternalSend.safetyBoundary.noExternalSend = false;
+    expectInvalidProjection(unsafeExternalSend, 'const');
+
+    const unsafeBillingApproval = clone(buildMakoResolutionValueProjection());
+    unsafeBillingApproval.safetyBoundary.noBillingApproval = false;
+    expectInvalidProjection(unsafeBillingApproval, 'const');
+
+    const unsafeBudgetCommitment = clone(buildMakoResolutionValueProjection());
+    unsafeBudgetCommitment.safetyBoundary.noBudgetCommitment = false;
+    expectInvalidProjection(unsafeBudgetCommitment, 'const');
+
+    const unsafeConsequentialAction = clone(buildMakoResolutionValueProjection());
+    unsafeConsequentialAction.safetyBoundary.requiresHitlForConsequentialAction = false;
+    expectInvalidProjection(unsafeConsequentialAction, 'const');
+
+    const withoutHitlGate = clone(buildMakoResolutionValueProjection());
+    withoutHitlGate.hitlBoundary.requiresHitl = false;
+    expectInvalidProjection(withoutHitlGate, 'const');
+  });
 });
