@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cernion.de/schemas/stadtwerk-governance-architecture/resolution-value-dimensions.schema.json",
+  "title": "Resolution Value Dimensions",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "allowedDimensions",
+    "forbiddenClaims"
+  ],
+  "properties": {
+    "allowedDimensions": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "billing_enablement",
+          "cashflow_acceleration",
+          "revenue_leakage_prevention",
+          "data_quality_improvement",
+          "compliance_audit_improvement",
+          "process_learning",
+          "customer_market_partner_deescalation",
+          "forecast_budget_confidence"
+        ]
+      }
+    },
+    "forbiddenClaims": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      }
+    },
+    "evidenceStatus": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "missing",
+          "partial",
+          "validated",
+          "blocked"
+        ]
+      }
+    },
+    "confidence": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "low",
+          "medium",
+          "high"
+        ]
+      }
+    }
+  }
+}

@@ -39,6 +39,20 @@ const STARTER_LLM_RESPONSE = {
   confidence: 'medium',
 };
 
+function makeGovernanceMetadata() {
+  return {
+    governanceArchitecture: {
+      changeRequest: 'CR-LKA-RV-001',
+      candidateId: 'CRC004',
+      runCardId: 'RC003_asset_state_to_budget_committee',
+      workedExample: 'asset_to_decision',
+      drl: 1,
+      rcr: 1,
+      forbiddenActions: ['recommend_final_investment_decision'],
+    },
+  };
+}
+
 // ─── Setup ────────────────────────────────────────────────────────────────────
 
 const MOCK_WILLI_MAKO_RESOLVE_STRUCTURE = {
@@ -159,6 +173,16 @@ describe('decision-frame.service', () => {
         makeFrame({ answer: 'Rollout 180 Steuereinheiten bis Q3.' })
       );
       expect(result.answer).toBe('Rollout 180 Steuereinheiten bis Q3.');
+    });
+
+    it('stores optional governance metadata for CR-LKA decision frames', async () => {
+      const metadata = makeGovernanceMetadata();
+      const created = await broker.call('decision-frame.create', makeFrame({ metadata }));
+
+      expect(created.metadata).toEqual(metadata);
+
+      const fetched = await broker.call('decision-frame.get', { frameId: created.frameId });
+      expect(fetched.metadata).toEqual(metadata);
     });
 
     it('sets createdAt and updatedAt timestamps', async () => {
@@ -298,6 +322,25 @@ describe('decision-frame.service', () => {
         answer: '',
       });
       expect(updated.answer).toBeNull();
+    });
+
+    it('updates optional governance metadata without changing core frame fields', async () => {
+      const created = await broker.call('decision-frame.create', makeFrame());
+      const metadata = makeGovernanceMetadata();
+
+      const updated = await broker.call('decision-frame.update', {
+        frameId: created.frameId,
+        metadata,
+      });
+
+      expect(updated.metadata).toEqual(metadata);
+      expect(updated.situation).toBe(created.situation);
+      expect(updated.question).toBe(created.question);
+
+      const fetched = await broker.call('decision-frame.get', { frameId: created.frameId });
+      expect(fetched.metadata).toEqual(metadata);
+      expect(fetched.situation).toBe(created.situation);
+      expect(fetched.question).toBe(created.question);
     });
 
     it('throws 404 for unknown frameId', async () => {
@@ -537,6 +580,24 @@ describe('decision-frame.service', () => {
       expect(result.frame).toBeDefined();
       expect(result.frame.frameId).toBe(frame.frameId);
       expect(result.exportedAt).toBeDefined();
+    });
+
+    it('includes compact governance metadata in JSON export and Markdown export when present', async () => {
+      const metadata = makeGovernanceMetadata();
+      const frame = await broker.call('decision-frame.create', makeFrame({ metadata }));
+
+      const jsonExport = await broker.call('decision-frame.exportSummary', {
+        frameId: frame.frameId,
+        format: 'json',
+      });
+      expect(jsonExport.frame.metadata).toEqual(metadata);
+
+      const markdownExport = await broker.call('decision-frame.exportSummary', {
+        frameId: frame.frameId,
+      });
+      expect(markdownExport.content).toContain('CR-LKA-RV-001');
+      expect(markdownExport.content).toContain('CRC004');
+      expect(markdownExport.content).toContain('recommend_final_investment_decision');
     });
 
     it('throws 404 for unknown frameId', async () => {

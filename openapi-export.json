@@ -31243,6 +31243,99 @@
               }
             }
           }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "situation",
+                  "complication",
+                  "question",
+                  "domain"
+                ],
+                "properties": {
+                  "situation": {
+                    "type": "string",
+                    "minLength": 10
+                  },
+                  "complication": {
+                    "type": "string",
+                    "minLength": 10
+                  },
+                  "question": {
+                    "type": "string",
+                    "minLength": 5
+                  },
+                  "answer": {
+                    "type": "string"
+                  },
+                  "domain": {
+                    "type": "string",
+                    "enum": [
+                      "infrastructure",
+                      "regulatory",
+                      "financial",
+                      "strategic",
+                      "operational"
+                    ]
+                  },
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "asset_management",
+                      "finance",
+                      "regulatory",
+                      "strategy",
+                      "operations",
+                      "customer"
+                    ]
+                  },
+                  "createdBy": {
+                    "type": "string"
+                  },
+                  "metadata": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "description": "Optional governance or process metadata persisted with the frame. For CR-LKA, metadata.governanceArchitecture may carry changeRequest, candidateId, runCardId, workedExample, readiness, resolutionValue and role/action boundaries.",
+                    "example": {
+                      "governanceArchitecture": {
+                        "changeRequest": "CR-LKA-RV-001",
+                        "candidateId": "CRC001",
+                        "runCardId": "RC002_mako_clarification_to_m2c_revenue_risk",
+                        "workedExample": "mako_m2c_resolution_value",
+                        "sideEffects": "none"
+                      }
+                    }
+                  }
+                }
+              },
+              "examples": {
+                "governanceFrame": {
+                  "summary": "Create a decision frame with governance metadata",
+                  "value": {
+                    "situation": "A MaKo clarification blocks cashflow attribution for a resolution candidate.",
+                    "complication": "Evidence is incomplete and consequential actions must remain behind HITL.",
+                    "question": "Which role can resolve the next governance step?",
+                    "domain": "operational",
+                    "role": "operations",
+                    "createdBy": "agent-os",
+                    "metadata": {
+                      "governanceArchitecture": {
+                        "changeRequest": "CR-LKA-RV-001",
+                        "candidateId": "CRC001",
+                        "runCardId": "RC002_mako_clarification_to_m2c_revenue_risk",
+                        "workedExample": "mako_m2c_resolution_value",
+                        "sideEffects": "none"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
         }
       },
       "get": {
@@ -31364,6 +31457,84 @@
               "application/json": {
                 "schema": {
                   "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "situation": {
+                    "type": "string",
+                    "minLength": 10
+                  },
+                  "complication": {
+                    "type": "string",
+                    "minLength": 10
+                  },
+                  "question": {
+                    "type": "string",
+                    "minLength": 5
+                  },
+                  "answer": {
+                    "type": "string"
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "draft",
+                      "active",
+                      "closed"
+                    ]
+                  },
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "asset_management",
+                      "finance",
+                      "regulatory",
+                      "strategy",
+                      "operations",
+                      "customer"
+                    ]
+                  },
+                  "metadata": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "description": "Optional governance or process metadata persisted with the frame. For CR-LKA, metadata.governanceArchitecture may carry changeRequest, candidateId, runCardId, workedExample, readiness, resolutionValue and role/action boundaries.",
+                    "example": {
+                      "governanceArchitecture": {
+                        "changeRequest": "CR-LKA-RV-001",
+                        "candidateId": "CRC001",
+                        "runCardId": "RC002_mako_clarification_to_m2c_revenue_risk",
+                        "workedExample": "mako_m2c_resolution_value",
+                        "sideEffects": "none"
+                      }
+                    }
+                  }
+                }
+              },
+              "examples": {
+                "governanceFrameUpdate": {
+                  "summary": "Update persisted governance metadata",
+                  "value": {
+                    "answer": "Route to billing operations for evidence completion before approval.",
+                    "status": "active",
+                    "metadata": {
+                      "governanceArchitecture": {
+                        "changeRequest": "CR-LKA-RV-001",
+                        "candidateId": "CRC001",
+                        "runCardId": "RC002_mako_clarification_to_m2c_revenue_risk",
+                        "workedExample": "mako_m2c_resolution_value",
+                        "sideEffects": "none"
+                      }
+                    }
+                  }
                 }
               }
             }
