@@ -66,7 +66,8 @@ const DECISION_FRAME_CREATE_REQUEST_BODY = {
         governanceFrame: {
           summary: 'Create a decision frame with governance metadata',
           value: {
-            situation: 'A MaKo clarification blocks cashflow attribution for a resolution candidate.',
+            situation:
+              'A MaKo clarification blocks cashflow attribution for a resolution candidate.',
             complication:
               'Evidence is incomplete and consequential actions must remain behind HITL.',
             question: 'Which role can resolve the next governance step?',
