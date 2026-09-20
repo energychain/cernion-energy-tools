@@ -32,15 +32,13 @@ describe('stadtwerk governance architecture asset-to-decision projection', () =>
     expect(projection.workedExample).toBe('asset_to_decision');
 
     expect(projection.evidenceState.missingEvidence).toEqual(
-      expect.arrayContaining(fixture.input.missingEvidence),
+      expect.arrayContaining(fixture.input.missingEvidence)
     );
     expect(projection.readiness.committeeReady).toBe(false);
     expect(projection.readiness.drl).toBeLessThan(3);
     expect(projection.readiness.rcr).toBeLessThanOrEqual(2);
 
-    expect(projection.forbiddenActions).toEqual(
-      expect.arrayContaining(fixture.forbiddenActions),
-    );
+    expect(projection.forbiddenActions).toEqual(expect.arrayContaining(fixture.forbiddenActions));
     fixture.forbiddenActions.forEach((action) => {
       expect(projection.allowedActions).not.toContain(action);
     });
@@ -53,7 +51,7 @@ describe('stadtwerk governance architecture asset-to-decision projection', () =>
           confidence: 'low',
           qualitativeImpact: expect.stringMatching(/budget|committee/i),
         }),
-      ]),
+      ])
     );
 
     const roleProjectionText = JSON.stringify(projection.roleProjection).toLowerCase();

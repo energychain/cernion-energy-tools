@@ -31,7 +31,9 @@ function expectValidProjection(projection) {
 function expectInvalidProjection(projection, expectedErrorFragment) {
   const valid = validateProjection(projection);
   if (valid) {
-    throw new Error(`Expected projection to fail schema validation: ${JSON.stringify(projection, null, 2)}`);
+    throw new Error(
+      `Expected projection to fail schema validation: ${JSON.stringify(projection, null, 2)}`
+    );
   }
   expect(valid).toBe(false);
   expect(validationErrors()).toContain(expectedErrorFragment);
@@ -118,6 +120,9 @@ describe('CR-LKA projection schema contract', () => {
 
     const withoutResolverRoles = clone(buildAssetToDecisionProjection());
     delete withoutResolverRoles.hitlBoundary.requiredResolverRoles;
-    expectInvalidProjection(withoutResolverRoles, "must have required property 'requiredResolverRoles'");
+    expectInvalidProjection(
+      withoutResolverRoles,
+      "must have required property 'requiredResolverRoles'"
+    );
   });
 });

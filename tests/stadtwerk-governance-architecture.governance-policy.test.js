@@ -11,7 +11,9 @@ const {
 function expectValidControlCase(controlCase) {
   const validation = validateVdmiMatrixRow(controlCase, { path: 'controlCase' });
   expect(validation).toEqual({ valid: true, errors: [] });
-  expect(controlCase.controlCase).toMatch(/^(asset_transformation|custom:[a-z0-9][a-z0-9_.:-]*|project:[a-z0-9][a-z0-9_.:-]*)$/);
+  expect(controlCase.controlCase).toMatch(
+    /^(asset_transformation|custom:[a-z0-9][a-z0-9_.:-]*|project:[a-z0-9][a-z0-9_.:-]*)$/
+  );
   expect(controlCase.controlCase).not.toBe('unsupported_case');
 }
 
@@ -59,7 +61,7 @@ describe('CR-LKA Stadtwerk governance architecture policy adapter', () => {
     });
     expectGapNames(result, missingEvidence);
     expect(result.sources).toEqual(
-      expect.arrayContaining(['vdmi-matrix-schema', 'controlCase.decisionPolicy']),
+      expect.arrayContaining(['vdmi-matrix-schema', 'controlCase.decisionPolicy'])
     );
   });
 
@@ -100,7 +102,7 @@ describe('CR-LKA Stadtwerk governance architecture policy adapter', () => {
       expect.arrayContaining([
         expect.objectContaining({ id: 'alternative_options' }),
         expect.objectContaining({ id: 'decision_owner' }),
-      ]),
+      ])
     );
 
     const result = await broker.call('governance.evaluatePolicy', {

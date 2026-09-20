@@ -296,7 +296,8 @@ module.exports = {
           updated.answer = ctx.params.answer ? ctx.params.answer.trim() : null;
         if (ctx.params.status !== undefined) updated.status = ctx.params.status;
         if (ctx.params.role !== undefined) updated.role = ctx.params.role;
-        if (ctx.params.metadata !== undefined) updated.metadata = cloneMetadata(ctx.params.metadata || {});
+        if (ctx.params.metadata !== undefined)
+          updated.metadata = cloneMetadata(ctx.params.metadata || {});
 
         await this.db.put(updated);
         return toPublic(updated);

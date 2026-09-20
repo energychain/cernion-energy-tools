@@ -29,7 +29,7 @@ describe('stadtwerk governance architecture MaKo resolution value projection', (
         'confirmed_invoice_amount',
         'market_partner_confirmation',
         'owner_approval',
-      ]),
+      ])
     );
     expect(projection.resolutionValue).toEqual(
       expect.arrayContaining([
@@ -39,16 +39,14 @@ describe('stadtwerk governance architecture MaKo resolution value projection', (
           confidence: 'low',
           qualitativeImpact: expect.stringContaining('Cashflow'),
         }),
-      ]),
+      ])
     );
     expect(projection.hitlBoundary).toEqual(
       expect.objectContaining({
         requiresHitl: fixture.expected.mustRequireHitl,
-      }),
+      })
     );
-    expect(projection.forbiddenActions).toEqual(
-      expect.arrayContaining(fixture.forbiddenActions),
-    );
+    expect(projection.forbiddenActions).toEqual(expect.arrayContaining(fixture.forbiddenActions));
     expect(projection.allowedActions).not.toContain('approve_invoice');
   });
 });

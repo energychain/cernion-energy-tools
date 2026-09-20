@@ -56,7 +56,9 @@ const validateProjection = ajv.compile(crLkaSchema);
 function expectValidProjection(projection) {
   const valid = validateProjection(projection);
   if (!valid) {
-    throw new Error(`CR-LKA projection schema errors: ${JSON.stringify(validateProjection.errors, null, 2)}`);
+    throw new Error(
+      `CR-LKA projection schema errors: ${JSON.stringify(validateProjection.errors, null, 2)}`
+    );
   }
   expect(valid).toBe(true);
 }
@@ -102,7 +104,14 @@ function governanceMetadataFromProjection(projection) {
   };
 }
 
-function makeDecisionFrameInput({ projection, situation, complication, question, domain = 'operational', role = 'regulatory' }) {
+function makeDecisionFrameInput({
+  projection,
+  situation,
+  complication,
+  question,
+  domain = 'operational',
+  role = 'regulatory',
+}) {
   return {
     situation,
     complication,
@@ -278,7 +287,8 @@ describe('CR-LKA-RV-001 RC UAT harness', () => {
       makeDecisionFrameInput({
         projection: makoProjection,
         situation: 'APERAK blocks a disputed M2C billing case in the RC UAT tenant.',
-        complication: 'Confirmed amount, market partner confirmation, and owner approval are still missing.',
+        complication:
+          'Confirmed amount, market partner confirmation, and owner approval are still missing.',
         question: 'Which evidence is required before billing or cashflow finalization?',
         domain: 'operational',
         role: 'regulatory',
@@ -315,7 +325,9 @@ describe('CR-LKA-RV-001 RC UAT harness', () => {
   });
 
   test('UAT-MAKO-002 MSCONS gap without amount cannot become a final cashflow claim', () => {
-    const projection = makeMakoProjection({ missingEvidence: ['mscons_gap', 'confirmed_invoice_amount'] });
+    const projection = makeMakoProjection({
+      missingEvidence: ['mscons_gap', 'confirmed_invoice_amount'],
+    });
     expectValidProjection(projection);
     expect(projection.resolutionValue[0].forbiddenClaims).toContain('final_cashflow_amount');
     expect(projection.forbiddenActions).toContain('state_final_cashflow_amount');
@@ -324,11 +336,19 @@ describe('CR-LKA-RV-001 RC UAT harness', () => {
 
   test('UAT-MAKO-003 repeated mapping error is represented as evidence gap, not finalization behavior', () => {
     const projection = makeMakoProjection({
-      missingEvidence: ['repeated_mapping_error', 'data_quality_root_cause', 'process_learning_owner'],
+      missingEvidence: [
+        'repeated_mapping_error',
+        'data_quality_root_cause',
+        'process_learning_owner',
+      ],
     });
     expectValidProjection(projection);
     expect(projection.evidenceState.missingEvidence).toEqual(
-      expect.arrayContaining(['repeated_mapping_error', 'data_quality_root_cause', 'process_learning_owner'])
+      expect.arrayContaining([
+        'repeated_mapping_error',
+        'data_quality_root_cause',
+        'process_learning_owner',
+      ])
     );
     expect(projection.hitlBoundary.pendingConfirmationActions).toEqual(
       expect.arrayContaining(['repeated_mapping_error', 'billing_or_cashflow_finalization'])
@@ -339,13 +359,17 @@ describe('CR-LKA-RV-001 RC UAT harness', () => {
   test('UAT-MAKO-004 market-partner reply remains draft and pending confirmation', async () => {
     const projection = makeMakoProjection({ missingEvidence: ['market_partner_reply_owner'] });
     expect(projection.forbiddenActions).toContain('send_market_partner_reply');
-    expect(projection.hitlBoundary.pendingConfirmationActions).toContain('external_market_partner_reply');
+    expect(projection.hitlBoundary.pendingConfirmationActions).toContain(
+      'external_market_partner_reply'
+    );
 
-    const created = await broker.call('decision-frame.create',
+    const created = await broker.call(
+      'decision-frame.create',
       makeDecisionFrameInput({
         projection,
         situation: 'A market-partner response draft exists for the disputed MaKo clearing case.',
-        complication: 'External sending remains consequential and requires explicit human confirmation.',
+        complication:
+          'External sending remains consequential and requires explicit human confirmation.',
         question: 'Who must confirm before any external market-partner reply is sent?',
         domain: 'operational',
         role: 'regulatory',
@@ -363,7 +387,9 @@ describe('CR-LKA-RV-001 RC UAT harness', () => {
         { role },
         { meta: { tenantId: TEST_TENANT_ID } }
       );
-      const item = projection.items.find((candidate) => candidate.rowId === 'uat-mako-role-boundary');
+      const item = projection.items.find(
+        (candidate) => candidate.rowId === 'uat-mako-role-boundary'
+      );
       expect(projection.sideEffects).toBe('none');
       expect(item).toBeDefined();
       expect(item.governanceArchitecture).toMatchObject({
@@ -392,7 +418,9 @@ describe('CR-LKA-RV-001 RC UAT harness', () => {
   });
 
   test('UAT-ASSET-002 budget impact remains an assumption without controlling evidence', () => {
-    const projection = makeAssetProjection({ missingEvidence: ['budget_assumption', 'controlling_evidence'] });
+    const projection = makeAssetProjection({
+      missingEvidence: ['budget_assumption', 'controlling_evidence'],
+    });
     expectValidProjection(projection);
     expect(projection.forbiddenActions).toContain('state_budget_commitment');
     expect(projection.resolutionValue[0]).toMatchObject({
@@ -418,7 +446,9 @@ describe('CR-LKA-RV-001 RC UAT harness', () => {
         { role },
         { meta: { tenantId: TEST_TENANT_ID } }
       );
-      const item = projection.items.find((candidate) => candidate.rowId === 'uat-asset-role-boundary');
+      const item = projection.items.find(
+        (candidate) => candidate.rowId === 'uat-asset-role-boundary'
+      );
       expect(projection.sideEffects).toBe('none');
       expect(item).toBeDefined();
       expect(item.governanceArchitecture).toMatchObject({
@@ -447,7 +477,9 @@ describe('CR-LKA-RV-001 RC UAT harness', () => {
   });
 
   test('UAT-ASSET-004 readiness remains below committee-ready and Decision Frame export preserves metadata', async () => {
-    const projection = makeAssetProjection({ missingEvidence: ['alternative_options', 'decision_owner'] });
+    const projection = makeAssetProjection({
+      missingEvidence: ['alternative_options', 'decision_owner'],
+    });
     expectValidProjection(projection);
     expect(projection.readiness.committeeReady).toBe(false);
     expect(projection.forbiddenActions).toContain('mark_committee_ready');
@@ -457,7 +489,8 @@ describe('CR-LKA-RV-001 RC UAT harness', () => {
       makeDecisionFrameInput({
         projection,
         situation: 'An asset condition signal is available for the RC UAT decision dossier.',
-        complication: 'Alternatives and decision ownership are missing, so readiness stays below committee-ready.',
+        complication:
+          'Alternatives and decision ownership are missing, so readiness stays below committee-ready.',
         question: 'Which evidence is missing before committee readiness can be considered?',
         domain: 'financial',
         role: 'finance',
@@ -478,7 +511,9 @@ describe('CR-LKA-RV-001 RC UAT harness', () => {
 
   test('governance policy evaluates MaKo clarification and Asset human-decision boundaries in-process', async () => {
     const makoPolicy = await broker.call('governance.evaluatePolicy', {
-      controlCase: buildMakoResolutionControlCase({ missingEvidence: makoRed.input.missingEvidence }),
+      controlCase: buildMakoResolutionControlCase({
+        missingEvidence: makoRed.input.missingEvidence,
+      }),
       context: {},
     });
     expect(makoPolicy).toMatchObject({

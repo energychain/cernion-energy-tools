@@ -27,7 +27,9 @@ const FORBIDDEN_ASSET_TO_DECISION_ACTIONS = Object.freeze([
 ]);
 
 function uniqueStrings(values = []) {
-  return Array.from(new Set(values.filter((value) => typeof value === 'string' && value.length > 0)));
+  return Array.from(
+    new Set(values.filter((value) => typeof value === 'string' && value.length > 0))
+  );
 }
 
 function buildMakoResolutionValueProjection(input = {}) {
@@ -63,7 +65,8 @@ function buildMakoResolutionValueProjection(input = {}) {
       {
         dimension: 'cashflow_acceleration',
         evidenceStatus: missingEvidence.length > 0 ? 'partial' : 'validated',
-        qualitativeImpact: 'Cashflow acceleration is qualitative only until invoice amount, market partner confirmation, and owner approval evidence are complete.',
+        qualitativeImpact:
+          'Cashflow acceleration is qualitative only until invoice amount, market partner confirmation, and owner approval evidence are complete.',
         confidence: missingEvidence.length > 0 ? 'low' : 'medium',
         requiredEvidence: uniqueStrings([
           'confirmed_invoice_amount',
@@ -71,10 +74,7 @@ function buildMakoResolutionValueProjection(input = {}) {
           'owner_approval',
           ...missingEvidence,
         ]),
-        forbiddenClaims: [
-          'final_cashflow_amount',
-          'approved_invoice_state',
-        ],
+        forbiddenClaims: ['final_cashflow_amount', 'approved_invoice_state'],
       },
     ],
     safetyBoundary: {
@@ -85,10 +85,7 @@ function buildMakoResolutionValueProjection(input = {}) {
     },
     hitlBoundary: {
       requiresHitl: true,
-      requiredResolverRoles: [
-        'mako_owner',
-        'billing_owner',
-      ],
+      requiredResolverRoles: ['mako_owner', 'billing_owner'],
       pendingConfirmationActions,
     },
     allowedActions: [
@@ -129,7 +126,8 @@ function buildAssetToDecisionProjection(input = {}) {
       {
         dimension: 'forecast_budget_confidence',
         evidenceStatus: missingEvidence.length > 0 ? 'partial' : 'missing',
-        qualitativeImpact: 'Budget and committee confidence stays low until asset state, risk, budget assumptions, alternatives, and decision ownership evidence are complete.',
+        qualitativeImpact:
+          'Budget and committee confidence stays low until asset state, risk, budget assumptions, alternatives, and decision ownership evidence are complete.',
         confidence: 'low',
         requiredEvidence: uniqueStrings([
           'asset_condition_source',
@@ -154,15 +152,8 @@ function buildAssetToDecisionProjection(input = {}) {
     },
     hitlBoundary: {
       requiresHitl: true,
-      requiredResolverRoles: [
-        'asset_owner',
-        'controlling_finance_owner',
-        'budget_committee_owner',
-      ],
-      pendingConfirmationActions: uniqueStrings([
-        ...missingEvidence,
-        'budget_committee_decision',
-      ]),
+      requiredResolverRoles: ['asset_owner', 'controlling_finance_owner', 'budget_committee_owner'],
+      pendingConfirmationActions: uniqueStrings([...missingEvidence, 'budget_committee_decision']),
     },
     allowedActions: [
       'prepare_asset_state_summary',
