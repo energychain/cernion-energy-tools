@@ -105,6 +105,65 @@ function buildPolicySummary(policyResult) {
   };
 }
 
+function isPlainObject(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const proto = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
+}
+
+function cloneJsonLike(value) {
+  if (Array.isArray(value)) return value.map((entry) => cloneJsonLike(entry));
+  if (isPlainObject(value)) {
+    const cloned = {};
+    for (const [key, entry] of Object.entries(value)) {
+      cloned[key] = cloneJsonLike(entry);
+    }
+    return cloned;
+  }
+  return value;
+}
+
+function cloneStringArray(value) {
+  return Array.isArray(value) ? value.map((entry) => String(entry)) : [];
+}
+
+function buildGovernanceArchitecture(task, role) {
+  const governanceArchitecture = task?.metadata?.governanceArchitecture;
+  if (!isPlainObject(governanceArchitecture)) return null;
+  if (governanceArchitecture.changeRequest !== 'CR-LKA-RV-001') return null;
+
+  const forbiddenActions = cloneStringArray(governanceArchitecture.forbiddenActions);
+  const forbiddenActionSet = new Set(forbiddenActions);
+  const allowedActions = cloneStringArray(governanceArchitecture.allowedActions).filter(
+    (action) => !forbiddenActionSet.has(action)
+  );
+
+  const enrichment = {
+    changeRequest: governanceArchitecture.changeRequest,
+    sideEffects: 'none',
+    roleBoundary: {
+      role,
+      allowedActions: allowedActions.slice(),
+      forbiddenActions: forbiddenActions.slice(),
+    },
+  };
+
+  for (const key of ['candidateId', 'workedExample', 'readiness', 'resolutionValue']) {
+    if (Object.prototype.hasOwnProperty.call(governanceArchitecture, key)) {
+      enrichment[key] = cloneJsonLike(governanceArchitecture[key]);
+    }
+  }
+
+  if (Array.isArray(governanceArchitecture.allowedActions)) {
+    enrichment.allowedActions = allowedActions;
+  }
+  if (Array.isArray(governanceArchitecture.forbiddenActions)) {
+    enrichment.forbiddenActions = forbiddenActions;
+  }
+
+  return enrichment;
+}
+
 /**
  * Project a role workbench from pre-fetched VDMI matrices.
  *
@@ -172,8 +231,9 @@ function projectRoleWorkbench({
 
       const missingEvidence = collectEvidenceGapNames(policyResult);
       const commandHints = CONTROL_CASE_COMMAND_HINTS[controlCase] || [];
+      const governanceArchitecture = buildGovernanceArchitecture(task, role);
 
-      items.push({
+      const item = {
         id: `${matrix.id}:${task.taskId || 'unknown'}`,
         matrixId: matrix.id,
         matrixName: matrix.name || null,
@@ -192,7 +252,13 @@ function projectRoleWorkbench({
           hasDecisionReceipt: false,
           latestReceiptId: null,
         },
-      });
+      };
+
+      if (governanceArchitecture) {
+        item.governanceArchitecture = governanceArchitecture;
+      }
+
+      items.push(item);
     }
   }
 

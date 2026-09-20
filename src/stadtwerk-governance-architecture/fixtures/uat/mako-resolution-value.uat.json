@@ -1,0 +1,61 @@
+{
+  "packId": "UAT-CR-LKA-RV-001-MAKO",
+  "candidateId": "CRC001",
+  "readinessTarget": "RCR 3 preparation, not implementation",
+  "scenarios": [
+    {
+      "id": "UAT-MAKO-001",
+      "title": "APERAK blocks billing; show qualitative Resolution Value and HITL boundary"
+    },
+    {
+      "id": "UAT-MAKO-002",
+      "title": "MSCONS gap without amount must not state final cashflow"
+    },
+    {
+      "id": "UAT-MAKO-003",
+      "title": "Repeated mapping error creates data-quality and process-learning hint"
+    },
+    {
+      "id": "UAT-MAKO-004",
+      "title": "Market-partner reply remains draft/pending_confirmation"
+    },
+    {
+      "id": "UAT-MAKO-005",
+      "title": "Role Workbench separates MaKo, Billing, Finance, Compliance views"
+    }
+  ],
+  "handoverSources": {
+    "nextcloud": {
+      "adr_registry": "03 Projekte/Cernion/Governance-Decision-Architecture/ADR/ADR-Register-Cernion-Evidence-to-Decision-v0.1.md",
+      "release_change_register": "03 Projekte/Cernion/Governance-Decision-Architecture/Release-Change/CET-Release-Change-Register-v0.1.md",
+      "working_artifact": "STROMDAO/AgentOS/10 Working/2026-09-19-StadtwerkeVerstaendnis-Arbeitsstand.md"
+    },
+    "qdrant": {
+      "primary_collection": "stadtwerke_verstaendnis_claim_bridges_v1",
+      "relevant_runs": [
+        "20260919T_DEEPBRIEFING_V1",
+        "20260920T_RUN_CARD_ATLAS_V01_FIRST5",
+        "20260920T_MAKO_RESOLUTION_NEST_TRACK_V01",
+        "20260920T_RELEASE_CHANGE_GATE_V02",
+        "20260920T_ADR_DEEPBRIEFING_V01"
+      ],
+      "object_kinds": [
+        "claim_bridge_artifact",
+        "claim_deep_briefing",
+        "cet_gap_analysis_v01",
+        "run_card",
+        "run_card_waypoint",
+        "run_card_edge",
+        "role_impact_bridge_instance",
+        "resolution_value_assessment",
+        "governance_track",
+        "scenario_replay_test",
+        "cet_release_change_gate",
+        "cet_release_change_candidate",
+        "validation_matrix_addendum",
+        "adr_registry_deepbriefing"
+      ]
+    },
+    "approval": "APPROVAL ADR_DECISION_SCOPE CR-LKA-RV-001 planning/spec/test-prep only"
+  }
+}

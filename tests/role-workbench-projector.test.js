@@ -77,6 +77,90 @@ const MATRIX_ASSET = {
   ],
 };
 
+const MATRIX_CRLKA_MAKO = {
+  id: 'matrix-cr-lka-mako-001',
+  name: 'CR-LKA MaKo/M2C Resolution Value Boundary',
+  status: 'active',
+  tasks: [
+    {
+      taskId: 'task-cr-lka-mako',
+      taskName: 'MaKo/M2C Resolution Value Boundary',
+      controlCase: 'custom:mako_resolution_value',
+      verantwortlich: [{ actorType: 'role', actorId: 'ROLE_MAKO_OWNER' }],
+      durchfuehrend: [{ actorType: 'role', actorId: 'ROLE_MARKET_COMMUNICATION' }],
+      mitwirkend: [
+        { actorType: 'role', actorId: 'ROLE_BILLING' },
+        { actorType: 'role', actorId: 'ROLE_FINANCE' },
+      ],
+      information: [{ actorType: 'role', actorId: 'ROLE_COMPLIANCE' }],
+      evidenceRequirements: [
+        { id: 'confirmed_invoice_amount', label: 'Confirmed invoice amount', required: true },
+        {
+          id: 'market_partner_confirmation',
+          label: 'Market partner confirmation',
+          required: true,
+        },
+        { id: 'owner_approval', label: 'Owner approval', required: true },
+      ],
+      decisionPolicy: { onMissingEvidence: 'clarification' },
+      metadata: {
+        governanceArchitecture: {
+          changeRequest: 'CR-LKA-RV-001',
+          candidateId: 'CRC001',
+          workedExample: 'mako_m2c_resolution_value',
+          resolutionValue: [
+            'read disputed M2C invoice context',
+            'surface evidence gaps without binding external effects',
+          ],
+          allowedActions: ['inspect_resolution_context', 'request_missing_evidence'],
+          forbiddenActions: [
+            'send_market_partner_reply',
+            'change_master_data',
+            'approve_invoice',
+            'state_final_cashflow_amount',
+          ],
+        },
+      },
+    },
+  ],
+};
+
+const MATRIX_CRLKA_ASSET = {
+  id: 'matrix-cr-lka-asset-001',
+  name: 'CR-LKA Asset-to-Decision Boundary',
+  status: 'active',
+  tasks: [
+    {
+      taskId: 'task-cr-lka-asset',
+      taskName: 'Asset Transformation Decision Boundary',
+      controlCase: 'asset_transformation',
+      verantwortlich: [{ actorType: 'role', actorId: 'ROLE_ASSET_OWNER' }],
+      durchfuehrend: [{ actorType: 'role', actorId: 'ROLE_CONTROLLING' }],
+      mitwirkend: [{ actorType: 'role', actorId: 'ROLE_FINANCE' }],
+      information: [{ actorType: 'role', actorId: 'ROLE_MANAGEMENT' }],
+      evidenceRequirements: [
+        { id: 'asset_register_extract', label: 'Asset register extract', required: true },
+        { id: 'controlling_assessment', label: 'Controlling assessment', required: true },
+      ],
+      decisionPolicy: { onMissingEvidence: 'clarification' },
+      metadata: {
+        governanceArchitecture: {
+          changeRequest: 'CR-LKA-RV-001',
+          candidateId: 'CRC004',
+          workedExample: 'asset_to_decision',
+          readiness: { committeeReady: false },
+          allowedActions: ['prepare_asset_dossier', 'request_controlling_evidence'],
+          forbiddenActions: [
+            'recommend_final_investment_decision',
+            'state_budget_commitment',
+            'mark_committee_ready',
+          ],
+        },
+      },
+    },
+  ],
+};
+
 const MATRIX_COMPLETED = {
   id: 'matrix-completed-003',
   name: 'Abgeschlossene Matrix',
@@ -253,6 +337,83 @@ describe('role-workbench-projector — pure unit tests', () => {
     expect(items[0].allowedCommands).toHaveLength(1);
     expect(items[0].allowedCommands[0].kind).toBe('runbook_hint');
     expect(items[0].allowedCommands[0].id).toBe('smm-rundeck:stadtwerk-mauer-e2e-smoke');
+  });
+
+  test('CR-LKA MaKo role projection includes governanceArchitecture metadata and action boundaries', () => {
+    const { items } = projectRoleWorkbench({
+      role: 'ROLE_MAKO_OWNER',
+      matrices: [MATRIX_CRLKA_MAKO],
+      evaluatePolicy: makeEvaluatePolicy,
+      deriveRoles: makeDeriveRoles,
+    });
+
+    expect(items).toHaveLength(1);
+    const [item] = items;
+
+    expect(item.governanceArchitecture).toBeDefined();
+    expect(item.governanceArchitecture.changeRequest).toBe('CR-LKA-RV-001');
+    expect(item.governanceArchitecture.candidateId).toBe('CRC001');
+    expect(item.governanceArchitecture.workedExample).toBe('mako_m2c_resolution_value');
+    expect(item.governanceArchitecture.forbiddenActions).toEqual(
+      expect.arrayContaining([
+        'send_market_partner_reply',
+        'change_master_data',
+        'approve_invoice',
+        'state_final_cashflow_amount',
+      ])
+    );
+    expect(item.governanceArchitecture.allowedActions).not.toContain('approve_invoice');
+    expect(item.governanceArchitecture.sideEffects).toBe('none');
+    expect(item.governanceArchitecture.roleBoundary).toEqual(
+      expect.objectContaining({
+        role: 'ROLE_MAKO_OWNER',
+        allowedActions: expect.arrayContaining(['inspect_resolution_context']),
+        forbiddenActions: expect.arrayContaining(['approve_invoice']),
+      })
+    );
+  });
+
+  test('CR-LKA asset governanceArchitecture projection remains below committee-ready boundary', () => {
+    const { items } = projectRoleWorkbench({
+      role: 'ROLE_CONTROLLING',
+      matrices: [MATRIX_CRLKA_ASSET],
+      evaluatePolicy: makeEvaluatePolicy,
+      deriveRoles: makeDeriveRoles,
+    });
+
+    expect(items).toHaveLength(1);
+    const [item] = items;
+
+    expect(item.governanceArchitecture).toBeDefined();
+    expect(item.governanceArchitecture.changeRequest).toBe('CR-LKA-RV-001');
+    expect(item.governanceArchitecture.candidateId).toBe('CRC004');
+    expect(item.governanceArchitecture.workedExample).toBe('asset_to_decision');
+    expect(item.governanceArchitecture.readiness).toEqual(
+      expect.objectContaining({ committeeReady: false })
+    );
+    expect(item.governanceArchitecture.forbiddenActions).toEqual(
+      expect.arrayContaining([
+        'recommend_final_investment_decision',
+        'state_budget_commitment',
+        'mark_committee_ready',
+      ])
+    );
+    expect(item.governanceArchitecture.allowedActions).not.toContain(
+      'recommend_final_investment_decision'
+    );
+    expect(item.governanceArchitecture.allowedActions).not.toContain('state_budget_commitment');
+    expect(item.governanceArchitecture.allowedActions).not.toContain('mark_committee_ready');
+    expect(item.governanceArchitecture.sideEffects).toBe('none');
+    expect(item.governanceArchitecture.roleBoundary).toEqual(
+      expect.objectContaining({
+        role: 'ROLE_CONTROLLING',
+        allowedActions: expect.arrayContaining([
+          'prepare_asset_dossier',
+          'request_controlling_evidence',
+        ]),
+        forbiddenActions: expect.arrayContaining(['mark_committee_ready']),
+      })
+    );
   });
 });
 
