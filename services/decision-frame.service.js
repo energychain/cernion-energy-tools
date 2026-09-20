@@ -142,7 +142,7 @@ function isPlainObject(value) {
 
 function cloneMetadata(value) {
   if (!isPlainObject(value)) return {};
-  return structuredClone(value);
+  return JSON.parse(JSON.stringify(value));
 }
 
 function hasNonEmptyObject(value) {

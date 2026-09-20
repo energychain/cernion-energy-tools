@@ -20,7 +20,7 @@ function normalizeMissingEvidence(missingEvidence) {
 }
 
 function humanizeEvidenceLabel(id) {
-  return id.replaceAll('_', ' ');
+  return id.replace(/_/g, ' ');
 }
 
 function buildEvidenceRequirements(missingEvidence) {
