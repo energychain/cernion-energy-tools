@@ -23,6 +23,14 @@ function cloneActor(actor) {
 }
 
 function validateClaimActor(card, actor, roleId) {
+  if (roleId !== card.responsibleRoleId) {
+    return {
+      ok: false,
+      code: 'role_not_responsible_for_card',
+      expectedRoleId: card.responsibleRoleId,
+      requestedRoleId: roleId,
+    };
+  }
   if (!actor || actor.tenantId !== card.tenantId) {
     return { ok: false, code: 'actor_tenant_mismatch', expectedTenantId: card.tenantId };
   }

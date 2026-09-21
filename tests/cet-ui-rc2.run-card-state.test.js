@@ -84,7 +84,7 @@ describe('CET UI RC2 Laufkarten state transitions', () => {
     const fixture = buildReferenceTenantFixture();
     const card = createReferenceRunCard({
       tenantId: fixture.tenant.id,
-      responsibleRoleId: RC2_ROLE_IDS.GESCHAEFTSFUEHRUNG,
+      responsibleRoleId: RC2_ROLE_IDS.MARKTKOMMUNIKATION,
       unclaimedUntil: '2026-09-21T11:59:00Z',
     });
     const claimed = claimRunCard(card, {
@@ -144,6 +144,33 @@ describe('CET UI RC2 Laufkarten state transitions', () => {
       ok: false,
       code: 'actor_role_mismatch',
       roleId: RC2_ROLE_IDS.MARKTKOMMUNIKATION,
+    });
+  });
+
+  test('claim rejects same-tenant actor with a role that is not responsible for the card', () => {
+    const fixture = buildReferenceTenantFixture();
+    const card = createReferenceRunCard({
+      tenantId: fixture.tenant.id,
+      basisRev: 'rev-1',
+      responsibleRoleId: RC2_ROLE_IDS.GESCHAEFTSFUEHRUNG,
+    });
+
+    expect(
+      claimRunCard(card, {
+        basisRev: 'rev-1',
+        actor: {
+          id: 'user-grid-planning',
+          tenantId: fixture.tenant.id,
+          roleIds: [RC2_ROLE_IDS.NETZPLANUNG],
+        },
+        roleId: RC2_ROLE_IDS.NETZPLANUNG,
+        now: '2026-09-21T12:00:00Z',
+      })
+    ).toEqual({
+      ok: false,
+      code: 'role_not_responsible_for_card',
+      expectedRoleId: RC2_ROLE_IDS.GESCHAEFTSFUEHRUNG,
+      requestedRoleId: RC2_ROLE_IDS.NETZPLANUNG,
     });
   });
 
