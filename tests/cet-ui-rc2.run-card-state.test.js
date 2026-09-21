@@ -20,7 +20,12 @@ describe('CET UI RC2 Laufkarten state transitions', () => {
 
     const claimed = claimRunCard(card, {
       basisRev: 'rev-1',
-      actor: { id: 'user-mako-1', displayName: 'Mako Person 1' },
+      actor: {
+        id: 'user-mako-1',
+        tenantId: fixture.tenant.id,
+        roleIds: [RC2_ROLE_IDS.MARKTKOMMUNIKATION],
+        displayName: 'Mako Person 1',
+      },
       roleId: RC2_ROLE_IDS.MARKTKOMMUNIKATION,
       now: '2026-09-21T12:00:00Z',
     });
@@ -46,7 +51,12 @@ describe('CET UI RC2 Laufkarten state transitions', () => {
       code: 'basisRev_mismatch',
       currentBasisRev: 'rev-2',
       requestedBasisRev: 'rev-1',
-      assignedTo: { id: 'user-mako-1', displayName: 'Mako Person 1' },
+      assignedTo: {
+        id: 'user-mako-1',
+        tenantId: fixture.tenant.id,
+        roleIds: [RC2_ROLE_IDS.MARKTKOMMUNIKATION],
+        displayName: 'Mako Person 1',
+      },
     });
   });
 
@@ -70,11 +80,84 @@ describe('CET UI RC2 Laufkarten state transitions', () => {
     expect(assigned.card.assignment.actor.tenantId).toBe(fixture.tenant.id);
   });
 
+  test('expired assignment does not overwrite an already assigned card', () => {
+    const fixture = buildReferenceTenantFixture();
+    const card = createReferenceRunCard({
+      tenantId: fixture.tenant.id,
+      responsibleRoleId: RC2_ROLE_IDS.GESCHAEFTSFUEHRUNG,
+      unclaimedUntil: '2026-09-21T11:59:00Z',
+    });
+    const claimed = claimRunCard(card, {
+      basisRev: 'rev-1',
+      actor: {
+        id: 'user-mako-1',
+        tenantId: fixture.tenant.id,
+        roleIds: [RC2_ROLE_IDS.MARKTKOMMUNIKATION],
+        displayName: 'Mako Person 1',
+      },
+      roleId: RC2_ROLE_IDS.MARKTKOMMUNIKATION,
+      now: '2026-09-21T12:00:00Z',
+    });
+
+    const reassigned = assignExpiredUnclaimedRunCard(claimed.card, {
+      fixture,
+      now: '2026-09-21T12:01:00Z',
+    });
+
+    expect(reassigned).toEqual({
+      ok: false,
+      code: 'already_assigned',
+      assignedTo: claimed.card.assignment.actor,
+      currentBasisRev: 'rev-2',
+    });
+  });
+
+  test('claim rejects actors from the wrong tenant or without the claimed role', () => {
+    const fixture = buildReferenceTenantFixture();
+    const card = createReferenceRunCard({ tenantId: fixture.tenant.id, basisRev: 'rev-1' });
+
+    expect(
+      claimRunCard(card, {
+        basisRev: 'rev-1',
+        actor: {
+          id: 'user-other-tenant',
+          tenantId: 'anderer-mandant',
+          roleIds: [RC2_ROLE_IDS.MARKTKOMMUNIKATION],
+        },
+        roleId: RC2_ROLE_IDS.MARKTKOMMUNIKATION,
+        now: '2026-09-21T12:00:00Z',
+      })
+    ).toEqual({ ok: false, code: 'actor_tenant_mismatch', expectedTenantId: fixture.tenant.id });
+
+    expect(
+      claimRunCard(card, {
+        basisRev: 'rev-1',
+        actor: {
+          id: 'user-mako-1',
+          tenantId: fixture.tenant.id,
+          roleIds: [RC2_ROLE_IDS.NETZPLANUNG],
+        },
+        roleId: RC2_ROLE_IDS.MARKTKOMMUNIKATION,
+        now: '2026-09-21T12:00:00Z',
+      })
+    ).toEqual({
+      ok: false,
+      code: 'actor_role_mismatch',
+      roleId: RC2_ROLE_IDS.MARKTKOMMUNIKATION,
+    });
+  });
+
   test('freeze creates append-only evidence state', () => {
-    const card = createReferenceRunCard({ basisRev: 'rev-1' });
+    const fixture = buildReferenceTenantFixture();
+    const card = createReferenceRunCard({ tenantId: fixture.tenant.id, basisRev: 'rev-1' });
     const frozen = freezeRunCard(card, {
       basisRev: 'rev-1',
-      actor: { id: 'user-mako-1', displayName: 'Mako Person 1' },
+      actor: {
+        id: 'user-mako-1',
+        tenantId: fixture.tenant.id,
+        roleIds: [RC2_ROLE_IDS.MARKTKOMMUNIKATION],
+        displayName: 'Mako Person 1',
+      },
       now: '2026-09-21T12:02:00Z',
     });
 
@@ -86,11 +169,17 @@ describe('CET UI RC2 Laufkarten state transitions', () => {
   });
 
   test('approval request creates HITL state but no external write', () => {
-    const card = createReferenceRunCard({ basisRev: 'rev-1' });
+    const fixture = buildReferenceTenantFixture();
+    const card = createReferenceRunCard({ tenantId: fixture.tenant.id, basisRev: 'rev-1' });
     const requested = requestApproval(card, {
       basisRev: 'rev-1',
       roleId: RC2_ROLE_IDS.ABTEILUNGSLEITUNG,
-      actor: { id: 'user-mako-1', displayName: 'Mako Person 1' },
+      actor: {
+        id: 'user-mako-1',
+        tenantId: fixture.tenant.id,
+        roleIds: [RC2_ROLE_IDS.MARKTKOMMUNIKATION],
+        displayName: 'Mako Person 1',
+      },
       now: '2026-09-21T12:03:00Z',
     });
 
@@ -107,11 +196,17 @@ describe('CET UI RC2 Laufkarten state transitions', () => {
   });
 
   test('Rückfluss is the only path to set decision', () => {
-    const card = createReferenceRunCard({ basisRev: 'rev-1' });
+    const fixture = buildReferenceTenantFixture();
+    const card = createReferenceRunCard({ tenantId: fixture.tenant.id, basisRev: 'rev-1' });
     const rejected = requestApproval(card, {
       basisRev: 'rev-1',
       roleId: RC2_ROLE_IDS.ABTEILUNGSLEITUNG,
-      actor: { id: 'user-mako-1', displayName: 'Mako Person 1' },
+      actor: {
+        id: 'user-mako-1',
+        tenantId: fixture.tenant.id,
+        roleIds: [RC2_ROLE_IDS.MARKTKOMMUNIKATION],
+        displayName: 'Mako Person 1',
+      },
       decision: { status: 'erteilt' },
       now: '2026-09-21T12:03:00Z',
     });

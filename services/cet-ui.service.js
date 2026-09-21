@@ -1,6 +1,9 @@
 'use strict';
 
 const PouchDB = require('pouchdb');
+// Legacy DB-backed RC2 service prototype kept for later A13-A17 REST gateway migration.
+// The canonical A7-A10 state reducer is src/cet-ui-rc2/run-card-state.js; do not
+// treat this service path as the accepted Laufkarten state boundary until that migration.
 const { createUiStateStore, defaultCaseId, defaultTenantId } = require('../src/cet-rc2-ui-state');
 const { toOperationResultRenderModel } = require('../src/cet-rc2-ui-contracts');
 
