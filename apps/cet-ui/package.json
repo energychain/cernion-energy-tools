@@ -1,0 +1,10 @@
+{
+  "name": "@cernion/cet-ui",
+  "version": "0.99.21-rc2-ui",
+  "private": true,
+  "description": "CET RC2 deterministic static SPA surface for Tagesfläche, Vorgangsansicht, Nachweisansicht and Operationskonsole.",
+  "type": "commonjs",
+  "scripts": {
+    "check": "node -c src/shared/ui-view-model.js"
+  }
+}
