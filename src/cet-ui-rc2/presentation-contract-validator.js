@@ -4,7 +4,7 @@ const Ajv2020 = require('ajv/dist/2020');
 const presentationContractSchema = require('./schema/presentation-contract.schema.json');
 
 function buildAjv() {
-  return new Ajv2020({ allErrors: true, strict: false });
+  return new Ajv2020({ allErrors: true, strict: true });
 }
 
 const ajv = buildAjv();
@@ -44,6 +44,14 @@ function assertSingleRecordBoundary(statement) {
   }
 }
 
+function assertStructuredRawValueBoundary(item, label) {
+  if (!Object.prototype.hasOwnProperty.call(item, 'wert')) return;
+  const value = item.wert;
+  if (value !== null && typeof value === 'object') {
+    throw new Error(`${label} wert must be scalar; raw object or array values are not presentation-contract material`);
+  }
+}
+
 function validatePresentationContract(contract) {
   assertPlainObject(contract, 'presentation contract');
   if (contract.projectionStatus === 'nicht_projiziert') {
@@ -52,6 +60,10 @@ function validatePresentationContract(contract) {
 
   for (const statement of contract.aussagen || []) {
     assertSingleRecordBoundary(statement);
+    assertStructuredRawValueBoundary(statement, 'aussage');
+  }
+  for (const finding of contract.befunde || []) {
+    assertStructuredRawValueBoundary(finding, 'befund');
   }
 
   const valid = validateSchema(contract);

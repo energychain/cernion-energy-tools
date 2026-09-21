@@ -112,6 +112,40 @@ describe('CET UI RC2 presentation contract', () => {
     expect(validatePresentationContract(contract).valid).toBe(true);
   });
 
+  test('rejects aggregate statements carrying raw object values', () => {
+    const contract = validContract({
+      aussagen: [
+        aggregateStatement({
+          wert: {
+            zaehlpunkt: 'DE001234567890000000000000000001',
+            marktlokation: 'DE009876543210000000000000000002',
+            status: 'offen',
+          },
+        }),
+      ],
+    });
+
+    expect(() => validatePresentationContract(contract)).toThrow(/raw object|scalar/);
+  });
+
+  test('rejects arbitrary raw befund payloads', () => {
+    const contract = validContract({
+      befunde: [
+        {
+          rawRows: [
+            { zaehlpunkt: 'DE001234567890000000000000000001', status: 'offen' },
+          ],
+        },
+      ],
+    });
+
+    expect(() => validatePresentationContract(contract)).toThrow(/additional properties|rawRows|befunde/);
+  });
+
+  test('compiles the presentation contract schema in strict AJV mode', () => {
+    expect(() => validatePresentationContract(validContract())).not.toThrow();
+  });
+
   test('does not accept unprojected operation JSON as presentation contract', () => {
     const result = {
       projectionStatus: 'nicht_projiziert',

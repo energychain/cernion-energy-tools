@@ -29,7 +29,7 @@
     },
     "befunde": {
       "type": "array",
-      "items": { "type": "object" }
+      "items": { "$ref": "#/$defs/befund" }
     },
     "handlungen": {
       "type": "array",
@@ -63,7 +63,14 @@
       "properties": {
         "id": { "type": "string", "minLength": 1 },
         "label": { "type": "string", "minLength": 1 },
-        "wert": {},
+        "wert": {
+          "anyOf": [
+            { "type": "string" },
+            { "type": "number" },
+            { "type": "boolean" },
+            { "type": "null" }
+          ]
+        },
         "einheit": { "type": "string" },
         "aggregatzustand": {
           "type": "string",
@@ -71,15 +78,7 @@
         },
         "granularitaet": { "type": "string", "enum": ["aggregat", "einzeldatensatz"] },
         "materialisierung": { "type": "string", "enum": ["materialisiert", "hash_ref_only"] },
-        "hashRef": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["algorithmus", "wert"],
-          "properties": {
-            "algorithmus": { "type": "string", "const": "sha256" },
-            "wert": { "type": "string", "minLength": 1 }
-          }
-        },
+        "hashRef": { "$ref": "#/$defs/hashRef" },
         "reproduzierbarkeit": { "type": "string", "enum": ["vollstaendig", "nur_mit_quelle"] },
         "quelle": {
           "type": "object",
@@ -100,7 +99,10 @@
       "allOf": [
         {
           "if": { "properties": { "sicherheit": { "const": "klaerung" } }, "required": ["sicherheit"] },
-          "then": { "required": ["anschlussfrage"] }
+          "then": {
+            "properties": { "anschlussfrage": { "type": "string", "minLength": 1 } },
+            "required": ["anschlussfrage"]
+          }
         },
         {
           "if": { "properties": { "granularitaet": { "const": "einzeldatensatz" } }, "required": ["granularitaet"] },
@@ -108,9 +110,91 @@
             "required": ["materialisierung", "hashRef", "reproduzierbarkeit"],
             "properties": {
               "materialisierung": { "const": "hash_ref_only" },
+              "hashRef": { "$ref": "#/$defs/hashRef" },
               "reproduzierbarkeit": { "const": "nur_mit_quelle" }
             },
-            "not": { "required": ["wert"] }
+            "not": {
+              "properties": {
+                "wert": {
+                  "anyOf": [
+                    { "type": "string" },
+                    { "type": "number" },
+                    { "type": "boolean" },
+                    { "type": "null" }
+                  ]
+                }
+              },
+              "required": ["wert"]
+            }
+          }
+        }
+      ]
+    },
+    "hashRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithmus", "wert"],
+      "properties": {
+        "algorithmus": { "type": "string", "const": "sha256" },
+        "wert": { "type": "string", "minLength": 1 }
+      }
+    },
+    "befund": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "quelle", "sicherheit", "granularitaet"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "label": { "type": "string", "minLength": 1 },
+        "wert": {
+          "anyOf": [
+            { "type": "string" },
+            { "type": "number" },
+            { "type": "boolean" },
+            { "type": "null" }
+          ]
+        },
+        "einheit": { "type": "string" },
+        "granularitaet": { "type": "string", "enum": ["aggregat", "einzeldatensatz"] },
+        "materialisierung": { "type": "string", "enum": ["materialisiert", "hash_ref_only"] },
+        "hashRef": { "$ref": "#/$defs/hashRef" },
+        "quelle": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["klasse", "ref", "stand"],
+          "properties": {
+            "klasse": {
+              "type": "string",
+              "enum": ["system_of_record", "caller_supplied", "abgeleitet", "extern"]
+            },
+            "ref": { "type": "string", "minLength": 1 },
+            "stand": { "type": "string", "minLength": 1 }
+          }
+        },
+        "sicherheit": { "type": "string", "enum": ["belegt", "klaerung", "ungeprueft"] }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "granularitaet": { "const": "einzeldatensatz" } }, "required": ["granularitaet"] },
+          "then": {
+            "required": ["materialisierung", "hashRef"],
+            "properties": {
+              "materialisierung": { "const": "hash_ref_only" },
+              "hashRef": { "$ref": "#/$defs/hashRef" }
+            },
+            "not": {
+              "properties": {
+                "wert": {
+                  "anyOf": [
+                    { "type": "string" },
+                    { "type": "number" },
+                    { "type": "boolean" },
+                    { "type": "null" }
+                  ]
+                }
+              },
+              "required": ["wert"]
+            }
           }
         }
       ]
