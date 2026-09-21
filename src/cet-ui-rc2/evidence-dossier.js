@@ -3,6 +3,7 @@
 const { validatePresentationContract } = require('./presentation-contract-validator');
 
 function clone(value) {
+  if (value === undefined) return undefined;
   if (typeof structuredClone === 'function') return structuredClone(value);
   return JSON.parse(JSON.stringify(value));
 }
@@ -10,6 +11,21 @@ function clone(value) {
 function assertObject(value, label) {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
     throw new Error(`${label} must be an object`);
+  }
+}
+
+function validateInteractionProjection(interactionProjection) {
+  assertObject(interactionProjection, 'interaction projection');
+  if (interactionProjection.schemaVersion !== 'rc2.interaction-projection.v1') {
+    throw new Error(
+      'interaction projection must declare schemaVersion rc2.interaction-projection.v1'
+    );
+  }
+  if (
+    !Array.isArray(interactionProjection.statementRefs) ||
+    interactionProjection.statementRefs.length === 0
+  ) {
+    throw new Error('interaction projection must declare statementRefs');
   }
 }
 
@@ -45,7 +61,7 @@ function buildEvidenceDossier({
   frozenAt,
 } = {}) {
   validatePresentationContract(presentationContract);
-  assertObject(interactionProjection, 'interactionProjection');
+  validateInteractionProjection(interactionProjection);
   if (!schnittplanVersion) throw new Error('evidence dossier requires schnittplanVersion');
   if (!frozenAt) throw new Error('evidence dossier requires frozenAt');
 
@@ -76,7 +92,10 @@ function buildEvidenceDossier({
       ),
       hashRefOnlyRequiresSource: hashRefOnlyNotices.map((notice) => notice.id),
     },
-    sourceRefs: materializedStatements.map((statement) => statement.source.ref),
+    sourceRefs: [
+      ...materializedStatements.map((statement) => statement.source.ref),
+      ...hashRefOnlyNotices.map((notice) => notice.sourceRef),
+    ],
   };
 }
 
@@ -84,11 +103,18 @@ function isCompleteEvidenceDossier(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
   return (
     value.schemaVersion === 'rc2.evidence-dossier.v1' &&
+    typeof value.frozenAt === 'string' &&
     typeof value.presentationContractVersion === 'string' &&
+    typeof value.interactionProjectionVersion === 'string' &&
     typeof value.schnittplanVersion === 'string' &&
+    Array.isArray(value.statementRefs) &&
+    value.statementRefs.length > 0 &&
     Array.isArray(value.materializedStatements) &&
     Array.isArray(value.hashRefOnlyNotices) &&
-    Boolean(value.offlineStatus)
+    Array.isArray(value.sourceRefs) &&
+    value.offlineStatus &&
+    value.offlineStatus.aggregateStatementsOfflineRenderable === true &&
+    Array.isArray(value.offlineStatus.hashRefOnlyRequiresSource)
   );
 }
 

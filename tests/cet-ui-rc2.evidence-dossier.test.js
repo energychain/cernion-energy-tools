@@ -126,7 +126,7 @@ describe('CET UI RC2 evidence dossier', () => {
     expect(dossier.schnittplanVersion).toBe('rc2.schnittplan.v1');
   });
 
-  test('renders offline except hash/ref-only notices', () => {
+  test('renders offline except hash/ref-only notices and inventories all source refs', () => {
     const dossier = buildEvidenceDossier({
       presentationContract: presentationContract(),
       interactionProjection: interactionProjection(),
@@ -138,6 +138,32 @@ describe('CET UI RC2 evidence dossier', () => {
       aggregateStatementsOfflineRenderable: true,
       hashRefOnlyRequiresSource: ['zaehlpunkt_einzelreferenz'],
     });
+    expect(dossier.sourceRefs).toEqual([
+      'evidence://inhouse/klaerfaelle#offen',
+      'evidence://mako/raw-row#hash-only',
+    ]);
+  });
+
+  test('rejects invalid interaction projection and incomplete dossier predicates', () => {
+    expect(() =>
+      buildEvidenceDossier({
+        presentationContract: presentationContract(),
+        interactionProjection: {},
+        schnittplanVersion: 'rc2.schnittplan.v1',
+        frozenAt: '2026-09-21T12:00:00Z',
+      })
+    ).toThrow(/interaction projection/);
+
+    expect(
+      isCompleteEvidenceDossier({
+        schemaVersion: 'rc2.evidence-dossier.v1',
+        presentationContractVersion: 'rc2.presentation-contract.v1',
+        schnittplanVersion: 'rc2.schnittplan.v1',
+        materializedStatements: [],
+        hashRefOnlyNotices: [],
+        offlineStatus: {},
+      })
+    ).toBe(false);
   });
 
   test('does not treat Decision Frame metadata alone as a complete dossier', () => {
