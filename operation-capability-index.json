@@ -2,18 +2,18 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.99.21",
-  "sourceOpenApiHash": "642ef288e69501cc63729223c22b6a43f72226c5df503adf4ea928bcb43b7a4f",
+  "sourceOpenApiHash": "de338166c4639a7a3aaa67797a2c596e5238416d9107866a7e71f60533696169",
   "coverage": {
-    "rawOperationCount": 1144,
-    "operationCount": 888,
-    "agentableCount": 886,
+    "rawOperationCount": 1162,
+    "operationCount": 897,
+    "agentableCount": 895,
     "nonAgentableCount": 2,
     "byOperationKind": {
-      "data_read": 390,
+      "data_read": 395,
       "admin": 8,
-      "object_store_write": 231,
+      "object_store_write": 234,
       "process_step": 20,
-      "process_start": 43,
+      "process_start": 44,
       "advisory_plan": 47,
       "draft_write": 13,
       "external_effect": 4,
@@ -75547,6 +75547,676 @@
         "curated": false
       },
       "aliases": []
+    },
+    {
+      "operationId": "cet-ui_getCase",
+      "method": "GET",
+      "path": "/api/ui/v0/cases/:caseId",
+      "service": "ui",
+      "action": null,
+      "summary": "Get fixed CET RC2 Vorgang view model",
+      "tags": [
+        "CET UI RC2"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "ui.cet-ui_get_case"
+      ],
+      "domains": [
+        "governance"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "Case"
+      ],
+      "requiredScopes": [
+        "ui:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [
+          {
+            "name": "caseId",
+            "in": "path",
+            "type": "string",
+            "description": "CET RC2 Vorgang identifier.",
+            "extractionHint": null
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "cet",
+          "ui",
+          "case",
+          "fixed",
+          "rc2",
+          "vorgang",
+          "view",
+          "model"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me get fixed cet rc2 vorgang view model"
+        ],
+        "synonyms": [
+          "VDMI",
+          "V/D/M/I matrix",
+          "audit trail"
+        ],
+        "curated": false
+      },
+      "aliases": [
+        "GET /api/cet-ui/cases/:caseId"
+      ]
+    },
+    {
+      "operationId": "cet-ui_requestApproval",
+      "method": "POST",
+      "path": "/api/ui/v0/cases/:caseId/approval-requests",
+      "service": "ui",
+      "action": null,
+      "summary": "Persist CET-internal approval request for a Vorgang",
+      "tags": [
+        "CET UI RC2"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "ui.cet-ui_request_approval"
+      ],
+      "domains": [
+        "governance"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "Case"
+      ],
+      "requiredScopes": [
+        "ui:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "ui"
+      ],
+      "sideEffects": [
+        "creates_or_modifies_stored_object"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "parameters": {
+        "required": [
+          {
+            "name": "caseId",
+            "in": "path",
+            "type": "string",
+            "description": "CET RC2 Vorgang identifier.",
+            "extractionHint": null
+          }
+        ],
+        "optional": [
+          {
+            "name": "basisRev",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "roleId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "cet",
+          "ui",
+          "request",
+          "approval",
+          "persist",
+          "internal",
+          "vorgang",
+          "rc2"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please persist cet-internal approval request for a vorgang"
+        ],
+        "synonyms": [
+          "VDMI",
+          "V/D/M/I matrix",
+          "audit trail"
+        ],
+        "curated": false
+      },
+      "aliases": [
+        "POST /api/cet-ui/cases/:caseId/approval-requests"
+      ]
+    },
+    {
+      "operationId": "cet-ui_claimCase",
+      "method": "POST",
+      "path": "/api/ui/v0/cases/:caseId/claim",
+      "service": "ui",
+      "action": null,
+      "summary": "Claim CET RC2 Vorgang through CET-owned state",
+      "tags": [
+        "CET UI RC2"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "ui.cet-ui_claim_case"
+      ],
+      "domains": [
+        "governance"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "Case"
+      ],
+      "requiredScopes": [
+        "ui:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "ui"
+      ],
+      "sideEffects": [
+        "creates_or_modifies_stored_object"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "parameters": {
+        "required": [
+          {
+            "name": "caseId",
+            "in": "path",
+            "type": "string",
+            "description": "CET RC2 Vorgang identifier.",
+            "extractionHint": null
+          }
+        ],
+        "optional": [
+          {
+            "name": "basisRev",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "cet",
+          "ui",
+          "claim",
+          "case",
+          "rc2",
+          "vorgang",
+          "through",
+          "owned",
+          "state"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please claim cet rc2 vorgang through cet-owned state"
+        ],
+        "synonyms": [
+          "VDMI",
+          "V/D/M/I matrix",
+          "audit trail"
+        ],
+        "curated": false
+      },
+      "aliases": [
+        "POST /api/cet-ui/cases/:caseId/claim"
+      ]
+    },
+    {
+      "operationId": "cet-ui_evidence",
+      "method": "GET",
+      "path": "/api/ui/v0/cases/:caseId/evidence",
+      "service": "ui",
+      "action": null,
+      "summary": "Get CET RC2 evidence dossier view model",
+      "tags": [
+        "CET UI RC2"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "ui.cet-ui_evidence"
+      ],
+      "domains": [
+        "governance"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "Case"
+      ],
+      "requiredScopes": [
+        "ui:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [
+          {
+            "name": "caseId",
+            "in": "path",
+            "type": "string",
+            "description": "CET RC2 Vorgang identifier.",
+            "extractionHint": null
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "cet",
+          "ui",
+          "evidence",
+          "rc2",
+          "dossier",
+          "view",
+          "model"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me get cet rc2 evidence dossier view model"
+        ],
+        "synonyms": [
+          "VDMI",
+          "V/D/M/I matrix",
+          "audit trail"
+        ],
+        "curated": false
+      },
+      "aliases": [
+        "GET /api/cet-ui/cases/:caseId/evidence"
+      ]
+    },
+    {
+      "operationId": "cet-ui_freeze",
+      "method": "POST",
+      "path": "/api/ui/v0/cases/:caseId/freeze",
+      "service": "ui",
+      "action": null,
+      "summary": "Persist CET-internal freeze for a Vorgang",
+      "tags": [
+        "CET UI RC2"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "ui.cet-ui_freeze"
+      ],
+      "domains": [
+        "governance"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "Case"
+      ],
+      "requiredScopes": [
+        "ui:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "ui"
+      ],
+      "sideEffects": [
+        "creates_or_modifies_stored_object"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "parameters": {
+        "required": [
+          {
+            "name": "caseId",
+            "in": "path",
+            "type": "string",
+            "description": "CET RC2 Vorgang identifier.",
+            "extractionHint": null
+          }
+        ],
+        "optional": [
+          {
+            "name": "basisRev",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "cet",
+          "ui",
+          "freeze",
+          "persist",
+          "internal",
+          "vorgang",
+          "rc2"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please persist cet-internal freeze for a vorgang"
+        ],
+        "synonyms": [
+          "VDMI",
+          "V/D/M/I matrix",
+          "audit trail"
+        ],
+        "curated": false
+      },
+      "aliases": [
+        "POST /api/cet-ui/cases/:caseId/freeze"
+      ]
+    },
+    {
+      "operationId": "cet-ui_dailySurface",
+      "method": "GET",
+      "path": "/api/ui/v0/daily-surface",
+      "service": "ui",
+      "action": null,
+      "summary": "Get CET RC2 daily surface interaction projections",
+      "tags": [
+        "CET UI RC2"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "ui.cet-ui_daily_surface"
+      ],
+      "domains": [
+        "governance"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "ui:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "cet",
+          "ui",
+          "daily",
+          "surface",
+          "rc2",
+          "interaction",
+          "projections"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me get cet rc2 daily surface interaction projections"
+        ],
+        "synonyms": [
+          "VDMI",
+          "V/D/M/I matrix",
+          "audit trail"
+        ],
+        "curated": false
+      },
+      "aliases": [
+        "GET /api/cet-ui/daily-surface"
+      ]
+    },
+    {
+      "operationId": "cet-ui_operations",
+      "method": "GET",
+      "path": "/api/ui/v0/operations",
+      "service": "ui",
+      "action": null,
+      "summary": "List CET RC2 Operationskonsole capabilities",
+      "tags": [
+        "CET UI RC2"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "ui.cet-ui_operations"
+      ],
+      "domains": [
+        "governance"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "ui:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "cet",
+          "ui",
+          "operations",
+          "list",
+          "rc2",
+          "operationskonsole",
+          "capabilities"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me list cet rc2 operationskonsole capabilities"
+        ],
+        "synonyms": [
+          "VDMI",
+          "V/D/M/I matrix",
+          "audit trail"
+        ],
+        "curated": false
+      },
+      "aliases": [
+        "GET /api/cet-ui/operations"
+      ]
+    },
+    {
+      "operationId": "cet-ui_prepareOperation",
+      "method": "POST",
+      "path": "/api/ui/v0/operations/:operationId/prepare",
+      "service": "ui",
+      "action": null,
+      "summary": "Prepare Operationskonsole capability without Fachsystem execute",
+      "tags": [
+        "CET UI RC2"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "process_start",
+      "consequenceLevel": "high",
+      "recommendedExecutionMode": "confirm",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "ui.cet-ui_prepare_operation"
+      ],
+      "domains": [
+        "governance"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "Operation"
+      ],
+      "requiredScopes": [
+        "ui:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "ui"
+      ],
+      "sideEffects": [
+        "starts_new_process_instance"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "No companion rollback operation detected in this service - verify reversibility with backend/tenant admin before invoking.",
+      "parameters": {
+        "required": [
+          {
+            "name": "operationId",
+            "in": "path",
+            "type": "string",
+            "description": "Operationskonsole capability identifier.",
+            "extractionHint": null
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "cet",
+          "ui",
+          "prepare",
+          "operation",
+          "operationskonsole",
+          "capability",
+          "without",
+          "fachsystem",
+          "execute",
+          "rc2"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please prepare operationskonsole capability without fachsystem execute"
+        ],
+        "synonyms": [
+          "VDMI",
+          "V/D/M/I matrix",
+          "audit trail"
+        ],
+        "curated": false
+      },
+      "aliases": [
+        "POST /api/cet-ui/operations/:operationId/prepare"
+      ]
+    },
+    {
+      "operationId": "cet-ui_sessionContext",
+      "method": "GET",
+      "path": "/api/ui/v0/session-context",
+      "service": "ui",
+      "action": null,
+      "summary": "Get CET RC2 UI session context",
+      "tags": [
+        "CET UI RC2"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "ui.cet-ui_session_context"
+      ],
+      "domains": [
+        "governance"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "ui:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "cet",
+          "ui",
+          "session",
+          "context",
+          "rc2"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me get cet rc2 ui session context"
+        ],
+        "synonyms": [
+          "VDMI",
+          "V/D/M/I matrix",
+          "audit trail"
+        ],
+        "curated": false
+      },
+      "aliases": [
+        "GET /api/cet-ui/session-context"
+      ]
     },
     {
       "operationId": "utility-report_download",

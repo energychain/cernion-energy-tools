@@ -2,6 +2,7 @@
 'use strict';
 
 const api = {
+  session: '/api/ui/v0/session-context',
   daily: '/api/ui/v0/daily-surface',
   case: (id) => `/api/ui/v0/cases/${encodeURIComponent(id)}`,
   evidence: (id) => `/api/ui/v0/cases/${encodeURIComponent(id)}/evidence`,
@@ -40,6 +41,23 @@ function escapeHtml(value) {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#039;');
+}
+
+function renderSession(session) {
+  const roles = (session.availableRoles || [])
+    .map((role) => {
+      const placeholder = role.placeholderAgent ? ' · Platzhalter-Agent verfügbar' : '';
+      return `<option value="${escapeHtml(role.id)}" ${role.id === session.activeRoleId ? 'selected' : ''}>${escapeHtml(role.label)}${placeholder}</option>`;
+    })
+    .join('');
+  return `
+    <p><strong>Mandant:</strong> ${escapeHtml(session.tenantId)} · <strong>Benutzer:</strong> ${escapeHtml(
+      session.user?.displayName || session.userId
+    )}</p>
+    <label>Rollenperspektive
+      <select aria-label="Rollenperspektive" disabled>${roles}</select>
+    </label>
+    <p class="meta">Rollenwechsel bleibt auf tatsächlich gehaltene Mandantenrollen begrenzt.</p>`;
 }
 
 function renderDaily(surface) {
@@ -166,7 +184,12 @@ async function openCase(id) {
 }
 
 async function refresh() {
-  const [daily, operations] = await Promise.all([getJson(api.daily), getJson(api.operations)]);
+  const [session, daily, operations] = await Promise.all([
+    getJson(api.session),
+    getJson(api.daily),
+    getJson(api.operations),
+  ]);
+  document.getElementById('session').innerHTML = renderSession(session);
   document.getElementById('daily').innerHTML = renderDaily(daily);
   if (daily.items?.[0]) await openCase(daily.items[0].caseId);
   document.getElementById('operations').innerHTML = renderOperations(operations);

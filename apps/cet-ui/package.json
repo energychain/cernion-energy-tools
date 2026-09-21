@@ -5,6 +5,7 @@
   "description": "CET RC2 deterministic static SPA surface for Tagesfläche, Vorgangsansicht, Nachweisansicht and Operationskonsole.",
   "type": "commonjs",
   "scripts": {
-    "check": "node -c src/main.js && node -c src/shared/ui-view-model.js && node -c src/shared/api-client.js && node -c src/shared/contract-validators.js && node -c src/shared/projection-helpers.js && node -c src/shared/role-tenant-helpers.js && node -c src/shared/wording-helpers.js && node -c src/shared/evidence-helpers.js"
+    "check": "node -c src/main.js && node -c src/shared/ui-view-model.js && node -c src/shared/api-client.js && node -c src/shared/contract-validators.js && node -c src/shared/projection-helpers.js && node -c src/shared/role-tenant-helpers.js && node -c src/shared/wording-helpers.js && node -c src/shared/evidence-helpers.js && node -c scripts/verify-static-app.js",
+    "build": "npm run check && node scripts/verify-static-app.js"
   }
 }

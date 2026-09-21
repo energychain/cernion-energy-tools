@@ -7,6 +7,38 @@ const {
 } = require('../src/cet-ui-rc2/ui-gateway-adapter');
 const { RC2_ROLE_IDS } = require('../src/cet-ui-rc2/fixtures/reference-tenant');
 
+const caseIdPathParameter = {
+  name: 'caseId',
+  in: 'path',
+  required: true,
+  schema: { type: 'string', example: REFERENCE_CASE_ID },
+  description: 'CET RC2 Vorgang identifier.',
+};
+
+const operationIdPathParameter = {
+  name: 'operationId',
+  in: 'path',
+  required: true,
+  schema: { type: 'string', example: 'mako.case.lookup' },
+  description: 'Operationskonsole capability identifier.',
+};
+
+const jsonBody = (properties, required = []) => ({
+  required: required.length > 0,
+  content: {
+    'application/json': {
+      schema: { type: 'object', properties, required },
+      examples: {
+        reference: {
+          value: Object.fromEntries(
+            Object.entries(properties).map(([key, value]) => [key, value.example])
+          ),
+        },
+      },
+    },
+  },
+});
+
 function requireAuthenticatedUiContext(ctx) {
   const tenantId = ctx?.meta?.authUser?.tenantId || ctx?.meta?.tenantId || ctx?.meta?.tenant?.id;
   const userId = ctx?.meta?.authUser?.userId || ctx?.meta?.user?.id || ctx?.meta?.userId;
@@ -83,6 +115,7 @@ module.exports = {
       openapi: {
         summary: 'Get fixed CET RC2 Vorgang view model',
         tags: ['CET UI RC2'],
+        parameters: [caseIdPathParameter],
       },
       handler(ctx) {
         return gatewayFromRuntime(this).getCase(rc2GatewayContextFrom(ctx), {
@@ -99,6 +132,7 @@ module.exports = {
       openapi: {
         summary: 'Get CET RC2 evidence dossier view model',
         tags: ['CET UI RC2'],
+        parameters: [caseIdPathParameter],
       },
       handler(ctx) {
         return gatewayFromRuntime(this).getEvidence(rc2GatewayContextFrom(ctx), {
@@ -116,6 +150,8 @@ module.exports = {
       openapi: {
         summary: 'Claim CET RC2 Vorgang through CET-owned state',
         tags: ['CET UI RC2'],
+        parameters: [caseIdPathParameter],
+        requestBody: jsonBody({ basisRev: { type: 'string', example: 'rev-1' } }, []),
       },
       handler(ctx) {
         return gatewayFromRuntime(this).claimCase(rc2GatewayContextFrom(ctx), {
@@ -134,6 +170,8 @@ module.exports = {
       openapi: {
         summary: 'Persist CET-internal freeze for a Vorgang',
         tags: ['CET UI RC2'],
+        parameters: [caseIdPathParameter],
+        requestBody: jsonBody({ basisRev: { type: 'string', example: 'rev-2' } }, []),
       },
       handler(ctx) {
         return gatewayFromRuntime(this).freezeCase(rc2GatewayContextFrom(ctx), {
@@ -153,6 +191,14 @@ module.exports = {
       openapi: {
         summary: 'Persist CET-internal approval request for a Vorgang',
         tags: ['CET UI RC2'],
+        parameters: [caseIdPathParameter],
+        requestBody: jsonBody(
+          {
+            basisRev: { type: 'string', example: 'rev-3' },
+            roleId: { type: 'string', example: RC2_ROLE_IDS.ABTEILUNGSLEITUNG },
+          },
+          []
+        ),
       },
       handler(ctx) {
         return gatewayFromRuntime(this).requestApproval(rc2GatewayContextFrom(ctx), {
@@ -182,6 +228,8 @@ module.exports = {
       openapi: {
         summary: 'Prepare Operationskonsole capability without Fachsystem execute',
         tags: ['CET UI RC2'],
+        parameters: [operationIdPathParameter],
+        requestBody: jsonBody({}, []),
       },
       handler(ctx) {
         return gatewayFromRuntime(this).prepareOperation(rc2GatewayContextFrom(ctx), {

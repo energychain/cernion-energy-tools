@@ -6749,6 +6749,361 @@
         }
       }
     },
+    "/api/cet-ui/session-context": {
+      "get": {
+        "operationId": "cet-ui_sessionContext",
+        "summary": "Get CET RC2 UI session context",
+        "tags": [
+          "CET UI RC2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cet-ui/daily-surface": {
+      "get": {
+        "operationId": "cet-ui_dailySurface",
+        "summary": "Get CET RC2 daily surface interaction projections",
+        "tags": [
+          "CET UI RC2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cet-ui/cases/:caseId": {
+      "get": {
+        "operationId": "cet-ui_getCase",
+        "summary": "Get fixed CET RC2 Vorgang view model",
+        "tags": [
+          "CET UI RC2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "caseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "vorgang-cr-lka-rv-001-article-id-change"
+            },
+            "description": "CET RC2 Vorgang identifier."
+          }
+        ]
+      }
+    },
+    "/api/cet-ui/cases/:caseId/evidence": {
+      "get": {
+        "operationId": "cet-ui_evidence",
+        "summary": "Get CET RC2 evidence dossier view model",
+        "tags": [
+          "CET UI RC2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "caseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "vorgang-cr-lka-rv-001-article-id-change"
+            },
+            "description": "CET RC2 Vorgang identifier."
+          }
+        ]
+      }
+    },
+    "/api/cet-ui/cases/:caseId/claim": {
+      "post": {
+        "operationId": "cet-ui_claimCase",
+        "summary": "Claim CET RC2 Vorgang through CET-owned state",
+        "tags": [
+          "CET UI RC2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "caseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "vorgang-cr-lka-rv-001-article-id-change"
+            },
+            "description": "CET RC2 Vorgang identifier."
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "basisRev": {
+                    "type": "string",
+                    "example": "rev-1"
+                  }
+                },
+                "required": []
+              },
+              "examples": {
+                "reference": {
+                  "value": {
+                    "basisRev": "rev-1"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cet-ui/cases/:caseId/freeze": {
+      "post": {
+        "operationId": "cet-ui_freeze",
+        "summary": "Persist CET-internal freeze for a Vorgang",
+        "tags": [
+          "CET UI RC2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "caseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "vorgang-cr-lka-rv-001-article-id-change"
+            },
+            "description": "CET RC2 Vorgang identifier."
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "basisRev": {
+                    "type": "string",
+                    "example": "rev-2"
+                  }
+                },
+                "required": []
+              },
+              "examples": {
+                "reference": {
+                  "value": {
+                    "basisRev": "rev-2"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cet-ui/cases/:caseId/approval-requests": {
+      "post": {
+        "operationId": "cet-ui_requestApproval",
+        "summary": "Persist CET-internal approval request for a Vorgang",
+        "tags": [
+          "CET UI RC2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "caseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "vorgang-cr-lka-rv-001-article-id-change"
+            },
+            "description": "CET RC2 Vorgang identifier."
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "basisRev": {
+                    "type": "string",
+                    "example": "rev-3"
+                  },
+                  "roleId": {
+                    "type": "string",
+                    "example": "RC2_ROLE_ABTEILUNGSLEITUNG"
+                  }
+                },
+                "required": []
+              },
+              "examples": {
+                "reference": {
+                  "value": {
+                    "basisRev": "rev-3",
+                    "roleId": "RC2_ROLE_ABTEILUNGSLEITUNG"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cet-ui/operations": {
+      "get": {
+        "operationId": "cet-ui_operations",
+        "summary": "List CET RC2 Operationskonsole capabilities",
+        "tags": [
+          "CET UI RC2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cet-ui/operations/:operationId/prepare": {
+      "post": {
+        "operationId": "cet-ui_prepareOperation",
+        "summary": "Prepare Operationskonsole capability without Fachsystem execute",
+        "tags": [
+          "CET UI RC2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "operationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "mako.case.lookup"
+            },
+            "description": "Operationskonsole capability identifier."
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {},
+                "required": []
+              },
+              "examples": {
+                "reference": {
+                  "value": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/chatgpt-sidecar/sessions": {
       "post": {
         "operationId": "chatgpt-sidecar_createSession",
@@ -65618,6 +65973,361 @@
               "application/json": {
                 "schema": {
                   "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ui/v0/session-context": {
+      "get": {
+        "operationId": "cet-ui_sessionContext",
+        "summary": "Get CET RC2 UI session context",
+        "tags": [
+          "CET UI RC2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ui/v0/daily-surface": {
+      "get": {
+        "operationId": "cet-ui_dailySurface",
+        "summary": "Get CET RC2 daily surface interaction projections",
+        "tags": [
+          "CET UI RC2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ui/v0/cases/:caseId": {
+      "get": {
+        "operationId": "cet-ui_getCase",
+        "summary": "Get fixed CET RC2 Vorgang view model",
+        "tags": [
+          "CET UI RC2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "caseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "vorgang-cr-lka-rv-001-article-id-change"
+            },
+            "description": "CET RC2 Vorgang identifier."
+          }
+        ]
+      }
+    },
+    "/api/ui/v0/cases/:caseId/evidence": {
+      "get": {
+        "operationId": "cet-ui_evidence",
+        "summary": "Get CET RC2 evidence dossier view model",
+        "tags": [
+          "CET UI RC2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "caseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "vorgang-cr-lka-rv-001-article-id-change"
+            },
+            "description": "CET RC2 Vorgang identifier."
+          }
+        ]
+      }
+    },
+    "/api/ui/v0/cases/:caseId/claim": {
+      "post": {
+        "operationId": "cet-ui_claimCase",
+        "summary": "Claim CET RC2 Vorgang through CET-owned state",
+        "tags": [
+          "CET UI RC2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "caseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "vorgang-cr-lka-rv-001-article-id-change"
+            },
+            "description": "CET RC2 Vorgang identifier."
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "basisRev": {
+                    "type": "string",
+                    "example": "rev-1"
+                  }
+                },
+                "required": []
+              },
+              "examples": {
+                "reference": {
+                  "value": {
+                    "basisRev": "rev-1"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ui/v0/cases/:caseId/freeze": {
+      "post": {
+        "operationId": "cet-ui_freeze",
+        "summary": "Persist CET-internal freeze for a Vorgang",
+        "tags": [
+          "CET UI RC2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "caseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "vorgang-cr-lka-rv-001-article-id-change"
+            },
+            "description": "CET RC2 Vorgang identifier."
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "basisRev": {
+                    "type": "string",
+                    "example": "rev-2"
+                  }
+                },
+                "required": []
+              },
+              "examples": {
+                "reference": {
+                  "value": {
+                    "basisRev": "rev-2"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ui/v0/cases/:caseId/approval-requests": {
+      "post": {
+        "operationId": "cet-ui_requestApproval",
+        "summary": "Persist CET-internal approval request for a Vorgang",
+        "tags": [
+          "CET UI RC2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "caseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "vorgang-cr-lka-rv-001-article-id-change"
+            },
+            "description": "CET RC2 Vorgang identifier."
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "basisRev": {
+                    "type": "string",
+                    "example": "rev-3"
+                  },
+                  "roleId": {
+                    "type": "string",
+                    "example": "RC2_ROLE_ABTEILUNGSLEITUNG"
+                  }
+                },
+                "required": []
+              },
+              "examples": {
+                "reference": {
+                  "value": {
+                    "basisRev": "rev-3",
+                    "roleId": "RC2_ROLE_ABTEILUNGSLEITUNG"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ui/v0/operations": {
+      "get": {
+        "operationId": "cet-ui_operations",
+        "summary": "List CET RC2 Operationskonsole capabilities",
+        "tags": [
+          "CET UI RC2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ui/v0/operations/:operationId/prepare": {
+      "post": {
+        "operationId": "cet-ui_prepareOperation",
+        "summary": "Prepare Operationskonsole capability without Fachsystem execute",
+        "tags": [
+          "CET UI RC2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "operationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "mako.case.lookup"
+            },
+            "description": "Operationskonsole capability identifier."
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {},
+                "required": []
+              },
+              "examples": {
+                "reference": {
+                  "value": {}
                 }
               }
             }

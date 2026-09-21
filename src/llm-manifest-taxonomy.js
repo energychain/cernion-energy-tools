@@ -185,6 +185,7 @@ const OPENAPI_TAG_DOMAIN_MAP = {
   'blueprint-management': 'platform',
   'Business Intelligence': 'platform',
   'capex-prioritization': 'grid-ops',
+  'CET UI RC2': 'governance',
   'clarification-policy': 'platform',
   Companies: 'platform',
   'connection-rejection-evidence': 'grid-ops',
