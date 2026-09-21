@@ -217,6 +217,88 @@ describe('CET UI RC2 evidence dossier', () => {
     expect(
       isCompleteEvidenceDossier({
         schemaVersion: 'rc2.evidence-dossier.v1',
+        frozenAt: '2026-09-21T12:00:00Z',
+        presentationContractVersion: 'rc2.presentation-contract.v1',
+        interactionProjectionVersion: 'rc2.interaction-projection.v1',
+        schnittplanVersion: 'rc2.schnittplan.v1',
+        statementRefs: ['zaehlpunkt_einzelreferenz'],
+        materializedStatements: [],
+        hashRefOnlyNotices: [
+          {
+            id: 'zaehlpunkt_einzelreferenz',
+            label: 'Einzeldatensatz Zählpunkt',
+            granularitaet: 'einzeldatensatz',
+            materialisierung: 'hash_ref_only',
+            sourceRef: 'evidence://mako/raw-row#hash-only',
+            notice: 'nur_mit_quelle_reproduzierbar',
+            offlineRenderable: false,
+          },
+        ],
+        sourceRefs: ['evidence://mako/raw-row#hash-only'],
+        offlineStatus: {
+          aggregateStatementsOfflineRenderable: true,
+          hashRefOnlyRequiresSource: ['zaehlpunkt_einzelreferenz'],
+        },
+      })
+    ).toBe(false);
+
+    expect(
+      isCompleteEvidenceDossier({
+        schemaVersion: 'rc2.evidence-dossier.v1',
+        frozenAt: '2026-09-21T12:00:00Z',
+        presentationContractVersion: 'rc2.presentation-contract.v1',
+        interactionProjectionVersion: 'rc2.interaction-projection.v1',
+        schnittplanVersion: 'rc2.schnittplan.v1',
+        statementRefs: ['klaerfaelle_betroffen'],
+        materializedStatements: [
+          {
+            id: 'klaerfaelle_betroffen',
+            label: 'Betroffene Klärfälle',
+            wert: 14,
+            granularitaet: 'aggregat',
+            source: { ref: '' },
+            offlineRenderable: true,
+          },
+        ],
+        hashRefOnlyNotices: [],
+        sourceRefs: ['evidence://unrelated'],
+        offlineStatus: {
+          aggregateStatementsOfflineRenderable: true,
+          hashRefOnlyRequiresSource: [],
+        },
+      })
+    ).toBe(false);
+
+    expect(
+      isCompleteEvidenceDossier({
+        schemaVersion: 'rc2.evidence-dossier.v1',
+        frozenAt: '2026-09-21T12:00:00Z',
+        presentationContractVersion: 'rc2.presentation-contract.v1',
+        interactionProjectionVersion: 'rc2.interaction-projection.v1',
+        schnittplanVersion: 'rc2.schnittplan.v1',
+        statementRefs: ['klaerfaelle_betroffen'],
+        materializedStatements: [
+          {
+            id: 'klaerfaelle_betroffen',
+            label: 'Betroffene Klärfälle',
+            wert: 14,
+            granularitaet: 'aggregat',
+            source: { ref: 'evidence://inhouse/klaerfaelle#offen' },
+            offlineRenderable: true,
+          },
+        ],
+        hashRefOnlyNotices: [],
+        sourceRefs: ['evidence://unrelated'],
+        offlineStatus: {
+          aggregateStatementsOfflineRenderable: true,
+          hashRefOnlyRequiresSource: [],
+        },
+      })
+    ).toBe(false);
+
+    expect(
+      isCompleteEvidenceDossier({
+        schemaVersion: 'rc2.evidence-dossier.v1',
         presentationContractVersion: 'rc2.presentation-contract.v1',
         schnittplanVersion: 'rc2.schnittplan.v1',
         materializedStatements: [],

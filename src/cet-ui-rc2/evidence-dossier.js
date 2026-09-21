@@ -112,46 +112,97 @@ function buildEvidenceDossier({
   };
 }
 
+function isNonEmptyString(value) {
+  return typeof value === 'string' && value.length > 0;
+}
+
 function isStringArray(values) {
+  return Array.isArray(values) && values.every(isNonEmptyString);
+}
+
+function sameStringSet(left, right) {
+  if (!isStringArray(left) || !isStringArray(right) || left.length !== right.length) return false;
+  const sortedLeft = [...left].sort();
+  const sortedRight = [...right].sort();
+  return sortedLeft.every((value, index) => value === sortedRight[index]);
+}
+
+function isMaterializedStatement(value) {
   return (
-    Array.isArray(values) && values.every((value) => typeof value === 'string' && value.length > 0)
+    value &&
+    typeof value === 'object' &&
+    !Array.isArray(value) &&
+    isNonEmptyString(value.id) &&
+    value.granularitaet === 'aggregat' &&
+    value.source &&
+    typeof value.source === 'object' &&
+    !Array.isArray(value.source) &&
+    isNonEmptyString(value.source.ref) &&
+    value.offlineRenderable === true
+  );
+}
+
+function isHashRefOnlyNotice(value) {
+  return (
+    value &&
+    typeof value === 'object' &&
+    !Array.isArray(value) &&
+    isNonEmptyString(value.id) &&
+    value.granularitaet === 'einzeldatensatz' &&
+    value.materialisierung === 'hash_ref_only' &&
+    value.hashRef &&
+    typeof value.hashRef === 'object' &&
+    !Array.isArray(value.hashRef) &&
+    isNonEmptyString(value.hashRef.algorithmus) &&
+    isNonEmptyString(value.hashRef.wert) &&
+    isNonEmptyString(value.sourceRef) &&
+    value.notice === 'nur_mit_quelle_reproduzierbar' &&
+    value.offlineRenderable === false
   );
 }
 
 function isCompleteEvidenceDossier(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  if (
+    value.schemaVersion !== 'rc2.evidence-dossier.v1' ||
+    !isNonEmptyString(value.frozenAt) ||
+    !isNonEmptyString(value.presentationContractVersion) ||
+    !isNonEmptyString(value.interactionProjectionVersion) ||
+    !isNonEmptyString(value.schnittplanVersion) ||
+    !isStringArray(value.statementRefs) ||
+    value.statementRefs.length === 0 ||
+    !Array.isArray(value.materializedStatements) ||
+    !Array.isArray(value.hashRefOnlyNotices) ||
+    !isStringArray(value.sourceRefs) ||
+    value.sourceRefs.length === 0 ||
+    !value.offlineStatus ||
+    typeof value.offlineStatus !== 'object' ||
+    Array.isArray(value.offlineStatus) ||
+    value.offlineStatus.aggregateStatementsOfflineRenderable !== true ||
+    !isStringArray(value.offlineStatus.hashRefOnlyRequiresSource)
+  ) {
+    return false;
+  }
+
+  const evidenceIds = [
+    ...value.materializedStatements.map((statement) => statement && statement.id),
+    ...value.hashRefOnlyNotices.map((notice) => notice && notice.id),
+  ];
+  const sourceRefs = [
+    ...value.materializedStatements.map(
+      (statement) => statement && statement.source && statement.source.ref
+    ),
+    ...value.hashRefOnlyNotices.map((notice) => notice && notice.sourceRef),
+  ];
+  const hashRefOnlyIds = value.hashRefOnlyNotices.map((notice) => notice && notice.id);
+
   return (
-    value.schemaVersion === 'rc2.evidence-dossier.v1' &&
-    typeof value.frozenAt === 'string' &&
-    typeof value.presentationContractVersion === 'string' &&
-    typeof value.interactionProjectionVersion === 'string' &&
-    typeof value.schnittplanVersion === 'string' &&
-    isStringArray(value.statementRefs) &&
-    value.statementRefs.length > 0 &&
-    Array.isArray(value.materializedStatements) &&
-    value.materializedStatements.every(
-      (statement) =>
-        statement &&
-        typeof statement.id === 'string' &&
-        statement.granularitaet === 'aggregat' &&
-        statement.source &&
-        typeof statement.source.ref === 'string'
-    ) &&
-    Array.isArray(value.hashRefOnlyNotices) &&
-    value.hashRefOnlyNotices.every(
-      (notice) =>
-        notice &&
-        typeof notice.id === 'string' &&
-        notice.materialisierung === 'hash_ref_only' &&
-        typeof notice.sourceRef === 'string' &&
-        notice.notice === 'nur_mit_quelle_reproduzierbar'
-    ) &&
-    isStringArray(value.sourceRefs) &&
-    value.sourceRefs.length > 0 &&
     value.materializedStatements.length + value.hashRefOnlyNotices.length > 0 &&
-    value.offlineStatus &&
-    value.offlineStatus.aggregateStatementsOfflineRenderable === true &&
-    isStringArray(value.offlineStatus.hashRefOnlyRequiresSource)
+    value.materializedStatements.every(isMaterializedStatement) &&
+    value.hashRefOnlyNotices.every(isHashRefOnlyNotice) &&
+    sameStringSet(value.statementRefs, evidenceIds) &&
+    sameStringSet(value.sourceRefs, sourceRefs) &&
+    sameStringSet(value.offlineStatus.hashRefOnlyRequiresSource, hashRefOnlyIds)
   );
 }
 
