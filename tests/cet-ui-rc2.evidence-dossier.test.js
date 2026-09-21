@@ -36,7 +36,7 @@ function presentationContract() {
           algorithmus: 'sha256',
           wert: '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08',
         },
-        reproduzierbarkeit: 'nur_mit_quelle',
+        reproduzierbarkeit: 'nur_mit_quelle_reproduzierbar',
         sicherheit: 'belegt',
         quelle: {
           klasse: 'system_of_record',
@@ -153,6 +153,48 @@ describe('CET UI RC2 evidence dossier', () => {
         frozenAt: '2026-09-21T12:00:00Z',
       })
     ).toThrow(/interaction projection/);
+
+    expect(() =>
+      buildEvidenceDossier({
+        presentationContract: presentationContract(),
+        interactionProjection: {
+          ...interactionProjection(),
+          statementRefs: [{}],
+        },
+        schnittplanVersion: 'rc2.schnittplan.v1',
+        frozenAt: '2026-09-21T12:00:00Z',
+      })
+    ).toThrow(/statementRefs/);
+
+    expect(() =>
+      buildEvidenceDossier({
+        presentationContract: presentationContract(),
+        interactionProjection: {
+          ...interactionProjection(),
+          statementRefs: ['klaerfaelle_betroffen', 'unknown_statement'],
+        },
+        schnittplanVersion: 'rc2.schnittplan.v1',
+        frozenAt: '2026-09-21T12:00:00Z',
+      })
+    ).toThrow(/statementRefs/);
+
+    expect(
+      isCompleteEvidenceDossier({
+        schemaVersion: 'rc2.evidence-dossier.v1',
+        frozenAt: '2026-09-21T12:00:00Z',
+        presentationContractVersion: 'rc2.presentation-contract.v1',
+        interactionProjectionVersion: 'rc2.interaction-projection.v1',
+        schnittplanVersion: 'rc2.schnittplan.v1',
+        statementRefs: [{}],
+        materializedStatements: [],
+        hashRefOnlyNotices: [],
+        sourceRefs: [],
+        offlineStatus: {
+          aggregateStatementsOfflineRenderable: true,
+          hashRefOnlyRequiresSource: [],
+        },
+      })
+    ).toBe(false);
 
     expect(
       isCompleteEvidenceDossier({

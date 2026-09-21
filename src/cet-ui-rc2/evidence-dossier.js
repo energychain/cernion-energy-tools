@@ -14,7 +14,7 @@ function assertObject(value, label) {
   }
 }
 
-function validateInteractionProjection(interactionProjection) {
+function validateInteractionProjection(interactionProjection, statementIds) {
   assertObject(interactionProjection, 'interaction projection');
   if (interactionProjection.schemaVersion !== 'rc2.interaction-projection.v1') {
     throw new Error(
@@ -26,6 +26,18 @@ function validateInteractionProjection(interactionProjection) {
     interactionProjection.statementRefs.length === 0
   ) {
     throw new Error('interaction projection must declare statementRefs');
+  }
+  if (
+    interactionProjection.statementRefs.some((ref) => typeof ref !== 'string' || ref.length === 0)
+  ) {
+    throw new Error('interaction projection statementRefs must be non-empty strings');
+  }
+  const expected = [...statementIds].sort();
+  const actual = [...interactionProjection.statementRefs].sort();
+  if (expected.length !== actual.length || expected.some((ref, index) => ref !== actual[index])) {
+    throw new Error(
+      'interaction projection statementRefs must match presentation contract statements'
+    );
   }
 }
 
@@ -61,7 +73,8 @@ function buildEvidenceDossier({
   frozenAt,
 } = {}) {
   validatePresentationContract(presentationContract);
-  validateInteractionProjection(interactionProjection);
+  const presentationStatementIds = presentationContract.aussagen.map((statement) => statement.id);
+  validateInteractionProjection(interactionProjection, presentationStatementIds);
   if (!schnittplanVersion) throw new Error('evidence dossier requires schnittplanVersion');
   if (!frozenAt) throw new Error('evidence dossier requires frozenAt');
 
@@ -99,6 +112,12 @@ function buildEvidenceDossier({
   };
 }
 
+function isStringArray(values) {
+  return (
+    Array.isArray(values) && values.every((value) => typeof value === 'string' && value.length > 0)
+  );
+}
+
 function isCompleteEvidenceDossier(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
   return (
@@ -107,14 +126,29 @@ function isCompleteEvidenceDossier(value) {
     typeof value.presentationContractVersion === 'string' &&
     typeof value.interactionProjectionVersion === 'string' &&
     typeof value.schnittplanVersion === 'string' &&
-    Array.isArray(value.statementRefs) &&
-    value.statementRefs.length > 0 &&
+    isStringArray(value.statementRefs) &&
     Array.isArray(value.materializedStatements) &&
+    value.materializedStatements.every(
+      (statement) =>
+        statement &&
+        typeof statement.id === 'string' &&
+        statement.granularitaet === 'aggregat' &&
+        statement.source &&
+        typeof statement.source.ref === 'string'
+    ) &&
     Array.isArray(value.hashRefOnlyNotices) &&
-    Array.isArray(value.sourceRefs) &&
+    value.hashRefOnlyNotices.every(
+      (notice) =>
+        notice &&
+        typeof notice.id === 'string' &&
+        notice.materialisierung === 'hash_ref_only' &&
+        typeof notice.sourceRef === 'string' &&
+        notice.notice === 'nur_mit_quelle_reproduzierbar'
+    ) &&
+    isStringArray(value.sourceRefs) &&
     value.offlineStatus &&
     value.offlineStatus.aggregateStatementsOfflineRenderable === true &&
-    Array.isArray(value.offlineStatus.hashRefOnlyRequiresSource)
+    isStringArray(value.offlineStatus.hashRefOnlyRequiresSource)
   );
 }
 

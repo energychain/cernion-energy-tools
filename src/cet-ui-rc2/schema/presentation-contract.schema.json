@@ -49,7 +49,14 @@
         "rolle": { "type": "string" },
         "status": {
           "type": "string",
-          "enum": ["nicht_erforderlich", "erforderlich", "angefordert", "erteilt", "verweigert", "offen"]
+          "enum": [
+            "nicht_erforderlich",
+            "erforderlich",
+            "angefordert",
+            "erteilt",
+            "verweigert",
+            "offen"
+          ]
         },
         "akteur": { "type": "string" }
       }
@@ -79,7 +86,10 @@
         "granularitaet": { "type": "string", "enum": ["aggregat", "einzeldatensatz"] },
         "materialisierung": { "type": "string", "enum": ["materialisiert", "hash_ref_only"] },
         "hashRef": { "$ref": "#/$defs/hashRef" },
-        "reproduzierbarkeit": { "type": "string", "enum": ["vollstaendig", "nur_mit_quelle"] },
+        "reproduzierbarkeit": {
+          "type": "string",
+          "enum": ["vollstaendig", "nur_mit_quelle_reproduzierbar"]
+        },
         "quelle": {
           "type": "object",
           "additionalProperties": false,
@@ -98,20 +108,26 @@
       },
       "allOf": [
         {
-          "if": { "properties": { "sicherheit": { "const": "klaerung" } }, "required": ["sicherheit"] },
+          "if": {
+            "properties": { "sicherheit": { "const": "klaerung" } },
+            "required": ["sicherheit"]
+          },
           "then": {
             "properties": { "anschlussfrage": { "type": "string", "minLength": 1 } },
             "required": ["anschlussfrage"]
           }
         },
         {
-          "if": { "properties": { "granularitaet": { "const": "einzeldatensatz" } }, "required": ["granularitaet"] },
+          "if": {
+            "properties": { "granularitaet": { "const": "einzeldatensatz" } },
+            "required": ["granularitaet"]
+          },
           "then": {
             "required": ["materialisierung", "hashRef", "reproduzierbarkeit"],
             "properties": {
               "materialisierung": { "const": "hash_ref_only" },
               "hashRef": { "$ref": "#/$defs/hashRef" },
-              "reproduzierbarkeit": { "const": "nur_mit_quelle" }
+              "reproduzierbarkeit": { "const": "nur_mit_quelle_reproduzierbar" }
             },
             "not": {
               "properties": {
@@ -175,7 +191,10 @@
       },
       "allOf": [
         {
-          "if": { "properties": { "granularitaet": { "const": "einzeldatensatz" } }, "required": ["granularitaet"] },
+          "if": {
+            "properties": { "granularitaet": { "const": "einzeldatensatz" } },
+            "required": ["granularitaet"]
+          },
           "then": {
             "required": ["materialisierung", "hashRef"],
             "properties": {
