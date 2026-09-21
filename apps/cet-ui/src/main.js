@@ -9,6 +9,14 @@ const api = {
   prepareOperation: (id) => `/api/ui/v0/operations/${encodeURIComponent(id)}/prepare`,
 };
 
+const grammarSections = [
+  { id: 'vorgang', title: 'Vorgang' },
+  { id: 'quellen', title: 'Quellen' },
+  { id: 'pruefung', title: 'Prüfung' },
+  { id: 'unsicherheit', title: 'Unsicherheit' },
+  { id: 'freigabe', title: 'Freigabe' },
+];
+
 async function getJson(url) {
   const response = await fetch(url);
   if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
@@ -52,6 +60,16 @@ function renderDaily(surface) {
     </div>`;
 }
 
+function renderStatements(statements) {
+  return (statements || [])
+    .map(
+      (statement) => `
+        <p><strong>${escapeHtml(statement.label)}:</strong> ${escapeHtml(statement.wert)}</p>
+        <p class="meta">${escapeHtml(statement.granularitaet)} · ${escapeHtml(statement.quelle?.ref)}</p>`
+    )
+    .join('');
+}
+
 function renderCase(vorgang) {
   const statements = vorgang.presentationContract?.aussagen || [];
   return `
@@ -59,24 +77,22 @@ function renderCase(vorgang) {
     <h2>${escapeHtml(vorgang.label || vorgang.presentationContract?.titel)}</h2>
     <p>${escapeHtml(vorgang.visibleStatus)}</p>
     <div class="grid">
-      <article class="section">
-        <h3>${escapeHtml(vorgang.presentationContract?.titel || 'Aussagen')}</h3>
-        ${statements
-          .map(
-            (statement) => `
-              <p><strong>${escapeHtml(statement.label)}:</strong> ${escapeHtml(statement.wert)}</p>
-              <p class="meta">${escapeHtml(statement.granularitaet)} · ${escapeHtml(
-                statement.quelle?.ref
-              )}</p>`
-          )
-          .join('')}
+      ${grammarSections
+        .map(
+          (section) => `
+            <article class="section" data-section="${escapeHtml(section.id)}">
+              <h3>${escapeHtml(section.title)}</h3>
+              ${section.id === 'vorgang' || section.id === 'quellen' ? renderStatements(statements) : ''}
+              ${section.id === 'freigabe' ? '<p>Fachliche Freigabe erforderlich. CET entscheidet nicht.</p>' : ''}
+            </article>`
+        )
+        .join('')}
+      <article class="section boundary">
+        <h3>Grenzen dieser Ansicht</h3>
         ${(vorgang.presentationContract?.nichtHandlungen || [])
           .map(
             (boundary) => `
-              <div class="card boundary">
-                <strong>Grenze:</strong> ${escapeHtml(boundary.was)}<br />
-                ${escapeHtml(boundary.grund)}
-              </div>`
+              <p><strong>${escapeHtml(boundary.was)}:</strong> ${escapeHtml(boundary.grund)}</p>`
           )
           .join('')}
       </article>
@@ -91,16 +107,26 @@ function renderCase(vorgang) {
 function renderEvidence(evidence) {
   return `
     <p class="meta">Nachweisansicht</p>
-    <p><strong>Freeze:</strong> ${escapeHtml(evidence.freeze?.status || 'offen')}</p>
-    <p><strong>Freigabeanforderungen:</strong> ${(evidence.approvalRequests || []).length}</p>
+    <p><strong>Freeze:</strong> ${escapeHtml(evidence.frozenAt ? 'eingefroren' : 'offen')}</p>
+    <p><strong>Stand:</strong> ${escapeHtml(evidence.frozenAt || '')}</p>
     <div class="grid">
       ${(evidence.materializedStatements || [])
         .map(
           (statement) => `
             <article class="card">
               <h3>${escapeHtml(statement.label)}</h3>
-              <p>${escapeHtml(statement.value)} ${escapeHtml(statement.unit || '')}</p>
+              <p>${escapeHtml(statement.wert)} ${escapeHtml(statement.einheit || '')}</p>
               <p class="meta">${escapeHtml(statement.source?.ref)}</p>
+            </article>`
+        )
+        .join('')}
+      ${(evidence.hashRefOnlyNotices || [])
+        .map(
+          (notice) => `
+            <article class="card boundary">
+              <h3>${escapeHtml(notice.label)}</h3>
+              <p>Nur mit Quelle reproduzierbar.</p>
+              <p class="meta">${escapeHtml(notice.sourceRef)} · ${escapeHtml(notice.notice)}</p>
             </article>`
         )
         .join('')}
@@ -110,6 +136,7 @@ function renderEvidence(evidence) {
 function renderOperations(operations, preparedResult = null) {
   return `
     <p class="meta">Operationskonsole</p>
+    <p class="meta">Die Nutzung der Konsole wird als Bedarfssignal protokolliert.</p>
     <div class="grid">
       ${(operations.available || [])
         .map(
@@ -125,8 +152,8 @@ function renderOperations(operations, preparedResult = null) {
     </div>
     ${
       preparedResult
-        ? `<article class="card boundary"><span class="badge">Nicht projiziert</span><pre>${escapeHtml(
-            JSON.stringify(preparedResult.rawPayload, null, 2)
+        ? `<article class="card boundary"><span class="badge">Nicht projiziert</span><p>Dieses Ergebnis ist noch nicht in eine belegte Vorgangsdarstellung projiziert. Die JSON-Daten werden als Rohantwort angezeigt.</p><pre>${escapeHtml(
+            JSON.stringify(preparedResult.unprojected?.raw, null, 2)
           )}</pre></article>`
         : ''
     }`;

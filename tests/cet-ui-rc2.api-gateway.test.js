@@ -31,6 +31,8 @@ describe('CET UI RC2 REST gateway', () => {
     expect(apiServiceSource).toContain("'POST /ui/v0/operations/:operationId/prepare'");
     expect(apiServiceSource).not.toContain('/ui/v0/governanceArchitecture');
     expect(apiServiceSource).not.toContain('/ui/v0/rc1');
+    expect(apiServiceSource).not.toContain("rest: 'GET /daily'");
+    expect(apiServiceSource).not.toContain("rest: 'POST /cases/:caseId/takeover'");
   });
 
   test('session context exposes tenant, user, roles and placeholder-agent flags', () => {
@@ -74,6 +76,9 @@ describe('CET UI RC2 REST gateway', () => {
     expect(response.items[0]).toEqual({
       caseId: 'vorgang-cr-lka-rv-001-article-id-change',
       title: 'Artikel-ID-Änderung prüfen',
+      aufmerksamkeitsgrund: 'uebergabe_an_mich',
+      rollenwirkung: '14 Klärfälle müssen fachlich zugeordnet werden',
+      status: 'Mir zugewiesen',
       interactionProjection: expect.objectContaining({
         schemaVersion: 'rc2.interaction-projection.v1',
         activeRoleId: RC2_ROLE_IDS.MARKTKOMMUNIKATION,
@@ -127,6 +132,41 @@ describe('CET UI RC2 REST gateway', () => {
     expect(response.activeRoleId).toBe(RC2_ROLE_IDS.MARKTKOMMUNIKATION);
     expect(response.available.map((operation) => operation.id)).toEqual(['mako.case.lookup']);
     expect(response.available.map((operation) => operation.id)).not.toContain('grid.raw.context');
+  });
+
+  test('operation prepare uses filtered catalog and canonical unprojected result contract', () => {
+    const gateway = buildReferenceUiGateway();
+    const allowed = gateway.prepareOperation(
+      buildReferenceUiGatewayContext({ activeRoleId: RC2_ROLE_IDS.MARKTKOMMUNIKATION }),
+      { operationId: 'mako.case.lookup' }
+    );
+    expect(allowed).toEqual(
+      expect.objectContaining({
+        operationId: 'mako.case.lookup',
+        projectionStatus: 'nicht_projiziert',
+        unprojected: expect.objectContaining({ raw: expect.any(Object) }),
+        audit: expect.objectContaining({
+          schemaVersion: 'rc2.operation-console-audit.v1',
+          event: 'operation_console_used',
+          projectionStatus: 'nicht_projiziert',
+        }),
+      })
+    );
+    expect(allowed).not.toHaveProperty('rawPayload');
+    expect(allowed).not.toHaveProperty('kind');
+
+    const denied = gateway.prepareOperation(
+      buildReferenceUiGatewayContext({
+        userId: 'user-mako-1',
+        activeRoleId: RC2_ROLE_IDS.NETZPLANUNG,
+      }),
+      { operationId: 'grid.raw.context' }
+    );
+    expect(denied).toEqual({
+      ok: false,
+      code: 'operation_not_available',
+      operationId: 'grid.raw.context',
+    });
   });
 
   test('SPA uses the explicit gateway routes and current response shapes', () => {

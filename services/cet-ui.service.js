@@ -5,7 +5,6 @@ const PouchDB = require('pouchdb');
 // The canonical A7-A10 state reducer is src/cet-ui-rc2/run-card-state.js; do not
 // treat this service path as the accepted Laufkarten state boundary until that migration.
 const { createUiStateStore, defaultCaseId, defaultTenantId } = require('../src/cet-rc2-ui-state');
-const { toOperationResultRenderModel } = require('../src/cet-rc2-ui-contracts');
 const {
   REFERENCE_CASE_ID,
   buildReferenceUiGateway,
@@ -15,21 +14,13 @@ const {
 const DB_NAME = process.env.CET_UI_STATE_DB || 'cet-rc2-ui-state';
 
 function tenantFrom(ctx) {
-  return ctx?.meta?.tenantId || ctx?.meta?.tenant?.id || defaultTenantId;
+  return ctx?.meta?.tenantId || ctx?.meta?.tenant?.id || ctx?.params?.tenantId || defaultTenantId;
 }
 
 function actorFrom(ctx) {
   return {
-    id:
-      ctx?.params?.actorId ||
-      ctx?.meta?.user?.id ||
-      ctx?.meta?.userId ||
-      'u-rc2-reference-market-ops-1',
-    displayName:
-      ctx?.params?.actorDisplayName ||
-      ctx?.meta?.user?.displayName ||
-      ctx?.meta?.displayName ||
-      'RC2 Marktkommunikation',
+    id: ctx?.meta?.user?.id || ctx?.meta?.userId || 'u-rc2-reference-market-ops-1',
+    displayName: ctx?.meta?.user?.displayName || ctx?.meta?.displayName || 'RC2 Marktkommunikation',
   };
 }
 
@@ -105,7 +96,6 @@ module.exports = {
     },
 
     session: {
-      rest: 'GET /session',
       openapi: {
         summary: 'Get CET RC2 UI session contract',
         tags: ['CET UI RC2'],
@@ -116,7 +106,6 @@ module.exports = {
     },
 
     daily: {
-      rest: 'GET /daily',
       openapi: {
         summary: 'Get CET RC2 daily surface',
         tags: ['CET UI RC2'],
@@ -151,16 +140,14 @@ module.exports = {
         summary: 'Get CET RC2 evidence view model',
         tags: ['CET UI RC2'],
       },
-      async handler(ctx) {
-        return this.store.getEvidence({
-          tenantId: tenantFrom(ctx),
-          caseId: ctx.params.caseId || defaultCaseId,
+      handler(ctx) {
+        return rc2Gateway().getEvidence(rc2GatewayContextFrom(ctx), {
+          caseId: ctx.params.caseId || REFERENCE_CASE_ID,
         });
       },
     },
 
     takeOver: {
-      rest: 'POST /cases/:caseId/takeover',
       params: {
         caseId: { type: 'string', optional: true },
       },
@@ -235,13 +222,10 @@ module.exports = {
         summary: 'Prepare Operationskonsole capability without Fachsystem execute',
         tags: ['CET UI RC2'],
       },
-      async handler(ctx) {
-        const result = await this.store.prepareOperation({
-          tenantId: tenantFrom(ctx),
+      handler(ctx) {
+        return rc2Gateway().prepareOperation(rc2GatewayContextFrom(ctx), {
           operationId: ctx.params.operationId,
-          actor: actorFrom(ctx),
         });
-        return toOperationResultRenderModel(result);
       },
     },
   },

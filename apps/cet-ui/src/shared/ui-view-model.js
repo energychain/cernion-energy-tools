@@ -1,79 +1,95 @@
 'use strict';
 
-function validateGrammarParts(parts) {
-  const allowed = new Set(['vorgang', 'quellen', 'pruefung', 'unsicherheit', 'freigabe']);
-  return Array.isArray(parts) ? parts.filter((part) => allowed.has(part)) : [];
-}
-
-function getBoundaryItems(element) {
-  return Array.isArray(element?.nichtHandlungen) ? element.nichtHandlungen : [];
-}
+const GRAMMAR_SECTIONS = Object.freeze([
+  { id: 'vorgang', title: 'Vorgang' },
+  { id: 'quellen', title: 'Quellen' },
+  { id: 'pruefung', title: 'Prüfung' },
+  { id: 'unsicherheit', title: 'Unsicherheit' },
+  { id: 'freigabe', title: 'Freigabe' },
+]);
 
 function buildDailySurfaceModel(surface) {
+  const items = Array.isArray(surface.items) ? surface.items : [];
   return {
-    route: surface.route || '/api/ui/v0/daily',
+    route: surface.route || '/api/ui/v0/daily-surface',
     activeRoleId: surface.activeRoleId || null,
-    sinceLastAccess: surface.sinceLastAccess || [],
-    cards: (surface.vorgaenge || []).map((item) => ({
-      id: item.vorgangId,
-      title: item.label,
-      status: item.status,
-      roleId: item.primaryRoleId,
+    cards: items.map((item) => ({
+      id: item.caseId,
+      title: item.title,
+      attentionReason: item.aufmerksamkeitsgrund || null,
+      roleEffect: item.rollenwirkung || null,
+      nextContribution: item.interactionProjection?.naechsterBeitrag || null,
+      status: item.status || item.interactionProjection?.naechsterBeitrag?.kind || null,
+      roleId: item.interactionProjection?.activeRoleId || surface.activeRoleId || null,
     })),
   };
 }
 
 function buildCaseViewModel(vorgang) {
-  const grammarParts = validateGrammarParts(vorgang.presentationContract?.grammarParts || []);
-  const elements = vorgang.presentationContract?.elements || [];
+  const statements = vorgang.presentationContract?.aussagen || [];
   return {
     id: vorgang.caseId,
-    title: vorgang.label,
-    status: vorgang.status,
+    title: vorgang.label || vorgang.presentationContract?.titel,
+    status: vorgang.visibleStatus,
     primaryRoleId: vorgang.primaryRoleId,
-    visibleNoAction: vorgang.visibleNoAction,
-    nextContribution: vorgang.nextContribution || null,
-    decisionDistance: (vorgang.decisionDistance || []).map((criterion) => ({
-      ...criterion,
-      collapsed: criterion.state === 'nicht_anwendbar',
+    visibleNoAction: vorgang.visibleStatus,
+    nextContribution: vorgang.interactionProjection?.naechsterBeitrag || null,
+    decisionDistance: (vorgang.interactionProjection?.entscheidungsdistanz?.criteria || []).map(
+      (criterion) => ({
+        ...criterion,
+        collapsed: criterion.state === 'nicht_anwendbar',
+      })
+    ),
+    sections: GRAMMAR_SECTIONS.map((section) => ({
+      ...section,
+      statements:
+        section.id === 'vorgang' || section.id === 'quellen' || section.id === 'pruefung'
+          ? statements
+          : [],
     })),
-    sections: grammarParts.map((part) => ({
-      id: part,
-      elements,
-    })),
-    boundaries: elements.flatMap((element) => getBoundaryItems(element)),
+    boundaries: vorgang.presentationContract?.nichtHandlungen || [],
   };
 }
 
 function buildEvidenceViewModel(evidence) {
   return {
-    freezeStatus: evidence.freeze?.status || 'offen',
+    freezeStatus: evidence.frozenAt ? 'eingefroren' : 'offen',
+    frozenAt: evidence.frozenAt || null,
     approvals: evidence.approvalRequests || [],
     evidenceItems: (evidence.materializedStatements || []).map((statement) => ({
       id: statement.id,
       label: statement.label,
-      value: statement.value,
+      value: statement.wert,
       sourceRef: statement.source?.ref || null,
+    })),
+    hashRefOnlyNotices: (evidence.hashRefOnlyNotices || []).map((notice) => ({
+      id: notice.id,
+      label: notice.label,
+      sourceRef: notice.sourceRef,
+      notice: notice.notice,
     })),
   };
 }
 
-function buildOperationsConsoleModel({ operations = [], preparedResult = null } = {}) {
+function buildOperationsConsoleModel({ operations = {}, preparedResult = null } = {}) {
+  const available = Array.isArray(operations) ? operations : operations.available || [];
   const view = {
-    operations: operations.map((operation) => ({
+    operations: available.map((operation) => ({
       id: operation.id,
       label: operation.label,
-      projectionStatus: operation.projectionStatus || 'unknown',
+      projectionStatus: operation.projectionStatus || operation.mode || 'unknown',
+      riskClass: operation.riskClass || null,
     })),
     preparedResult: null,
   };
 
-  if (preparedResult?.kind === 'not_projected_json') {
+  if (preparedResult?.projectionStatus === 'nicht_projiziert') {
     view.preparedResult = {
       badge: 'Nicht projiziert',
-      rawPayload: preparedResult.rawPayload,
-      notice: preparedResult.rawPayloadNotice,
+      rawPayload: preparedResult.unprojected?.raw,
+      notice: preparedResult.unprojected?.notice,
       evidenceMarkers: [],
+      aggregationState: null,
     };
   }
 

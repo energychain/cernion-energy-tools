@@ -6,8 +6,13 @@ const {
   resolvePlaceholderAgentForRole,
 } = require('./fixtures/reference-tenant');
 const { buildInteractionProjection } = require('./interaction-projection');
+const { buildEvidenceDossier } = require('./evidence-dossier');
 const { createReferenceRunCard, claimRunCard } = require('./run-card-state');
-const { filterOperationCatalog } = require('./operation-console-contract');
+const {
+  buildOperationAuditPayload,
+  filterOperationCatalog,
+  classifyOperationResult,
+} = require('./operation-console-contract');
 
 const REFERENCE_CASE_ID = 'vorgang-cr-lka-rv-001-article-id-change';
 
@@ -156,6 +161,9 @@ function buildReferenceUiGateway({ fixture = buildReferenceTenantFixture() } = {
           {
             caseId: REFERENCE_CASE_ID,
             title: 'Artikel-ID-Änderung prüfen',
+            aufmerksamkeitsgrund: 'uebergabe_an_mich',
+            rollenwirkung: '14 Klärfälle müssen fachlich zugeordnet werden',
+            status: 'Mir zugewiesen',
             interactionProjection: buildProjection(activeRoleId),
           },
         ],
@@ -179,6 +187,16 @@ function buildReferenceUiGateway({ fixture = buildReferenceTenantFixture() } = {
       };
     },
 
+    getEvidence(context) {
+      const activeRoleId = resolveActiveRoleId(fixture, context);
+      return buildEvidenceDossier({
+        presentationContract: buildReferencePresentationContract(),
+        interactionProjection: buildProjection(activeRoleId),
+        schnittplanVersion: 'rc2.schnittplan.v1',
+        frozenAt: context.now,
+      });
+    },
+
     claimCase(context, { caseId = REFERENCE_CASE_ID, basisRev = 'rev-1' } = {}) {
       const user = findUser(fixture, context);
       const activeRoleId = resolveActiveRoleId(fixture, context);
@@ -198,6 +216,32 @@ function buildReferenceUiGateway({ fixture = buildReferenceTenantFixture() } = {
         tenantId: context.tenantId,
         activeRoleId,
         ...filterOperationCatalog(buildReferenceOperationCatalog(), { ...context, activeRoleId }),
+      };
+    },
+
+    prepareOperation(context, { operationId } = {}) {
+      const catalog = this.listOperations(context);
+      const operation = catalog.available.find((entry) => entry.id === operationId);
+      if (!operation) return { ok: false, code: 'operation_not_available', operationId };
+      const result = classifyOperationResult({
+        operationId,
+        raw: {
+          operationId,
+          preparedAt: context.now,
+          tenantId: context.tenantId,
+          activeRoleId: catalog.activeRoleId,
+        },
+      });
+      return {
+        ...result,
+        audit: buildOperationAuditPayload({
+          tenantId: context.tenantId,
+          userId: context.userId,
+          activeRoleId: catalog.activeRoleId,
+          operationId,
+          projectionStatus: result.projectionStatus,
+          at: context.now,
+        }),
       };
     },
   };
