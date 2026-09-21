@@ -47,9 +47,7 @@ function presentationContract() {
     ],
     befunde: [],
     handlungen: [],
-    nichtHandlungen: [
-      { was: 'Rohzeilen materialisieren', grund: 'F3 Einzeldatensatzgrenze' },
-    ],
+    nichtHandlungen: [{ was: 'Rohzeilen materialisieren', grund: 'F3 Einzeldatensatzgrenze' }],
   };
 }
 
