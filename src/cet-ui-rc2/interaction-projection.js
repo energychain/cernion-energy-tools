@@ -27,6 +27,8 @@ function normalizeCriterion(criterion) {
     state: criterion.state,
     beeinflussbarDurch: uniqueStrings(criterion.beeinflussbarDurch || []),
     textKey: criterion.textKey || `rc2.decisionCriterion.${criterion.id}`,
+    nextContributionTextKey:
+      criterion.nextContributionTextKey || `rc2.nextContribution.${criterion.id}`,
   };
 }
 

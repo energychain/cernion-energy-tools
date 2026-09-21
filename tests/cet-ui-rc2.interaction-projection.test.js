@@ -58,6 +58,7 @@ const criteria = [
     id: 'evidence_complete',
     state: 'offen',
     beeinflussbarDurch: ['RC2_ROLE_MARKTKOMMUNIKATION'],
+    nextContributionTextKey: 'rc2.nextContribution.evidenceComplete',
   },
   {
     id: 'approval_requested',
@@ -84,6 +85,27 @@ describe('CET UI RC2 interaction projection', () => {
       criterionId: 'evidence_complete',
       erforderlichFuer: 'entscheidungsreife',
       textKey: 'rc2.nextContribution.evidenceComplete',
+    });
+  });
+
+  test('preserves criterion-specific next contribution text keys', () => {
+    const projection = buildInteractionProjection(presentationContract(), {
+      activeRoleId: 'RC2_ROLE_ABTEILUNGSLEITUNG',
+      decisionCriteria: [
+        {
+          id: 'approval_requested',
+          state: 'offen',
+          beeinflussbarDurch: ['RC2_ROLE_ABTEILUNGSLEITUNG'],
+          nextContributionTextKey: 'rc2.nextContribution.approvalRequested',
+        },
+      ],
+    });
+
+    expect(projection.naechsterBeitrag).toEqual({
+      kind: 'beitrag_erforderlich',
+      criterionId: 'approval_requested',
+      erforderlichFuer: 'entscheidungsreife',
+      textKey: 'rc2.nextContribution.approvalRequested',
     });
   });
 
