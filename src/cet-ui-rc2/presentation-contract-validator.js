@@ -48,7 +48,9 @@ function assertStructuredRawValueBoundary(item, label) {
   if (!Object.prototype.hasOwnProperty.call(item, 'wert')) return;
   const value = item.wert;
   if (value !== null && typeof value === 'object') {
-    throw new Error(`${label} wert must be scalar; raw object or array values are not presentation-contract material`);
+    throw new Error(
+      `${label} wert must be scalar; raw object or array values are not presentation-contract material`
+    );
   }
 }
 
@@ -68,7 +70,9 @@ function validatePresentationContract(contract) {
 
   const valid = validateSchema(contract);
   if (!valid) {
-    throw new Error(`Invalid presentation contract: ${formatValidationErrors(validateSchema.errors)}`);
+    throw new Error(
+      `Invalid presentation contract: ${formatValidationErrors(validateSchema.errors)}`
+    );
   }
 
   return { valid: true, contract };

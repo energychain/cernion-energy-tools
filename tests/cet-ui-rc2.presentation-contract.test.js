@@ -68,7 +68,11 @@ describe('CET UI RC2 presentation contract', () => {
 
   test('rejects a statement without source ref', () => {
     const contract = validContract({
-      aussagen: [aggregateStatement({ quelle: { klasse: 'caller_supplied', stand: '2026-09-21T09:40:00Z' } })],
+      aussagen: [
+        aggregateStatement({
+          quelle: { klasse: 'caller_supplied', stand: '2026-09-21T09:40:00Z' },
+        }),
+      ],
     });
 
     expect(() => validatePresentationContract(contract)).toThrow(/quelle.*ref/);
@@ -132,14 +136,14 @@ describe('CET UI RC2 presentation contract', () => {
     const contract = validContract({
       befunde: [
         {
-          rawRows: [
-            { zaehlpunkt: 'DE001234567890000000000000000001', status: 'offen' },
-          ],
+          rawRows: [{ zaehlpunkt: 'DE001234567890000000000000000001', status: 'offen' }],
         },
       ],
     });
 
-    expect(() => validatePresentationContract(contract)).toThrow(/additional properties|rawRows|befunde/);
+    expect(() => validatePresentationContract(contract)).toThrow(
+      /additional properties|rawRows|befunde/
+    );
   });
 
   test('compiles the presentation contract schema in strict AJV mode', () => {
