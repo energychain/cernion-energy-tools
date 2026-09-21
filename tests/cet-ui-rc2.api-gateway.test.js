@@ -13,14 +13,22 @@ const apiServiceSource = fs.readFileSync(
   path.join(__dirname, '..', 'services', 'api.service.js'),
   'utf8'
 );
+const uiMainSource = fs.readFileSync(
+  path.join(__dirname, '..', 'apps', 'cet-ui', 'src', 'main.js'),
+  'utf8'
+);
 
 describe('CET UI RC2 REST gateway', () => {
   test('registers explicit /api/ui/v0 route aliases without direct RC1 paths', () => {
     expect(apiServiceSource).toContain("'GET /ui/v0/session-context'");
     expect(apiServiceSource).toContain("'GET /ui/v0/daily-surface'");
     expect(apiServiceSource).toContain("'GET /ui/v0/cases/:caseId'");
+    expect(apiServiceSource).toContain("'GET /ui/v0/cases/:caseId/evidence'");
     expect(apiServiceSource).toContain("'POST /ui/v0/cases/:caseId/claim'");
+    expect(apiServiceSource).toContain("'POST /ui/v0/cases/:caseId/freeze'");
+    expect(apiServiceSource).toContain("'POST /ui/v0/cases/:caseId/approval-requests'");
     expect(apiServiceSource).toContain("'GET /ui/v0/operations'");
+    expect(apiServiceSource).toContain("'POST /ui/v0/operations/:operationId/prepare'");
     expect(apiServiceSource).not.toContain('/ui/v0/governanceArchitecture');
     expect(apiServiceSource).not.toContain('/ui/v0/rc1');
   });
@@ -108,15 +116,28 @@ describe('CET UI RC2 REST gateway', () => {
     );
   });
 
-  test('operations endpoint returns tenant-role filtered catalog', () => {
+  test('operations endpoint does not trust client-requested roles outside the user roles', () => {
     const response = buildReferenceUiGateway().listOperations(
-      buildReferenceUiGatewayContext({ activeRoleId: RC2_ROLE_IDS.MARKTKOMMUNIKATION })
+      buildReferenceUiGatewayContext({
+        userId: 'user-mako-1',
+        activeRoleId: RC2_ROLE_IDS.NETZPLANUNG,
+      })
     );
 
-    expect(response.schemaVersion).toBe('rc2.ui-operations-catalog.v1');
+    expect(response.activeRoleId).toBe(RC2_ROLE_IDS.MARKTKOMMUNIKATION);
     expect(response.available.map((operation) => operation.id)).toEqual(['mako.case.lookup']);
-    expect(response.denied).toEqual(
-      expect.arrayContaining([expect.objectContaining({ boundaryReason: 'role_not_allowed' })])
-    );
+    expect(response.available.map((operation) => operation.id)).not.toContain('grid.raw.context');
+  });
+
+  test('SPA uses the explicit gateway routes and current response shapes', () => {
+    expect(uiMainSource).toContain("daily: '/api/ui/v0/daily-surface'");
+    expect(uiMainSource).toContain('surface.items');
+    expect(uiMainSource).toContain('operations.available');
+    expect(uiMainSource).toContain('presentationContract?.aussagen');
+    expect(uiMainSource).toContain('/claim');
+    expect(uiMainSource).not.toContain("daily: '/api/ui/v0/daily'");
+    expect(uiMainSource).not.toContain('operations.operations');
+    expect(uiMainSource).not.toContain('presentationContract?.elements');
+    expect(uiMainSource).not.toContain('/takeover');
   });
 });

@@ -101,6 +101,23 @@ function activeRoleCandidates(fixture, tenantId, user) {
   });
 }
 
+function resolveActiveRoleId(fixture, context) {
+  const user = findUser(fixture, context);
+  const requestedRoleId = context.activeRoleId;
+  if (user && (user.roleIds || []).includes(requestedRoleId)) return requestedRoleId;
+  if (user && user.roleIds && user.roleIds.length > 0) return user.roleIds[0];
+  if (
+    !user &&
+    resolvePlaceholderAgentForRole(fixture, { tenantId: context.tenantId, roleId: requestedRoleId })
+  ) {
+    return requestedRoleId;
+  }
+  const placeholder = fixture.placeholderAgents.find(
+    (agent) => agent.tenantId === context.tenantId
+  );
+  return placeholder ? placeholder.roleIds[0] : null;
+}
+
 function buildProjection(activeRoleId) {
   return buildInteractionProjection(buildReferencePresentationContract(), {
     activeRoleId,
@@ -130,50 +147,57 @@ function buildReferenceUiGateway({ fixture = buildReferenceTenantFixture() } = {
     },
 
     getDailySurface(context) {
+      const activeRoleId = resolveActiveRoleId(fixture, context);
       return {
         schemaVersion: 'rc2.ui-daily-surface.v1',
         tenantId: context.tenantId,
+        activeRoleId,
         items: [
           {
             caseId: REFERENCE_CASE_ID,
             title: 'Artikel-ID-Änderung prüfen',
-            interactionProjection: buildProjection(context.activeRoleId),
+            interactionProjection: buildProjection(activeRoleId),
           },
         ],
       };
     },
 
     getCase(context, { caseId = REFERENCE_CASE_ID } = {}) {
+      const activeRoleId = resolveActiveRoleId(fixture, context);
       return {
         schemaVersion: 'rc2.ui-case-view.v1',
         tenantId: context.tenantId,
         caseId,
+        label: 'Artikel-ID-Änderung prüfen',
+        primaryRoleId: activeRoleId,
         visibleStatus:
-          context.activeRoleId === RC2_ROLE_IDS.MARKTKOMMUNIKATION
+          activeRoleId === RC2_ROLE_IDS.MARKTKOMMUNIKATION
             ? 'mir_zugewiesen'
             : 'in_bearbeitung_durch_Marktkommunikation',
         presentationContract: buildReferencePresentationContract(),
-        interactionProjection: buildProjection(context.activeRoleId),
+        interactionProjection: buildProjection(activeRoleId),
       };
     },
 
     claimCase(context, { caseId = REFERENCE_CASE_ID, basisRev = 'rev-1' } = {}) {
       const user = findUser(fixture, context);
+      const activeRoleId = resolveActiveRoleId(fixture, context);
       const card = createReferenceRunCard({ tenantId: context.tenantId, caseId, basisRev });
       return claimRunCard(card, {
         basisRev,
         actor: user,
-        roleId: context.activeRoleId,
+        roleId: activeRoleId,
         now: context.now,
       });
     },
 
     listOperations(context) {
+      const activeRoleId = resolveActiveRoleId(fixture, context);
       return {
         schemaVersion: 'rc2.ui-operations-catalog.v1',
         tenantId: context.tenantId,
-        activeRoleId: context.activeRoleId,
-        ...filterOperationCatalog(buildReferenceOperationCatalog(), context),
+        activeRoleId,
+        ...filterOperationCatalog(buildReferenceOperationCatalog(), { ...context, activeRoleId }),
       };
     },
   };

@@ -1529,8 +1529,12 @@ module.exports = {
           'GET /ui/v0/session-context': 'cet-ui.sessionContext',
           'GET /ui/v0/daily-surface': 'cet-ui.dailySurface',
           'GET /ui/v0/cases/:caseId': 'cet-ui.getCase',
+          'GET /ui/v0/cases/:caseId/evidence': 'cet-ui.evidence',
           'POST /ui/v0/cases/:caseId/claim': 'cet-ui.claimCase',
+          'POST /ui/v0/cases/:caseId/freeze': 'cet-ui.freeze',
+          'POST /ui/v0/cases/:caseId/approval-requests': 'cet-ui.requestApproval',
           'GET /ui/v0/operations': 'cet-ui.operations',
+          'POST /ui/v0/operations/:operationId/prepare': 'cet-ui.prepareOperation',
           'GET /docs'(req, res) {
             // Serve Swagger UI HTML
             res.setHeader(CONTENT_TYPE_HEADER, 'text/html');

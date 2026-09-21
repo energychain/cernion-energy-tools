@@ -15,7 +15,7 @@ const {
 const DB_NAME = process.env.CET_UI_STATE_DB || 'cet-rc2-ui-state';
 
 function tenantFrom(ctx) {
-  return ctx?.params?.tenantId || ctx?.meta?.tenantId || ctx?.meta?.tenant?.id || defaultTenantId;
+  return ctx?.meta?.tenantId || ctx?.meta?.tenant?.id || defaultTenantId;
 }
 
 function actorFrom(ctx) {
@@ -36,9 +36,9 @@ function actorFrom(ctx) {
 function rc2GatewayContextFrom(ctx) {
   return buildReferenceUiGatewayContext({
     tenantId: tenantFrom(ctx),
-    userId: ctx?.params?.userId || ctx?.meta?.user?.id || ctx?.meta?.userId || 'user-mako-1',
+    userId: ctx?.meta?.user?.id || ctx?.meta?.userId || 'user-mako-1',
     activeRoleId:
-      ctx?.params?.activeRoleId || ctx?.meta?.activeRoleId || 'RC2_ROLE_MARKTKOMMUNIKATION',
+      ctx?.meta?.activeRoleId || ctx?.params?.activeRoleId || 'RC2_ROLE_MARKTKOMMUNIKATION',
     now: ctx?.params?.now || ctx?.meta?.now || '2026-09-21T12:00:00Z',
   });
 }

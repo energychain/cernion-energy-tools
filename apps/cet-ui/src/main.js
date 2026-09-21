@@ -2,7 +2,7 @@
 'use strict';
 
 const api = {
-  daily: '/api/ui/v0/daily',
+  daily: '/api/ui/v0/daily-surface',
   case: (id) => `/api/ui/v0/cases/${encodeURIComponent(id)}`,
   evidence: (id) => `/api/ui/v0/cases/${encodeURIComponent(id)}/evidence`,
   operations: '/api/ui/v0/operations',
@@ -38,15 +38,14 @@ function renderDaily(surface) {
   return `
     <p class="meta">Tagesfläche · ${escapeHtml(surface.activeRoleId)}</p>
     <div class="grid">
-      ${(surface.vorgaenge || [])
+      ${(surface.items || [])
         .map(
           (item) => `
             <article class="card">
-              <span class="badge">${escapeHtml(item.status)}</span>
-              <h2>${escapeHtml(item.label)}</h2>
-              <p>${escapeHtml(item.visibleNoAction || '')}</p>
-              <p>${escapeHtml(item.nextContribution?.label || '')}</p>
-              <button data-open-case="${escapeHtml(item.vorgangId)}">Vorgang öffnen</button>
+              <span class="badge">${escapeHtml(item.interactionProjection?.naechsterBeitrag?.kind || '')}</span>
+              <h2>${escapeHtml(item.title)}</h2>
+              <p>${escapeHtml(item.interactionProjection?.naechsterBeitrag?.textKey || '')}</p>
+              <button data-open-case="${escapeHtml(item.caseId)}">Vorgang öffnen</button>
             </article>`
         )
         .join('')}
@@ -54,40 +53,35 @@ function renderDaily(surface) {
 }
 
 function renderCase(vorgang) {
-  const elements = vorgang.presentationContract?.elements || [];
+  const statements = vorgang.presentationContract?.aussagen || [];
   return `
     <p class="meta">Vorgangsansicht · ${escapeHtml(vorgang.primaryRoleId)}</p>
-    <h2>${escapeHtml(vorgang.label)}</h2>
-    <p>${escapeHtml(vorgang.visibleNoAction)}</p>
+    <h2>${escapeHtml(vorgang.label || vorgang.presentationContract?.titel)}</h2>
+    <p>${escapeHtml(vorgang.visibleStatus)}</p>
     <div class="grid">
-      ${elements
-        .map(
-          (element) => `
-            <article class="section">
-              <h3>${escapeHtml(element.title || element.elementId)}</h3>
-              ${(element.statements || [])
-                .map(
-                  (statement) => `
-                    <p><strong>${escapeHtml(statement.label)}:</strong> ${escapeHtml(statement.value)}</p>
-                    <p class="meta">${escapeHtml(statement.granularitaet)} · ${escapeHtml(
-                      statement.source?.ref
-                    )}</p>`
-                )
-                .join('')}
-              ${(element.nichtHandlungen || [])
-                .map(
-                  (boundary) => `
-                    <div class="card boundary">
-                      <strong>Grenze:</strong> ${escapeHtml(boundary.was)}<br />
-                      ${escapeHtml(boundary.grund)}
-                    </div>`
-                )
-                .join('')}
-            </article>`
-        )
-        .join('')}
+      <article class="section">
+        <h3>${escapeHtml(vorgang.presentationContract?.titel || 'Aussagen')}</h3>
+        ${statements
+          .map(
+            (statement) => `
+              <p><strong>${escapeHtml(statement.label)}:</strong> ${escapeHtml(statement.wert)}</p>
+              <p class="meta">${escapeHtml(statement.granularitaet)} · ${escapeHtml(
+                statement.quelle?.ref
+              )}</p>`
+          )
+          .join('')}
+        ${(vorgang.presentationContract?.nichtHandlungen || [])
+          .map(
+            (boundary) => `
+              <div class="card boundary">
+                <strong>Grenze:</strong> ${escapeHtml(boundary.was)}<br />
+                ${escapeHtml(boundary.grund)}
+              </div>`
+          )
+          .join('')}
+      </article>
     </div>
-    <button data-action="takeover" data-case="${escapeHtml(vorgang.caseId)}">Mir zuweisen</button>
+    <button data-action="claim" data-case="${escapeHtml(vorgang.caseId)}">Mir zuweisen</button>
     <button class="secondary" data-action="freeze" data-case="${escapeHtml(vorgang.caseId)}">Einfrieren</button>
     <button class="secondary" data-action="approval" data-case="${escapeHtml(
       vorgang.caseId
@@ -117,11 +111,11 @@ function renderOperations(operations, preparedResult = null) {
   return `
     <p class="meta">Operationskonsole</p>
     <div class="grid">
-      ${(operations.operations || [])
+      ${(operations.available || [])
         .map(
           (operation) => `
             <article class="card">
-              <span class="badge">${escapeHtml(operation.projectionStatus)}</span>
+              <span class="badge">${escapeHtml(operation.mode)}</span>
               <h3>${escapeHtml(operation.label)}</h3>
               <p>${escapeHtml(operation.pathTemplate || '')}</p>
               <button data-prepare-operation="${escapeHtml(operation.id)}">Vorbereiten</button>
@@ -147,7 +141,7 @@ async function openCase(id) {
 async function refresh() {
   const [daily, operations] = await Promise.all([getJson(api.daily), getJson(api.operations)]);
   document.getElementById('daily').innerHTML = renderDaily(daily);
-  if (daily.vorgaenge?.[0]) await openCase(daily.vorgaenge[0].vorgangId);
+  if (daily.items?.[0]) await openCase(daily.items[0].caseId);
   document.getElementById('operations').innerHTML = renderOperations(operations);
 }
 
@@ -161,7 +155,7 @@ document.addEventListener('click', async (event) => {
 
   if (target.dataset.action && target.dataset.case) {
     const actionUrl = {
-      takeover: `/api/ui/v0/cases/${encodeURIComponent(target.dataset.case)}/takeover`,
+      claim: `/api/ui/v0/cases/${encodeURIComponent(target.dataset.case)}/claim`,
       freeze: `/api/ui/v0/cases/${encodeURIComponent(target.dataset.case)}/freeze`,
       approval: `/api/ui/v0/cases/${encodeURIComponent(target.dataset.case)}/approval-requests`,
     }[target.dataset.action];
