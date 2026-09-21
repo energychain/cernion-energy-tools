@@ -6,7 +6,7 @@ const {
 } = require('../src/cet-ui-rc2/presentation-contract-validator');
 
 function aggregateStatement(overrides = {}) {
-  return {
+  const statement = {
     id: 'klaerfaelle_betroffen',
     label: 'Betroffene Klärfälle',
     wert: 14,
@@ -22,6 +22,10 @@ function aggregateStatement(overrides = {}) {
     },
     ...overrides,
   };
+  for (const [key, value] of Object.entries(statement)) {
+    if (value === undefined) delete statement[key];
+  }
+  return statement;
 }
 
 function validContract(overrides = {}) {
