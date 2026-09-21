@@ -1526,6 +1526,11 @@ module.exports = {
           'POST /blindflug-radar/scan': 'v1.blindflug-radar.scan',
           'GET /openapi.json': 'api.openapi',
           'GET /openapi-copilot.json': 'api.openapiCopilot',
+          'GET /ui/v0/session-context': 'cet-ui.sessionContext',
+          'GET /ui/v0/daily-surface': 'cet-ui.dailySurface',
+          'GET /ui/v0/cases/:caseId': 'cet-ui.getCase',
+          'POST /ui/v0/cases/:caseId/claim': 'cet-ui.claimCase',
+          'GET /ui/v0/operations': 'cet-ui.operations',
           'GET /docs'(req, res) {
             // Serve Swagger UI HTML
             res.setHeader(CONTENT_TYPE_HEADER, 'text/html');

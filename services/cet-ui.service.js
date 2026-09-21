@@ -6,6 +6,11 @@ const PouchDB = require('pouchdb');
 // treat this service path as the accepted Laufkarten state boundary until that migration.
 const { createUiStateStore, defaultCaseId, defaultTenantId } = require('../src/cet-rc2-ui-state');
 const { toOperationResultRenderModel } = require('../src/cet-rc2-ui-contracts');
+const {
+  REFERENCE_CASE_ID,
+  buildReferenceUiGateway,
+  buildReferenceUiGatewayContext,
+} = require('../src/cet-ui-rc2/ui-gateway-adapter');
 
 const DB_NAME = process.env.CET_UI_STATE_DB || 'cet-rc2-ui-state';
 
@@ -28,6 +33,20 @@ function actorFrom(ctx) {
   };
 }
 
+function rc2GatewayContextFrom(ctx) {
+  return buildReferenceUiGatewayContext({
+    tenantId: tenantFrom(ctx),
+    userId: ctx?.params?.userId || ctx?.meta?.user?.id || ctx?.meta?.userId || 'user-mako-1',
+    activeRoleId:
+      ctx?.params?.activeRoleId || ctx?.meta?.activeRoleId || 'RC2_ROLE_MARKTKOMMUNIKATION',
+    now: ctx?.params?.now || ctx?.meta?.now || '2026-09-21T12:00:00Z',
+  });
+}
+
+function rc2Gateway() {
+  return buildReferenceUiGateway();
+}
+
 module.exports = {
   name: 'cet-ui',
   settings: {
@@ -45,6 +64,46 @@ module.exports = {
   },
 
   actions: {
+    sessionContext: {
+      rest: 'GET /session-context',
+      openapi: {
+        summary: 'Get CET RC2 UI session context',
+        tags: ['CET UI RC2'],
+      },
+      handler(ctx) {
+        return rc2Gateway().getSessionContext(rc2GatewayContextFrom(ctx));
+      },
+    },
+
+    dailySurface: {
+      rest: 'GET /daily-surface',
+      openapi: {
+        summary: 'Get CET RC2 daily surface interaction projections',
+        tags: ['CET UI RC2'],
+      },
+      handler(ctx) {
+        return rc2Gateway().getDailySurface(rc2GatewayContextFrom(ctx));
+      },
+    },
+
+    claimCase: {
+      rest: 'POST /cases/:caseId/claim',
+      params: {
+        caseId: { type: 'string', optional: true },
+        basisRev: { type: 'string', optional: true },
+      },
+      openapi: {
+        summary: 'Claim CET RC2 Vorgang through CET-owned state',
+        tags: ['CET UI RC2'],
+      },
+      handler(ctx) {
+        return rc2Gateway().claimCase(rc2GatewayContextFrom(ctx), {
+          caseId: ctx.params.caseId || REFERENCE_CASE_ID,
+          basisRev: ctx.params.basisRev || 'rev-1',
+        });
+      },
+    },
+
     session: {
       rest: 'GET /session',
       openapi: {
@@ -76,10 +135,9 @@ module.exports = {
         summary: 'Get fixed CET RC2 Vorgang view model',
         tags: ['CET UI RC2'],
       },
-      async handler(ctx) {
-        return this.store.getCase({
-          tenantId: tenantFrom(ctx),
-          caseId: ctx.params.caseId || defaultCaseId,
+      handler(ctx) {
+        return rc2Gateway().getCase(rc2GatewayContextFrom(ctx), {
+          caseId: ctx.params.caseId || REFERENCE_CASE_ID,
         });
       },
     },
@@ -163,8 +221,8 @@ module.exports = {
         summary: 'List CET RC2 Operationskonsole capabilities',
         tags: ['CET UI RC2'],
       },
-      async handler(ctx) {
-        return this.store.listOperations({ tenantId: tenantFrom(ctx) });
+      handler(ctx) {
+        return rc2Gateway().listOperations(rc2GatewayContextFrom(ctx));
       },
     },
 

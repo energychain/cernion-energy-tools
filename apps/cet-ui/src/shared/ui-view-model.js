@@ -1,6 +1,13 @@
 'use strict';
 
-const { getBoundaryItems, validateGrammarParts } = require('../../../../src/cet-rc2-ui-contracts');
+function validateGrammarParts(parts) {
+  const allowed = new Set(['vorgang', 'quellen', 'pruefung', 'unsicherheit', 'freigabe']);
+  return Array.isArray(parts) ? parts.filter((part) => allowed.has(part)) : [];
+}
+
+function getBoundaryItems(element) {
+  return Array.isArray(element?.nichtHandlungen) ? element.nichtHandlungen : [];
+}
 
 function buildDailySurfaceModel(surface) {
   return {
