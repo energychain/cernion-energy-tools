@@ -101,7 +101,7 @@ describe('CET UI RC2 REST gateway', () => {
     expect(response.schemaVersion).toBe('rc2.ui-case-view.v1');
     expect(response.caseId).toBe('vorgang-cr-lka-rv-001-article-id-change');
     expect(response.presentationContract.schemaVersion).toBe('rc2.presentation-contract.v1');
-    expect(response.visibleStatus).toBe('mir_zugewiesen');
+    expect(response.visibleStatus).toBe('offen');
     expect(JSON.stringify(response)).not.toContain('resolutionValue');
   });
 

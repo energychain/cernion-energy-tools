@@ -1,40 +1,45 @@
 'use strict';
 
-const PouchDB = require('pouchdb');
-// Legacy DB-backed RC2 service prototype kept for later A13-A17 REST gateway migration.
-// The canonical A7-A10 state reducer is src/cet-ui-rc2/run-card-state.js; do not
-// treat this service path as the accepted Laufkarten state boundary until that migration.
-const { createUiStateStore, defaultCaseId, defaultTenantId } = require('../src/cet-rc2-ui-state');
 const {
   REFERENCE_CASE_ID,
   buildReferenceUiGateway,
   buildReferenceUiGatewayContext,
 } = require('../src/cet-ui-rc2/ui-gateway-adapter');
+const { RC2_ROLE_IDS } = require('../src/cet-ui-rc2/fixtures/reference-tenant');
 
-const DB_NAME = process.env.CET_UI_STATE_DB || 'cet-rc2-ui-state';
-
-function tenantFrom(ctx) {
-  return ctx?.meta?.tenantId || ctx?.meta?.tenant?.id || defaultTenantId;
+function requireAuthenticatedUiContext(ctx) {
+  const tenantId = ctx?.meta?.authUser?.tenantId || ctx?.meta?.tenantId || ctx?.meta?.tenant?.id;
+  const userId = ctx?.meta?.authUser?.userId || ctx?.meta?.user?.id || ctx?.meta?.userId;
+  if (!tenantId || !userId) {
+    throw new Error('CET RC2 UI requires authenticated tenant and user context.');
+  }
+  return { tenantId, userId };
 }
 
-function actorFrom(ctx) {
-  return {
-    id: ctx?.meta?.user?.id || ctx?.meta?.userId || 'u-rc2-reference-market-ops-1',
-    displayName: ctx?.meta?.user?.displayName || ctx?.meta?.displayName || 'RC2 Marktkommunikation',
-  };
+function activeRoleFrom(ctx) {
+  const requestedRoleId = ctx?.meta?.activeRoleId;
+  const authenticatedRoles = Array.isArray(ctx?.meta?.authUser?.roles)
+    ? ctx.meta.authUser.roles
+    : [];
+  if (requestedRoleId && authenticatedRoles.includes(requestedRoleId)) return requestedRoleId;
+  const rc2RoleFromAuth = authenticatedRoles.find((role) => /^RC2_ROLE_/.test(String(role || '')));
+  if (rc2RoleFromAuth) return rc2RoleFromAuth;
+  return requestedRoleId || RC2_ROLE_IDS.MARKTKOMMUNIKATION;
 }
 
 function rc2GatewayContextFrom(ctx) {
+  const { tenantId, userId } = requireAuthenticatedUiContext(ctx);
   return buildReferenceUiGatewayContext({
-    tenantId: tenantFrom(ctx),
-    userId: ctx?.meta?.user?.id || ctx?.meta?.userId || 'user-mako-1',
-    activeRoleId: ctx?.meta?.activeRoleId || 'RC2_ROLE_MARKTKOMMUNIKATION',
+    tenantId,
+    userId,
+    activeRoleId: activeRoleFrom(ctx),
     now: ctx?.params?.now || ctx?.meta?.now || '2026-09-21T12:00:00Z',
   });
 }
 
-function rc2Gateway() {
-  return buildReferenceUiGateway();
+function gatewayFromRuntime(runtime) {
+  if (!runtime.rc2Gateway) runtime.rc2Gateway = buildReferenceUiGateway();
+  return runtime.rc2Gateway;
 }
 
 module.exports = {
@@ -44,13 +49,7 @@ module.exports = {
   },
 
   created() {
-    this.db = new PouchDB(DB_NAME);
-    this.store = createUiStateStore({ db: this.db });
-  },
-
-  stopped() {
-    if (this.db?.close) return this.db.close();
-    return null;
+    this.rc2Gateway = buildReferenceUiGateway();
   },
 
   actions: {
@@ -61,7 +60,7 @@ module.exports = {
         tags: ['CET UI RC2'],
       },
       handler(ctx) {
-        return rc2Gateway().getSessionContext(rc2GatewayContextFrom(ctx));
+        return gatewayFromRuntime(this).getSessionContext(rc2GatewayContextFrom(ctx));
       },
     },
 
@@ -72,7 +71,39 @@ module.exports = {
         tags: ['CET UI RC2'],
       },
       handler(ctx) {
-        return rc2Gateway().getDailySurface(rc2GatewayContextFrom(ctx));
+        return gatewayFromRuntime(this).getDailySurface(rc2GatewayContextFrom(ctx));
+      },
+    },
+
+    getCase: {
+      rest: 'GET /cases/:caseId',
+      params: {
+        caseId: { type: 'string', optional: true },
+      },
+      openapi: {
+        summary: 'Get fixed CET RC2 Vorgang view model',
+        tags: ['CET UI RC2'],
+      },
+      handler(ctx) {
+        return gatewayFromRuntime(this).getCase(rc2GatewayContextFrom(ctx), {
+          caseId: ctx.params.caseId || REFERENCE_CASE_ID,
+        });
+      },
+    },
+
+    evidence: {
+      rest: 'GET /cases/:caseId/evidence',
+      params: {
+        caseId: { type: 'string', optional: true },
+      },
+      openapi: {
+        summary: 'Get CET RC2 evidence dossier view model',
+        tags: ['CET UI RC2'],
+      },
+      handler(ctx) {
+        return gatewayFromRuntime(this).getEvidence(rc2GatewayContextFrom(ctx), {
+          caseId: ctx.params.caseId || REFERENCE_CASE_ID,
+        });
       },
     },
 
@@ -87,78 +118,9 @@ module.exports = {
         tags: ['CET UI RC2'],
       },
       handler(ctx) {
-        return rc2Gateway().claimCase(rc2GatewayContextFrom(ctx), {
+        return gatewayFromRuntime(this).claimCase(rc2GatewayContextFrom(ctx), {
           caseId: ctx.params.caseId || REFERENCE_CASE_ID,
           basisRev: ctx.params.basisRev || 'rev-1',
-        });
-      },
-    },
-
-    session: {
-      openapi: {
-        summary: 'Get CET RC2 UI session contract',
-        tags: ['CET UI RC2'],
-      },
-      async handler(ctx) {
-        return this.store.getSession({ tenantId: tenantFrom(ctx) });
-      },
-    },
-
-    daily: {
-      openapi: {
-        summary: 'Get CET RC2 daily surface',
-        tags: ['CET UI RC2'],
-      },
-      async handler(ctx) {
-        return this.store.getDailySurface({ tenantId: tenantFrom(ctx) });
-      },
-    },
-
-    getCase: {
-      rest: 'GET /cases/:caseId',
-      params: {
-        caseId: { type: 'string', optional: true },
-      },
-      openapi: {
-        summary: 'Get fixed CET RC2 Vorgang view model',
-        tags: ['CET UI RC2'],
-      },
-      handler(ctx) {
-        return rc2Gateway().getCase(rc2GatewayContextFrom(ctx), {
-          caseId: ctx.params.caseId || REFERENCE_CASE_ID,
-        });
-      },
-    },
-
-    evidence: {
-      rest: 'GET /cases/:caseId/evidence',
-      params: {
-        caseId: { type: 'string', optional: true },
-      },
-      openapi: {
-        summary: 'Get CET RC2 evidence view model',
-        tags: ['CET UI RC2'],
-      },
-      handler(ctx) {
-        return rc2Gateway().getEvidence(rc2GatewayContextFrom(ctx), {
-          caseId: ctx.params.caseId || REFERENCE_CASE_ID,
-        });
-      },
-    },
-
-    takeOver: {
-      params: {
-        caseId: { type: 'string', optional: true },
-      },
-      openapi: {
-        summary: 'Persist CET-internal takeover for a Vorgang',
-        tags: ['CET UI RC2'],
-      },
-      async handler(ctx) {
-        return this.store.takeOver({
-          tenantId: tenantFrom(ctx),
-          caseId: ctx.params.caseId || defaultCaseId,
-          actor: actorFrom(ctx),
         });
       },
     },
@@ -167,16 +129,16 @@ module.exports = {
       rest: 'POST /cases/:caseId/freeze',
       params: {
         caseId: { type: 'string', optional: true },
+        basisRev: { type: 'string', optional: true },
       },
       openapi: {
         summary: 'Persist CET-internal freeze for a Vorgang',
         tags: ['CET UI RC2'],
       },
-      async handler(ctx) {
-        return this.store.freezeCase({
-          tenantId: tenantFrom(ctx),
-          caseId: ctx.params.caseId || defaultCaseId,
-          actor: actorFrom(ctx),
+      handler(ctx) {
+        return gatewayFromRuntime(this).freezeCase(rc2GatewayContextFrom(ctx), {
+          caseId: ctx.params.caseId || REFERENCE_CASE_ID,
+          basisRev: ctx.params.basisRev,
         });
       },
     },
@@ -185,18 +147,18 @@ module.exports = {
       rest: 'POST /cases/:caseId/approval-requests',
       params: {
         caseId: { type: 'string', optional: true },
+        basisRev: { type: 'string', optional: true },
         roleId: { type: 'string', optional: true },
       },
       openapi: {
         summary: 'Persist CET-internal approval request for a Vorgang',
         tags: ['CET UI RC2'],
       },
-      async handler(ctx) {
-        return this.store.requestApproval({
-          tenantId: tenantFrom(ctx),
-          caseId: ctx.params.caseId || defaultCaseId,
-          roleId: ctx.params.roleId || 'ROLE_DEPARTMENT_HEAD',
-          actor: actorFrom(ctx),
+      handler(ctx) {
+        return gatewayFromRuntime(this).requestApproval(rc2GatewayContextFrom(ctx), {
+          caseId: ctx.params.caseId || REFERENCE_CASE_ID,
+          basisRev: ctx.params.basisRev,
+          roleId: ctx.params.roleId,
         });
       },
     },
@@ -208,7 +170,7 @@ module.exports = {
         tags: ['CET UI RC2'],
       },
       handler(ctx) {
-        return rc2Gateway().listOperations(rc2GatewayContextFrom(ctx));
+        return gatewayFromRuntime(this).listOperations(rc2GatewayContextFrom(ctx));
       },
     },
 
@@ -222,7 +184,7 @@ module.exports = {
         tags: ['CET UI RC2'],
       },
       handler(ctx) {
-        return rc2Gateway().prepareOperation(rc2GatewayContextFrom(ctx), {
+        return gatewayFromRuntime(this).prepareOperation(rc2GatewayContextFrom(ctx), {
           operationId: ctx.params.operationId,
         });
       },

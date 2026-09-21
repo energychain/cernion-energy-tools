@@ -7,7 +7,12 @@ const {
 } = require('./fixtures/reference-tenant');
 const { buildInteractionProjection } = require('./interaction-projection');
 const { buildEvidenceDossier } = require('./evidence-dossier');
-const { createReferenceRunCard, claimRunCard } = require('./run-card-state');
+const {
+  createReferenceRunCard,
+  claimRunCard,
+  freezeRunCard,
+  requestApproval,
+} = require('./run-card-state');
 const {
   buildOperationAuditPayload,
   filterOperationCatalog,
@@ -144,7 +149,24 @@ function buildProjection(activeRoleId) {
   });
 }
 
-function buildReferenceUiGateway({ fixture = buildReferenceTenantFixture() } = {}) {
+function buildReferenceUiGateway({
+  fixture = buildReferenceTenantFixture(),
+  initialCards = [],
+} = {}) {
+  const cards = new Map(initialCards.map((card) => [card.caseId, clone(card)]));
+
+  function getOrCreateCard(context, { caseId = REFERENCE_CASE_ID, basisRev = 'rev-1' } = {}) {
+    if (!cards.has(caseId)) {
+      cards.set(caseId, createReferenceRunCard({ tenantId: context.tenantId, caseId, basisRev }));
+    }
+    return clone(cards.get(caseId));
+  }
+
+  function storeCard(card) {
+    cards.set(card.caseId, clone(card));
+    return clone(card);
+  }
+
   return {
     getSessionContext(context) {
       const user = findUser(fixture, context);
@@ -178,41 +200,96 @@ function buildReferenceUiGateway({ fixture = buildReferenceTenantFixture() } = {
 
     getCase(context, { caseId = REFERENCE_CASE_ID } = {}) {
       const activeRoleId = resolveActiveRoleId(fixture, context);
+      const card = getOrCreateCard(context, { caseId });
       return {
         schemaVersion: 'rc2.ui-case-view.v1',
         tenantId: context.tenantId,
         caseId,
         label: 'Artikel-ID-Änderung prüfen',
         primaryRoleId: activeRoleId,
+        basisRev: card.basisRev,
+        assignment: clone(card.assignment),
+        evidenceState: clone(card.evidenceState),
+        approvalRequests: clone(card.hitlRequests || []),
         visibleStatus:
-          activeRoleId === RC2_ROLE_IDS.MARKTKOMMUNIKATION
+          card.assignment?.status === 'mir_zugewiesen'
             ? 'mir_zugewiesen'
-            : 'in_bearbeitung_durch_Marktkommunikation',
+            : activeRoleId === RC2_ROLE_IDS.MARKTKOMMUNIKATION
+              ? 'offen'
+              : 'in_bearbeitung_durch_Marktkommunikation',
         presentationContract: buildReferencePresentationContract(),
         interactionProjection: buildProjection(activeRoleId),
       };
     },
 
-    getEvidence(context) {
+    getEvidence(context, { caseId = REFERENCE_CASE_ID } = {}) {
       const activeRoleId = resolveActiveRoleId(fixture, context);
-      return buildEvidenceDossier({
-        presentationContract: buildReferencePresentationContract(),
-        interactionProjection: buildProjection(activeRoleId),
-        schnittplanVersion: 'rc2.schnittplan.v1',
-        frozenAt: context.now,
-      });
+      const card = getOrCreateCard(context, { caseId });
+      if (card.evidenceState?.status !== 'eingefroren') {
+        return {
+          schemaVersion: 'rc2.evidence-dossier.v1',
+          tenantId: context.tenantId,
+          caseId,
+          freezeStatus: 'nicht_eingefroren',
+          materializedStatements: [],
+          hashRefOnlyNotices: [],
+          sourceRefs: [],
+          approvalRequests: clone(card.hitlRequests || []),
+        };
+      }
+      return {
+        ...buildEvidenceDossier({
+          presentationContract: buildReferencePresentationContract(),
+          interactionProjection: buildProjection(activeRoleId),
+          schnittplanVersion: 'rc2.schnittplan.v1',
+          frozenAt: card.evidenceState.frozenAt,
+        }),
+        tenantId: context.tenantId,
+        caseId,
+        freezeStatus: 'eingefroren',
+        actor: clone(card.evidenceState.actor),
+        roleId: card.evidenceState.actor?.roleIds?.[0] || activeRoleId,
+        approvalRequests: clone(card.hitlRequests || []),
+      };
     },
 
     claimCase(context, { caseId = REFERENCE_CASE_ID, basisRev = 'rev-1' } = {}) {
       const user = findUser(fixture, context);
       const activeRoleId = resolveActiveRoleId(fixture, context);
-      const card = createReferenceRunCard({ tenantId: context.tenantId, caseId, basisRev });
-      return claimRunCard(card, {
-        basisRev,
+      const card = getOrCreateCard(context, { caseId, basisRev });
+      const result = claimRunCard(card, {
+        basisRev: basisRev || card.basisRev,
         actor: user,
         roleId: activeRoleId,
         now: context.now,
       });
+      if (result.ok) result.card = storeCard(result.card);
+      return result;
+    },
+
+    freezeCase(context, { caseId = REFERENCE_CASE_ID, basisRev } = {}) {
+      const user = findUser(fixture, context);
+      const card = getOrCreateCard(context, { caseId });
+      const result = freezeRunCard(card, {
+        basisRev: basisRev || card.basisRev,
+        actor: user,
+        now: context.now,
+      });
+      if (result.ok) result.card = storeCard(result.card);
+      return result;
+    },
+
+    requestApproval(context, { caseId = REFERENCE_CASE_ID, basisRev, roleId } = {}) {
+      const user = findUser(fixture, context);
+      const card = getOrCreateCard(context, { caseId });
+      const result = requestApproval(card, {
+        basisRev: basisRev || card.basisRev,
+        roleId: roleId || RC2_ROLE_IDS.ABTEILUNGSLEITUNG,
+        actor: user,
+        now: context.now,
+      });
+      if (result.ok) result.card = storeCard(result.card);
+      return result;
     },
 
     listOperations(context) {

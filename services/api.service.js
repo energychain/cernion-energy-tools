@@ -1539,6 +1539,39 @@ module.exports = {
           'POST /ui/v0/cases/:caseId/approval-requests': 'cet-ui.requestApproval',
           'GET /ui/v0/operations': 'cet-ui.operations',
           'POST /ui/v0/operations/:operationId/prepare': 'cet-ui.prepareOperation',
+          'GET /ui/v0/app'(req, res) {
+            const appHtml = path.join(__dirname, '..', 'apps', 'cet-ui', 'index.html');
+            try {
+              const html = fs.readFileSync(appHtml, 'utf-8');
+              res.setHeader(CONTENT_TYPE_HEADER, 'text/html; charset=utf-8');
+              res.end(html);
+            } catch (err) {
+              res.writeHead(500);
+              res.end('CET RC2 UI app not found: ' + err.message);
+            }
+          },
+          'GET /ui/v0/src/main.js'(req, res) {
+            const appJs = path.join(__dirname, '..', 'apps', 'cet-ui', 'src', 'main.js');
+            try {
+              const js = fs.readFileSync(appJs, 'utf-8');
+              res.setHeader(CONTENT_TYPE_HEADER, 'application/javascript; charset=utf-8');
+              res.end(js);
+            } catch (err) {
+              res.writeHead(404);
+              res.end('CET RC2 UI script not found: ' + err.message);
+            }
+          },
+          'GET /ui/v0/src/styles.css'(req, res) {
+            const appCss = path.join(__dirname, '..', 'apps', 'cet-ui', 'src', 'styles.css');
+            try {
+              const css = fs.readFileSync(appCss, 'utf-8');
+              res.setHeader(CONTENT_TYPE_HEADER, 'text/css; charset=utf-8');
+              res.end(css);
+            } catch (err) {
+              res.writeHead(404);
+              res.end('CET RC2 UI stylesheet not found: ' + err.message);
+            }
+          },
           'GET /docs'(req, res) {
             // Serve Swagger UI HTML
             res.setHeader(CONTENT_TYPE_HEADER, 'text/html');
