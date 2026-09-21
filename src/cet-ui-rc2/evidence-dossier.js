@@ -127,6 +127,7 @@ function isCompleteEvidenceDossier(value) {
     typeof value.interactionProjectionVersion === 'string' &&
     typeof value.schnittplanVersion === 'string' &&
     isStringArray(value.statementRefs) &&
+    value.statementRefs.length > 0 &&
     Array.isArray(value.materializedStatements) &&
     value.materializedStatements.every(
       (statement) =>
@@ -146,6 +147,8 @@ function isCompleteEvidenceDossier(value) {
         notice.notice === 'nur_mit_quelle_reproduzierbar'
     ) &&
     isStringArray(value.sourceRefs) &&
+    value.sourceRefs.length > 0 &&
+    value.materializedStatements.length + value.hashRefOnlyNotices.length > 0 &&
     value.offlineStatus &&
     value.offlineStatus.aggregateStatementsOfflineRenderable === true &&
     isStringArray(value.offlineStatus.hashRefOnlyRequiresSource)

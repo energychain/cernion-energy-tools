@@ -199,6 +199,24 @@ describe('CET UI RC2 evidence dossier', () => {
     expect(
       isCompleteEvidenceDossier({
         schemaVersion: 'rc2.evidence-dossier.v1',
+        frozenAt: '2026-09-21T12:00:00Z',
+        presentationContractVersion: 'rc2.presentation-contract.v1',
+        interactionProjectionVersion: 'rc2.interaction-projection.v1',
+        schnittplanVersion: 'rc2.schnittplan.v1',
+        statementRefs: [],
+        materializedStatements: [],
+        hashRefOnlyNotices: [],
+        sourceRefs: [],
+        offlineStatus: {
+          aggregateStatementsOfflineRenderable: true,
+          hashRefOnlyRequiresSource: [],
+        },
+      })
+    ).toBe(false);
+
+    expect(
+      isCompleteEvidenceDossier({
+        schemaVersion: 'rc2.evidence-dossier.v1',
         presentationContractVersion: 'rc2.presentation-contract.v1',
         schnittplanVersion: 'rc2.schnittplan.v1',
         materializedStatements: [],
