@@ -33,6 +33,11 @@ describe('CET UI RC2 REST gateway', () => {
     expect(apiServiceSource).not.toContain('/ui/v0/rc1');
     expect(apiServiceSource).not.toContain("rest: 'GET /daily'");
     expect(apiServiceSource).not.toContain("rest: 'POST /cases/:caseId/takeover'");
+    expect(apiServiceSource).toContain("pathOnly.startsWith('/api/ui/v0/') && m === 'POST'");
+    expect(apiServiceSource).toContain('Authentication required for protected endpoints.');
+    expect(apiServiceSource).toContain(
+      'Valid API or session token required for protected endpoints.'
+    );
   });
 
   test('session context exposes tenant, user, roles and placeholder-agent flags', () => {

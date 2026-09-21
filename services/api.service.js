@@ -314,6 +314,10 @@ function requiresFullAccess(method, requestPath) {
   const m = String(method || '').toUpperCase();
   const pathOnly = String(requestPath || '').split('?')[0];
 
+  if (pathOnly.startsWith('/api/ui/v0/') && m === 'POST') {
+    return true;
+  }
+
   if (pathOnly.startsWith('/api/forecast/') && m === 'POST') {
     return true;
   }
@@ -2827,6 +2831,13 @@ module.exports = {
               }
               this.logger.debug('Using session token from request');
             } else {
+              if (requiresFullAccess(method, requestPath)) {
+                throw new Errors.MoleculerClientError(
+                  'Valid API or session token required for protected endpoints.',
+                  401,
+                  'AUTH_REQUIRED'
+                );
+              }
               ctx.meta.cernionToken = tokenToUse;
               if (paramToken) {
                 this.logger.debug('Using token parameter from request (query/body/path)');
@@ -2835,9 +2846,9 @@ module.exports = {
               }
             }
           } else {
-            if (tokenManagementAuthRequired) {
+            if (tokenManagementAuthRequired || requiresFullAccess(method, requestPath)) {
               throw new Errors.MoleculerClientError(
-                'Authentication required for token management endpoints.',
+                'Authentication required for protected endpoints.',
                 401,
                 'AUTH_REQUIRED'
               );

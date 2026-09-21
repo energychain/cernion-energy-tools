@@ -42,17 +42,23 @@ describe('cet-ui service REST contract', () => {
     expect(result).not.toHaveProperty('rawPayload');
   });
 
-  it('does not prepare operations outside the resolved tenant/role catalog', () => {
+  it('ignores client-supplied tenant and active role params for gateway context', () => {
     const ctx = {
-      params: { operationId: 'grid.raw.context' },
+      params: {
+        operationId: 'grid.raw.context',
+        tenantId: 'other-tenant',
+        activeRoleId: 'RC2_ROLE_NETZPLANUNG',
+      },
       meta: {
         tenantId: 'rc2-stadtwerk-a',
         user: { id: 'user-mako-1', displayName: 'Ada' },
-        activeRoleId: 'RC2_ROLE_NETZPLANUNG',
+        activeRoleId: 'RC2_ROLE_MARKTKOMMUNIKATION',
       },
     };
 
-    expect(service.actions.prepareOperation.handler.call({}, ctx)).toEqual({
+    const result = service.actions.prepareOperation.handler.call({}, ctx);
+
+    expect(result).toEqual({
       ok: false,
       code: 'operation_not_available',
       operationId: 'grid.raw.context',
