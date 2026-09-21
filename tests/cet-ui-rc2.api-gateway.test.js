@@ -130,7 +130,14 @@ describe('CET UI RC2 REST gateway', () => {
     );
 
     expect(response.activeRoleId).toBe(RC2_ROLE_IDS.MARKTKOMMUNIKATION);
-    expect(response.available.map((operation) => operation.id)).toEqual(['mako.case.lookup']);
+    expect(response.available).toEqual([
+      expect.objectContaining({
+        id: 'mako.case.lookup',
+        riskClass: 'read',
+        method: 'GET',
+        governancePolicyId: 'rc2.mako.read',
+      }),
+    ]);
     expect(response.available.map((operation) => operation.id)).not.toContain('grid.raw.context');
   });
 

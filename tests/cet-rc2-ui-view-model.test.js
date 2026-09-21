@@ -31,7 +31,10 @@ describe('CET RC2 frontend shared view models', () => {
       activeRoleId: 'RC2_ROLE_MARKTKOMMUNIKATION',
       naechsterBeitrag: { kind: 'klaeren', textKey: 'rc2.nextContribution.articleIdReview' },
       entscheidungsdistanz: {
-        criteria: [{ id: 'owner', label: 'Owner benannt', state: 'offen' }],
+        criteria: [
+          { id: 'owner', label: 'Owner benannt', state: 'offen' },
+          { id: 'legacy', label: 'Alte Fachsystemfreigabe', state: 'nicht_anwendbar' },
+        ],
       },
     },
   };
@@ -78,6 +81,19 @@ describe('CET RC2 frontend shared view models', () => {
     ]);
     expect(view.sections.find((section) => section.id === 'pruefung').statements).toEqual(
       caseModel.presentationContract.aussagen
+    );
+    expect(view.sections.find((section) => section.id === 'unsicherheit')).toEqual(
+      expect.objectContaining({
+        criteria: [{ id: 'owner', label: 'Owner benannt', state: 'offen' }],
+        collapsedCriteria: [
+          {
+            id: 'legacy',
+            label: 'Alte Fachsystemfreigabe',
+            state: 'nicht_anwendbar',
+            collapsed: true,
+          },
+        ],
+      })
     );
     expect(view.boundaries).toEqual([{ was: 'Fachsystem execute', grund: 'Nicht im RC2-Scope' }]);
   });

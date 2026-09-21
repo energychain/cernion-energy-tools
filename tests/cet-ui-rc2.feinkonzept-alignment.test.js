@@ -68,11 +68,11 @@ describe('CET RC2 Feinkonzept alignment', () => {
     });
 
     expect(view.preparedResult).toEqual({
+      operationId: undefined,
       badge: 'Nicht projiziert',
-      rawPayload: { ok: true },
-      notice: 'nicht_projiziert',
+      raw: { ok: true },
       evidenceMarkers: [],
-      aggregationState: null,
+      audit: null,
     });
   });
 

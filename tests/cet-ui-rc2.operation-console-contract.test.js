@@ -16,6 +16,9 @@ function catalog() {
       tenantIds: ['rc2-stadtwerk-a'],
       roleIds: [RC2_ROLE_IDS.MARKTKOMMUNIKATION],
       mode: 'projected',
+      riskClass: 'read',
+      method: 'GET',
+      governancePolicy: { id: 'rc2.mako.read', allowed: true, allowedMethods: ['GET'] },
     },
     {
       id: 'grid.raw.context',
@@ -23,6 +26,9 @@ function catalog() {
       tenantIds: ['rc2-stadtwerk-a'],
       roleIds: [RC2_ROLE_IDS.NETZPLANUNG],
       mode: 'unprojected',
+      riskClass: 'read_raw',
+      method: 'GET',
+      governancePolicy: { id: 'rc2.grid.raw.read', allowed: true, allowedMethods: ['GET'] },
     },
     {
       id: 'other.tenant.operation',
@@ -30,6 +36,9 @@ function catalog() {
       tenantIds: ['other-tenant'],
       roleIds: [RC2_ROLE_IDS.MARKTKOMMUNIKATION],
       mode: 'projected',
+      riskClass: 'read',
+      method: 'GET',
+      governancePolicy: { id: 'rc2.other.read', allowed: true, allowedMethods: ['GET'] },
     },
     {
       id: 'admin.all.access',
@@ -37,6 +46,29 @@ function catalog() {
       tenantIds: ['*'],
       roleIds: ['*'],
       mode: 'unprojected',
+      riskClass: 'admin_raw',
+      method: 'POST',
+      governancePolicy: { id: 'rc2.admin.raw', allowed: true, allowedMethods: ['POST'] },
+    },
+    {
+      id: 'policy.denied.operation',
+      label: 'Governance gesperrte Operation',
+      tenantIds: ['rc2-stadtwerk-a'],
+      roleIds: [RC2_ROLE_IDS.MARKTKOMMUNIKATION],
+      mode: 'unprojected',
+      riskClass: 'write',
+      method: 'POST',
+      governancePolicy: { id: 'rc2.write.blocked', allowed: false, allowedMethods: ['POST'] },
+    },
+    {
+      id: 'method.denied.operation',
+      label: 'Methode nicht zulässig',
+      tenantIds: ['rc2-stadtwerk-a'],
+      roleIds: [RC2_ROLE_IDS.MARKTKOMMUNIKATION],
+      mode: 'unprojected',
+      riskClass: 'write',
+      method: 'DELETE',
+      governancePolicy: { id: 'rc2.write.no-delete', allowed: true, allowedMethods: ['POST'] },
     },
   ];
 }
@@ -80,7 +112,16 @@ describe('CET UI RC2 operation console contract', () => {
       activeRoleId: RC2_ROLE_IDS.MARKTKOMMUNIKATION,
     });
 
-    expect(filtered.available.map((operation) => operation.id)).toEqual(['mako.case.lookup']);
+    expect(filtered.available).toEqual([
+      {
+        id: 'mako.case.lookup',
+        label: 'MaKo Vorgang prüfen',
+        mode: 'projected',
+        riskClass: 'read',
+        method: 'GET',
+        governancePolicyId: 'rc2.mako.read',
+      },
+    ]);
     expect(filtered.denied).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ id: 'grid.raw.context', boundaryReason: 'role_not_allowed' }),
@@ -91,6 +132,14 @@ describe('CET UI RC2 operation console contract', () => {
         expect.objectContaining({
           id: 'admin.all.access',
           boundaryReason: 'all_access_not_allowed',
+        }),
+        expect.objectContaining({
+          id: 'policy.denied.operation',
+          boundaryReason: 'governance_policy_denied',
+        }),
+        expect.objectContaining({
+          id: 'method.denied.operation',
+          boundaryReason: 'method_not_allowed_by_policy',
         }),
       ])
     );

@@ -68,6 +68,9 @@ function buildReferenceOperationCatalog() {
       tenantIds: ['rc2-stadtwerk-a'],
       roleIds: [RC2_ROLE_IDS.MARKTKOMMUNIKATION],
       mode: 'projected',
+      riskClass: 'read',
+      method: 'GET',
+      governancePolicy: { id: 'rc2.mako.read', allowed: true, allowedMethods: ['GET'] },
     },
     {
       id: 'grid.raw.context',
@@ -75,6 +78,9 @@ function buildReferenceOperationCatalog() {
       tenantIds: ['rc2-stadtwerk-a'],
       roleIds: [RC2_ROLE_IDS.NETZPLANUNG],
       mode: 'unprojected',
+      riskClass: 'read_raw',
+      method: 'GET',
+      governancePolicy: { id: 'rc2.grid.raw.read', allowed: true, allowedMethods: ['GET'] },
     },
   ];
 }

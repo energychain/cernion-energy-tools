@@ -1,13 +1,5 @@
 'use strict';
 
-const GRAMMAR_SECTIONS = Object.freeze([
-  { id: 'vorgang', title: 'Vorgang' },
-  { id: 'quellen', title: 'Quellen' },
-  { id: 'pruefung', title: 'Prüfung' },
-  { id: 'unsicherheit', title: 'Unsicherheit' },
-  { id: 'freigabe', title: 'Freigabe' },
-]);
-
 function buildDailySurfaceModel(surface) {
   const items = Array.isArray(surface.items) ? surface.items : [];
   return {
@@ -15,90 +7,121 @@ function buildDailySurfaceModel(surface) {
     activeRoleId: surface.activeRoleId || null,
     cards: items.map((item) => ({
       id: item.caseId,
-      title: item.title,
+      title: item.title || item.caseId,
       attentionReason: item.aufmerksamkeitsgrund || null,
       roleEffect: item.rollenwirkung || null,
       nextContribution: item.interactionProjection?.naechsterBeitrag || null,
-      status: item.status || item.interactionProjection?.naechsterBeitrag?.kind || null,
+      status: item.status || item.interactionProjection?.naechsterBeitrag?.kind || 'offen',
       roleId: item.interactionProjection?.activeRoleId || surface.activeRoleId || null,
     })),
   };
 }
 
-function buildCaseViewModel(vorgang) {
-  const statements = vorgang.presentationContract?.aussagen || [];
+function buildCaseViewModel(caseModel) {
+  const presentationContract = caseModel.presentationContract || {};
+  const statements = Array.isArray(presentationContract.aussagen)
+    ? presentationContract.aussagen
+    : [];
+  const boundaries = Array.isArray(presentationContract.nichtHandlungen)
+    ? presentationContract.nichtHandlungen
+    : [];
+  const interactionProjection = caseModel.interactionProjection || {};
+  const criteria = interactionProjection.entscheidungsdistanz?.criteria || [];
+  const visibleCriteria = criteria.filter((criterion) => criterion.state !== 'nicht_anwendbar');
+  const collapsedCriteria = criteria
+    .filter((criterion) => criterion.state === 'nicht_anwendbar')
+    .map((criterion) => ({
+      id: criterion.id || criterion.criterionId,
+      label: criterion.label,
+      state: 'nicht_anwendbar',
+      collapsed: true,
+    }));
+
   return {
-    id: vorgang.caseId,
-    title: vorgang.label || vorgang.presentationContract?.titel,
-    status: vorgang.visibleStatus,
-    primaryRoleId: vorgang.primaryRoleId,
-    visibleNoAction: vorgang.visibleStatus,
-    nextContribution: vorgang.interactionProjection?.naechsterBeitrag || null,
-    decisionDistance: (vorgang.interactionProjection?.entscheidungsdistanz?.criteria || []).map(
-      (criterion) => ({
-        ...criterion,
-        collapsed: criterion.state === 'nicht_anwendbar',
-      })
-    ),
-    sections: GRAMMAR_SECTIONS.map((section) => ({
-      ...section,
-      statements:
-        section.id === 'vorgang' || section.id === 'quellen' || section.id === 'pruefung'
-          ? statements
-          : [],
-    })),
-    boundaries: vorgang.presentationContract?.nichtHandlungen || [],
+    id: caseModel.caseId,
+    title: caseModel.label || presentationContract.titel || caseModel.caseId,
+    visibleStatus: caseModel.visibleStatus,
+    primaryRoleId: caseModel.primaryRoleId || interactionProjection.activeRoleId || null,
+    sections: [
+      {
+        id: 'vorgang',
+        title: 'Vorgang',
+        visibleStatus: caseModel.visibleStatus,
+        nextContribution: interactionProjection.naechsterBeitrag || null,
+      },
+      {
+        id: 'quellen',
+        title: 'Quellen',
+        statements: statements.map((statement) => ({
+          id: statement.id,
+          label: statement.label,
+          source: statement.quelle || statement.source || null,
+          granularitaet: statement.granularitaet,
+        })),
+      },
+      {
+        id: 'pruefung',
+        title: 'Prüfung',
+        statements,
+      },
+      {
+        id: 'unsicherheit',
+        title: 'Klärung offen',
+        criteria: visibleCriteria,
+        collapsedCriteria,
+      },
+      {
+        id: 'freigabe',
+        title: 'Freigabe',
+        contribution: interactionProjection.naechsterBeitrag || null,
+      },
+    ],
+    boundaries,
   };
 }
 
-function buildEvidenceViewModel(evidence) {
+function buildEvidenceViewModel(dossier) {
+  const materializedStatements = Array.isArray(dossier.materializedStatements)
+    ? dossier.materializedStatements
+    : [];
   return {
-    freezeStatus: evidence.frozenAt ? 'eingefroren' : 'offen',
-    frozenAt: evidence.frozenAt || null,
-    approvals: evidence.approvalRequests || [],
-    evidenceItems: (evidence.materializedStatements || []).map((statement) => ({
+    freezeStatus: dossier.frozenAt ? 'eingefroren' : 'nicht_eingefroren',
+    approvals: Array.isArray(dossier.approvalRequests) ? dossier.approvalRequests : [],
+    evidenceItems: materializedStatements.map((statement) => ({
       id: statement.id,
       label: statement.label,
       value: statement.wert,
-      sourceRef: statement.source?.ref || null,
+      unit: statement.einheit,
+      source: statement.source,
     })),
-    hashRefOnlyNotices: (evidence.hashRefOnlyNotices || []).map((notice) => ({
-      id: notice.id,
-      label: notice.label,
-      sourceRef: notice.sourceRef,
-      notice: notice.notice,
-    })),
+    hashRefOnlyNotices: Array.isArray(dossier.hashRefOnlyNotices) ? dossier.hashRefOnlyNotices : [],
   };
 }
 
-function buildOperationsConsoleModel({ operations = {}, preparedResult = null } = {}) {
-  const available = Array.isArray(operations) ? operations : operations.available || [];
-  const view = {
-    operations: available.map((operation) => ({
-      id: operation.id,
-      label: operation.label,
-      projectionStatus: operation.projectionStatus || operation.mode || 'unknown',
-      riskClass: operation.riskClass || null,
-    })),
-    preparedResult: null,
+function buildOperationsConsoleModel({ operations, preparedResult }) {
+  const available = Array.isArray(operations?.available)
+    ? operations.available
+    : Array.isArray(operations)
+      ? operations
+      : [];
+  const isUnprojected = preparedResult?.projectionStatus === 'nicht_projiziert';
+  return {
+    operations: available,
+    preparedResult: preparedResult
+      ? {
+          operationId: preparedResult.operationId,
+          badge: isUnprojected ? 'Nicht projiziert' : 'Projiziert',
+          raw: isUnprojected ? preparedResult.unprojected?.raw : null,
+          evidenceMarkers: isUnprojected ? [] : preparedResult.presentationContract?.aussagen || [],
+          audit: preparedResult.audit || null,
+        }
+      : null,
   };
-
-  if (preparedResult?.projectionStatus === 'nicht_projiziert') {
-    view.preparedResult = {
-      badge: 'Nicht projiziert',
-      rawPayload: preparedResult.unprojected?.raw,
-      notice: preparedResult.unprojected?.notice,
-      evidenceMarkers: [],
-      aggregationState: null,
-    };
-  }
-
-  return view;
 }
 
 module.exports = {
-  buildCaseViewModel,
   buildDailySurfaceModel,
+  buildCaseViewModel,
   buildEvidenceViewModel,
   buildOperationsConsoleModel,
 };

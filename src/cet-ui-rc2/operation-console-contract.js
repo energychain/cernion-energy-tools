@@ -23,6 +23,15 @@ function boundaryReasonFor(operation, { tenantId, activeRoleId }) {
   }
   if (!allowsExact(operation.tenantIds, tenantId)) return 'tenant_not_allowed';
   if (!allowsExact(operation.roleIds, activeRoleId)) return 'role_not_allowed';
+  if (!isNonEmptyString(operation.riskClass)) return 'risk_class_missing';
+  if (!isNonEmptyString(operation.method)) return 'method_missing';
+  if (!operation.governancePolicy || !isNonEmptyString(operation.governancePolicy.id)) {
+    return 'governance_policy_missing';
+  }
+  if (operation.governancePolicy.allowed !== true) return 'governance_policy_denied';
+  if (!allowsExact(operation.governancePolicy.allowedMethods, operation.method)) {
+    return 'method_not_allowed_by_policy';
+  }
   return null;
 }
 
@@ -31,6 +40,9 @@ function publicOperation(operation) {
     id: operation.id,
     label: operation.label,
     mode: operation.mode || 'unprojected',
+    riskClass: operation.riskClass,
+    method: operation.method,
+    governancePolicyId: operation.governancePolicy.id,
   };
 }
 
