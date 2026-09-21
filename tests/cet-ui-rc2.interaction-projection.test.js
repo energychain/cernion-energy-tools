@@ -1,8 +1,6 @@
 'use strict';
 
-const {
-  buildInteractionProjection,
-} = require('../src/cet-ui-rc2/interaction-projection');
+const { buildInteractionProjection } = require('../src/cet-ui-rc2/interaction-projection');
 
 function presentationContract(overrides = {}) {
   return {
@@ -19,8 +17,7 @@ function presentationContract(overrides = {}) {
         aggregatzustand: 'arbeitsstand',
         granularitaet: 'aggregat',
         sicherheit: 'klaerung',
-        anschlussfrage:
-          'Welche der 14 Klärfälle betreffen die Mehr-/Mindermengenabrechnung?',
+        anschlussfrage: 'Welche der 14 Klärfälle betreffen die Mehr-/Mindermengenabrechnung?',
         quelle: {
           klasse: 'caller_supplied',
           ref: 'evidence://inhouse/klaerfaelle#offen',
