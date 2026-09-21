@@ -23,7 +23,7 @@ Contract-only in RC2:
 ## Non-negotiable boundaries
 
 - User-facing object name is **Vorgang**. `Laufkarte` remains systems and contract language.
-- The frontend talks only to the CET REST Gateway, preferably under `/api/ui/v0/...`.
+- The frontend talks only to the CET REST Gateway. The RC2 implementation namespace is `/api/ui/v0/...` unless a later reviewed plan revision replaces it consistently across contracts, tests and documentation.
 - The frontend must not call Moleculer Actions directly.
 - React components must not consume RC1 internal readmodels directly.
 - RC1/CET internal objects must pass through a presentation contract before UI rendering.
