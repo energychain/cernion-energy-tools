@@ -1,6 +1,9 @@
 'use strict';
 
-const { RC2_ROLE_IDS, buildReferenceTenantFixture } = require('../src/cet-ui-rc2/fixtures/reference-tenant');
+const {
+  RC2_ROLE_IDS,
+  buildReferenceTenantFixture,
+} = require('../src/cet-ui-rc2/fixtures/reference-tenant');
 const {
   claimRunCard,
   assignExpiredUnclaimedRunCard,
@@ -26,7 +29,9 @@ describe('CET UI RC2 Laufkarten state transitions', () => {
     expect(claimed.card.assignment.status).toBe('mir_zugewiesen');
     expect(claimed.card.basisRev).toBe('rev-2');
     expect(claimed.card.history).toEqual(
-      expect.arrayContaining([expect.objectContaining({ type: 'claimed', at: '2026-09-21T12:00:00Z' })])
+      expect.arrayContaining([
+        expect.objectContaining({ type: 'claimed', at: '2026-09-21T12:00:00Z' }),
+      ])
     );
 
     const second = claimRunCard(claimed.card, {
