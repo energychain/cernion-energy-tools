@@ -8,8 +8,8 @@ const {
   buildOperationsConsoleModel,
 } = require('../apps/cet-ui/src/shared/ui-view-model');
 
-const uiMainSource = fs.readFileSync(
-  path.join(__dirname, '..', 'apps', 'cet-ui', 'src', 'main.js'),
+const uiAppSource = fs.readFileSync(
+  path.join(__dirname, '..', 'apps', 'cet-ui', 'src', 'App.tsx'),
   'utf8'
 );
 
@@ -77,11 +77,11 @@ describe('CET RC2 Feinkonzept alignment', () => {
   });
 
   test('SPA source renders Feinkonzept copy for not-projected JSON and source-only notices', () => {
-    expect(uiMainSource).toContain(
+    expect(uiAppSource).toContain(
       'Dieses Ergebnis ist noch nicht in eine belegte Vorgangsdarstellung projiziert'
     );
-    expect(uiMainSource).toContain('preparedResult.unprojected?.raw');
-    expect(uiMainSource).not.toContain('preparedResult.rawPayload');
-    expect(uiMainSource).toContain('hashRefOnlyNotices');
+    expect(uiAppSource).toContain('preparedOperation.unprojected?.raw');
+    expect(uiAppSource).not.toContain('rawPayload');
+    expect(uiAppSource).toContain('hashRefOnlyNotices');
   });
 });

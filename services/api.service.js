@@ -1541,9 +1541,13 @@ module.exports = {
           'POST /ui/v0/operations/:operationId/prepare': 'cet-ui.prepareOperation',
           'POST /ui/v0/audit-events': 'cet-ui.recordAudit',
           'GET /ui/v0/app'(req, res) {
-            const appHtml = path.join(__dirname, '..', 'apps', 'cet-ui', 'index.html');
+            const builtHtml = path.join(__dirname, '..', 'apps', 'cet-ui', 'dist', 'index.html');
+            const sourceHtml = path.join(__dirname, '..', 'apps', 'cet-ui', 'index.html');
             try {
-              const html = fs.readFileSync(appHtml, 'utf-8');
+              const html = fs.readFileSync(
+                fs.existsSync(builtHtml) ? builtHtml : sourceHtml,
+                'utf-8'
+              );
               res.setHeader(CONTENT_TYPE_HEADER, 'text/html; charset=utf-8');
               res.end(html);
             } catch (err) {
@@ -1551,26 +1555,38 @@ module.exports = {
               res.end('CET RC2 UI app not found: ' + err.message);
             }
           },
-          'GET /ui/v0/src/main.js'(req, res) {
-            const appJs = path.join(__dirname, '..', 'apps', 'cet-ui', 'src', 'main.js');
+          'GET /ui/v0/assets/:assetFile'(req, res) {
+            const assetFile = path.basename(
+              String(req?.$params?.assetFile || req?.params?.assetFile || '')
+            );
+            const assetPath = path.join(
+              __dirname,
+              '..',
+              'apps',
+              'cet-ui',
+              'dist',
+              'assets',
+              assetFile
+            );
             try {
-              const js = fs.readFileSync(appJs, 'utf-8');
-              res.setHeader(CONTENT_TYPE_HEADER, 'application/javascript; charset=utf-8');
-              res.end(js);
+              if (!assetFile || !fs.existsSync(assetPath)) {
+                res.writeHead(404);
+                res.end('CET RC2 UI asset not found');
+                return;
+              }
+              const ext = path.extname(assetFile).toLowerCase();
+              res.setHeader(
+                CONTENT_TYPE_HEADER,
+                ext === '.css'
+                  ? 'text/css; charset=utf-8'
+                  : ext === '.js'
+                    ? 'application/javascript; charset=utf-8'
+                    : 'application/octet-stream'
+              );
+              res.end(fs.readFileSync(assetPath));
             } catch (err) {
-              res.writeHead(404);
-              res.end('CET RC2 UI script not found: ' + err.message);
-            }
-          },
-          'GET /ui/v0/src/styles.css'(req, res) {
-            const appCss = path.join(__dirname, '..', 'apps', 'cet-ui', 'src', 'styles.css');
-            try {
-              const css = fs.readFileSync(appCss, 'utf-8');
-              res.setHeader(CONTENT_TYPE_HEADER, 'text/css; charset=utf-8');
-              res.end(css);
-            } catch (err) {
-              res.writeHead(404);
-              res.end('CET RC2 UI stylesheet not found: ' + err.message);
+              res.writeHead(500);
+              res.end('CET RC2 UI asset read failed: ' + err.message);
             }
           },
           'GET /docs'(req, res) {

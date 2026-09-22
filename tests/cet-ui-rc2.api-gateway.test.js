@@ -13,8 +13,8 @@ const apiServiceSource = fs.readFileSync(
   path.join(__dirname, '..', 'services', 'api.service.js'),
   'utf8'
 );
-const uiMainSource = fs.readFileSync(
-  path.join(__dirname, '..', 'apps', 'cet-ui', 'src', 'main.js'),
+const uiAppSource = fs.readFileSync(
+  path.join(__dirname, '..', 'apps', 'cet-ui', 'src', 'App.tsx'),
   'utf8'
 );
 
@@ -30,6 +30,10 @@ describe('CET UI RC2 REST gateway', () => {
     expect(apiServiceSource).toContain("'GET /ui/v0/operations'");
     expect(apiServiceSource).toContain("'POST /ui/v0/operations/:operationId/prepare'");
     expect(apiServiceSource).toContain("'POST /ui/v0/audit-events'");
+    expect(apiServiceSource).toContain("'GET /ui/v0/assets/:assetFile'");
+    expect(apiServiceSource).toContain("apps', 'cet-ui', 'dist'");
+    expect(apiServiceSource).not.toContain("'GET /ui/v0/src/main.js'");
+    expect(apiServiceSource).not.toContain("'GET /ui/v0/src/styles.css'");
     expect(apiServiceSource).not.toContain('/ui/v0/governanceArchitecture');
     expect(apiServiceSource).not.toContain('/ui/v0/rc1');
     expect(apiServiceSource).not.toContain("rest: 'GET /daily'");
@@ -183,14 +187,16 @@ describe('CET UI RC2 REST gateway', () => {
   });
 
   test('SPA uses the explicit gateway routes and current response shapes', () => {
-    expect(uiMainSource).toContain("daily: '/api/ui/v0/daily-surface'");
-    expect(uiMainSource).toContain('surface.items');
-    expect(uiMainSource).toContain('operations.available');
-    expect(uiMainSource).toContain('presentationContract?.aussagen');
-    expect(uiMainSource).toContain('/claim');
-    expect(uiMainSource).not.toContain("daily: '/api/ui/v0/daily'");
-    expect(uiMainSource).not.toContain('operations.operations');
-    expect(uiMainSource).not.toContain('presentationContract?.elements');
-    expect(uiMainSource).not.toContain('/takeover');
+    expect(uiAppSource).toContain(
+      "getDailySurface: () => requestJson<DailySurface>('/ui/v0/daily-surface')"
+    );
+    expect(uiAppSource).toContain('daily?.items');
+    expect(uiAppSource).toContain('operations?.available');
+    expect(uiAppSource).toContain('presentationContract?.aussagen');
+    expect(uiAppSource).toContain('/claim');
+    expect(uiAppSource).not.toContain("'/ui/v0/daily'");
+    expect(uiAppSource).not.toContain('operations.operations');
+    expect(uiAppSource).not.toContain('presentationContract?.elements');
+    expect(uiAppSource).not.toContain('/takeover');
   });
 });

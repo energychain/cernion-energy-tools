@@ -5,9 +5,12 @@ const path = require('path');
 
 const appRoot = path.join(__dirname, '..');
 const distRoot = path.join(appRoot, 'dist');
-const files = [
+const requiredSources = [
   'index.html',
-  'src/main.js',
+  'vite.config.ts',
+  'tsconfig.json',
+  'src/main.tsx',
+  'src/App.tsx',
   'src/styles.css',
   'src/shared/ui-view-model.js',
   'src/shared/api-client.js',
@@ -16,23 +19,46 @@ const files = [
   'src/shared/role-tenant-helpers.js',
   'src/shared/wording-helpers.js',
   'src/shared/evidence-helpers.js',
+  'src/shared/prominence-helpers.js',
+  'src/shared/audit-hooks.js',
 ];
 
-for (const relative of files) {
+for (const relative of requiredSources) {
   const source = path.join(appRoot, relative);
-  if (!fs.existsSync(source)) throw new Error(`Missing CET UI static asset: ${relative}`);
+  if (!fs.existsSync(source)) throw new Error(`Missing CET UI source asset: ${relative}`);
 }
 
 const index = fs.readFileSync(path.join(appRoot, 'index.html'), 'utf-8');
-if (!index.includes('./src/main.js') || !index.includes('./src/styles.css')) {
-  throw new Error('CET UI index.html must reference the local static JS and CSS assets.');
+if (
+  !index.includes('<div id="root"></div>') ||
+  !index.includes('type="module"') ||
+  !index.includes('/src/main.tsx')
+) {
+  throw new Error('CET UI index.html must mount the Vite React TypeScript app shell.');
+}
+if (index.includes('./src/main.js')) {
+  throw new Error('CET UI index.html must not reference the legacy static main.js script.');
 }
 
-fs.rmSync(distRoot, { recursive: true, force: true });
-for (const relative of ['index.html', 'src/main.js', 'src/styles.css']) {
-  const target = path.join(distRoot, relative);
-  fs.mkdirSync(path.dirname(target), { recursive: true });
-  fs.copyFileSync(path.join(appRoot, relative), target);
+const appSource = fs.readFileSync(path.join(appRoot, 'src', 'App.tsx'), 'utf-8');
+for (const marker of [
+  'Tagesfläche',
+  'Vorgang',
+  'Nachweisansicht',
+  'Operationskonsole',
+  'Nicht projiziert',
+]) {
+  if (!appSource.includes(marker))
+    throw new Error(`CET UI React shell misses Feinkonzept marker: ${marker}`);
 }
 
-console.log(`CET RC2 UI static bundle verified: ${distRoot}`);
+if (fs.existsSync(distRoot)) {
+  const distIndex = path.join(distRoot, 'index.html');
+  if (!fs.existsSync(distIndex)) throw new Error('CET UI Vite build must produce dist/index.html.');
+  const distHtml = fs.readFileSync(distIndex, 'utf-8');
+  if (!distHtml.includes('<div id="root"></div>') || !distHtml.includes('/assets/')) {
+    throw new Error('CET UI Vite build output must contain the React root and bundled assets.');
+  }
+}
+
+console.log(`CET RC2 UI Vite/React/TypeScript structure verified: ${appRoot}`);
