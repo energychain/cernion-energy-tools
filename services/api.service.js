@@ -1339,6 +1339,7 @@ module.exports = {
             try {
               const html = fs.readFileSync(appHtml, 'utf-8');
               res.setHeader(CONTENT_TYPE_HEADER, 'text/html; charset=utf-8');
+              res.setHeader('Cache-Control', 'no-store, max-age=0');
               res.end(html);
             } catch (err) {
               res.writeHead(500);
@@ -1607,7 +1608,10 @@ module.exports = {
                     ? 'application/javascript; charset=utf-8'
                     : 'application/octet-stream'
               );
-              res.end(fs.readFileSync(assetPath));
+              res.setHeader('Cache-Control', 'no-store, max-age=0');
+              const assetBody = fs.readFileSync(assetPath);
+              res.setHeader('Content-Length', String(assetBody.length));
+              res.end(assetBody);
             } catch (err) {
               res.writeHead(500);
               res.end('CET RC2 UI asset read failed: ' + err.message);
