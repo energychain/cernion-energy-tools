@@ -156,7 +156,7 @@ module.exports = {
       handler(ctx) {
         return gatewayFromRuntime(this).claimCase(rc2GatewayContextFrom(ctx), {
           caseId: ctx.params.caseId || REFERENCE_CASE_ID,
-          basisRev: ctx.params.basisRev || 'rev-1',
+          basisRev: ctx.params.basisRev,
         });
       },
     },

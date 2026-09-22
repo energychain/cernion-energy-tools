@@ -14,6 +14,7 @@ function runtime() {
       getEvidence: (context, args) => ({ schemaVersion: 'evidence', context, args }),
       claimCase: (context, args) => {
         calls.push({ type: 'claim', context, args });
+        if (!args.basisRev) return { ok: false, code: 'basisRev_required' };
         return { ok: true, card: { basisRev: 'rev-2', assignment: { status: 'mir_zugewiesen' } } };
       },
       freezeCase: (context, args) => {
@@ -119,6 +120,25 @@ describe('cet-ui service REST contract', () => {
         }),
       })
     );
+  });
+
+  it('does not inject a default basisRev for claim writes', () => {
+    const rt = runtime();
+    const result = service.actions.claimCase.handler.call(
+      rt,
+      authenticatedCtx({ caseId: 'vorgang-cr-lka-rv-001-article-id-change' })
+    );
+
+    expect(result).toEqual({ ok: false, code: 'basisRev_required' });
+    expect(rt.calls[0]).toEqual(
+      expect.objectContaining({
+        type: 'claim',
+        args: expect.objectContaining({
+          caseId: 'vorgang-cr-lka-rv-001-article-id-change',
+        }),
+      })
+    );
+    expect(rt.calls[0].args).not.toHaveProperty('basisRev', 'rev-1');
   });
 
   it('routes freeze and approval through the same canonical gateway as case/evidence', () => {
