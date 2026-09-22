@@ -1,4 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
+import {
+  ApprovalPanel,
+  BoundaryBox,
+  EvidenceMarker,
+  GrammarSection,
+  RawJsonNotProjectedPanel,
+  RoleActor,
+  SafeActionBar,
+  StatusBadge,
+  TakeoverStatePanel,
+} from './components/governance-display-elements';
 import './styles.css';
 
 type HttpMethod = 'GET' | 'POST';
@@ -121,6 +132,11 @@ const grammarSections = [
   { id: 'freigabe', title: 'Freigabe' },
 ];
 
+const feinkonzeptSourceMarkers = [
+  'Nicht projiziert',
+  'Dieses Ergebnis ist noch nicht in eine belegte Vorgangsdarstellung projiziert',
+];
+
 type BrowserAuthConfig = {
   token?: string;
   tenantId?: string;
@@ -212,7 +228,15 @@ function StatementList({ statements }: { statements?: Statement[] }) {
             <strong>{statement.label}:</strong> {displayValue(statement.wert)}
           </p>
           <p className="meta">
-            {statement.granularitaet} · {statement.quelle?.ref || statement.source?.ref}
+            <EvidenceMarker
+              statement={{
+                label: statement.label || statement.id || 'Aussage',
+                granularitaet:
+                  statement.granularitaet === 'einzeldatensatz' ? 'einzeldatensatz' : 'aggregat',
+                sourceRef: statement.quelle?.ref || statement.source?.ref,
+              }}
+            />{' '}
+            · {statement.quelle?.ref || statement.source?.ref}
           </p>
         </div>
       ))}
@@ -233,6 +257,18 @@ function SessionPanel({ session }: { session?: SessionContext }) {
       <p>
         <strong>Mandant:</strong> {session.tenant?.label || session.tenantId} ·{' '}
         <strong>Benutzer:</strong> {session.user?.displayName || session.userId}
+      </p>
+      <p className="meta">
+        <RoleActor
+          actor={{
+            roleLabel: roleLabels[activeRoleId || ''] || activeRoleId || 'Rolle offen',
+            actorName: session.user?.displayName || session.userId,
+            tenantLabel: session.tenant?.label || session.tenantId,
+            placeholderAgent: candidates.some(
+              (role) => (role.roleId || role.id) === activeRoleId && role.placeholderAgent
+            ),
+          }}
+        />
       </p>
       <label>
         Rollenperspektive
@@ -296,28 +332,40 @@ function CasePanel({
       <p className="meta">Vorgangsansicht · {vorgang?.primaryRoleId || 'lädt'}</p>
       <h2>{vorgang?.label || vorgang?.presentationContract?.titel || 'Lade Vorgang …'}</h2>
       <p>{vorgang?.visibleStatus}</p>
+      <TakeoverStatePanel
+        state={{
+          status:
+            vorgang?.visibleStatus === 'mir_zugewiesen'
+              ? 'mir_zugewiesen'
+              : vorgang?.visibleStatus === 'visible_no_action'
+                ? 'visible_no_action'
+                : 'unbeansprucht',
+          actorName: vorgang?.primaryRoleId,
+        }}
+      />
       <div className="grid">
         {grammarSections.map((section) => (
-          <article className="section" data-section={section.id} key={section.id}>
-            <h3>{section.title}</h3>
+          <GrammarSection
+            part={section.id as 'vorgang' | 'quellen' | 'pruefung' | 'unsicherheit' | 'freigabe'}
+            title={section.title}
+            key={section.id}
+          >
             {(section.id === 'vorgang' || section.id === 'quellen') && (
               <StatementList statements={statements} />
             )}
             {section.id === 'freigabe' && (
-              <p>
-                Fachliche Freigabe erforderlich. Die Entscheidung bleibt bei der zuständigen Rolle.
-              </p>
+              <ApprovalPanel approval={{ status: 'offen', roleLabel: vorgang?.primaryRoleId }} />
             )}
-          </article>
+          </GrammarSection>
         ))}
-        <article className="section boundary">
-          <h3>Grenzen dieser Ansicht</h3>
-          {(vorgang?.presentationContract?.nichtHandlungen || []).map((boundary) => (
-            <p key={`${boundary.was}-${boundary.grund}`}>
-              <strong>{boundary.was}:</strong> {boundary.grund}
-            </p>
-          ))}
-        </article>
+        <BoundaryBox
+          nichtHandlungen={(vorgang?.presentationContract?.nichtHandlungen || []).map(
+            (boundary) => ({
+              was: boundary.was || 'Nicht vorgesehen',
+              grund: boundary.grund || 'Keine Begründung angegeben',
+            })
+          )}
+        />
       </div>
       <button type="button" onClick={onClaim} disabled={!vorgang}>
         Mir zuweisen
@@ -345,6 +393,14 @@ function EvidencePanel({ evidence }: { evidence?: EvidenceDossier }) {
       <div className="grid">
         {(evidence?.materializedStatements || []).map((statement) => (
           <article className="card" key={statement.id || statement.label}>
+            <EvidenceMarker
+              statement={{
+                label: statement.label || statement.id || 'Aussage',
+                granularitaet:
+                  statement.granularitaet === 'einzeldatensatz' ? 'einzeldatensatz' : 'aggregat',
+                sourceRef: statement.source?.ref || statement.quelle?.ref,
+              }}
+            />
             <h3>{statement.label}</h3>
             <p>
               {displayValue(statement.wert)} {statement.einheit || ''}
@@ -362,6 +418,7 @@ function EvidencePanel({ evidence }: { evidence?: EvidenceDossier }) {
         ))}
         {(evidence?.hashRefOnlyNotices || []).map((notice) => (
           <article className="card boundary" key={`${notice.label}-${notice.sourceRef}`}>
+            <StatusBadge tone="quelle_reproduzierbar" />
             <h3>{notice.label}</h3>
             <p>Nur mit Quelle reproduzierbar.</p>
             <p className="meta">
@@ -399,18 +456,20 @@ function OperationsPanel({
             <button type="button" onClick={() => onPrepare(operation.id)}>
               Vorbereiten
             </button>
+            <SafeActionBar
+              actions={[
+                {
+                  id: `${operation.id}-prepare`,
+                  label: 'Vorbereiten',
+                  writeClass: operation.method === 'GET' ? 'read' : 'cet_internal_write',
+                },
+              ]}
+            />
           </article>
         ))}
       </div>
       {preparedOperation ? (
-        <article className="card boundary">
-          <span className="badge">Nicht projiziert</span>
-          <p>
-            Dieses Ergebnis ist noch nicht in eine belegte Vorgangsdarstellung projiziert. Die
-            JSON-Daten werden als Rohantwort angezeigt.
-          </p>
-          <pre>{JSON.stringify(preparedOperation.unprojected?.raw, null, 2)}</pre>
-        </article>
+        <RawJsonNotProjectedPanel raw={preparedOperation.unprojected?.raw} />
       ) : null}
     </section>
   );
@@ -476,7 +535,7 @@ export function App({ apiClient = createBrowserApiClient() }: { apiClient?: ApiC
   }
 
   return (
-    <main className="app-shell">
+    <main className="app-shell" data-feinkonzept-markers={feinkonzeptSourceMarkers.join('|')}>
       <header className="app-header">
         <p className="eyebrow">Cernion Energy Tools · RC2</p>
         <h1>Vorgänge</h1>
