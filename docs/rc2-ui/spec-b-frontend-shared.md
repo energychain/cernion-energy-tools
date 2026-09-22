@@ -191,6 +191,14 @@ Der echte HTTP-Smoke startet einen isolierten Moleculer-Broker auf einem Zufalls
 - `GET /api/ui/v0/session-context`, `daily-surface`, `case/evidence` laufen mit authentifiziertem Mandant/User-Kontext.
 - `POST claim`, `freeze`, `approval-requests` halten den Referenzfluss in einem Gateway-Zustand zusammen.
 
+## QDrant Grounding vor Phase C
+
+Die Phase-B-Struktur wurde gegen das aktuelle Prozesswissen und die Governance Architecture in QDrant validiert. Referenzartefakt:
+
+- `docs/rc2-ui/phase-b-qdrant-grounding-validation.md`
+
+Ergebnis: Phase B ist ausreichend geerdet, um Phase C zu starten. Phase C soll zuerst sichtbare Governance-Primitives bauen: Role Projection, Evidence Receipts, Decision Readiness, Allowed/Blocked Actions, HITL Gate und Not-Projected Result Panel.
+
 ## Nächster Schritt nach Phase B-Fortsetzung
 
 Phase B ist nach dem Wechsel auf Vite/React/TypeScript und dem HTTP-Smoke deutlich näher am Abschluss. Offen vor Phase-C/D-Abnahme:
