@@ -962,6 +962,31 @@ function enforceRbacForPath(roles, method, requestPath) {
   }
 }
 
+function escapeHtmlAttribute(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function injectCetUiBootstrapMeta(html) {
+  const token = process.env.CET_UI_BOOTSTRAP_TOKEN;
+  const tenantId = process.env.CET_UI_BOOTSTRAP_TENANT_ID;
+  const activeRoleId = process.env.CET_UI_BOOTSTRAP_ACTIVE_ROLE_ID;
+  if (!token && !tenantId && !activeRoleId) return html;
+  const metaTags = [
+    token ? `<meta name="cet-ui-token" content="${escapeHtmlAttribute(token)}">` : null,
+    tenantId ? `<meta name="cet-ui-tenant-id" content="${escapeHtmlAttribute(tenantId)}">` : null,
+    activeRoleId
+      ? `<meta name="cet-ui-active-role-id" content="${escapeHtmlAttribute(activeRoleId)}">`
+      : null,
+  ]
+    .filter(Boolean)
+    .join('\n    ');
+  return String(html).replace('</head>', `    ${metaTags}\n  </head>`);
+}
+
 module.exports = {
   name: 'api',
   mixins: [ApiGateway, OpenapiMixin],
@@ -1544,9 +1569,8 @@ module.exports = {
             const builtHtml = path.join(__dirname, '..', 'apps', 'cet-ui', 'dist', 'index.html');
             const sourceHtml = path.join(__dirname, '..', 'apps', 'cet-ui', 'index.html');
             try {
-              const html = fs.readFileSync(
-                fs.existsSync(builtHtml) ? builtHtml : sourceHtml,
-                'utf-8'
+              const html = injectCetUiBootstrapMeta(
+                fs.readFileSync(fs.existsSync(builtHtml) ? builtHtml : sourceHtml, 'utf-8')
               );
               res.setHeader(CONTENT_TYPE_HEADER, 'text/html; charset=utf-8');
               res.end(html);

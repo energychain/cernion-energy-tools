@@ -125,6 +125,26 @@ describe('CET RC2 UI real HTTP smoke', () => {
     expect(js).toContain('/ui/v0/session-context');
   });
 
+  it('injects explicit browser bootstrap auth meta tags only when staging env is configured', async () => {
+    process.env.CET_UI_BOOTSTRAP_TOKEN = 'ck_rc2_http_smoke';
+    process.env.CET_UI_BOOTSTRAP_TENANT_ID = 'rc2-stadtwerk-a';
+    process.env.CET_UI_BOOTSTRAP_ACTIVE_ROLE_ID = 'RC2_ROLE_MARKTKOMMUNIKATION';
+    try {
+      const appResponse = await request('/app');
+      const html = appResponse.body;
+      expect(appResponse.status).toBe(200);
+      expect(html).toContain('<meta name="cet-ui-token" content="ck_rc2_http_smoke">');
+      expect(html).toContain('<meta name="cet-ui-tenant-id" content="rc2-stadtwerk-a">');
+      expect(html).toContain(
+        '<meta name="cet-ui-active-role-id" content="RC2_ROLE_MARKTKOMMUNIKATION">'
+      );
+    } finally {
+      delete process.env.CET_UI_BOOTSTRAP_TOKEN;
+      delete process.env.CET_UI_BOOTSTRAP_TENANT_ID;
+      delete process.env.CET_UI_BOOTSTRAP_ACTIVE_ROLE_ID;
+    }
+  });
+
   it('walks session, daily, claim, freeze, approval and evidence through HTTP only', async () => {
     const session = await expectOkJson(request('/session-context', { headers: AUTH_HEADERS }));
     expect(session.schemaVersion).toBe('rc2.ui-session-context.v1');
