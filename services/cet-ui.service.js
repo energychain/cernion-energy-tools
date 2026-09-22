@@ -237,5 +237,41 @@ module.exports = {
         });
       },
     },
+
+    recordAudit: {
+      rest: 'POST /audit-events',
+      params: {
+        event: { type: 'string' },
+        transport: { type: 'string', optional: true },
+      },
+      openapi: {
+        summary: 'Record CET RC2 UI audit event inside the UI gateway boundary',
+        tags: ['CET UI RC2'],
+        requestBody: jsonBody(
+          {
+            event: { type: 'string', example: 'view_opened' },
+            transport: { type: 'string', example: 'ui_gateway' },
+            view: { type: 'string', example: 'tagesflaeche' },
+          },
+          ['event']
+        ),
+      },
+      handler(ctx) {
+        const { tenantId, userId } = requireAuthenticatedUiContext(ctx);
+        const auditEvent = {
+          schemaVersion: 'rc2.ui-audit-event.v1',
+          transport: 'ui_gateway',
+          ...ctx.params,
+          tenantId,
+          userId,
+          activeRoleId: activeRoleFrom(ctx),
+          at: ctx.params.at || ctx.meta?.now || '2026-09-21T12:00:00Z',
+        };
+        auditEvent.transport = 'ui_gateway';
+        if (!Array.isArray(this.auditEvents)) this.auditEvents = [];
+        this.auditEvents.push(auditEvent);
+        return { ok: true, stored: true, auditEvent };
+      },
+    },
   },
 };

@@ -1539,6 +1539,7 @@ module.exports = {
           'POST /ui/v0/cases/:caseId/approval-requests': 'cet-ui.requestApproval',
           'GET /ui/v0/operations': 'cet-ui.operations',
           'POST /ui/v0/operations/:operationId/prepare': 'cet-ui.prepareOperation',
+          'POST /ui/v0/audit-events': 'cet-ui.recordAudit',
           'GET /ui/v0/app'(req, res) {
             const appHtml = path.join(__dirname, '..', 'apps', 'cet-ui', 'index.html');
             try {
