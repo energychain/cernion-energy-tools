@@ -3,12 +3,23 @@ import { ActorBadge } from './components/identity/ActorBadge';
 import { RoleSelector } from './components/identity/RoleSelector';
 import { BoundaryPanel } from './components/structure/BoundaryPanel';
 import { GrammarPart } from './components/structure/GrammarPart';
+import { HistoryExcerpt } from './components/structure/HistoryExcerpt';
+import { SinceLastAccessNotice } from './components/structure/SinceLastAccessNotice';
+import { SourceList } from './components/structure/SourceList';
 import { ClaimCaseButton } from './components/actions/ClaimCaseButton';
+import { NextContributionPanel } from './components/actions/NextContributionPanel';
 import { FreezeCaseButton } from './components/actions/FreezeCaseButton';
 import { RequestApprovalButton } from './components/actions/RequestApprovalButton';
 import { ApprovalRequestCard } from './components/governance/ApprovalRequestCard';
+import { DecisionReadinessPanel } from './components/governance/DecisionReadinessPanel';
+import { AllowedBlockedActionsList } from './components/governance/AllowedBlockedActionsList';
+import { CapabilityCard } from './components/operations/CapabilityCard';
+import { OperationForm } from './components/operations/OperationForm';
 import { OperationPermissionPanel } from './components/operations/OperationPermissionPanel';
+import { OperationSearch } from './components/operations/OperationSearch';
 import { UnprojectedRawJsonView } from './components/operations/UnprojectedRawJsonView';
+import { TagesflaecheGroup } from './components/surfaces/TagesflaecheGroup';
+import { VorgangCard } from './components/surfaces/VorgangCard';
 import './styles.css';
 
 type HttpMethod = 'GET' | 'POST';
@@ -53,6 +64,10 @@ type DailyItem = {
   title?: string;
   prominence?: string;
   aufmerksamkeitsgrund?: string;
+  rollenwirkung?: string;
+  status?: string;
+  dueAt?: string;
+  openClarification?: boolean;
   interactionProjection?: {
     naechsterBeitrag?: {
       kind?: string;
@@ -72,6 +87,8 @@ type Statement = {
   wert?: string | number | boolean;
   einheit?: string;
   granularitaet?: string;
+  sicherheit?: string;
+  aggregatzustand?: string;
   quelle?: { ref?: string };
   source?: { ref?: string };
 };
@@ -86,7 +103,25 @@ type Vorgang = {
   presentationContract?: {
     titel?: string;
     aussagen?: Statement[];
+    befunde?: Statement[];
+    unsicherheiten?: Array<{
+      frage?: string;
+      rolle?: string;
+      bezug?: string;
+      seitLetztemZugriffNeu?: boolean;
+    }>;
+    freigabe?: {
+      status?: string;
+      roleId?: string;
+      actorName?: string;
+      actedAt?: string;
+      requestedAt?: string;
+    };
     nichtHandlungen?: Array<{ was?: string; grund?: string }>;
+  };
+  interactionProjection?: {
+    naechsterBeitrag?: { kind?: string; textKey?: string };
+    entscheidungsdistanz?: { criteria?: Array<{ id?: string; label?: string; state?: string }> };
   };
 };
 
@@ -109,7 +144,10 @@ type Operation = {
   mode?: string;
   method?: string;
   riskClass?: string;
+  governancePolicyId?: string;
   pathTemplate?: string;
+  allowed?: boolean;
+  boundaryReason?: string;
 };
 
 type OperationsPayload = {
@@ -118,6 +156,7 @@ type OperationsPayload = {
 
 type PreparedOperation = {
   projectionStatus?: string;
+  projected?: { statements?: Statement[] };
   unprojected?: { raw?: unknown };
 };
 
@@ -228,6 +267,24 @@ function displayValue(value: unknown): string {
   return String(value);
 }
 
+function contributionLabel(contribution?: { kind?: string; textKey?: string }): string {
+  return contribution?.textKey || contribution?.kind || 'kein nächster Beitrag mit Grund';
+}
+
+function handlingStatusLabel(status?: string, actorName?: string, fallbackRole?: string): string {
+  if (status === 'mir_zugewiesen') return 'Mir zugewiesen';
+  if (status === 'von_mir_uebernommen') return 'Von mir übernommen';
+  if (status === 'visible_no_action') {
+    return `In Bearbeitung durch ${actorName || fallbackRole || 'zuständige Rolle'}`;
+  }
+  if (status === 'agent_active') return `In Bearbeitung durch Agent ${fallbackRole || 'Rolle'}`;
+  return status || 'Bearbeitungsstatus offen';
+}
+
+function renderableStatements(statements?: Statement[]): Statement[] {
+  return (statements || []).filter((statement) => Boolean(statement.granularitaet));
+}
+
 function StatementList({ statements }: { statements?: Statement[] }) {
   return (
     <>
@@ -294,23 +351,37 @@ function SessionPanel({ session }: { session?: SessionContext }) {
 function DailyPanel({ daily, onOpen }: { daily?: DailySurface; onOpen: (caseId: string) => void }) {
   return (
     <section id="daily" className="panel" aria-live="polite">
-      <p className="meta">Tagesfläche · {daily?.activeRoleId || 'lädt'}</p>
-      <div className="grid">
-        {(daily?.items || []).map((item) => (
-          <article className="card" key={item.caseId}>
-            <span className="badge">
-              {item.interactionProjection?.naechsterBeitrag?.kind || item.prominence || ''}
-            </span>
-            <h2>{item.title}</h2>
-            <p>
-              {item.interactionProjection?.naechsterBeitrag?.textKey || item.aufmerksamkeitsgrund}
-            </p>
-            <button type="button" onClick={() => onOpen(item.caseId)}>
-              Vorgang öffnen
-            </button>
-          </article>
-        ))}
-      </div>
+      <TagesflaecheGroup title={`Tagesfläche · ${daily?.activeRoleId || 'lädt'}`}>
+        <p className="meta">Was braucht heute meine Aufmerksamkeit?</p>
+        <div className="grid">
+          {(daily?.items || []).map((item) => {
+            const nextContribution = contributionLabel(
+              item.interactionProjection?.naechsterBeitrag
+            );
+            const status = handlingStatusLabel(item.status);
+            return (
+              <VorgangCard
+                key={item.caseId}
+                title={item.title || item.caseId}
+                roleId={daily?.activeRoleId}
+                readiness={item.aufmerksamkeitsgrund}
+              >
+                <p className="meta">
+                  Aufmerksamkeitsgrund: {item.aufmerksamkeitsgrund || item.prominence}
+                </p>
+                <p>Rollenwirkung: {item.rollenwirkung || 'Rollenwirkung offen'}</p>
+                <p>Nächster Beitrag: {nextContribution}</p>
+                <p>Status: {status}</p>
+                {item.dueAt ? <p>Frist: {item.dueAt}</p> : null}
+                {item.openClarification ? <p className="warning">offene Klärung</p> : null}
+                <button type="button" onClick={() => onOpen(item.caseId)}>
+                  Vorgang öffnen
+                </button>
+              </VorgangCard>
+            );
+          })}
+        </div>
+      </TagesflaecheGroup>
     </section>
   );
 }
@@ -326,30 +397,97 @@ function CasePanel({
   onFreeze: (basisRev: string) => void;
   onApproval: (basisRev: string) => void;
 }) {
-  const statements = vorgang?.presentationContract?.aussagen || [];
+  const statements = renderableStatements(vorgang?.presentationContract?.aussagen);
+  const criteria = vorgang?.interactionProjection?.entscheidungsdistanz?.criteria || [];
+  const uncertainties = vorgang?.presentationContract?.unsicherheiten || [];
+  const approval = vorgang?.presentationContract?.freigabe;
+  const handlingStatus = handlingStatusLabel(
+    vorgang?.visibleStatus,
+    vorgang?.assignment?.actor?.displayName,
+    vorgang?.primaryRoleId
+  );
   return (
     <section id="case" className="panel" aria-live="polite">
       <p className="meta">Vorgangsansicht · {vorgang?.primaryRoleId || 'lädt'}</p>
       <h2>{vorgang?.label || vorgang?.presentationContract?.titel || 'Lade Vorgang …'}</h2>
-      <p>{vorgang?.visibleStatus}</p>
-      <span className="status-badge handling-status">
-        {vorgang?.visibleStatus === 'visible_no_action'
-          ? `In Bearbeitung durch ${vorgang?.assignment?.actor?.displayName || vorgang?.primaryRoleId || 'zuständige Rolle'}`
-          : vorgang?.visibleStatus || 'Bearbeitungsstatus offen'}
-      </span>
+      <p>{handlingStatus}</p>
+      <p className="meta">Das System entscheidet nicht.</p>
       <div className="grid">
         {grammarSections.map((section) => (
           <GrammarPart id={section.id} title={section.title} key={section.id}>
-            {(section.id === 'vorgang' || section.id === 'quellen') && (
-              <StatementList statements={statements} />
+            {section.id === 'vorgang' && (
+              <>
+                <p>Aktive Rolle: {vorgang?.primaryRoleId || 'Rolle offen'}</p>
+                <p>Aktuelle Station: {handlingStatus}</p>
+                <p>
+                  Nächster Beitrag:{' '}
+                  {contributionLabel(vorgang?.interactionProjection?.naechsterBeitrag)}
+                </p>
+                <DecisionReadinessPanel state={criteria.length ? 'blockiert' : 'offen'} />
+              </>
+            )}
+            {section.id === 'quellen' && <StatementList statements={statements} />}
+            {section.id === 'pruefung' && (
+              <>
+                <h3>Entscheidungsdistanz</h3>
+                <ul>
+                  {criteria.map((criterion) => (
+                    <li key={criterion.id || criterion.label}>
+                      {criterion.label || criterion.id}: {criterion.state || 'offen'}
+                    </li>
+                  ))}
+                </ul>
+                <AllowedBlockedActionsList
+                  allowed={['CET-internen Zustand schreiben · basisRev vorhanden']}
+                  blocked={['Externes Fachsystem ausführen · Nicht im RC2-Scope']}
+                />
+              </>
+            )}
+            {section.id === 'unsicherheit' && (
+              <>
+                {uncertainties.length === 0 ? (
+                  <p>Keine offene Klärung aus dem Präsentationsvertrag.</p>
+                ) : null}
+                {uncertainties.map((uncertainty, index) => (
+                  <article className="card boundary" key={`${uncertainty.frage}-${index}`}>
+                    <h3>Anschlussfrage</h3>
+                    <p>{uncertainty.frage || 'Klärung offen'}</p>
+                    <p className="meta">
+                      Klärende Rolle: {uncertainty.rolle || vorgang?.primaryRoleId || 'Rolle offen'}{' '}
+                      · Bezug: {uncertainty.bezug || 'Aussage/Kriterium offen'}
+                    </p>
+                  </article>
+                ))}
+              </>
             )}
             {section.id === 'freigabe' && (
-              <ApprovalRequestCard status="offen" roleId={vorgang?.primaryRoleId} />
+              <>
+                <p>Freigabesatz bleibt sichtbar.</p>
+                <ApprovalRequestCard
+                  status={approval?.status || 'offen'}
+                  roleId={approval?.roleId || vorgang?.primaryRoleId}
+                  actorName={approval?.actorName}
+                  actedAt={approval?.actedAt}
+                  requestedAt={approval?.requestedAt}
+                />
+              </>
             )}
           </GrammarPart>
         ))}
         <BoundaryPanel items={vorgang?.presentationContract?.nichtHandlungen} />
+        <SourceList
+          sources={statements.map((statement) => ({
+            ref: statement.quelle?.ref || statement.source?.ref,
+            label: statement.label,
+            stand: statement.granularitaet,
+          }))}
+        />
+        <HistoryExcerpt entries={['Vorgang geöffnet', 'basisRev sichtbar']} />
+        <SinceLastAccessNotice summary="Seit Zugriff: keine neue projizierte Änderung" />
       </div>
+      <p className="meta">
+        Schreibende Handlungen verwenden basisRev: {vorgang?.basisRev || 'fehlt'}
+      </p>
       <ClaimCaseButton basisRev={vorgang?.basisRev} onAction={onClaim} />
       <FreezeCaseButton basisRev={vorgang?.basisRev} onAction={onFreeze} />
       <RequestApprovalButton basisRev={vorgang?.basisRev} onAction={onApproval} />
@@ -361,14 +499,18 @@ function EvidencePanel({ evidence }: { evidence?: EvidenceDossier }) {
   return (
     <section id="evidence" className="panel" aria-live="polite">
       <p className="meta">Nachweisansicht</p>
+      <p>eingefrorener Präsentations-/Interaktionsstand</p>
       <p>
         <strong>Freeze:</strong> {evidence?.frozenAt ? 'eingefroren' : 'offen'}
       </p>
       <p>
         <strong>Stand:</strong> {evidence?.frozenAt || ''}
       </p>
+      <p className="meta">
+        eingefrorener Präsentations-/Interaktionsstand · Actor/Rolle/Tenant/Zeit
+      </p>
       <div className="grid">
-        {(evidence?.materializedStatements || []).map((statement) => (
+        {renderableStatements(evidence?.materializedStatements).map((statement) => (
           <article className="card" key={statement.id || statement.label}>
             <span className="evidence-receipt-link">
               Nachweis ·{' '}
@@ -380,7 +522,11 @@ function EvidencePanel({ evidence }: { evidence?: EvidenceDossier }) {
             <p>
               {displayValue(statement.wert)} {statement.einheit || ''}
             </p>
-            <p className="meta">{statement.source?.ref || statement.quelle?.ref}</p>
+            <p className="meta">
+              Quelle: {statement.source?.ref || statement.quelle?.ref} · Sicherheit:{' '}
+              {statement.sicherheit || 'offen'} · Aggregatzustand:{' '}
+              {statement.aggregatzustand || 'offen'}
+            </p>
           </article>
         ))}
         {(evidence?.approvalRequests || []).map((request, index) => (
@@ -421,29 +567,43 @@ function OperationsPanel({
     <section id="operations" className="panel" aria-live="polite">
       <p className="meta">Operationskonsole</p>
       <p className="meta">Die Nutzung der Konsole wird als Bedarfssignal protokolliert.</p>
+      <p className="meta">
+        Projected Result: Präsentationsvertrag, Aussagen, Markerlogik und Aggregatzustand.
+      </p>
+      <p className="meta">
+        Unprojected Raw Result: Nicht projiziert, keine belegte Aussage und kein Nachweis.
+      </p>
       <div className="grid">
-        {(operations?.available || []).map((operation) => (
-          <article className="card" key={operation.id}>
-            <span className="badge">{operation.mode}</span>
-            <h3>{operation.label}</h3>
-            <p>{operation.pathTemplate}</p>
-            <p className="meta">
-              {operation.method} · {operation.riskClass}
-            </p>
-            <button type="button" onClick={() => onPrepare(operation.id)}>
-              Vorbereiten
-            </button>
-            <OperationPermissionPanel
-              allowed={operation.method === 'GET'}
-              reason={
-                operation.method === 'GET'
-                  ? undefined
-                  : 'CET-interner Schreibvorgang nur vorbereitet'
-              }
-            />
-          </article>
-        ))}
+        {(operations?.available || []).map((operation) => {
+          const allowed = operation.allowed ?? operation.method === 'GET';
+          return (
+            <article className="card" key={operation.id}>
+              <span className="badge">{operation.mode}</span>
+              <h3>{operation.label}</h3>
+              <p>{operation.pathTemplate}</p>
+              <p className="meta">
+                {operation.method} · {operation.riskClass} · Policy:{' '}
+                {operation.governancePolicyId || 'offen'}
+              </p>
+              <button type="button" onClick={() => onPrepare(operation.id)} disabled={!allowed}>
+                Vorbereiten
+              </button>
+              <OperationPermissionPanel
+                allowed={allowed}
+                reason={
+                  operation.boundaryReason || (allowed ? undefined : 'Governance-/Policy-Grenze')
+                }
+              />
+            </article>
+          );
+        })}
       </div>
+      {preparedOperation?.projected?.statements?.length ? (
+        <article className="card">
+          <h3>Projected Result</h3>
+          <StatementList statements={preparedOperation.projected.statements} />
+        </article>
+      ) : null}
       {preparedOperation ? (
         <UnprojectedRawJsonView unprojected={preparedOperation.unprojected} />
       ) : null}
