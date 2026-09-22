@@ -7104,6 +7104,63 @@
         }
       }
     },
+    "/api/cet-ui/audit-events": {
+      "post": {
+        "operationId": "cet-ui_recordAudit",
+        "summary": "Record CET RC2 UI audit event inside the UI gateway boundary",
+        "tags": [
+          "CET UI RC2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "event": {
+                    "type": "string",
+                    "example": "view_opened"
+                  },
+                  "transport": {
+                    "type": "string",
+                    "example": "ui_gateway"
+                  },
+                  "view": {
+                    "type": "string",
+                    "example": "tagesflaeche"
+                  }
+                },
+                "required": [
+                  "event"
+                ]
+              },
+              "examples": {
+                "reference": {
+                  "value": {
+                    "event": "view_opened",
+                    "transport": "ui_gateway",
+                    "view": "tagesflaeche"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/chatgpt-sidecar/sessions": {
       "post": {
         "operationId": "chatgpt-sidecar_createSession",
@@ -66328,6 +66385,63 @@
               "examples": {
                 "reference": {
                   "value": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ui/v0/audit-events": {
+      "post": {
+        "operationId": "cet-ui_recordAudit",
+        "summary": "Record CET RC2 UI audit event inside the UI gateway boundary",
+        "tags": [
+          "CET UI RC2"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "event": {
+                    "type": "string",
+                    "example": "view_opened"
+                  },
+                  "transport": {
+                    "type": "string",
+                    "example": "ui_gateway"
+                  },
+                  "view": {
+                    "type": "string",
+                    "example": "tagesflaeche"
+                  }
+                },
+                "required": [
+                  "event"
+                ]
+              },
+              "examples": {
+                "reference": {
+                  "value": {
+                    "event": "view_opened",
+                    "transport": "ui_gateway",
+                    "view": "tagesflaeche"
+                  }
                 }
               }
             }

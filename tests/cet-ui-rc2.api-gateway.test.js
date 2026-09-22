@@ -29,6 +29,7 @@ describe('CET UI RC2 REST gateway', () => {
     expect(apiServiceSource).toContain("'POST /ui/v0/cases/:caseId/approval-requests'");
     expect(apiServiceSource).toContain("'GET /ui/v0/operations'");
     expect(apiServiceSource).toContain("'POST /ui/v0/operations/:operationId/prepare'");
+    expect(apiServiceSource).toContain("'POST /ui/v0/audit-events'");
     expect(apiServiceSource).not.toContain('/ui/v0/governanceArchitecture');
     expect(apiServiceSource).not.toContain('/ui/v0/rc1');
     expect(apiServiceSource).not.toContain("rest: 'GET /daily'");

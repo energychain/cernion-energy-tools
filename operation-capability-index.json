@@ -2,16 +2,16 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.99.21",
-  "sourceOpenApiHash": "de338166c4639a7a3aaa67797a2c596e5238416d9107866a7e71f60533696169",
+  "sourceOpenApiHash": "1e5cf209be69bbcf974f3af0bb14a050d087421b26565aaeb1edce7d3a2bcecd",
   "coverage": {
-    "rawOperationCount": 1162,
-    "operationCount": 897,
-    "agentableCount": 895,
+    "rawOperationCount": 1164,
+    "operationCount": 898,
+    "agentableCount": 896,
     "nonAgentableCount": 2,
     "byOperationKind": {
       "data_read": 395,
       "admin": 8,
-      "object_store_write": 234,
+      "object_store_write": 235,
       "process_step": 20,
       "process_start": 44,
       "advisory_plan": 47,
@@ -75547,6 +75547,97 @@
         "curated": false
       },
       "aliases": []
+    },
+    {
+      "operationId": "cet-ui_recordAudit",
+      "method": "POST",
+      "path": "/api/ui/v0/audit-events",
+      "service": "ui",
+      "action": null,
+      "summary": "Record CET RC2 UI audit event inside the UI gateway boundary",
+      "tags": [
+        "CET UI RC2"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "ui.cet-ui_record_audit"
+      ],
+      "domains": [
+        "governance"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "ui:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "ui"
+      ],
+      "sideEffects": [
+        "creates_or_modifies_stored_object"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "parameters": {
+        "required": [
+          {
+            "name": "event",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": [
+          {
+            "name": "transport",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "view",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "cet",
+          "ui",
+          "record",
+          "audit",
+          "rc2",
+          "event",
+          "inside",
+          "gateway",
+          "boundary"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please record cet rc2 ui audit event inside the ui gateway boundary"
+        ],
+        "synonyms": [
+          "VDMI",
+          "V/D/M/I matrix",
+          "audit trail"
+        ],
+        "curated": false
+      },
+      "aliases": [
+        "POST /api/cet-ui/audit-events"
+      ]
     },
     {
       "operationId": "cet-ui_getCase",
