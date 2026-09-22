@@ -42,7 +42,22 @@ describe('CET UI RC2 Vite React TypeScript structure', () => {
     expect(appSource).toContain('Operationskonsole');
     expect(appSource).toContain('Nicht projiziert');
     expect(appSource).toContain('recordViewOpened');
+    expect(appSource).toContain('getBrowserAuthConfig');
+    expect(appSource).toContain('__CET_UI_AUTH__');
+    expect(appSource).toContain('headers.Authorization =');
     expect(appSource).not.toMatch(/Zur Kenntnis|Next Best Action|CET entscheidet/);
     expect(appSource).not.toMatch(/moleculer|RC1|rc1/i);
+  });
+
+  test('React write actions refresh canonical view models after gateway mutation envelopes', () => {
+    const appSource = read('src/App.tsx');
+    expect(appSource).toContain('async function refreshCaseViews(caseId: string)');
+    expect(appSource).toContain('await client.claimCase(caseId);');
+    expect(appSource).toContain('await refreshCaseViews(caseId);');
+    expect(appSource).toContain('await client.freezeCase(caseId, {});');
+    expect(appSource).toContain('await client.requestApproval(caseId, {});');
+    expect(appSource).not.toContain('const vorgang = await client.claimCase(caseId);');
+    expect(appSource).not.toContain('const evidence = await client.freezeCase(caseId, {});');
+    expect(appSource).not.toContain('const evidence = await client.requestApproval(caseId, {});');
   });
 });

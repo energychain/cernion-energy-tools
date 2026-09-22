@@ -8,9 +8,9 @@ type ApiClient = {
   getDailySurface: () => Promise<DailySurface>;
   getCase: (id: string) => Promise<Vorgang>;
   getEvidenceDossier: (id: string) => Promise<EvidenceDossier>;
-  claimCase: (id: string) => Promise<Vorgang>;
-  freezeCase: (id: string, payload: Record<string, unknown>) => Promise<EvidenceDossier>;
-  requestApproval: (id: string, payload: Record<string, unknown>) => Promise<EvidenceDossier>;
+  claimCase: (id: string) => Promise<unknown>;
+  freezeCase: (id: string, payload: Record<string, unknown>) => Promise<unknown>;
+  requestApproval: (id: string, payload: Record<string, unknown>) => Promise<unknown>;
   listOperations: () => Promise<OperationsPayload>;
   runOperation: (
     operationId: string,
@@ -121,17 +121,45 @@ const grammarSections = [
   { id: 'freigabe', title: 'Freigabe' },
 ];
 
+type BrowserAuthConfig = {
+  token?: string;
+  tenantId?: string;
+  activeRoleId?: string;
+};
+
+declare global {
+  interface Window {
+    __CET_UI_AUTH__?: BrowserAuthConfig;
+  }
+}
+
+function getMetaContent(name: string): string | undefined {
+  return document.querySelector<HTMLMetaElement>(`meta[name="${name}"]`)?.content || undefined;
+}
+
+function getBrowserAuthConfig(): BrowserAuthConfig {
+  return {
+    token: window.__CET_UI_AUTH__?.token || getMetaContent('cet-ui-token'),
+    tenantId: window.__CET_UI_AUTH__?.tenantId || getMetaContent('cet-ui-tenant-id'),
+    activeRoleId: window.__CET_UI_AUTH__?.activeRoleId || getMetaContent('cet-ui-active-role-id'),
+  };
+}
+
 async function requestJson<T>(
   path: string,
   method: HttpMethod = 'GET',
   body?: unknown
 ): Promise<T> {
+  const authConfig = getBrowserAuthConfig();
+  const headers: Record<string, string> = { Accept: 'application/json' };
+  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  if (authConfig.token) headers.Authorization = `Bearer ${authConfig.token}`;
+  if (authConfig.tenantId) headers['x-tenant-id'] = authConfig.tenantId;
+  if (authConfig.activeRoleId) headers['x-cet-ui-active-role-id'] = authConfig.activeRoleId;
+
   const response = await fetch(`/api${path}`, {
     method,
-    headers:
-      body === undefined
-        ? { Accept: 'application/json' }
-        : { Accept: 'application/json', 'Content-Type': 'application/json' },
+    headers,
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   });
   if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
@@ -398,12 +426,16 @@ export function App({ apiClient = createBrowserApiClient() }: { apiClient?: ApiC
       .catch(() => undefined);
   }
 
-  async function openCase(caseId: string) {
+  async function refreshCaseViews(caseId: string) {
     const [vorgang, evidence] = await Promise.all([
       client.getCase(caseId),
       client.getEvidenceDossier(caseId),
     ]);
-    setState((current) => ({ ...current, vorgang, evidence }));
+    setState((current) => ({ ...current, vorgang, evidence, error: undefined }));
+  }
+
+  async function openCase(caseId: string) {
+    await refreshCaseViews(caseId);
     await recordViewOpened('vorgangsansicht');
   }
 
@@ -463,22 +495,22 @@ export function App({ apiClient = createBrowserApiClient() }: { apiClient?: ApiC
         vorgang={state.vorgang}
         onClaim={() =>
           void withCurrentCase(async (caseId) => {
-            const vorgang = await client.claimCase(caseId);
-            setState((current) => ({ ...current, vorgang }));
+            await client.claimCase(caseId);
+            await refreshCaseViews(caseId);
             await recordViewOpened('vorgang_claim');
           })
         }
         onFreeze={() =>
           void withCurrentCase(async (caseId) => {
-            const evidence = await client.freezeCase(caseId, {});
-            setState((current) => ({ ...current, evidence }));
+            await client.freezeCase(caseId, {});
+            await refreshCaseViews(caseId);
             await recordViewOpened('nachweis_einfrieren');
           })
         }
         onApproval={() =>
           void withCurrentCase(async (caseId) => {
-            const evidence = await client.requestApproval(caseId, {});
-            setState((current) => ({ ...current, evidence }));
+            await client.requestApproval(caseId, {});
+            await refreshCaseViews(caseId);
             await recordViewOpened('freigabe_anfordern');
           })
         }

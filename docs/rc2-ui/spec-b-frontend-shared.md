@@ -41,6 +41,8 @@ Implementiert die RC2-App-Shell in React/TypeScript:
 - Nachweisansicht
 - Operationskonsole
 - REST-only Client gegen `/api/ui/v0/...`
+- Auth-Bootstrap über `window.__CET_UI_AUTH__` oder Meta-Tags `cet-ui-token`, `cet-ui-tenant-id`, `cet-ui-active-role-id`; die Werte werden nur als Request-Header an den UI-Gateway weitergereicht und nicht im Bundle fest verdrahtet.
+- Mutation-Responses (`claim`, `freeze`, `approval-requests`) werden nicht als View-Models interpretiert; die App lädt danach kanonisch `getCase` und `getEvidenceDossier` nach.
 - Audit-Nutzung über `/api/ui/v0/audit-events`
 - Nicht-projizierte Operationsantworten mit Badge `Nicht projiziert`, ohne Evidence-/Aggregatsemantik
 - Schreibaktionen nur gegen CET-eigenen UI-Gateway-Zustand: Claim, Freeze, Freigabeanforderung
@@ -161,6 +163,7 @@ Phase B wird abgesichert durch:
 - `tests/cet-ui-rc2.phase-b-prominence-audit.test.js`
 - `tests/cet-ui-rc2.vite-react-typescript.test.js`
 - `tests/cet-ui-rc2.browser-smoke.test.js`
+- `tests/cet-ui-rc2.http-smoke.test.js`
 - bestehende View-Model-/Feinkonzept-Alignment-Tests:
   - `tests/cet-rc2-ui-view-model.test.js`
   - `tests/cet-ui-rc2.feinkonzept-alignment.test.js`
@@ -181,10 +184,16 @@ Der browsernahe Smoke-Test prüft die REST-Gateway-Verdrahtung statisch gegen di
 - Referenzfluss `claim → freeze → approval request → evidence`.
 - Operationskonsole mit nicht-projiziertem JSON ohne Evidence-Semantik.
 
+Der echte HTTP-Smoke startet einen isolierten Moleculer-Broker auf einem Zufallsport, nutzt einen gemockten Full-Access-Testtoken und geht ausschließlich über HTTP:
+
+- `GET /api/ui/v0/app` liefert `dist/index.html` der Vite-SPA.
+- `GET /api/ui/v0/assets/:assetFile` liefert das gebündelte Vite-JavaScript.
+- `GET /api/ui/v0/session-context`, `daily-surface`, `case/evidence` laufen mit authentifiziertem Mandant/User-Kontext.
+- `POST claim`, `freeze`, `approval-requests` halten den Referenzfluss in einem Gateway-Zustand zusammen.
+
 ## Nächster Schritt nach Phase B-Fortsetzung
 
-Phase B ist nach dem Wechsel auf Vite/React/TypeScript deutlich näher am Abschluss. Offen vor Phase-C/D-Abnahme:
+Phase B ist nach dem Wechsel auf Vite/React/TypeScript und dem HTTP-Smoke deutlich näher am Abschluss. Offen vor Phase-C/D-Abnahme:
 
 - externer Review des Phase-B-Abschlusses gegen Feinkonzept.
-- optionaler HTTP-Smoke gegen laufenden Gateway, falls lokal ein CET-Server in einem freigegebenen Workflow gestartet oder eine Dev-Instanz genutzt wird.
 - weitere Accessibility-/Mobile-Prominence-Checks für die kommenden Display-Elemente aus Phase C.
