@@ -114,8 +114,8 @@ describe('CET UI RC2 Phase C reusable visible components', () => {
     expect(combined).toContain('Nicht projiziert');
     expect(combined).toContain('unprojected');
     expect(combined).toContain('riskClass');
-    expect(combined).toContain('kein Nachweis');
-    expect(combined).not.toMatch(/EvidenceReceipt|aggregationState/);
+    expect(combined).toMatch(/kein\s+Nachweis/);
+    expect(combined).not.toMatch(/EvidenceReceipt|aggregationState|belegte Aussage/);
   });
 
   test('approval primitives require attribution for granted or refused states', () => {

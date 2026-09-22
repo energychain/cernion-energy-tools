@@ -4,7 +4,7 @@ export function UnprojectedRawJsonView({ unprojected }: { unprojected?: { raw?: 
       <span className="status-badge not-projected" aria-label="Nicht projiziert">
         Nicht projiziert
       </span>
-      <p>Dieses JSON ist nicht projiziert, keine belegte Aussage und kein Nachweis.</p>
+      <p>Dieses JSON ist nicht projiziert, bleibt Rohantwort und ist kein Nachweis.</p>
       <pre>{JSON.stringify(unprojected?.raw, null, 2)}</pre>
     </section>
   );

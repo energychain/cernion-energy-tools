@@ -47,7 +47,8 @@ describe('CET RC2 Phase C reusable governance display elements', () => {
   test('locks governance wording and no-call semantics in the display primitives', () => {
     const source = read(componentPath);
 
-    expect(source).toContain('CET entscheidet nicht');
+    expect(source).toContain('Das System entscheidet nicht');
+    expect(source).not.toContain('CET entscheidet nicht');
     expect(source).toContain('In Bearbeitung durch');
     expect(source).toContain('durch Agent');
     expect(source).toContain('nur mit Quelle reproduzierbar');

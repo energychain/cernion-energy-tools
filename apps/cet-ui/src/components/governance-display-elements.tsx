@@ -206,7 +206,9 @@ export function ApprovalPanel({ approval }: { approval: ApprovalModel }) {
       {missingAttribution ? (
         <p className="error">Freigabeentscheidung ohne Attribution unvollständig.</p>
       ) : null}
-      <p className="meta">CET entscheidet nicht; die Entscheidung bleibt bei Person oder Rolle.</p>
+      <p className="meta">
+        Das System entscheidet nicht; die Entscheidung bleibt bei Person oder Rolle.
+      </p>
     </section>
   );
 }
