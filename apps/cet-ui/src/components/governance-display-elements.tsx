@@ -117,8 +117,15 @@ export function EvidenceMarker({ statement }: { statement: EvidenceStatementMode
   );
 }
 
-export function BoundaryBox({ nichtHandlungen }: { nichtHandlungen: BoundaryModel[] }) {
-  if (!nichtHandlungen.length) {
+function approvalRequiresAttribution(approval: ApprovalModel): boolean {
+  return (
+    (approval.status === 'erteilt' || approval.status === 'verweigert') &&
+    (!approval.actedAt || (!approval.actorName && !approval.roleLabel))
+  );
+}
+
+export function BoundaryBox({ nichtHandlungen }: { nichtHandlungen?: BoundaryModel[] }) {
+  if (!nichtHandlungen || !nichtHandlungen.length) {
     return (
       <aside className="boundary-box boundary-box--invalid">Grenzen dieser Ansicht fehlen.</aside>
     );
@@ -187,10 +194,18 @@ export function ApprovalPanel({ approval }: { approval: ApprovalModel }) {
         : approval.status === 'angefordert'
           ? 'Freigabe angefordert'
           : 'Freigabe offen';
+  const missingAttribution = approvalRequiresAttribution(approval);
   return (
-    <section className="approval-panel" data-status={approval.status}>
+    <section
+      className="approval-panel"
+      data-status={approval.status}
+      data-attribution={missingAttribution ? 'missing' : 'complete'}
+    >
       <h3>{label}</h3>
       {approval.actedAt ? <p className="meta">Zeitpunkt: {approval.actedAt}</p> : null}
+      {missingAttribution ? (
+        <p className="error">Freigabeentscheidung ohne Attribution unvollständig.</p>
+      ) : null}
       <p className="meta">CET entscheidet nicht; die Entscheidung bleibt bei Person oder Rolle.</p>
     </section>
   );

@@ -49,15 +49,26 @@ describe('CET UI RC2 Vite React TypeScript structure', () => {
     expect(appSource).not.toMatch(/moleculer|RC1|rc1/i);
   });
 
-  test('React write actions refresh canonical view models after gateway mutation envelopes', () => {
+  test('React write actions require displayed basisRev and refresh canonical view models after mutation envelopes', () => {
     const appSource = read('src/App.tsx');
     expect(appSource).toContain('async function refreshCaseViews(caseId: string)');
-    expect(appSource).toContain('await client.claimCase(caseId);');
+    expect(appSource).toContain('basisRev?: string');
+    expect(appSource).toContain('claimCase: (id: string, basisRev: string)');
+    expect(appSource).toContain('claimCase: (id, basisRev) =>');
+    expect(appSource).toContain('basisRev,');
+    expect(appSource).toContain('ClaimCaseButton');
+    expect(appSource).toContain('FreezeCaseButton');
+    expect(appSource).toContain('RequestApprovalButton');
+    expect(appSource).toContain('await client.claimCase(caseId, basisRev);');
+    expect(appSource).toContain('await client.freezeCase(caseId, { basisRev });');
+    expect(appSource).toContain('await client.requestApproval(caseId, { basisRev });');
     expect(appSource).toContain('await refreshCaseViews(caseId);');
-    expect(appSource).toContain('await client.freezeCase(caseId, {});');
-    expect(appSource).toContain('await client.requestApproval(caseId, {});');
-    expect(appSource).not.toContain('const vorgang = await client.claimCase(caseId);');
-    expect(appSource).not.toContain('const evidence = await client.freezeCase(caseId, {});');
-    expect(appSource).not.toContain('const evidence = await client.requestApproval(caseId, {});');
+    expect(appSource).not.toContain("from './components/governance-display-elements'");
+    expect(appSource).not.toContain('await client.claimCase(caseId);');
+    expect(appSource).not.toContain('await client.freezeCase(caseId, {});');
+    expect(appSource).not.toContain('await client.requestApproval(caseId, {});');
+    expect(appSource).not.toContain('const vorgang = await client.claimCase(caseId');
+    expect(appSource).not.toContain('const evidence = await client.freezeCase(caseId');
+    expect(appSource).not.toContain('const evidence = await client.requestApproval(caseId');
   });
 });

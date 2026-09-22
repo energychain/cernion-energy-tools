@@ -1,15 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
-import {
-  ApprovalPanel,
-  BoundaryBox,
-  EvidenceMarker,
-  GrammarSection,
-  RawJsonNotProjectedPanel,
-  RoleActor,
-  SafeActionBar,
-  StatusBadge,
-  TakeoverStatePanel,
-} from './components/governance-display-elements';
+import { ActorBadge } from './components/identity/ActorBadge';
+import { RoleSelector } from './components/identity/RoleSelector';
+import { BoundaryPanel } from './components/structure/BoundaryPanel';
+import { GrammarPart } from './components/structure/GrammarPart';
+import { ClaimCaseButton } from './components/actions/ClaimCaseButton';
+import { FreezeCaseButton } from './components/actions/FreezeCaseButton';
+import { RequestApprovalButton } from './components/actions/RequestApprovalButton';
+import { ApprovalRequestCard } from './components/governance/ApprovalRequestCard';
+import { OperationPermissionPanel } from './components/operations/OperationPermissionPanel';
+import { UnprojectedRawJsonView } from './components/operations/UnprojectedRawJsonView';
 import './styles.css';
 
 type HttpMethod = 'GET' | 'POST';
@@ -19,7 +18,7 @@ type ApiClient = {
   getDailySurface: () => Promise<DailySurface>;
   getCase: (id: string) => Promise<Vorgang>;
   getEvidenceDossier: (id: string) => Promise<EvidenceDossier>;
-  claimCase: (id: string) => Promise<unknown>;
+  claimCase: (id: string, basisRev: string) => Promise<unknown>;
   freezeCase: (id: string, payload: Record<string, unknown>) => Promise<unknown>;
   requestApproval: (id: string, payload: Record<string, unknown>) => Promise<unknown>;
   listOperations: () => Promise<OperationsPayload>;
@@ -82,6 +81,8 @@ type Vorgang = {
   label?: string;
   primaryRoleId?: string;
   visibleStatus?: string;
+  basisRev?: string;
+  assignment?: { actor?: { displayName?: string; id?: string }; status?: string };
   presentationContract?: {
     titel?: string;
     aussagen?: Statement[];
@@ -92,7 +93,13 @@ type Vorgang = {
 type EvidenceDossier = {
   frozenAt?: string;
   materializedStatements?: Statement[];
-  approvalRequests?: Array<{ status?: string; roleId?: string }>;
+  approvalRequests?: Array<{
+    status?: string;
+    roleId?: string;
+    actorName?: string;
+    actedAt?: string;
+    requestedAt?: string;
+  }>;
   hashRefOnlyNotices?: Array<{ label?: string; sourceRef?: string; notice?: string }>;
 };
 
@@ -189,8 +196,10 @@ function createBrowserApiClient(): ApiClient {
     getCase: (id) => requestJson<Vorgang>(`/ui/v0/cases/${encodeURIComponent(id)}`),
     getEvidenceDossier: (id) =>
       requestJson<EvidenceDossier>(`/ui/v0/cases/${encodeURIComponent(id)}/evidence`),
-    claimCase: (id) =>
-      requestJson<Vorgang>(`/ui/v0/cases/${encodeURIComponent(id)}/claim`, 'POST', {}),
+    claimCase: (id, basisRev) =>
+      requestJson<Vorgang>(`/ui/v0/cases/${encodeURIComponent(id)}/claim`, 'POST', {
+        basisRev,
+      }),
     freezeCase: (id, payload) =>
       requestJson<EvidenceDossier>(
         `/ui/v0/cases/${encodeURIComponent(id)}/freeze`,
@@ -228,14 +237,12 @@ function StatementList({ statements }: { statements?: Statement[] }) {
             <strong>{statement.label}:</strong> {displayValue(statement.wert)}
           </p>
           <p className="meta">
-            <EvidenceMarker
-              statement={{
-                label: statement.label || statement.id || 'Aussage',
-                granularitaet:
-                  statement.granularitaet === 'einzeldatensatz' ? 'einzeldatensatz' : 'aggregat',
-                sourceRef: statement.quelle?.ref || statement.source?.ref,
-              }}
-            />{' '}
+            <span className="evidence-receipt-link">
+              Nachweis ·{' '}
+              {statement.granularitaet === 'einzeldatensatz'
+                ? 'nur mit Quelle reproduzierbar'
+                : 'aggregat'}
+            </span>{' '}
             · {statement.quelle?.ref || statement.source?.ref}
           </p>
         </div>
@@ -259,31 +266,24 @@ function SessionPanel({ session }: { session?: SessionContext }) {
         <strong>Benutzer:</strong> {session.user?.displayName || session.userId}
       </p>
       <p className="meta">
-        <RoleActor
-          actor={{
-            roleLabel: roleLabels[activeRoleId || ''] || activeRoleId || 'Rolle offen',
-            actorName: session.user?.displayName || session.userId,
-            tenantLabel: session.tenant?.label || session.tenantId,
-            placeholderAgent: candidates.some(
-              (role) => (role.roleId || role.id) === activeRoleId && role.placeholderAgent
-            ),
-          }}
+        <ActorBadge
+          roleId={activeRoleId}
+          displayName={session.user?.displayName || session.userId}
+          label={roleLabels[activeRoleId || ''] || activeRoleId || 'Rolle offen'}
+          placeholderAgent={candidates.some(
+            (role) => (role.roleId || role.id) === activeRoleId && role.placeholderAgent
+          )}
         />
       </p>
-      <label>
-        Rollenperspektive
-        <select aria-label="Rollenperspektive" disabled value={activeRoleId || ''}>
-          {candidates.map((role) => {
-            const roleId = role.roleId || role.id || '';
-            return (
-              <option key={roleId} value={roleId}>
-                {role.label || roleLabels[roleId] || roleId}
-                {role.placeholderAgent ? ' · Platzhalter-Agent verfügbar' : ''}
-              </option>
-            );
-          })}
-        </select>
-      </label>
+      <RoleSelector
+        activeRoleId={activeRoleId}
+        roles={candidates.map((role) => ({
+          roleId: role.roleId || role.id || '',
+          label: role.label || roleLabels[role.roleId || role.id || ''],
+          available: role.available,
+          placeholderAgent: role.placeholderAgent,
+        }))}
+      />
       <p className="meta">
         Rollenwechsel bleibt auf tatsächlich gehaltene Mandantenrollen begrenzt.
       </p>
@@ -322,9 +322,9 @@ function CasePanel({
   onApproval,
 }: {
   vorgang?: Vorgang;
-  onClaim: () => void;
-  onFreeze: () => void;
-  onApproval: () => void;
+  onClaim: (basisRev: string) => void;
+  onFreeze: (basisRev: string) => void;
+  onApproval: (basisRev: string) => void;
 }) {
   const statements = vorgang?.presentationContract?.aussagen || [];
   return (
@@ -332,50 +332,27 @@ function CasePanel({
       <p className="meta">Vorgangsansicht · {vorgang?.primaryRoleId || 'lädt'}</p>
       <h2>{vorgang?.label || vorgang?.presentationContract?.titel || 'Lade Vorgang …'}</h2>
       <p>{vorgang?.visibleStatus}</p>
-      <TakeoverStatePanel
-        state={{
-          status:
-            vorgang?.visibleStatus === 'mir_zugewiesen'
-              ? 'mir_zugewiesen'
-              : vorgang?.visibleStatus === 'visible_no_action'
-                ? 'visible_no_action'
-                : 'unbeansprucht',
-          actorName: vorgang?.primaryRoleId,
-        }}
-      />
+      <span className="status-badge handling-status">
+        {vorgang?.visibleStatus === 'visible_no_action'
+          ? `In Bearbeitung durch ${vorgang?.assignment?.actor?.displayName || vorgang?.primaryRoleId || 'zuständige Rolle'}`
+          : vorgang?.visibleStatus || 'Bearbeitungsstatus offen'}
+      </span>
       <div className="grid">
         {grammarSections.map((section) => (
-          <GrammarSection
-            part={section.id as 'vorgang' | 'quellen' | 'pruefung' | 'unsicherheit' | 'freigabe'}
-            title={section.title}
-            key={section.id}
-          >
+          <GrammarPart id={section.id} title={section.title} key={section.id}>
             {(section.id === 'vorgang' || section.id === 'quellen') && (
               <StatementList statements={statements} />
             )}
             {section.id === 'freigabe' && (
-              <ApprovalPanel approval={{ status: 'offen', roleLabel: vorgang?.primaryRoleId }} />
+              <ApprovalRequestCard status="offen" roleId={vorgang?.primaryRoleId} />
             )}
-          </GrammarSection>
+          </GrammarPart>
         ))}
-        <BoundaryBox
-          nichtHandlungen={(vorgang?.presentationContract?.nichtHandlungen || []).map(
-            (boundary) => ({
-              was: boundary.was || 'Nicht vorgesehen',
-              grund: boundary.grund || 'Keine Begründung angegeben',
-            })
-          )}
-        />
+        <BoundaryPanel items={vorgang?.presentationContract?.nichtHandlungen} />
       </div>
-      <button type="button" onClick={onClaim} disabled={!vorgang}>
-        Mir zuweisen
-      </button>
-      <button type="button" className="secondary" onClick={onFreeze} disabled={!vorgang}>
-        Einfrieren
-      </button>
-      <button type="button" className="secondary" onClick={onApproval} disabled={!vorgang}>
-        Freigabe anfordern
-      </button>
+      <ClaimCaseButton basisRev={vorgang?.basisRev} onAction={onClaim} />
+      <FreezeCaseButton basisRev={vorgang?.basisRev} onAction={onFreeze} />
+      <RequestApprovalButton basisRev={vorgang?.basisRev} onAction={onApproval} />
     </section>
   );
 }
@@ -393,14 +370,12 @@ function EvidencePanel({ evidence }: { evidence?: EvidenceDossier }) {
       <div className="grid">
         {(evidence?.materializedStatements || []).map((statement) => (
           <article className="card" key={statement.id || statement.label}>
-            <EvidenceMarker
-              statement={{
-                label: statement.label || statement.id || 'Aussage',
-                granularitaet:
-                  statement.granularitaet === 'einzeldatensatz' ? 'einzeldatensatz' : 'aggregat',
-                sourceRef: statement.source?.ref || statement.quelle?.ref,
-              }}
-            />
+            <span className="evidence-receipt-link">
+              Nachweis ·{' '}
+              {statement.granularitaet === 'einzeldatensatz'
+                ? 'nur mit Quelle reproduzierbar'
+                : 'aggregat'}
+            </span>
             <h3>{statement.label}</h3>
             <p>
               {displayValue(statement.wert)} {statement.einheit || ''}
@@ -409,16 +384,18 @@ function EvidencePanel({ evidence }: { evidence?: EvidenceDossier }) {
           </article>
         ))}
         {(evidence?.approvalRequests || []).map((request, index) => (
-          <article className="card" key={`${request.status}-${request.roleId}-${index}`}>
-            <h3>Freigabeanforderung</h3>
-            <p>
-              {request.status} · {request.roleId || ''}
-            </p>
-          </article>
+          <ApprovalRequestCard
+            key={`${request.status}-${request.roleId}-${index}`}
+            status={request.status}
+            roleId={request.roleId}
+            actorName={request.actorName}
+            actedAt={request.actedAt}
+            requestedAt={request.requestedAt}
+          />
         ))}
         {(evidence?.hashRefOnlyNotices || []).map((notice) => (
           <article className="card boundary" key={`${notice.label}-${notice.sourceRef}`}>
-            <StatusBadge tone="quelle_reproduzierbar" />
+            <span className="status-badge aggregate-state">Quelle reproduzierbar</span>
             <h3>{notice.label}</h3>
             <p>Nur mit Quelle reproduzierbar.</p>
             <p className="meta">
@@ -456,20 +433,19 @@ function OperationsPanel({
             <button type="button" onClick={() => onPrepare(operation.id)}>
               Vorbereiten
             </button>
-            <SafeActionBar
-              actions={[
-                {
-                  id: `${operation.id}-prepare`,
-                  label: 'Vorbereiten',
-                  writeClass: operation.method === 'GET' ? 'read' : 'cet_internal_write',
-                },
-              ]}
+            <OperationPermissionPanel
+              allowed={operation.method === 'GET'}
+              reason={
+                operation.method === 'GET'
+                  ? undefined
+                  : 'CET-interner Schreibvorgang nur vorbereitet'
+              }
             />
           </article>
         ))}
       </div>
       {preparedOperation ? (
-        <RawJsonNotProjectedPanel raw={preparedOperation.unprojected?.raw} />
+        <UnprojectedRawJsonView unprojected={preparedOperation.unprojected} />
       ) : null}
     </section>
   );
@@ -521,11 +497,12 @@ export function App({ apiClient = createBrowserApiClient() }: { apiClient?: ApiC
     void refresh();
   }, []);
 
-  async function withCurrentCase(action: (caseId: string) => Promise<void>) {
+  async function withCurrentCase(action: (caseId: string, basisRev: string) => Promise<void>) {
     const caseId = state.vorgang?.caseId;
-    if (!caseId) return;
+    const basisRev = state.vorgang?.basisRev;
+    if (!caseId || !basisRev) return;
     try {
-      await action(caseId);
+      await action(caseId, basisRev);
     } catch (error) {
       setState((current) => ({
         ...current,
@@ -552,23 +529,23 @@ export function App({ apiClient = createBrowserApiClient() }: { apiClient?: ApiC
       <DailyPanel daily={state.daily} onOpen={(caseId) => void openCase(caseId)} />
       <CasePanel
         vorgang={state.vorgang}
-        onClaim={() =>
+        onClaim={(basisRev) =>
           void withCurrentCase(async (caseId) => {
-            await client.claimCase(caseId);
+            await client.claimCase(caseId, basisRev);
             await refreshCaseViews(caseId);
             await recordViewOpened('vorgang_claim');
           })
         }
-        onFreeze={() =>
+        onFreeze={(basisRev) =>
           void withCurrentCase(async (caseId) => {
-            await client.freezeCase(caseId, {});
+            await client.freezeCase(caseId, { basisRev });
             await refreshCaseViews(caseId);
             await recordViewOpened('nachweis_einfrieren');
           })
         }
-        onApproval={() =>
+        onApproval={(basisRev) =>
           void withCurrentCase(async (caseId) => {
-            await client.requestApproval(caseId, {});
+            await client.requestApproval(caseId, { basisRev });
             await refreshCaseViews(caseId);
             await recordViewOpened('freigabe_anfordern');
           })

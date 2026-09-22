@@ -80,7 +80,9 @@ describe('CET RC2 Feinkonzept alignment', () => {
     expect(uiAppSource).toContain(
       'Dieses Ergebnis ist noch nicht in eine belegte Vorgangsdarstellung projiziert'
     );
-    expect(uiAppSource).toContain('preparedOperation.unprojected?.raw');
+    expect(uiAppSource).toContain(
+      '<UnprojectedRawJsonView unprojected={preparedOperation.unprojected} />'
+    );
     expect(uiAppSource).not.toContain('rawPayload');
     expect(uiAppSource).toContain('hashRefOnlyNotices');
   });

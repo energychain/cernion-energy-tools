@@ -131,6 +131,31 @@ describe('CET UI RC2 REST gateway', () => {
     );
   });
 
+  test('CET-owned writes fail closed when basisRev is missing', () => {
+    const gateway = buildReferenceUiGateway();
+    const context = buildReferenceUiGatewayContext({
+      activeRoleId: RC2_ROLE_IDS.MARKTKOMMUNIKATION,
+      userId: 'user-mako-1',
+      now: '2026-09-21T12:10:00Z',
+    });
+
+    expect(
+      gateway.claimCase(context, {
+        caseId: 'vorgang-cr-lka-rv-001-article-id-change',
+      })
+    ).toEqual(expect.objectContaining({ ok: false, code: 'basisRev_required' }));
+    expect(
+      gateway.freezeCase(context, {
+        caseId: 'vorgang-cr-lka-rv-001-article-id-change',
+      })
+    ).toEqual(expect.objectContaining({ ok: false, code: 'basisRev_required' }));
+    expect(
+      gateway.requestApproval(context, {
+        caseId: 'vorgang-cr-lka-rv-001-article-id-change',
+      })
+    ).toEqual(expect.objectContaining({ ok: false, code: 'basisRev_required' }));
+  });
+
   test('operations endpoint does not trust client-requested roles outside the user roles', () => {
     const response = buildReferenceUiGateway().listOperations(
       buildReferenceUiGatewayContext({

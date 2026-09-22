@@ -149,6 +149,17 @@ function buildProjection(activeRoleId) {
   });
 }
 
+function requireBasisRev(basisRev) {
+  if (!basisRev) {
+    return {
+      ok: false,
+      code: 'basisRev_required',
+      message: 'CET-owned writes require the displayed basisRev.',
+    };
+  }
+  return null;
+}
+
 function buildReferenceUiGateway({
   fixture = buildReferenceTenantFixture(),
   initialCards = [],
@@ -253,12 +264,14 @@ function buildReferenceUiGateway({
       };
     },
 
-    claimCase(context, { caseId = REFERENCE_CASE_ID, basisRev = 'rev-1' } = {}) {
+    claimCase(context, { caseId = REFERENCE_CASE_ID, basisRev } = {}) {
+      const missingBasisRev = requireBasisRev(basisRev);
+      if (missingBasisRev) return missingBasisRev;
       const user = findUser(fixture, context);
       const activeRoleId = resolveActiveRoleId(fixture, context);
-      const card = getOrCreateCard(context, { caseId, basisRev });
+      const card = getOrCreateCard(context, { caseId });
       const result = claimRunCard(card, {
-        basisRev: basisRev || card.basisRev,
+        basisRev,
         actor: user,
         roleId: activeRoleId,
         now: context.now,
@@ -268,10 +281,12 @@ function buildReferenceUiGateway({
     },
 
     freezeCase(context, { caseId = REFERENCE_CASE_ID, basisRev } = {}) {
+      const missingBasisRev = requireBasisRev(basisRev);
+      if (missingBasisRev) return missingBasisRev;
       const user = findUser(fixture, context);
       const card = getOrCreateCard(context, { caseId });
       const result = freezeRunCard(card, {
-        basisRev: basisRev || card.basisRev,
+        basisRev,
         actor: user,
         now: context.now,
       });
@@ -280,10 +295,12 @@ function buildReferenceUiGateway({
     },
 
     requestApproval(context, { caseId = REFERENCE_CASE_ID, basisRev, roleId } = {}) {
+      const missingBasisRev = requireBasisRev(basisRev);
+      if (missingBasisRev) return missingBasisRev;
       const user = findUser(fixture, context);
       const card = getOrCreateCard(context, { caseId });
       const result = requestApproval(card, {
-        basisRev: basisRev || card.basisRev,
+        basisRev,
         roleId: roleId || RC2_ROLE_IDS.ABTEILUNGSLEITUNG,
         actor: user,
         now: context.now,

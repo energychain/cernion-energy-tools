@@ -59,7 +59,8 @@ describe('CET UI RC2 Phase C reusable visible components', () => {
     expect(grammar).toContain('data-grammar-part');
     expect(collapsible).toContain('aria-expanded');
     expect(sourceList).toContain('Quellen');
-    expect(boundary).toContain('Grenzen');
+    expect(boundary).toContain('boundary-panel--invalid');
+    expect(boundary).toContain('Grenzen dieser Ansicht fehlen');
     expect(history).toContain('Historie');
     expect(sinceLastAccess).toContain('Seit dem letzten Zugriff');
   });
@@ -113,7 +114,19 @@ describe('CET UI RC2 Phase C reusable visible components', () => {
     expect(combined).toContain('Nicht projiziert');
     expect(combined).toContain('unprojected');
     expect(combined).toContain('riskClass');
-    expect(combined).not.toMatch(/EvidenceReceipt|aggregationState|belegte Aussage/);
+    expect(combined).toContain('kein Nachweis');
+    expect(combined).not.toMatch(/EvidenceReceipt|aggregationState/);
+  });
+
+  test('approval primitives require attribution for granted or refused states', () => {
+    const requestCard = expectFile('src/components/governance/ApprovalRequestCard.tsx');
+    const displayLayer = expectFile('src/components/governance-display-elements.tsx');
+
+    expect(requestCard).toContain('actedAt');
+    expect(requestCard).toContain('actorName');
+    expect(requestCard).toContain('Attribution fehlt');
+    expect(displayLayer).toContain('approvalRequiresAttribution');
+    expect(displayLayer).toContain('Freigabeentscheidung ohne Attribution unvollständig');
   });
 
   test('governance-grounded Phase C primitives exist for the Phase D surfaces', () => {
