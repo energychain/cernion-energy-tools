@@ -44,14 +44,20 @@ function escapeHtml(value) {
 }
 
 function renderSession(session) {
-  const roles = (session.availableRoles || [])
+  const roleLabels = Object.fromEntries((session.roles || []).map((role) => [role.id, role.label]));
+  const activeRoleId =
+    session.activeRoleId || session.activeRoleCandidates?.find((role) => role.available)?.roleId;
+  const roles = (session.activeRoleCandidates || session.availableRoles || [])
     .map((role) => {
+      const roleId = role.roleId || role.id;
+      const label = role.label || roleLabels[roleId] || roleId;
       const placeholder = role.placeholderAgent ? ' · Platzhalter-Agent verfügbar' : '';
-      return `<option value="${escapeHtml(role.id)}" ${role.id === session.activeRoleId ? 'selected' : ''}>${escapeHtml(role.label)}${placeholder}</option>`;
+      return `<option value="${escapeHtml(roleId)}" ${roleId === activeRoleId ? 'selected' : ''}>${escapeHtml(label)}${placeholder}</option>`;
     })
     .join('');
+  const tenantLabel = session.tenant?.label || session.tenantId;
   return `
-    <p><strong>Mandant:</strong> ${escapeHtml(session.tenantId)} · <strong>Benutzer:</strong> ${escapeHtml(
+    <p><strong>Mandant:</strong> ${escapeHtml(tenantLabel)} · <strong>Benutzer:</strong> ${escapeHtml(
       session.user?.displayName || session.userId
     )}</p>
     <label>Rollenperspektive
@@ -135,6 +141,15 @@ function renderEvidence(evidence) {
               <h3>${escapeHtml(statement.label)}</h3>
               <p>${escapeHtml(statement.wert)} ${escapeHtml(statement.einheit || '')}</p>
               <p class="meta">${escapeHtml(statement.source?.ref)}</p>
+            </article>`
+        )
+        .join('')}
+      ${(evidence.approvalRequests || [])
+        .map(
+          (request) => `
+            <article class="card">
+              <h3>Freigabeanforderung</h3>
+              <p>${escapeHtml(request.status)} · ${escapeHtml(request.roleId || '')}</p>
             </article>`
         )
         .join('')}

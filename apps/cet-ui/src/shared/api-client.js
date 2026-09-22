@@ -78,6 +78,7 @@ function createApiClient({ baseUrl = '', tenantId, token, fetchImpl = globalThis
         method: 'POST',
         body: payload,
       }),
+    recordAudit: (payload) => request('/ui/v0/audit-events', { method: 'POST', body: payload }),
   };
 }
 

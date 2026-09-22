@@ -64,6 +64,7 @@ describe('cet-ui service REST contract', () => {
     expect(service.actions.requestApproval.rest).toBe('POST /cases/:caseId/approval-requests');
     expect(service.actions.operations.rest).toBe('GET /operations');
     expect(service.actions.prepareOperation.rest).toBe('POST /operations/:operationId/prepare');
+    expect(service.actions.recordAudit.rest).toBe('POST /audit-events');
     expect(service.actions.daily).toBeUndefined();
     expect(service.actions.takeOver).toBeUndefined();
   });
@@ -137,6 +138,33 @@ describe('cet-ui service REST contract', () => {
     );
 
     expect(rt.calls.map((call) => call.type)).toEqual(['freeze', 'approval']);
+  });
+
+  it('stores audit events only inside the authenticated UI gateway boundary', () => {
+    const runtime = {};
+    const result = service.actions.recordAudit.handler.call(
+      runtime,
+      authenticatedCtx({
+        event: 'view_opened',
+        transport: 'ui_gateway',
+        view: 'tagesflaeche',
+      })
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        ok: true,
+        stored: true,
+        auditEvent: expect.objectContaining({
+          event: 'view_opened',
+          transport: 'ui_gateway',
+          tenantId: 'rc2-stadtwerk-a',
+          userId: 'user-mako-1',
+        }),
+      })
+    );
+    expect(runtime.auditEvents).toHaveLength(1);
+    expect(JSON.stringify(result)).not.toContain('http');
   });
 
   it('prepares operation output through the canonical gateway contract', async () => {
