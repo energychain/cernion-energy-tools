@@ -48,6 +48,8 @@ describe('CET RC2 Phase D integrated surfaces', () => {
     expect(appSource).toContain('nur mit Quelle reproduzierbar');
     expect(appSource).toContain('hashRefOnlyNotices');
     expect(appSource).toContain('ApprovalRequestCard');
+    expect(appSource).toContain("statement.granularitaet !== 'einzeldatensatz'");
+    expect(appSource).toContain('hashReferenceStatements');
     expect(appSource).not.toContain('Einzeldatensatz materialisieren');
   });
 
@@ -59,6 +61,11 @@ describe('CET RC2 Phase D integrated surfaces', () => {
     expect(appSource).toContain('Unprojected Raw Result');
     expect(appSource).toContain('keine belegte Aussage');
     expect(appSource).toContain('recordAudit');
+    expect(appSource).toContain('async function recordViewOpened(view: string, basisRev?: string)');
+    expect(appSource).toContain('if (!basisRev) return;');
+    expect(appSource).toContain(
+      "recordAudit({ event: 'view_opened', transport: 'ui_gateway', view, basisRev })"
+    );
   });
 
   test('Phase-D surfaces keep guardrails: REST-only, no forbidden UX copy, no direct RC1/Moleculer surface', () => {

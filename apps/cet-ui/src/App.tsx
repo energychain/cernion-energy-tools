@@ -282,7 +282,13 @@ function handlingStatusLabel(status?: string, actorName?: string, fallbackRole?:
 }
 
 function renderableStatements(statements?: Statement[]): Statement[] {
-  return (statements || []).filter((statement) => Boolean(statement.granularitaet));
+  return (statements || []).filter(
+    (statement) => Boolean(statement.granularitaet) && statement.granularitaet !== 'einzeldatensatz'
+  );
+}
+
+function hashReferenceStatements(statements?: Statement[]): Statement[] {
+  return (statements || []).filter((statement) => statement.granularitaet === 'einzeldatensatz');
 }
 
 function StatementList({ statements }: { statements?: Statement[] }) {
@@ -496,6 +502,10 @@ function CasePanel({
 }
 
 function EvidencePanel({ evidence }: { evidence?: EvidenceDossier }) {
+  const aggregateStatements = renderableStatements(evidence?.materializedStatements);
+  const hashReferenceStatementsFromDossier = hashReferenceStatements(
+    evidence?.materializedStatements
+  );
   return (
     <section id="evidence" className="panel" aria-live="polite">
       <p className="meta">Nachweisansicht</p>
@@ -510,7 +520,7 @@ function EvidencePanel({ evidence }: { evidence?: EvidenceDossier }) {
         eingefrorener Präsentations-/Interaktionsstand · Actor/Rolle/Tenant/Zeit
       </p>
       <div className="grid">
-        {renderableStatements(evidence?.materializedStatements).map((statement) => (
+        {aggregateStatements.map((statement) => (
           <article className="card" key={statement.id || statement.label}>
             <span className="evidence-receipt-link">
               Nachweis ·{' '}
@@ -538,6 +548,14 @@ function EvidencePanel({ evidence }: { evidence?: EvidenceDossier }) {
             actedAt={request.actedAt}
             requestedAt={request.requestedAt}
           />
+        ))}
+        {hashReferenceStatementsFromDossier.map((statement) => (
+          <article className="card boundary" key={statement.id || statement.label}>
+            <span className="status-badge aggregate-state">Quelle reproduzierbar</span>
+            <h3>{statement.label}</h3>
+            <p>Nur mit Quelle reproduzierbar.</p>
+            <p className="meta">{statement.source?.ref || statement.quelle?.ref}</p>
+          </article>
         ))}
         {(evidence?.hashRefOnlyNotices || []).map((notice) => (
           <article className="card boundary" key={`${notice.label}-${notice.sourceRef}`}>
@@ -615,23 +633,25 @@ export function App({ apiClient = createBrowserApiClient() }: { apiClient?: ApiC
   const client = useMemo(() => apiClient, [apiClient]);
   const [state, setState] = useState<AppState>({});
 
-  async function recordViewOpened(view: string) {
+  async function recordViewOpened(view: string, basisRev?: string) {
+    if (!basisRev) return;
     await client
-      .recordAudit({ event: 'view_opened', transport: 'ui_gateway', view })
+      .recordAudit({ event: 'view_opened', transport: 'ui_gateway', view, basisRev })
       .catch(() => undefined);
   }
 
-  async function refreshCaseViews(caseId: string) {
+  async function refreshCaseViews(caseId: string): Promise<Vorgang> {
     const [vorgang, evidence] = await Promise.all([
       client.getCase(caseId),
       client.getEvidenceDossier(caseId),
     ]);
     setState((current) => ({ ...current, vorgang, evidence, error: undefined }));
+    return vorgang;
   }
 
   async function openCase(caseId: string) {
-    await refreshCaseViews(caseId);
-    await recordViewOpened('vorgangsansicht');
+    const vorgang = await refreshCaseViews(caseId);
+    await recordViewOpened('vorgangsansicht', vorgang.basisRev);
   }
 
   async function refresh() {
@@ -642,7 +662,6 @@ export function App({ apiClient = createBrowserApiClient() }: { apiClient?: ApiC
         client.listOperations(),
       ]);
       setState((current) => ({ ...current, session, daily, operations, error: undefined }));
-      await recordViewOpened('tagesflaeche');
       const firstCaseId = daily.items?.[0]?.caseId;
       if (firstCaseId) await openCase(firstCaseId);
     } catch (error) {
@@ -693,21 +712,21 @@ export function App({ apiClient = createBrowserApiClient() }: { apiClient?: ApiC
           void withCurrentCase(async (caseId) => {
             await client.claimCase(caseId, basisRev);
             await refreshCaseViews(caseId);
-            await recordViewOpened('vorgang_claim');
+            await recordViewOpened('vorgang_claim', basisRev);
           })
         }
         onFreeze={(basisRev) =>
           void withCurrentCase(async (caseId) => {
             await client.freezeCase(caseId, { basisRev });
             await refreshCaseViews(caseId);
-            await recordViewOpened('nachweis_einfrieren');
+            await recordViewOpened('nachweis_einfrieren', basisRev);
           })
         }
         onApproval={(basisRev) =>
           void withCurrentCase(async (caseId) => {
             await client.requestApproval(caseId, { basisRev });
             await refreshCaseViews(caseId);
-            await recordViewOpened('freigabe_anfordern');
+            await recordViewOpened('freigabe_anfordern', basisRev);
           })
         }
       />
