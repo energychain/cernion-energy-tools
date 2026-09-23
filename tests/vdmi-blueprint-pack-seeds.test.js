@@ -2,6 +2,8 @@
 
 const {
   REQUIRED_DATA_CLASSES,
+  REQUIRED_ASSET_TO_DECISION_READINESS_EVIDENCE,
+  REQUIRED_ASSET_TO_DECISION_READINESS_ROLE_IDS,
   REQUIRED_CONNECTION_DEADLINE_EVIDENCE,
   REQUIRED_COST_REVIEW_COMMITTEE_READINESS_EVIDENCE,
   REQUIRED_CROSS_SYSTEM_VARIANCE_EVIDENCE,
@@ -27,6 +29,7 @@ const {
   buildWorkbenchClarificationItems,
   getVdmiBlueprintPackSeed,
   listVdmiBlueprintPackSeeds,
+  stadtwerkMauerAssetToDecisionReadiness,
   stadtwerkMauerConnectionDeadlineEvidenceQueue,
   stadtwerkMauerCostReviewCommitteeReadiness,
   stadtwerkMauerCrossSystemVarianceEvidenceMatrix,
@@ -3214,6 +3217,373 @@ describe('VDMI Blueprint Pack seeds', () => {
     test('rejects a clone missing a required forbidden/consequential action guard', () => {
       const clone = JSON.parse(JSON.stringify(stadtwerkMauerMakoResolutionValueReview));
       clone.forbiddenActions = clone.forbiddenActions.filter((action) => action !== 'mako_write');
+      const result = validateVdmiBlueprintPackSeed(clone);
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContainEqual(
+        expect.stringContaining('missing forbidden action: mako_write')
+      );
+    });
+  });
+
+  describe('Asset-to-Decision Readiness Review seed (CR-LKA-RV-001 / CRC004)', () => {
+    test('exposes the seed as versioned, tenant-parametrizable read-only metadata', () => {
+      expect(stadtwerkMauerAssetToDecisionReadiness).toMatchObject({
+        id: 'stadtwerk-mauer-asset-to-decision-readiness-v1',
+        kind: 'vdmi_blueprint_pack_seed',
+        version: '1.0.0',
+        safetyClassification: 'read_only_blueprint_seed',
+        processFamily: 'asset_investment_decision_governance',
+        controlCase: 'asset_to_decision_readiness_review',
+        changeRequest: 'CR-LKA-RV-001',
+        candidateId: 'CRC004',
+        workedExample: 'asset_to_decision',
+        sideEffects: 'none',
+        demoTenant: {
+          tenantId: 'stadtwerk-mauer',
+          classification: 'synthetic_demo_tenant',
+        },
+      });
+
+      expect(listVdmiBlueprintPackSeeds()).toContainEqual(
+        expect.objectContaining({
+          id: 'stadtwerk-mauer-asset-to-decision-readiness-v1',
+          processFamily: 'asset_investment_decision_governance',
+          demoTenantId: 'stadtwerk-mauer',
+        })
+      );
+      expect(getVdmiBlueprintPackSeed('stadtwerk-mauer-asset-to-decision-readiness-v1')).toBe(
+        stadtwerkMauerAssetToDecisionReadiness
+      );
+    });
+
+    test('references the existing investment/evidence/role-workbench read models as metadata-only source hints, never executed', () => {
+      const seed = stadtwerkMauerAssetToDecisionReadiness;
+      const expectedApis = [
+        ['GET', '/api/governance/role-workbench'],
+        ['GET', '/api/dashboard/investment-data-review-queue'],
+        ['GET', '/api/dashboard/investment-risk-translation'],
+        ['GET', '/api/dashboard/investment-owner-deadline-budget-gate'],
+        ['GET', '/api/dashboard/investment-committee-steering-cards'],
+        ['GET', '/api/dashboard/decision-readiness-matrix'],
+        ['GET', '/api/dashboard/evidence-grounding-confidence-audit'],
+        ['GET', '/api/dashboard/receipt-grounded-presentation-contract'],
+      ];
+      expect(seed.sourceApis).toHaveLength(expectedApis.length);
+      for (const [method, path] of expectedApis) {
+        expect(seed.sourceApis).toContainEqual(
+          expect.objectContaining({ method, path, readOnly: true, invocation: 'source_hint_only' })
+        );
+      }
+      for (const hint of seed.allowedCommandHints) {
+        expect(hint.execution).toBe('metadata_only');
+      }
+    });
+
+    test('validates required roles, evidence, data classes and forbidden actions', () => {
+      const seed = stadtwerkMauerAssetToDecisionReadiness;
+      const result = validateVdmiBlueprintPackSeed(seed);
+      expect(result).toEqual({ valid: true, errors: [] });
+
+      const roleIds = seed.roles.map((role) => role.roleId);
+      expect(roleIds).toEqual(
+        expect.arrayContaining(REQUIRED_ASSET_TO_DECISION_READINESS_ROLE_IDS)
+      );
+      expect(seed.roles.some((role) => role.relation === 'information')).toBe(true);
+
+      const evidenceIds = seed.evidenceRequirements.map((item) => item.id);
+      expect(evidenceIds).toEqual(
+        expect.arrayContaining(REQUIRED_ASSET_TO_DECISION_READINESS_EVIDENCE)
+      );
+      for (const item of seed.evidenceRequirements) {
+        expect(item.dataClass).toBe('syntheticTenantSeed');
+        expect(item.enablesDossierAddition).toEqual(expect.any(String));
+      }
+
+      expect(Object.keys(seed.dataClasses)).toEqual(expect.arrayContaining(REQUIRED_DATA_CLASSES));
+
+      expect(seed.forbiddenActions).toEqual(
+        expect.arrayContaining([
+          'state_budget_commitment',
+          'mark_committee_ready',
+          'recommend_final_investment_decision',
+          'asset_mdm_write',
+          'gis_write',
+          'erp_write',
+          'sap_write',
+          'psp_write',
+          'budget_approval',
+          'committee_execution',
+          'committee_vote',
+          'committee_scheduling',
+          'investment_plan_mutation',
+          'score_or_rank_asset',
+          'workflow_create',
+          'hitl_create',
+          'mako_write',
+          'billing',
+          'settlement',
+          'dispatch',
+          'redispatch_dispatch',
+          'smgw_cls_device_control',
+          'external_connector_call',
+          'public_context_mutation',
+          'production_mutation',
+          'personal_agent_hardcoding',
+        ])
+      );
+      expect(seed.publicContextMutationAllowed).toBe(false);
+      expect(seed.tenantProvisioningAllowed).toBe(false);
+      expect(seed.realWorldClaim).toBe('synthetic_demo_only');
+    });
+
+    test('keeps the qualitative-only Resolution Value boundary and positive missing-evidence follow-ups', () => {
+      const seed = stadtwerkMauerAssetToDecisionReadiness;
+      expect(seed.resolutionValueAlignment.resolutionValueKind).toBe('qualitative_only');
+      expect(seed.resolutionValueAlignment.allowedDimensions).toEqual([
+        'data_quality_improvement',
+        'compliance_audit_improvement',
+        'forecast_budget_confidence',
+      ]);
+      const serialized = JSON.stringify(seed);
+      expect(serialized).not.toMatch(/€|EUR|\bROI\b|\bNPV\b|\bTOTEX\b/);
+      expect(serialized).not.toMatch(/"score"|"rank"|"ranking"/);
+
+      for (const item of seed.evidenceRequirements) {
+        expect(['clarification', 'evidence_gap']).toContain(item.missingState);
+        expect(item.enablesDossierAddition).toEqual(expect.stringContaining('Adds'));
+      }
+
+      const followUpEvidence = seed.evidenceRequirements.find(
+        (item) => item.id === 'positiveFollowUpEvidence'
+      );
+      expect(followUpEvidence.enablesDossierAddition).toEqual(
+        expect.stringContaining('positive human clarification')
+      );
+    });
+
+    test('keeps the committee-readiness boundary and no-call guard explicit', () => {
+      const seed = stadtwerkMauerAssetToDecisionReadiness;
+      const boundaryRow = seed.demoProcessMatrix.rows.find((row) =>
+        row.evidenceRequirements.includes('committeeReadinessBoundaryEvidence')
+      );
+      expect(boundaryRow).toMatchObject({
+        status: 'clarification',
+        gateOutcome: 'human_investment_review_ready_or_evidence_gap',
+      });
+      const noCallGuard = seed.evidenceRequirements.find(
+        (item) => item.id === 'noCallGuardEvidence'
+      );
+      expect(noCallGuard.enablesDossierAddition).toEqual(expect.stringContaining('never invoked'));
+      expect(seed.decisionPolicy.mustNotTrigger).toEqual(
+        expect.arrayContaining([
+          'state_budget_commitment',
+          'mark_committee_ready',
+          'recommend_final_investment_decision',
+        ])
+      );
+    });
+
+    test('separates data classes and keeps the public context layer immutable', () => {
+      const seed = stadtwerkMauerAssetToDecisionReadiness;
+      expect(Object.keys(seed.dataClasses).sort()).toEqual(
+        [...REQUIRED_DATA_CLASSES].sort()
+      );
+      expect(seed.dataClasses.publicContextLayer.description).toEqual(
+        expect.stringContaining('Immutable')
+      );
+      expect(seed.dataClasses.sandboxRuntimeArtifact.description).toEqual(
+        expect.stringContaining('Resettable')
+      );
+    });
+
+    test('treats role/tenant values as onboarding parameters, not Personal-Agent or real-tenant constants', () => {
+      const seed = stadtwerkMauerAssetToDecisionReadiness;
+      expect(seed.demoTenant.classification).toBe('synthetic_demo_tenant');
+      expect(seed.realWorldClaim).toBe('synthetic_demo_only');
+      expect(seed.tenantProvisioningAllowed).toBe(false);
+      expect(seed.forbiddenActions).toContain('personal_agent_hardcoding');
+      for (const role of seed.roles) {
+        expect(role.roleId).toEqual(expect.stringMatching(/^ROLE_[A-Z_]+$/));
+      }
+    });
+
+    test('maps missing evidence to non-executing workbench clarification items for ROLE_ASSET', () => {
+      const items = buildWorkbenchClarificationItems(stadtwerkMauerAssetToDecisionReadiness);
+
+      expect(items).toHaveLength(REQUIRED_ASSET_TO_DECISION_READINESS_EVIDENCE.length);
+      for (const item of items) {
+        expect(item.execution).toBe('none');
+        expect(item.sourceSeedId).toBe(stadtwerkMauerAssetToDecisionReadiness.id);
+        expect(item.roleHint).toBe('ROLE_ASSET');
+      }
+      expect(items).toContainEqual(
+        expect.objectContaining({
+          evidenceId: 'riskQuantificationEvidence',
+          state: 'evidence_gap',
+          execution: 'none',
+        })
+      );
+    });
+
+    test('exposes the canonical four-row Demo-Raum process matrix and keeps sync pending downstream', () => {
+      const seed = stadtwerkMauerAssetToDecisionReadiness;
+      const matrix = seed.demoProcessMatrix;
+      const sync = buildDemoProcessMatrixSync(seed);
+      const draft = buildLandingRegistryDraftFromBlueprintSeed(seed);
+
+      expect(matrix.slug).toBe('asset-to-decision-readiness-review');
+      expect(matrix.roleLegend).toMatchObject({
+        V: 'Verantwortlich',
+        D: 'Durchfuehrend',
+        M: 'Mitwirkend',
+        I: 'Informiert',
+      });
+      expect(matrix.headers).toEqual([
+        'Phase',
+        'V = Verantwortlich',
+        'D = Durchfuehrend',
+        'M = Mitwirkend',
+        'I = Informiert',
+        'Nachweise',
+      ]);
+      expect(matrix.rows).toHaveLength(4);
+      expect(matrix.allowedDataClasses).toEqual(REQUIRED_DATA_CLASSES);
+
+      expect(matrix.rows.map((row) => ({ v: row.v, d: row.d, m: row.m, i: row.i }))).toEqual([
+        {
+          v: 'ROLE_ASSET',
+          d: 'ROLE_CERNION_GOVERNANCE',
+          m: 'ROLE_NETZPLANUNG',
+          i: 'ROLE_GESCHAEFTSFUEHRUNG',
+        },
+        {
+          v: 'ROLE_ASSET',
+          d: 'ROLE_NETZPLANUNG',
+          m: 'ROLE_REGULATORIK',
+          i: 'ROLE_GESCHAEFTSFUEHRUNG',
+        },
+        {
+          v: 'ROLE_ASSET',
+          d: 'ROLE_CONTROLLING',
+          m: 'ROLE_NETZPLANUNG',
+          i: 'ROLE_GESCHAEFTSFUEHRUNG',
+        },
+        {
+          v: 'ROLE_GESCHAEFTSFUEHRUNG',
+          d: 'ROLE_CERNION_GOVERNANCE',
+          m: 'ROLE_ASSET',
+          i: 'ROLE_CONTROLLING',
+        },
+      ]);
+      expect(matrix.rows.map((row) => row.gateOutcome)).toEqual([
+        'asset_signal_provenance_review_pending',
+        'risk_alternatives_regulatory_evidence_pending',
+        'budget_classification_and_owner_evidence_pending',
+        'human_investment_review_ready_or_evidence_gap',
+      ]);
+      expect(matrix.rows.map((row) => row.status)).toEqual([
+        'clarification',
+        'evidence_gap',
+        'evidence_gap',
+        'clarification',
+      ]);
+
+      expect(sync).toMatchObject({
+        slug: 'asset-to-decision-readiness-review',
+        synced: true,
+        rowCount: 4,
+        rowCountValid: true,
+        roleCellsClean: true,
+        dataClassesLimited: true,
+        downstreamHandoff: {
+          blueprintPack: 'complete',
+          landingRegistry: 'pending',
+          productiveDemoRoom: 'pending',
+        },
+      });
+      expect(draft).toMatchObject({
+        slug: 'asset-to-decision-readiness-review',
+        seedId: 'stadtwerk-mauer-asset-to-decision-readiness-v1',
+        syncProof: {
+          blueprintPack: { status: 'complete' },
+          productiveDemoRoom: { status: 'pending' },
+        },
+      });
+
+      for (const row of matrix.rows) {
+        for (const roleCell of [row.v, row.d, row.m, row.i]) {
+          expect(REQUIRED_DATA_CLASSES).not.toContain(roleCell);
+          expect(roleCell).not.toMatch(
+            /Phase|Verantwortlich|Durchfuehrend|Mitwirkend|Informiert|Nachweise/
+          );
+        }
+        expect(row.enablesDossierAddition).toEqual(expect.any(String));
+      }
+    });
+
+    test('covers the three named CR-LKA-RV-001 forbidden asset-to-decision actions', () => {
+      const seed = stadtwerkMauerAssetToDecisionReadiness;
+      expect(seed.forbiddenActions).toEqual(
+        expect.arrayContaining([
+          'state_budget_commitment',
+          'mark_committee_ready',
+          'recommend_final_investment_decision',
+        ])
+      );
+      expect(seed.decisionPolicy.mustNotTrigger).toEqual(
+        expect.arrayContaining([
+          'state_budget_commitment',
+          'mark_committee_ready',
+          'recommend_final_investment_decision',
+        ])
+      );
+    });
+
+    test('rejects a clone missing a required evidence requirement', () => {
+      const clone = JSON.parse(JSON.stringify(stadtwerkMauerAssetToDecisionReadiness));
+      clone.evidenceRequirements = clone.evidenceRequirements.filter(
+        (item) => item.id !== 'riskQuantificationEvidence'
+      );
+      const result = validateVdmiBlueprintPackSeed(clone);
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContainEqual(
+        expect.stringContaining('missing evidence requirement: riskQuantificationEvidence')
+      );
+    });
+
+    test('rejects a clone with a non-role matrix cell', () => {
+      const clone = JSON.parse(JSON.stringify(stadtwerkMauerAssetToDecisionReadiness));
+      clone.demoProcessMatrix.rows[0].v = 'syntheticTenantSeed';
+      const result = validateVdmiBlueprintPackSeed(clone);
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContainEqual(
+        expect.stringContaining('role v must not be a data class')
+      );
+    });
+
+    test('rejects a clone where roleLegend.M is not exactly Mitwirkend', () => {
+      const clone = JSON.parse(JSON.stringify(stadtwerkMauerAssetToDecisionReadiness));
+      clone.demoProcessMatrix.roleLegend.M = 'Mitwirkende';
+      const result = validateVdmiBlueprintPackSeed(clone);
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContainEqual(
+        expect.stringContaining('demoProcessMatrix.roleLegend.M must be Mitwirkend')
+      );
+    });
+
+    test('rejects a clone with an executable (non-metadata_only) command hint', () => {
+      const clone = JSON.parse(JSON.stringify(stadtwerkMauerAssetToDecisionReadiness));
+      clone.allowedCommandHints[0].execution = 'live_call';
+      const result = validateVdmiBlueprintPackSeed(clone);
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContainEqual(expect.stringContaining('must be metadata_only'));
+    });
+
+    test('rejects a clone missing a required forbidden/consequential action guard', () => {
+      const clone = JSON.parse(JSON.stringify(stadtwerkMauerAssetToDecisionReadiness));
+      clone.forbiddenActions = clone.forbiddenActions.filter(
+        (action) => action !== 'mako_write'
+      );
       const result = validateVdmiBlueprintPackSeed(clone);
       expect(result.valid).toBe(false);
       expect(result.errors).toContainEqual(
