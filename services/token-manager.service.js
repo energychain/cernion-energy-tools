@@ -15,6 +15,7 @@ const {
   isReadMethod,
   isReadOnlySidecarInvocation,
   isOperationsRunbookInvocation,
+  isDomainRouterAdvisoryInvocation,
 } = require('../src/gateway-request-classifiers');
 
 const DEFAULT_STORAGE_FILE = process.env.TOKEN_STORAGE_FILE || './uploads/.api-tokens.json';
@@ -405,7 +406,8 @@ module.exports = {
           scope === 'read-only' &&
           !isReadMethod(method) &&
           !isReadOnlySidecarInvocation(method, requestPath) &&
-          !isOperationsRunbookInvocation(method, requestPath)
+          !isOperationsRunbookInvocation(method, requestPath) &&
+          !isDomainRouterAdvisoryInvocation(method, requestPath)
         ) {
           return {
             success: true,

@@ -284,6 +284,7 @@ const OPENAPI_TAG_DOMAIN_MAP = {
   // declarative routing-registry CRUD — agent infra, not a business domain
   'domain-routes': 'platform',
   'dossier-hydration': 'platform',
+  'Domain Router': 'platform',
   // explicitly domain-neutral generic file/csv ingest monitoring infra
   'File Ingest Monitor': 'platform',
   'Redispatch Asset Register': 'redispatch',
