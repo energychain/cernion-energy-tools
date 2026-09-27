@@ -1,6 +1,11 @@
 'use strict';
 
-const { createHash } = require('crypto');
+function eventDocumentId(dedupeKey) {
+  return `case-event:${dedupeKey
+    .split(':')
+    .map((part) => encodeURIComponent(part))
+    .join(':')}`;
+}
 
 // Event intent generation is pure; service policy and delivery checks precede persistence.
 function evaluateEventTriggers(previous, state, update = {}) {
@@ -63,7 +68,7 @@ function evaluateEventTriggers(previous, state, update = {}) {
     return {
       ...e,
       dedupeKey,
-      eventId: createHash('sha256').update(dedupeKey).digest('hex'),
+      eventId: eventDocumentId(dedupeKey),
       sourceCaseId: update.sourceCaseId || state.cetCaseId,
       evidenceRef: update.evidenceRef || null,
       payloadRef: update.payloadRef || null,
