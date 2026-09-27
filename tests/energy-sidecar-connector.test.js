@@ -63,6 +63,12 @@ describe('generic energy sidecar connector', () => {
     });
     expect(descriptor.toolCount).toBe(10);
     expect(descriptor.tools.map((tool) => tool.name)).toEqual(EXPECTED_TOOLS);
+    expect(descriptor.tools.find((tool) => tool.name === 'cernion.classify_task')).toMatchObject({
+      effectClass: 'internal_case_state',
+      requiresCetAuthorization: true,
+      externalSideEffects: false,
+      governanceBoundary: 'cet_governed_internal_state_external_effects_require_rbac_hitl',
+    });
     expect(JSON.stringify(descriptor)).not.toMatch(/\bck_|Bearer\s|secret-value|password/i);
   });
 
@@ -78,7 +84,17 @@ describe('generic energy sidecar connector', () => {
       annotations: {
         requiredScope: 'read-only',
         sideEffects: 'none',
+        effectClass: 'advisory_reasoning',
+        requiresCetAuthorization: true,
+        externalSideEffects: false,
         policyOwner: 'cernion',
+      },
+    });
+    expect(list.tools.find((tool) => tool.name === 'cernion.classify_task')).toMatchObject({
+      annotations: {
+        effectClass: 'internal_case_state',
+        localStateEffects: 'case_state_and_event_generation_metadata',
+        externalSideEffects: false,
       },
     });
   });

@@ -9,12 +9,7 @@ function principal(ctx, input = {}) {
   const auth = ctx.meta?.authUser || ctx.meta?.apiToken || {};
   const tenantId = getAuthenticatedTenant(ctx);
   const authRoles = [...extractCallerRoles(ctx), ...(ctx.meta?.apiToken?.roles || [])];
-  const scope =
-    ctx.meta?.apiToken?.scope ||
-    auth.scope ||
-    authRoles.find((r) => ['read-only', 'full-access'].includes(r));
-  if (!tenantId || !['read-only', 'full-access'].includes(scope))
-    deny('Authenticated tenant and scope required');
+  if (!tenantId) deny('Authenticated tenant required');
   const roles = [
     ...new Set(authRoles.map((r) => r.toUpperCase()).filter((r) => /^ROLE_[A-Z_]+$/.test(r))),
   ];

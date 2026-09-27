@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.99.22] — 2026-09-27
 
 ### Added
-- Additive Domain Router (#595): PouchDB case state, explicit transitions, policy-isolated trigger outbox, related-session discovery, advisory sidecar tools and opt-in Personal Agent shadow hooks. No operational writes or external persistence dependencies.
+- Additive Domain Router (#595): PouchDB case state, explicit transitions, policy-isolated trigger outbox, related-session discovery, CET-governed sidecar tools and opt-in Personal Agent shadow hooks. Internal CET case/event state may change; external operational effects remain gated by CET RBAC/HITL and no new external persistence dependencies are introduced.
 
 ## [Unreleased]
 
