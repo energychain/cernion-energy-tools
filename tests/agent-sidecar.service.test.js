@@ -243,6 +243,47 @@ describe('agent-sidecar service', () => {
     expect(result.reason).toBe('auth_required');
   });
 
+  it('requires an authenticated tenant for tenant-bound Sidecar tools', async () => {
+    const contextOnly = await broker.call(
+      'agent-sidecar.callTool',
+      {
+        name: 'cernion.recommend_capability',
+        input: {
+          task: 'Redispatch Readiness Gate empfehlen',
+          knownContext: { tenantId: 'public' },
+        },
+      },
+      {
+        meta: {
+          apiToken: {
+            tokenId: 'tok-without-tenant',
+            userId: 'svc:openclaw',
+          },
+        },
+      }
+    );
+    expect(contextOnly.error).toBe('sidecar_policy_blocked');
+    expect(contextOnly.reason).toBe('tenant_required');
+
+    const actorOnly = await broker.call(
+      'agent-sidecar.callTool',
+      {
+        name: 'cernion.ask',
+        input: { question: 'Welche Evidenz gibt es?', context: { tenantId: 'public' } },
+      },
+      {
+        meta: {
+          authUser: {
+            id: 'user-without-tenant',
+          },
+        },
+      }
+    );
+    expect(actorOnly.error).toBe('sidecar_policy_blocked');
+    expect(actorOnly.reason).toBe('tenant_required');
+    expect(calls).toHaveLength(0);
+  });
+
   it('blocks tenant mismatch before calling downstream actions', async () => {
     const result = await broker.call(
       'agent-sidecar.callTool',

@@ -75,6 +75,12 @@ function assertToolAllowed(tool, ctx, input = {}) {
 
   const authTenant = getAuthenticatedTenant(ctx);
   const contextTenant = normalizeContextTenant(input);
+  if (tool.tenantPolicy === 'context_tenant_must_match_auth_tenant' && !authTenant) {
+    return buildPolicyBlocked('tenant_required', {
+      contextTenant,
+      tenantPolicy: tool.tenantPolicy,
+    });
+  }
   if (authTenant && contextTenant && authTenant !== contextTenant) {
     return buildPolicyBlocked('tenant_mismatch', {
       authTenant,

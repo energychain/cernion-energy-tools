@@ -1,6 +1,6 @@
 # Cernion Energy Tools — Architektur-Dokumentation
 
-> **Version:** v0.47.2 · **Stand:** Mai 2026
+> **Version:** v0.99.22 · **Stand:** September 2026
 
 ---
 
@@ -14,9 +14,9 @@ Moleculers In-Process-Transport. Ein einziger API Gateway
 
 Die Zahlen in diesem Dokument sind **gegen den aktuellen Repository-Stand indiziert**:
 
-- `63` Core-Services in `services/`
+- `145` Core-Services in `services/`
 - `1` optionale lokale Erweiterung in `custom-services/`
-- `224` OpenAPI-Pfade / `264` REST-Operationen aus `openapi-export.json`
+- `1039` OpenAPI-Pfade / `1151` REST-Operationen aus `openapi-export.json`
 
 ```
 HTTP-Clients / Enterprise UI (cernion-ui)
@@ -31,9 +31,11 @@ HTTP-Clients / Enterprise UI (cernion-ui)
 │ POST /api/energy-sharing/*     → energy-sharing    (v0.15+)        │
 │ POST /api/knowledge-rag/*      → knowledge-rag     (v0.43.1+)      │
 │ POST /api/hitl/*               → hitl              (v0.44.0+)      │
+│ POST /api/domain-router/*      → domain-router     (v0.99.22+)     │
+│ POST /api/agent-sidecar/*      → agent-sidecar     (v0.99.22+)     │
 │ POST /api/webhooks/*           → webhooks          (v0.44.0+)      │
 │ GET  /metrics                  → observability     (v0.44.1+)      │
-│ … 224 Pfade / 264 Operationen, 63 Core-Services gesamt             │
+│ … 1039 Pfade / 1151 Operationen, 145 Core-Services gesamt          │
 └────────────────────────────────────────────────────────────────────┘
          │
          ├── MCP-Client (`src/mcp-client.js`) → Cernion MCP-Server (extern)
@@ -76,6 +78,7 @@ HTTP-Clients / Enterprise UI (cernion-ui)
 | OEP Delta Layer | v0.44.4 | MaStR↔OEP-Vergleich mit semantischem Join und Async-Pfad |
 | Job Runtime Layer | v0.45.1–v0.47.1 | Driver-basiertes Job-Store-Backend, idempotente Async-Runtime, SSE-Progress |
 | Capability Broker | v0.46.0–v0.46.2 | Interner Empfehlungs-Layer für Planner/Assist-Flows, advisory only |
+| Domain Routing / AgentOS Integration Layer | v0.99.22 | Domain Router, CET Case State, Case Event Outbox/MWI, Related-Session-Discovery, CET-governed Sidecar Tools |
 
 ---
 
@@ -125,6 +128,8 @@ Wesentliche Bausteine:
 | HITL | `services/hitl.service.js`, `docs/ui-contracts/40-hitl.md` | menschliche Freigabe bei kritischen Entscheidungen |
 | Webhooks | `services/webhooks.service.js`, `docs/INTEGRATION_WEBHOOKS.md` | Outbound-Ereignisse für Integrationen |
 | Pagination | `src/pagination.js` | Cursor-basierte, manipulationsresistente List-Endpunkte |
+| Domain Router | `services/domain-router.service.js`, `src/domain-router*` | Rollen-/Domänenrouting, Case State, No-Dead-End-Transitions |
+| Case Event Outbox | `src/domain-router-events.js`, `cet_case_events` | MWI/Poll-Ack für asynchrone Case-Ereignisse |
 
 ---
 
@@ -159,7 +164,7 @@ Wesentliche Bausteine:
 
 | Baustein | Beispiele | Zweck |
 |----------|-----------|-------|
-| PouchDB | `data/datapoints/`, `data/energy-sharing/`, `data/mastr-quality/`, `data/redispatch-expost/`, `data/observability/`, `data/companies/` | Audit Trails, Metadaten, lokale Artefakte |
+| PouchDB | `data/datapoints/`, `data/energy-sharing/`, `data/mastr-quality/`, `data/redispatch-expost/`, `data/observability/`, `data/companies/`, `cet_case_state`, `cet_case_events` | Audit Trails, Metadaten, lokale Artefakte, Domain-Router-Case-State und MWI/Outbox ohne externe Queue/DB |
 | Object Store | `services/object-store.service.js` | generische Namespaces für Artefakte und tenant-skopierte Daten |
 | File-backed Job Store | `data/jobs/`, `src/job-store/file-driver.js` | Async-Job-Zustand und Resultate |
 | alternative Job-Store-Backends | `src/job-store/pouchdb-driver.js`, `src/job-store/redis-compat-driver.js` | austauschbare Runtime-Backends |
@@ -195,7 +200,7 @@ Seit v0.47.1 unterstützt die Runtime zusätzlich:
 
 ## 6. REST- und Service-Oberfläche
 
-Die aktuelle Export-Spezifikation enthält `224` Pfade und `264` Operationen.
+Die aktuelle Export-Spezifikation enthält `1039` Pfade und `1151` Operationen.
 Die REST-Fläche ist in OpenAPI-Tags gruppiert; besonders relevant sind:
 
 | Domäne | Typische Services |
@@ -205,13 +210,31 @@ Die REST-Fläche ist in OpenAPI-Tags gruppiert; besonders relevant sind:
 | Markt-/Geo-Daten | `assets`, `energy-market`, `entsoe`, `ewk-monitoring`, `oep`, `osm-geo`, `gas-storage`, `german-grid` |
 | Deterministische Agents | `grid-connection`, `energy-sharing`, `mastr-quality`, `redispatch-expost`, `settlement` |
 | Workflow & Decisioning | `cya`, `knowledge-rag`, `nova`, `finance-agent`, `znp`, `flex`, `hitl`, `webhooks` |
+| AgentOS Integration | `domain-router`, `agent-sidecar`, `personal-agent`, `capability-broker` |
 | Zeitreihe & Forecast | `edm*`, `slp`, `forecast`, `forecast-engine`, `residual-load`, `mqtt-broker` |
 
 Weitere Details:
 
+- Domain Router / Sidecar: [domain-router.md](domain-router.md)
 - Architektur- und Onboarding-Kontext: [BACKEND_CONTEXT.md](BACKEND_CONTEXT.md)
 - UI-Verträge: [ui-contracts/](ui-contracts/)
 - Release-Delta v0.40 → v0.46.2: [RELEASE_SUMMARY_v0.46.md](RELEASE_SUMMARY_v0.46.md)
+
+---
+
+### 6.1 Domain Router und AgentOS-Integration
+
+Der Domain Router ist der CET-seitige fachliche Arbeitskern für Hermes/OpenClaw/Open WebUI/Matrix-Clients. Clients starten einen Fall mit `POST /api/domain-router/classify`, führen ihn mit `POST /api/domain-router/continue` fort und übergeben `cetCaseId` statt fachliche Routinglogik selbst zu besitzen.
+
+Wichtige Eigenschaften:
+
+- `cetCaseId` + `caseStateVersion` bilden den stabilen Case-State-Kontrakt.
+- No-Dead-End-Transitions erlauben `continue`, `reclassify`, `branch`, `clarify`, `handoff` und `fallback`.
+- Response-Felder enthalten u.a. `primaryDomain`, `alternativeDomains`, `selectedCapabilities`, `selectedReceipts`, `allowedActions`, `blockedActions`, `requiredClarifications`, Readiness-/No-Call-Hinweise und optional Laufkarten-/Control-Point-Kontext.
+- Die Case Event Outbox schreibt MWI-Ereignisse in `cet_case_events`; Clients pollen `/api/domain-router/events` und quittieren mit `/api/domain-router/events/:eventId/ack`.
+- Related-Session-Discovery verbindet Cases über `cetCaseId`, Session-IDs, EvidenceRefs, ProcessRefs, Matrix/VDMI-Kontext, `laufkarteId`, `stationId`, `edgeId`, `traceId`, `controlPoint`, `ownerRole` und `roleFamily`.
+
+Der Agent Sidecar ist **CET-governed**: interne CET Case-/Event-State-Änderungen sind zulässig, sofern der authentifizierte Tenant/User durch CET autorisiert ist. Der Token ist Identitäts-/Mandanten-/Client-Kontext, nicht die fachliche Read/Write-Entscheidung. Externe oder bindende Wirkungen bleiben durch CET-RBAC, Mandanten-/User-Freischaltung, HITL und No-Call-Guards blockiert.
 
 ---
 
@@ -220,7 +243,7 @@ Weitere Details:
 Die Tabelle kombiniert zwei Perspektiven:
 
 1. **Release-kritische Capabilities** mit explizitem TRL-Fortschritt seit dem alten Stand
-2. **Service-Coverage-Gruppen**, damit alle `63` Core-Services aus `services/` einer
+2. **Service-Coverage-Gruppen**, damit alle `145` Core-Services aus `services/` einer
    aktuellen Architektur- und Reife-Sicht zugeordnet sind
 
 | Typ | Scope / Komponente | Primäre Services / Module | Coverage | TRL alt | TRL neu | Begründung |
@@ -237,6 +260,7 @@ Die Tabelle kombiniert zwei Perspektiven:
 | Capability | OEP Delta | `oep.compare-mastr` | 1 Service | 5 | **7** | semantischer Join, Async für große Portfolios |
 | Capability | Job Store | `src/job-store/*`, `src/async-job-runner.js` | Querschnitt | 5 (file) | **6** | Driver-Interface, 3 Backends, Idempotenz, Progress SSE |
 | Capability | Capability Broker | `capability-broker`, `src/capability-catalog.js` | intern | n/a | **5** (intern) | v1 produktiv als Advisory-Layer, aber internal-only |
+| Capability | Domain Router / AgentOS Integration | `domain-router`, `agent-sidecar`, `src/domain-router*`, `src/agent-sidecar*` | 2 Services + Sidecar/Policy-Module | n/a | **6** | Implementiert, CI-getestet und PouchDB-basiert; produktiver Matrix/OpenClaw-Betrieb weiter auszuwerten |
 | Capability | §42c Energy Sharing | `energy-sharing`, `energy-sharing-allocation` | Kernworkflow | 7 | **7** | Cutover-Plan vorhanden, produktive Sub-Tracks laufen noch |
 | Capability | NOVA Decision Engine | `nova`, `src/nova-decision-machine.js` | 1 Service + state machine | 5 | **7** | Projekt-skopierte, tenant-gebundene Decisions mit Lifecycle, HITL-Bridge, SSE-Events und async Replay-Basis |
 | Capability | ZNP | `znp` | 1 Service | 4 | 4 | unverändert; Produktionspfad separat offen |
@@ -249,8 +273,9 @@ Die Tabelle kombiniert zwei Perspektiven:
 | Coverage | Zeitreihe, EDM und Forecast | `edm`, `edm-messkonzept`, `edm-validation`, `edm-virtual`, `mscons-import`, `slp`, `forecast`, `forecast-engine`, `residual-load`, `mqtt-broker` | 10 Services | — | 5–7 | operative Energie- und Messdatenverarbeitung mit lokalem Persistenzpfad |
 | Coverage | Decisioning & Advanced Workflows | `cya`, `nova`, `knowledge-rag`, `vnb-monitor`, `nbp-monitor`, `flex`, `znp` | 7 Services | — | 4–7 | narrative, monitoring- und entscheidungsnahe Workflows mit differierendem Reifegrad |
 
-**Abdeckung:** Die Coverage-Zeilen summieren sich auf alle `63` Core-Services in
-`services/`. Der lokale Workspace-Service in `custom-services/` ist absichtlich
+**Abdeckung:** Die Coverage-Zeilen gruppieren die produktprägenden Core-Service-Familien in
+`services/`; durch die Erweiterung auf 145 Services werden Spezial- und Hilfsservices nicht einzeln
+in dieser Tabelle wiederholt. Der lokale Workspace-Service in `custom-services/` ist absichtlich
 nicht Teil der offiziellen TRL-Bewertung.
 
 ---
@@ -276,6 +301,15 @@ Status laut [feedback/HYGIENE_SPRINT.md](../feedback/HYGIENE_SPRINT.md):
 Der Capability Broker (`v0.46.x`) ist bewusst **kein** öffentliches REST-Produkt.
 Er dient internen Advisory-/Planning-Flows; Ausführung bleibt bei den
 domänenspezifischen Services und deren deterministischer Logik.
+
+### Domain Router / Sidecar Betrieb
+
+Der Domain Router ist CET-governed und zustandsfähig, aber keine externe Automationsfreigabe:
+
+- QDrant/Knowledge-Hits sind Routing-/Grounding-Evidenz, keine alleinige Antwortfakt-Quelle.
+- Case Event Outbox/MWI benötigt echte Trigger plus Client-seitiges Poll/Ack; ohne Poll-Vertrag sieht ein externer Client keine späteren Events.
+- Externe/bindende Wirkungen bleiben trotz interner Case-/Event-State-Writes durch CET-RBAC, HITL und No-Call-Guards gesperrt.
+- Tenant-, Rollen- und Sensitivity-Checks müssen vor Router, Sidecar, Discovery und Outbox-Sichtbarkeit greifen.
 
 ### §42c-Cutover: offene Sub-Tracks und Betriebsrisiken
 
@@ -310,6 +344,7 @@ akzeptiert, aber nicht endgültig beseitigt.
 
 - [README.md](../README.md)
 - [BACKEND_CONTEXT.md](BACKEND_CONTEXT.md)
+- [domain-router.md](domain-router.md)
 - [INTEGRATION_WEBHOOKS.md](INTEGRATION_WEBHOOKS.md)
 - [observability/grafana/README.md](observability/grafana/README.md)
 - [ui-contracts/31-asset-overrides.md](ui-contracts/31-asset-overrides.md)
