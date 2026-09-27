@@ -3,7 +3,7 @@
 const DEFAULT_DOMAIN = 'energy';
 const DEFAULT_AUTH_TYPE = 'bearer';
 const SECRET_VALUE_PATTERN =
-  /(ck_[A-Za-z0-9_-]+|Bearer\s+[A-Za-z0-9._-]+|CERNION_SUPPORT_TOKEN|api[_-]?key|password|private[_-]?key)/i;
+  /(\bck_[A-Za-z0-9_-]+|Bearer\s+[A-Za-z0-9._-]+|CERNION_SUPPORT_TOKEN|api[_-]?key|password|private[_-]?key)/i;
 
 function cloneJson(value) {
   return JSON.parse(JSON.stringify(value));

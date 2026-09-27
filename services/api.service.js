@@ -22,6 +22,7 @@ const {
   isReadMethod,
   isReadOnlySidecarInvocation,
   isOperationsRunbookInvocation,
+  isDomainRouterAdvisoryInvocation,
 } = require('../src/gateway-request-classifiers');
 const { createMcpHttpHandlers } = require('../src/mcp-transport');
 const { createOAuthHttpHandlers } = require('../src/oauth-server');
@@ -950,7 +951,8 @@ function enforceRbacForPath(roles, method, requestPath) {
     !isSessionSelfServiceEndpoint &&
     !isReadOnlySidecarInvocation(m, requestPath) &&
     !isChatgptSidecarTicketInvocation(m, requestPath) &&
-    !isOperationsRunbookInvocation(m, requestPath)
+    !isOperationsRunbookInvocation(m, requestPath) &&
+    !isDomainRouterAdvisoryInvocation(m, requestPath)
   ) {
     if (!hasRole(roles, 'full-access')) {
       throw new Errors.MoleculerClientError('Role required: full-access.', 403, 'ROLE_REQUIRED');
@@ -1874,6 +1876,15 @@ module.exports = {
           'DELETE /companies/:id': 'company.delete',
           // Dashboard API (v0.19+) — UI-optimised aggregate endpoints
           // Agent Sidecar (v0.64+) — curated OpenClaw-safe tool facade
+          'POST /domain-router/classify': 'domain-router.classify',
+          'POST /domain-router/continue': 'domain-router.continue',
+          'POST /domain-router/explain': 'domain-router.explain',
+          'GET /domain-router/events': 'domain-router.events.list',
+          'POST /domain-router/events/:eventId/ack': 'domain-router.events.ack',
+          'POST /domain-router/cases/:caseId/related-sessions/discover':
+            'domain-router.related-sessions.discover',
+          'POST /domain-router/cases/:caseId/related-sessions/link':
+            'domain-router.related-sessions.link',
           'GET /agent-sidecar/tools': 'agent-sidecar.listTools',
           'POST /agent-sidecar/tools/:name/call': 'agent-sidecar.callTool',
           'GET /agent-sidecar/descriptor': 'agent-sidecar.descriptor',

@@ -14,6 +14,11 @@ const EXPECTED_TOOLS = [
   'cernion.recommend_capability',
   'cernion.list_readonly_capabilities',
   'cernion.get_evidence_status',
+  'cernion.classify_task',
+  'cernion.continue_case',
+  'cernion.list_case_events',
+  'cernion.ack_case_event',
+  'cernion.discover_related_sessions',
 ];
 
 function readOnlyMeta(tenantId = 'public') {
@@ -30,6 +35,14 @@ function readOnlyMeta(tenantId = 'public') {
 }
 
 describe('generic energy sidecar connector', () => {
+  it('accepts ack_case_event but rejects actual secret values', () => {
+    expect(() => buildCernionSidecarDescriptor()).not.toThrow();
+    for (const secret of ['ck_example_secret_123', 'Bearer example-secret']) {
+      expect(() => buildCernionSidecarDescriptor({ bearerTokenSecretRef: secret })).toThrow(
+        /secret/
+      );
+    }
+  });
   it('maps the Cernion sidecar manifest into a secret-free provider descriptor', () => {
     const descriptor = buildCernionSidecarDescriptor({
       baseUrl: 'https://cernion.example/api',
@@ -48,9 +61,9 @@ describe('generic energy sidecar connector', () => {
       bearerTokenSecretRef: 'CERNION_READONLY_TOKEN',
       serializedSecret: false,
     });
-    expect(descriptor.toolCount).toBe(5);
+    expect(descriptor.toolCount).toBe(10);
     expect(descriptor.tools.map((tool) => tool.name)).toEqual(EXPECTED_TOOLS);
-    expect(JSON.stringify(descriptor)).not.toMatch(/ck_|Bearer\s|secret-value|password/i);
+    expect(JSON.stringify(descriptor)).not.toMatch(/\bck_|Bearer\s|secret-value|password/i);
   });
 
   it('builds a stable MCP-like tools/list representation', () => {
@@ -89,7 +102,7 @@ describe('generic energy sidecar connector', () => {
       body: { input: { context: { tenantId: 'public' } } },
       auth: { type: 'bearer', bearerTokenSecretRef: 'CERNION_READONLY_TOKEN' },
     });
-    expect(JSON.stringify(plannedCall)).not.toMatch(/ck_|Bearer\s/i);
+    expect(JSON.stringify(plannedCall)).not.toMatch(/\bck_|Bearer\s/i);
   });
 
   it('preserves sidecar_policy_blocked as a structured MCP-like error', async () => {
@@ -126,7 +139,7 @@ describe('generic energy sidecar connector', () => {
       expect(descriptor.dossierSummary.allowedTools).toEqual(EXPECTED_TOOLS);
 
       const list = await broker.call('agent-sidecar.mcpListTools', {}, readOnlyMeta());
-      expect(list.tools).toHaveLength(5);
+      expect(list.tools).toHaveLength(10);
 
       const allowed = await broker.call(
         'agent-sidecar.mcpCallTool',

@@ -100,6 +100,14 @@ describe('token-manager.service', () => {
     });
     expect(allowedMcpSidecarPost.valid).toBe(true);
 
+    const allowedDomainRouterPost = await broker.call('token-manager.verify', {
+      token: created.data.token,
+      method: 'POST',
+      path: '/api/domain-router/classify',
+      trackUsage: false,
+    });
+    expect(allowedDomainRouterPost.valid).toBe(true);
+
     const deniedOtherPost = await broker.call('token-manager.verify', {
       token: created.data.token,
       method: 'POST',

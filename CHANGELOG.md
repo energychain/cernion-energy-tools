@@ -5,6 +5,11 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.99.22] — 2026-09-27
+
+### Added
+- Additive Domain Router (#595): PouchDB case state, explicit transitions, policy-isolated trigger outbox, related-session discovery, advisory sidecar tools and opt-in Personal Agent shadow hooks. No operational writes or external persistence dependencies.
+
 ## [Unreleased]
 
 ### Added

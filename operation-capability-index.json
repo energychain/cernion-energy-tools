@@ -1,17 +1,17 @@
 {
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
-  "packageVersion": "0.99.21",
-  "sourceOpenApiHash": "642ef288e69501cc63729223c22b6a43f72226c5df503adf4ea928bcb43b7a4f",
+  "packageVersion": "0.99.22",
+  "sourceOpenApiHash": "f6877498270a2fe8babae4e5c9e74f060854c7c76664ac035b8b4d90bbfb76ad",
   "coverage": {
-    "rawOperationCount": 1144,
-    "operationCount": 888,
-    "agentableCount": 886,
+    "rawOperationCount": 1151,
+    "operationCount": 895,
+    "agentableCount": 893,
     "nonAgentableCount": 2,
     "byOperationKind": {
-      "data_read": 390,
+      "data_read": 391,
       "admin": 8,
-      "object_store_write": 231,
+      "object_store_write": 237,
       "process_step": 20,
       "process_start": 43,
       "advisory_plan": 47,
@@ -38783,6 +38783,1004 @@
           "VDMI",
           "V/D/M/I matrix",
           "audit trail"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "domain-router_related-sessions_discover",
+      "method": "POST",
+      "path": "/api/domain-router/cases/:caseId/related-sessions/discover",
+      "service": "domain-router",
+      "action": "domain-router.related-sessions_discover",
+      "summary": "Discover authorized cases through process, session and Laufkarten identifiers",
+      "tags": [
+        "Domain Router"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "domain-router.related-sessions_discover"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "Case"
+      ],
+      "requiredScopes": [
+        "domain-router:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "domain-router"
+      ],
+      "sideEffects": [
+        "creates_or_modifies_stored_object"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "parameters": {
+        "required": [
+          {
+            "name": "caseId",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": [
+          {
+            "name": "cetCaseId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "clientId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "targetCaseId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "domain",
+          "router",
+          "related",
+          "sessions",
+          "discover",
+          "authorized",
+          "cases",
+          "through",
+          "process,",
+          "session",
+          "laufkarten",
+          "identifiers"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please discover authorized cases through process, session and laufkarten identifiers"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "domain-router_related-sessions_link",
+      "method": "POST",
+      "path": "/api/domain-router/cases/:caseId/related-sessions/link",
+      "service": "domain-router",
+      "action": "domain-router.related-sessions_link",
+      "summary": "Link two visible cases for evidence delivery",
+      "tags": [
+        "Domain Router"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "domain-router.related-sessions_link"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "Case"
+      ],
+      "requiredScopes": [
+        "domain-router:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "domain-router"
+      ],
+      "sideEffects": [
+        "creates_or_modifies_stored_object"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "parameters": {
+        "required": [
+          {
+            "name": "caseId",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "targetCaseId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": [
+          {
+            "name": "cetCaseId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "clientId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "domain",
+          "router",
+          "related",
+          "sessions",
+          "link",
+          "two",
+          "visible",
+          "cases",
+          "evidence",
+          "delivery"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please link two visible cases for evidence delivery"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "domain-router_classify",
+      "method": "POST",
+      "path": "/api/domain-router/classify",
+      "service": "domain-router",
+      "action": "domain-router.classify",
+      "summary": "Classify a task and persist advisory case state",
+      "tags": [
+        "Domain Router"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "domain-router.classify"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "domain-router:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "domain-router"
+      ],
+      "sideEffects": [
+        "creates_or_modifies_stored_object"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "parameters": {
+        "required": [],
+        "optional": [
+          {
+            "name": "schemaVersion",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "conversationId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "agentSessionId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "cetCaseId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "caseId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "tenantId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": "tenant_id"
+          },
+          {
+            "name": "actorId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "agentProfile",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "roomId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "threadId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "userRequest",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "conversationExcerpt",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "priorCetStateRef",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "forceReceipt",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "clientId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "since",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": "date_range_start"
+          },
+          {
+            "name": "actorRoles",
+            "in": "body",
+            "type": "array",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "sensitivityFlags",
+            "in": "body",
+            "type": "array",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "preferredReceipts",
+            "in": "body",
+            "type": "array",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "sharedWithRoles",
+            "in": "body",
+            "type": "array",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "knownContext",
+            "in": "body",
+            "type": "object",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "requestedMode",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "channel",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "disableReceiptSelection",
+            "in": "body",
+            "type": "boolean",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "disableKnowledgeRouting",
+            "in": "body",
+            "type": "boolean",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "caseStateVersion",
+            "in": "body",
+            "type": "integer",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "asyncDelivery",
+            "in": "body",
+            "type": "object",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "taskEnvelope",
+            "in": "body",
+            "type": "object",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "domain",
+          "router",
+          "classify",
+          "task",
+          "persist",
+          "advisory",
+          "case",
+          "state"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please classify a task and persist advisory case state"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "domain-router_continue",
+      "method": "POST",
+      "path": "/api/domain-router/continue",
+      "service": "domain-router",
+      "action": "domain-router.continue",
+      "summary": "Continue, reclassify, branch, clarify, handoff or fall back",
+      "tags": [
+        "Domain Router"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "domain-router.continue"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "domain-router:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "domain-router"
+      ],
+      "sideEffects": [
+        "creates_or_modifies_stored_object"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "parameters": {
+        "required": [],
+        "optional": [
+          {
+            "name": "schemaVersion",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "conversationId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "agentSessionId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "cetCaseId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "caseId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "tenantId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": "tenant_id"
+          },
+          {
+            "name": "actorId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "agentProfile",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "roomId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "threadId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "userRequest",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "conversationExcerpt",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "priorCetStateRef",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "forceReceipt",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "clientId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "since",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": "date_range_start"
+          },
+          {
+            "name": "actorRoles",
+            "in": "body",
+            "type": "array",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "sensitivityFlags",
+            "in": "body",
+            "type": "array",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "preferredReceipts",
+            "in": "body",
+            "type": "array",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "sharedWithRoles",
+            "in": "body",
+            "type": "array",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "knownContext",
+            "in": "body",
+            "type": "object",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "requestedMode",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "channel",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "disableReceiptSelection",
+            "in": "body",
+            "type": "boolean",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "disableKnowledgeRouting",
+            "in": "body",
+            "type": "boolean",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "caseStateVersion",
+            "in": "body",
+            "type": "integer",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "asyncDelivery",
+            "in": "body",
+            "type": "object",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "taskEnvelope",
+            "in": "body",
+            "type": "object",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "domain",
+          "router",
+          "continue",
+          "continue,",
+          "reclassify,",
+          "branch,",
+          "clarify,",
+          "handoff",
+          "or",
+          "fall",
+          "back"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please continue, reclassify, branch, clarify, handoff or fall back"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "domain-router_events_list",
+      "method": "GET",
+      "path": "/api/domain-router/events",
+      "service": "domain-router",
+      "action": "domain-router.events_list",
+      "summary": "Poll pending and delivered case events until explicit acknowledgement",
+      "tags": [
+        "Domain Router"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "domain-router.events_list"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "domain-router:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [
+          {
+            "name": "clientId",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": [
+          {
+            "name": "since",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": "date_range_start"
+          },
+          {
+            "name": "caseId",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "cetCaseId",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "domain",
+          "router",
+          "events",
+          "list",
+          "poll",
+          "pending",
+          "delivered",
+          "case",
+          "until",
+          "explicit",
+          "acknowledgement"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me poll pending and delivered case events until explicit acknowledgement"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "domain-router_events_ack",
+      "method": "POST",
+      "path": "/api/domain-router/events/:eventId/ack",
+      "service": "domain-router",
+      "action": "domain-router.events_ack",
+      "summary": "Idempotently acknowledge an addressed event",
+      "tags": [
+        "Domain Router"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "domain-router.events_ack"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "Event"
+      ],
+      "requiredScopes": [
+        "domain-router:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "domain-router"
+      ],
+      "sideEffects": [
+        "creates_or_modifies_stored_object"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "parameters": {
+        "required": [
+          {
+            "name": "eventId",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "clientId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": [
+          {
+            "name": "cetCaseId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "targetCaseId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "domain",
+          "router",
+          "events",
+          "ack",
+          "idempotently",
+          "acknowledge",
+          "an",
+          "addressed",
+          "event"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please idempotently acknowledge an addressed event"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "domain-router_explain",
+      "method": "POST",
+      "path": "/api/domain-router/explain",
+      "service": "domain-router",
+      "action": "domain-router.explain",
+      "summary": "Explain the last persisted routing decision",
+      "tags": [
+        "Domain Router"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "domain-router.explain"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "domain-router:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "domain-router"
+      ],
+      "sideEffects": [
+        "creates_or_modifies_stored_object"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "parameters": {
+        "required": [],
+        "optional": [
+          {
+            "name": "cetCaseId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "clientId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "targetCaseId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "domain",
+          "router",
+          "explain",
+          "last",
+          "persisted",
+          "routing",
+          "decision"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please explain the last persisted routing decision"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
         ],
         "curated": false
       },

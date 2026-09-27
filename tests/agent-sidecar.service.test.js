@@ -104,12 +104,12 @@ describe('agent-sidecar service', () => {
     };
   }
 
-  it('publishes a curated five-tool manifest with safe policy metadata', async () => {
+  it('publishes a curated additive tool manifest with safe policy metadata', async () => {
     const manifest = await broker.call('agent-sidecar.listTools', {}, readOnlyMeta());
 
     expect(manifest.schemaVersion).toBe('cernion.agent-sidecar.v1');
-    expect(manifest.toolCount).toBeLessThanOrEqual(5);
-    expect(manifest.tools.map((tool) => tool.name)).toEqual([
+    expect(manifest.toolCount).toBeLessThanOrEqual(10);
+    expect(manifest.tools.slice(0, 5).map((tool) => tool.name)).toEqual([
       'cernion.ask',
       'cernion.answer_dossier',
       'cernion.recommend_capability',
@@ -124,10 +124,10 @@ describe('agent-sidecar service', () => {
     }
   });
 
-  it('keeps the static manifest at the MVP limit', () => {
+  it('keeps the static manifest at the additive router limit', () => {
     const manifest = buildSidecarManifest();
-    expect(manifest.toolCount).toBe(5);
-    expect(listSidecarTools()).toHaveLength(5);
+    expect(manifest.toolCount).toBe(10);
+    expect(listSidecarTools()).toHaveLength(10);
   });
 
   it('blocks unknown tools and forbidden direct HITL/write style targets', async () => {

@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.99.21",
+    "version": "0.99.22",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.\n\nFor the public instance at https://api.cernion.de/, create your token at https://cernion.de/cet-token/."
   },
   "servers": [
@@ -31628,6 +31628,1190 @@
             }
           }
         ]
+      }
+    },
+    "/api/domain-router/classify": {
+      "post": {
+        "operationId": "domain-router_classify",
+        "summary": "Classify a task and persist advisory case state",
+        "tags": [
+          "Domain Router"
+        ],
+        "responses": {
+          "200": {
+            "description": "Advisory routing or policy-filtered case metadata",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "schemaVersion",
+                    "cetCaseId",
+                    "caseStateVersion",
+                    "primaryDomain",
+                    "domainConfidence",
+                    "alternativeDomains",
+                    "ambiguityFlags",
+                    "matchedSignals",
+                    "roleInterpretation",
+                    "selectedCapabilities",
+                    "candidateCapabilities",
+                    "selectedReceipts",
+                    "candidateReceipts",
+                    "knowledgeRefs",
+                    "allowedActions",
+                    "blockedActions",
+                    "transition",
+                    "requiredClarifications",
+                    "evidenceRequirements",
+                    "nextState",
+                    "responseGuidance",
+                    "matchedLaufkarten",
+                    "currentStation",
+                    "candidateStations",
+                    "controlPoint",
+                    "nextSafeStep",
+                    "hitlBoundary",
+                    "readinessState",
+                    "readinessScore",
+                    "missingEvidence",
+                    "noCallGuards",
+                    "roleProjection"
+                  ],
+                  "properties": {
+                    "schemaVersion": {},
+                    "cetCaseId": {},
+                    "caseStateVersion": {},
+                    "primaryDomain": {},
+                    "domainConfidence": {},
+                    "alternativeDomains": {},
+                    "ambiguityFlags": {},
+                    "matchedSignals": {},
+                    "roleInterpretation": {},
+                    "selectedCapabilities": {},
+                    "candidateCapabilities": {},
+                    "selectedReceipts": {},
+                    "candidateReceipts": {},
+                    "knowledgeRefs": {},
+                    "allowedActions": {},
+                    "blockedActions": {},
+                    "transition": {},
+                    "requiredClarifications": {},
+                    "evidenceRequirements": {},
+                    "nextState": {},
+                    "responseGuidance": {},
+                    "matchedLaufkarten": {},
+                    "currentStation": {},
+                    "candidateStations": {},
+                    "controlPoint": {},
+                    "nextSafeStep": {},
+                    "hitlBoundary": {},
+                    "readinessState": {},
+                    "readinessScore": {},
+                    "missingEvidence": {},
+                    "noCallGuards": {},
+                    "roleProjection": {}
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Tenant, role or sensitivity denied"
+          },
+          "409": {
+            "description": "Stale case revision; reload and retry"
+          },
+          "422": {
+            "description": "Invalid task or forced receipt"
+          }
+        },
+        "description": "Authenticated tenant, actor, energy role and sensitivity policy required. Advisory only. Local PouchDB case/event metadata; no operational execution. See docs/domain-router.md.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "properties": {
+                  "schemaVersion": {
+                    "type": "string",
+                    "enum": [
+                      "1.1"
+                    ]
+                  },
+                  "conversationId": {
+                    "type": "string"
+                  },
+                  "agentSessionId": {
+                    "type": "string"
+                  },
+                  "cetCaseId": {
+                    "type": "string"
+                  },
+                  "caseId": {
+                    "type": "string"
+                  },
+                  "tenantId": {
+                    "type": "string"
+                  },
+                  "actorId": {
+                    "type": "string"
+                  },
+                  "agentProfile": {
+                    "type": "string"
+                  },
+                  "roomId": {
+                    "type": "string"
+                  },
+                  "threadId": {
+                    "type": "string"
+                  },
+                  "userRequest": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 8000
+                  },
+                  "conversationExcerpt": {
+                    "type": "string"
+                  },
+                  "priorCetStateRef": {
+                    "type": "string"
+                  },
+                  "forceReceipt": {
+                    "type": "string"
+                  },
+                  "clientId": {
+                    "type": "string"
+                  },
+                  "since": {
+                    "type": "string"
+                  },
+                  "actorRoles": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "sensitivityFlags": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "preferredReceipts": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "sharedWithRoles": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "knownContext": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "requestedMode": {
+                    "type": "string",
+                    "enum": [
+                      "classify",
+                      "continue",
+                      "answer",
+                      "dossier",
+                      "evidence",
+                      "handoff"
+                    ]
+                  },
+                  "channel": {
+                    "type": "string",
+                    "enum": [
+                      "matrix",
+                      "hermes",
+                      "api",
+                      "web",
+                      "test"
+                    ]
+                  },
+                  "disableReceiptSelection": {
+                    "type": "boolean"
+                  },
+                  "disableKnowledgeRouting": {
+                    "type": "boolean"
+                  },
+                  "caseStateVersion": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "asyncDelivery": {
+                    "type": "object",
+                    "required": [
+                      "mode"
+                    ],
+                    "properties": {
+                      "mode": {
+                        "type": "string",
+                        "enum": [
+                          "poll",
+                          "none"
+                        ]
+                      },
+                      "clientId": {
+                        "type": "string"
+                      },
+                      "clientCorrelationId": {
+                        "type": "string"
+                      },
+                      "pollIntervalHintSec": {
+                        "type": "integer"
+                      },
+                      "supportedEventTypes": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "ackMode": {
+                        "type": "string",
+                        "enum": [
+                          "explicit"
+                        ]
+                      },
+                      "resumeToken": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "taskEnvelope": {
+                    "type": "object",
+                    "required": [
+                      "userRequest"
+                    ],
+                    "additionalProperties": true,
+                    "properties": {
+                      "schemaVersion": {
+                        "type": "string",
+                        "enum": [
+                          "1.1"
+                        ]
+                      },
+                      "conversationId": {
+                        "type": "string"
+                      },
+                      "agentSessionId": {
+                        "type": "string"
+                      },
+                      "cetCaseId": {
+                        "type": "string"
+                      },
+                      "caseId": {
+                        "type": "string"
+                      },
+                      "tenantId": {
+                        "type": "string"
+                      },
+                      "actorId": {
+                        "type": "string"
+                      },
+                      "agentProfile": {
+                        "type": "string"
+                      },
+                      "roomId": {
+                        "type": "string"
+                      },
+                      "threadId": {
+                        "type": "string"
+                      },
+                      "userRequest": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 8000
+                      },
+                      "conversationExcerpt": {
+                        "type": "string"
+                      },
+                      "priorCetStateRef": {
+                        "type": "string"
+                      },
+                      "forceReceipt": {
+                        "type": "string"
+                      },
+                      "clientId": {
+                        "type": "string"
+                      },
+                      "since": {
+                        "type": "string"
+                      },
+                      "actorRoles": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "sensitivityFlags": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "preferredReceipts": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "sharedWithRoles": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "knownContext": {
+                        "type": "object",
+                        "additionalProperties": true
+                      },
+                      "requestedMode": {
+                        "type": "string",
+                        "enum": [
+                          "classify",
+                          "continue",
+                          "answer",
+                          "dossier",
+                          "evidence",
+                          "handoff"
+                        ]
+                      },
+                      "channel": {
+                        "type": "string",
+                        "enum": [
+                          "matrix",
+                          "hermes",
+                          "api",
+                          "web",
+                          "test"
+                        ]
+                      },
+                      "disableReceiptSelection": {
+                        "type": "boolean"
+                      },
+                      "disableKnowledgeRouting": {
+                        "type": "boolean"
+                      },
+                      "caseStateVersion": {
+                        "type": "integer",
+                        "minimum": 1
+                      },
+                      "asyncDelivery": {
+                        "type": "object",
+                        "required": [
+                          "mode"
+                        ],
+                        "properties": {
+                          "mode": {
+                            "type": "string",
+                            "enum": [
+                              "poll",
+                              "none"
+                            ]
+                          },
+                          "clientId": {
+                            "type": "string"
+                          },
+                          "clientCorrelationId": {
+                            "type": "string"
+                          },
+                          "pollIntervalHintSec": {
+                            "type": "integer"
+                          },
+                          "supportedEventTypes": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "ackMode": {
+                            "type": "string",
+                            "enum": [
+                              "explicit"
+                            ]
+                          },
+                          "resumeToken": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "anyOf": [
+                  {
+                    "required": [
+                      "userRequest"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "taskEnvelope"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/domain-router/continue": {
+      "post": {
+        "operationId": "domain-router_continue",
+        "summary": "Continue, reclassify, branch, clarify, handoff or fall back",
+        "tags": [
+          "Domain Router"
+        ],
+        "responses": {
+          "200": {
+            "description": "Advisory routing or policy-filtered case metadata",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "schemaVersion",
+                    "cetCaseId",
+                    "caseStateVersion",
+                    "primaryDomain",
+                    "domainConfidence",
+                    "alternativeDomains",
+                    "ambiguityFlags",
+                    "matchedSignals",
+                    "roleInterpretation",
+                    "selectedCapabilities",
+                    "candidateCapabilities",
+                    "selectedReceipts",
+                    "candidateReceipts",
+                    "knowledgeRefs",
+                    "allowedActions",
+                    "blockedActions",
+                    "transition",
+                    "requiredClarifications",
+                    "evidenceRequirements",
+                    "nextState",
+                    "responseGuidance",
+                    "matchedLaufkarten",
+                    "currentStation",
+                    "candidateStations",
+                    "controlPoint",
+                    "nextSafeStep",
+                    "hitlBoundary",
+                    "readinessState",
+                    "readinessScore",
+                    "missingEvidence",
+                    "noCallGuards",
+                    "roleProjection"
+                  ],
+                  "properties": {
+                    "schemaVersion": {},
+                    "cetCaseId": {},
+                    "caseStateVersion": {},
+                    "primaryDomain": {},
+                    "domainConfidence": {},
+                    "alternativeDomains": {},
+                    "ambiguityFlags": {},
+                    "matchedSignals": {},
+                    "roleInterpretation": {},
+                    "selectedCapabilities": {},
+                    "candidateCapabilities": {},
+                    "selectedReceipts": {},
+                    "candidateReceipts": {},
+                    "knowledgeRefs": {},
+                    "allowedActions": {},
+                    "blockedActions": {},
+                    "transition": {},
+                    "requiredClarifications": {},
+                    "evidenceRequirements": {},
+                    "nextState": {},
+                    "responseGuidance": {},
+                    "matchedLaufkarten": {},
+                    "currentStation": {},
+                    "candidateStations": {},
+                    "controlPoint": {},
+                    "nextSafeStep": {},
+                    "hitlBoundary": {},
+                    "readinessState": {},
+                    "readinessScore": {},
+                    "missingEvidence": {},
+                    "noCallGuards": {},
+                    "roleProjection": {}
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Tenant, role or sensitivity denied"
+          },
+          "409": {
+            "description": "Stale case revision; reload and retry"
+          },
+          "422": {
+            "description": "Invalid task or forced receipt"
+          }
+        },
+        "description": "Authenticated tenant, actor, energy role and sensitivity policy required. Advisory only. Local PouchDB case/event metadata; no operational execution. See docs/domain-router.md.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "properties": {
+                  "schemaVersion": {
+                    "type": "string",
+                    "enum": [
+                      "1.1"
+                    ]
+                  },
+                  "conversationId": {
+                    "type": "string"
+                  },
+                  "agentSessionId": {
+                    "type": "string"
+                  },
+                  "cetCaseId": {
+                    "type": "string"
+                  },
+                  "caseId": {
+                    "type": "string"
+                  },
+                  "tenantId": {
+                    "type": "string"
+                  },
+                  "actorId": {
+                    "type": "string"
+                  },
+                  "agentProfile": {
+                    "type": "string"
+                  },
+                  "roomId": {
+                    "type": "string"
+                  },
+                  "threadId": {
+                    "type": "string"
+                  },
+                  "userRequest": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 8000
+                  },
+                  "conversationExcerpt": {
+                    "type": "string"
+                  },
+                  "priorCetStateRef": {
+                    "type": "string"
+                  },
+                  "forceReceipt": {
+                    "type": "string"
+                  },
+                  "clientId": {
+                    "type": "string"
+                  },
+                  "since": {
+                    "type": "string"
+                  },
+                  "actorRoles": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "sensitivityFlags": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "preferredReceipts": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "sharedWithRoles": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "knownContext": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "requestedMode": {
+                    "type": "string",
+                    "enum": [
+                      "classify",
+                      "continue",
+                      "answer",
+                      "dossier",
+                      "evidence",
+                      "handoff"
+                    ]
+                  },
+                  "channel": {
+                    "type": "string",
+                    "enum": [
+                      "matrix",
+                      "hermes",
+                      "api",
+                      "web",
+                      "test"
+                    ]
+                  },
+                  "disableReceiptSelection": {
+                    "type": "boolean"
+                  },
+                  "disableKnowledgeRouting": {
+                    "type": "boolean"
+                  },
+                  "caseStateVersion": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "asyncDelivery": {
+                    "type": "object",
+                    "required": [
+                      "mode"
+                    ],
+                    "properties": {
+                      "mode": {
+                        "type": "string",
+                        "enum": [
+                          "poll",
+                          "none"
+                        ]
+                      },
+                      "clientId": {
+                        "type": "string"
+                      },
+                      "clientCorrelationId": {
+                        "type": "string"
+                      },
+                      "pollIntervalHintSec": {
+                        "type": "integer"
+                      },
+                      "supportedEventTypes": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "ackMode": {
+                        "type": "string",
+                        "enum": [
+                          "explicit"
+                        ]
+                      },
+                      "resumeToken": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "taskEnvelope": {
+                    "type": "object",
+                    "required": [
+                      "userRequest"
+                    ],
+                    "additionalProperties": true,
+                    "properties": {
+                      "schemaVersion": {
+                        "type": "string",
+                        "enum": [
+                          "1.1"
+                        ]
+                      },
+                      "conversationId": {
+                        "type": "string"
+                      },
+                      "agentSessionId": {
+                        "type": "string"
+                      },
+                      "cetCaseId": {
+                        "type": "string"
+                      },
+                      "caseId": {
+                        "type": "string"
+                      },
+                      "tenantId": {
+                        "type": "string"
+                      },
+                      "actorId": {
+                        "type": "string"
+                      },
+                      "agentProfile": {
+                        "type": "string"
+                      },
+                      "roomId": {
+                        "type": "string"
+                      },
+                      "threadId": {
+                        "type": "string"
+                      },
+                      "userRequest": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 8000
+                      },
+                      "conversationExcerpt": {
+                        "type": "string"
+                      },
+                      "priorCetStateRef": {
+                        "type": "string"
+                      },
+                      "forceReceipt": {
+                        "type": "string"
+                      },
+                      "clientId": {
+                        "type": "string"
+                      },
+                      "since": {
+                        "type": "string"
+                      },
+                      "actorRoles": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "sensitivityFlags": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "preferredReceipts": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "sharedWithRoles": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "knownContext": {
+                        "type": "object",
+                        "additionalProperties": true
+                      },
+                      "requestedMode": {
+                        "type": "string",
+                        "enum": [
+                          "classify",
+                          "continue",
+                          "answer",
+                          "dossier",
+                          "evidence",
+                          "handoff"
+                        ]
+                      },
+                      "channel": {
+                        "type": "string",
+                        "enum": [
+                          "matrix",
+                          "hermes",
+                          "api",
+                          "web",
+                          "test"
+                        ]
+                      },
+                      "disableReceiptSelection": {
+                        "type": "boolean"
+                      },
+                      "disableKnowledgeRouting": {
+                        "type": "boolean"
+                      },
+                      "caseStateVersion": {
+                        "type": "integer",
+                        "minimum": 1
+                      },
+                      "asyncDelivery": {
+                        "type": "object",
+                        "required": [
+                          "mode"
+                        ],
+                        "properties": {
+                          "mode": {
+                            "type": "string",
+                            "enum": [
+                              "poll",
+                              "none"
+                            ]
+                          },
+                          "clientId": {
+                            "type": "string"
+                          },
+                          "clientCorrelationId": {
+                            "type": "string"
+                          },
+                          "pollIntervalHintSec": {
+                            "type": "integer"
+                          },
+                          "supportedEventTypes": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "ackMode": {
+                            "type": "string",
+                            "enum": [
+                              "explicit"
+                            ]
+                          },
+                          "resumeToken": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "anyOf": [
+                  {
+                    "required": [
+                      "userRequest"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "taskEnvelope"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/domain-router/explain": {
+      "post": {
+        "operationId": "domain-router_explain",
+        "summary": "Explain the last persisted routing decision",
+        "tags": [
+          "Domain Router"
+        ],
+        "responses": {
+          "200": {
+            "description": "Advisory routing or policy-filtered case metadata",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Tenant, role or sensitivity denied"
+          },
+          "409": {
+            "description": "Stale case revision; reload and retry"
+          },
+          "422": {
+            "description": "Invalid task or forced receipt"
+          }
+        },
+        "description": "Authenticated tenant, actor, energy role and sensitivity policy required. Advisory only. Local PouchDB case/event metadata; no operational execution. See docs/domain-router.md.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "cetCaseId": {
+                    "type": "string"
+                  },
+                  "clientId": {
+                    "type": "string"
+                  },
+                  "targetCaseId": {
+                    "type": "string"
+                  }
+                },
+                "required": []
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/domain-router/events": {
+      "get": {
+        "operationId": "domain-router_events_list",
+        "summary": "Poll pending and delivered case events until explicit acknowledgement",
+        "tags": [
+          "Domain Router"
+        ],
+        "responses": {
+          "200": {
+            "description": "Advisory routing or policy-filtered case metadata",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Tenant, role or sensitivity denied"
+          },
+          "409": {
+            "description": "Stale case revision; reload and retry"
+          },
+          "422": {
+            "description": "Invalid task or forced receipt"
+          }
+        },
+        "description": "Authenticated tenant, actor, energy role and sensitivity policy required. Advisory only. Local PouchDB case/event metadata; no operational execution. See docs/domain-router.md.",
+        "parameters": [
+          {
+            "name": "clientId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "caseId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cetCaseId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/domain-router/events/:eventId/ack": {
+      "post": {
+        "operationId": "domain-router_events_ack",
+        "summary": "Idempotently acknowledge an addressed event",
+        "tags": [
+          "Domain Router"
+        ],
+        "responses": {
+          "200": {
+            "description": "Advisory routing or policy-filtered case metadata",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Tenant, role or sensitivity denied"
+          },
+          "409": {
+            "description": "Stale case revision; reload and retry"
+          },
+          "422": {
+            "description": "Invalid task or forced receipt"
+          }
+        },
+        "description": "Authenticated tenant, actor, energy role and sensitivity policy required. Advisory only. Local PouchDB case/event metadata; no operational execution. See docs/domain-router.md.",
+        "parameters": [
+          {
+            "name": "eventId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "cetCaseId": {
+                    "type": "string"
+                  },
+                  "clientId": {
+                    "type": "string"
+                  },
+                  "targetCaseId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "clientId"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/domain-router/cases/:caseId/related-sessions/discover": {
+      "post": {
+        "operationId": "domain-router_related-sessions_discover",
+        "summary": "Discover authorized cases through process, session and Laufkarten identifiers",
+        "tags": [
+          "Domain Router"
+        ],
+        "responses": {
+          "200": {
+            "description": "Advisory routing or policy-filtered case metadata",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Tenant, role or sensitivity denied"
+          },
+          "409": {
+            "description": "Stale case revision; reload and retry"
+          },
+          "422": {
+            "description": "Invalid task or forced receipt"
+          }
+        },
+        "description": "Authenticated tenant, actor, energy role and sensitivity policy required. Advisory only. Local PouchDB case/event metadata; no operational execution. See docs/domain-router.md.",
+        "parameters": [
+          {
+            "name": "caseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "cetCaseId": {
+                    "type": "string"
+                  },
+                  "clientId": {
+                    "type": "string"
+                  },
+                  "targetCaseId": {
+                    "type": "string"
+                  }
+                },
+                "required": []
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/domain-router/cases/:caseId/related-sessions/link": {
+      "post": {
+        "operationId": "domain-router_related-sessions_link",
+        "summary": "Link two visible cases for evidence delivery",
+        "tags": [
+          "Domain Router"
+        ],
+        "responses": {
+          "200": {
+            "description": "Advisory routing or policy-filtered case metadata",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Tenant, role or sensitivity denied"
+          },
+          "409": {
+            "description": "Stale case revision; reload and retry"
+          },
+          "422": {
+            "description": "Invalid task or forced receipt"
+          }
+        },
+        "description": "Authenticated tenant, actor, energy role and sensitivity policy required. Advisory only. Local PouchDB case/event metadata; no operational execution. See docs/domain-router.md.",
+        "parameters": [
+          {
+            "name": "caseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "cetCaseId": {
+                    "type": "string"
+                  },
+                  "clientId": {
+                    "type": "string"
+                  },
+                  "targetCaseId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "targetCaseId"
+                ]
+              }
+            }
+          }
+        }
       }
     },
     "/api/domain-routes/": {
@@ -92010,5 +93194,5 @@
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.99.21"
+  "x-version": "0.99.22"
 }

@@ -76,6 +76,31 @@ const MVP_TOOLS = [
   },
 ];
 
+// Advisory case metadata is local PouchDB state; no operational tools execute.
+for (const [name, target] of [
+  ['classify_task', 'classify'],
+  ['continue_case', 'continue'],
+  ['list_case_events', 'events.list'],
+  ['ack_case_event', 'events.ack'],
+  ['discover_related_sessions', 'related-sessions.discover'],
+]) {
+  MVP_TOOLS.push({
+    name: `cernion.${name}`,
+    title: name.replace(/_/g, ' '),
+    targetAction: `domain-router.${target}`,
+    safetyClass: 'advisory_reasoning',
+    requiredScope: 'read-only',
+    tenantPolicy: 'context_tenant_must_match_auth_tenant',
+    rolePolicy: ['authenticated_energy_role'],
+    hitlPolicy: 'must_not_create_or_resolve_human_approval',
+    responseContract: 'domain_router_v1.1',
+    sideEffects: SIDE_EFFECT_NONE,
+    localStateEffects: 'case_state_and_event_delivery_metadata',
+    description:
+      'Advisory Domain Router with authenticated case state and poll/ack; no operational writes.',
+  });
+}
+
 function cloneTool(tool) {
   return {
     ...tool,
@@ -120,7 +145,7 @@ function buildSidecarManifest() {
     schemaVersion: SIDECAR_SCHEMA_VERSION,
     host: 'openclaw',
     toolCount: tools.length,
-    maxToolCount: 5,
+    maxToolCount: MVP_TOOLS.length,
     policyOwner: 'cernion',
     tools,
   };
