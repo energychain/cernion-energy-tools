@@ -32,6 +32,11 @@ function compactToolResult(tool, result) {
     targetAction: tool.targetAction,
     safetyClass: tool.safetyClass,
     sideEffects: tool.sideEffects,
+    effectClass: tool.effectClass,
+    requiresCetAuthorization: tool.requiresCetAuthorization,
+    externalSideEffects: tool.externalSideEffects,
+    governanceBoundary: tool.governanceBoundary,
+    localStateEffects: tool.localStateEffects,
     structuredContent: result,
   };
 }

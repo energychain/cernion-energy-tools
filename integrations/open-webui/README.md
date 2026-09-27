@@ -84,7 +84,7 @@ Start the adapter:
 
 ```bash
 CERNION_AGENT_SIDECAR_BASE_URL=http://127.0.0.1:3900 \
-CERNION_READONLY_TOKEN='<read-only token>' \
+CERNION_READONLY_TOKEN='<authenticated CET sidecar token>' \
 node integrations/open-webui/cernion-openapi-tool-server.js
 ```
 

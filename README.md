@@ -273,9 +273,9 @@ provider.
 
 The product boundary is intentionally split: OpenClaw is the agent runtime for conversation,
 tool orchestration, memory and answer synthesis. Cernion Energy Tools is the energy-domain
-evidence, policy, Knowledge RAG and read-only API layer behind answers about MaStR assets,
-grid context, Redispatch, Zielnetzplanung, 14a/14d EnWG duties, process intake and operational
-status.
+evidence, policy, Knowledge RAG and CET-governed process layer behind answers about MaStR assets,
+grid context, Redispatch, Zielnetzplanung, 14a/14d EnWG duties, process intake, Domain Router
+case state, Case Event Outbox/MWI and operational status.
 
 The sidecar consumes the Cernion Sidecar contract:
 
@@ -290,7 +290,9 @@ The sidecar consumes the Cernion Sidecar contract:
 
 The boundary is deliberately strict:
 
-- read-only Cernion evidence lookup uses a read-only token
+- Sidecar tokens identify tenant, actor and client context; CET authorization/governance is the permission boundary.
+- Domain Router and MWI tools may update internal CET PouchDB state such as case state, event delivery state and related-session links.
+- evidence/hydration lookups and Blueprint plans remain read-only where that is the actual operation.
 - process intake uses a separate process token and creates only `pending_confirmation` receipts
 - admin, token, HITL-resolve and production mutation paths are blocked
 - domain routing remains inside Cernion, not inside the sidecar

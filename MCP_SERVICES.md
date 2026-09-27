@@ -10,10 +10,36 @@ This project provides a complete REST API wrapper around the Cernion Model Conte
 
 - **Moleculer Framework**: Microservices-based architecture
 - **MCP SDK**: HTTP streaming transport to Cernion MCP server
-- **Session Management**: One MCP session per HTTP request
+- **Session Management**: raw MCP calls remain request-scoped; Domain Router cases use PouchDB-backed `cetCaseId` state across client sessions
+- **AgentOS Sidecar**: CET-governed Sidecar tools expose Domain Router, Case State and Case Event Outbox/MWI for Hermes/OpenClaw/Open WebUI clients
 - **Auto-generated OpenAPI**: Documentation available at `/api/openapi.json`
 
 ## Microservices
+
+### AgentOS Domain Router Service (`domain-router`) — v0.99.22+
+Roles-/domänensichere CET Case-Führung für Hermes, OpenClaw, Open WebUI und andere AgentOS-Clients. Raw MCP calls bleiben request-scoped, aber der Domain Router führt fachlichen Case State über `cetCaseId` in PouchDB und speist eine Case Event Outbox/MWI für asynchrone Folgeereignisse.
+
+**REST endpoints:**
+- `POST /api/domain-router/classify` - neue Aufgabe als CET Case klassifizieren
+- `POST /api/domain-router/continue` - bestehenden Case mit `cetCaseId` fortführen
+- `POST /api/domain-router/explain` - Router-Entscheidung/Signale erklären
+- `GET /api/domain-router/events` - pending/delivered Case Events pollen
+- `POST /api/domain-router/events/:eventId/ack` - Event quittieren
+- `POST /api/domain-router/cases/:caseId/related-sessions/discover` - verwandte Sessions/Cases entdecken
+- `POST /api/domain-router/cases/:caseId/related-sessions/link` - verwandte Sessions/Cases verknüpfen
+
+**Sidecar tool mapping:**
+- `cernion.classify_task` → `domain-router.classify`
+- `cernion.continue_case` → `domain-router.continue`
+- `cernion.list_case_events` → `domain-router.events.list`
+- `cernion.ack_case_event` → `domain-router.events.ack`
+- `cernion.discover_related_sessions` → `domain-router.related-sessions.discover`
+
+**Case Event Outbox / MWI:** Clients register or pass poll-style delivery context, then poll `events` and explicitly ack delivered events. Events include `clarification.required`, `domain.changed`, `branch.created`, `evidence.available`, `related.session.reply`, `laufkarte.station.ready`, `control_point.blocked` and readiness changes.
+
+**Governance boundary:** The Sidecar is CET-governed, not merely read-only. Internal CET case/event state and permitted internal data changes may occur when the authenticated tenant/user is authorized by CET. External/binding effects such as market-message sending, approvals, billing, budget commitments or regulatory commitments remain blocked unless explicitly enabled by CET RBAC, tenant/user configuration, HITL and no-call guards.
+
+**Related Session Discovery:** Discovery can use `cetCaseId`, session IDs, Matrix/VDMI process references, evidence refs, `laufkarteId`, `stationId`, `edgeId`, `traceId`, `controlPoint`, `ownerRole` and `roleFamily`.
 
 ### 1. Query Tools Service (`query`)
 Natural language queries and template-based searches
@@ -406,14 +432,16 @@ The Swagger UI provides an interactive interface where you can:
 
 ## MCP Session Management
 
-Each HTTP request creates a new MCP session using the `CernionMCPClient.callWithNewSession()` method:
+Raw MCP-backed HTTP requests create a new MCP session using the `CernionMCPClient.callWithNewSession()` method:
 
 1. Client connects to Cernion MCP server via HTTP streaming (SSE)
 2. Tool is called with provided parameters
 3. Session is automatically closed after response
 4. Result is returned to the REST API caller
 
-This ensures stateless REST API behavior while properly managing MCP sessions.
+This ensures stateless REST API behavior while properly managing MCP sessions for plain MCP calls.
+Domain Router and Agent Sidecar integrations are deliberately stateful at CET level: clients keep
+`cetCaseId`, poll the Case Event Outbox via `/api/domain-router/events`, and ack processed events.
 
 ## MCP Client Usage
 

@@ -51,6 +51,11 @@ function buildToolDescriptor(tool) {
     hitlPolicy: tool.hitlPolicy,
     responseContract: tool.responseContract,
     sideEffects: tool.sideEffects,
+    effectClass: tool.effectClass,
+    requiresCetAuthorization: tool.requiresCetAuthorization,
+    externalSideEffects: tool.externalSideEffects,
+    governanceBoundary: tool.governanceBoundary,
+    localStateEffects: tool.localStateEffects,
     targetAction: tool.targetAction,
     policyOwner: tool.policyOwner,
   };
@@ -117,6 +122,13 @@ function summarizeDescriptorForDossier(descriptor) {
     ).sort(),
     hitlPolicies: Array.from(new Set(descriptor.tools.map((tool) => tool.hitlPolicy))).sort(),
     sideEffects: Array.from(new Set(descriptor.tools.map((tool) => tool.sideEffects))).sort(),
+    effectClasses: Array.from(new Set(descriptor.tools.map((tool) => tool.effectClass))).sort(
+      (a, b) => String(a).localeCompare(String(b))
+    ),
+    externalSideEffects: descriptor.tools.some((tool) => tool.externalSideEffects === true),
+    governanceBoundaries: Array.from(
+      new Set(descriptor.tools.map((tool) => tool.governanceBoundary).filter(Boolean))
+    ).sort((a, b) => String(a).localeCompare(String(b))),
     policyOwner: descriptor.provider.policyOwner,
   };
 }

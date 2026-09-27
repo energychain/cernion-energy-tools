@@ -53,17 +53,34 @@ function assertToolAllowed(tool, ctx, input = {}) {
   }
 
   const tokenScope = ctx?.meta?.apiToken?.scope || ctx?.meta?.authUser?.scope || null;
-  if (!tokenScope) {
+  const tokenId = ctx?.meta?.apiToken?.tokenId || ctx?.meta?.apiToken?.id || null;
+  const actorId =
+    ctx?.meta?.apiToken?.userId ||
+    ctx?.meta?.apiToken?.actorId ||
+    ctx?.meta?.authUser?.userId ||
+    ctx?.meta?.authUser?.id ||
+    null;
+  if (!tokenScope && !tokenId && !actorId) {
     return buildPolicyBlocked('auth_required', {
       requiredScope: tool.requiredScope,
+      governanceBoundary: tool.governanceBoundary,
     });
   }
-  if (!['read-only', 'full-access'].includes(tokenScope)) {
-    return buildPolicyBlocked('unsupported_token_scope', { tokenScope });
+  if (tool.externalSideEffects !== false || tool.effectClass === 'external_business_effect') {
+    return buildPolicyBlocked('external_effect_requires_explicit_cet_governance', {
+      effectClass: tool.effectClass,
+      governanceBoundary: tool.governanceBoundary,
+    });
   }
 
   const authTenant = getAuthenticatedTenant(ctx);
   const contextTenant = normalizeContextTenant(input);
+  if (tool.tenantPolicy === 'context_tenant_must_match_auth_tenant' && !authTenant) {
+    return buildPolicyBlocked('tenant_required', {
+      contextTenant,
+      tenantPolicy: tool.tenantPolicy,
+    });
+  }
   if (authTenant && contextTenant && authTenant !== contextTenant) {
     return buildPolicyBlocked('tenant_mismatch', {
       authTenant,
