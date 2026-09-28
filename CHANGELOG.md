@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Additive Domain Router (#595): PouchDB case state, explicit transitions, policy-isolated trigger outbox, related-session discovery, CET-governed sidecar tools and opt-in Personal Agent shadow hooks. Internal CET case/event state may change; external operational effects remain gated by CET RBAC/HITL and no new external persistence dependencies are introduced.
+- RC3 Open WebUI / Cernion Workbench Tenant-Gateway (#600): adds a CET-governed Workbench API for customers without AgentOS/Hermes/OpenClaw. New PouchDB-backed stores track Open-WebUI conversation mappings, tenant/user/role mappings, delivery clients and EvidenceRefs. New `/api/workbench/*` endpoints expose CET-led chat orchestration, UI-safe case summaries, case inbox, MWI event list/ack, EvidenceRef attach and case dossier rendering. `channel=open-webui` is now accepted by the Domain Router contract, and `/v1/chat/completions` supports `model: "cernion-governance-assistant"` to force the Workbench classify/continue path while preserving existing OpenAI-compatible behavior for other models.
+
+### Testing
+- Added RC3 Workbench coverage for admin tenant/user mapping, delivery-client registration, CET-led classify/continue conversation resume, UI-safe event presentation, EvidenceRef attach and the OpenAI-compatible `cernion-governance-assistant` mode. Targeted regression suite: `tests/workbench.service.test.js`, `tests/openai-compatible.service.test.js`, `tests/domain-router.service.test.js`, `tests/domain-router-shadow.test.js`, `tests/agent-sidecar.service.test.js`, `tests/energy-sidecar-connector.test.js`, `tests/token-manager.service.test.js`.
 
 ## [Unreleased]
 

@@ -2,18 +2,18 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.99.22",
-  "sourceOpenApiHash": "f6877498270a2fe8babae4e5c9e74f060854c7c76664ac035b8b4d90bbfb76ad",
+  "sourceOpenApiHash": "0a5eed783de36ae030bbe9937462ac38a1bac2fa464a24b4f1fb48981646693f",
   "coverage": {
-    "rawOperationCount": 1151,
-    "operationCount": 895,
-    "agentableCount": 893,
+    "rawOperationCount": 1164,
+    "operationCount": 908,
+    "agentableCount": 906,
     "nonAgentableCount": 2,
     "byOperationKind": {
-      "data_read": 391,
-      "admin": 8,
-      "object_store_write": 237,
+      "data_read": 396,
+      "admin": 11,
+      "object_store_write": 241,
       "process_step": 20,
-      "process_start": 43,
+      "process_start": 44,
       "advisory_plan": 47,
       "draft_write": 13,
       "external_effect": 4,
@@ -39139,6 +39139,41 @@
             "extractionHint": "date_range_start"
           },
           {
+            "name": "openWebuiConversationId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "openWebuiUserId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "openWebuiOrgId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "requestId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "correlationId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": "geo_coordinate"
+          },
+          {
             "name": "actorRoles",
             "in": "body",
             "type": "array",
@@ -39398,6 +39433,41 @@
             "type": "string",
             "description": null,
             "extractionHint": "date_range_start"
+          },
+          {
+            "name": "openWebuiConversationId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "openWebuiUserId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "openWebuiOrgId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "requestId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "correlationId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": "geo_coordinate"
           },
           {
             "name": "actorRoles",
@@ -82953,6 +83023,982 @@
           "BNetzA",
           "EnWG",
           "compliance"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "workbench_admin_tenantMappings_create",
+      "method": "POST",
+      "path": "/api/workbench/admin/tenant-mappings",
+      "service": "workbench",
+      "action": "workbench.admin_tenantMappings_create",
+      "summary": "Provision an Open WebUI organization to CET tenant mapping",
+      "tags": [
+        "Workbench"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "admin",
+      "consequenceLevel": "high",
+      "recommendedExecutionMode": "confirm",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.admin_tenant_mappings_create"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "workbench:write",
+        "admin"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "workbench"
+      ],
+      "sideEffects": [
+        "privileged_configuration_change"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "May not be reversible via API - verify with backend/tenant admin before invoking.",
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "workbench",
+          "admin",
+          "tenant",
+          "mappings",
+          "create",
+          "provision",
+          "an",
+          "open",
+          "web",
+          "ui",
+          "organization",
+          "to",
+          "cet",
+          "mapping"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please provision an open webui organization to cet tenant mapping"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "workbench_admin_userMappings_create",
+      "method": "POST",
+      "path": "/api/workbench/admin/user-mappings",
+      "service": "workbench",
+      "action": "workbench.admin_userMappings_create",
+      "summary": "Provision an Open WebUI user to CET actor and role mapping",
+      "tags": [
+        "Workbench"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "admin",
+      "consequenceLevel": "high",
+      "recommendedExecutionMode": "confirm",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.admin_user_mappings_create"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "workbench:write",
+        "admin"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "workbench"
+      ],
+      "sideEffects": [
+        "privileged_configuration_change"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "May not be reversible via API - verify with backend/tenant admin before invoking.",
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "workbench",
+          "admin",
+          "user",
+          "mappings",
+          "create",
+          "provision",
+          "an",
+          "open",
+          "web",
+          "ui",
+          "to",
+          "cet",
+          "actor",
+          "role",
+          "mapping"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please provision an open webui user to cet actor and role mapping"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "workbench_admin_userMappings_get",
+      "method": "GET",
+      "path": "/api/workbench/admin/user-mappings/:externalUserId",
+      "service": "workbench",
+      "action": "workbench.admin_userMappings_get",
+      "summary": "Resolve an Open WebUI user mapping",
+      "tags": [
+        "Workbench"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.admin_user_mappings_get"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "Externaluser"
+      ],
+      "requiredScopes": [
+        "workbench:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [
+          {
+            "name": "externalUserId",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "workbench",
+          "admin",
+          "user",
+          "mappings",
+          "resolve",
+          "an",
+          "open",
+          "web",
+          "ui",
+          "mapping"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me resolve an open webui user mapping"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "workbench_cases_list",
+      "method": "GET",
+      "path": "/api/workbench/cases",
+      "service": "workbench",
+      "action": "workbench.cases_list",
+      "summary": "Return UI-safe Workbench case inbox items",
+      "tags": [
+        "Workbench"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.cases_list"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "workbench:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [],
+        "optional": [
+          {
+            "name": "status",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "domain",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "readinessState",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "type": "number",
+            "description": null,
+            "extractionHint": "result_limit"
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "workbench",
+          "cases",
+          "list",
+          "return",
+          "ui",
+          "safe",
+          "case",
+          "inbox",
+          "items"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me return ui-safe workbench case inbox items"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "workbench_cases_get",
+      "method": "GET",
+      "path": "/api/workbench/cases/:caseId",
+      "service": "workbench",
+      "action": "workbench.cases_get",
+      "summary": "Return a UI-safe CET case summary for Workbench clients",
+      "tags": [
+        "Workbench"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.cases_get"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "Case"
+      ],
+      "requiredScopes": [
+        "workbench:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [
+          {
+            "name": "caseId",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "workbench",
+          "cases",
+          "return",
+          "ui",
+          "safe",
+          "cet",
+          "case",
+          "summary",
+          "clients"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me return a ui-safe cet case summary for workbench clients"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "workbench_cases_dossier",
+      "method": "POST",
+      "path": "/api/workbench/cases/:caseId/dossier",
+      "service": "workbench",
+      "action": "workbench.cases_dossier",
+      "summary": "Render a Workbench dossier wrapper around the current CET case",
+      "tags": [
+        "Workbench"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.cases_dossier"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "Case"
+      ],
+      "requiredScopes": [
+        "workbench:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "workbench"
+      ],
+      "sideEffects": [
+        "creates_or_modifies_stored_object"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "parameters": {
+        "required": [
+          {
+            "name": "caseId",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "workbench",
+          "cases",
+          "dossier",
+          "render",
+          "wrapper",
+          "around",
+          "current",
+          "cet",
+          "case"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please render a workbench dossier wrapper around the current cet case"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "workbench_cases_attachEvidence",
+      "method": "POST",
+      "path": "/api/workbench/cases/:caseId/evidence",
+      "service": "workbench",
+      "action": "workbench.cases_attachEvidence",
+      "summary": "Attach Open WebUI file references as auditable CET EvidenceRefs",
+      "tags": [
+        "Workbench"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.cases_attach_evidence"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "Case"
+      ],
+      "requiredScopes": [
+        "workbench:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "workbench"
+      ],
+      "sideEffects": [
+        "creates_or_modifies_stored_object"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "parameters": {
+        "required": [
+          {
+            "name": "caseId",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "workbench",
+          "cases",
+          "attach",
+          "evidence",
+          "open",
+          "web",
+          "ui",
+          "file",
+          "references",
+          "as",
+          "auditable",
+          "cet",
+          "refs"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please attach open webui file references as auditable cet evidencerefs"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "workbench_chat",
+      "method": "POST",
+      "path": "/api/workbench/chat",
+      "service": "workbench",
+      "action": "workbench.chat",
+      "summary": "Run a CET-led Workbench chat turn: classify new conversations, continue mapped cases",
+      "tags": [
+        "Workbench"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "process_start",
+      "consequenceLevel": "high",
+      "recommendedExecutionMode": "confirm",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.chat"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "workbench:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "workbench"
+      ],
+      "sideEffects": [
+        "starts_new_process_instance"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "No companion rollback operation detected in this service - verify reversibility with backend/tenant admin before invoking.",
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "workbench",
+          "chat",
+          "run",
+          "cet",
+          "led",
+          "turn",
+          "classify",
+          "new",
+          "conversations,",
+          "continue",
+          "mapped",
+          "cases"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please run a cet-led workbench chat turn: classify new conversations, continue mapped cases"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "workbench_conversations_linkCase",
+      "method": "POST",
+      "path": "/api/workbench/conversations/link-case",
+      "service": "workbench",
+      "action": "workbench.conversations_linkCase",
+      "summary": "Link an Open WebUI conversation to a CET case",
+      "tags": [
+        "Workbench"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.conversations_link_case"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "workbench:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "workbench"
+      ],
+      "sideEffects": [
+        "creates_or_modifies_stored_object"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "workbench",
+          "conversations",
+          "link",
+          "case",
+          "an",
+          "open",
+          "web",
+          "ui",
+          "conversation",
+          "to",
+          "cet"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please link an open webui conversation to a cet case"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "workbench_conversations_resolve",
+      "method": "GET",
+      "path": "/api/workbench/conversations/resolve",
+      "service": "workbench",
+      "action": "workbench.conversations_resolve",
+      "summary": "Resolve an Open WebUI conversation to a CET case",
+      "tags": [
+        "Workbench"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.conversations_resolve"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "workbench:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "workbench",
+          "conversations",
+          "resolve",
+          "an",
+          "open",
+          "web",
+          "ui",
+          "conversation",
+          "to",
+          "cet",
+          "case"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me resolve an open webui conversation to a cet case"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "workbench_deliveryClients_create",
+      "method": "POST",
+      "path": "/api/workbench/delivery-clients",
+      "service": "workbench",
+      "action": "workbench.deliveryClients_create",
+      "summary": "Register a tenant-bound Workbench delivery client for MWI polling",
+      "tags": [
+        "Workbench"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "admin",
+      "consequenceLevel": "high",
+      "recommendedExecutionMode": "confirm",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.delivery_clients_create"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "workbench:write",
+        "admin"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "workbench"
+      ],
+      "sideEffects": [
+        "privileged_configuration_change"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "May not be reversible via API - verify with backend/tenant admin before invoking.",
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "workbench",
+          "delivery",
+          "clients",
+          "create",
+          "register",
+          "tenant",
+          "bound",
+          "client",
+          "mwi",
+          "polling"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please register a tenant-bound workbench delivery client for mwi polling"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "workbench_events_list",
+      "method": "GET",
+      "path": "/api/workbench/events",
+      "service": "workbench",
+      "action": "workbench.events_list",
+      "summary": "Return UI-safe pending/delivered CET case events for Workbench clients",
+      "tags": [
+        "Workbench"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.events_list"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "workbench:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [
+          {
+            "name": "clientId",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": [
+          {
+            "name": "caseId",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "cetCaseId",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": "date_range_start"
+          },
+          {
+            "name": "attentionOnly",
+            "in": "query",
+            "type": "boolean",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "workbench",
+          "events",
+          "list",
+          "return",
+          "ui",
+          "safe",
+          "pending",
+          "delivered",
+          "cet",
+          "case",
+          "clients"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me return ui-safe pending/delivered cet case events for workbench clients"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "workbench_events_ack",
+      "method": "POST",
+      "path": "/api/workbench/events/:eventId/ack",
+      "service": "workbench",
+      "action": "workbench.events_ack",
+      "summary": "Acknowledge a Workbench event after visible delivery",
+      "tags": [
+        "Workbench"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.events_ack"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "Event"
+      ],
+      "requiredScopes": [
+        "workbench:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "workbench"
+      ],
+      "sideEffects": [
+        "creates_or_modifies_stored_object"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "parameters": {
+        "required": [
+          {
+            "name": "eventId",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "clientId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "workbench",
+          "events",
+          "ack",
+          "acknowledge",
+          "event",
+          "after",
+          "visible",
+          "delivery"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please acknowledge a workbench event after visible delivery"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
         ],
         "curated": false
       },

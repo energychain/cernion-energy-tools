@@ -17,6 +17,11 @@ const stringFields = [
   'forceReceipt',
   'clientId',
   'since',
+  'openWebuiConversationId',
+  'openWebuiUserId',
+  'openWebuiOrgId',
+  'requestId',
+  'correlationId',
 ];
 const arrayFields = ['actorRoles', 'sensitivityFlags', 'preferredReceipts', 'sharedWithRoles'];
 const taskParams = Object.fromEntries(
@@ -42,7 +47,7 @@ taskParams.requestedMode = {
 };
 taskParams.channel = {
   type: 'enum',
-  values: ['matrix', 'hermes', 'api', 'web', 'test'],
+  values: ['matrix', 'hermes', 'api', 'web', 'test', 'open-webui'],
   optional: true,
 };
 taskParams.caseStateVersion = { type: 'number', integer: true, min: 1, optional: true };

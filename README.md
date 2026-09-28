@@ -418,6 +418,8 @@ User objective
 | [docs/BACKEND_CONTEXT.md](docs/BACKEND_CONTEXT.md) | Backend context for UI/frontend work |
 | [CHANGELOG.md](CHANGELOG.md) | Release history |
 | [MCP_TOOLS.md](MCP_TOOLS.md) | MCP/tool reference |
+| [docs/domain-router.md](docs/domain-router.md) | CET Domain Router, Case State and Case Event Outbox / MWI |
+| [docs/open-webui-tenant-gateway.md](docs/open-webui-tenant-gateway.md) | RC3 Open WebUI / Cernion Workbench Tenant-Gateway access without AgentOS |
 | [llm.txt](llm.txt) | Machine-readable service and capability context |
 | [SECURITY.md](SECURITY.md) | Security policy |
 
