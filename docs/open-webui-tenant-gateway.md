@@ -79,7 +79,40 @@ The Workbench wrapper returns UI-safe fields such as `title`, `safeDisplayText`,
 
 ## Evidence
 
-Files uploaded through Open WebUI must be attached as CET EvidenceRefs using `/api/workbench/cases/:caseId/evidence`. The Workbench endpoint stores provenance and hashes or marks hash as pending for external file references. Raw file content is not placed into model output by this contract.
+Files uploaded through Open WebUI must be attached as CET EvidenceRefs using `/api/workbench/cases/:caseId/evidence`. The Workbench endpoint stores provenance and either a caller-provided file/content hash or `hashStatus: "unavailable"`; it does not fabricate an Inhalts-Hash for external references. Raw file content is not placed into model output by this contract.
+
+Allowed `evidenceType` values in the RC3 EvidenceRef contract:
+
+- `aperak_message`
+- `contrl_message`
+- `mscons_message_status`
+- `utilmd_master_data`
+- `mako_process_trace`
+- `mako_error_code_diagnosis`
+- `market_partner_protocol`
+- `metering_values_export`
+- `grid_connection_document`
+- `calculation_assumption`
+- `generic_document`
+
+Allowed `sourceType` values:
+
+- `openwebui_file_ref`
+- `external_url_ref`
+- `manual_metadata`
+- `uploaded_file`
+- `existing_cet_evidence_ref`
+- `willi_mako_ref`
+
+Sensitivity levels are `public`, `tenant_internal`, `restricted` and `highly_sensitive`. `restricted` and `highly_sensitive` EvidenceRefs require matching CET sensitivity clearance on attach and are redacted in Workbench case summaries/dossiers for users without clearance.
+
+`sourceRef` and optional `extracts` are allowlisted and length-limited. Secret-like fields (`authorization`, `token`, `apiKey`, `password`, `cookie`, `secret`, `credential`, bearer values) are rejected; arbitrary nested payloads and raw message/file bodies are not echoed to the UI or LLM context. Duplicate EvidenceRefs with the same tenant/case/source fingerprint are idempotent and do not emit duplicate `evidence.available` events.
+
+### Willi-MaKo references
+
+MaKo diagnostics from `willi.cernion.de` should be attached with `sourceType: "willi_mako_ref"`. Willi is modeled as a supporting Evidence-/Diagnosequelle, not as the case decision owner. CET remains the case-state, audit and governance authority.
+
+A Willi-MaKo APERAK Z18 reference may include allowlisted fields such as `williCaseRef`, `messageId`, `processRef`, `messageType`, `relatedMessageType`, `errorCode`, `segmentRef`, `ahbVersion`, `maloId`, `meloId`, `marketPartner`, `direction`, `timestamp` and `safeSummary`. It produces a UI-safe EvidenceRef with `provenance.system: "willi.cernion.de"`, `evidenceRole: "diagnostic_signal"`, `claimStrength: "supporting"` and `readinessReviewRequired: true`. APERAK Z18 is a strong `market_communication` signal and may add `market_master_data` routing hints when MaLo/MeLo/Lieferbeginn context is present, but it must not be treated as a final cause without APERAK/AHB segment context and Stammdatenhistorie.
 
 ## Safety boundaries
 
