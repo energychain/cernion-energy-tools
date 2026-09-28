@@ -193,7 +193,24 @@ class WorkbenchStore {
     }
   }
 
+  async findEvidenceByFingerprint(input) {
+    const rows = await this.evidenceDb.allDocs({ include_docs: true });
+    return rows.rows
+      .map((r) => r.doc)
+      .find(
+        (doc) =>
+          doc.tenantId === input.tenantId &&
+          doc.caseId === input.caseId &&
+          doc.sourceFingerprint &&
+          doc.sourceFingerprint === input.sourceFingerprint
+      );
+  }
+
   async saveEvidence(input) {
+    const existing = input.sourceFingerprint ? await this.findEvidenceByFingerprint(input) : null;
+    if (existing && !input.forceNewVersion) {
+      return { ...existing, duplicate: true, duplicateOf: existing.evidenceId };
+    }
     const _id = evidenceId(input.tenantId, input.caseId, input.evidenceId);
     const timestamp = now();
     const doc = {
@@ -206,16 +223,26 @@ class WorkbenchStore {
       evidenceType: input.evidenceType,
       label: input.label,
       description: input.description || null,
+      safeSummary: input.safeSummary || null,
       sourceType: input.sourceType,
       sourceRef: input.sourceRef || {},
+      extracts: input.extracts || {},
       sensitivityLevel: input.sensitivityLevel || 'tenant_internal',
       status: input.status || 'attached',
       hash: input.hash || null,
+      fileHash: input.fileHash || null,
+      hashStatus: input.hashStatus || (input.fileHash ? 'provided' : 'unavailable'),
+      sourceFingerprint: input.sourceFingerprint || null,
+      provenance: input.provenance || null,
+      evidenceRole: input.evidenceRole || 'supporting_evidence',
+      claimStrength: input.claimStrength || 'reference',
+      readinessReviewRequired: !!input.readinessReviewRequired,
+      routingSignals: input.routingSignals || [],
       createdAt: timestamp,
       updatedAt: timestamp,
     };
     const saved = await this.evidenceDb.put(doc);
-    return { ...doc, _rev: saved.rev };
+    return { ...doc, _rev: saved.rev, duplicate: false };
   }
 
   async listEvidence(input) {

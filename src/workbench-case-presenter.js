@@ -1,5 +1,7 @@
 'use strict';
 
+const { safeEvidenceRef } = require('./workbench-evidence');
+
 function text(value, fallback = '') {
   return String(value == null || value === '' ? fallback : value);
 }
@@ -11,8 +13,9 @@ function titleFromCase(state) {
   return request ? `${domain}: ${text(request).slice(0, 80)}` : `${domain} Case ${state.cetCaseId}`;
 }
 
-function presentCase(state, { evidenceRefs = [], eventSummary = null } = {}) {
+function presentCase(state, { evidenceRefs = [], eventSummary = null, clearance = [] } = {}) {
   const c = state.lastClassification || {};
+  const safeRefs = evidenceRefs.map((e) => safeEvidenceRef(e, { clearance }));
   return {
     caseId: state.cetCaseId,
     cetCaseId: state.cetCaseId,
@@ -34,14 +37,14 @@ function presentCase(state, { evidenceRefs = [], eventSummary = null } = {}) {
     selectedReceipts: c.selectedReceipts || [],
     lastResponseText: c.responseText || c.responseGuidance || '',
     eventSummary: eventSummary || { pending: 0, attention: 0 },
-    evidenceRefs: evidenceRefs.map((e) => ({
-      evidenceId: e.evidenceId,
-      type: e.evidenceType,
-      label: e.label,
-      status: e.status,
-      hash: e.hash,
-      createdAt: e.createdAt,
-    })),
+    evidenceSummary: {
+      total: evidenceRefs.length,
+      redacted: safeRefs.filter((e) => e.redacted).length,
+      readinessReviewRequired: safeRefs.some((e) => e.readinessReviewRequired),
+    },
+    readinessReviewRequired: safeRefs.some((e) => e.readinessReviewRequired),
+    redactedEvidenceCount: safeRefs.filter((e) => e.redacted).length,
+    evidenceRefs: safeRefs,
     noRawEvidencePayloads: true,
     createdAt: state.createdAt || state.updatedAt,
     updatedAt: state.updatedAt,

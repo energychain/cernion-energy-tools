@@ -14,7 +14,7 @@ const {
 } = require('../src/workbench-contract');
 const { presentCase, presentCaseListItem } = require('../src/workbench-case-presenter');
 const { presentEvent } = require('../src/workbench-event-presenter');
-const { normalizeEvidenceInput } = require('../src/workbench-evidence');
+const { normalizeEvidenceInput, safeEvidenceRef } = require('../src/workbench-evidence');
 
 const action = (rest, summary, handler, params = {}) => ({
   rest,
@@ -69,6 +69,7 @@ module.exports = {
           {
             evidenceRefs,
             eventSummary: await this.eventSummary(p, ctx.params.caseId),
+            clearance: p.clearance,
           }
         );
       },
@@ -354,31 +355,37 @@ module.exports = {
       async function (ctx) {
         const p = principal(ctx, ctx.params);
         await this.loadVisibleCase(ctx, p, ctx.params.caseId);
-        const evidence = normalizeEvidenceInput(ctx.params);
+        const evidence = normalizeEvidenceInput(ctx.params, {
+          tenantId: p.tenantId,
+          actorId: p.actorId,
+          caseId: ctx.params.caseId,
+          clearance: p.clearance,
+        });
         const saved = await this.store.saveEvidence({
           ...evidence,
           tenantId: p.tenantId,
           actorId: p.actorId,
           caseId: ctx.params.caseId,
+          forceNewVersion: ctx.params.forceNewVersion === true,
         });
-        await ctx.call('domain-router.ingestUpdate', {
-          cetCaseId: ctx.params.caseId,
-          kind: 'evidence_available',
-          version: saved.evidenceId,
-          validated: false,
-          evidenceRef: saved.evidenceId,
-        });
+        const generatedEvents = [];
+        if (!saved.duplicate) {
+          await ctx.call('domain-router.ingestUpdate', {
+            cetCaseId: ctx.params.caseId,
+            kind: 'evidence_available',
+            version: saved.evidenceId,
+            validated: false,
+            evidenceRef: saved.evidenceId,
+            readinessReviewRequired: !!saved.readinessReviewRequired,
+          });
+          generatedEvents.push({ eventType: 'evidence.available', severity: 'info' });
+        }
         return {
-          evidenceRef: {
-            evidenceId: saved.evidenceId,
-            caseId: saved.caseId,
-            type: saved.evidenceType,
-            label: saved.label,
-            status: saved.status,
-            hash: saved.hash,
-            createdAt: saved.createdAt,
-          },
-          generatedEvents: [{ eventType: 'evidence.available', severity: 'info' }],
+          evidenceRef: safeEvidenceRef(saved, { clearance: p.clearance }),
+          duplicate: !!saved.duplicate,
+          duplicateOf: saved.duplicateOf,
+          readinessReviewRequired: !!saved.readinessReviewRequired,
+          generatedEvents,
         };
       },
       caseParams
@@ -395,6 +402,7 @@ module.exports = {
             caseId: ctx.params.caseId,
           }),
           eventSummary: await this.eventSummary(p, ctx.params.caseId),
+          clearance: p.clearance,
         });
         let content = `# ${summary.title}\n\n${summary.lastResponseText || 'CET case summary.'}`;
         try {

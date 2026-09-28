@@ -258,9 +258,185 @@ describe('Workbench RC3 Open WebUI Tenant Gateway', () => {
       },
       userMeta
     );
-    expect(attached.evidenceRef).toMatchObject({ type: 'aperak_message', status: 'attached' });
+    expect(attached.evidenceRef).toMatchObject({
+      type: 'aperak_message',
+      status: 'attached',
+      hashStatus: 'unavailable',
+      readinessReviewRequired: true,
+    });
+    expect(attached.generatedEvents).toEqual([
+      expect.objectContaining({ eventType: 'evidence.available' }),
+    ]);
     await expect(
       call('cases.attachEvidence', { caseId: c.cetCaseId, label: 'x' }, otherTenantMeta)
-    ).rejects.toThrow(/not accessible|not_found|missing/iu);
+    ).rejects.toThrow(/not accessible|not_found|missing|Case not accessible/iu);
+  });
+
+  test('evidence contract rejects unknown values and secret-like payloads', async () => {
+    const c = await router('classify', {
+      userRequest: 'Evidence Grenzen prüfen',
+      asyncDelivery: { mode: 'poll', clientId: 'openwebui-tenant-a' },
+    });
+    await expect(
+      call(
+        'cases.attachEvidence',
+        { caseId: c.cetCaseId, evidenceType: 'raw_dump', label: 'bad' },
+        userMeta
+      )
+    ).rejects.toThrow(/Unsupported evidenceType/iu);
+    await expect(
+      call(
+        'cases.attachEvidence',
+        { caseId: c.cetCaseId, sourceType: 'random_blob', label: 'bad' },
+        userMeta
+      )
+    ).rejects.toThrow(/Unsupported sourceType/iu);
+    await expect(
+      call(
+        'cases.attachEvidence',
+        {
+          caseId: c.cetCaseId,
+          evidenceType: 'generic_document',
+          sourceType: 'manual_metadata',
+          label: 'Secret Leak',
+          sourceRef: { token: 'abc', safeSummary: 'x' },
+        },
+        userMeta
+      )
+    ).rejects.toThrow(/secret|token|must not contain/iu);
+    await expect(
+      call(
+        'cases.attachEvidence',
+        {
+          caseId: c.cetCaseId,
+          evidenceType: 'generic_document',
+          sourceType: 'manual_metadata',
+          label: 'x'.repeat(200),
+        },
+        userMeta
+      )
+    ).rejects.toThrow(/label too long/iu);
+  });
+
+  test('evidence sensitivity gates and safe case summary redaction', async () => {
+    const restrictedMeta = {
+      apiToken: {
+        ...userMeta.apiToken,
+        id: 'user-a',
+        sensitivityFlags: ['restricted'],
+      },
+    };
+    const c = await router('classify', {
+      userRequest: 'Restricted Evidence prüfen',
+      asyncDelivery: { mode: 'poll', clientId: 'openwebui-tenant-a' },
+    });
+    await expect(
+      call(
+        'cases.attachEvidence',
+        {
+          caseId: c.cetCaseId,
+          evidenceType: 'generic_document',
+          sourceType: 'manual_metadata',
+          sensitivityLevel: 'restricted',
+          label: 'Restricted Doc',
+          sourceRef: { safeSummary: 'restricted facts' },
+        },
+        userMeta
+      )
+    ).rejects.toThrow(/sensitivity clearance required|SENSITIVITY/iu);
+    const attached = await call(
+      'cases.attachEvidence',
+      {
+        caseId: c.cetCaseId,
+        evidenceType: 'generic_document',
+        sourceType: 'manual_metadata',
+        sensitivityLevel: 'restricted',
+        label: 'Restricted Doc',
+        sourceRef: { safeSummary: 'restricted facts' },
+      },
+      restrictedMeta
+    );
+    expect(attached.evidenceRef.redacted).toBeFalsy();
+    const unrestrictedSummary = await call(
+      'cases.get',
+      { caseId: c.cetCaseId, includeEvidence: true },
+      userMeta
+    );
+    expect(unrestrictedSummary.evidenceRefs[0]).toMatchObject({
+      status: 'restricted',
+      redacted: true,
+    });
+    const restrictedSummary = await call(
+      'cases.get',
+      { caseId: c.cetCaseId, includeEvidence: true },
+      restrictedMeta
+    );
+    expect(restrictedSummary.evidenceRefs[0]).toMatchObject({
+      label: 'Restricted Doc',
+      sensitivityLevel: 'restricted',
+    });
+  });
+
+  test('duplicate evidence fingerprint is idempotent and does not emit duplicate events', async () => {
+    const c = await router('classify', {
+      userRequest: 'Duplikate prüfen',
+      asyncDelivery: { mode: 'poll', clientId: 'openwebui-tenant-a' },
+    });
+    const params = {
+      caseId: c.cetCaseId,
+      sourceType: 'openwebui_file_ref',
+      sourceRef: { fileId: 'file-dup', fileName: 'APERAK.xml', mimeType: 'application/xml' },
+      evidenceType: 'aperak_message',
+      label: 'APERAK duplicate',
+    };
+    const first = await call('cases.attachEvidence', params, userMeta);
+    const second = await call('cases.attachEvidence', params, userMeta);
+    expect(second.duplicate).toBe(true);
+    expect(second.duplicateOf).toBe(first.evidenceRef.evidenceId);
+    expect(second.generatedEvents).toEqual([]);
+  });
+
+  test('Willi-MaKo APERAK Z18 references are safe diagnostic evidence', async () => {
+    const c = await router('classify', {
+      userRequest: 'APERAK Z18 mit Willi prüfen',
+      asyncDelivery: { mode: 'poll', clientId: 'openwebui-tenant-a' },
+    });
+    const attached = await call(
+      'cases.attachEvidence',
+      {
+        caseId: c.cetCaseId,
+        evidenceType: 'mako_error_code_diagnosis',
+        sourceType: 'willi_mako_ref',
+        label: 'Willi-MaKo APERAK Z18 Diagnose',
+        sourceRef: {
+          williTenantRef: 'tenant-a',
+          williCaseRef: 'willi-case-1',
+          messageId: 'APERAK-1',
+          processRef: 'MSCONS-1',
+          messageType: 'APERAK',
+          relatedMessageType: 'MSCONS',
+          errorCode: 'Z18',
+          segmentRef: 'RFF',
+          ahbVersion: '2024-10',
+          maloId: 'DE01234567890',
+          direction: 'inbound',
+          marketPartner: 'partner-a',
+          safeSummary:
+            'APERAK weist die MSCONS im Prozesskontext zurück; AHB und Stammdatenhistorie prüfen.',
+        },
+      },
+      userMeta
+    );
+    expect(attached.evidenceRef).toMatchObject({
+      sourceType: 'willi_mako_ref',
+      evidenceRole: 'diagnostic_signal',
+      claimStrength: 'supporting',
+      readinessReviewRequired: true,
+    });
+    expect(attached.evidenceRef.provenance.system).toBe('willi.cernion.de');
+    expect(attached.evidenceRef.routingSignals).toEqual(
+      expect.arrayContaining(['market_communication', 'aperak_z18', 'market_master_data'])
+    );
+    expect(JSON.stringify(attached)).not.toMatch(/rawMessage|token|credential/iu);
   });
 });
