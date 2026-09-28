@@ -163,7 +163,48 @@ describe('Workbench RC3 Open WebUI Tenant Gateway', () => {
     expect(platformTenant.mapping.cetTenantId).toBe('tenant-b');
   });
 
+  test('tenant admin cannot read foreign user mappings', async () => {
+    await call('admin.tenantMappings.create', {
+      client: 'open-webui',
+      externalOrgId: 'ow-org-b',
+      cetTenantId: 'tenant-b',
+    });
+    await call('admin.userMappings.create', {
+      client: 'open-webui',
+      externalOrgId: 'ow-org-b',
+      externalUserId: 'ow-user-b',
+      cetTenantId: 'tenant-b',
+      cetActorId: 'user-b',
+      roles: ['ROLE_GRID_OPERATOR'],
+    });
+
+    await expect(
+      call(
+        'admin.userMappings.get',
+        {
+          client: 'open-webui',
+          externalOrgId: 'ow-org-b',
+          externalUserId: 'ow-user-b',
+        },
+        tenantAdminMeta
+      )
+    ).rejects.toThrow(/foreign tenant|denied|forbidden/iu);
+
+    const platformRead = await call('admin.userMappings.get', {
+      client: 'open-webui',
+      externalOrgId: 'ow-org-b',
+      externalUserId: 'ow-user-b',
+    });
+    expect(platformRead.mapping).toMatchObject({ cetTenantId: 'tenant-b', cetActorId: 'user-b' });
+  });
+
   test('chat classifies new Open WebUI conversations and continues mapped cases', async () => {
+    await call('admin.tenantMappings.create', {
+      client: 'open-webui',
+      externalOrgId: 'ow-org',
+      cetTenantId: 'tenant-a',
+      defaultClientId: 'openwebui-tenant-a',
+    });
     await call('admin.userMappings.create', {
       client: 'open-webui',
       externalOrgId: 'ow-org',
@@ -196,6 +237,43 @@ describe('Workbench RC3 Open WebUI Tenant Gateway', () => {
     expect(second.usedOperation).toBe('continue');
     expect(second.cetCaseId).toBe(first.cetCaseId);
     expect(second.caseStateVersion).toBeGreaterThan(first.caseStateVersion);
+  });
+
+  test('chat identity mapping fails closed for partial or unmapped Open WebUI identifiers', async () => {
+    await expect(
+      call('chat', {
+        client: 'open-webui',
+        channel: 'open-webui',
+        openWebuiUserId: 'ow-user-no-org',
+        openWebuiConversationId: 'partial-chat',
+        clientId: 'openwebui-tenant-a',
+        message: 'MSCONS fehlt',
+      })
+    ).rejects.toThrow(/identifiers must be provided together|WORKBENCH_IDENTITY_INCOMPLETE/iu);
+
+    const service = broker.getLocalService('workbench');
+    await service.store.saveUserMapping({
+      client: 'open-webui',
+      externalOrgId: 'ow-org-without-tenant',
+      externalUserId: 'ow-user',
+      cetTenantId: 'tenant-a',
+      cetActorId: 'user-a',
+      roles: ['ROLE_GRID_OPERATOR'],
+      sensitivityClearance: [],
+      enabled: true,
+    });
+
+    await expect(
+      call('chat', {
+        client: 'open-webui',
+        channel: 'open-webui',
+        openWebuiOrgId: 'ow-org-without-tenant',
+        openWebuiUserId: 'ow-user',
+        openWebuiConversationId: 'unmapped-org-chat',
+        clientId: 'openwebui-tenant-a',
+        message: 'MSCONS fehlt',
+      })
+    ).rejects.toThrow(/tenant mapping required|WORKBENCH_TENANT_MAPPING_REQUIRED/iu);
   });
 
   test('case summary, conversation resolve and UI-safe events do not expose raw payloads', async () => {
@@ -240,6 +318,32 @@ describe('Workbench RC3 Open WebUI Tenant Gateway', () => {
       safeDisplayText: expect.stringContaining(c.cetCaseId),
     });
     expect(events.items[0].payload).toBeUndefined();
+  });
+
+  test('conversation resolve verifies case visibility before returning case metadata', async () => {
+    const c = await router('classify', {
+      userRequest: 'Tenant A Case',
+      channel: 'open-webui',
+      conversationId: 'tenant-a-chat',
+      asyncDelivery: { mode: 'poll', clientId: 'openwebui-tenant-a' },
+    });
+    const service = broker.getLocalService('workbench');
+    await service.store.linkConversation({
+      tenantId: 'tenant-b',
+      client: 'open-webui',
+      conversationId: 'leaky-chat',
+      openWebuiConversationId: 'leaky-chat',
+      cetCaseId: c.cetCaseId,
+      caseStateVersion: 1,
+    });
+
+    await expect(
+      call(
+        'conversations.resolve',
+        { client: 'open-webui', conversationId: 'leaky-chat' },
+        otherTenantMeta
+      )
+    ).rejects.toThrow(/not accessible|not_found|Case not accessible|missing/iu);
   });
 
   test('evidence attach stores EvidenceRef and blocks cross-tenant access', async () => {
