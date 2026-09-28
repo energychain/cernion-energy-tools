@@ -116,6 +116,7 @@ module.exports = {
       async function (ctx) {
         const p = principal(ctx, ctx.params);
         const ref = normalizeConversationRef(ctx.params);
+        this.assertCompleteOpenWebUiIdentity(ref);
         const caseId = cleanString(ctx.params.caseId || ctx.params.cetCaseId, 'caseId', {
           required: true,
         });
@@ -141,16 +142,18 @@ module.exports = {
       async function (ctx) {
         const p = principal(ctx, ctx.params);
         const ref = normalizeConversationRef(ctx.params);
+        this.assertCompleteOpenWebUiIdentity(ref);
         const mapping = await this.store.resolveConversation(
           { tenantId: p.tenantId, client: ref.client, conversationId: ref.conversationId },
           { optional: true }
         );
         if (!mapping) return { found: false };
+        const full = await this.loadVisibleCase(ctx, p, mapping.cetCaseId);
         return {
           found: true,
           caseId: mapping.cetCaseId,
           cetCaseId: mapping.cetCaseId,
-          caseStateVersion: mapping.caseStateVersion,
+          caseStateVersion: full.caseStateVersion || mapping.caseStateVersion,
           status: 'active',
           conversationRef: this.conversationRef(mapping),
         };
@@ -205,13 +208,16 @@ module.exports = {
       async function (ctx) {
         const p = this.requireAdmin(ctx);
         const client = normalizeClient(ctx.params.client || 'open-webui');
+        const externalOrgId = cleanString(ctx.params.externalOrgId, 'externalOrgId', {
+          required: true,
+        });
         const cetTenantId = this.authorizeTargetTenant(
           p,
           cleanString(ctx.params.cetTenantId || p.tenantId, 'cetTenantId', { required: true })
         );
         const mapping = await this.store.saveTenantMapping({
           client,
-          externalOrgId: cleanString(ctx.params.externalOrgId, 'externalOrgId', { required: true }),
+          externalOrgId,
           cetTenantId,
           defaultClientId: cleanString(ctx.params.defaultClientId, 'defaultClientId'),
           enabled: ctx.params.enabled !== false,
@@ -226,26 +232,32 @@ module.exports = {
         const p = this.requireAdmin(ctx);
         const client = normalizeClient(ctx.params.client || 'open-webui');
         const roles = Array.isArray(ctx.params.roles) ? ctx.params.roles : p.roles;
+        const externalOrgId = cleanString(
+          ctx.params.externalOrgId || ctx.params.openWebuiOrgId,
+          'externalOrgId',
+          {
+            required: true,
+          }
+        );
+        const externalUserId = cleanString(
+          ctx.params.externalUserId || ctx.params.openWebuiUserId,
+          'externalUserId',
+          {
+            required: true,
+          }
+        );
         const cetTenantId = this.authorizeTargetTenant(
           p,
           cleanString(ctx.params.cetTenantId || p.tenantId, 'cetTenantId', { required: true })
         );
+        const tenantMapping = await this.loadTenantMappingForAdmin(p, client, externalOrgId);
+        if (tenantMapping.cetTenantId !== cetTenantId) {
+          deny('Workbench user mapping tenant does not match organization mapping');
+        }
         const mapping = await this.store.saveUserMapping({
           client,
-          externalOrgId: cleanString(
-            ctx.params.externalOrgId || ctx.params.openWebuiOrgId,
-            'externalOrgId',
-            {
-              required: true,
-            }
-          ),
-          externalUserId: cleanString(
-            ctx.params.externalUserId || ctx.params.openWebuiUserId,
-            'externalUserId',
-            {
-              required: true,
-            }
-          ),
+          externalOrgId,
+          externalUserId,
           cetTenantId,
           cetActorId: cleanString(
             ctx.params.cetActorId || ctx.params.actorId || p.actorId,
@@ -266,21 +278,24 @@ module.exports = {
       'GET /admin/user-mappings/:externalUserId',
       'Resolve an Open WebUI user mapping',
       async function (ctx) {
-        this.requireAdmin(ctx);
+        const p = this.requireAdmin(ctx);
         const client = normalizeClient(ctx.params.client || 'open-webui');
+        const externalOrgId = cleanString(
+          ctx.params.externalOrgId || ctx.params.openWebuiOrgId,
+          'externalOrgId',
+          {
+            required: true,
+          }
+        );
+        await this.loadTenantMappingForAdmin(p, client, externalOrgId);
         const mapping = await this.store.getUserMapping({
           client,
-          externalOrgId: cleanString(
-            ctx.params.externalOrgId || ctx.params.openWebuiOrgId,
-            'externalOrgId',
-            {
-              required: true,
-            }
-          ),
+          externalOrgId,
           externalUserId: cleanString(ctx.params.externalUserId, 'externalUserId', {
             required: true,
           }),
         });
+        this.authorizeTargetTenant(p, mapping.cetTenantId);
         return { found: true, mapping };
       },
       { externalUserId: 'string' }
@@ -469,7 +484,23 @@ module.exports = {
       };
     },
     async resolveUserMapping(ctx, p, envelope) {
+      this.assertCompleteOpenWebUiIdentity(envelope);
       if (!envelope.openWebuiUserId || !envelope.openWebuiOrgId) return null;
+      const tenantMapping = await this.store.getTenantMapping(
+        {
+          client: envelope.channel,
+          externalOrgId: envelope.openWebuiOrgId,
+        },
+        { optional: true }
+      );
+      if (!tenantMapping) {
+        throw new Errors.MoleculerClientError(
+          'Workbench tenant mapping required',
+          403,
+          'WORKBENCH_TENANT_MAPPING_REQUIRED'
+        );
+      }
+      if (tenantMapping.cetTenantId !== p.tenantId) deny('Workbench tenant mapping mismatch');
       const mapping = await this.store.getUserMapping(
         {
           client: envelope.channel,
@@ -487,6 +518,22 @@ module.exports = {
       }
       if (mapping.cetTenantId !== p.tenantId) deny('Workbench tenant mapping mismatch');
       return mapping;
+    },
+    assertCompleteOpenWebUiIdentity(input = {}) {
+      const hasUser = !!input.openWebuiUserId;
+      const hasOrg = !!input.openWebuiOrgId;
+      if (hasUser !== hasOrg) {
+        throw new Errors.MoleculerClientError(
+          'Open WebUI user and organization identifiers must be provided together',
+          403,
+          'WORKBENCH_IDENTITY_INCOMPLETE'
+        );
+      }
+    },
+    async loadTenantMappingForAdmin(p, client, externalOrgId) {
+      const tenantMapping = await this.store.getTenantMapping({ client, externalOrgId });
+      this.authorizeTargetTenant(p, tenantMapping.cetTenantId);
+      return tenantMapping;
     },
     conversationRef(mapping) {
       return {

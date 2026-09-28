@@ -112,6 +112,19 @@ class WorkbenchStore {
     return { ...doc, _rev: saved.rev };
   }
 
+  async getTenantMapping(input, { optional = false } = {}) {
+    const _id = tenantMappingId(input.client, input.externalOrgId);
+    try {
+      const doc = await this.identityDb.get(_id);
+      if (doc.enabled === false) disabled('Tenant mapping disabled');
+      return doc;
+    } catch (e) {
+      if (e.status === 404 && optional) return null;
+      if (e.status === 404) notFound('Tenant mapping not found');
+      throw e;
+    }
+  }
+
   async saveUserMapping(input) {
     const _id = identityId(input.client, input.externalOrgId, input.externalUserId);
     let existing = null;
