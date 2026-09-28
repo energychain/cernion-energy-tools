@@ -329,7 +329,7 @@ module.exports = {
         const p = principal(ctx, ctx.params);
         const envelope = normalizeTaskEnvelope(ctx.params);
         const mapping = await this.resolveUserMapping(ctx, p, envelope);
-        const conversation = await this.store.resolveConversation(
+        let conversation = await this.store.resolveConversation(
           {
             tenantId: p.tenantId,
             client: envelope.channel,
@@ -337,6 +337,31 @@ module.exports = {
           },
           { optional: true }
         );
+        let reservation = null;
+        if (!conversation) {
+          reservation = await this.store.reserveConversation({
+            tenantId: p.tenantId,
+            client: envelope.channel,
+            conversationId: envelope.conversationId,
+            openWebuiConversationId: envelope.openWebuiConversationId,
+            openWebuiUserId: envelope.openWebuiUserId,
+            openWebuiOrgId: envelope.openWebuiOrgId,
+            clientId: envelope.asyncDelivery.clientId,
+          });
+          conversation = reservation.reserved
+            ? null
+            : await this.waitForConversationCase({
+                tenantId: p.tenantId,
+                client: envelope.channel,
+                conversationId: envelope.conversationId,
+              });
+        } else if (!conversation.cetCaseId) {
+          conversation = await this.waitForConversationCase({
+            tenantId: p.tenantId,
+            client: envelope.channel,
+            conversationId: envelope.conversationId,
+          });
+        }
         const meta = this.metaForMapping(ctx, p, mapping);
         const params = {
           ...envelope,
@@ -357,6 +382,18 @@ module.exports = {
             openWebuiUserId: envelope.openWebuiUserId,
             openWebuiOrgId: envelope.openWebuiOrgId,
             cetCaseId: result.cetCaseId,
+            caseStateVersion: result.caseStateVersion,
+            clientId: envelope.asyncDelivery.clientId,
+          });
+        } else if (result?.caseStateVersion) {
+          await this.store.linkConversation({
+            tenantId: p.tenantId,
+            client: envelope.channel,
+            conversationId: envelope.conversationId,
+            openWebuiConversationId: envelope.openWebuiConversationId,
+            openWebuiUserId: envelope.openWebuiUserId,
+            openWebuiOrgId: envelope.openWebuiOrgId,
+            cetCaseId: result.cetCaseId || conversation.cetCaseId,
             caseStateVersion: result.caseStateVersion,
             clientId: envelope.asyncDelivery.clientId,
           });
@@ -592,6 +629,19 @@ module.exports = {
         );
       }
       return registered;
+    },
+    async waitForConversationCase(input) {
+      const attempts = 20;
+      for (let i = 0; i < attempts; i += 1) {
+        const mapping = await this.store.resolveConversation(input, { optional: true });
+        if (mapping?.cetCaseId) return mapping;
+        await new Promise((resolve) => setTimeout(resolve, 25));
+      }
+      throw new Errors.MoleculerClientError(
+        'Workbench conversation classification still pending',
+        409,
+        'WORKBENCH_CONVERSATION_PENDING'
+      );
     },
     chatResponse(usedOperation, result) {
       return {
