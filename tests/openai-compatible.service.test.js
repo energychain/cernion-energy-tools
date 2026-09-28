@@ -332,6 +332,54 @@ describe('OpenAI Compatible Service', () => {
     expect(ctx.call).not.toHaveBeenCalled();
   });
 
+  it('routes cernion-governance-assistant through workbench.chat and returns CET metadata', async () => {
+    const ctx = {
+      params: {
+        model: 'cernion-governance-assistant',
+        messages: [{ role: 'user', content: 'MSCONS fehlt, was ist der nächste sichere Schritt?' }],
+        metadata: {
+          client: 'open-webui',
+          conversationId: 'owui-chat-1',
+          openWebuiUserId: 'ow-user',
+          openWebuiOrgId: 'ow-org',
+          clientId: 'openwebui-tenant-a',
+        },
+      },
+      meta: { apiToken: { tenantId: 'tenant-a', id: 'actor-a', roles: ['ROLE_EDM'] } },
+      call: jest.fn().mockResolvedValue({
+        cetCaseId: 'case-1',
+        caseStateVersion: 2,
+        primaryDomain: 'edm',
+        readinessState: 'evidence_required',
+        responseText: 'CET-geführte Antwort.',
+        events: [{ eventId: 'evt-1' }],
+      }),
+    };
+
+    const result = await handler(ctx);
+
+    expect(ctx.call).toHaveBeenCalledWith('workbench.chat', {
+      client: 'open-webui',
+      channel: 'open-webui',
+      openWebuiConversationId: 'owui-chat-1',
+      openWebuiUserId: 'ow-user',
+      openWebuiOrgId: 'ow-org',
+      clientId: 'openwebui-tenant-a',
+      message: 'MSCONS fehlt, was ist der nächste sichere Schritt?',
+      requestId: undefined,
+      correlationId: undefined,
+    });
+    expect(result.model).toBe('cernion-governance-assistant');
+    expect(result.choices[0].message.content).toBe('CET-geführte Antwort.');
+    expect(result.metadata).toMatchObject({
+      cetCaseId: 'case-1',
+      primaryDomain: 'edm',
+      readinessState: 'evidence_required',
+      pendingEvents: 1,
+    });
+    expect(result.cernion.sourceAction).toBe('workbench.chat');
+  });
+
   it('rejects an unsupported model with an OpenAI-compatible error payload', async () => {
     const ctx = {
       params: {

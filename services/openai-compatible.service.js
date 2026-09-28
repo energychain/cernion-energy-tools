@@ -4,7 +4,14 @@ const { CHAT_MODES } = require('../src/personal-agent-routing');
 const llmClient = require('../src/llm-client');
 
 const FACADE_MODEL = 'cernion-agent-mvp';
-const SUPPORTED_MODELS = new Set([FACADE_MODEL, 'cernion-agent', 'gpt-4o-mini', 'gpt-4o']);
+const GOVERNANCE_MODEL = 'cernion-governance-assistant';
+const SUPPORTED_MODELS = new Set([
+  FACADE_MODEL,
+  GOVERNANCE_MODEL,
+  'cernion-agent',
+  'gpt-4o-mini',
+  'gpt-4o',
+]);
 const FACADE_IMAGE_MODEL = 'cernion-image-mvp';
 const MAX_IMAGE_COUNT = 4;
 const MAX_IMAGE_PROMPT_LENGTH = 4000;
@@ -440,6 +447,59 @@ module.exports = {
 
         const messages = normalizeMessages(ctx.params.messages);
         const tools = normalizeTools(ctx.params.tools);
+        const metadata =
+          ctx.params.metadata && typeof ctx.params.metadata === 'object' ? ctx.params.metadata : {};
+
+        if (requestedModel === GOVERNANCE_MODEL) {
+          const latestUserIndex = findLatestUserMessageIndex(messages);
+          const question = messages[latestUserIndex].content;
+          const workbench = await ctx.call('workbench.chat', {
+            client: metadata.client || 'open-webui',
+            channel: 'open-webui',
+            openWebuiConversationId: metadata.openWebuiConversationId || metadata.conversationId,
+            openWebuiUserId: metadata.openWebuiUserId,
+            openWebuiOrgId: metadata.openWebuiOrgId,
+            clientId: metadata.clientId,
+            message: question,
+            requestId: metadata.requestId,
+            correlationId: metadata.correlationId,
+          });
+          const content = compactMarkdown(
+            workbench.responseText || 'CET Workbench returned no response text.'
+          );
+          const promptTokens = estimateTokens(question);
+          const completionTokens = estimateTokens(content);
+          return {
+            id: `chatcmpl_${crypto.randomUUID().replace(/-/g, '')}`,
+            object: 'chat.completion',
+            created: Math.floor(Date.now() / 1000),
+            model: GOVERNANCE_MODEL,
+            choices: [{ index: 0, message: { role: 'assistant', content }, finish_reason: 'stop' }],
+            usage: {
+              prompt_tokens: promptTokens,
+              completion_tokens: completionTokens,
+              total_tokens: promptTokens + completionTokens,
+            },
+            metadata: {
+              cetCaseId: workbench.cetCaseId,
+              caseStateVersion: workbench.caseStateVersion,
+              primaryDomain: workbench.primaryDomain,
+              readinessState: workbench.readinessState,
+              pendingEvents: workbench.events?.length || 0,
+            },
+            cernion: {
+              facade: 'openai-compatible-cet-governed-workbench',
+              sourceAction: 'workbench.chat',
+              safety: 'cet_classify_continue_forced_by_workbench',
+              tenantId:
+                ctx.meta.tenantId ||
+                ctx.meta.authUser?.tenantId ||
+                ctx.meta.apiToken?.tenantId ||
+                null,
+              result: workbench,
+            },
+          };
+        }
 
         // A caller-supplied `tools` array switches to a separate path: a
         // direct call to the configured background LLM (bypassing the
@@ -457,8 +517,6 @@ module.exports = {
         const latestUserIndex = findLatestUserMessageIndex(messages);
         const question = messages[latestUserIndex].content;
         const { promptHints, priorTurns } = buildConversationContext(messages, latestUserIndex);
-        const metadata =
-          ctx.params.metadata && typeof ctx.params.metadata === 'object' ? ctx.params.metadata : {};
 
         const result = await ctx.call('personal-agent.chat', {
           message: question,

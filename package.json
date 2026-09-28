@@ -17,7 +17,7 @@
     "format": "prettier --write \"**/*.js\"",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest --coverage",
     "test:unit": "NODE_OPTIONS=--experimental-vm-modules jest --coverage --testPathIgnorePatterns=\"tests/.*\\.integration\\.test\\.js|custom-tests\"",
-    "test:unit:ci": "NODE_OPTIONS=--experimental-vm-modules jest --coverage --runInBand --forceExit --testPathIgnorePatterns=\"tests/.*\\.integration\\.test\\.js|custom-tests\"",
+    "test:unit:ci": "node scripts/run-unit-ci.js",
     "test:e2e": "jest --no-coverage tests/assets.integration.test.js",
     "test:e2e:enterprise": "jest tests/e2e-enterprise-hoeheinoed.test.js --runInBand --forceExit",
     "test:custom": "jest --coverage=false --testPathPatterns=custom-tests",

@@ -350,3 +350,25 @@ akzeptiert, aber nicht endgültig beseitigt.
 - [ui-contracts/31-asset-overrides.md](ui-contracts/31-asset-overrides.md)
 - [ui-contracts/40-hitl.md](ui-contracts/40-hitl.md)
 - [RELEASE_SUMMARY_v0.46.md](RELEASE_SUMMARY_v0.46.md)
+
+## RC3 Workbench / Open WebUI Tenant-Gateway (`workbench`)
+
+RC3 adds a customer-facing Workbench API so Open WebUI can use CET without AgentOS, Hermes or OpenClaw. This is not a replacement for CET governance: Open WebUI is only the UI/client, while CET owns Domain Router decisions, Case State, Case Event Outbox/MWI, EvidenceRefs, No-Call-Guards and audit semantics.
+
+Primary endpoints:
+
+- `POST /api/workbench/chat` — CET-led chat turn; classifies new Open WebUI conversations and continues mapped CET cases.
+- `GET /api/workbench/cases/:caseId` — UI-safe case summary.
+- `GET /api/workbench/cases` — Workbench case inbox.
+- `POST /api/workbench/conversations/link-case` — server-side Open WebUI conversation ↔ CET case mapping.
+- `GET /api/workbench/conversations/resolve` — resolve conversation mapping.
+- `GET /api/workbench/events` — UI-safe Case Event Outbox/MWI list.
+- `POST /api/workbench/events/:eventId/ack` — explicit event acknowledgement.
+- `POST /api/workbench/cases/:caseId/evidence` — attach Open-WebUI file refs as CET EvidenceRefs.
+- `POST /api/workbench/cases/:caseId/dossier` — render a case-centered internal dossier.
+- `POST /api/workbench/delivery-clients` — register tenant-bound MWI poll clients.
+- `POST /api/workbench/admin/tenant-mappings`, `POST /api/workbench/admin/user-mappings`, `GET /api/workbench/admin/user-mappings/:externalUserId` — admin-only Open WebUI ↔ CET tenant/user/role mapping.
+
+OpenAI-compatible clients may use `POST /v1/chat/completions` with `model: "cernion-governance-assistant"`. That mode routes through `workbench.chat` and returns OpenAI-compatible output plus CET metadata (`cetCaseId`, `caseStateVersion`, `primaryDomain`, `readinessState`). Existing `/v1/chat/completions` behavior for other supported models remains unchanged.
+
+Security boundary: CET service tokens remain server-side. Open-WebUI org/user/group values are mapped server-side into CET tenant, actor, roles and sensitivity clearance. Missing or disabled mappings fail closed. Polling events does not ack them; explicit ack is required after visible delivery.

@@ -73,10 +73,24 @@ curl -X POST http://localhost:3000/api/domain-router/classify \
   -d '{
     "userRequest": "MSCONS Messwerte fehlen, bitte fachlich einordnen",
     "taskEnvelope": {
-      "channel": "quickstart",
+      "channel": "web",
       "requestedMode": "classify",
-      "asyncDelivery": { "mode": "poll", "ackMode": "explicit" }
+      "asyncDelivery": { "mode": "none", "ackMode": "explicit" }
     }
+  }'
+
+# Test RC3 Open WebUI / Cernion Workbench path
+curl -X POST http://localhost:3000/api/workbench/chat \
+  -H "Authorization: Bearer $CERNION_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "client": "open-webui",
+    "channel": "open-webui",
+    "openWebuiOrgId": "demo-org",
+    "openWebuiUserId": "demo-user",
+    "openWebuiConversationId": "demo-chat",
+    "clientId": "openwebui-demo",
+    "message": "MSCONS fehlt, APERAK Z18 ist vorhanden. Was ist der nächste sichere Schritt?"
   }'
 ```
 
@@ -126,6 +140,11 @@ ambiguous prompts it may create a pending Case Event Outbox entry such as
   - `POST /api/domain-router/continue`
   - `GET /api/domain-router/events`
   - `POST /api/domain-router/events/:eventId/ack`
+- **Cernion Workbench / Open WebUI Tenant-Gateway**: http://localhost:3000/api/workbench/...
+  - `POST /api/workbench/chat`
+  - `GET /api/workbench/cases/:caseId`
+  - `GET /api/workbench/events`
+  - `POST /api/workbench/events/:eventId/ack`
 
 ### System
 - **System Tools**: http://localhost:3000/api/system/...
