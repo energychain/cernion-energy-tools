@@ -198,7 +198,7 @@ describe('Workbench RC3 Open WebUI Tenant Gateway', () => {
     expect(platformRead.mapping).toMatchObject({ cetTenantId: 'tenant-b', cetActorId: 'user-b' });
   });
 
-  test('chat classifies new Open WebUI conversations and continues mapped cases', async () => {
+  async function provisionOpenWebUiUser() {
     await call('admin.tenantMappings.create', {
       client: 'open-webui',
       externalOrgId: 'ow-org',
@@ -213,6 +213,10 @@ describe('Workbench RC3 Open WebUI Tenant Gateway', () => {
       roles: ['ROLE_GRID_OPERATOR'],
       defaultClientId: 'openwebui-tenant-a',
     });
+  }
+
+  test('chat classifies new Open WebUI conversations and continues mapped cases', async () => {
+    await provisionOpenWebUiUser();
     const first = await call('chat', {
       client: 'open-webui',
       channel: 'open-webui',
@@ -237,6 +241,83 @@ describe('Workbench RC3 Open WebUI Tenant Gateway', () => {
     expect(second.usedOperation).toBe('continue');
     expect(second.cetCaseId).toBe(first.cetCaseId);
     expect(second.caseStateVersion).toBeGreaterThan(first.caseStateVersion);
+    const resolved = await call(
+      'conversations.resolve',
+      {
+        client: 'open-webui',
+        openWebuiOrgId: 'ow-org',
+        openWebuiUserId: 'ow-user',
+        openWebuiConversationId: 'chat-1',
+      },
+      userMeta
+    );
+    expect(resolved.caseStateVersion).toBe(second.caseStateVersion);
+  });
+
+  test('parallel first-turn chat calls resolve to one canonical CET case', async () => {
+    await provisionOpenWebUiUser();
+    const params = {
+      client: 'open-webui',
+      channel: 'open-webui',
+      openWebuiOrgId: 'ow-org',
+      openWebuiUserId: 'ow-user',
+      openWebuiConversationId: 'chat-race',
+      clientId: 'openwebui-tenant-a',
+      message: 'MSCONS fehlt, APERAK Z18 ist vorhanden',
+    };
+    const [a, b] = await Promise.all([call('chat', params), call('chat', params)]);
+    expect(a.cetCaseId).toBeTruthy();
+    expect(b.cetCaseId).toBe(a.cetCaseId);
+    expect([a.usedOperation, b.usedOperation].sort()).toEqual(['classify', 'continue']);
+    const resolved = await call(
+      'conversations.resolve',
+      {
+        client: 'open-webui',
+        openWebuiOrgId: 'ow-org',
+        openWebuiUserId: 'ow-user',
+        openWebuiConversationId: 'chat-race',
+      },
+      userMeta
+    );
+    expect(resolved.cetCaseId).toBe(a.cetCaseId);
+    const states = await broker.getLocalService('domain-router').visibleStates({
+      tenantId: 'tenant-a',
+      actorId: 'user-a',
+      roles: ['ROLE_GRID_OPERATOR'],
+      clearance: [],
+    });
+    const matching = states.filter((state) => state.cetCaseId === a.cetCaseId);
+    expect(matching).toHaveLength(1);
+  });
+
+  test('duplicate conversation link is idempotent and conflicting case link is deterministic', async () => {
+    const first = await router('classify', {
+      userRequest: 'First Case',
+      channel: 'open-webui',
+      conversationId: 'link-race-a',
+      asyncDelivery: { mode: 'poll', clientId: 'openwebui-tenant-a' },
+    });
+    const second = await router('classify', {
+      userRequest: 'Second Case',
+      channel: 'open-webui',
+      conversationId: 'link-race-b',
+      asyncDelivery: { mode: 'poll', clientId: 'openwebui-tenant-a' },
+    });
+    const params = {
+      client: 'open-webui',
+      conversationId: 'manual-link',
+      caseId: first.cetCaseId,
+      clientId: 'openwebui-tenant-a',
+    };
+    const [a, b] = await Promise.all([
+      call('conversations.linkCase', params, userMeta),
+      call('conversations.linkCase', params, userMeta),
+    ]);
+    expect(a.conversationRef.cetCaseId).toBe(first.cetCaseId);
+    expect(b.conversationRef.cetCaseId).toBe(first.cetCaseId);
+    await expect(
+      call('conversations.linkCase', { ...params, caseId: second.cetCaseId }, userMeta)
+    ).rejects.toThrow(/different CET case|WORKBENCH_CONFLICT/iu);
   });
 
   test('chat identity mapping fails closed for partial or unmapped Open WebUI identifiers', async () => {

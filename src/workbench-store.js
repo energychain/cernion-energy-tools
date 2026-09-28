@@ -47,7 +47,7 @@ class WorkbenchStore {
     } catch (e) {
       if (e.status !== 404) throw e;
     }
-    if (existing && existing.cetCaseId !== input.cetCaseId && !input.overwrite) {
+    if (existing?.cetCaseId && existing.cetCaseId !== input.cetCaseId && !input.overwrite) {
       conflict('Conversation already linked to a different CET case');
     }
     const timestamp = now();
@@ -61,16 +61,59 @@ class WorkbenchStore {
       openWebuiConversationId: input.openWebuiConversationId || input.conversationId,
       openWebuiUserId: input.openWebuiUserId || existing?.openWebuiUserId || null,
       openWebuiOrgId: input.openWebuiOrgId || existing?.openWebuiOrgId || null,
-      cetCaseId: input.cetCaseId,
+      cetCaseId: input.cetCaseId || existing?.cetCaseId || null,
       caseStateVersion: input.caseStateVersion || existing?.caseStateVersion || 1,
       clientId: input.clientId || existing?.clientId || null,
       lastEventCursor: input.lastEventCursor || existing?.lastEventCursor || null,
+      mappingState:
+        input.cetCaseId || existing?.cetCaseId ? 'linked' : existing?.mappingState || 'pending',
       enabled: input.enabled !== false,
       createdAt: existing?.createdAt || timestamp,
       updatedAt: timestamp,
     };
-    const saved = await this.conversationsDb.put(doc);
-    return { ...doc, _rev: saved.rev };
+    try {
+      const saved = await this.conversationsDb.put(doc);
+      return { ...doc, _rev: saved.rev };
+    } catch (e) {
+      if (e.status !== 409) throw e;
+      const latest = await this.conversationsDb.get(_id);
+      if (latest?.cetCaseId && latest.cetCaseId !== input.cetCaseId && !input.overwrite) {
+        conflict('Conversation already linked to a different CET case');
+      }
+      return this.linkConversation({ ...input, overwrite: input.overwrite || !latest?.cetCaseId });
+    }
+  }
+
+  async reserveConversation(input) {
+    const _id = conversationId(input.tenantId, input.client, input.conversationId);
+    const timestamp = now();
+    const doc = {
+      _id,
+      type: 'workbench_conversation',
+      tenantId: input.tenantId,
+      client: input.client,
+      externalConversationId: input.conversationId,
+      openWebuiConversationId: input.openWebuiConversationId || input.conversationId,
+      openWebuiUserId: input.openWebuiUserId || null,
+      openWebuiOrgId: input.openWebuiOrgId || null,
+      cetCaseId: null,
+      caseStateVersion: 0,
+      clientId: input.clientId || null,
+      lastEventCursor: null,
+      mappingState: 'classifying',
+      enabled: true,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    };
+    try {
+      const saved = await this.conversationsDb.put(doc);
+      return { reserved: true, mapping: { ...doc, _rev: saved.rev } };
+    } catch (e) {
+      if (e.status !== 409) throw e;
+      const existing = await this.conversationsDb.get(_id);
+      if (existing.enabled === false) disabled('Conversation mapping disabled');
+      return { reserved: false, mapping: existing };
+    }
   }
 
   async resolveConversation(input, { optional = false } = {}) {
