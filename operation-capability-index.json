@@ -2,16 +2,16 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.99.22",
-  "sourceOpenApiHash": "0e61cac2300d0df70f529847a85597390ef9f239461cc00826b391109f55576d",
+  "sourceOpenApiHash": "4980789873f0b4e855c6fd5d99bf058258488bef32dc3cb1b1f62bff0ebe129d",
   "coverage": {
-    "rawOperationCount": 1166,
-    "operationCount": 910,
-    "agentableCount": 908,
+    "rawOperationCount": 1175,
+    "operationCount": 919,
+    "agentableCount": 917,
     "nonAgentableCount": 2,
     "byOperationKind": {
-      "data_read": 398,
-      "admin": 11,
-      "object_store_write": 241,
+      "data_read": 401,
+      "admin": 14,
+      "object_store_write": 244,
       "process_step": 20,
       "process_start": 44,
       "advisory_plan": 47,
@@ -83267,6 +83267,72 @@
       "aliases": []
     },
     {
+      "operationId": "workbench_admin_userContexts_save",
+      "method": "POST",
+      "path": "/api/workbench/admin/user-contexts",
+      "service": "workbench",
+      "action": "workbench.admin_userContexts_save",
+      "summary": "Save a CET-governed Workbench user context profile",
+      "tags": [
+        "Workbench"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "admin",
+      "consequenceLevel": "high",
+      "recommendedExecutionMode": "confirm",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.admin_user_contexts_save"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "workbench:write",
+        "admin"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "workbench"
+      ],
+      "sideEffects": [
+        "privileged_configuration_change"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "May not be reversible via API - verify with backend/tenant admin before invoking.",
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "workbench",
+          "admin",
+          "user",
+          "contexts",
+          "save",
+          "cet",
+          "governed",
+          "context",
+          "profile"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please save a cet-governed workbench user context profile"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
       "operationId": "workbench_admin_userMappings_create",
       "method": "POST",
       "path": "/api/workbench/admin/user-mappings",
@@ -83479,6 +83545,72 @@
         "negativeCues": [],
         "examples": [
           "Show me resolve an open webui user mapping"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "workbench_admin_workspaceContexts_save",
+      "method": "POST",
+      "path": "/api/workbench/admin/workspace-contexts",
+      "service": "workbench",
+      "action": "workbench.admin_workspaceContexts_save",
+      "summary": "Save a CET-governed Workbench workspace context profile",
+      "tags": [
+        "Workbench"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "admin",
+      "consequenceLevel": "high",
+      "recommendedExecutionMode": "confirm",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.admin_workspace_contexts_save"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "workbench:write",
+        "admin"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "workbench"
+      ],
+      "sideEffects": [
+        "privileged_configuration_change"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "May not be reversible via API - verify with backend/tenant admin before invoking.",
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "workbench",
+          "admin",
+          "workspace",
+          "contexts",
+          "save",
+          "cet",
+          "governed",
+          "context",
+          "profile"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please save a cet-governed workbench workspace context profile"
         ],
         "synonyms": [
           "agent infrastructure",
@@ -84092,6 +84224,73 @@
       "aliases": []
     },
     {
+      "operationId": "workbench_contextRefs_create",
+      "method": "POST",
+      "path": "/api/workbench/context-refs",
+      "service": "workbench",
+      "action": "workbench.contextRefs_create",
+      "summary": "Create a governed ContextRef for Open WebUI artifacts",
+      "tags": [
+        "Workbench"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "admin",
+      "consequenceLevel": "high",
+      "recommendedExecutionMode": "confirm",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.context_refs_create"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "workbench:write",
+        "admin"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "workbench"
+      ],
+      "sideEffects": [
+        "privileged_configuration_change"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "May not be reversible via API - verify with backend/tenant admin before invoking.",
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "workbench",
+          "context",
+          "refs",
+          "create",
+          "governed",
+          "ref",
+          "open",
+          "web",
+          "ui",
+          "artifacts"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please create a governed contextref for open webui artifacts"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
       "operationId": "workbench_conversations_linkCase",
       "method": "POST",
       "path": "/api/workbench/conversations/link-case",
@@ -84567,6 +84766,409 @@
         "negativeCues": [],
         "examples": [
           "Please acknowledge a workbench event after visible delivery"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "workbench_inbox_tasks_list",
+      "method": "GET",
+      "path": "/api/workbench/inbox/tasks",
+      "service": "workbench",
+      "action": "workbench.inbox_tasks_list",
+      "summary": "Return actionable Workbench inbox tasks derived from Case Events",
+      "tags": [
+        "Workbench"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.inbox_tasks_list"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "workbench:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "workbench",
+          "inbox",
+          "tasks",
+          "list",
+          "return",
+          "actionable",
+          "derived",
+          "from",
+          "case",
+          "events"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me return actionable workbench inbox tasks derived from case events"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "workbench_inbox_tasks_assign",
+      "method": "POST",
+      "path": "/api/workbench/inbox/tasks/:taskId/assign",
+      "service": "workbench",
+      "action": "workbench.inbox_tasks_assign",
+      "summary": "Assign a Workbench inbox task",
+      "tags": [
+        "Workbench"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.inbox_tasks_assign"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "Task"
+      ],
+      "requiredScopes": [
+        "workbench:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "workbench"
+      ],
+      "sideEffects": [
+        "creates_or_modifies_stored_object"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "parameters": {
+        "required": [
+          {
+            "name": "taskId",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "workbench",
+          "inbox",
+          "tasks",
+          "assign",
+          "task"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please assign a workbench inbox task"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "workbench_inbox_tasks_dismiss",
+      "method": "POST",
+      "path": "/api/workbench/inbox/tasks/:taskId/dismiss",
+      "service": "workbench",
+      "action": "workbench.inbox_tasks_dismiss",
+      "summary": "Dismiss a Workbench inbox task without acknowledging underlying events",
+      "tags": [
+        "Workbench"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.inbox_tasks_dismiss"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "Task"
+      ],
+      "requiredScopes": [
+        "workbench:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "workbench"
+      ],
+      "sideEffects": [
+        "creates_or_modifies_stored_object"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "parameters": {
+        "required": [
+          {
+            "name": "taskId",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "workbench",
+          "inbox",
+          "tasks",
+          "dismiss",
+          "task",
+          "without",
+          "acknowledging",
+          "underlying",
+          "events"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please dismiss a workbench inbox task without acknowledging underlying events"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "workbench_inbox_tasks_resolve",
+      "method": "POST",
+      "path": "/api/workbench/inbox/tasks/:taskId/resolve",
+      "service": "workbench",
+      "action": "workbench.inbox_tasks_resolve",
+      "summary": "Resolve a Workbench inbox task without erasing event audit",
+      "tags": [
+        "Workbench"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.inbox_tasks_resolve"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "Task"
+      ],
+      "requiredScopes": [
+        "workbench:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [
+          {
+            "name": "taskId",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "workbench",
+          "inbox",
+          "tasks",
+          "resolve",
+          "task",
+          "without",
+          "erasing",
+          "event",
+          "audit"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please resolve a workbench inbox task without erasing event audit"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "workbench_playbooks_list",
+      "method": "GET",
+      "path": "/api/workbench/playbooks",
+      "service": "workbench",
+      "action": "workbench.playbooks_list",
+      "summary": "List active/default Workbench playbooks for a tenant/domain",
+      "tags": [
+        "Workbench"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.playbooks_list"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "workbench:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "workbench",
+          "playbooks",
+          "list",
+          "active",
+          "default",
+          "tenant",
+          "domain"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me list active/default workbench playbooks for a tenant/domain"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "workbench_playbooks_save",
+      "method": "POST",
+      "path": "/api/workbench/playbooks",
+      "service": "workbench",
+      "action": "workbench.playbooks_save",
+      "summary": "Create or update a governed CET Workbench playbook",
+      "tags": [
+        "Workbench"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.playbooks_save"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "workbench:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "workbench"
+      ],
+      "sideEffects": [
+        "creates_or_modifies_stored_object"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "workbench",
+          "playbooks",
+          "save",
+          "create",
+          "or",
+          "update",
+          "governed",
+          "cet",
+          "playbook"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please create or update a governed cet workbench playbook"
         ],
         "synonyms": [
           "agent infrastructure",

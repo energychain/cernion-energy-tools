@@ -67,6 +67,9 @@ describe('Workbench RC3 Open WebUI Tenant Gateway', () => {
         deliveryDbPath: path.join(dir, 'delivery'),
         evidenceDbPath: path.join(dir, 'evidence'),
         turnMemoryDbPath: path.join(dir, 'turn-memory'),
+        contextDbPath: path.join(dir, 'context'),
+        playbookDbPath: path.join(dir, 'playbooks'),
+        inboxDbPath: path.join(dir, 'inbox'),
       },
     });
     broker.createService({
@@ -234,6 +237,127 @@ describe('Workbench RC3 Open WebUI Tenant Gateway', () => {
       defaultClientId: 'openwebui-tenant-a',
     });
   }
+
+  test('user/workspace contexts and playbooks enrich Workbench chat server-side', async () => {
+    await provisionOpenWebUiUser();
+    await call('admin.userContexts.save', {
+      actorId: 'user-a',
+      roleFamilies: ['ROLE_MARKET_COMMUNICATION'],
+      domainsAllowed: ['market_communication'],
+      language: 'de',
+      defaultNoCallGuards: ['Keine externe Nachricht ohne Freigabe.'],
+    });
+    await call('admin.workspaceContexts.save', {
+      client: 'open-webui',
+      workspaceId: 'ow-org',
+      allowedDomains: ['market_communication', 'edm'],
+      workspaceNoCallGuards: ['Workspace guardrail'],
+      defaultPlaybooks: ['mako-clarification-case'],
+    });
+    await call('playbooks.save', {
+      playbookId: 'tenant-mako-special',
+      title: 'Tenant MaKo special',
+      scope: 'tenant',
+      domain: 'market_communication',
+      status: 'active',
+      roleFamilies: ['ROLE_GRID_OPERATOR'],
+      routingSignals: ['tenant_mako_signal'],
+      requiredEvidence: ['aperak_message'],
+      allowedActions: ['clarify'],
+      blockedActions: ['external_message_send'],
+      noCallGuards: ['Tenant playbook guard'],
+    });
+
+    const listed = await call('playbooks.list', { domain: 'market_communication' }, userMeta);
+    expect(listed.items.map((p) => p.playbookId)).toEqual(
+      expect.arrayContaining(['mako-clarification-case', 'tenant-mako-special'])
+    );
+
+    const response = await call('chat', {
+      client: 'open-webui',
+      channel: 'open-webui',
+      openWebuiOrgId: 'ow-org',
+      openWebuiUserId: 'ow-user',
+      openWebuiConversationId: 'chat-context',
+      clientId: 'openwebui-tenant-a',
+      message: 'APERAK Z18 nach MSCONS bitte prüfen',
+    });
+    expect(response.cetCaseId).toBeTruthy();
+
+    const service = broker.getLocalService('workbench');
+    const memory = await service.loadTurnMemory(
+      { tenantId: 'tenant-a', actorId: 'user-a' },
+      response.cetCaseId
+    );
+    expect(JSON.stringify(memory)).not.toMatch(/rawMessage|authorization|token/iu);
+    const summary = await call('cases.get', { caseId: response.cetCaseId }, userMeta);
+    expect(summary.turnMemorySummary).toBeTruthy();
+  });
+
+  test('ContextRefs are governed and unsupported artifact types fail closed', async () => {
+    const ref = await call(
+      'contextRefs.create',
+      {
+        contextType: 'openwebui_note_ref',
+        label: 'MaKo Notiz',
+        safeSummary: 'Lieferant wartet auf APERAK-Prüfung.',
+        sourceRef: { noteId: 'note-1' },
+      },
+      userMeta
+    );
+    expect(ref.contextRef).toMatchObject({
+      contextType: 'openwebui_note_ref',
+      purpose: 'routing_context',
+      label: 'MaKo Notiz',
+    });
+    await expect(
+      call('contextRefs.create', { contextType: 'raw_prompt_dump', label: 'bad' }, userMeta)
+    ).rejects.toThrow(/Unsupported ContextRef/iu);
+  });
+
+  test('case inbox derives actionable tasks without acknowledging events', async () => {
+    const c = await router('classify', {
+      userRequest: 'MSCONS fehlt, bitte Rückfrage erzeugen',
+      channel: 'open-webui',
+      conversationId: 'chat-task',
+      asyncDelivery: { mode: 'poll', clientId: 'openwebui-tenant-a' },
+    });
+    await router('ingestUpdate', {
+      cetCaseId: c.cetCaseId,
+      kind: 'evidence_available',
+      version: 'fixture-task-v1',
+      validated: false,
+      evidenceRef: 'missing-aperak',
+      readinessReviewRequired: true,
+    });
+    const service = broker.getLocalService('domain-router');
+    const before = (await service.eventsDb.allDocs({ include_docs: true })).rows.find(
+      (row) => row.doc.cetCaseId === c.cetCaseId && row.doc.eventType === 'evidence.available'
+    ).doc;
+    expect(before.deliveryState).toBe('pending');
+
+    const tasks = await call('inbox.tasks.list', {}, userMeta);
+    const task = tasks.items.find((item) => item.cetCaseId === c.cetCaseId);
+    expect(task).toMatchObject({
+      attentionState: 'readiness_review_required',
+      status: 'open',
+      ownerRole: expect.any(String),
+      nextSafeAction: expect.any(String),
+    });
+    const afterDisplay = await service.eventsDb.get(before._id);
+    expect(afterDisplay.deliveryState).toBe('pending');
+
+    const assigned = await call(
+      'inbox.tasks.assign',
+      { taskId: task.taskId, assignedTo: 'user-a' },
+      userMeta
+    );
+    expect(assigned).toMatchObject({ status: 'in_progress', assignedTo: 'user-a' });
+    const resolved = await call('inbox.tasks.resolve', { taskId: task.taskId }, userMeta);
+    expect(resolved).toMatchObject({ status: 'resolved', resolvedAt: expect.any(String) });
+    const eventAfterResolve = await service.eventsDb.get(before._id);
+    expect(eventAfterResolve.deliveryState).toBe('pending');
+  });
 
   test('chat classifies new Open WebUI conversations and continues mapped cases', async () => {
     await provisionOpenWebUiUser();

@@ -182,7 +182,7 @@ recipes:
   transformation-financing-scenario-view "Management needs one dossier-safe view over cashflow, gas…"
 resolve: GET /api/_agent/operations?domain=governance
 
-### platform (13 capabilities · 9 recipes · 451 operations)
+### platform (13 capabilities · 9 recipes · 460 operations)
 capabilities: datasource_registry_classification_governance, dr_readiness_evidence_gate, energy_sidecar_route_registry, evidence_grounding_confidence_audit, evu_api_migration_diagnostics, file_ingest_monitor, hitl_role_based_evidence_request, live_update_stream_contract_status, receipt_grounded_presentation_contract, stadtwerk_mauer_e2e_process_demo, stadtwerk_mauer_external_interface_stubs, stadtwerk_mauer_mastr_data_overlay, stadtwerk_mauer_sandbox_runtime
 recipes:
   agentic-production-feedback-prompt "An engineering agent should receive a consistent, redacted…"
@@ -205,6 +205,7 @@ Agents resolving capabilities/recipes/operations do not need to read past this p
 ### Unreleased (from CHANGELOG)
 ## [Unreleased]
 
+- Workbench Context and Case Inbox (#627/#636): adds CET-owned user/workspace context profiles, playbook registry, and persisted inbox tasks so Open WebUI clients receive role-aware task guidance without storing raw chat history.
 ### Added
 - **Domain Case Routing Attention Workbench panel (#599) — a bounded, additive, read-only render slice, not a new backend endpoint and not a second generic case service.** Extends `integrations/budibase/manifests/stadtwerk-mauer-workbench.json` with an additive `domain_case_routing_attention_*` section group so `ROLE_PROCESS_OWNER` (or a tenant-parameterized equivalent role family) can answer in under a minute which fachliche domain is active for one explicitly synthetic case (`cetCaseId cet-case-smm-budibase-workbench-001`, linked to the existing Workbench case `smm-budibase-workbench`), which CET routing decision applies (`continue`/`reclassify`/`branch`/`clarify`/`handoff`/`fallback`), which evidence/owner gap blocks the next gate, which related cases are visible only as authorized evidence pointers, and which case events need attention. Composes only the four dashboard bricks named in the accepted plan (`GET /api/dashboard/stadtwerk-mauer-workbench-selected-target`, `GET /api/dashboard/stadtwerk-mauer-case-detail`, `GET /api/dashboard/stadtwerk-mauer-case-actions`, `GET /api/dashboard/stadtwerk-mauer-role-workbench-catalog`) plus the existing protected Domain Router `explain` and `related-sessions.discover` readbacks. `GET /api/domain-router/events` is never called: it reconciles the case-event outbox and mutates addressed events from `pending` to `delivered` as a side effect (`internal_event_outbox`), so the panel instead renders an explicit scalar `event_attention_not_polled` boundary row naming a separately curated delivery-aware command/readback contract as the next safe gate. `continue`, `events.ack` and `related-sessions.link` render only as disabled `not_called` guard rows. Evidence/owner gaps always resolve to `clarification`/`human_review_required`, never an automatic negative conclusion. No new backend endpoint, service action, Capability Broker route, Hydration Registry rule, formatter, Personal-Agent hardcoding, Budibase table write, workflow/HITL creation, external connector, or MaKo/billing/settlement/tariff/device-control/production action is introduced. Visible Budibase apply/presentation remains blocked behind #572.
 - Six new scalar Budibase queries (`getDomainCaseRoutingAttention{SelectorRows,SummaryRows,EvidenceGapRows,RelatedCaseRows,RoleFamilyRows,NoCallRows}`) render the selected synthetic case identity, cetCaseId/caseStateVersion/active-domain/last-routing-decision/next-safe-gate summary rows, positively framed evidence/owner-gap rows, authorized related-case/session evidence-pointer rows, the responsible role family from the existing Role Workbench catalog, and the event-not-polled boundary plus disabled continue/events.ack/related-sessions.link guard rows. A visible Budibase apply/presentation smoke for this panel remains blocked pending an independently proven update-safe application/workspace target (see #572); this keeps #599 open even though the manifest, tests and documentation are complete.
@@ -234,17 +235,17 @@ Agents resolving capabilities/recipes/operations do not need to read past this p
 - `tests/vdmi-blueprint-pack-seeds.test.js` — 15 new tests for #591 covering the MaKo/M2C Resolution Value Review seed: catalog lookup/list registration, the six `source_hint_only` read-model references and `metadata_only` command hints, full validator coverage (required roles/evidence/data classes/forbidden actions), qualitative-only Resolution Value framing with positive missing-evidence follow-ups, the explicit HITL boundary/no-call guard, non-executing workbench-clarification-item mapping for `ROLE_MAKO_OWNER`, the exact four-row canonical matrix (roles, gate outcomes, pending downstream sync) via `buildDemoProcessMatrixSync`/`buildLandingRegistryDraftFromBlueprintSeed`, and five negative cases (missing required evidence key, non-role matrix cell, wrong `roleLegend.M`, an executable command hint, and a missing forbidden/consequential-action guard). Full suite: `tests/vdmi-blueprint-pack-seeds.test.js` — 1 suite / 87 tests pass.
 
 ## Source File Hashes
-- CHANGELOG.md: fc40c2738fcd082eabd19d153cd59574123db565264dfae9e4fd0456ee9278dd
+- CHANGELOG.md: e94e3da7058ce5d959aac26d7fa174b8060c6443e239c1613441858c9094fab6
 - README.md: 627dd3abe5da3c08a8d7bdae55a5505c733ae2008d13bc357df1f3e2f898a063
 - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
 - src/cookbook-recipes.js: 9e48573ca263ef129bc3944a83b013cff25157e25afc703be0ada62d5af8163d
 - src/capability-catalog.js: 36dea47cc8a157233f709c2e9acda65bc5a453f81bc96e04ced013f9db443ec8
-- openapi-export.json: 0e61cac2300d0df70f529847a85597390ef9f239461cc00826b391109f55576d
+- openapi-export.json: 4980789873f0b4e855c6fd5d99bf058258488bef32dc3cb1b1f62bff0ebe129d
 
 ## OpenAPI Surface (full contract, not embedded)
-- path_count: 1054
-- operation_count: 1166
+- path_count: 1062
+- operation_count: 1175
 - full_spec: openapi-export.json (repo root) or GET /api/openapi.json
 
 ## Integrity
-- llm_txt_sha256: f8dcf714e4437745a7773655e438e246ded10a0649588491acc454856241b39c
+- llm_txt_sha256: 4d96b70eb8bf9b6d291338a76767a4bec33b708bb091086b78d0d83c59138eb2

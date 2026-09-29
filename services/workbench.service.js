@@ -17,6 +17,12 @@ const { presentEvent } = require('../src/workbench-event-presenter');
 const { normalizeEvidenceInput, safeEvidenceRef } = require('../src/workbench-evidence');
 const { buildTurnMemory, safeTurnMemory } = require('../src/workbench-turn-memory');
 const {
+  defaultPlaybooksForTenant,
+  matchPlaybooks,
+  safePlaybook,
+} = require('../src/workbench-playbooks');
+const { taskFromEvent, safeTask } = require('../src/workbench-inbox-tasks');
+const {
   ACTIVITY_TAXONOMY_VERSION,
   getWorkbenchActivity,
   listWorkbenchActivities,
@@ -30,40 +36,27 @@ const action = (rest, summary, handler, params = {}) => ({
   handler,
 });
 const caseParams = { caseId: { type: 'string', min: 1 } };
+const WORKBENCH_DATABASES = [
+  ['conversationsDb', './data/cet_workbench_conversations', 'CET_WORKBENCH_CONVERSATIONS_DB_PATH'],
+  ['identityDb', './data/cet_workbench_identity_mappings', 'CET_WORKBENCH_IDENTITY_DB_PATH'],
+  ['deliveryDb', './data/cet_workbench_delivery_clients', 'CET_WORKBENCH_DELIVERY_DB_PATH'],
+  ['evidenceDb', './data/cet_workbench_evidence', 'CET_WORKBENCH_EVIDENCE_DB_PATH'],
+  ['turnMemoryDb', './data/cet_workbench_turn_memory', 'CET_WORKBENCH_TURN_MEMORY_DB_PATH'],
+  ['contextDb', './data/cet_workbench_context', 'CET_WORKBENCH_CONTEXT_DB_PATH'],
+  ['playbookDb', './data/cet_workbench_playbooks', 'CET_WORKBENCH_PLAYBOOK_DB_PATH'],
+  ['inboxDb', './data/cet_workbench_inbox_tasks', 'CET_WORKBENCH_INBOX_DB_PATH'],
+];
+function workbenchDbMixin([dbProperty, defaultDbPath, dbPathEnvVar]) {
+  const config = { defaultDbPath, dbPathEnvVar, dbProperty };
+  if (dbProperty !== 'conversationsDb') {
+    config.settingsKey = `${dbProperty.replace(/Db$/, '')}DbPath`;
+  }
+  return createPouchDbLifecycleMixin(config);
+}
 
 module.exports = {
   name: 'workbench',
-  mixins: [
-    createPouchDbLifecycleMixin({
-      defaultDbPath: './data/cet_workbench_conversations',
-      dbPathEnvVar: 'CET_WORKBENCH_CONVERSATIONS_DB_PATH',
-      dbProperty: 'conversationsDb',
-    }),
-    createPouchDbLifecycleMixin({
-      defaultDbPath: './data/cet_workbench_identity_mappings',
-      dbPathEnvVar: 'CET_WORKBENCH_IDENTITY_DB_PATH',
-      settingsKey: 'identityDbPath',
-      dbProperty: 'identityDb',
-    }),
-    createPouchDbLifecycleMixin({
-      defaultDbPath: './data/cet_workbench_delivery_clients',
-      dbPathEnvVar: 'CET_WORKBENCH_DELIVERY_DB_PATH',
-      settingsKey: 'deliveryDbPath',
-      dbProperty: 'deliveryDb',
-    }),
-    createPouchDbLifecycleMixin({
-      defaultDbPath: './data/cet_workbench_evidence',
-      dbPathEnvVar: 'CET_WORKBENCH_EVIDENCE_DB_PATH',
-      settingsKey: 'evidenceDbPath',
-      dbProperty: 'evidenceDb',
-    }),
-    createPouchDbLifecycleMixin({
-      defaultDbPath: './data/cet_workbench_turn_memory',
-      dbPathEnvVar: 'CET_WORKBENCH_TURN_MEMORY_DB_PATH',
-      settingsKey: 'turnMemoryDbPath',
-      dbProperty: 'turnMemoryDb',
-    }),
-  ],
+  mixins: WORKBENCH_DATABASES.map(workbenchDbMixin),
   actions: {
     'activities.list': action(
       'GET /activities',
@@ -132,14 +125,18 @@ module.exports = {
       async function (ctx) {
         const p = principal(ctx, ctx.params);
         const domainStates = await this.visibleDomainStates(p);
-        const summaries = await this.eventSummaries(
-          p,
-          domainStates.map((state) => state.cetCaseId)
-        );
+        const caseIds = domainStates.map((state) => state.cetCaseId);
+        const summaries = await this.eventSummaries(p, caseIds);
+        await this.deriveInboxTasksForCases(p, caseIds);
+        const taskSummaries = await this.taskSummaries(p, caseIds);
         const items = [];
         for (const state of domainStates) {
           const summary = summaries.get(state.cetCaseId) || this.emptyEventSummary();
-          if (ctx.params.status && presentCaseListItem(state, summary).status !== ctx.params.status)
+          const taskSummary = taskSummaries.get(state.cetCaseId) || this.emptyTaskSummary();
+          if (
+            ctx.params.status &&
+            presentCaseListItem(state, summary, taskSummary).status !== ctx.params.status
+          )
             continue;
           if (ctx.params.domain && state.currentDomain !== ctx.params.domain) continue;
           if (
@@ -147,7 +144,7 @@ module.exports = {
             state.lastClassification?.readinessState !== ctx.params.readinessState
           )
             continue;
-          items.push(presentCaseListItem(state, summary));
+          items.push(presentCaseListItem(state, summary, taskSummary));
         }
         items.sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)));
         const limit = Number(ctx.params.limit || 50);
@@ -221,13 +218,17 @@ module.exports = {
           caseId: ctx.params.caseId || ctx.params.cetCaseId,
           since: ctx.params.since,
         });
-        const items = [];
-        for (const event of response.events || []) {
-          if (!this.deliveryClientAllowsEvent(deliveryClient, event)) continue;
-          if (ctx.params.attentionOnly && !event.requiresUserAttention) continue;
-          const conversation = await this.findConversationForCase(p.tenantId, event.cetCaseId);
-          items.push(presentEvent(event, conversation));
-        }
+        const filteredEvents = (response.events || []).filter((event) => {
+          if (!this.deliveryClientAllowsEvent(deliveryClient, event)) return false;
+          if (ctx.params.attentionOnly && !event.requiresUserAttention) return false;
+          return true;
+        });
+        const items = await Promise.all(
+          filteredEvents.map(async (event) => {
+            const conversation = await this.findConversationForCase(p.tenantId, event.cetCaseId);
+            return presentEvent(event, conversation);
+          })
+        );
         return { items, nextCursor: null };
       },
       {
@@ -373,6 +374,213 @@ module.exports = {
         };
       }
     ),
+    'admin.userContexts.save': action(
+      'POST /admin/user-contexts',
+      'Save a CET-governed Workbench user context profile',
+      async function (ctx) {
+        const p = this.requireAdmin(ctx);
+        const targetTenant = this.authorizeTargetTenant(
+          p,
+          cleanString(ctx.params.tenantId || p.tenantId, 'tenantId', { required: true })
+        );
+        const actorId = cleanString(ctx.params.actorId || ctx.params.cetActorId, 'actorId', {
+          required: true,
+        });
+        const profile = await this.store.saveUserContext({
+          tenantId: targetTenant,
+          actorId,
+          externalClientRefs: Array.isArray(ctx.params.externalClientRefs)
+            ? ctx.params.externalClientRefs
+            : [],
+          roleFamilies: Array.isArray(ctx.params.roleFamilies) ? ctx.params.roleFamilies : [],
+          domainsAllowed: Array.isArray(ctx.params.domainsAllowed) ? ctx.params.domainsAllowed : [],
+          sensitivityClearance: Array.isArray(ctx.params.sensitivityClearance)
+            ? ctx.params.sensitivityClearance
+            : [],
+          language: cleanString(ctx.params.language, 'language'),
+          tone: cleanString(ctx.params.tone, 'tone'),
+          defaultNoCallGuards: Array.isArray(ctx.params.defaultNoCallGuards)
+            ? ctx.params.defaultNoCallGuards
+            : [],
+          defaultEscalationRules: Array.isArray(ctx.params.defaultEscalationRules)
+            ? ctx.params.defaultEscalationRules
+            : [],
+          preferredEvidenceHandling: Array.isArray(ctx.params.preferredEvidenceHandling)
+            ? ctx.params.preferredEvidenceHandling
+            : [],
+          enabled: ctx.params.enabled !== false,
+        });
+        return { saved: true, profile: this.safeUserContext(profile) };
+      }
+    ),
+    'admin.workspaceContexts.save': action(
+      'POST /admin/workspace-contexts',
+      'Save a CET-governed Workbench workspace context profile',
+      async function (ctx) {
+        const p = this.requireAdmin(ctx);
+        const tenantId = this.authorizeTargetTenant(
+          p,
+          cleanString(ctx.params.tenantId || p.tenantId, 'tenantId', { required: true })
+        );
+        const client = normalizeClient(ctx.params.client || 'open-webui');
+        const workspaceId = cleanString(
+          ctx.params.workspaceId || ctx.params.openWebuiOrgId || ctx.params.externalWorkspaceRef,
+          'workspaceId',
+          { required: true }
+        );
+        const profile = await this.store.saveWorkspaceContext({
+          tenantId,
+          client,
+          workspaceId,
+          externalWorkspaceRef: ctx.params.externalWorkspaceRef || workspaceId,
+          allowedDomains: Array.isArray(ctx.params.allowedDomains) ? ctx.params.allowedDomains : [],
+          defaultDeliveryClientId: cleanString(
+            ctx.params.defaultDeliveryClientId,
+            'defaultDeliveryClientId'
+          ),
+          defaultPlaybooks: Array.isArray(ctx.params.defaultPlaybooks)
+            ? ctx.params.defaultPlaybooks
+            : [],
+          workspaceNoCallGuards: Array.isArray(ctx.params.workspaceNoCallGuards)
+            ? ctx.params.workspaceNoCallGuards
+            : [],
+          sensitivityBoundary: ctx.params.sensitivityBoundary || 'tenant_internal',
+          caseVisibilityPolicy: ctx.params.caseVisibilityPolicy || 'tenant',
+          enabled: ctx.params.enabled !== false,
+        });
+        return { saved: true, profile: this.safeWorkspaceContext(profile) };
+      }
+    ),
+    'contextRefs.create': action(
+      'POST /context-refs',
+      'Create a governed ContextRef for Open WebUI artifacts',
+      async function (ctx) {
+        const p = principal(ctx, ctx.params);
+        const allowedTypes = new Set([
+          'openwebui_note_ref',
+          'openwebui_calendar_event_ref',
+          'openwebui_workspace_doc_ref',
+          'openwebui_task_ref',
+          'openwebui_automation_trigger_ref',
+        ]);
+        const contextType = cleanString(ctx.params.contextType, 'contextType', { required: true });
+        if (!allowedTypes.has(contextType)) {
+          throw new Errors.MoleculerClientError('Unsupported ContextRef type', 400);
+        }
+        const ref = await this.store.saveContextRef({
+          tenantId: p.tenantId,
+          actorId: p.actorId,
+          contextRefId: cleanString(ctx.params.contextRefId, 'contextRefId'),
+          contextType,
+          purpose: ctx.params.purpose || 'routing_context',
+          label: cleanString(ctx.params.label, 'label', { required: true }),
+          sourceRef: ctx.params.sourceRef || {},
+          sensitivityLevel: ctx.params.sensitivityLevel || 'tenant_internal',
+          safeSummary: cleanString(ctx.params.safeSummary, 'safeSummary', { max: 1000 }),
+          provenance: ctx.params.provenance || { system: 'open-webui' },
+        });
+        return { saved: true, contextRef: this.safeContextRef(ref) };
+      }
+    ),
+    'playbooks.save': action(
+      'POST /playbooks',
+      'Create or update a governed CET Workbench playbook',
+      async function (ctx) {
+        const p = this.requireAdmin(ctx);
+        const playbookId = cleanString(ctx.params.playbookId, 'playbookId', { required: true });
+        const playbook = await this.store.savePlaybook({
+          tenantId: p.tenantId,
+          playbookId,
+          title: cleanString(ctx.params.title, 'title', { required: true }),
+          scope: ctx.params.scope || 'tenant',
+          domain: ctx.params.domain || 'governance',
+          workspaceId: cleanString(ctx.params.workspaceId, 'workspaceId'),
+          roleFamilies: Array.isArray(ctx.params.roleFamilies) ? ctx.params.roleFamilies : [],
+          version: ctx.params.version,
+          status: ctx.params.status || 'draft',
+          routingSignals: Array.isArray(ctx.params.routingSignals) ? ctx.params.routingSignals : [],
+          requiredEvidence: Array.isArray(ctx.params.requiredEvidence)
+            ? ctx.params.requiredEvidence
+            : [],
+          allowedActions: Array.isArray(ctx.params.allowedActions) ? ctx.params.allowedActions : [],
+          blockedActions: Array.isArray(ctx.params.blockedActions) ? ctx.params.blockedActions : [],
+          noCallGuards: Array.isArray(ctx.params.noCallGuards) ? ctx.params.noCallGuards : [],
+          handoffRules: Array.isArray(ctx.params.handoffRules) ? ctx.params.handoffRules : [],
+          eventRules: Array.isArray(ctx.params.eventRules) ? ctx.params.eventRules : [],
+        });
+        return { saved: true, playbook: safePlaybook(playbook) };
+      }
+    ),
+    'playbooks.list': action(
+      'GET /playbooks',
+      'List active/default Workbench playbooks for a tenant/domain',
+      async function (ctx) {
+        const p = principal(ctx, ctx.params);
+        const tenantPlaybooks = await this.store.listPlaybooks({
+          tenantId: p.tenantId,
+          domain: ctx.params.domain,
+        });
+        return {
+          items: [
+            ...defaultPlaybooksForTenant(p.tenantId),
+            ...tenantPlaybooks.map((playbook) => safePlaybook(playbook)),
+          ],
+        };
+      }
+    ),
+    'inbox.tasks.list': action(
+      'GET /inbox/tasks',
+      'Return actionable Workbench inbox tasks derived from Case Events',
+      async function (ctx) {
+        const p = principal(ctx, ctx.params);
+        const caseId = cleanString(ctx.params.caseId || ctx.params.cetCaseId, 'caseId');
+        const caseIds = caseId
+          ? [caseId]
+          : (await this.visibleDomainStates(p)).map((s) => s.cetCaseId);
+        await this.deriveInboxTasksForCases(p, caseIds);
+        const tasks = await this.store.listInboxTasks({
+          tenantId: p.tenantId,
+          caseId,
+          status: ctx.params.status,
+        });
+        return { items: tasks.map((task) => safeTask(task)), nextCursor: null };
+      }
+    ),
+    'inbox.tasks.assign': action(
+      'POST /inbox/tasks/:taskId/assign',
+      'Assign a Workbench inbox task',
+      async function (ctx) {
+        const p = principal(ctx, ctx.params);
+        const task = await this.updateInboxTask(p, ctx.params.taskId, {
+          assignedTo: cleanString(ctx.params.assignedTo || p.actorId, 'assignedTo', {
+            required: true,
+          }),
+          status: 'in_progress',
+        });
+        return safeTask(task);
+      },
+      { taskId: { type: 'string', min: 1 } }
+    ),
+    'inbox.tasks.resolve': action(
+      'POST /inbox/tasks/:taskId/resolve',
+      'Resolve a Workbench inbox task without erasing event audit',
+      async function (ctx) {
+        const p = principal(ctx, ctx.params);
+        const task = await this.completeInboxTask(p, ctx.params.taskId, 'resolved');
+        return safeTask(task);
+      },
+      { taskId: { type: 'string', min: 1 } }
+    ),
+    'inbox.tasks.dismiss': action(
+      'POST /inbox/tasks/:taskId/dismiss',
+      'Dismiss a Workbench inbox task without acknowledging underlying events',
+      async function (ctx) {
+        const p = principal(ctx, ctx.params);
+        const task = await this.completeInboxTask(p, ctx.params.taskId, 'dismissed');
+        return safeTask(task);
+      },
+      { taskId: { type: 'string', min: 1 } }
+    ),
     chat: action(
       'POST /chat',
       'Run a CET-led Workbench chat turn: classify new conversations, continue mapped cases',
@@ -413,15 +621,18 @@ module.exports = {
             conversationId: envelope.conversationId,
           });
         }
+        const workbenchContext = await this.loadWorkbenchContext(p, envelope, mapping);
         const meta = this.metaForMapping(ctx, p, mapping);
         const previousMemory = conversation?.cetCaseId
           ? await this.loadTurnMemory(p, conversation.cetCaseId)
           : null;
         const params = {
           ...envelope,
-          knownContext: previousMemory
-            ? { ...envelope.knownContext, cetTurnMemory: safeTurnMemory(previousMemory) }
-            : envelope.knownContext,
+          knownContext: {
+            ...envelope.knownContext,
+            workbenchContext,
+            ...(previousMemory ? { cetTurnMemory: safeTurnMemory(previousMemory) } : {}),
+          },
           requestedMode: conversation ? 'continue' : 'classify',
           ...(conversation ? { cetCaseId: conversation.cetCaseId } : {}),
         };
@@ -464,6 +675,7 @@ module.exports = {
               classification: result,
               envelope,
               mapping,
+              workbenchContext,
             })
           : null;
         const clientId = envelope.asyncDelivery?.clientId;
@@ -582,9 +794,56 @@ module.exports = {
       deliveryDb: this.deliveryDb,
       evidenceDb: this.evidenceDb,
       turnMemoryDb: this.turnMemoryDb,
+      contextDb: this.contextDb,
+      playbookDb: this.playbookDb,
+      inboxDb: this.inboxDb,
     });
   },
   methods: {
+    safeUserContext(profile) {
+      if (!profile) return null;
+      return {
+        tenantId: profile.tenantId,
+        actorId: profile.actorId,
+        roleFamilies: profile.roleFamilies || [],
+        domainsAllowed: profile.domainsAllowed || [],
+        sensitivityClearance: profile.sensitivityClearance || [],
+        language: profile.language || null,
+        tone: profile.tone || null,
+        defaultNoCallGuards: profile.defaultNoCallGuards || [],
+        defaultEscalationRules: profile.defaultEscalationRules || [],
+        preferredEvidenceHandling: profile.preferredEvidenceHandling || [],
+        updatedAt: profile.updatedAt,
+      };
+    },
+    safeWorkspaceContext(profile) {
+      if (!profile) return null;
+      return {
+        tenantId: profile.tenantId,
+        client: profile.client,
+        workspaceId: profile.workspaceId,
+        allowedDomains: profile.allowedDomains || [],
+        defaultDeliveryClientId: profile.defaultDeliveryClientId || null,
+        defaultPlaybooks: profile.defaultPlaybooks || [],
+        workspaceNoCallGuards: profile.workspaceNoCallGuards || [],
+        sensitivityBoundary: profile.sensitivityBoundary || 'tenant_internal',
+        caseVisibilityPolicy: profile.caseVisibilityPolicy || 'tenant',
+        updatedAt: profile.updatedAt,
+      };
+    },
+    safeContextRef(ref) {
+      if (!ref) return null;
+      return {
+        contextRefId: ref.contextRefId,
+        contextType: ref.contextType,
+        purpose: ref.purpose,
+        label: ref.label,
+        sensitivityLevel: ref.sensitivityLevel,
+        safeSummary: ref.safeSummary,
+        provenance: ref.provenance,
+        createdAt: ref.createdAt,
+      };
+    },
     requireAdmin(ctx) {
       const p = principal(ctx, ctx.params);
       if (
@@ -600,6 +859,33 @@ module.exports = {
         deny('Workbench tenant admin cannot provision foreign tenant');
       }
       return targetTenantId;
+    },
+    async loadWorkbenchContext(p, envelope, mapping) {
+      const userContext = await this.store.getUserContext(
+        { tenantId: p.tenantId, actorId: mapping?.cetActorId || p.actorId },
+        { optional: true }
+      );
+      const workspaceId = envelope.openWebuiOrgId || envelope.conversationId || 'default';
+      const workspaceContext = await this.store.getWorkspaceContext(
+        { tenantId: p.tenantId, client: envelope.channel, workspaceId },
+        { optional: true }
+      );
+      const tenantPlaybooks = await this.store.listPlaybooks({ tenantId: p.tenantId });
+      const playbooks = matchPlaybooks(
+        [...defaultPlaybooksForTenant(p.tenantId), ...tenantPlaybooks],
+        { roles: mapping?.roles || p.roles, workspaceId }
+      );
+      return {
+        userProfile: this.safeUserContext(userContext),
+        workspaceProfile: this.safeWorkspaceContext(workspaceContext),
+        applicablePlaybooks: playbooks,
+        noCallGuards: [
+          ...(userContext?.defaultNoCallGuards || []),
+          ...(workspaceContext?.workspaceNoCallGuards || []),
+          ...playbooks.flatMap((playbook) => playbook.noCallGuards || []),
+        ].slice(0, 12),
+        routingSignals: playbooks.flatMap((playbook) => playbook.routingSignals || []).slice(0, 30),
+      };
     },
     metaForMapping(ctx, p, mapping) {
       return {
@@ -708,6 +994,67 @@ module.exports = {
       });
       return memory;
     },
+    emptyTaskSummary() {
+      return { open: 0, attention: 0 };
+    },
+    async updateInboxTask(p, taskId, patch) {
+      const existing = await this.store.getInboxTask({ tenantId: p.tenantId, taskId });
+      const saved = await this.store.saveInboxTask({
+        ...existing,
+        ...patch,
+        tenantId: p.tenantId,
+        taskId,
+      });
+      return saved;
+    },
+    completeInboxTask(p, taskId, status) {
+      return this.updateInboxTask(p, taskId, {
+        status,
+        resolvedAt: new Date().toISOString(),
+        resolvedBy: p.actorId,
+      });
+    },
+    async deriveInboxTasksForCases(p, caseIds = []) {
+      const service = this.broker.getLocalService('domain-router');
+      if (!service || !caseIds.length) return [];
+      const allowed = new Set(caseIds);
+      const states = new Map(
+        (await this.visibleDomainStates(p)).map((state) => [state.cetCaseId, state])
+      );
+      const events = (await service.eventsDb.allDocs({ include_docs: true })).rows
+        .map((row) => row.doc)
+        .filter((doc) => doc.tenantId === p.tenantId && allowed.has(doc.cetCaseId))
+        .filter((doc) => ['pending', 'delivered'].includes(doc.deliveryState));
+      const tasks = await Promise.all(
+        events.map(async (doc) => {
+          const existing = await this.store.getInboxTask(
+            { tenantId: p.tenantId, taskId: `task_${doc.eventId}` },
+            { optional: true }
+          );
+          if (existing && ['resolved', 'dismissed'].includes(existing.status)) return null;
+          const task = taskFromEvent(doc, {
+            domain: states.get(doc.cetCaseId)?.currentDomain,
+            existing,
+          });
+          return this.store.saveInboxTask({ ...task, tenantId: p.tenantId });
+        })
+      );
+      return tasks.filter(Boolean);
+    },
+    async taskSummaries(p, caseIds = []) {
+      const summaries = new Map(caseIds.map((caseId) => [caseId, this.emptyTaskSummary()]));
+      const tasks = await this.store.listInboxTasks({ tenantId: p.tenantId });
+      const allowed = new Set(caseIds);
+      for (const task of tasks) {
+        const caseId = task.caseId || task.cetCaseId;
+        if (!allowed.has(caseId) || !['open', 'in_progress'].includes(task.status)) continue;
+        const summary = summaries.get(caseId) || this.emptyTaskSummary();
+        const next = { ...summary, open: summary.open + 1 };
+        if (task.severity === 'attention') next.attention += 1;
+        summaries.set(caseId, next);
+      }
+      return summaries;
+    },
     emptyEventSummary() {
       return { pending: 0, delivered: 0, unacknowledged: 0, attention: 0 };
     },
@@ -760,18 +1107,21 @@ module.exports = {
       }
       return registered;
     },
-    async waitForConversationCase(input) {
-      const attempts = 20;
-      for (let i = 0; i < attempts; i += 1) {
+    waitForConversationCase(input) {
+      const attemptResolve = async (attempt = 0) => {
         const mapping = await this.store.resolveConversation(input, { optional: true });
         if (mapping?.cetCaseId) return mapping;
+        if (attempt >= 19) {
+          throw new Errors.MoleculerClientError(
+            'Workbench conversation classification still pending',
+            409,
+            'WORKBENCH_CONVERSATION_PENDING'
+          );
+        }
         await new Promise((resolve) => setTimeout(resolve, 25));
-      }
-      throw new Errors.MoleculerClientError(
-        'Workbench conversation classification still pending',
-        409,
-        'WORKBENCH_CONVERSATION_PENDING'
-      );
+        return attemptResolve(attempt + 1);
+      };
+      return attemptResolve();
     },
     chatResponse(
       usedOperation,
