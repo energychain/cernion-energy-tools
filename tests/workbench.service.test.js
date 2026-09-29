@@ -427,6 +427,84 @@ describe('Workbench RC3 Open WebUI Tenant Gateway', () => {
     ).rejects.toThrow(/not accessible|not_found|Case not accessible|missing/iu);
   });
 
+  test('delivery client filters limit returned Workbench events', async () => {
+    const c = await router('classify', {
+      userRequest: 'MSCONS fehlt, Lastgang plausibilisieren',
+      channel: 'open-webui',
+      conversationId: 'chat-filtered-events',
+      asyncDelivery: { mode: 'poll', clientId: 'openwebui-filtered' },
+    });
+    await call(
+      'conversations.linkCase',
+      {
+        client: 'open-webui',
+        conversationId: 'chat-filtered-events',
+        caseId: c.cetCaseId,
+        clientId: 'openwebui-filtered',
+      },
+      userMeta
+    );
+    await broker.call(
+      'workbench.deliveryClients.create',
+      { clientId: 'openwebui-filtered', eventTypes: ['evidence.available'] },
+      { meta: cloneMeta(meta) }
+    );
+    const filtered = await call('events.list', { clientId: 'openwebui-filtered' }, userMeta);
+    expect(filtered.items).toEqual([]);
+
+    await broker.call(
+      'workbench.deliveryClients.create',
+      { clientId: 'openwebui-filtered', eventTypes: ['clarification.required'] },
+      { meta: cloneMeta(meta) }
+    );
+    const visible = await call('events.list', { clientId: 'openwebui-filtered' }, userMeta);
+    expect(visible.items).toEqual([
+      expect.objectContaining({ eventType: 'clarification.required', cetCaseId: c.cetCaseId }),
+    ]);
+  });
+
+  test('chat responses and case inbox report actual unacknowledged event counts', async () => {
+    await provisionOpenWebUiUser();
+    const first = await call('chat', {
+      client: 'open-webui',
+      channel: 'open-webui',
+      openWebuiOrgId: 'ow-org',
+      openWebuiUserId: 'ow-user',
+      openWebuiConversationId: 'chat-event-counts',
+      clientId: 'openwebui-tenant-a',
+      message: 'MSCONS fehlt, APERAK Z18 ist vorhanden',
+    });
+    await router('ingestUpdate', {
+      cetCaseId: first.cetCaseId,
+      kind: 'evidence_available',
+      version: 'fixture-event-v1',
+      validated: false,
+      evidenceRef: 'fixture-evidence',
+      readinessReviewRequired: true,
+    });
+    const second = await call('chat', {
+      client: 'open-webui',
+      channel: 'open-webui',
+      openWebuiOrgId: 'ow-org',
+      openWebuiUserId: 'ow-user',
+      openWebuiConversationId: 'chat-event-counts',
+      clientId: 'openwebui-tenant-a',
+      message: 'Bitte den Fall mit der neuen Evidenz fortführen',
+    });
+    expect(second.pendingEvents).toBeGreaterThan(0);
+    expect(second.eventSummary).toMatchObject({
+      unacknowledged: expect.any(Number),
+      attention: expect.any(Number),
+    });
+    expect(second.eventSummary.unacknowledged).toBe(second.pendingEvents);
+
+    const list = await call('cases.list', {}, userMeta);
+    const item = list.items.find(
+      (entry) => entry.cetCaseId === first.cetCaseId || entry.caseId === first.cetCaseId
+    );
+    expect(item).toMatchObject({ pendingEvents: second.pendingEvents });
+  });
+
   test('evidence attach stores EvidenceRef and blocks cross-tenant access', async () => {
     const c = await router('classify', {
       userRequest: 'APERAK Z18 prüfen',

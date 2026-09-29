@@ -80,15 +80,14 @@ module.exports = {
       'Return UI-safe Workbench case inbox items',
       async function (ctx) {
         const p = principal(ctx, ctx.params);
-        const states = await ctx
-          .call('domain-router.related-sessions.discover', {
-            caseId: ctx.params.caseId || ctx.params.cetCaseId || '__none__',
-          })
-          .catch(() => null);
-        void states;
+        const domainStates = await this.visibleDomainStates(p);
+        const summaries = await this.eventSummaries(
+          p,
+          domainStates.map((state) => state.cetCaseId)
+        );
         const items = [];
-        for (const state of await this.visibleDomainStates(p)) {
-          const summary = await this.eventSummary(p, state.cetCaseId);
+        for (const state of domainStates) {
+          const summary = summaries.get(state.cetCaseId) || this.emptyEventSummary();
           if (ctx.params.status && presentCaseListItem(state, summary).status !== ctx.params.status)
             continue;
           if (ctx.params.domain && state.currentDomain !== ctx.params.domain) continue;
@@ -165,7 +164,7 @@ module.exports = {
       async function (ctx) {
         const p = principal(ctx, ctx.params);
         const clientId = cleanString(ctx.params.clientId, 'clientId', { required: true });
-        await this.ensureDeliveryClient(p, clientId);
+        const deliveryClient = await this.ensureDeliveryClient(p, clientId);
         const response = await ctx.call('domain-router.events.list', {
           clientId,
           caseId: ctx.params.caseId || ctx.params.cetCaseId,
@@ -173,6 +172,7 @@ module.exports = {
         });
         const items = [];
         for (const event of response.events || []) {
+          if (!this.deliveryClientAllowsEvent(deliveryClient, event)) continue;
           if (ctx.params.attentionOnly && !event.requiresUserAttention) continue;
           const conversation = await this.findConversationForCase(p.tenantId, event.cetCaseId);
           items.push(presentEvent(event, conversation));
@@ -398,7 +398,11 @@ module.exports = {
             clientId: envelope.asyncDelivery.clientId,
           });
         }
-        return this.chatResponse(conversation ? 'continue' : 'classify', result);
+        const clientId = envelope.asyncDelivery?.clientId;
+        const eventSummary = result?.cetCaseId
+          ? await this.eventSummary(p, result.cetCaseId, { clientId })
+          : this.emptyEventSummary();
+        return this.chatResponse(conversation ? 'continue' : 'classify', result, eventSummary);
       }
     ),
     'cases.attachEvidence': action(
@@ -591,22 +595,31 @@ module.exports = {
       if (!service) throw new Errors.MoleculerClientError('Domain Router unavailable', 503);
       return service.loadCase(p, caseId);
     },
-    async eventSummary(p, caseId) {
+    emptyEventSummary() {
+      return { pending: 0, delivered: 0, unacknowledged: 0, attention: 0 };
+    },
+    async eventSummary(p, caseId, { clientId = null } = {}) {
+      const summaries = await this.eventSummaries(p, [caseId], { clientId });
+      return summaries.get(caseId) || this.emptyEventSummary();
+    },
+    async eventSummaries(p, caseIds = [], { clientId = null } = {}) {
       const service = this.broker.getLocalService('domain-router');
-      if (!service) return { pending: 0, attention: 0 };
-      const rows = await service.eventsDb.allDocs({ include_docs: true });
-      const events = rows.rows
-        .map((r) => r.doc)
-        .filter(
-          (e) =>
-            e.tenantId === p.tenantId &&
-            e.cetCaseId === caseId &&
-            ['pending', 'delivered'].includes(e.deliveryState)
-        );
-      return {
-        pending: events.filter((e) => e.deliveryState === 'pending').length,
-        attention: events.filter((e) => e.requiresUserAttention).length,
-      };
+      const summaries = new Map(caseIds.map((caseId) => [caseId, this.emptyEventSummary()]));
+      if (!service || !caseIds.length) return summaries;
+      const allowed = new Set(caseIds);
+      for (const { doc } of (await service.eventsDb.allDocs({ include_docs: true })).rows) {
+        if (doc.tenantId !== p.tenantId || !allowed.has(doc.cetCaseId)) continue;
+        if (clientId && doc.targetClient !== clientId) continue;
+        if (!['pending', 'delivered'].includes(doc.deliveryState)) continue;
+        const summary = summaries.get(doc.cetCaseId) || this.emptyEventSummary();
+        const next = { ...summary };
+        if (doc.deliveryState === 'pending') next.pending += 1;
+        if (doc.deliveryState === 'delivered') next.delivered += 1;
+        next.unacknowledged += 1;
+        if (doc.requiresUserAttention) next.attention += 1;
+        summaries.set(doc.cetCaseId, next);
+      }
+      return summaries;
     },
     async findConversationForCase(tenantId, caseId) {
       for (const row of (await this.conversationsDb.allDocs({ include_docs: true })).rows) {
@@ -615,6 +628,10 @@ module.exports = {
           return doc;
       }
       return null;
+    },
+    deliveryClientAllowsEvent(deliveryClient, event) {
+      if (!deliveryClient?.eventTypes?.length) return true;
+      return deliveryClient.eventTypes.includes(event.eventType);
     },
     async ensureDeliveryClient(p, clientId) {
       const registered = await this.store.getDeliveryClient(
@@ -643,7 +660,7 @@ module.exports = {
         'WORKBENCH_CONVERSATION_PENDING'
       );
     },
-    chatResponse(usedOperation, result) {
+    chatResponse(usedOperation, result, eventSummary = this.emptyEventSummary()) {
       return {
         caseId: result.cetCaseId,
         cetCaseId: result.cetCaseId,
@@ -657,6 +674,8 @@ module.exports = {
         missingEvidence: result.missingEvidence || [],
         noCallGuards: result.noCallGuards || [],
         events: [],
+        eventSummary,
+        pendingEvents: eventSummary.unacknowledged || eventSummary.pending || 0,
       };
     },
   },

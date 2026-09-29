@@ -59,7 +59,7 @@ function presentCaseListItem(state, eventSummary = { pending: 0, attention: 0 })
     primaryDomain: c.primaryDomain || state.currentDomain || 'unknown',
     readinessState: c.readinessState || 'unknown',
     status: c.readinessState === 'evidence_required' ? 'waiting' : 'active',
-    pendingEvents: eventSummary.pending || 0,
+    pendingEvents: eventSummary.unacknowledged || eventSummary.pending || 0,
     severity: eventSummary.attention ? 'attention' : 'info',
     updatedAt: state.updatedAt,
   };
