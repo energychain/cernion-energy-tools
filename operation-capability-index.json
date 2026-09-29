@@ -2,14 +2,14 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.99.22",
-  "sourceOpenApiHash": "3beeaf0c4d7d42c815b2aa9687241be2c2cb7bb6393d4fc19f2c026a7b29a8fb",
+  "sourceOpenApiHash": "0e61cac2300d0df70f529847a85597390ef9f239461cc00826b391109f55576d",
   "coverage": {
-    "rawOperationCount": 1164,
-    "operationCount": 908,
-    "agentableCount": 906,
+    "rawOperationCount": 1166,
+    "operationCount": 910,
+    "agentableCount": 908,
     "nonAgentableCount": 2,
     "byOperationKind": {
-      "data_read": 396,
+      "data_read": 398,
       "admin": 11,
       "object_store_write": 241,
       "process_step": 20,
@@ -83023,6 +83023,137 @@
           "BNetzA",
           "EnWG",
           "compliance"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "workbench_activities_list",
+      "method": "GET",
+      "path": "/api/workbench/activities",
+      "service": "workbench",
+      "action": "workbench.activities_list",
+      "summary": "Return the Workbench Activity Taxonomy for energy utility chat routing",
+      "tags": [
+        "Workbench"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.activities_list"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "workbench:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "workbench",
+          "activities",
+          "list",
+          "return",
+          "activity",
+          "taxonomy",
+          "energy",
+          "utility",
+          "chat",
+          "routing"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me return the workbench activity taxonomy for energy utility chat routing"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "workbench_activities_get",
+      "method": "GET",
+      "path": "/api/workbench/activities/:activityId",
+      "service": "workbench",
+      "action": "workbench.activities_get",
+      "summary": "Return one Workbench Activity Taxonomy entry",
+      "tags": [
+        "Workbench"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.activities_get"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "Activity"
+      ],
+      "requiredScopes": [
+        "workbench:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [
+          {
+            "name": "activityId",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "workbench",
+          "activities",
+          "return",
+          "one",
+          "activity",
+          "taxonomy",
+          "entry"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me return one workbench activity taxonomy entry"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
         ],
         "curated": false
       },

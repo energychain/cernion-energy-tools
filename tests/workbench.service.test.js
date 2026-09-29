@@ -93,6 +93,25 @@ describe('Workbench RC3 Open WebUI Tenant Gateway', () => {
     fs.rmSync(dir, { recursive: true, force: true });
   });
 
+  test('activity taxonomy endpoints expose utility routing metadata', async () => {
+    const list = await call('activities.list', { query: 'APERAK Z18 nach MSCONS' }, userMeta);
+
+    expect(list.schemaVersion).toMatch(/activity-taxonomy/);
+    expect(list.activities[0]).toMatchObject({
+      activityId: 'market_communication_clarification',
+      domain: 'market_communication',
+    });
+    expect(list.activities[0].requiredEvidence).toEqual(expect.arrayContaining(['aperak_message']));
+    expect(list.activities[0].blockedActions).toEqual(
+      expect.arrayContaining(['external_message_send'])
+    );
+
+    const item = await call('activities.get', { activityId: 'grid_connection_precheck' }, userMeta);
+    expect(item.activity.handoffDomains).toEqual(
+      expect.arrayContaining(['asset_grid_planning', 'target_grid_planning'])
+    );
+  });
+
   test('admin mapping and delivery client endpoints are tenant governed', async () => {
     const tenant = await call('admin.tenantMappings.create', {
       client: 'open-webui',

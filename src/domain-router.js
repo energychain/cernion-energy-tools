@@ -2,6 +2,7 @@
 
 const { listCompiledDomainRoutes } = require('./domain-routes-registry');
 const { semanticDomains } = require('./semantic-domains');
+const { domainHintsForText } = require('./workbench-activity-taxonomy');
 
 // Domain signals only: capabilities and receipts remain owned by their existing services.
 const DOMAIN_SIGNALS = {
@@ -114,6 +115,13 @@ async function classifyDomain(input, dependencies = {}) {
     }
   };
   infer(text, 60, 'task');
+  const activityHints = domainHintsForText(text, { limit: 4 });
+  for (const hint of activityHints) {
+    add(hint.domain, Math.min(25, 8 + hint.score), 'activity_taxonomy', hint.activityId);
+    for (const handoffDomain of hint.handoffDomains || [])
+      add(handoffDomain, 4, 'activity_handoff', hint.activityId);
+  }
+  sourceDiagnostics.activityTaxonomy = 'consulted';
   if (/zielnetz|\bznp\b|produktionsreife/i.test(text)) {
     add('target_grid_planning', 20, 'task_context', 'target_grid_planning_readiness');
   }
@@ -127,6 +135,7 @@ async function classifyDomain(input, dependencies = {}) {
     /aperak|\bz18\b/i.test(text) &&
     /lieferbeginn|stammdaten|\bmalo\b|\bmelo\b|zuordnung/i.test(text)
   ) {
+    add('market_communication', 18, 'task_context', 'aperak_master_data_boundary');
     add('market_master_data', 15, 'task_context', 'mako_master_data_boundary');
   }
   const routes = (dependencies.domainRoutes || listCompiledDomainRoutes)();
@@ -248,6 +257,7 @@ async function classifyDomain(input, dependencies = {}) {
     },
     sourceDiagnostics,
     domainScores: scores,
+    activityHints,
   };
   c.transition = evaluateDomainTransition(previous, c);
   c.requiredClarifications = buildClarificationPrompt(c);
