@@ -2,6 +2,7 @@
 
 const crypto = require('crypto');
 const { Errors } = require('moleculer');
+const { parseMakoEvidence } = require('./mako-evidence-parser');
 
 const EVIDENCE_TYPES = new Set([
   'aperak_message',
@@ -220,11 +221,19 @@ function normalizeEvidenceInput(params, { tenantId, caseId, actorId, clearance =
     SOURCE_REF_FIELDS[sourceType] || [],
     'sourceRef'
   );
-  const extracts = sanitizeObject(
+  const inputExtracts = sanitizeObject(
     params.extracts || params.metadata,
     EXTRACT_FIELDS[evidenceType] || [],
     'extracts'
   );
+  const parsedMako = parseMakoEvidence({
+    evidenceType,
+    sourceType,
+    sourceRef,
+    extracts: inputExtracts,
+    metadata: { ...(params.metadata || {}), ...(params.extracts || {}) },
+  });
+  const extracts = { ...inputExtracts, ...parsedMako.extracts };
   const fileName = sourceRef.fileName || params.fileName || evidenceType;
   const label = stringField(params.label || fileName || evidenceType, 'label', {
     required: true,
@@ -255,12 +264,14 @@ function normalizeEvidenceInput(params, { tenantId, caseId, actorId, clearance =
   const evidenceRole =
     sourceType === 'willi_mako_ref' ? 'diagnostic_signal' : 'supporting_evidence';
   const claimStrength = sourceType === 'willi_mako_ref' ? 'supporting' : 'reference';
-  const readinessReviewRequired = isReviewRelevant({
-    evidenceType,
-    sourceType,
-    sourceRef,
-    extracts,
-  });
+  const readinessReviewRequired =
+    parsedMako.readinessReviewRequired ||
+    isReviewRelevant({
+      evidenceType,
+      sourceType,
+      sourceRef,
+      extracts,
+    });
   const sourceFingerprint = stableHash({
     tenantId,
     caseId,
@@ -289,7 +300,12 @@ function normalizeEvidenceInput(params, { tenantId, caseId, actorId, clearance =
     evidenceRole,
     claimStrength,
     readinessReviewRequired,
-    routingSignals: routingSignalsFor({ evidenceType, sourceType, sourceRef, extracts }),
+    routingSignals: [
+      ...new Set([
+        ...routingSignalsFor({ evidenceType, sourceType, sourceRef, extracts }),
+        ...parsedMako.routingSignals,
+      ]),
+    ],
     status: 'attached',
     actorId,
   };
