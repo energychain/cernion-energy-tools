@@ -249,13 +249,17 @@ module.exports = {
           caseId: ctx.params.caseId || ctx.params.cetCaseId,
           since: ctx.params.since,
         });
-        const items = [];
-        for (const event of response.events || []) {
-          if (!this.deliveryClientAllowsEvent(deliveryClient, event)) continue;
-          if (ctx.params.attentionOnly && !event.requiresUserAttention) continue;
-          const conversation = await this.findConversationForCase(p.tenantId, event.cetCaseId);
-          items.push(presentEvent(event, conversation));
-        }
+        const filteredEvents = (response.events || []).filter((event) => {
+          if (!this.deliveryClientAllowsEvent(deliveryClient, event)) return false;
+          if (ctx.params.attentionOnly && !event.requiresUserAttention) return false;
+          return true;
+        });
+        const items = await Promise.all(
+          filteredEvents.map(async (event) => {
+            const conversation = await this.findConversationForCase(p.tenantId, event.cetCaseId);
+            return presentEvent(event, conversation);
+          })
+        );
         return { items, nextCursor: null };
       },
       {
@@ -1049,22 +1053,25 @@ module.exports = {
       const states = new Map(
         (await this.visibleDomainStates(p)).map((state) => [state.cetCaseId, state])
       );
-      const saved = [];
-      for (const { doc } of (await service.eventsDb.allDocs({ include_docs: true })).rows) {
-        if (doc.tenantId !== p.tenantId || !allowed.has(doc.cetCaseId)) continue;
-        if (!['pending', 'delivered'].includes(doc.deliveryState)) continue;
-        const existing = await this.store.getInboxTask(
-          { tenantId: p.tenantId, taskId: `task_${doc.eventId}` },
-          { optional: true }
-        );
-        if (existing && ['resolved', 'dismissed'].includes(existing.status)) continue;
-        const task = taskFromEvent(doc, {
-          domain: states.get(doc.cetCaseId)?.currentDomain,
-          existing,
-        });
-        saved.push(await this.store.saveInboxTask({ ...task, tenantId: p.tenantId }));
-      }
-      return saved;
+      const events = (await service.eventsDb.allDocs({ include_docs: true })).rows
+        .map((row) => row.doc)
+        .filter((doc) => doc.tenantId === p.tenantId && allowed.has(doc.cetCaseId))
+        .filter((doc) => ['pending', 'delivered'].includes(doc.deliveryState));
+      const tasks = await Promise.all(
+        events.map(async (doc) => {
+          const existing = await this.store.getInboxTask(
+            { tenantId: p.tenantId, taskId: `task_${doc.eventId}` },
+            { optional: true }
+          );
+          if (existing && ['resolved', 'dismissed'].includes(existing.status)) return null;
+          const task = taskFromEvent(doc, {
+            domain: states.get(doc.cetCaseId)?.currentDomain,
+            existing,
+          });
+          return this.store.saveInboxTask({ ...task, tenantId: p.tenantId });
+        })
+      );
+      return tasks.filter(Boolean);
     },
     async taskSummaries(p, caseIds = []) {
       const summaries = new Map(caseIds.map((caseId) => [caseId, this.emptyTaskSummary()]));
@@ -1132,18 +1139,21 @@ module.exports = {
       }
       return registered;
     },
-    async waitForConversationCase(input) {
-      const attempts = 20;
-      for (let i = 0; i < attempts; i += 1) {
+    waitForConversationCase(input) {
+      const attemptResolve = async (attempt = 0) => {
         const mapping = await this.store.resolveConversation(input, { optional: true });
         if (mapping?.cetCaseId) return mapping;
+        if (attempt >= 19) {
+          throw new Errors.MoleculerClientError(
+            'Workbench conversation classification still pending',
+            409,
+            'WORKBENCH_CONVERSATION_PENDING'
+          );
+        }
         await new Promise((resolve) => setTimeout(resolve, 25));
-      }
-      throw new Errors.MoleculerClientError(
-        'Workbench conversation classification still pending',
-        409,
-        'WORKBENCH_CONVERSATION_PENDING'
-      );
+        return attemptResolve(attempt + 1);
+      };
+      return attemptResolve();
     },
     chatResponse(
       usedOperation,

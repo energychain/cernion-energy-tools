@@ -1,6 +1,6 @@
 'use strict';
 
-const { randomBytes } = require('crypto');
+const { randomBytes } = require('node:crypto');
 const { Errors } = require('moleculer');
 
 const now = () => new Date().toISOString();
