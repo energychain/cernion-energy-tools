@@ -40,6 +40,8 @@ Core:
 - `POST /api/workbench/events/:eventId/ack`
 - `POST /api/workbench/cases/:caseId/evidence`
 - `POST /api/workbench/cases/:caseId/dossier`
+- `GET /api/workbench/activities`
+- `GET /api/workbench/activities/:activityId`
 
 Admin/provisioning:
 
@@ -93,6 +95,23 @@ Workbench does not treat Open WebUI chat history as the fachliche source of trut
 - no-call/no-claim guards
 
 On follow-up turns, Workbench passes this compact memory into `domain-router.continue` as `knownContext.cetTurnMemory`. Case summaries expose `turnMemorySummary`, `workingAssumptions`, `openQuestions` and `activeRoleProjection` for UI rendering. Raw Open WebUI chat history, file bodies, credentials and untrusted long payloads are not persisted as Turn Memory.
+
+## Workbench Activity Taxonomy
+
+CET exposes a machine-readable Workbench Activity Taxonomy so Open WebUI can present energy-utility activities without exposing raw API/tool names. Use `GET /api/workbench/activities` to list activities or `GET /api/workbench/activities?query=<user text>` to get prompt-matched activity candidates.
+
+Each activity includes:
+
+- `activityId` and leading `domain`
+- example prompts and routing keywords
+- typical roles
+- required evidence types
+- allowed and blocked actions
+- handoff domains
+- Capability Broker / receipt / OpenAPI operation candidates
+- case-starter eligibility and dossier template hint
+
+The taxonomy supports Domain Router decisions, but it does not replace Capability Broker, receipts or EvidenceRefs. It is routing/process context only: missing evidence still leads to clarification/evidence-required guidance, and external/binding actions remain blocked by CET governance.
 
 ## API sequence
 

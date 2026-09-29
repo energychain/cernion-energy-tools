@@ -16,6 +16,12 @@ const { presentCase, presentCaseListItem } = require('../src/workbench-case-pres
 const { presentEvent } = require('../src/workbench-event-presenter');
 const { normalizeEvidenceInput, safeEvidenceRef } = require('../src/workbench-evidence');
 const { buildTurnMemory, safeTurnMemory } = require('../src/workbench-turn-memory');
+const {
+  ACTIVITY_TAXONOMY_VERSION,
+  getWorkbenchActivity,
+  listWorkbenchActivities,
+  matchWorkbenchActivities,
+} = require('../src/workbench-activity-taxonomy');
 
 const action = (rest, summary, handler, params = {}) => ({
   rest,
@@ -59,6 +65,43 @@ module.exports = {
     }),
   ],
   actions: {
+    'activities.list': action(
+      'GET /activities',
+      'Return the Workbench Activity Taxonomy for energy utility chat routing',
+      async function (ctx) {
+        principal(ctx, ctx.params);
+        const domain = cleanString(ctx.params.domain, { max: 80 }) || null;
+        const query = cleanString(ctx.params.query, { max: 500 }) || null;
+        const caseStarterEligible =
+          ctx.params.caseStarterEligible === undefined
+            ? null
+            : ctx.params.caseStarterEligible === true || ctx.params.caseStarterEligible === 'true';
+        const activities = query
+          ? matchWorkbenchActivities(query, { limit: Number(ctx.params.limit) || 10 }).map(
+              (match) => ({
+                ...match.activity,
+                matchScore: match.score,
+                matchedSignals: match.matchedSignals,
+              })
+            )
+          : listWorkbenchActivities({ domain, caseStarterEligible });
+        return {
+          schemaVersion: ACTIVITY_TAXONOMY_VERSION,
+          activities,
+        };
+      }
+    ),
+    'activities.get': action(
+      'GET /activities/:activityId',
+      'Return one Workbench Activity Taxonomy entry',
+      async function (ctx) {
+        principal(ctx, ctx.params);
+        const activity = getWorkbenchActivity(ctx.params.activityId);
+        if (!activity) throw new Errors.MoleculerClientError('Activity not found', 404);
+        return { schemaVersion: ACTIVITY_TAXONOMY_VERSION, activity };
+      },
+      { activityId: { type: 'string', min: 1 } }
+    ),
     'cases.get': action(
       'GET /cases/:caseId',
       'Return a UI-safe CET case summary for Workbench clients',
@@ -743,6 +786,7 @@ module.exports = {
         usedOperation,
         primaryDomain: result.primaryDomain,
         alternativeDomains: result.alternativeDomains || [],
+        activityHints: result.activityHints || [],
         readinessState: result.readinessState,
         responseText: result.responseText || result.responseGuidance || '',
         requiredClarifications: result.requiredClarifications || [],
