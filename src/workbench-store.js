@@ -33,14 +33,41 @@ function evidenceId(tenantId, caseId, id) {
 function turnMemoryId(tenantId, caseId) {
   return key('turn-memory', tenantId, caseId);
 }
+function userContextId(tenantId, actorId) {
+  return key('user-context', tenantId, actorId);
+}
+function workspaceContextId(tenantId, client, workspaceId) {
+  return key('workspace-context', tenantId, client, workspaceId);
+}
+function contextRefId(tenantId, contextRefIdValue) {
+  return key('context-ref', tenantId, contextRefIdValue);
+}
+function playbookId(tenantId, id) {
+  return key('playbook', tenantId, id);
+}
+function inboxTaskId(tenantId, id) {
+  return key('inbox-task', tenantId, id);
+}
 
 class WorkbenchStore {
-  constructor({ conversationsDb, identityDb, deliveryDb, evidenceDb, turnMemoryDb }) {
+  constructor({
+    conversationsDb,
+    identityDb,
+    deliveryDb,
+    evidenceDb,
+    turnMemoryDb,
+    contextDb,
+    playbookDb,
+    inboxDb,
+  }) {
     this.conversationsDb = conversationsDb;
     this.identityDb = identityDb;
     this.deliveryDb = deliveryDb;
     this.evidenceDb = evidenceDb;
     this.turnMemoryDb = turnMemoryDb || conversationsDb;
+    this.contextDb = contextDb || conversationsDb;
+    this.playbookDb = playbookDb || conversationsDb;
+    this.inboxDb = inboxDb || conversationsDb;
   }
 
   async linkConversation(input) {
@@ -311,6 +338,212 @@ class WorkbenchStore {
       .map((r) => r.doc)
       .filter((doc) => doc.tenantId === input.tenantId && doc.caseId === input.caseId)
       .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+  }
+
+  async saveUserContext(input) {
+    const _id = userContextId(input.tenantId, input.actorId);
+    let existing = null;
+    try {
+      existing = await this.contextDb.get(_id);
+    } catch (e) {
+      if (e.status !== 404) throw e;
+    }
+    const timestamp = now();
+    const doc = {
+      ...(existing || {}),
+      _id,
+      type: 'workbench_user_context',
+      tenantId: input.tenantId,
+      actorId: input.actorId,
+      externalClientRefs: input.externalClientRefs || existing?.externalClientRefs || [],
+      roleFamilies: input.roleFamilies || existing?.roleFamilies || [],
+      domainsAllowed: input.domainsAllowed || existing?.domainsAllowed || [],
+      sensitivityClearance: input.sensitivityClearance || existing?.sensitivityClearance || [],
+      language: input.language || existing?.language || null,
+      tone: input.tone || existing?.tone || null,
+      defaultNoCallGuards: input.defaultNoCallGuards || existing?.defaultNoCallGuards || [],
+      defaultEscalationRules:
+        input.defaultEscalationRules || existing?.defaultEscalationRules || [],
+      preferredEvidenceHandling:
+        input.preferredEvidenceHandling || existing?.preferredEvidenceHandling || [],
+      enabled: input.enabled !== false,
+      createdAt: existing?.createdAt || timestamp,
+      updatedAt: timestamp,
+    };
+    const saved = await this.contextDb.put(doc);
+    return { ...doc, _rev: saved.rev };
+  }
+
+  async getUserContext(input, { optional = true } = {}) {
+    try {
+      const doc = await this.contextDb.get(userContextId(input.tenantId, input.actorId));
+      if (doc.enabled === false) disabled('User context disabled');
+      return doc;
+    } catch (e) {
+      if (e.status === 404 && optional) return null;
+      if (e.status === 404) notFound('Workbench user context not found');
+      throw e;
+    }
+  }
+
+  async saveWorkspaceContext(input) {
+    const _id = workspaceContextId(input.tenantId, input.client, input.workspaceId);
+    let existing = null;
+    try {
+      existing = await this.contextDb.get(_id);
+    } catch (e) {
+      if (e.status !== 404) throw e;
+    }
+    const timestamp = now();
+    const doc = {
+      ...(existing || {}),
+      _id,
+      type: 'workbench_workspace_context',
+      tenantId: input.tenantId,
+      client: input.client,
+      workspaceId: input.workspaceId,
+      externalWorkspaceRef: input.externalWorkspaceRef || existing?.externalWorkspaceRef || null,
+      allowedDomains: input.allowedDomains || existing?.allowedDomains || [],
+      defaultDeliveryClientId:
+        input.defaultDeliveryClientId || existing?.defaultDeliveryClientId || null,
+      defaultPlaybooks: input.defaultPlaybooks || existing?.defaultPlaybooks || [],
+      workspaceNoCallGuards: input.workspaceNoCallGuards || existing?.workspaceNoCallGuards || [],
+      sensitivityBoundary:
+        input.sensitivityBoundary || existing?.sensitivityBoundary || 'tenant_internal',
+      caseVisibilityPolicy:
+        input.caseVisibilityPolicy || existing?.caseVisibilityPolicy || 'tenant',
+      enabled: input.enabled !== false,
+      createdAt: existing?.createdAt || timestamp,
+      updatedAt: timestamp,
+    };
+    const saved = await this.contextDb.put(doc);
+    return { ...doc, _rev: saved.rev };
+  }
+
+  async getWorkspaceContext(input, { optional = true } = {}) {
+    try {
+      const doc = await this.contextDb.get(
+        workspaceContextId(input.tenantId, input.client, input.workspaceId)
+      );
+      if (doc.enabled === false) disabled('Workspace context disabled');
+      return doc;
+    } catch (e) {
+      if (e.status === 404 && optional) return null;
+      if (e.status === 404) notFound('Workbench workspace context not found');
+      throw e;
+    }
+  }
+
+  async saveContextRef(input) {
+    const id = input.contextRefId || `ctx_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const _id = contextRefId(input.tenantId, id);
+    const timestamp = now();
+    const doc = {
+      _id,
+      type: 'workbench_context_ref',
+      tenantId: input.tenantId,
+      actorId: input.actorId,
+      contextRefId: id,
+      contextType: input.contextType,
+      purpose: input.purpose || 'routing_context',
+      label: input.label,
+      sourceRef: input.sourceRef || {},
+      sensitivityLevel: input.sensitivityLevel || 'tenant_internal',
+      safeSummary: input.safeSummary || null,
+      provenance: input.provenance || null,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    };
+    const saved = await this.contextDb.put(doc);
+    return { ...doc, _rev: saved.rev };
+  }
+
+  async savePlaybook(input) {
+    const _id = playbookId(input.tenantId, input.playbookId);
+    let existing = null;
+    try {
+      existing = await this.playbookDb.get(_id);
+    } catch (e) {
+      if (e.status !== 404) throw e;
+    }
+    const timestamp = now();
+    const doc = {
+      ...(existing || {}),
+      _id,
+      type: 'workbench_playbook',
+      tenantId: input.tenantId,
+      playbookId: input.playbookId,
+      title: input.title,
+      scope: input.scope || 'tenant',
+      domain: input.domain || 'governance',
+      workspaceId: input.workspaceId || null,
+      roleFamilies: input.roleFamilies || [],
+      version: input.version || (existing?.version || 0) + 1,
+      status: input.status || existing?.status || 'draft',
+      routingSignals: input.routingSignals || [],
+      requiredEvidence: input.requiredEvidence || [],
+      allowedActions: input.allowedActions || [],
+      blockedActions: input.blockedActions || [],
+      noCallGuards: input.noCallGuards || [],
+      handoffRules: input.handoffRules || [],
+      eventRules: input.eventRules || [],
+      createdAt: existing?.createdAt || timestamp,
+      updatedAt: timestamp,
+    };
+    const saved = await this.playbookDb.put(doc);
+    return { ...doc, _rev: saved.rev };
+  }
+
+  async listPlaybooks(input) {
+    const rows = await this.playbookDb.allDocs({ include_docs: true });
+    return rows.rows
+      .map((r) => r.doc)
+      .filter((doc) => doc.tenantId === input.tenantId && doc.type === 'workbench_playbook')
+      .filter((doc) => !input.domain || doc.domain === input.domain || doc.domain === 'governance')
+      .sort((a, b) => String(a.playbookId).localeCompare(String(b.playbookId)));
+  }
+
+  async saveInboxTask(input) {
+    const _id = inboxTaskId(input.tenantId, input.taskId);
+    let existing = null;
+    try {
+      existing = await this.inboxDb.get(_id);
+    } catch (e) {
+      if (e.status !== 404) throw e;
+    }
+    const timestamp = now();
+    const doc = {
+      ...(existing || {}),
+      ...input,
+      _id,
+      type: 'workbench_inbox_task',
+      createdAt: existing?.createdAt || input.createdAt || timestamp,
+      updatedAt: timestamp,
+    };
+    const saved = await this.inboxDb.put(doc);
+    return { ...doc, _rev: saved.rev };
+  }
+
+  async getInboxTask(input, { optional = false } = {}) {
+    try {
+      return await this.inboxDb.get(inboxTaskId(input.tenantId, input.taskId));
+    } catch (e) {
+      if (e.status === 404 && optional) return null;
+      if (e.status === 404) notFound('Workbench inbox task not found');
+      throw e;
+    }
+  }
+
+  async listInboxTasks(input) {
+    const rows = await this.inboxDb.allDocs({ include_docs: true });
+    return rows.rows
+      .map((r) => r.doc)
+      .filter((doc) => doc.tenantId === input.tenantId && doc.type === 'workbench_inbox_task')
+      .filter(
+        (doc) => !input.caseId || doc.caseId === input.caseId || doc.cetCaseId === input.caseId
+      )
+      .filter((doc) => !input.status || doc.status === input.status)
+      .sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)));
   }
 
   async saveTurnMemory(input) {

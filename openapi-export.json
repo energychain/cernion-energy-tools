@@ -66755,6 +66755,474 @@
         }
       }
     },
+    "/api/workbench/admin/user-contexts": {
+      "post": {
+        "operationId": "workbench_admin_userContexts_save",
+        "summary": "Save a CET-governed Workbench user context profile",
+        "tags": [
+          "Workbench"
+        ],
+        "responses": {
+          "200": {
+            "description": "Workbench response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Tenant, actor, role or sensitivity denied"
+          },
+          "404": {
+            "description": "Workbench resource not found"
+          },
+          "409": {
+            "description": "Stale or conflicting mapping"
+          },
+          "422": {
+            "description": "Invalid workbench request"
+          }
+        },
+        "description": "CET-governed Workbench/Tenant-Gateway API for Open WebUI clients. Tokens stay server-side; CET remains case-state and governance authority.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {}
+              },
+              "examples": {
+                "minimal": {
+                  "value": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/workbench/admin/workspace-contexts": {
+      "post": {
+        "operationId": "workbench_admin_workspaceContexts_save",
+        "summary": "Save a CET-governed Workbench workspace context profile",
+        "tags": [
+          "Workbench"
+        ],
+        "responses": {
+          "200": {
+            "description": "Workbench response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Tenant, actor, role or sensitivity denied"
+          },
+          "404": {
+            "description": "Workbench resource not found"
+          },
+          "409": {
+            "description": "Stale or conflicting mapping"
+          },
+          "422": {
+            "description": "Invalid workbench request"
+          }
+        },
+        "description": "CET-governed Workbench/Tenant-Gateway API for Open WebUI clients. Tokens stay server-side; CET remains case-state and governance authority.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {}
+              },
+              "examples": {
+                "minimal": {
+                  "value": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/workbench/context-refs": {
+      "post": {
+        "operationId": "workbench_contextRefs_create",
+        "summary": "Create a governed ContextRef for Open WebUI artifacts",
+        "tags": [
+          "Workbench"
+        ],
+        "responses": {
+          "200": {
+            "description": "Workbench response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Tenant, actor, role or sensitivity denied"
+          },
+          "404": {
+            "description": "Workbench resource not found"
+          },
+          "409": {
+            "description": "Stale or conflicting mapping"
+          },
+          "422": {
+            "description": "Invalid workbench request"
+          }
+        },
+        "description": "CET-governed Workbench/Tenant-Gateway API for Open WebUI clients. Tokens stay server-side; CET remains case-state and governance authority.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {}
+              },
+              "examples": {
+                "minimal": {
+                  "value": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/workbench/playbooks": {
+      "post": {
+        "operationId": "workbench_playbooks_save",
+        "summary": "Create or update a governed CET Workbench playbook",
+        "tags": [
+          "Workbench"
+        ],
+        "responses": {
+          "200": {
+            "description": "Workbench response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Tenant, actor, role or sensitivity denied"
+          },
+          "404": {
+            "description": "Workbench resource not found"
+          },
+          "409": {
+            "description": "Stale or conflicting mapping"
+          },
+          "422": {
+            "description": "Invalid workbench request"
+          }
+        },
+        "description": "CET-governed Workbench/Tenant-Gateway API for Open WebUI clients. Tokens stay server-side; CET remains case-state and governance authority.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {}
+              },
+              "examples": {
+                "minimal": {
+                  "value": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "workbench_playbooks_list",
+        "summary": "List active/default Workbench playbooks for a tenant/domain",
+        "tags": [
+          "Workbench"
+        ],
+        "responses": {
+          "200": {
+            "description": "Workbench response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Tenant, actor, role or sensitivity denied"
+          },
+          "404": {
+            "description": "Workbench resource not found"
+          },
+          "409": {
+            "description": "Stale or conflicting mapping"
+          },
+          "422": {
+            "description": "Invalid workbench request"
+          }
+        },
+        "description": "CET-governed Workbench/Tenant-Gateway API for Open WebUI clients. Tokens stay server-side; CET remains case-state and governance authority.",
+        "parameters": []
+      }
+    },
+    "/api/workbench/inbox/tasks": {
+      "get": {
+        "operationId": "workbench_inbox_tasks_list",
+        "summary": "Return actionable Workbench inbox tasks derived from Case Events",
+        "tags": [
+          "Workbench"
+        ],
+        "responses": {
+          "200": {
+            "description": "Workbench response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Tenant, actor, role or sensitivity denied"
+          },
+          "404": {
+            "description": "Workbench resource not found"
+          },
+          "409": {
+            "description": "Stale or conflicting mapping"
+          },
+          "422": {
+            "description": "Invalid workbench request"
+          }
+        },
+        "description": "CET-governed Workbench/Tenant-Gateway API for Open WebUI clients. Tokens stay server-side; CET remains case-state and governance authority.",
+        "parameters": []
+      }
+    },
+    "/api/workbench/inbox/tasks/:taskId/assign": {
+      "post": {
+        "operationId": "workbench_inbox_tasks_assign",
+        "summary": "Assign a Workbench inbox task",
+        "tags": [
+          "Workbench"
+        ],
+        "responses": {
+          "200": {
+            "description": "Workbench response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Tenant, actor, role or sensitivity denied"
+          },
+          "404": {
+            "description": "Workbench resource not found"
+          },
+          "409": {
+            "description": "Stale or conflicting mapping"
+          },
+          "422": {
+            "description": "Invalid workbench request"
+          }
+        },
+        "description": "CET-governed Workbench/Tenant-Gateway API for Open WebUI clients. Tokens stay server-side; CET remains case-state and governance authority.",
+        "parameters": [
+          {
+            "name": "taskId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {}
+              },
+              "examples": {
+                "minimal": {
+                  "value": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/workbench/inbox/tasks/:taskId/resolve": {
+      "post": {
+        "operationId": "workbench_inbox_tasks_resolve",
+        "summary": "Resolve a Workbench inbox task without erasing event audit",
+        "tags": [
+          "Workbench"
+        ],
+        "responses": {
+          "200": {
+            "description": "Workbench response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Tenant, actor, role or sensitivity denied"
+          },
+          "404": {
+            "description": "Workbench resource not found"
+          },
+          "409": {
+            "description": "Stale or conflicting mapping"
+          },
+          "422": {
+            "description": "Invalid workbench request"
+          }
+        },
+        "description": "CET-governed Workbench/Tenant-Gateway API for Open WebUI clients. Tokens stay server-side; CET remains case-state and governance authority.",
+        "parameters": [
+          {
+            "name": "taskId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {}
+              },
+              "examples": {
+                "minimal": {
+                  "value": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/workbench/inbox/tasks/:taskId/dismiss": {
+      "post": {
+        "operationId": "workbench_inbox_tasks_dismiss",
+        "summary": "Dismiss a Workbench inbox task without acknowledging underlying events",
+        "tags": [
+          "Workbench"
+        ],
+        "responses": {
+          "200": {
+            "description": "Workbench response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Tenant, actor, role or sensitivity denied"
+          },
+          "404": {
+            "description": "Workbench resource not found"
+          },
+          "409": {
+            "description": "Stale or conflicting mapping"
+          },
+          "422": {
+            "description": "Invalid workbench request"
+          }
+        },
+        "description": "CET-governed Workbench/Tenant-Gateway API for Open WebUI clients. Tokens stay server-side; CET remains case-state and governance authority.",
+        "parameters": [
+          {
+            "name": "taskId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {}
+              },
+              "examples": {
+                "minimal": {
+                  "value": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/workbench/chat": {
       "post": {
         "operationId": "workbench_chat",

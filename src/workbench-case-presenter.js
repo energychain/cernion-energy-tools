@@ -57,7 +57,11 @@ function presentCase(state, { evidenceRefs = [], eventSummary = null, clearance 
   };
 }
 
-function presentCaseListItem(state, eventSummary = { pending: 0, attention: 0 }) {
+function presentCaseListItem(
+  state,
+  eventSummary = { pending: 0, attention: 0 },
+  taskSummary = null
+) {
   const c = state.lastClassification || {};
   return {
     caseId: state.cetCaseId,
@@ -66,7 +70,8 @@ function presentCaseListItem(state, eventSummary = { pending: 0, attention: 0 })
     readinessState: c.readinessState || 'unknown',
     status: c.readinessState === 'evidence_required' ? 'waiting' : 'active',
     pendingEvents: eventSummary.unacknowledged || eventSummary.pending || 0,
-    severity: eventSummary.attention ? 'attention' : 'info',
+    severity: taskSummary?.attention ? 'attention' : eventSummary.attention ? 'attention' : 'info',
+    taskSummary: taskSummary || { open: 0, attention: 0 },
     updatedAt: state.updatedAt,
   };
 }
