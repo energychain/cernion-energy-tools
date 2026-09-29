@@ -1,11 +1,42 @@
 'use strict';
 
+const SAFE_ACTIONS = ['inspect_evidence', 'clarify', 'prepare_handoff'];
+
+function playbook({
+  playbookId,
+  title,
+  domain,
+  scope = 'domain',
+  roleFamilies,
+  routingSignals,
+  requiredEvidence,
+  allowedActions = SAFE_ACTIONS,
+  blockedActions,
+  noCallGuards,
+  handoffRules,
+  eventRules,
+}) {
+  return {
+    playbookId,
+    title,
+    domain,
+    scope,
+    roleFamilies,
+    routingSignals,
+    requiredEvidence,
+    allowedActions,
+    blockedActions,
+    noCallGuards,
+    handoffRules,
+    eventRules,
+  };
+}
+
 const DEFAULT_PLAYBOOKS = [
-  {
+  playbook({
     playbookId: 'mako-clarification-case',
     title: 'MaKo clarification case',
     domain: 'market_communication',
-    scope: 'domain',
     roleFamilies: ['ROLE_MARKET_COMMUNICATION', 'ROLE_GRID_OPERATOR'],
     routingSignals: ['market_communication', 'aperak', 'mscons', 'contrl'],
     requiredEvidence: [
@@ -14,41 +45,36 @@ const DEFAULT_PLAYBOOKS = [
       'mscons_message_status',
       'utilmd_master_data',
     ],
-    allowedActions: ['inspect_evidence', 'clarify', 'prepare_handoff'],
     blockedActions: ['external_message_send', 'approval_grant'],
     noCallGuards: ['Keine externe Marktkommunikationsnachricht ohne CET-RBAC/HITL-Freigabe.'],
     handoffRules: ['Bei MaLo/MeLo/Lieferbeginn-Hinweisen market_master_data prüfen.'],
     eventRules: ['evidence.required', 'clarification.required'],
-  },
-  {
+  }),
+  playbook({
     playbookId: 'edm-measurement-issue',
     title: 'EDM measurement-data issue',
     domain: 'edm',
-    scope: 'domain',
     roleFamilies: ['ROLE_EDM', 'ROLE_GRID_OPERATOR'],
     routingSignals: ['edm', 'mscons', 'zeitreihe', 'lastgang'],
     requiredEvidence: ['mscons_timeseries_status', 'metering_values_export'],
-    allowedActions: ['inspect_evidence', 'clarify', 'prepare_handoff'],
     blockedActions: ['external_message_send', 'billing_write'],
     noCallGuards: ['Keine Abrechnungskorrektur ohne geprüfte Messwert-/Bilanzierungs-Evidenz.'],
     handoffRules: ['Bei Versand-/APERAK-Hinweisen market_communication hinzuziehen.'],
     eventRules: ['evidence.required'],
-  },
-  {
+  }),
+  playbook({
     playbookId: 'grid-connection-precheck',
     title: 'Grid connection preliminary review',
     domain: 'grid_connection',
-    scope: 'domain',
     roleFamilies: ['ROLE_GRID_OPERATOR', 'ROLE_GRID_PLANNING'],
     routingSignals: ['grid_connection', 'anschlussleistung', 'spannungsebene'],
     requiredEvidence: ['grid_connection_document', 'calculation_assumption'],
-    allowedActions: ['inspect_evidence', 'clarify', 'prepare_handoff'],
     blockedActions: ['connection_approval', 'binding_capacity_commitment'],
     noCallGuards: ['Keine Netzanschlusszusage oder Genehmigungsaussage ohne Netzbetreiberprüfung.'],
     handoffRules: ['Bei MW-Leistung Mittelspannung/Hochspannung parallel prüfen.'],
     eventRules: ['evidence.required', 'handoff.required'],
-  },
-  {
+  }),
+  playbook({
     playbookId: 'dossier-no-call-review',
     title: 'Dossier and no-call review',
     domain: 'governance',
@@ -61,21 +87,19 @@ const DEFAULT_PLAYBOOKS = [
     noCallGuards: ['Dossier ist intern/nicht-bindend, solange readinessState nicht ready ist.'],
     handoffRules: ['Bei fehlender Evidenz evidence.required erzeugen.'],
     eventRules: ['readiness.review_required'],
-  },
-  {
+  }),
+  playbook({
     playbookId: 'willi-mako-evidence-usage',
     title: 'Willi-MaKo supporting evidence usage',
     domain: 'market_communication',
-    scope: 'domain',
     roleFamilies: ['ROLE_MARKET_COMMUNICATION', 'ROLE_GRID_OPERATOR'],
     routingSignals: ['willi_mako_ref', 'market_communication', 'mako_error_code_diagnosis'],
     requiredEvidence: ['mako_error_code_diagnosis', 'mako_process_trace'],
-    allowedActions: ['inspect_evidence', 'clarify', 'prepare_handoff'],
     blockedActions: ['external_message_send', 'case_auto_resolution'],
     noCallGuards: ['Willi-MaKo ist Diagnose-/Evidence-Quelle; CET bleibt Case-/Audit-Owner.'],
     handoffRules: ['APERAK Z18 gegen AHB, Segmentreferenz und Stammdatenhistorie prüfen.'],
     eventRules: ['evidence.available', 'readiness.review_required'],
-  },
+  }),
 ];
 
 function safePlaybook(playbook) {
@@ -99,20 +123,19 @@ function safePlaybook(playbook) {
 }
 
 function defaultPlaybooksForTenant(tenantId) {
-  return DEFAULT_PLAYBOOKS.map((playbook) =>
-    safePlaybook({ ...playbook, tenantId, source: 'default', version: 1, status: 'active' })
+  return DEFAULT_PLAYBOOKS.map((item) =>
+    safePlaybook({ ...item, tenantId, source: 'default', version: 1, status: 'active' })
   );
 }
 
 function matchPlaybooks(playbooks, { domain, roles = [], workspaceId = null } = {}) {
   const roleSet = new Set(roles);
   return playbooks
-    .filter((playbook) => (playbook.status || 'active') === 'active')
-    .filter((playbook) => !domain || playbook.domain === domain || playbook.domain === 'governance')
-    .filter((playbook) => !playbook.workspaceId || playbook.workspaceId === workspaceId)
+    .filter((item) => (item.status || 'active') === 'active')
+    .filter((item) => !domain || item.domain === domain || item.domain === 'governance')
+    .filter((item) => !item.workspaceId || item.workspaceId === workspaceId)
     .filter(
-      (playbook) =>
-        !playbook.roleFamilies?.length || playbook.roleFamilies.some((role) => roleSet.has(role))
+      (item) => !item.roleFamilies?.length || item.roleFamilies.some((role) => roleSet.has(role))
     )
     .map(safePlaybook)
     .slice(0, 5);

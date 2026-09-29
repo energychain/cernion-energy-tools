@@ -36,58 +36,27 @@ const action = (rest, summary, handler, params = {}) => ({
   handler,
 });
 const caseParams = { caseId: { type: 'string', min: 1 } };
+const WORKBENCH_DATABASES = [
+  ['conversationsDb', './data/cet_workbench_conversations', 'CET_WORKBENCH_CONVERSATIONS_DB_PATH'],
+  ['identityDb', './data/cet_workbench_identity_mappings', 'CET_WORKBENCH_IDENTITY_DB_PATH'],
+  ['deliveryDb', './data/cet_workbench_delivery_clients', 'CET_WORKBENCH_DELIVERY_DB_PATH'],
+  ['evidenceDb', './data/cet_workbench_evidence', 'CET_WORKBENCH_EVIDENCE_DB_PATH'],
+  ['turnMemoryDb', './data/cet_workbench_turn_memory', 'CET_WORKBENCH_TURN_MEMORY_DB_PATH'],
+  ['contextDb', './data/cet_workbench_context', 'CET_WORKBENCH_CONTEXT_DB_PATH'],
+  ['playbookDb', './data/cet_workbench_playbooks', 'CET_WORKBENCH_PLAYBOOK_DB_PATH'],
+  ['inboxDb', './data/cet_workbench_inbox_tasks', 'CET_WORKBENCH_INBOX_DB_PATH'],
+];
+function workbenchDbMixin([dbProperty, defaultDbPath, dbPathEnvVar]) {
+  const config = { defaultDbPath, dbPathEnvVar, dbProperty };
+  if (dbProperty !== 'conversationsDb') {
+    config.settingsKey = `${dbProperty.replace(/Db$/, '')}DbPath`;
+  }
+  return createPouchDbLifecycleMixin(config);
+}
 
 module.exports = {
   name: 'workbench',
-  mixins: [
-    createPouchDbLifecycleMixin({
-      defaultDbPath: './data/cet_workbench_conversations',
-      dbPathEnvVar: 'CET_WORKBENCH_CONVERSATIONS_DB_PATH',
-      dbProperty: 'conversationsDb',
-    }),
-    createPouchDbLifecycleMixin({
-      defaultDbPath: './data/cet_workbench_identity_mappings',
-      dbPathEnvVar: 'CET_WORKBENCH_IDENTITY_DB_PATH',
-      settingsKey: 'identityDbPath',
-      dbProperty: 'identityDb',
-    }),
-    createPouchDbLifecycleMixin({
-      defaultDbPath: './data/cet_workbench_delivery_clients',
-      dbPathEnvVar: 'CET_WORKBENCH_DELIVERY_DB_PATH',
-      settingsKey: 'deliveryDbPath',
-      dbProperty: 'deliveryDb',
-    }),
-    createPouchDbLifecycleMixin({
-      defaultDbPath: './data/cet_workbench_evidence',
-      dbPathEnvVar: 'CET_WORKBENCH_EVIDENCE_DB_PATH',
-      settingsKey: 'evidenceDbPath',
-      dbProperty: 'evidenceDb',
-    }),
-    createPouchDbLifecycleMixin({
-      defaultDbPath: './data/cet_workbench_turn_memory',
-      dbPathEnvVar: 'CET_WORKBENCH_TURN_MEMORY_DB_PATH',
-      settingsKey: 'turnMemoryDbPath',
-      dbProperty: 'turnMemoryDb',
-    }),
-    createPouchDbLifecycleMixin({
-      defaultDbPath: './data/cet_workbench_context',
-      dbPathEnvVar: 'CET_WORKBENCH_CONTEXT_DB_PATH',
-      settingsKey: 'contextDbPath',
-      dbProperty: 'contextDb',
-    }),
-    createPouchDbLifecycleMixin({
-      defaultDbPath: './data/cet_workbench_playbooks',
-      dbPathEnvVar: 'CET_WORKBENCH_PLAYBOOK_DB_PATH',
-      settingsKey: 'playbookDbPath',
-      dbProperty: 'playbookDb',
-    }),
-    createPouchDbLifecycleMixin({
-      defaultDbPath: './data/cet_workbench_inbox_tasks',
-      dbPathEnvVar: 'CET_WORKBENCH_INBOX_DB_PATH',
-      settingsKey: 'inboxDbPath',
-      dbProperty: 'inboxDb',
-    }),
-  ],
+  mixins: WORKBENCH_DATABASES.map(workbenchDbMixin),
   actions: {
     'activities.list': action(
       'GET /activities',
@@ -597,11 +566,7 @@ module.exports = {
       'Resolve a Workbench inbox task without erasing event audit',
       async function (ctx) {
         const p = principal(ctx, ctx.params);
-        const task = await this.updateInboxTask(p, ctx.params.taskId, {
-          status: 'resolved',
-          resolvedAt: new Date().toISOString(),
-          resolvedBy: p.actorId,
-        });
+        const task = await this.completeInboxTask(p, ctx.params.taskId, 'resolved');
         return safeTask(task);
       },
       { taskId: { type: 'string', min: 1 } }
@@ -611,11 +576,7 @@ module.exports = {
       'Dismiss a Workbench inbox task without acknowledging underlying events',
       async function (ctx) {
         const p = principal(ctx, ctx.params);
-        const task = await this.updateInboxTask(p, ctx.params.taskId, {
-          status: 'dismissed',
-          resolvedAt: new Date().toISOString(),
-          resolvedBy: p.actorId,
-        });
+        const task = await this.completeInboxTask(p, ctx.params.taskId, 'dismissed');
         return safeTask(task);
       },
       { taskId: { type: 'string', min: 1 } }
@@ -1045,6 +1006,13 @@ module.exports = {
         taskId,
       });
       return saved;
+    },
+    completeInboxTask(p, taskId, status) {
+      return this.updateInboxTask(p, taskId, {
+        status,
+        resolvedAt: new Date().toISOString(),
+        resolvedBy: p.actorId,
+      });
     },
     async deriveInboxTasksForCases(p, caseIds = []) {
       const service = this.broker.getLocalService('domain-router');
