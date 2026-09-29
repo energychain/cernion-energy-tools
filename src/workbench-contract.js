@@ -204,6 +204,43 @@ const evidenceRefSchema = objectSchema({
 evidenceRefSchema.properties.sourceRef.additionalProperties = true;
 evidenceRefSchema.properties.extracts.additionalProperties = true;
 
+const turnMemorySchema = objectSchema({
+  schemaVersion: stringSchema('Turn memory schema version'),
+  primaryDomain: stringSchema('Current remembered primary domain'),
+  alternativeDomains: arrayOf(
+    objectSchema({ domain: stringSchema('Domain'), confidence: numberSchema('Confidence') })
+  ),
+  readinessState: stringSchema('Current remembered readiness state'),
+  activeRole: stringSchema('Active role projection used for the next turn'),
+  applicableRoles: arrayOf(stringSchema('CET role visible to the case')),
+  roleHistory: arrayOf(objectSchema({}, [], 'Role transition entry')),
+  openQuestions: arrayOf(stringSchema('Open clarification question')),
+  requiredClarifications: arrayOf(stringSchema('Required clarification')),
+  missingEvidence: arrayOf(stringSchema('Missing evidence type or label')),
+  workingAssumptions: arrayOf(stringSchema('Bounded working assumption')),
+  noCallGuards: arrayOf(stringSchema('No-call guardrail')),
+  allowedActions: arrayOf(stringSchema('Allowed action')),
+  blockedActions: arrayOf(stringSchema('Blocked action')),
+  lastUserIntent: stringSchema('Bounded summary of the latest user intent'),
+  lastSafeConclusion: stringSchema('Latest non-binding safe conclusion'),
+  recentEventStatus: eventSummarySchema,
+  memoryUpdatedAt: stringSchema('ISO timestamp'),
+  rawChatHistoryStored: booleanSchema('Always false for CET turn memory'),
+});
+turnMemorySchema.properties.roleHistory.items.additionalProperties = true;
+
+const turnMemorySummarySchema = objectSchema({
+  primaryDomain: stringSchema('Current remembered primary domain'),
+  readinessState: stringSchema('Current remembered readiness state'),
+  activeRole: stringSchema('Active role projection'),
+  openQuestions: arrayOf(stringSchema('Open clarification question')),
+  missingEvidence: arrayOf(stringSchema('Missing evidence type or label')),
+  workingAssumptions: arrayOf(stringSchema('Bounded working assumption')),
+  lastSafeConclusion: stringSchema('Latest non-binding safe conclusion'),
+  memoryUpdatedAt: stringSchema('ISO timestamp'),
+  rawChatHistoryStored: booleanSchema('Always false for CET turn memory'),
+});
+
 const caseSummarySchema = objectSchema({
   caseId: stringSchema('CET case id'),
   cetCaseId: stringSchema('CET case id'),
@@ -223,6 +260,11 @@ const caseSummarySchema = objectSchema({
   noCallGuards: arrayOf(stringSchema('No-call guardrail')),
   lastResponseText: stringSchema('Last CET response text'),
   evidenceRefs: arrayOf(evidenceRefSchema),
+  turnMemory: turnMemorySchema,
+  turnMemorySummary: turnMemorySummarySchema,
+  workingAssumptions: arrayOf(stringSchema('Bounded working assumption')),
+  openQuestions: arrayOf(stringSchema('Open clarification question')),
+  activeRoleProjection: stringSchema('Current role projection'),
   evidenceSummary: objectSchema({
     total: numberSchema('Visible evidence count'),
     redacted: numberSchema('Redacted evidence count'),
@@ -281,6 +323,7 @@ const schemas = {
     requiredClarifications: arrayOf(stringSchema('Required clarification')),
     missingEvidence: arrayOf(objectSchema({}, [], 'Missing evidence descriptor')),
     noCallGuards: arrayOf(stringSchema('No-call guardrail')),
+    turnMemorySummary: turnMemorySummarySchema,
     events: arrayOf(eventSchema),
     eventSummary: eventSummarySchema,
     pendingEvents: numberSchema('Unacknowledged event count'),

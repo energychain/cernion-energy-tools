@@ -66,6 +66,7 @@ describe('Workbench RC3 Open WebUI Tenant Gateway', () => {
         identityDbPath: path.join(dir, 'identity'),
         deliveryDbPath: path.join(dir, 'delivery'),
         evidenceDbPath: path.join(dir, 'evidence'),
+        turnMemoryDbPath: path.join(dir, 'turn-memory'),
       },
     });
     broker.createService({
@@ -252,6 +253,52 @@ describe('Workbench RC3 Open WebUI Tenant Gateway', () => {
       userMeta
     );
     expect(resolved.caseStateVersion).toBe(second.caseStateVersion);
+  });
+
+  test('chat stores and resumes CET-governed turn memory without raw history', async () => {
+    await provisionOpenWebUiUser();
+    const first = await call('chat', {
+      client: 'open-webui',
+      channel: 'open-webui',
+      openWebuiOrgId: 'ow-org',
+      openWebuiUserId: 'ow-user',
+      openWebuiConversationId: 'chat-memory',
+      clientId: 'openwebui-tenant-a',
+      message: 'MSCONS fehlt, bitte als MaKo/EDM Klärfall einordnen',
+      knownContext: { workingAssumptions: ['Lieferant reklamiert fehlende Zeitreihe'] },
+    });
+    expect(first.turnMemorySummary).toMatchObject({
+      primaryDomain: expect.any(String),
+      activeRole: 'ROLE_GRID_OPERATOR',
+      rawChatHistoryStored: false,
+    });
+    expect(first.turnMemorySummary.workingAssumptions).toContain(
+      'Lieferant reklamiert fehlende Zeitreihe'
+    );
+
+    const second = await call('chat', {
+      client: 'open-webui',
+      channel: 'open-webui',
+      openWebuiOrgId: 'ow-org',
+      openWebuiUserId: 'ow-user',
+      openWebuiConversationId: 'chat-memory',
+      clientId: 'openwebui-tenant-a',
+      message: 'APERAK Z18 liegt vor, keine externe Nachricht senden',
+    });
+    expect(second.usedOperation).toBe('continue');
+    expect(second.turnMemorySummary.lastSafeConclusion).toBeTruthy();
+    expect(JSON.stringify(second.turnMemorySummary)).not.toMatch(
+      /rawMessage|authorization|token/iu
+    );
+
+    const summary = await call(
+      'cases.get',
+      { caseId: second.cetCaseId, includeEvidence: true },
+      userMeta
+    );
+    expect(summary.turnMemorySummary.rawChatHistoryStored).toBe(false);
+    expect(summary.openQuestions).toEqual(expect.any(Array));
+    expect(summary.activeRoleProjection).toBe('ROLE_GRID_OPERATOR');
   });
 
   test('parallel first-turn chat calls resolve to one canonical CET case', async () => {
