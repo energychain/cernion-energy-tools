@@ -65224,7 +65224,254 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "properties": {}
+                  "additionalProperties": false,
+                  "properties": {
+                    "caseId": {
+                      "type": "string",
+                      "description": "CET case id"
+                    },
+                    "cetCaseId": {
+                      "type": "string",
+                      "description": "CET case id"
+                    },
+                    "caseStateVersion": {
+                      "type": "number",
+                      "description": "Case-state version"
+                    },
+                    "tenantId": {
+                      "type": "string",
+                      "description": "Tenant id"
+                    },
+                    "title": {
+                      "type": "string",
+                      "description": "UI title"
+                    },
+                    "primaryDomain": {
+                      "type": "string",
+                      "description": "Primary domain"
+                    },
+                    "alternativeDomains": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "domain": {
+                            "type": "string",
+                            "description": "Domain"
+                          },
+                          "confidence": {
+                            "type": "number",
+                            "description": "Confidence"
+                          }
+                        }
+                      }
+                    },
+                    "readinessState": {
+                      "type": "string",
+                      "description": "Current readiness state"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "UI status"
+                    },
+                    "allowedActions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "description": "Allowed action"
+                      }
+                    },
+                    "blockedActions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "description": "Blocked action"
+                      }
+                    },
+                    "requiredClarifications": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "description": "Required clarification"
+                      }
+                    },
+                    "missingEvidence": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {},
+                        "description": "Missing evidence descriptor"
+                      }
+                    },
+                    "noCallGuards": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "description": "No-call guardrail"
+                      }
+                    },
+                    "lastResponseText": {
+                      "type": "string",
+                      "description": "Last CET response text"
+                    },
+                    "evidenceRefs": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "evidenceId": {
+                            "type": "string",
+                            "description": "Evidence reference id"
+                          },
+                          "caseId": {
+                            "type": "string",
+                            "description": "CET case id"
+                          },
+                          "tenantId": {
+                            "type": "string",
+                            "description": "Tenant id"
+                          },
+                          "actorId": {
+                            "type": "string",
+                            "description": "Actor id that attached the evidence"
+                          },
+                          "evidenceType": {
+                            "type": "string",
+                            "description": "Allowed evidence type"
+                          },
+                          "sourceType": {
+                            "type": "string",
+                            "description": "Allowed source type"
+                          },
+                          "label": {
+                            "type": "string",
+                            "description": "UI-safe evidence label"
+                          },
+                          "description": {
+                            "type": "string",
+                            "description": "UI-safe evidence description"
+                          },
+                          "sensitivityLevel": {
+                            "type": "string",
+                            "description": "Sensitivity level"
+                          },
+                          "safeSummary": {
+                            "type": "string",
+                            "description": "UI-safe summary; never raw document content"
+                          },
+                          "sourceFingerprint": {
+                            "type": "string",
+                            "description": "Fingerprint over normalized source metadata"
+                          },
+                          "hashStatus": {
+                            "type": "string",
+                            "description": "available when a real file/content hash was supplied, unavailable otherwise"
+                          },
+                          "fileHash": {
+                            "type": "string",
+                            "description": "Caller supplied content hash, if available"
+                          },
+                          "provenance": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "system": {
+                                "type": "string",
+                                "description": "Evidence origin system"
+                              },
+                              "retrievalMode": {
+                                "type": "string",
+                                "description": "reference/upload/manual"
+                              },
+                              "retrievedAt": {
+                                "type": "string",
+                                "description": "ISO timestamp"
+                              },
+                              "retrievedBy": {
+                                "type": "string",
+                                "description": "Actor or system attaching the reference"
+                              }
+                            }
+                          },
+                          "sourceRef": {
+                            "type": "object",
+                            "additionalProperties": true,
+                            "properties": {},
+                            "description": "Allowlisted, sanitized source metadata"
+                          },
+                          "extracts": {
+                            "type": "object",
+                            "additionalProperties": true,
+                            "properties": {},
+                            "description": "Optional allowlisted typed extracts"
+                          },
+                          "duplicateOf": {
+                            "type": "string",
+                            "description": "Existing evidence id when idempotent duplicate was detected"
+                          },
+                          "redacted": {
+                            "type": "boolean",
+                            "description": "True when sensitivity prevents details from being shown"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "description": "ISO timestamp"
+                          }
+                        }
+                      }
+                    },
+                    "evidenceSummary": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "total": {
+                          "type": "number",
+                          "description": "Visible evidence count"
+                        },
+                        "redacted": {
+                          "type": "number",
+                          "description": "Redacted evidence count"
+                        }
+                      }
+                    },
+                    "readinessReviewRequired": {
+                      "type": "boolean",
+                      "description": "Whether newly attached evidence requires a readiness review"
+                    },
+                    "eventSummary": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "pending": {
+                          "type": "number",
+                          "description": "Pending events not yet delivered"
+                        },
+                        "delivered": {
+                          "type": "number",
+                          "description": "Delivered but not acknowledged events"
+                        },
+                        "unacknowledged": {
+                          "type": "number",
+                          "description": "Pending plus delivered events"
+                        },
+                        "attention": {
+                          "type": "number",
+                          "description": "Unacknowledged events requiring user attention"
+                        }
+                      }
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "description": "ISO timestamp"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "description": "ISO timestamp"
+                    }
+                  }
                 }
               }
             }
@@ -65269,7 +65516,54 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "properties": {}
+                  "additionalProperties": false,
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "caseId": {
+                            "type": "string",
+                            "description": "CET case id"
+                          },
+                          "title": {
+                            "type": "string",
+                            "description": "UI title"
+                          },
+                          "primaryDomain": {
+                            "type": "string",
+                            "description": "Primary domain"
+                          },
+                          "readinessState": {
+                            "type": "string",
+                            "description": "Readiness state"
+                          },
+                          "status": {
+                            "type": "string",
+                            "description": "Case list status"
+                          },
+                          "pendingEvents": {
+                            "type": "number",
+                            "description": "Unacknowledged event count"
+                          },
+                          "severity": {
+                            "type": "string",
+                            "description": "Highest UI severity"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "description": "ISO timestamp"
+                          }
+                        }
+                      }
+                    },
+                    "nextCursor": {
+                      "type": "string",
+                      "description": "Cursor for next page"
+                    }
+                  }
                 }
               }
             }
@@ -65338,7 +65632,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "properties": {}
+                  "properties": {
+                    "linked": {},
+                    "conversationRef": {}
+                  }
                 }
               }
             }
@@ -65364,8 +65661,45 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "additionalProperties": true,
-                "properties": {}
+                "additionalProperties": false,
+                "properties": {
+                  "client": {
+                    "type": "string",
+                    "description": "Workbench client"
+                  },
+                  "conversationId": {
+                    "type": "string",
+                    "description": "Client conversation id"
+                  },
+                  "openWebuiConversationId": {
+                    "type": "string",
+                    "description": "Open WebUI conversation id"
+                  },
+                  "openWebuiUserId": {
+                    "type": "string",
+                    "description": "Open WebUI user id"
+                  },
+                  "openWebuiOrgId": {
+                    "type": "string",
+                    "description": "Open WebUI organization id"
+                  },
+                  "caseId": {
+                    "type": "string",
+                    "description": "CET case id"
+                  },
+                  "cetCaseId": {
+                    "type": "string",
+                    "description": "CET case id"
+                  },
+                  "clientId": {
+                    "type": "string",
+                    "description": "Registered delivery client id"
+                  },
+                  "overwrite": {
+                    "type": "boolean",
+                    "description": "Allow refreshing an existing mapping to the same case"
+                  }
+                }
               },
               "examples": {
                 "minimal": {
@@ -65391,7 +65725,67 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "properties": {}
+                  "additionalProperties": false,
+                  "properties": {
+                    "found": {
+                      "type": "boolean",
+                      "description": "Whether a mapping was found"
+                    },
+                    "caseId": {
+                      "type": "string",
+                      "description": "CET case id"
+                    },
+                    "cetCaseId": {
+                      "type": "string",
+                      "description": "CET case id"
+                    },
+                    "caseStateVersion": {
+                      "type": "number",
+                      "description": "Case-state version"
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Case mapping status"
+                    },
+                    "conversationRef": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "client": {
+                          "type": "string",
+                          "description": "Workbench client id, usually open-webui"
+                        },
+                        "conversationId": {
+                          "type": "string",
+                          "description": "Client conversation id"
+                        },
+                        "openWebuiConversationId": {
+                          "type": "string",
+                          "description": "Open WebUI conversation id"
+                        },
+                        "openWebuiUserId": {
+                          "type": "string",
+                          "description": "Open WebUI user id"
+                        },
+                        "openWebuiOrgId": {
+                          "type": "string",
+                          "description": "Open WebUI organization id"
+                        },
+                        "caseId": {
+                          "type": "string",
+                          "description": "Linked CET case id"
+                        },
+                        "cetCaseId": {
+                          "type": "string",
+                          "description": "Linked CET case id"
+                        },
+                        "caseStateVersion": {
+                          "type": "number",
+                          "description": "Current CET case-state version"
+                        }
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -65427,7 +65821,104 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "properties": {}
+                  "additionalProperties": false,
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "eventId": {
+                            "type": "string",
+                            "description": "Case Event Outbox event id"
+                          },
+                          "caseId": {
+                            "type": "string",
+                            "description": "CET case id"
+                          },
+                          "cetCaseId": {
+                            "type": "string",
+                            "description": "CET case id"
+                          },
+                          "eventType": {
+                            "type": "string",
+                            "description": "CET event type"
+                          },
+                          "severity": {
+                            "type": "string",
+                            "description": "UI severity"
+                          },
+                          "requiresUserAttention": {
+                            "type": "boolean",
+                            "description": "Whether the event should be visible as attention item"
+                          },
+                          "title": {
+                            "type": "string",
+                            "description": "UI-safe event title"
+                          },
+                          "safeDisplayText": {
+                            "type": "string",
+                            "description": "UI-safe event summary"
+                          },
+                          "sensitivityLevel": {
+                            "type": "string",
+                            "description": "Event sensitivity"
+                          },
+                          "deliveryState": {
+                            "type": "string",
+                            "description": "Delivery state"
+                          },
+                          "conversationRef": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "client": {
+                                "type": "string",
+                                "description": "Workbench client id, usually open-webui"
+                              },
+                              "conversationId": {
+                                "type": "string",
+                                "description": "Client conversation id"
+                              },
+                              "openWebuiConversationId": {
+                                "type": "string",
+                                "description": "Open WebUI conversation id"
+                              },
+                              "openWebuiUserId": {
+                                "type": "string",
+                                "description": "Open WebUI user id"
+                              },
+                              "openWebuiOrgId": {
+                                "type": "string",
+                                "description": "Open WebUI organization id"
+                              },
+                              "caseId": {
+                                "type": "string",
+                                "description": "Linked CET case id"
+                              },
+                              "cetCaseId": {
+                                "type": "string",
+                                "description": "Linked CET case id"
+                              },
+                              "caseStateVersion": {
+                                "type": "number",
+                                "description": "Current CET case-state version"
+                              }
+                            }
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "description": "ISO timestamp"
+                          }
+                        }
+                      }
+                    },
+                    "nextCursor": {
+                      "type": "string",
+                      "description": "Cursor for next page"
+                    }
+                  }
                 }
               }
             }
@@ -65504,7 +65995,91 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "properties": {}
+                  "additionalProperties": false,
+                  "properties": {
+                    "eventId": {
+                      "type": "string",
+                      "description": "Case Event Outbox event id"
+                    },
+                    "caseId": {
+                      "type": "string",
+                      "description": "CET case id"
+                    },
+                    "cetCaseId": {
+                      "type": "string",
+                      "description": "CET case id"
+                    },
+                    "eventType": {
+                      "type": "string",
+                      "description": "CET event type"
+                    },
+                    "severity": {
+                      "type": "string",
+                      "description": "UI severity"
+                    },
+                    "requiresUserAttention": {
+                      "type": "boolean",
+                      "description": "Whether the event should be visible as attention item"
+                    },
+                    "title": {
+                      "type": "string",
+                      "description": "UI-safe event title"
+                    },
+                    "safeDisplayText": {
+                      "type": "string",
+                      "description": "UI-safe event summary"
+                    },
+                    "sensitivityLevel": {
+                      "type": "string",
+                      "description": "Event sensitivity"
+                    },
+                    "deliveryState": {
+                      "type": "string",
+                      "description": "Delivery state"
+                    },
+                    "conversationRef": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "client": {
+                          "type": "string",
+                          "description": "Workbench client id, usually open-webui"
+                        },
+                        "conversationId": {
+                          "type": "string",
+                          "description": "Client conversation id"
+                        },
+                        "openWebuiConversationId": {
+                          "type": "string",
+                          "description": "Open WebUI conversation id"
+                        },
+                        "openWebuiUserId": {
+                          "type": "string",
+                          "description": "Open WebUI user id"
+                        },
+                        "openWebuiOrgId": {
+                          "type": "string",
+                          "description": "Open WebUI organization id"
+                        },
+                        "caseId": {
+                          "type": "string",
+                          "description": "Linked CET case id"
+                        },
+                        "cetCaseId": {
+                          "type": "string",
+                          "description": "Linked CET case id"
+                        },
+                        "caseStateVersion": {
+                          "type": "number",
+                          "description": "Current CET case-state version"
+                        }
+                      }
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "description": "ISO timestamp"
+                    }
+                  }
                 }
               }
             }
@@ -65539,7 +66114,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "additionalProperties": true,
+                "additionalProperties": false,
                 "properties": {
                   "clientId": {
                     "type": "string"
@@ -65573,7 +66148,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "properties": {}
+                  "properties": {
+                    "saved": {},
+                    "mapping": {}
+                  }
                 }
               }
             }
@@ -65599,8 +66177,29 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "additionalProperties": true,
-                "properties": {}
+                "additionalProperties": false,
+                "properties": {
+                  "client": {
+                    "type": "string",
+                    "description": "Workbench client"
+                  },
+                  "externalOrgId": {
+                    "type": "string",
+                    "description": "Open WebUI organization id"
+                  },
+                  "cetTenantId": {
+                    "type": "string",
+                    "description": "CET tenant id"
+                  },
+                  "defaultClientId": {
+                    "type": "string",
+                    "description": "Default registered delivery client id"
+                  },
+                  "enabled": {
+                    "type": "boolean",
+                    "description": "Whether the mapping is active"
+                  }
+                }
               },
               "examples": {
                 "minimal": {
@@ -65626,7 +66225,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "properties": {}
+                  "properties": {
+                    "saved": {},
+                    "mapping": {}
+                  }
                 }
               }
             }
@@ -65652,8 +66254,59 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "additionalProperties": true,
-                "properties": {}
+                "additionalProperties": false,
+                "properties": {
+                  "client": {
+                    "type": "string",
+                    "description": "Workbench client"
+                  },
+                  "externalOrgId": {
+                    "type": "string",
+                    "description": "Open WebUI organization id"
+                  },
+                  "externalUserId": {
+                    "type": "string",
+                    "description": "Open WebUI user id"
+                  },
+                  "openWebuiOrgId": {
+                    "type": "string",
+                    "description": "Open WebUI organization id"
+                  },
+                  "openWebuiUserId": {
+                    "type": "string",
+                    "description": "Open WebUI user id"
+                  },
+                  "cetTenantId": {
+                    "type": "string",
+                    "description": "CET tenant id"
+                  },
+                  "cetActorId": {
+                    "type": "string",
+                    "description": "CET actor id"
+                  },
+                  "roles": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "description": "CET role"
+                    }
+                  },
+                  "sensitivityClearance": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "description": "Sensitivity clearance"
+                    }
+                  },
+                  "defaultClientId": {
+                    "type": "string",
+                    "description": "Default registered delivery client id"
+                  },
+                  "enabled": {
+                    "type": "boolean",
+                    "description": "Whether the mapping is active"
+                  }
+                }
               },
               "examples": {
                 "minimal": {
@@ -65679,7 +66332,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "properties": {}
+                  "properties": {
+                    "found": {},
+                    "mapping": {}
+                  }
                 }
               }
             }
@@ -65724,7 +66380,12 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "properties": {}
+                  "properties": {
+                    "clientId": {},
+                    "enabled": {},
+                    "pollUrl": {},
+                    "deliveryClient": {}
+                  }
                 }
               }
             }
@@ -65750,12 +66411,51 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "additionalProperties": true,
-                "properties": {}
+                "additionalProperties": false,
+                "properties": {
+                  "clientId": {
+                    "type": "string",
+                    "description": "Tenant-bound MWI delivery client id"
+                  },
+                  "clientType": {
+                    "type": "string",
+                    "description": "Client type, usually open-webui"
+                  },
+                  "deliveryMode": {
+                    "type": "string",
+                    "description": "Delivery mode",
+                    "enum": [
+                      "poll"
+                    ]
+                  },
+                  "ackMode": {
+                    "type": "string",
+                    "description": "Ack mode",
+                    "enum": [
+                      "explicit"
+                    ]
+                  },
+                  "eventTypes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "description": "Allowed event type for this client"
+                    }
+                  },
+                  "enabled": {
+                    "type": "boolean",
+                    "description": "Whether this delivery client is active"
+                  }
+                }
               },
               "examples": {
                 "minimal": {
-                  "value": {}
+                  "value": {
+                    "clientId": "openwebui-tenant-1",
+                    "clientType": "open-webui",
+                    "deliveryMode": "poll",
+                    "ackMode": "explicit"
+                  }
                 }
               }
             }
@@ -65777,7 +66477,194 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "properties": {}
+                  "additionalProperties": false,
+                  "properties": {
+                    "caseId": {
+                      "type": "string",
+                      "description": "CET case id"
+                    },
+                    "cetCaseId": {
+                      "type": "string",
+                      "description": "CET case id"
+                    },
+                    "caseStateVersion": {
+                      "type": "number",
+                      "description": "Case-state version"
+                    },
+                    "usedOperation": {
+                      "type": "string",
+                      "description": "classify for new conversations, continue for mapped cases"
+                    },
+                    "primaryDomain": {
+                      "type": "string",
+                      "description": "Primary CET domain"
+                    },
+                    "alternativeDomains": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "domain": {
+                            "type": "string",
+                            "description": "Domain"
+                          },
+                          "confidence": {
+                            "type": "number",
+                            "description": "Confidence"
+                          }
+                        }
+                      }
+                    },
+                    "readinessState": {
+                      "type": "string",
+                      "description": "Readiness state"
+                    },
+                    "responseText": {
+                      "type": "string",
+                      "description": "UI response text"
+                    },
+                    "requiredClarifications": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "description": "Required clarification"
+                      }
+                    },
+                    "missingEvidence": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {},
+                        "description": "Missing evidence descriptor"
+                      }
+                    },
+                    "noCallGuards": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "description": "No-call guardrail"
+                      }
+                    },
+                    "events": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "eventId": {
+                            "type": "string",
+                            "description": "Case Event Outbox event id"
+                          },
+                          "caseId": {
+                            "type": "string",
+                            "description": "CET case id"
+                          },
+                          "cetCaseId": {
+                            "type": "string",
+                            "description": "CET case id"
+                          },
+                          "eventType": {
+                            "type": "string",
+                            "description": "CET event type"
+                          },
+                          "severity": {
+                            "type": "string",
+                            "description": "UI severity"
+                          },
+                          "requiresUserAttention": {
+                            "type": "boolean",
+                            "description": "Whether the event should be visible as attention item"
+                          },
+                          "title": {
+                            "type": "string",
+                            "description": "UI-safe event title"
+                          },
+                          "safeDisplayText": {
+                            "type": "string",
+                            "description": "UI-safe event summary"
+                          },
+                          "sensitivityLevel": {
+                            "type": "string",
+                            "description": "Event sensitivity"
+                          },
+                          "deliveryState": {
+                            "type": "string",
+                            "description": "Delivery state"
+                          },
+                          "conversationRef": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "client": {
+                                "type": "string",
+                                "description": "Workbench client id, usually open-webui"
+                              },
+                              "conversationId": {
+                                "type": "string",
+                                "description": "Client conversation id"
+                              },
+                              "openWebuiConversationId": {
+                                "type": "string",
+                                "description": "Open WebUI conversation id"
+                              },
+                              "openWebuiUserId": {
+                                "type": "string",
+                                "description": "Open WebUI user id"
+                              },
+                              "openWebuiOrgId": {
+                                "type": "string",
+                                "description": "Open WebUI organization id"
+                              },
+                              "caseId": {
+                                "type": "string",
+                                "description": "Linked CET case id"
+                              },
+                              "cetCaseId": {
+                                "type": "string",
+                                "description": "Linked CET case id"
+                              },
+                              "caseStateVersion": {
+                                "type": "number",
+                                "description": "Current CET case-state version"
+                              }
+                            }
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "description": "ISO timestamp"
+                          }
+                        }
+                      }
+                    },
+                    "eventSummary": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "pending": {
+                          "type": "number",
+                          "description": "Pending events not yet delivered"
+                        },
+                        "delivered": {
+                          "type": "number",
+                          "description": "Delivered but not acknowledged events"
+                        },
+                        "unacknowledged": {
+                          "type": "number",
+                          "description": "Pending plus delivered events"
+                        },
+                        "attention": {
+                          "type": "number",
+                          "description": "Unacknowledged events requiring user attention"
+                        }
+                      }
+                    },
+                    "pendingEvents": {
+                      "type": "number",
+                      "description": "Unacknowledged event count"
+                    }
+                  }
                 }
               }
             }
@@ -65803,12 +66690,126 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "additionalProperties": true,
-                "properties": {}
+                "additionalProperties": false,
+                "properties": {
+                  "client": {
+                    "type": "string",
+                    "description": "Workbench client",
+                    "enum": [
+                      "open-webui",
+                      "api",
+                      "web",
+                      "test"
+                    ]
+                  },
+                  "channel": {
+                    "type": "string",
+                    "description": "Workbench channel",
+                    "enum": [
+                      "open-webui",
+                      "web",
+                      "api",
+                      "test"
+                    ]
+                  },
+                  "conversationId": {
+                    "type": "string",
+                    "description": "Client conversation id"
+                  },
+                  "openWebuiConversationId": {
+                    "type": "string",
+                    "description": "Open WebUI conversation id"
+                  },
+                  "openWebuiUserId": {
+                    "type": "string",
+                    "description": "Open WebUI user id"
+                  },
+                  "openWebuiOrgId": {
+                    "type": "string",
+                    "description": "Open WebUI organization id"
+                  },
+                  "clientId": {
+                    "type": "string",
+                    "description": "Registered delivery client id"
+                  },
+                  "message": {
+                    "type": "string",
+                    "description": "User message routed through CET classify/continue",
+                    "maxLength": 8000
+                  },
+                  "asyncDelivery": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "mode": {
+                        "type": "string",
+                        "description": "Delivery mode",
+                        "enum": [
+                          "none",
+                          "poll"
+                        ]
+                      },
+                      "clientId": {
+                        "type": "string",
+                        "description": "Registered Workbench delivery client id"
+                      },
+                      "ackMode": {
+                        "type": "string",
+                        "description": "Acknowledgement mode",
+                        "enum": [
+                          "explicit"
+                        ]
+                      },
+                      "supportedEventTypes": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "description": "Event type"
+                        }
+                      }
+                    }
+                  },
+                  "requestId": {
+                    "type": "string",
+                    "description": "Caller request id"
+                  },
+                  "correlationId": {
+                    "type": "string",
+                    "description": "Caller correlation id"
+                  },
+                  "knownContext": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "properties": {},
+                    "description": "Bounded client context"
+                  },
+                  "attachments": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": true,
+                      "properties": {},
+                      "description": "Open WebUI attachment references"
+                    }
+                  }
+                }
               },
               "examples": {
                 "minimal": {
-                  "value": {}
+                  "value": {
+                    "client": "open-webui",
+                    "channel": "open-webui",
+                    "openWebuiOrgId": "owui-org-1",
+                    "openWebuiUserId": "owui-user-1",
+                    "openWebuiConversationId": "owui-chat-1",
+                    "clientId": "openwebui-tenant-1",
+                    "message": "MSCONS fehlt, APERAK Z18 ist vorhanden. Was ist der nächste sichere Schritt?",
+                    "asyncDelivery": {
+                      "mode": "poll",
+                      "ackMode": "explicit",
+                      "clientId": "openwebui-tenant-1"
+                    }
+                  }
                 }
               }
             }
@@ -65830,7 +66831,142 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "properties": {}
+                  "additionalProperties": false,
+                  "properties": {
+                    "evidenceRef": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "evidenceId": {
+                          "type": "string",
+                          "description": "Evidence reference id"
+                        },
+                        "caseId": {
+                          "type": "string",
+                          "description": "CET case id"
+                        },
+                        "tenantId": {
+                          "type": "string",
+                          "description": "Tenant id"
+                        },
+                        "actorId": {
+                          "type": "string",
+                          "description": "Actor id that attached the evidence"
+                        },
+                        "evidenceType": {
+                          "type": "string",
+                          "description": "Allowed evidence type"
+                        },
+                        "sourceType": {
+                          "type": "string",
+                          "description": "Allowed source type"
+                        },
+                        "label": {
+                          "type": "string",
+                          "description": "UI-safe evidence label"
+                        },
+                        "description": {
+                          "type": "string",
+                          "description": "UI-safe evidence description"
+                        },
+                        "sensitivityLevel": {
+                          "type": "string",
+                          "description": "Sensitivity level"
+                        },
+                        "safeSummary": {
+                          "type": "string",
+                          "description": "UI-safe summary; never raw document content"
+                        },
+                        "sourceFingerprint": {
+                          "type": "string",
+                          "description": "Fingerprint over normalized source metadata"
+                        },
+                        "hashStatus": {
+                          "type": "string",
+                          "description": "available when a real file/content hash was supplied, unavailable otherwise"
+                        },
+                        "fileHash": {
+                          "type": "string",
+                          "description": "Caller supplied content hash, if available"
+                        },
+                        "provenance": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "properties": {
+                            "system": {
+                              "type": "string",
+                              "description": "Evidence origin system"
+                            },
+                            "retrievalMode": {
+                              "type": "string",
+                              "description": "reference/upload/manual"
+                            },
+                            "retrievedAt": {
+                              "type": "string",
+                              "description": "ISO timestamp"
+                            },
+                            "retrievedBy": {
+                              "type": "string",
+                              "description": "Actor or system attaching the reference"
+                            }
+                          }
+                        },
+                        "sourceRef": {
+                          "type": "object",
+                          "additionalProperties": true,
+                          "properties": {},
+                          "description": "Allowlisted, sanitized source metadata"
+                        },
+                        "extracts": {
+                          "type": "object",
+                          "additionalProperties": true,
+                          "properties": {},
+                          "description": "Optional allowlisted typed extracts"
+                        },
+                        "duplicateOf": {
+                          "type": "string",
+                          "description": "Existing evidence id when idempotent duplicate was detected"
+                        },
+                        "redacted": {
+                          "type": "boolean",
+                          "description": "True when sensitivity prevents details from being shown"
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "description": "ISO timestamp"
+                        }
+                      }
+                    },
+                    "duplicate": {
+                      "type": "boolean",
+                      "description": "Whether this was an idempotent duplicate"
+                    },
+                    "duplicateOf": {
+                      "type": "string",
+                      "description": "Existing evidence id"
+                    },
+                    "readinessReviewRequired": {
+                      "type": "boolean",
+                      "description": "Whether a case readiness review is required"
+                    },
+                    "generatedEvents": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "eventType": {
+                            "type": "string",
+                            "description": "Event type"
+                          },
+                          "severity": {
+                            "type": "string",
+                            "description": "Severity"
+                          }
+                        }
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -65865,12 +67001,67 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "additionalProperties": true,
-                "properties": {}
+                "additionalProperties": false,
+                "properties": {
+                  "evidenceType": {
+                    "type": "string",
+                    "description": "Allowed evidence type"
+                  },
+                  "sourceType": {
+                    "type": "string",
+                    "description": "Allowed source type"
+                  },
+                  "label": {
+                    "type": "string",
+                    "description": "UI-safe evidence label"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "UI-safe evidence description"
+                  },
+                  "sensitivityLevel": {
+                    "type": "string",
+                    "description": "Sensitivity level"
+                  },
+                  "sourceRef": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "properties": {},
+                    "description": "Allowlisted source reference metadata"
+                  },
+                  "extracts": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "properties": {},
+                    "description": "Optional typed extracts"
+                  },
+                  "fileHash": {
+                    "type": "string",
+                    "description": "Caller supplied content hash, if available"
+                  },
+                  "forceNewVersion": {
+                    "type": "boolean",
+                    "description": "Create a new evidence version even when source fingerprint matches"
+                  },
+                  "correlationId": {
+                    "type": "string",
+                    "description": "Correlation id"
+                  }
+                }
               },
               "examples": {
                 "minimal": {
-                  "value": {}
+                  "value": {
+                    "evidenceType": "mako_error_code_diagnosis",
+                    "sourceType": "willi_mako_ref",
+                    "label": "Willi-MaKo APERAK Z18 Diagnose",
+                    "sensitivityLevel": "tenant_internal",
+                    "sourceRef": {
+                      "messageType": "APERAK",
+                      "errorCode": "Z18",
+                      "processRef": "MSCONS-..."
+                    }
+                  }
                 }
               }
             }
@@ -65892,7 +67083,155 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "properties": {}
+                  "additionalProperties": false,
+                  "properties": {
+                    "caseId": {
+                      "type": "string",
+                      "description": "CET case id"
+                    },
+                    "dossierId": {
+                      "type": "string",
+                      "description": "Dossier id"
+                    },
+                    "format": {
+                      "type": "string",
+                      "description": "Format"
+                    },
+                    "title": {
+                      "type": "string",
+                      "description": "Title"
+                    },
+                    "content": {
+                      "type": "string",
+                      "description": "Dossier body"
+                    },
+                    "evidenceRefs": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "evidenceId": {
+                            "type": "string",
+                            "description": "Evidence reference id"
+                          },
+                          "caseId": {
+                            "type": "string",
+                            "description": "CET case id"
+                          },
+                          "tenantId": {
+                            "type": "string",
+                            "description": "Tenant id"
+                          },
+                          "actorId": {
+                            "type": "string",
+                            "description": "Actor id that attached the evidence"
+                          },
+                          "evidenceType": {
+                            "type": "string",
+                            "description": "Allowed evidence type"
+                          },
+                          "sourceType": {
+                            "type": "string",
+                            "description": "Allowed source type"
+                          },
+                          "label": {
+                            "type": "string",
+                            "description": "UI-safe evidence label"
+                          },
+                          "description": {
+                            "type": "string",
+                            "description": "UI-safe evidence description"
+                          },
+                          "sensitivityLevel": {
+                            "type": "string",
+                            "description": "Sensitivity level"
+                          },
+                          "safeSummary": {
+                            "type": "string",
+                            "description": "UI-safe summary; never raw document content"
+                          },
+                          "sourceFingerprint": {
+                            "type": "string",
+                            "description": "Fingerprint over normalized source metadata"
+                          },
+                          "hashStatus": {
+                            "type": "string",
+                            "description": "available when a real file/content hash was supplied, unavailable otherwise"
+                          },
+                          "fileHash": {
+                            "type": "string",
+                            "description": "Caller supplied content hash, if available"
+                          },
+                          "provenance": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "system": {
+                                "type": "string",
+                                "description": "Evidence origin system"
+                              },
+                              "retrievalMode": {
+                                "type": "string",
+                                "description": "reference/upload/manual"
+                              },
+                              "retrievedAt": {
+                                "type": "string",
+                                "description": "ISO timestamp"
+                              },
+                              "retrievedBy": {
+                                "type": "string",
+                                "description": "Actor or system attaching the reference"
+                              }
+                            }
+                          },
+                          "sourceRef": {
+                            "type": "object",
+                            "additionalProperties": true,
+                            "properties": {},
+                            "description": "Allowlisted, sanitized source metadata"
+                          },
+                          "extracts": {
+                            "type": "object",
+                            "additionalProperties": true,
+                            "properties": {},
+                            "description": "Optional allowlisted typed extracts"
+                          },
+                          "duplicateOf": {
+                            "type": "string",
+                            "description": "Existing evidence id when idempotent duplicate was detected"
+                          },
+                          "redacted": {
+                            "type": "boolean",
+                            "description": "True when sensitivity prevents details from being shown"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "description": "ISO timestamp"
+                          }
+                        }
+                      }
+                    },
+                    "noCallGuards": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "description": "No-call guardrail"
+                      }
+                    },
+                    "readinessState": {
+                      "type": "string",
+                      "description": "Readiness state"
+                    },
+                    "nonBinding": {
+                      "type": "boolean",
+                      "description": "True when readiness is not ready"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "description": "ISO timestamp"
+                    }
+                  }
                 }
               }
             }
@@ -65927,8 +67266,44 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "additionalProperties": true,
-                "properties": {}
+                "additionalProperties": false,
+                "properties": {
+                  "format": {
+                    "type": "string",
+                    "description": "Dossier format",
+                    "enum": [
+                      "markdown"
+                    ]
+                  },
+                  "purpose": {
+                    "type": "string",
+                    "description": "Dossier purpose"
+                  },
+                  "audience": {
+                    "type": "string",
+                    "description": "Audience"
+                  },
+                  "includeEvidenceRefs": {
+                    "type": "boolean",
+                    "description": "Include EvidenceRefs"
+                  },
+                  "includeAuditTrail": {
+                    "type": "boolean",
+                    "description": "Include audit trail when authorized"
+                  },
+                  "question": {
+                    "type": "string",
+                    "description": "Optional dossier prompt"
+                  },
+                  "sessionId": {
+                    "type": "string",
+                    "description": "Optional Personal Agent session id"
+                  },
+                  "correlationId": {
+                    "type": "string",
+                    "description": "Correlation id"
+                  }
+                }
               },
               "examples": {
                 "minimal": {

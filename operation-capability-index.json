@@ -2,7 +2,7 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.99.22",
-  "sourceOpenApiHash": "0a5eed783de36ae030bbe9937462ac38a1bac2fa464a24b4f1fb48981646693f",
+  "sourceOpenApiHash": "6b34b12c99ed30485d3b99110ede711641b413c7913ad05cd6ea97a811a70ade",
   "coverage": {
     "rawOperationCount": 1164,
     "operationCount": 908,
@@ -83068,7 +83068,43 @@
       "rollbackHint": "May not be reversible via API - verify with backend/tenant admin before invoking.",
       "parameters": {
         "required": [],
-        "optional": []
+        "optional": [
+          {
+            "name": "client",
+            "in": "body",
+            "type": "string",
+            "description": "Workbench client",
+            "extractionHint": null
+          },
+          {
+            "name": "externalOrgId",
+            "in": "body",
+            "type": "string",
+            "description": "Open WebUI organization id",
+            "extractionHint": null
+          },
+          {
+            "name": "cetTenantId",
+            "in": "body",
+            "type": "string",
+            "description": "CET tenant id",
+            "extractionHint": "tenant_id"
+          },
+          {
+            "name": "defaultClientId",
+            "in": "body",
+            "type": "string",
+            "description": "Default registered delivery client id",
+            "extractionHint": null
+          },
+          {
+            "name": "enabled",
+            "in": "body",
+            "type": "boolean",
+            "description": "Whether the mapping is active",
+            "extractionHint": null
+          }
+        ]
       },
       "rankingSignals": {
         "positiveKeywords": [
@@ -83139,7 +83175,85 @@
       "rollbackHint": "May not be reversible via API - verify with backend/tenant admin before invoking.",
       "parameters": {
         "required": [],
-        "optional": []
+        "optional": [
+          {
+            "name": "client",
+            "in": "body",
+            "type": "string",
+            "description": "Workbench client",
+            "extractionHint": null
+          },
+          {
+            "name": "externalOrgId",
+            "in": "body",
+            "type": "string",
+            "description": "Open WebUI organization id",
+            "extractionHint": null
+          },
+          {
+            "name": "externalUserId",
+            "in": "body",
+            "type": "string",
+            "description": "Open WebUI user id",
+            "extractionHint": null
+          },
+          {
+            "name": "openWebuiOrgId",
+            "in": "body",
+            "type": "string",
+            "description": "Open WebUI organization id",
+            "extractionHint": null
+          },
+          {
+            "name": "openWebuiUserId",
+            "in": "body",
+            "type": "string",
+            "description": "Open WebUI user id",
+            "extractionHint": null
+          },
+          {
+            "name": "cetTenantId",
+            "in": "body",
+            "type": "string",
+            "description": "CET tenant id",
+            "extractionHint": "tenant_id"
+          },
+          {
+            "name": "cetActorId",
+            "in": "body",
+            "type": "string",
+            "description": "CET actor id",
+            "extractionHint": null
+          },
+          {
+            "name": "roles",
+            "in": "body",
+            "type": "array",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "sensitivityClearance",
+            "in": "body",
+            "type": "array",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "defaultClientId",
+            "in": "body",
+            "type": "string",
+            "description": "Default registered delivery client id",
+            "extractionHint": null
+          },
+          {
+            "name": "enabled",
+            "in": "body",
+            "type": "boolean",
+            "description": "Whether the mapping is active",
+            "extractionHint": null
+          }
+        ]
       },
       "rankingSignals": {
         "positiveKeywords": [
@@ -83453,7 +83567,64 @@
             "extractionHint": null
           }
         ],
-        "optional": []
+        "optional": [
+          {
+            "name": "format",
+            "in": "body",
+            "type": "string",
+            "description": "Dossier format",
+            "extractionHint": null
+          },
+          {
+            "name": "purpose",
+            "in": "body",
+            "type": "string",
+            "description": "Dossier purpose",
+            "extractionHint": null
+          },
+          {
+            "name": "audience",
+            "in": "body",
+            "type": "string",
+            "description": "Audience",
+            "extractionHint": null
+          },
+          {
+            "name": "includeEvidenceRefs",
+            "in": "body",
+            "type": "boolean",
+            "description": "Include EvidenceRefs",
+            "extractionHint": null
+          },
+          {
+            "name": "includeAuditTrail",
+            "in": "body",
+            "type": "boolean",
+            "description": "Include audit trail when authorized",
+            "extractionHint": null
+          },
+          {
+            "name": "question",
+            "in": "body",
+            "type": "string",
+            "description": "Optional dossier prompt",
+            "extractionHint": null
+          },
+          {
+            "name": "sessionId",
+            "in": "body",
+            "type": "string",
+            "description": "Optional Personal Agent session id",
+            "extractionHint": null
+          },
+          {
+            "name": "correlationId",
+            "in": "body",
+            "type": "string",
+            "description": "Correlation id",
+            "extractionHint": "geo_coordinate"
+          }
+        ]
       },
       "rankingSignals": {
         "positiveKeywords": [
@@ -83528,7 +83699,78 @@
             "extractionHint": null
           }
         ],
-        "optional": []
+        "optional": [
+          {
+            "name": "evidenceType",
+            "in": "body",
+            "type": "string",
+            "description": "Allowed evidence type",
+            "extractionHint": null
+          },
+          {
+            "name": "sourceType",
+            "in": "body",
+            "type": "string",
+            "description": "Allowed source type",
+            "extractionHint": null
+          },
+          {
+            "name": "label",
+            "in": "body",
+            "type": "string",
+            "description": "UI-safe evidence label",
+            "extractionHint": null
+          },
+          {
+            "name": "description",
+            "in": "body",
+            "type": "string",
+            "description": "UI-safe evidence description",
+            "extractionHint": null
+          },
+          {
+            "name": "sensitivityLevel",
+            "in": "body",
+            "type": "string",
+            "description": "Sensitivity level",
+            "extractionHint": null
+          },
+          {
+            "name": "sourceRef",
+            "in": "body",
+            "type": "object",
+            "description": "Allowlisted source reference metadata",
+            "extractionHint": null
+          },
+          {
+            "name": "extracts",
+            "in": "body",
+            "type": "object",
+            "description": "Optional typed extracts",
+            "extractionHint": null
+          },
+          {
+            "name": "fileHash",
+            "in": "body",
+            "type": "string",
+            "description": "Caller supplied content hash, if available",
+            "extractionHint": null
+          },
+          {
+            "name": "forceNewVersion",
+            "in": "body",
+            "type": "boolean",
+            "description": "Create a new evidence version even when source fingerprint matches",
+            "extractionHint": null
+          },
+          {
+            "name": "correlationId",
+            "in": "body",
+            "type": "string",
+            "description": "Correlation id",
+            "extractionHint": "geo_coordinate"
+          }
+        ]
       },
       "rankingSignals": {
         "positiveKeywords": [
@@ -83597,7 +83839,99 @@
       "rollbackHint": "No companion rollback operation detected in this service - verify reversibility with backend/tenant admin before invoking.",
       "parameters": {
         "required": [],
-        "optional": []
+        "optional": [
+          {
+            "name": "client",
+            "in": "body",
+            "type": "string",
+            "description": "Workbench client",
+            "extractionHint": null
+          },
+          {
+            "name": "channel",
+            "in": "body",
+            "type": "string",
+            "description": "Workbench channel",
+            "extractionHint": null
+          },
+          {
+            "name": "conversationId",
+            "in": "body",
+            "type": "string",
+            "description": "Client conversation id",
+            "extractionHint": null
+          },
+          {
+            "name": "openWebuiConversationId",
+            "in": "body",
+            "type": "string",
+            "description": "Open WebUI conversation id",
+            "extractionHint": null
+          },
+          {
+            "name": "openWebuiUserId",
+            "in": "body",
+            "type": "string",
+            "description": "Open WebUI user id",
+            "extractionHint": null
+          },
+          {
+            "name": "openWebuiOrgId",
+            "in": "body",
+            "type": "string",
+            "description": "Open WebUI organization id",
+            "extractionHint": null
+          },
+          {
+            "name": "clientId",
+            "in": "body",
+            "type": "string",
+            "description": "Registered delivery client id",
+            "extractionHint": null
+          },
+          {
+            "name": "message",
+            "in": "body",
+            "type": "string",
+            "description": "User message routed through CET classify/continue",
+            "extractionHint": null
+          },
+          {
+            "name": "asyncDelivery",
+            "in": "body",
+            "type": "object",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "requestId",
+            "in": "body",
+            "type": "string",
+            "description": "Caller request id",
+            "extractionHint": null
+          },
+          {
+            "name": "correlationId",
+            "in": "body",
+            "type": "string",
+            "description": "Caller correlation id",
+            "extractionHint": "geo_coordinate"
+          },
+          {
+            "name": "knownContext",
+            "in": "body",
+            "type": "object",
+            "description": "Bounded client context",
+            "extractionHint": null
+          },
+          {
+            "name": "attachments",
+            "in": "body",
+            "type": "array",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
       },
       "rankingSignals": {
         "positiveKeywords": [
@@ -83665,7 +83999,71 @@
       "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
       "parameters": {
         "required": [],
-        "optional": []
+        "optional": [
+          {
+            "name": "client",
+            "in": "body",
+            "type": "string",
+            "description": "Workbench client",
+            "extractionHint": null
+          },
+          {
+            "name": "conversationId",
+            "in": "body",
+            "type": "string",
+            "description": "Client conversation id",
+            "extractionHint": null
+          },
+          {
+            "name": "openWebuiConversationId",
+            "in": "body",
+            "type": "string",
+            "description": "Open WebUI conversation id",
+            "extractionHint": null
+          },
+          {
+            "name": "openWebuiUserId",
+            "in": "body",
+            "type": "string",
+            "description": "Open WebUI user id",
+            "extractionHint": null
+          },
+          {
+            "name": "openWebuiOrgId",
+            "in": "body",
+            "type": "string",
+            "description": "Open WebUI organization id",
+            "extractionHint": null
+          },
+          {
+            "name": "caseId",
+            "in": "body",
+            "type": "string",
+            "description": "CET case id",
+            "extractionHint": null
+          },
+          {
+            "name": "cetCaseId",
+            "in": "body",
+            "type": "string",
+            "description": "CET case id",
+            "extractionHint": null
+          },
+          {
+            "name": "clientId",
+            "in": "body",
+            "type": "string",
+            "description": "Registered delivery client id",
+            "extractionHint": null
+          },
+          {
+            "name": "overwrite",
+            "in": "body",
+            "type": "boolean",
+            "description": "Allow refreshing an existing mapping to the same case",
+            "extractionHint": null
+          }
+        ]
       },
       "rankingSignals": {
         "positiveKeywords": [
@@ -83796,7 +84194,50 @@
       "rollbackHint": "May not be reversible via API - verify with backend/tenant admin before invoking.",
       "parameters": {
         "required": [],
-        "optional": []
+        "optional": [
+          {
+            "name": "clientId",
+            "in": "body",
+            "type": "string",
+            "description": "Tenant-bound MWI delivery client id",
+            "extractionHint": null
+          },
+          {
+            "name": "clientType",
+            "in": "body",
+            "type": "string",
+            "description": "Client type, usually open-webui",
+            "extractionHint": null
+          },
+          {
+            "name": "deliveryMode",
+            "in": "body",
+            "type": "string",
+            "description": "Delivery mode",
+            "extractionHint": null
+          },
+          {
+            "name": "ackMode",
+            "in": "body",
+            "type": "string",
+            "description": "Ack mode",
+            "extractionHint": null
+          },
+          {
+            "name": "eventTypes",
+            "in": "body",
+            "type": "array",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "enabled",
+            "in": "body",
+            "type": "boolean",
+            "description": "Whether this delivery client is active",
+            "extractionHint": null
+          }
+        ]
       },
       "rankingSignals": {
         "positiveKeywords": [

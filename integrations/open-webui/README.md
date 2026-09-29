@@ -14,12 +14,108 @@ uses its own env-only credential:
 - `cernion-process-intake-tool-server.js` — **draft-only** Process Intake preview (delegates to
   the existing Process Intake action). **This is not a production write path.**
 
+## RC3 Cernion Workbench / Tenant-Gateway setup
+
+For customer-facing Open WebUI access, prefer the RC3 Workbench path over direct tool wiring. Open
+WebUI remains the tenant-branded UI; `/api/workbench/*` maps Open-WebUI org/user/conversation ids to
+CET tenant/actor/case state, and `model: "cernion-governance-assistant"` forces the CET
+classify/continue path through `/v1/chat/completions`.
+
+Provisioning sequence:
+
+1. Create the Open-WebUI organization to CET tenant mapping:
+
+```bash
+curl -X POST https://api.cernion.de/api/workbench/admin/tenant-mappings \
+  -H "Authorization: Bearer <tenant-admin-or-platform-token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "client": "open-webui",
+    "externalOrgId": "owui-org-1",
+    "cetTenantId": "tenant-1",
+    "defaultClientId": "openwebui-tenant-1",
+    "enabled": true
+  }'
+```
+
+2. Create the Open-WebUI user to CET actor/role mapping:
+
+```bash
+curl -X POST https://api.cernion.de/api/workbench/admin/user-mappings \
+  -H "Authorization: Bearer <tenant-admin-or-platform-token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "client": "open-webui",
+    "externalOrgId": "owui-org-1",
+    "externalUserId": "owui-user-1",
+    "cetTenantId": "tenant-1",
+    "cetActorId": "user:mako-analyst",
+    "roles": ["ROLE_MARKET_COMMUNICATION", "ROLE_EDM"],
+    "sensitivityClearance": ["tenant_internal", "restricted"],
+    "defaultClientId": "openwebui-tenant-1",
+    "enabled": true
+  }'
+```
+
+3. Register the Workbench MWI delivery client before polling events:
+
+```bash
+curl -X POST https://api.cernion.de/api/workbench/delivery-clients \
+  -H "Authorization: Bearer <tenant-admin-or-platform-token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "clientId": "openwebui-tenant-1",
+    "clientType": "open-webui",
+    "deliveryMode": "poll",
+    "ackMode": "explicit",
+    "eventTypes": ["clarification.required", "evidence.required", "evidence.available", "domain.changed"],
+    "enabled": true
+  }'
+```
+
+4. Configure Open WebUI with the CET OpenAI-compatible endpoint and use
+`cernion-governance-assistant`:
+
+```json
+{
+  "model": "cernion-governance-assistant",
+  "messages": [{ "role": "user", "content": "MSCONS fehlt, APERAK Z18 ist vorhanden." }],
+  "metadata": {
+    "client": "open-webui",
+    "openWebuiOrgId": "owui-org-1",
+    "openWebuiUserId": "owui-user-1",
+    "openWebuiConversationId": "owui-chat-1",
+    "clientId": "openwebui-tenant-1"
+  }
+}
+```
+
+5. Poll and acknowledge MWI events through the Workbench wrapper:
+
+```bash
+curl "https://api.cernion.de/api/workbench/events?clientId=openwebui-tenant-1&attentionOnly=true" \
+  -H "Authorization: Bearer <user-or-service-token>"
+
+curl -X POST https://api.cernion.de/api/workbench/events/<eventId>/ack \
+  -H "Authorization: Bearer <user-or-service-token>" \
+  -H "Content-Type: application/json" \
+  -d '{ "clientId": "openwebui-tenant-1" }'
+```
+
+Common fail-closed errors:
+
+- `WORKBENCH_TENANT_MAPPING_REQUIRED`: create `/api/workbench/admin/tenant-mappings` for the Open-WebUI organization.
+- `WORKBENCH_MAPPING_REQUIRED`: create `/api/workbench/admin/user-mappings` for the Open-WebUI user.
+- `WORKBENCH_DELIVERY_CLIENT_REQUIRED`: register `/api/workbench/delivery-clients` before event polling/ack.
+- `WORKBENCH_IDENTITY_INCOMPLETE`: send Open-WebUI user and organization ids together.
+- Evidence attach errors for unknown `evidenceType`, `sourceType`, missing sensitivity clearance or secret-like `sourceRef` fields are intentional fail-closed behavior.
+
 ## OpenAI-compatible Sidecar bridge
 
-The bridge lets an existing Open WebUI instance use a single, explicit Cernion Sidecar session as
-an OpenAI-compatible chat provider. Open WebUI remains only the interchangeable frontend;
-Cernion remains authoritative for capability routing, policy, evidence, lifecycle and all
-write-boundary decisions.
+The legacy bridge lets an existing Open WebUI instance use a single, explicit Cernion Sidecar
+session as an OpenAI-compatible chat provider. For customer-facing RC3 deployments use the
+Workbench setup above. Open WebUI remains only the interchangeable frontend; Cernion remains
+authoritative for capability routing, policy, evidence, lifecycle and all write-boundary decisions.
 
 Start the bridge after generating or receiving a Sidecar session manifest:
 

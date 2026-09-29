@@ -739,4 +739,6 @@ Primary endpoints:
 
 OpenAI-compatible clients may use `POST /v1/chat/completions` with `model: "cernion-governance-assistant"`. That mode routes through `workbench.chat` and returns OpenAI-compatible output plus CET metadata (`cetCaseId`, `caseStateVersion`, `primaryDomain`, `readinessState`). Existing `/v1/chat/completions` behavior for other supported models remains unchanged.
 
+Provisioning order for Open WebUI clients is mandatory: create the tenant mapping, create the user mapping, register the delivery client, then start chat and poll events. The generated OpenAPI now includes concrete request/response schemas for these Workbench contracts; see `docs/open-webui-tenant-gateway.md` and `integrations/open-webui/README.md` for curl examples. Common fail-closed errors are `WORKBENCH_TENANT_MAPPING_REQUIRED`, `WORKBENCH_MAPPING_REQUIRED`, `WORKBENCH_DELIVERY_CLIENT_REQUIRED` and `WORKBENCH_IDENTITY_INCOMPLETE`.
+
 Security boundary: CET service tokens remain server-side. Open-WebUI org/user/group values are mapped server-side into CET tenant, actor, roles and sensitivity clearance. Missing or disabled mappings fail closed. Polling events does not ack them; explicit ack is required after visible delivery.

@@ -16,6 +16,17 @@ Flow:
 
 Open WebUI never receives CET service tokens. Authorization and fachliche Zulässigkeit remain CET-governed.
 
+## Required provisioning
+
+Workbench chat fails closed when an Open-WebUI user/org is supplied without a matching CET mapping.
+Provision these records before the first customer chat:
+
+1. `POST /api/workbench/admin/tenant-mappings` maps `externalOrgId` to `cetTenantId` and an optional default `clientId`.
+2. `POST /api/workbench/admin/user-mappings` maps `externalUserId` to `cetActorId`, CET roles and sensitivity clearance.
+3. `POST /api/workbench/delivery-clients` registers the tenant-bound polling client used for MWI.
+
+Tenant admins may only provision their own CET tenant. Platform/HQ admins can provision cross-tenant mappings. Mapping errors intentionally fail closed; do not bypass them in prompts or Open WebUI system messages.
+
 ## Endpoints
 
 Core:
@@ -67,6 +78,42 @@ Expected response fields:
 - `missingEvidence`
 - `noCallGuards`
 
+## API sequence
+
+### Workbench REST mode
+
+```text
+POST /api/workbench/admin/tenant-mappings
+POST /api/workbench/admin/user-mappings
+POST /api/workbench/delivery-clients
+POST /api/workbench/chat
+GET  /api/workbench/cases/:caseId
+GET  /api/workbench/events?clientId=...
+POST /api/workbench/events/:eventId/ack
+```
+
+`/api/workbench/chat` chooses `domain-router.classify` for a new conversation and `domain-router.continue` for a mapped conversation. The client should persist only its own `openWebuiConversationId`; CET owns `cetCaseId` and case state.
+
+### OpenAI-compatible mode
+
+Open WebUI can use `POST /v1/chat/completions` with `model: "cernion-governance-assistant"`. The required Workbench identifiers are passed in `metadata`:
+
+```json
+{
+  "model": "cernion-governance-assistant",
+  "messages": [{ "role": "user", "content": "APERAK Z18 nach MSCONS-Versand" }],
+  "metadata": {
+    "client": "open-webui",
+    "openWebuiOrgId": "owui-org-1",
+    "openWebuiUserId": "owui-user-1",
+    "openWebuiConversationId": "owui-chat-1",
+    "clientId": "openwebui-tenant-1"
+  }
+}
+```
+
+The response stays OpenAI-compatible and includes CET metadata such as `cetCaseId`, `primaryDomain`, `readinessState` and pending event counts where supported by the caller.
+
 ## MWI / events
 
 Open WebUI should poll:
@@ -113,6 +160,14 @@ Sensitivity levels are `public`, `tenant_internal`, `restricted` and `highly_sen
 MaKo diagnostics from `willi.cernion.de` should be attached with `sourceType: "willi_mako_ref"`. Willi is modeled as a supporting Evidence-/Diagnosequelle, not as the case decision owner. CET remains the case-state, audit and governance authority.
 
 A Willi-MaKo APERAK Z18 reference may include allowlisted fields such as `williCaseRef`, `messageId`, `processRef`, `messageType`, `relatedMessageType`, `errorCode`, `segmentRef`, `ahbVersion`, `maloId`, `meloId`, `marketPartner`, `direction`, `timestamp` and `safeSummary`. It produces a UI-safe EvidenceRef with `provenance.system: "willi.cernion.de"`, `evidenceRole: "diagnostic_signal"`, `claimStrength: "supporting"` and `readinessReviewRequired: true`. APERAK Z18 is a strong `market_communication` signal and may add `market_master_data` routing hints when MaLo/MeLo/Lieferbeginn context is present, but it must not be treated as a final cause without APERAK/AHB segment context and Stammdatenhistorie.
+
+## Common failure modes
+
+- `WORKBENCH_TENANT_MAPPING_REQUIRED`: the Open-WebUI org has not been mapped to a CET tenant. Create `/api/workbench/admin/tenant-mappings`.
+- `WORKBENCH_MAPPING_REQUIRED`: the Open-WebUI user has no CET actor/role mapping. Create `/api/workbench/admin/user-mappings`.
+- `WORKBENCH_DELIVERY_CLIENT_REQUIRED`: the requested `clientId` is not registered for MWI. Create `/api/workbench/delivery-clients`.
+- `WORKBENCH_IDENTITY_INCOMPLETE`: Open-WebUI user and org ids must be sent together; sending only one fails closed.
+- Evidence attach rejects unknown evidence/source/sensitivity types, restricted evidence without clearance, oversized fields and secret-like `sourceRef` keys by design.
 
 ## Safety boundaries
 

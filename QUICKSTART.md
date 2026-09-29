@@ -80,6 +80,22 @@ curl -X POST http://localhost:3000/api/domain-router/classify \
   }'
 
 # Test RC3 Open WebUI / Cernion Workbench path
+# First provision tenant/user mappings and a delivery client; Workbench fails closed without them.
+curl -X POST http://localhost:3000/api/workbench/admin/tenant-mappings \
+  -H "Authorization: Bearer $CERNION_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"client":"open-webui","externalOrgId":"demo-org","cetTenantId":"demo-tenant","defaultClientId":"openwebui-demo","enabled":true}'
+
+curl -X POST http://localhost:3000/api/workbench/admin/user-mappings \
+  -H "Authorization: Bearer $CERNION_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"client":"open-webui","externalOrgId":"demo-org","externalUserId":"demo-user","cetTenantId":"demo-tenant","cetActorId":"demo-user","roles":["ROLE_MARKET_COMMUNICATION","ROLE_EDM"],"sensitivityClearance":["tenant_internal"],"defaultClientId":"openwebui-demo","enabled":true}'
+
+curl -X POST http://localhost:3000/api/workbench/delivery-clients \
+  -H "Authorization: Bearer $CERNION_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"clientId":"openwebui-demo","clientType":"open-webui","deliveryMode":"poll","ackMode":"explicit","eventTypes":["clarification.required","evidence.required","evidence.available"],"enabled":true}'
+
 curl -X POST http://localhost:3000/api/workbench/chat \
   -H "Authorization: Bearer $CERNION_TOKEN" \
   -H "Content-Type: application/json" \
