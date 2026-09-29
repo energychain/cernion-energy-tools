@@ -1,6 +1,7 @@
 'use strict';
 
 const { safeEvidenceRef } = require('./workbench-evidence');
+const { safeTurnMemory, turnMemorySummary } = require('./workbench-turn-memory');
 
 function text(value, fallback = '') {
   return String(value == null || value === '' ? fallback : value);
@@ -45,6 +46,11 @@ function presentCase(state, { evidenceRefs = [], eventSummary = null, clearance 
     readinessReviewRequired: safeRefs.some((e) => e.readinessReviewRequired),
     redactedEvidenceCount: safeRefs.filter((e) => e.redacted).length,
     evidenceRefs: safeRefs,
+    turnMemory: safeTurnMemory(state.turnMemory),
+    turnMemorySummary: turnMemorySummary(state.turnMemory),
+    workingAssumptions: safeTurnMemory(state.turnMemory)?.workingAssumptions || [],
+    openQuestions: safeTurnMemory(state.turnMemory)?.openQuestions || [],
+    activeRoleProjection: safeTurnMemory(state.turnMemory)?.activeRole || null,
     noRawEvidencePayloads: true,
     createdAt: state.createdAt || state.updatedAt,
     updatedAt: state.updatedAt,

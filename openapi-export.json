@@ -65423,6 +65423,217 @@
                         }
                       }
                     },
+                    "turnMemory": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "schemaVersion": {
+                          "type": "string",
+                          "description": "Turn memory schema version"
+                        },
+                        "primaryDomain": {
+                          "type": "string",
+                          "description": "Current remembered primary domain"
+                        },
+                        "alternativeDomains": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "domain": {
+                                "type": "string",
+                                "description": "Domain"
+                              },
+                              "confidence": {
+                                "type": "number",
+                                "description": "Confidence"
+                              }
+                            }
+                          }
+                        },
+                        "readinessState": {
+                          "type": "string",
+                          "description": "Current remembered readiness state"
+                        },
+                        "activeRole": {
+                          "type": "string",
+                          "description": "Active role projection used for the next turn"
+                        },
+                        "applicableRoles": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "CET role visible to the case"
+                          }
+                        },
+                        "roleHistory": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": true,
+                            "properties": {},
+                            "description": "Role transition entry"
+                          }
+                        },
+                        "openQuestions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Open clarification question"
+                          }
+                        },
+                        "requiredClarifications": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Required clarification"
+                          }
+                        },
+                        "missingEvidence": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Missing evidence type or label"
+                          }
+                        },
+                        "workingAssumptions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Bounded working assumption"
+                          }
+                        },
+                        "noCallGuards": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "No-call guardrail"
+                          }
+                        },
+                        "allowedActions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Allowed action"
+                          }
+                        },
+                        "blockedActions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Blocked action"
+                          }
+                        },
+                        "lastUserIntent": {
+                          "type": "string",
+                          "description": "Bounded summary of the latest user intent"
+                        },
+                        "lastSafeConclusion": {
+                          "type": "string",
+                          "description": "Latest non-binding safe conclusion"
+                        },
+                        "recentEventStatus": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "properties": {
+                            "pending": {
+                              "type": "number",
+                              "description": "Pending events not yet delivered"
+                            },
+                            "delivered": {
+                              "type": "number",
+                              "description": "Delivered but not acknowledged events"
+                            },
+                            "unacknowledged": {
+                              "type": "number",
+                              "description": "Pending plus delivered events"
+                            },
+                            "attention": {
+                              "type": "number",
+                              "description": "Unacknowledged events requiring user attention"
+                            }
+                          }
+                        },
+                        "memoryUpdatedAt": {
+                          "type": "string",
+                          "description": "ISO timestamp"
+                        },
+                        "rawChatHistoryStored": {
+                          "type": "boolean",
+                          "description": "Always false for CET turn memory"
+                        }
+                      }
+                    },
+                    "turnMemorySummary": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "primaryDomain": {
+                          "type": "string",
+                          "description": "Current remembered primary domain"
+                        },
+                        "readinessState": {
+                          "type": "string",
+                          "description": "Current remembered readiness state"
+                        },
+                        "activeRole": {
+                          "type": "string",
+                          "description": "Active role projection"
+                        },
+                        "openQuestions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Open clarification question"
+                          }
+                        },
+                        "missingEvidence": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Missing evidence type or label"
+                          }
+                        },
+                        "workingAssumptions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Bounded working assumption"
+                          }
+                        },
+                        "lastSafeConclusion": {
+                          "type": "string",
+                          "description": "Latest non-binding safe conclusion"
+                        },
+                        "memoryUpdatedAt": {
+                          "type": "string",
+                          "description": "ISO timestamp"
+                        },
+                        "rawChatHistoryStored": {
+                          "type": "boolean",
+                          "description": "Always false for CET turn memory"
+                        }
+                      }
+                    },
+                    "workingAssumptions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "description": "Bounded working assumption"
+                      }
+                    },
+                    "openQuestions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "description": "Open clarification question"
+                      }
+                    },
+                    "activeRoleProjection": {
+                      "type": "string",
+                      "description": "Current role projection"
+                    },
                     "evidenceSummary": {
                       "type": "object",
                       "additionalProperties": false,
@@ -66545,6 +66756,57 @@
                       "items": {
                         "type": "string",
                         "description": "No-call guardrail"
+                      }
+                    },
+                    "turnMemorySummary": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "primaryDomain": {
+                          "type": "string",
+                          "description": "Current remembered primary domain"
+                        },
+                        "readinessState": {
+                          "type": "string",
+                          "description": "Current remembered readiness state"
+                        },
+                        "activeRole": {
+                          "type": "string",
+                          "description": "Active role projection"
+                        },
+                        "openQuestions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Open clarification question"
+                          }
+                        },
+                        "missingEvidence": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Missing evidence type or label"
+                          }
+                        },
+                        "workingAssumptions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Bounded working assumption"
+                          }
+                        },
+                        "lastSafeConclusion": {
+                          "type": "string",
+                          "description": "Latest non-binding safe conclusion"
+                        },
+                        "memoryUpdatedAt": {
+                          "type": "string",
+                          "description": "ISO timestamp"
+                        },
+                        "rawChatHistoryStored": {
+                          "type": "boolean",
+                          "description": "Always false for CET turn memory"
+                        }
                       }
                     },
                     "events": {

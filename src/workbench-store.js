@@ -30,13 +30,17 @@ function deliveryId(tenantId, clientId) {
 function evidenceId(tenantId, caseId, id) {
   return key('evidence', tenantId, caseId, id);
 }
+function turnMemoryId(tenantId, caseId) {
+  return key('turn-memory', tenantId, caseId);
+}
 
 class WorkbenchStore {
-  constructor({ conversationsDb, identityDb, deliveryDb, evidenceDb }) {
+  constructor({ conversationsDb, identityDb, deliveryDb, evidenceDb, turnMemoryDb }) {
     this.conversationsDb = conversationsDb;
     this.identityDb = identityDb;
     this.deliveryDb = deliveryDb;
     this.evidenceDb = evidenceDb;
+    this.turnMemoryDb = turnMemoryDb || conversationsDb;
   }
 
   async linkConversation(input) {
@@ -307,6 +311,42 @@ class WorkbenchStore {
       .map((r) => r.doc)
       .filter((doc) => doc.tenantId === input.tenantId && doc.caseId === input.caseId)
       .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+  }
+
+  async saveTurnMemory(input) {
+    const _id = turnMemoryId(input.tenantId, input.caseId);
+    let existing = null;
+    try {
+      existing = await this.turnMemoryDb.get(_id);
+    } catch (e) {
+      if (e.status !== 404) throw e;
+    }
+    const timestamp = now();
+    const doc = {
+      ...(existing || {}),
+      _id,
+      type: 'workbench_turn_memory',
+      tenantId: input.tenantId,
+      caseId: input.caseId,
+      actorId: input.actorId,
+      caseStateVersion: input.caseStateVersion,
+      memory: input.memory || {},
+      createdAt: existing?.createdAt || timestamp,
+      updatedAt: timestamp,
+    };
+    const saved = await this.turnMemoryDb.put(doc);
+    return { ...doc, _rev: saved.rev };
+  }
+
+  async getTurnMemory(input, { optional = true } = {}) {
+    try {
+      const doc = await this.turnMemoryDb.get(turnMemoryId(input.tenantId, input.caseId));
+      return doc;
+    } catch (e) {
+      if (e.status === 404 && optional) return null;
+      if (e.status === 404) notFound('Workbench turn memory not found');
+      throw e;
+    }
   }
 }
 

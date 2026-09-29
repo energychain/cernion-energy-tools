@@ -77,6 +77,22 @@ Expected response fields:
 - `requiredClarifications`
 - `missingEvidence`
 - `noCallGuards`
+- `turnMemorySummary`
+
+## CET Turn Memory
+
+Workbench does not treat Open WebUI chat history as the fachliche source of truth. After each successful Workbench chat turn, CET stores a compact, case-bound Turn Memory for the `cetCaseId`:
+
+- `primaryDomain` / `alternativeDomains`
+- `readinessState`
+- `activeRole` and bounded `roleHistory`
+- open questions / required clarifications
+- missing evidence
+- working assumptions
+- latest safe, non-binding conclusion
+- no-call/no-claim guards
+
+On follow-up turns, Workbench passes this compact memory into `domain-router.continue` as `knownContext.cetTurnMemory`. Case summaries expose `turnMemorySummary`, `workingAssumptions`, `openQuestions` and `activeRoleProjection` for UI rendering. Raw Open WebUI chat history, file bodies, credentials and untrusted long payloads are not persisted as Turn Memory.
 
 ## API sequence
 

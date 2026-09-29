@@ -15,6 +15,7 @@ const {
 const { presentCase, presentCaseListItem } = require('../src/workbench-case-presenter');
 const { presentEvent } = require('../src/workbench-event-presenter');
 const { normalizeEvidenceInput, safeEvidenceRef } = require('../src/workbench-evidence');
+const { buildTurnMemory, safeTurnMemory } = require('../src/workbench-turn-memory');
 
 const action = (rest, summary, handler, params = {}) => ({
   rest,
@@ -50,6 +51,12 @@ module.exports = {
       settingsKey: 'evidenceDbPath',
       dbProperty: 'evidenceDb',
     }),
+    createPouchDbLifecycleMixin({
+      defaultDbPath: './data/cet_workbench_turn_memory',
+      dbPathEnvVar: 'CET_WORKBENCH_TURN_MEMORY_DB_PATH',
+      settingsKey: 'turnMemoryDbPath',
+      dbProperty: 'turnMemoryDb',
+    }),
   ],
   actions: {
     'cases.get': action(
@@ -64,8 +71,9 @@ module.exports = {
         const evidenceRefs = ctx.params.includeEvidence
           ? await this.store.listEvidence({ tenantId: p.tenantId, caseId: ctx.params.caseId })
           : [];
+        const turnMemory = await this.loadTurnMemory(p, ctx.params.caseId);
         return presentCase(
-          { ...full, lastClassification: state },
+          { ...full, lastClassification: state, turnMemory },
           {
             evidenceRefs,
             eventSummary: await this.eventSummary(p, ctx.params.caseId),
@@ -363,8 +371,14 @@ module.exports = {
           });
         }
         const meta = this.metaForMapping(ctx, p, mapping);
+        const previousMemory = conversation?.cetCaseId
+          ? await this.loadTurnMemory(p, conversation.cetCaseId)
+          : null;
         const params = {
           ...envelope,
+          knownContext: previousMemory
+            ? { ...envelope.knownContext, cetTurnMemory: safeTurnMemory(previousMemory) }
+            : envelope.knownContext,
           requestedMode: conversation ? 'continue' : 'classify',
           ...(conversation ? { cetCaseId: conversation.cetCaseId } : {}),
         };
@@ -398,11 +412,37 @@ module.exports = {
             clientId: envelope.asyncDelivery.clientId,
           });
         }
+        const caseId = result.cetCaseId || conversation?.cetCaseId;
+        const turnMemory = caseId
+          ? await this.saveTurnMemory(p, {
+              caseId,
+              caseStateVersion: result.caseStateVersion,
+              previousMemory,
+              classification: result,
+              envelope,
+              mapping,
+            })
+          : null;
         const clientId = envelope.asyncDelivery?.clientId;
-        const eventSummary = result?.cetCaseId
-          ? await this.eventSummary(p, result.cetCaseId, { clientId })
+        const eventSummary = caseId
+          ? await this.eventSummary(p, caseId, { clientId })
           : this.emptyEventSummary();
-        return this.chatResponse(conversation ? 'continue' : 'classify', result, eventSummary);
+        if (turnMemory) {
+          turnMemory.recentEventStatus = eventSummary;
+          await this.store.saveTurnMemory({
+            tenantId: p.tenantId,
+            actorId: p.actorId,
+            caseId,
+            caseStateVersion: result.caseStateVersion,
+            memory: turnMemory,
+          });
+        }
+        return this.chatResponse(
+          conversation ? 'continue' : 'classify',
+          result,
+          eventSummary,
+          turnMemory
+        );
       }
     ),
     'cases.attachEvidence': action(
@@ -453,14 +493,18 @@ module.exports = {
       async function (ctx) {
         const p = principal(ctx, ctx.params);
         const state = await this.loadVisibleCase(ctx, p, ctx.params.caseId);
-        const summary = presentCase(state, {
-          evidenceRefs: await this.store.listEvidence({
-            tenantId: p.tenantId,
-            caseId: ctx.params.caseId,
-          }),
-          eventSummary: await this.eventSummary(p, ctx.params.caseId),
-          clearance: p.clearance,
-        });
+        const turnMemory = await this.loadTurnMemory(p, ctx.params.caseId);
+        const summary = presentCase(
+          { ...state, turnMemory },
+          {
+            evidenceRefs: await this.store.listEvidence({
+              tenantId: p.tenantId,
+              caseId: ctx.params.caseId,
+            }),
+            eventSummary: await this.eventSummary(p, ctx.params.caseId),
+            clearance: p.clearance,
+          }
+        );
         let content = `# ${summary.title}\n\n${summary.lastResponseText || 'CET case summary.'}`;
         try {
           const dossier = await ctx.call('personal-agent.answerDossier', {
@@ -494,6 +538,7 @@ module.exports = {
       identityDb: this.identityDb,
       deliveryDb: this.deliveryDb,
       evidenceDb: this.evidenceDb,
+      turnMemoryDb: this.turnMemoryDb,
     });
   },
   methods: {
@@ -596,6 +641,30 @@ module.exports = {
       if (!service) throw new Errors.MoleculerClientError('Domain Router unavailable', 503);
       return service.loadCase(p, caseId);
     },
+    async loadTurnMemory(p, caseId) {
+      const doc = await this.store.getTurnMemory(
+        { tenantId: p.tenantId, caseId },
+        { optional: true }
+      );
+      return safeTurnMemory(doc?.memory || null);
+    },
+    async saveTurnMemory(p, input) {
+      const memory = buildTurnMemory({
+        previousMemory: input.previousMemory,
+        classification: input.classification,
+        envelope: input.envelope,
+        mapping: input.mapping,
+        principal: p,
+      });
+      await this.store.saveTurnMemory({
+        tenantId: p.tenantId,
+        actorId: p.actorId,
+        caseId: input.caseId,
+        caseStateVersion: input.caseStateVersion,
+        memory,
+      });
+      return memory;
+    },
     emptyEventSummary() {
       return { pending: 0, delivered: 0, unacknowledged: 0, attention: 0 };
     },
@@ -661,7 +730,12 @@ module.exports = {
         'WORKBENCH_CONVERSATION_PENDING'
       );
     },
-    chatResponse(usedOperation, result, eventSummary = this.emptyEventSummary()) {
+    chatResponse(
+      usedOperation,
+      result,
+      eventSummary = this.emptyEventSummary(),
+      turnMemory = null
+    ) {
       return {
         caseId: result.cetCaseId,
         cetCaseId: result.cetCaseId,
@@ -674,6 +748,7 @@ module.exports = {
         requiredClarifications: result.requiredClarifications || [],
         missingEvidence: result.missingEvidence || [],
         noCallGuards: result.noCallGuards || [],
+        turnMemorySummary: turnMemory ? safeTurnMemory(turnMemory) : null,
         events: [],
         eventSummary,
         pendingEvents: eventSummary.unacknowledged || eventSummary.pending || 0,
