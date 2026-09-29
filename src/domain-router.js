@@ -6,6 +6,8 @@ const { semanticDomains } = require('./semantic-domains');
 // Domain signals only: capabilities and receipts remain owned by their existing services.
 const DOMAIN_SIGNALS = {
   market_communication: /aperak|\bz18\b|mscons|utilmd|marktkommunikation|\bmako\b/i,
+  market_master_data:
+    /\bmalo\b|\bmelo\b|marktlokation|messlokation|lieferbeginn|stammdaten|zuordnung|market.?master/i,
   edm: /lastgang|zeitreih|plausibilis|\bedm\b|bilanzkreis/i,
   metering_msb: /\bmsb\b|imsys|messstellen|zähler|meter/i,
   m2c_revenue_assurance: /\bm2c\b|billing|abrechnung|cashflow|revenue|erlös/i,
@@ -13,13 +15,14 @@ const DOMAIN_SIGNALS = {
   redispatch: /redispatch|abrufdaten/i,
   asset_grid_planning: /\bassets?\b|betriebsmittel|asset.management/i,
   target_grid_planning: /zielnetz|\bznp\b/i,
-  grid_connection: /netzanschluss|anschlussbegehren|connection/i,
+  grid_connection:
+    /netzanschluss|anschlussbegehren|connection|anschlussleistung|spannungsebene|mittelspannung|niederspannung|hochspannung/i,
   regulatory_compliance: /regulator|compliance|bnetza/i,
   controlling_finance: /controlling|finance|budget|capex/i,
   strategic_committee_governance: /gremi|committee|aufsichtsrat/i,
   it_data_vendor_governance: /schnittstelle|interface|vendor|pipeline|dienstleister/i,
   org_roles_competence: /kompetenz|rollenklärung|zuständigkeit/i,
-  management: /geschäftsführung|managementbericht/i,
+  management: /geschäftsführung|managementbericht|management\b|lage\b|dossier/i,
 };
 const BLOCKED = [
   'write',
@@ -111,6 +114,21 @@ async function classifyDomain(input, dependencies = {}) {
     }
   };
   infer(text, 60, 'task');
+  if (/zielnetz|\bznp\b|produktionsreife/i.test(text)) {
+    add('target_grid_planning', 20, 'task_context', 'target_grid_planning_readiness');
+  }
+  if (/anschlussleistung|spannungsebene|mittelspannung|niederspannung|hochspannung/i.test(text)) {
+    add('grid_connection', 20, 'task_context', 'connection_voltage_or_capacity');
+  }
+  if (/aperak|\bz18\b/i.test(text)) {
+    add('market_communication', 20, 'task_context', 'aperak_message_rejection');
+  }
+  if (
+    /aperak|\bz18\b/i.test(text) &&
+    /lieferbeginn|stammdaten|\bmalo\b|\bmelo\b|zuordnung/i.test(text)
+  ) {
+    add('market_master_data', 15, 'task_context', 'mako_master_data_boundary');
+  }
   const routes = (dependencies.domainRoutes || listCompiledDomainRoutes)();
   for (const r of routes) {
     if (
