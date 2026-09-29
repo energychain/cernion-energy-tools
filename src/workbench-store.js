@@ -1,8 +1,10 @@
 'use strict';
 
+const { randomBytes } = require('crypto');
 const { Errors } = require('moleculer');
 
 const now = () => new Date().toISOString();
+const randomSuffix = () => randomBytes(4).toString('hex');
 const key = (...parts) => parts.map((p) => encodeURIComponent(String(p))).join(':');
 
 function notFound(message = 'Workbench resource not found') {
@@ -82,8 +84,7 @@ class WorkbenchStore {
       conflict('Conversation already linked to a different CET case');
     }
     const timestamp = now();
-    const doc = {
-      ...(existing || {}),
+    const doc = Object.assign(existing ? { ...existing } : {}, {
       _id,
       type: 'workbench_conversation',
       tenantId: input.tenantId,
@@ -101,7 +102,7 @@ class WorkbenchStore {
       enabled: input.enabled !== false,
       createdAt: existing?.createdAt || timestamp,
       updatedAt: timestamp,
-    };
+    });
     try {
       const saved = await this.conversationsDb.put(doc);
       return { ...doc, _rev: saved.rev };
@@ -170,8 +171,7 @@ class WorkbenchStore {
       if (e.status !== 404) throw e;
     }
     const timestamp = now();
-    const doc = {
-      ...(existing || {}),
+    const doc = Object.assign(existing ? { ...existing } : {}, {
       _id,
       type: 'workbench_tenant_mapping',
       client: input.client,
@@ -181,7 +181,7 @@ class WorkbenchStore {
       enabled: input.enabled !== false,
       createdAt: existing?.createdAt || timestamp,
       updatedAt: timestamp,
-    };
+    });
     const saved = await this.identityDb.put(doc);
     return { ...doc, _rev: saved.rev };
   }
@@ -208,8 +208,7 @@ class WorkbenchStore {
       if (e.status !== 404) throw e;
     }
     const timestamp = now();
-    const doc = {
-      ...(existing || {}),
+    const doc = Object.assign(existing ? { ...existing } : {}, {
       _id,
       type: 'workbench_user_mapping',
       client: input.client,
@@ -223,7 +222,7 @@ class WorkbenchStore {
       enabled: input.enabled !== false,
       createdAt: existing?.createdAt || timestamp,
       updatedAt: timestamp,
-    };
+    });
     const saved = await this.identityDb.put(doc);
     return { ...doc, _rev: saved.rev };
   }
@@ -250,8 +249,7 @@ class WorkbenchStore {
       if (e.status !== 404) throw e;
     }
     const timestamp = now();
-    const doc = {
-      ...(existing || {}),
+    const doc = Object.assign(existing ? { ...existing } : {}, {
       _id,
       type: 'workbench_delivery_client',
       tenantId: input.tenantId,
@@ -263,7 +261,7 @@ class WorkbenchStore {
       enabled: input.enabled !== false,
       createdAt: existing?.createdAt || timestamp,
       updatedAt: timestamp,
-    };
+    });
     const saved = await this.deliveryDb.put(doc);
     return { ...doc, _rev: saved.rev };
   }
@@ -349,8 +347,7 @@ class WorkbenchStore {
       if (e.status !== 404) throw e;
     }
     const timestamp = now();
-    const doc = {
-      ...(existing || {}),
+    const doc = Object.assign(existing ? { ...existing } : {}, {
       _id,
       type: 'workbench_user_context',
       tenantId: input.tenantId,
@@ -369,7 +366,7 @@ class WorkbenchStore {
       enabled: input.enabled !== false,
       createdAt: existing?.createdAt || timestamp,
       updatedAt: timestamp,
-    };
+    });
     const saved = await this.contextDb.put(doc);
     return { ...doc, _rev: saved.rev };
   }
@@ -395,8 +392,7 @@ class WorkbenchStore {
       if (e.status !== 404) throw e;
     }
     const timestamp = now();
-    const doc = {
-      ...(existing || {}),
+    const doc = Object.assign(existing ? { ...existing } : {}, {
       _id,
       type: 'workbench_workspace_context',
       tenantId: input.tenantId,
@@ -415,7 +411,7 @@ class WorkbenchStore {
       enabled: input.enabled !== false,
       createdAt: existing?.createdAt || timestamp,
       updatedAt: timestamp,
-    };
+    });
     const saved = await this.contextDb.put(doc);
     return { ...doc, _rev: saved.rev };
   }
@@ -435,7 +431,7 @@ class WorkbenchStore {
   }
 
   async saveContextRef(input) {
-    const id = input.contextRefId || `ctx_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const id = input.contextRefId || `ctx_${Date.now()}_${randomSuffix()}`;
     const _id = contextRefId(input.tenantId, id);
     const timestamp = now();
     const doc = {
@@ -467,8 +463,7 @@ class WorkbenchStore {
       if (e.status !== 404) throw e;
     }
     const timestamp = now();
-    const doc = {
-      ...(existing || {}),
+    const doc = Object.assign(existing ? { ...existing } : {}, {
       _id,
       type: 'workbench_playbook',
       tenantId: input.tenantId,
@@ -489,7 +484,7 @@ class WorkbenchStore {
       eventRules: input.eventRules || [],
       createdAt: existing?.createdAt || timestamp,
       updatedAt: timestamp,
-    };
+    });
     const saved = await this.playbookDb.put(doc);
     return { ...doc, _rev: saved.rev };
   }
@@ -512,14 +507,12 @@ class WorkbenchStore {
       if (e.status !== 404) throw e;
     }
     const timestamp = now();
-    const doc = {
-      ...(existing || {}),
-      ...input,
+    const doc = Object.assign(existing ? { ...existing } : {}, input, {
       _id,
       type: 'workbench_inbox_task',
       createdAt: existing?.createdAt || input.createdAt || timestamp,
       updatedAt: timestamp,
-    };
+    });
     const saved = await this.inboxDb.put(doc);
     return { ...doc, _rev: saved.rev };
   }
@@ -555,8 +548,7 @@ class WorkbenchStore {
       if (e.status !== 404) throw e;
     }
     const timestamp = now();
-    const doc = {
-      ...(existing || {}),
+    const doc = Object.assign(existing ? { ...existing } : {}, {
       _id,
       type: 'workbench_turn_memory',
       tenantId: input.tenantId,
@@ -566,7 +558,7 @@ class WorkbenchStore {
       memory: input.memory || {},
       createdAt: existing?.createdAt || timestamp,
       updatedAt: timestamp,
-    };
+    });
     const saved = await this.turnMemoryDb.put(doc);
     return { ...doc, _rev: saved.rev };
   }

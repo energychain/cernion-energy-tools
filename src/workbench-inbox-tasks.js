@@ -53,7 +53,8 @@ function nextSafeActionForTask(task = {}) {
 }
 
 function taskIdForEvent(event = {}) {
-  return `task_${event.eventId || `${event.cetCaseId || event.caseId}:${event.eventType}:${event.createdAt}`}`;
+  const fallbackId = [event.cetCaseId || event.caseId, event.eventType, event.createdAt].join(':');
+  return `task_${event.eventId || fallbackId}`;
 }
 
 function taskFromEvent(event, { domain = null, existing = null } = {}) {

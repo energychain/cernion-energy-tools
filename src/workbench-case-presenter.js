@@ -57,21 +57,20 @@ function presentCase(state, { evidenceRefs = [], eventSummary = null, clearance 
   };
 }
 
-function presentCaseListItem(
-  state,
-  eventSummary = { pending: 0, attention: 0 },
-  taskSummary = null
-) {
+function presentCaseListItem(state, eventSummary = null, taskSummary = null) {
   const c = state.lastClassification || {};
+  const events = eventSummary || {};
+  const tasks = taskSummary || { open: 0, attention: 0 };
+  const severity = tasks.attention || events.attention ? 'attention' : 'info';
   return {
     caseId: state.cetCaseId,
     title: titleFromCase(state),
     primaryDomain: c.primaryDomain || state.currentDomain || 'unknown',
     readinessState: c.readinessState || 'unknown',
     status: c.readinessState === 'evidence_required' ? 'waiting' : 'active',
-    pendingEvents: eventSummary.unacknowledged || eventSummary.pending || 0,
-    severity: taskSummary?.attention ? 'attention' : eventSummary.attention ? 'attention' : 'info',
-    taskSummary: taskSummary || { open: 0, attention: 0 },
+    pendingEvents: events.unacknowledged || events.pending || 0,
+    severity,
+    taskSummary: tasks,
     updatedAt: state.updatedAt,
   };
 }
