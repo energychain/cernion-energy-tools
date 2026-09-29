@@ -433,6 +433,7 @@ module.exports = {
             validated: false,
             evidenceRef: saved.evidenceId,
             readinessReviewRequired: !!saved.readinessReviewRequired,
+            routingSignals: saved.routingSignals || [],
           });
           generatedEvents.push({ eventType: 'evidence.available', severity: 'info' });
         }

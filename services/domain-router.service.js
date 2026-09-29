@@ -194,6 +194,7 @@ module.exports = {
         validated: { type: 'boolean', optional: true },
         evidenceRef: { type: 'string', optional: true },
         payloadRef: { type: 'string', optional: true },
+        routingSignals: { type: 'array', items: 'string', optional: true },
       },
       async handler(ctx) {
         const p = principal(ctx, ctx.params);
@@ -542,6 +543,49 @@ module.exports = {
         );
         c.evidenceRequirements = c.missingEvidence;
         c.readinessState = c.missingEvidence.length ? 'evidence_required' : 'human_review_required';
+      }
+      if (
+        Array.isArray(update.routingSignals) &&
+        update.routingSignals.length &&
+        state.lastClassification
+      ) {
+        const signalDomains = [];
+        if (update.routingSignals.includes('market_communication'))
+          signalDomains.push('market_communication');
+        if (
+          update.routingSignals.includes('market_master_data') ||
+          update.routingSignals.includes('utilmd')
+        ) {
+          signalDomains.push('market_master_data');
+        }
+        if (update.routingSignals.includes('mscons')) signalDomains.push('edm');
+        if (signalDomains.length) {
+          const c = state.lastClassification;
+          c.routingSignals = [...new Set([...(c.routingSignals || []), ...update.routingSignals])];
+          c.matchedSignals = [
+            ...(c.matchedSignals || []),
+            ...update.routingSignals.map((signal) => ({
+              domain: signalDomains[0],
+              score: signal === 'aperak_z18' ? 20 : 10,
+              source: 'evidence_extract',
+              ref: signal,
+            })),
+          ];
+          for (const domain of signalDomains) {
+            if (domain === c.primaryDomain) continue;
+            if (!(c.alternativeDomains || []).some((d) => d.domain === domain)) {
+              c.alternativeDomains = [
+                ...(c.alternativeDomains || []),
+                { domain, confidence: domain === 'market_communication' ? 0.75 : 0.55 },
+              ];
+            }
+          }
+          if (signalDomains.includes('market_communication')) {
+            c.primaryDomain = 'market_communication';
+            state.currentDomain = 'market_communication';
+            c.domainConfidence = Math.max(c.domainConfidence || 0, 0.75);
+          }
+        }
       }
       const intents = evaluateEventTriggers(previous, state, update);
       const existing = new Set((state.eventIntents || []).map((i) => i.dedupeKey));

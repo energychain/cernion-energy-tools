@@ -659,6 +659,48 @@ describe('Workbench RC3 Open WebUI Tenant Gateway', () => {
     expect(second.generatedEvents).toEqual([]);
   });
 
+  test('MaKo evidence updates router signals without exposing raw payloads', async () => {
+    const c = await router('classify', {
+      userRequest: 'MSCONS Zeitreihe fehlt, EDM Werte prüfen',
+      asyncDelivery: { mode: 'poll', clientId: 'openwebui-tenant-a' },
+    });
+
+    const attached = await call(
+      'cases.attachEvidence',
+      {
+        caseId: c.cetCaseId,
+        evidenceType: 'aperak_message',
+        sourceType: 'manual_metadata',
+        label: 'APERAK Z18 nach MSCONS Versand',
+        extracts: {
+          messageType: 'APERAK',
+          relatedMessageType: 'MSCONS',
+          errorCode: 'z18',
+          segmentRef: 'RFF+Z18',
+          ahbVersion: '2024-10',
+          maloId: 'DE01234567890',
+        },
+      },
+      userMeta
+    );
+
+    expect(attached.evidenceRef.extracts).toMatchObject({
+      messageType: 'APERAK',
+      relatedMessageType: 'MSCONS',
+      errorCode: 'Z18',
+    });
+    expect(attached.evidenceRef.routingSignals).toEqual(
+      expect.arrayContaining(['market_communication', 'aperak_z18', 'market_master_data'])
+    );
+
+    const summary = await call('cases.get', { caseId: c.cetCaseId }, userMeta);
+    expect(summary.primaryDomain).toBe('market_communication');
+    expect(summary.alternativeDomains.map((d) => d.domain)).toEqual(
+      expect.arrayContaining(['market_master_data'])
+    );
+    expect(summary.readinessState).toBe('evidence_required');
+  });
+
   test('Willi-MaKo APERAK Z18 references are safe diagnostic evidence', async () => {
     const c = await router('classify', {
       userRequest: 'APERAK Z18 mit Willi prüfen',
