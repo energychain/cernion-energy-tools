@@ -6,6 +6,7 @@ const path = require('path');
 const { ServiceBroker } = require('moleculer');
 const Router = require('../services/domain-router.service');
 const Workbench = require('../services/workbench.service');
+const { getCaseStarter, sanitizeStarterInputs } = require('../src/workbench-case-starters');
 
 const meta = {
   apiToken: {
@@ -96,6 +97,109 @@ describe('Workbench RC3 Open WebUI Tenant Gateway', () => {
   afterEach(async () => {
     await broker.stop();
     fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  test('guided case starters expose taxonomy-derived UI-safe metadata', async () => {
+    const response = await call('caseStarters.list', {}, userMeta);
+    expect(response.schemaVersion).toMatch(/case-starters/);
+    const starter = response.items.find(
+      (item) => item.starterId === 'mako-mscons-aperak-clarification'
+    );
+    expect(starter).toMatchObject({
+      activityId: 'market_communication_clarification',
+      domainHint: 'market_communication',
+    });
+    expect(starter.suggestedEvidenceTypes).toEqual(expect.arrayContaining(['aperak_message']));
+    expect(starter.blockedActions).toEqual(expect.arrayContaining(['external_message_send']));
+    expect(starter.requiredInputs[0]).toMatchObject({
+      key: expect.any(String),
+      label: expect.any(String),
+    });
+
+    const activities = await call('activities.list', { caseStarterEligible: true }, userMeta);
+    const eligible = new Set(activities.activities.map((activity) => activity.activityId));
+    for (const item of response.items) {
+      expect(eligible.has(item.activityId)).toBe(true);
+    }
+  });
+
+  test('guided case starter launches through Workbench chat with mapped Open WebUI identity', async () => {
+    await provisionOpenWebUiUser();
+    const first = await call('caseStarters.start', {
+      starterId: 'mako-mscons-aperak-clarification',
+      client: 'open-webui',
+      channel: 'open-webui',
+      openWebuiOrgId: 'ow-org',
+      openWebuiUserId: 'ow-user',
+      openWebuiConversationId: 'starter-chat',
+      clientId: 'openwebui-tenant-a',
+      userRequest: 'Lieferant reklamiert fehlende MSCONS-Zeitreihe.',
+      inputs: {
+        marketLocationId: 'DE-MALO-1',
+        aperakContrlContext: 'APERAK Z18',
+      },
+    });
+    expect(first.starter).toMatchObject({ starterId: 'mako-mscons-aperak-clarification' });
+    expect(first.cetCaseId).toBeTruthy();
+    expect(first.usedOperation).toBe('classify');
+    expect(first.primaryDomain).toBeTruthy();
+
+    const retry = await call('caseStarters.start', {
+      starterId: 'mako-mscons-aperak-clarification',
+      client: 'open-webui',
+      channel: 'open-webui',
+      openWebuiOrgId: 'ow-org',
+      openWebuiUserId: 'ow-user',
+      openWebuiConversationId: 'starter-chat',
+      clientId: 'openwebui-tenant-a',
+      inputs: { marketLocationId: 'DE-MALO-1' },
+    });
+    expect(retry.cetCaseId).toBe(first.cetCaseId);
+    expect(retry.usedOperation).toBe('continue');
+  });
+
+  test('guided case starter fails closed for incomplete or absent Open WebUI identity', async () => {
+    await provisionOpenWebUiUser();
+    const base = {
+      starterId: 'mako-mscons-aperak-clarification',
+      openWebuiConversationId: 'starter-denied',
+      clientId: 'openwebui-tenant-a',
+      inputs: { marketLocationId: 'DE-MALO-1' },
+    };
+    await expect(call('caseStarters.start', base)).rejects.toThrow(
+      /mapped user and organization|required/iu
+    );
+    await expect(call('caseStarters.start', { ...base, openWebuiOrgId: 'ow-org' })).rejects.toThrow(
+      /user and organization identifiers/iu
+    );
+    await expect(
+      call('caseStarters.start', { ...base, openWebuiUserId: 'ow-user' })
+    ).rejects.toThrow(/user and organization identifiers/iu);
+  });
+
+  test('guided case starter rejects nested and secret-like inputs in its contract sanitizer', () => {
+    const starter = getCaseStarter('mako-mscons-aperak-clarification');
+    expect(() => sanitizeStarterInputs(starter, { marketLocationId: { nested: true } })).toThrow(
+      /must be scalar/iu
+    );
+    expect(() =>
+      sanitizeStarterInputs(starter, { marketLocationId: 'Bearer secret-token' })
+    ).toThrow(/must not contain secrets/iu);
+  });
+
+  test('guided case starter marks missing required inputs as evidence-required context', async () => {
+    await provisionOpenWebUiUser();
+    const response = await call('caseStarters.start', {
+      starterId: 'grid-connection-precheck',
+      openWebuiOrgId: 'ow-org',
+      openWebuiUserId: 'ow-user',
+      openWebuiConversationId: 'starter-missing-inputs',
+      clientId: 'openwebui-tenant-a',
+      inputs: { location: '69256 Mauer' },
+    });
+    expect(response.cetCaseId).toBeTruthy();
+    expect(JSON.stringify(response)).toMatch(/evidence_required|clarification|required|Evidenz/iu);
+    expect(JSON.stringify(response)).not.toMatch(/Genehmigung erteilt|Freigabe erteilt|approved/iu);
   });
 
   test('activity taxonomy endpoints expose utility routing metadata', async () => {
