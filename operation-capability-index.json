@@ -2,16 +2,16 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.99.22",
-  "sourceOpenApiHash": "34ad9f67f4d22dd1d1a0d6af8b7dde2beb8994a8a16dc5e26f8921822507d3d8",
+  "sourceOpenApiHash": "df4ce35b28c7d31b0902a67862c3f256f59b4dd4f5ac5a4029638d9ab8c81a94",
   "coverage": {
-    "rawOperationCount": 1190,
-    "operationCount": 934,
-    "agentableCount": 932,
+    "rawOperationCount": 1193,
+    "operationCount": 937,
+    "agentableCount": 935,
     "nonAgentableCount": 2,
     "byOperationKind": {
-      "data_read": 409,
+      "data_read": 410,
       "admin": 18,
-      "object_store_write": 245,
+      "object_store_write": 247,
       "process_step": 20,
       "process_start": 46,
       "advisory_plan": 47,
@@ -84811,6 +84811,163 @@
       "aliases": []
     },
     {
+      "operationId": "workbench_williMako_evidence_attach",
+      "method": "POST",
+      "path": "/api/workbench/cases/:caseId/willi-mako/evidence",
+      "service": "workbench",
+      "action": "workbench.williMako_evidence_attach",
+      "summary": "Attach a Willi-MaKo diagnostic summary as governed CET EvidenceRef",
+      "tags": [
+        "Workbench"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.willi_mako_evidence_attach"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "Case"
+      ],
+      "requiredScopes": [
+        "workbench:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "workbench"
+      ],
+      "sideEffects": [
+        "creates_or_modifies_stored_object"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "parameters": {
+        "required": [
+          {
+            "name": "caseId",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "workbench",
+          "willi",
+          "mako",
+          "evidence",
+          "attach",
+          "ma",
+          "ko",
+          "diagnostic",
+          "summary",
+          "as",
+          "governed",
+          "cet",
+          "ref"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please attach a willi-mako diagnostic summary as governed cet evidenceref"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "workbench_williMako_case_link",
+      "method": "POST",
+      "path": "/api/workbench/cases/:caseId/willi-mako/link",
+      "service": "workbench",
+      "action": "workbench.williMako_case_link",
+      "summary": "Link a CET Workbench case to a tenant-scoped Willi-MaKo session",
+      "tags": [
+        "Workbench"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.willi_mako_case_link"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "Case"
+      ],
+      "requiredScopes": [
+        "workbench:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "workbench"
+      ],
+      "sideEffects": [
+        "creates_or_modifies_stored_object"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "parameters": {
+        "required": [
+          {
+            "name": "caseId",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "workbench",
+          "willi",
+          "mako",
+          "case",
+          "link",
+          "cet",
+          "to",
+          "tenant",
+          "scoped",
+          "ma",
+          "ko",
+          "session"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please link a cet workbench case to a tenant-scoped willi-mako session"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
       "operationId": "workbench_chat",
       "method": "POST",
       "path": "/api/workbench/chat",
@@ -86334,6 +86491,70 @@
         "negativeCues": [],
         "examples": [
           "Show me return cet-governed workbench tools filtered by domain and role"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "workbench_williMako_sessions_discover",
+      "method": "GET",
+      "path": "/api/workbench/willi-mako/sessions",
+      "service": "workbench",
+      "action": "workbench.williMako_sessions_discover",
+      "summary": "Discover tenant-scoped Willi-MaKo sessions for a mapped CET actor",
+      "tags": [
+        "Workbench"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.willi_mako_sessions_discover"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "workbench:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "workbench",
+          "willi",
+          "mako",
+          "sessions",
+          "discover",
+          "tenant",
+          "scoped",
+          "ma",
+          "ko",
+          "mapped",
+          "cet",
+          "actor"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me discover tenant-scoped willi-mako sessions for a mapped cet actor"
         ],
         "synonyms": [
           "agent infrastructure",

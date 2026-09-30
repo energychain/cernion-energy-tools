@@ -42,7 +42,7 @@ const otherTenantMeta = {
 };
 
 describe('Workbench RC3 Open WebUI Tenant Gateway', () => {
-  let broker, dir;
+  let broker, dir, williServer, williUrl, williRequests;
   const cloneMeta = (auth) => JSON.parse(JSON.stringify(auth));
   const call = (action, params = {}, auth = meta) =>
     broker.call(`workbench.${action}`, params, { meta: cloneMeta(auth) });
@@ -51,6 +51,68 @@ describe('Workbench RC3 Open WebUI Tenant Gateway', () => {
 
   beforeEach(async () => {
     dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cet-workbench-'));
+    williRequests = [];
+    williServer = http.createServer((req, res) => {
+      const url = new URL(req.url, 'http://127.0.0.1');
+      const chunks = [];
+      req.on('data', (chunk) => chunks.push(chunk));
+      req.on('end', () => {
+        williRequests.push({
+          method: req.method,
+          path: url.pathname,
+          query: Object.fromEntries(url.searchParams.entries()),
+          tenant: req.headers['x-cet-service-tenant'],
+          signature: req.headers['x-cet-service-signature'],
+        });
+        res.setHeader('Content-Type', 'application/json');
+        if (url.pathname === '/api/cet/tenants/willi-tenant-a/sessions') {
+          res.end(
+            JSON.stringify({
+              items: [
+                {
+                  williSessionId: 'willi-session-1',
+                  williMandantId: 'willi-tenant-a',
+                  title: 'APERAK Z18 Fallakte',
+                  status: 'open',
+                  messageTypes: ['APERAK'],
+                  errorCodes: ['Z18'],
+                  processRefs: ['proc-1'],
+                },
+              ],
+            })
+          );
+          return;
+        }
+        if (url.pathname === '/api/cet/sessions/willi-session-1/evidence-summary') {
+          res.end(
+            JSON.stringify({
+              williSessionId: 'willi-session-1',
+              williMandantId: 'willi-tenant-a',
+              title: 'APERAK Z18 nach MSCONS',
+              messageType: 'APERAK',
+              relatedMessageType: 'MSCONS',
+              errorCode: 'Z18',
+              processRef: 'proc-1',
+              messageId: 'aperak-1',
+              segmentRef: 'RFF+Z18',
+              ahbVersion: '2024-10',
+              maloId: 'DE-MALO-1',
+              evidenceHints: ['Lieferbeginn Stammdaten prüfen'],
+              safeSummary: 'APERAK Z18 diagnostic evidence from Willi-MaKo.',
+            })
+          );
+          return;
+        }
+        if (url.pathname === '/api/cet/sessions/willi-session-1/link-cet-case') {
+          res.end(JSON.stringify({ linked: true, williSessionId: 'willi-session-1' }));
+          return;
+        }
+        res.statusCode = 404;
+        res.end(JSON.stringify({ error: 'not found' }));
+      });
+    });
+    await new Promise((resolve) => williServer.listen(0, '127.0.0.1', resolve));
+    williUrl = `http://127.0.0.1:${williServer.address().port}`;
     broker = new ServiceBroker({ logger: false, transporter: null, requestTimeout: 2000 });
     broker.createService({
       ...Router,
@@ -74,6 +136,8 @@ describe('Workbench RC3 Open WebUI Tenant Gateway', () => {
         inboxDbPath: path.join(dir, 'inbox'),
         toolRunDbPath: path.join(dir, 'tool-runs'),
         mailAccountDbPath: path.join(dir, 'mail-accounts'),
+        williMakoBaseUrl: williUrl,
+        williMakoServiceSecret: 'test-willi-secret',
       },
     });
     broker.createService({
@@ -97,6 +161,7 @@ describe('Workbench RC3 Open WebUI Tenant Gateway', () => {
 
   afterEach(async () => {
     await broker.stop();
+    if (williServer) await new Promise((resolve) => williServer.close(resolve));
     fs.rmSync(dir, { recursive: true, force: true });
   });
 
@@ -427,6 +492,112 @@ describe('Workbench RC3 Open WebUI Tenant Gateway', () => {
     expect(staff.mapping.roles).toEqual(['ROLE_SUPPORT_READONLY']);
     expect(staff.mapping.roles).not.toContain('ROLE_ADMIN');
     expect(staff.mapping.roles).not.toContain('ROLE_UTILITY_HQ');
+  });
+
+  test('Willi-MaKo connector discovers sessions, attaches safe evidence, and links cases', async () => {
+    await call('admin.williMakoMappings.create', {
+      williMandantId: 'willi-tenant-a',
+      williUserId: 'willi-user-a',
+      cetActorId: 'user-a',
+      williRoleProfile: 'normal_user',
+    });
+    const sessions = await call(
+      'williMako.sessions.discover',
+      { williMandantId: 'willi-tenant-a', williUserId: 'willi-user-a' },
+      userMeta
+    );
+    expect(sessions.items[0]).toMatchObject({
+      williSessionId: 'willi-session-1',
+      title: 'APERAK Z18 Fallakte',
+    });
+    expect(williRequests.find((request) => request.path.includes('/sessions'))).toMatchObject({
+      tenant: 'willi-tenant-a',
+    });
+
+    const c = await router('classify', {
+      userRequest: 'APERAK Z18 nach MSCONS mit Lieferbeginn prüfen',
+      asyncDelivery: { mode: 'poll', clientId: 'openwebui-tenant-a' },
+    });
+    const attached = await call(
+      'williMako.evidence.attach',
+      {
+        caseId: c.cetCaseId,
+        williMandantId: 'willi-tenant-a',
+        williUserId: 'willi-user-a',
+        williSessionId: 'willi-session-1',
+      },
+      userMeta
+    );
+    expect(attached.evidenceRef).toMatchObject({
+      sourceType: 'willi_mako_ref',
+      evidenceRole: 'diagnostic_signal',
+      claimStrength: 'supporting',
+      readinessReviewRequired: true,
+    });
+    expect(attached.evidenceRef.routingSignals).toEqual(
+      expect.arrayContaining(['market_communication', 'aperak_z18', 'market_master_data'])
+    );
+    expect(JSON.stringify(attached)).not.toMatch(/authorization|secret|rawMessage|Bearer/iu);
+
+    const duplicate = await call(
+      'williMako.evidence.attach',
+      {
+        caseId: c.cetCaseId,
+        williMandantId: 'willi-tenant-a',
+        williUserId: 'willi-user-a',
+        williSessionId: 'willi-session-1',
+      },
+      userMeta
+    );
+    expect(duplicate.duplicate).toBe(true);
+    expect(duplicate.duplicateOf).toBe(attached.evidenceRef.evidenceId);
+
+    const dossier = await call('cases.dossier', { caseId: c.cetCaseId }, userMeta);
+    expect(dossier.evidenceRefs[0]).toMatchObject({
+      sourceType: 'willi_mako_ref',
+      evidenceRole: 'diagnostic_signal',
+    });
+    expect(dossier.evidenceRefs[0].sourceRef.safeSummary).toBe(
+      'APERAK Z18 diagnostic evidence from Willi-MaKo.'
+    );
+    expect(JSON.stringify(dossier)).not.toMatch(/rawMessage|authorization|Bearer|secret-token/iu);
+
+    const linked = await call(
+      'williMako.case.link',
+      {
+        caseId: c.cetCaseId,
+        williMandantId: 'willi-tenant-a',
+        williUserId: 'willi-user-a',
+        williSessionId: 'willi-session-1',
+      },
+      userMeta
+    );
+    expect(linked).toMatchObject({ linked: true });
+    expect(williRequests.find((request) => request.method === 'POST')).toMatchObject({
+      path: '/api/cet/sessions/willi-session-1/link-cet-case',
+    });
+  });
+
+  test('Willi-MaKo connector fails closed for unmapped or foreign actors', async () => {
+    await call('admin.williMakoMappings.create', {
+      williMandantId: 'willi-tenant-a',
+      williUserId: 'willi-user-a',
+      cetActorId: 'different-actor',
+    });
+    await expect(
+      call(
+        'williMako.sessions.discover',
+        { williMandantId: 'willi-tenant-a', williUserId: 'willi-user-a' },
+        userMeta
+      )
+    ).rejects.toThrow(/mapping|authenticated|actor|denied|forbidden/iu);
+    await expect(
+      call(
+        'williMako.sessions.discover',
+        { williMandantId: 'willi-tenant-a', williUserId: 'missing' },
+        userMeta
+      )
+    ).rejects.toThrow(/not found|missing/iu);
   });
 
   async function provisionOpenWebUiUser() {

@@ -54,6 +54,12 @@ const {
   safeRoleAlignment,
   safeWilliMapping,
 } = require('../src/workbench-willi-mako-mapping');
+const {
+  WilliMakoClient,
+  buildWilliMakoEvidence,
+  normalizeWilliLookupInput,
+  safeSessionsResponse,
+} = require('../src/workbench-willi-mako-connector');
 const { encryptMailSecret, secretFingerprint } = require('../src/workbench-mail-secret-store');
 const {
   CASE_STARTERS_VERSION,
@@ -819,6 +825,93 @@ module.exports = {
         return { saved: true, alignment: safeRoleAlignment(saved) };
       }
     ),
+    'williMako.sessions.discover': action(
+      'GET /willi-mako/sessions',
+      'Discover tenant-scoped Willi-MaKo sessions for a mapped CET actor',
+      async function (ctx) {
+        const p = principal(ctx, ctx.params);
+        const lookup = normalizeWilliLookupInput(ctx.params);
+        const mapping = await this.resolveWilliMappingForPrincipal(p, lookup);
+        const response = await this.williMakoClient.sessions({
+          ...lookup,
+          williMandantId: mapping.williMandantId,
+        });
+        return { mapping: safeWilliMapping(mapping), ...safeSessionsResponse(response) };
+      }
+    ),
+    'williMako.evidence.attach': action(
+      'POST /cases/:caseId/willi-mako/evidence',
+      'Attach a Willi-MaKo diagnostic summary as governed CET EvidenceRef',
+      async function (ctx) {
+        const p = principal(ctx, ctx.params);
+        const caseId = ctx.params.caseId || ctx.params.cetCaseId;
+        await this.loadVisibleCase(ctx, p, caseId);
+        const lookup = normalizeWilliLookupInput(ctx.params);
+        const mapping = await this.resolveWilliMappingForPrincipal(p, lookup);
+        const summary = ctx.params.evidenceSummary
+          ? ctx.params.evidenceSummary
+          : await this.williMakoClient.evidenceSummary({
+              williMandantId: mapping.williMandantId,
+              williSessionId: lookup.williSessionId,
+            });
+        const williEvidence = buildWilliMakoEvidence(summary, {
+          mapping,
+          actorId: p.actorId,
+          caseId,
+        });
+        const evidence = await this.store.saveEvidence({
+          ...williEvidence,
+          evidenceId: `willi_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`,
+          tenantId: p.tenantId,
+          actorId: p.actorId,
+          caseId,
+          forceNewVersion: ctx.params.forceNewVersion === true,
+        });
+        const generatedEvents = [];
+        if (!evidence.duplicate) {
+          await ctx.call('domain-router.ingestUpdate', {
+            cetCaseId: caseId,
+            kind: 'evidence_available',
+            version: evidence.evidenceId,
+            validated: false,
+            evidenceRef: evidence.evidenceId,
+            readinessReviewRequired: true,
+            routingSignals: evidence.routingSignals || [],
+          });
+          generatedEvents.push({ eventType: 'evidence.available', severity: 'info' });
+        }
+        return {
+          evidenceRef: safeEvidenceRef(evidence, { clearance: p.clearance }),
+          duplicate: !!evidence.duplicate,
+          duplicateOf: evidence.duplicateOf,
+          readinessReviewRequired: true,
+          generatedEvents,
+          mapping: safeWilliMapping(mapping),
+        };
+      },
+      caseParams
+    ),
+    'williMako.case.link': action(
+      'POST /cases/:caseId/willi-mako/link',
+      'Link a CET Workbench case to a tenant-scoped Willi-MaKo session',
+      async function (ctx) {
+        const p = principal(ctx, ctx.params);
+        const caseId = ctx.params.caseId || ctx.params.cetCaseId;
+        await this.loadVisibleCase(ctx, p, caseId);
+        const lookup = normalizeWilliLookupInput(ctx.params);
+        const mapping = await this.resolveWilliMappingForPrincipal(p, lookup);
+        const response = await this.williMakoClient.linkCase({
+          williMandantId: mapping.williMandantId,
+          williSessionId: lookup.williSessionId,
+          cetCaseId: caseId,
+          cetTenantId: p.tenantId,
+          cetActorId: p.actorId,
+          correlationId: ctx.params.correlationId,
+        });
+        return { linked: true, mapping: safeWilliMapping(mapping), willi: response };
+      },
+      caseParams
+    ),
     'deliveryClients.create': action(
       'POST /delivery-clients',
       'Register a tenant-bound Workbench delivery client for MWI polling',
@@ -1267,6 +1360,13 @@ module.exports = {
       toolRunDb: this.toolRunDb,
       mailAccountDb: this.mailAccountDb,
     });
+    this.williMakoClient = new WilliMakoClient({
+      baseUrl: this.settings.williMakoBaseUrl || process.env.WILLI_MAKO_BASE_URL,
+      secret: this.settings.williMakoServiceSecret || process.env.WILLI_MAKO_CET_SERVICE_SECRET,
+      token: this.settings.williMakoServiceToken || process.env.WILLI_MAKO_CET_SERVICE_TOKEN,
+      timeoutMs:
+        Number(this.settings.williMakoTimeoutMs || process.env.WILLI_MAKO_TIMEOUT_MS) || 8000,
+    });
   },
   methods: {
     safeUserContext(profile) {
@@ -1328,6 +1428,25 @@ module.exports = {
         deny('Workbench tenant admin cannot provision foreign tenant');
       }
       return targetTenantId;
+    },
+    async resolveWilliMappingForPrincipal(p, lookup) {
+      const mapping = await this.store.getWilliMapping({
+        cetTenantId: p.tenantId,
+        williMandantId: lookup.williMandantId,
+        williUserId: lookup.williUserId,
+        externalEmailNorm: lookup.externalEmailNorm,
+      });
+      this.authorizeTargetTenant(p, mapping.cetTenantId);
+      const isPlatformAdmin = p.roles.some((r) => ['ROLE_ADMIN', 'ROLE_UTILITY_HQ'].includes(r));
+      const isTenantAdmin = p.roles.includes('ROLE_TENANT_ADMIN');
+      const isMappedActor = mapping.cetActorId === p.actorId;
+      if (!isPlatformAdmin && !isTenantAdmin && !isMappedActor) {
+        deny('Willi-MaKo mapping does not belong to the authenticated CET actor');
+      }
+      if (mapping.isWilliStaff && !isPlatformAdmin) {
+        deny('Willi-MaKo staff evidence requires platform admin');
+      }
+      return mapping;
     },
     async loadWorkbenchContext(p, envelope, mapping) {
       const userContext = await this.store.getUserContext(
