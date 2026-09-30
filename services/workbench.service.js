@@ -42,6 +42,13 @@ const {
   simulateToolOutput,
 } = require('../src/workbench-tools');
 const { buildWebEvidence } = require('../src/workbench-web-evidence');
+const {
+  CASE_STARTERS_VERSION,
+  getCaseStarter,
+  listCaseStarters,
+  renderStarterPrompt,
+  starterKnownContext,
+} = require('../src/workbench-case-starters');
 
 const action = (rest, summary, handler, params = {}) => ({
   rest,
@@ -113,6 +120,57 @@ module.exports = {
         return { schemaVersion: ACTIVITY_TAXONOMY_VERSION, activity };
       },
       { activityId: { type: 'string', min: 1 } }
+    ),
+
+    'caseStarters.list': action(
+      'GET /case-starters',
+      'Return taxonomy-derived guided Workbench case starters for Open WebUI clients',
+      async function (ctx) {
+        principal(ctx, ctx.params);
+        const domain = cleanString(ctx.params.domain, 'domain', { max: 80 }) || null;
+        return {
+          schemaVersion: CASE_STARTERS_VERSION,
+          items: listCaseStarters({ domain }),
+        };
+      },
+      { domain: { type: 'string', optional: true } }
+    ),
+    'caseStarters.start': action(
+      'POST /case-starters/:starterId/start',
+      'Start a Workbench case from a guided case starter through the normal CET chat path',
+      async function (ctx) {
+        principal(ctx, ctx.params);
+        this.assertCompleteOpenWebUiIdentity(ctx.params);
+        if (!ctx.params.openWebuiUserId || !ctx.params.openWebuiOrgId) {
+          throw new Errors.MoleculerClientError(
+            'Open WebUI mapped user and organization are required for guided case starters',
+            403,
+            'WORKBENCH_MAPPING_REQUIRED'
+          );
+        }
+        const starter = getCaseStarter(ctx.params.starterId);
+        if (!starter) throw new Errors.MoleculerClientError('Case starter not found', 404);
+        const message = renderStarterPrompt(starter, ctx.params);
+        const chatParams = {
+          ...ctx.params,
+          channel: ctx.params.channel || 'open-webui',
+          client: ctx.params.client || 'open-webui',
+          message,
+          userRequest: message,
+          knownContext: {
+            ...(ctx.params.knownContext && typeof ctx.params.knownContext === 'object'
+              ? ctx.params.knownContext
+              : {}),
+            caseStarter: starterKnownContext(starter, ctx.params),
+          },
+        };
+        const result = await ctx.call('workbench.chat', chatParams, { meta: ctx.meta });
+        return {
+          schemaVersion: CASE_STARTERS_VERSION,
+          starter,
+          ...result,
+        };
+      }
     ),
     'tools.list': action(
       'GET /tools',

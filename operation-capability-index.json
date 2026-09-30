@@ -2,18 +2,18 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.99.22",
-  "sourceOpenApiHash": "0c74491a0b5e3639ad3e511190f7473d1d673de34b6886b7138e6a2b59a7cc11",
+  "sourceOpenApiHash": "824fa97e721d1c3b7a3c1ee32ae7be68d5eb2f61dc5ed521dd404c47d37cddc6",
   "coverage": {
-    "rawOperationCount": 1181,
-    "operationCount": 925,
-    "agentableCount": 923,
+    "rawOperationCount": 1183,
+    "operationCount": 927,
+    "agentableCount": 925,
     "nonAgentableCount": 2,
     "byOperationKind": {
-      "data_read": 405,
+      "data_read": 406,
       "admin": 14,
       "object_store_write": 245,
       "process_step": 20,
-      "process_start": 45,
+      "process_start": 46,
       "advisory_plan": 47,
       "draft_write": 13,
       "external_effect": 4,
@@ -83611,6 +83611,234 @@
         "negativeCues": [],
         "examples": [
           "Please save a cet-governed workbench workspace context profile"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "workbench_caseStarters_list",
+      "method": "GET",
+      "path": "/api/workbench/case-starters",
+      "service": "workbench",
+      "action": "workbench.caseStarters_list",
+      "summary": "Return taxonomy-derived guided Workbench case starters for Open WebUI clients",
+      "tags": [
+        "Workbench"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.case_starters_list"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "workbench:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [],
+        "optional": [
+          {
+            "name": "domain",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "workbench",
+          "case",
+          "starters",
+          "list",
+          "return",
+          "taxonomy",
+          "derived",
+          "guided",
+          "open",
+          "web",
+          "ui",
+          "clients"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me return taxonomy-derived guided workbench case starters for open webui clients"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "workbench_caseStarters_start",
+      "method": "POST",
+      "path": "/api/workbench/case-starters/:starterId/start",
+      "service": "workbench",
+      "action": "workbench.caseStarters_start",
+      "summary": "Start a Workbench case from a guided case starter through the normal CET chat path",
+      "tags": [
+        "Workbench"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "process_start",
+      "consequenceLevel": "high",
+      "recommendedExecutionMode": "confirm",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.case_starters_start"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "Starter"
+      ],
+      "requiredScopes": [
+        "workbench:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "workbench"
+      ],
+      "sideEffects": [
+        "starts_new_process_instance"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "No companion rollback operation detected in this service - verify reversibility with backend/tenant admin before invoking.",
+      "parameters": {
+        "required": [
+          {
+            "name": "starterId",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": "date_range_start"
+          }
+        ],
+        "optional": [
+          {
+            "name": "client",
+            "in": "body",
+            "type": "string",
+            "description": "Workbench client, usually open-webui",
+            "extractionHint": null
+          },
+          {
+            "name": "channel",
+            "in": "body",
+            "type": "string",
+            "description": "Workbench channel, usually open-webui",
+            "extractionHint": null
+          },
+          {
+            "name": "openWebuiConversationId",
+            "in": "body",
+            "type": "string",
+            "description": "Open WebUI conversation id",
+            "extractionHint": null
+          },
+          {
+            "name": "openWebuiUserId",
+            "in": "body",
+            "type": "string",
+            "description": "Open WebUI mapped user id",
+            "extractionHint": null
+          },
+          {
+            "name": "openWebuiOrgId",
+            "in": "body",
+            "type": "string",
+            "description": "Open WebUI mapped organization id",
+            "extractionHint": null
+          },
+          {
+            "name": "clientId",
+            "in": "body",
+            "type": "string",
+            "description": "Registered delivery client id",
+            "extractionHint": null
+          },
+          {
+            "name": "inputs",
+            "in": "body",
+            "type": "object",
+            "description": "Allowlisted scalar starter inputs",
+            "extractionHint": null
+          },
+          {
+            "name": "userRequest",
+            "in": "body",
+            "type": "string",
+            "description": "Optional bounded user context",
+            "extractionHint": null
+          },
+          {
+            "name": "asyncDelivery",
+            "in": "body",
+            "type": "object",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "requestId",
+            "in": "body",
+            "type": "string",
+            "description": "Caller request id",
+            "extractionHint": null
+          },
+          {
+            "name": "correlationId",
+            "in": "body",
+            "type": "string",
+            "description": "Caller correlation id",
+            "extractionHint": "geo_coordinate"
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "workbench",
+          "case",
+          "starters",
+          "start",
+          "from",
+          "guided",
+          "starter",
+          "through",
+          "normal",
+          "cet",
+          "chat",
+          "path"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please start a workbench case from a guided case starter through the normal cet chat path"
         ],
         "synonyms": [
           "agent infrastructure",

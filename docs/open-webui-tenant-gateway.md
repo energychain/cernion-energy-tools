@@ -42,6 +42,8 @@ Core:
 - `POST /api/workbench/cases/:caseId/dossier`
 - `GET /api/workbench/activities`
 - `GET /api/workbench/activities/:activityId`
+- `GET /api/workbench/case-starters`
+- `POST /api/workbench/case-starters/:starterId/start`
 
 Admin/provisioning:
 
@@ -112,6 +114,15 @@ Each activity includes:
 - case-starter eligibility and dossier template hint
 
 The taxonomy supports Domain Router decisions, but it does not replace Capability Broker, receipts or EvidenceRefs. It is routing/process context only: missing evidence still leads to clarification/evidence-required guidance, and external/binding actions remain blocked by CET governance.
+
+
+## Guided Case Starters
+
+Guided Case Starters are a curated Open WebUI projection over the Workbench Activity Taxonomy. They are not a second domain registry and they do not bypass CET classify/continue. Use `GET /api/workbench/case-starters` to render starter buttons/cards and `POST /api/workbench/case-starters/:starterId/start` to start or resume a case through the normal Workbench chat path.
+
+Starter launch is fail-closed for Open WebUI: both `openWebuiOrgId` and `openWebuiUserId` must be supplied and mapped to the CET tenant/user before a starter can create case state. Starter inputs are allowlisted scalar fields; nested objects, secret-like values and raw payloads are rejected or omitted before a prompt is assembled. Missing required inputs are carried as `missingInputs` and should render as clarification/evidence-required guidance, never as approval, rejection or factual conclusion.
+
+Each starter inherits its domain hint, role families, suggested evidence types, blocked actions, handoff domains and dossier hint from the activity taxonomy. Starter-specific copy may add a UI title, prompt text and next-safe-step guidance, but it must not weaken no-call guards or blocked actions.
 
 ## API sequence
 

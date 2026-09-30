@@ -309,6 +309,67 @@ const schemas = {
     },
     ['message']
   ),
+  CaseStarterInput: objectSchema({
+    key: stringSchema('Allowlisted starter input key'),
+    label: stringSchema('UI label for the input'),
+    required: booleanSchema('Whether the input should be supplied before the case is ready'),
+  }),
+  CaseStarter: objectSchema({
+    starterId: stringSchema('Guided case starter id'),
+    activityId: stringSchema('Canonical Workbench Activity Taxonomy activity id'),
+    title: stringSchema('UI-safe starter title'),
+    description: stringSchema('UI-safe starter description'),
+    domainHint: stringSchema('Advisory domain hint; Domain Router remains authoritative'),
+    initialPromptTemplate: stringSchema('Bounded prompt template assembled by CET'),
+    requiredInputs: arrayOf(
+      objectSchema({
+        key: stringSchema('Allowlisted input key'),
+        label: stringSchema('UI-safe input label'),
+        required: booleanSchema('Whether this input is required'),
+      })
+    ),
+    suggestedEvidenceTypes: arrayOf(stringSchema('Suggested EvidenceRef type')),
+    noCallGuards: arrayOf(stringSchema('No-call guardrail inherited from activity taxonomy')),
+    defaultAsyncDelivery: asyncDeliverySchema,
+    expectedRoleFamilies: arrayOf(stringSchema('Expected role family')),
+    allowedActions: arrayOf(stringSchema('Allowed internal action')),
+    blockedActions: arrayOf(stringSchema('Blocked external/binding action')),
+    handoffDomains: arrayOf(stringSchema('Potential handoff domain')),
+    nextSafeStep: stringSchema('Next safe step for missing inputs/evidence'),
+  }),
+  CaseStarterListResponse: objectSchema({
+    schemaVersion: stringSchema('Case starter schema version'),
+    items: arrayOf(objectSchema({}, [], 'Case starter')),
+  }),
+  CaseStarterStartRequest: objectSchema({
+    client: stringSchema('Workbench client, usually open-webui'),
+    channel: stringSchema('Workbench channel, usually open-webui'),
+    openWebuiConversationId: stringSchema('Open WebUI conversation id'),
+    openWebuiUserId: stringSchema('Open WebUI mapped user id'),
+    openWebuiOrgId: stringSchema('Open WebUI mapped organization id'),
+    clientId: stringSchema('Registered delivery client id'),
+    inputs: objectSchema({}, [], 'Allowlisted scalar starter inputs'),
+    userRequest: stringSchema('Optional bounded user context'),
+    asyncDelivery: asyncDeliverySchema,
+    requestId: stringSchema('Caller request id'),
+    correlationId: stringSchema('Caller correlation id'),
+  }),
+  CaseStarterStartResponse: objectSchema({
+    schemaVersion: stringSchema('Case starter schema version'),
+    starter: objectSchema({}, [], 'Started case starter'),
+    caseId: stringSchema('CET case id'),
+    cetCaseId: stringSchema('CET case id'),
+    caseStateVersion: numberSchema('Case-state version'),
+    usedOperation: stringSchema('classify or continue'),
+    primaryDomain: stringSchema('Primary CET domain'),
+    alternativeDomains: arrayOf(
+      objectSchema({ domain: stringSchema('Domain'), confidence: numberSchema('Confidence') })
+    ),
+    readinessState: stringSchema('Readiness state'),
+    responseText: stringSchema('UI response text'),
+    eventSummary: eventSummarySchema,
+    pendingEvents: numberSchema('Pending event count'),
+  }),
   WorkbenchChatResponse: objectSchema({
     caseId: stringSchema('CET case id'),
     cetCaseId: stringSchema('CET case id'),
@@ -448,12 +509,20 @@ const schemas = {
 
 schemas.EvidenceAttachRequest.properties.sourceRef.additionalProperties = true;
 schemas.EvidenceAttachRequest.properties.extracts.additionalProperties = true;
+schemas.CaseStarterListResponse.properties.items.items = schemas.CaseStarter;
+schemas.CaseStarterStartResponse.properties.starter = schemas.CaseStarter;
+schemas.CaseStarterStartRequest.properties.inputs.additionalProperties = true;
 schemas.WorkbenchChatRequest.properties.knownContext.additionalProperties = true;
 schemas.WorkbenchChatRequest.properties.attachments.items.additionalProperties = true;
 
 const operationSchemas = {
   'GET /cases/:caseId': { response: 'CaseSummary' },
   'GET /cases': { response: 'CaseListResponse' },
+  'GET /case-starters': { response: 'CaseStarterListResponse' },
+  'POST /case-starters/:starterId/start': {
+    request: 'CaseStarterStartRequest',
+    response: 'CaseStarterStartResponse',
+  },
   'POST /conversations/link-case': {
     request: 'ConversationLinkRequest',
     responseFields: ['linked', 'conversationRef'],
@@ -541,6 +610,19 @@ function responseSchemaFor(rest, fields) {
 }
 
 function exampleFor(rest) {
+  if (rest === 'POST /case-starters/:starterId/start') {
+    return {
+      client: 'open-webui',
+      channel: 'open-webui',
+      openWebuiOrgId: 'owui-org-1',
+      openWebuiUserId: 'owui-user-1',
+      openWebuiConversationId: 'owui-chat-1',
+      clientId: 'openwebui-tenant-1',
+      inputs: { marketLocationId: 'DE...', aperakContrlContext: 'APERAK Z18' },
+      userRequest: 'Lieferant reklamiert fehlende MSCONS-Zeitreihe.',
+      asyncDelivery: { mode: 'poll', ackMode: 'explicit', clientId: 'openwebui-tenant-1' },
+    };
+  }
   if (rest === 'POST /chat') {
     return {
       client: 'open-webui',

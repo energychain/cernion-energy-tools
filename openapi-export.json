@@ -65291,6 +65291,549 @@
         ]
       }
     },
+    "/api/workbench/case-starters": {
+      "get": {
+        "operationId": "workbench_caseStarters_list",
+        "summary": "Return taxonomy-derived guided Workbench case starters for Open WebUI clients",
+        "tags": [
+          "Workbench"
+        ],
+        "responses": {
+          "200": {
+            "description": "Workbench response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "schemaVersion": {
+                      "type": "string",
+                      "description": "Case starter schema version"
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "starterId": {
+                            "type": "string",
+                            "description": "Guided case starter id"
+                          },
+                          "activityId": {
+                            "type": "string",
+                            "description": "Canonical Workbench Activity Taxonomy activity id"
+                          },
+                          "title": {
+                            "type": "string",
+                            "description": "UI-safe starter title"
+                          },
+                          "description": {
+                            "type": "string",
+                            "description": "UI-safe starter description"
+                          },
+                          "domainHint": {
+                            "type": "string",
+                            "description": "Advisory domain hint; Domain Router remains authoritative"
+                          },
+                          "initialPromptTemplate": {
+                            "type": "string",
+                            "description": "Bounded prompt template assembled by CET"
+                          },
+                          "requiredInputs": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "properties": {
+                                "key": {
+                                  "type": "string",
+                                  "description": "Allowlisted input key"
+                                },
+                                "label": {
+                                  "type": "string",
+                                  "description": "UI-safe input label"
+                                },
+                                "required": {
+                                  "type": "boolean",
+                                  "description": "Whether this input is required"
+                                }
+                              }
+                            }
+                          },
+                          "suggestedEvidenceTypes": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "description": "Suggested EvidenceRef type"
+                            }
+                          },
+                          "noCallGuards": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "description": "No-call guardrail inherited from activity taxonomy"
+                            }
+                          },
+                          "defaultAsyncDelivery": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "mode": {
+                                "type": "string",
+                                "description": "Delivery mode",
+                                "enum": [
+                                  "none",
+                                  "poll"
+                                ]
+                              },
+                              "clientId": {
+                                "type": "string",
+                                "description": "Registered Workbench delivery client id"
+                              },
+                              "ackMode": {
+                                "type": "string",
+                                "description": "Acknowledgement mode",
+                                "enum": [
+                                  "explicit"
+                                ]
+                              },
+                              "supportedEventTypes": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "description": "Event type"
+                                }
+                              }
+                            }
+                          },
+                          "expectedRoleFamilies": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "description": "Expected role family"
+                            }
+                          },
+                          "allowedActions": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "description": "Allowed internal action"
+                            }
+                          },
+                          "blockedActions": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "description": "Blocked external/binding action"
+                            }
+                          },
+                          "handoffDomains": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "description": "Potential handoff domain"
+                            }
+                          },
+                          "nextSafeStep": {
+                            "type": "string",
+                            "description": "Next safe step for missing inputs/evidence"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Tenant, actor, role or sensitivity denied"
+          },
+          "404": {
+            "description": "Workbench resource not found"
+          },
+          "409": {
+            "description": "Stale or conflicting mapping"
+          },
+          "422": {
+            "description": "Invalid workbench request"
+          }
+        },
+        "description": "CET-governed Workbench/Tenant-Gateway API for Open WebUI clients. Tokens stay server-side; CET remains case-state and governance authority.",
+        "parameters": [
+          {
+            "name": "domain",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/workbench/case-starters/:starterId/start": {
+      "post": {
+        "operationId": "workbench_caseStarters_start",
+        "summary": "Start a Workbench case from a guided case starter through the normal CET chat path",
+        "tags": [
+          "Workbench"
+        ],
+        "responses": {
+          "200": {
+            "description": "Workbench response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "schemaVersion": {
+                      "type": "string",
+                      "description": "Case starter schema version"
+                    },
+                    "starter": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "starterId": {
+                          "type": "string",
+                          "description": "Guided case starter id"
+                        },
+                        "activityId": {
+                          "type": "string",
+                          "description": "Canonical Workbench Activity Taxonomy activity id"
+                        },
+                        "title": {
+                          "type": "string",
+                          "description": "UI-safe starter title"
+                        },
+                        "description": {
+                          "type": "string",
+                          "description": "UI-safe starter description"
+                        },
+                        "domainHint": {
+                          "type": "string",
+                          "description": "Advisory domain hint; Domain Router remains authoritative"
+                        },
+                        "initialPromptTemplate": {
+                          "type": "string",
+                          "description": "Bounded prompt template assembled by CET"
+                        },
+                        "requiredInputs": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "key": {
+                                "type": "string",
+                                "description": "Allowlisted input key"
+                              },
+                              "label": {
+                                "type": "string",
+                                "description": "UI-safe input label"
+                              },
+                              "required": {
+                                "type": "boolean",
+                                "description": "Whether this input is required"
+                              }
+                            }
+                          }
+                        },
+                        "suggestedEvidenceTypes": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Suggested EvidenceRef type"
+                          }
+                        },
+                        "noCallGuards": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "No-call guardrail inherited from activity taxonomy"
+                          }
+                        },
+                        "defaultAsyncDelivery": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "properties": {
+                            "mode": {
+                              "type": "string",
+                              "description": "Delivery mode",
+                              "enum": [
+                                "none",
+                                "poll"
+                              ]
+                            },
+                            "clientId": {
+                              "type": "string",
+                              "description": "Registered Workbench delivery client id"
+                            },
+                            "ackMode": {
+                              "type": "string",
+                              "description": "Acknowledgement mode",
+                              "enum": [
+                                "explicit"
+                              ]
+                            },
+                            "supportedEventTypes": {
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "description": "Event type"
+                              }
+                            }
+                          }
+                        },
+                        "expectedRoleFamilies": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Expected role family"
+                          }
+                        },
+                        "allowedActions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Allowed internal action"
+                          }
+                        },
+                        "blockedActions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Blocked external/binding action"
+                          }
+                        },
+                        "handoffDomains": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Potential handoff domain"
+                          }
+                        },
+                        "nextSafeStep": {
+                          "type": "string",
+                          "description": "Next safe step for missing inputs/evidence"
+                        }
+                      }
+                    },
+                    "caseId": {
+                      "type": "string",
+                      "description": "CET case id"
+                    },
+                    "cetCaseId": {
+                      "type": "string",
+                      "description": "CET case id"
+                    },
+                    "caseStateVersion": {
+                      "type": "number",
+                      "description": "Case-state version"
+                    },
+                    "usedOperation": {
+                      "type": "string",
+                      "description": "classify or continue"
+                    },
+                    "primaryDomain": {
+                      "type": "string",
+                      "description": "Primary CET domain"
+                    },
+                    "alternativeDomains": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "domain": {
+                            "type": "string",
+                            "description": "Domain"
+                          },
+                          "confidence": {
+                            "type": "number",
+                            "description": "Confidence"
+                          }
+                        }
+                      }
+                    },
+                    "readinessState": {
+                      "type": "string",
+                      "description": "Readiness state"
+                    },
+                    "responseText": {
+                      "type": "string",
+                      "description": "UI response text"
+                    },
+                    "eventSummary": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "pending": {
+                          "type": "number",
+                          "description": "Pending events not yet delivered"
+                        },
+                        "delivered": {
+                          "type": "number",
+                          "description": "Delivered but not acknowledged events"
+                        },
+                        "unacknowledged": {
+                          "type": "number",
+                          "description": "Pending plus delivered events"
+                        },
+                        "attention": {
+                          "type": "number",
+                          "description": "Unacknowledged events requiring user attention"
+                        }
+                      }
+                    },
+                    "pendingEvents": {
+                      "type": "number",
+                      "description": "Pending event count"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Tenant, actor, role or sensitivity denied"
+          },
+          "404": {
+            "description": "Workbench resource not found"
+          },
+          "409": {
+            "description": "Stale or conflicting mapping"
+          },
+          "422": {
+            "description": "Invalid workbench request"
+          }
+        },
+        "description": "CET-governed Workbench/Tenant-Gateway API for Open WebUI clients. Tokens stay server-side; CET remains case-state and governance authority.",
+        "parameters": [
+          {
+            "name": "starterId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "client": {
+                    "type": "string",
+                    "description": "Workbench client, usually open-webui"
+                  },
+                  "channel": {
+                    "type": "string",
+                    "description": "Workbench channel, usually open-webui"
+                  },
+                  "openWebuiConversationId": {
+                    "type": "string",
+                    "description": "Open WebUI conversation id"
+                  },
+                  "openWebuiUserId": {
+                    "type": "string",
+                    "description": "Open WebUI mapped user id"
+                  },
+                  "openWebuiOrgId": {
+                    "type": "string",
+                    "description": "Open WebUI mapped organization id"
+                  },
+                  "clientId": {
+                    "type": "string",
+                    "description": "Registered delivery client id"
+                  },
+                  "inputs": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "properties": {},
+                    "description": "Allowlisted scalar starter inputs"
+                  },
+                  "userRequest": {
+                    "type": "string",
+                    "description": "Optional bounded user context"
+                  },
+                  "asyncDelivery": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "mode": {
+                        "type": "string",
+                        "description": "Delivery mode",
+                        "enum": [
+                          "none",
+                          "poll"
+                        ]
+                      },
+                      "clientId": {
+                        "type": "string",
+                        "description": "Registered Workbench delivery client id"
+                      },
+                      "ackMode": {
+                        "type": "string",
+                        "description": "Acknowledgement mode",
+                        "enum": [
+                          "explicit"
+                        ]
+                      },
+                      "supportedEventTypes": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "description": "Event type"
+                        }
+                      }
+                    }
+                  },
+                  "requestId": {
+                    "type": "string",
+                    "description": "Caller request id"
+                  },
+                  "correlationId": {
+                    "type": "string",
+                    "description": "Caller correlation id"
+                  }
+                }
+              },
+              "examples": {
+                "minimal": {
+                  "value": {
+                    "client": "open-webui",
+                    "channel": "open-webui",
+                    "openWebuiOrgId": "owui-org-1",
+                    "openWebuiUserId": "owui-user-1",
+                    "openWebuiConversationId": "owui-chat-1",
+                    "clientId": "openwebui-tenant-1",
+                    "inputs": {
+                      "marketLocationId": "DE...",
+                      "aperakContrlContext": "APERAK Z18"
+                    },
+                    "userRequest": "Lieferant reklamiert fehlende MSCONS-Zeitreihe.",
+                    "asyncDelivery": {
+                      "mode": "poll",
+                      "ackMode": "explicit",
+                      "clientId": "openwebui-tenant-1"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/workbench/tools": {
       "get": {
         "operationId": "workbench_tools_list",
