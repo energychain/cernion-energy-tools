@@ -106,3 +106,15 @@ Runtime boundaries:
 - attachments are represented as metadata EvidenceRefs unless a separate ingestion path handles bytes;
 - mail output becomes supporting EvidenceRefs such as `mail_thread`, `mail_message` and `mail_attachment_metadata`;
 - the connector is prepared for `himalaya`/IMAP-backed tenant accounts, while secrets remain server-side and encrypted.
+
+## Willi-MaKo Evidence Connector
+
+Willi-MaKo is exposed to Workbench as a supporting MaKo diagnostic source, not a second case authority. CET maps Willi mandants/users to CET tenants/actors first, then uses the tenant-scoped Willi service API to discover sessions, attach safe diagnostic summaries and link CET cases back to Willi sessions.
+
+Connector APIs:
+
+- `GET /api/workbench/willi-mako/sessions`
+- `POST /api/workbench/cases/:caseId/willi-mako/evidence`
+- `POST /api/workbench/cases/:caseId/willi-mako/link`
+
+Attached summaries become `willi_mako_ref` EvidenceRefs with `evidenceRole: diagnostic_signal` and `claimStrength: supporting`. APERAK/Z18 evidence strengthens MaKo/master-data routing but never resolves a case automatically. Raw Willi chat history and service credentials are never returned to Open WebUI or LLM context. See `docs/workbench-willi-mako-connector.md`.

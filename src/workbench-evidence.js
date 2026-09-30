@@ -81,6 +81,8 @@ const SOURCE_REF_FIELDS = {
   ],
   willi_mako_ref: [
     'williTenantRef',
+    'williMandantId',
+    'williSessionId',
     'williCaseRef',
     'messageId',
     'processRef',
@@ -94,6 +96,9 @@ const SOURCE_REF_FIELDS = {
     'marketPartner',
     'direction',
     'timestamp',
+    'title',
+    'status',
+    'cardUrl',
     'safeSummary',
     'fileHash',
   ],
