@@ -67652,6 +67652,182 @@
         ]
       }
     },
+    "/api/workbench/admin/willi-mako/mappings": {
+      "post": {
+        "operationId": "workbench_admin_williMakoMappings_create",
+        "summary": "Provision a Willi-MaKo mandant/user mapping into CET tenant/actor roles",
+        "tags": [
+          "Workbench"
+        ],
+        "responses": {
+          "200": {
+            "description": "Workbench response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Tenant, actor, role or sensitivity denied"
+          },
+          "404": {
+            "description": "Workbench resource not found"
+          },
+          "409": {
+            "description": "Stale or conflicting mapping"
+          },
+          "422": {
+            "description": "Invalid workbench request"
+          }
+        },
+        "description": "CET-governed Workbench/Tenant-Gateway API for Open WebUI clients. Tokens stay server-side; CET remains case-state and governance authority.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {}
+              },
+              "examples": {
+                "minimal": {
+                  "value": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/workbench/admin/willi-mako/mappings/resolve": {
+      "get": {
+        "operationId": "workbench_admin_williMakoMappings_resolve",
+        "summary": "Resolve a Willi-MaKo mandant/user/email mapping into CET tenant/actor roles",
+        "tags": [
+          "Workbench"
+        ],
+        "responses": {
+          "200": {
+            "description": "Workbench response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Tenant, actor, role or sensitivity denied"
+          },
+          "404": {
+            "description": "Workbench resource not found"
+          },
+          "409": {
+            "description": "Stale or conflicting mapping"
+          },
+          "422": {
+            "description": "Invalid workbench request"
+          }
+        },
+        "description": "CET-governed Workbench/Tenant-Gateway API for Open WebUI clients. Tokens stay server-side; CET remains case-state and governance authority.",
+        "parameters": []
+      }
+    },
+    "/api/workbench/admin/willi-mako/role-alignments": {
+      "get": {
+        "operationId": "workbench_admin_williMakoRoleAlignments_list",
+        "summary": "List Willi-MaKo role profile alignments for this CET tenant",
+        "tags": [
+          "Workbench"
+        ],
+        "responses": {
+          "200": {
+            "description": "Workbench response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Tenant, actor, role or sensitivity denied"
+          },
+          "404": {
+            "description": "Workbench resource not found"
+          },
+          "409": {
+            "description": "Stale or conflicting mapping"
+          },
+          "422": {
+            "description": "Invalid workbench request"
+          }
+        },
+        "description": "CET-governed Workbench/Tenant-Gateway API for Open WebUI clients. Tokens stay server-side; CET remains case-state and governance authority.",
+        "parameters": []
+      },
+      "post": {
+        "operationId": "workbench_admin_williMakoRoleAlignments_save",
+        "summary": "Configure a tenant-scoped Willi-MaKo role profile alignment",
+        "tags": [
+          "Workbench"
+        ],
+        "responses": {
+          "200": {
+            "description": "Workbench response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Tenant, actor, role or sensitivity denied"
+          },
+          "404": {
+            "description": "Workbench resource not found"
+          },
+          "409": {
+            "description": "Stale or conflicting mapping"
+          },
+          "422": {
+            "description": "Invalid workbench request"
+          }
+        },
+        "description": "CET-governed Workbench/Tenant-Gateway API for Open WebUI clients. Tokens stay server-side; CET remains case-state and governance authority.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {}
+              },
+              "examples": {
+                "minimal": {
+                  "value": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/workbench/delivery-clients": {
       "post": {
         "operationId": "workbench_deliveryClients_create",

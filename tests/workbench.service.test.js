@@ -328,6 +328,107 @@ describe('Workbench RC3 Open WebUI Tenant Gateway', () => {
     expect(platformRead.mapping).toMatchObject({ cetTenantId: 'tenant-b', cetActorId: 'user-b' });
   });
 
+  test('Willi-MaKo mappings resolve tenant users with safe role defaults and email lookup', async () => {
+    const created = await call('admin.williMakoMappings.create', {
+      williMandantId: 'willi-tenant-a',
+      williUserId: 'willi-user-a',
+      externalEmailNorm: 'MAKO@EXAMPLE.COM',
+      cetActorId: 'mako-user-a',
+      williRoleProfile: 'normal_user',
+    });
+    expect(created.mapping).toMatchObject({
+      provider: 'willi-mako',
+      cetTenantId: 'tenant-a',
+      cetActorId: 'mako-user-a',
+      roles: ['ROLE_MARKET_COMMUNICATION'],
+      sensitivityClearance: ['tenant_internal'],
+      externalEmailNorm: 'mako@example.com',
+    });
+
+    const byUser = await call('admin.williMakoMappings.resolve', {
+      williMandantId: 'willi-tenant-a',
+      williUserId: 'willi-user-a',
+    });
+    expect(byUser.mapping.cetActorId).toBe('mako-user-a');
+
+    const byEmail = await call('admin.williMakoMappings.resolve', {
+      williMandantId: 'willi-tenant-a',
+      externalEmailNorm: 'mako@example.com',
+    });
+    expect(byEmail.mapping.williUserId).toBe('willi-user-a');
+  });
+
+  test('Willi-MaKo mapping fails closed for foreign tenants and unmapped identities', async () => {
+    await expect(
+      call(
+        'admin.williMakoMappings.create',
+        {
+          williMandantId: 'willi-tenant-b',
+          williUserId: 'willi-user-b',
+          cetTenantId: 'tenant-b',
+          cetActorId: 'user-b',
+        },
+        tenantAdminMeta
+      )
+    ).rejects.toThrow(/foreign tenant|denied|forbidden/iu);
+
+    await expect(
+      call('admin.williMakoMappings.resolve', {
+        williMandantId: 'willi-tenant-missing',
+        williUserId: 'missing',
+      })
+    ).rejects.toThrow(/not found|missing/iu);
+  });
+
+  test('Willi-MaKo role alignments are tenant scoped and staff does not imply cross-tenant access', async () => {
+    const defaults = await call('admin.williMakoRoleAlignments.list');
+    expect(defaults.items.find((item) => item.williRoleProfile === 'staff')).toMatchObject({
+      roles: ['ROLE_SUPPORT_READONLY'],
+      sensitivityClearance: ['tenant_internal'],
+    });
+
+    const custom = await call('admin.williMakoRoleAlignments.save', {
+      williRoleProfile: 'mandant_admin',
+      roles: ['ROLE_MARKET_COMMUNICATION', 'ROLE_TENANT_ADMIN'],
+      sensitivityClearance: ['tenant_internal', 'restricted'],
+    });
+    expect(custom.alignment.roles).toEqual(
+      expect.arrayContaining(['ROLE_MARKET_COMMUNICATION', 'ROLE_TENANT_ADMIN'])
+    );
+
+    const mapped = await call('admin.williMakoMappings.create', {
+      williMandantId: 'willi-tenant-admin',
+      williUserId: 'willi-admin',
+      cetActorId: 'tenant-admin-user',
+      williRoleProfile: 'mandant_admin',
+    });
+    expect(mapped.mapping.roles).toEqual(expect.arrayContaining(['ROLE_TENANT_ADMIN']));
+    expect(mapped.mapping.sensitivityClearance).toEqual(expect.arrayContaining(['restricted']));
+
+    await expect(
+      call(
+        'admin.williMakoRoleAlignments.save',
+        {
+          williRoleProfile: 'staff',
+          roles: ['ROLE_SUPPORT_READONLY'],
+          sensitivityClearance: ['tenant_internal'],
+        },
+        tenantAdminMeta
+      )
+    ).rejects.toThrow(/staff|denied|forbidden/iu);
+
+    const staff = await call('admin.williMakoMappings.create', {
+      williMandantId: 'willi-staff-tenant',
+      williUserId: 'willi-staff',
+      cetActorId: 'support-readonly',
+      williRoleProfile: 'staff',
+      isWilliStaff: true,
+    });
+    expect(staff.mapping.roles).toEqual(['ROLE_SUPPORT_READONLY']);
+    expect(staff.mapping.roles).not.toContain('ROLE_ADMIN');
+    expect(staff.mapping.roles).not.toContain('ROLE_UTILITY_HQ');
+  });
+
   async function provisionOpenWebUiUser() {
     await call('admin.tenantMappings.create', {
       client: 'open-webui',

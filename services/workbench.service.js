@@ -47,6 +47,13 @@ const {
   normalizeMailAccountInput,
   safeMailAccount,
 } = require('../src/workbench-mail-evidence');
+const {
+  defaultRoleAlignment,
+  normalizeRoleAlignmentInput,
+  normalizeWilliMappingInput,
+  safeRoleAlignment,
+  safeWilliMapping,
+} = require('../src/workbench-willi-mako-mapping');
 const { encryptMailSecret, secretFingerprint } = require('../src/workbench-mail-secret-store');
 const {
   CASE_STARTERS_VERSION,
@@ -705,6 +712,112 @@ module.exports = {
         return { found: true, mapping };
       },
       { externalUserId: 'string' }
+    ),
+    'admin.williMakoMappings.create': action(
+      'POST /admin/willi-mako/mappings',
+      'Provision a Willi-MaKo mandant/user mapping into CET tenant/actor roles',
+      async function (ctx) {
+        const p = this.requireAdmin(ctx);
+        const targetTenant = this.authorizeTargetTenant(
+          p,
+          cleanString(ctx.params.cetTenantId || p.tenantId, 'cetTenantId', { required: true })
+        );
+        const roleProfile = ctx.params.williRoleProfile || ctx.params.roleProfile || 'normal_user';
+        const tenantAlignment = await this.store.getWilliRoleAlignment(
+          { cetTenantId: targetTenant, williRoleProfile: roleProfile },
+          { optional: true }
+        );
+        const mappingInput = normalizeWilliMappingInput(
+          { ...ctx.params, cetTenantId: targetTenant },
+          { tenantId: targetTenant, actorId: p.actorId },
+          tenantAlignment || defaultRoleAlignment(roleProfile)
+        );
+        if (!p.roles.some((r) => ['ROLE_ADMIN', 'ROLE_UTILITY_HQ'].includes(r))) {
+          if (mappingInput.cetTenantId !== p.tenantId) {
+            deny('Workbench tenant admin cannot provision foreign Willi-MaKo mapping');
+          }
+          if (mappingInput.isWilliStaff) {
+            deny('Willi-MaKo staff mapping requires platform admin');
+          }
+        }
+        const mapping = await this.store.saveWilliMapping(mappingInput);
+        return { saved: true, mapping: safeWilliMapping(mapping) };
+      }
+    ),
+    'admin.williMakoMappings.resolve': action(
+      'GET /admin/willi-mako/mappings/resolve',
+      'Resolve a Willi-MaKo mandant/user/email mapping into CET tenant/actor roles',
+      async function (ctx) {
+        const p = this.requireAdmin(ctx);
+        const targetTenant = this.authorizeTargetTenant(
+          p,
+          cleanString(ctx.params.cetTenantId || p.tenantId, 'cetTenantId', { required: true })
+        );
+        const mapping = await this.store.getWilliMapping({
+          cetTenantId: targetTenant,
+          williMandantId: cleanString(
+            ctx.params.williMandantId || ctx.params.externalOrgId,
+            'williMandantId',
+            {
+              required: true,
+            }
+          ),
+          williUserId: cleanString(
+            ctx.params.williUserId || ctx.params.externalUserId,
+            'williUserId'
+          ),
+          externalEmailNorm: cleanString(
+            ctx.params.externalEmailNorm || ctx.params.email,
+            'externalEmailNorm'
+          )?.toLowerCase(),
+        });
+        this.authorizeTargetTenant(p, mapping.cetTenantId);
+        return { found: true, mapping: safeWilliMapping(mapping) };
+      }
+    ),
+    'admin.williMakoRoleAlignments.list': action(
+      'GET /admin/willi-mako/role-alignments',
+      'List Willi-MaKo role profile alignments for this CET tenant',
+      async function (ctx) {
+        const p = this.requireAdmin(ctx);
+        const targetTenant = this.authorizeTargetTenant(
+          p,
+          cleanString(ctx.params.cetTenantId || p.tenantId, 'cetTenantId', { required: true })
+        );
+        const saved = await this.store.listWilliRoleAlignments({ cetTenantId: targetTenant });
+        const savedProfiles = new Set(saved.map((item) => item.williRoleProfile));
+        const defaults = ['normal_user', 'mandant_admin', 'staff', 'external_advisor']
+          .filter((profile) => !savedProfiles.has(profile))
+          .map((profile) => defaultRoleAlignment(profile));
+        return {
+          items: [...saved, ...defaults]
+            .map((item) => safeRoleAlignment(item))
+            .sort((a, b) => String(a.williRoleProfile).localeCompare(String(b.williRoleProfile))),
+        };
+      }
+    ),
+    'admin.williMakoRoleAlignments.save': action(
+      'POST /admin/willi-mako/role-alignments',
+      'Configure a tenant-scoped Willi-MaKo role profile alignment',
+      async function (ctx) {
+        const p = this.requireAdmin(ctx);
+        const targetTenant = this.authorizeTargetTenant(
+          p,
+          cleanString(ctx.params.cetTenantId || p.tenantId, 'cetTenantId', { required: true })
+        );
+        const input = normalizeRoleAlignmentInput(
+          { ...ctx.params, cetTenantId: targetTenant },
+          { tenantId: targetTenant, actorId: p.actorId }
+        );
+        if (
+          input.williRoleProfile === 'staff' &&
+          !p.roles.some((r) => ['ROLE_ADMIN', 'ROLE_UTILITY_HQ'].includes(r))
+        ) {
+          deny('Willi-MaKo staff role alignment requires platform admin');
+        }
+        const saved = await this.store.saveWilliRoleAlignment(input);
+        return { saved: true, alignment: safeRoleAlignment(saved) };
+      }
     ),
     'deliveryClients.create': action(
       'POST /delivery-clients',

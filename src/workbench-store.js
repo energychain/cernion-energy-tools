@@ -56,6 +56,15 @@ function toolRunId(tenantId, id) {
 function mailAccountId(tenantId, id) {
   return key('mail-account', tenantId, id);
 }
+function williMappingId(tenantId, mandantId, userKey) {
+  return key('willi-mako-mapping', tenantId, mandantId, userKey);
+}
+function williEmailIndexId(tenantId, mandantId, email) {
+  return key('willi-mako-email-index', tenantId, mandantId, email);
+}
+function williRoleAlignmentId(tenantId, profile) {
+  return key('willi-mako-role-alignment', tenantId, profile);
+}
 
 class WorkbenchStore {
   constructor({
@@ -246,6 +255,154 @@ class WorkbenchStore {
     } catch (e) {
       if (e.status === 404 && optional) return null;
       if (e.status === 404) notFound('User mapping not found');
+      throw e;
+    }
+  }
+
+  async saveWilliRoleAlignment(input) {
+    const _id = williRoleAlignmentId(input.cetTenantId, input.williRoleProfile);
+    let existing = null;
+    try {
+      existing = await this.identityDb.get(_id);
+    } catch (e) {
+      if (e.status !== 404) throw e;
+    }
+    const timestamp = now();
+    const doc = Object.assign(existing ? { ...existing } : {}, {
+      _id,
+      type: 'workbench_willi_role_alignment',
+      provider: input.provider || 'willi-mako',
+      cetTenantId: input.cetTenantId,
+      williRoleProfile: input.williRoleProfile,
+      roles: input.roles || [],
+      sensitivityClearance: input.sensitivityClearance || [],
+      description: input.description || existing?.description || null,
+      enabled: input.enabled !== false,
+      createdAt: existing?.createdAt || timestamp,
+      updatedAt: timestamp,
+      updatedBy: input.updatedBy || existing?.updatedBy || null,
+    });
+    const saved = await this.identityDb.put(doc);
+    return { ...doc, _rev: saved.rev };
+  }
+
+  async getWilliRoleAlignment(input, { optional = true } = {}) {
+    try {
+      const doc = await this.identityDb.get(
+        williRoleAlignmentId(input.cetTenantId, input.williRoleProfile)
+      );
+      if (doc.enabled === false) disabled('Willi-MaKo role alignment disabled');
+      return doc;
+    } catch (e) {
+      if (e.status === 404 && optional) return null;
+      if (e.status === 404) notFound('Willi-MaKo role alignment not found');
+      throw e;
+    }
+  }
+
+  async listWilliRoleAlignments(input) {
+    const rows = await this.identityDb.allDocs({ include_docs: true });
+    return rows.rows
+      .map((row) => row.doc)
+      .filter(
+        (doc) =>
+          doc.type === 'workbench_willi_role_alignment' && doc.cetTenantId === input.cetTenantId
+      )
+      .sort((a, b) => String(a.williRoleProfile).localeCompare(String(b.williRoleProfile)));
+  }
+
+  async saveWilliMapping(input) {
+    const userKey = input.williUserId || `email:${input.externalEmailNorm}`;
+    const _id = williMappingId(input.cetTenantId, input.williMandantId, userKey);
+    let existing = null;
+    try {
+      existing = await this.identityDb.get(_id);
+    } catch (e) {
+      if (e.status !== 404) throw e;
+    }
+    const timestamp = now();
+    const doc = Object.assign(existing ? { ...existing } : {}, {
+      _id,
+      type: 'workbench_willi_mapping',
+      provider: input.provider || 'willi-mako',
+      williMandantId: input.williMandantId,
+      externalOrgId: input.externalOrgId || input.williMandantId,
+      williUserId: input.williUserId || null,
+      externalUserId: input.externalUserId || input.williUserId || null,
+      externalEmailNorm: input.externalEmailNorm || null,
+      cetTenantId: input.cetTenantId,
+      cetActorId: input.cetActorId,
+      roles: input.roles || [],
+      sensitivityClearance: input.sensitivityClearance || [],
+      williRoleProfile: input.williRoleProfile || 'normal_user',
+      isWilliStaff: !!input.isWilliStaff,
+      williSessionId: input.williSessionId || null,
+      cetCaseId: input.cetCaseId || null,
+      enabled: input.enabled !== false,
+      createdAt: existing?.createdAt || timestamp,
+      updatedAt: timestamp,
+      createdBy: existing?.createdBy || input.createdBy || null,
+      updatedBy: input.updatedBy || null,
+    });
+    const saved = await this.identityDb.put(doc);
+    const withRev = { ...doc, _rev: saved.rev };
+    if (doc.externalEmailNorm) {
+      await this.saveWilliEmailIndex(withRev);
+    }
+    return withRev;
+  }
+
+  async saveWilliEmailIndex(mapping) {
+    const _id = williEmailIndexId(
+      mapping.cetTenantId,
+      mapping.williMandantId,
+      mapping.externalEmailNorm
+    );
+    let existing = null;
+    try {
+      existing = await this.identityDb.get(_id);
+    } catch (e) {
+      if (e.status !== 404) throw e;
+    }
+    const doc = Object.assign(existing ? { ...existing } : {}, {
+      _id,
+      type: 'workbench_willi_email_index',
+      cetTenantId: mapping.cetTenantId,
+      williMandantId: mapping.williMandantId,
+      externalEmailNorm: mapping.externalEmailNorm,
+      mappingId: mapping._id,
+      enabled: mapping.enabled !== false,
+      updatedAt: now(),
+      createdAt: existing?.createdAt || mapping.createdAt || now(),
+    });
+    await this.identityDb.put(doc);
+  }
+
+  async getWilliMapping(input, { optional = false } = {}) {
+    let mappingId = null;
+    if (input.williUserId) {
+      mappingId = williMappingId(input.cetTenantId, input.williMandantId, input.williUserId);
+    } else if (input.externalEmailNorm) {
+      try {
+        const index = await this.identityDb.get(
+          williEmailIndexId(input.cetTenantId, input.williMandantId, input.externalEmailNorm)
+        );
+        if (index.enabled === false) disabled('Willi-MaKo mapping disabled');
+        mappingId = index.mappingId;
+      } catch (e) {
+        if (e.status === 404 && optional) return null;
+        if (e.status === 404) notFound('Willi-MaKo mapping not found');
+        throw e;
+      }
+    }
+    if (!mappingId) notFound('Willi-MaKo mapping not found');
+    try {
+      const doc = await this.identityDb.get(mappingId);
+      if (doc.enabled === false) disabled('Willi-MaKo mapping disabled');
+      return doc;
+    } catch (e) {
+      if (e.status === 404 && optional) return null;
+      if (e.status === 404) notFound('Willi-MaKo mapping not found');
       throw e;
     }
   }

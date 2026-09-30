@@ -2,15 +2,15 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.99.22",
-  "sourceOpenApiHash": "796b07165b6ae7fd502b2cc49a796344a42cd391772dc2f4f505de5b2171215f",
+  "sourceOpenApiHash": "34ad9f67f4d22dd1d1a0d6af8b7dde2beb8994a8a16dc5e26f8921822507d3d8",
   "coverage": {
-    "rawOperationCount": 1186,
-    "operationCount": 930,
-    "agentableCount": 928,
+    "rawOperationCount": 1190,
+    "operationCount": 934,
+    "agentableCount": 932,
     "nonAgentableCount": 2,
     "byOperationKind": {
-      "data_read": 407,
-      "admin": 16,
+      "data_read": 409,
+      "admin": 18,
       "object_store_write": 245,
       "process_step": 20,
       "process_start": 46,
@@ -83545,6 +83545,285 @@
         "negativeCues": [],
         "examples": [
           "Show me resolve an open webui user mapping"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "workbench_admin_williMakoMappings_create",
+      "method": "POST",
+      "path": "/api/workbench/admin/willi-mako/mappings",
+      "service": "workbench",
+      "action": "workbench.admin_williMakoMappings_create",
+      "summary": "Provision a Willi-MaKo mandant/user mapping into CET tenant/actor roles",
+      "tags": [
+        "Workbench"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "admin",
+      "consequenceLevel": "high",
+      "recommendedExecutionMode": "confirm",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.admin_willi_mako_mappings_create"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "workbench:write",
+        "admin"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "workbench"
+      ],
+      "sideEffects": [
+        "privileged_configuration_change"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "May not be reversible via API - verify with backend/tenant admin before invoking.",
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "workbench",
+          "admin",
+          "willi",
+          "mako",
+          "mappings",
+          "create",
+          "provision",
+          "ma",
+          "ko",
+          "mandant",
+          "user",
+          "mapping",
+          "into",
+          "cet",
+          "tenant",
+          "actor",
+          "roles"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please provision a willi-mako mandant/user mapping into cet tenant/actor roles"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "workbench_admin_williMakoMappings_resolve",
+      "method": "GET",
+      "path": "/api/workbench/admin/willi-mako/mappings/resolve",
+      "service": "workbench",
+      "action": "workbench.admin_williMakoMappings_resolve",
+      "summary": "Resolve a Willi-MaKo mandant/user/email mapping into CET tenant/actor roles",
+      "tags": [
+        "Workbench"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.admin_willi_mako_mappings_resolve"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "workbench:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "workbench",
+          "admin",
+          "willi",
+          "mako",
+          "mappings",
+          "resolve",
+          "ma",
+          "ko",
+          "mandant",
+          "user",
+          "email",
+          "mapping",
+          "into",
+          "cet",
+          "tenant",
+          "actor",
+          "roles"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me resolve a willi-mako mandant/user/email mapping into cet tenant/actor roles"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "workbench_admin_williMakoRoleAlignments_list",
+      "method": "GET",
+      "path": "/api/workbench/admin/willi-mako/role-alignments",
+      "service": "workbench",
+      "action": "workbench.admin_williMakoRoleAlignments_list",
+      "summary": "List Willi-MaKo role profile alignments for this CET tenant",
+      "tags": [
+        "Workbench"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.admin_willi_mako_role_alignments_list"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "workbench:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "workbench",
+          "admin",
+          "willi",
+          "mako",
+          "role",
+          "alignments",
+          "list",
+          "ma",
+          "ko",
+          "profile",
+          "this",
+          "cet",
+          "tenant"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me list willi-mako role profile alignments for this cet tenant"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "workbench_admin_williMakoRoleAlignments_save",
+      "method": "POST",
+      "path": "/api/workbench/admin/willi-mako/role-alignments",
+      "service": "workbench",
+      "action": "workbench.admin_williMakoRoleAlignments_save",
+      "summary": "Configure a tenant-scoped Willi-MaKo role profile alignment",
+      "tags": [
+        "Workbench"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "admin",
+      "consequenceLevel": "high",
+      "recommendedExecutionMode": "confirm",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.admin_willi_mako_role_alignments_save"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "workbench:write",
+        "admin"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "workbench"
+      ],
+      "sideEffects": [
+        "privileged_configuration_change"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "May not be reversible via API - verify with backend/tenant admin before invoking.",
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "workbench",
+          "admin",
+          "willi",
+          "mako",
+          "role",
+          "alignments",
+          "save",
+          "configure",
+          "tenant",
+          "scoped",
+          "ma",
+          "ko",
+          "profile",
+          "alignment"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please configure a tenant-scoped willi-mako role profile alignment"
         ],
         "synonyms": [
           "agent infrastructure",
