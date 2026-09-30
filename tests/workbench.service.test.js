@@ -1,5 +1,6 @@
 'use strict';
 const fs = require('fs');
+const http = require('http');
 const os = require('os');
 const path = require('path');
 const { ServiceBroker } = require('moleculer');
@@ -417,6 +418,109 @@ describe('Workbench RC3 Open WebUI Tenant Gateway', () => {
       status: 'blocked',
       sideEffectClass: 'external_business_effect',
     });
+  });
+
+  test('web evidence connector fetches safe public context as EvidenceRef', async () => {
+    const server = http.createServer((_req, res) => {
+      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+      res.end(
+        '<html><head><title>Grid context</title></head><body><h1>Netzanschluss</h1><script>secret()</script><p>Public context for voltage-level precheck.</p></body></html>'
+      );
+    });
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const url = `http://127.0.0.1:${server.address().port}/context`;
+    try {
+      const c = await router('classify', {
+        userRequest: 'Netzanschluss Anschlussleistung für Rechenzentrum prüfen',
+        asyncDelivery: { mode: 'poll', clientId: 'openwebui-tenant-a' },
+      });
+      const result = await call(
+        'tools.run',
+        {
+          caseId: c.cetCaseId,
+          toolId: 'web_fetch',
+          input: { url, allowPrivateNetwork: true },
+        },
+        userMeta
+      );
+      expect(result.toolRun).toMatchObject({ status: 'completed', toolId: 'web_fetch' });
+      expect(result.evidenceRef).toMatchObject({
+        evidenceType: 'public_web_page',
+        sourceType: 'web_fetch_ref',
+        claimStrength: 'supporting',
+      });
+      expect(result.evidenceRef.sourceRef.url).toBe(url);
+      expect(result.evidenceRef.safeSummary).toContain('Public context');
+      expect(result.evidenceRef.safeSummary).not.toContain('<script>');
+      expect(result.evidenceRef.fileHash).toMatch(/^sha256:/);
+    } finally {
+      await new Promise((resolve) => server.close(resolve));
+    }
+  });
+
+  test('web evidence connector blocks private targets unless explicitly enabled', async () => {
+    const c = await router('classify', {
+      userRequest: 'Netzanschluss Anschlussleistung prüfen',
+      asyncDelivery: { mode: 'poll', clientId: 'openwebui-tenant-a' },
+    });
+    await expect(
+      call(
+        'tools.run',
+        {
+          caseId: c.cetCaseId,
+          toolId: 'web_fetch',
+          input: { url: 'http://127.0.0.1/private' },
+        },
+        userMeta
+      )
+    ).rejects.toThrow(/private|local/iu);
+
+    const runs = await call('tool-runs.list', { caseId: c.cetCaseId }, userMeta);
+    expect(runs.items.find((run) => run.toolId === 'web_fetch')).toMatchObject({
+      status: 'failed',
+    });
+  });
+
+  test('web evidence connector records fetch failures and unsupported content as failed ToolRuns', async () => {
+    const c = await router('classify', {
+      userRequest: 'Netzanschluss öffentliche Webseite zur Anschlussleistung prüfen',
+      asyncDelivery: { mode: 'poll', clientId: 'openwebui-tenant-a' },
+    });
+    await expect(
+      call(
+        'tools.run',
+        {
+          caseId: c.cetCaseId,
+          toolId: 'web_fetch',
+          input: { url: 'http://127.0.0.1:9/missing', allowPrivateNetwork: true },
+        },
+        userMeta
+      )
+    ).rejects.toThrow(/fetch failed|connect|refused|failed/iu);
+
+    const server = http.createServer((_req, res) => {
+      res.writeHead(200, { 'content-type': 'application/octet-stream' });
+      res.end(Buffer.from([0, 1, 2, 3]));
+    });
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+    try {
+      await expect(
+        call(
+          'tools.run',
+          {
+            caseId: c.cetCaseId,
+            toolId: 'web_fetch',
+            input: {
+              url: `http://127.0.0.1:${server.address().port}/bin`,
+              allowPrivateNetwork: true,
+            },
+          },
+          userMeta
+        )
+      ).rejects.toThrow(/Unsupported web evidence content type/iu);
+    } finally {
+      await new Promise((resolve) => server.close(resolve));
+    }
   });
 
   test('governance map and skill filter expose only active applicable skills', async () => {

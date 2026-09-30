@@ -71,3 +71,18 @@ The governance map also filters Workbench playbooks/skills. Only active, role-co
 ## Boundary
 
 This runtime does not implement full browser automation, live mail access or tenant skill learning by itself. Those are separate connector/skill issues. This issue establishes the governed execution and audit contract they build on.
+
+## Web Evidence Connector
+
+`web_fetch` now performs a bounded, CET-governed fetch and stores the result as a Workbench EvidenceRef. It is intended for public web evidence such as grid-connection public context, public registry pages, regulatory publications and public PDFs.
+
+Safety boundaries:
+
+- only `http`/`https` URLs are accepted;
+- localhost, private-network, link-local, multicast and reserved targets are blocked unless an explicit internal/test override is supplied server-side;
+- raw HTML is stripped before UI/LLM-facing summaries are produced;
+- large responses are bounded and unsupported content types fail closed;
+- failed fetches are recorded as failed ToolRuns with a `blockedReason` instead of disappearing as chat failures;
+- successful fetches create supporting EvidenceRefs with URL, content type, retrieval timestamp, safe snippet, source fingerprint and content hash where available.
+
+The connector creates `evidence.available`/readiness-review signals as supporting evidence only. Web evidence is never treated as sole authority for binding claims, approvals, Anschlusszusagen or regulatory conclusions.

@@ -14,6 +14,11 @@ const EVIDENCE_TYPES = new Set([
   'market_partner_protocol',
   'metering_values_export',
   'grid_connection_document',
+  'public_web_page',
+  'public_pdf_document',
+  'market_registry_evidence',
+  'grid_connection_public_context',
+  'regulatory_publication',
   'calculation_assumption',
   'generic_document',
 ]);
@@ -25,6 +30,11 @@ const SOURCE_TYPES = new Set([
   'uploaded_file',
   'existing_cet_evidence_ref',
   'willi_mako_ref',
+  'web_fetch_ref',
+  'web_url',
+  'web_pdf',
+  'public_registry_page',
+  'public_document_page',
 ]);
 
 const SENSITIVITY_LEVELS = new Set(['public', 'tenant_internal', 'restricted', 'highly_sensitive']);
@@ -42,6 +52,11 @@ const SOURCE_REF_FIELDS = {
   external_url_ref: ['url', 'title', 'retrievedAt', 'fileHash'],
   manual_metadata: ['safeSummary', 'reference', 'sourceLabel', 'fileHash'],
   existing_cet_evidence_ref: ['evidenceId', 'caseId', 'sourceLabel', 'fileHash'],
+  web_fetch_ref: ['url', 'title', 'retrievedAt', 'contentType', 'statusCode', 'fileHash'],
+  web_url: ['url', 'title', 'retrievedAt', 'contentType', 'statusCode', 'fileHash'],
+  web_pdf: ['url', 'title', 'retrievedAt', 'contentType', 'statusCode', 'fileHash'],
+  public_registry_page: ['url', 'title', 'retrievedAt', 'contentType', 'statusCode', 'fileHash'],
+  public_document_page: ['url', 'title', 'retrievedAt', 'contentType', 'statusCode', 'fileHash'],
   willi_mako_ref: [
     'williTenantRef',
     'williCaseRef',
@@ -119,6 +134,11 @@ const EXTRACT_FIELDS = {
   mako_process_trace: ['processRef', 'messageId', 'messageType', 'status', 'marketPartner'],
   market_partner_protocol: ['marketPartner', 'processRef', 'status', 'timestamp', 'safeSummary'],
   metering_values_export: ['maloId', 'obis', 'from', 'to', 'status', 'plausibilityStatus'],
+  public_web_page: ['url', 'title', 'retrievedAt', 'contentType', 'safeSummary'],
+  public_pdf_document: ['url', 'title', 'retrievedAt', 'contentType', 'safeSummary'],
+  market_registry_evidence: ['url', 'title', 'retrievedAt', 'contentType', 'safeSummary'],
+  grid_connection_public_context: ['url', 'title', 'retrievedAt', 'contentType', 'safeSummary'],
+  regulatory_publication: ['url', 'title', 'retrievedAt', 'contentType', 'safeSummary'],
   generic_document: ['sourceLabel', 'documentDate', 'safeSummary'],
 };
 
@@ -379,6 +399,7 @@ function safeEvidenceRef(evidence, { clearance = [] } = {}) {
     description: evidence.description || undefined,
     status: evidence.status,
     sourceType: evidence.sourceType,
+    sourceRef: evidence.sourceRef || {},
     sensitivityLevel: evidence.sensitivityLevel,
     sourceFingerprint: evidence.sourceFingerprint,
     fileHash: evidence.fileHash,

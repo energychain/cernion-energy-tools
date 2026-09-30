@@ -41,6 +41,7 @@ const {
   safeTool,
   simulateToolOutput,
 } = require('../src/workbench-tools');
+const { buildWebEvidence } = require('../src/workbench-web-evidence');
 
 const action = (rest, summary, handler, params = {}) => ({
   rest,
@@ -161,23 +162,71 @@ module.exports = {
             blockedReason: decision.blockedReason,
           });
         }
-        const simulated = simulateToolOutput(tool, ctx.params.input || {});
+        let webEvidence = null;
+        try {
+          if (tool.toolClass === 'web_fetch' || tool.toolClass === 'web_browse') {
+            webEvidence = await buildWebEvidence({
+              ...(ctx.params.input || {}),
+              evidenceType: tool.evidenceOutputType || ctx.params.input?.evidenceType,
+            });
+          }
+        } catch (err) {
+          const failed = await this.store.saveToolRun({
+            tenantId: p.tenantId,
+            actorId: p.actorId,
+            caseId,
+            toolId: tool.toolId,
+            toolClass: tool.toolClass,
+            sideEffectClass: tool.sideEffectClass,
+            status: 'failed',
+            inputSummary: JSON.stringify(ctx.params.input || {}).slice(0, 500),
+            outputSummary: null,
+            blockedReason: err.message,
+          });
+          err.data = { ...(err.data || {}), toolRunId: failed.toolRunId };
+          throw err;
+        }
+        const simulated = webEvidence
+          ? {
+              outputSummary: `${tool.title}: fetched ${webEvidence.sourceRef.url}`,
+              safeDisplayText: webEvidence.safeSummary,
+              rawOutputStored: false,
+            }
+          : simulateToolOutput(tool, ctx.params.input || {});
         const evidenceId = `tool_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
         const evidence = await this.store.saveEvidence({
           tenantId: p.tenantId,
           actorId: p.actorId,
           caseId,
           evidenceId,
-          evidenceType: tool.evidenceOutputType || 'generic_document',
-          label: `${tool.title} result`,
+          evidenceType: webEvidence?.evidenceType || tool.evidenceOutputType || 'generic_document',
+          label: webEvidence?.label || `${tool.title} result`,
           safeSummary: simulated.safeDisplayText,
-          sourceType: 'existing_cet_evidence_ref',
-          sourceRef: { toolId: tool.toolId, toolClass: tool.toolClass },
+          sourceType: webEvidence?.sourceType || 'existing_cet_evidence_ref',
+          sourceRef: webEvidence?.sourceRef || { toolId: tool.toolId, toolClass: tool.toolClass },
           sensitivityLevel: 'tenant_internal',
-          provenance: { system: 'cet-workbench-tool-runtime', toolId: tool.toolId },
+          provenance: webEvidence?.provenance || {
+            system: 'cet-workbench-tool-runtime',
+            toolId: tool.toolId,
+          },
           evidenceRole: 'tool_result',
           claimStrength: 'supporting',
           readinessReviewRequired: true,
+          fileHash: webEvidence?.fileHash,
+          hashStatus: webEvidence?.hashStatus,
+          sourceFingerprint: webEvidence?.sourceFingerprint,
+          extracts: webEvidence
+            ? {
+                url: webEvidence.sourceRef.url,
+                title: webEvidence.sourceRef.title,
+                retrievedAt: webEvidence.retrievedAt,
+                contentType: webEvidence.contentType,
+                safeSummary: webEvidence.safeSummary,
+              }
+            : {},
+          routingSignals: webEvidence
+            ? ['web_evidence', webEvidence.evidenceType, tool.toolClass]
+            : [],
         });
         const toolRun = await this.store.saveToolRun({
           tenantId: p.tenantId,
