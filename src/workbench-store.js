@@ -50,6 +50,9 @@ function playbookId(tenantId, id) {
 function inboxTaskId(tenantId, id) {
   return key('inbox-task', tenantId, id);
 }
+function toolRunId(tenantId, id) {
+  return key('tool-run', tenantId, id);
+}
 
 class WorkbenchStore {
   constructor({
@@ -61,6 +64,7 @@ class WorkbenchStore {
     contextDb,
     playbookDb,
     inboxDb,
+    toolRunDb,
   }) {
     this.conversationsDb = conversationsDb;
     this.identityDb = identityDb;
@@ -70,6 +74,7 @@ class WorkbenchStore {
     this.contextDb = contextDb || conversationsDb;
     this.playbookDb = playbookDb || conversationsDb;
     this.inboxDb = inboxDb || conversationsDb;
+    this.toolRunDb = toolRunDb || conversationsDb;
   }
 
   async linkConversation(input) {
@@ -572,6 +577,55 @@ class WorkbenchStore {
       if (e.status === 404) notFound('Workbench turn memory not found');
       throw e;
     }
+  }
+
+  async saveToolRun(input) {
+    const id = input.toolRunId || `toolrun_${Date.now()}_${randomSuffix()}`;
+    const _id = toolRunId(input.tenantId, id);
+    const timestamp = now();
+    const doc = Object.assign(input.existing ? { ...input.existing } : {}, {
+      _id,
+      type: 'workbench_tool_run',
+      toolRunId: id,
+      tenantId: input.tenantId,
+      actorId: input.actorId,
+      caseId: input.caseId,
+      toolId: input.toolId,
+      toolClass: input.toolClass,
+      sideEffectClass: input.sideEffectClass,
+      status: input.status || 'completed',
+      inputSummary: input.inputSummary || null,
+      outputSummary: input.outputSummary || null,
+      evidenceRefs: input.evidenceRefs || [],
+      receiptRefs: input.receiptRefs || [],
+      blockedReason: input.blockedReason || null,
+      auditRef: input.auditRef || null,
+      startedAt: input.startedAt || timestamp,
+      finishedAt: input.finishedAt || timestamp,
+      createdAt: input.createdAt || timestamp,
+      updatedAt: timestamp,
+    });
+    const saved = await this.toolRunDb.put(doc);
+    return { ...doc, _rev: saved.rev };
+  }
+
+  async getToolRun(input, { optional = false } = {}) {
+    try {
+      return await this.toolRunDb.get(toolRunId(input.tenantId, input.toolRunId));
+    } catch (e) {
+      if (e.status === 404 && optional) return null;
+      if (e.status === 404) notFound('Workbench tool run not found');
+      throw e;
+    }
+  }
+
+  async listToolRuns(input) {
+    const rows = await this.toolRunDb.allDocs({ include_docs: true });
+    return rows.rows
+      .map((row) => row.doc)
+      .filter((doc) => doc.tenantId === input.tenantId && doc.type === 'workbench_tool_run')
+      .filter((doc) => !input.caseId || doc.caseId === input.caseId)
+      .sort((a, b) => String(b.startedAt).localeCompare(String(a.startedAt)));
   }
 }
 
