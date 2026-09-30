@@ -10,6 +10,7 @@ Initial tool classes:
 - `web_browse`
 - `mail_search`
 - `mail_read`
+- `mail_attachment_ref`
 - `document_fetch`
 - `api_lookup`
 
@@ -86,3 +87,22 @@ Safety boundaries:
 - successful fetches create supporting EvidenceRefs with URL, content type, retrieval timestamp, safe snippet, source fingerprint and content hash where available.
 
 The connector creates `evidence.available`/readiness-review signals as supporting evidence only. Web evidence is never treated as sole authority for binding claims, approvals, Anschlusszusagen or regulatory conclusions.
+
+## Mail Evidence Connector
+
+`mail_search`, `mail_read` and `mail_attachment_ref` use tenant-bound Workbench mail account references. Mail account credentials are stored inside CET as AES-256-GCM encrypted secrets and never returned to Open WebUI, ToolRuns, EvidenceRefs or LLM context.
+
+Mail account provisioning:
+
+- `POST /api/workbench/mail/accounts`
+- `GET /api/workbench/mail/accounts`
+- `DELETE /api/workbench/mail/accounts/:mailAccountRef`
+
+Runtime boundaries:
+
+- only read/search/reference actions are exposed;
+- `mail_send`, reply and forward remain blocked as `external_business_effect`;
+- message bodies are reduced to bounded safe snippets;
+- attachments are represented as metadata EvidenceRefs unless a separate ingestion path handles bytes;
+- mail output becomes supporting EvidenceRefs such as `mail_thread`, `mail_message` and `mail_attachment_metadata`;
+- the connector is prepared for `himalaya`/IMAP-backed tenant accounts, while secrets remain server-side and encrypted.

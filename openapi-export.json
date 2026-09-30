@@ -65834,6 +65834,138 @@
         }
       }
     },
+    "/api/workbench/mail/accounts": {
+      "post": {
+        "operationId": "workbench_mail_accounts_create",
+        "summary": "Register a tenant-bound Workbench mail account with CET-encrypted credentials",
+        "tags": [
+          "Workbench"
+        ],
+        "responses": {
+          "200": {
+            "description": "Workbench response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Tenant, actor, role or sensitivity denied"
+          },
+          "404": {
+            "description": "Workbench resource not found"
+          },
+          "409": {
+            "description": "Stale or conflicting mapping"
+          },
+          "422": {
+            "description": "Invalid workbench request"
+          }
+        },
+        "description": "CET-governed Workbench/Tenant-Gateway API for Open WebUI clients. Tokens stay server-side; CET remains case-state and governance authority.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {}
+              },
+              "examples": {
+                "minimal": {
+                  "value": {}
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "workbench_mail_accounts_list",
+        "summary": "List tenant-bound Workbench mail accounts without exposing credentials",
+        "tags": [
+          "Workbench"
+        ],
+        "responses": {
+          "200": {
+            "description": "Workbench response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Tenant, actor, role or sensitivity denied"
+          },
+          "404": {
+            "description": "Workbench resource not found"
+          },
+          "409": {
+            "description": "Stale or conflicting mapping"
+          },
+          "422": {
+            "description": "Invalid workbench request"
+          }
+        },
+        "description": "CET-governed Workbench/Tenant-Gateway API for Open WebUI clients. Tokens stay server-side; CET remains case-state and governance authority.",
+        "parameters": []
+      }
+    },
+    "/api/workbench/mail/accounts/:mailAccountRef": {
+      "delete": {
+        "operationId": "workbench_mail_accounts_delete",
+        "summary": "Disable a tenant-bound Workbench mail account",
+        "tags": [
+          "Workbench"
+        ],
+        "responses": {
+          "200": {
+            "description": "Workbench response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Tenant, actor, role or sensitivity denied"
+          },
+          "404": {
+            "description": "Workbench resource not found"
+          },
+          "409": {
+            "description": "Stale or conflicting mapping"
+          },
+          "422": {
+            "description": "Invalid workbench request"
+          }
+        },
+        "description": "CET-governed Workbench/Tenant-Gateway API for Open WebUI clients. Tokens stay server-side; CET remains case-state and governance authority.",
+        "parameters": [
+          {
+            "name": "mailAccountRef",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/api/workbench/tools": {
       "get": {
         "operationId": "workbench_tools_list",

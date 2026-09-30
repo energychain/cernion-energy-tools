@@ -43,6 +43,12 @@ const {
 } = require('../src/workbench-tools');
 const { buildWebEvidence } = require('../src/workbench-web-evidence');
 const {
+  buildMailEvidence,
+  normalizeMailAccountInput,
+  safeMailAccount,
+} = require('../src/workbench-mail-evidence');
+const { encryptMailSecret, secretFingerprint } = require('../src/workbench-mail-secret-store');
+const {
   CASE_STARTERS_VERSION,
   getCaseStarter,
   listCaseStarters,
@@ -67,6 +73,7 @@ const WORKBENCH_DATABASES = [
   ['playbookDb', './data/cet_workbench_playbooks', 'CET_WORKBENCH_PLAYBOOK_DB_PATH'],
   ['inboxDb', './data/cet_workbench_inbox_tasks', 'CET_WORKBENCH_INBOX_DB_PATH'],
   ['toolRunDb', './data/cet_workbench_tool_runs', 'CET_WORKBENCH_TOOL_RUN_DB_PATH'],
+  ['mailAccountDb', './data/cet_workbench_mail_accounts', 'CET_WORKBENCH_MAIL_ACCOUNT_DB_PATH'],
 ];
 function workbenchDbMixin([dbProperty, defaultDbPath, dbPathEnvVar]) {
   const config = { defaultDbPath, dbPathEnvVar, dbProperty };
@@ -172,6 +179,49 @@ module.exports = {
         };
       }
     ),
+    'mail.accounts.create': action(
+      'POST /mail/accounts',
+      'Register a tenant-bound Workbench mail account with CET-encrypted credentials',
+      async function (ctx) {
+        const p = this.requireAdmin(ctx);
+        const account = normalizeMailAccountInput(ctx.params, {
+          tenantId: p.tenantId,
+          actorId: p.actorId,
+          encryptSecret: (secret) => encryptMailSecret(secret),
+          secretFingerprint: (secret) => secretFingerprint(secret),
+        });
+        const saved = await this.store.saveMailAccount(account);
+        return { saved: true, mailAccount: safeMailAccount(saved) };
+      }
+    ),
+    'mail.accounts.list': action(
+      'GET /mail/accounts',
+      'List tenant-bound Workbench mail accounts without exposing credentials',
+      async function (ctx) {
+        const p = principal(ctx, ctx.params);
+        const accounts = await this.store.listMailAccounts({
+          tenantId: p.tenantId,
+          enabledOnly: true,
+        });
+        return { items: accounts.map((account) => safeMailAccount(account)) };
+      }
+    ),
+    'mail.accounts.delete': action(
+      'DELETE /mail/accounts/:mailAccountRef',
+      'Disable a tenant-bound Workbench mail account',
+      async function (ctx) {
+        const p = this.requireAdmin(ctx);
+        const mailAccountRef = cleanString(ctx.params.mailAccountRef, 'mailAccountRef', {
+          required: true,
+        });
+        const deleted = await this.store.deleteMailAccount({
+          tenantId: p.tenantId,
+          mailAccountRef,
+        });
+        return { deleted: true, mailAccount: safeMailAccount(deleted) };
+      },
+      { mailAccountRef: { type: 'string', min: 1 } }
+    ),
     'tools.list': action(
       'GET /tools',
       'Return CET-governed Workbench tools filtered by domain and role',
@@ -221,12 +271,22 @@ module.exports = {
           });
         }
         let webEvidence = null;
+        let mailEvidence = null;
         try {
           if (tool.toolClass === 'web_fetch' || tool.toolClass === 'web_browse') {
             webEvidence = await buildWebEvidence({
               ...(ctx.params.input || {}),
               evidenceType: tool.evidenceOutputType || ctx.params.input?.evidenceType,
             });
+          } else if (['mail_search', 'mail_read', 'mail_attachment_ref'].includes(tool.toolClass)) {
+            const mailAccountRef = cleanString(ctx.params.input?.mailAccountRef, 'mailAccountRef', {
+              required: true,
+            });
+            const account = await this.store.getMailAccount({
+              tenantId: p.tenantId,
+              mailAccountRef,
+            });
+            mailEvidence = buildMailEvidence({ tool, input: ctx.params.input || {}, account });
           }
         } catch (err) {
           const failed = await this.store.saveToolRun({
@@ -244,10 +304,11 @@ module.exports = {
           err.data = { ...(err.data || {}), toolRunId: failed.toolRunId };
           throw err;
         }
-        const simulated = webEvidence
+        const externalEvidence = webEvidence || mailEvidence;
+        const simulated = externalEvidence
           ? {
-              outputSummary: `${tool.title}: fetched ${webEvidence.sourceRef.url}`,
-              safeDisplayText: webEvidence.safeSummary,
+              outputSummary: `${tool.title}: ${externalEvidence.label}`,
+              safeDisplayText: externalEvidence.safeSummary,
               rawOutputStored: false,
             }
           : simulateToolOutput(tool, ctx.params.input || {});
@@ -257,33 +318,39 @@ module.exports = {
           actorId: p.actorId,
           caseId,
           evidenceId,
-          evidenceType: webEvidence?.evidenceType || tool.evidenceOutputType || 'generic_document',
-          label: webEvidence?.label || `${tool.title} result`,
+          evidenceType:
+            externalEvidence?.evidenceType || tool.evidenceOutputType || 'generic_document',
+          label: externalEvidence?.label || `${tool.title} result`,
           safeSummary: simulated.safeDisplayText,
-          sourceType: webEvidence?.sourceType || 'existing_cet_evidence_ref',
-          sourceRef: webEvidence?.sourceRef || { toolId: tool.toolId, toolClass: tool.toolClass },
+          sourceType: externalEvidence?.sourceType || 'existing_cet_evidence_ref',
+          sourceRef: externalEvidence?.sourceRef || {
+            toolId: tool.toolId,
+            toolClass: tool.toolClass,
+          },
           sensitivityLevel: 'tenant_internal',
-          provenance: webEvidence?.provenance || {
+          provenance: externalEvidence?.provenance || {
             system: 'cet-workbench-tool-runtime',
             toolId: tool.toolId,
           },
           evidenceRole: 'tool_result',
           claimStrength: 'supporting',
           readinessReviewRequired: true,
-          fileHash: webEvidence?.fileHash,
-          hashStatus: webEvidence?.hashStatus,
-          sourceFingerprint: webEvidence?.sourceFingerprint,
-          extracts: webEvidence
-            ? {
-                url: webEvidence.sourceRef.url,
-                title: webEvidence.sourceRef.title,
-                retrievedAt: webEvidence.retrievedAt,
-                contentType: webEvidence.contentType,
-                safeSummary: webEvidence.safeSummary,
-              }
-            : {},
-          routingSignals: webEvidence
-            ? ['web_evidence', webEvidence.evidenceType, tool.toolClass]
+          fileHash: externalEvidence?.fileHash,
+          hashStatus: externalEvidence?.hashStatus,
+          sourceFingerprint: externalEvidence?.sourceFingerprint,
+          extracts:
+            externalEvidence?.extracts ||
+            (webEvidence
+              ? {
+                  url: webEvidence.sourceRef.url,
+                  title: webEvidence.sourceRef.title,
+                  retrievedAt: webEvidence.retrievedAt,
+                  contentType: webEvidence.contentType,
+                  safeSummary: webEvidence.safeSummary,
+                }
+              : {}),
+          routingSignals: externalEvidence
+            ? ['workbench_tool_result', tool.toolClass, tool.toolId, externalEvidence.evidenceType]
             : [],
         });
         const toolRun = await this.store.saveToolRun({
@@ -1085,6 +1152,7 @@ module.exports = {
       playbookDb: this.playbookDb,
       inboxDb: this.inboxDb,
       toolRunDb: this.toolRunDb,
+      mailAccountDb: this.mailAccountDb,
     });
   },
   methods: {

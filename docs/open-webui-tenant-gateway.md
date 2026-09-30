@@ -44,6 +44,11 @@ Core:
 - `GET /api/workbench/activities/:activityId`
 - `GET /api/workbench/case-starters`
 - `POST /api/workbench/case-starters/:starterId/start`
+- `GET /api/workbench/tools`
+- `POST /api/workbench/cases/:caseId/tools/:toolId/run`
+- `POST /api/workbench/mail/accounts`
+- `GET /api/workbench/mail/accounts`
+- `DELETE /api/workbench/mail/accounts/:mailAccountRef`
 
 Admin/provisioning:
 
@@ -132,7 +137,10 @@ Each starter inherits its domain hint, role families, suggested evidence types, 
 POST /api/workbench/admin/tenant-mappings
 POST /api/workbench/admin/user-mappings
 POST /api/workbench/delivery-clients
+POST /api/workbench/mail/accounts
 POST /api/workbench/chat
+GET  /api/workbench/tools?domain=market_communication
+POST /api/workbench/cases/:caseId/tools/mail_search/run
 GET  /api/workbench/cases/:caseId
 GET  /api/workbench/events?clientId=...
 POST /api/workbench/events/:eventId/ack
@@ -183,6 +191,9 @@ Allowed `evidenceType` values in the RC3 EvidenceRef contract:
 - `mako_process_trace`
 - `mako_error_code_diagnosis`
 - `market_partner_protocol`
+- `mail_message`
+- `mail_thread`
+- `mail_attachment_metadata`
 - `metering_values_export`
 - `grid_connection_document`
 - `calculation_assumption`
@@ -196,10 +207,15 @@ Allowed `sourceType` values:
 - `uploaded_file`
 - `existing_cet_evidence_ref`
 - `willi_mako_ref`
+- `mail_ref`
 
 Sensitivity levels are `public`, `tenant_internal`, `restricted` and `highly_sensitive`. `restricted` and `highly_sensitive` EvidenceRefs require matching CET sensitivity clearance on attach and are redacted in Workbench case summaries/dossiers for users without clearance.
 
 `sourceRef` and optional `extracts` are allowlisted and length-limited. Secret-like fields (`authorization`, `token`, `apiKey`, `password`, `cookie`, `secret`, `credential`, bearer values) are rejected; arbitrary nested payloads and raw message/file bodies are not echoed to the UI or LLM context. Duplicate EvidenceRefs with the same tenant/case/source fingerprint are idempotent and do not emit duplicate `evidence.available` events.
+
+### Mail evidence
+
+Tenant mailboxes are registered through `/api/workbench/mail/accounts`. Credentials are encrypted in CET using AES-256-GCM and are never exposed to Open WebUI, the LLM, ToolRuns or EvidenceRefs. Mail tooling is read-only: `mail_search`, `mail_read` and `mail_attachment_ref` create supporting EvidenceRefs (`mail_thread`, `mail_message`, `mail_attachment_metadata`) for the active case. `mail_send`, reply and forward remain blocked external effects.
 
 ### Willi-MaKo references
 

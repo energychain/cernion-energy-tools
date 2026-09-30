@@ -7,7 +7,13 @@ const DEFAULT_ALLOWED_TOOLS = ['document_fetch', 'api_lookup'];
 
 const GOVERNANCE_BY_DOMAIN = {
   market_communication: {
-    allowedTools: ['document_fetch', 'api_lookup', 'mail_search', 'mail_read'],
+    allowedTools: [
+      'document_fetch',
+      'api_lookup',
+      'mail_search',
+      'mail_read',
+      'mail_attachment_ref',
+    ],
     blockedTools: ['mail_send'],
     allowedSkills: ['mako-clarification-case', 'willi-mako-evidence-usage'],
     requiredRoles: ['ROLE_MARKET_COMMUNICATION', 'ROLE_EDM', 'ROLE_GRID_OPERATOR'],
@@ -27,7 +33,13 @@ const GOVERNANCE_BY_DOMAIN = {
     handoffDomains: ['edm', 'market_master_data', 'metering_msb'],
   },
   edm: {
-    allowedTools: ['document_fetch', 'api_lookup', 'mail_search', 'mail_read'],
+    allowedTools: [
+      'document_fetch',
+      'api_lookup',
+      'mail_search',
+      'mail_read',
+      'mail_attachment_ref',
+    ],
     blockedTools: ['mail_send'],
     allowedSkills: ['edm-measurement-issue'],
     requiredRoles: ['ROLE_EDM', 'ROLE_METERING_MSB', 'ROLE_GRID_OPERATOR'],
