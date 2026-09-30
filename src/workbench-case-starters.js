@@ -201,7 +201,7 @@ function buildPromptTemplate(
 function listCaseStarters({ domain = null } = {}) {
   const customStarters = STARTER_OVERRIDES.map((override) => {
     const activity = getWorkbenchActivity(override.activityId);
-    if (!activity || !activity.caseStarterEligible) return null;
+    if (!activity?.caseStarterEligible) return null;
     if (domain && activity.domain !== domain) return null;
     return starterFromActivity(activity, override);
   }).filter(Boolean);
@@ -217,12 +217,10 @@ function getCaseStarter(starterId) {
   const override = STARTERS_BY_ID.get(starterId);
   if (override) {
     const activity = getWorkbenchActivity(override.activityId);
-    return activity && activity.caseStarterEligible
-      ? starterFromActivity(activity, override)
-      : null;
+    return activity?.caseStarterEligible ? starterFromActivity(activity, override) : null;
   }
   const activity = getWorkbenchActivity(starterId);
-  return activity && activity.caseStarterEligible ? starterFromActivity(activity) : null;
+  return activity?.caseStarterEligible ? starterFromActivity(activity) : null;
 }
 
 function sanitizeStarterInputs(starter, rawInputs = {}) {
