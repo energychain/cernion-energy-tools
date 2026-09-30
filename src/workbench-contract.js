@@ -221,6 +221,15 @@ const turnMemorySchema = objectSchema({
   noCallGuards: arrayOf(stringSchema('No-call guardrail')),
   allowedActions: arrayOf(stringSchema('Allowed action')),
   blockedActions: arrayOf(stringSchema('Blocked action')),
+  appliedPlaybooks: arrayOf(
+    objectSchema({
+      skillId: stringSchema('Applied CET Workbench skill/playbook id'),
+      title: stringSchema('UI-safe skill title'),
+      version: numberSchema('Skill content version'),
+      auditRefs: arrayOf(stringSchema('Skill lifecycle audit entry id')),
+    }),
+    'Active skills/playbooks applied to this case; never raw evidence or prompts'
+  ),
   lastUserIntent: stringSchema('Bounded summary of the latest user intent'),
   lastSafeConclusion: stringSchema('Latest non-binding safe conclusion'),
   recentEventStatus: eventSummarySchema,
@@ -265,6 +274,7 @@ const caseSummarySchema = objectSchema({
   workingAssumptions: arrayOf(stringSchema('Bounded working assumption')),
   openQuestions: arrayOf(stringSchema('Open clarification question')),
   activeRoleProjection: stringSchema('Current role projection'),
+  appliedPlaybooks: turnMemorySchema.properties.appliedPlaybooks,
   evidenceSummary: objectSchema({
     total: numberSchema('Visible evidence count'),
     redacted: numberSchema('Redacted evidence count'),
@@ -507,6 +517,61 @@ const schemas = {
   }),
 };
 
+const SKILL_STATUS_ENUM = ['draft', 'proposed', 'active', 'deprecated', 'archived'];
+
+const skillCoreShape = {
+  title: stringSchema('Skill title', { maxLength: 200 }),
+  description: stringSchema('Skill description', { maxLength: 2000 }),
+  domains: arrayOf(stringSchema('Governed Workbench domain')),
+  triggerPatterns: arrayOf(stringSchema('Bounded routing/trigger signal')),
+  examplePrompts: arrayOf(stringSchema('UI-safe example prompt')),
+  applicableRoles: arrayOf(stringSchema('CET role family')),
+  requiredEvidence: arrayOf(stringSchema('Allowlisted evidence type')),
+  steps: arrayOf(stringSchema('Bounded, non-binding process step')),
+  allowedActions: arrayOf(stringSchema('Allowed internal action')),
+  blockedActions: arrayOf(stringSchema('Blocked external/binding action')),
+  noCallGuards: arrayOf(stringSchema('No-call guardrail')),
+  handoffDomains: arrayOf(stringSchema('Potential handoff domain')),
+  capabilityHints: arrayOf(stringSchema('Advisory Capability Broker hint')),
+  receiptHints: arrayOf(stringSchema('Advisory receipt hint')),
+};
+
+const skillSchema = objectSchema({
+  skillId: stringSchema('Tenant-scoped CET Workbench skill/playbook id'),
+  tenantId: stringSchema('Tenant id'),
+  ...skillCoreShape,
+  status: stringSchema('Skill lifecycle status', { enum: SKILL_STATUS_ENUM }),
+  version: numberSchema('Skill content version'),
+  createdBy: stringSchema('Actor id that created the skill'),
+  approvedBy: stringSchema('Actor id that activated the skill'),
+  createdAt: stringSchema('ISO timestamp'),
+  updatedAt: stringSchema('ISO timestamp'),
+  auditRefs: arrayOf(stringSchema('Append-only lifecycle audit entry id')),
+});
+
+schemas.Skill = skillSchema;
+schemas.SkillListResponse = objectSchema({ items: arrayOf(skillSchema) });
+schemas.SkillResponse = objectSchema({
+  saved: booleanSchema('Whether the skill lifecycle mutation succeeded'),
+  skill: skillSchema,
+  idempotent: booleanSchema('True when a retried mutation was a no-op'),
+});
+schemas.SkillCreateRequest = objectSchema(
+  {
+    skillId: stringSchema('Caller-supplied tenant-scoped skill id'),
+    ...skillCoreShape,
+  },
+  ['title', 'domains']
+);
+schemas.SkillProposeFromCaseRequest = objectSchema({
+  title: stringSchema('Optional admin-supplied skill title override', { maxLength: 200 }),
+  description: stringSchema('Optional admin-supplied skill description override', {
+    maxLength: 2000,
+  }),
+  examplePrompts: arrayOf(stringSchema('Optional admin-supplied example prompt')),
+  skillId: stringSchema('Optional caller-supplied tenant-scoped skill id'),
+});
+
 schemas.EvidenceAttachRequest.properties.sourceRef.additionalProperties = true;
 schemas.EvidenceAttachRequest.properties.extracts.additionalProperties = true;
 schemas.CaseStarterListResponse.properties.items.items = schemas.CaseStarter;
@@ -549,6 +614,16 @@ const operationSchemas = {
     response: 'EvidenceAttachResponse',
   },
   'POST /cases/:caseId/dossier': { request: 'DossierRequest', response: 'DossierResponse' },
+  'GET /skills': { response: 'SkillListResponse' },
+  'GET /skills/:skillId': { responseFields: ['skill'] },
+  'POST /skills': { request: 'SkillCreateRequest', response: 'SkillResponse' },
+  'POST /skills/:skillId/propose': { response: 'SkillResponse' },
+  'POST /skills/:skillId/activate': { response: 'SkillResponse' },
+  'POST /skills/:skillId/deprecate': { response: 'SkillResponse' },
+  'POST /cases/:caseId/skills/propose-from-case': {
+    request: 'SkillProposeFromCaseRequest',
+    response: 'SkillResponse',
+  },
 };
 
 schemas.Event = eventSchema;

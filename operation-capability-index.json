@@ -2,20 +2,20 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.99.22",
-  "sourceOpenApiHash": "5524980aa536f43c95311e328fc405124b631492f9b0ee8a2bf2465adac0beed",
+  "sourceOpenApiHash": "6e1fc9acaa16b0800103cd42ec157e64db7e17f375a7227c4b216a6bac7c03f9",
   "coverage": {
-    "rawOperationCount": 1213,
-    "operationCount": 957,
-    "agentableCount": 955,
+    "rawOperationCount": 1220,
+    "operationCount": 964,
+    "agentableCount": 962,
     "nonAgentableCount": 2,
     "byOperationKind": {
-      "data_read": 413,
-      "admin": 18,
-      "object_store_write": 253,
+      "data_read": 415,
+      "admin": 19,
+      "object_store_write": 254,
       "process_step": 25,
-      "process_start": 49,
+      "process_start": 50,
       "advisory_plan": 48,
-      "draft_write": 15,
+      "draft_write": 17,
       "external_effect": 4,
       "dashboard_read": 125,
       "internal": 7
@@ -86450,6 +86450,115 @@
       "aliases": []
     },
     {
+      "operationId": "workbench_cases_skills_proposeFromCase",
+      "method": "POST",
+      "path": "/api/workbench/cases/:caseId/skills/propose-from-case",
+      "service": "workbench",
+      "action": "workbench.cases_skills_proposeFromCase",
+      "summary": "Propose a tenant CET Workbench skill draft from a resolved/confirmed case (issue #640)",
+      "tags": [
+        "Workbench"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "draft_write",
+      "consequenceLevel": "low",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.cases_skills_propose_from_case"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "Case"
+      ],
+      "requiredScopes": [
+        "workbench:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "workbench"
+      ],
+      "sideEffects": [
+        "creates_draft_or_intent"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Discard the created draft/intent - no persisted business state changes until a subsequent confirm/promote step.",
+      "parameters": {
+        "required": [
+          {
+            "name": "caseId",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": [
+          {
+            "name": "title",
+            "in": "body",
+            "type": "string",
+            "description": "Optional admin-supplied skill title override",
+            "extractionHint": null
+          },
+          {
+            "name": "description",
+            "in": "body",
+            "type": "string",
+            "description": "Optional admin-supplied skill description override",
+            "extractionHint": null
+          },
+          {
+            "name": "examplePrompts",
+            "in": "body",
+            "type": "array",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "skillId",
+            "in": "body",
+            "type": "string",
+            "description": "Optional caller-supplied tenant-scoped skill id",
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "workbench",
+          "cases",
+          "skills",
+          "propose",
+          "from",
+          "case",
+          "tenant",
+          "cet",
+          "skill",
+          "draft",
+          "resolved",
+          "confirmed",
+          "(issue",
+          "#640)"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please propose a tenant cet workbench skill draft from a resolved/confirmed case (issue #640)"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
       "operationId": "workbench_tool-runs_list",
       "method": "GET",
       "path": "/api/workbench/cases/:caseId/tool-runs",
@@ -88226,6 +88335,566 @@
         "negativeCues": [],
         "examples": [
           "Please create or update a governed cet workbench playbook"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "workbench_skills_list",
+      "method": "GET",
+      "path": "/api/workbench/skills",
+      "service": "workbench",
+      "action": "workbench.skills_list",
+      "summary": "List tenant-scoped CET Workbench governed skills (issue #640), including code-owned defaults",
+      "tags": [
+        "Workbench"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.skills_list"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "workbench:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [],
+        "optional": [
+          {
+            "name": "domain",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "workbench",
+          "skills",
+          "list",
+          "tenant",
+          "scoped",
+          "cet",
+          "governed",
+          "(issue",
+          "#640),",
+          "including",
+          "code",
+          "owned",
+          "defaults"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me list tenant-scoped cet workbench governed skills (issue #640), including code-owned defaults"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "workbench_skills_create",
+      "method": "POST",
+      "path": "/api/workbench/skills",
+      "service": "workbench",
+      "action": "workbench.skills_create",
+      "summary": "Create a tenant-scoped CET Workbench governed skill draft (issue #640)",
+      "tags": [
+        "Workbench"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "admin",
+      "consequenceLevel": "high",
+      "recommendedExecutionMode": "confirm",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.skills_create"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "workbench:write",
+        "admin"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "workbench"
+      ],
+      "sideEffects": [
+        "privileged_configuration_change"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "May not be reversible via API - verify with backend/tenant admin before invoking.",
+      "parameters": {
+        "required": [],
+        "optional": [
+          {
+            "name": "skillId",
+            "in": "body",
+            "type": "string",
+            "description": "Caller-supplied tenant-scoped skill id",
+            "extractionHint": null
+          },
+          {
+            "name": "title",
+            "in": "body",
+            "type": "string",
+            "description": "Skill title",
+            "extractionHint": null
+          },
+          {
+            "name": "description",
+            "in": "body",
+            "type": "string",
+            "description": "Skill description",
+            "extractionHint": null
+          },
+          {
+            "name": "domains",
+            "in": "body",
+            "type": "array",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "triggerPatterns",
+            "in": "body",
+            "type": "array",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "examplePrompts",
+            "in": "body",
+            "type": "array",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "applicableRoles",
+            "in": "body",
+            "type": "array",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "requiredEvidence",
+            "in": "body",
+            "type": "array",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "steps",
+            "in": "body",
+            "type": "array",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "allowedActions",
+            "in": "body",
+            "type": "array",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "blockedActions",
+            "in": "body",
+            "type": "array",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "noCallGuards",
+            "in": "body",
+            "type": "array",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "handoffDomains",
+            "in": "body",
+            "type": "array",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "capabilityHints",
+            "in": "body",
+            "type": "array",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "receiptHints",
+            "in": "body",
+            "type": "array",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "workbench",
+          "skills",
+          "create",
+          "tenant",
+          "scoped",
+          "cet",
+          "governed",
+          "skill",
+          "draft",
+          "(issue",
+          "#640)"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please create a tenant-scoped cet workbench governed skill draft (issue #640)"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "workbench_skills_get",
+      "method": "GET",
+      "path": "/api/workbench/skills/:skillId",
+      "service": "workbench",
+      "action": "workbench.skills_get",
+      "summary": "Return one tenant-scoped CET Workbench governed skill (issue #640)",
+      "tags": [
+        "Workbench"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.skills_get"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "Skill"
+      ],
+      "requiredScopes": [
+        "workbench:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [
+          {
+            "name": "skillId",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "workbench",
+          "skills",
+          "return",
+          "one",
+          "tenant",
+          "scoped",
+          "cet",
+          "governed",
+          "skill",
+          "(issue",
+          "#640)"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me return one tenant-scoped cet workbench governed skill (issue #640)"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "workbench_skills_activate",
+      "method": "POST",
+      "path": "/api/workbench/skills/:skillId/activate",
+      "service": "workbench",
+      "action": "workbench.skills_activate",
+      "summary": "Activate a proposed CET Workbench skill; requires Workbench governance role (issue #640)",
+      "tags": [
+        "Workbench"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "process_start",
+      "consequenceLevel": "high",
+      "recommendedExecutionMode": "confirm",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.skills_activate"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "Skill"
+      ],
+      "requiredScopes": [
+        "workbench:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "workbench"
+      ],
+      "sideEffects": [
+        "starts_new_process_instance"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "No companion rollback operation detected in this service - verify reversibility with backend/tenant admin before invoking.",
+      "parameters": {
+        "required": [
+          {
+            "name": "skillId",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "workbench",
+          "skills",
+          "activate",
+          "proposed",
+          "cet",
+          "skill;",
+          "requires",
+          "governance",
+          "role",
+          "(issue",
+          "#640)"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please activate a proposed cet workbench skill; requires workbench governance role (issue #640)"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "workbench_skills_deprecate",
+      "method": "POST",
+      "path": "/api/workbench/skills/:skillId/deprecate",
+      "service": "workbench",
+      "action": "workbench.skills_deprecate",
+      "summary": "Deprecate an active CET Workbench skill without deleting audit history (issue #640)",
+      "tags": [
+        "Workbench"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.skills_deprecate"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "Skill"
+      ],
+      "requiredScopes": [
+        "workbench:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "workbench"
+      ],
+      "sideEffects": [
+        "creates_or_modifies_stored_object"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "parameters": {
+        "required": [
+          {
+            "name": "skillId",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "workbench",
+          "skills",
+          "deprecate",
+          "an",
+          "active",
+          "cet",
+          "skill",
+          "without",
+          "deleting",
+          "audit",
+          "history",
+          "(issue",
+          "#640)"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please deprecate an active cet workbench skill without deleting audit history (issue #640)"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "workbench_skills_propose",
+      "method": "POST",
+      "path": "/api/workbench/skills/:skillId/propose",
+      "service": "workbench",
+      "action": "workbench.skills_propose",
+      "summary": "Transition a draft CET Workbench skill to proposed (issue #640)",
+      "tags": [
+        "Workbench"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "draft_write",
+      "consequenceLevel": "low",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.skills_propose"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "Skill"
+      ],
+      "requiredScopes": [
+        "workbench:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "workbench"
+      ],
+      "sideEffects": [
+        "creates_draft_or_intent"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Discard the created draft/intent - no persisted business state changes until a subsequent confirm/promote step.",
+      "parameters": {
+        "required": [
+          {
+            "name": "skillId",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "workbench",
+          "skills",
+          "propose",
+          "transition",
+          "draft",
+          "cet",
+          "skill",
+          "to",
+          "proposed",
+          "(issue",
+          "#640)"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please transition a draft cet workbench skill to proposed (issue #640)"
         ],
         "synonyms": [
           "agent infrastructure",

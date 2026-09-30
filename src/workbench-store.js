@@ -47,6 +47,12 @@ function contextRefId(tenantId, contextRefIdValue) {
 function playbookId(tenantId, id) {
   return key('playbook', tenantId, id);
 }
+function skillVersionId(tenantId, skillId, version) {
+  return key('skill-version', tenantId, skillId, version);
+}
+function skillAuditId(tenantId, skillId, transition, version) {
+  return key('skill-audit', tenantId, skillId, transition, version);
+}
 function inboxTaskId(tenantId, id) {
   return key('inbox-task', tenantId, id);
 }
@@ -661,8 +667,232 @@ class WorkbenchStore {
     return rows.rows
       .map((r) => r.doc)
       .filter((doc) => doc.tenantId === input.tenantId && doc.type === 'workbench_playbook')
-      .filter((doc) => !input.domain || doc.domain === input.domain || doc.domain === 'governance')
+      .filter(
+        (doc) =>
+          !input.domain ||
+          doc.domain === input.domain ||
+          doc.domain === 'governance' ||
+          (doc.domains || []).includes(input.domain)
+      )
+      .filter((doc) => !input.status || doc.status === input.status)
       .sort((a, b) => String(a.playbookId).localeCompare(String(b.playbookId)));
+  }
+
+  async getSkill({ tenantId, skillId }, { optional = true } = {}) {
+    try {
+      const doc = await this.playbookDb.get(playbookId(tenantId, skillId));
+      if (doc.tenantId !== tenantId || doc.type !== 'workbench_playbook') {
+        if (optional) return null;
+        notFound('Workbench skill not found');
+      }
+      return doc;
+    } catch (e) {
+      if (e.status === 404 && optional) return null;
+      if (e.status === 404) notFound('Workbench skill not found');
+      throw e;
+    }
+  }
+
+  async saveSkillVersionSnapshot({ tenantId, skillId, version, snapshot }) {
+    const _id = skillVersionId(tenantId, skillId, version);
+    try {
+      return await this.playbookDb.get(_id);
+    } catch (e) {
+      if (e.status !== 404) throw e;
+    }
+    const doc = {
+      _id,
+      type: 'workbench_skill_version',
+      tenantId,
+      skillId,
+      version,
+      snapshot,
+      createdAt: now(),
+    };
+    await this.playbookDb.put(doc);
+    return doc;
+  }
+
+  async appendSkillAudit({
+    tenantId,
+    skillId,
+    transition,
+    version,
+    fromStatus,
+    toStatus,
+    actorId,
+    actorRoles,
+    reason,
+    sourceCaseId,
+  }) {
+    const _id = skillAuditId(tenantId, skillId, transition, version);
+    try {
+      const existing = await this.playbookDb.get(_id);
+      return { entry: existing, created: false };
+    } catch (e) {
+      if (e.status !== 404) throw e;
+    }
+    const doc = {
+      _id,
+      type: 'workbench_skill_audit',
+      tenantId,
+      skillId,
+      transition,
+      version,
+      fromStatus: fromStatus || null,
+      toStatus,
+      actorId,
+      actorRoles: actorRoles || [],
+      reason: reason || null,
+      sourceCaseId: sourceCaseId || null,
+      createdAt: now(),
+    };
+    await this.playbookDb.put(doc);
+    return { entry: doc, created: true };
+  }
+
+  async listSkillAudit({ tenantId, skillId }) {
+    const rows = await this.playbookDb.allDocs({ include_docs: true });
+    return rows.rows
+      .map((r) => r.doc)
+      .filter(
+        (doc) =>
+          doc.type === 'workbench_skill_audit' &&
+          doc.tenantId === tenantId &&
+          doc.skillId === skillId
+      )
+      .sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)));
+  }
+
+  async createOrUpdateSkillDraft(input) {
+    const _id = playbookId(input.tenantId, input.skillId);
+    let existing = null;
+    try {
+      existing = await this.playbookDb.get(_id);
+    } catch (e) {
+      if (e.status !== 404) throw e;
+    }
+    if (existing && existing.status !== 'draft') {
+      conflict('Skill can only be created/edited through this action while status is draft');
+    }
+    const timestamp = now();
+    const version = existing ? existing.version + 1 : 1;
+    const transition = existing ? 'updated' : 'created';
+    const auditId = skillAuditId(input.tenantId, input.skillId, transition, version);
+    const doc = {
+      _id,
+      type: 'workbench_playbook',
+      tenantId: input.tenantId,
+      playbookId: input.skillId,
+      skillId: input.skillId,
+      title: input.title,
+      description: input.description || '',
+      scope: input.scope || 'tenant',
+      domain: input.domain || 'governance',
+      domains: input.domains || [],
+      workspaceId: input.workspaceId || existing?.workspaceId || null,
+      roleFamilies: input.roleFamilies || [],
+      applicableRoles: input.applicableRoles || [],
+      version,
+      status: 'draft',
+      routingSignals: input.routingSignals || [],
+      triggerPatterns: input.triggerPatterns || [],
+      examplePrompts: input.examplePrompts || [],
+      requiredEvidence: input.requiredEvidence || [],
+      steps: input.steps || [],
+      allowedActions: input.allowedActions || [],
+      blockedActions: input.blockedActions || [],
+      noCallGuards: input.noCallGuards || [],
+      handoffRules: existing?.handoffRules || [],
+      handoffDomains: input.handoffDomains || [],
+      capabilityHints: input.capabilityHints || [],
+      receiptHints: input.receiptHints || [],
+      eventRules: existing?.eventRules || [],
+      createdBy: existing?.createdBy || input.actorId,
+      approvedBy: existing?.approvedBy || null,
+      auditRefs: [...new Set([...(existing?.auditRefs || []), auditId])].slice(-20),
+      sourceCaseId: input.sourceCaseId || existing?.sourceCaseId || null,
+      createdAt: existing?.createdAt || timestamp,
+      updatedAt: timestamp,
+    };
+    const saved = await this.playbookDb.put(doc);
+    const savedDoc = { ...doc, _rev: saved.rev };
+    await this.saveSkillVersionSnapshot({
+      tenantId: input.tenantId,
+      skillId: input.skillId,
+      version,
+      snapshot: savedDoc,
+    });
+    await this.appendSkillAudit({
+      tenantId: input.tenantId,
+      skillId: input.skillId,
+      transition,
+      version,
+      fromStatus: existing?.status || null,
+      toStatus: 'draft',
+      actorId: input.actorId,
+      actorRoles: input.actorRoles,
+      sourceCaseId: input.sourceCaseId,
+    });
+    return savedDoc;
+  }
+
+  async transitionSkillStatus({
+    tenantId,
+    skillId,
+    actorId,
+    actorRoles,
+    transition,
+    fromStatuses,
+    toStatus,
+  }) {
+    const _id = playbookId(tenantId, skillId);
+    let doc;
+    try {
+      doc = await this.playbookDb.get(_id);
+    } catch (e) {
+      if (e.status === 404) notFound('Workbench skill not found');
+      throw e;
+    }
+    if (doc.tenantId !== tenantId) notFound('Workbench skill not found');
+    if (doc.status === toStatus) {
+      await this.appendSkillAudit({
+        tenantId,
+        skillId,
+        transition,
+        version: doc.version,
+        fromStatus: doc.status,
+        toStatus,
+        actorId,
+        actorRoles,
+      });
+      return { skill: doc, transitioned: false };
+    }
+    if (!fromStatuses.includes(doc.status)) {
+      conflict(`Skill cannot transition to ${toStatus} from ${doc.status}`);
+    }
+    const timestamp = now();
+    const auditId = skillAuditId(tenantId, skillId, transition, doc.version);
+    const updated = {
+      ...doc,
+      status: toStatus,
+      updatedAt: timestamp,
+      approvedBy: toStatus === 'active' ? actorId : doc.approvedBy,
+      auditRefs: [...new Set([...(doc.auditRefs || []), auditId])].slice(-20),
+    };
+    const saved = await this.playbookDb.put(updated);
+    const savedDoc = { ...updated, _rev: saved.rev };
+    await this.appendSkillAudit({
+      tenantId,
+      skillId,
+      transition,
+      version: doc.version,
+      fromStatus: doc.status,
+      toStatus,
+      actorId,
+      actorRoles,
+    });
+    return { skill: savedDoc, transitioned: true };
   }
 
   async saveInboxTask(input) {
