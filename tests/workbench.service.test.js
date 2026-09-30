@@ -70,6 +70,7 @@ describe('Workbench RC3 Open WebUI Tenant Gateway', () => {
         contextDbPath: path.join(dir, 'context'),
         playbookDbPath: path.join(dir, 'playbooks'),
         inboxDbPath: path.join(dir, 'inbox'),
+        toolRunDbPath: path.join(dir, 'tool-runs'),
       },
     });
     broker.createService({
@@ -357,6 +358,91 @@ describe('Workbench RC3 Open WebUI Tenant Gateway', () => {
     expect(resolved).toMatchObject({ status: 'resolved', resolvedAt: expect.any(String) });
     const eventAfterResolve = await service.eventsDb.get(before._id);
     expect(eventAfterResolve.deliveryState).toBe('pending');
+  });
+
+  test('governed tool registry filters by domain and role', async () => {
+    const registry = await call('tools.list', { domain: 'grid_connection' }, userMeta);
+    expect(registry.registryVersion).toMatch(/tool-registry/);
+    const byId = Object.fromEntries(registry.tools.map((tool) => [tool.toolId, tool]));
+    expect(byId.web_fetch.allowedByGovernance).toBe(true);
+    expect(byId.api_lookup.allowedByGovernance).toBe(true);
+    expect(byId.mail_read.allowedByGovernance).toBe(false);
+  });
+
+  test('governed tool run creates case-bound ToolRun and EvidenceRef', async () => {
+    const c = await router('classify', {
+      userRequest: 'Netzanschluss Anschlussleistung für Rechenzentrum prüfen',
+      asyncDelivery: { mode: 'poll', clientId: 'openwebui-tenant-a' },
+    });
+    const result = await call(
+      'tools.run',
+      {
+        caseId: c.cetCaseId,
+        toolId: 'api_lookup',
+        input: { query: 'grid connection capacity precheck' },
+      },
+      userMeta
+    );
+    expect(result.toolRun).toMatchObject({
+      caseId: c.cetCaseId,
+      toolId: 'api_lookup',
+      status: 'completed',
+    });
+    expect(result.evidenceRef).toMatchObject({
+      evidenceRole: 'tool_result',
+      claimStrength: 'supporting',
+    });
+
+    const runs = await call('tool-runs.list', { caseId: c.cetCaseId }, userMeta);
+    expect(runs.items.map((run) => run.toolRunId)).toContain(result.toolRun.toolRunId);
+    const fetched = await call(
+      'tool-runs.get',
+      { caseId: c.cetCaseId, toolRunId: result.toolRun.toolRunId },
+      userMeta
+    );
+    expect(fetched.toolRun.toolId).toBe('api_lookup');
+  });
+
+  test('external business effect tools are blocked and audited', async () => {
+    const c = await router('classify', {
+      userRequest: 'MSCONS Klärfall mit MaKo Bezug',
+      asyncDelivery: { mode: 'poll', clientId: 'openwebui-tenant-a' },
+    });
+    await expect(
+      call('tools.run', { caseId: c.cetCaseId, toolId: 'mail_send' }, userMeta)
+    ).rejects.toThrow(/Workbench tool blocked/iu);
+
+    const runs = await call('tool-runs.list', { caseId: c.cetCaseId }, userMeta);
+    expect(runs.items.find((run) => run.toolId === 'mail_send')).toMatchObject({
+      status: 'blocked',
+      sideEffectClass: 'external_business_effect',
+    });
+  });
+
+  test('governance map and skill filter expose only active applicable skills', async () => {
+    await call('playbooks.save', {
+      playbookId: 'draft-mako-skill',
+      title: 'Draft MaKo Skill',
+      domain: 'market_communication',
+      status: 'draft',
+      roleFamilies: ['ROLE_GRID_OPERATOR'],
+      blockedActions: ['external_message_send'],
+      noCallGuards: ['Draft guard'],
+    });
+    const governance = await call(
+      'governance-map.get',
+      { domain: 'market_communication' },
+      userMeta
+    );
+    expect(governance.governance.allowedTools).toEqual(expect.arrayContaining(['mail_read']));
+    expect(governance.governance.requiredRoles).toEqual(
+      expect.arrayContaining(['ROLE_MARKET_COMMUNICATION'])
+    );
+
+    const filtered = await call('skills.filter', { domain: 'market_communication' }, userMeta);
+    const skillIds = filtered.items.map((item) => item.skill.playbookId);
+    expect(skillIds).toEqual(expect.arrayContaining(['mako-clarification-case']));
+    expect(skillIds).not.toContain('draft-mako-skill');
   });
 
   test('chat classifies new Open WebUI conversations and continues mapped cases', async () => {

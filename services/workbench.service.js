@@ -28,6 +28,19 @@ const {
   listWorkbenchActivities,
   matchWorkbenchActivities,
 } = require('../src/workbench-activity-taxonomy');
+const {
+  GOVERNANCE_MAP_VERSION,
+  governanceForDomain,
+  toolAllowedByGovernance,
+  skillAllowedByGovernance,
+} = require('../src/workbench-tool-governance');
+const {
+  TOOL_REGISTRY_VERSION,
+  getWorkbenchTool,
+  listWorkbenchTools,
+  safeTool,
+  simulateToolOutput,
+} = require('../src/workbench-tools');
 
 const action = (rest, summary, handler, params = {}) => ({
   rest,
@@ -45,6 +58,7 @@ const WORKBENCH_DATABASES = [
   ['contextDb', './data/cet_workbench_context', 'CET_WORKBENCH_CONTEXT_DB_PATH'],
   ['playbookDb', './data/cet_workbench_playbooks', 'CET_WORKBENCH_PLAYBOOK_DB_PATH'],
   ['inboxDb', './data/cet_workbench_inbox_tasks', 'CET_WORKBENCH_INBOX_DB_PATH'],
+  ['toolRunDb', './data/cet_workbench_tool_runs', 'CET_WORKBENCH_TOOL_RUN_DB_PATH'],
 ];
 function workbenchDbMixin([dbProperty, defaultDbPath, dbPathEnvVar]) {
   const config = { defaultDbPath, dbPathEnvVar, dbProperty };
@@ -52,6 +66,10 @@ function workbenchDbMixin([dbProperty, defaultDbPath, dbPathEnvVar]) {
     config.settingsKey = `${dbProperty.replace(/Db$/, '')}DbPath`;
   }
   return createPouchDbLifecycleMixin(config);
+}
+
+function workbenchError(message, code = 'WORKBENCH_POLICY_BLOCKED', data = {}) {
+  throw new Errors.MoleculerClientError(message, 403, code, data);
 }
 
 module.exports = {
@@ -94,6 +112,168 @@ module.exports = {
         return { schemaVersion: ACTIVITY_TAXONOMY_VERSION, activity };
       },
       { activityId: { type: 'string', min: 1 } }
+    ),
+    'tools.list': action(
+      'GET /tools',
+      'Return CET-governed Workbench tools filtered by domain and role',
+      async function (ctx) {
+        const p = principal(ctx, ctx.params);
+        const domain = cleanString(ctx.params.domain, 'domain', { max: 80 }) || 'governance';
+        const tools = listWorkbenchTools().map((tool) => {
+          const decision = toolAllowedByGovernance(tool, { domain, actorRoles: p.roles });
+          return safeTool(tool, decision);
+        });
+        return {
+          registryVersion: TOOL_REGISTRY_VERSION,
+          governanceMapVersion: GOVERNANCE_MAP_VERSION,
+          domain,
+          tools,
+        };
+      },
+      { domain: { type: 'string', optional: true } }
+    ),
+    'tools.run': action(
+      'POST /cases/:caseId/tools/:toolId/run',
+      'Run a CET-governed Workbench tool and attach safe evidence/receipt references',
+      async function (ctx) {
+        const p = principal(ctx, ctx.params);
+        const caseId = ctx.params.caseId || ctx.params.cetCaseId;
+        const state = await this.loadVisibleCase(ctx, p, caseId);
+        const domain =
+          state.currentDomain || state.lastClassification?.primaryDomain || 'governance';
+        const tool = getWorkbenchTool(ctx.params.toolId);
+        const decision = toolAllowedByGovernance(tool, { domain, actorRoles: p.roles });
+        if (!decision.allowed) {
+          const blocked = await this.store.saveToolRun({
+            tenantId: p.tenantId,
+            actorId: p.actorId,
+            caseId,
+            toolId: ctx.params.toolId,
+            toolClass: tool?.toolClass || 'unknown',
+            sideEffectClass: tool?.sideEffectClass || 'unknown',
+            status: 'blocked',
+            inputSummary: 'Tool run blocked by CET governance',
+            outputSummary: null,
+            blockedReason: decision.blockedReason,
+          });
+          workbenchError('Workbench tool blocked by CET governance', 'WORKBENCH_TOOL_BLOCKED', {
+            toolRunId: blocked.toolRunId,
+            blockedReason: decision.blockedReason,
+          });
+        }
+        const simulated = simulateToolOutput(tool, ctx.params.input || {});
+        const evidenceId = `tool_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
+        const evidence = await this.store.saveEvidence({
+          tenantId: p.tenantId,
+          actorId: p.actorId,
+          caseId,
+          evidenceId,
+          evidenceType: tool.evidenceOutputType || 'generic_document',
+          label: `${tool.title} result`,
+          safeSummary: simulated.safeDisplayText,
+          sourceType: 'existing_cet_evidence_ref',
+          sourceRef: { toolId: tool.toolId, toolClass: tool.toolClass },
+          sensitivityLevel: 'tenant_internal',
+          provenance: { system: 'cet-workbench-tool-runtime', toolId: tool.toolId },
+          evidenceRole: 'tool_result',
+          claimStrength: 'supporting',
+          readinessReviewRequired: true,
+        });
+        const toolRun = await this.store.saveToolRun({
+          tenantId: p.tenantId,
+          actorId: p.actorId,
+          caseId,
+          toolId: tool.toolId,
+          toolClass: tool.toolClass,
+          sideEffectClass: tool.sideEffectClass,
+          status: 'completed',
+          inputSummary: JSON.stringify(ctx.params.input || {}).slice(0, 500),
+          outputSummary: simulated.outputSummary,
+          evidenceRefs: [safeEvidenceRef(evidence, { clearance: p.clearance })],
+          receiptRefs: [],
+          auditRef: `audit:${caseId}:${evidenceId}`,
+        });
+        await ctx.call('domain-router.ingestUpdate', {
+          cetCaseId: caseId,
+          kind: 'evidence_available',
+          version: `tool:${toolRun.toolRunId}`,
+          validated: false,
+          evidenceRef: evidence.evidenceId,
+          routingSignals: ['workbench_tool_result', tool.toolClass, tool.toolId],
+        });
+        return { toolRun, evidenceRef: safeEvidenceRef(evidence, { clearance: p.clearance }) };
+      },
+      {
+        caseId: { type: 'string', min: 1 },
+        toolId: { type: 'string', min: 1 },
+        input: { type: 'object', optional: true },
+      }
+    ),
+    'tool-runs.list': action(
+      'GET /cases/:caseId/tool-runs',
+      'List CET-governed Workbench tool runs for a case',
+      async function (ctx) {
+        const p = principal(ctx, ctx.params);
+        await this.loadVisibleCase(ctx, p, ctx.params.caseId);
+        const items = await this.store.listToolRuns({
+          tenantId: p.tenantId,
+          caseId: ctx.params.caseId,
+        });
+        return { items };
+      },
+      caseParams
+    ),
+    'tool-runs.get': action(
+      'GET /cases/:caseId/tool-runs/:toolRunId',
+      'Return one CET-governed Workbench tool run',
+      async function (ctx) {
+        const p = principal(ctx, ctx.params);
+        await this.loadVisibleCase(ctx, p, ctx.params.caseId);
+        const toolRun = await this.store.getToolRun({
+          tenantId: p.tenantId,
+          toolRunId: ctx.params.toolRunId,
+        });
+        if (toolRun.caseId !== ctx.params.caseId) {
+          workbenchError('Tool run belongs to another case', 'WORKBENCH_TOOL_RUN_CASE_MISMATCH');
+        }
+        return { toolRun };
+      },
+      { caseId: { type: 'string', min: 1 }, toolRunId: { type: 'string', min: 1 } }
+    ),
+    'governance-map.get': action(
+      'GET /governance-map/:domain',
+      'Return the Workbench tool/skill governance map for a domain',
+      async function (ctx) {
+        principal(ctx, ctx.params);
+        const domain = ctx.params.domain || 'governance';
+        return {
+          schemaVersion: GOVERNANCE_MAP_VERSION,
+          domain,
+          governance: governanceForDomain(domain),
+        };
+      },
+      { domain: { type: 'string', optional: true } }
+    ),
+    'skills.filter': action(
+      'POST /skills/filter',
+      'Filter active playbooks through the Workbench tool/skill governance map',
+      async function (ctx) {
+        const p = principal(ctx, ctx.params);
+        const domain = ctx.params.domain || 'governance';
+        const tenantPlaybooks = await this.store.listPlaybooks({ tenantId: p.tenantId, domain });
+        const playbooks = [
+          ...defaultPlaybooksForTenant(p.tenantId),
+          ...tenantPlaybooks.map((playbook) => safePlaybook(playbook)),
+        ];
+        const items = playbooks
+          .map((skill) => ({
+            skill: safePlaybook(skill),
+            decision: skillAllowedByGovernance(skill, { domain, actorRoles: p.roles }),
+          }))
+          .filter((item) => item.decision.allowed);
+        return { schemaVersion: GOVERNANCE_MAP_VERSION, domain, items };
+      },
+      { domain: { type: 'string', optional: true } }
     ),
     'cases.get': action(
       'GET /cases/:caseId',
@@ -797,6 +977,7 @@ module.exports = {
       contextDb: this.contextDb,
       playbookDb: this.playbookDb,
       inboxDb: this.inboxDb,
+      toolRunDb: this.toolRunDb,
     });
   },
   methods: {
