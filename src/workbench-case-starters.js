@@ -9,118 +9,122 @@ const MAX_INPUT_VALUE_LENGTH = 1000;
 const SENSITIVE_KEY_PATTERN =
   /authorization|bearer|token|secret|password|api[_-]?key|credential|cookie/i;
 
+function starterOverride(activityId, starterId, title, description, requiredInputs, nextSafeStep) {
+  return {
+    activityId,
+    starterId,
+    title,
+    description,
+    requiredInputs: requiredInputs.map(([key, label]) => ({ key, label })),
+    nextSafeStep,
+  };
+}
+
 const STARTER_OVERRIDES = [
-  {
-    activityId: 'market_communication_clarification',
-    starterId: 'mako-mscons-aperak-clarification',
-    title: 'MaKo-Klärfall: MSCONS fehlt / APERAK',
-    description:
-      'Strukturiert einen MaKo-/EDM-/MSB-Grenzfall mit MSCONS, APERAK/CONTRL und Stammdatenbezug.',
-    requiredInputs: [
-      { key: 'marketLocationId', label: 'MaLo/MeLo oder Prozessreferenz' },
-      { key: 'messageStatus', label: 'Nachrichtenstatus' },
-      { key: 'aperakContrlContext', label: 'APERAK/CONTRL-Kontext' },
+  starterOverride(
+    'market_communication_clarification',
+    'mako-mscons-aperak-clarification',
+    'MaKo-Klärfall: MSCONS fehlt / APERAK',
+    'Strukturiert einen MaKo-/EDM-/MSB-Grenzfall mit MSCONS, APERAK/CONTRL und Stammdatenbezug.',
+    [
+      ['marketLocationId', 'MaLo/MeLo oder Prozessreferenz'],
+      ['messageStatus', 'Nachrichtenstatus'],
+      ['aperakContrlContext', 'APERAK/CONTRL-Kontext'],
     ],
-    nextSafeStep: 'APERAK/CONTRL, MSCONS-Versandstatus und MaLo/MeLo-Stammdatenhistorie prüfen.',
-  },
-  {
-    activityId: 'edm_metering_data_quality',
-    starterId: 'edm-metering-values-clarification',
-    title: 'EDM-Messwertproblem',
-    description: 'Klärt fehlende oder unplausible Messwerte, Lastgänge und Zeitreihenstatus.',
-    requiredInputs: [
-      { key: 'marketLocationId', label: 'MaLo/MeLo' },
-      { key: 'period', label: 'Zeitraum' },
-      { key: 'obis', label: 'OBIS/Zeitreihe' },
-      { key: 'plausibilityStatus', label: 'Plausibilisierungsstatus' },
+    'APERAK/CONTRL, MSCONS-Versandstatus und MaLo/MeLo-Stammdatenhistorie prüfen.'
+  ),
+  starterOverride(
+    'edm_metering_data_quality',
+    'edm-metering-values-clarification',
+    'EDM-Messwertproblem',
+    'Klärt fehlende oder unplausible Messwerte, Lastgänge und Zeitreihenstatus.',
+    [
+      ['marketLocationId', 'MaLo/MeLo'],
+      ['period', 'Zeitraum'],
+      ['obis', 'OBIS/Zeitreihe'],
+      ['plausibilityStatus', 'Plausibilisierungsstatus'],
     ],
-    nextSafeStep:
-      'EDM-Status, Plausibilisierung und Versand-/Übergabestatus evidenzbasiert prüfen.',
-  },
-  {
-    activityId: 'market_master_data',
-    starterId: 'malo-melo-master-data-check',
-    title: 'MaLo/MeLo Stammdatenprüfung',
-    description: 'Prüft MaLo-/MeLo-Zuordnung, Lieferbeginn und UTILMD-/Stammdatenkontext.',
-    requiredInputs: [
-      { key: 'maloId', label: 'MaLo' },
-      { key: 'meloId', label: 'MeLo' },
-      { key: 'deliveryStart', label: 'Lieferbeginn/Lieferende' },
-      { key: 'masterDataHistory', label: 'UTILMD-/Stammdatenhistorie' },
+    'EDM-Status, Plausibilisierung und Versand-/Übergabestatus evidenzbasiert prüfen.'
+  ),
+  starterOverride(
+    'market_master_data',
+    'malo-melo-master-data-check',
+    'MaLo/MeLo Stammdatenprüfung',
+    'Prüft MaLo-/MeLo-Zuordnung, Lieferbeginn und UTILMD-/Stammdatenkontext.',
+    [
+      ['maloId', 'MaLo'],
+      ['meloId', 'MeLo'],
+      ['deliveryStart', 'Lieferbeginn/Lieferende'],
+      ['masterDataHistory', 'UTILMD-/Stammdatenhistorie'],
     ],
-    nextSafeStep: 'Zuordnung, Gültigkeiten und Marktpartnerkontext ohne externe Nachricht prüfen.',
-  },
-  {
-    activityId: 'grid_connection_precheck',
-    starterId: 'grid-connection-precheck',
-    title: 'Netzanschlussvorprüfung',
-    description: 'Führt eine nicht-bindende Vorprüfung für Anschlussleistung und Spannungsebene.',
-    requiredInputs: [
-      { key: 'location', label: 'Standort' },
-      { key: 'energyOrLoadProfile', label: 'Jahresarbeit oder Lastprofil' },
-      { key: 'requestedCapacity', label: 'Anschlussleistung' },
-      { key: 'expansionReserve', label: 'Ausbaureserve' },
+    'Zuordnung, Gültigkeiten und Marktpartnerkontext ohne externe Nachricht prüfen.'
+  ),
+  starterOverride(
+    'grid_connection_precheck',
+    'grid-connection-precheck',
+    'Netzanschlussvorprüfung',
+    'Führt eine nicht-bindende Vorprüfung für Anschlussleistung und Spannungsebene.',
+    [
+      ['location', 'Standort'],
+      ['energyOrLoadProfile', 'Jahresarbeit oder Lastprofil'],
+      ['requestedCapacity', 'Anschlussleistung'],
+      ['expansionReserve', 'Ausbaureserve'],
     ],
-    nextSafeStep:
-      'Anschlussleistung, Spannungsebene und fehlende Netzbetreiber-Evidenz als Vorprüfung einordnen.',
-  },
-  {
-    activityId: 'target_grid_planning_readiness',
-    starterId: 'znp-production-readiness-gate',
-    title: 'Zielnetzplanung Evidence Gate',
-    description: 'Strukturiert Produktionsreife, Evidenzstatus und Handoff für Zielnetzplanung.',
-    requiredInputs: [
-      { key: 'projectPath', label: 'Projekt/Ausbaupfad' },
-      { key: 'evidenceGate', label: 'Evidence Gate' },
-      { key: 'referenceData', label: 'Referenzdaten' },
-      { key: 'ownerRole', label: 'Owner/Rolle' },
+    'Anschlussleistung, Spannungsebene und fehlende Netzbetreiber-Evidenz als Vorprüfung einordnen.'
+  ),
+  starterOverride(
+    'target_grid_planning_readiness',
+    'znp-production-readiness-gate',
+    'Zielnetzplanung Evidence Gate',
+    'Strukturiert Produktionsreife, Evidenzstatus und Handoff für Zielnetzplanung.',
+    [
+      ['projectPath', 'Projekt/Ausbaupfad'],
+      ['evidenceGate', 'Evidence Gate'],
+      ['referenceData', 'Referenzdaten'],
+      ['ownerRole', 'Owner/Rolle'],
     ],
-    nextSafeStep: 'Produktionsreife anhand fehlender Evidenz und No-Call-Grenzen einordnen.',
-  },
-  {
-    activityId: 'redispatch_clarification',
-    starterId: 'redispatch-clarification',
-    title: 'Redispatch-Klärfall',
-    description: 'Klärt fehlende Abrufdaten, Fahrpläne oder EDM-/Redispatch-Grenzfälle.',
-    requiredInputs: [
-      { key: 'assetRef', label: 'Anlage/Asset' },
-      { key: 'period', label: 'Abrufzeitraum' },
-      { key: 'dispatchStatus', label: 'Fahrplan-/Abrufstatus' },
-      { key: 'meteringStatus', label: 'Messwertstatus' },
+    'Produktionsreife anhand fehlender Evidenz und No-Call-Grenzen einordnen.'
+  ),
+  starterOverride(
+    'redispatch_clarification',
+    'redispatch-clarification',
+    'Redispatch-Klärfall',
+    'Klärt fehlende Abrufdaten, Fahrpläne oder EDM-/Redispatch-Grenzfälle.',
+    [
+      ['assetRef', 'Anlage/Asset'],
+      ['period', 'Abrufzeitraum'],
+      ['dispatchStatus', 'Fahrplan-/Abrufstatus'],
+      ['meteringStatus', 'Messwertstatus'],
     ],
-    nextSafeStep: 'Redispatch- und EDM-Evidenz getrennt prüfen und offene Datenlücken markieren.',
-  },
-  {
-    activityId: 'management_dossier',
-    starterId: 'management-governance-dossier',
-    title: 'Management/Governance Dossier',
-    description:
-      'Erzeugt eine nicht-bindende Lage mit Evidenz, Risiken und nächsten sicheren Schritten.',
-    requiredInputs: [
-      { key: 'topic', label: 'Thema' },
-      { key: 'audience', label: 'Zielgruppe' },
-      { key: 'availableEvidence', label: 'verfügbare Evidenz' },
-      { key: 'decisionBoundary', label: 'Entscheidungsgrenze' },
+    'Redispatch- und EDM-Evidenz getrennt prüfen und offene Datenlücken markieren.'
+  ),
+  starterOverride(
+    'management_dossier',
+    'management-governance-dossier',
+    'Management/Governance Dossier',
+    'Erzeugt eine nicht-bindende Lage mit Evidenz, Risiken und nächsten sicheren Schritten.',
+    [
+      ['topic', 'Thema'],
+      ['audience', 'Zielgruppe'],
+      ['availableEvidence', 'verfügbare Evidenz'],
+      ['decisionBoundary', 'Entscheidungsgrenze'],
     ],
-    nextSafeStep:
-      'Lage, Annahmen, fehlende Evidenz und No-Call-Guards für Managementsicht trennen.',
-  },
-  {
-    activityId: 'grid_connection_precheck',
-    starterId: 'data-center-renewable-grid-precheck',
-    title: 'Rechenzentrum / regionale EE / Netzanschluss',
-    description:
-      'Prüft regionale EE-Bedingungen, Zeitgleichkeit/PPA-Annahmen und Netzanschluss-Vorprüfung.',
-    requiredInputs: [
-      { key: 'location', label: 'Standort' },
-      { key: 'regionalGeneration', label: 'regionale PV-/Wind-Erzeugung' },
-      { key: 'simultaneityAssumption', label: 'Zeitgleichkeitsannahme' },
-      { key: 'ppaQuantity', label: 'PPA-Menge' },
-      { key: 'itLoadPue', label: 'IT-Last/PUE' },
+    'Lage, Annahmen, fehlende Evidenz und No-Call-Guards für Managementsicht trennen.'
+  ),
+  starterOverride(
+    'grid_connection_precheck',
+    'data-center-renewable-grid-precheck',
+    'Rechenzentrum / regionale EE / Netzanschluss',
+    'Prüft regionale EE-Bedingungen, Zeitgleichkeit/PPA-Annahmen und Netzanschluss-Vorprüfung.',
+    [
+      ['location', 'Standort'],
+      ['regionalGeneration', 'regionale PV-/Wind-Erzeugung'],
+      ['simultaneityAssumption', 'Zeitgleichkeitsannahme'],
+      ['ppaQuantity', 'PPA-Menge'],
+      ['itLoadPue', 'IT-Last/PUE'],
     ],
-    nextSafeStep:
-      'Rechnerische Obergrenzen und Anschlussleistungsband nicht-bindend ausweisen; Evidenzbedarf markieren.',
-  },
+    'Rechnerische Obergrenzen und Anschlussleistungsband nicht-bindend ausweisen; Evidenzbedarf markieren.'
+  ),
 ];
 
 const STARTERS_BY_ID = new Map(STARTER_OVERRIDES.map((config) => [config.starterId, config]));
