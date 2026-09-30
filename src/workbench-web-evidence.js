@@ -120,10 +120,27 @@ function classifyEvidenceType(contentType, requestedType) {
   return 'public_web_page';
 }
 
+function removeRawElement(value, tagName) {
+  let text = String(value);
+  const tag = tagName.toLowerCase();
+  let lower = text.toLowerCase();
+  let start = lower.indexOf(`<${tag}`);
+  while (start !== -1) {
+    const openEnd = lower.indexOf('>', start);
+    if (openEnd === -1) return `${text.slice(0, start)} `;
+    const closeStart = lower.indexOf(`</${tag}`, openEnd + 1);
+    if (closeStart === -1) return `${text.slice(0, start)} `;
+    const closeEnd = lower.indexOf('>', closeStart);
+    if (closeEnd === -1) return `${text.slice(0, start)} `;
+    text = `${text.slice(0, start)} ${text.slice(closeEnd + 1)}`;
+    lower = text.toLowerCase();
+    start = lower.indexOf(`<${tag}`);
+  }
+  return text;
+}
+
 function stripHtml(value) {
-  return String(value)
-    .replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, ' ')
-    .replace(/<style\b[^>]*>[\s\S]*?<\/style\s*>/gi, ' ')
+  return removeRawElement(removeRawElement(value, 'script'), 'style')
     .replace(/<[^>]+>/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
