@@ -11,6 +11,7 @@
  */
 
 const jobStore = require('../src/job-store');
+const { assertForecastJobAccess } = require('../src/forecast-job-access');
 
 function toProgressEvents(job) {
   const logs = Array.isArray(job?.logs) ? job.logs : [];
@@ -209,6 +210,7 @@ Most jobs complete within 8–12 minutes.`,
       handler(ctx) {
         const { jobId } = ctx.params;
         const job = jobStore.getJob(jobId);
+        assertForecastJobAccess(ctx, job);
         if (!job) {
           ctx.meta.$statusCode = 404;
           return { success: false, message: `Job not found: ${jobId}` };
@@ -280,6 +282,7 @@ Most jobs complete within 8–12 minutes.`,
       handler(ctx) {
         const { jobId } = ctx.params;
         const job = jobStore.getJob(jobId);
+        assertForecastJobAccess(ctx, job);
 
         if (!job) {
           ctx.meta.$statusCode = 404;
@@ -412,6 +415,7 @@ Returns **404** if the job ID is unknown or the result has expired (24 h TTL).`,
       handler(ctx) {
         const { jobId } = ctx.params;
         const job = jobStore.getJob(jobId);
+        assertForecastJobAccess(ctx, job);
 
         if (!job) {
           ctx.meta.$statusCode = 404;
@@ -668,6 +672,7 @@ Returns **404** if the job ID is unknown or the result has expired (24 h TTL).`,
         },
       },
       handler(ctx) {
+        assertForecastJobAccess(ctx, jobStore.getJob(ctx.params.jobId));
         const wake = jobStore.requestWakeUp(ctx.params.jobId, {
           broker: this.broker,
           actor: 'job-status.wakeup',

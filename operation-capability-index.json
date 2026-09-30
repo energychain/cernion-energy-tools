@@ -2,20 +2,20 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.99.22",
-  "sourceOpenApiHash": "df4ce35b28c7d31b0902a67862c3f256f59b4dd4f5ac5a4029638d9ab8c81a94",
+  "sourceOpenApiHash": "5524980aa536f43c95311e328fc405124b631492f9b0ee8a2bf2465adac0beed",
   "coverage": {
-    "rawOperationCount": 1193,
-    "operationCount": 937,
-    "agentableCount": 935,
+    "rawOperationCount": 1213,
+    "operationCount": 957,
+    "agentableCount": 955,
     "nonAgentableCount": 2,
     "byOperationKind": {
-      "data_read": 410,
+      "data_read": 413,
       "admin": 18,
-      "object_store_write": 247,
-      "process_step": 20,
-      "process_start": 46,
-      "advisory_plan": 47,
-      "draft_write": 13,
+      "object_store_write": 253,
+      "process_step": 25,
+      "process_start": 49,
+      "advisory_plan": 48,
+      "draft_write": 15,
       "external_effect": 4,
       "dashboard_read": 125,
       "internal": 7
@@ -51900,6 +51900,1885 @@
         ],
         "examples": [
           "Please generate a baseline day-ahead consumption forecast"
+        ],
+        "synonyms": [
+          "spot price",
+          "day-ahead",
+          "EPEX",
+          "ENTSO-E",
+          "intraday",
+          "wholesale market"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "forecast-sandbox_cancelEvaluationJob",
+      "method": "POST",
+      "path": "/api/forecast-sandbox/consumption/evaluation/jobs/:jobId/cancel",
+      "service": "forecast-sandbox",
+      "action": "forecast-sandbox.cancelEvaluationJob",
+      "summary": "Cancel a queued or running forecast evaluation job",
+      "tags": [
+        "Forecast Sandbox"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "process_step",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "forecast-sandbox.cancel_evaluation_job"
+      ],
+      "domains": [
+        "market-data"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "Job"
+      ],
+      "requiredScopes": [
+        "forecast-sandbox:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "forecast-sandbox"
+      ],
+      "sideEffects": [
+        "advances_process_state"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Check for a companion reject/cancel/rollback operation on the same resource before treating this as final.",
+      "parameters": {
+        "required": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "forecast",
+          "sandbox",
+          "cancel",
+          "evaluation",
+          "job",
+          "queued",
+          "or",
+          "running"
+        ],
+        "negativeCues": [
+          "redispatch settlement",
+          "grid connection request",
+          "metering data"
+        ],
+        "examples": [
+          "Please cancel a queued or running forecast evaluation job"
+        ],
+        "synonyms": [
+          "spot price",
+          "day-ahead",
+          "EPEX",
+          "ENTSO-E",
+          "intraday",
+          "wholesale market"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "forecast-sandbox_runEvaluation",
+      "method": "POST",
+      "path": "/api/forecast-sandbox/consumption/evaluation/run",
+      "service": "forecast-sandbox",
+      "action": "forecast-sandbox.runEvaluation",
+      "summary": "Evaluate static 2025 forecasts or rolling D-2 historical backtests within 2020–2025",
+      "tags": [
+        "Forecast Sandbox"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "process_start",
+      "consequenceLevel": "high",
+      "recommendedExecutionMode": "confirm",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "forecast-sandbox.run_evaluation"
+      ],
+      "domains": [
+        "market-data"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "forecast-sandbox:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "forecast-sandbox"
+      ],
+      "sideEffects": [
+        "starts_new_process_instance"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Companion rollback operation available: POST /api/forecast-sandbox/consumption/evaluation/jobs/:jobId/cancel (forecast-sandbox_cancelEvaluationJob).",
+      "parameters": {
+        "required": [
+          {
+            "name": "datasets",
+            "in": "body",
+            "type": "array",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "payload_fit_confirmed",
+            "in": "body",
+            "type": "boolean",
+            "description": "Explicit confirmation after reviewing validation.",
+            "extractionHint": null
+          },
+          {
+            "name": "configuration",
+            "in": "body",
+            "type": "object",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "forecast",
+          "sandbox",
+          "run",
+          "evaluation",
+          "evaluate",
+          "static",
+          "2025",
+          "forecasts",
+          "or",
+          "rolling",
+          "d",
+          "2",
+          "historical",
+          "backtests",
+          "within",
+          "2020–2025"
+        ],
+        "negativeCues": [
+          "redispatch settlement",
+          "grid connection request",
+          "metering data"
+        ],
+        "examples": [
+          "Please evaluate static 2025 forecasts or rolling d-2 historical backtests within 2020–2025"
+        ],
+        "synonyms": [
+          "spot price",
+          "day-ahead",
+          "EPEX",
+          "ENTSO-E",
+          "intraday",
+          "wholesale market"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "forecast-sandbox_validateEvaluation",
+      "method": "POST",
+      "path": "/api/forecast-sandbox/consumption/evaluation/validate",
+      "service": "forecast-sandbox",
+      "action": "forecast-sandbox.validateEvaluation",
+      "summary": "Validate pseudonymous 2020–2025 PT15M datasets",
+      "tags": [
+        "Forecast Sandbox"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "advisory_plan",
+      "consequenceLevel": "low",
+      "recommendedExecutionMode": "explain_only",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "forecast-sandbox.validate_evaluation"
+      ],
+      "domains": [
+        "market-data"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "forecast-sandbox:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [
+          {
+            "name": "datasets",
+            "in": "body",
+            "type": "array",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "forecast",
+          "sandbox",
+          "validate",
+          "evaluation",
+          "pseudonymous",
+          "2020–2025",
+          "pt15",
+          "m",
+          "datasets"
+        ],
+        "negativeCues": [
+          "redispatch settlement",
+          "grid connection request",
+          "metering data"
+        ],
+        "examples": [
+          "Please validate pseudonymous 2020–2025 pt15m datasets"
+        ],
+        "synonyms": [
+          "spot price",
+          "day-ahead",
+          "EPEX",
+          "ENTSO-E",
+          "intraday",
+          "wholesale market"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "forecast-sandbox_acquireLiveContextFeatures",
+      "method": "POST",
+      "path": "/api/forecast-sandbox/consumption/features/context/live",
+      "service": "forecast-sandbox",
+      "action": "forecast-sandbox.acquireLiveContextFeatures",
+      "summary": "Acquire published live context features",
+      "tags": [
+        "Forecast Sandbox"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "forecast-sandbox.acquire_live_context_features"
+      ],
+      "domains": [
+        "market-data"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "forecast-sandbox:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "forecast-sandbox"
+      ],
+      "sideEffects": [
+        "creates_or_modifies_stored_object"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "parameters": {
+        "required": [
+          {
+            "name": "from",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": "date_range_start"
+          },
+          {
+            "name": "until",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": "date_range_end"
+          }
+        ],
+        "optional": [
+          {
+            "name": "base_dataset_id",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": "entity_id"
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "forecast",
+          "sandbox",
+          "acquire",
+          "live",
+          "context",
+          "features",
+          "published"
+        ],
+        "negativeCues": [
+          "redispatch settlement",
+          "grid connection request",
+          "metering data"
+        ],
+        "examples": [
+          "Please acquire published live context features"
+        ],
+        "synonyms": [
+          "spot price",
+          "day-ahead",
+          "EPEX",
+          "ENTSO-E",
+          "intraday",
+          "wholesale market"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "forecast-sandbox_prepareContextFeatures",
+      "method": "POST",
+      "path": "/api/forecast-sandbox/consumption/features/context/prepare",
+      "service": "forecast-sandbox",
+      "action": "forecast-sandbox.prepareContextFeatures",
+      "summary": "Prepare immutable historical context features",
+      "tags": [
+        "Forecast Sandbox"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "draft_write",
+      "consequenceLevel": "low",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "forecast-sandbox.prepare_context_features"
+      ],
+      "domains": [
+        "market-data"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "forecast-sandbox:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "forecast-sandbox"
+      ],
+      "sideEffects": [
+        "creates_draft_or_intent"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Discard the created draft/intent - no persisted business state changes until a subsequent confirm/promote step.",
+      "parameters": {
+        "required": [
+          {
+            "name": "from",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": "date_range_start"
+          },
+          {
+            "name": "until",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": "date_range_end"
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "forecast",
+          "sandbox",
+          "prepare",
+          "context",
+          "features",
+          "immutable",
+          "historical"
+        ],
+        "negativeCues": [
+          "redispatch settlement",
+          "grid connection request",
+          "metering data"
+        ],
+        "examples": [
+          "Please prepare immutable historical context features"
+        ],
+        "synonyms": [
+          "spot price",
+          "day-ahead",
+          "EPEX",
+          "ENTSO-E",
+          "intraday",
+          "wholesale market"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "forecast-sandbox_acquireLiveWeatherFeatures",
+      "method": "POST",
+      "path": "/api/forecast-sandbox/consumption/features/weather/live",
+      "service": "forecast-sandbox",
+      "action": "forecast-sandbox.acquireLiveWeatherFeatures",
+      "summary": "Acquire published live weather features",
+      "tags": [
+        "Forecast Sandbox"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "forecast-sandbox.acquire_live_weather_features"
+      ],
+      "domains": [
+        "market-data"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "forecast-sandbox:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "forecast-sandbox"
+      ],
+      "sideEffects": [
+        "creates_or_modifies_stored_object"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "parameters": {
+        "required": [
+          {
+            "name": "from",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": "date_range_start"
+          },
+          {
+            "name": "until",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": "date_range_end"
+          }
+        ],
+        "optional": [
+          {
+            "name": "base_dataset_id",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": "entity_id"
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "forecast",
+          "sandbox",
+          "acquire",
+          "live",
+          "weather",
+          "features",
+          "published"
+        ],
+        "negativeCues": [
+          "redispatch settlement",
+          "grid connection request",
+          "metering data"
+        ],
+        "examples": [
+          "Please acquire published live weather features"
+        ],
+        "synonyms": [
+          "spot price",
+          "day-ahead",
+          "EPEX",
+          "ENTSO-E",
+          "intraday",
+          "wholesale market"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "forecast-sandbox_prepareWeatherFeatures",
+      "method": "POST",
+      "path": "/api/forecast-sandbox/consumption/features/weather/prepare",
+      "service": "forecast-sandbox",
+      "action": "forecast-sandbox.prepareWeatherFeatures",
+      "summary": "Prepare immutable historical weather features",
+      "tags": [
+        "Forecast Sandbox"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "draft_write",
+      "consequenceLevel": "low",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "forecast-sandbox.prepare_weather_features"
+      ],
+      "domains": [
+        "market-data"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "forecast-sandbox:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "forecast-sandbox"
+      ],
+      "sideEffects": [
+        "creates_draft_or_intent"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Discard the created draft/intent - no persisted business state changes until a subsequent confirm/promote step.",
+      "parameters": {
+        "required": [
+          {
+            "name": "history_from",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": "date_range_start"
+          },
+          {
+            "name": "history_until",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": "date_range_end"
+          },
+          {
+            "name": "forecast_from",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": "date_range_start"
+          },
+          {
+            "name": "forecast_until",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": "date_range_end"
+          }
+        ],
+        "optional": [
+          {
+            "name": "location",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "forecast",
+          "sandbox",
+          "prepare",
+          "weather",
+          "features",
+          "immutable",
+          "historical"
+        ],
+        "negativeCues": [
+          "redispatch settlement",
+          "grid connection request",
+          "metering data"
+        ],
+        "examples": [
+          "Please prepare immutable historical weather features"
+        ],
+        "synonyms": [
+          "spot price",
+          "day-ahead",
+          "EPEX",
+          "ENTSO-E",
+          "intraday",
+          "wholesale market"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "forecast-sandbox_uploadPortfolioDataset",
+      "method": "POST",
+      "path": "/api/forecast-sandbox/consumption/portfolio/datasets",
+      "service": "forecast-sandbox",
+      "action": "forecast-sandbox.uploadPortfolioDataset",
+      "summary": "Stage one validated portfolio time series",
+      "tags": [
+        "Forecast Sandbox"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "process_start",
+      "consequenceLevel": "high",
+      "recommendedExecutionMode": "confirm",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "forecast-sandbox.upload_portfolio_dataset"
+      ],
+      "domains": [
+        "market-data"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "forecast-sandbox:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "forecast-sandbox"
+      ],
+      "sideEffects": [
+        "starts_new_process_instance"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Companion rollback operation available: POST /api/forecast-sandbox/consumption/evaluation/jobs/:jobId/cancel (forecast-sandbox_cancelEvaluationJob).",
+      "parameters": {
+        "required": [
+          {
+            "name": "dataset",
+            "in": "body",
+            "type": "object",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "forecast",
+          "sandbox",
+          "upload",
+          "portfolio",
+          "dataset",
+          "stage",
+          "one",
+          "validated",
+          "time",
+          "series"
+        ],
+        "negativeCues": [
+          "redispatch settlement",
+          "grid connection request",
+          "metering data"
+        ],
+        "examples": [
+          "Please stage one validated portfolio time series"
+        ],
+        "synonyms": [
+          "spot price",
+          "day-ahead",
+          "EPEX",
+          "ENTSO-E",
+          "intraday",
+          "wholesale market"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "forecast-sandbox_portfolioHistory",
+      "method": "POST",
+      "path": "/api/forecast-sandbox/consumption/portfolio/history",
+      "service": "forecast-sandbox",
+      "action": "forecast-sandbox.portfolioHistory",
+      "summary": "Merge immutable, revision-aware meter history",
+      "tags": [
+        "Forecast Sandbox"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "forecast-sandbox.portfolio_history"
+      ],
+      "domains": [
+        "market-data"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "forecast-sandbox:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "forecast-sandbox"
+      ],
+      "sideEffects": [
+        "creates_or_modifies_stored_object"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "parameters": {
+        "required": [],
+        "optional": [
+          {
+            "name": "dataset",
+            "in": "body",
+            "type": "object",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "dataset_id",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": "entity_id"
+          },
+          {
+            "name": "historical_import",
+            "in": "body",
+            "type": "boolean",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "allow_corrections",
+            "in": "body",
+            "type": "boolean",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "forecast",
+          "sandbox",
+          "portfolio",
+          "history",
+          "merge",
+          "immutable,",
+          "revision",
+          "aware",
+          "meter"
+        ],
+        "negativeCues": [
+          "redispatch settlement",
+          "grid connection request",
+          "metering data"
+        ],
+        "examples": [
+          "Please merge immutable, revision-aware meter history"
+        ],
+        "synonyms": [
+          "spot price",
+          "day-ahead",
+          "EPEX",
+          "ENTSO-E",
+          "intraday",
+          "wholesale market"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "forecast-sandbox_portfolioInspect",
+      "method": "GET",
+      "path": "/api/forecast-sandbox/consumption/portfolio/models/:model_version",
+      "service": "forecast-sandbox",
+      "action": "forecast-sandbox.portfolioInspect",
+      "summary": "Inspect immutable model, origin, selection and next refit date",
+      "tags": [
+        "Forecast Sandbox"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "forecast-sandbox.portfolio_inspect"
+      ],
+      "domains": [
+        "market-data"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "ModelVersion"
+      ],
+      "requiredScopes": [
+        "forecast-sandbox:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [
+          {
+            "name": "model_version",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "forecast",
+          "sandbox",
+          "portfolio",
+          "inspect",
+          "immutable",
+          "model,",
+          "origin,",
+          "selection",
+          "next",
+          "refit",
+          "date"
+        ],
+        "negativeCues": [
+          "redispatch settlement",
+          "grid connection request",
+          "metering data"
+        ],
+        "examples": [
+          "Show me inspect immutable model, origin, selection and next refit date"
+        ],
+        "synonyms": [
+          "spot price",
+          "day-ahead",
+          "EPEX",
+          "ENTSO-E",
+          "intraday",
+          "wholesale market"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "forecast-sandbox_portfolioPredict",
+      "method": "POST",
+      "path": "/api/forecast-sandbox/consumption/portfolio/predict",
+      "service": "forecast-sandbox",
+      "action": "forecast-sandbox.portfolioPredict",
+      "summary": "Predict with a persisted model and optional incremental measurements",
+      "tags": [
+        "Forecast Sandbox"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "forecast-sandbox.portfolio_predict"
+      ],
+      "domains": [
+        "market-data"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "forecast-sandbox:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "forecast-sandbox"
+      ],
+      "sideEffects": [
+        "creates_or_modifies_stored_object"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "parameters": {
+        "required": [
+          {
+            "name": "series_id",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": "entity_id"
+          },
+          {
+            "name": "model_version",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "forecast_for",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": [
+          {
+            "name": "recent_dataset",
+            "in": "body",
+            "type": "object",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "history_version",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "allow_corrections",
+            "in": "body",
+            "type": "boolean",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "allow_stale_model",
+            "in": "body",
+            "type": "boolean",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "forecast",
+          "sandbox",
+          "portfolio",
+          "predict",
+          "with",
+          "persisted",
+          "model",
+          "optional",
+          "incremental",
+          "measurements"
+        ],
+        "negativeCues": [
+          "redispatch settlement",
+          "grid connection request",
+          "metering data"
+        ],
+        "examples": [
+          "Please predict with a persisted model and optional incremental measurements"
+        ],
+        "synonyms": [
+          "spot price",
+          "day-ahead",
+          "EPEX",
+          "ENTSO-E",
+          "intraday",
+          "wholesale market"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "forecast-sandbox_portfolioRetrain",
+      "method": "POST",
+      "path": "/api/forecast-sandbox/consumption/portfolio/retrain",
+      "service": "forecast-sandbox",
+      "action": "forecast-sandbox.portfolioRetrain",
+      "summary": "Retrain the model portfolio using its members and current history snapshots",
+      "tags": [
+        "Forecast Sandbox"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "forecast-sandbox.portfolio_retrain"
+      ],
+      "domains": [
+        "market-data"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "forecast-sandbox:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "forecast-sandbox"
+      ],
+      "sideEffects": [
+        "creates_or_modifies_stored_object"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "parameters": {
+        "required": [
+          {
+            "name": "model_version",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "forecast_for",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "forecast",
+          "sandbox",
+          "portfolio",
+          "retrain",
+          "model",
+          "using",
+          "its",
+          "members",
+          "current",
+          "history",
+          "snapshots"
+        ],
+        "negativeCues": [
+          "redispatch settlement",
+          "grid connection request",
+          "metering data"
+        ],
+        "examples": [
+          "Please retrain the model portfolio using its members and current history snapshots"
+        ],
+        "synonyms": [
+          "spot price",
+          "day-ahead",
+          "EPEX",
+          "ENTSO-E",
+          "intraday",
+          "wholesale market"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "forecast-sandbox_runPortfolioEvaluation",
+      "method": "POST",
+      "path": "/api/forecast-sandbox/consumption/portfolio/run",
+      "service": "forecast-sandbox",
+      "action": "forecast-sandbox.runPortfolioEvaluation",
+      "summary": "Backtest a joint CatBoost portfolio at D-1 07:00",
+      "tags": [
+        "Forecast Sandbox"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "process_start",
+      "consequenceLevel": "high",
+      "recommendedExecutionMode": "confirm",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "forecast-sandbox.run_portfolio_evaluation"
+      ],
+      "domains": [
+        "market-data"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "forecast-sandbox:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "forecast-sandbox"
+      ],
+      "sideEffects": [
+        "starts_new_process_instance"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Companion rollback operation available: POST /api/forecast-sandbox/consumption/evaluation/jobs/:jobId/cancel (forecast-sandbox_cancelEvaluationJob).",
+      "parameters": {
+        "required": [
+          {
+            "name": "dataset_ids",
+            "in": "body",
+            "type": "array",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "configuration",
+            "in": "body",
+            "type": "object",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "payload_fit_confirmed",
+            "in": "body",
+            "type": "boolean",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "forecast",
+          "sandbox",
+          "run",
+          "portfolio",
+          "evaluation",
+          "backtest",
+          "joint",
+          "cat",
+          "boost",
+          "at",
+          "d",
+          "1",
+          "07",
+          "00"
+        ],
+        "negativeCues": [
+          "redispatch settlement",
+          "grid connection request",
+          "metering data"
+        ],
+        "examples": [
+          "Please backtest a joint catboost portfolio at d-1 07:00"
+        ],
+        "synonyms": [
+          "spot price",
+          "day-ahead",
+          "EPEX",
+          "ENTSO-E",
+          "intraday",
+          "wholesale market"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "forecast-sandbox_portfolioRunStatus",
+      "method": "GET",
+      "path": "/api/forecast-sandbox/consumption/portfolio/runs/:run_id",
+      "service": "forecast-sandbox",
+      "action": "forecast-sandbox.portfolioRunStatus",
+      "summary": "Inspect durable run independently of job TTL",
+      "tags": [
+        "Forecast Sandbox"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "forecast-sandbox.portfolio_run_status"
+      ],
+      "domains": [
+        "market-data"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "Run"
+      ],
+      "requiredScopes": [
+        "forecast-sandbox:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": "entity_id"
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "forecast",
+          "sandbox",
+          "portfolio",
+          "run",
+          "status",
+          "inspect",
+          "durable",
+          "independently",
+          "job",
+          "ttl"
+        ],
+        "negativeCues": [
+          "redispatch settlement",
+          "grid connection request",
+          "metering data"
+        ],
+        "examples": [
+          "Show me inspect durable run independently of job ttl"
+        ],
+        "synonyms": [
+          "spot price",
+          "day-ahead",
+          "EPEX",
+          "ENTSO-E",
+          "intraday",
+          "wholesale market"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "forecast-sandbox_portfolioResume",
+      "method": "POST",
+      "path": "/api/forecast-sandbox/consumption/portfolio/runs/:run_id/resume",
+      "service": "forecast-sandbox",
+      "action": "forecast-sandbox.portfolioResume",
+      "summary": "Resume compatible durable checkpoints or return the completed result manifest",
+      "tags": [
+        "Forecast Sandbox"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "process_step",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "forecast-sandbox.portfolio_resume"
+      ],
+      "domains": [
+        "market-data"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "Run"
+      ],
+      "requiredScopes": [
+        "forecast-sandbox:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "forecast-sandbox"
+      ],
+      "sideEffects": [
+        "advances_process_state"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Check for a companion reject/cancel/rollback operation on the same resource before treating this as final.",
+      "parameters": {
+        "required": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": "entity_id"
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "forecast",
+          "sandbox",
+          "portfolio",
+          "resume",
+          "compatible",
+          "durable",
+          "checkpoints",
+          "or",
+          "return",
+          "completed",
+          "result",
+          "manifest"
+        ],
+        "negativeCues": [
+          "redispatch settlement",
+          "grid connection request",
+          "metering data"
+        ],
+        "examples": [
+          "Please resume compatible durable checkpoints or return the completed result manifest"
+        ],
+        "synonyms": [
+          "spot price",
+          "day-ahead",
+          "EPEX",
+          "ENTSO-E",
+          "intraday",
+          "wholesale market"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "forecast-sandbox_portfolioSeriesResult",
+      "method": "GET",
+      "path": "/api/forecast-sandbox/consumption/portfolio/runs/:run_id/series/:series_key",
+      "service": "forecast-sandbox",
+      "action": "forecast-sandbox.portfolioSeriesResult",
+      "summary": "Stream one completed series result as JSON",
+      "tags": [
+        "Forecast Sandbox"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "forecast-sandbox.portfolio_series_result"
+      ],
+      "domains": [
+        "market-data"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "Run",
+        "SeriesKey"
+      ],
+      "requiredScopes": [
+        "forecast-sandbox:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": "entity_id"
+          },
+          {
+            "name": "series_key",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "forecast",
+          "sandbox",
+          "portfolio",
+          "series",
+          "result",
+          "stream",
+          "one",
+          "completed",
+          "as",
+          "json"
+        ],
+        "negativeCues": [
+          "redispatch settlement",
+          "grid connection request",
+          "metering data"
+        ],
+        "examples": [
+          "Show me stream one completed series result as json"
+        ],
+        "synonyms": [
+          "spot price",
+          "day-ahead",
+          "EPEX",
+          "ENTSO-E",
+          "intraday",
+          "wholesale market"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "forecast-sandbox_portfolioTrain",
+      "method": "POST",
+      "path": "/api/forecast-sandbox/consumption/portfolio/train",
+      "service": "forecast-sandbox",
+      "action": "forecast-sandbox.portfolioTrain",
+      "summary": "Fit and persist a portfolio model version at a past-only 07:00 origin",
+      "tags": [
+        "Forecast Sandbox"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "forecast-sandbox.portfolio_train"
+      ],
+      "domains": [
+        "market-data"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "forecast-sandbox:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "forecast-sandbox"
+      ],
+      "sideEffects": [
+        "creates_or_modifies_stored_object"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "parameters": {
+        "required": [
+          {
+            "name": "series_ids",
+            "in": "body",
+            "type": "array",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "forecast_for",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": [
+          {
+            "name": "portfolio_method",
+            "in": "body",
+            "type": "object",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "strategy",
+            "in": "body",
+            "type": "string",
+            "description": "One series defaults to shared_baseline; multiple series default to portfolio. Use shared_baseline for initial common corpus training and ongoing contributions. Do not combine with portfolio_method.",
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "forecast",
+          "sandbox",
+          "portfolio",
+          "train",
+          "fit",
+          "persist",
+          "model",
+          "version",
+          "at",
+          "past",
+          "only",
+          "07",
+          "00",
+          "origin"
+        ],
+        "negativeCues": [
+          "redispatch settlement",
+          "grid connection request",
+          "metering data"
+        ],
+        "examples": [
+          "Please fit and persist a portfolio model version at a past-only 07:00 origin"
+        ],
+        "synonyms": [
+          "spot price",
+          "day-ahead",
+          "EPEX",
+          "ENTSO-E",
+          "intraday",
+          "wholesale market"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "forecast-sandbox_inspectStateModel",
+      "method": "POST",
+      "path": "/api/forecast-sandbox/consumption/state-model/inspect",
+      "service": "forecast-sandbox",
+      "action": "forecast-sandbox.inspectStateModel",
+      "summary": "inspect a versioned per-series daily-state forecast model",
+      "tags": [
+        "Forecast Sandbox"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "process_step",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "forecast-sandbox.inspect_state_model"
+      ],
+      "domains": [
+        "market-data"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "forecast-sandbox:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "forecast-sandbox"
+      ],
+      "sideEffects": [
+        "advances_process_state"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Check for a companion reject/cancel/rollback operation on the same resource before treating this as final.",
+      "parameters": {
+        "required": [
+          {
+            "name": "series_id",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": "entity_id"
+          },
+          {
+            "name": "artifact_version",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "forecast",
+          "sandbox",
+          "inspect",
+          "state",
+          "model",
+          "versioned",
+          "per",
+          "series",
+          "daily"
+        ],
+        "negativeCues": [
+          "redispatch settlement",
+          "grid connection request",
+          "metering data"
+        ],
+        "examples": [
+          "Please inspect a versioned per-series daily-state forecast model"
+        ],
+        "synonyms": [
+          "spot price",
+          "day-ahead",
+          "EPEX",
+          "ENTSO-E",
+          "intraday",
+          "wholesale market"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "forecast-sandbox_predictStateModel",
+      "method": "POST",
+      "path": "/api/forecast-sandbox/consumption/state-model/predict",
+      "service": "forecast-sandbox",
+      "action": "forecast-sandbox.predictStateModel",
+      "summary": "predict a versioned per-series daily-state forecast model",
+      "tags": [
+        "Forecast Sandbox"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "process_step",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "forecast-sandbox.predict_state_model"
+      ],
+      "domains": [
+        "market-data"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "forecast-sandbox:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "forecast-sandbox"
+      ],
+      "sideEffects": [
+        "advances_process_state"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Check for a companion reject/cancel/rollback operation on the same resource before treating this as final.",
+      "parameters": {
+        "required": [
+          {
+            "name": "series_id",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": "entity_id"
+          },
+          {
+            "name": "artifact_version",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "forecast_for",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": [
+          {
+            "name": "recent_dataset",
+            "in": "body",
+            "type": "object",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "configuration",
+            "in": "body",
+            "type": "object",
+            "description": "Refresh weather/context or immutable dataset IDs only. Model parameters and issue_time remain frozen.",
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "forecast",
+          "sandbox",
+          "predict",
+          "state",
+          "model",
+          "versioned",
+          "per",
+          "series",
+          "daily"
+        ],
+        "negativeCues": [
+          "redispatch settlement",
+          "grid connection request",
+          "metering data"
+        ],
+        "examples": [
+          "Please predict a versioned per-series daily-state forecast model"
+        ],
+        "synonyms": [
+          "spot price",
+          "day-ahead",
+          "EPEX",
+          "ENTSO-E",
+          "intraday",
+          "wholesale market"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "forecast-sandbox_trainStateModel",
+      "method": "POST",
+      "path": "/api/forecast-sandbox/consumption/state-model/train",
+      "service": "forecast-sandbox",
+      "action": "forecast-sandbox.trainStateModel",
+      "summary": "train a versioned per-series daily-state forecast model",
+      "tags": [
+        "Forecast Sandbox"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "process_step",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "forecast-sandbox.train_state_model"
+      ],
+      "domains": [
+        "market-data"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "forecast-sandbox:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "forecast-sandbox"
+      ],
+      "sideEffects": [
+        "advances_process_state"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Check for a companion reject/cancel/rollback operation on the same resource before treating this as final.",
+      "parameters": {
+        "required": [
+          {
+            "name": "dataset",
+            "in": "body",
+            "type": "object",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "forecast_for",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": [
+          {
+            "name": "configuration",
+            "in": "body",
+            "type": "object",
+            "description": "Optional issue_time, extended_features, feature_set, weather_dataset_id/context_dataset_id or inline weather/context. Prediction threshold is saved with the artifact and applied during inference.",
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "forecast",
+          "sandbox",
+          "train",
+          "state",
+          "model",
+          "versioned",
+          "per",
+          "series",
+          "daily"
+        ],
+        "negativeCues": [
+          "redispatch settlement",
+          "grid connection request",
+          "metering data"
+        ],
+        "examples": [
+          "Please train a versioned per-series daily-state forecast model"
         ],
         "synonyms": [
           "spot price",

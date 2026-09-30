@@ -1,4 +1,7 @@
 'use strict';
+const { liveFeatureOperation } = require('./forecast-live-openapi');
+const { featureOperation } = require('./forecast-feature-openapi');
+const { stateOperation } = require('./forecast-state-openapi');
 
 /**
  * Isolated OpenAPI 3.x document for the Forecast Sandbox v0.1 endpoints only
@@ -11,6 +14,7 @@
 
 const { version: packageVersion } = require('../package.json');
 const { SANDBOX_VERSION } = require('./forecast-sandbox-baseline');
+const { evaluationOperation } = require('./forecast-evaluation-openapi');
 
 const TAG_NAME = 'Forecast Sandbox';
 
@@ -336,6 +340,42 @@ function buildIsolatedOpenApiSpec({ serverUrl } = {}) {
       },
     ],
     paths: {
+      ...Object.fromEntries(
+        ['status', 'progress', 'result'].map((action) => [
+          `/api/jobs/{jobId}/${action}`,
+          { get: require('../services/job-status.service').actions[action].openapi },
+        ])
+      ),
+      '/api/forecast-sandbox/consumption/evaluation/jobs/{jobId}/cancel': {
+        post: require('./forecast-job-openapi').cancelForecastOperation,
+      },
+      '/api/forecast-sandbox/consumption/features/weather/live': {
+        post: liveFeatureOperation('weather'),
+      },
+      '/api/forecast-sandbox/consumption/features/context/live': {
+        post: liveFeatureOperation('context'),
+      },
+      '/api/forecast-sandbox/consumption/features/weather/prepare': {
+        post: featureOperation('weather'),
+      },
+      '/api/forecast-sandbox/consumption/features/context/prepare': {
+        post: featureOperation('context'),
+      },
+      ...Object.fromEntries(
+        ['train', 'inspect', 'predict'].map((action) => [
+          `/api/forecast-sandbox/consumption/state-model/${action}`,
+          { post: stateOperation(action) },
+        ])
+      ),
+      '/api/forecast-sandbox/consumption/evaluation/validate': { post: evaluationOperation(false) },
+      ...require('./forecast-portfolio-runtime-openapi').paths(),
+      '/api/forecast-sandbox/consumption/portfolio/datasets': {
+        post: require('./forecast-portfolio-openapi').portfolioOperation(true),
+      },
+      '/api/forecast-sandbox/consumption/portfolio/run': {
+        post: require('./forecast-portfolio-openapi').portfolioOperation(false),
+      },
+      '/api/forecast-sandbox/consumption/evaluation/run': { post: evaluationOperation(true) },
       '/api/forecast-sandbox/consumption/validate': {
         post: jsonOperation({
           summary: 'Validate a quarter-hourly consumption series',

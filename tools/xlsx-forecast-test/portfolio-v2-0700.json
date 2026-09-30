@@ -1,0 +1,18 @@
+{
+  "model_family": "portfolio_catboost",
+  "mode": "rolling_day_ahead",
+  "relationship_mode": "auto",
+  "issue_time": "07:00",
+  "feature_set": [
+    "history",
+    "calendar"
+  ],
+  "portfolio_stress_test": true,
+  "portfolio_method": {
+    "latest_measurement_lag": 3,
+    "feature_profile": "e2_v1",
+    "selection_objective": "mae",
+    "candidate_set": "extended",
+    "training_mode": "rolling"
+  }
+}

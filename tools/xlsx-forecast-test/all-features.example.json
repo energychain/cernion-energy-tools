@@ -1,0 +1,17 @@
+{
+  "model_family": "learned_states",
+  "extended_features": true,
+  "selection_policy": "adaptive_rmse_v1",
+  "selection_metric": "rmse",
+  "activity_model": true,
+  "issue_time": "18:00",
+  "feature_set": [
+    "history",
+    "calendar",
+    "weather",
+    "context"
+  ],
+  "weather_dataset_id": "<weather_dataset_id der Zielinstanz>",
+  "context_dataset_id": "<context_dataset_id der Zielinstanz>",
+  "prediction_threshold_w": 50
+}

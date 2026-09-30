@@ -1,5 +1,14 @@
 # Forecast Sandbox API v0.1
 
+Neuer gemeinsamer Prüfpfad: [07:00-Portfolio-Baseline mit CatBoost und Aktivitätslabeling](forecast-portfolio-0700.md).
+Alle XLSX-Dateien werden dabei in einem gemeinsamen Lauf verglichen.
+
+Erweiterung für den UAT 2020–2025: [Rollierende EDM-Evaluation](uat-rolling-edm-forecast-2020-2025.md)
+mit den zusätzlichen Endpunkten `/consumption/evaluation/validate` und
+`/consumption/evaluation/run`. Der neue Pfad unterstützt D−2-Nachführung, statische
+Jahresprognosen, optionale Kalender-/Temperaturfeatures und ein Readiness-Dossier.
+Die folgenden Abschnitte beschreiben weiterhin die bisherigen v0.1-Endpunkte.
+
 **CR-CET-FORECAST-SANDBOX-V0.1** — generic CET sandbox/evaluation path for RLM/iMSys
 day-ahead consumption forecasting. Sales-facing: meant to be handed to a B2B lead so they
 can self-check whether their consumption data and the CET API model fit together, ahead of

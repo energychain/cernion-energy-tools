@@ -42547,6 +42547,2930 @@
         ]
       }
     },
+    "/api/forecast-sandbox/consumption/features/weather/live": {
+      "post": {
+        "operationId": "forecast-sandbox_acquireLiveWeatherFeatures",
+        "summary": "Acquire published live weather features",
+        "tags": [
+          "Forecast Sandbox"
+        ],
+        "responses": {
+          "200": {
+            "description": "Immutable dataset ID, acquisition provenance, coverage and warnings.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Input/provider preparation failed; observations are never substituted for future weather."
+          }
+        },
+        "description": "Fetch before the configured forecast origin. available_at is the actual completed acquisition time and is never backdated. Weather: Kempten, up to 14 days including today. Market context: today/tomorrow, quarter-hour DE-LU prices and completed D-2 German load. Missing/unpublished values remain missing. An optional historical base ID retains training/validation inputs.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "from",
+                  "until"
+                ],
+                "properties": {
+                  "from": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "until": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "base_dataset_id": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/forecast-sandbox/consumption/features/context/live": {
+      "post": {
+        "operationId": "forecast-sandbox_acquireLiveContextFeatures",
+        "summary": "Acquire published live context features",
+        "tags": [
+          "Forecast Sandbox"
+        ],
+        "responses": {
+          "200": {
+            "description": "Immutable dataset ID, acquisition provenance, coverage and warnings.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Input/provider preparation failed; observations are never substituted for future weather."
+          }
+        },
+        "description": "Fetch before the configured forecast origin. available_at is the actual completed acquisition time and is never backdated. Weather: Kempten, up to 14 days including today. Market context: today/tomorrow, quarter-hour DE-LU prices and completed D-2 German load. Missing/unpublished values remain missing. An optional historical base ID retains training/validation inputs.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "from",
+                  "until"
+                ],
+                "properties": {
+                  "from": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "until": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "base_dataset_id": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/forecast-sandbox/consumption/features/weather/prepare": {
+      "post": {
+        "operationId": "forecast-sandbox_prepareWeatherFeatures",
+        "summary": "Prepare immutable historical weather features",
+        "tags": [
+          "Forecast Sandbox"
+        ],
+        "responses": {
+          "200": {
+            "description": "Immutable dataset ID, provenance, coverage and availability assumptions.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid preparation request."
+          },
+          "500": {
+            "description": "Feature provider failed; no fabricated data."
+          }
+        },
+        "description": "Cached historical feature preparation. Inspect availability_policy: final exports and reconstructed publication times are not verified historical vintages. IDs can be used by evaluation and state-model APIs. Weather connector supports Kempten.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "history_from",
+                  "history_until",
+                  "forecast_from",
+                  "forecast_until"
+                ],
+                "properties": {
+                  "history_from": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "history_until": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "forecast_from": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "forecast_until": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "location": {
+                    "type": "string",
+                    "enum": [
+                      "kempten"
+                    ],
+                    "default": "kempten"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/forecast-sandbox/consumption/features/context/prepare": {
+      "post": {
+        "operationId": "forecast-sandbox_prepareContextFeatures",
+        "summary": "Prepare immutable historical context features",
+        "tags": [
+          "Forecast Sandbox"
+        ],
+        "responses": {
+          "200": {
+            "description": "Immutable dataset ID, provenance, coverage and availability assumptions.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid preparation request."
+          },
+          "500": {
+            "description": "Feature provider failed; no fabricated data."
+          }
+        },
+        "description": "Cached historical feature preparation. Inspect availability_policy: final exports and reconstructed publication times are not verified historical vintages. IDs can be used by evaluation and state-model APIs. Weather connector supports Kempten.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "from",
+                  "until"
+                ],
+                "properties": {
+                  "from": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "until": {
+                    "type": "string",
+                    "format": "date"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/forecast-sandbox/consumption/state-model/train": {
+      "post": {
+        "operationId": "forecast-sandbox_trainStateModel",
+        "summary": "train a versioned per-series daily-state forecast model",
+        "tags": [
+          "Forecast Sandbox"
+        ],
+        "responses": {
+          "200": {
+            "description": "Version metadata, validation or PT15M forecasts; inspect warnings and state_features_enabled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "series_id": {
+                      "type": "string"
+                    },
+                    "artifact_version": {
+                      "type": "string"
+                    },
+                    "model_version": {
+                      "type": "string"
+                    },
+                    "forecast_values": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "validation": {
+                      "type": "object"
+                    },
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid dataset, missing model or incompatible historical origin."
+          },
+          "500": {
+            "description": "Internal forecast/storage error."
+          }
+        },
+        "description": "Sandbox only. History/calendar training uses relationship_state_correction_v2; extended features use relationship_state_context_guard_v4 with a protected automatic reference. Both combine: automatic calendar/recency reference plus historically validated state correction. Existing v1/v2/v3 artifacts remain readable. Historical labels and transition models use D-2 availability. Immutable tenant-scoped artifacts. Train requires at least 14 complete days; activating state features requires historical validation. Predict reloads frozen parameters and can persist recent complete-day context without retraining. Live dates beyond 2025 supported; no future knowledge origins.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "dataset",
+                  "forecast_for"
+                ],
+                "properties": {
+                  "dataset": {
+                    "type": "object",
+                    "required": [
+                      "series_id",
+                      "unit",
+                      "timezone",
+                      "period_from",
+                      "period_until",
+                      "values"
+                    ],
+                    "properties": {
+                      "series_id": {
+                        "type": "string"
+                      },
+                      "unit": {
+                        "type": "string",
+                        "enum": [
+                          "kWh",
+                          "kW"
+                        ]
+                      },
+                      "timezone": {
+                        "type": "string"
+                      },
+                      "weather_region": {
+                        "type": "string"
+                      },
+                      "period_from": {
+                        "type": "string",
+                        "format": "date"
+                      },
+                      "period_until": {
+                        "type": "string",
+                        "format": "date"
+                      },
+                      "values": {
+                        "type": "array",
+                        "minItems": 1,
+                        "maxItems": 220000,
+                        "items": {
+                          "type": "object",
+                          "required": [
+                            "timestamp",
+                            "value"
+                          ],
+                          "properties": {
+                            "timestamp": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "value": {
+                              "type": "number",
+                              "minimum": 0
+                            },
+                            "available_at": {
+                              "type": "string",
+                              "format": "date-time"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "forecast_for": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "configuration": {
+                    "type": "object",
+                    "description": "Optional issue_time, extended_features, feature_set, weather_dataset_id/context_dataset_id or inline weather/context. Prediction threshold is saved with the artifact and applied during inference.",
+                    "properties": {
+                      "prediction_threshold_w": {
+                        "type": "number",
+                        "minimum": 0,
+                        "default": 0,
+                        "example": 50,
+                        "description": "Prediction-only deadband in watts. Strictly smaller absolute predictions become zero; actuals and training remain unchanged. 50 W = 0.05 kW = 0.0125 kWh per PT15M. 0 disables filtering. Persisted with state-model artifacts."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/forecast-sandbox/consumption/state-model/inspect": {
+      "post": {
+        "operationId": "forecast-sandbox_inspectStateModel",
+        "summary": "inspect a versioned per-series daily-state forecast model",
+        "tags": [
+          "Forecast Sandbox"
+        ],
+        "responses": {
+          "200": {
+            "description": "Version metadata, validation or PT15M forecasts; inspect warnings and state_features_enabled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "series_id": {
+                      "type": "string"
+                    },
+                    "artifact_version": {
+                      "type": "string"
+                    },
+                    "model_version": {
+                      "type": "string"
+                    },
+                    "forecast_values": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "validation": {
+                      "type": "object"
+                    },
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid dataset, missing model or incompatible historical origin."
+          },
+          "500": {
+            "description": "Internal forecast/storage error."
+          }
+        },
+        "description": "Sandbox only. History/calendar training uses relationship_state_correction_v2; extended features use relationship_state_context_guard_v4 with a protected automatic reference. Both combine: automatic calendar/recency reference plus historically validated state correction. Existing v1/v2/v3 artifacts remain readable. Historical labels and transition models use D-2 availability. Immutable tenant-scoped artifacts. Train requires at least 14 complete days; activating state features requires historical validation. Predict reloads frozen parameters and can persist recent complete-day context without retraining. Live dates beyond 2025 supported; no future knowledge origins.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "series_id",
+                  "artifact_version"
+                ],
+                "properties": {
+                  "series_id": {
+                    "type": "string"
+                  },
+                  "artifact_version": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/forecast-sandbox/consumption/state-model/predict": {
+      "post": {
+        "operationId": "forecast-sandbox_predictStateModel",
+        "summary": "predict a versioned per-series daily-state forecast model",
+        "tags": [
+          "Forecast Sandbox"
+        ],
+        "responses": {
+          "200": {
+            "description": "Version metadata, validation or PT15M forecasts; inspect warnings and state_features_enabled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "series_id": {
+                      "type": "string"
+                    },
+                    "artifact_version": {
+                      "type": "string"
+                    },
+                    "model_version": {
+                      "type": "string"
+                    },
+                    "forecast_values": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "validation": {
+                      "type": "object"
+                    },
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid dataset, missing model or incompatible historical origin."
+          },
+          "500": {
+            "description": "Internal forecast/storage error."
+          }
+        },
+        "description": "Sandbox only. History/calendar training uses relationship_state_correction_v2; extended features use relationship_state_context_guard_v4 with a protected automatic reference. Both combine: automatic calendar/recency reference plus historically validated state correction. Existing v1/v2/v3 artifacts remain readable. Historical labels and transition models use D-2 availability. Immutable tenant-scoped artifacts. Train requires at least 14 complete days; activating state features requires historical validation. Predict reloads frozen parameters and can persist recent complete-day context without retraining. Live dates beyond 2025 supported; no future knowledge origins.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "series_id",
+                  "artifact_version",
+                  "forecast_for"
+                ],
+                "properties": {
+                  "series_id": {
+                    "type": "string"
+                  },
+                  "artifact_version": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  },
+                  "forecast_for": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "recent_dataset": {
+                    "type": "object",
+                    "required": [
+                      "series_id",
+                      "unit",
+                      "timezone",
+                      "period_from",
+                      "period_until",
+                      "values"
+                    ],
+                    "properties": {
+                      "series_id": {
+                        "type": "string"
+                      },
+                      "unit": {
+                        "type": "string",
+                        "enum": [
+                          "kWh",
+                          "kW"
+                        ]
+                      },
+                      "timezone": {
+                        "type": "string"
+                      },
+                      "weather_region": {
+                        "type": "string"
+                      },
+                      "period_from": {
+                        "type": "string",
+                        "format": "date"
+                      },
+                      "period_until": {
+                        "type": "string",
+                        "format": "date"
+                      },
+                      "values": {
+                        "type": "array",
+                        "minItems": 1,
+                        "maxItems": 220000,
+                        "items": {
+                          "type": "object",
+                          "required": [
+                            "timestamp",
+                            "value"
+                          ],
+                          "properties": {
+                            "timestamp": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "value": {
+                              "type": "number",
+                              "minimum": 0
+                            },
+                            "available_at": {
+                              "type": "string",
+                              "format": "date-time"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "configuration": {
+                    "type": "object",
+                    "description": "Refresh weather/context or immutable dataset IDs only. Model parameters and issue_time remain frozen."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/forecast-sandbox/consumption/evaluation/validate": {
+      "post": {
+        "operationId": "forecast-sandbox_validateEvaluation",
+        "summary": "Validate pseudonymous 2020–2025 PT15M datasets",
+        "tags": [
+          "Forecast Sandbox"
+        ],
+        "responses": {
+          "200": {
+            "description": "Evaluation or data validation result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "status",
+                    "testcaseBoundary"
+                  ],
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "testcaseBoundary": {
+                      "type": "object"
+                    },
+                    "validations": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "forecast_run": {
+                            "type": "object"
+                          },
+                          "validation": {
+                            "type": "object"
+                          },
+                          "forecast_values": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "timestamp": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "predicted_value": {
+                                  "type": "number",
+                                  "description": "Final prediction after optional threshold filtering."
+                                },
+                                "raw_predicted_value": {
+                                  "type": "number",
+                                  "description": "Unfiltered prediction; present when prediction_threshold_w > 0."
+                                },
+                                "prediction_zeroed": {
+                                  "type": "boolean",
+                                  "description": "True only when a nonzero raw prediction was set to zero."
+                                },
+                                "actual_value": {
+                                  "type": "number",
+                                  "nullable": true
+                                },
+                                "deviation": {
+                                  "type": "number",
+                                  "nullable": true
+                                },
+                                "training_data_until": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                }
+                              }
+                            }
+                          },
+                          "daily_results": {
+                            "type": "array",
+                            "items": {
+                              "type": "object"
+                            }
+                          },
+                          "backtest": {
+                            "type": "object",
+                            "description": "Metrics for final predictions against unchanged actual measurements."
+                          },
+                          "filter_evaluation": {
+                            "type": "object",
+                            "description": "Present when filtering is enabled: threshold_w, threshold_value, unit, changed_intervals, actuals_modified=false, raw_backtest and filtered_backtest."
+                          },
+                          "deviation_energy": {
+                            "type": "object"
+                          },
+                          "readiness_dossier": {
+                            "type": "object"
+                          },
+                          "relationship_analysis": {
+                            "type": "object",
+                            "nullable": true,
+                            "properties": {
+                              "version": {
+                                "type": "string"
+                              },
+                              "causal_claim": {
+                                "type": "boolean",
+                                "example": false
+                              },
+                              "selections": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "selection_id": {
+                                      "type": "string"
+                                    },
+                                    "as_of": {
+                                      "type": "string",
+                                      "format": "date-time"
+                                    },
+                                    "status": {
+                                      "type": "string",
+                                      "enum": [
+                                        "validated_relationships",
+                                        "baseline_retained",
+                                        "insufficient_evidence"
+                                      ]
+                                    },
+                                    "selected_groups": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "selected_window_days": {
+                                      "type": "integer",
+                                      "nullable": true,
+                                      "description": "Null means all eligible history, no arbitrary truncation."
+                                    },
+                                    "historical_quality": {
+                                      "type": "object",
+                                      "description": "Untouched historical confirmation MSE/RMSE/MAE; available without 2025 actuals when history is sufficient."
+                                    },
+                                    "relationships": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "object"
+                                      }
+                                    },
+                                    "candidates": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "object"
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Structured validation/configuration failure with status, error and testcaseBoundary."
+          },
+          "500": {
+            "description": "Unexpected evaluation failure; internal details are not returned."
+          }
+        },
+        "description": "Stateless sandbox evaluation. Explicit timezone, DST-aware local days. JSON export includes curves, training cutoffs, metrics and readiness dossier. No SLA or commercial commitment. API body limit: 25 MB; split series across requests when necessary.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "datasets"
+                ],
+                "properties": {
+                  "datasets": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 10,
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "series_id",
+                        "timezone",
+                        "unit",
+                        "values"
+                      ],
+                      "properties": {
+                        "series_id": {
+                          "type": "string",
+                          "description": "Pseudonymous identifier; no personal data."
+                        },
+                        "timezone": {
+                          "type": "string",
+                          "example": "Europe/Berlin"
+                        },
+                        "unit": {
+                          "type": "string",
+                          "enum": [
+                            "kW",
+                            "kWh"
+                          ]
+                        },
+                        "customer_type": {
+                          "type": "string"
+                        },
+                        "segment": {
+                          "type": "string"
+                        },
+                        "weather_region": {
+                          "type": "string"
+                        },
+                        "period_from": {
+                          "type": "string",
+                          "format": "date",
+                          "default": "2020-01-01"
+                        },
+                        "period_until": {
+                          "type": "string",
+                          "format": "date",
+                          "default": "2025-12-31"
+                        },
+                        "field_mapping": {
+                          "type": "object",
+                          "properties": {
+                            "timestamp": {
+                              "type": "string"
+                            },
+                            "value": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "values": {
+                          "type": "array",
+                          "minItems": 1,
+                          "maxItems": 220000,
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "timestamp",
+                              "value"
+                            ],
+                            "properties": {
+                              "timestamp": {
+                                "type": "string",
+                                "format": "date-time",
+                                "description": "Interval start with explicit offset or Z."
+                              },
+                              "value": {
+                                "type": "number",
+                                "nullable": true
+                              },
+                              "available_at": {
+                                "type": "string",
+                                "format": "date-time",
+                                "description": "Actual historical availability of this measurement/revision."
+                              },
+                              "quality_flag": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/forecast-sandbox/consumption/portfolio/datasets": {
+      "post": {
+        "operationId": "forecast-sandbox_uploadPortfolioDataset",
+        "summary": "Stage one validated portfolio time series",
+        "tags": [
+          "Forecast Sandbox"
+        ],
+        "responses": {
+          "200": {
+            "description": "Dataset ID and validation result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "status",
+                    "dataset_id",
+                    "series_id",
+                    "validation"
+                  ],
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "dataset_id": {
+                      "type": "string"
+                    },
+                    "series_id": {
+                      "type": "string"
+                    },
+                    "validation": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or unavailable dataset/configuration."
+          },
+          "500": {
+            "description": "Portfolio execution unavailable."
+          }
+        },
+        "description": "Tenant-scoped immutable dataset stored locally by SHA-256. Submit each XLS separately, then use all dataset IDs in one portfolio run.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "dataset"
+                ],
+                "properties": {
+                  "dataset": {
+                    "type": "object",
+                    "required": [
+                      "series_id",
+                      "timezone",
+                      "unit",
+                      "values"
+                    ],
+                    "properties": {
+                      "series_id": {
+                        "type": "string",
+                        "description": "Pseudonymous identifier; no personal data."
+                      },
+                      "timezone": {
+                        "type": "string",
+                        "example": "Europe/Berlin"
+                      },
+                      "unit": {
+                        "type": "string",
+                        "enum": [
+                          "kW",
+                          "kWh"
+                        ]
+                      },
+                      "customer_type": {
+                        "type": "string"
+                      },
+                      "segment": {
+                        "type": "string"
+                      },
+                      "weather_region": {
+                        "type": "string"
+                      },
+                      "period_from": {
+                        "type": "string",
+                        "format": "date",
+                        "default": "2020-01-01"
+                      },
+                      "period_until": {
+                        "type": "string",
+                        "format": "date",
+                        "default": "2025-12-31"
+                      },
+                      "field_mapping": {
+                        "type": "object",
+                        "properties": {
+                          "timestamp": {
+                            "type": "string"
+                          },
+                          "value": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "values": {
+                        "type": "array",
+                        "minItems": 1,
+                        "maxItems": 220000,
+                        "items": {
+                          "type": "object",
+                          "required": [
+                            "timestamp",
+                            "value"
+                          ],
+                          "properties": {
+                            "timestamp": {
+                              "type": "string",
+                              "format": "date-time",
+                              "description": "Interval start with explicit offset or Z."
+                            },
+                            "value": {
+                              "type": "number",
+                              "nullable": true
+                            },
+                            "available_at": {
+                              "type": "string",
+                              "format": "date-time",
+                              "description": "Actual historical availability of this measurement/revision."
+                            },
+                            "quality_flag": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/forecast-sandbox/consumption/portfolio/run": {
+      "post": {
+        "operationId": "forecast-sandbox_runPortfolioEvaluation",
+        "summary": "Backtest a joint CatBoost portfolio at D-1 07:00",
+        "tags": [
+          "Forecast Sandbox"
+        ],
+        "responses": {
+          "200": {
+            "description": "Completed immutable run reused; result_manifest contains per-series result URLs."
+          },
+          "202": {
+            "description": "Forecast job accepted. Poll statusUrl/progressUrl; fetch resultUrl once completed. CPU work runs in a separate worker.",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "jobId",
+                    "status",
+                    "statusUrl",
+                    "progressUrl",
+                    "resultUrl"
+                  ],
+                  "properties": {
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "statusUrl": {
+                      "type": "string"
+                    },
+                    "progressUrl": {
+                      "type": "string"
+                    },
+                    "resultUrl": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or unavailable dataset/configuration."
+          },
+          "500": {
+            "description": "Portfolio execution unavailable."
+          }
+        },
+        "description": "Serial asynchronous forecast job; common chronological discovery/confirmation boundaries for 2–16 series. Weekly/two-week/weekday mean/median references, global/local/two-part CatBoost and local HGB. Versioned D-3 (default) or D-2 availability. MAE selection by default; optional RMSE ablation. Model selection is past-only; no quality guarantee.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "dataset_ids",
+                  "configuration",
+                  "payload_fit_confirmed"
+                ],
+                "properties": {
+                  "dataset_ids": {
+                    "type": "array",
+                    "minItems": 2,
+                    "maxItems": 16,
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    }
+                  },
+                  "configuration": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "model_family",
+                      "mode",
+                      "relationship_mode",
+                      "issue_time",
+                      "feature_set",
+                      "forecast_period_from",
+                      "forecast_period_until"
+                    ],
+                    "properties": {
+                      "portfolio_method": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "latest_measurement_lag": {
+                            "type": "integer",
+                            "enum": [
+                              2,
+                              3
+                            ],
+                            "default": 3
+                          },
+                          "feature_profile": {
+                            "type": "string",
+                            "enum": [
+                              "legacy_v1",
+                              "e2_v1"
+                            ],
+                            "default": "e2_v1"
+                          },
+                          "selection_objective": {
+                            "type": "string",
+                            "enum": [
+                              "rmse",
+                              "mae"
+                            ],
+                            "default": "mae"
+                          },
+                          "candidate_set": {
+                            "type": "string",
+                            "enum": [
+                              "existing",
+                              "hgb",
+                              "extended",
+                              "regime"
+                            ],
+                            "default": "extended"
+                          },
+                          "training_mode": {
+                            "type": "string",
+                            "enum": [
+                              "rolling",
+                              "frozen"
+                            ],
+                            "default": "rolling"
+                          }
+                        }
+                      },
+                      "model_family": {
+                        "type": "string",
+                        "enum": [
+                          "portfolio_catboost"
+                        ]
+                      },
+                      "mode": {
+                        "type": "string",
+                        "enum": [
+                          "rolling_day_ahead"
+                        ]
+                      },
+                      "relationship_mode": {
+                        "type": "string",
+                        "enum": [
+                          "auto"
+                        ]
+                      },
+                      "issue_time": {
+                        "type": "string",
+                        "enum": [
+                          "07:00"
+                        ]
+                      },
+                      "feature_set": {
+                        "type": "array",
+                        "minItems": 2,
+                        "maxItems": 2,
+                        "uniqueItems": true,
+                        "items": {
+                          "type": "string",
+                          "enum": [
+                            "history",
+                            "calendar"
+                          ]
+                        }
+                      },
+                      "forecast_period_from": {
+                        "type": "string",
+                        "format": "date"
+                      },
+                      "forecast_period_until": {
+                        "type": "string",
+                        "format": "date"
+                      },
+                      "history_from": {
+                        "type": "string",
+                        "format": "date"
+                      },
+                      "portfolio_stress_test": {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Evaluate input-only 5% point, latest eligible day and three-day outages; evaluation actuals unchanged."
+                      }
+                    }
+                  },
+                  "payload_fit_confirmed": {
+                    "type": "boolean",
+                    "enum": [
+                      true
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/forecast-sandbox/consumption/portfolio/history": {
+      "post": {
+        "operationId": "forecast-sandbox_portfolioHistory",
+        "summary": "Merge immutable, revision-aware meter history",
+        "tags": [
+          "Forecast Sandbox"
+        ],
+        "responses": {
+          "200": {
+            "description": "Result, immutable version, or durable result manifest",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Forecast job accepted. Poll statusUrl/progressUrl; fetch resultUrl once completed. CPU work runs in a separate worker.",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "jobId",
+                    "status",
+                    "statusUrl",
+                    "progressUrl",
+                    "resultUrl"
+                  ],
+                  "properties": {
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "statusUrl": {
+                      "type": "string"
+                    },
+                    "progressUrl": {
+                      "type": "string"
+                    },
+                    "resultUrl": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input, unknown tenant-owned artifact, or incompatible resume"
+          },
+          "401": {
+            "description": "Credential with a bound tenant is required for live model operations"
+          }
+        },
+        "description": "Live training/history/model access requires a credential bound to the tenant; a tenant header alone is insufficient. Shared-baseline contributors remain internal; only tenant-owned meter predictions are returned.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [],
+                "properties": {
+                  "dataset": {
+                    "type": "object",
+                    "required": [
+                      "series_id",
+                      "unit",
+                      "timezone",
+                      "values"
+                    ],
+                    "properties": {
+                      "series_id": {
+                        "type": "string"
+                      },
+                      "unit": {
+                        "type": "string",
+                        "enum": [
+                          "kWh",
+                          "kW"
+                        ]
+                      },
+                      "timezone": {
+                        "type": "string"
+                      },
+                      "value_semantics": {
+                        "type": "string",
+                        "enum": [
+                          "interval_energy",
+                          "average_power"
+                        ],
+                        "description": "kWh per interval or mean kW; cumulative OBIS register readings must be differenced before upload."
+                      },
+                      "profile_label": {
+                        "type": "string",
+                        "pattern": "^[a-zA-Z0-9_-]{1,64}$"
+                      },
+                      "profile_available_at": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "period_from": {
+                        "type": "string",
+                        "format": "date"
+                      },
+                      "period_until": {
+                        "type": "string",
+                        "format": "date"
+                      },
+                      "values": {
+                        "type": "array",
+                        "minItems": 1,
+                        "maxItems": 220000,
+                        "items": {
+                          "type": "object",
+                          "required": [
+                            "timestamp",
+                            "value"
+                          ],
+                          "properties": {
+                            "timestamp": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "value": {
+                              "type": "number",
+                              "minimum": 0
+                            },
+                            "reactive_power_kvar": {
+                              "type": "number",
+                              "nullable": true,
+                              "description": "Optional mean reactive power over the same quarter-hour; signed kvar. Missing is not zero."
+                            },
+                            "available_at": {
+                              "type": "string",
+                              "format": "date-time"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "dataset_id": {
+                    "type": "string"
+                  },
+                  "historical_import": {
+                    "type": "boolean",
+                    "default": false
+                  },
+                  "allow_corrections": {
+                    "type": "boolean",
+                    "default": false
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/forecast-sandbox/consumption/portfolio/train": {
+      "post": {
+        "operationId": "forecast-sandbox_portfolioTrain",
+        "summary": "Fit and persist a portfolio model version at a past-only 07:00 origin",
+        "tags": [
+          "Forecast Sandbox"
+        ],
+        "responses": {
+          "200": {
+            "description": "Result, immutable version, or durable result manifest",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Forecast job accepted. Poll statusUrl/progressUrl; fetch resultUrl once completed. CPU work runs in a separate worker.",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "jobId",
+                    "status",
+                    "statusUrl",
+                    "progressUrl",
+                    "resultUrl"
+                  ],
+                  "properties": {
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "statusUrl": {
+                      "type": "string"
+                    },
+                    "progressUrl": {
+                      "type": "string"
+                    },
+                    "resultUrl": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input, unknown tenant-owned artifact, or incompatible resume"
+          },
+          "401": {
+            "description": "Credential with a bound tenant is required for live model operations"
+          }
+        },
+        "description": "Live training/history/model access requires a credential bound to the tenant; a tenant header alone is insufficient. Shared-baseline contributors remain internal; only tenant-owned meter predictions are returned.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "series_ids",
+                  "forecast_for"
+                ],
+                "properties": {
+                  "series_ids": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 16,
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "forecast_for": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "portfolio_method": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "latest_measurement_lag": {
+                        "type": "integer",
+                        "enum": [
+                          2,
+                          3
+                        ],
+                        "default": 3
+                      },
+                      "feature_profile": {
+                        "type": "string",
+                        "enum": [
+                          "legacy_v1",
+                          "e2_v1"
+                        ],
+                        "default": "e2_v1"
+                      },
+                      "selection_objective": {
+                        "type": "string",
+                        "enum": [
+                          "rmse",
+                          "mae"
+                        ],
+                        "default": "mae"
+                      },
+                      "candidate_set": {
+                        "type": "string",
+                        "enum": [
+                          "existing",
+                          "hgb",
+                          "extended",
+                          "regime"
+                        ],
+                        "default": "extended"
+                      },
+                      "training_mode": {
+                        "type": "string",
+                        "enum": [
+                          "rolling",
+                          "frozen"
+                        ],
+                        "default": "rolling"
+                      }
+                    }
+                  },
+                  "strategy": {
+                    "type": "string",
+                    "enum": [
+                      "portfolio",
+                      "shared_baseline"
+                    ],
+                    "description": "One series defaults to shared_baseline; multiple series default to portfolio. Use shared_baseline for initial common corpus training and ongoing contributions. Do not combine with portfolio_method."
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/forecast-sandbox/consumption/portfolio/predict": {
+      "post": {
+        "operationId": "forecast-sandbox_portfolioPredict",
+        "summary": "Predict with a persisted model and optional incremental measurements",
+        "tags": [
+          "Forecast Sandbox"
+        ],
+        "responses": {
+          "200": {
+            "description": "Result, immutable version, or durable result manifest",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Forecast job accepted. Poll statusUrl/progressUrl; fetch resultUrl once completed. CPU work runs in a separate worker.",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "jobId",
+                    "status",
+                    "statusUrl",
+                    "progressUrl",
+                    "resultUrl"
+                  ],
+                  "properties": {
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "statusUrl": {
+                      "type": "string"
+                    },
+                    "progressUrl": {
+                      "type": "string"
+                    },
+                    "resultUrl": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input, unknown tenant-owned artifact, or incompatible resume"
+          },
+          "401": {
+            "description": "Credential with a bound tenant is required for live model operations"
+          }
+        },
+        "description": "Live training/history/model access requires a credential bound to the tenant; a tenant header alone is insufficient. Shared-baseline contributors remain internal; only tenant-owned meter predictions are returned.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "series_id",
+                  "model_version",
+                  "forecast_for"
+                ],
+                "properties": {
+                  "series_id": {
+                    "type": "string"
+                  },
+                  "model_version": {
+                    "type": "string"
+                  },
+                  "forecast_for": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "recent_dataset": {
+                    "type": "object",
+                    "required": [
+                      "series_id",
+                      "unit",
+                      "timezone",
+                      "values"
+                    ],
+                    "properties": {
+                      "series_id": {
+                        "type": "string"
+                      },
+                      "unit": {
+                        "type": "string",
+                        "enum": [
+                          "kWh",
+                          "kW"
+                        ]
+                      },
+                      "timezone": {
+                        "type": "string"
+                      },
+                      "value_semantics": {
+                        "type": "string",
+                        "enum": [
+                          "interval_energy",
+                          "average_power"
+                        ],
+                        "description": "kWh per interval or mean kW; cumulative OBIS register readings must be differenced before upload."
+                      },
+                      "profile_label": {
+                        "type": "string",
+                        "pattern": "^[a-zA-Z0-9_-]{1,64}$"
+                      },
+                      "profile_available_at": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "period_from": {
+                        "type": "string",
+                        "format": "date"
+                      },
+                      "period_until": {
+                        "type": "string",
+                        "format": "date"
+                      },
+                      "values": {
+                        "type": "array",
+                        "minItems": 1,
+                        "maxItems": 220000,
+                        "items": {
+                          "type": "object",
+                          "required": [
+                            "timestamp",
+                            "value"
+                          ],
+                          "properties": {
+                            "timestamp": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "value": {
+                              "type": "number",
+                              "minimum": 0
+                            },
+                            "reactive_power_kvar": {
+                              "type": "number",
+                              "nullable": true,
+                              "description": "Optional mean reactive power over the same quarter-hour; signed kvar. Missing is not zero."
+                            },
+                            "available_at": {
+                              "type": "string",
+                              "format": "date-time"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "history_version": {
+                    "type": "string"
+                  },
+                  "allow_corrections": {
+                    "type": "boolean",
+                    "default": false
+                  },
+                  "allow_stale_model": {
+                    "type": "boolean",
+                    "default": false
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/forecast-sandbox/consumption/portfolio/models/:model_version": {
+      "get": {
+        "operationId": "forecast-sandbox_portfolioInspect",
+        "summary": "Inspect immutable model, origin, selection and next refit date",
+        "tags": [
+          "Forecast Sandbox"
+        ],
+        "responses": {
+          "200": {
+            "description": "Result, immutable version, or durable result manifest",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Forecast job accepted. Poll statusUrl/progressUrl; fetch resultUrl once completed. CPU work runs in a separate worker.",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "jobId",
+                    "status",
+                    "statusUrl",
+                    "progressUrl",
+                    "resultUrl"
+                  ],
+                  "properties": {
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "statusUrl": {
+                      "type": "string"
+                    },
+                    "progressUrl": {
+                      "type": "string"
+                    },
+                    "resultUrl": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input, unknown tenant-owned artifact, or incompatible resume"
+          },
+          "401": {
+            "description": "Credential with a bound tenant is required for live model operations"
+          }
+        },
+        "description": "Live training/history/model access requires a credential bound to the tenant; a tenant header alone is insufficient. Shared-baseline contributors remain internal; only tenant-owned meter predictions are returned.",
+        "parameters": [
+          {
+            "name": "model_version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/forecast-sandbox/consumption/portfolio/retrain": {
+      "post": {
+        "operationId": "forecast-sandbox_portfolioRetrain",
+        "summary": "Retrain the model portfolio using its members and current history snapshots",
+        "tags": [
+          "Forecast Sandbox"
+        ],
+        "responses": {
+          "200": {
+            "description": "Result, immutable version, or durable result manifest",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Forecast job accepted. Poll statusUrl/progressUrl; fetch resultUrl once completed. CPU work runs in a separate worker.",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "jobId",
+                    "status",
+                    "statusUrl",
+                    "progressUrl",
+                    "resultUrl"
+                  ],
+                  "properties": {
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "statusUrl": {
+                      "type": "string"
+                    },
+                    "progressUrl": {
+                      "type": "string"
+                    },
+                    "resultUrl": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input, unknown tenant-owned artifact, or incompatible resume"
+          },
+          "401": {
+            "description": "Credential with a bound tenant is required for live model operations"
+          }
+        },
+        "description": "Live training/history/model access requires a credential bound to the tenant; a tenant header alone is insufficient. Shared-baseline contributors remain internal; only tenant-owned meter predictions are returned.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "model_version",
+                  "forecast_for"
+                ],
+                "properties": {
+                  "model_version": {
+                    "type": "string"
+                  },
+                  "forecast_for": {
+                    "type": "string",
+                    "format": "date"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/forecast-sandbox/consumption/portfolio/runs/:run_id/resume": {
+      "post": {
+        "operationId": "forecast-sandbox_portfolioResume",
+        "summary": "Resume compatible durable checkpoints or return the completed result manifest",
+        "tags": [
+          "Forecast Sandbox"
+        ],
+        "responses": {
+          "200": {
+            "description": "Result, immutable version, or durable result manifest",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Forecast job accepted. Poll statusUrl/progressUrl; fetch resultUrl once completed. CPU work runs in a separate worker.",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "jobId",
+                    "status",
+                    "statusUrl",
+                    "progressUrl",
+                    "resultUrl"
+                  ],
+                  "properties": {
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "statusUrl": {
+                      "type": "string"
+                    },
+                    "progressUrl": {
+                      "type": "string"
+                    },
+                    "resultUrl": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input, unknown tenant-owned artifact, or incompatible resume"
+          },
+          "401": {
+            "description": "Credential with a bound tenant is required for live model operations"
+          }
+        },
+        "description": "Live training/history/model access requires a credential bound to the tenant; a tenant header alone is insufficient. Shared-baseline contributors remain internal; only tenant-owned meter predictions are returned.",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/forecast-sandbox/consumption/portfolio/runs/:run_id": {
+      "get": {
+        "operationId": "forecast-sandbox_portfolioRunStatus",
+        "summary": "Inspect durable run independently of job TTL",
+        "tags": [
+          "Forecast Sandbox"
+        ],
+        "responses": {
+          "200": {
+            "description": "Result, immutable version, or durable result manifest",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Forecast job accepted. Poll statusUrl/progressUrl; fetch resultUrl once completed. CPU work runs in a separate worker.",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "jobId",
+                    "status",
+                    "statusUrl",
+                    "progressUrl",
+                    "resultUrl"
+                  ],
+                  "properties": {
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "statusUrl": {
+                      "type": "string"
+                    },
+                    "progressUrl": {
+                      "type": "string"
+                    },
+                    "resultUrl": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input, unknown tenant-owned artifact, or incompatible resume"
+          },
+          "401": {
+            "description": "Credential with a bound tenant is required for live model operations"
+          }
+        },
+        "description": "Live training/history/model access requires a credential bound to the tenant; a tenant header alone is insufficient. Shared-baseline contributors remain internal; only tenant-owned meter predictions are returned.",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/forecast-sandbox/consumption/portfolio/runs/:run_id/series/:series_key": {
+      "get": {
+        "operationId": "forecast-sandbox_portfolioSeriesResult",
+        "summary": "Stream one completed series result as JSON",
+        "tags": [
+          "Forecast Sandbox"
+        ],
+        "responses": {
+          "200": {
+            "description": "Result, immutable version, or durable result manifest",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Forecast job accepted. Poll statusUrl/progressUrl; fetch resultUrl once completed. CPU work runs in a separate worker.",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "jobId",
+                    "status",
+                    "statusUrl",
+                    "progressUrl",
+                    "resultUrl"
+                  ],
+                  "properties": {
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "statusUrl": {
+                      "type": "string"
+                    },
+                    "progressUrl": {
+                      "type": "string"
+                    },
+                    "resultUrl": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input, unknown tenant-owned artifact, or incompatible resume"
+          },
+          "401": {
+            "description": "Credential with a bound tenant is required for live model operations"
+          }
+        },
+        "description": "Live training/history/model access requires a credential bound to the tenant; a tenant header alone is insufficient. Shared-baseline contributors remain internal; only tenant-owned meter predictions are returned.",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "series_key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/forecast-sandbox/consumption/evaluation/jobs/:jobId/cancel": {
+      "post": {
+        "operationId": "forecast-sandbox_cancelEvaluationJob",
+        "summary": "Cancel a queued or running forecast evaluation job",
+        "tags": [
+          "Forecast Sandbox"
+        ],
+        "responses": {
+          "200": {
+            "description": "Cancellation recorded or job already terminal."
+          },
+          "404": {
+            "description": "Forecast job not found."
+          }
+        },
+        "description": "Terminates the forecast worker. Uses the existing job error state with error forecast_cancelled; scoped to the trusted gateway tenant. Completed results remain unchanged.",
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/forecast-sandbox/consumption/evaluation/run": {
+      "post": {
+        "operationId": "forecast-sandbox_runEvaluation",
+        "summary": "Evaluate static 2025 forecasts or rolling D-2 historical backtests within 2020–2025",
+        "tags": [
+          "Forecast Sandbox"
+        ],
+        "responses": {
+          "200": {
+            "description": "Evaluation or data validation result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "status",
+                    "testcaseBoundary"
+                  ],
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "testcaseBoundary": {
+                      "type": "object"
+                    },
+                    "validations": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "forecast_run": {
+                            "type": "object"
+                          },
+                          "validation": {
+                            "type": "object"
+                          },
+                          "forecast_values": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "timestamp": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "predicted_value": {
+                                  "type": "number",
+                                  "description": "Final prediction after optional threshold filtering."
+                                },
+                                "raw_predicted_value": {
+                                  "type": "number",
+                                  "description": "Unfiltered prediction; present when prediction_threshold_w > 0."
+                                },
+                                "prediction_zeroed": {
+                                  "type": "boolean",
+                                  "description": "True only when a nonzero raw prediction was set to zero."
+                                },
+                                "actual_value": {
+                                  "type": "number",
+                                  "nullable": true
+                                },
+                                "deviation": {
+                                  "type": "number",
+                                  "nullable": true
+                                },
+                                "training_data_until": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                }
+                              }
+                            }
+                          },
+                          "daily_results": {
+                            "type": "array",
+                            "items": {
+                              "type": "object"
+                            }
+                          },
+                          "backtest": {
+                            "type": "object",
+                            "description": "Metrics for final predictions against unchanged actual measurements."
+                          },
+                          "filter_evaluation": {
+                            "type": "object",
+                            "description": "Present when filtering is enabled: threshold_w, threshold_value, unit, changed_intervals, actuals_modified=false, raw_backtest and filtered_backtest."
+                          },
+                          "deviation_energy": {
+                            "type": "object"
+                          },
+                          "readiness_dossier": {
+                            "type": "object"
+                          },
+                          "relationship_analysis": {
+                            "type": "object",
+                            "nullable": true,
+                            "properties": {
+                              "version": {
+                                "type": "string"
+                              },
+                              "causal_claim": {
+                                "type": "boolean",
+                                "example": false
+                              },
+                              "selections": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "selection_id": {
+                                      "type": "string"
+                                    },
+                                    "as_of": {
+                                      "type": "string",
+                                      "format": "date-time"
+                                    },
+                                    "status": {
+                                      "type": "string",
+                                      "enum": [
+                                        "validated_relationships",
+                                        "baseline_retained",
+                                        "insufficient_evidence"
+                                      ]
+                                    },
+                                    "selected_groups": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "selected_window_days": {
+                                      "type": "integer",
+                                      "nullable": true,
+                                      "description": "Null means all eligible history, no arbitrary truncation."
+                                    },
+                                    "historical_quality": {
+                                      "type": "object",
+                                      "description": "Untouched historical confirmation MSE/RMSE/MAE; available without 2025 actuals when history is sufficient."
+                                    },
+                                    "relationships": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "object"
+                                      }
+                                    },
+                                    "candidates": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "object"
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Forecast job accepted. Poll statusUrl/progressUrl; fetch resultUrl once completed. CPU work runs in a separate worker.",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "jobId",
+                    "status",
+                    "statusUrl",
+                    "progressUrl",
+                    "resultUrl"
+                  ],
+                  "properties": {
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "statusUrl": {
+                      "type": "string"
+                    },
+                    "progressUrl": {
+                      "type": "string"
+                    },
+                    "resultUrl": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Structured validation/configuration failure with status, error and testcaseBoundary."
+          },
+          "500": {
+            "description": "Unexpected evaluation failure; internal details are not returned."
+          }
+        },
+        "description": "REST returns HTTP 202 and the standard /api/jobs status/progress/result URLs. Poll until completed or error; progress reports completed forecast days, not elapsed-time estimates. Internal broker calls await the result. Stateless sandbox evaluation. Explicit timezone, DST-aware local days. JSON export includes curves, training cutoffs, metrics and readiness dossier. No SLA or commercial commitment. API body limit: 25 MB; split series across requests when necessary.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "datasets",
+                  "configuration",
+                  "payload_fit_confirmed"
+                ],
+                "properties": {
+                  "datasets": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 10,
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "series_id",
+                        "timezone",
+                        "unit",
+                        "values"
+                      ],
+                      "properties": {
+                        "series_id": {
+                          "type": "string",
+                          "description": "Pseudonymous identifier; no personal data."
+                        },
+                        "timezone": {
+                          "type": "string",
+                          "example": "Europe/Berlin"
+                        },
+                        "unit": {
+                          "type": "string",
+                          "enum": [
+                            "kW",
+                            "kWh"
+                          ]
+                        },
+                        "customer_type": {
+                          "type": "string"
+                        },
+                        "segment": {
+                          "type": "string"
+                        },
+                        "weather_region": {
+                          "type": "string"
+                        },
+                        "period_from": {
+                          "type": "string",
+                          "format": "date",
+                          "default": "2020-01-01"
+                        },
+                        "period_until": {
+                          "type": "string",
+                          "format": "date",
+                          "default": "2025-12-31"
+                        },
+                        "field_mapping": {
+                          "type": "object",
+                          "properties": {
+                            "timestamp": {
+                              "type": "string"
+                            },
+                            "value": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "values": {
+                          "type": "array",
+                          "minItems": 1,
+                          "maxItems": 220000,
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "timestamp",
+                              "value"
+                            ],
+                            "properties": {
+                              "timestamp": {
+                                "type": "string",
+                                "format": "date-time",
+                                "description": "Interval start with explicit offset or Z."
+                              },
+                              "value": {
+                                "type": "number",
+                                "nullable": true
+                              },
+                              "available_at": {
+                                "type": "string",
+                                "format": "date-time",
+                                "description": "Actual historical availability of this measurement/revision."
+                              },
+                              "quality_flag": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "payload_fit_confirmed": {
+                    "type": "boolean",
+                    "description": "Explicit confirmation after reviewing validation."
+                  },
+                  "configuration": {
+                    "type": "object",
+                    "required": [
+                      "mode",
+                      "forecast_period_from",
+                      "forecast_period_until"
+                    ],
+                    "properties": {
+                      "extended_features": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "Include season in automatic candidate selection."
+                      },
+                      "issue_time": {
+                        "type": "string",
+                        "enum": [
+                          "00:00",
+                          "07:00",
+                          "18:00"
+                        ],
+                        "default": "00:00",
+                        "description": "Local D-1 issue time; meter history always ends D-2."
+                      },
+                      "weather_dataset_id": {
+                        "type": "string",
+                        "pattern": "^[a-f0-9]{64}$"
+                      },
+                      "context_dataset_id": {
+                        "type": "string",
+                        "pattern": "^[a-f0-9]{64}$"
+                      },
+                      "context": {
+                        "type": "object",
+                        "description": "Versioned source/region plus rows with timestamp, available_at, day_ahead_price EUR/MWh or grid_load_lag2 MW and source_period_until."
+                      },
+                      "mode": {
+                        "type": "string",
+                        "enum": [
+                          "static_year_forecast",
+                          "rolling_day_ahead"
+                        ]
+                      },
+                      "model_family": {
+                        "type": "string",
+                        "enum": [
+                          "relationship",
+                          "learned_states"
+                        ],
+                        "default": "relationship",
+                        "description": "learned_states: nonnegative rolling auto forecast; version relationship_state_correction_v2 adds a past-validated state correction to automatic calendar/recency selection. RMSE gate and MAE guard every 28 days; daily reference fits. API persists the combined snapshot. Version relationship_state_context_guard_v4 supports optional weather/context and 18:00 origins; additional features must improve on the existing automatic model."
+                      },
+                      "relationship_mode": {
+                        "type": "string",
+                        "enum": [
+                          "auto",
+                          "manual"
+                        ],
+                        "default": "auto",
+                        "description": "Per-series automatic predictor selection using historical forward validation, independent confirmation and conditional ablation. Manual retains the original configured profile baseline."
+                      },
+                      "history_from": {
+                        "type": "string",
+                        "format": "date",
+                        "default": "2020-01-01"
+                      },
+                      "selection_policy": {
+                        "type": "string",
+                        "enum": [
+                          "adaptive_rmse_v1"
+                        ],
+                        "description": "Opt-in RMSE objective; compare 28/84/365 days and all eligible history with temporal confirmation and MAE guard."
+                      },
+                      "prediction_threshold_w": {
+                        "type": "number",
+                        "minimum": 0,
+                        "default": 0,
+                        "example": 50,
+                        "description": "Prediction-only deadband in watts. Strictly smaller absolute predictions become zero; actuals and training remain unchanged. 50 W = 0.05 kW = 0.0125 kWh per PT15M. 0 disables filtering. Persisted with state-model artifacts."
+                      },
+                      "activity_model": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "With adaptive_rmse_v1, test separate activity-probability and positive-amount models for nonnegative histories with at least 20% zeros. Persisted and enabled only after confirmation."
+                      },
+                      "activity_labeling": {
+                        "type": "string",
+                        "enum": [
+                          "learned_low_load_v1"
+                        ],
+                        "description": "Opt-in training-only near-zero labels, activity classifier and separate low/active amount trees. Requires activity_model and adaptive_rmse_v1. Each historical fold learns its own threshold; held-out RMSE gain and no MAE regression required. Negative net flows are excluded. Omit to retain exact-zero activity modeling."
+                      },
+                      "selection_metric": {
+                        "type": "string",
+                        "enum": [
+                          "mae",
+                          "rmse"
+                        ],
+                        "default": "mae",
+                        "description": "Automatic selection objective, consistently used for discovery, confirmation and conditional ablation. Both MAE and RMSE are always reported."
+                      },
+                      "recent_window_days": {
+                        "type": "integer",
+                        "enum": [
+                          28,
+                          84
+                        ],
+                        "default": 84,
+                        "description": "Alternative recent-history window tested against full eligible history. It is used only if independently confirmed; this does not alter D-2."
+                      },
+                      "forecast_period_from": {
+                        "type": "string",
+                        "format": "date",
+                        "example": "2025-01-01",
+                        "description": "Rolling historical backtests support 2020–2025; static forecasts require 2025. Training remains strictly prior to each forecast cutoff."
+                      },
+                      "forecast_period_until": {
+                        "type": "string",
+                        "format": "date",
+                        "example": "2025-12-31"
+                      },
+                      "feature_set": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "enum": [
+                            "history",
+                            "calendar",
+                            "weather",
+                            "context"
+                          ]
+                        },
+                        "description": "Allowed feature families. Auto default: history and derived calendar, plus weather when supplied. Supplying history alone intentionally disables calendar/weather discovery."
+                      },
+                      "calendar": {
+                        "type": "object",
+                        "required": [
+                          "source",
+                          "version",
+                          "country",
+                          "region"
+                        ],
+                        "properties": {
+                          "source": {
+                            "type": "string"
+                          },
+                          "version": {
+                            "type": "string"
+                          },
+                          "country": {
+                            "type": "string"
+                          },
+                          "region": {
+                            "type": "string"
+                          },
+                          "features": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "weekday",
+                                "weekend",
+                                "holiday",
+                                "working_day",
+                                "month",
+                                "season",
+                                "calendar_week",
+                                "bridge_day",
+                                "school_holiday",
+                                "special_day"
+                              ]
+                            }
+                          },
+                          "days": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "required": [
+                                "date"
+                              ],
+                              "properties": {
+                                "date": {
+                                  "type": "string",
+                                  "format": "date"
+                                },
+                                "holiday": {
+                                  "type": "boolean"
+                                },
+                                "special_day": {
+                                  "type": "string"
+                                },
+                                "bridge_day": {
+                                  "type": "boolean"
+                                },
+                                "school_holiday": {
+                                  "type": "boolean"
+                                },
+                                "known_at": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "weather": {
+                        "type": "object",
+                        "required": [
+                          "source",
+                          "version",
+                          "region"
+                        ],
+                        "properties": {
+                          "source": {
+                            "type": "string"
+                          },
+                          "version": {
+                            "type": "string"
+                          },
+                          "region": {
+                            "type": "string"
+                          },
+                          "observations": {
+                            "type": "array",
+                            "description": "Requires available_at per observation.",
+                            "items": {
+                              "type": "object",
+                              "required": [
+                                "timestamp"
+                              ],
+                              "properties": {
+                                "timestamp": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "temperature": {
+                                  "type": "number",
+                                  "description": "Degrees Celsius."
+                                },
+                                "heating_degree_days_18": {
+                                  "type": "number",
+                                  "description": "Daily mean heating deficit, base 18 Celsius, K.d."
+                                },
+                                "humidity": {
+                                  "type": "number",
+                                  "description": "Relative humidity in percent."
+                                },
+                                "wind_speed": {
+                                  "type": "number",
+                                  "description": "Metres per second."
+                                },
+                                "global_radiation": {
+                                  "type": "number",
+                                  "description": "Watts per square metre."
+                                },
+                                "cloud_cover": {
+                                  "type": "number",
+                                  "description": "Cloud cover in percent."
+                                },
+                                "precipitation": {
+                                  "type": "number",
+                                  "description": "Millimetres per PT15M interval."
+                                },
+                                "issued_at": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "available_at": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                }
+                              }
+                            }
+                          },
+                          "forecasts": {
+                            "type": "array",
+                            "description": "Archived forecasts; requires issued_at per forecast.",
+                            "items": {
+                              "type": "object",
+                              "required": [
+                                "timestamp"
+                              ],
+                              "properties": {
+                                "timestamp": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "temperature": {
+                                  "type": "number",
+                                  "description": "Degrees Celsius."
+                                },
+                                "heating_degree_days_18": {
+                                  "type": "number",
+                                  "description": "Daily mean heating deficit, base 18 Celsius, K.d."
+                                },
+                                "humidity": {
+                                  "type": "number",
+                                  "description": "Relative humidity in percent."
+                                },
+                                "wind_speed": {
+                                  "type": "number",
+                                  "description": "Metres per second."
+                                },
+                                "global_radiation": {
+                                  "type": "number",
+                                  "description": "Watts per square metre."
+                                },
+                                "cloud_cover": {
+                                  "type": "number",
+                                  "description": "Cloud cover in percent."
+                                },
+                                "precipitation": {
+                                  "type": "number",
+                                  "description": "Millimetres per PT15M interval."
+                                },
+                                "issued_at": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "available_at": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/forecast-sandbox/consumption/validate": {
       "post": {
         "operationId": "forecast-sandbox_validateConsumptionSeries",
@@ -42688,7 +45612,7 @@
             "description": "OpenAPI 3.x document."
           }
         },
-        "description": "Returns a standalone OpenAPI 3.x document containing only the /api/forecast-sandbox/* paths — meant to be linked directly to a B2B lead, without the rest of the CET API surface."
+        "description": "Returns a standalone OpenAPI 3.x document containing only the /api/forecast-sandbox/* paths plus the required /api/jobs polling paths — meant to be linked directly to a B2B lead, without the rest of the CET API surface."
       }
     },
     "/api/forecast/generation-forecast": {

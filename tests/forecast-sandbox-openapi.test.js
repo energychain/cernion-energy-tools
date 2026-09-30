@@ -79,11 +79,14 @@ describe('Forecast Sandbox OpenAPI contract (CR-CET-FORECAST-SANDBOX-V0.1 §5)',
       expect(isolated.servers[0].url).toMatch(/^https?:\/\//);
     });
 
-    it('contains only Forecast Sandbox paths — no unrelated CET paths', () => {
+    it('contains Forecast Sandbox and required job polling paths only', () => {
       const paths = Object.keys(isolated.paths);
-      expect(paths.length).toBe(4);
+      expect(paths.length).toBe(27);
       for (const p of paths) {
-        expect(p.startsWith('/api/forecast-sandbox/')).toBe(true);
+        expect(
+          p.startsWith('/api/forecast-sandbox/') ||
+            /^\/api\/jobs\/\{jobId\}\/(status|progress|result)$/.test(p)
+        ).toBe(true);
       }
     });
 

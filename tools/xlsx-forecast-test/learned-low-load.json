@@ -1,0 +1,10 @@
+{
+  "mode": "rolling_day_ahead",
+  "relationship_mode": "auto",
+  "model_family": "learned_states",
+  "selection_policy": "adaptive_rmse_v1",
+  "selection_metric": "rmse",
+  "activity_model": true,
+  "activity_labeling": "learned_low_load_v1",
+  "feature_set": ["history", "calendar"]
+}

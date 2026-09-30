@@ -1,0 +1,392 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cernion.de/schemas/forecast-quality-report-1.0.json",
+  "title": "Cernion Forecast Quality Report 1.0",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "suite_id",
+    "status",
+    "execution",
+    "scope",
+    "expected_profiles",
+    "period_from",
+    "period_until",
+    "unit",
+    "timezone",
+    "configuration",
+    "provenance",
+    "series",
+    "aggregate",
+    "comparison"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "suite_id": {
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "running",
+        "completed",
+        "incomplete",
+        "failed",
+        "interrupted"
+      ]
+    },
+    "execution": {
+      "enum": [
+        "live_http",
+        "archived_api_replay"
+      ]
+    },
+    "scope": {
+      "enum": [
+        "full",
+        "smoke"
+      ]
+    },
+    "expected_profiles": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "unit": {
+      "enum": [
+        "kW",
+        "kWh"
+      ]
+    },
+    "timezone": {
+      "type": "string"
+    },
+    "configuration": {
+      "type": "object"
+    },
+    "provenance": {
+      "type": "object",
+      "required": [
+        "client_version",
+        "manifest_sha256",
+        "configuration_sha256",
+        "client_files"
+      ]
+    },
+    "series": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "series_id",
+          "file",
+          "status"
+        ],
+        "properties": {
+          "series_id": {
+            "type": "string"
+          },
+          "file": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "running",
+              "completed",
+              "failed"
+            ]
+          },
+          "auto": {
+            "type": "object",
+            "required": [
+              "metrics",
+              "model_version"
+            ],
+            "properties": {
+              "metrics": {
+                "type": "object",
+                "required": [
+                  "sample_count",
+                  "expected_intervals",
+                  "coverage",
+                  "mse",
+                  "rmse",
+                  "mae",
+                  "wape_percent"
+                ],
+                "properties": {
+                  "sample_count": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "expected_intervals": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "coverage": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  "mse": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "minimum": 0
+                  },
+                  "rmse": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "minimum": 0
+                  },
+                  "mae": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "minimum": 0
+                  },
+                  "wape_percent": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "minimum": 0
+                  }
+                }
+              },
+              "model_version": {
+                "type": "string"
+              }
+            }
+          },
+          "baseline": {
+            "type": "object",
+            "required": [
+              "metrics",
+              "model_version"
+            ],
+            "properties": {
+              "metrics": {
+                "type": "object",
+                "required": [
+                  "sample_count",
+                  "expected_intervals",
+                  "coverage",
+                  "mse",
+                  "rmse",
+                  "mae",
+                  "wape_percent"
+                ],
+                "properties": {
+                  "sample_count": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "expected_intervals": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "coverage": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  "mse": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "minimum": 0
+                  },
+                  "rmse": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "minimum": 0
+                  },
+                  "mae": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "minimum": 0
+                  },
+                  "wape_percent": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "minimum": 0
+                  }
+                }
+              },
+              "model_version": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "status": {
+                  "const": "completed"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "auto",
+                "baseline",
+                "quality_rating",
+                "rmse_skill_percent",
+                "input",
+                "validation"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "aggregate": {
+      "type": "object",
+      "required": [
+        "auto",
+        "baseline"
+      ],
+      "properties": {
+        "auto": {
+          "type": "object",
+          "required": [
+            "sample_count",
+            "expected_intervals",
+            "coverage",
+            "mse",
+            "rmse",
+            "mae",
+            "wape_percent"
+          ],
+          "properties": {
+            "sample_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "expected_intervals": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "coverage": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 1
+            },
+            "mse": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "rmse": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "mae": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "wape_percent": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            }
+          }
+        },
+        "baseline": {
+          "type": "object",
+          "required": [
+            "sample_count",
+            "expected_intervals",
+            "coverage",
+            "mse",
+            "rmse",
+            "mae",
+            "wape_percent"
+          ],
+          "properties": {
+            "sample_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "expected_intervals": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "coverage": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 1
+            },
+            "mse": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "rmse": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "mae": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "wape_percent": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "comparison": {
+      "type": "object"
+    }
+  }
+}
