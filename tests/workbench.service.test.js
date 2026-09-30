@@ -73,6 +73,7 @@ describe('Workbench RC3 Open WebUI Tenant Gateway', () => {
         playbookDbPath: path.join(dir, 'playbooks'),
         inboxDbPath: path.join(dir, 'inbox'),
         toolRunDbPath: path.join(dir, 'tool-runs'),
+        mailAccountDbPath: path.join(dir, 'mail-accounts'),
       },
     });
     broker.createService({
@@ -625,6 +626,156 @@ describe('Workbench RC3 Open WebUI Tenant Gateway', () => {
     } finally {
       await new Promise((resolve) => server.close(resolve));
     }
+  });
+
+  test('mail evidence connector stores encrypted account config without credential leakage', async () => {
+    const created = await call('mail.accounts.create', {
+      mailAccountRef: 'mako-inbox',
+      label: 'MaKo Inbox',
+      provider: 'imap',
+      driver: 'himalaya',
+      credentials: {
+        host: 'imap.example.test',
+        port: 993,
+        username: 'mako@example.test',
+        password: 'super-secret-password',
+        tls: true,
+      },
+    });
+    expect(created.mailAccount).toMatchObject({
+      mailAccountRef: 'mako-inbox',
+      label: 'MaKo Inbox',
+      secretConfigured: true,
+    });
+    expect(JSON.stringify(created)).not.toContain('super-secret-password');
+
+    const stored = await broker.getLocalService('workbench').store.getMailAccount({
+      tenantId: 'tenant-a',
+      mailAccountRef: 'mako-inbox',
+    });
+    expect(stored.encryptedSecret?.ciphertext).toBeTruthy();
+    expect(JSON.stringify(stored)).not.toContain('super-secret-password');
+
+    const list = await call('mail.accounts.list', {}, userMeta);
+    expect(list.items).toHaveLength(1);
+    expect(JSON.stringify(list)).not.toContain('super-secret-password');
+
+    const deleted = await call('mail.accounts.delete', { mailAccountRef: 'mako-inbox' });
+    expect(deleted.mailAccount.enabled).toBe(false);
+  });
+
+  test('mail evidence connector records search/read/attachment refs without mail send', async () => {
+    await call('mail.accounts.create', {
+      mailAccountRef: 'mako-inbox',
+      label: 'MaKo Inbox',
+      credentials: { host: 'imap.example.test', username: 'mako@example.test', password: 'secret' },
+    });
+    const c = await router('classify', {
+      userRequest: 'MSCONS fehlt, APERAK Z18 Mail des Lieferanten prüfen',
+      asyncDelivery: { mode: 'poll', clientId: 'openwebui-tenant-a' },
+    });
+
+    const search = await call(
+      'tools.run',
+      {
+        caseId: c.cetCaseId,
+        toolId: 'mail_search',
+        input: { mailAccountRef: 'mako-inbox', query: 'APERAK Z18 MSCONS', folder: 'INBOX' },
+      },
+      userMeta
+    );
+    expect(search.evidenceRef).toMatchObject({
+      evidenceType: 'mail_thread',
+      sourceType: 'mail_ref',
+      evidenceRole: 'tool_result',
+    });
+
+    const read = await call(
+      'tools.run',
+      {
+        caseId: c.cetCaseId,
+        toolId: 'mail_read',
+        input: {
+          mailAccountRef: 'mako-inbox',
+          messageId: 'msg-1',
+          subject: 'APERAK Z18 Reklamation',
+          sender: 'lieferant@example.test',
+          snippet: '<b>APERAK Z18</b> nach MSCONS Versand. <script>bad()</script>',
+        },
+      },
+      userMeta
+    );
+    expect(read.evidenceRef).toMatchObject({ evidenceType: 'mail_message' });
+    expect(read.evidenceRef.safeSummary).toContain('APERAK Z18');
+    expect(read.evidenceRef.safeSummary).not.toContain('<script>');
+
+    const attachment = await call(
+      'tools.run',
+      {
+        caseId: c.cetCaseId,
+        toolId: 'mail_attachment_ref',
+        input: {
+          mailAccountRef: 'mako-inbox',
+          messageId: 'msg-1',
+          attachmentId: 'att-1',
+          fileName: 'APERAK.xml',
+          mimeType: 'application/xml',
+        },
+      },
+      userMeta
+    );
+    expect(attachment.evidenceRef).toMatchObject({ evidenceType: 'mail_attachment_metadata' });
+
+    await expect(
+      call('tools.run', { caseId: c.cetCaseId, toolId: 'mail_send' }, userMeta)
+    ).rejects.toThrow(/Workbench tool blocked/iu);
+  });
+
+  test('mail evidence connector enforces role, account and secret boundaries', async () => {
+    await expect(
+      call(
+        'mail.accounts.create',
+        {
+          mailAccountRef: 'bad',
+          label: 'Bad',
+          credentials: { host: 'imap.example.test', username: 'u', password: 'secret' },
+        },
+        userMeta
+      )
+    ).rejects.toThrow(/admin role required/iu);
+
+    await call('mail.accounts.create', {
+      mailAccountRef: 'mako-inbox',
+      label: 'MaKo Inbox',
+      credentials: { host: 'imap.example.test', username: 'mako@example.test', password: 'secret' },
+    });
+    const c = await router('classify', {
+      userRequest: 'MSCONS fehlt, APERAK prüfen',
+      asyncDelivery: { mode: 'poll', clientId: 'openwebui-tenant-a' },
+    });
+
+    await expect(
+      call(
+        'tools.run',
+        {
+          caseId: c.cetCaseId,
+          toolId: 'mail_read',
+          input: { mailAccountRef: 'missing', messageId: 'm' },
+        },
+        userMeta
+      )
+    ).rejects.toThrow(/mail account/iu);
+    await expect(
+      call(
+        'tools.run',
+        {
+          caseId: c.cetCaseId,
+          toolId: 'mail_read',
+          input: { mailAccountRef: 'mako-inbox', messageId: 'm', snippet: 'Bearer token leak' },
+        },
+        userMeta
+      )
+    ).rejects.toThrow(/secrets|token/iu);
   });
 
   test('governance map and skill filter expose only active applicable skills', async () => {

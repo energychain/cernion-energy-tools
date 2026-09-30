@@ -53,7 +53,7 @@ const TOOL_REGISTRY = [
     'mail_search',
     'read_only_external',
     ROLE_SETS.makoEvidence,
-    'market_partner_protocol',
+    'mail_thread',
     'Search tenant-bound mail sources. Credentials remain outside LLM context.'
   ),
   defineTool(
@@ -62,8 +62,17 @@ const TOOL_REGISTRY = [
     'mail_read',
     'read_only_external',
     ROLE_SETS.makoEvidence,
-    'market_partner_protocol',
+    'mail_message',
     'Read one approved tenant mail message as Workbench evidence. No send/reply.'
+  ),
+  defineTool(
+    'mail_attachment_ref',
+    'Attach tenant mail attachment metadata',
+    'mail_attachment_ref',
+    'read_only_external',
+    ROLE_SETS.makoEvidence,
+    'mail_attachment_metadata',
+    'Attach metadata for one approved tenant mail attachment. Attachment bytes are not injected into chat.'
   ),
   defineTool(
     'mail_send',

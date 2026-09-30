@@ -2,15 +2,15 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.99.22",
-  "sourceOpenApiHash": "824fa97e721d1c3b7a3c1ee32ae7be68d5eb2f61dc5ed521dd404c47d37cddc6",
+  "sourceOpenApiHash": "796b07165b6ae7fd502b2cc49a796344a42cd391772dc2f4f505de5b2171215f",
   "coverage": {
-    "rawOperationCount": 1183,
-    "operationCount": 927,
-    "agentableCount": 925,
+    "rawOperationCount": 1186,
+    "operationCount": 930,
+    "agentableCount": 928,
     "nonAgentableCount": 2,
     "byOperationKind": {
-      "data_read": 406,
-      "admin": 14,
+      "data_read": 407,
+      "admin": 16,
       "object_store_write": 245,
       "process_step": 20,
       "process_start": 46,
@@ -85582,6 +85582,211 @@
         "negativeCues": [],
         "examples": [
           "Please resolve a workbench inbox task without erasing event audit"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "workbench_mail_accounts_list",
+      "method": "GET",
+      "path": "/api/workbench/mail/accounts",
+      "service": "workbench",
+      "action": "workbench.mail_accounts_list",
+      "summary": "List tenant-bound Workbench mail accounts without exposing credentials",
+      "tags": [
+        "Workbench"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.mail_accounts_list"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "workbench:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "workbench",
+          "mail",
+          "accounts",
+          "list",
+          "tenant",
+          "bound",
+          "without",
+          "exposing",
+          "credentials"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me list tenant-bound workbench mail accounts without exposing credentials"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "workbench_mail_accounts_create",
+      "method": "POST",
+      "path": "/api/workbench/mail/accounts",
+      "service": "workbench",
+      "action": "workbench.mail_accounts_create",
+      "summary": "Register a tenant-bound Workbench mail account with CET-encrypted credentials",
+      "tags": [
+        "Workbench"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "admin",
+      "consequenceLevel": "high",
+      "recommendedExecutionMode": "confirm",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.mail_accounts_create"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "workbench:write",
+        "admin"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "workbench"
+      ],
+      "sideEffects": [
+        "privileged_configuration_change"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "May not be reversible via API - verify with backend/tenant admin before invoking.",
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "workbench",
+          "mail",
+          "accounts",
+          "create",
+          "register",
+          "tenant",
+          "bound",
+          "account",
+          "with",
+          "cet",
+          "encrypted",
+          "credentials"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please register a tenant-bound workbench mail account with cet-encrypted credentials"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "workbench_mail_accounts_delete",
+      "method": "DELETE",
+      "path": "/api/workbench/mail/accounts/:mailAccountRef",
+      "service": "workbench",
+      "action": "workbench.mail_accounts_delete",
+      "summary": "Disable a tenant-bound Workbench mail account",
+      "tags": [
+        "Workbench"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "admin",
+      "consequenceLevel": "high",
+      "recommendedExecutionMode": "confirm",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.mail_accounts_delete"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "Mailaccountref"
+      ],
+      "requiredScopes": [
+        "workbench:write",
+        "admin"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "workbench"
+      ],
+      "sideEffects": [
+        "privileged_configuration_change"
+      ],
+      "idempotency": "idempotent",
+      "rollbackHint": "May not be reversible via API - verify with backend/tenant admin before invoking.",
+      "parameters": {
+        "required": [
+          {
+            "name": "mailAccountRef",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "workbench",
+          "mail",
+          "accounts",
+          "delete",
+          "disable",
+          "tenant",
+          "bound",
+          "account"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please disable a tenant-bound workbench mail account"
         ],
         "synonyms": [
           "agent infrastructure",

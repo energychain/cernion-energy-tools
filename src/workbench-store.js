@@ -53,6 +53,9 @@ function inboxTaskId(tenantId, id) {
 function toolRunId(tenantId, id) {
   return key('tool-run', tenantId, id);
 }
+function mailAccountId(tenantId, id) {
+  return key('mail-account', tenantId, id);
+}
 
 class WorkbenchStore {
   constructor({
@@ -65,6 +68,7 @@ class WorkbenchStore {
     playbookDb,
     inboxDb,
     toolRunDb,
+    mailAccountDb,
   }) {
     this.conversationsDb = conversationsDb;
     this.identityDb = identityDb;
@@ -75,6 +79,7 @@ class WorkbenchStore {
     this.playbookDb = playbookDb || conversationsDb;
     this.inboxDb = inboxDb || conversationsDb;
     this.toolRunDb = toolRunDb || conversationsDb;
+    this.mailAccountDb = mailAccountDb || conversationsDb;
   }
 
   async linkConversation(input) {
@@ -626,6 +631,66 @@ class WorkbenchStore {
       .filter((doc) => doc.tenantId === input.tenantId && doc.type === 'workbench_tool_run')
       .filter((doc) => !input.caseId || doc.caseId === input.caseId)
       .sort((a, b) => String(b.startedAt).localeCompare(String(a.startedAt)));
+  }
+
+  async saveMailAccount(input) {
+    const _id = mailAccountId(input.tenantId, input.mailAccountRef);
+    let existing = null;
+    try {
+      existing = await this.mailAccountDb.get(_id);
+    } catch (e) {
+      if (e.status !== 404) throw e;
+    }
+    const timestamp = now();
+    const doc = Object.assign(existing ? { ...existing } : {}, {
+      _id,
+      type: 'workbench_mail_account',
+      tenantId: input.tenantId,
+      actorId: input.actorId,
+      mailAccountRef: input.mailAccountRef,
+      label: input.label,
+      provider: input.provider || 'imap',
+      driver: input.driver || 'himalaya',
+      mode: input.mode || 'reference',
+      folders: input.folders || ['INBOX'],
+      allowedQueryPrefixes: input.allowedQueryPrefixes || [],
+      encryptedSecret: input.encryptedSecret,
+      secretFingerprint: input.secretFingerprint || null,
+      enabled: input.enabled !== false,
+      createdAt: existing?.createdAt || timestamp,
+      updatedAt: timestamp,
+    });
+    const saved = await this.mailAccountDb.put(doc);
+    return { ...doc, _rev: saved.rev };
+  }
+
+  async getMailAccount(input, { optional = false } = {}) {
+    try {
+      const doc = await this.mailAccountDb.get(mailAccountId(input.tenantId, input.mailAccountRef));
+      if (doc.enabled === false) disabled('Mail account disabled');
+      return doc;
+    } catch (e) {
+      if (e.status === 404 && optional) return null;
+      if (e.status === 404) notFound('Workbench mail account not found');
+      throw e;
+    }
+  }
+
+  async listMailAccounts(input) {
+    const rows = await this.mailAccountDb.allDocs({ include_docs: true });
+    return rows.rows
+      .map((row) => row.doc)
+      .filter((doc) => doc.tenantId === input.tenantId && doc.type === 'workbench_mail_account')
+      .filter((doc) => !input.enabledOnly || doc.enabled !== false)
+      .sort((a, b) => String(a.mailAccountRef).localeCompare(String(b.mailAccountRef)));
+  }
+
+  async deleteMailAccount(input) {
+    const existing = await this.getMailAccount(input);
+    const timestamp = now();
+    const doc = { ...existing, enabled: false, deletedAt: timestamp, updatedAt: timestamp };
+    const saved = await this.mailAccountDb.put(doc);
+    return { ...doc, _rev: saved.rev };
   }
 }
 
