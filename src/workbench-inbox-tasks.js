@@ -73,7 +73,7 @@ function taskFromEvent(event, { domain = null, existing = null } = {}) {
     blockingReason: base.blockingReason || event.eventType || attentionState,
     status: base.status || 'open',
     createdAt: base.createdAt || event.createdAt || new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+    updatedAt: base.updatedAt || event.updatedAt || event.createdAt || base.createdAt || null,
     resolvedAt: base.resolvedAt || null,
   };
   task.nextSafeAction = base.nextSafeAction || nextSafeActionForTask(task);
@@ -86,6 +86,8 @@ function safeTask(task = {}) {
     caseId: task.caseId || task.cetCaseId,
     cetCaseId: task.cetCaseId || task.caseId,
     eventIds: task.eventIds || [],
+    eventCount: (task.eventIds || []).length,
+    eventIdsDisplay: (task.eventIds || []).slice(0, 5).join(', '),
     attentionState: task.attentionState,
     severity: task.severity,
     ownerRole: task.ownerRole,
