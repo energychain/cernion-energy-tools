@@ -2,7 +2,7 @@
 
 const GOVERNANCE_MAP_VERSION = 'cernion.workbench.tool-skill-governance.v1';
 
-const DEFAULT_BLOCKED_EFFECTS = ['external_business_effect'];
+const DEFAULT_BLOCKED_EFFECTS = new Set(['external_business_effect']);
 const DEFAULT_ALLOWED_TOOLS = ['document_fetch', 'api_lookup'];
 
 const GOVERNANCE_BY_DOMAIN = {
@@ -100,7 +100,7 @@ function toolAllowedByGovernance(tool, { domain = 'governance', actorRoles = [] 
   if (!governance.toolSideEffectClasses.includes(tool.sideEffectClass)) {
     return { allowed: false, blockedReason: 'side_effect_class_not_allowed', governance };
   }
-  if (DEFAULT_BLOCKED_EFFECTS.includes(tool.sideEffectClass)) {
+  if (DEFAULT_BLOCKED_EFFECTS.has(tool.sideEffectClass)) {
     return { allowed: false, blockedReason: 'external_effect_blocked', governance };
   }
   if (!hasAnyRole(actorRoles, tool.requiredRoles || governance.requiredRoles || [])) {
