@@ -9,123 +9,88 @@ const MAX_INPUT_VALUE_LENGTH = 1000;
 const SENSITIVE_KEY_PATTERN =
   /authorization|bearer|token|secret|password|api[_-]?key|credential|cookie/i;
 
-function starterOverride(activityId, starterId, title, description, requiredInputs, nextSafeStep) {
-  return {
-    activityId,
-    starterId,
-    title,
-    description,
-    requiredInputs: requiredInputs.map(([key, label]) => ({ key, label })),
-    nextSafeStep,
-  };
-}
-
-const STARTER_OVERRIDES = [
-  starterOverride(
+const STARTER_COLUMNS = ['activityId', 'starterId', 'title', 'description', 'nextSafeStep'];
+const STARTER_ROWS = [
+  [
     'market_communication_clarification',
     'mako-mscons-aperak-clarification',
     'MaKo-Klärfall: MSCONS fehlt / APERAK',
     'Strukturiert einen MaKo-/EDM-/MSB-Grenzfall mit MSCONS, APERAK/CONTRL und Stammdatenbezug.',
-    [
-      ['marketLocationId', 'MaLo/MeLo oder Prozessreferenz'],
-      ['messageStatus', 'Nachrichtenstatus'],
-      ['aperakContrlContext', 'APERAK/CONTRL-Kontext'],
-    ],
-    'APERAK/CONTRL, MSCONS-Versandstatus und MaLo/MeLo-Stammdatenhistorie prüfen.'
-  ),
-  starterOverride(
+    'APERAK/CONTRL, MSCONS-Versandstatus und MaLo/MeLo-Stammdatenhistorie prüfen.',
+    'marketLocationId=MaLo/MeLo oder Prozessreferenz;messageStatus=Nachrichtenstatus;aperakContrlContext=APERAK/CONTRL-Kontext',
+  ],
+  [
     'edm_metering_data_quality',
     'edm-metering-values-clarification',
     'EDM-Messwertproblem',
     'Klärt fehlende oder unplausible Messwerte, Lastgänge und Zeitreihenstatus.',
-    [
-      ['marketLocationId', 'MaLo/MeLo'],
-      ['period', 'Zeitraum'],
-      ['obis', 'OBIS/Zeitreihe'],
-      ['plausibilityStatus', 'Plausibilisierungsstatus'],
-    ],
-    'EDM-Status, Plausibilisierung und Versand-/Übergabestatus evidenzbasiert prüfen.'
-  ),
-  starterOverride(
+    'EDM-Status, Plausibilisierung und Versand-/Übergabestatus evidenzbasiert prüfen.',
+    'marketLocationId=MaLo/MeLo;period=Zeitraum;obis=OBIS/Zeitreihe;plausibilityStatus=Plausibilisierungsstatus',
+  ],
+  [
     'market_master_data',
     'malo-melo-master-data-check',
     'MaLo/MeLo Stammdatenprüfung',
     'Prüft MaLo-/MeLo-Zuordnung, Lieferbeginn und UTILMD-/Stammdatenkontext.',
-    [
-      ['maloId', 'MaLo'],
-      ['meloId', 'MeLo'],
-      ['deliveryStart', 'Lieferbeginn/Lieferende'],
-      ['masterDataHistory', 'UTILMD-/Stammdatenhistorie'],
-    ],
-    'Zuordnung, Gültigkeiten und Marktpartnerkontext ohne externe Nachricht prüfen.'
-  ),
-  starterOverride(
+    'Zuordnung, Gültigkeiten und Marktpartnerkontext ohne externe Nachricht prüfen.',
+    'maloId=MaLo;meloId=MeLo;deliveryStart=Lieferbeginn/Lieferende;masterDataHistory=UTILMD-/Stammdatenhistorie',
+  ],
+  [
     'grid_connection_precheck',
     'grid-connection-precheck',
     'Netzanschlussvorprüfung',
     'Führt eine nicht-bindende Vorprüfung für Anschlussleistung und Spannungsebene.',
-    [
-      ['location', 'Standort'],
-      ['energyOrLoadProfile', 'Jahresarbeit oder Lastprofil'],
-      ['requestedCapacity', 'Anschlussleistung'],
-      ['expansionReserve', 'Ausbaureserve'],
-    ],
-    'Anschlussleistung, Spannungsebene und fehlende Netzbetreiber-Evidenz als Vorprüfung einordnen.'
-  ),
-  starterOverride(
+    'Anschlussleistung, Spannungsebene und fehlende Netzbetreiber-Evidenz als Vorprüfung einordnen.',
+    'location=Standort;energyOrLoadProfile=Jahresarbeit oder Lastprofil;requestedCapacity=Anschlussleistung;expansionReserve=Ausbaureserve',
+  ],
+  [
     'target_grid_planning_readiness',
     'znp-production-readiness-gate',
     'Zielnetzplanung Evidence Gate',
     'Strukturiert Produktionsreife, Evidenzstatus und Handoff für Zielnetzplanung.',
-    [
-      ['projectPath', 'Projekt/Ausbaupfad'],
-      ['evidenceGate', 'Evidence Gate'],
-      ['referenceData', 'Referenzdaten'],
-      ['ownerRole', 'Owner/Rolle'],
-    ],
-    'Produktionsreife anhand fehlender Evidenz und No-Call-Grenzen einordnen.'
-  ),
-  starterOverride(
+    'Produktionsreife anhand fehlender Evidenz und No-Call-Grenzen einordnen.',
+    'projectPath=Projekt/Ausbaupfad;evidenceGate=Evidence Gate;referenceData=Referenzdaten;ownerRole=Owner/Rolle',
+  ],
+  [
     'redispatch_clarification',
     'redispatch-clarification',
     'Redispatch-Klärfall',
     'Klärt fehlende Abrufdaten, Fahrpläne oder EDM-/Redispatch-Grenzfälle.',
-    [
-      ['assetRef', 'Anlage/Asset'],
-      ['period', 'Abrufzeitraum'],
-      ['dispatchStatus', 'Fahrplan-/Abrufstatus'],
-      ['meteringStatus', 'Messwertstatus'],
-    ],
-    'Redispatch- und EDM-Evidenz getrennt prüfen und offene Datenlücken markieren.'
-  ),
-  starterOverride(
+    'Redispatch- und EDM-Evidenz getrennt prüfen und offene Datenlücken markieren.',
+    'assetRef=Anlage/Asset;period=Abrufzeitraum;dispatchStatus=Fahrplan-/Abrufstatus;meteringStatus=Messwertstatus',
+  ],
+  [
     'management_dossier',
     'management-governance-dossier',
     'Management/Governance Dossier',
     'Erzeugt eine nicht-bindende Lage mit Evidenz, Risiken und nächsten sicheren Schritten.',
-    [
-      ['topic', 'Thema'],
-      ['audience', 'Zielgruppe'],
-      ['availableEvidence', 'verfügbare Evidenz'],
-      ['decisionBoundary', 'Entscheidungsgrenze'],
-    ],
-    'Lage, Annahmen, fehlende Evidenz und No-Call-Guards für Managementsicht trennen.'
-  ),
-  starterOverride(
+    'Lage, Annahmen, fehlende Evidenz und No-Call-Guards für Managementsicht trennen.',
+    'topic=Thema;audience=Zielgruppe;availableEvidence=verfügbare Evidenz;decisionBoundary=Entscheidungsgrenze',
+  ],
+  [
     'grid_connection_precheck',
     'data-center-renewable-grid-precheck',
     'Rechenzentrum / regionale EE / Netzanschluss',
     'Prüft regionale EE-Bedingungen, Zeitgleichkeit/PPA-Annahmen und Netzanschluss-Vorprüfung.',
-    [
-      ['location', 'Standort'],
-      ['regionalGeneration', 'regionale PV-/Wind-Erzeugung'],
-      ['simultaneityAssumption', 'Zeitgleichkeitsannahme'],
-      ['ppaQuantity', 'PPA-Menge'],
-      ['itLoadPue', 'IT-Last/PUE'],
-    ],
-    'Rechnerische Obergrenzen und Anschlussleistungsband nicht-bindend ausweisen; Evidenzbedarf markieren.'
-  ),
+    'Rechnerische Obergrenzen und Anschlussleistungsband nicht-bindend ausweisen; Evidenzbedarf markieren.',
+    'location=Standort;regionalGeneration=regionale PV-/Wind-Erzeugung;simultaneityAssumption=Zeitgleichkeitsannahme;ppaQuantity=PPA-Menge;itLoadPue=IT-Last/PUE',
+  ],
 ];
+
+function parseRequiredInputs(serializedInputs) {
+  return serializedInputs.split(';').map((entry) => {
+    const [key, ...labelParts] = entry.split('=');
+    return { key, label: labelParts.join('=').trim() };
+  });
+}
+
+function starterOverrideFromRow(row) {
+  const override = Object.fromEntries(STARTER_COLUMNS.map((column, index) => [column, row[index]]));
+  override.requiredInputs = parseRequiredInputs(row[STARTER_COLUMNS.length]);
+  return override;
+}
+
+const STARTER_OVERRIDES = STARTER_ROWS.map(starterOverrideFromRow);
 
 const STARTERS_BY_ID = new Map(STARTER_OVERRIDES.map((config) => [config.starterId, config]));
 const DEFAULT_NO_CALL_GUARDS = [
