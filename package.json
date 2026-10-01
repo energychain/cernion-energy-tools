@@ -88,7 +88,7 @@
     "german-zip-codes": "^1.0.2",
     "graphology": "^0.26.0",
     "iconv-lite": "^0.7.3",
-    "moleculer": "^0.15.1",
+    "moleculer": "^0.15.2",
     "moleculer-auto-openapi": "^1.1.7",
     "moleculer-repl": "^0.8.0",
     "moleculer-web": "^0.11.0",
