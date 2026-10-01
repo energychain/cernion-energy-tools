@@ -47629,6 +47629,262 @@
         }
       }
     },
+    "/api/governance-cards/types": {
+      "get": {
+        "operationId": "governance-cards_listTypes",
+        "summary": "List UI-safe governance card type definitions",
+        "tags": [
+          "Governance Cards"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "List UI-safe governance card type definitions",
+        "parameters": []
+      }
+    },
+    "/api/governance-cards/types/:cardType": {
+      "get": {
+        "operationId": "governance-cards_getType",
+        "summary": "Return one governance card type definition",
+        "tags": [
+          "Governance Cards"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Return one governance card type definition",
+        "parameters": [
+          {
+            "name": "cardType",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "cardType"
+          }
+        ]
+      }
+    },
+    "/api/governance-cards/cards": {
+      "post": {
+        "operationId": "governance-cards_createCard",
+        "summary": "Create a tenant-scoped governance card draft",
+        "tags": [
+          "Governance Cards"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Create a tenant-scoped governance card draft",
+        "parameters": []
+      },
+      "get": {
+        "operationId": "governance-cards_listCards",
+        "summary": "List tenant-scoped governance cards",
+        "tags": [
+          "Governance Cards"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "List tenant-scoped governance cards",
+        "parameters": []
+      }
+    },
+    "/api/governance-cards/cards/:cardId": {
+      "get": {
+        "operationId": "governance-cards_getCard",
+        "summary": "Return one tenant-scoped governance card",
+        "tags": [
+          "Governance Cards"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Return one tenant-scoped governance card",
+        "parameters": [
+          {
+            "name": "cardId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "cardId"
+          }
+        ]
+      },
+      "patch": {
+        "operationId": "governance-cards_updateCard",
+        "summary": "Update bounded governance card fields",
+        "tags": [
+          "Governance Cards"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Update bounded governance card fields",
+        "parameters": []
+      }
+    },
+    "/api/governance-cards/cards/:cardId/evidence-refs": {
+      "post": {
+        "operationId": "governance-cards_addEvidenceRef",
+        "summary": "Attach an existing EvidenceRef pointer to a governance card",
+        "tags": [
+          "Governance Cards"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Attach an existing EvidenceRef pointer to a governance card",
+        "parameters": []
+      }
+    },
+    "/api/governance-cards/cards/:cardId/comments": {
+      "post": {
+        "operationId": "governance-cards_addComment",
+        "summary": "Add bounded internal comment metadata to a governance card audit trail",
+        "tags": [
+          "Governance Cards"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Add bounded internal comment metadata to a governance card audit trail",
+        "parameters": []
+      }
+    },
+    "/api/governance-cards/cards/:cardId/transition": {
+      "post": {
+        "operationId": "governance-cards_transition",
+        "summary": "Move a governance card through allowed lifecycle transitions",
+        "tags": [
+          "Governance Cards"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Move a governance card through allowed lifecycle transitions",
+        "parameters": []
+      }
+    },
+    "/api/governance-cards/cards/:cardId/dossier-summary": {
+      "get": {
+        "operationId": "governance-cards_summarizeForDossier",
+        "summary": "Return a scalar-safe governance card summary for dossiers",
+        "tags": [
+          "Governance Cards"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Return a scalar-safe governance card summary for dossiers",
+        "parameters": [
+          {
+            "name": "cardId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "cardId"
+          }
+        ]
+      }
+    },
     "/api/governance/role-workbench": {
       "get": {
         "operationId": "governance_roleWorkbenchProjection",

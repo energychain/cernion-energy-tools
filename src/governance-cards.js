@@ -1,0 +1,312 @@
+'use strict';
+
+const { randomUUID } = require('node:crypto');
+const { Errors } = require('moleculer');
+
+const GOVERNANCE_CARD_SCHEMA_VERSION = 'governance-cards.v1';
+const MAX_LIST_LIMIT = 100;
+const STATUSES = ['draft', 'review', 'assigned', 'follow_up', 'completed', 'closed'];
+const DECISION_SIGNALS = [
+  'observe',
+  'review',
+  'assign',
+  'implement',
+  'escalate',
+  'close-with-rationale',
+];
+const TRANSITIONS = {
+  draft: ['review', 'assigned', 'closed'],
+  review: ['assigned', 'follow_up', 'closed'],
+  assigned: ['follow_up', 'completed', 'closed'],
+  follow_up: ['assigned', 'completed', 'closed'],
+  completed: ['closed'],
+  closed: [],
+};
+const CARD_TYPES = [
+  {
+    cardType: 'generic_governance_signal',
+    title: 'Generic governance signal',
+    description: 'Reusable trigger-to-review governance card for regulated workbench processes.',
+    requiredFields: ['title', 'triggerSummary', 'affectedDomain', 'ownerRole', 'nextGate'],
+    allowedTransitions: TRANSITIONS,
+  },
+  {
+    cardType: 'regulatory_impulse',
+    title: 'Regulatory impulse',
+    description: 'Tracks a regulatory impulse from signal to relevance/risk review and follow-up.',
+    requiredFields: [
+      'title',
+      'triggerSummary',
+      'affectedDomain',
+      'ownerRole',
+      'deadline',
+      'nextGate',
+    ],
+    allowedTransitions: TRANSITIONS,
+  },
+  {
+    cardType: 'asset_investment_governance',
+    title: 'Asset / investment governance',
+    description: 'Tracks asset or investment governance signals with owner, risk and next gate.',
+    requiredFields: [
+      'title',
+      'triggerSummary',
+      'affectedDomain',
+      'affectedProcess',
+      'ownerRole',
+      'nextGate',
+    ],
+    allowedTransitions: TRANSITIONS,
+  },
+];
+const CARD_TYPE_MAP = new Map(CARD_TYPES.map((type) => [type.cardType, type]));
+
+function clientError(message, status = 422, code = 'GOVERNANCE_CARD_INVALID', data = {}) {
+  throw new Errors.MoleculerClientError(message, status, code, data);
+}
+function now() {
+  return new Date().toISOString();
+}
+function cleanString(value, { max = 500, required = false, field = 'value' } = {}) {
+  if (value === undefined || value === null) {
+    if (required)
+      clientError(`${field} required`, 422, 'GOVERNANCE_CARD_REQUIRED_FIELD', { field });
+    return null;
+  }
+  const cleaned = String(value)
+    .replace(/[\u0000-\u001f\u007f]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!cleaned) {
+    if (required)
+      clientError(`${field} required`, 422, 'GOVERNANCE_CARD_REQUIRED_FIELD', { field });
+    return null;
+  }
+  return cleaned.slice(0, max);
+}
+function cleanList(value, { maxItems = 12, maxLength = 120 } = {}) {
+  if (!Array.isArray(value)) return [];
+  return [
+    ...new Set(value.map((item) => cleanString(item, { max: maxLength })).filter(Boolean)),
+  ].slice(0, maxItems);
+}
+function normalizeBoolean(value) {
+  return value === true || value === 'true';
+}
+function normalizeDate(value, field) {
+  const cleaned = cleanString(value, { max: 40, field });
+  if (!cleaned) return null;
+  const parsed = Date.parse(cleaned);
+  if (Number.isNaN(parsed))
+    clientError(`${field} must be an ISO date`, 422, 'GOVERNANCE_CARD_INVALID_DATE', { field });
+  return cleaned;
+}
+function getCardType(cardType) {
+  const type = CARD_TYPE_MAP.get(
+    cleanString(cardType, { max: 80, required: true, field: 'cardType' })
+  );
+  if (!type) clientError('Unknown governance card type', 404, 'GOVERNANCE_CARD_TYPE_NOT_FOUND');
+  return type;
+}
+function safeCardType(type) {
+  return {
+    cardType: type.cardType,
+    title: type.title,
+    description: type.description,
+    requiredFields: [...type.requiredFields],
+    statuses: [...STATUSES],
+    allowedTransitions: Object.fromEntries(
+      Object.entries(type.allowedTransitions).map(([from, to]) => [from, [...to]])
+    ),
+  };
+}
+function normalizeCardInput(input = {}, principal, existing = null) {
+  const type = getCardType(input.cardType || existing?.cardType);
+  const missing = [];
+  for (const field of type.requiredFields) {
+    const value = input[field] !== undefined ? input[field] : existing?.[field];
+    if (value === undefined || value === null || String(value).trim() === '') missing.push(field);
+  }
+  if (missing.length) {
+    clientError('Missing required governance card fields', 422, 'GOVERNANCE_CARD_MISSING_FIELDS', {
+      missingFields: missing,
+      guidance: `Provide ${missing.join(', ')} before creating this ${type.cardType} card.`,
+    });
+  }
+  const status = cleanString(input.status || existing?.status || 'draft', { max: 40 });
+  if (!STATUSES.includes(status)) clientError('Unsupported governance card status');
+  const decisionSignal = cleanString(input.decisionSignal || existing?.decisionSignal || 'review', {
+    max: 80,
+  });
+  if (!DECISION_SIGNALS.includes(decisionSignal)) clientError('Unsupported decision signal');
+  return {
+    cardType: type.cardType,
+    title: cleanString(input.title ?? existing?.title, {
+      max: 180,
+      required: true,
+      field: 'title',
+    }),
+    triggerSummary: cleanString(input.triggerSummary ?? existing?.triggerSummary, {
+      max: 1200,
+      required: true,
+      field: 'triggerSummary',
+    }),
+    sourceKind: cleanString(input.sourceKind ?? existing?.sourceKind, { max: 80 }) || 'manual',
+    triggerKind: cleanString(input.triggerKind ?? existing?.triggerKind, { max: 80 }) || 'signal',
+    affectedDomain: cleanString(input.affectedDomain ?? existing?.affectedDomain, {
+      max: 120,
+      required: true,
+      field: 'affectedDomain',
+    }),
+    affectedProcess: cleanString(input.affectedProcess ?? existing?.affectedProcess, { max: 180 }),
+    riskTypes: cleanList(input.riskTypes ?? existing?.riskTypes),
+    impactSummary: cleanString(input.impactSummary ?? existing?.impactSummary, { max: 1200 }),
+    deadline: normalizeDate(input.deadline ?? existing?.deadline, 'deadline'),
+    effectiveDate: normalizeDate(input.effectiveDate ?? existing?.effectiveDate, 'effectiveDate'),
+    ownerRole: cleanString(input.ownerRole ?? existing?.ownerRole, {
+      max: 120,
+      required: true,
+      field: 'ownerRole',
+    }),
+    ownerRef: cleanString(input.ownerRef ?? existing?.ownerRef, { max: 160 }),
+    status,
+    nextGate: cleanString(input.nextGate ?? existing?.nextGate, {
+      max: 240,
+      required: true,
+      field: 'nextGate',
+    }),
+    followUpRequired:
+      input.followUpRequired === undefined
+        ? Boolean(existing?.followUpRequired)
+        : normalizeBoolean(input.followUpRequired),
+    managementRelevance: cleanString(input.managementRelevance ?? existing?.managementRelevance, {
+      max: 80,
+    }),
+    executiveVisibility: cleanString(input.executiveVisibility ?? existing?.executiveVisibility, {
+      max: 80,
+    }),
+    evidenceRefs: normalizeEvidenceRefs(input.evidenceRefs ?? existing?.evidenceRefs),
+    decisionSignal,
+    updatedBy: principal.actorId,
+  };
+}
+function normalizeEvidenceRefs(value) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((ref) => {
+      if (typeof ref === 'string') return { evidenceId: cleanString(ref, { max: 160 }) };
+      if (!ref || typeof ref !== 'object') return null;
+      return {
+        evidenceId: cleanString(ref.evidenceId || ref.id || ref.ref, { max: 160 }),
+        label: cleanString(ref.label, { max: 180 }),
+        sourceType: cleanString(ref.sourceType, { max: 80 }),
+      };
+    })
+    .filter((ref) => ref?.evidenceId)
+    .slice(0, 50);
+}
+function createAuditEntry(action, actorId, details = {}) {
+  return {
+    action,
+    actorId,
+    at: now(),
+    details: Object.fromEntries(
+      Object.entries(details)
+        .map(([k, v]) => [k, cleanString(v, { max: 240 })])
+        .filter(([, v]) => v !== null)
+    ),
+  };
+}
+function safeCard(card) {
+  return {
+    schemaVersion: GOVERNANCE_CARD_SCHEMA_VERSION,
+    cardId: card.cardId,
+    tenantId: card.tenantId,
+    cardType: card.cardType,
+    title: card.title,
+    triggerSummary: card.triggerSummary,
+    sourceKind: card.sourceKind,
+    triggerKind: card.triggerKind,
+    affectedDomain: card.affectedDomain,
+    affectedProcess: card.affectedProcess,
+    riskTypes: card.riskTypes || [],
+    impactSummary: card.impactSummary,
+    deadline: card.deadline,
+    effectiveDate: card.effectiveDate,
+    ownerRole: card.ownerRole,
+    ownerRef: card.ownerRef,
+    status: card.status,
+    nextGate: card.nextGate,
+    followUpRequired: Boolean(card.followUpRequired),
+    managementRelevance: card.managementRelevance,
+    executiveVisibility: card.executiveVisibility,
+    evidenceRefs: normalizeEvidenceRefs(card.evidenceRefs),
+    decisionSignal: card.decisionSignal,
+    createdAt: card.createdAt,
+    updatedAt: card.updatedAt,
+    createdBy: card.createdBy,
+    updatedBy: card.updatedBy,
+    auditTrail: Array.isArray(card.auditTrail) ? card.auditTrail.slice(-20) : [],
+  };
+}
+function listMatches(card, filters = {}) {
+  if (filters.cardType && card.cardType !== filters.cardType) return false;
+  if (filters.status && card.status !== filters.status) return false;
+  if (filters.ownerRole && card.ownerRole !== filters.ownerRole) return false;
+  if (filters.riskType && !(card.riskTypes || []).includes(filters.riskType)) return false;
+  if (filters.managementRelevance && card.managementRelevance !== filters.managementRelevance)
+    return false;
+  if (filters.deadlineBefore && (!card.deadline || card.deadline > filters.deadlineBefore))
+    return false;
+  return true;
+}
+function summarizeCard(card) {
+  return {
+    schemaVersion: GOVERNANCE_CARD_SCHEMA_VERSION,
+    cardId: card.cardId,
+    cardType: card.cardType,
+    title: card.title,
+    status: card.status,
+    affectedDomain: card.affectedDomain,
+    affectedProcess: card.affectedProcess,
+    riskTypes: card.riskTypes || [],
+    ownerRole: card.ownerRole,
+    deadline: card.deadline,
+    nextGate: card.nextGate,
+    followUpRequired: Boolean(card.followUpRequired),
+    managementRelevance: card.managementRelevance,
+    executiveVisibility: card.executiveVisibility,
+    decisionSignal: card.decisionSignal,
+    evidenceRefs: normalizeEvidenceRefs(card.evidenceRefs),
+    summaryText: [
+      card.title,
+      card.affectedDomain && `Domain: ${card.affectedDomain}`,
+      card.status && `Status: ${card.status}`,
+      card.nextGate && `Next gate: ${card.nextGate}`,
+    ]
+      .filter(Boolean)
+      .join(' | '),
+    noCallGuards: [
+      'Governance card summaries are advisory/internal and do not execute external filings, market messages, billing, dispatch, device control or production workflow actions.',
+    ],
+  };
+}
+function makeCardId() {
+  return `gcard_${randomUUID()}`;
+}
+
+module.exports = {
+  GOVERNANCE_CARD_SCHEMA_VERSION,
+  CARD_TYPES,
+  STATUSES,
+  TRANSITIONS,
+  getCardType,
+  safeCardType,
+  normalizeCardInput,
+  safeCard,
+  listMatches,
+  summarizeCard,
+  createAuditEntry,
+  makeCardId,
+  clientError,
+};
