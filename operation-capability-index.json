@@ -2,17 +2,17 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.99.22",
-  "sourceOpenApiHash": "de2e260f594817f5bc5b9716151411c653c080f31a11dffbaa0454345527c441",
+  "sourceOpenApiHash": "8785a8e97f5195312e20c70318c0811b60237a193a9946fcf26b5535d8aedf66",
   "coverage": {
-    "rawOperationCount": 1230,
-    "operationCount": 974,
-    "agentableCount": 972,
+    "rawOperationCount": 1237,
+    "operationCount": 981,
+    "agentableCount": 979,
     "nonAgentableCount": 2,
     "byOperationKind": {
-      "data_read": 420,
+      "data_read": 423,
       "admin": 20,
-      "object_store_write": 258,
-      "process_step": 25,
+      "object_store_write": 261,
+      "process_step": 26,
       "process_start": 50,
       "advisory_plan": 48,
       "draft_write": 17,
@@ -56881,6 +56881,68 @@
       "aliases": []
     },
     {
+      "operationId": "governance-cards_getAttentionSnapshot",
+      "method": "GET",
+      "path": "/api/governance-cards/attention-snapshot",
+      "service": "governance-cards",
+      "action": "governance-cards.getAttentionSnapshot",
+      "summary": "Return read-only governance-card attention projection",
+      "tags": [
+        "Governance Cards"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "governance-cards.get_attention_snapshot"
+      ],
+      "domains": [
+        "governance"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "governance-cards:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "governance",
+          "cards",
+          "attention",
+          "snapshot",
+          "return",
+          "read",
+          "only",
+          "card",
+          "projection"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me return read-only governance-card attention projection"
+        ],
+        "synonyms": [
+          "VDMI",
+          "V/D/M/I matrix",
+          "audit trail"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
       "operationId": "governance-cards_listCards",
       "method": "GET",
       "path": "/api/governance-cards/cards",
@@ -57137,6 +57199,137 @@
       "aliases": []
     },
     {
+      "operationId": "governance-cards_markBlocked",
+      "method": "POST",
+      "path": "/api/governance-cards/cards/:cardId/blocked",
+      "service": "governance-cards",
+      "action": "governance-cards.markBlocked",
+      "summary": "Mark a governance card as blocked with bounded rationale",
+      "tags": [
+        "Governance Cards"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "governance-cards.mark_blocked"
+      ],
+      "domains": [
+        "governance"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "governance-cards:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "governance-cards"
+      ],
+      "sideEffects": [
+        "creates_or_modifies_stored_object"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "governance",
+          "cards",
+          "mark",
+          "blocked",
+          "card",
+          "as",
+          "with",
+          "bounded",
+          "rationale"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please mark a governance card as blocked with bounded rationale"
+        ],
+        "synonyms": [
+          "VDMI",
+          "V/D/M/I matrix",
+          "audit trail"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "governance-cards_closeWithRationale",
+      "method": "POST",
+      "path": "/api/governance-cards/cards/:cardId/close-with-rationale",
+      "service": "governance-cards",
+      "action": "governance-cards.closeWithRationale",
+      "summary": "Close a governance card with bounded internal rationale",
+      "tags": [
+        "Governance Cards"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "governance-cards.close_with_rationale"
+      ],
+      "domains": [
+        "governance"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "governance-cards:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "governance-cards"
+      ],
+      "sideEffects": [
+        "creates_or_modifies_stored_object"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "governance",
+          "cards",
+          "close",
+          "with",
+          "rationale",
+          "card",
+          "bounded",
+          "internal"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please close a governance card with bounded internal rationale"
+        ],
+        "synonyms": [
+          "VDMI",
+          "V/D/M/I matrix",
+          "audit trail"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
       "operationId": "governance-cards_addComment",
       "method": "POST",
       "path": "/api/governance-cards/cards/:cardId/comments",
@@ -57335,6 +57528,279 @@
         "negativeCues": [],
         "examples": [
           "Please attach an existing evidenceref pointer to a governance card"
+        ],
+        "synonyms": [
+          "VDMI",
+          "V/D/M/I matrix",
+          "audit trail"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "governance-cards_summarizeForExecutiveReview",
+      "method": "GET",
+      "path": "/api/governance-cards/cards/:cardId/executive-summary",
+      "service": "governance-cards",
+      "action": "governance-cards.summarizeForExecutiveReview",
+      "summary": "Return bounded executive governance-card summary",
+      "tags": [
+        "Governance Cards"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "governance-cards.summarize_for_executive_review"
+      ],
+      "domains": [
+        "governance"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "Card"
+      ],
+      "requiredScopes": [
+        "governance-cards:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [
+          {
+            "name": "cardId",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "governance",
+          "cards",
+          "summarize",
+          "executive",
+          "review",
+          "return",
+          "bounded",
+          "card",
+          "summary"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me return bounded executive governance-card summary"
+        ],
+        "synonyms": [
+          "VDMI",
+          "V/D/M/I matrix",
+          "audit trail"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "governance-cards_setFollowUpDate",
+      "method": "POST",
+      "path": "/api/governance-cards/cards/:cardId/follow-up-date",
+      "service": "governance-cards",
+      "action": "governance-cards.setFollowUpDate",
+      "summary": "Set a bounded follow-up date for a governance card",
+      "tags": [
+        "Governance Cards"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "governance-cards.set_follow_up_date"
+      ],
+      "domains": [
+        "governance"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "governance-cards:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "governance-cards"
+      ],
+      "sideEffects": [
+        "creates_or_modifies_stored_object"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "governance",
+          "cards",
+          "set",
+          "follow",
+          "up",
+          "date",
+          "bounded",
+          "card"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please set a bounded follow-up date for a governance card"
+        ],
+        "synonyms": [
+          "VDMI",
+          "V/D/M/I matrix",
+          "audit trail"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "governance-cards_summarizeForLineFeedback",
+      "method": "GET",
+      "path": "/api/governance-cards/cards/:cardId/line-feedback-summary",
+      "service": "governance-cards",
+      "action": "governance-cards.summarizeForLineFeedback",
+      "summary": "Return action-oriented governance-card line feedback summary",
+      "tags": [
+        "Governance Cards"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "governance-cards.summarize_for_line_feedback"
+      ],
+      "domains": [
+        "governance"
+      ],
+      "dataSources": [],
+      "entityTypes": [
+        "Card"
+      ],
+      "requiredScopes": [
+        "governance-cards:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [
+          {
+            "name": "cardId",
+            "in": "path",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "governance",
+          "cards",
+          "summarize",
+          "line",
+          "feedback",
+          "return",
+          "action",
+          "oriented",
+          "card",
+          "summary"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me return action-oriented governance-card line feedback summary"
+        ],
+        "synonyms": [
+          "VDMI",
+          "V/D/M/I matrix",
+          "audit trail"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "governance-cards_confirmOwner",
+      "method": "POST",
+      "path": "/api/governance-cards/cards/:cardId/owner-confirmation",
+      "service": "governance-cards",
+      "action": "governance-cards.confirmOwner",
+      "summary": "Confirm governance-card owner explicitly",
+      "tags": [
+        "Governance Cards"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "process_step",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "governance-cards.confirm_owner"
+      ],
+      "domains": [
+        "governance"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "governance-cards:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "governance-cards"
+      ],
+      "sideEffects": [
+        "advances_process_state"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Check for a companion reject/cancel/rollback operation on the same resource before treating this as final.",
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "governance",
+          "cards",
+          "confirm",
+          "owner",
+          "card",
+          "explicitly"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please confirm governance-card owner explicitly"
         ],
         "synonyms": [
           "VDMI",

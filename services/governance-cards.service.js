@@ -62,6 +62,34 @@ function cleanFilter(value, max = 120) {
   return cleaned ? cleaned.slice(0, max) : null;
 }
 
+function isOverdue(card, nowIso) {
+  return Boolean(
+    card.deadline && card.deadline < nowIso && !['completed', 'closed'].includes(card.status)
+  );
+}
+function attentionReasons(card, nowIso) {
+  return [
+    isOverdue(card, nowIso) && 'overdue_deadline',
+    card.blockedReason && 'blocked',
+    !card.ownerRole && 'owner_missing',
+    (card.managementRelevance || card.executiveVisibility) && 'executive_visible',
+  ].filter(Boolean);
+}
+function actionSummary(card) {
+  return {
+    cardId: card.cardId,
+    cardType: card.cardType,
+    title: card.title,
+    status: card.status,
+    ownerRole: card.ownerRole,
+    deadline: card.deadline,
+    followUpDate: card.followUpDate,
+    nextGate: card.nextGate,
+    blockedReason: card.blockedReason,
+    evidenceRefs: card.evidenceRefs || [],
+  };
+}
+
 module.exports = {
   name: 'governance-cards',
   mixins: [
@@ -275,6 +303,188 @@ module.exports = {
         };
         const saved = await this.db.put(updated);
         return { card: safeCard({ ...updated, _rev: saved.rev }) };
+      },
+      caseParams
+    ),
+
+    confirmOwner: action(
+      'POST /cards/:cardId/owner-confirmation',
+      'Confirm governance-card owner explicitly',
+      async function (ctx) {
+        const p = principal(ctx, ctx.params);
+        const existing = await this.getCardForTenant(p.tenantId, ctx.params.cardId);
+        const timestamp = new Date().toISOString();
+        const updated = {
+          ...existing,
+          ownerConfirmedAt: timestamp,
+          ownerConfirmationStatus: 'confirmed',
+          updatedAt: timestamp,
+          updatedBy: p.actorId,
+          auditTrail: [
+            ...(existing.auditTrail || []),
+            createAuditEntry('owner_confirmed', p.actorId, { ownerRole: existing.ownerRole }),
+          ].slice(-50),
+        };
+        const saved = await this.db.put(updated);
+        return { card: safeCard({ ...updated, _rev: saved.rev }) };
+      },
+      caseParams
+    ),
+
+    markBlocked: action(
+      'POST /cards/:cardId/blocked',
+      'Mark a governance card as blocked with bounded rationale',
+      async function (ctx) {
+        const p = principal(ctx, ctx.params);
+        const reason = cleanFilter(ctx.params.blockedReason || ctx.params.reason, 500);
+        if (!reason) {
+          throw new Errors.MoleculerClientError(
+            'blockedReason required',
+            422,
+            'GOVERNANCE_CARD_BLOCKED_REASON_REQUIRED'
+          );
+        }
+        const existing = await this.getCardForTenant(p.tenantId, ctx.params.cardId);
+        const updated = {
+          ...existing,
+          status: existing.status === 'draft' ? 'review' : existing.status,
+          blockedReason: reason,
+          updatedAt: new Date().toISOString(),
+          updatedBy: p.actorId,
+          auditTrail: [
+            ...(existing.auditTrail || []),
+            createAuditEntry('blocked', p.actorId, { blockedReason: reason }),
+          ].slice(-50),
+        };
+        const saved = await this.db.put(updated);
+        return { card: safeCard({ ...updated, _rev: saved.rev }) };
+      },
+      caseParams
+    ),
+
+    setFollowUpDate: action(
+      'POST /cards/:cardId/follow-up-date',
+      'Set a bounded follow-up date for a governance card',
+      async function (ctx) {
+        const p = principal(ctx, ctx.params);
+        const existing = await this.getCardForTenant(p.tenantId, ctx.params.cardId);
+        const normalized = normalizeCardInput(
+          { ...existing, followUpDate: ctx.params.followUpDate, status: existing.status },
+          p,
+          existing
+        );
+        const updated = {
+          ...existing,
+          followUpDate: normalized.followUpDate,
+          updatedAt: new Date().toISOString(),
+          updatedBy: p.actorId,
+          auditTrail: [
+            ...(existing.auditTrail || []),
+            createAuditEntry('follow_up_date_set', p.actorId, {
+              followUpDate: normalized.followUpDate,
+            }),
+          ].slice(-50),
+        };
+        const saved = await this.db.put(updated);
+        return { card: safeCard({ ...updated, _rev: saved.rev }) };
+      },
+      caseParams
+    ),
+
+    closeWithRationale: action(
+      'POST /cards/:cardId/close-with-rationale',
+      'Close a governance card with bounded internal rationale',
+      async function (ctx) {
+        const p = principal(ctx, ctx.params);
+        const rationale = cleanFilter(ctx.params.rationale || ctx.params.closureRationale, 1000);
+        if (!rationale) {
+          throw new Errors.MoleculerClientError(
+            'rationale required',
+            422,
+            'GOVERNANCE_CARD_CLOSURE_RATIONALE_REQUIRED'
+          );
+        }
+        const existing = await this.getCardForTenant(p.tenantId, ctx.params.cardId);
+        const updated = {
+          ...existing,
+          status: 'closed',
+          closureRationale: rationale,
+          updatedAt: new Date().toISOString(),
+          updatedBy: p.actorId,
+          auditTrail: [
+            ...(existing.auditTrail || []),
+            createAuditEntry('closed_with_rationale', p.actorId, { rationale }),
+          ].slice(-50),
+        };
+        const saved = await this.db.put(updated);
+        return { card: safeCard({ ...updated, _rev: saved.rev }) };
+      },
+      caseParams
+    ),
+
+    getAttentionSnapshot: action(
+      'GET /attention-snapshot',
+      'Return read-only governance-card attention projection',
+      async function (ctx) {
+        const p = principal(ctx, ctx.params);
+        const nowIso = new Date().toISOString();
+        const response = await this.db.find({
+          selector: { type: 'governance_card', tenantId: p.tenantId },
+          limit: 500,
+        });
+        const items = response.docs
+          .map((card) => ({
+            ...actionSummary(safeCard(card)),
+            reasons: attentionReasons(card, nowIso),
+          }))
+          .filter((item) => item.reasons.length)
+          .slice(0, Math.min(Number(ctx.params.limit) || 50, MAX_LIMIT));
+        return {
+          schemaVersion: GOVERNANCE_CARD_SCHEMA_VERSION,
+          snapshotGeneratedAt: nowIso,
+          items,
+        };
+      }
+    ),
+
+    summarizeForLineFeedback: action(
+      'GET /cards/:cardId/line-feedback-summary',
+      'Return action-oriented governance-card line feedback summary',
+      async function (ctx) {
+        const p = principal(ctx, ctx.params);
+        const card = safeCard(await this.getCardForTenant(p.tenantId, ctx.params.cardId));
+        return {
+          summary: {
+            ...actionSummary(card),
+            assignedWork: card.triggerSummary,
+            missingOrBlocked: card.blockedReason || null,
+            whatHappensNext: card.nextGate,
+            noCallGuards: [
+              'Line feedback summaries are internal/advisory and do not send external notifications.',
+            ],
+          },
+        };
+      },
+      caseParams
+    ),
+
+    summarizeForExecutiveReview: action(
+      'GET /cards/:cardId/executive-summary',
+      'Return bounded executive governance-card summary',
+      async function (ctx) {
+        const p = principal(ctx, ctx.params);
+        const card = safeCard(await this.getCardForTenant(p.tenantId, ctx.params.cardId));
+        return {
+          summary: {
+            ...actionSummary(card),
+            trigger: card.triggerSummary,
+            riskOrImpact: card.impactSummary,
+            requestedAction: card.nextGate,
+            noCallGuards: [
+              'Executive summaries do not approve, file, notify, dispatch, bill or mutate external systems.',
+            ],
+          },
+        };
       },
       caseParams
     ),
