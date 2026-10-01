@@ -285,6 +285,7 @@ const OPENAPI_TAG_DOMAIN_MAP = {
   'domain-routes': 'platform',
   'dossier-hydration': 'platform',
   'Domain Router': 'platform',
+  'Governance Cards': 'governance',
   Workbench: 'platform',
   // explicitly domain-neutral generic file/csv ingest monitoring infra
   'File Ingest Monitor': 'platform',
