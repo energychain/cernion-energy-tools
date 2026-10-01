@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.99.22] — 2026-09-27
 
 ### Fixed
+- Fix VDMI entity audit tenant isolation and nested-data integrity checks using the shared canonical serializer and versioned hashes; legacy entries remain readable but are explicitly unverifiable. Remove the shadowed, obsolete Blindflug API alias without changing the effective handler.
 - RC3 readiness cleanup: persist bounded asset technical/commercial and regulatory clarification fields through reads and dossiers; enforce per-type decision signals, immutable card types and lifecycle transitions for PATCH; support technical-first asset creation and decision/risk/commercial-review filters.
 - Reconciled six reviewed dependency PRs and compatible dependency security patches; regenerated OpenAPI and the operation-capability index and refreshed the architecture review with explicit PR/issue boundaries.
 

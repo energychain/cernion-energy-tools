@@ -507,9 +507,9 @@ weiterhin Node.js 22. Keine Live-MCP-/SMTP-/Identity-Provider-Abnahme und kein
 produktiver UI-/Deploy-Nachweis sind darin enthalten.
 
 - `npm run lint`, `npm run build` und `git diff --check`: bestanden.
-- `npm run test:unit:ci`: 338 Suiten / 7.777 Tests bestanden;
+- `npm run test:unit:ci`: 339 Suiten / 7.780 Tests bestanden;
   7 Suiten / 54 Tests durch vorhandene Suite-Bedingungen übersprungen.
-  Statements 81,77 %, Branches 66,57 %, Functions 86,07 %, Lines 83,64 %;
+  Statements 81,79 %, Branches 66,58 %, Functions 86,10 %, Lines 83,66 %;
   alle bestehenden globalen Schwellen bestanden.
 - `npm run test:tdd-matrix` und `npm run check:tdd-matrix-coverage`:
   100 % der verpflichtenden T-* IDs bestanden; MT-* bleibt als Blackbox-
@@ -524,9 +524,71 @@ produktiver UI-/Deploy-Nachweis sind darin enthalten.
   bestanden; aktuelles Lockfile mit 0 Vulnerabilities.
 - Integrationstest-Discovery: bestanden; Live-Integrationstests nicht ausgeführt.
 
-Der kombinierte `release:check`-Lauf bestand Unit-Coverage, Matrix und API-Audit
-und fand anschließend einen veralteten OpenAPI-Hash in `llm.txt`. Nach
-sequentieller Neugenerierung wurden LLM-Sync und alle nachfolgenden Release-
-Gates erfolgreich geprüft. Nach dieser Artefaktkorrektur wurde kein Runtime-
-Code geändert. GitNexus bestätigt den erwarteten Änderungsumfang gegen
-`origin/main` mit LOW Risk.
+Der abschließende vollständige `npm run release:check`-Lauf auf dem Stand
+mit den Audit-Korrekturen bestand alle Gates mit Exit-Code 0. Der zuvor
+gefundene veraltete OpenAPI-Hash in `llm.txt` wurde durch sequentielle
+Neugenerierung beseitigt. Die anschließende Maintenance-CI auf `c18d01b` bestand mit Node.js 22,
+Python-, Matrix-, API- und LLM-Prüfungen; auch CodeQL und der Code-Quality-
+Workflow bestanden. Die folgenden Audit-Korrekturen sind außerdem im abschließenden vollständigen
+Release-Gate-Lauf enthalten.
+
+### Ergänzende Audit-Korrekturen und verbleibendes RC3-Gate
+
+Der VDMI-Entity-Selektor enthielt zweimal `_id`; JavaScript verwarf dadurch
+die untere Tenant-Grenze. Eine gemeinsame Bereichsbedingung und die exakte
+`tenantId` verhindern jetzt fremde und überlappende Tenant-Präfixe. Ein Test
+mit echter PouchDB prüft diese Isolation, Entity-Typen und Sortierung.
+
+Der alte VDMI-Hash verwendete einen JSON-Replacer, der verschachtelte Delta-
+und Entity-Felder aus dem Hash entfernte. Neue Einträge tragen
+`integrityVersion: 2` und hashen ihre vollständigen fachlichen Audit-Felder
+mit dem vorhandenen `stableStringify` aus dem Decision-Evidence-Audit-Modul.
+Tenant, Akteur/Rolle, Zeitpunkt, Begründung, Delta, Entity-Verweise und
+Erfassungsmetadaten sind eingeschlossen; PouchDB-Revision und die öffentliche
+ID-Projektion beeinflussen den Hash nicht. Schlüsselreihenfolge ist irrelevant,
+Array-Reihenfolge bleibt relevant. Unversionierte Altbestände bleiben lesbar
+und unverändert, liefern bei `verifyIntegrity` aber ausdrücklich `false`:
+ihre verschachtelten Daten lassen sich nachträglich nicht authentifizieren.
+Der Hash ist eine Änderungsprüfung, keine Signatur gegen einen Angreifer mit
+Schreibzugriff auf Daten und Hash.
+
+Der doppelte Blindflug-Scan-Alias enthielt zuerst einen veralteten versionierten
+Handler und später den tatsächlich wirksamen `blindflug-radar.scanBlindflug`.
+Der veraltete Eintrag wurde entfernt; die effektive Route bleibt gleich.
+Die fünf gezielten Audit-/API-/Blindflug-/Governance-Suiten bestanden mit
+146 Tests, einschließlich verschachtelter Manipulation, Tenant-Wechsel,
+Legacy-Lesbarkeit und unveränderter kanonischer Schlüsselreihenfolge.
+GitNexus meldete LOW für die Audit-Methoden (Hash: zwei direkte Aufrufer)
+und MEDIUM für den API-Service (sieben direkte Abhängigkeiten).
+
+**RC3 ist noch nicht vollständig freigegeben:** Das separate SonarCloud-Gate
+ist rot. Die Auswertung gegen die bestehende New-Code-Basis vom 01.05.2026
+enthält 136 offene Bug-/Vulnerability-Funde (55/81), Security-Rating E,
+Reliability-Rating D und 9,3 % Duplikation bei erlaubten 3 %. Bereits der
+Ausgangsstand `a14797a` hatte dieselben Ratings und 9,4 % Duplikation. Keine
+dieser Bug-/Vulnerability-Meldungen betrifft die geänderten Governance-Karten.
+Abhängigkeits-Audits mit null Advisories ersetzen dieses Code-Security-Gate
+nicht. Die großen Capability-/Evidence-Kataloge und Testdateien dominieren
+die Duplikation; eine umfassende Zusammenlegung würde den vereinbarten Rahmen
+gezielter Korrekturen überschreiten. Die New-Code-Basis und Qualitätsregeln
+wurden deshalb nicht zurückgesetzt oder abgeschwächt.
+
+Vor dem eigentlichen Release müssen die verbleibenden Sonar-Befunde fachlich
+triagiert werden: echte Fehler gezielt beheben, bewusst kanonische Sortierung
+von sprachabhängiger Sortierung unterscheiden und Security-Hotspots einzeln
+prüfen. Umfangreiche Katalog-/Testrestrukturierung ist keine verdeckte
+Voraussetzung dieser Bereinigung. Review und verbleibendes Gate:
+[SonarCloud](https://sonarcloud.io/dashboard?id=energychain_cernion-energy-tools).
+
+Priorisierte Sonar-Nacharbeit ohne pauschale Umbauten:
+
+| Befundgruppe | Nächste fachliche Prüfung |
+|-------------|----------------------------|
+| Forecast-Dateipfade und CLI-Argumente | Zulässige lokale Pfade, LLM-Eingaben und untrusted API-Eingaben getrennt betrachten; Grenzen in `forecast-starter` und Portfolio-Persistence mit Traversal-Tests belegen. |
+| UAT-/Budibase-URLs und Logs | Variable Basis-URLs, Tenant-/Entity-Pfade und Logdaten auf erlaubte Ziele, Encoding und sensible Inhalte prüfen. |
+| 39 Sortiermeldungen | Kanonische Hash-/ID-Sortierung muss deterministisch bleiben; `localeCompare` ist dafür kein pauschal korrekter Ersatz. Fachliche Anzeigesortierung getrennt bewerten. |
+| Security-Hotspots | Installationsskripte, temporäre Verzeichnisse, HTTP-Ziele und externe Assets im jeweiligen Ausführungskontext prüfen; kein automatisches Wegbestätigen. |
+| Katalog-/Testduplikation | Erst verbindliche gemeinsame Datenverträge identifizieren; massenhafte Extraktion ohne fachlichen Nutzen gehört nicht in die RC3-Korrekturrunde. |
+
+Die öffentliche Sonar-Auswertung wurde gelesen. Es wurden keine Findings als
+False Positive geschlossen und keine Hotspots ohne Einzelfallprüfung freigegeben.

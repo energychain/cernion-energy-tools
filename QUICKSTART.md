@@ -44,7 +44,7 @@ You should see:
 ```
 ✓ ServiceBroker started successfully
 ✓ API Gateway listening on port 3000
-✔ services loaded (v0.99.22: 145 core services)
+✔ services loaded (v0.99.22: 147 core services)
 ```
 
 ## Test Your Setup

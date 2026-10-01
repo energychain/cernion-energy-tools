@@ -1525,7 +1525,6 @@ module.exports = {
         autoAliases: true,
 
         aliases: {
-          'POST /blindflug-radar/scan': 'v1.blindflug-radar.scan',
           'GET /openapi.json': 'api.openapi',
           'GET /openapi-copilot.json': 'api.openapiCopilot',
           'GET /docs'(req, res) {
