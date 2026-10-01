@@ -142,6 +142,58 @@ describe('Governance Cards service', () => {
     expect(created.nextSafeAction).toBe('Review evidence and assign follow-up owner.');
   });
 
+  test('exposes asset investment governance metadata and creates cards from steering fields', async () => {
+    const types = await call('listTypes');
+    const asset = types.items.find((item) => item.cardType === 'asset_investment_governance');
+    expect(asset).toMatchObject({
+      title: 'Asset / investment governance',
+      allowedDecisionSignals: expect.arrayContaining(['fund', 'return-to-line', 'defer-with-risk']),
+      processFlow: expect.arrayContaining([
+        'technical finding',
+        'commercial/regulatory effect check',
+      ]),
+    });
+    expect(asset.fieldBlocks.map((block) => block.blockId)).toEqual([
+      'technical_finding',
+      'risk_clarification',
+      'commercial_regulatory_steering',
+    ]);
+
+    const created = await call('createCard', {
+      cardType: 'asset_investment_governance',
+      assetOrMeasure: 'MS transformer replacement measure',
+      triggerSummary: 'Thermal loading trend requires investment governance review.',
+      affectedDomain: 'grid_connection',
+      requiredCommercialChecks: ['budget and regulatory return effect'],
+      technicalFinding: 'N-1 reserve and voltage quality need confirmation before funding.',
+      riskPicture: 'Operational reserve risk and cost uncertainty.',
+      technicalRecommendation: 'Review technical assumptions, cost band and funding gate.',
+      technicalOwnerRole: 'ROLE_GRID_PLANNING',
+      riskTypes: ['operational_risk', 'investment-impact'],
+      budgetImpact: 'mid-six-figure range to validate',
+      portfolioPriority: 'commercial-review',
+      decisionSignal: 'defer-with-risk',
+    });
+
+    expect(created.card).toMatchObject({
+      cardType: 'asset_investment_governance',
+      title: 'MS transformer replacement measure',
+      affectedProcess: 'budget and regulatory return effect',
+      ownerRole: 'ROLE_GRID_PLANNING',
+      impactSummary: 'Operational reserve risk and cost uncertainty.',
+      nextGate: 'Review technical assumptions, cost band and funding gate.',
+      managementRelevance: 'commercial-review',
+      decisionSignal: 'defer-with-risk',
+    });
+
+    const listed = await call('listCards', {
+      cardType: 'asset_investment_governance',
+      riskType: 'investment-impact',
+      managementRelevance: 'commercial-review',
+    });
+    expect(listed.items.map((card) => card.cardId)).toContain(created.card.cardId);
+  });
+
   test('validates required fields with positive missing-field guidance', async () => {
     await expect(call('createCard', { cardType: 'regulatory_impulse' })).rejects.toMatchObject({
       code: 422,
