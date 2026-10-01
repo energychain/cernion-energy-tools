@@ -498,3 +498,35 @@ Zurückgestellte Issues werden nicht allein aufgrund einer Spezifikation oder
 Teilimplementierung als erledigt bewertet. Externe Deployments, produktive
 Datenänderungen, UI-Implementierung und der eigentliche RC3-Release gehören
 nicht zu dieser Bereinigung.
+
+
+### Validierungsnachweise des bereinigten Stands
+
+Lokale Laufzeiten: Node.js 24.18.0 und Python 3.12.3; der CI-Workflow prüft
+weiterhin Node.js 22. Keine Live-MCP-/SMTP-/Identity-Provider-Abnahme und kein
+produktiver UI-/Deploy-Nachweis sind darin enthalten.
+
+- `npm run lint`, `npm run build` und `git diff --check`: bestanden.
+- `npm run test:unit:ci`: 338 Suiten / 7.777 Tests bestanden;
+  7 Suiten / 54 Tests durch vorhandene Suite-Bedingungen übersprungen.
+  Statements 81,77 %, Branches 66,57 %, Functions 86,07 %, Lines 83,64 %;
+  alle bestehenden globalen Schwellen bestanden.
+- `npm run test:tdd-matrix` und `npm run check:tdd-matrix-coverage`:
+  100 % der verpflichtenden T-* IDs bestanden; MT-* bleibt als Blackbox-
+  Coverage explizit getrennt. Der Matrixlauf enthält 82 bestandene und
+  4 übersprungene Tests, ohne fehlgeschlagene Tests.
+- Python-Unittests mit den unveränderten Forecast-Suiten: 26 Product-,
+  28 Portfolio-, 16 Quality- und 33 XLSX-Tests bestanden (insgesamt 103).
+- `npm run audit:openapi`: 0 Fehler, 471 bestehende Metadatenwarnungen.
+- `npm run check:llm`, `npm run check:operation-capability-index` und
+  `npm run check:quality-gate`: bestanden.
+- `npm run audit:security` sowie `npm audit --audit-level=moderate`:
+  bestanden; aktuelles Lockfile mit 0 Vulnerabilities.
+- Integrationstest-Discovery: bestanden; Live-Integrationstests nicht ausgeführt.
+
+Der kombinierte `release:check`-Lauf bestand Unit-Coverage, Matrix und API-Audit
+und fand anschließend einen veralteten OpenAPI-Hash in `llm.txt`. Nach
+sequentieller Neugenerierung wurden LLM-Sync und alle nachfolgenden Release-
+Gates erfolgreich geprüft. Nach dieser Artefaktkorrektur wurde kein Runtime-
+Code geändert. GitNexus bestätigt den erwarteten Änderungsumfang gegen
+`origin/main` mit LOW Risk.
