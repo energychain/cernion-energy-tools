@@ -67,12 +67,26 @@ function selectActiveRole({ mapping, principal }) {
   return priority.find((role) => roles.includes(role)) || roles[0] || 'ROLE_UNKNOWN';
 }
 
+function safeAppliedPlaybooks(playbooks) {
+  return asArray(playbooks)
+    .filter((item) => item && (item.status || 'active') === 'active')
+    .map((item) => ({
+      skillId: safeText(item.skillId || item.playbookId, 200),
+      title: safeText(item.title, 200),
+      version: typeof item.version === 'number' ? item.version : undefined,
+      auditRefs: safeList(item.auditRefs || [], 20),
+    }))
+    .filter((item) => item.skillId)
+    .slice(0, MAX_ITEMS);
+}
+
 function buildTurnMemory({
   previousMemory = null,
   classification = {},
   envelope = {},
   mapping = null,
   principal,
+  workbenchContext = null,
 }) {
   const now = new Date().toISOString();
   const activeRole = selectActiveRole({ mapping, principal });
@@ -132,6 +146,9 @@ function buildTurnMemory({
     noCallGuards: safeList(classification.noCallGuards || previousMemory?.noCallGuards || []),
     allowedActions: safeList(classification.allowedActions || previousMemory?.allowedActions || []),
     blockedActions: safeList(classification.blockedActions || previousMemory?.blockedActions || []),
+    appliedPlaybooks: safeAppliedPlaybooks(
+      workbenchContext?.applicablePlaybooks || previousMemory?.appliedPlaybooks || []
+    ),
     lastUserIntent,
     lastSafeConclusion,
     recentEventStatus: previousMemory?.recentEventStatus || null,
@@ -157,6 +174,7 @@ function safeTurnMemory(memory) {
     noCallGuards: safeList(memory.noCallGuards || []),
     allowedActions: safeList(memory.allowedActions || []),
     blockedActions: safeList(memory.blockedActions || []),
+    appliedPlaybooks: safeAppliedPlaybooks(memory.appliedPlaybooks || []),
     lastUserIntent: safeText(memory.lastUserIntent, 500),
     lastSafeConclusion: safeText(memory.lastSafeConclusion, 700),
     recentEventStatus: memory.recentEventStatus || null,

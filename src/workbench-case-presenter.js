@@ -51,6 +51,7 @@ function presentCase(state, { evidenceRefs = [], eventSummary = null, clearance 
     workingAssumptions: safeTurnMemory(state.turnMemory)?.workingAssumptions || [],
     openQuestions: safeTurnMemory(state.turnMemory)?.openQuestions || [],
     activeRoleProjection: safeTurnMemory(state.turnMemory)?.activeRole || null,
+    appliedPlaybooks: safeTurnMemory(state.turnMemory)?.appliedPlaybooks || [],
     noRawEvidencePayloads: true,
     createdAt: state.createdAt || state.updatedAt,
     updatedAt: state.updatedAt,

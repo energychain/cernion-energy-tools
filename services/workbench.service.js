@@ -20,6 +20,8 @@ const {
   defaultPlaybooksForTenant,
   matchPlaybooks,
   safePlaybook,
+  buildSkillInput,
+  projectSkillFromCase,
 } = require('../src/workbench-playbooks');
 const { taskFromEvent, safeTask } = require('../src/workbench-inbox-tasks');
 const {
@@ -1088,6 +1090,173 @@ module.exports = {
         };
       }
     ),
+    'skills.list': action(
+      'GET /skills',
+      'List tenant-scoped CET Workbench governed skills (issue #640), including code-owned defaults',
+      async function (ctx) {
+        const p = principal(ctx, ctx.params);
+        const tenantSkills = await this.store.listPlaybooks({
+          tenantId: p.tenantId,
+          domain: ctx.params.domain,
+          status: ctx.params.status,
+        });
+        const items = [
+          ...(ctx.params.status && ctx.params.status !== 'active'
+            ? []
+            : defaultPlaybooksForTenant(p.tenantId)),
+          ...tenantSkills.map((skill) => safePlaybook(skill)),
+        ];
+        return { items };
+      },
+      { domain: { type: 'string', optional: true }, status: { type: 'string', optional: true } }
+    ),
+    'skills.get': action(
+      'GET /skills/:skillId',
+      'Return one tenant-scoped CET Workbench governed skill (issue #640)',
+      async function (ctx) {
+        const p = principal(ctx, ctx.params);
+        const skillId = cleanString(ctx.params.skillId, 'skillId', { required: true });
+        const doc = await this.store.getSkill(
+          { tenantId: p.tenantId, skillId },
+          { optional: true }
+        );
+        if (doc) return { skill: safePlaybook(doc) };
+        const fallback = defaultPlaybooksForTenant(p.tenantId).find(
+          (item) => item.skillId === skillId
+        );
+        if (!fallback)
+          throw new Errors.MoleculerClientError(
+            'Workbench skill not found',
+            404,
+            'WORKBENCH_NOT_FOUND'
+          );
+        return { skill: fallback };
+      },
+      { skillId: { type: 'string', min: 1 } }
+    ),
+    'skills.create': action(
+      'POST /skills',
+      'Create a tenant-scoped CET Workbench governed skill draft (issue #640)',
+      async function (ctx) {
+        const p = this.requireSkillGovernance(ctx);
+        const skillId = cleanString(ctx.params.skillId || ctx.params.playbookId, 'skillId', {
+          required: true,
+        });
+        const input = buildSkillInput(ctx.params);
+        const saved = await this.store.createOrUpdateSkillDraft({
+          ...input,
+          tenantId: p.tenantId,
+          skillId,
+          actorId: p.actorId,
+          actorRoles: p.roles,
+        });
+        return { saved: true, skill: safePlaybook(saved) };
+      },
+      { skillId: { type: 'string', optional: true } }
+    ),
+    'skills.propose': action(
+      'POST /skills/:skillId/propose',
+      'Transition a draft CET Workbench skill to proposed (issue #640)',
+      function (ctx) {
+        return this.transitionSkillLifecycle(ctx, {
+          transition: 'proposed',
+          fromStatuses: ['draft'],
+          toStatus: 'proposed',
+        });
+      },
+      { skillId: { type: 'string', min: 1 } }
+    ),
+    'skills.activate': action(
+      'POST /skills/:skillId/activate',
+      'Activate a proposed CET Workbench skill; requires Workbench governance role (issue #640)',
+      function (ctx) {
+        return this.transitionSkillLifecycle(ctx, {
+          transition: 'activated',
+          fromStatuses: ['proposed'],
+          toStatus: 'active',
+        });
+      },
+      { skillId: { type: 'string', min: 1 } }
+    ),
+    'skills.deprecate': action(
+      'POST /skills/:skillId/deprecate',
+      'Deprecate an active CET Workbench skill without deleting audit history (issue #640)',
+      function (ctx) {
+        return this.transitionSkillLifecycle(ctx, {
+          transition: 'deprecated',
+          fromStatuses: ['active'],
+          toStatus: 'deprecated',
+        });
+      },
+      { skillId: { type: 'string', min: 1 } }
+    ),
+    'cases.skills.proposeFromCase': action(
+      'POST /cases/:caseId/skills/propose-from-case',
+      'Propose a tenant CET Workbench skill draft from a resolved/confirmed case (issue #640)',
+      async function (ctx) {
+        const p = principal(ctx, ctx.params);
+        const caseId = cleanString(ctx.params.caseId, 'caseId', { required: true });
+        const state = await this.loadVisibleCase(ctx, p, caseId);
+        const classification = state.lastClassification || {};
+        if (
+          !classification.readinessState ||
+          classification.readinessState === 'evidence_required'
+        ) {
+          workbenchError(
+            'Case is not resolved/confirmed enough to propose a skill',
+            'WORKBENCH_SKILL_CASE_NOT_RESOLVED'
+          );
+        }
+        const skillId = cleanString(ctx.params.skillId, 'skillId') || `case-${caseId}-skill`;
+        const existing = await this.store.getSkill(
+          { tenantId: p.tenantId, skillId },
+          { optional: true }
+        );
+        if (existing?.sourceCaseId && existing.sourceCaseId !== caseId) {
+          workbenchError(
+            'skillId already used by a different source case',
+            'WORKBENCH_SKILL_CONFLICT'
+          );
+        }
+        if (existing && existing.status !== 'draft') {
+          return { saved: true, skill: safePlaybook(existing), idempotent: true };
+        }
+        const evidenceRefs = await this.store.listEvidence({ tenantId: p.tenantId, caseId });
+        const evidenceTypes = [...new Set(evidenceRefs.map((e) => e.evidenceType).filter(Boolean))];
+        const projected = projectSkillFromCase({
+          classification,
+          currentDomain: state.currentDomain,
+          evidenceTypes,
+          override: {
+            title: cleanString(ctx.params.title, 'title', { max: 200 }),
+            description: cleanString(ctx.params.description, 'description', { max: 2000 }),
+            examplePrompts: Array.isArray(ctx.params.examplePrompts)
+              ? ctx.params.examplePrompts
+              : [],
+          },
+        });
+        const input = buildSkillInput(projected);
+        await this.store.createOrUpdateSkillDraft({
+          ...input,
+          tenantId: p.tenantId,
+          skillId,
+          actorId: p.actorId,
+          actorRoles: p.roles,
+          sourceCaseId: caseId,
+        });
+        const proposed = await this.store.transitionSkillStatus({
+          tenantId: p.tenantId,
+          skillId,
+          actorId: p.actorId,
+          actorRoles: p.roles,
+          transition: 'proposed',
+          fromStatuses: ['draft'],
+          toStatus: 'proposed',
+        });
+        return { saved: true, skill: safePlaybook(proposed.skill), idempotent: false };
+      },
+      { caseId: { type: 'string', min: 1 } }
+    ),
     'inbox.tasks.list': action(
       'GET /inbox/tasks',
       'Return actionable Workbench inbox tasks derived from Case Events',
@@ -1422,6 +1591,29 @@ module.exports = {
       }
       return p;
     },
+    requireSkillGovernance(ctx) {
+      const p = principal(ctx, ctx.params);
+      if (
+        !p.roles.some((r) =>
+          ['ROLE_TENANT_ADMIN', 'ROLE_PROCESS_OWNER', 'ROLE_ADMIN', 'ROLE_UTILITY_HQ'].includes(r)
+        )
+      ) {
+        deny('Workbench skill governance role required');
+      }
+      return p;
+    },
+    async transitionSkillLifecycle(ctx, lifecycle) {
+      const p = this.requireSkillGovernance(ctx);
+      const skillId = cleanString(ctx.params.skillId, 'skillId', { required: true });
+      const result = await this.store.transitionSkillStatus({
+        tenantId: p.tenantId,
+        skillId,
+        actorId: p.actorId,
+        actorRoles: p.roles,
+        ...lifecycle,
+      });
+      return { saved: true, skill: safePlaybook(result.skill) };
+    },
     authorizeTargetTenant(p, targetTenantId) {
       const isPlatformAdmin = p.roles.some((r) => ['ROLE_ADMIN', 'ROLE_UTILITY_HQ'].includes(r));
       if (!isPlatformAdmin && targetTenantId !== p.tenantId) {
@@ -1460,7 +1652,7 @@ module.exports = {
       );
       const tenantPlaybooks = await this.store.listPlaybooks({ tenantId: p.tenantId });
       const playbooks = matchPlaybooks(
-        [...defaultPlaybooksForTenant(p.tenantId), ...tenantPlaybooks],
+        [...tenantPlaybooks, ...defaultPlaybooksForTenant(p.tenantId)],
         { roles: mapping?.roles || p.roles, workspaceId }
       );
       return {
@@ -1572,6 +1764,7 @@ module.exports = {
         envelope: input.envelope,
         mapping: input.mapping,
         principal: p,
+        workbenchContext: input.workbenchContext,
       });
       await this.store.saveTurnMemory({
         tenantId: p.tenantId,

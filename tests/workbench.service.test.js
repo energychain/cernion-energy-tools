@@ -1651,4 +1651,332 @@ describe('Workbench RC3 Open WebUI Tenant Gateway', () => {
     );
     expect(JSON.stringify(attached)).not.toMatch(/rawMessage|token|credential/iu);
   });
+
+  describe('Tenant skills/playbooks governed lifecycle (#640)', () => {
+    const unauthorizedMeta = {
+      apiToken: {
+        tenantId: 'tenant-a',
+        id: 'outsider-a',
+        scope: 'agentos-session',
+        roles: ['ROLE_EXTERNAL_ADVISOR_LIMITED'],
+      },
+    };
+
+    test('skill create starts as draft; draft/proposed/deprecated skills never influence routing/chat, only active does', async () => {
+      await provisionOpenWebUiUser();
+      const skillId = 'gating-skill';
+      const created = await call('skills.create', {
+        skillId,
+        title: 'Gating Skill',
+        domains: ['market_communication'],
+        applicableRoles: ['ROLE_GRID_OPERATOR'],
+        triggerPatterns: ['aperak'],
+      });
+      expect(created.skill.status).toBe('draft');
+      expect(created.skill.version).toBe(1);
+
+      const chatOnce = async (conversationId) => {
+        const response = await call('chat', {
+          client: 'open-webui',
+          channel: 'open-webui',
+          openWebuiOrgId: 'ow-org',
+          openWebuiUserId: 'ow-user',
+          openWebuiConversationId: conversationId,
+          clientId: 'openwebui-tenant-a',
+          message: 'APERAK Z18 bitte prüfen',
+        });
+        const summary = await call('cases.get', { caseId: response.cetCaseId }, userMeta);
+        return summary.appliedPlaybooks.map((p) => p.skillId);
+      };
+
+      expect(await chatOnce('gate-draft')).not.toContain(skillId);
+
+      const proposed = await call('skills.propose', { skillId });
+      expect(proposed.skill.status).toBe('proposed');
+      expect(await chatOnce('gate-proposed')).not.toContain(skillId);
+
+      const activated = await call('skills.activate', { skillId });
+      expect(activated.skill.status).toBe('active');
+      expect(await chatOnce('gate-active')).toContain(skillId);
+
+      const deprecated = await call('skills.deprecate', { skillId });
+      expect(deprecated.skill.status).toBe('deprecated');
+      expect(await chatOnce('gate-deprecated')).not.toContain(skillId);
+    });
+
+    test('skill propose/activate produce append-only audit entries and are idempotent on retry', async () => {
+      await call('skills.create', {
+        skillId: 'idempotent-skill',
+        title: 'Idempotent Skill',
+        domains: ['edm'],
+        applicableRoles: ['ROLE_EDM'],
+      });
+      const service = broker.getLocalService('workbench');
+
+      const proposedOnce = await call('skills.propose', { skillId: 'idempotent-skill' });
+      const proposedTwice = await call('skills.propose', { skillId: 'idempotent-skill' });
+      expect(proposedOnce.skill.status).toBe('proposed');
+      expect(proposedTwice.skill.status).toBe('proposed');
+      const auditAfterPropose = await service.store.listSkillAudit({
+        tenantId: 'tenant-a',
+        skillId: 'idempotent-skill',
+      });
+      expect(auditAfterPropose.filter((e) => e.transition === 'proposed')).toHaveLength(1);
+
+      const activatedOnce = await call('skills.activate', { skillId: 'idempotent-skill' });
+      const activatedTwice = await call('skills.activate', { skillId: 'idempotent-skill' });
+      expect(activatedOnce.skill.status).toBe('active');
+      expect(activatedTwice.skill.status).toBe('active');
+      const auditAfterActivate = await service.store.listSkillAudit({
+        tenantId: 'tenant-a',
+        skillId: 'idempotent-skill',
+      });
+      expect(auditAfterActivate.filter((e) => e.transition === 'activated')).toHaveLength(1);
+      expect(auditAfterActivate.length).toBeGreaterThanOrEqual(3);
+      expect(activatedOnce.skill.auditRefs.length).toBeGreaterThan(0);
+    });
+
+    test('skill activation and deprecation are denied without an authorized governance role', async () => {
+      await call('skills.create', {
+        skillId: 'gated-skill',
+        title: 'Gated Skill',
+        domains: ['edm'],
+      });
+      await call('skills.propose', { skillId: 'gated-skill' });
+      await expect(call('skills.activate', { skillId: 'gated-skill' }, userMeta)).rejects.toThrow(
+        /governance role/iu
+      );
+      const activated = await call('skills.activate', { skillId: 'gated-skill' });
+      expect(activated.skill.status).toBe('active');
+      await expect(call('skills.deprecate', { skillId: 'gated-skill' }, userMeta)).rejects.toThrow(
+        /governance role/iu
+      );
+      const deprecated = await call('skills.deprecate', { skillId: 'gated-skill' });
+      expect(deprecated.skill.status).toBe('deprecated');
+    });
+
+    test('propose-from-case only writes a bounded draft for a same-tenant resolved/confirmed case', async () => {
+      const c = await router('classify', {
+        userRequest: 'APERAK Z18 Rückfrage bitte dokumentieren, Lieferant reklamiert MSCONS',
+        channel: 'open-webui',
+        conversationId: 'chat-propose-from-case',
+        asyncDelivery: { mode: 'poll', clientId: 'openwebui-tenant-a' },
+      });
+
+      // Unresolved case (still evidence_required): must reject and perform no write.
+      await expect(
+        call(
+          'cases.skills.proposeFromCase',
+          { caseId: c.cetCaseId, skillId: 'from-case-skill' },
+          userMeta
+        )
+      ).rejects.toThrow(/not resolved|not confirmed/iu);
+
+      // Missing case: must reject and perform no write.
+      await expect(
+        call(
+          'cases.skills.proposeFromCase',
+          { caseId: 'does-not-exist', skillId: 'from-case-skill' },
+          userMeta
+        )
+      ).rejects.toThrow();
+
+      // Cross-tenant: must reject and perform no write.
+      await expect(
+        call(
+          'cases.skills.proposeFromCase',
+          { caseId: c.cetCaseId, skillId: 'from-case-skill' },
+          otherTenantMeta
+        )
+      ).rejects.toThrow();
+
+      // Unauthorized (same tenant, no case-visible role): must reject and perform no write.
+      await expect(
+        call(
+          'cases.skills.proposeFromCase',
+          { caseId: c.cetCaseId, skillId: 'from-case-skill' },
+          unauthorizedMeta
+        )
+      ).rejects.toThrow();
+
+      const listBeforeResolve = await call('skills.list', {}, userMeta);
+      expect(listBeforeResolve.items.map((i) => i.skillId)).not.toContain('from-case-skill');
+
+      await router('ingestUpdate', {
+        cetCaseId: c.cetCaseId,
+        kind: 'evidence_available',
+        version: 'resolve-v1',
+        validated: true,
+        evidenceRef: 'resolved-ref',
+      });
+
+      const proposed = await call(
+        'cases.skills.proposeFromCase',
+        { caseId: c.cetCaseId, skillId: 'from-case-skill' },
+        userMeta
+      );
+      expect(proposed.skill.status).toBe('proposed');
+      expect(proposed.skill.domains.length).toBeGreaterThan(0);
+      expect(proposed.skill.blockedActions).toEqual(
+        expect.arrayContaining(['external_message_send', 'approval_grant'])
+      );
+      expect(JSON.stringify(proposed)).not.toMatch(
+        /APERAK Z18 Rückfrage bitte dokumentieren, Lieferant reklamiert MSCONS/u
+      );
+
+      // Idempotent retry: no duplicate write, same proposed skill returned.
+      const retried = await call(
+        'cases.skills.proposeFromCase',
+        { caseId: c.cetCaseId, skillId: 'from-case-skill' },
+        userMeta
+      );
+      expect(retried.skill.status).toBe('proposed');
+      expect(retried.skill.version).toBe(proposed.skill.version);
+    });
+
+    test('skill creation rejects secret-like, nested and oversized content without persisting it', async () => {
+      await expect(
+        call('skills.create', {
+          skillId: 'secret-skill',
+          title: 'Secret Skill',
+          domains: ['edm'],
+          steps: ['Authorization: Bearer super-secret-token-12345'],
+        })
+      ).rejects.toThrow(/secret/iu);
+      await expect(
+        call('skills.create', {
+          skillId: 'nested-skill',
+          title: 'Nested Skill',
+          domains: ['edm'],
+          requiredEvidence: [{ raw: 'nested payload' }],
+        })
+      ).rejects.toThrow(/flat list/iu);
+      await expect(
+        call('skills.create', {
+          skillId: 'oversized-skill',
+          title: 'x'.repeat(5000),
+          domains: ['edm'],
+        })
+      ).rejects.toThrow(/too long/iu);
+
+      const list = await call('skills.list', {}, userMeta);
+      expect(list.items.map((i) => i.skillId)).not.toEqual(
+        expect.arrayContaining(['secret-skill', 'nested-skill', 'oversized-skill'])
+      );
+    });
+
+    test('activated skills always inherit baseline no-call guards and blocked actions and cannot subtract them', async () => {
+      const created = await call('skills.create', {
+        skillId: 'guard-inherit-skill',
+        title: 'Guard Inherit Skill',
+        domains: ['grid_connection'],
+        applicableRoles: ['ROLE_GRID_OPERATOR'],
+        blockedActions: [],
+        noCallGuards: [],
+      });
+      expect(created.skill.blockedActions).toEqual(
+        expect.arrayContaining(['external_message_send', 'approval_grant'])
+      );
+      const governance = await call('governance-map.get', { domain: 'grid_connection' }, userMeta);
+      for (const guard of governance.governance.noCallGuards) {
+        expect(created.skill.noCallGuards).toContain(guard);
+      }
+      await call('skills.propose', { skillId: 'guard-inherit-skill' });
+      const activated = await call('skills.activate', { skillId: 'guard-inherit-skill' });
+      expect(activated.skill.blockedActions).toEqual(
+        expect.arrayContaining(['external_message_send', 'approval_grant'])
+      );
+      for (const guard of governance.governance.noCallGuards) {
+        expect(activated.skill.noCallGuards).toContain(guard);
+      }
+    });
+
+    test('active skill application is visible in case summary/dossier as a safe appliedPlaybooks entry', async () => {
+      await provisionOpenWebUiUser();
+      await call('skills.create', {
+        skillId: 'applied-skill',
+        title: 'Applied Skill For Chat',
+        domains: ['market_communication'],
+        applicableRoles: ['ROLE_GRID_OPERATOR'],
+        triggerPatterns: ['aperak'],
+      });
+      await call('skills.propose', { skillId: 'applied-skill' });
+      await call('skills.activate', { skillId: 'applied-skill' });
+
+      const response = await call('chat', {
+        client: 'open-webui',
+        channel: 'open-webui',
+        openWebuiOrgId: 'ow-org',
+        openWebuiUserId: 'ow-user',
+        openWebuiConversationId: 'chat-applied-skill',
+        clientId: 'openwebui-tenant-a',
+        message: 'APERAK Z18 nach MSCONS bitte prüfen',
+      });
+      const summary = await call('cases.get', { caseId: response.cetCaseId }, userMeta);
+      expect(summary.appliedPlaybooks).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ skillId: 'applied-skill', title: 'Applied Skill For Chat' }),
+        ])
+      );
+      expect(JSON.stringify(summary.appliedPlaybooks)).not.toMatch(
+        /APERAK Z18 nach MSCONS bitte prüfen/u
+      );
+
+      const dossier = await call('cases.dossier', { caseId: response.cetCaseId }, userMeta);
+      expect(dossier.content).toBeTruthy();
+    });
+
+    test('skill deprecation preserves prior version snapshots and audit history without deleting them', async () => {
+      const v1 = await call('skills.create', {
+        skillId: 'rollback-skill',
+        title: 'Rollback Skill v1',
+        domains: ['edm'],
+      });
+      expect(v1.skill.version).toBe(1);
+      await call('skills.propose', { skillId: 'rollback-skill' });
+      const activated = await call('skills.activate', { skillId: 'rollback-skill' });
+      expect(activated.skill.version).toBe(1);
+      const deprecated = await call('skills.deprecate', { skillId: 'rollback-skill' });
+      expect(deprecated.skill.version).toBe(1);
+      expect(deprecated.skill.status).toBe('deprecated');
+
+      const service = broker.getLocalService('workbench');
+      const audit = await service.store.listSkillAudit({
+        tenantId: 'tenant-a',
+        skillId: 'rollback-skill',
+      });
+      expect(audit.map((e) => e.transition)).toEqual(
+        expect.arrayContaining(['created', 'proposed', 'activated', 'deprecated'])
+      );
+
+      const stillListed = await call('skills.list', { status: 'deprecated' }, userMeta);
+      expect(stillListed.items.map((i) => i.skillId)).toContain('rollback-skill');
+
+      const deprecatedAgainNoOp = await call('skills.deprecate', { skillId: 'rollback-skill' });
+      expect(deprecatedAgainNoOp.skill.status).toBe('deprecated');
+      const auditAfterRetry = await service.store.listSkillAudit({
+        tenantId: 'tenant-a',
+        skillId: 'rollback-skill',
+      });
+      expect(auditAfterRetry.filter((e) => e.transition === 'deprecated')).toHaveLength(1);
+    });
+
+    test('skill lifecycle actions never invoke external connectors or business-process actions', async () => {
+      await call('skills.create', {
+        skillId: 'no-side-effects-skill',
+        title: 'No Side Effects',
+        domains: ['edm'],
+      });
+      await call('skills.propose', { skillId: 'no-side-effects-skill' });
+      await call('skills.activate', { skillId: 'no-side-effects-skill' });
+      await call('skills.deprecate', { skillId: 'no-side-effects-skill' });
+      const service = broker.getLocalService('workbench');
+      const toolRuns = await service.store.toolRunDb.allDocs({ include_docs: true });
+      expect(toolRuns.rows.filter((r) => r.doc.type === 'workbench_tool_run')).toHaveLength(0);
+      const mailAccounts = await service.store.mailAccountDb.allDocs({ include_docs: true });
+      expect(mailAccounts.rows.filter((r) => r.doc.type === 'workbench_mail_account')).toHaveLength(
+        0
+      );
+    });
+  });
 });

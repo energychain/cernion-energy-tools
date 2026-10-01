@@ -69524,6 +69524,35 @@
                             "description": "Blocked action"
                           }
                         },
+                        "appliedPlaybooks": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "skillId": {
+                                "type": "string",
+                                "description": "Applied CET Workbench skill/playbook id"
+                              },
+                              "title": {
+                                "type": "string",
+                                "description": "UI-safe skill title"
+                              },
+                              "version": {
+                                "type": "number",
+                                "description": "Skill content version"
+                              },
+                              "auditRefs": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "description": "Skill lifecycle audit entry id"
+                                }
+                              }
+                            }
+                          },
+                          "description": "Active skills/playbooks applied to this case; never raw evidence or prompts"
+                        },
                         "lastUserIntent": {
                           "type": "string",
                           "description": "Bounded summary of the latest user intent"
@@ -69632,6 +69661,35 @@
                     "activeRoleProjection": {
                       "type": "string",
                       "description": "Current role projection"
+                    },
+                    "appliedPlaybooks": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "skillId": {
+                            "type": "string",
+                            "description": "Applied CET Workbench skill/playbook id"
+                          },
+                          "title": {
+                            "type": "string",
+                            "description": "UI-safe skill title"
+                          },
+                          "version": {
+                            "type": "number",
+                            "description": "Skill content version"
+                          },
+                          "auditRefs": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "description": "Skill lifecycle audit entry id"
+                            }
+                          }
+                        }
+                      },
+                      "description": "Active skills/playbooks applied to this case; never raw evidence or prompts"
                     },
                     "evidenceSummary": {
                       "type": "object",
@@ -71253,6 +71311,1457 @@
         },
         "description": "CET-governed Workbench/Tenant-Gateway API for Open WebUI clients. Tokens stay server-side; CET remains case-state and governance authority.",
         "parameters": []
+      }
+    },
+    "/api/workbench/skills": {
+      "get": {
+        "operationId": "workbench_skills_list",
+        "summary": "List tenant-scoped CET Workbench governed skills (issue #640), including code-owned defaults",
+        "tags": [
+          "Workbench"
+        ],
+        "responses": {
+          "200": {
+            "description": "Workbench response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "skillId": {
+                            "type": "string",
+                            "description": "Tenant-scoped CET Workbench skill/playbook id"
+                          },
+                          "tenantId": {
+                            "type": "string",
+                            "description": "Tenant id"
+                          },
+                          "title": {
+                            "type": "string",
+                            "description": "Skill title",
+                            "maxLength": 200
+                          },
+                          "description": {
+                            "type": "string",
+                            "description": "Skill description",
+                            "maxLength": 2000
+                          },
+                          "domains": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "description": "Governed Workbench domain"
+                            }
+                          },
+                          "triggerPatterns": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "description": "Bounded routing/trigger signal"
+                            }
+                          },
+                          "examplePrompts": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "description": "UI-safe example prompt"
+                            }
+                          },
+                          "applicableRoles": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "description": "CET role family"
+                            }
+                          },
+                          "requiredEvidence": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "description": "Allowlisted evidence type"
+                            }
+                          },
+                          "steps": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "description": "Bounded, non-binding process step"
+                            }
+                          },
+                          "allowedActions": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "description": "Allowed internal action"
+                            }
+                          },
+                          "blockedActions": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "description": "Blocked external/binding action"
+                            }
+                          },
+                          "noCallGuards": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "description": "No-call guardrail"
+                            }
+                          },
+                          "handoffDomains": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "description": "Potential handoff domain"
+                            }
+                          },
+                          "capabilityHints": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "description": "Advisory Capability Broker hint"
+                            }
+                          },
+                          "receiptHints": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "description": "Advisory receipt hint"
+                            }
+                          },
+                          "status": {
+                            "type": "string",
+                            "description": "Skill lifecycle status",
+                            "enum": [
+                              "draft",
+                              "proposed",
+                              "active",
+                              "deprecated",
+                              "archived"
+                            ]
+                          },
+                          "version": {
+                            "type": "number",
+                            "description": "Skill content version"
+                          },
+                          "createdBy": {
+                            "type": "string",
+                            "description": "Actor id that created the skill"
+                          },
+                          "approvedBy": {
+                            "type": "string",
+                            "description": "Actor id that activated the skill"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "description": "ISO timestamp"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "description": "ISO timestamp"
+                          },
+                          "auditRefs": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "description": "Append-only lifecycle audit entry id"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Tenant, actor, role or sensitivity denied"
+          },
+          "404": {
+            "description": "Workbench resource not found"
+          },
+          "409": {
+            "description": "Stale or conflicting mapping"
+          },
+          "422": {
+            "description": "Invalid workbench request"
+          }
+        },
+        "description": "CET-governed Workbench/Tenant-Gateway API for Open WebUI clients. Tokens stay server-side; CET remains case-state and governance authority.",
+        "parameters": [
+          {
+            "name": "domain",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "post": {
+        "operationId": "workbench_skills_create",
+        "summary": "Create a tenant-scoped CET Workbench governed skill draft (issue #640)",
+        "tags": [
+          "Workbench"
+        ],
+        "responses": {
+          "200": {
+            "description": "Workbench response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "saved": {
+                      "type": "boolean",
+                      "description": "Whether the skill lifecycle mutation succeeded"
+                    },
+                    "skill": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "skillId": {
+                          "type": "string",
+                          "description": "Tenant-scoped CET Workbench skill/playbook id"
+                        },
+                        "tenantId": {
+                          "type": "string",
+                          "description": "Tenant id"
+                        },
+                        "title": {
+                          "type": "string",
+                          "description": "Skill title",
+                          "maxLength": 200
+                        },
+                        "description": {
+                          "type": "string",
+                          "description": "Skill description",
+                          "maxLength": 2000
+                        },
+                        "domains": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Governed Workbench domain"
+                          }
+                        },
+                        "triggerPatterns": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Bounded routing/trigger signal"
+                          }
+                        },
+                        "examplePrompts": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "UI-safe example prompt"
+                          }
+                        },
+                        "applicableRoles": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "CET role family"
+                          }
+                        },
+                        "requiredEvidence": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Allowlisted evidence type"
+                          }
+                        },
+                        "steps": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Bounded, non-binding process step"
+                          }
+                        },
+                        "allowedActions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Allowed internal action"
+                          }
+                        },
+                        "blockedActions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Blocked external/binding action"
+                          }
+                        },
+                        "noCallGuards": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "No-call guardrail"
+                          }
+                        },
+                        "handoffDomains": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Potential handoff domain"
+                          }
+                        },
+                        "capabilityHints": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Advisory Capability Broker hint"
+                          }
+                        },
+                        "receiptHints": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Advisory receipt hint"
+                          }
+                        },
+                        "status": {
+                          "type": "string",
+                          "description": "Skill lifecycle status",
+                          "enum": [
+                            "draft",
+                            "proposed",
+                            "active",
+                            "deprecated",
+                            "archived"
+                          ]
+                        },
+                        "version": {
+                          "type": "number",
+                          "description": "Skill content version"
+                        },
+                        "createdBy": {
+                          "type": "string",
+                          "description": "Actor id that created the skill"
+                        },
+                        "approvedBy": {
+                          "type": "string",
+                          "description": "Actor id that activated the skill"
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "description": "ISO timestamp"
+                        },
+                        "updatedAt": {
+                          "type": "string",
+                          "description": "ISO timestamp"
+                        },
+                        "auditRefs": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Append-only lifecycle audit entry id"
+                          }
+                        }
+                      }
+                    },
+                    "idempotent": {
+                      "type": "boolean",
+                      "description": "True when a retried mutation was a no-op"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Tenant, actor, role or sensitivity denied"
+          },
+          "404": {
+            "description": "Workbench resource not found"
+          },
+          "409": {
+            "description": "Stale or conflicting mapping"
+          },
+          "422": {
+            "description": "Invalid workbench request"
+          }
+        },
+        "description": "CET-governed Workbench/Tenant-Gateway API for Open WebUI clients. Tokens stay server-side; CET remains case-state and governance authority.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "skillId": {
+                    "type": "string",
+                    "description": "Caller-supplied tenant-scoped skill id"
+                  },
+                  "title": {
+                    "type": "string",
+                    "description": "Skill title",
+                    "maxLength": 200
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "Skill description",
+                    "maxLength": 2000
+                  },
+                  "domains": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "description": "Governed Workbench domain"
+                    }
+                  },
+                  "triggerPatterns": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "description": "Bounded routing/trigger signal"
+                    }
+                  },
+                  "examplePrompts": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "description": "UI-safe example prompt"
+                    }
+                  },
+                  "applicableRoles": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "description": "CET role family"
+                    }
+                  },
+                  "requiredEvidence": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "description": "Allowlisted evidence type"
+                    }
+                  },
+                  "steps": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "description": "Bounded, non-binding process step"
+                    }
+                  },
+                  "allowedActions": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "description": "Allowed internal action"
+                    }
+                  },
+                  "blockedActions": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "description": "Blocked external/binding action"
+                    }
+                  },
+                  "noCallGuards": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "description": "No-call guardrail"
+                    }
+                  },
+                  "handoffDomains": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "description": "Potential handoff domain"
+                    }
+                  },
+                  "capabilityHints": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "description": "Advisory Capability Broker hint"
+                    }
+                  },
+                  "receiptHints": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "description": "Advisory receipt hint"
+                    }
+                  }
+                }
+              },
+              "examples": {
+                "minimal": {
+                  "value": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/workbench/skills/:skillId": {
+      "get": {
+        "operationId": "workbench_skills_get",
+        "summary": "Return one tenant-scoped CET Workbench governed skill (issue #640)",
+        "tags": [
+          "Workbench"
+        ],
+        "responses": {
+          "200": {
+            "description": "Workbench response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "skill": {}
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Tenant, actor, role or sensitivity denied"
+          },
+          "404": {
+            "description": "Workbench resource not found"
+          },
+          "409": {
+            "description": "Stale or conflicting mapping"
+          },
+          "422": {
+            "description": "Invalid workbench request"
+          }
+        },
+        "description": "CET-governed Workbench/Tenant-Gateway API for Open WebUI clients. Tokens stay server-side; CET remains case-state and governance authority.",
+        "parameters": [
+          {
+            "name": "skillId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/workbench/skills/:skillId/propose": {
+      "post": {
+        "operationId": "workbench_skills_propose",
+        "summary": "Transition a draft CET Workbench skill to proposed (issue #640)",
+        "tags": [
+          "Workbench"
+        ],
+        "responses": {
+          "200": {
+            "description": "Workbench response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "saved": {
+                      "type": "boolean",
+                      "description": "Whether the skill lifecycle mutation succeeded"
+                    },
+                    "skill": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "skillId": {
+                          "type": "string",
+                          "description": "Tenant-scoped CET Workbench skill/playbook id"
+                        },
+                        "tenantId": {
+                          "type": "string",
+                          "description": "Tenant id"
+                        },
+                        "title": {
+                          "type": "string",
+                          "description": "Skill title",
+                          "maxLength": 200
+                        },
+                        "description": {
+                          "type": "string",
+                          "description": "Skill description",
+                          "maxLength": 2000
+                        },
+                        "domains": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Governed Workbench domain"
+                          }
+                        },
+                        "triggerPatterns": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Bounded routing/trigger signal"
+                          }
+                        },
+                        "examplePrompts": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "UI-safe example prompt"
+                          }
+                        },
+                        "applicableRoles": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "CET role family"
+                          }
+                        },
+                        "requiredEvidence": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Allowlisted evidence type"
+                          }
+                        },
+                        "steps": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Bounded, non-binding process step"
+                          }
+                        },
+                        "allowedActions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Allowed internal action"
+                          }
+                        },
+                        "blockedActions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Blocked external/binding action"
+                          }
+                        },
+                        "noCallGuards": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "No-call guardrail"
+                          }
+                        },
+                        "handoffDomains": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Potential handoff domain"
+                          }
+                        },
+                        "capabilityHints": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Advisory Capability Broker hint"
+                          }
+                        },
+                        "receiptHints": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Advisory receipt hint"
+                          }
+                        },
+                        "status": {
+                          "type": "string",
+                          "description": "Skill lifecycle status",
+                          "enum": [
+                            "draft",
+                            "proposed",
+                            "active",
+                            "deprecated",
+                            "archived"
+                          ]
+                        },
+                        "version": {
+                          "type": "number",
+                          "description": "Skill content version"
+                        },
+                        "createdBy": {
+                          "type": "string",
+                          "description": "Actor id that created the skill"
+                        },
+                        "approvedBy": {
+                          "type": "string",
+                          "description": "Actor id that activated the skill"
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "description": "ISO timestamp"
+                        },
+                        "updatedAt": {
+                          "type": "string",
+                          "description": "ISO timestamp"
+                        },
+                        "auditRefs": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Append-only lifecycle audit entry id"
+                          }
+                        }
+                      }
+                    },
+                    "idempotent": {
+                      "type": "boolean",
+                      "description": "True when a retried mutation was a no-op"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Tenant, actor, role or sensitivity denied"
+          },
+          "404": {
+            "description": "Workbench resource not found"
+          },
+          "409": {
+            "description": "Stale or conflicting mapping"
+          },
+          "422": {
+            "description": "Invalid workbench request"
+          }
+        },
+        "description": "CET-governed Workbench/Tenant-Gateway API for Open WebUI clients. Tokens stay server-side; CET remains case-state and governance authority.",
+        "parameters": [
+          {
+            "name": "skillId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {}
+              },
+              "examples": {
+                "minimal": {
+                  "value": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/workbench/skills/:skillId/activate": {
+      "post": {
+        "operationId": "workbench_skills_activate",
+        "summary": "Activate a proposed CET Workbench skill; requires Workbench governance role (issue #640)",
+        "tags": [
+          "Workbench"
+        ],
+        "responses": {
+          "200": {
+            "description": "Workbench response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "saved": {
+                      "type": "boolean",
+                      "description": "Whether the skill lifecycle mutation succeeded"
+                    },
+                    "skill": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "skillId": {
+                          "type": "string",
+                          "description": "Tenant-scoped CET Workbench skill/playbook id"
+                        },
+                        "tenantId": {
+                          "type": "string",
+                          "description": "Tenant id"
+                        },
+                        "title": {
+                          "type": "string",
+                          "description": "Skill title",
+                          "maxLength": 200
+                        },
+                        "description": {
+                          "type": "string",
+                          "description": "Skill description",
+                          "maxLength": 2000
+                        },
+                        "domains": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Governed Workbench domain"
+                          }
+                        },
+                        "triggerPatterns": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Bounded routing/trigger signal"
+                          }
+                        },
+                        "examplePrompts": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "UI-safe example prompt"
+                          }
+                        },
+                        "applicableRoles": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "CET role family"
+                          }
+                        },
+                        "requiredEvidence": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Allowlisted evidence type"
+                          }
+                        },
+                        "steps": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Bounded, non-binding process step"
+                          }
+                        },
+                        "allowedActions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Allowed internal action"
+                          }
+                        },
+                        "blockedActions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Blocked external/binding action"
+                          }
+                        },
+                        "noCallGuards": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "No-call guardrail"
+                          }
+                        },
+                        "handoffDomains": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Potential handoff domain"
+                          }
+                        },
+                        "capabilityHints": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Advisory Capability Broker hint"
+                          }
+                        },
+                        "receiptHints": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Advisory receipt hint"
+                          }
+                        },
+                        "status": {
+                          "type": "string",
+                          "description": "Skill lifecycle status",
+                          "enum": [
+                            "draft",
+                            "proposed",
+                            "active",
+                            "deprecated",
+                            "archived"
+                          ]
+                        },
+                        "version": {
+                          "type": "number",
+                          "description": "Skill content version"
+                        },
+                        "createdBy": {
+                          "type": "string",
+                          "description": "Actor id that created the skill"
+                        },
+                        "approvedBy": {
+                          "type": "string",
+                          "description": "Actor id that activated the skill"
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "description": "ISO timestamp"
+                        },
+                        "updatedAt": {
+                          "type": "string",
+                          "description": "ISO timestamp"
+                        },
+                        "auditRefs": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Append-only lifecycle audit entry id"
+                          }
+                        }
+                      }
+                    },
+                    "idempotent": {
+                      "type": "boolean",
+                      "description": "True when a retried mutation was a no-op"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Tenant, actor, role or sensitivity denied"
+          },
+          "404": {
+            "description": "Workbench resource not found"
+          },
+          "409": {
+            "description": "Stale or conflicting mapping"
+          },
+          "422": {
+            "description": "Invalid workbench request"
+          }
+        },
+        "description": "CET-governed Workbench/Tenant-Gateway API for Open WebUI clients. Tokens stay server-side; CET remains case-state and governance authority.",
+        "parameters": [
+          {
+            "name": "skillId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {}
+              },
+              "examples": {
+                "minimal": {
+                  "value": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/workbench/skills/:skillId/deprecate": {
+      "post": {
+        "operationId": "workbench_skills_deprecate",
+        "summary": "Deprecate an active CET Workbench skill without deleting audit history (issue #640)",
+        "tags": [
+          "Workbench"
+        ],
+        "responses": {
+          "200": {
+            "description": "Workbench response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "saved": {
+                      "type": "boolean",
+                      "description": "Whether the skill lifecycle mutation succeeded"
+                    },
+                    "skill": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "skillId": {
+                          "type": "string",
+                          "description": "Tenant-scoped CET Workbench skill/playbook id"
+                        },
+                        "tenantId": {
+                          "type": "string",
+                          "description": "Tenant id"
+                        },
+                        "title": {
+                          "type": "string",
+                          "description": "Skill title",
+                          "maxLength": 200
+                        },
+                        "description": {
+                          "type": "string",
+                          "description": "Skill description",
+                          "maxLength": 2000
+                        },
+                        "domains": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Governed Workbench domain"
+                          }
+                        },
+                        "triggerPatterns": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Bounded routing/trigger signal"
+                          }
+                        },
+                        "examplePrompts": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "UI-safe example prompt"
+                          }
+                        },
+                        "applicableRoles": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "CET role family"
+                          }
+                        },
+                        "requiredEvidence": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Allowlisted evidence type"
+                          }
+                        },
+                        "steps": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Bounded, non-binding process step"
+                          }
+                        },
+                        "allowedActions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Allowed internal action"
+                          }
+                        },
+                        "blockedActions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Blocked external/binding action"
+                          }
+                        },
+                        "noCallGuards": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "No-call guardrail"
+                          }
+                        },
+                        "handoffDomains": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Potential handoff domain"
+                          }
+                        },
+                        "capabilityHints": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Advisory Capability Broker hint"
+                          }
+                        },
+                        "receiptHints": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Advisory receipt hint"
+                          }
+                        },
+                        "status": {
+                          "type": "string",
+                          "description": "Skill lifecycle status",
+                          "enum": [
+                            "draft",
+                            "proposed",
+                            "active",
+                            "deprecated",
+                            "archived"
+                          ]
+                        },
+                        "version": {
+                          "type": "number",
+                          "description": "Skill content version"
+                        },
+                        "createdBy": {
+                          "type": "string",
+                          "description": "Actor id that created the skill"
+                        },
+                        "approvedBy": {
+                          "type": "string",
+                          "description": "Actor id that activated the skill"
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "description": "ISO timestamp"
+                        },
+                        "updatedAt": {
+                          "type": "string",
+                          "description": "ISO timestamp"
+                        },
+                        "auditRefs": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Append-only lifecycle audit entry id"
+                          }
+                        }
+                      }
+                    },
+                    "idempotent": {
+                      "type": "boolean",
+                      "description": "True when a retried mutation was a no-op"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Tenant, actor, role or sensitivity denied"
+          },
+          "404": {
+            "description": "Workbench resource not found"
+          },
+          "409": {
+            "description": "Stale or conflicting mapping"
+          },
+          "422": {
+            "description": "Invalid workbench request"
+          }
+        },
+        "description": "CET-governed Workbench/Tenant-Gateway API for Open WebUI clients. Tokens stay server-side; CET remains case-state and governance authority.",
+        "parameters": [
+          {
+            "name": "skillId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {}
+              },
+              "examples": {
+                "minimal": {
+                  "value": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/workbench/cases/:caseId/skills/propose-from-case": {
+      "post": {
+        "operationId": "workbench_cases_skills_proposeFromCase",
+        "summary": "Propose a tenant CET Workbench skill draft from a resolved/confirmed case (issue #640)",
+        "tags": [
+          "Workbench"
+        ],
+        "responses": {
+          "200": {
+            "description": "Workbench response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "saved": {
+                      "type": "boolean",
+                      "description": "Whether the skill lifecycle mutation succeeded"
+                    },
+                    "skill": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "skillId": {
+                          "type": "string",
+                          "description": "Tenant-scoped CET Workbench skill/playbook id"
+                        },
+                        "tenantId": {
+                          "type": "string",
+                          "description": "Tenant id"
+                        },
+                        "title": {
+                          "type": "string",
+                          "description": "Skill title",
+                          "maxLength": 200
+                        },
+                        "description": {
+                          "type": "string",
+                          "description": "Skill description",
+                          "maxLength": 2000
+                        },
+                        "domains": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Governed Workbench domain"
+                          }
+                        },
+                        "triggerPatterns": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Bounded routing/trigger signal"
+                          }
+                        },
+                        "examplePrompts": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "UI-safe example prompt"
+                          }
+                        },
+                        "applicableRoles": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "CET role family"
+                          }
+                        },
+                        "requiredEvidence": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Allowlisted evidence type"
+                          }
+                        },
+                        "steps": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Bounded, non-binding process step"
+                          }
+                        },
+                        "allowedActions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Allowed internal action"
+                          }
+                        },
+                        "blockedActions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Blocked external/binding action"
+                          }
+                        },
+                        "noCallGuards": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "No-call guardrail"
+                          }
+                        },
+                        "handoffDomains": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Potential handoff domain"
+                          }
+                        },
+                        "capabilityHints": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Advisory Capability Broker hint"
+                          }
+                        },
+                        "receiptHints": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Advisory receipt hint"
+                          }
+                        },
+                        "status": {
+                          "type": "string",
+                          "description": "Skill lifecycle status",
+                          "enum": [
+                            "draft",
+                            "proposed",
+                            "active",
+                            "deprecated",
+                            "archived"
+                          ]
+                        },
+                        "version": {
+                          "type": "number",
+                          "description": "Skill content version"
+                        },
+                        "createdBy": {
+                          "type": "string",
+                          "description": "Actor id that created the skill"
+                        },
+                        "approvedBy": {
+                          "type": "string",
+                          "description": "Actor id that activated the skill"
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "description": "ISO timestamp"
+                        },
+                        "updatedAt": {
+                          "type": "string",
+                          "description": "ISO timestamp"
+                        },
+                        "auditRefs": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "description": "Append-only lifecycle audit entry id"
+                          }
+                        }
+                      }
+                    },
+                    "idempotent": {
+                      "type": "boolean",
+                      "description": "True when a retried mutation was a no-op"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Tenant, actor, role or sensitivity denied"
+          },
+          "404": {
+            "description": "Workbench resource not found"
+          },
+          "409": {
+            "description": "Stale or conflicting mapping"
+          },
+          "422": {
+            "description": "Invalid workbench request"
+          }
+        },
+        "description": "CET-governed Workbench/Tenant-Gateway API for Open WebUI clients. Tokens stay server-side; CET remains case-state and governance authority.",
+        "parameters": [
+          {
+            "name": "caseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "description": "Optional admin-supplied skill title override",
+                    "maxLength": 200
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "Optional admin-supplied skill description override",
+                    "maxLength": 2000
+                  },
+                  "examplePrompts": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "description": "Optional admin-supplied example prompt"
+                    }
+                  },
+                  "skillId": {
+                    "type": "string",
+                    "description": "Optional caller-supplied tenant-scoped skill id"
+                  }
+                }
+              },
+              "examples": {
+                "minimal": {
+                  "value": {}
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/workbench/inbox/tasks": {
