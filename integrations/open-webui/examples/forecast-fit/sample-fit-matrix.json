@@ -1,0 +1,45 @@
+{
+  "schemaVersion": "cernion.forecast-fit-preview.v1",
+  "artifactType": "synthetic_sample_fit_matrix",
+  "sampleInput": "sample-load-profile.csv",
+  "businessUseCase": "Load-profile forecast and data-quality fit preview",
+  "dataAvailability": "partial_sample_only",
+  "energyMarketContextCompleteness": "missing_market_location_metadata",
+  "technicalFit": "review_required",
+  "commercialFit": "paid_review_recommended",
+  "qualityFlags": [
+    "sample_has_short_time_range",
+    "holiday_context_present",
+    "meter_or_malo_metadata_missing",
+    "weather_context_is_synthetic"
+  ],
+  "sampleMetrics": {
+    "maeKwh": {
+      "value": 12.4,
+      "caveat": "Synthetic demonstration metric, not a forecast guarantee."
+    },
+    "rmseKwh": {
+      "value": 16.8,
+      "caveat": "Synthetic demonstration metric, requires real backtest window for customer use."
+    },
+    "wapePercent": {
+      "value": 8.9,
+      "caveat": "Synthetic demonstration metric; sensitive to low-load periods."
+    }
+  },
+  "openRisks": [
+    "evaluation period too short",
+    "meter/MaLo mapping missing",
+    "context features incomplete",
+    "structural breaks not assessed"
+  ],
+  "recommendedNextStep": "paid_review",
+  "commercialBoundary": [
+    "no forecast-quality guarantee",
+    "no productive operation",
+    "no SLA",
+    "no system integration promise",
+    "no regulatory/legal advice"
+  ],
+  "generatedAt": "2026-10-01T00:00:00Z"
+}
