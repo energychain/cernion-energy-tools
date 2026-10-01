@@ -1,6 +1,6 @@
 # Cernion Energy Tools — Architektur-Dokumentation
 
-> **Version:** v0.99.22 · **Stand:** September 2026
+> **Version:** v0.99.22 · **Stand:** 2. Oktober 2026
 
 ---
 
@@ -14,9 +14,9 @@ Moleculers In-Process-Transport. Ein einziger API Gateway
 
 Die Zahlen in diesem Dokument sind **gegen den aktuellen Repository-Stand indiziert**:
 
-- `145` Core-Services in `services/`
+- `147` Core-Services in `services/`
 - `1` optionale lokale Erweiterung in `custom-services/`
-- `1039` OpenAPI-Pfade / `1151` REST-Operationen aus `openapi-export.json`
+- `1120` OpenAPI-Pfade / `1238` REST-Operationen aus `openapi-export.json`
 
 ```
 HTTP-Clients / Enterprise UI (cernion-ui)
@@ -35,7 +35,7 @@ HTTP-Clients / Enterprise UI (cernion-ui)
 │ POST /api/agent-sidecar/*      → agent-sidecar     (v0.99.22+)     │
 │ POST /api/webhooks/*           → webhooks          (v0.44.0+)      │
 │ GET  /metrics                  → observability     (v0.44.1+)      │
-│ … 1039 Pfade / 1151 Operationen, 145 Core-Services gesamt          │
+│ … 1120 Pfade / 1238 Operationen, 147 Core-Services gesamt          │
 └────────────────────────────────────────────────────────────────────┘
          │
          ├── MCP-Client (`src/mcp-client.js`) → Cernion MCP-Server (extern)
@@ -200,7 +200,7 @@ Seit v0.47.1 unterstützt die Runtime zusätzlich:
 
 ## 6. REST- und Service-Oberfläche
 
-Die aktuelle Export-Spezifikation enthält `1039` Pfade und `1151` Operationen.
+Die aktuelle Export-Spezifikation enthält `1120` Pfade und `1238` Operationen.
 Die REST-Fläche ist in OpenAPI-Tags gruppiert; besonders relevant sind:
 
 | Domäne | Typische Services |
@@ -243,7 +243,7 @@ Der Agent Sidecar ist **CET-governed**: interne CET Case-/Event-State-Änderunge
 Die Tabelle kombiniert zwei Perspektiven:
 
 1. **Release-kritische Capabilities** mit explizitem TRL-Fortschritt seit dem alten Stand
-2. **Service-Coverage-Gruppen**, damit alle `145` Core-Services aus `services/` einer
+2. **Service-Coverage-Gruppen**, damit alle `147` Core-Services aus `services/` einer
    aktuellen Architektur- und Reife-Sicht zugeordnet sind
 
 | Typ | Scope / Komponente | Primäre Services / Module | Coverage | TRL alt | TRL neu | Begründung |
@@ -274,7 +274,7 @@ Die Tabelle kombiniert zwei Perspektiven:
 | Coverage | Decisioning & Advanced Workflows | `cya`, `nova`, `knowledge-rag`, `vnb-monitor`, `nbp-monitor`, `flex`, `znp` | 7 Services | — | 4–7 | narrative, monitoring- und entscheidungsnahe Workflows mit differierendem Reifegrad |
 
 **Abdeckung:** Die Coverage-Zeilen gruppieren die produktprägenden Core-Service-Familien in
-`services/`; durch die Erweiterung auf 145 Services werden Spezial- und Hilfsservices nicht einzeln
+`services/`; durch die Erweiterung auf 147 Services werden Spezial- und Hilfsservices nicht einzeln
 in dieser Tabelle wiederholt. Der lokale Workspace-Service in `custom-services/` ist absichtlich
 nicht Teil der offiziellen TRL-Bewertung.
 
@@ -327,11 +327,13 @@ Jest beendet den Prozess weiter nicht in allen Fällen sauber ohne `--forceExit`
 (wahrscheinlicher Kandidat: Watcher-/`fs.watch`-Teardown). Der Release-Gate nutzt
 weiter die bestehende Mitigation.
 
-### `xlsx` High Advisory
+### Dependency-Security-Stand
 
-Für `xlsx` besteht weiterhin eine dokumentierte Ausnahme in
-[SECURITY.md](../SECURITY.md). Die Warnung ist bekannt und im Projektkontext
-akzeptiert, aber nicht endgültig beseitigt.
+Der RC3-Bereinigungsstand vom 2. Oktober 2026 meldet mit dem geprüften Lockfile
+`0 vulnerabilities` in `npm audit`. Kompatible Patches für `brace-expansion`,
+`fast-uri`, `hono`, `nodemailer` und `qs` wurden aufgelöst. Historische
+Ausnahmen in [SECURITY.md](../SECURITY.md) sind keine Aussage über den aktuellen
+Audit. Neue Advisories und abweichende Installationen müssen erneut geprüft werden.
 
 ### OEP- und ENTSO-E-Upstream-Grenzen
 
@@ -372,3 +374,127 @@ Primary endpoints:
 OpenAI-compatible clients may use `POST /v1/chat/completions` with `model: "cernion-governance-assistant"`. That mode routes through `workbench.chat` and returns OpenAI-compatible output plus CET metadata (`cetCaseId`, `caseStateVersion`, `primaryDomain`, `readinessState`). Existing `/v1/chat/completions` behavior for other supported models remains unchanged.
 
 Security boundary: CET service tokens remain server-side. Open-WebUI org/user/group values are mapped server-side into CET tenant, actor, roles and sensitivity clearance. Missing or disabled mappings fail closed. Polling events does not ack them; explicit ack is required after visible delivery.
+
+
+## 10. RC3-Architekturreview — 2. Oktober 2026
+
+### Prüfgrundlage und Bewertung
+
+Geprüft wurde `origin/main` ab `a14797a0` in einem isolierten Task-Worktree,
+mit einem frisch erstellten GitNexus-Index, den offenen GitHub-Issues/PRs,
+Quellcodeprüfung und lokalen Release-Prüfungen. Der ursprüngliche Checkout auf
+`release/v0.99.19` enthält umfangreiche lokale Forecast-/AgentOS-Änderungen.
+Diese Änderungen sind weder Bestandteil dieser Bewertung von `main` noch
+ungeprüft in die RC3-Bereinigung übernommen worden.
+
+| Kriterium | Bewertung | Befund |
+|-----------|-----------|--------|
+| Architekturzuschnitt | Tragfähig | In-Process-Moleculer, gemeinsame MCP-/LLM-Clients, PouchDB-Lifecycle-Mixin und Job-Store sind etablierte Verantwortungsgrenzen. Ein Prozess bleibt ein gemeinsamer Fehler- und Ressourcenbereich; 147 Service-Dateien bedeuten keine unabhängigen Deployments. |
+| Fachliche Entscheidungshoheit | Gut | Domain Router und CET besitzen Case State und Governance; Clients liefern Eingaben und EvidenceRefs. LLM-Narrative und Entscheidungssignale ersetzen keine Freigabe oder Ausführung. |
+| Mandanten-/Identitätsgrenzen | Gut im geprüften Scope | `domain-router-policy.principal`, Workbench-Mappings und tenant-skopierte Governance-Dokument-IDs sind vorhanden. Die Servicetests prüfen Fremdmandanten-Abweisung. Dies ist kein Nachweis für sämtliche REST-Endpunkte oder einen produktiven Identity-Provider. |
+| Wartbarkeit | Ausbaufähig | Große Services und mehrere parallel gepflegte Metadaten-/Projektionsflächen erhöhen Drift-Risiken. Die Bereinigung beschränkt sich auf nachgewiesene Vertragslücken. |
+| API-Verträge | Teilweise vollständig | Export und Capability-Index werden generiert; der Audit meldet keine Fehler, aber zahlreiche Warnungen zu fehlenden Beispielen/Metadaten. Ein grüner Audit beweist keine fachliche Vollständigkeit. |
+| Reife-/Releaseaussagen | An Nachweise gebunden | Lokale Tests und Gates sind erforderlich; Live-MCP-, SMTP-, Identity-Provider- und produktive Restore-/Lastnachweise werden dadurch nicht ersetzt. UI-Discovery-Issues bleiben eigene Arbeit. |
+
+Gesamtbewertung: Der Backend-Zuschnitt ist für die RC3-Vorbereitung geeignet.
+Die nachgewiesenen Governance-Vertragslücken sind innerhalb der vorhandenen
+Module behebbar. Eine allgemeine Service-Aufteilung, neue Persistenzschicht,
+Neuentwicklung funktionierender Forecast-Modelle oder UI-Implementierung ist
+für diese Bereinigung nicht erforderlich.
+
+### Nachgewiesene Doppelpflege und bereinigte Verträge
+
+1. Governance-Karten hatten getrennte Eingabe-, Read- und Dossier-Feldlisten.
+   Typisierte technische und kaufmännische Felder wurden angenommen, aber im
+   generischen Persistenzmodell verworfen. `CARD_DETAIL_FIELDS` und
+   `normalizeCardDetails` bilden jetzt einen gemeinsamen, begrenzten Vertrag
+   für Persistenz, Read-Projektion und Dossier. Freie Objekt-Payloads werden
+   nicht übernommen; Texte und Listen bleiben begrenzt.
+2. Asset-Entscheidungssignale dürfen nicht den generischen Signalvorrat
+   erweitern. `listTypes.allowedDecisionSignals` und die Eingabevalidierung
+   verwenden jetzt denselben typabhängigen Vertrag.
+3. Ein technischer Asset-Fall darf vor der kaufmännischen Prüfung entstehen.
+   `affectedProcess` wird nicht aus `requiredCommercialChecks[0]` abgeleitet
+   und ist für die initiale Asset-Karte nicht verpflichtend. Bestehende
+   generische Eingabefelder und technische Aliase bleiben nutzbar. Befund,
+   Annahmen, offene Klärungen und kaufmännische Bewertungen bleiben getrennt.
+4. `decisionSignal`, `riskLevel` und `commercialReviewNeeded` sind tatsächliche
+   Listenfilter. `riskLevel` ist eine explizite Einschätzung aus
+   `low|medium|high|critical`, keine automatisch abgeleitete Bewertung.
+   Kaufmännischer Prüfbedarf besteht bei aktiven Asset-Karten, wenn
+   Budget-, Liquiditäts-, Mittelfristplanungs- oder Return-Bewertung fehlt
+   oder das Entscheidungssignal `review` lautet. Dies ist eine
+   Vollständigkeits-/Workflowhilfe, keine wirtschaftliche Freigabe.
+5. PATCH durfte den gesonderten Lifecycle-Transition-Endpunkt umgehen.
+   Die Normalisierung prüft jetzt dieselbe Transition-Tabelle; außerdem
+   bleibt der Kartentyp nach Erstellung unveränderlich. Ein Signal `fund`
+   löst weiterhin weder Budgetfreigabe noch Beschaffung oder Buchung aus.
+6. Der Architekturtext zählte noch 145 Services und 1.039 API-Pfade.
+   Der aktuelle Stand enthält 147 Services, 1.120 Pfade und 1.238 Operationen.
+   OpenAPI und Operation-Capability-Index wurden erneut generiert.
+
+Forecast-Produkt und Portfolio-Runtime sind keine pauschal zu entfernenden
+Duplikate: `forecast-product` prüft den authentifizierten Tenant und erzeugt
+Produkt-Trainingsaufgaben; `forecast-portfolio-runtime` verwaltet tenant-skopierte,
+versionierte Historien und delegiert an dieses Modul. Auch Domain-Router-
+Case-State und Workbench-Conversation-Mapping haben unterschiedliche
+Lebenszyklen. Diese bewussten Grenzen bleiben erhalten.
+
+GitNexus meldete für die geänderten Governance-Funktionen LOW Risk mit ein
+bis zwei direkten Abhängigkeiten und ohne zugeordneten Execution Flow.
+Dynamisch gebundene Moleculer-Handler sind im Graphen nicht vollständig
+repräsentiert; deshalb ergänzen Servicetests die Impact-Analyse. Vor jedem
+Integrationscommit wird `detect_changes` auf dem expliziten Worktree ausgeführt.
+GitNexus erkennt Auswirkungen; Git löst Merge-Konflikte, anschließend prüfen
+Tests und generierte Verträge das Ergebnis. Der Quality-Job erhält 40 statt
+20 Minuten Laufzeit, weil #675/#678 nach den Unit-Tests in den realen
+Python-Modelltests abgebrochen wurden; keine Test- oder Coverage-Gates werden reduziert.
+
+### Offene PRs: Integrationsentscheidung
+
+Die Tabelle dokumentiert die Sichtung vom 2. Oktober 2026. Grün allein reicht
+bei unvollständiger fachlicher Abnahme nicht für eine Integration. Historische
+CI-Fehler sind getrennt von der Prüfung gegen den aktuellen Stand zu betrachten.
+
+| PR | Entscheidung / Befund |
+|----|-----------------------|
+| #671 Axios | Integriert; bestehende grüne Checks, anschließend gemeinsame Release-Prüfung. |
+| #649 ip-address | Integriert; reine Lockfile-Aktualisierung. |
+| #588 js-yaml | Integriert; Override und Lockfile bleiben konsistent. |
+| #581 N3 | Integriert; RDF-/SHACL-Verbraucher bleiben Bestandteil der Unit-Prüfung. |
+| #579 Jest | Integriert; Konflikt im Package-/Lockfile unter Erhalt des N3-Updates gelöst. |
+| #648 Nodemailer | Integriert; Node >=22 erfüllt die neue Laufzeitanforderung. Zusätzliche kompatible Security-Patches werden im Lockfile aufgelöst. |
+| #675 Asset-Governance | Mit Korrekturen integriert: Feldpersistenz, technische Erstaufnahme, Signale je Typ, Listenfilter und Regressionen für Anreicherung/Lifecycle. |
+| #679 Forecast-Preview | Trotz grüner Checks zurückgestellt: CSV-Zeitspalte falsch bezeichnet, Evidenz-/Reproduktionsmetadaten unvollständig; dokumentierte Preview erfüllt die UI-Akzeptanz von #669 nicht. |
+| #678 Inspector-Spezifikation | Zurückgestellt: Quality-Job abgebrochen; Review benennt fehlende nutzergebundene Identität, serverseitige ToolRun-Projektion und Endpoint-Tests. Keine UI-Implementierung in dieser Bereinigung. |
+| #593 Asset-to-Decision Seed | Zurückgestellt: Konflikte, fehlgeschlagene Checks und fehlende seed-spezifische Validierung des `source_hint_only`-API-Vertrags. |
+| #578 Formatwechsel Seed | Zurückgestellt: Konflikte und fehlgeschlagene Quality-/Sonar-Prüfungen; keine ungeprüfte Erweiterung des Blueprint-Katalogs. |
+| #573 Budibase Existing-Target Gate | Zurückgestellt: Konflikte und fehlgeschlagene Checks; weder Live-Apply noch UI-Arbeit beauftragt. |
+| #574 Infrastruktur-Panel | Zurückgestellt: UI-Scope, Konflikte und fehlgeschlagene Checks. |
+| #566 Digitalprogramm-Panel | Zurückgestellt: UI-Scope, Konflikte, Quality-Fehler und offene semantische Review-Befunde zu EvidenceClass/Workbook-Label. |
+| #552 Glama-Metadaten | Zurückgestellt: Konflikte/Quality-Fehler; Änderungen umfassen auch API-Service und Generator und sind keine reine Textpflege. |
+| #594 CodeQL Action | Zurückgestellt: historische Quality-Fehler; separater Workflow-Update-Scope. |
+| #585 Hono, #576 qs, #575 fast-uri | Security-Bedarf über kompatible Lockfile-Korrektur bearbeitet; #575 liegt mit 3.1.7 noch im aktuellen Advisory-Bereich. Alte PR-Checks sind fehlgeschlagen. |
+| #584 PDFKit, #583 Nodemailer 9.x, #580 Moleculer | Zurückgestellt: fehlgeschlagene Checks; Nodemailer 9.x wird durch #648 und aktuelle Security-Patches überholt. |
+| #569 Swagger UI, #568 ESLint, #557 better-sqlite3 | Zurückgestellt: fehlgeschlagene Checks; zusätzliche unabhängige Tool-/Runtime-Updates sind kein belegter RC3-Vertragsfix. |
+
+### Offene Issues: fachliche Abgrenzung
+
+| Issues | Einordnung für RC3 |
+|--------|--------------------|
+| #666 | Asset-Governance-Vertrag in dieser Bereinigung umgesetzt; technische Erstaufnahme, Anreicherung, Signale, Filter und Dossier sind getestet. |
+| #668, #669 | Überlappender Forecast-Self-Service-Produktbedarf. Ein gemeinsamer verbindlicher Abnahmepfad sollte Input, Auswertungszeitraum, Einheiten, Metrikdefinitionen und Evidenzmetadaten festlegen. UI-Akzeptanz bleibt offen. |
+| #660, #599 | Workbench-/Inspector-Discovery: Backend-Routing ist vorhanden; daraus folgt keine fertig implementierte UI. Auth-/Projektion-/Demo-Gates bleiben separate Abnahmekriterien. |
+| #592, #577 | Blueprint-Seeds hängen an #593/#578. Metadaten dürfen nicht mit validierter ausführbarer Integration verwechselt werden. |
+| #572, #565, #555, #471, #527 | Workbench-/Budibase-Produkt- und Panelarbeit; zurückgestellt, keine UI-Arbeit. |
+| #537 | Neuer Redispatch-Billing-/Reconciliation-Scope: vor Umsetzung Mengen-/Einheitenvertrag, Intervallgrenzen, Korrekturversionen und Abrechnungseffekte festlegen. |
+| #530, #529, #528, #522, #521, #517 | Fachliche Erweiterungen für Readiness, Investition, Prüfqueue, Formatwechsel, Datenpunktänderungen und Versandnachweise. Governance-Karten liefern Evidenz, ersetzen aber keine spezifizierte Ranking-, Freigabe- oder Abrechnungslogik. |
+| #506, #505, #504 | Zusammenhängender Wallet-Governance-Passport-Vertrag; Preview, Broker-Routing und dokumentierte Consumer-Grenze gemeinsam abnehmen. Keine automatische Wallet-Transaktion. |
+| #503 | MQTT-EDM-Ingest: neues Transport-/Ingest-Feature; Idempotenz, OBIS/Einheiten, Tenantbindung, Retention und Fehler-/Replay-Vertrag vor Implementierung spezifizieren. |
+| #436 | Breiter Legacy-ERP-Integrations-Scope; keine Voraussetzung für die hier geprüfte additive RC3-Bereinigung. |
+| #251 | Querschnittlicher Capability-to-Dossier-Vertrag. Das Governance-Feldverlustproblem ist bereinigt; eine flächendeckende fachliche Abnahme aller Services ist damit nicht abgeschlossen. |
+
+Zurückgestellte Issues werden nicht allein aufgrund einer Spezifikation oder
+Teilimplementierung als erledigt bewertet. Externe Deployments, produktive
+Datenänderungen, UI-Implementierung und der eigentliche RC3-Release gehören
+nicht zu dieser Bereinigung.

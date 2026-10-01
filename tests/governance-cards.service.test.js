@@ -73,6 +73,22 @@ describe('Governance Cards service', () => {
     );
   });
 
+  test('documents typed list filters as valid OpenAPI parameters', () => {
+    const parameters = GovernanceCards.actions.listCards.openapi.parameters;
+    expect(parameters.find((item) => item.name === 'riskLevel')).toMatchObject({
+      schema: { type: 'string', enum: ['low', 'medium', 'high', 'critical'] },
+      example: 'low',
+    });
+    expect(parameters.find((item) => item.name === 'limit')).toMatchObject({
+      schema: { type: 'integer', minimum: 1, maximum: 100 },
+      example: 10,
+    });
+    expect(parameters.find((item) => item.name === 'commercialReviewNeeded')).toMatchObject({
+      schema: { type: 'boolean' },
+      example: true,
+    });
+  });
+
   test('exposes regulatory impulse workflow metadata and creates cards from regulatory fields', async () => {
     const types = await call('listTypes');
     const regulatory = types.items.find((item) => item.cardType === 'regulatory_impulse');
@@ -140,6 +156,222 @@ describe('Governance Cards service', () => {
     expect(created.created).toBe(true);
     expect(created.card.cardId).toMatch(/^gcard_/);
     expect(created.nextSafeAction).toBe('Review evidence and assign follow-up owner.');
+  });
+
+  test('exposes asset investment governance metadata and creates cards from steering fields', async () => {
+    const types = await call('listTypes');
+    const asset = types.items.find((item) => item.cardType === 'asset_investment_governance');
+    expect(asset).toMatchObject({
+      title: 'Asset / investment governance',
+      allowedDecisionSignals: expect.arrayContaining(['fund', 'return-to-line', 'defer-with-risk']),
+      processFlow: expect.arrayContaining([
+        'technical finding',
+        'commercial/regulatory effect check',
+      ]),
+    });
+    expect(asset.fieldBlocks.map((block) => block.blockId)).toEqual([
+      'technical_finding',
+      'risk_clarification',
+      'commercial_regulatory_steering',
+    ]);
+
+    const created = await call('createCard', {
+      cardType: 'asset_investment_governance',
+      assetOrMeasure: 'MS transformer replacement measure',
+      triggerSummary: 'Thermal loading trend requires investment governance review.',
+      affectedDomain: 'grid_connection',
+      requiredCommercialChecks: ['budget and regulatory return effect'],
+      technicalFinding: 'N-1 reserve and voltage quality need confirmation before funding.',
+      riskPicture: 'Operational reserve risk and cost uncertainty.',
+      technicalRecommendation: 'Review technical assumptions, cost band and funding gate.',
+      technicalOwnerRole: 'ROLE_GRID_PLANNING',
+      riskTypes: ['operational_risk', 'investment-impact'],
+      budgetImpact: 'mid-six-figure range to validate',
+      portfolioPriority: 'commercial-review',
+      decisionSignal: 'defer-with-risk',
+    });
+
+    expect(created.card).toMatchObject({
+      cardType: 'asset_investment_governance',
+      title: 'MS transformer replacement measure',
+      affectedProcess: null,
+      ownerRole: 'ROLE_GRID_PLANNING',
+      impactSummary: 'Operational reserve risk and cost uncertainty.',
+      nextGate: 'Review technical assumptions, cost band and funding gate.',
+      managementRelevance: 'commercial-review',
+      decisionSignal: 'defer-with-risk',
+    });
+
+    const listed = await call('listCards', {
+      cardType: 'asset_investment_governance',
+      riskType: 'investment-impact',
+      managementRelevance: 'commercial-review',
+    });
+    expect(listed.items.map((card) => card.cardId)).toContain(created.card.cardId);
+  });
+
+  test('preserves technical findings through later commercial enrichment and signal changes', async () => {
+    const technical = {
+      cardType: 'asset_investment_governance',
+      assetOrMeasure: 'Synthetic transformer measure',
+      technicalFinding: 'Reserve capacity needs technical review.',
+      assumptions: ['Load growth is an assumption, not measured evidence.'],
+      openClarifications: ['Confirm reserve capacity.'],
+      operationalRisk: 'Reserve uncertainty',
+      riskLevel: 'high',
+      timeHorizon: 'Next planning period',
+      technicalRecommendation: 'Validate reserve capacity before funding.',
+      technicalOwnerRole: 'ROLE_GRID_PLANNING',
+      affectedDomain: 'grid_connection',
+    };
+    const { card } = await call('createCard', technical);
+    expect(card).toMatchObject({
+      ...technical,
+      decisionSignal: 'review',
+      commercialReviewNeeded: true,
+    });
+    expect(card.budgetImpact).toBeNull();
+    expect(card.affectedProcess).toBeNull();
+    const commercial = {
+      budgetImpact: 'Estimate awaiting formal approval',
+      liquidityImpact: 'Cash timing reviewed',
+      midTermPlanningImpact: 'Planning period reviewed',
+      regulatoryReturnImpact: 'Return effect reviewed without a jurisdiction-specific formula',
+      costEstimateStatus: 'reviewed',
+      commitmentStatus: 'uncommitted',
+      requiredCommercialChecks: ['Formal approval remains external.'],
+      portfolioPriority: 'commercial-review',
+      followUpDate: '2026-12-01',
+      deadline: '2026-12-15',
+      decisionSignal: 'fund',
+    };
+    const updated = await call('updateCard', { cardId: card.cardId, ...commercial });
+    expect(updated.card).toMatchObject({
+      ...technical,
+      ...commercial,
+      commercialReviewNeeded: false,
+    });
+    expect((await call('getCard', { cardId: card.cardId })).card).toMatchObject({
+      ...technical,
+      ...commercial,
+    });
+    const summary = await call('summarizeForDossier', { cardId: card.cardId });
+    expect(summary.summary).toMatchObject({
+      ...commercial,
+      technicalFinding: technical.technicalFinding,
+      assumptions: technical.assumptions,
+      openClarifications: technical.openClarifications,
+    });
+    await call('createCard', {
+      ...technical,
+      assetOrMeasure: 'Second synthetic measure',
+      riskLevel: 'low',
+    });
+    const filtered = await call('listCards', {
+      cardType: technical.cardType,
+      decisionSignal: 'fund',
+      riskLevel: 'high',
+      ownerRole: technical.technicalOwnerRole,
+      deadlineBefore: '2026-12-31',
+      commercialReviewNeeded: 'false',
+    });
+    expect(filtered.items.map((item) => item.cardId)).toEqual([card.cardId]);
+    const pending = await call('listCards', {
+      cardType: technical.cardType,
+      commercialReviewNeeded: true,
+    });
+    expect(pending.items).toHaveLength(1);
+    expect(pending.items[0].cardId).not.toBe(card.cardId);
+    const cleared = await call('updateCard', {
+      cardId: card.cardId,
+      budgetImpact: null,
+      assumptions: [],
+      decisionSignal: 'defer-with-risk',
+    });
+    expect(cleared.card).toMatchObject({
+      budgetImpact: null,
+      assumptions: [],
+      commercialReviewNeeded: true,
+      technicalFinding: technical.technicalFinding,
+      regulatoryReturnImpact: commercial.regulatoryReturnImpact,
+    });
+  });
+
+  test('enforces advertised decision signals per type', async () => {
+    const { items } = await call('listTypes');
+    for (const type of items) {
+      const signals =
+        type.cardType === 'asset_investment_governance'
+          ? ['fund', 'review', 'return-to-line', 'defer-with-risk', 'escalate']
+          : ['observe', 'review', 'assign', 'implement', 'escalate', 'close-with-rationale'];
+      expect(type.allowedDecisionSignals).toEqual(signals);
+      for (const decisionSignal of signals) {
+        const { card } = await call(
+          'createCard',
+          validCard({ cardType: type.cardType, deadline: '2026-12-31', decisionSignal })
+        );
+        expect(card.decisionSignal).toBe(decisionSignal);
+      }
+      const forbidden = type.cardType === 'asset_investment_governance' ? 'implement' : 'fund';
+      await expect(
+        call(
+          'createCard',
+          validCard({ cardType: type.cardType, deadline: '2026-12-31', decisionSignal: forbidden })
+        )
+      ).rejects.toMatchObject({ code: 422 });
+    }
+  });
+
+  test('keeps lifecycle and card type guards effective through PATCH', async () => {
+    const { card } = await call('createCard', validCard());
+    await expect(
+      call('updateCard', { cardId: card.cardId, status: 'completed' })
+    ).rejects.toMatchObject({ type: 'GOVERNANCE_CARD_TRANSITION_BLOCKED' });
+    await expect(
+      call('updateCard', { cardId: card.cardId, cardType: 'asset_investment_governance' })
+    ).rejects.toMatchObject({ type: 'GOVERNANCE_CARD_TYPE_IMMUTABLE' });
+    await call('updateCard', { cardId: card.cardId, status: 'review' });
+    await call('transition', { cardId: card.cardId, status: 'closed' });
+    await expect(
+      call('updateCard', { cardId: card.cardId, status: 'draft' })
+    ).rejects.toMatchObject({ type: 'GOVERNANCE_CARD_TRANSITION_BLOCKED' });
+    expect((await call('getCard', { cardId: card.cardId })).card.status).toBe('closed');
+  });
+
+  test('rejects unbounded list requests and malformed typed details', async () => {
+    for (const limit of [-1, 0, 1.5, 101]) {
+      await expect(call('listCards', { limit })).rejects.toMatchObject({ code: 422 });
+    }
+    await expect(call('listCards', { commercialReviewNeeded: 'unknown' })).rejects.toMatchObject({
+      code: 422,
+    });
+    for (const invalid of [
+      { assumptions: ['valid', { raw: 'object' }] },
+      { technicalFinding: {} },
+      { riskLevel: 'urgent' },
+    ]) {
+      await expect(
+        call('createCard', validCard({ cardType: 'asset_investment_governance', ...invalid }))
+      ).rejects.toMatchObject({ code: 422 });
+    }
+  });
+
+  test('retains regulatory clarification fields in reads and summaries', async () => {
+    const details = {
+      detectedAt: '2026-10-01',
+      affectedAssetOrTopic: 'Synthetic market process',
+      urgency: 'deadline review',
+      openClarifications: ['Confirm applicability.'],
+      commercialImpactToCheck: 'Estimate review effort',
+    };
+    const { card } = await call(
+      'createCard',
+      validCard({ cardType: 'regulatory_impulse', deadline: '2026-12-31', ...details })
+    );
+    expect(card).toMatchObject(details);
+    expect((await call('summarizeForDossier', { cardId: card.cardId })).summary).toMatchObject(
+      details
+    );
   });
 
   test('validates required fields with positive missing-field guidance', async () => {

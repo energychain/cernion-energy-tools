@@ -10,7 +10,8 @@ on:
 jobs:
   quality:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # Serial coverage plus real forecast-model tests exceeded the previous 20-minute budget.
+    timeout-minutes: 40
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -55,6 +56,9 @@ jobs:
       - name: Forecast Python tests
         env:
           PYTHONDONTWRITEBYTECODE: '1'
+          OMP_NUM_THREADS: '1'
+          OPENBLAS_NUM_THREADS: '1'
+          MKL_NUM_THREADS: '1'
         run: |
           for suite in forecast-product forecast-portfolio forecast-quality xlsx-forecast-test; do
             .venv-forecast/bin/python -m unittest discover -s tools/$suite -p 'test_*.py' || exit 1

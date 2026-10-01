@@ -47678,7 +47678,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "minLength": 1
             },
             "example": "cardType"
           }
@@ -47749,7 +47750,106 @@
           }
         },
         "description": "List tenant-scoped governance cards",
-        "parameters": []
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            },
+            "example": 10
+          },
+          {
+            "name": "cardType",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "cardType"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "status"
+          },
+          {
+            "name": "ownerRole",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "ownerRole"
+          },
+          {
+            "name": "deadlineBefore",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "deadlineBefore"
+          },
+          {
+            "name": "riskType",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "riskType"
+          },
+          {
+            "name": "riskLevel",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "low",
+                "medium",
+                "high",
+                "critical"
+              ]
+            },
+            "example": "low"
+          },
+          {
+            "name": "managementRelevance",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "managementRelevance"
+          },
+          {
+            "name": "decisionSignal",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "decisionSignal"
+          },
+          {
+            "name": "commercialReviewNeeded",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            },
+            "example": true
+          }
+        ]
       }
     },
     "/api/governance-cards/cards/:cardId": {
@@ -47778,7 +47878,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "minLength": 1
             },
             "example": "cardId"
           }
@@ -48016,7 +48117,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "minLength": 1
             },
             "example": "cardId"
           }
@@ -48049,7 +48151,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "minLength": 1
             },
             "example": "cardId"
           }
@@ -48082,7 +48185,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "minLength": 1
             },
             "example": "cardId"
           }

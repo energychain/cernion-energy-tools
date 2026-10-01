@@ -2,7 +2,7 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.99.22",
-  "sourceOpenApiHash": "63435485baf5fe6139ee1cf812bd23de9b900fd45b15f76000da0f3bb828b243",
+  "sourceOpenApiHash": "f834c15e365db7e7d4bc553727b39db610aa1b149106f92c42a8704e50b54020",
   "coverage": {
     "rawOperationCount": 1238,
     "operationCount": 982,
@@ -56977,7 +56977,78 @@
       "rollbackHint": null,
       "parameters": {
         "required": [],
-        "optional": []
+        "optional": [
+          {
+            "name": "limit",
+            "in": "query",
+            "type": "integer",
+            "description": null,
+            "extractionHint": "result_limit"
+          },
+          {
+            "name": "cardType",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "ownerRole",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "deadlineBefore",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "riskType",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "riskLevel",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "managementRelevance",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "decisionSignal",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "commercialReviewNeeded",
+            "in": "query",
+            "type": "boolean",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
       },
       "rankingSignals": {
         "positiveKeywords": [

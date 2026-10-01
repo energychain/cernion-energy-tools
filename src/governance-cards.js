@@ -4,7 +4,6 @@ const { randomUUID } = require('node:crypto');
 const { Errors } = require('moleculer');
 
 const GOVERNANCE_CARD_SCHEMA_VERSION = 'governance-cards.v1';
-const MAX_LIST_LIMIT = 100;
 const STATUSES = ['draft', 'review', 'assigned', 'follow_up', 'completed', 'closed'];
 const DECISION_SIGNALS = [
   'observe',
@@ -73,6 +72,84 @@ const REGULATORY_FIELD_BLOCKS = [
     ],
   },
 ];
+const ASSET_INVESTMENT_FIELD_BLOCKS = [
+  {
+    blockId: 'technical_finding',
+    title: 'Technical finding',
+    fields: [
+      'assetOrMeasure',
+      'triggerSummary',
+      'technicalFinding',
+      'assumptions',
+      'operationalRisk',
+      'timeHorizon',
+      'technicalRecommendation',
+      'technicalOwnerRole',
+    ],
+  },
+  {
+    blockId: 'risk_clarification',
+    title: 'Risk and clarification',
+    fields: [
+      'riskPicture',
+      'openClarifications',
+      'costEstimateStatus',
+      'commitmentStatus',
+      'requiredCommercialChecks',
+      'ownerRole',
+      'deadline',
+    ],
+  },
+  {
+    blockId: 'commercial_regulatory_steering',
+    title: 'Commercial/regulatory steering signal',
+    fields: [
+      'budgetImpact',
+      'liquidityImpact',
+      'midTermPlanningImpact',
+      'regulatoryReturnImpact',
+      'portfolioPriority',
+      'decisionSignal',
+      'followUpDate',
+    ],
+  },
+];
+const ASSET_INVESTMENT_DECISION_SIGNALS = [
+  'fund',
+  'review',
+  'return-to-line',
+  'defer-with-risk',
+  'escalate',
+];
+// One field contract drives persistence, reads and dossier projections.
+const CARD_DETAIL_FIELDS = {
+  regulatory_impulse: {
+    text: ['affectedAssetOrTopic', 'urgency', 'commercialImpactToCheck'],
+    lists: ['openClarifications'],
+    dates: ['detectedAt'],
+  },
+  asset_investment_governance: {
+    text: [
+      'assetOrMeasure',
+      'technicalFinding',
+      'operationalRisk',
+      'timeHorizon',
+      'technicalRecommendation',
+      'technicalOwnerRole',
+      'riskPicture',
+      'riskLevel',
+      'costEstimateStatus',
+      'commitmentStatus',
+      'budgetImpact',
+      'liquidityImpact',
+      'midTermPlanningImpact',
+      'regulatoryReturnImpact',
+      'portfolioPriority',
+    ],
+    lists: ['assumptions', 'openClarifications', 'requiredCommercialChecks'],
+    dates: [],
+  },
+};
 const CARD_TYPES = [
   {
     cardType: 'generic_governance_signal',
@@ -115,14 +192,23 @@ const CARD_TYPES = [
   {
     cardType: 'asset_investment_governance',
     title: 'Asset / investment governance',
-    description: 'Tracks asset or investment governance signals with owner, risk and next gate.',
-    requiredFields: [
-      'title',
-      'triggerSummary',
-      'affectedDomain',
-      'affectedProcess',
-      'ownerRole',
-      'nextGate',
+    description:
+      'Tracks asset or investment governance signals with technical, commercial and regulatory steering context.',
+    requiredFields: ['title', 'triggerSummary', 'affectedDomain', 'ownerRole', 'nextGate'],
+    fieldBlocks: ASSET_INVESTMENT_FIELD_BLOCKS,
+    processFlow: [
+      'asset or measure trigger',
+      'technical finding',
+      'risk and urgency review',
+      'commercial/regulatory effect check',
+      'owner/deadline',
+      'decision signal or work order',
+      'feedback to line',
+    ],
+    allowedDecisionSignals: ASSET_INVESTMENT_DECISION_SIGNALS,
+    examples: [
+      'Create an asset governance card for a network measure with unresolved budget and risk impact.',
+      'Show investment governance cards that need commercial review.',
     ],
     allowedTransitions: TRANSITIONS,
   },
@@ -217,6 +303,9 @@ function safeCardType(type) {
       : [],
     processFlow: Array.isArray(type.processFlow) ? [...type.processFlow] : [],
     allowedRiskTypes: Array.isArray(type.allowedRiskTypes) ? [...type.allowedRiskTypes] : [],
+    allowedDecisionSignals: Array.isArray(type.allowedDecisionSignals)
+      ? [...type.allowedDecisionSignals]
+      : [...DECISION_SIGNALS],
     examples: Array.isArray(type.examples) ? [...type.examples] : [],
     statuses: [...STATUSES],
     allowedTransitions: Object.fromEntries(
@@ -225,20 +314,63 @@ function safeCardType(type) {
   };
 }
 function applyCardAliases(input, cardType) {
-  if (cardType !== 'regulatory_impulse') return input;
-  return {
-    ...input,
-    title: input.title ?? input.regulatoryImpulseSummary,
-    triggerSummary: input.triggerSummary ?? input.regulatoryImpulseSummary,
-    sourceKind: input.sourceKind ?? input.sourceDescription,
-    effectiveDate: input.effectiveDate ?? input.possibleEffectiveDate,
-    impactSummary: input.impactSummary ?? input.initialAssessment,
-    nextGate: input.nextGate ?? input.workOrder,
-    followUpRequired: input.followUpRequired ?? input.requiredExpertReview,
-  };
+  if (cardType === 'regulatory_impulse') {
+    return {
+      ...input,
+      title: input.title ?? input.regulatoryImpulseSummary,
+      triggerSummary: input.triggerSummary ?? input.regulatoryImpulseSummary,
+      sourceKind: input.sourceKind ?? input.sourceDescription,
+      effectiveDate: input.effectiveDate ?? input.possibleEffectiveDate,
+      impactSummary: input.impactSummary ?? input.initialAssessment,
+      nextGate: input.nextGate ?? input.workOrder,
+      followUpRequired: input.followUpRequired ?? input.requiredExpertReview,
+    };
+  }
+  if (cardType === 'asset_investment_governance') {
+    return {
+      ...input,
+      title: input.title ?? input.assetOrMeasure,
+      triggerSummary: input.triggerSummary ?? input.technicalFinding,
+      assetOrMeasure: input.assetOrMeasure ?? input.title,
+      technicalFinding: input.technicalFinding ?? input.triggerSummary,
+      ownerRole: input.ownerRole ?? input.technicalOwnerRole,
+      impactSummary: input.impactSummary ?? input.riskPicture ?? input.technicalFinding,
+      nextGate: input.nextGate ?? input.technicalRecommendation,
+      managementRelevance: input.managementRelevance ?? input.portfolioPriority,
+    };
+  }
+  return input;
+}
+function normalizeCardDetails(cardType, input = {}, existing = null) {
+  const fields = CARD_DETAIL_FIELDS[cardType];
+  if (!fields) return {};
+  const value = (field) => (input[field] === undefined ? existing?.[field] : input[field]);
+  return Object.fromEntries([
+    ...fields.text.map((field) => {
+      const raw = value(field);
+      if (raw !== undefined && raw !== null && typeof raw !== 'string')
+        clientError(`${field} must be text`, 422, 'GOVERNANCE_CARD_INVALID_FIELD', { field });
+      return [field, cleanString(raw, { max: 1200, field })];
+    }),
+    ...fields.lists.map((field) => {
+      const raw = value(field);
+      if (
+        raw !== undefined &&
+        raw !== null &&
+        (!Array.isArray(raw) || raw.some((item) => typeof item !== 'string'))
+      )
+        clientError(`${field} must be a list of text`, 422, 'GOVERNANCE_CARD_INVALID_FIELD', {
+          field,
+        });
+      return [field, cleanList(raw, { maxItems: 12, maxLength: 500 })];
+    }),
+    ...fields.dates.map((field) => [field, normalizeDate(value(field), field)]),
+  ]);
 }
 function normalizeCardInput(input = {}, principal, existing = null) {
   const type = getCardType(input.cardType || existing?.cardType);
+  if (existing && type.cardType !== existing.cardType)
+    clientError('Card type cannot be changed', 422, 'GOVERNANCE_CARD_TYPE_IMMUTABLE');
   input = applyCardAliases(input, type.cardType);
   const missing = [];
   for (const field of type.requiredFields) {
@@ -253,11 +385,32 @@ function normalizeCardInput(input = {}, principal, existing = null) {
   }
   const status = cleanString(input.status || existing?.status || 'draft', { max: 40 });
   if (!STATUSES.includes(status)) clientError('Unsupported governance card status');
+  if (
+    existing &&
+    status !== existing.status &&
+    !(TRANSITIONS[existing.status] || []).includes(status)
+  )
+    clientError(
+      'Governance card transition not allowed',
+      422,
+      'GOVERNANCE_CARD_TRANSITION_BLOCKED',
+      {
+        from: existing.status,
+        to: status,
+      }
+    );
   const decisionSignal = cleanString(input.decisionSignal || existing?.decisionSignal || 'review', {
     max: 80,
   });
-  if (!DECISION_SIGNALS.includes(decisionSignal)) clientError('Unsupported decision signal');
+  const riskLevel = input.riskLevel === undefined ? existing?.riskLevel : input.riskLevel;
+  if (riskLevel != null && !['low', 'medium', 'high', 'critical'].includes(riskLevel))
+    clientError('Unsupported risk level', 422, 'GOVERNANCE_CARD_INVALID_FIELD', {
+      field: 'riskLevel',
+    });
+  const allowedSignals = type.allowedDecisionSignals || DECISION_SIGNALS;
+  if (!allowedSignals.includes(decisionSignal)) clientError('Unsupported decision signal');
   return {
+    ...normalizeCardDetails(type.cardType, input, existing),
     cardType: type.cardType,
     title: cleanString(input.title ?? existing?.title, {
       max: 180,
@@ -350,6 +503,8 @@ function createAuditEntry(action, actorId, details = {}) {
 }
 function safeCard(card) {
   return {
+    ...normalizeCardDetails(card.cardType, card),
+    commercialReviewNeeded: needsCommercialReview(card),
     schemaVersion: GOVERNANCE_CARD_SCHEMA_VERSION,
     cardId: card.cardId,
     tenantId: card.tenantId,
@@ -385,10 +540,28 @@ function safeCard(card) {
     auditTrail: Array.isArray(card.auditTrail) ? card.auditTrail.slice(-20) : [],
   };
 }
+function needsCommercialReview(card) {
+  return (
+    card.cardType === 'asset_investment_governance' &&
+    !['completed', 'closed'].includes(card.status) &&
+    (!card.budgetImpact ||
+      !card.liquidityImpact ||
+      !card.midTermPlanningImpact ||
+      !card.regulatoryReturnImpact ||
+      card.decisionSignal === 'review')
+  );
+}
 function listMatches(card, filters = {}) {
   if (filters.cardType && card.cardType !== filters.cardType) return false;
+  if (filters.decisionSignal && card.decisionSignal !== filters.decisionSignal) return false;
+  if (
+    filters.commercialReviewNeeded !== undefined &&
+    needsCommercialReview(card) !== filters.commercialReviewNeeded
+  )
+    return false;
   if (filters.status && card.status !== filters.status) return false;
   if (filters.ownerRole && card.ownerRole !== filters.ownerRole) return false;
+  if (filters.riskLevel && card.riskLevel !== filters.riskLevel) return false;
   if (filters.riskType && !(card.riskTypes || []).includes(filters.riskType)) return false;
   if (filters.managementRelevance && card.managementRelevance !== filters.managementRelevance)
     return false;
@@ -398,6 +571,8 @@ function listMatches(card, filters = {}) {
 }
 function summarizeCard(card) {
   return {
+    ...normalizeCardDetails(card.cardType, card),
+    commercialReviewNeeded: needsCommercialReview(card),
     schemaVersion: GOVERNANCE_CARD_SCHEMA_VERSION,
     cardId: card.cardId,
     cardType: card.cardType,

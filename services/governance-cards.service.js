@@ -26,8 +26,24 @@ function openApiParameters(rest, params = {}) {
     name,
     in: path.includes(`:${name}`) ? 'path' : 'query',
     required: path.includes(`:${name}`),
-    schema: { type: params[name].type || 'string' },
-    example: name,
+    schema: {
+      type:
+        params[name].type === 'enum'
+          ? 'string'
+          : params[name].integer
+            ? 'integer'
+            : params[name].type || 'string',
+      ...(params[name].values ? { enum: params[name].values } : {}),
+      ...(params[name].min !== undefined
+        ? { [params[name].type === 'string' ? 'minLength' : 'minimum']: params[name].min }
+        : {}),
+      ...(params[name].max !== undefined
+        ? { [params[name].type === 'string' ? 'maxLength' : 'maximum']: params[name].max }
+        : {}),
+    },
+    example:
+      params[name].values?.[0] ??
+      (params[name].type === 'boolean' ? true : params[name].type === 'number' ? 10 : name),
   }));
 }
 const action = (rest, summary, handler, params = {}) => ({
@@ -198,28 +214,58 @@ module.exports = {
       caseParams
     ),
 
-    listCards: action('GET /cards', 'List tenant-scoped governance cards', async function (ctx) {
-      const p = principal(ctx, ctx.params);
-      const limit = Math.min(Number(ctx.params.limit) || 50, MAX_LIMIT);
-      const filters = {
-        cardType: cleanFilter(ctx.params.cardType),
-        status: cleanFilter(ctx.params.status),
-        ownerRole: cleanFilter(ctx.params.ownerRole),
-        deadlineBefore: cleanFilter(ctx.params.deadlineBefore, 40),
-        riskType: cleanFilter(ctx.params.riskType),
-        managementRelevance: cleanFilter(ctx.params.managementRelevance),
-      };
-      const response = await this.db.find({
-        selector: { type: 'governance_card', tenantId: p.tenantId },
-        limit: 500,
-      });
-      const cards = response.docs
-        .filter((card) => listMatches(card, filters))
-        .sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)))
-        .slice(0, limit)
-        .map(safeCard);
-      return { schemaVersion: GOVERNANCE_CARD_SCHEMA_VERSION, items: cards, total: cards.length };
-    }),
+    listCards: action(
+      'GET /cards',
+      'List tenant-scoped governance cards',
+      async function (ctx) {
+        const p = principal(ctx, ctx.params);
+        const limit = Math.max(1, Math.min(Math.trunc(Number(ctx.params.limit)) || 50, MAX_LIMIT));
+        const filters = {
+          cardType: cleanFilter(ctx.params.cardType),
+          status: cleanFilter(ctx.params.status),
+          decisionSignal: cleanFilter(ctx.params.decisionSignal),
+          commercialReviewNeeded:
+            ctx.params.commercialReviewNeeded === undefined
+              ? undefined
+              : ctx.params.commercialReviewNeeded === true ||
+                ctx.params.commercialReviewNeeded === 'true',
+          ownerRole: cleanFilter(ctx.params.ownerRole),
+          deadlineBefore: cleanFilter(ctx.params.deadlineBefore, 40),
+          riskType: cleanFilter(ctx.params.riskType),
+          riskLevel: cleanFilter(ctx.params.riskLevel),
+          managementRelevance: cleanFilter(ctx.params.managementRelevance),
+        };
+        const response = await this.db.find({
+          selector: { type: 'governance_card', tenantId: p.tenantId },
+          limit: 500,
+        });
+        const cards = response.docs
+          .filter((card) => listMatches(card, filters))
+          .sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)))
+          .slice(0, limit)
+          .map(safeCard);
+        return { schemaVersion: GOVERNANCE_CARD_SCHEMA_VERSION, items: cards, total: cards.length };
+      },
+      {
+        limit: {
+          type: 'number',
+          integer: true,
+          min: 1,
+          max: MAX_LIMIT,
+          optional: true,
+          convert: true,
+        },
+        cardType: { type: 'string', optional: true },
+        status: { type: 'string', optional: true },
+        ownerRole: { type: 'string', optional: true },
+        deadlineBefore: { type: 'string', optional: true },
+        riskType: { type: 'string', optional: true },
+        riskLevel: { type: 'enum', values: ['low', 'medium', 'high', 'critical'], optional: true },
+        managementRelevance: { type: 'string', optional: true },
+        decisionSignal: { type: 'string', optional: true },
+        commercialReviewNeeded: { type: 'boolean', optional: true, convert: true },
+      }
+    ),
 
     updateCard: action(
       'PATCH /cards/:cardId',
