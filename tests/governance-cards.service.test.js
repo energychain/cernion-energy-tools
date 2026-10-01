@@ -73,6 +73,57 @@ describe('Governance Cards service', () => {
     );
   });
 
+  test('exposes regulatory impulse workflow metadata and creates cards from regulatory fields', async () => {
+    const types = await call('listTypes');
+    const regulatory = types.items.find((item) => item.cardType === 'regulatory_impulse');
+    expect(regulatory).toMatchObject({
+      title: 'Regulatory impulse',
+      allowedRiskTypes: expect.arrayContaining(['compliance', 'deadline', 'commercial-impact']),
+      processFlow: expect.arrayContaining(['relevance screen', 'owner and review task']),
+    });
+    expect(regulatory.fieldBlocks.map((block) => block.blockId)).toEqual([
+      'signal_finding',
+      'relevance_risk',
+      'feedback_decision_signal',
+    ]);
+
+    const created = await call('createCard', {
+      cardType: 'regulatory_impulse',
+      regulatoryImpulseSummary: 'New regulatory signal may affect MaKo evidence deadlines.',
+      sourceDescription: 'authority note / advisory signal',
+      affectedDomain: 'market_communication',
+      affectedProcess: 'MSCONS clarification and evidence retention',
+      possibleEffectiveDate: '2026-10-31',
+      initialAssessment: 'Potential evidence-duty and deadline effect needs review.',
+      riskTypes: ['evidence-duty', 'deadline', 'commercial-impact'],
+      ownerRole: 'ROLE_REGULATORY_AFFAIRS',
+      deadline: '2026-10-15',
+      workOrder: 'Screen affected process, owner and deadline effect.',
+      managementRelevance: 'line-review',
+      decisionSignal: 'assign',
+    });
+
+    expect(created.card).toMatchObject({
+      cardType: 'regulatory_impulse',
+      title: 'New regulatory signal may affect MaKo evidence deadlines.',
+      triggerSummary: 'New regulatory signal may affect MaKo evidence deadlines.',
+      sourceKind: 'authority note / advisory signal',
+      affectedProcess: 'MSCONS clarification and evidence retention',
+      effectiveDate: '2026-10-31',
+      impactSummary: 'Potential evidence-duty and deadline effect needs review.',
+      nextGate: 'Screen affected process, owner and deadline effect.',
+      followUpRequired: false,
+      decisionSignal: 'assign',
+    });
+
+    const listed = await call('listCards', {
+      cardType: 'regulatory_impulse',
+      riskType: 'deadline',
+      managementRelevance: 'line-review',
+    });
+    expect(listed.items.map((card) => card.cardId)).toContain(created.card.cardId);
+  });
+
   test('validates required fields with positive missing-field guidance', async () => {
     await expect(call('createCard', { cardType: 'regulatory_impulse' })).rejects.toMatchObject({
       code: 422,
