@@ -14,6 +14,7 @@ const {
   safeCard,
   safeCardType,
   summarizeCard,
+  missingFieldsForInput,
   getCardType,
 } = require('../src/governance-cards');
 
@@ -128,6 +129,37 @@ module.exports = {
         };
       },
       { cardType: { type: 'string', min: 1 } }
+    ),
+
+    createCardFromConversation: action(
+      'POST /cards/conversation/create',
+      'Create a governance card from conversational input or return missing-field prompts',
+      async function (ctx) {
+        principal(ctx, ctx.params);
+        const missing = missingFieldsForInput(ctx.params);
+        if (missing.missingFields.length) {
+          return {
+            schemaVersion: GOVERNANCE_CARD_SCHEMA_VERSION,
+            created: false,
+            cardType: missing.cardType,
+            missingFields: missing.missingFields,
+            missingFieldPrompts: missing.missingFieldPrompts,
+            nextSafeAction: missing.guidance,
+            noCallGuards: [
+              'No governance card is created until required fields are provided through the curated create action.',
+            ],
+          };
+        }
+        const created = await ctx.call('governance-cards.createCard', ctx.params, {
+          meta: ctx.meta,
+        });
+        return {
+          schemaVersion: GOVERNANCE_CARD_SCHEMA_VERSION,
+          created: true,
+          card: created.card,
+          nextSafeAction: created.card.nextGate,
+        };
+      }
     ),
 
     createCard: action(

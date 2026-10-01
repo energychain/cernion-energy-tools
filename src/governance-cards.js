@@ -176,6 +176,32 @@ function getCardType(cardType) {
   if (!type) clientError('Unknown governance card type', 404, 'GOVERNANCE_CARD_TYPE_NOT_FOUND');
   return type;
 }
+function fieldLabel(field) {
+  return String(field)
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/[_-]+/g, ' ')
+    .trim();
+}
+function missingFieldsForInput(input = {}) {
+  const type = getCardType(input.cardType);
+  const aliased = applyCardAliases(input, type.cardType);
+  const missingFields = type.requiredFields.filter((field) => {
+    const value = aliased[field];
+    return value === undefined || value === null || String(value).trim() === '';
+  });
+  return {
+    cardType: type.cardType,
+    missingFields,
+    missingFieldPrompts: missingFields.map((field) => ({
+      field,
+      label: fieldLabel(field),
+      prompt: `Please provide ${fieldLabel(field)} for this ${type.title} card.`,
+    })),
+    guidance: missingFields.length
+      ? `Provide ${missingFields.join(', ')} before creating this ${type.cardType} card.`
+      : null,
+  };
+}
 function safeCardType(type) {
   return {
     cardType: type.cardType,
@@ -417,6 +443,7 @@ module.exports = {
   TRANSITIONS,
   getCardType,
   safeCardType,
+  missingFieldsForInput,
   normalizeCardInput,
   safeCard,
   listMatches,

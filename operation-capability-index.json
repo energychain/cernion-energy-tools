@@ -2,16 +2,16 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.99.22",
-  "sourceOpenApiHash": "8785a8e97f5195312e20c70318c0811b60237a193a9946fcf26b5535d8aedf66",
+  "sourceOpenApiHash": "63435485baf5fe6139ee1cf812bd23de9b900fd45b15f76000da0f3bb828b243",
   "coverage": {
-    "rawOperationCount": 1237,
-    "operationCount": 981,
-    "agentableCount": 979,
+    "rawOperationCount": 1238,
+    "operationCount": 982,
+    "agentableCount": 980,
     "nonAgentableCount": 2,
     "byOperationKind": {
       "data_read": 423,
       "admin": 20,
-      "object_store_write": 261,
+      "object_store_write": 262,
       "process_step": 26,
       "process_start": 50,
       "advisory_plan": 48,
@@ -57867,6 +57867,76 @@
         "negativeCues": [],
         "examples": [
           "Please move a governance card through allowed lifecycle transitions"
+        ],
+        "synonyms": [
+          "VDMI",
+          "V/D/M/I matrix",
+          "audit trail"
+        ],
+        "curated": false
+      },
+      "aliases": []
+    },
+    {
+      "operationId": "governance-cards_createCardFromConversation",
+      "method": "POST",
+      "path": "/api/governance-cards/cards/conversation/create",
+      "service": "governance-cards",
+      "action": "governance-cards.createCardFromConversation",
+      "summary": "Create a governance card from conversational input or return missing-field prompts",
+      "tags": [
+        "Governance Cards"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "governance-cards.create_card_from_conversation"
+      ],
+      "domains": [
+        "governance"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "governance-cards:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "governance-cards"
+      ],
+      "sideEffects": [
+        "creates_or_modifies_stored_object"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "governance",
+          "cards",
+          "create",
+          "card",
+          "from",
+          "conversation",
+          "conversational",
+          "input",
+          "or",
+          "return",
+          "missing",
+          "field",
+          "prompts"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please create a governance card from conversational input or return missing-field prompts"
         ],
         "synonyms": [
           "VDMI",

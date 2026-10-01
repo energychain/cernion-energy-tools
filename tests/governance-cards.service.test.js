@@ -124,6 +124,24 @@ describe('Governance Cards service', () => {
     expect(listed.items.map((card) => card.cardId)).toContain(created.card.cardId);
   });
 
+  test('supports conversational create with deterministic missing-field prompts', async () => {
+    const missing = await call('createCardFromConversation', { cardType: 'regulatory_impulse' });
+    expect(missing).toMatchObject({
+      created: false,
+      cardType: 'regulatory_impulse',
+      missingFields: expect.arrayContaining(['title', 'deadline']),
+      nextSafeAction: expect.stringContaining('title'),
+    });
+    expect(missing.missingFieldPrompts[0]).toEqual(
+      expect.objectContaining({ field: expect.any(String), prompt: expect.any(String) })
+    );
+
+    const created = await call('createCardFromConversation', validCard({ deadline: '2026-12-31' }));
+    expect(created.created).toBe(true);
+    expect(created.card.cardId).toMatch(/^gcard_/);
+    expect(created.nextSafeAction).toBe('Review evidence and assign follow-up owner.');
+  });
+
   test('validates required fields with positive missing-field guidance', async () => {
     await expect(call('createCard', { cardType: 'regulatory_impulse' })).rejects.toMatchObject({
       code: 422,
@@ -135,7 +153,7 @@ describe('Governance Cards service', () => {
   });
 
   test('creates, lists, reads and summarizes tenant-scoped cards', async () => {
-    const created = await call('createCard', validCard());
+    const created = await call('createCard', validCard({ deadline: '2026-12-31' }));
     expect(created.card.cardId).toMatch(/^gcard_/);
     expect(created.card.tenantId).toBe('tenant-a');
     expect(created.card.status).toBe('draft');
@@ -160,6 +178,9 @@ describe('Governance Cards service', () => {
       nextGate: 'Review evidence and assign follow-up owner.',
     });
     expect(summary.summary.noCallGuards[0]).toMatch(/do not execute external/i);
+
+    const overdue = await call('listCards', { deadlineBefore: '2099-01-01' });
+    expect(overdue.items.map((card) => card.cardId)).toContain(created.card.cardId);
   });
 
   test('enforces tenant isolation', async () => {

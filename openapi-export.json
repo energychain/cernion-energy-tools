@@ -47685,6 +47685,29 @@
         ]
       }
     },
+    "/api/governance-cards/cards/conversation/create": {
+      "post": {
+        "operationId": "governance-cards_createCardFromConversation",
+        "summary": "Create a governance card from conversational input or return missing-field prompts",
+        "tags": [
+          "Governance Cards"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Create a governance card from conversational input or return missing-field prompts",
+        "parameters": []
+      }
+    },
     "/api/governance-cards/cards": {
       "post": {
         "operationId": "governance-cards_createCard",
