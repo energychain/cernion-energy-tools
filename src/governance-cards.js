@@ -22,6 +22,57 @@ const TRANSITIONS = {
   completed: ['closed'],
   closed: [],
 };
+const REGULATORY_RISK_TYPES = [
+  'compliance',
+  'penalty',
+  'liability',
+  'evidence-duty',
+  'deadline',
+  'operational-change',
+  'investment-impact',
+  'commercial-impact',
+];
+const REGULATORY_FIELD_BLOCKS = [
+  {
+    blockId: 'signal_finding',
+    title: 'Signal / finding',
+    fields: [
+      'regulatoryImpulseSummary',
+      'detectedAt',
+      'sourceDescription',
+      'affectedDomain',
+      'possibleEffectiveDate',
+      'initialAssessment',
+    ],
+  },
+  {
+    blockId: 'relevance_risk',
+    title: 'Relevance / risk',
+    fields: [
+      'affectedProcess',
+      'affectedAssetOrTopic',
+      'riskTypes',
+      'urgency',
+      'openClarifications',
+      'requiredExpertReview',
+      'ownerRole',
+    ],
+  },
+  {
+    blockId: 'feedback_decision_signal',
+    title: 'Feedback / decision signal',
+    fields: [
+      'workOrder',
+      'deadline',
+      'followUpDate',
+      'managementRelevance',
+      'commercialImpactToCheck',
+      'status',
+      'nextGate',
+      'decisionSignal',
+    ],
+  },
+];
 const CARD_TYPES = [
   {
     cardType: 'generic_governance_signal',
@@ -33,14 +84,31 @@ const CARD_TYPES = [
   {
     cardType: 'regulatory_impulse',
     title: 'Regulatory impulse',
-    description: 'Tracks a regulatory impulse from signal to relevance/risk review and follow-up.',
+    description:
+      'Tracks a source-open regulatory impulse from signal to relevance/risk review and follow-up.',
     requiredFields: [
       'title',
       'triggerSummary',
       'affectedDomain',
+      'affectedProcess',
       'ownerRole',
       'deadline',
       'nextGate',
+    ],
+    fieldBlocks: REGULATORY_FIELD_BLOCKS,
+    processFlow: [
+      'regulatory impulse',
+      'relevance screen',
+      'affected process/line',
+      'risk and deadline effect',
+      'owner and review task',
+      'management/line feedback if relevant',
+      'follow-up / close with rationale',
+    ],
+    allowedRiskTypes: REGULATORY_RISK_TYPES,
+    examples: [
+      'Create a regulatory impulse card for a deadline-relevant BNetzA note.',
+      'Show regulatory impulse cards with management relevance.',
     ],
     allowedTransitions: TRANSITIONS,
   },
@@ -114,14 +182,38 @@ function safeCardType(type) {
     title: type.title,
     description: type.description,
     requiredFields: [...type.requiredFields],
+    fieldBlocks: Array.isArray(type.fieldBlocks)
+      ? type.fieldBlocks.map((block) => ({
+          blockId: block.blockId,
+          title: block.title,
+          fields: [...block.fields],
+        }))
+      : [],
+    processFlow: Array.isArray(type.processFlow) ? [...type.processFlow] : [],
+    allowedRiskTypes: Array.isArray(type.allowedRiskTypes) ? [...type.allowedRiskTypes] : [],
+    examples: Array.isArray(type.examples) ? [...type.examples] : [],
     statuses: [...STATUSES],
     allowedTransitions: Object.fromEntries(
       Object.entries(type.allowedTransitions).map(([from, to]) => [from, [...to]])
     ),
   };
 }
+function applyCardAliases(input, cardType) {
+  if (cardType !== 'regulatory_impulse') return input;
+  return {
+    ...input,
+    title: input.title ?? input.regulatoryImpulseSummary,
+    triggerSummary: input.triggerSummary ?? input.regulatoryImpulseSummary,
+    sourceKind: input.sourceKind ?? input.sourceDescription,
+    effectiveDate: input.effectiveDate ?? input.possibleEffectiveDate,
+    impactSummary: input.impactSummary ?? input.initialAssessment,
+    nextGate: input.nextGate ?? input.workOrder,
+    followUpRequired: input.followUpRequired ?? input.requiredExpertReview,
+  };
+}
 function normalizeCardInput(input = {}, principal, existing = null) {
   const type = getCardType(input.cardType || existing?.cardType);
+  input = applyCardAliases(input, type.cardType);
   const missing = [];
   for (const field of type.requiredFields) {
     const value = input[field] !== undefined ? input[field] : existing?.[field];
