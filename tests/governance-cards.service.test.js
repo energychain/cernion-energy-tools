@@ -174,6 +174,67 @@ describe('Governance Cards service', () => {
     expect(listed.items).toHaveLength(0);
   });
 
+  test('projects attention snapshots without mutating card timestamps', async () => {
+    const created = await call(
+      'createCard',
+      validCard({
+        deadline: '2020-01-01',
+        managementRelevance: 'executive-review',
+      })
+    );
+    const before = await call('getCard', { cardId: created.card.cardId });
+    const snapshot = await call('getAttentionSnapshot');
+    const after = await call('getCard', { cardId: created.card.cardId });
+
+    expect(snapshot.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          cardId: created.card.cardId,
+          reasons: expect.arrayContaining(['overdue_deadline', 'executive_visible']),
+        }),
+      ])
+    );
+    expect(after.card.updatedAt).toBe(before.card.updatedAt);
+  });
+
+  test('supports owner confirmation, blocked state, follow-up date and closure commands', async () => {
+    const created = await call('createCard', validCard({ deadline: '2026-12-31' }));
+    const confirmed = await call('confirmOwner', { cardId: created.card.cardId });
+    expect(confirmed.card.ownerConfirmationStatus).toBe('confirmed');
+    expect(confirmed.card.auditTrail.some((entry) => entry.action === 'owner_confirmed')).toBe(
+      true
+    );
+
+    const blocked = await call('markBlocked', {
+      cardId: created.card.cardId,
+      blockedReason: 'Missing evidence pointer from the responsible line.',
+    });
+    expect(blocked.card.blockedReason).toMatch(/Missing evidence/);
+
+    const followUp = await call('setFollowUpDate', {
+      cardId: created.card.cardId,
+      followUpDate: '2026-11-30',
+    });
+    expect(followUp.card.followUpDate).toBe('2026-11-30');
+
+    const line = await call('summarizeForLineFeedback', { cardId: created.card.cardId });
+    expect(line.summary).toMatchObject({
+      cardId: created.card.cardId,
+      missingOrBlocked: 'Missing evidence pointer from the responsible line.',
+      whatHappensNext: 'Review evidence and assign follow-up owner.',
+    });
+
+    const executive = await call('summarizeForExecutiveReview', { cardId: created.card.cardId });
+    expect(executive.summary.noCallGuards[0]).toMatch(/do not approve/i);
+
+    const closed = await call('closeWithRationale', {
+      cardId: created.card.cardId,
+      rationale: 'Reviewed and parked with evidence pointer for next cycle.',
+    });
+    expect(closed.card.status).toBe('closed');
+    expect(closed.card.closureRationale).toMatch(/Reviewed and parked/);
+  });
+
   test('supports allowed transitions and blocks invalid transitions', async () => {
     const created = await call('createCard', validCard());
     const reviewed = await call('transition', { cardId: created.card.cardId, status: 'review' });

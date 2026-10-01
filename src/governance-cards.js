@@ -271,6 +271,19 @@ function normalizeCardInput(input = {}, principal, existing = null) {
       input.followUpRequired === undefined
         ? Boolean(existing?.followUpRequired)
         : normalizeBoolean(input.followUpRequired),
+    followUpDate: normalizeDate(input.followUpDate ?? existing?.followUpDate, 'followUpDate'),
+    ownerConfirmedAt: normalizeDate(
+      input.ownerConfirmedAt ?? existing?.ownerConfirmedAt,
+      'ownerConfirmedAt'
+    ),
+    ownerConfirmationStatus: cleanString(
+      input.ownerConfirmationStatus ?? existing?.ownerConfirmationStatus,
+      { max: 80 }
+    ),
+    blockedReason: cleanString(input.blockedReason ?? existing?.blockedReason, { max: 500 }),
+    closureRationale: cleanString(input.closureRationale ?? existing?.closureRationale, {
+      max: 1000,
+    }),
     managementRelevance: cleanString(input.managementRelevance ?? existing?.managementRelevance, {
       max: 80,
     }),
@@ -330,6 +343,11 @@ function safeCard(card) {
     status: card.status,
     nextGate: card.nextGate,
     followUpRequired: Boolean(card.followUpRequired),
+    followUpDate: card.followUpDate,
+    ownerConfirmedAt: card.ownerConfirmedAt,
+    ownerConfirmationStatus: card.ownerConfirmationStatus,
+    blockedReason: card.blockedReason,
+    closureRationale: card.closureRationale,
     managementRelevance: card.managementRelevance,
     executiveVisibility: card.executiveVisibility,
     evidenceRefs: normalizeEvidenceRefs(card.evidenceRefs),
@@ -366,6 +384,11 @@ function summarizeCard(card) {
     deadline: card.deadline,
     nextGate: card.nextGate,
     followUpRequired: Boolean(card.followUpRequired),
+    followUpDate: card.followUpDate,
+    ownerConfirmedAt: card.ownerConfirmedAt,
+    ownerConfirmationStatus: card.ownerConfirmationStatus,
+    blockedReason: card.blockedReason,
+    closureRationale: card.closureRationale,
     managementRelevance: card.managementRelevance,
     executiveVisibility: card.executiveVisibility,
     decisionSignal: card.decisionSignal,

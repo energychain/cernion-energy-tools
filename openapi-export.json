@@ -47852,6 +47852,187 @@
         "parameters": []
       }
     },
+    "/api/governance-cards/cards/:cardId/owner-confirmation": {
+      "post": {
+        "operationId": "governance-cards_confirmOwner",
+        "summary": "Confirm governance-card owner explicitly",
+        "tags": [
+          "Governance Cards"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Confirm governance-card owner explicitly",
+        "parameters": []
+      }
+    },
+    "/api/governance-cards/cards/:cardId/blocked": {
+      "post": {
+        "operationId": "governance-cards_markBlocked",
+        "summary": "Mark a governance card as blocked with bounded rationale",
+        "tags": [
+          "Governance Cards"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Mark a governance card as blocked with bounded rationale",
+        "parameters": []
+      }
+    },
+    "/api/governance-cards/cards/:cardId/follow-up-date": {
+      "post": {
+        "operationId": "governance-cards_setFollowUpDate",
+        "summary": "Set a bounded follow-up date for a governance card",
+        "tags": [
+          "Governance Cards"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Set a bounded follow-up date for a governance card",
+        "parameters": []
+      }
+    },
+    "/api/governance-cards/cards/:cardId/close-with-rationale": {
+      "post": {
+        "operationId": "governance-cards_closeWithRationale",
+        "summary": "Close a governance card with bounded internal rationale",
+        "tags": [
+          "Governance Cards"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Close a governance card with bounded internal rationale",
+        "parameters": []
+      }
+    },
+    "/api/governance-cards/attention-snapshot": {
+      "get": {
+        "operationId": "governance-cards_getAttentionSnapshot",
+        "summary": "Return read-only governance-card attention projection",
+        "tags": [
+          "Governance Cards"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Return read-only governance-card attention projection",
+        "parameters": []
+      }
+    },
+    "/api/governance-cards/cards/:cardId/line-feedback-summary": {
+      "get": {
+        "operationId": "governance-cards_summarizeForLineFeedback",
+        "summary": "Return action-oriented governance-card line feedback summary",
+        "tags": [
+          "Governance Cards"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Return action-oriented governance-card line feedback summary",
+        "parameters": [
+          {
+            "name": "cardId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "cardId"
+          }
+        ]
+      }
+    },
+    "/api/governance-cards/cards/:cardId/executive-summary": {
+      "get": {
+        "operationId": "governance-cards_summarizeForExecutiveReview",
+        "summary": "Return bounded executive governance-card summary",
+        "tags": [
+          "Governance Cards"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Return bounded executive governance-card summary",
+        "parameters": [
+          {
+            "name": "cardId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "cardId"
+          }
+        ]
+      }
+    },
     "/api/governance-cards/cards/:cardId/dossier-summary": {
       "get": {
         "operationId": "governance-cards_summarizeForDossier",
