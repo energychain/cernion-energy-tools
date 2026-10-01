@@ -715,6 +715,10 @@ describe('Workbench RC3 Open WebUI Tenant Gateway', () => {
     ).doc;
     expect(before.deliveryState).toBe('pending');
 
+    const workbench = broker.getLocalService('workbench');
+    const persistedBeforeList = await workbench.store.listInboxTasks({ tenantId: 'tenant-a' });
+    expect(persistedBeforeList).toHaveLength(0);
+
     const tasks = await call('inbox.tasks.list', {}, userMeta);
     const task = tasks.items.find((item) => item.cetCaseId === c.cetCaseId);
     expect(task).toMatchObject({
@@ -722,7 +726,14 @@ describe('Workbench RC3 Open WebUI Tenant Gateway', () => {
       status: 'open',
       ownerRole: expect.any(String),
       nextSafeAction: expect.any(String),
+      eventCount: 1,
+      eventIdsDisplay: before.eventId,
     });
+    const tasksAgain = await call('inbox.tasks.list', {}, userMeta);
+    const sameTask = tasksAgain.items.find((item) => item.taskId === task.taskId);
+    expect(sameTask.updatedAt).toBe(task.updatedAt);
+    const persistedAfterList = await workbench.store.listInboxTasks({ tenantId: 'tenant-a' });
+    expect(persistedAfterList).toHaveLength(0);
     const afterDisplay = await service.eventsDb.get(before._id);
     expect(afterDisplay.deliveryState).toBe('pending');
 

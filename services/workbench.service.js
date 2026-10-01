@@ -496,7 +496,6 @@ module.exports = {
         const domainStates = await this.visibleDomainStates(p);
         const caseIds = domainStates.map((state) => state.cetCaseId);
         const summaries = await this.eventSummaries(p, caseIds);
-        await this.deriveInboxTasksForCases(p, caseIds);
         const taskSummaries = await this.taskSummaries(p, caseIds);
         const items = [];
         for (const state of domainStates) {
@@ -1266,9 +1265,7 @@ module.exports = {
         const caseIds = caseId
           ? [caseId]
           : (await this.visibleDomainStates(p)).map((s) => s.cetCaseId);
-        await this.deriveInboxTasksForCases(p, caseIds);
-        const tasks = await this.store.listInboxTasks({
-          tenantId: p.tenantId,
+        const tasks = await this.projectInboxTasksForCases(p, caseIds, {
           caseId,
           status: ctx.params.status,
         });
@@ -1779,7 +1776,9 @@ module.exports = {
       return { open: 0, attention: 0 };
     },
     async updateInboxTask(p, taskId, patch) {
-      const existing = await this.store.getInboxTask({ tenantId: p.tenantId, taskId });
+      const existing =
+        (await this.store.getInboxTask({ tenantId: p.tenantId, taskId }, { optional: true })) ||
+        (await this.materializeInboxTask(p, taskId));
       const saved = await this.store.saveInboxTask({
         ...existing,
         ...patch,
@@ -1795,37 +1794,80 @@ module.exports = {
         resolvedBy: p.actorId,
       });
     },
-    async deriveInboxTasksForCases(p, caseIds = []) {
+    async materializeInboxTask(p, taskId) {
       const service = this.broker.getLocalService('domain-router');
-      if (!service || !caseIds.length) return [];
-      const allowed = new Set(caseIds);
+      if (!service) {
+        throw new Errors.MoleculerClientError(
+          'Inbox task not found',
+          404,
+          'WORKBENCH_INBOX_TASK_NOT_FOUND'
+        );
+      }
+      const eventId = String(taskId || '').replace(/^task_/, '');
       const states = new Map(
         (await this.visibleDomainStates(p)).map((state) => [state.cetCaseId, state])
       );
-      const events = (await service.eventsDb.allDocs({ include_docs: true })).rows
-        .map((row) => row.doc)
-        .filter((doc) => doc.tenantId === p.tenantId && allowed.has(doc.cetCaseId))
-        .filter((doc) => ['pending', 'delivered'].includes(doc.deliveryState));
-      const tasks = await Promise.all(
-        events.map(async (doc) => {
-          const existing = await this.store.getInboxTask(
-            { tenantId: p.tenantId, taskId: `task_${doc.eventId}` },
-            { optional: true }
-          );
-          if (existing && ['resolved', 'dismissed'].includes(existing.status)) return null;
-          const task = taskFromEvent(doc, {
+      for (const { doc } of (await service.eventsDb.allDocs({ include_docs: true })).rows) {
+        if (doc.tenantId !== p.tenantId || doc.eventId !== eventId || !states.has(doc.cetCaseId))
+          continue;
+        if (!['pending', 'delivered'].includes(doc.deliveryState)) break;
+        const task = taskFromEvent(doc, { domain: states.get(doc.cetCaseId)?.currentDomain });
+        return this.store.saveInboxTask({ ...task, tenantId: p.tenantId });
+      }
+      throw new Errors.MoleculerClientError(
+        'Inbox task not found',
+        404,
+        'WORKBENCH_INBOX_TASK_NOT_FOUND'
+      );
+    },
+    async deriveInboxTasksForCases(p, caseIds = []) {
+      const tasks = await this.projectInboxTasksForCases(p, caseIds);
+      return Promise.all(
+        tasks
+          .filter((task) => !task.persisted)
+          .map((task) => this.store.saveInboxTask({ ...task, tenantId: p.tenantId }))
+      );
+    },
+    async projectInboxTasksForCases(p, caseIds = [], { caseId = null, status = null } = {}) {
+      const allowed = new Set(caseIds.filter(Boolean));
+      const states = new Map(
+        (await this.visibleDomainStates(p)).map((state) => [state.cetCaseId, state])
+      );
+      const persisted = await this.store.listInboxTasks({ tenantId: p.tenantId, caseId, status });
+      const byTaskId = new Map(
+        persisted
+          .filter((task) => !caseIds.length || allowed.has(task.caseId || task.cetCaseId))
+          .map((task) => [task.taskId, { ...task, persisted: true }])
+      );
+      const service = this.broker.getLocalService('domain-router');
+      if (service && allowed.size) {
+        const rows = await service.eventsDb.allDocs({ include_docs: true });
+        for (const { doc } of rows.rows) {
+          if (doc.tenantId !== p.tenantId || !allowed.has(doc.cetCaseId)) continue;
+          if (!['pending', 'delivered'].includes(doc.deliveryState)) continue;
+          const existing = byTaskId.get(`task_${doc.eventId}`);
+          if (existing && ['resolved', 'dismissed'].includes(existing.status)) continue;
+          const projected = taskFromEvent(doc, {
             domain: states.get(doc.cetCaseId)?.currentDomain,
             existing,
           });
-          return this.store.saveInboxTask({ ...task, tenantId: p.tenantId });
-        })
-      );
-      return tasks.filter(Boolean);
+          byTaskId.set(projected.taskId, {
+            ...projected,
+            tenantId: p.tenantId,
+            persisted: !!existing,
+          });
+        }
+      }
+      return [...byTaskId.values()]
+        .filter((task) => !status || task.status === status)
+        .sort((a, b) =>
+          String(b.updatedAt || b.createdAt).localeCompare(String(a.updatedAt || a.createdAt))
+        );
     },
     async taskSummaries(p, caseIds = []) {
       const summaries = new Map(caseIds.map((caseId) => [caseId, this.emptyTaskSummary()]));
-      const tasks = await this.store.listInboxTasks({ tenantId: p.tenantId });
       const allowed = new Set(caseIds);
+      const tasks = await this.projectInboxTasksForCases(p, caseIds);
       for (const task of tasks) {
         const caseId = task.caseId || task.cetCaseId;
         if (!allowed.has(caseId) || !['open', 'in_progress'].includes(task.status)) continue;
