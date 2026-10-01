@@ -39,3 +39,9 @@ APERAK/Z18 summaries emit routing signals such as `market_communication`, `apera
 - Willi staff visibility does not grant CET cross-tenant authority.
 - Case linking writes an explicit Willi service API request and returns only a safe confirmation.
 - No external MaKo message is prepared or sent by this connector.
+
+## Open WebUI MaKo reference flow
+
+The customer-facing RC3 flow is: Open WebUI sends the MaKo clarification request to the Workbench chat, CET creates or continues the Workbench case, Willi-MaKo is used only as a tenant-mapped diagnostic evidence source, and the resulting `willi_mako_ref` EvidenceRef is attached back to the CET case. APERAK/Z18 evidence may move the case toward `market_communication` and add EDM/master-data alternatives, but the case remains `evidence_required` until APERAK/AHB/segment and master-data context is complete.
+
+The reference flow must never call Willi directly from Open WebUI and must never prepare, send, queue or claim an external MaKo message. Dossiers may cite Willi-MaKo only as supporting diagnostic evidence.

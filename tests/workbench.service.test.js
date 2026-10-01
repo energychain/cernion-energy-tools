@@ -494,6 +494,103 @@ describe('Workbench RC3 Open WebUI Tenant Gateway', () => {
     expect(staff.mapping.roles).not.toContain('ROLE_UTILITY_HQ');
   });
 
+  test('Open WebUI MaKo flow uses Willi-MaKo evidence without external message side effects', async () => {
+    await provisionOpenWebUiUser();
+    await call('admin.williMakoMappings.create', {
+      williMandantId: 'willi-tenant-a',
+      williUserId: 'willi-user-a',
+      cetActorId: 'user-a',
+      williRoleProfile: 'normal_user',
+    });
+    await call(
+      'deliveryClients.create',
+      {
+        clientId: 'openwebui-tenant-a',
+        eventTypes: ['evidence.available', 'evidence.required', 'clarification.required'],
+      },
+      meta
+    );
+
+    const started = await call('chat', {
+      client: 'open-webui',
+      channel: 'open-webui',
+      openWebuiOrgId: 'ow-org',
+      openWebuiUserId: 'ow-user',
+      openWebuiConversationId: 'mako-willi-flow',
+      clientId: 'openwebui-tenant-a',
+      message:
+        'Lieferant reklamiert fehlende MSCONS-Zeitreihe. EDM-Werte sind plausibilisiert, Versandjob lief, aber APERAK Z18 liegt vor. Am Vortag gab es eine Lieferbeginn-/Stammdatenänderung.',
+      asyncDelivery: { mode: 'poll', clientId: 'openwebui-tenant-a', ackMode: 'explicit' },
+    });
+    expect(started.cetCaseId).toBeTruthy();
+
+    const attached = await call(
+      'williMako.evidence.attach',
+      {
+        caseId: started.cetCaseId,
+        williMandantId: 'willi-tenant-a',
+        williUserId: 'willi-user-a',
+        williSessionId: 'willi-session-1',
+      },
+      userMeta
+    );
+    expect(attached.evidenceRef).toMatchObject({
+      sourceType: 'willi_mako_ref',
+      evidenceType: 'mako_error_code_diagnosis',
+      evidenceRole: 'diagnostic_signal',
+      claimStrength: 'supporting',
+      readinessReviewRequired: true,
+    });
+    expect(attached.evidenceRef.routingSignals).toEqual(
+      expect.arrayContaining(['market_communication', 'aperak_z18', 'market_master_data'])
+    );
+
+    const continued = await call('chat', {
+      client: 'open-webui',
+      channel: 'open-webui',
+      openWebuiOrgId: 'ow-org',
+      openWebuiUserId: 'ow-user',
+      openWebuiConversationId: 'mako-willi-flow',
+      clientId: 'openwebui-tenant-a',
+      message: 'Bitte Fall mit der Willi-MaKo APERAK-Z18-Evidenz fortführen.',
+    });
+    expect(continued.cetCaseId).toBe(started.cetCaseId);
+
+    const summary = await call(
+      'cases.get',
+      { caseId: started.cetCaseId, includeEvidence: true },
+      userMeta
+    );
+    expect(summary.primaryDomain).toBe('market_communication');
+    expect(summary.alternativeDomains.map((item) => item.domain)).toEqual(
+      expect.arrayContaining(['edm', 'market_master_data'])
+    );
+    expect(summary.readinessState).toBe('evidence_required');
+    expect(summary.evidenceRefs[0]).toMatchObject({
+      sourceType: 'willi_mako_ref',
+      evidenceRole: 'diagnostic_signal',
+      claimStrength: 'supporting',
+    });
+    expect(summary.evidenceRefs[0].sourceRef.safeSummary).toContain('APERAK Z18');
+
+    const events = await call('events.list', { clientId: 'openwebui-tenant-a' }, userMeta);
+    expect(events.items.map((event) => event.eventType)).toEqual(
+      expect.arrayContaining(['evidence.available'])
+    );
+
+    const dossier = await call('cases.dossier', { caseId: started.cetCaseId }, userMeta);
+    expect(dossier.readinessState).toBe('evidence_required');
+    expect(dossier.nonBinding).toBe(true);
+    expect(dossier.evidenceRefs[0]).toMatchObject({
+      sourceType: 'willi_mako_ref',
+      claimStrength: 'supporting',
+    });
+    const serialized = JSON.stringify({ summary, dossier, attached });
+    expect(serialized).not.toMatch(
+      /externalMessage|messageSent|sentAt|queuedForSend|rawMessage|Bearer|authorization/iu
+    );
+  });
+
   test('Willi-MaKo connector discovers sessions, attaches safe evidence, and links cases', async () => {
     await call('admin.williMakoMappings.create', {
       williMandantId: 'willi-tenant-a',
