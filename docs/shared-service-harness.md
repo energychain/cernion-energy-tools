@@ -56,7 +56,16 @@ chooses different module paths, update the readiness table and core path config.
 
 ## Real-service adapter seam
 
-Set `SHARED_SERVICE_TEST_ADAPTER=/absolute/path/to/adapter.js`. The CommonJS module
+The harness automatically loads `tests/helpers/shared-service/real-adapter.js`
+when that file exists. `SHARED_SERVICE_TEST_ADAPTER=/absolute/path/to/adapter.js`
+overrides this default. Each service issue (#695–#701) extends the shared adapter
+with its own observations and makes the corresponding service invariants pass.
+The file is supplied by those issues, not created by this harness.
+
+An adapter may return a partial observation envelope. Missing-service arrays may
+be omitted or empty; their invariants remain `todo` until dependencies exist.
+Active invariants still require their own observations and cannot pass merely
+because an unrelated field is absent. The CommonJS module
 exports `createAdapter({ functions, jest })` returning a fresh instance exposing:
 
 - `apply(step)`: send tenant-scoped versioned touch/correction events, feed the
@@ -64,11 +73,13 @@ exports `createAdapter({ functions, jest })` returning a fresh instance exposing
   Set touch `at` from that clock. Wait until events and at most one handoff cycle
   settle before returning. Observe actual operations and Knowledge/RAG calls.
 - `snapshot()`: return the test-only observation envelope used by the oracles:
-  `fresh`, `activations`, `agents`, `activationBound`, `tenantBudget`,
+  `fresh`, `activations`, `agents`, `functions`, `tenantBudget`, `minWeight`,
+  `now`, `restWindowMs`,
   `operationAttempts`, `activityQueries`, `emptyWakes`, `corrections`, `journal`,
   `authorizationChecks`, `handoffs`. Records keep the #693 fields and event names.
-  Derive bounds independently from the function graph and tenant configuration,
-  not from the number of activations being tested. Compute the journal digest
+  Supply the function graph (including tenant neighbor overlays), CET budget,
+  `minWeight` and `restWindowMs` from the service configuration. `now` is epoch
+  milliseconds from the fake clock (defaults to `Date.now()`). Compute the journal digest
   independently from the response being checked. Capture before/after target,
   authorization and policy values around correction/coverage changes.
 - `close()`: stop the broker and release timers and owned handles; called even
@@ -77,7 +88,7 @@ exports `createAdapter({ functions, jest })` returning a fresh instance exposing
 Adapters must instantiate the real services and inject an in-memory PouchDB test
 double at the existing lifecycle-mixin seam. Production persistence remains through
 `createPouchDbLifecycleMixin`; no adapter or DB dependency is introduced by #702.
-They must exercise fresh state, touched/uncovered functions, denied external-effect
+For the services already implemented, exercise fresh state, touched/uncovered functions, denied external-effect
 attempts, activity queries, empty wakes, all four correction targets, unchanged
 permission decisions and second-user handoff; observations must not remain empty.
 The default trace recorder is never accepted as a real-service adapter.
@@ -93,21 +104,27 @@ A sandbox can be supplied through the same adapter. Run the same seeds, generato
 and oracles with its tenant-scoped data and no separate scenario expectations.
 External-effect execution stays denied; the optional sandbox is not a CI prerequisite.
 
-## Wording to reconcile during upstream integration
+## Decisions after review
 
-I-3 follows #702 literally: the total active count must fit both the independent
-neighborhood bound and the tenant budget. #696 describes its budget specifically
-as the number of CET-responsible functions. The adapter must document how its
-configured budget maps to the total-active bound; the harness does not change
-production budget policy to resolve this difference.
+These rules implement the [clarification in #693](https://github.com/energychain/cernion-energy-tools/issues/693#issuecomment-5962863441).
 
-I-2 currently asserts that an uncovered activation with `touchedAt` is active.
-#696 also allows dormancy after inactivity. When that service lands, agree the
-observation window for “touched” and test it explicitly rather than weakening the
-assertion silently. Both issues are pending real-service integration, not changes
-to the #693 records or versioned events.
+I-3 limits CET-responsible functions to `tenantBudget`, independently of human
+activity. Every CET-responsible function must be a direct neighbor of a touched
+function with edge weight at least `minWeight` (harness default 0.5). The total
+active count must not exceed the unique touched-function count plus that budget.
+Touches are read from tenant-scoped activations with `touchedAt`; adjacency comes
+from the supplied Function graph, never from an activation's own `reason[]`.
+Each of the three violations has a separate negative self-test.
 
-The existing Workbench intent router predates the domain-free core and contains
-catalog vocabulary in older branches. It is not silently allowlisted in full.
-#700 must expose its new generic activity-query logic at a checkable core path
-(or add a reviewed scan boundary); add that path to the core config when it lands.
+I-2 only checks functions touched within the inclusive interval
+`[now - restWindowMs, now]`. The harness default is 24 hours (86,400,000 ms),
+exported as `DEFAULT_REST_WINDOW_MS`. Adapters supply #696's configured rest
+window as `snapshot().restWindowMs`; direct oracle callers may also pass
+`assertInvariants(state, ids, { now, restWindowMs })`. Outside that window,
+`dormant` is allowed and I-2 does not demand an agent. Tests cover both the exact
+boundary and a dormant function outside the window.
+
+#700 places generic `system_activity_query` recognition and response logic in a
+separate module, such as `src/workbench-system-activity.js`. This optional future
+path is configured for the core scan. The existing intent router calls that
+module; its older branches are not blanket-allowlisted.

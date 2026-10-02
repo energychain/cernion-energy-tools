@@ -27,7 +27,10 @@ const seeds =
 // A future service adapter owns a real broker, uses the existing lifecycle mixin,
 // injects an in-memory PouchDB double and observes calls/state after settling events.
 // Never substitute a second implementation of the services here.
-const adapterPath = process.env.SHARED_SERVICE_TEST_ADAPTER;
+const defaultAdapterPath = path.join(ROOT, 'tests/helpers/shared-service/real-adapter.js');
+const adapterPath =
+  process.env.SHARED_SERVICE_TEST_ADAPTER ||
+  (fs.existsSync(defaultAdapterPath) ? defaultAdapterPath : null);
 const realAdapter = adapterPath ? require(path.resolve(adapterPath)) : null;
 
 function missingDependencies(spec) {
@@ -52,7 +55,7 @@ for (const [id, spec] of Object.entries(dependencies)) {
     test(`${id}: real services (${spec.issues})`, async () => {
       if (!realAdapter)
         throw new Error(
-          `${id}: dependencies landed; configure SHARED_SERVICE_TEST_ADAPTER (see docs/shared-service-harness.md). This invariant must no longer remain todo.`
+          `${id}: dependencies landed; provide tests/helpers/shared-service/real-adapter.js or configure SHARED_SERVICE_TEST_ADAPTER (see docs/shared-service-harness.md). Each service issue extends this adapter with its own observations. This invariant must no longer remain todo.`
         );
       for (const seed of seeds) {
         const { functions } = loadFunctions();
@@ -118,7 +121,8 @@ const base = () => ({
   fresh: false,
   activations: [],
   agents: [],
-  activationBound: 0,
+  now: Date.UTC(2026, 0, 1, 12),
+  functions: [],
   tenantBudget: 3,
   operationAttempts: [],
   activityQueries: [],
@@ -153,7 +157,16 @@ const observations = {
     activations: [{ ...activation(), state: 'latent', responsibility: { humans: [], cet: false } }],
   }),
   'I-2': () => ({ ...base(), activations: [activation()], agents: [agent()] }),
-  'I-3': () => ({ ...base(), activationBound: 1, activations: [activation()] }),
+  'I-3': () => ({
+    ...base(),
+    tenantBudget: 1,
+    minWeight: 0.5,
+    activations: [
+      { ...activation(), responsibility: { humans: ['actor-a'], cet: false } },
+      { ...activation(), functionId: 'fn-b', touchedAt: null },
+    ],
+    functions: [{ functionId: 'fn-a', neighbors: [{ functionId: 'fn-b', weight: 0.6 }] }],
+  }),
   'I-4': () => ({
     ...base(),
     operationAttempts: [
@@ -278,10 +291,52 @@ describe('invariant oracle self-tests', () => {
     s.agents = [];
     expect(() => assertInvariants(s, ['I-2'])).toThrow('I-2');
   });
-  test('I-3 rejects graph bound independently of budget', () => {
+  test('I-2 allows dormant functions outside the configurable rest window', () => {
+    const s = observations['I-2']();
+    s.activations[0].state = 'dormant';
+    s.agents = [];
+    expect(() => assertInvariants(s, ['I-2'], { restWindowMs: 60 * 60 * 1000 })).not.toThrow();
+    expect(() => assertInvariants(s, ['I-2'])).toThrow('I-2');
+    s.now = Date.UTC(2026, 0, 2, 0, 0, 0, 1);
+    expect(() => assertInvariants(s, ['I-2'])).not.toThrow();
+  });
+  test('I-2 includes the exact rest-window boundary', () => {
+    const s = observations['I-2']();
+    s.now = Date.UTC(2026, 0, 2);
+    s.activations[0].state = 'dormant';
+    expect(() => assertInvariants(s, ['I-2'])).toThrow('I-2');
+  });
+  test('I-3 rejects CET budget excess independently of the active-count bound', () => {
     const s = observations['I-3']();
-    s.activationBound = 0;
-    expect(() => assertInvariants(s, ['I-3'])).toThrow('graph bound');
+    s.tenantBudget = 0;
+    s.activations[0].state = 'dormant';
+    expect(() => assertInvariants(s, ['I-3'])).toThrow('CET count exceeds tenant budget');
+  });
+  test('I-3 rejects missing or underweight neighbors independently of budget', () => {
+    const s = observations['I-3']();
+    s.functions[0].neighbors[0].weight = 0.49;
+    expect(() => assertInvariants(s, ['I-3'])).toThrow('eligible neighbor');
+    s.functions[0].neighbors = [];
+    expect(() => assertInvariants(s, ['I-3'])).toThrow('eligible neighbor');
+  });
+  test('I-3 rejects excess active functions with valid CET budget and neighbors', () => {
+    const s = observations['I-3']();
+    s.activations.push({
+      ...activation(),
+      functionId: 'fn-c',
+      touchedAt: null,
+      responsibility: { humans: ['actor-a'], cet: false },
+    });
+    expect(() => assertInvariants(s, ['I-3'])).toThrow(
+      'active count exceeds touched functions plus budget'
+    );
+  });
+  test('I-3 accepts minWeight equality and active counts above the CET budget', () => {
+    const s = observations['I-3']();
+    s.functions[0].neighbors[0].weight = s.minWeight;
+    expect(() => assertInvariants(s, ['I-3'])).not.toThrow();
+    s.minWeight = 0.7;
+    expect(() => assertInvariants(s, ['I-3'])).toThrow('eligible neighbor');
   });
   test('I-4 rejects unauthorized internal execution', () => {
     const s = observations['I-4']();

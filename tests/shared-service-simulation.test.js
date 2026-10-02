@@ -159,3 +159,62 @@ test('real-service adapters cannot pass with empty observations', async () => {
   for (const target of ['coverage', 'activation', 'agent', 'neighbor']) seen.add(`I-7:${target}`);
   expect(() => assertExercise(seen, 'I-7', 702)).not.toThrow();
 });
+
+test('partial adapter observations exercise only the implemented invariants', () => {
+  const { observeExercise, assertExercise } = require('./helpers/shared-service/exercise');
+  const { assertInvariants } = require('./helpers/shared-service/invariants');
+  const state = { operationAttempts: [{ externalEffect: true, executed: false }] };
+  const seen = new Set();
+  expect(() => observeExercise(state, seen)).not.toThrow();
+  expect(() => assertInvariants(state, ['I-4'])).not.toThrow();
+  expect(() => assertExercise(seen, 'I-4', 702)).not.toThrow();
+  expect(() => assertExercise(seen, 'I-5', 702)).toThrow('exercise missing');
+  expect(() => assertInvariants({}, ['I-4'])).toThrow('I-4');
+});
+
+test('I-2 exercise requires a touch inside the configured rest window', () => {
+  const { observeExercise, assertExercise } = require('./helpers/shared-service/exercise');
+  const state = {
+    now: Date.UTC(2026, 0, 2),
+    restWindowMs: 1000,
+    activations: [{ touchedAt: '2026-01-01T00:00:00.000Z', responsibility: { cet: true } }],
+  };
+  const seen = new Set();
+  observeExercise(state, seen);
+  expect(() => assertExercise(seen, 'I-2', 702)).toThrow('exercise missing');
+  state.activations[0].touchedAt = new Date(state.now - 1000).toISOString();
+  observeExercise(state, seen);
+  expect(() => assertExercise(seen, 'I-2', 702)).not.toThrow();
+});
+
+test.each([
+  { exists: true, override: undefined, expected: 'default' },
+  { exists: false, override: undefined, expected: null },
+  { exists: true, override: '/tmp/adapter-override.js', expected: 'override' },
+])(
+  'adapter discovery respects default existence and explicit override: %j',
+  ({ exists, override, expected }) => {
+    const vm = require('node:vm');
+    const { createRequire } = require('node:module');
+    const file = path.join(__dirname, 'shared-service-invariants.test.js');
+    const defaultPath = path.resolve(__dirname, 'helpers/shared-service/real-adapter.js');
+    const source = fs.readFileSync(file, 'utf8').split('function missingDependencies')[0];
+    const localRequire = createRequire(file);
+    const loaded = [];
+    const result = vm.runInNewContext(`${source}\nrealAdapter;`, {
+      __dirname,
+      process: { env: { SHARED_SERVICE_TEST_ADAPTER: override } },
+      require: (name) => {
+        if (name === 'node:fs')
+          return { existsSync: (candidate) => candidate === defaultPath && exists };
+        if (name === defaultPath || name === override) {
+          loaded.push(name);
+          return { kind: name === override ? 'override' : 'default' };
+        }
+        return localRequire(name);
+      },
+    });
+    expect(result?.kind ?? null).toBe(expected);
+    expect(loaded).toHaveLength(expected ? 1 : 0);
+  }
+);

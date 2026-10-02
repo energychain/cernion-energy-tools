@@ -1,6 +1,10 @@
 {
   "entries": [
     {
+      "term": "window",
+      "reason": "Generic configurable inactivity time window for I-2, as clarified in #693; no domain behavior."
+    },
+    {
       "term": "action",
       "reason": "Generic action signal; no operation-specific behavior."
     },

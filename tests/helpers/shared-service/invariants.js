@@ -1,4 +1,5 @@
 const assert = require('node:assert/strict');
+const DEFAULT_REST_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 // Observation envelope is test-only; its records retain the #693 data contract.
 const invariants = {
@@ -9,9 +10,20 @@ const invariants = {
     );
     assert.equal(state.agents.length, 0);
   },
-  'I-2': (state) => {
+  'I-2': (
+    state,
+    {
+      now = state.now ?? Date.now(),
+      restWindowMs = state.restWindowMs ?? DEFAULT_REST_WINDOW_MS,
+    } = {}
+  ) => {
+    assert.ok(Number.isFinite(now) && Number.isFinite(restWindowMs) && restWindowMs >= 0);
     for (const item of state.activations) {
-      if (item.touchedAt && !item.responsibility.humans.length) assert.equal(item.state, 'active');
+      if (!item.touchedAt) continue;
+      const age = now - Date.parse(item.touchedAt);
+      assert.ok(Number.isFinite(age), 'invalid touchedAt');
+      if (age < 0 || age > restWindowMs) continue;
+      if (!item.responsibility.humans.length) assert.equal(item.state, 'active');
       if (item.responsibility.cet)
         assert.equal(
           state.agents.filter(
@@ -25,9 +37,30 @@ const invariants = {
     }
   },
   'I-3': (state) => {
+    const minWeight = state.minWeight ?? 0.5;
+    assert.ok(Number.isFinite(minWeight) && minWeight >= 0 && minWeight <= 1);
+    const touched = new Set(
+      state.activations.filter((item) => item.touchedAt).map((item) => item.functionId)
+    );
+    const cet = state.activations.filter((item) => item.responsibility.cet);
     const active = state.activations.filter((item) => item.state === 'active').length;
-    assert.ok(active <= state.activationBound, 'active count exceeds graph bound');
-    assert.ok(active <= state.tenantBudget, 'active count exceeds tenant budget');
+    assert.ok(cet.length <= state.tenantBudget, 'CET count exceeds tenant budget');
+    for (const item of cet) {
+      assert.ok(
+        state.functions.some(
+          (fn) =>
+            touched.has(fn.functionId) &&
+            fn.neighbors.some(
+              (neighbor) => neighbor.functionId === item.functionId && neighbor.weight >= minWeight
+            )
+        ),
+        'CET function is not an eligible neighbor of a touched function'
+      );
+    }
+    assert.ok(
+      active <= touched.size + state.tenantBudget,
+      'active count exceeds touched functions plus budget'
+    );
   },
   'I-4': (state) => {
     for (const attempt of state.operationAttempts) {
@@ -132,10 +165,10 @@ const dependencies = {
   },
 };
 
-function assertInvariants(state, ids = Object.keys(invariants)) {
+function assertInvariants(state, ids = Object.keys(invariants), options = {}) {
   for (const id of ids) {
     try {
-      invariants[id](state);
+      invariants[id](state, options);
     } catch (error) {
       error.message = `${id}: ${error.message}`;
       throw error;
@@ -143,4 +176,4 @@ function assertInvariants(state, ids = Object.keys(invariants)) {
   }
 }
 
-module.exports = { invariants, dependencies, assertInvariants };
+module.exports = { invariants, dependencies, assertInvariants, DEFAULT_REST_WINDOW_MS };
