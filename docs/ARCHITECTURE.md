@@ -371,7 +371,7 @@ Primary endpoints:
 - `POST /api/workbench/delivery-clients` — register tenant-bound MWI poll clients.
 - `POST /api/workbench/admin/tenant-mappings`, `POST /api/workbench/admin/user-mappings`, `GET /api/workbench/admin/user-mappings/:externalUserId` — admin-only Open WebUI ↔ CET tenant/user/role mapping.
 
-OpenAI-compatible clients may use `POST /v1/chat/completions` with `model: "cernion-governance-assistant"`. That mode routes through `workbench.chat` and returns OpenAI-compatible output plus CET metadata (`cetCaseId`, `caseStateVersion`, `primaryDomain`, `readinessState`). Existing `/v1/chat/completions` behavior for other supported models remains unchanged.
+OpenAI-compatible clients may use `POST /v1/chat/completions` with `model: "cernion-governance-assistant"`. That mode classifies the latest user intent, routes case/assessment/tool requests through `workbench.chat` and status/knowledge/list queries through the mapped read-only `workbench.query`, and returns OpenAI-compatible output plus CET metadata (`cetCaseId`, `caseStateVersion`, `primaryDomain`, `readinessState`). Existing `/v1/chat/completions` behavior for other supported models remains unchanged.
 
 Security boundary: CET service tokens remain server-side. Open-WebUI org/user/group values are mapped server-side into CET tenant, actor, roles and sensitivity clearance. Missing or disabled mappings fail closed. Polling events does not ack them; explicit ack is required after visible delivery.
 
