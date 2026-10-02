@@ -51,7 +51,10 @@
     "verify:agent-shapes:curl": "bash scripts/verify-agent-shapes-curl.sh",
     "verify:open-webui": "node integrations/open-webui/smoke-test.js",
     "build": "echo 'No build step required'",
-    "blueprint:export": "node scripts/export-blueprints.js"
+    "blueprint:export": "node scripts/export-blueprints.js",
+    "check:domain-free-core": "node scripts/check-domain-free-core.js",
+    "test:shared-service:ci": "node scripts/run-shared-service-harness.js",
+    "test:shared-service": "SHARED_SERVICE_RANDOM=1 node scripts/run-shared-service-harness.js"
   },
   "repository": {
     "type": "git",
