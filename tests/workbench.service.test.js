@@ -697,6 +697,125 @@ describe('Workbench RC3 Open WebUI Tenant Gateway', () => {
     ).rejects.toThrow(/not found|missing/iu);
   });
 
+  test('read-only queries preserve mapped identity and do not create or revise cases', async () => {
+    await provisionOpenWebUiUser();
+    const params = {
+      openWebuiConversationId: 'read-only-chat',
+      openWebuiOrgId: 'ow-org',
+      openWebuiUserId: 'ow-user',
+      message: 'Start a MaKo clarification case for APERAK Z18',
+    };
+    const created = await call('chat', params);
+    const service = broker.getLocalService('workbench');
+    const domainRouter = broker.getLocalService('domain-router');
+    const before = await domainRouter.db.allDocs({ include_docs: true });
+    const conversationsBefore = await service.conversationsDb.allDocs({ include_docs: true });
+    const eventsBefore = await domainRouter.eventsDb.allDocs({ include_docs: true });
+    const state = await call('query', {
+      ...params,
+      message: 'What is the status?',
+      intentMode: 'status_query',
+    });
+    expect(state.cetCaseId).toBe(created.cetCaseId);
+    expect(state).toHaveProperty('missingEvidence');
+    expect(state).toHaveProperty('eventSummary');
+    const cases = await call('query', {
+      ...params,
+      message: 'Show open MaKo cases',
+      intentMode: 'data_lookup',
+    });
+    expect(cases.items.map((item) => item.caseId)).toContain(created.cetCaseId);
+    await expect(
+      call(
+        'query',
+        {
+          ...params,
+          message: 'What is the status?',
+          cetCaseId: created.cetCaseId,
+          intentMode: 'status_query',
+        },
+        otherTenantMeta
+      )
+    ).rejects.toThrow(/tenant|mapping/i);
+    const tools = await call('query', {
+      ...params,
+      message: 'List tools',
+      intentMode: 'data_lookup',
+    });
+    expect(tools.tools.length).toBeGreaterThan(0);
+    await call('query', { ...params, message: 'List pending events', intentMode: 'data_lookup' });
+    const starters = await call('query', {
+      ...params,
+      message: 'List case starters',
+      intentMode: 'data_lookup',
+    });
+    expect(starters.items.length).toBeGreaterThan(0);
+    expect(await domainRouter.db.allDocs({ include_docs: true })).toEqual(before);
+    expect(await domainRouter.eventsDb.allDocs({ include_docs: true })).toEqual(eventsBefore);
+    expect(await service.conversationsDb.allDocs({ include_docs: true })).toEqual(
+      conversationsBefore
+    );
+  });
+
+  test('knowledge query uses mapped consultation without classifying a case', async () => {
+    await provisionOpenWebUiUser();
+    const chat = jest.fn((ctx) => {
+      expect(ctx.params).toEqual({
+        message: 'What does APERAK Z18 mean?',
+        chatMode: 'consultation',
+      });
+      expect(ctx.meta.apiToken).toMatchObject({
+        tenantId: 'tenant-a',
+        id: 'user-a',
+        roles: ['ROLE_GRID_OPERATOR'],
+      });
+      return { reply: 'APERAK reports application-level message errors.' };
+    });
+    broker.createService({ name: 'personal-agent', actions: { chat } });
+    const result = await call('query', {
+      openWebuiConversationId: 'knowledge-chat',
+      openWebuiOrgId: 'ow-org',
+      openWebuiUserId: 'ow-user',
+      message: 'What does APERAK Z18 mean?',
+      intentMode: 'knowledge_query',
+    });
+    expect(result.responseText).toContain('APERAK');
+    expect(chat).toHaveBeenCalledTimes(1);
+    expect((await call('cases.list', {}, userMeta)).items).toEqual([]);
+    expect((await broker.getLocalService('workbench').conversationsDb.allDocs()).rows).toEqual([]);
+  });
+
+  test.each(['knowledge_query', 'status_query', 'data_lookup'])(
+    'query %s enforces Open WebUI mapping',
+    async (intentMode) => {
+      await expect(
+        call(
+          'query',
+          {
+            openWebuiConversationId: 'unmapped',
+            openWebuiOrgId: 'ow-org',
+            openWebuiUserId: 'unknown',
+            message: 'Show cases',
+            intentMode,
+          },
+          userMeta
+        )
+      ).rejects.toMatchObject({ type: 'WORKBENCH_TENANT_MAPPING_REQUIRED' });
+      await expect(
+        call(
+          'query',
+          {
+            openWebuiConversationId: 'unmapped',
+            openWebuiUserId: 'unknown',
+            message: 'Show cases',
+            intentMode,
+          },
+          userMeta
+        )
+      ).rejects.toMatchObject({ type: 'WORKBENCH_IDENTITY_INCOMPLETE' });
+    }
+  );
+
   async function provisionOpenWebUiUser() {
     await call('admin.tenantMappings.create', {
       client: 'open-webui',

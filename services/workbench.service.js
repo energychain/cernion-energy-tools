@@ -1307,6 +1307,58 @@ module.exports = {
       },
       { taskId: { type: 'string', min: 1 } }
     ),
+    // Internal read-only entrypoint: use the same mapped principal as chat,
+    // without reserving conversations, classifying cases or acknowledging events.
+    query: {
+      params: {
+        intentMode: { type: 'enum', values: ['status_query', 'knowledge_query', 'data_lookup'] },
+      },
+      async handler(ctx) {
+        const p = principal(ctx, ctx.params);
+        const envelope = normalizeTaskEnvelope(ctx.params);
+        const mapping = await this.resolveUserMapping(ctx, p, envelope);
+        const meta = this.metaForMapping(ctx, p, mapping);
+        if (ctx.params.intentMode === 'knowledge_query') {
+          const result = await ctx.call(
+            'personal-agent.chat',
+            {
+              message: envelope.userRequest,
+              chatMode: 'consultation',
+            },
+            { meta }
+          );
+          return { responseText: result.reply || '' };
+        }
+        if (ctx.params.intentMode === 'status_query') {
+          const conversation = await this.store.resolveConversation(
+            {
+              tenantId: p.tenantId,
+              client: envelope.channel,
+              conversationId: envelope.conversationId,
+            },
+            { optional: true }
+          );
+          const mentionedCase = envelope.userRequest.match(/\bcase[_-][\w-]+\b/i)?.[0];
+          const caseId = ctx.params.cetCaseId || mentionedCase || conversation?.cetCaseId;
+          return caseId ? ctx.call('workbench.cases.get', { caseId }, { meta }) : {};
+        }
+        const message = envelope.userRequest.toLowerCase();
+        if (/\b(tools)\b/.test(message)) return ctx.call('workbench.tools.list', {}, { meta });
+        if (/starters|fallstarter/.test(message))
+          return ctx.call('workbench.caseStarters.list', {}, { meta });
+        if (/events|ereignisse/.test(message))
+          return ctx.call('workbench.inbox.tasks.list', {}, { meta });
+        return ctx.call(
+          'workbench.cases.list',
+          {
+            ...(/mako|ma-ko|marktkommunikation/.test(message)
+              ? { domain: 'market_communication' }
+              : {}),
+          },
+          { meta }
+        );
+      },
+    },
     chat: action(
       'POST /chat',
       'Run a CET-led Workbench chat turn: classify new conversations, continue mapped cases',

@@ -19,7 +19,15 @@ uses its own env-only credential:
 For customer-facing Open WebUI access, prefer the RC3 Workbench path over direct tool wiring. Open
 WebUI remains the tenant-branded UI; `/api/workbench/*` maps Open-WebUI org/user/conversation ids to
 CET tenant/actor/case state, and `model: "cernion-governance-assistant"` forces the CET
-classify/continue path through `/v1/chat/completions`.
+Workbench path through `/v1/chat/completions`. The latest user prompt is classified as
+`status_query`, `knowledge_query`, `data_lookup`, `case_start`, `case_followup`,
+`decision_support` or `tool_run_request`; the mode is returned as `metadata.intentMode`.
+Status and list queries use mapped, read-only Workbench actions without creating cases.
+Knowledge questions use the mapped Personal Agent in consultation mode. Case and tool
+requests retain the existing Workbench classify/continue and governance checks. Tool
+intent alone does not execute a tool. Empty or internal routing-policy responses are
+rendered from safe structured fields, with the original output retained in CET metadata.
+For status queries, pass `metadata.cetCaseId` or use an already linked conversation.
 
 Provisioning sequence:
 

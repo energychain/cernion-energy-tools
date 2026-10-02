@@ -2,6 +2,11 @@ const crypto = require('crypto');
 const { Errors } = require('moleculer');
 const { CHAT_MODES } = require('../src/personal-agent-routing');
 const llmClient = require('../src/llm-client');
+const {
+  classifyWorkbenchIntent,
+  isReadOnlyIntent,
+  renderWorkbenchResponse,
+} = require('../src/workbench-intent-router');
 
 const FACADE_MODEL = 'cernion-agent-mvp';
 const GOVERNANCE_MODEL = 'cernion-governance-assistant';
@@ -453,7 +458,9 @@ module.exports = {
         if (requestedModel === GOVERNANCE_MODEL) {
           const latestUserIndex = findLatestUserMessageIndex(messages);
           const question = messages[latestUserIndex].content;
-          const workbench = await ctx.call('workbench.chat', {
+          const intentMode = classifyWorkbenchIntent(question, metadata);
+          const sourceAction = isReadOnlyIntent(intentMode) ? 'workbench.query' : 'workbench.chat';
+          const workbench = await ctx.call(sourceAction, {
             client: metadata.client || 'open-webui',
             channel: 'open-webui',
             openWebuiConversationId: metadata.openWebuiConversationId || metadata.conversationId,
@@ -463,10 +470,9 @@ module.exports = {
             message: question,
             requestId: metadata.requestId,
             correlationId: metadata.correlationId,
+            ...(isReadOnlyIntent(intentMode) ? { intentMode, cetCaseId: metadata.cetCaseId } : {}),
           });
-          const content = compactMarkdown(
-            workbench.responseText || 'CET Workbench returned no response text.'
-          );
+          const content = compactMarkdown(renderWorkbenchResponse(workbench, intentMode));
           const promptTokens = estimateTokens(question);
           const completionTokens = estimateTokens(content);
           return {
@@ -481,16 +487,25 @@ module.exports = {
               total_tokens: promptTokens + completionTokens,
             },
             metadata: {
+              intentMode,
               cetCaseId: workbench.cetCaseId,
               caseStateVersion: workbench.caseStateVersion,
               primaryDomain: workbench.primaryDomain,
               readinessState: workbench.readinessState,
-              pendingEvents: workbench.events?.length || 0,
+              pendingEvents:
+                workbench.pendingEvents ??
+                workbench.eventSummary?.unacknowledged ??
+                workbench.eventSummary?.pending ??
+                workbench.events?.length ??
+                0,
             },
             cernion: {
               facade: 'openai-compatible-cet-governed-workbench',
-              sourceAction: 'workbench.chat',
-              safety: 'cet_classify_continue_forced_by_workbench',
+              sourceAction,
+              intentMode,
+              safety: isReadOnlyIntent(intentMode)
+                ? 'cet_mapped_read_only_query'
+                : 'cet_classify_continue_forced_by_workbench',
               tenantId:
                 ctx.meta.tenantId ||
                 ctx.meta.authUser?.tenantId ||

@@ -59,7 +59,7 @@ Admin/provisioning:
 
 OpenAI-compatible:
 
-- `POST /v1/chat/completions` with `model: "cernion-governance-assistant"` forces the Workbench path and returns OpenAI-compatible output plus CET metadata.
+- `POST /v1/chat/completions` with `model: "cernion-governance-assistant"` uses Workbench intent routing and returns OpenAI-compatible output plus CET metadata. Status, knowledge and list queries use mapped read-only actions; case and tool requests retain the governed chat path (see [intent modes](../integrations/open-webui/README.md#rc3-cernion-workbench--tenant-gateway-setup)).
 
 ## Minimal Open WebUI call
 
