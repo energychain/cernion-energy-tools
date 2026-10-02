@@ -4,6 +4,7 @@ const { CHAT_MODES } = require('../src/personal-agent-routing');
 const llmClient = require('../src/llm-client');
 const {
   classifyWorkbenchIntent,
+  resolveWorkbenchFollowup,
   isReadOnlyIntent,
   renderWorkbenchResponse,
 } = require('../src/workbench-intent-router');
@@ -458,7 +459,15 @@ module.exports = {
         if (requestedModel === GOVERNANCE_MODEL) {
           const latestUserIndex = findLatestUserMessageIndex(messages);
           const question = messages[latestUserIndex].content;
-          const intentMode = classifyWorkbenchIntent(question, metadata);
+          const recentMessages = messages.slice(0, latestUserIndex);
+          const intentMode = classifyWorkbenchIntent(question, {
+            cetCaseId: metadata.cetCaseId,
+            recentMessages,
+          });
+          const followup =
+            intentMode === 'knowledge_query'
+              ? resolveWorkbenchFollowup(question, { recentMessages })
+              : null;
           const sourceAction = isReadOnlyIntent(intentMode) ? 'workbench.query' : 'workbench.chat';
           const workbench = await ctx.call(sourceAction, {
             client: metadata.client || 'open-webui',
@@ -467,12 +476,14 @@ module.exports = {
             openWebuiUserId: metadata.openWebuiUserId,
             openWebuiOrgId: metadata.openWebuiOrgId,
             clientId: metadata.clientId,
-            message: question,
+            message: followup
+              ? `Vorheriges Thema (Gesprächskontext): ${followup.topic}\n${followup.observations.join('\n')}\nAktuelle Rückfrage: ${question}\nBitte erkläre den fachlichen Zusammenhang und die Bedeutung mit nötigen Einschränkungen und benötigten Details.`
+              : question,
             requestId: metadata.requestId,
             correlationId: metadata.correlationId,
             ...(isReadOnlyIntent(intentMode) ? { intentMode, cetCaseId: metadata.cetCaseId } : {}),
           });
-          const content = compactMarkdown(renderWorkbenchResponse(workbench, intentMode));
+          const content = compactMarkdown(renderWorkbenchResponse(workbench, intentMode, followup));
           const promptTokens = estimateTokens(question);
           const completionTokens = estimateTokens(content);
           return {
