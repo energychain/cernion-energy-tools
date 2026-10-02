@@ -1,5 +1,7 @@
 'use strict';
 
+const { compareCanonicalStrings } = require('./canonical-order');
+
 const DEFAULT_DOMAIN = 'energy';
 const DEFAULT_AUTH_TYPE = 'bearer';
 const SECRET_VALUE_PATTERN =
@@ -114,14 +116,24 @@ function summarizeDescriptorForDossier(descriptor) {
     domain: descriptor.domain,
     toolCount: descriptor.toolCount,
     allowedTools: descriptor.tools.map((tool) => tool.name),
-    safetyClasses: Array.from(new Set(descriptor.tools.map((tool) => tool.safetyClass))).sort(),
-    requiredScopes: Array.from(new Set(descriptor.tools.map((tool) => tool.requiredScope))).sort(),
-    tenantPolicies: Array.from(new Set(descriptor.tools.map((tool) => tool.tenantPolicy))).sort(),
+    safetyClasses: Array.from(new Set(descriptor.tools.map((tool) => tool.safetyClass))).sort(
+      compareCanonicalStrings
+    ),
+    requiredScopes: Array.from(new Set(descriptor.tools.map((tool) => tool.requiredScope))).sort(
+      compareCanonicalStrings
+    ),
+    tenantPolicies: Array.from(new Set(descriptor.tools.map((tool) => tool.tenantPolicy))).sort(
+      compareCanonicalStrings
+    ),
     rolePolicies: Array.from(
       new Set(descriptor.tools.flatMap((tool) => tool.rolePolicy || []))
-    ).sort(),
-    hitlPolicies: Array.from(new Set(descriptor.tools.map((tool) => tool.hitlPolicy))).sort(),
-    sideEffects: Array.from(new Set(descriptor.tools.map((tool) => tool.sideEffects))).sort(),
+    ).sort(compareCanonicalStrings),
+    hitlPolicies: Array.from(new Set(descriptor.tools.map((tool) => tool.hitlPolicy))).sort(
+      compareCanonicalStrings
+    ),
+    sideEffects: Array.from(new Set(descriptor.tools.map((tool) => tool.sideEffects))).sort(
+      compareCanonicalStrings
+    ),
     effectClasses: Array.from(new Set(descriptor.tools.map((tool) => tool.effectClass))).sort(
       (a, b) => String(a).localeCompare(String(b))
     ),

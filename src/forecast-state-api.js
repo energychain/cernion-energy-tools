@@ -1,5 +1,7 @@
 'use strict';
 
+const { compareCanonicalStrings } = require('./canonical-order');
+
 const {
   prepareDataset,
   EvaluationError,
@@ -109,7 +111,7 @@ function inspectStateModel(params, meta = {}, store = createStateStore()) {
     timezone: a.timezone,
     training_data_until: [a.model.training_data_until, a.model.reference_training_data_until]
       .filter(Boolean)
-      .sort()
+      .sort(compareCanonicalStrings)
       .at(-1),
     state_training_data_until: a.model.training_data_until,
     reference_training_data_until: a.model.reference_training_data_until,
@@ -246,7 +248,7 @@ function predictStateModel(params, meta = {}, store = createStateStore()) {
         a.model.reference_training_data_until,
       ]
         .filter(Boolean)
-        .sort()
+        .sort(compareCanonicalStrings)
         .at(-1),
       state_training_data_until: a.model.training_data_until,
       reference_training_data_until: a.model.reference_training_data_until,

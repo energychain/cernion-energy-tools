@@ -1,5 +1,7 @@
 'use strict';
 
+const { compareCanonicalStrings } = require('./canonical-order');
+
 const fs = require('fs');
 const path = require('path');
 const { createHash, randomUUID } = require('crypto');
@@ -50,7 +52,7 @@ async function cernionHours({
   const hours = [];
   const sources = [];
   for (let start = from; start <= until; start = shiftDate(start, 14)) {
-    const end = [shiftDate(start, 13), until].sort()[0];
+    const end = [shiftDate(start, 13), until].sort(compareCanonicalStrings)[0];
     const params = {
       location: { postleitzahl: LOCATION.postcode },
       installationType: 'solar',
@@ -128,7 +130,7 @@ async function archivedForecastHours({
   const sources = [];
   // Bounded requests and stable model selection; never silently substitute Day 0.
   for (let start = from; start <= until; start = shiftDate(start, 90)) {
-    const end = [shiftDate(start, 89), until].sort()[0];
+    const end = [shiftDate(start, 89), until].sort(compareCanonicalStrings)[0];
     const query = {
       latitude: LOCATION.latitude,
       longitude: LOCATION.longitude,

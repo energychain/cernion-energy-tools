@@ -1,5 +1,7 @@
 'use strict';
 
+const { compareCanonicalStrings } = require('./canonical-order');
+
 const crypto = require('crypto');
 
 const DOC_PREFIX = 'decision-evidence-audit:';
@@ -24,7 +26,7 @@ function stableCopy(value) {
   }
   if (isPlainObject(value)) {
     return Object.keys(value)
-      .sort()
+      .sort(compareCanonicalStrings)
       .reduce((acc, key) => {
         acc[key] = stableCopy(value[key]);
         return acc;

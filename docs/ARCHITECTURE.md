@@ -592,3 +592,65 @@ Priorisierte Sonar-Nacharbeit ohne pauschale Umbauten:
 
 Die öffentliche Sonar-Auswertung wurde gelesen. Es wurden keine Findings als
 False Positive geschlossen und keine Hotspots ohne Einzelfallprüfung freigegeben.
+
+### Sonar-Nacharbeit auf Basis von `3ff2256`
+
+Die Folgeprüfung trennt Codekorrekturen, Analyseklassifikation und manuelle
+Security-Reviews. Der Ausgangsscan dieses Commits hatte 133 offene
+Bug-/Vulnerability-Meldungen (52/81). Qualitätsgrenzen und New-Code-Basis
+werden beibehalten.
+
+- Ein gemeinsamer UTF-16-Comparator macht 38 bisher implizite Sortierungen
+  ausdrücklich. Hashes, Forecast-Identitäten, Cursor und Idempotenz bleiben
+  bytekompatibel; feste Referenzwerte aus `3ff2256` prüfen Nicht-ASCII- und
+  numerische Schlüssel. Lokalisierte Sortierung wird dort nicht eingeführt.
+- Angeforderte RCS-Trace-Persistierung wird abgewartet; der Regressionstest
+  liest die Trace direkt nach dem abgeschlossenen Aufruf ohne Wartefrist.
+  Bereits intern abgefangene Observability-Schreibvorgänge sind ausdrücklich
+  als Hintergrundarbeit gekennzeichnet.
+- Hydration-Regeln und Laufzeit teilen denselben Regex-Sicherheitsguard;
+  redundante Regex-Gruppen und ein identischer Recovery-Zweig sind bereinigt.
+  VDMI reicht den benötigten Requirement-Index ausdrücklich an den Normalizer.
+- Alarm- und Graph-IDs verwenden `crypto.randomUUID`. Der externe Chart-Asset
+  ist mit SHA-384-SRI und CORS-Attribut gebunden; ein API-Beispiel nutzt HTTPS.
+- Manuelle UAT-Skripte erfordern jetzt `UAT_API_BASE_URL`: HTTPS für entfernte
+  Ziele, HTTP ausschließlich für Loopback, keine Zugangsdaten im URL. Beispiel:
+  `UAT_API_BASE_URL=http://127.0.0.1:3900 node run-uat-frankenthal.js`.
+  Redirects sind ausgeschaltet, servergelieferte Job-IDs auf sichere Segmente
+  begrenzt und Logs als JSON mit Secret-Key-Redaktion kodiert. Das sind
+  Betreiberwerkzeuge, keine vom LLM wählbaren Netzwerkziele.
+- CI verwendet `npm ci --ignore-scripts` und anschließend ausschließlich
+  `npm rebuild better-sqlite3 leveldown` für die benötigten nativen Module.
+- `tests/` und Python-`test_*.py` werden als Testcode klassifiziert. Sie bleiben
+  analysiert; Produktionscode wird dadurch nicht von Security-Regeln ausgenommen.
+  Es werden keine neuen pauschalen Produktions-/CPD-Ausschlüsse eingeführt.
+
+Die restlichen Security-Meldungen zu operatorgewählten CLI-Pfaden,
+vorhandenen Containment-Prüfungen, dokumentarischen Beispielpfaden und
+reproduzierbaren ML-Zufallszahlen benötigen eine belegte Einzelfallprüfung.
+Seeded Bootstrap-/Sampling-Zufallszahlen für Modellvergleich sind keine Authentifizierungs-
+oder Geheimniserzeugung und dürfen nicht durch kryptografischen Zufall ersetzt
+werden. Bestehende Archive-/Modell-Pfadprüfungen und Checksummen sind bei jeder
+Bewertung mitzulesen. Ohne Sonar-Schreibzugriff werden diese Meldungen nicht
+als False Positive oder Hotspots als Safe verbucht.
+
+Die verbleibende Runtime-Duplikation wird nach der korrigierten
+Testklassifikation erneut gemessen. Große Capability-/Evidence-Kataloge oder
+funktionale Services werden nicht pauschal aus der Duplikationsprüfung
+entfernt. Ein erforderlicher größerer Umbau bleibt ein eigener Scope und
+wird nicht durch eine zurückgesetzte Baseline ersetzt.
+
+Die Einzelbefunde mit Sonar-Schlüssel, Einstufung und Evidenz stehen in
+[sonarcloud-security-review.json](sonarcloud-security-review.json). Der Status
+`not_changed` bedeutet, dass keine serverseitige Disposition vorgenommen wurde;
+`review_candidate` ist ein begründeter Prüfauftrag und kein automatischer Freispruch.
+
+Validierung der Folgekorrekturen: vollständiger `npm run release:check`
+mit Exit-Code 0 nach `npm ci --ignore-scripts --include=dev` und den beiden
+expliziten nativen Rebuilds. 341 Unit-Suiten / 7.786 Tests bestanden,
+7 Suiten / 54 Tests bestehend übersprungen. Coverage: Statements 81,81 %,
+Branches 66,60 %, Functions 86,12 %, Lines 83,67 %. API-Audit: 0 Fehler,
+471 bestehende Warnungen. Lint, Build, Budibase-Dry-Run und feste Legacy-
+Hash-Referenztests bestanden. GitNexus meldet für den erwarteten Umfang
+CRITICAL Risk über 22 Flüsse wegen der zentralen Hash-/Cursor-Helfer;
+die betreffende Kompatibilität ist mit alten Referenzwerten geprüft.

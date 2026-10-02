@@ -1,5 +1,7 @@
 'use strict';
 
+const { compareCanonicalStrings } = require('./canonical-order');
+
 const INVESTMENT_TRIGGER_THRESHOLD_EUR = 1_000_000;
 
 const PROVENANCE = Object.freeze({
@@ -106,7 +108,7 @@ function detectMandateAlignment(vdmiMatrices = [], requiredRoles = []) {
     }
   }
 
-  const assignedRoles = Array.from(roles).sort();
+  const assignedRoles = Array.from(roles).sort(compareCanonicalStrings);
   const missingRoles = (Array.isArray(requiredRoles) ? requiredRoles : []).filter(
     (role) => !roles.has(role)
   );

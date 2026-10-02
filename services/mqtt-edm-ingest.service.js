@@ -1,5 +1,7 @@
 'use strict';
 
+const { compareCanonicalStrings } = require('../src/canonical-order');
+
 /**
  * Internal MQTT-shaped EDM measurement ingest contract (issue #503).
  *
@@ -35,7 +37,7 @@ function stableStringify(value) {
   if (Array.isArray(value)) {
     return `[${value.map((entry) => stableStringify(entry)).join(',')}]`;
   }
-  const keys = Object.keys(value).sort();
+  const keys = Object.keys(value).sort(compareCanonicalStrings);
   return `{${keys.map((key) => `${JSON.stringify(key)}:${stableStringify(value[key])}`).join(',')}}`;
 }
 

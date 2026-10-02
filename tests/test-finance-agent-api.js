@@ -101,4 +101,7 @@ async function runTest() {
   await broker.stop();
 }
 
-runTest();
+runTest().catch((error) => {
+  console.error(JSON.stringify({ event: 'finance-test-failed', message: error.message }));
+  process.exitCode = 1;
+});

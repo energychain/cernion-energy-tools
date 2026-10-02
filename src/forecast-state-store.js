@@ -1,5 +1,7 @@
 'use strict';
 
+const { compareCanonicalStrings } = require('./canonical-order');
+
 const fs = require('fs');
 const path = require('path');
 const { randomUUID } = require('crypto');
@@ -41,7 +43,7 @@ function createStateStore(
           artifact.model.reference_training_data_until,
         ]
           .filter(Boolean)
-          .sort()
+          .sort(compareCanonicalStrings)
           .at(-1),
         state_training_data_until: artifact.model.training_data_until,
         reference_training_data_until: artifact.model.reference_training_data_until,

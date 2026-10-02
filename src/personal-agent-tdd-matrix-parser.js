@@ -1,5 +1,7 @@
 'use strict';
 
+const { compareCanonicalStrings } = require('./canonical-order');
+
 const fs = require('fs');
 const path = require('path');
 
@@ -234,7 +236,7 @@ function extractRequiredTddIds(markdown) {
   while ((match = regex.exec(String(markdown || ''))) !== null) {
     found.add(match[1]);
   }
-  return Array.from(found).sort();
+  return Array.from(found).sort(compareCanonicalStrings);
 }
 
 module.exports = {

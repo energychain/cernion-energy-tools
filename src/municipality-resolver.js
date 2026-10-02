@@ -1,5 +1,7 @@
 'use strict';
 
+const { compareCanonicalStrings } = require('./canonical-order');
+
 /**
  * Municipality Resolver — read-only
  *
@@ -186,7 +188,7 @@ for (const row of rawPlzData) {
 function allPostalCodesForName(nameKey, state) {
   const stateList = l2NameStatePlzList.get(`${nameKey}|${state || ''}`);
   const list = stateList && stateList.length ? stateList : l2NameToPlzList.get(nameKey) || [];
-  return [...new Set(list)].sort();
+  return [...new Set(list)].sort(compareCanonicalStrings);
 }
 
 // ── Helper: build a full return profile from a Layer 1 entry ─────────────────

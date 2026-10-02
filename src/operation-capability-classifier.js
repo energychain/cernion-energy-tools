@@ -536,7 +536,7 @@ const EXTRACTION_HINTS = [
   [/tenantid/i, 'tenant_id'],
   [/(^|_)id$/i, 'entity_id'],
   [/limit|pagesize|top/i, 'result_limit'],
-  [/offset|page$/i, 'pagination_offset'],
+  [/(?:offset)|(?:page$)/i, 'pagination_offset'],
   [/lat|lon|coordinate/i, 'geo_coordinate'],
 ];
 

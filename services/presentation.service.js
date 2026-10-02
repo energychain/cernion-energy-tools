@@ -1,5 +1,7 @@
 'use strict';
 
+const { compareCanonicalStrings } = require('../src/canonical-order');
+
 /**
  * Presentation Service (#CETview Step 1)
  *
@@ -432,7 +434,7 @@ function stableStringify(value) {
   if (Array.isArray(value)) {
     return `[${value.map((item) => stableStringify(item)).join(',')}]`;
   }
-  const keys = Object.keys(value).sort();
+  const keys = Object.keys(value).sort(compareCanonicalStrings);
   return `{${keys.map((key) => `${JSON.stringify(key)}:${stableStringify(value[key])}`).join(',')}}`;
 }
 

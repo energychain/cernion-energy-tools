@@ -1,5 +1,7 @@
 'use strict';
 
+const { compareCanonicalStrings } = require('./canonical-order');
+
 const PERSONAL_AGENT_WORK_OUT_LOUD_EVENT = 'personal-agent.work-out-loud';
 const PERSONAL_AGENT_WORK_OUT_LOUD_AGENT_ID = 'personal-agent';
 
@@ -293,7 +295,7 @@ function validateWorkOutLoudPayload(payload) {
     throw new Error('Invalid Work Out Loud payload');
   }
 
-  const rootKeys = Object.keys(payload || {}).sort();
+  const rootKeys = Object.keys(payload || {}).sort(compareCanonicalStrings);
   const allowedRootKeys = [
     'agentId',
     'evidence',
@@ -307,20 +309,20 @@ function validateWorkOutLoudPayload(payload) {
     throw new Error('Unexpected root keys in Work Out Loud payload');
   }
 
-  const signalKeys = Object.keys(payload.signal || {}).sort();
+  const signalKeys = Object.keys(payload.signal || {}).sort(compareCanonicalStrings);
   if (JSON.stringify(signalKeys) !== JSON.stringify(['category', 'confidence', 'type', 'value'])) {
     throw new Error('Unexpected signal keys in Work Out Loud payload');
   }
 
-  const relevanceKeys = Object.keys(payload.relevance || {}).sort();
+  const relevanceKeys = Object.keys(payload.relevance || {}).sort(compareCanonicalStrings);
   if (
     JSON.stringify(relevanceKeys) !== JSON.stringify(['suggestedCapabilities', 'suggestedRoles'])
   ) {
     throw new Error('Unexpected relevance keys in Work Out Loud payload');
   }
 
-  const evidenceKeys = Object.keys(payload.evidence || {}).sort();
-  const allowedEvidenceKeys = Object.keys(sanitized.evidence || {}).sort();
+  const evidenceKeys = Object.keys(payload.evidence || {}).sort(compareCanonicalStrings);
+  const allowedEvidenceKeys = Object.keys(sanitized.evidence || {}).sort(compareCanonicalStrings);
   if (JSON.stringify(evidenceKeys) !== JSON.stringify(allowedEvidenceKeys)) {
     throw new Error('Unexpected evidence keys in Work Out Loud payload');
   }

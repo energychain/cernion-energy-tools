@@ -45,7 +45,17 @@ function readJson(file) {
 }
 
 function normalizeBaseUrl(value) {
-  return String(value || '').replace(/\/+$/, '');
+  const url = new URL(String(value || ''));
+  if (
+    !['http:', 'https:'].includes(url.protocol) ||
+    url.username ||
+    url.password ||
+    url.search ||
+    url.hash
+  ) {
+    throw new Error('Base URL must be HTTP(S) without credentials, query or fragment.');
+  }
+  return url.href.replace(/\/+$/, '');
 }
 
 function parseCookieJar(file) {

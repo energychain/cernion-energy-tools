@@ -1,5 +1,7 @@
 'use strict';
 
+const { compareCanonicalStrings } = require('../src/canonical-order');
+
 const crypto = require('crypto');
 const PouchDB = require('pouchdb');
 PouchDB.plugin(require('pouchdb-find'));
@@ -714,7 +716,7 @@ module.exports = {
             JSON.stringify(
               task.executionTrace.map((x) => ({
                 eventName: x.eventName,
-                keys: Object.keys(cleanObject(x.payload)).sort(),
+                keys: Object.keys(cleanObject(x.payload)).sort(compareCanonicalStrings),
               }))
             )
           )
@@ -1754,7 +1756,9 @@ module.exports = {
           );
         });
 
-        const evidenceRequirements = toArray(task?.evidenceRequirements).map(normalizeRequirement);
+        const evidenceRequirements = toArray(task?.evidenceRequirements).map((item, index) =>
+          normalizeRequirement(item, index)
+        );
         const evidenceGaps = [];
 
         for (const requirement of evidenceRequirements) {

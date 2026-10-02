@@ -1,13 +1,15 @@
 const axios = require('axios');
+const { uatBaseUrl, logRecord } = require('./src/operator-cli-security');
+const client = axios.create({ maxRedirects: 0, timeout: 30000 });
 
-const API_URL = 'http://10.0.0.8:3900/api/personal-agent/chat';
+const API_BASE = uatBaseUrl(process.env.UAT_API_BASE_URL);
 const SESSION_ID = 'uat-frankenthal-v5-' + Date.now();
 const TENANT_ID = 'uat-tenant-005';
 
 async function runTurn(turnNumber, message) {
   console.log(`\n======================================================`);
   console.log(`TURN ${turnNumber}`);
-  console.log(`USER: "${message}"`);
+  console.log(logRecord('user', { message }));
   console.log(`======================================================\n`);
 
   const payload = {
@@ -20,25 +22,25 @@ async function runTurn(turnNumber, message) {
   };
 
   try {
-    const response = await axios.post(API_URL, payload, {
+    const response = await client.post(`${API_BASE}/api/personal-agent/chat`, payload, {
       headers: {
         'Content-Type': 'application/json',
       },
     });
 
     const data = response.data;
-    console.log(`[STATUS] Execution Status: ${data.execution?.status || 'N/A'}`);
-    console.log(`[PRESENTATION] Applied: ${data.presentationApplied}`);
-    console.log(`[PRESENTATION] Type: ${data.presentationType}`);
+    console.log(logRecord('execution-status', data.execution?.status || 'N/A'));
+    console.log(logRecord('presentation-applied', data.presentationApplied));
+    console.log(logRecord('presentation-type', data.presentationType));
 
     if (data.presentation && data.presentation.markdown) {
-      console.log(`\n[MARKDOWN OUTPUT]\n${data.presentation.markdown}\n`);
+      console.log(logRecord('markdown', data.presentation.markdown));
     } else {
-      console.log(`\n[RAW REPLY]\n${data.reply}\n`);
+      console.log(logRecord('reply', data.reply));
     }
     return data;
   } catch (error) {
-    console.error(`[ERROR] Turn ${turnNumber} failed:`, error.message);
+    console.error(logRecord('turn-failed', { turnNumber, message: error.message }));
   }
 }
 
@@ -59,4 +61,7 @@ async function runUAT() {
   await runTurn(4, 'Erstelle mir daraus ein One-Pager Risk Assessment für unser Kreditkomitee.');
 }
 
-runUAT();
+runUAT().catch((error) => {
+  console.error(logRecord('uat-failed', error.message));
+  process.exitCode = 1;
+});

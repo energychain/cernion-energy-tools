@@ -1,5 +1,7 @@
 'use strict';
 
+const { compareCanonicalStrings } = require('./canonical-order');
+
 const crypto = require('crypto');
 
 const WALLET_VERSION = 1;
@@ -31,7 +33,7 @@ function stableStringify(value) {
 
   if (value && typeof value === 'object') {
     return `{${Object.keys(value)
-      .sort()
+      .sort(compareCanonicalStrings)
       .map((key) => `${JSON.stringify(key)}:${stableStringify(value[key])}`)
       .join(',')}}`;
   }

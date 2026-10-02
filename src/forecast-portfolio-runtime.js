@@ -1,4 +1,6 @@
 'use strict';
+
+const { compareCanonicalStrings } = require('./canonical-order');
 const product = require('./forecast-product');
 const { normalizeMethod } = require('./forecast-portfolio-contract');
 const fs = require('fs');
@@ -18,7 +20,7 @@ const canonical = (x) =>
     v && typeof v === 'object' && !Array.isArray(v)
       ? Object.fromEntries(
           Object.keys(v)
-            .sort()
+            .sort(compareCanonicalStrings)
             .map((k) => [k, v[k]])
         )
       : v
