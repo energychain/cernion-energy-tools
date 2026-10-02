@@ -165,4 +165,45 @@ class ClientTests(unittest.TestCase):
             self.assertEqual(opener.call_count,1)
 
 
+    def test_remote_transport_requires_tls_before_token_submission(self):
+        args=cli.parser().parse_args(['train','--series-ids','meter','--forecast-for','2024-01-01',
+            '--out',str(self.root/'out')])
+        with patch.dict(os.environ,CET_API_TOKEN='ck_secret'):
+            for base in ('http://10.0.0.8:3900', 'http://localhost.attacker.test'):
+                args.base_url=base
+                with self.assertRaisesRegex(ValueError,'HTTPS'):
+                    cli.Client(args)
+            for base in ('http://127.0.0.1:3900','http://[::1]:3900','https://cet.example.test'):
+                args.base_url=base
+                self.assertEqual(cli.Client(args).base,base)
+
+    def test_api_route_validation_blocks_origin_and_path_injection(self):
+        args=cli.parser().parse_args(['train','--series-ids','meter','--forecast-for','2024-01-01',
+            '--out',str(self.root/'out')])
+        with patch.dict(os.environ,CET_API_TOKEN='ck_secret'):
+            client=cli.Client(args)
+        with patch.object(client.opener,'open') as opener:
+            for route in ('https://attacker.test', '//attacker.test', '/api/jobs/../status',
+                          '/api/jobs/%2e%2e/status', '/api/jobs/id%2fadmin/status',
+                          '/api/jobs/id/status?token=secret', '/api/admin',
+                          cli.ROOT+'/runs/'+('a'*63), None):
+                with self.assertRaisesRegex(ValueError,'route'):
+                    client.call(route)
+            opener.assert_not_called()
+
+    def test_server_job_ids_are_checked_before_polling(self):
+        from unittest.mock import Mock
+        args=cli.parser().parse_args(['train','--series-ids','meter','--forecast-for','2024-01-01',
+            '--out',str(self.root/'out')])
+        client=Mock()
+        for job_id in ('..','../admin','id%2fadmin','https://attacker.test','x'*161,5):
+            with self.assertRaisesRegex(ValueError,'job ID'):
+                cli.await_result(client,{'run_id':'a'*64,'jobId':job_id},args)
+        client.call.assert_not_called()
+        client.call.side_effect=[{'status':'running'},{'status':'failed','error':'controlled failure'}]
+        with self.assertRaisesRegex(ValueError,'Job stopped'):
+            cli.await_result(client,{'run_id':'a'*64,'jobId':'job-valid_001'},args)
+        self.assertEqual(client.call.call_args_list[-1].args[0],'/api/jobs/job-valid_001/status')
+
+
 if __name__=='__main__':unittest.main()

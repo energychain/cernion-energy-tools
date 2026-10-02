@@ -150,6 +150,8 @@ class Client:
         url = urllib.parse.urlsplit(self.base)
         if url.scheme not in ('http', 'https') or not url.netloc or url.username or url.password or url.query or url.fragment:
             raise ValueError('Invalid API base URL; credentials do not belong in the URL')
+        if url.scheme == 'http' and url.hostname not in ('localhost', '127.0.0.1', '::1'):
+            raise ValueError('Remote API base URLs require HTTPS; HTTP is only allowed on loopback')
         config = getattr(args, '_env_values', None)
         if config is None:
             config = environment(args)
@@ -165,7 +167,12 @@ class Client:
         self.opener = urllib.request.build_opener(NoRedirect())
 
     def call(self, route, payload=None):
-        # Routes are constructed locally; never follow a server-supplied URL with credentials.
+        # Exact client API routes only; no authority, query, dot segments or encoded delimiters.
+        if not isinstance(route, str) or not re.fullmatch(
+                r'/api/(?:tokens/verify|auth/verify|jobs/[A-Za-z0-9_-]{1,160}/status|'
+                r'forecast-sandbox/consumption/portfolio/(?:history|train|predict|retrain|'
+                r'runs/[a-f0-9]{64}(?:/resume)?))', route):
+            raise ValueError('Unexpected forecast API route')
         req = urllib.request.Request(self.base + route,
             data=None if payload is None else json.dumps(payload, allow_nan=False).encode(),
             headers={'Content-Type': 'application/json', 'Authorization': 'Bearer ' + self.token,
@@ -202,6 +209,10 @@ def await_result(client, job, args):
     if job.get('status') == 'completed':
         return job
     run_id = identifier(job['run_id'])
+    job_id = job.get('jobId')
+    if job_id is not None and job_id != '' and (
+            not isinstance(job_id, str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,160}', job_id)):
+        raise ValueError('Server returned an invalid job ID')
     deadline = time.monotonic() + args.job_timeout
     last_message = None
     while time.monotonic() < deadline:
@@ -209,8 +220,7 @@ def await_result(client, job, args):
             state = client.call(ROOT + '/runs/' + run_id)
             if state.get('status') == 'completed':
                 return state['result']
-            if job.get('jobId'):
-                job_id = urllib.parse.quote(job['jobId'], safe='')
+            if job_id:
                 status = client.call('/api/jobs/' + job_id + '/status')
                 if status.get('status') in ('error', 'failed', 'cancelled', 'recovery_pending'):
                     raise ValueError('Job stopped: ' + str(status.get('error') or status['status']) + '; use resume --restart for an interrupted run')
