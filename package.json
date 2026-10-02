@@ -51,7 +51,9 @@
     "verify:agent-shapes:curl": "bash scripts/verify-agent-shapes-curl.sh",
     "verify:open-webui": "node integrations/open-webui/smoke-test.js",
     "build": "echo 'No build step required'",
-    "blueprint:export": "node scripts/export-blueprints.js"
+    "blueprint:export": "node scripts/export-blueprints.js",
+    "generate:function-model": "node scripts/generate-function-model.js",
+    "check:function-model": "node scripts/generate-function-model.js --check"
   },
   "repository": {
     "type": "git",
