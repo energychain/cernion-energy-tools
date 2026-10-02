@@ -97,3 +97,93 @@ test('renders case IDs when generated titles contain internal policy', () => {
     )
   ).toBe('- case-1 (waiting)');
 });
+
+const { resolveWorkbenchFollowup } = require('../src/workbench-intent-router');
+const followups = [
+  [
+    'Was ist in der MaKo ein APERAK?',
+    'Ich habe eine solche mit Z10 vom Marktpartner empfangen.',
+    'AHB-Version',
+  ],
+  [
+    'Was ist eine Ersatzwertbildung?',
+    'Wir haben so einen Wert in der Zeitreihe.',
+    'Qualitätskennzeichen',
+  ],
+  [
+    'Was ist ein Evidence Gate in der Zielnetzplanung?',
+    'Unser Ausbaupfad hängt dort.',
+    'Gate-Kriterien',
+  ],
+  ['Was bedeutet N-1 verletzt?', 'Das steht bei einer Leitung im Bericht.', 'Ausfallszenario'],
+];
+describe('contextual knowledge follow-ups', () => {
+  test.each(followups)('%s -> %s', (topic, message, detail) => {
+    const recentMessages = [{ role: 'user', content: topic }];
+    const context = resolveWorkbenchFollowup(message, { recentMessages });
+    expect(classifyWorkbenchIntent(message, { recentMessages, cetCaseId: 'case-1' })).toBe(
+      'knowledge_query'
+    );
+    for (const responseText of [policy, '', 'Case: case-1\nReadiness: evidence_required']) {
+      const content = renderWorkbenchResponse({ responseText }, 'knowledge_query', context);
+      expect(content).toContain(detail);
+      expect(content).not.toMatch(/Routing advice only|Case:|Readiness:/);
+    }
+  });
+  test.each([
+    ['Lege einen Fall an', 'case_start'],
+    ['Was soll ich tun?', 'decision_support'],
+    ['Bewerte die Optionen', 'decision_support'],
+    ['Prüfe den Case', 'case_followup'],
+    ['Run the web fetch tool for that', 'tool_run_request'],
+  ])('explicit action wins: %s', (message, intent) => {
+    expect(
+      classifyWorkbenchIntent(message, {
+        recentMessages: [{ role: 'user', content: followups[0][0] }],
+      })
+    ).toBe(intent);
+  });
+  test('does not borrow system or assistant topics, stale topics or long messages', () => {
+    const message = followups[0][1];
+    expect(
+      resolveWorkbenchFollowup(message, {
+        recentMessages: [
+          { role: 'system', content: followups[0][0] },
+          { role: 'assistant', content: followups[0][0] },
+        ],
+      })
+    ).toBeNull();
+    expect(
+      resolveWorkbenchFollowup(message, {
+        recentMessages: [
+          { role: 'user', content: followups[0][0] },
+          { role: 'user', content: 'Compare grid options' },
+        ],
+      })
+    ).toBeNull();
+    expect(
+      resolveWorkbenchFollowup(message.repeat(10), {
+        recentMessages: [{ role: 'user', content: followups[0][0] }],
+      })
+    ).toBeNull();
+    expect(classifyWorkbenchIntent(message)).toBe('decision_support');
+  });
+  test('carries the observation through a second anaphoric explanation', () => {
+    const recentMessages = [
+      { role: 'user', content: followups[0][0] },
+      { role: 'user', content: followups[0][1] },
+    ];
+    const context = resolveWorkbenchFollowup('Was bedeutet das?', { recentMessages });
+    expect(context.observations).toEqual([followups[0][1]]);
+    expect(renderWorkbenchResponse({}, 'knowledge_query', context)).toContain('Z10');
+  });
+});
+
+test('context does not override explicit continuation or a new named topic', () => {
+  const recentMessages = [{ role: 'user', content: 'Was ist ein APERAK?' }];
+  expect(classifyWorkbenchIntent('Continue that case', { recentMessages })).toBe('case_followup');
+  expect(resolveWorkbenchFollowup('Was ist das Evidence Gate?', { recentMessages })).toBeNull();
+  expect(classifyWorkbenchIntent('Was ist das Evidence Gate?', { recentMessages })).toBe(
+    'knowledge_query'
+  );
+});

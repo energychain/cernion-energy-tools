@@ -1,7 +1,7 @@
 'use strict';
 
 // Intent is a presentation/routing hint, never authorization to execute a tool.
-function classifyWorkbenchIntent(message, { cetCaseId } = {}) {
+function classifyWorkbenchIntent(message, { cetCaseId, recentMessages } = {}) {
   const text = String(message || '').toLowerCase();
   if (
     /\b(run|execute|fetch|search|lookup|attach|ausführen|ausfuehren|führe|fuehre|abrufen|suche|anhängen)\b/.test(
@@ -11,10 +11,24 @@ function classifyWorkbenchIntent(message, { cetCaseId } = {}) {
   )
     return 'tool_run_request';
   if (
-    /\b(start|create|open|starte|erstelle|eröffne)\b/.test(text) &&
+    /\b(start|create|open|starte|erstelle|eröffne|lege)\b/.test(text) &&
     /\b(case|fall|klärfall|klaerfall|evaluation|bewertung)\b/.test(text)
   )
     return 'case_start';
+  if (/prüfe.*\b(case|fall)|check.*\bcase/.test(text)) return 'case_followup';
+  if (
+    /\b(continue|follow.?up|fortsetzen|weiter|nachreich|cetcaseid)\b|hier (ist|sind).*beleg|provide.*evidence/.test(
+      text
+    )
+  )
+    return 'case_followup';
+  if (
+    /compare|recommend|assess|bewerte|vergleiche|empfehl|abwäg|abwaeg|was soll ich tun|what should i do|nächste.*schritt|naechste.*schritt|next.*step/.test(
+      text
+    )
+  )
+    return 'decision_support';
+  if (resolveWorkbenchFollowup(message, { recentMessages })) return 'knowledge_query';
   if (
     /\b(status|readiness|stand|bearbeitungsstand)\b|missing evidence|fehlende belege|next safe action/.test(
       text
@@ -26,12 +40,6 @@ function classifyWorkbenchIntent(message, { cetCaseId } = {}) {
     /\b(cases|fälle|faelle|events|ereignisse|tools|starters|fallstarter)\b/.test(text)
   )
     return 'data_lookup';
-  if (
-    /compare|recommend|assess|bewerte|vergleiche|empfehl|abwäg|abwaeg|nächste.*schritt|naechste.*schritt|next.*step/.test(
-      text
-    )
-  )
-    return 'decision_support';
   if (
     /what (does|is|are)|explain|meaning|was (ist|sind|bedeutet)|erkläre|erkl[aä]rung|definition/.test(
       text
@@ -48,6 +56,54 @@ function classifyWorkbenchIntent(message, { cetCaseId } = {}) {
   return 'decision_support';
 }
 
+// Only user turns supply a topic; system instructions and assistant claims are
+// never promoted into routing context. Stop at a topic switch or action request.
+function resolveWorkbenchFollowup(message, { recentMessages = [] } = {}) {
+  const reference =
+    /\b(solche[nsrm]?|so eine[nmrs]?|das|dies(?:e[rnms]?|er Fehler|er Status)|dort|daran|it|that|such|there)\b/i;
+  const text = String(message || '').trim();
+  if (text.length > 400 || !reference.test(text)) return null;
+  if (
+    /^(was (ist|sind)|what (is|are))\b/i.test(text) &&
+    !/^(was ist das|what is that)[?.!\s]*$/i.test(text)
+  )
+    return null;
+  const turns = recentMessages.slice(-8).filter((turn) => turn.role === 'user');
+  const observations = [];
+  for (const turn of turns.reverse()) {
+    const topic = String(turn.content || '')
+      .trim()
+      .slice(0, 600);
+    if (INTERNAL_POLICY.test(topic)) break;
+    if (classifyWorkbenchIntent(topic) === 'knowledge_query' && !reference.test(topic)) {
+      return { topic, message: text, observations: observations.reverse() };
+    }
+    if (topic.length <= 400 && reference.test(topic)) observations.push(topic);
+    else break;
+  }
+  return null;
+}
+
+function renderContextualExplanation({ topic, message, observations = [] }) {
+  const context = [topic, ...observations, message].join(' ');
+  let explanation =
+    'Die genaue Bedeutung hängt vom fachlichen Prozess und den zugrunde liegenden Daten ab. Bitte teile den relevanten Berichtsausschnitt, Zeitraum und die verwendete Dokumentversion.';
+  if (/aperak/i.test(topic)) {
+    const code = context.match(/\bZ\d{2}\b/i)?.[0]?.toUpperCase();
+    explanation = `Du beziehst dich offenbar auf eine APERAK${code ? ` mit ${code}` : ''} vom Marktpartner. Eine APERAK meldet das Ergebnis der fachlichen Nachrichtenprüfung. Die konkrete Bedeutung des Codes lässt sich erst mit AHB-Version, Nachricht, Segment und Prozesskontext bestimmen. Bitte teile den anonymisierten Nachrichtenausschnitt und die Referenz auf die ursprüngliche Nachricht.`;
+  } else if (/ersatzwert/i.test(topic)) {
+    explanation =
+      'Ein Ersatzwert in der Zeitreihe kann eine Lücke oder einen unplausiblen Messwert ersetzen. Prüfe Qualitätskennzeichen, Bildungsregel, Zeitraum und Herkunft des Werts; daraus allein folgt noch keine Aussage zur Richtigkeit der Zeitreihe.';
+  } else if (/evidence gate/i.test(topic)) {
+    explanation =
+      'Ein Evidence Gate verlangt Nachweise, bevor ein Ausbaupfad weiter bewertet werden kann. Wenn der Pfad dort hängt, prüfe die Gate-Kriterien und fehlende Nachweise, etwa Lastannahmen, Netzberechnungen und Variantenvergleiche. Welche davon erforderlich sind, ergibt sich aus dem konkreten Planungsprozess.';
+  } else if (/N-1/i.test(topic)) {
+    explanation =
+      '„N-1 verletzt“ weist darauf hin, dass ein untersuchter Ausfall die angesetzten Netzgrenzen verletzt. Für die Leitung müssen Ausfallszenario, Lastfall, Grenzwerte und Berechnungsversion geprüft werden; der Berichtshinweis allein bestimmt noch keine Betriebsmaßnahme.';
+  }
+  return `${topic}\n\n${explanation}\n\nAuf Wunsch können wir einen Klärfall starten oder die Optionen bewerten.`;
+}
+
 function isReadOnlyIntent(intent) {
   return ['status_query', 'knowledge_query', 'data_lookup'].includes(intent);
 }
@@ -61,11 +117,18 @@ function readable(value) {
   return '';
 }
 
-function renderWorkbenchResponse(result = {}, intent) {
+function renderWorkbenchResponse(result = {}, intent, followup) {
   const reply = readable(result.responseText);
-  if (reply && intent !== 'status_query') return reply;
+  if (
+    reply &&
+    intent !== 'status_query' &&
+    !(followup && /^(Case:|Readiness:|Missing evidence:)/im.test(reply))
+  )
+    return reply;
   if (intent === 'knowledge_query')
-    return 'CET could not provide a verified explanation. Please specify the process and document version.';
+    return followup
+      ? renderContextualExplanation(followup)
+      : 'CET could not provide a verified explanation. Please specify the process and document version.';
   const entries = result.items || result.tools;
   if (Array.isArray(entries)) {
     const lines = entries
@@ -121,4 +184,9 @@ function renderWorkbenchResponse(result = {}, intent) {
   return lines.join('\n');
 }
 
-module.exports = { classifyWorkbenchIntent, isReadOnlyIntent, renderWorkbenchResponse };
+module.exports = {
+  classifyWorkbenchIntent,
+  resolveWorkbenchFollowup,
+  isReadOnlyIntent,
+  renderWorkbenchResponse,
+};
