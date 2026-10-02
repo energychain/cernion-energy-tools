@@ -65,6 +65,16 @@ function extractStaticEvents(text, ref = '<fixture>') {
           unresolved.add(`${ref}:${handler.loc.start.line}: spread event handlers`);
           continue;
         }
+        const definition = handler.value || handler;
+        const isHandler =
+          ['ObjectMethod', 'FunctionExpression', 'ArrowFunctionExpression'].includes(
+            definition.type
+          ) ||
+          (definition.type === 'ObjectExpression' &&
+            definition.properties.some(
+              (property) => (property.key?.name || property.key?.value) === 'handler'
+            ));
+        if (!isHandler) continue;
         const event = handler.computed
           ? stringValue(handler.key, scope)
           : handler.key.value || handler.key.name;
@@ -81,6 +91,99 @@ function extractStaticEvents(text, ref = '<fixture>') {
   };
 }
 
+function extractServiceActions(file, sources, root) {
+  const parsed = new Map();
+  function exportedObject(current, active = new Set()) {
+    if (active.has(current)) return new Map();
+    const nextActive = new Set([...active, current]);
+    let ast = parsed.get(current);
+    if (!ast) {
+      const ref = path.relative(root, current).split(path.sep).join('/');
+      const text = sources.get(ref) || fs.readFileSync(current, 'utf8');
+      sources.set(ref, text);
+      ast = parseSync(text, { configFile: false, babelrc: false });
+      parsed.set(current, ast);
+    }
+    const bindings = new Map();
+    let exported;
+    for (const statement of ast.program.body) {
+      if (statement.type === 'VariableDeclaration') {
+        for (const declaration of statement.declarations)
+          if (declaration.id.type === 'Identifier')
+            bindings.set(declaration.id.name, declaration.init);
+      }
+      const expression = statement.expression;
+      if (
+        expression?.type === 'AssignmentExpression' &&
+        expression.left.object?.name === 'module' &&
+        expression.left.property?.name === 'exports'
+      )
+        exported = expression.right;
+    }
+    function properties(node) {
+      if (node?.type === 'Identifier') return properties(bindings.get(node.name));
+      if (
+        node?.type === 'CallExpression' &&
+        node.callee.name === 'require' &&
+        node.arguments[0]?.type === 'StringLiteral'
+      ) {
+        const target = node.arguments[0].value;
+        if (!target.startsWith('.')) return new Map();
+        const base = path.resolve(path.dirname(current), target);
+        const resolved = [base, `${base}.js`, path.join(base, 'index.js')].find(
+          (candidate) =>
+            candidate.startsWith(`${root}${path.sep}`) &&
+            candidate.endsWith('.js') &&
+            fs.existsSync(candidate)
+        );
+        return resolved ? exportedObject(resolved, nextActive) : new Map();
+      }
+      const result = new Map();
+      if (node?.type !== 'ObjectExpression') return result;
+      for (const property of node.properties) {
+        if (property.type === 'SpreadElement') {
+          for (const [key, value] of properties(property.argument)) result.set(key, value);
+        } else {
+          const key = property.computed
+            ? property.key.value
+            : property.key.name || property.key.value;
+          if (typeof key === 'string')
+            result.set(key, {
+              node: property.value || property,
+              source: path.relative(root, current).split(path.sep).join('/'),
+            });
+        }
+      }
+      return result;
+    }
+    const result = properties(exported);
+    const actions = result.get('actions');
+    if (actions) result.set('actions', { properties: properties(actions.node) });
+    return result;
+  }
+  const schema = exportedObject(file);
+  const name = schema.get('name')?.node?.value || path.basename(file, '.service.js');
+  const version = schema.get('version')?.node?.value;
+  return [...(schema.get('actions')?.properties || [])].map(([action, entry]) => {
+    const openapi = entry.node?.properties?.find(
+      (property) => (property.key?.name || property.key?.value) === 'openapi'
+    )?.value;
+    const operationId = openapi?.properties?.find(
+      (property) => (property.key?.name || property.key?.value) === 'operationId'
+    )?.value;
+    return {
+      action: `${name}.${action}`,
+      operationId: operationId?.type === 'StringLiteral' ? operationId.value : `${name}_${action}`,
+      sources: [entry.source],
+      ...(version !== undefined
+        ? {
+            aliases: [`${typeof version === 'number' ? `v${version}` : version}.${name}.${action}`],
+          }
+        : {}),
+    };
+  });
+}
+
 function loadServiceEvents(root) {
   const sources = new Map();
   const parsed = new Map();
@@ -94,6 +197,7 @@ function loadServiceEvents(root) {
     return result;
   }
   const events = {};
+  const actions = [];
   for (const filename of fs
     .readdirSync(path.join(root, 'services'))
     .filter((name) => name.endsWith('.service.js'))
@@ -128,6 +232,7 @@ function loadServiceEvents(root) {
       }
     }
     collect(file);
+    actions.push(...extractServiceActions(file, sources, root));
     // Read declared service names without loading modules or starting services.
     const ast = parseSync(sources.get(`services/${filename}`), {
       configFile: false,
@@ -153,7 +258,7 @@ function loadServiceEvents(root) {
       ])
     );
   }
-  return { events, sources };
+  return { events, sources, actions };
 }
 
-module.exports = { extractStaticEvents, loadServiceEvents };
+module.exports = { extractStaticEvents, loadServiceEvents, extractServiceActions };

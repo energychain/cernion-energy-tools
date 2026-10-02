@@ -52,7 +52,7 @@ describe('function model projection (#694)', () => {
   test('AC-01/AC-03: normalizes catalog data without a domain-specific mapping', () => {
     expect(normalizeDomain('Fn_A')).toBe('fn-a');
     expect(normalizeDomain('FN--A')).toBe('fn-a');
-    const model = fixture({ capabilities: [cap('a', 'Fn_A'), cap('b', 'fn-a')] });
+    const model = fixture({ capabilities: [cap('a', 'Fn_A'), cap('b', 'fn-a', ['svc-a.read'])] });
     expect(model.functions).toHaveLength(1);
     expect(model.functions[0].capabilities).toEqual(['a', 'b']);
   });
@@ -69,7 +69,10 @@ describe('function model projection (#694)', () => {
       writesTo: ['ref-output'],
       departments: ['dep-a'],
       consequenceLevels: { none: 1 },
-      derivation: { version: '1', generatedAt: DEFAULT_PARAMETERS.generatedAt },
+      derivation: {
+        version: DEFAULT_PARAMETERS.version,
+        generatedAt: DEFAULT_PARAMETERS.generatedAt,
+      },
     });
     expect(fn.sources).toContainEqual({ kind: 'semantic-domain', ref: 'a' });
   });
@@ -84,9 +87,13 @@ describe('function model projection (#694)', () => {
       { capability: 'c', reason: 'No resolvable preferred action' },
     ]);
     expect(model.gaps.unresolvedPreferredActions).toEqual([
-      { capability: 'b', action: 'svc-missing.read' },
+      { capability: 'b', action: 'svc-missing.read', reason: 'Action does not exist in source' },
     ]);
-    expect(model.gaps.isolatedFunctions).toContain('fn-c');
+    expect(model.gaps.isolatedFunctions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ functionId: 'fn-c', reason: 'No resolvable operations' }),
+      ])
+    );
     expect(model.gaps.functionsWithoutEvents).toContain('fn-c');
     expect(model.gaps.functionsWithoutListeners).toContain('fn-a');
   });
@@ -143,8 +150,8 @@ describe('function model projection (#694)', () => {
       .find((edge) => edge.functionId === 'fn-a');
     expect(forward.evidence).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ kind: 'event', ref: 'event-a.v1', weight: 0.8 }),
-        expect.objectContaining({ kind: 'write-read', ref: 'ref-output', weight: 0.7 }),
+        expect.objectContaining({ kind: 'event', ref: 'event-a.v1' }),
+        expect.objectContaining({ kind: 'write-read', ref: 'ref-output' }),
       ])
     );
     expect(reverse.evidence.every((item) => item.kind === 'shared')).toBe(true);
@@ -165,6 +172,7 @@ describe('function model projection (#694)', () => {
 
   test('rarer shared features contribute more than frequent ones', () => {
     const model = fixture({
+      parameters: { ...DEFAULT_PARAMETERS, mergeSimilarity: 1.01 },
       capabilities: ['a', 'b', 'c', 'd'].map((id) => cap(id, id)),
       operations: [
         op('a', { dataSources: ['ref-rare', 'ref-common'] }),
@@ -186,10 +194,22 @@ describe('function model projection (#694)', () => {
     const model = fixture({
       capabilities: [...['a', 'b', 'c'].map((id) => cap(id, id)), cap('d', 'd')],
       operations: [
-        op('a', { dataSources: ['ref-shared'] }),
+        op('a', {
+          dataSources: [
+            'ref-shared-a',
+            'ref-shared-b',
+            ...Array.from({ length: 10 }, (_, i) => `ref-a-${i}`),
+          ],
+        }),
         op('b'),
         op('c'),
-        op('d', { dataSources: ['ref-shared'] }),
+        op('d', {
+          dataSources: [
+            'ref-shared-a',
+            'ref-shared-b',
+            ...Array.from({ length: 10 }, (_, i) => `ref-d-${i}`),
+          ],
+        }),
       ],
     });
     expect(api.findFunctionsForCapability('d', { model })).toHaveLength(1);
@@ -355,13 +375,16 @@ describe('event and drift regressions', () => {
       serviceEvents: { 'svc-a': { emits: ['event.a.v1'] }, 'svc-b': { listens: ['event.*.v1'] } },
     });
     const edge = api.getNeighbors('fn-a', { model }).find((item) => item.functionId === 'fn-b');
-    expect(edge.evidence).toContainEqual({
-      kind: 'event',
-      feature: 'emits-listens',
-      ref: 'event.a.v1',
-      listener: 'event.*.v1',
-      weight: 0.8,
-    });
+    expect(edge.evidence).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: 'event',
+          feature: 'events',
+          ref: 'event.a.v1',
+          listener: 'event.*.v1',
+        }),
+      ])
+    );
   });
 
   test('event constants respect lexical scope and mutable values remain unresolved', () => {
@@ -420,8 +443,265 @@ describe('event and drift regressions', () => {
 test('missing domains have distinct fallback IDs and readable labels', () => {
   const model = fixture({ capabilities: [cap('a', null), cap('b', 'a')] });
   expect(api.findFunctionsForCapability('a', { model })[0]).toMatchObject({
-    functionId: 'fn-cap-a',
+    functionId: 'fn-a',
     label: 'a',
   });
   expect(model.functions).toHaveLength(2);
+});
+
+describe('review regressions (#703)', () => {
+  test('merges different-domain capabilities with predominantly shared rare structure', () => {
+    const model = fixture({
+      capabilities: [cap('a', 'domain-a'), cap('b', 'domain-b'), cap('c', 'domain-c')],
+      operations: [
+        op('a', { dataSources: ['ref-a', 'ref-b'], entityTypes: ['type-a'] }),
+        op('b', { dataSources: ['ref-a', 'ref-b'], entityTypes: ['type-a'] }),
+        op('c'),
+      ],
+      serviceEvents: {},
+    });
+    const fn = api.findFunctionsForCapability('a', { model })[0];
+    expect(fn.capabilities).toEqual(['a', 'b']);
+    expect(fn.domains).toEqual(['domain-a', 'domain-b']);
+    expect(model.statistics.crossDomainFunctionCount).toBe(1);
+  });
+
+  test('same-domain capabilities with disjoint structure are kept separate', () => {
+    const model = fixture({
+      capabilities: [cap('a', 'domain-a'), cap('b', 'domain-a')],
+      operations: [op('a', { dataSources: ['ref-a'] }), op('b', { dataSources: ['ref-b'] })],
+      serviceEvents: {},
+    });
+    expect(model.functions).toHaveLength(2);
+    expect(model.functions.map((fn) => fn.domains)).toEqual([['domain-a'], ['domain-a']]);
+  });
+
+  test('overlap fairly matches a small capability to a larger containing signature', () => {
+    const common = { dataSources: ['ref-a', 'ref-b'], entityTypes: ['type-a'] };
+    const model = fixture({
+      capabilities: [cap('a', 'domain-a'), cap('b', 'domain-b'), cap('c', 'domain-c')],
+      operations: [
+        op('a', common),
+        op('b', {
+          ...common,
+          dataSources: [
+            ...common.dataSources,
+            ...Array.from({ length: 12 }, (_, i) => `ref-extra-${i}`),
+          ],
+        }),
+        op('c'),
+      ],
+      serviceEvents: {},
+    });
+    expect(api.findFunctionsForCapability('a', { model })[0].capabilities).toEqual(['a', 'b']);
+  });
+
+  test('one rare event alone cannot cross the default neighbor threshold', () => {
+    const model = fixture({
+      operations: [op('a'), op('b'), op('c')],
+      serviceEvents: { 'svc-a': { emits: ['event-a.v1'] }, 'svc-b': { listens: ['event-a.v1'] } },
+    });
+    expect(api.getNeighbors('fn-a', { model })).toEqual([]);
+    const edge = api.getNeighbors('fn-a', { model, minWeight: 0 })[0];
+    expect(edge.evidence).toHaveLength(1);
+    expect(edge.weight).toBeLessThan(model.parameters.minWeight);
+  });
+
+  test('one write/read resource cannot double count as several independent features', () => {
+    const model = fixture({
+      parameters: { ...DEFAULT_PARAMETERS, mergeSimilarity: 1.01 },
+      operations: [
+        op('a', { writesTo: ['ref-a'], dataSources: ['ref-a'] }),
+        op('b', { writesTo: ['ref-a'], dataSources: ['ref-a'] }),
+        op('c'),
+      ],
+      serviceEvents: {},
+    });
+    const edge = api.getNeighbors('fn-a', { model, minWeight: 0 })[0];
+    expect(edge.evidence).toHaveLength(1);
+    expect(edge.weight).toBeLessThan(model.parameters.minWeight);
+  });
+
+  test('frequent emitted/heard events and read/write resources are suppressed without event-name lists', () => {
+    const capabilities = Array.from({ length: 12 }, (_, i) => cap(`x${i}`, `domain-${i}`));
+    const operations = capabilities.map((_, i) =>
+      op(`x${i}`, { writesTo: ['ref-infra'], dataSources: ['ref-infra'] })
+    );
+    const serviceEvents = Object.fromEntries(
+      capabilities.map((_, i) => [
+        `svc-x${i}`,
+        { emits: ['event-infra.v1'], listens: ['event-infra.v1'] },
+      ])
+    );
+    const model = fixture({ capabilities, operations, serviceEvents });
+    expect(model.statistics.automaticHubs).toEqual(
+      expect.arrayContaining(['events:event-infra.v1', 'resources:ref-infra'])
+    );
+    expect(model.functions.every((fn) => !fn.neighbors.length)).toBe(true);
+  });
+
+  test('API event field schemas are not mistaken for event handlers', () => {
+    const result = extractStaticEvents(
+      `module.exports = { actions: { read: { openapi: { events: { type: 'array', items: { type: 'string' } } } } }, events: { 'event-a.v1': { handler(ctx) {} } } };`
+    );
+    expect(result.listens).toEqual(['event-a.v1']);
+  });
+
+  test('classifies an existing split-module action with null index action separately from nonexistent actions', () => {
+    const root = temporaryDirectory();
+    try {
+      fs.mkdirSync(path.join(root, 'services'));
+      fs.writeFileSync(
+        path.join(root, 'services', 'a.service.js'),
+        `module.exports = { name: 'svc-a', actions: { ...require('./part') } };`
+      );
+      fs.writeFileSync(
+        path.join(root, 'services', 'part.js'),
+        `module.exports = { read: { openapi: { operationId: 'op-a' }, handler() {} } };`
+      );
+      const { actions } = loadServiceEvents(root);
+      expect(actions).toEqual([
+        { action: 'svc-a.read', operationId: 'op-a', sources: ['services/part.js'] },
+      ]);
+      const model = fixture({
+        capabilities: [cap('a', 'a', ['svc-a.read', 'svc-a.missing', 'svc-a.unindexed'])],
+        operations: [{ operationId: 'op-a', action: null }],
+        serviceEvents: {},
+        sourceActions: [
+          ...actions,
+          { action: 'svc-a.unindexed', operationId: 'op-unindexed', sources: ['services/part.js'] },
+        ],
+      });
+      expect(model.gaps.actionsWithMissingIndexAction.map((entry) => entry.action)).toEqual([
+        'svc-a.read',
+      ]);
+      expect(model.gaps.actionsNotInSource.map((entry) => entry.action)).toEqual(['svc-a.missing']);
+      expect(model.gaps.actionsWithoutIndexEntry.map((entry) => entry.action)).toEqual([
+        'svc-a.unindexed',
+      ]);
+      expect(model.functions[0].operations).toEqual([]);
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  test('real catalog statistics expose a function cut and satisfy the reviewed graph criteria', () => {
+    const model = buildFunctionModel();
+    const { statistics: s, parameters } = model;
+    expect(s.crossDomainFunctionCount).toBeGreaterThan(0);
+    expect(Object.keys(s.capabilitiesPerFunction).some((size) => Number(size) > 1)).toBe(true);
+    expect(s.degree.isolatedFraction).toBeLessThan(0.3);
+    expect(s.degree.maximum).toBeLessThanOrEqual(parameters.maxDegreeFraction * s.functionCount);
+    expect(s.density).toBeLessThanOrEqual(parameters.targetDensity);
+    for (const fn of model.functions)
+      for (const edge of fn.neighbors) {
+        expect(new Set(edge.evidence.map((item) => item.ref)).size).toBe(edge.evidence.length);
+        expect(edge.evidence.every((item) => item.weight < parameters.minWeight)).toBe(true);
+      }
+    expect(model.gaps.isolatedFunctions.every((entry) => entry.reason)).toBe(true);
+    const report = renderReport(model);
+    expect(report).toContain('Candidate degree before mutual selection');
+    expect(report).toContain('Capabilities per function');
+    expect(report).toContain('cross-domain functions');
+    expect(report).toContain('actionsWithMissingIndexAction');
+  });
+
+  test('projection is invariant to input capability and operation ordering', () => {
+    const common = { dataSources: ['ref-a', 'ref-b'], entityTypes: ['type-a'] };
+    const capabilities = [cap('a', 'a'), cap('b', 'b'), cap('c', 'c')];
+    const operations = [op('a', common), op('b', common), op('c')];
+    expect(fixture({ capabilities, operations })).toEqual(
+      fixture({
+        capabilities: capabilities.slice().reverse(),
+        operations: operations.slice().reverse(),
+      })
+    );
+  });
+});
+
+test('complete-link agglomeration prevents a containing signature from bridging disjoint endpoints', () => {
+  const model = fixture({
+    capabilities: ['a', 'b', 'c'].map((id) => cap(id, id)),
+    operations: [
+      op('a', { dataSources: ['ref-a', 'ref-b'] }),
+      op('b', { dataSources: ['ref-a', 'ref-b', 'ref-c', 'ref-d'] }),
+      op('c', { dataSources: ['ref-c', 'ref-d'] }),
+    ],
+    serviceEvents: {},
+  });
+  expect(model.functions).toHaveLength(2);
+  expect(
+    model.functions.every((fn) => !(fn.capabilities.includes('a') && fn.capabilities.includes('c')))
+  ).toBe(true);
+});
+
+test('mutual neighborhood selection bounds both endpoints and reports budget-induced isolation', () => {
+  const capabilities = Array.from({ length: 12 }, (_, i) => cap(`x${i}`, `domain-${i}`));
+  const operations = capabilities.map((_, i) =>
+    op(`x${i}`, { dataSources: Array.from({ length: 6 }, (_, j) => `ref-${j}`) })
+  );
+  const model = fixture({
+    capabilities,
+    operations,
+    serviceEvents: {},
+    parameters: { ...DEFAULT_PARAMETERS, mergeSimilarity: 1.01, automaticHubMinimumFunctions: 100 },
+  });
+  expect(model.statistics.candidateDegree.maximum).toBe(11);
+  expect(model.statistics.prunedEdgeCount).toBeGreaterThan(0);
+  for (const fn of model.functions) {
+    const outgoing = api.getNeighbors(fn.functionId, { model });
+    const incoming = model.functions.filter((other) =>
+      api
+        .getNeighbors(other.functionId, { model })
+        .some((edge) => edge.functionId === fn.functionId)
+    );
+    expect(
+      new Set([
+        ...outgoing.map((edge) => edge.functionId),
+        ...incoming.map((other) => other.functionId),
+      ]).size
+    ).toBeLessThanOrEqual(3);
+  }
+  expect(
+    model.gaps.isolatedFunctions.some(
+      (entry) => entry.reason === 'No peer retained by mutual neighborhood budget'
+    )
+  ).toBe(true);
+});
+
+test('rejects parameter choices that let one feature cross the default threshold', () => {
+  expect(() =>
+    fixture({
+      parameters: { ...DEFAULT_PARAMETERS, maxEvidenceContribution: DEFAULT_PARAMETERS.minWeight },
+    })
+  ).toThrow('below minWeight');
+});
+
+test('version-qualified existing actions are reported as reference mismatches, not missing source', () => {
+  const root = temporaryDirectory();
+  try {
+    fs.mkdirSync(path.join(root, 'services'));
+    fs.writeFileSync(
+      path.join(root, 'services', 'a.service.js'),
+      `module.exports = { name: 'svc-a', version: 1, actions: { read: { handler() {} } } };`
+    );
+    const { actions } = loadServiceEvents(root);
+    const model = fixture({
+      capabilities: [cap('a', 'a', ['v1.svc-a.read'])],
+      operations: [{ operationId: 'svc-a_read', action: 'svc-a.read' }],
+      sourceActions: actions,
+      serviceEvents: {},
+    });
+    expect(model.gaps.actionsNotInSource).toEqual([]);
+    expect(model.gaps.actionReferenceMismatches.map((entry) => entry.action)).toEqual([
+      'v1.svc-a.read',
+    ]);
+    expect(model.functions[0].sources).toContainEqual({
+      kind: 'service',
+      ref: 'services/a.service.js',
+    });
+    expect(model.functions[0].operations).toEqual([]);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
 });

@@ -1,91 +1,141 @@
 # Generated function model (#694)
 
-`npm run generate:function-model` writes `function-model.json` and
-`function-model.report.md`. Commit both. `npm run check:function-model` compares
-both files byte for byte and exits nonzero on drift, including missing outputs.
-This is an independent check, analogous to the operation-capability index check.
+`npm run generate:function-model` writes the committed `function-model.json` and
+`function-model.report.md`. `npm run check:function-model` compares both files
+byte for byte, without writing, and exits nonzero on missing or stale outputs.
 
-## Sources and grouping
+## Sources
 
-The generator reads `CURATED_CAPABILITIES`, the committed operation-capability
-index, semantic domains and static service source. It never loads service modules,
-starts a broker, calls an LLM, or modifies catalogs. Only resolvable
-`preferredActions` contribute operations; candidate rankings are not execution
-proof. Capabilities without resolvable actions remain assigned and are reported.
+Inputs are curated capabilities, the committed operation-capability index, semantic
+domains and static service declarations. The generator never executes services,
+starts a broker, calls an LLM or changes catalogs. Only resolvable `preferredActions`
+contribute to `operations` and its data/entity/effect metadata.
 
-Domain identifiers use NFKD, combining-mark removal, lowercase and collapsed
-non-alphanumeric separators. Thus punctuation variants form the same initial
-group without an alias list. Missing domains fall back to the capability ID.
+Static action declarations also distinguish catalog references that exist but are
+missing an `action` in the index from references not found in source. Local
+CommonJS action spreads and explicit OpenAPI operation IDs are resolved statically.
+Source actions with no matching index entry are a separate category; version-qualified
+references that differ from a matching index action are reported separately too. They
+are **not** fabricated as resolved operations. Existing, source-verified preferred
+Action references can contribute structural evidence as `declaredActions`.
 
-Initial groups merge at Jaccard feature similarity ≥ `mergeSimilarity` (0.85).
-Features include operations, non-hub services, data sources, entities, write targets,
-normalized domains and the department of a matching semantic domain. Complete-link
-comparison against all original groups prevents transitive weak bridges. Canonical
-UTF-16 ordering makes group selection deterministic. The function ID uses the
-first normalized domain; labels are derived from the grouped domain identifiers.
+No manual grouping or override file is introduced. `gaps.overrides` reports that
+none were applied. All algorithmic parameters, feature weights and infrastructure
+references are data in `function-model.parameters.json`.
 
-No manual grouping or override file is introduced. `gaps.overrides` explicitly
-reports that no overrides were applied. The optional override mechanism in the
-issue is deferred until there is an evidenced catalog correction to represent.
+## Capability-first grouping
 
-## Neighbors and density
+Start with one group per capability, independently of its domain. Domain identifiers
+use NFKD, combining-mark removal, lowercase and collapsed separators. Normalization
+remains a feature; it does not force same-domain capabilities into a group.
 
-All parameters live in `function-model.parameters.json`, including hub references
-and placeholder service names. The core has no scenario-specific literals.
-Configured hubs contribute zero. Across ≥ 10 functions, features present in ≥ 35%
-of functions are also suppressed and listed in the report.
+Build feature sets from operations, source-verified preferred actions, services,
+data sources, entity types, write targets, normalized domains, matching semantic
+departments, keywords and input names. Keyword tokenization reuses the existing
+operation-index helper; the configurable minimum token length is 4.
 
-A shared feature receives its configured weight times `ln(1 + N / df)`, where
-`N` is the function count and `df` the number of functions with that feature.
-Shared evidence contributions are divided by the sum of weighted features in the
-pair's union (weighted Jaccard). Rare features therefore contribute more.
+For a feature occurring in `df` of `N` capabilities, normalized rarity is
+`ln(1 + N / df) / ln(1 + N)`. Configured hubs and features occurring in at least
+25% of capabilities (for populations ≥ 10) contribute zero. Action references to
+configured placeholder services also contribute zero. There is no event-name list.
 
-Directed emission → listener evidence adds 0.8 (using the existing Moleculer
-`Utils.match` helper for wildcard subscriptions) and directed write target → data
-source evidence adds 0.7. These causal contributions are stronger than weak shared
-service evidence. Hub suppression also applies to write/read targets. The final
-edge weight is the sum of its evidence contributions, capped at 1. Every positive
-edge is stored, so callers can select a different `minWeight`. Evidence retains
-uncapped individual contributions to explain saturated edges.
+Similarity is weighted overlap: shared weighted mass divided by the **smaller**
+feature mass. A small signature contained in a larger one is therefore not penalized
+by the larger signature's additional features. At least two distinct non-domain,
+non-department references must support a merge. Data sources, entities and write
+targets have grouping weights 3, 2 and 2; operation identifiers and verified Action
+references each have weight 0.3. Keywords/inputs contribute only 0.01 each, so names
+cannot overwhelm shared operational structure. Other weights are in the parameters.
 
-The reported default density is the number of directed edges with weight ≥ 0.2
-divided by `N * (N - 1)`, excluding self-loops. Reciprocal edges count separately;
-for symmetric graphs this is equivalent to undirected density. The historical
-naive baseline of 0.49 used capability nodes, whereas this projection uses function
-nodes; the report exposes its numerator and denominator rather than claiming an
-identical graph comparison. The target is ≤ 0.15, tested against the real catalog.
+Agglomeration repeatedly merges the pair of groups with the highest complete-link
+score: **every** cross-group capability pair must have overlap ≥ 0.6. Stop when
+none qualify. Scores and rarity are computed once over the initial capability
+population, preventing shifting frequencies during clustering. Complete linkage
+prevents an overlap chain from combining disjoint endpoints. Canonical UTF-16
+capability ordering breaks ties deterministically.
+
+IDs use the first canonical capability identifier, not the domain name. Labels
+come from that capability's label or identifier. Thus multiple functions may have
+the same domain and a function may contain multiple domains.
+
+This intentionally refines the original AC-03 interpretation according to the
+PR #703 review: spelling variants with the same functional signature merge, while
+a shared normalized domain alone cannot override disjoint operational evidence.
+
+## Evidence and infrastructure suppression
+
+After grouping, recompute rarity over functions. For events, `df` counts the union
+of functions that emit **or** listen. For resources, it counts the union of writers
+and readers. Both have the same automatic hub rule as other features. Wildcard
+listeners use the existing Moleculer matcher, and their own rarity can only reduce
+the contribution. Frequent event subscriptions therefore cannot bypass suppression.
+
+A contribution is `maxEvidenceContribution * min(1, strength) * rarity`.
+The configured maximum is **0.18**, strictly below standard `minWeight=0.2`;
+incompatible parameter values fail validation. Shared strength depends on the
+feature weight. Directed events and write/read relationships have higher configured
+strengths than weak shared services or domains, but cannot exceed the single-feature
+cap. An event or a resource with several representations contributes only once:
+evidence is deduplicated by reference, with the strongest relationship retained.
+No individual reference can create a default-threshold edge.
+
+Keyword phrases and their catalog-derived tokens provide weak corroborating
+features; common tokens are automatically suppressed rather than filtered through
+a handwritten vocabulary. Pair weights sum the independent contributions and are
+capped at 1. All retained edges expose their contributing references and weights.
+
+## Sparse neighborhood selection
+
+After scoring, select a mutual strongest-neighbor graph. At populations ≥ 10,
+each endpoint ranks candidate peers by the larger of the two directed pair weights,
+then canonical ID. Each can retain at most `floor(0.25 * N)` peers. An above-threshold
+edge is retained only if both endpoints select the pair. Direction and evidence
+weights remain unchanged; reverse edges are never invented. This bounds outgoing,
+incoming and distinct-peer degrees while retaining strong local relationships.
+Below-threshold evidence remains available for callers choosing a lower threshold.
+Small fixtures below the configurable population minimum skip the peer budget.
+
+The report exposes **candidate** degree statistics before this selection, the number
+of pruned directed edges and the resulting degree statistics. The budget is not used
+as a substitute for event/resource hub suppression. Current selection removes 34
+above-threshold directed edges and does not increase isolation; raw maximum degree
+42 becomes 30. No index or runtime permission is modified by this selection.
+
+Reported density is directed edge count at standard threshold divided by
+`N * (N - 1)`, excluding self-loops. The historical naive baseline 0.49 used
+capability nodes; comparisons expose numerators and denominators because the node
+sets differ. Reports include capabilities-per-function distribution, singleton
+fraction, cross-domain function count and minimum/median/maximum outgoing degree.
+Every function with zero default-threshold outgoing edges has a reason in the gaps.
 
 ## Static events and limitations
 
-The build-time analyzer uses the already declared `@babel/core` development
-dependency, without new packages. It extracts broker `emit`/`broadcast` string
-literals, immutable local string constants with lexical scope and `events` object keys, and follows local
-CommonJS imports, including split service modules and cycles. Comments and nested
-handler bodies do not become listener names. This is service-level evidence, not
-an action-level execution trace. Dynamic emissions and spread handlers are
-reported rather than inferred. No events are emitted by the generator or loader.
+The analyzer uses the already declared `@babel/core` development dependency. It
+extracts broker `emit`/`broadcast` literals, immutable local string constants with
+lexical scope, and actual `events` handlers. OpenAPI event-field schemas are ignored.
+Local imports, split modules and cycles are followed without execution. Dynamic
+emissions and spread handlers are reported, not guessed. Source-verified actions
+are likewise static declaration evidence, not proof of runtime availability.
 
-Functions with no known events and functions with no listeners are reported
-separately: an emission alone does not make a function directly wakeable.
+Events are service-level evidence, not action-level execution traces. Functions
+without events and functions without listeners are reported separately; emission
+alone does not make a function wakeable. No events are emitted by this module.
 
-## Artifact contract and reproducibility
+## Contract and reproducibility
 
-Each function contains all fields specified by epic #693:
-`functionId`, `label`, `sources`, `capabilities`, `operations`, `dataSources`,
-`entityTypes`, `events`, `neighbors`, and `derivation`.
-Additive metadata required for the projection comprises `writesTo`, `services`,
-`domains`, `departments`, and the `consequenceLevels` histogram. The epic's fields
-and event names are unchanged. Sources use `{kind, ref}`; edges use
-`{functionId, weight, evidence}` with evidence `{kind, feature, ref, weight}`.
+Every function retains the required #693 fields: `functionId`, `label`, `sources`,
+`capabilities`, `operations`, `dataSources`, `entityTypes`, `events`, `neighbors`
+and `derivation`. `writesTo`, `services`, `domains`, `departments`,
+`consequenceLevels`, `declaredActions`, `keywords`, `keywordTokens` and `inputs`
+are additive projection metadata. Sources use `{kind, ref}`; edges use
+`{functionId, weight, evidence}`. No epic event names are changed.
 
-`sourceHash` is SHA-256 over canonically ordered source paths and file contents,
-including the catalogs, all scanned local source modules, generator implementation,
-canonical ordering utility and parameter file. It contains no absolute paths.
-`derivation.generatedAt` is a configured reproducible timestamp (Unix epoch by
-default), not the wall-clock time of each generator invocation. This preserves
-the required ISO timestamp field while ensuring identical inputs yield identical
-bytes across independent processes and machines. Changing parameters also changes
-the source hash.
+`sourceHash` covers canonically ordered source paths and contents, catalogs,
+scanned modules, generator implementation and parameters. It contains no absolute
+paths. `derivation.generatedAt` is a configured reproducible ISO timestamp (Unix
+epoch by default), not the wall-clock time of each run. The derivation version is
+now 2; capability-based IDs and grouping membership differ from the first draft.
+No runtime consumer of this PR's graph existed, so no migration is introduced.
 
 ## Loader
 
@@ -102,10 +152,9 @@ const model = getFunctionModel(); // loads only the committed JSON, once
 const options = { model }; // injected fixtures need no filesystem I/O
 const fn = getFunction('fn-a', options); // null if absent
 const neighbors = getNeighbors('fn-a', { model, minWeight: 0.2 });
-const byCapability = findFunctionsForCapability('cap-a', options);
+const byCapability = findFunctionsForCapability('a', options);
 const byAction = findFunctionsForOperation('svc-a.read', options);
 ```
 
-Treat returned catalog objects as read-only. Queries return functions or neighbor
-edges, never permissions or executable recommendations. This additive module is
-not wired into runtime routing, receipts, coverage, agents or authorization.
+Treat returned objects as read-only. Queries never authorize execution. The module
+is not wired into routing, receipts, coverage, agents or authorization.

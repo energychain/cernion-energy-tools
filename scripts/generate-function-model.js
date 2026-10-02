@@ -15,7 +15,7 @@ function buildFunctionModel() {
   const { semanticDomains } = require('../src/semantic-domains');
   const { operations } = require('../operation-capability-index.json');
   const parameters = require('../function-model.parameters.json');
-  const { events, sources } = loadServiceEvents(ROOT);
+  const { events, sources, actions } = loadServiceEvents(ROOT);
   for (const ref of [
     'src/capability-catalog.js',
     'src/semantic-domains.js',
@@ -38,6 +38,7 @@ function buildFunctionModel() {
     operations,
     semanticDomains,
     serviceEvents: events,
+    sourceActions: actions,
     parameters,
     sourceHash,
   });
@@ -53,6 +54,15 @@ function renderReport(model) {
     `Capabilities: ${stats.capabilityCount}; functions: ${stats.functionCount}.`,
     `Directed density at minWeight=${parameters.minWeight}: **${stats.density.toFixed(6)}** (${stats.edgeCount}/${stats.possibleEdges}).`,
     `Naive baseline: ${parameters.baselineDensity}; target: ≤ ${parameters.targetDensity}; target met: ${stats.density <= parameters.targetDensity ? 'yes' : 'no'}.`,
+    '',
+    `Capabilities per function: ${JSON.stringify(stats.capabilitiesPerFunction)}.`,
+    `Single-capability fraction: ${stats.singleCapabilityFraction.toFixed(6)}; cross-domain functions: ${stats.crossDomainFunctionCount}.`,
+    `Outgoing degree: min=${stats.degree.minimum}; median=${stats.degree.median}; max=${stats.degree.maximum}; isolated fraction=${stats.degree.isolatedFraction.toFixed(6)}.`,
+    `Maximum degree target: ≤ ${parameters.maxDegreeFraction} × ${stats.functionCount} = ${parameters.maxDegreeFraction * stats.functionCount}; met: ${stats.degree.maximum <= parameters.maxDegreeFraction * stats.functionCount ? 'yes' : 'no'}.`,
+    '',
+    `Candidate degree before mutual selection: ${JSON.stringify(stats.candidateDegree)}; pruned directed edges: ${stats.prunedEdgeCount}; peer limit: ${stats.degreeLimit}.`,
+    '',
+    `Operation index entries without action: ${stats.indexOperationsWithoutAction}/${stats.indexOperationCount}.`,
     '',
     'All curated capabilities are assigned once, including entries without resolvable operations.',
     'Edges describe catalog evidence only; they grant no authorization.',
