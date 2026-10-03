@@ -8,7 +8,10 @@
       "term": "threshold",
       "reason": "Generic configurable comparison threshold for received coverage evidence."
     },
-    { "term": "mismatch", "reason": "Generic rejection of a mismatched tenant identifier." },
+    {
+      "term": "mismatch",
+      "reason": "Generic rejection of a mismatched tenant identifier."
+    },
     {
       "term": "status",
       "reason": "Standard PouchDB/HTTP error status used to distinguish missing documents."
@@ -17,7 +20,10 @@
       "term": "pending",
       "reason": "Promises for serializing tenant writes; no subject-specific state."
     },
-    { "term": "update", "reason": "Generic atomic document update method." },
+    {
+      "term": "update",
+      "reason": "Generic atomic document update method."
+    },
     {
       "term": "record",
       "reason": "Generic saved contract record, independent of its catalog content."
@@ -26,11 +32,21 @@
       "term": "evidence",
       "reason": "Required Function.neighbors evidence field from data contract #693."
     },
-    { "term": "revision", "reason": "PouchDB document revision checked by the test double." },
-    { "term": "class", "reason": "JavaScript class syntax in the memory database test double." },
+    {
+      "term": "revision",
+      "reason": "PouchDB document revision checked by the test double."
+    },
+    {
+      "term": "class",
+      "reason": "JavaScript class syntax in the memory database test double."
+    },
     {
       "term": "schema",
       "reason": "Moleculer service schema instantiated by the real test adapter."
+    },
+    {
+      "term": "cutoff",
+      "reason": "Generic timestamp boundary for configurable touch retention, independent of catalog contents."
     }
   ]
 }

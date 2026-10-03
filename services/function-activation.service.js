@@ -4,7 +4,12 @@ const { Errors } = require('moleculer');
 const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 const { getFunctionModel, getFunction, resolveFunctionId } = require('../src/function-model');
 const { validateTenantId } = require('../src/tenant-context');
-const { activationRows, resolveRecords } = require('../src/function-activation-state');
+const {
+  activationRows,
+  resolveRecords,
+  coverageRecords,
+} = require('../src/function-activation-state');
+const { compareCanonicalStrings } = require('../src/canonical-order');
 
 const copy = (value) => JSON.parse(JSON.stringify(value));
 const tenantParams = { tenantId: { type: 'string', min: 1 } };
@@ -284,6 +289,7 @@ module.exports = {
     async updateDocument(tenantId, mutate, event) {
       const document = await this.readDocument(tenantId);
       const original = JSON.stringify(document);
+      const priorCoverage = coverageRecords(document, this.model);
       this.compactTouches(document);
       mutate(document);
       const previous = resolveRecords(document.activations, this.model);
@@ -292,7 +298,20 @@ module.exports = {
         const old = previous.find((item) => item.functionId === row.functionId);
         const oldState = old
           ? [old.state, old.responsibility]
-          : ['latent', { humans: [], cet: false }];
+          : [
+              'latent',
+              {
+                humans: priorCoverage
+                  .filter(
+                    (entry) =>
+                      entry.functionId === row.functionId &&
+                      entry.score >= this.settings.coverageThreshold
+                  )
+                  .map((entry) => entry.actorId)
+                  .sort(compareCanonicalStrings),
+                cet: false,
+              },
+            ];
         if (JSON.stringify(oldState) === JSON.stringify([row.state, row.responsibility])) continue;
         const handoff =
           old?.responsibility.cet && !row.responsibility.cet && row.responsibility.humans.length;
@@ -346,15 +365,15 @@ module.exports = {
     },
     async flushOutbox(document) {
       if (!document.outbox.length) return;
-      const ids = new Set(
-        resolveRecords(document.outbox, this.model).map((entry) => entry.functionId)
-      );
+      const notifications = resolveRecords(document.outbox, this.model);
+      const ids = new Set(notifications.map((entry) => entry.functionId));
       for (const functionId of ids) {
-        const row = document.activations.find((entry) => entry.functionId === functionId) || {
-          functionId,
-          state: 'latent',
-          responsibility: { humans: [], cet: false },
-        };
+        const row = document.activations.find((entry) => entry.functionId === functionId) ||
+          notifications.findLast((entry) => entry.functionId === functionId) || {
+            functionId,
+            state: 'latent',
+            responsibility: { humans: [], cet: false },
+          };
         await this.broker.emit('function.activation.changed.v1', {
           tenantId: document.tenantId,
           functionId: row.functionId,

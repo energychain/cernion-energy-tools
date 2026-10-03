@@ -153,4 +153,4 @@ function activationRows(document, model, settings, now) {
   return rows.sort((a, b) => compare(a.functionId, b.functionId));
 }
 
-module.exports = { activationRows, resolveRecords };
+module.exports = { activationRows, resolveRecords, coverageRecords };

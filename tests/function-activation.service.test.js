@@ -603,3 +603,21 @@ test('expired source records may be compacted while recent neighbor activity ret
   await adapter.service.sweep();
   expect(await list()).toEqual(before);
 });
+
+test('latent functions are omitted from storage but retain received coverage in read results and notifications', async () => {
+  await coverage('fn-d', 1);
+  expect((await adapter.service.readDocument('tenant-a')).activations).toEqual([]);
+  expect((await row('fn-d')).responsibility.humans).toEqual(['actor-b']);
+  expect(adapter.events.at(-1)).toEqual({
+    tenantId: 'tenant-a',
+    functionId: 'fn-d',
+    state: 'latent',
+    responsibility: { humans: ['actor-b'], cet: false },
+  });
+  const before = await adapter.service.readDocument('tenant-a');
+  await coverage('fn-d', 1);
+  await adapter.service.sweep();
+  expect(await adapter.service.readDocument('tenant-a')).toEqual(before);
+  await coverage('fn-d', 0);
+  expect(adapter.events.at(-1).responsibility.humans).toEqual([]);
+});
