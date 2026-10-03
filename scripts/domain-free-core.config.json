@@ -1,0 +1,27 @@
+{
+  "minimumLength": 5,
+  "corePaths": [
+    "src/function-model.js",
+    "services/function-coverage.service.js",
+    "services/function-activation.service.js",
+    "services/shared-service-agent.service.js",
+    "services/shared-service-journal.service.js",
+    "src/shared-service-wake.js",
+    "src/workbench-system-activity.js",
+    "src/shared-service-learning.js",
+    "services/shared-service-learning.service.js",
+    "tests/helpers/shared-service/*.js"
+  ],
+  "optionalPaths": [
+    "src/function-model.js",
+    "services/function-coverage.service.js",
+    "services/function-activation.service.js",
+    "services/shared-service-agent.service.js",
+    "services/shared-service-journal.service.js",
+    "src/shared-service-wake.js",
+    "src/workbench-system-activity.js",
+    "src/shared-service-learning.js",
+    "services/shared-service-learning.service.js"
+  ],
+  "allowlist": "scripts/domain-free-core.allowlist.json"
+}

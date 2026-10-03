@@ -1,0 +1,820 @@
+{
+  "functions": [
+    {
+      "functionId": "fn-a",
+      "label": "Function A",
+      "sources": [
+        {
+          "kind": "fixture",
+          "ref": "fn-a"
+        }
+      ],
+      "capabilities": [],
+      "operations": [],
+      "dataSources": [],
+      "entityTypes": [],
+      "events": {
+        "emits": [],
+        "listens": []
+      },
+      "neighbors": [
+        {
+          "functionId": "fn-b",
+          "weight": 0.6,
+          "evidence": [
+            {
+              "kind": "fixture",
+              "ref": "edge-a"
+            }
+          ]
+        }
+      ],
+      "derivation": {
+        "version": "fixture-v1",
+        "generatedAt": "2026-01-01T00:00:00.000Z"
+      }
+    },
+    {
+      "functionId": "fn-b",
+      "label": "Function B",
+      "sources": [
+        {
+          "kind": "fixture",
+          "ref": "fn-b"
+        }
+      ],
+      "capabilities": [],
+      "operations": [],
+      "dataSources": [],
+      "entityTypes": [],
+      "events": {
+        "emits": [],
+        "listens": []
+      },
+      "neighbors": [
+        {
+          "functionId": "fn-c",
+          "weight": 0.6,
+          "evidence": [
+            {
+              "kind": "fixture",
+              "ref": "edge-a"
+            }
+          ]
+        }
+      ],
+      "derivation": {
+        "version": "fixture-v1",
+        "generatedAt": "2026-01-01T00:00:00.000Z"
+      }
+    },
+    {
+      "functionId": "fn-c",
+      "label": "Function C",
+      "sources": [
+        {
+          "kind": "fixture",
+          "ref": "fn-c"
+        }
+      ],
+      "capabilities": [],
+      "operations": [],
+      "dataSources": [],
+      "entityTypes": [],
+      "events": {
+        "emits": [],
+        "listens": []
+      },
+      "neighbors": [
+        {
+          "functionId": "fn-d",
+          "weight": 0.6,
+          "evidence": [
+            {
+              "kind": "fixture",
+              "ref": "edge-a"
+            }
+          ]
+        }
+      ],
+      "derivation": {
+        "version": "fixture-v1",
+        "generatedAt": "2026-01-01T00:00:00.000Z"
+      }
+    },
+    {
+      "functionId": "fn-d",
+      "label": "Function D",
+      "sources": [
+        {
+          "kind": "fixture",
+          "ref": "fn-d"
+        }
+      ],
+      "capabilities": [],
+      "operations": [],
+      "dataSources": [],
+      "entityTypes": [],
+      "events": {
+        "emits": [],
+        "listens": []
+      },
+      "neighbors": [
+        {
+          "functionId": "fn-e",
+          "weight": 0.6,
+          "evidence": [
+            {
+              "kind": "fixture",
+              "ref": "edge-a"
+            }
+          ]
+        }
+      ],
+      "derivation": {
+        "version": "fixture-v1",
+        "generatedAt": "2026-01-01T00:00:00.000Z"
+      }
+    },
+    {
+      "functionId": "fn-e",
+      "label": "Function E",
+      "sources": [
+        {
+          "kind": "fixture",
+          "ref": "fn-e"
+        }
+      ],
+      "capabilities": [],
+      "operations": [],
+      "dataSources": [],
+      "entityTypes": [],
+      "events": {
+        "emits": [],
+        "listens": []
+      },
+      "neighbors": [
+        {
+          "functionId": "fn-f",
+          "weight": 0.6,
+          "evidence": [
+            {
+              "kind": "fixture",
+              "ref": "edge-a"
+            }
+          ]
+        }
+      ],
+      "derivation": {
+        "version": "fixture-v1",
+        "generatedAt": "2026-01-01T00:00:00.000Z"
+      }
+    },
+    {
+      "functionId": "fn-f",
+      "label": "Function F",
+      "sources": [
+        {
+          "kind": "fixture",
+          "ref": "fn-f"
+        }
+      ],
+      "capabilities": [],
+      "operations": [],
+      "dataSources": [],
+      "entityTypes": [],
+      "events": {
+        "emits": [],
+        "listens": []
+      },
+      "neighbors": [
+        {
+          "functionId": "fn-g",
+          "weight": 0.6,
+          "evidence": [
+            {
+              "kind": "fixture",
+              "ref": "edge-a"
+            }
+          ]
+        }
+      ],
+      "derivation": {
+        "version": "fixture-v1",
+        "generatedAt": "2026-01-01T00:00:00.000Z"
+      }
+    },
+    {
+      "functionId": "fn-g",
+      "label": "Function G",
+      "sources": [
+        {
+          "kind": "fixture",
+          "ref": "fn-g"
+        }
+      ],
+      "capabilities": [],
+      "operations": [],
+      "dataSources": [],
+      "entityTypes": [],
+      "events": {
+        "emits": [],
+        "listens": []
+      },
+      "neighbors": [
+        {
+          "functionId": "fn-h",
+          "weight": 0.6,
+          "evidence": [
+            {
+              "kind": "fixture",
+              "ref": "edge-a"
+            }
+          ]
+        }
+      ],
+      "derivation": {
+        "version": "fixture-v1",
+        "generatedAt": "2026-01-01T00:00:00.000Z"
+      }
+    },
+    {
+      "functionId": "fn-h",
+      "label": "Function H",
+      "sources": [
+        {
+          "kind": "fixture",
+          "ref": "fn-h"
+        }
+      ],
+      "capabilities": [],
+      "operations": [],
+      "dataSources": [],
+      "entityTypes": [],
+      "events": {
+        "emits": [],
+        "listens": []
+      },
+      "neighbors": [
+        {
+          "functionId": "fn-i",
+          "weight": 0.6,
+          "evidence": [
+            {
+              "kind": "fixture",
+              "ref": "edge-a"
+            }
+          ]
+        }
+      ],
+      "derivation": {
+        "version": "fixture-v1",
+        "generatedAt": "2026-01-01T00:00:00.000Z"
+      }
+    },
+    {
+      "functionId": "fn-i",
+      "label": "Function I",
+      "sources": [
+        {
+          "kind": "fixture",
+          "ref": "fn-i"
+        }
+      ],
+      "capabilities": [],
+      "operations": [],
+      "dataSources": [],
+      "entityTypes": [],
+      "events": {
+        "emits": [],
+        "listens": []
+      },
+      "neighbors": [
+        {
+          "functionId": "fn-j",
+          "weight": 0.6,
+          "evidence": [
+            {
+              "kind": "fixture",
+              "ref": "edge-a"
+            }
+          ]
+        }
+      ],
+      "derivation": {
+        "version": "fixture-v1",
+        "generatedAt": "2026-01-01T00:00:00.000Z"
+      }
+    },
+    {
+      "functionId": "fn-j",
+      "label": "Function J",
+      "sources": [
+        {
+          "kind": "fixture",
+          "ref": "fn-j"
+        }
+      ],
+      "capabilities": [],
+      "operations": [],
+      "dataSources": [],
+      "entityTypes": [],
+      "events": {
+        "emits": [],
+        "listens": []
+      },
+      "neighbors": [
+        {
+          "functionId": "fn-k",
+          "weight": 0.6,
+          "evidence": [
+            {
+              "kind": "fixture",
+              "ref": "edge-a"
+            }
+          ]
+        }
+      ],
+      "derivation": {
+        "version": "fixture-v1",
+        "generatedAt": "2026-01-01T00:00:00.000Z"
+      }
+    },
+    {
+      "functionId": "fn-k",
+      "label": "Function K",
+      "sources": [
+        {
+          "kind": "fixture",
+          "ref": "fn-k"
+        }
+      ],
+      "capabilities": [],
+      "operations": [],
+      "dataSources": [],
+      "entityTypes": [],
+      "events": {
+        "emits": [],
+        "listens": []
+      },
+      "neighbors": [
+        {
+          "functionId": "fn-l",
+          "weight": 0.6,
+          "evidence": [
+            {
+              "kind": "fixture",
+              "ref": "edge-a"
+            }
+          ]
+        }
+      ],
+      "derivation": {
+        "version": "fixture-v1",
+        "generatedAt": "2026-01-01T00:00:00.000Z"
+      }
+    },
+    {
+      "functionId": "fn-l",
+      "label": "Function L",
+      "sources": [
+        {
+          "kind": "fixture",
+          "ref": "fn-l"
+        }
+      ],
+      "capabilities": [],
+      "operations": [],
+      "dataSources": [],
+      "entityTypes": [],
+      "events": {
+        "emits": [],
+        "listens": []
+      },
+      "neighbors": [
+        {
+          "functionId": "fn-m",
+          "weight": 0.6,
+          "evidence": [
+            {
+              "kind": "fixture",
+              "ref": "edge-a"
+            }
+          ]
+        }
+      ],
+      "derivation": {
+        "version": "fixture-v1",
+        "generatedAt": "2026-01-01T00:00:00.000Z"
+      }
+    },
+    {
+      "functionId": "fn-m",
+      "label": "Function M",
+      "sources": [
+        {
+          "kind": "fixture",
+          "ref": "fn-m"
+        }
+      ],
+      "capabilities": [],
+      "operations": [],
+      "dataSources": [],
+      "entityTypes": [],
+      "events": {
+        "emits": [],
+        "listens": []
+      },
+      "neighbors": [
+        {
+          "functionId": "fn-n",
+          "weight": 0.6,
+          "evidence": [
+            {
+              "kind": "fixture",
+              "ref": "edge-a"
+            }
+          ]
+        }
+      ],
+      "derivation": {
+        "version": "fixture-v1",
+        "generatedAt": "2026-01-01T00:00:00.000Z"
+      }
+    },
+    {
+      "functionId": "fn-n",
+      "label": "Function N",
+      "sources": [
+        {
+          "kind": "fixture",
+          "ref": "fn-n"
+        }
+      ],
+      "capabilities": [],
+      "operations": [],
+      "dataSources": [],
+      "entityTypes": [],
+      "events": {
+        "emits": [],
+        "listens": []
+      },
+      "neighbors": [
+        {
+          "functionId": "fn-o",
+          "weight": 0.6,
+          "evidence": [
+            {
+              "kind": "fixture",
+              "ref": "edge-a"
+            }
+          ]
+        }
+      ],
+      "derivation": {
+        "version": "fixture-v1",
+        "generatedAt": "2026-01-01T00:00:00.000Z"
+      }
+    },
+    {
+      "functionId": "fn-o",
+      "label": "Function O",
+      "sources": [
+        {
+          "kind": "fixture",
+          "ref": "fn-o"
+        }
+      ],
+      "capabilities": [],
+      "operations": [],
+      "dataSources": [],
+      "entityTypes": [],
+      "events": {
+        "emits": [],
+        "listens": []
+      },
+      "neighbors": [
+        {
+          "functionId": "fn-p",
+          "weight": 0.6,
+          "evidence": [
+            {
+              "kind": "fixture",
+              "ref": "edge-a"
+            }
+          ]
+        }
+      ],
+      "derivation": {
+        "version": "fixture-v1",
+        "generatedAt": "2026-01-01T00:00:00.000Z"
+      }
+    },
+    {
+      "functionId": "fn-p",
+      "label": "Function P",
+      "sources": [
+        {
+          "kind": "fixture",
+          "ref": "fn-p"
+        }
+      ],
+      "capabilities": [],
+      "operations": [],
+      "dataSources": [],
+      "entityTypes": [],
+      "events": {
+        "emits": [],
+        "listens": []
+      },
+      "neighbors": [
+        {
+          "functionId": "fn-q",
+          "weight": 0.6,
+          "evidence": [
+            {
+              "kind": "fixture",
+              "ref": "edge-a"
+            }
+          ]
+        }
+      ],
+      "derivation": {
+        "version": "fixture-v1",
+        "generatedAt": "2026-01-01T00:00:00.000Z"
+      }
+    },
+    {
+      "functionId": "fn-q",
+      "label": "Function Q",
+      "sources": [
+        {
+          "kind": "fixture",
+          "ref": "fn-q"
+        }
+      ],
+      "capabilities": [],
+      "operations": [],
+      "dataSources": [],
+      "entityTypes": [],
+      "events": {
+        "emits": [],
+        "listens": []
+      },
+      "neighbors": [
+        {
+          "functionId": "fn-r",
+          "weight": 0.6,
+          "evidence": [
+            {
+              "kind": "fixture",
+              "ref": "edge-a"
+            }
+          ]
+        }
+      ],
+      "derivation": {
+        "version": "fixture-v1",
+        "generatedAt": "2026-01-01T00:00:00.000Z"
+      }
+    },
+    {
+      "functionId": "fn-r",
+      "label": "Function R",
+      "sources": [
+        {
+          "kind": "fixture",
+          "ref": "fn-r"
+        }
+      ],
+      "capabilities": [],
+      "operations": [],
+      "dataSources": [],
+      "entityTypes": [],
+      "events": {
+        "emits": [],
+        "listens": []
+      },
+      "neighbors": [
+        {
+          "functionId": "fn-s",
+          "weight": 0.6,
+          "evidence": [
+            {
+              "kind": "fixture",
+              "ref": "edge-a"
+            }
+          ]
+        }
+      ],
+      "derivation": {
+        "version": "fixture-v1",
+        "generatedAt": "2026-01-01T00:00:00.000Z"
+      }
+    },
+    {
+      "functionId": "fn-s",
+      "label": "Function S",
+      "sources": [
+        {
+          "kind": "fixture",
+          "ref": "fn-s"
+        }
+      ],
+      "capabilities": [],
+      "operations": [],
+      "dataSources": [],
+      "entityTypes": [],
+      "events": {
+        "emits": [],
+        "listens": []
+      },
+      "neighbors": [
+        {
+          "functionId": "fn-t",
+          "weight": 0.6,
+          "evidence": [
+            {
+              "kind": "fixture",
+              "ref": "edge-a"
+            }
+          ]
+        }
+      ],
+      "derivation": {
+        "version": "fixture-v1",
+        "generatedAt": "2026-01-01T00:00:00.000Z"
+      }
+    },
+    {
+      "functionId": "fn-t",
+      "label": "Function T",
+      "sources": [
+        {
+          "kind": "fixture",
+          "ref": "fn-t"
+        }
+      ],
+      "capabilities": [],
+      "operations": [],
+      "dataSources": [],
+      "entityTypes": [],
+      "events": {
+        "emits": [],
+        "listens": []
+      },
+      "neighbors": [
+        {
+          "functionId": "fn-u",
+          "weight": 0.6,
+          "evidence": [
+            {
+              "kind": "fixture",
+              "ref": "edge-a"
+            }
+          ]
+        }
+      ],
+      "derivation": {
+        "version": "fixture-v1",
+        "generatedAt": "2026-01-01T00:00:00.000Z"
+      }
+    },
+    {
+      "functionId": "fn-u",
+      "label": "Function U",
+      "sources": [
+        {
+          "kind": "fixture",
+          "ref": "fn-u"
+        }
+      ],
+      "capabilities": [],
+      "operations": [],
+      "dataSources": [],
+      "entityTypes": [],
+      "events": {
+        "emits": [],
+        "listens": []
+      },
+      "neighbors": [
+        {
+          "functionId": "fn-v",
+          "weight": 0.6,
+          "evidence": [
+            {
+              "kind": "fixture",
+              "ref": "edge-a"
+            }
+          ]
+        }
+      ],
+      "derivation": {
+        "version": "fixture-v1",
+        "generatedAt": "2026-01-01T00:00:00.000Z"
+      }
+    },
+    {
+      "functionId": "fn-v",
+      "label": "Function V",
+      "sources": [
+        {
+          "kind": "fixture",
+          "ref": "fn-v"
+        }
+      ],
+      "capabilities": [],
+      "operations": [],
+      "dataSources": [],
+      "entityTypes": [],
+      "events": {
+        "emits": [],
+        "listens": []
+      },
+      "neighbors": [
+        {
+          "functionId": "fn-w",
+          "weight": 0.6,
+          "evidence": [
+            {
+              "kind": "fixture",
+              "ref": "edge-a"
+            }
+          ]
+        }
+      ],
+      "derivation": {
+        "version": "fixture-v1",
+        "generatedAt": "2026-01-01T00:00:00.000Z"
+      }
+    },
+    {
+      "functionId": "fn-w",
+      "label": "Function W",
+      "sources": [
+        {
+          "kind": "fixture",
+          "ref": "fn-w"
+        }
+      ],
+      "capabilities": [],
+      "operations": [],
+      "dataSources": [],
+      "entityTypes": [],
+      "events": {
+        "emits": [],
+        "listens": []
+      },
+      "neighbors": [
+        {
+          "functionId": "fn-x",
+          "weight": 0.6,
+          "evidence": [
+            {
+              "kind": "fixture",
+              "ref": "edge-a"
+            }
+          ]
+        }
+      ],
+      "derivation": {
+        "version": "fixture-v1",
+        "generatedAt": "2026-01-01T00:00:00.000Z"
+      }
+    },
+    {
+      "functionId": "fn-x",
+      "label": "Function X",
+      "sources": [
+        {
+          "kind": "fixture",
+          "ref": "fn-x"
+        }
+      ],
+      "capabilities": [],
+      "operations": [],
+      "dataSources": [],
+      "entityTypes": [],
+      "events": {
+        "emits": [],
+        "listens": []
+      },
+      "neighbors": [
+        {
+          "functionId": "fn-a",
+          "weight": 0.6,
+          "evidence": [
+            {
+              "kind": "fixture",
+              "ref": "edge-a"
+            }
+          ]
+        }
+      ],
+      "derivation": {
+        "version": "fixture-v1",
+        "generatedAt": "2026-01-01T00:00:00.000Z"
+      }
+    }
+  ]
+}

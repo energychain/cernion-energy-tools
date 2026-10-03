@@ -1,0 +1,220 @@
+{
+  "entries": [
+    {
+      "term": "window",
+      "reason": "Generic configurable inactivity time window for I-2, as clarified in #693; no domain behavior."
+    },
+    {
+      "term": "action",
+      "reason": "Generic action signal; no operation-specific behavior."
+    },
+    {
+      "term": "activation",
+      "reason": "Activation contract and invariant metadata."
+    },
+    {
+      "term": "adapter",
+      "reason": "Test adapter interface for injecting real services."
+    },
+    {
+      "term": "agent",
+      "reason": "Generic SharedAgent correction target."
+    },
+    {
+      "term": "answer",
+      "reason": "Generic system activity response compared with digest."
+    },
+    {
+      "term": "blocked",
+      "reason": "Existing guard result observed by the safety oracle."
+    },
+    {
+      "term": "budget",
+      "reason": "Tenant activation bound from the invariant contract."
+    },
+    {
+      "term": "candidate",
+      "reason": "Generic candidate trace during failure minimization."
+    },
+    {
+      "term": "capabilities",
+      "reason": "Function contract field populated from catalog data."
+    },
+    {
+      "term": "cause",
+      "reason": "Standard Error cause property."
+    },
+    {
+      "term": "change",
+      "reason": "Generic correction observation, independent of target semantics."
+    },
+    {
+      "term": "check",
+      "reason": "Generic assertion and authorization observation."
+    },
+    {
+      "term": "confidence",
+      "reason": "Required function.touched.v1 payload field."
+    },
+    {
+      "term": "contract",
+      "reason": "Common data contract and trace-recording stub name."
+    },
+    {
+      "term": "correction",
+      "reason": "Versioned correction event and generic target mutation."
+    },
+    {
+      "term": "coverage",
+      "reason": "Coverage contract and invariant metadata."
+    },
+    {
+      "term": "delete",
+      "reason": "Generic deletion of trace chunks during minimization."
+    },
+    {
+      "term": "dependencies",
+      "reason": "Upstream readiness metadata for explicit todos."
+    },
+    {
+      "term": "error",
+      "reason": "Standard error handling in the harness."
+    },
+    {
+      "term": "event",
+      "reason": "Versioned Moleculer event and SharedAgent wake mode."
+    },
+    {
+      "term": "events",
+      "reason": "Function contract field and versioned event transport."
+    },
+    {
+      "term": "external",
+      "reason": "Generic effect classification in safety observations."
+    },
+    {
+      "term": "filter",
+      "reason": "Standard Array.filter operation."
+    },
+    {
+      "term": "functions",
+      "reason": "Generic Function collection from the common contract."
+    },
+    {
+      "term": "handoff",
+      "reason": "Generic human responsibility transfer observation."
+    },
+    {
+      "term": "interval",
+      "reason": "SharedAgent wake interval in the common contract."
+    },
+    {
+      "term": "journal",
+      "reason": "JournalEntry contract and generic activity record."
+    },
+    {
+      "term": "knowledge",
+      "reason": "Generic forbidden response path in I-5; no domain content."
+    },
+    {
+      "term": "learning",
+      "reason": "Upstream generic correction module path from #701."
+    },
+    {
+      "term": "lifecycle",
+      "reason": "SharedAgent contract field."
+    },
+    {
+      "term": "model",
+      "reason": "Generic Function data source; no special scenario."
+    },
+    {
+      "term": "module",
+      "reason": "CommonJS module.exports syntax."
+    },
+    {
+      "term": "object",
+      "reason": "Generic Object.keys and target mutation terminology."
+    },
+    {
+      "term": "operations",
+      "reason": "Function contract field; generic operation collection."
+    },
+    {
+      "term": "policy",
+      "reason": "Existing authorization policy observed without modification."
+    },
+    {
+      "term": "question",
+      "reason": "Generic signal kind, no question text or domain example."
+    },
+    {
+      "term": "replay",
+      "reason": "Generic deterministic trace replay."
+    },
+    {
+      "term": "return",
+      "reason": "JavaScript return keyword."
+    },
+    {
+      "term": "schedule",
+      "reason": "SharedAgent wake mode in the common contract."
+    },
+    {
+      "term": "service",
+      "reason": "Generic upstream service paths and versioned event names."
+    },
+    {
+      "term": "shared",
+      "reason": "Common Shared Service identifiers from #693."
+    },
+    {
+      "term": "signal",
+      "reason": "Generic simulation signal metadata."
+    },
+    {
+      "term": "simulation",
+      "reason": "Generic test harness terminology."
+    },
+    {
+      "term": "snapshot",
+      "reason": "Test-only observation envelope method."
+    },
+    {
+      "term": "source",
+      "reason": "Generic model source path and error location."
+    },
+    {
+      "term": "sources",
+      "reason": "Function contract source references."
+    },
+    {
+      "term": "state",
+      "reason": "Activation contract field and test observation."
+    },
+    {
+      "term": "system",
+      "reason": "system_activity_query contract intent."
+    },
+    {
+      "term": "target",
+      "reason": "shared-service.correction.v1 contract payload field."
+    },
+    {
+      "term": "tenant",
+      "reason": "Tenant isolation in the common contract."
+    },
+    {
+      "term": "value",
+      "reason": "Internal PRNG state variable."
+    },
+    {
+      "term": "capability",
+      "reason": "Name des Katalogobjekts im Datenvertrag #693; allgemeines Vertragsvokabular, keine fachliche Fallunterscheidung."
+    },
+    {
+      "term": "order",
+      "reason": "Sortierreihenfolge im allgemeinen Helfer canonical-order; kein Fachbegriff im Kern."
+    }
+  ]
+}
