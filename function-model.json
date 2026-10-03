@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "795ff7f49cb9f9d5b1895626c51122a5136add75e4862441f94e5f2c4145ad9e",
+  "sourceHash": "5f523aa56cfcf570931a1aa6ab87562d206a89e594a67f88a66cbec6f60a257a",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -66,7 +66,794 @@
     "keywordTokenMinimumLength": 4,
     "degreeBudgetMinimumFunctions": 10
   },
+  "lineageHistory": [
+    {
+      "functionId": "fn-a2mdm-decision-object-meaning-preservation",
+      "capabilities": [
+        "a2mdm_decision_object_meaning_preservation",
+        "coordination_meaning_preservation_profile",
+        "redispatch_rcs_special_case_governance"
+      ]
+    },
+    {
+      "functionId": "fn-agnes-bottleneck",
+      "capabilities": [
+        "agnes_bottleneck"
+      ]
+    },
+    {
+      "functionId": "fn-altdaten-assessment",
+      "capabilities": [
+        "altdaten_assessment"
+      ]
+    },
+    {
+      "functionId": "fn-anschlusskapazitaet-evidence-queue",
+      "capabilities": [
+        "anschlusskapazitaet_evidence_queue",
+        "areal_network_integration_offer_gate",
+        "connection_deadline_evidence_queue",
+        "grid_connection_transformation_gate"
+      ]
+    },
+    {
+      "functionId": "fn-asset-valuation-transformation-gate",
+      "capabilities": [
+        "asset_valuation_transformation_gate",
+        "cross_channel_vnb_signal_queue"
+      ]
+    },
+    {
+      "functionId": "fn-automation-requirements-decision-value",
+      "capabilities": [
+        "automation_requirements_decision_value"
+      ]
+    },
+    {
+      "functionId": "fn-automation-risk-gate",
+      "capabilities": [
+        "automation_risk_gate"
+      ]
+    },
+    {
+      "functionId": "fn-automatisierungsradar",
+      "capabilities": [
+        "automatisierungsradar"
+      ]
+    },
+    {
+      "functionId": "fn-battery-redispatch-special-gate",
+      "capabilities": [
+        "battery_redispatch_special_gate"
+      ]
+    },
+    {
+      "functionId": "fn-bess-screening",
+      "capabilities": [
+        "bess_screening"
+      ]
+    },
+    {
+      "functionId": "fn-bilanzkreis-slp-edm-operations",
+      "capabilities": [
+        "bilanzkreis_slp_edm_operations"
+      ]
+    },
+    {
+      "functionId": "fn-blindflug-radar-anomaly-detection",
+      "capabilities": [
+        "blindflug_radar_anomaly_detection"
+      ]
+    },
+    {
+      "functionId": "fn-budget-waterfall-governance",
+      "capabilities": [
+        "budget_waterfall_governance",
+        "financier_due_diligence_assessment",
+        "gas_grid_transformation_asset_cockpit",
+        "investment_two_track_control",
+        "liquidity_planning_governance_module",
+        "no_regret_measure_definition_gate",
+        "sap_budget_psp_gate",
+        "smart_meter_off_balancing_purpose_lock"
+      ]
+    },
+    {
+      "functionId": "fn-capacity-contract-risk-asset-cockpit",
+      "capabilities": [
+        "capacity_contract_risk_asset_cockpit",
+        "gas_decommissioning_roadmap_status",
+        "jour_fixe_decision_closure_tracker"
+      ]
+    },
+    {
+      "functionId": "fn-capex-prioritization",
+      "capabilities": [
+        "capex_prioritization"
+      ]
+    },
+    {
+      "functionId": "fn-cls-digital-twin-compliance-gate",
+      "capabilities": [
+        "cls_digital_twin_compliance_gate",
+        "dr_readiness_evidence_gate",
+        "imsys_taf2_compliance_status"
+      ]
+    },
+    {
+      "functionId": "fn-communication-break-process-risk",
+      "capabilities": [
+        "communication_break_process_risk"
+      ]
+    },
+    {
+      "functionId": "fn-connection-rejection-evidence",
+      "capabilities": [
+        "connection_rejection_evidence"
+      ]
+    },
+    {
+      "functionId": "fn-connection-rejection-fnav-14a-evidence",
+      "capabilities": [
+        "connection_rejection_fnav_14a_evidence",
+        "energy_sharing_prosumer_advisory"
+      ]
+    },
+    {
+      "functionId": "fn-controllability-asset-handover",
+      "capabilities": [
+        "controllability_asset_handover",
+        "controllability_data_alignment",
+        "redispatch_project_controlling_kpi_cockpit"
+      ]
+    },
+    {
+      "functionId": "fn-controllability-submission-cockpit",
+      "capabilities": [
+        "controllability_submission_cockpit",
+        "datasource_registry_classification_governance"
+      ]
+    },
+    {
+      "functionId": "fn-cost-review-committee-status",
+      "capabilities": [
+        "cost_review_committee_status"
+      ]
+    },
+    {
+      "functionId": "fn-crisis-decision-routine",
+      "capabilities": [
+        "crisis_decision_routine",
+        "flex_strategic_demand_intake"
+      ]
+    },
+    {
+      "functionId": "fn-cross-commodity-supply-security-lagebild",
+      "capabilities": [
+        "cross_commodity_supply_security_lagebild"
+      ]
+    },
+    {
+      "functionId": "fn-cross-domain-special-topics-queue",
+      "capabilities": [
+        "cross_domain_special_topics_queue"
+      ]
+    },
+    {
+      "functionId": "fn-cross-system-variance-matrix",
+      "capabilities": [
+        "cross_system_variance_matrix"
+      ]
+    },
+    {
+      "functionId": "fn-cya-assessment-briefing",
+      "capabilities": [
+        "cya_assessment_briefing",
+        "edm_customer_moveout_billing_evidence",
+        "hitl_role_based_evidence_request"
+      ]
+    },
+    {
+      "functionId": "fn-decision-readiness-matrix",
+      "capabilities": [
+        "decision_readiness_matrix",
+        "leadership_delta_cockpit"
+      ]
+    },
+    {
+      "functionId": "fn-decommissioned-asset-reconciliation",
+      "capabilities": [
+        "decommissioned_asset_reconciliation"
+      ]
+    },
+    {
+      "functionId": "fn-direct-marketer-risk-gate",
+      "capabilities": [
+        "direct_marketer_risk_gate"
+      ]
+    },
+    {
+      "functionId": "fn-e2e-connection-check",
+      "capabilities": [
+        "e2e_connection_check"
+      ]
+    },
+    {
+      "functionId": "fn-e2e-controllability-check-governance",
+      "capabilities": [
+        "e2e_controllability_check_governance"
+      ]
+    },
+    {
+      "functionId": "fn-edm-metering-concept-evidence",
+      "capabilities": [
+        "edm_metering_concept_evidence"
+      ]
+    },
+    {
+      "functionId": "fn-eeg-clawback-ewk-monitoring",
+      "capabilities": [
+        "eeg_clawback_ewk_monitoring",
+        "vnb_kpi_benchmark_comparison"
+      ]
+    },
+    {
+      "functionId": "fn-eic-code-lookup",
+      "capabilities": [
+        "eic_code_lookup"
+      ]
+    },
+    {
+      "functionId": "fn-energy-sharing-42c-cutover-readiness",
+      "capabilities": [
+        "energy_sharing_42c_cutover_readiness"
+      ]
+    },
+    {
+      "functionId": "fn-energy-sharing-collective-approval",
+      "capabilities": [
+        "energy_sharing_collective_approval"
+      ]
+    },
+    {
+      "functionId": "fn-energy-sharing-simulation-gate",
+      "capabilities": [
+        "energy_sharing_simulation_gate"
+      ]
+    },
+    {
+      "functionId": "fn-energy-sidecar-route-registry",
+      "capabilities": [
+        "energy_sidecar_route_registry"
+      ]
+    },
+    {
+      "functionId": "fn-energy-tax-information-package",
+      "capabilities": [
+        "energy_tax_information_package"
+      ]
+    },
+    {
+      "functionId": "fn-evidence-freshness-guard",
+      "capabilities": [
+        "evidence_freshness_guard"
+      ]
+    },
+    {
+      "functionId": "fn-evidence-grounding-confidence-audit",
+      "capabilities": [
+        "evidence_grounding_confidence_audit"
+      ]
+    },
+    {
+      "functionId": "fn-evu-api-migration-diagnostics",
+      "capabilities": [
+        "evu_api_migration_diagnostics"
+      ]
+    },
+    {
+      "functionId": "fn-file-ingest-monitor",
+      "capabilities": [
+        "file_ingest_monitor"
+      ]
+    },
+    {
+      "functionId": "fn-finance-nkp-capex-reinvest-governance",
+      "capabilities": [
+        "finance_nkp_capex_reinvest_governance"
+      ]
+    },
+    {
+      "functionId": "fn-flex-forecast-bess-grid-operations-advisory",
+      "capabilities": [
+        "flex_forecast_bess_grid_operations_advisory",
+        "special_grid_usage_impact_map"
+      ]
+    },
+    {
+      "functionId": "fn-flexibilitaetskosten-raster",
+      "capabilities": [
+        "flexibilitaetskosten_raster"
+      ]
+    },
+    {
+      "functionId": "fn-flexibility-conductor-role-model",
+      "capabilities": [
+        "flexibility_conductor_role_model"
+      ]
+    },
+    {
+      "functionId": "fn-fnav-commercial-hedging",
+      "capabilities": [
+        "fnav_commercial_hedging"
+      ]
+    },
+    {
+      "functionId": "fn-fnav-fast-track-contract-gate",
+      "capabilities": [
+        "fnav_fast_track_contract_gate",
+        "receipt_grounded_presentation_contract"
+      ]
+    },
+    {
+      "functionId": "fn-gas-capacity-booking-review-gate",
+      "capabilities": [
+        "gas_capacity_booking_review_gate",
+        "vdmi_portfolio_gatekeeping"
+      ]
+    },
+    {
+      "functionId": "fn-gas-capacity-order-revision-gate",
+      "capabilities": [
+        "gas_capacity_order_revision_gate"
+      ]
+    },
+    {
+      "functionId": "fn-gas-infrastructure-risk-governance",
+      "capabilities": [
+        "gas_infrastructure_risk_governance",
+        "heat_asset_tariff_steering"
+      ]
+    },
+    {
+      "functionId": "fn-gas-network-decision-chain",
+      "capabilities": [
+        "gas_network_decision_chain",
+        "gasnetz_waermeplanung"
+      ]
+    },
+    {
+      "functionId": "fn-gas-transformation-dataroom-status",
+      "capabilities": [
+        "gas_transformation_dataroom_status",
+        "gasnetz_waermeplanung_assessment"
+      ]
+    },
+    {
+      "functionId": "fn-gas-transformation-dependency-map",
+      "capabilities": [
+        "gas_transformation_dependency_map",
+        "heat_transformation_line_asset_model",
+        "znp_portfolio_assessment",
+        "znp_production_readiness_evidence_gate"
+      ]
+    },
+    {
+      "functionId": "fn-german-grid-market-data",
+      "capabilities": [
+        "german_grid_market_data"
+      ]
+    },
+    {
+      "functionId": "fn-ghost-asset-alert",
+      "capabilities": [
+        "ghost_asset_alert"
+      ]
+    },
+    {
+      "functionId": "fn-gremiencoach-workbook-readiness",
+      "capabilities": [
+        "gremiencoach_workbook_readiness"
+      ]
+    },
+    {
+      "functionId": "fn-grid-operator-identity-resolution",
+      "capabilities": [
+        "grid_operator_identity_resolution",
+        "mastr_asset_inventory"
+      ]
+    },
+    {
+      "functionId": "fn-grossspeicher-anschluss-readiness-gate",
+      "capabilities": [
+        "grossspeicher_anschluss_readiness_gate"
+      ]
+    },
+    {
+      "functionId": "fn-imsys-schedule-value-chain-readiness",
+      "capabilities": [
+        "imsys_schedule_value_chain_readiness",
+        "regulatory_change_simulator_readiness"
+      ]
+    },
+    {
+      "functionId": "fn-inhouse-timeseries-analysis",
+      "capabilities": [
+        "inhouse_timeseries_analysis",
+        "metering_rollout_process_indicator"
+      ]
+    },
+    {
+      "functionId": "fn-interconnection-release-file",
+      "capabilities": [
+        "interconnection_release_file"
+      ]
+    },
+    {
+      "functionId": "fn-investment-budget-cap-exception-governance",
+      "capabilities": [
+        "investment_budget_cap_exception_governance",
+        "investment_committee_steering_cards",
+        "investment_owner_deadline_budget_gate",
+        "investment_waterfall_governance"
+      ]
+    },
+    {
+      "functionId": "fn-investment-data-review-queue",
+      "capabilities": [
+        "investment_data_review_queue"
+      ]
+    },
+    {
+      "functionId": "fn-investment-maturity-off-balance-gate",
+      "capabilities": [
+        "investment_maturity_off_balance_gate"
+      ]
+    },
+    {
+      "functionId": "fn-investment-risk-translation-status",
+      "capabilities": [
+        "investment_risk_translation_status"
+      ]
+    },
+    {
+      "functionId": "fn-ki-floorwalker-governance",
+      "capabilities": [
+        "ki_floorwalker_governance"
+      ]
+    },
+    {
+      "functionId": "fn-knowledge-continuity-governance-gate",
+      "capabilities": [
+        "knowledge_continuity_governance_gate"
+      ]
+    },
+    {
+      "functionId": "fn-layer0-audit-drilldown-note",
+      "capabilities": [
+        "layer0_audit_drilldown_note"
+      ]
+    },
+    {
+      "functionId": "fn-legacy-control-technology-transition",
+      "capabilities": [
+        "legacy_control_technology_transition"
+      ]
+    },
+    {
+      "functionId": "fn-legal-clarification-operating-model",
+      "capabilities": [
+        "legal_clarification_operating_model"
+      ]
+    },
+    {
+      "functionId": "fn-live-update-stream-contract-status",
+      "capabilities": [
+        "live_update_stream_contract_status"
+      ]
+    },
+    {
+      "functionId": "fn-load-profile-stream-monitor",
+      "capabilities": [
+        "load_profile_stream_monitor"
+      ]
+    },
+    {
+      "functionId": "fn-market-communication-evidence-chain",
+      "capabilities": [
+        "market_communication_evidence_chain"
+      ]
+    },
+    {
+      "functionId": "fn-mastr-quality-oemetadata",
+      "capabilities": [
+        "mastr_quality_oemetadata"
+      ]
+    },
+    {
+      "functionId": "fn-mastr-sync-gap-alerting",
+      "capabilities": [
+        "mastr_sync_gap_alerting"
+      ]
+    },
+    {
+      "functionId": "fn-model-viability-evidence-gate",
+      "capabilities": [
+        "model_viability_evidence_gate"
+      ]
+    },
+    {
+      "functionId": "fn-netzfahrplan-fnav-assessment",
+      "capabilities": [
+        "netzfahrplan_fnav_assessment",
+        "tech_commercial_offer_cockpit"
+      ]
+    },
+    {
+      "functionId": "fn-netzkoppelvertrag-workflow",
+      "capabilities": [
+        "netzkoppelvertrag_workflow"
+      ]
+    },
+    {
+      "functionId": "fn-netzprozess-readiness-gate",
+      "capabilities": [
+        "netzprozess_readiness_gate"
+      ]
+    },
+    {
+      "functionId": "fn-netzsignal-delta-gating",
+      "capabilities": [
+        "netzsignal_delta_gating"
+      ]
+    },
+    {
+      "functionId": "fn-nkp-reporting",
+      "capabilities": [
+        "nkp_reporting"
+      ]
+    },
+    {
+      "functionId": "fn-no-regret-measure-proof-gate",
+      "capabilities": [
+        "no_regret_measure_proof_gate"
+      ]
+    },
+    {
+      "functionId": "fn-non-escalation-control-evidence",
+      "capabilities": [
+        "non_escalation_control_evidence"
+      ]
+    },
+    {
+      "functionId": "fn-nova-decision-lifecycle-readiness",
+      "capabilities": [
+        "nova_decision_lifecycle_readiness"
+      ]
+    },
+    {
+      "functionId": "fn-oep-research-dataset-discovery",
+      "capabilities": [
+        "oep_research_dataset_discovery"
+      ]
+    },
+    {
+      "functionId": "fn-off-balancing-metering-pruefmatrix",
+      "capabilities": [
+        "off_balancing_metering_pruefmatrix",
+        "transformation_financing_scenario_view",
+        "zaehlpark_finanzierung_szenario_cockpit"
+      ]
+    },
+    {
+      "functionId": "fn-owner-deadline-evidence-gate",
+      "capabilities": [
+        "owner_deadline_evidence_gate"
+      ]
+    },
+    {
+      "functionId": "fn-process-sensitization-readiness-map",
+      "capabilities": [
+        "process_sensitization_readiness_map",
+        "schedule_management_governance_roadmap"
+      ]
+    },
+    {
+      "functionId": "fn-re4de-variable-grid-fee-layer3",
+      "capabilities": [
+        "re4de_variable_grid_fee_layer3"
+      ]
+    },
+    {
+      "functionId": "fn-redispatch-asset-register",
+      "capabilities": [
+        "redispatch_asset_register"
+      ]
+    },
+    {
+      "functionId": "fn-redispatch-call-data-quality-gate",
+      "capabilities": [
+        "redispatch_call_data_quality_gate"
+      ]
+    },
+    {
+      "functionId": "fn-redispatch-data-governance",
+      "capabilities": [
+        "redispatch_data_governance"
+      ]
+    },
+    {
+      "functionId": "fn-redispatch-participation-readiness",
+      "capabilities": [
+        "redispatch_participation_readiness"
+      ]
+    },
+    {
+      "functionId": "fn-redispatch-readiness-gate",
+      "capabilities": [
+        "redispatch_readiness_gate"
+      ]
+    },
+    {
+      "functionId": "fn-redispatch-settlement-sandbox",
+      "capabilities": [
+        "redispatch_settlement_sandbox"
+      ]
+    },
+    {
+      "functionId": "fn-redispatch-special-case-gate",
+      "capabilities": [
+        "redispatch_special_case_gate"
+      ]
+    },
+    {
+      "functionId": "fn-regulatorische-entgeltlogik",
+      "capabilities": [
+        "regulatorische_entgeltlogik"
+      ]
+    },
+    {
+      "functionId": "fn-regulatory-risk-revenue-scenario",
+      "capabilities": [
+        "regulatory_risk_revenue_scenario"
+      ]
+    },
+    {
+      "functionId": "fn-regulatory-signal-process-translator",
+      "capabilities": [
+        "regulatory_signal_process_translator"
+      ]
+    },
+    {
+      "functionId": "fn-reinvest-signal",
+      "capabilities": [
+        "reinvest_signal"
+      ]
+    },
+    {
+      "functionId": "fn-renewable-generation-forecast",
+      "capabilities": [
+        "renewable_generation_forecast"
+      ]
+    },
+    {
+      "functionId": "fn-reporting-governance",
+      "capabilities": [
+        "reporting_governance"
+      ]
+    },
+    {
+      "functionId": "fn-residual-load-forecast-for-dso",
+      "capabilities": [
+        "residual_load_forecast_for_dso"
+      ]
+    },
+    {
+      "functionId": "fn-role-permission-access-readiness-gate",
+      "capabilities": [
+        "role_permission_access_readiness_gate"
+      ]
+    },
+    {
+      "functionId": "fn-scqa-decision-framing",
+      "capabilities": [
+        "scqa_decision_framing"
+      ]
+    },
+    {
+      "functionId": "fn-settlement-a96-reconciliation",
+      "capabilities": [
+        "settlement_a96_reconciliation"
+      ]
+    },
+    {
+      "functionId": "fn-smart-meter-cls-data-governance-receipt",
+      "capabilities": [
+        "smart_meter_cls_data_governance_receipt"
+      ]
+    },
+    {
+      "functionId": "fn-smgw-connector-readiness-status",
+      "capabilities": [
+        "smgw_connector_readiness_status"
+      ]
+    },
+    {
+      "functionId": "fn-stadtwerk-mauer-capability-projection",
+      "capabilities": [
+        "stadtwerk_mauer_capability_projection",
+        "stadtwerk_mauer_event_replay_preview",
+        "stadtwerk_mauer_vdmi_profile"
+      ]
+    },
+    {
+      "functionId": "fn-stadtwerk-mauer-e2e-process-demo",
+      "capabilities": [
+        "stadtwerk_mauer_e2e_process_demo",
+        "stadtwerk_mauer_external_interface_stubs",
+        "stadtwerk_mauer_sandbox_runtime"
+      ]
+    },
+    {
+      "functionId": "fn-stadtwerk-mauer-mastr-data-overlay",
+      "capabilities": [
+        "stadtwerk_mauer_mastr_data_overlay"
+      ]
+    },
+    {
+      "functionId": "fn-steering-artifact-acceptance-gate",
+      "capabilities": [
+        "steering_artifact_acceptance_gate"
+      ]
+    },
+    {
+      "functionId": "fn-vdmi-asset-validation-governance",
+      "capabilities": [
+        "vdmi_asset_validation_governance",
+        "vdmi_grid_connection_decision_governance",
+        "vdmi_role_boundary_governance"
+      ]
+    },
+    {
+      "functionId": "fn-vdmi-governance-templates",
+      "capabilities": [
+        "vdmi_governance_templates"
+      ]
+    },
+    {
+      "functionId": "fn-vnb-100-tage-assessment",
+      "capabilities": [
+        "vnb_100_tage_assessment"
+      ]
+    },
+    {
+      "functionId": "fn-vnb-delta-signal-classifier",
+      "capabilities": [
+        "vnb_delta_signal_classifier"
+      ]
+    },
+    {
+      "functionId": "fn-vnb-special-topic-workstate",
+      "capabilities": [
+        "vnb_special_topic_workstate"
+      ]
+    },
+    {
+      "functionId": "fn-water-pricing-net-investment-alignment-gate",
+      "capabilities": [
+        "water_pricing_net_investment_alignment_gate"
+      ]
+    }
+  ],
   "statistics": {
+    "idChanges": {
+      "same": 121,
+      "merged": 0,
+      "split": 0,
+      "retired": 0,
+      "new": 0,
+      "previousSourceHash": "795ff7f49cb9f9d5b1895626c51122a5136add75e4862441f94e5f2c4145ad9e"
+    },
     "indexOperationCount": 982,
     "indexOperationsWithoutAction": 271,
     "capabilityCount": 172,
@@ -1816,7 +2603,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-a2mdm-decision-object-meaning-preservation",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -2411,7 +3205,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-agnes-bottleneck",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -2879,7 +3680,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-altdaten-assessment",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -5450,7 +6258,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-anschlusskapazitaet-evidence-queue",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -7965,7 +8780,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-asset-valuation-transformation-gate",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -8938,7 +9760,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-automation-requirements-decision-value",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -9769,7 +10598,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-automation-risk-gate",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -10276,7 +11112,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-automatisierungsradar",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -10872,7 +11715,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-battery-redispatch-special-gate",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -11747,7 +12597,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-bess-screening",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -11915,7 +12772,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-bilanzkreis-slp-edm-operations",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -12459,7 +13323,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-blindflug-radar-anomaly-detection",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -16273,7 +17144,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-budget-waterfall-governance",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -19220,7 +20098,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-capacity-contract-risk-asset-cockpit",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -19753,7 +20638,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-capex-prioritization",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -21875,7 +22767,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-cls-digital-twin-compliance-gate",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -22982,7 +23881,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-communication-break-process-risk",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -23576,7 +24482,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-connection-rejection-evidence",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -24113,7 +25026,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-connection-rejection-fnav-14a-evidence",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -27006,7 +27926,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-controllability-asset-handover",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -28630,7 +29557,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-controllability-submission-cockpit",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -29643,7 +30577,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-cost-review-committee-status",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -31529,7 +32470,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-crisis-decision-routine",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -31875,7 +32823,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-cross-commodity-supply-security-lagebild",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -32752,7 +33707,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-cross-domain-special-topics-queue",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -33929,7 +34891,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-cross-system-variance-matrix",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -34505,7 +35474,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-cya-assessment-briefing",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -36891,7 +37867,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-decision-readiness-matrix",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -37339,7 +38322,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-decommissioned-asset-reconciliation",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -38214,7 +39204,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-direct-marketer-risk-gate",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -38763,7 +39760,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-e2e-connection-check",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -40448,7 +41452,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-e2e-controllability-check-governance",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -40671,7 +41682,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-edm-metering-concept-evidence",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -41642,7 +42660,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-eeg-clawback-ewk-monitoring",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -42154,7 +43179,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-eic-code-lookup",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -42991,7 +44023,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-energy-sharing-42c-cutover-readiness",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -43545,7 +44584,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-energy-sharing-collective-approval",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -44670,7 +45716,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-energy-sharing-simulation-gate",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -45365,7 +46418,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-energy-sidecar-route-registry",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -46210,7 +47270,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-energy-tax-information-package",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -47271,7 +48338,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-evidence-freshness-guard",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -48586,7 +49660,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-evidence-grounding-confidence-audit",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -48819,7 +49900,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-evu-api-migration-diagnostics",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -49259,7 +50347,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-file-ingest-monitor",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -49492,7 +50587,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-finance-nkp-capex-reinvest-governance",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -51023,7 +52125,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-flex-forecast-bess-grid-operations-advisory",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -51712,7 +52821,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-flexibilitaetskosten-raster",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -52158,7 +53274,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-flexibility-conductor-role-model",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -52795,7 +53918,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-fnav-commercial-hedging",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -54644,7 +55774,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-fnav-fast-track-contract-gate",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -56144,7 +57281,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-gas-capacity-booking-review-gate",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -56734,7 +57878,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-gas-capacity-order-revision-gate",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -59243,7 +60394,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-gas-infrastructure-risk-governance",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -61041,7 +62199,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-gas-network-decision-chain",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -62617,7 +63782,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-gas-transformation-dataroom-status",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -65101,7 +66273,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-gas-transformation-dependency-map",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -65869,7 +67048,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-german-grid-market-data",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -66574,7 +67760,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-ghost-asset-alert",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -67580,7 +68773,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-gremiencoach-workbook-readiness",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -68805,7 +70005,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-grid-operator-identity-resolution",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -70376,7 +71583,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-grossspeicher-anschluss-readiness-gate",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -72485,7 +73699,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-imsys-schedule-value-chain-readiness",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -73658,7 +74879,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-inhouse-timeseries-analysis",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -74520,7 +75748,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-interconnection-release-file",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -77672,7 +78907,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-investment-budget-cap-exception-governance",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -79535,7 +80777,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-investment-data-review-queue",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -80131,7 +81380,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-investment-maturity-off-balance-gate",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -80988,7 +82244,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-investment-risk-translation-status",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -81828,7 +83091,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-ki-floorwalker-governance",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -82407,7 +83677,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-knowledge-continuity-governance-gate",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -83421,7 +84698,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-layer0-audit-drilldown-note",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -84694,7 +85978,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-legacy-control-technology-transition",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -86164,7 +87455,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-legal-clarification-operating-model",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -86881,7 +88179,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-live-update-stream-contract-status",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -87369,7 +88674,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-load-profile-stream-monitor",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -88784,7 +90096,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-market-communication-evidence-chain",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -89616,7 +90935,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-mastr-quality-oemetadata",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -90038,7 +91364,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-mastr-sync-gap-alerting",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -91127,7 +92460,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-model-viability-evidence-gate",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -93388,7 +94728,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-netzfahrplan-fnav-assessment",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -94010,7 +95357,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-netzkoppelvertrag-workflow",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -95506,7 +96860,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-netzprozess-readiness-gate",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -96545,7 +97906,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-netzsignal-delta-gating",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -97029,7 +98397,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-nkp-reporting",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -98091,7 +99466,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-no-regret-measure-proof-gate",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -99303,7 +100685,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-non-escalation-control-evidence",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -100263,7 +101652,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-nova-decision-lifecycle-readiness",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -101083,7 +102479,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-oep-research-dataset-discovery",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -103623,7 +105026,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-off-balancing-metering-pruefmatrix",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -105012,7 +106422,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-owner-deadline-evidence-gate",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -107366,7 +108783,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-process-sensitization-readiness-map",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -107728,7 +109152,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-re4de-variable-grid-fee-layer3",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -108369,7 +109800,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-redispatch-asset-register",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -109607,7 +111045,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-redispatch-call-data-quality-gate",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -110457,7 +111902,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-redispatch-data-governance",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -111113,7 +112565,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-redispatch-participation-readiness",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -111727,7 +113186,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-redispatch-readiness-gate",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -112507,7 +113973,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-redispatch-settlement-sandbox",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -113046,7 +114519,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-redispatch-special-case-gate",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -113566,7 +115046,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-regulatorische-entgeltlogik",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -115331,7 +116818,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-regulatory-risk-revenue-scenario",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -116555,7 +118049,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-regulatory-signal-process-translator",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -117036,7 +118537,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-reinvest-signal",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -117780,7 +119288,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-renewable-generation-forecast",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -118421,7 +119936,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-reporting-governance",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -119343,7 +120865,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-residual-load-forecast-for-dso",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -119998,7 +121527,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-role-permission-access-readiness-gate",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -120782,7 +122318,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-scqa-decision-framing",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -121009,7 +122552,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-settlement-a96-reconciliation",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -122288,7 +123838,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-smart-meter-cls-data-governance-receipt",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -123201,7 +124758,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-smgw-connector-readiness-status",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -123829,7 +125393,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-stadtwerk-mauer-capability-projection",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -125288,7 +126859,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-stadtwerk-mauer-e2e-process-demo",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -126106,7 +127684,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-stadtwerk-mauer-mastr-data-overlay",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -126966,7 +128551,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-steering-artifact-acceptance-gate",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -128338,7 +129930,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-vdmi-asset-validation-governance",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -129124,7 +130723,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-vdmi-governance-templates",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -129937,7 +131543,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-vnb-100-tage-assessment",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -130918,7 +132531,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-vnb-delta-signal-classifier",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -131909,7 +133529,14 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-vnb-special-topic-workstate",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     },
     {
@@ -132217,11 +133844,19 @@
       ],
       "derivation": {
         "version": "2",
-        "generatedAt": "1970-01-01T00:00:00.000Z"
+        "generatedAt": "1970-01-01T00:00:00.000Z",
+        "lineage": [
+          {
+            "previousId": "fn-water-pricing-net-investment-alignment-gate",
+            "relation": "same",
+            "overlap": 1
+          }
+        ]
       }
     }
   ],
   "gaps": {
+    "retiredFunctionIds": [],
     "unassignedCapabilities": [],
     "capabilitiesWithoutOperations": [
       {

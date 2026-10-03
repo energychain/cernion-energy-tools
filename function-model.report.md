@@ -1,6 +1,6 @@
 # Function model — generated report
 
-Source SHA-256: `795ff7f49cb9f9d5b1895626c51122a5136add75e4862441f94e5f2c4145ad9e`
+Source SHA-256: `5f523aa56cfcf570931a1aa6ab87562d206a89e594a67f88a66cbec6f60a257a`
 
 Capabilities: 172; functions: 121.
 Directed density at minWeight=0.2: **0.058058** (843/14520).
@@ -17,6 +17,17 @@ Operation index entries without action: 271/982.
 
 All curated capabilities are assigned once, including entries without resolvable operations.
 Edges describe catalog evidence only; they grant no authorization.
+
+## ID-Änderungen gegenüber Vorversion
+
+same: 121; merged: 0; split: 0; retired: 0; new: 0.
+Previous source SHA-256: 795ff7f49cb9f9d5b1895626c51122a5136add75e4862441f94e5f2c4145ad9e.
+Counts describe prior IDs in the last membership transition; retired counts IDs that lost their active identity, including merges. No-op generation preserves this provenance.
+Permanently reserved retired IDs: 0.
+
+## retiredFunctionIds (0)
+
+None.
 
 ## unassignedCapabilities (0)
 

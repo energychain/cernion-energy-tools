@@ -4,13 +4,37 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { execFileSync } = require('child_process');
 const { compareCanonicalStrings } = require('../src/canonical-order');
 const { projectFunctionModel } = require('./function-model-projection');
 const { loadServiceEvents } = require('./function-model-sources');
 
 const ROOT = path.join(__dirname, '..');
 
-function buildFunctionModel() {
+function readCommittedFunctionModel(root = ROOT) {
+  let tracked;
+  try {
+    tracked = execFileSync('git', ['ls-tree', 'HEAD', '--', 'function-model.json'], {
+      cwd: root,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+  } catch (error) {
+    if (/not a git repository|Not a valid object name HEAD/.test(String(error.stderr))) return null;
+    throw error;
+  }
+  if (!tracked.trim()) return null;
+  return JSON.parse(
+    execFileSync('git', ['show', 'HEAD:function-model.json'], {
+      cwd: root,
+      encoding: 'utf8',
+      maxBuffer: 20 * 1024 * 1024,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    })
+  );
+}
+
+function buildFunctionModel({ previousModel = readCommittedFunctionModel() } = {}) {
   const { CURATED_CAPABILITIES } = require('../src/capability-catalog');
   const { semanticDomains } = require('../src/semantic-domains');
   const { operations } = require('../operation-capability-index.json');
@@ -25,6 +49,7 @@ function buildFunctionModel() {
     'function-model.parameters.json',
     'scripts/generate-function-model.js',
     'scripts/function-model-projection.js',
+    'scripts/function-model-lineage.js',
     'scripts/function-model-sources.js',
   ]) {
     sources.set(ref, fs.readFileSync(path.join(ROOT, ref), 'utf8'));
@@ -41,6 +66,7 @@ function buildFunctionModel() {
     sourceActions: actions,
     parameters,
     sourceHash,
+    previousModel,
   });
 }
 
@@ -68,6 +94,16 @@ function renderReport(model) {
     'Edges describe catalog evidence only; they grant no authorization.',
     '',
   ];
+  const changes = stats.idChanges;
+  lines.push(
+    '## ID-Änderungen gegenüber Vorversion',
+    '',
+    `same: ${changes.same}; merged: ${changes.merged}; split: ${changes.split}; retired: ${changes.retired}; new: ${changes.new}.`,
+    `Previous source SHA-256: ${changes.previousSourceHash || 'None (initial generation)'}.`,
+    'Counts describe prior IDs in the last membership transition; retired counts IDs that lost their active identity, including merges. No-op generation preserves this provenance.',
+    `Permanently reserved retired IDs: ${gaps.retiredFunctionIds.length}.`,
+    ''
+  );
   for (const [kind, entries] of Object.entries(gaps)) {
     lines.push(`## ${kind} (${entries.length})`, '');
     if (!entries.length) lines.push('None.');
@@ -121,4 +157,4 @@ function main() {
 }
 
 if (require.main === module) main();
-module.exports = { buildFunctionModel, renderReport, writeOrCheck };
+module.exports = { buildFunctionModel, renderReport, writeOrCheck, readCommittedFunctionModel };
