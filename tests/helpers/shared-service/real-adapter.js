@@ -15,16 +15,19 @@ async function createAdapter({
   stores,
   dbPath,
   clock,
+  journalSettings = {},
 } = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'activation-adapter-'));
   const events = [];
   const now = clock || { value: Date.UTC(2026, 0, 1) };
   const Pouch = memoryPouch(stores);
   let schema;
+  let journalSchema;
   jestApi.doMock('pouchdb', () => Pouch);
   try {
     jestApi.isolateModules(() => {
       schema = require('../../../services/function-activation.service');
+      journalSchema = require('../../../services/shared-service-journal.service');
     });
   } finally {
     jestApi.dontMock('pouchdb');
@@ -54,6 +57,16 @@ async function createAdapter({
       ...settings,
     },
   });
+  const journal = broker.createService({
+    ...journalSchema,
+    settings: {
+      ...journalSchema.settings,
+      functionModel: () => service.model,
+      dbPath: dbPath ? `${dbPath}-journal` : path.join(root, 'journal'),
+      clock: () => now.value,
+      ...journalSettings,
+    },
+  });
   let fresh = true;
   const tenants = new Set(['tenant-a']);
   try {
@@ -66,18 +79,22 @@ async function createAdapter({
   return {
     broker,
     service,
+    journal,
     events,
     clock: now,
     async apply(step) {
       if (step.type === 'advance') {
         now.value += step.milliseconds;
         await service.sweep();
+        await journal.serializeWrite(() => journal.compactEntries());
         return;
       }
       if (
         step.type !== 'touch' &&
         step.event !== 'function.coverage.changed.v1' &&
-        step.event !== 'shared-agent.lifecycle.v1'
+        step.event !== 'shared-agent.lifecycle.v1' &&
+        step.event !== 'function.activation.changed.v1' &&
+        step.event !== 'shared-service.correction.v1'
       )
         return;
       const event = { ...step.payload };
@@ -85,6 +102,7 @@ async function createAdapter({
       if (step.type === 'touch') event.at = new Date(now.value).toISOString();
       await broker.emit(step.event || 'function.touched.v1', event);
       await service.settle();
+      await journal.writeQueue;
       fresh = false;
     },
     async snapshot() {
@@ -104,7 +122,9 @@ async function createAdapter({
         activityQueries: [],
         emptyWakes: [],
         corrections: [],
-        journal: [],
+        journal: (
+          await Promise.all([...tenants].map((tenantId) => journal.readEntries(tenantId)))
+        ).flat(),
         authorizationChecks: [],
         handoffs: [],
       };

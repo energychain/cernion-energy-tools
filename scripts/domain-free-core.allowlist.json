@@ -9,6 +9,10 @@
       "reason": "Activation contract and invariant metadata."
     },
     {
+      "term": "actual",
+      "reason": "Test comment describing the real lifecycle mixin."
+    },
+    {
       "term": "adapter",
       "reason": "Test adapter interface for injecting real services."
     },
@@ -71,6 +75,10 @@
     {
       "term": "class",
       "reason": "JavaScript class syntax in the memory database test double."
+    },
+    {
+      "term": "clearance",
+      "reason": "Existing sensitivity clearance authorization field."
     },
     {
       "term": "confidence",
@@ -145,6 +153,10 @@
       "reason": "Standard Array.filter operation."
     },
     {
+      "term": "freeze",
+      "reason": "JavaScript Object.freeze for immutable kind constants."
+    },
+    {
       "term": "functions",
       "reason": "Generic Function collection from the common contract."
     },
@@ -187,6 +199,10 @@
     {
       "term": "known",
       "reason": "Static event availability description."
+    },
+    {
+      "term": "korrektur",
+      "reason": "Generic correction event summary from the shared contract."
     },
     {
       "term": "learning",
@@ -233,6 +249,10 @@
       "reason": "Sortierreihenfolge im allgemeinen Helfer canonical-order; kein Fachbegriff im Kern."
     },
     {
+      "term": "other",
+      "reason": "Test comment referring to upstream services."
+    },
+    {
       "term": "pending",
       "reason": "Promises for serializing tenant writes; no subject-specific state."
     },
@@ -261,6 +281,10 @@
       "reason": "Generic signal kind, no question text or domain example."
     },
     {
+      "term": "queue",
+      "reason": "Promise queue serializes persistence and retention."
+    },
+    {
       "term": "record",
       "reason": "Generic recording of clustering pairs in the generated review report."
     },
@@ -275,6 +299,10 @@
     {
       "term": "report",
       "reason": "Generated review artifact."
+    },
+    {
+      "term": "response",
+      "reason": "Generic API response variable."
     },
     {
       "term": "return",
@@ -357,6 +385,10 @@
       "reason": "Configurable numeric similarity or edge threshold."
     },
     {
+      "term": "timestamp",
+      "reason": "Generic ISO timestamp validation."
+    },
+    {
       "term": "transition",
       "reason": "Persistent lineage transition metadata."
     },
@@ -367,6 +399,10 @@
     {
       "term": "value",
       "reason": "Internal PRNG state variable."
+    },
+    {
+      "term": "verantwortung",
+      "reason": "Generic human/CET responsibility summary required by the Activation contract."
     },
     {
       "term": "version",

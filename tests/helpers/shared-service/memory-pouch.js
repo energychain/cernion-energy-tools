@@ -32,6 +32,12 @@ function memoryPouch(stores = new Map()) {
           .map(([id, doc]) => ({ id, ...(include_docs ? { doc: clone(doc) } : {}) })),
       };
     }
+    async remove(document) {
+      const old = await this.get(document._id);
+      if (old._rev !== document._rev) throw Object.assign(new Error('conflict'), { status: 409 });
+      this.records.delete(document._id);
+      return { ok: true, id: document._id };
+    }
     async close() {}
   };
 }
