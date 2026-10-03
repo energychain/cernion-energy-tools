@@ -128,3 +128,19 @@ boundary and a dormant function outside the window.
 separate module, such as `src/workbench-system-activity.js`. This optional future
 path is configured for the core scan. The existing intent router calls that
 module; its older branches are not blanket-allowlisted.
+
+## Journal observations (#698)
+
+The default `real-adapter.js` now instantiates the real `journal` service with a
+PouchDB test double at the lifecycle seam. `snapshot().journal` contains the
+actual tenant journal entries, including automatically recorded correction refs.
+Fixture activation/lifecycle events can be sent through `apply`; correction
+steps emit the versioned event directly. Missing services' observations remain
+absent. No activation, agent, activity-query or learning behavior is simulated.
+
+`tests/shared-service-journal.service.test.js` exercises this adapter for immutable
+writes, deterministic digests, reference visibility, identity lineage, event
+subscriptions and lossless retention. I-5 and I-7 still require #700 and #701,
+respectively, and remain explicit todos. When #709 lands, extend its activation
+adapter with these journal service/observation hooks and retain fake-timer-aware
+broker teardown.
