@@ -1,6 +1,7 @@
 'use strict';
 
 const crypto = require('crypto');
+const coverageTurn = require('../src/function-coverage-turn');
 const { Errors } = require('moleculer');
 const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 const { principal, deny } = require('../src/domain-router-policy');
@@ -104,6 +105,11 @@ function workbenchError(message, code = 'WORKBENCH_POLICY_BLOCKED', data = {}) {
 
 module.exports = {
   name: 'workbench',
+  hooks: {
+    before: { chat: coverageTurn.before, query: coverageTurn.before },
+    after: { chat: coverageTurn.after, query: coverageTurn.after },
+    error: { chat: coverageTurn.error, query: coverageTurn.error },
+  },
   mixins: WORKBENCH_DATABASES.map(workbenchDbMixin),
   actions: {
     'activities.list': action(
