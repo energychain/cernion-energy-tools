@@ -128,3 +128,20 @@ boundary and a dormant function outside the window.
 separate module, such as `src/workbench-system-activity.js`. This optional future
 path is configured for the core scan. The existing intent router calls that
 module; its older branches are not blanket-allowlisted.
+
+## Journal observations (#698)
+
+The existing activation `real-adapter.js` from #709 also starts the real `journal`
+service, reusing `memory-pouch.js` at the constructor seam and retaining the
+existing fake-timer-aware `close()`. `snapshot().journal` contains actual records
+for all observed tenants, including correction refs. Real activation transitions
+from touches, received coverage and time advances automatically populate it.
+Fixture lifecycle/correction events are also delivered to the real subscribers.
+Both services use the same injected clock and function model. Missing services'
+observations remain empty; no agent, activity-query or learning behavior is simulated.
+
+`tests/shared-service-journal.service.test.js` checks immutable writes,
+deterministic digests, visibility, identity lineage, the production activation
+producer, event retries and lossless retention. The journal persistence test
+checks real PouchDB restarts and archival. I-3 remains active against the actual
+activation service; I-5 and I-7 remain explicit todos pending #700 and #701.

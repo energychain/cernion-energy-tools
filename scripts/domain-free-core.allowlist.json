@@ -263,6 +263,70 @@
     {
       "term": "cutoff",
       "reason": "Generic timestamp boundary for configurable touch retention, independent of catalog contents."
+    },
+    {
+      "term": "domain",
+      "reason": "Existing domain-router service/import name used solely to reuse case authorization; no domain semantics."
+    },
+    {
+      "term": "process",
+      "reason": "Node.js process.env configuration API."
+    },
+    {
+      "term": "identity",
+      "reason": "Generic journal/function identity validation."
+    },
+    {
+      "term": "queue",
+      "reason": "Promise queue serializes persistence and retention."
+    },
+    {
+      "term": "timestamp",
+      "reason": "Generic ISO timestamp validation."
+    },
+    {
+      "term": "verantwortung",
+      "reason": "Generic human/CET responsibility summary required by the Activation contract."
+    },
+    {
+      "term": "reference",
+      "reason": "Generic object reference visibility check."
+    },
+    {
+      "term": "korrektur",
+      "reason": "Generic correction event summary from the shared contract."
+    },
+    {
+      "term": "local",
+      "reason": "Moleculer getLocalService API; in-process service lookup."
+    },
+    {
+      "term": "response",
+      "reason": "Generic API response variable."
+    },
+    {
+      "term": "clearance",
+      "reason": "Existing sensitivity clearance authorization field."
+    },
+    {
+      "term": "freeze",
+      "reason": "JavaScript Object.freeze for immutable kind constants."
+    },
+    {
+      "term": "schema version",
+      "reason": "Generic version of the stable digest response contract."
+    },
+    {
+      "term": "version",
+      "reason": "Generic response contract version."
+    },
+    {
+      "term": "actual",
+      "reason": "Test comment describing the real lifecycle mixin."
+    },
+    {
+      "term": "other",
+      "reason": "Test comment referring to upstream services."
     }
   ]
 }
