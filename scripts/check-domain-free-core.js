@@ -3,6 +3,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { compareCanonicalStrings } = require('../src/canonical-order');
 const ROOT = path.resolve(__dirname, '..');
 
 function normalize(value) {
@@ -41,7 +42,7 @@ function buildVocabulary(
     add(item.label);
     (item.keywords || []).forEach(add);
   }
-  return [...terms].sort();
+  return [...terms].sort(compareCanonicalStrings);
 }
 
 function loadCatalogs(root = ROOT) {
@@ -103,13 +104,17 @@ function checkCore({ root = ROOT, config, catalogs = loadCatalogs(root) } = {}) 
   if (missing.length) throw new Error(`Required core paths missing: ${missing.join(', ')}`);
   if (!files.size) throw new Error('No core files checked');
   const findings = [...files]
-    .sort()
+    .sort(compareCanonicalStrings)
     .flatMap((file) =>
       scanText(fs.readFileSync(path.resolve(root, file), 'utf8'), vocabulary, allowlist).map(
         (finding) => ({ file, ...finding })
       )
     );
-  return { files: [...files].sort(), vocabularySize: vocabulary.length, findings };
+  return {
+    files: [...files].sort(compareCanonicalStrings),
+    vocabularySize: vocabulary.length,
+    findings,
+  };
 }
 
 if (require.main === module) {

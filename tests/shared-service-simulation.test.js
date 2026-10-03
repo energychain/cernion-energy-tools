@@ -1,6 +1,7 @@
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { compareCanonicalStrings } = require('../src/canonical-order');
 const {
   FIXED_SEEDS,
   loadFunctions,
@@ -79,8 +80,10 @@ test('Fake-clock timestamps and versioned events retain #693 payloads', async ()
   for (const step of history) await stub.apply(step);
   expect(clock.now).toBeGreaterThan(Date.UTC(2026, 0, 1));
   for (const step of stub.seen.filter((s) => s.event === 'function.touched.v1')) {
-    expect(Object.keys(step.payload).sort()).toEqual(
-      ['tenantId', 'actorId', 'functionId', 'conversationId', 'confidence', 'at'].sort()
+    expect(Object.keys(step.payload).sort(compareCanonicalStrings)).toEqual(
+      ['tenantId', 'actorId', 'functionId', 'conversationId', 'confidence', 'at'].sort(
+        compareCanonicalStrings
+      )
     );
     expect(Number.isFinite(Date.parse(step.payload.at))).toBe(true);
   }
