@@ -366,6 +366,7 @@ describe('OpenAI Compatible Service', () => {
       openWebuiOrgId: 'ow-org',
       clientId: 'openwebui-tenant-a',
       message: 'MSCONS fehlt, was ist der nächste sichere Schritt?',
+      intentMode: 'decision_support',
       requestId: undefined,
       correlationId: undefined,
     });

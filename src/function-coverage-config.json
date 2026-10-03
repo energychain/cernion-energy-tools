@@ -1,0 +1,20 @@
+{
+  "scoreVersion": "1",
+  "halfLifeMs": 2592000000,
+  "retentionMs": 15552000000,
+  "hysteresis": 0.05,
+  "crossConversationMultiplier": 1.5,
+  "recentReferenceLimit": 8,
+  "maxSignalsPerTurn": 64,
+  "maxPendingTurns": 128,
+  "weights": {
+    "knowledge_query": 0.04,
+    "status_query": 0.04,
+    "data_lookup": 0.1,
+    "case_start": 0.4,
+    "case_followup": 0.3,
+    "decision_support": 0.4,
+    "tool_run_request": 0.5,
+    "evidence_attachment": 0.5
+  }
+}

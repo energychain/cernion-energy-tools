@@ -215,6 +215,166 @@
     {
       "term": "order",
       "reason": "Sortierreihenfolge im allgemeinen Helfer canonical-order; kein Fachbegriff im Kern."
+    },
+    {
+      "term": "access",
+      "reason": "Generic authorization access decision in #695 tests; no domain behavior."
+    },
+    {
+      "term": "break",
+      "reason": "JavaScript loop control keyword."
+    },
+    {
+      "term": "class",
+      "reason": "Generic configurable signal class, not a business classification."
+    },
+    {
+      "term": "clearance",
+      "reason": "Existing sensitivity clearance policy observed unchanged by coverage tests."
+    },
+    {
+      "term": "concept",
+      "reason": "Neutral intent-routing test request, without a catalog example."
+    },
+    {
+      "term": "contracts",
+      "reason": "Closed event payload contract assertions."
+    },
+    {
+      "term": "cross",
+      "reason": "Generic cross-conversation repetition multiplier."
+    },
+    {
+      "term": "decision",
+      "reason": "Existing decision_support intent mode and authorization decision metadata."
+    },
+    {
+      "term": "defaults",
+      "reason": "Default configuration values imported from versioned data."
+    },
+    {
+      "term": "delivery",
+      "reason": "Generic persisted event delivery state, not a business delivery process."
+    },
+    {
+      "term": "domain",
+      "reason": "Existing domain-router-policy module import; coverage adds no domain classification."
+    },
+    {
+      "term": "evidence",
+      "reason": "Existing evidence_attachment signal band and privacy test payload; no business content."
+    },
+    {
+      "term": "governance",
+      "reason": "Existing cernion-governance-assistant facade model identifier in entrypoint regressions."
+    },
+    {
+      "term": "intent",
+      "reason": "Existing generic Workbench intent mode."
+    },
+    {
+      "term": "local",
+      "reason": "Moleculer local service lookup, with no external effects."
+    },
+    {
+      "term": "lookup",
+      "reason": "Function model lookup and data_lookup intent."
+    },
+    {
+      "term": "management",
+      "reason": "Existing tenant management audience for coverage reads."
+    },
+    {
+      "term": "manager",
+      "reason": "Generic existing-role audience predicate."
+    },
+    {
+      "term": "mapping",
+      "reason": "Existing Workbench identity mapping and model lookup test terminology."
+    },
+    {
+      "term": "matrix",
+      "reason": "Required paginated Person x Function read contract from #695."
+    },
+    {
+      "term": "mismatch",
+      "reason": "Fail-closed tenant/actor equality validation."
+    },
+    {
+      "term": "pending",
+      "reason": "Bounded outbox and background task delivery state."
+    },
+    {
+      "term": "period",
+      "reason": "Broker shutdown grace period in the fake-timer adapter."
+    },
+    {
+      "term": "project",
+      "reason": "Pure projection helper name; no business project entity."
+    },
+    {
+      "term": "projection",
+      "reason": "Generic read model projection of observed signals."
+    },
+    {
+      "term": "queue",
+      "reason": "In-process serialized persistence promise queue."
+    },
+    {
+      "term": "record",
+      "reason": "Generic touch recording action and method."
+    },
+    {
+      "term": "reference",
+      "reason": "Hashed source/conversation reference, without chat content."
+    },
+    {
+      "term": "release",
+      "reason": "Restore the original context call function and release observation state."
+    },
+    {
+      "term": "request",
+      "reason": "Existing request identifier and tool_run_request intent."
+    },
+    {
+      "term": "response",
+      "reason": "Originating response preserved by best-effort observations; never persisted."
+    },
+    {
+      "term": "schema",
+      "reason": "Moleculer service schema and closed document schema."
+    },
+    {
+      "term": "scope",
+      "reason": "Neutral scope-a policy fixture proving permissions stay unchanged."
+    },
+    {
+      "term": "status",
+      "reason": "Generic DB conflict status and existing status_query intent."
+    },
+    {
+      "term": "update",
+      "reason": "SHA-256 update API and outbox marker update."
+    },
+    {
+      "term": "version",
+      "reason": "Score/model source version metadata."
+    },
+    {
+      "term": "context",
+      "reason": "Existing Workbench context method and generic request context; coverage stores none of it."
+    },
+    {
+      "term": "delta",
+      "reason": "Generic numeric offset around the configured hysteresis boundary in tests."
+    },
+    {
+      "term": "restore",
+      "reason": "Restoring the original context call function after an error, without changing application state."
+    },
+    {
+      "term": "boundary",
+      "reason": "Generic numerical hysteresis threshold boundary in exact/adjacent-value tests."
     }
   ]
 }

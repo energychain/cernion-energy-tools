@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const coverageTurn = require('../src/function-coverage-turn');
 const { Errors } = require('moleculer');
 const { CHAT_MODES } = require('../src/personal-agent-routing');
 const llmClient = require('../src/llm-client');
@@ -285,6 +286,11 @@ async function buildToolCallingChatCompletion(ctx, messages, tools, requestedMod
 
 module.exports = {
   name: 'openai-compatible',
+  hooks: {
+    before: { chatCompletions: coverageTurn.before },
+    after: { chatCompletions: coverageTurn.after },
+    error: { chatCompletions: coverageTurn.error },
+  },
 
   actions: {
     chatCompletions: {
@@ -479,9 +485,10 @@ module.exports = {
             message: followup
               ? `Vorheriges Thema (Gesprächskontext): ${followup.topic}\n${followup.observations.join('\n')}\nAktuelle Rückfrage: ${question}\nBitte erkläre den fachlichen Zusammenhang und die Bedeutung mit nötigen Einschränkungen und benötigten Details.`
               : question,
+            intentMode,
             requestId: metadata.requestId,
             correlationId: metadata.correlationId,
-            ...(isReadOnlyIntent(intentMode) ? { intentMode, cetCaseId: metadata.cetCaseId } : {}),
+            ...(isReadOnlyIntent(intentMode) ? { cetCaseId: metadata.cetCaseId } : {}),
           });
           const content = compactMarkdown(renderWorkbenchResponse(workbench, intentMode, followup));
           const promptTokens = estimateTokens(question);
