@@ -24,6 +24,11 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const {
+  loadActionResolution,
+  resolveOperationAction,
+  actionCoverage,
+} = require('./operation-action-resolution');
 
 const { version: packageVersion } = require('../package.json');
 const { classifyOperation, OPERATION_KINDS } = require('../src/operation-capability-classifier');
@@ -99,6 +104,7 @@ function buildIndex() {
   const spec = JSON.parse(fs.readFileSync(OPENAPI_PATH, 'utf8'));
   const rawOperations = loadRawOperations(spec);
   const dedupedOperations = dedupeOperations(rawOperations);
+  const resolution = loadActionResolution(ROOT);
 
   const entries = dedupedOperations.map((op) => {
     const { aliases, ...rest } = op;
@@ -106,7 +112,7 @@ function buildIndex() {
       curatedCapabilities: ALL_CAPABILITIES,
       allOperations: dedupedOperations,
     });
-    return { ...classified, aliases };
+    return { ...classified, ...resolveOperationAction(op, resolution), aliases };
   });
 
   return {
@@ -126,6 +132,11 @@ function checkCoverage(entries, expectedCount) {
   }
 
   for (const entry of entries) {
+    if (!entry.action && !entry.actionResolutionReason) {
+      problems.push(
+        `${entry.method} ${entry.path}: missing action requires actionResolutionReason.`
+      );
+    }
     if (!OPERATION_KINDS.includes(entry.operationKind)) {
       problems.push(
         `${entry.method} ${entry.path}: invalid operationKind "${entry.operationKind}".`
@@ -169,6 +180,7 @@ function main() {
       agentableCount,
       nonAgentableCount: entries.length - agentableCount,
       byOperationKind: kindCounts,
+      ...actionCoverage(entries),
     },
     operations: entries,
   };

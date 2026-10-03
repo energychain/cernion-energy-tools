@@ -120,6 +120,30 @@ function extractServiceActions(file, sources, root) {
       )
         exported = expression.right;
     }
+    if (
+      exported?.type === 'CallExpression' &&
+      !exported.arguments.length &&
+      ['ArrowFunctionExpression', 'FunctionExpression'].includes(exported.callee.type) &&
+      exported.callee.body.type === 'BlockStatement'
+    ) {
+      const statements = exported.callee.body.body;
+      // Only an unconditional final return is statically safe; never execute the IIFE.
+      if (
+        statements.at(-1)?.type === 'ReturnStatement' &&
+        !statements
+          .slice(0, -1)
+          .some((statement) =>
+            ['IfStatement', 'ReturnStatement', 'TryStatement'].includes(statement.type)
+          )
+      ) {
+        for (const statement of statements)
+          if (statement.type === 'VariableDeclaration')
+            for (const declaration of statement.declarations)
+              if (declaration.id.type === 'Identifier')
+                bindings.set(declaration.id.name, declaration.init);
+        exported = statements.at(-1).argument;
+      }
+    }
     function properties(node) {
       if (node?.type === 'Identifier') return properties(bindings.get(node.name));
       if (
