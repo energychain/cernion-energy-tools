@@ -510,8 +510,15 @@ function capabilities() {
   };
 }
 
+/** Effective embedding identity, resolved by the configured adapter. */
+function embeddingConfiguration() {
+  const adapter = getAdapter();
+  return { provider: adapter.id, model: adapter.getEmbeddingModelName() };
+}
+
 module.exports = {
   SchemaType,
+  embeddingConfiguration,
   generateText,
   generateStructured,
   embeddings,

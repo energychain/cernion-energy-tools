@@ -254,6 +254,7 @@ function capabilities() {
 }
 
 module.exports = {
+  getEmbeddingModelName,
   id: 'gemini',
   generateText,
   generateStructured,

@@ -1,10 +1,6 @@
 {
   "entries": [
     {
-      "term": "window",
-      "reason": "Generic configurable inactivity time window for I-2, as clarified in #693; no domain behavior."
-    },
-    {
       "term": "action",
       "reason": "Generic action signal; no operation-specific behavior."
     },
@@ -25,12 +21,24 @@
       "reason": "Generic system activity response compared with digest."
     },
     {
+      "term": "baseline",
+      "reason": "Statistical baseline for graph density."
+    },
+    {
       "term": "blocked",
       "reason": "Existing guard result observed by the safety oracle."
     },
     {
+      "term": "break",
+      "reason": "JavaScript loop control keyword."
+    },
+    {
       "term": "budget",
       "reason": "Tenant activation bound from the invariant contract."
+    },
+    {
+      "term": "cache",
+      "reason": "Offline embedding cache, independent of catalog semantics."
     },
     {
       "term": "candidate",
@@ -39,6 +47,14 @@
     {
       "term": "capabilities",
       "reason": "Function contract field populated from catalog data."
+    },
+    {
+      "term": "capability",
+      "reason": "Name des Katalogobjekts im Datenvertrag #693; allgemeines Vertragsvokabular, keine fachliche Fallunterscheidung."
+    },
+    {
+      "term": "catalog",
+      "reason": "Generic input data source, with no catalog-specific branches."
     },
     {
       "term": "cause",
@@ -57,6 +73,10 @@
       "reason": "Required function.touched.v1 payload field."
     },
     {
+      "term": "context",
+      "reason": "Generic projection dependency container."
+    },
+    {
       "term": "contract",
       "reason": "Common data contract and trace-recording stub name."
     },
@@ -69,12 +89,20 @@
       "reason": "Coverage contract and invariant metadata."
     },
     {
+      "term": "cross",
+      "reason": "Cross-group pair scoring in complete linkage."
+    },
+    {
       "term": "delete",
       "reason": "Generic deletion of trace chunks during minimization."
     },
     {
       "term": "dependencies",
       "reason": "Upstream readiness metadata for explicit todos."
+    },
+    {
+      "term": "domain",
+      "reason": "Catalog field name used for data-driven joins and normalization."
     },
     {
       "term": "error",
@@ -89,8 +117,20 @@
       "reason": "Function contract field and versioned event transport."
     },
     {
+      "term": "evidence",
+      "reason": "Generic graph evidence contract."
+    },
+    {
+      "term": "evidenz",
+      "reason": "Required German report heading for human review."
+    },
+    {
       "term": "external",
       "reason": "Generic effect classification in safety observations."
+    },
+    {
+      "term": "factor",
+      "reason": "Numeric rarity multiplier."
     },
     {
       "term": "filter",
@@ -101,12 +141,32 @@
       "reason": "Generic Function collection from the common contract."
     },
     {
+      "term": "generation",
+      "reason": "Offline artifact generation and provenance."
+    },
+    {
+      "term": "generator",
+      "reason": "Offline artifact generator metadata."
+    },
+    {
+      "term": "group",
+      "reason": "Generic clustering operation."
+    },
+    {
       "term": "handoff",
       "reason": "Generic human responsibility transfer observation."
     },
     {
+      "term": "identity",
+      "reason": "Persistent function identity metadata."
+    },
+    {
       "term": "interval",
       "reason": "SharedAgent wake interval in the common contract."
+    },
+    {
+      "term": "isolated",
+      "reason": "Graph degree statistic."
     },
     {
       "term": "journal",
@@ -117,12 +177,24 @@
       "reason": "Generic forbidden response path in I-5; no domain content."
     },
     {
+      "term": "known",
+      "reason": "Static event availability description."
+    },
+    {
       "term": "learning",
       "reason": "Upstream generic correction module path from #701."
     },
     {
+      "term": "level",
+      "reason": "Catalog abstractionLevel field copied as data."
+    },
+    {
       "term": "lifecycle",
       "reason": "SharedAgent contract field."
+    },
+    {
+      "term": "local",
+      "reason": "Local CommonJS source analysis; no domain-specific behavior."
     },
     {
       "term": "model",
@@ -141,24 +213,68 @@
       "reason": "Function contract field; generic operation collection."
     },
     {
+      "term": "order",
+      "reason": "Sortierreihenfolge im allgemeinen Helfer canonical-order; kein Fachbegriff im Kern."
+    },
+    {
+      "term": "placeholder",
+      "reason": "Configured infrastructure suppression, populated from parameters."
+    },
+    {
       "term": "policy",
       "reason": "Existing authorization policy observed without modification."
+    },
+    {
+      "term": "process",
+      "reason": "Node.js process API and CLI lifecycle."
+    },
+    {
+      "term": "project",
+      "reason": "Generic projection function name."
+    },
+    {
+      "term": "projection",
+      "reason": "Generic projection module name."
     },
     {
       "term": "question",
       "reason": "Generic signal kind, no question text or domain example."
     },
     {
+      "term": "record",
+      "reason": "Generic recording of clustering pairs in the generated review report."
+    },
+    {
+      "term": "reference",
+      "reason": "Source-reference diagnostics."
+    },
+    {
       "term": "replay",
       "reason": "Generic deterministic trace replay."
+    },
+    {
+      "term": "report",
+      "reason": "Generated review artifact."
     },
     {
       "term": "return",
       "reason": "JavaScript return keyword."
     },
     {
+      "term": "routing",
+      "reason": "Catalog routingPattern field included as text only; no routing execution."
+    },
+    {
       "term": "schedule",
       "reason": "SharedAgent wake mode in the common contract."
+    },
+    {
+      "term": "schema",
+      "reason": "Cache and model schema metadata."
+    },
+    {
+      "term": "schema version",
+      "reason": "Generic cache format metadata."
     },
     {
       "term": "service",
@@ -189,6 +305,10 @@
       "reason": "Function contract source references."
     },
     {
+      "term": "stale",
+      "reason": "Cache freshness and generated artifact drift diagnostics."
+    },
+    {
       "term": "state",
       "reason": "Activation contract field and test observation."
     },
@@ -205,16 +325,28 @@
       "reason": "Tenant isolation in the common contract."
     },
     {
+      "term": "threshold",
+      "reason": "Configurable numeric similarity or edge threshold."
+    },
+    {
+      "term": "transition",
+      "reason": "Persistent lineage transition metadata."
+    },
+    {
+      "term": "update",
+      "reason": "Hash and cache update operations."
+    },
+    {
       "term": "value",
       "reason": "Internal PRNG state variable."
     },
     {
-      "term": "capability",
-      "reason": "Name des Katalogobjekts im Datenvertrag #693; allgemeines Vertragsvokabular, keine fachliche Fallunterscheidung."
+      "term": "version",
+      "reason": "Versioned text and derivation metadata."
     },
     {
-      "term": "order",
-      "reason": "Sortierreihenfolge im allgemeinen Helfer canonical-order; kein Fachbegriff im Kern."
+      "term": "window",
+      "reason": "Generic configurable inactivity time window for I-2, as clarified in #693; no domain behavior."
     }
   ]
 }

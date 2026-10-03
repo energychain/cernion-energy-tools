@@ -39,7 +39,11 @@ function buildFunctionModel({ previousModel = readCommittedFunctionModel() } = {
   const { semanticDomains } = require('../src/semantic-domains');
   const { operations } = require('../operation-capability-index.json');
   const parameters = require('../function-model.parameters.json');
+  const embeddingFile = path.join(ROOT, 'function-model.embeddings.json');
+  const embeddingText = fs.existsSync(embeddingFile) ? fs.readFileSync(embeddingFile, 'utf8') : '';
+  const embeddingCache = embeddingText ? JSON.parse(embeddingText) : {};
   const { events, sources, actions } = loadServiceEvents(ROOT);
+  sources.set('function-model.embeddings.json', embeddingText);
   for (const ref of [
     'src/capability-catalog.js',
     'src/semantic-domains.js',
@@ -50,6 +54,7 @@ function buildFunctionModel({ previousModel = readCommittedFunctionModel() } = {
     'scripts/generate-function-model.js',
     'scripts/function-model-projection.js',
     'scripts/function-model-lineage.js',
+    'scripts/function-model-embeddings.js',
     'scripts/function-model-sources.js',
   ]) {
     sources.set(ref, fs.readFileSync(path.join(ROOT, ref), 'utf8'));
@@ -67,6 +72,7 @@ function buildFunctionModel({ previousModel = readCommittedFunctionModel() } = {
     parameters,
     sourceHash,
     previousModel,
+    embeddingCache,
   });
 }
 
@@ -94,6 +100,17 @@ function renderReport(model) {
     'Edges describe catalog evidence only; they grant no authorization.',
     '',
   ];
+  lines.push(
+    '## Zusammenführungen ohne strukturelle Evidenz',
+    '',
+    ...(model.semanticOnlyMerges.length
+      ? model.semanticOnlyMerges.map(
+          (entry) =>
+            `- ${entry.capabilities.join(' ↔ ')}; similarity=${entry.similarity.toFixed(6)}`
+        )
+      : ['None.']),
+    ''
+  );
   const changes = stats.idChanges;
   lines.push(
     '## ID-Änderungen gegenüber Vorversion',
@@ -131,10 +148,34 @@ function renderReport(model) {
   return lines.join('\n');
 }
 
+function renderLineageReport(model) {
+  const lines = [
+    '# Function model lineage — generated report',
+    '',
+    `Current source SHA-256: ${model.sourceHash}.`,
+    `Transition statistics (last membership transition): ${JSON.stringify(model.statistics.idChanges)}.`,
+    '',
+    '| Historical ID | Current successors |',
+    '| --- | --- |',
+  ];
+  for (const previous of model.lineageHistory) {
+    const successors = model.functions.filter(
+      (fn) =>
+        fn.functionId === previous.functionId ||
+        fn.derivation.lineage.some((entry) => entry.previousId === previous.functionId)
+    );
+    lines.push(
+      `| ${previous.functionId} | ${successors.map((fn) => fn.functionId).join(', ') || 'No surviving capability'} |`
+    );
+  }
+  return [...lines, ''].join('\n');
+}
+
 function writeOrCheck(model, { check = false, outputDir = ROOT } = {}) {
   const outputs = {
     'function-model.json': `${JSON.stringify(model, null, 2)}\n`,
     'function-model.report.md': renderReport(model),
+    'function-model.lineage.report.md': renderLineageReport(model),
   };
   const stale = [];
   for (const [name, text] of Object.entries(outputs)) {

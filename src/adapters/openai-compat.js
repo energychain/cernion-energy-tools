@@ -161,6 +161,7 @@ function capabilities() {
 }
 
 module.exports = {
+  getEmbeddingModelName,
   id: 'openai-compat',
   generateText,
   generateStructured,

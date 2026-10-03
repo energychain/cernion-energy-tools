@@ -4,6 +4,7 @@ const { Utils } = require('moleculer');
 const { tokenize } = require('../src/operation-capability-index');
 const { compareCanonicalStrings } = require('../src/canonical-order');
 const DEFAULT_PARAMETERS = require('../function-model.parameters.json');
+const { resolveEmbeddings, semanticScore } = require('./function-model-embeddings');
 const { assignFunctionLineage } = require('./function-model-lineage');
 
 const unique = (values) => [...new Set(values.filter(Boolean))].sort(compareCanonicalStrings);
@@ -138,6 +139,32 @@ function aggregate(group, context) {
   return fn;
 }
 
+function recordSemanticOnlyPairs(leftGroup, rightGroup, capabilities, maps, rarity, context) {
+  for (const a of leftGroup)
+    for (const b of rightGroup) {
+      if (
+        [...maps[a]].some(
+          ([key, feature]) =>
+            maps[b].has(key) &&
+            rarity.get(key) > 0 &&
+            context.parameters.structuralEvidenceKinds.includes(feature.kind)
+        )
+      )
+        continue;
+      const semantic = semanticScore(
+        [capabilities[a].capability],
+        [capabilities[b].capability],
+        context.embeddingEntries,
+        context.parameters
+      );
+      if (semantic)
+        context.semanticOnlyMerges.push({
+          capabilities: [capabilities[a].capability, capabilities[b].capability],
+          similarity: semantic.similarity,
+        });
+    }
+}
+
 function groupCapabilities(capabilities, context) {
   const maps = capabilities.map((cap) =>
     featureMap(aggregate([cap], context), {
@@ -146,8 +173,23 @@ function groupCapabilities(capabilities, context) {
     })
   );
   const rarity = featureRarity(maps, context.parameters);
-  const pairScores = maps.map((left) =>
+  const structuralScores = maps.map((left) =>
     maps.map((right) => similarity(left, right, rarity, context.parameters))
+  );
+  const pairScores = maps.map((_, a) =>
+    maps.map((_, b) => {
+      const semantic = semanticScore(
+        [capabilities[a].capability],
+        [capabilities[b].capability],
+        context.embeddingEntries,
+        context.parameters
+      );
+      return Math.min(
+        1,
+        structuralScores[a][b] +
+          (semantic ? context.parameters.semanticGroupingWeight * semantic.similarity : 0)
+      );
+    })
   );
   const groups = capabilities.map((_, index) => [index]);
   // Deterministic complete-link agglomeration from individual capabilities.
@@ -162,6 +204,7 @@ function groupCapabilities(capabilities, context) {
       }
     }
     if (!best) break;
+    recordSemanticOnlyPairs(groups[best.i], groups[best.j], capabilities, maps, rarity, context);
     groups[best.i].push(...groups[best.j]);
     groups[best.i].sort((a, b) => a - b);
     groups.splice(best.j, 1);
@@ -229,57 +272,89 @@ function selectNeighborhoods(functions, parameters) {
   return { prunedEdgeCount, degreeLimit: limit, budgetIsolatedFunctionIds };
 }
 
-function connectFunctions(functions, parameters) {
+function independentEvidence(evidence) {
+  const byRef = new Map();
+  for (const item of evidence) {
+    const existing = byRef.get(item.ref);
+    if (
+      !existing ||
+      item.weight > existing.weight ||
+      (item.weight === existing.weight && item.kind !== 'shared')
+    )
+      byRef.set(item.ref, item);
+  }
+  return [...byRef.values()];
+}
+
+function pairEvidence(left, right, leftMap, rightMap, rarity, parameters, embeddingEntries) {
+  const evidence = [];
+  function contribute(kind, feature, ref, strength, extra = {}) {
+    const key = `${feature}:${ref}`;
+    const factor = Math.min(rarity.get(key) || 0, extra.listenerRarity ?? 1);
+    const blocked = Object.values(parameters.hubFeatures).some((refs) => refs.includes(ref));
+    if (!factor || blocked) return;
+    const weight = parameters.maxEvidenceContribution * Math.min(1, strength) * factor;
+    if (weight > 0) evidence.push({ kind, feature, ref, weight, ...extra });
+  }
+  for (const [key, feature] of leftMap) {
+    if (rightMap.has(key) && !['events', 'resources'].includes(feature.kind)) {
+      contribute('shared', feature.kind, feature.ref, parameters.sharedWeight * feature.weight);
+    }
+  }
+  for (const event of left.events.emits) {
+    const listener = right.events.listens.find((pattern) => Utils.match(event, pattern));
+    if (listener) {
+      const factor = Math.min(
+        rarity.get(`events:${event}`) || 0,
+        rarity.get(`events:${listener}`) || 0
+      );
+      contribute('event', 'events', event, parameters.eventWeight, {
+        listener,
+        listenerRarity: factor,
+      });
+    }
+  }
+  for (const target of left.writesTo) {
+    if (right.dataSources.includes(target))
+      contribute('write-read', 'resources', target, parameters.writeReadWeight);
+  }
+  // Several representations of the same ref cannot masquerade as multiple
+  // independent features (e.g. shared data source plus write/read target).
+  const independent = independentEvidence(evidence);
+  const semantic = semanticScore(
+    left.capabilities,
+    right.capabilities,
+    embeddingEntries,
+    parameters
+  );
+  if (semantic)
+    independent.push({
+      kind: 'semantic',
+      ref: 'semantic',
+      weight:
+        parameters.maxEvidenceContribution *
+        Math.min(1, parameters.semanticNeighborWeight * semantic.similarity),
+      similarity: semantic.similarity,
+    });
+  return independent;
+}
+
+function connectFunctions(functions, parameters, embeddingEntries) {
   const maps = functions.map((fn) => causalFeatureMap(fn, parameters));
   const rarity = featureRarity(maps, parameters);
   const automaticHubs = [...rarity].filter(([, weight]) => weight === 0).map(([key]) => key);
   for (let i = 0; i < functions.length; i++) {
     for (let j = 0; j < functions.length; j++) {
       if (i === j) continue;
-      const evidence = [];
-      function contribute(kind, feature, ref, strength, extra = {}) {
-        const key = `${feature}:${ref}`;
-        const factor = Math.min(rarity.get(key) || 0, extra.listenerRarity ?? 1);
-        const blocked = Object.values(parameters.hubFeatures).some((refs) => refs.includes(ref));
-        if (!factor || blocked) return;
-        const weight = parameters.maxEvidenceContribution * Math.min(1, strength) * factor;
-        if (weight > 0) evidence.push({ kind, feature, ref, weight, ...extra });
-      }
-      for (const [key, feature] of maps[i]) {
-        if (maps[j].has(key) && !['events', 'resources'].includes(feature.kind)) {
-          contribute('shared', feature.kind, feature.ref, parameters.sharedWeight * feature.weight);
-        }
-      }
-      for (const event of functions[i].events.emits) {
-        const listener = functions[j].events.listens.find((pattern) => Utils.match(event, pattern));
-        if (listener) {
-          const factor = Math.min(
-            rarity.get(`events:${event}`) || 0,
-            rarity.get(`events:${listener}`) || 0
-          );
-          contribute('event', 'events', event, parameters.eventWeight, {
-            listener,
-            listenerRarity: factor,
-          });
-        }
-      }
-      for (const target of functions[i].writesTo) {
-        if (functions[j].dataSources.includes(target))
-          contribute('write-read', 'resources', target, parameters.writeReadWeight);
-      }
-      // Several representations of the same ref cannot masquerade as multiple
-      // independent features (e.g. shared data source plus write/read target).
-      const byRef = new Map();
-      for (const item of evidence) {
-        const existing = byRef.get(item.ref);
-        if (
-          !existing ||
-          item.weight > existing.weight ||
-          (item.weight === existing.weight && item.kind !== 'shared')
-        )
-          byRef.set(item.ref, item);
-      }
-      const independent = [...byRef.values()];
+      const independent = pairEvidence(
+        functions[i],
+        functions[j],
+        maps[i],
+        maps[j],
+        rarity,
+        parameters,
+        embeddingEntries
+      );
       const weight = Math.min(
         1,
         independent.reduce((sum, item) => sum + item.weight, 0)
@@ -344,6 +419,7 @@ function projectFunctionModel({
   sourceHash = null,
   sourceActions = [],
   previousModel = null,
+  embeddingCache = {},
 }) {
   const ids = capabilities.map((cap) => cap.capability);
   if (ids.some((id) => typeof id !== 'string' || !id) || new Set(ids).size !== ids.length) {
@@ -360,7 +436,11 @@ function projectFunctionModel({
       ...sourceActions.flatMap((entry) => [entry.action, ...(entry.aliases || [])]),
     ].filter(Boolean)
   );
+  const embeddings = resolveEmbeddings(capabilities, operations, semanticDomains, embeddingCache);
+  const semanticOnlyMerges = [];
   const context = {
+    embeddingEntries: embeddings.entries,
+    semanticOnlyMerges,
     operations,
     semanticDomains,
     serviceEvents,
@@ -379,9 +459,10 @@ function projectFunctionModel({
   if (new Set(functions.map((fn) => fn.functionId)).size !== functions.length) {
     throw new Error('Function ID collision after normalization');
   }
-  const neighborhood = connectFunctions(functions, parameters);
+  const neighborhood = connectFunctions(functions, parameters, embeddings.entries);
   const actionSet = new Set(operations.map((op) => op.action));
   const gaps = {
+    embeddingCacheEntries: embeddings.gaps,
     retiredFunctionIds: lineage.retiredFunctionIds,
     unassignedCapabilities: [],
     capabilitiesWithoutOperations: sorted
@@ -465,8 +546,10 @@ function projectFunctionModel({
     generator: 'scripts/generate-function-model.js',
     sourceHash,
     parameters,
+    semanticOnlyMerges,
     lineageHistory: lineage.lineageHistory,
     statistics: {
+      semanticOnlyMergeCount: semanticOnlyMerges.length,
       idChanges: lineage.idChanges,
       indexOperationCount: operations.length,
       indexOperationsWithoutAction: operations.filter((op) => !op.action).length,

@@ -203,3 +203,59 @@ the larger part retaining the queried ID. Unknown IDs and retired IDs without an
 surviving capabilities return `[]`. Consumers must explicitly handle multiple/empty
 results when migrating their own state; this loader performs no persistence or automatic
 copying of coverage, activation, agents or journal entries.
+
+## Semantic evidence (#708)
+
+`npm run generate:function-model-embeddings` is the only online step. It loads the
+existing `.env` configuration and calls `src/llm-client.js.embeddings()`; the facade's
+`embeddingConfiguration()` returns the effective provider and embedding model from
+its adapter, including local Ollama. `LLM_EMBEDDING_MODEL` and provider-specific
+fallbacks have exactly the same meaning as other embedding calls in CET.
+
+Text format version 1 is a JSON object with a fixed field order: version, tokenized
+capability ID, canonically sorted/deduplicated keywords, canonical required-input
+objects (all their fields), risksAndNotes, tokenized abstractionLevel/routingPattern,
+resolved-operation summaries, and descriptions of semantic domains whose normalized
+ID matches the capability domain. Tokenization splits camel case and `_ . / -`;
+domain matching additionally removes combining marks and folds case. Text format
+changes require a version bump. SHA-256 covers the complete UTF-8 text, including
+its version. Operation and array ordering do not alter that text.
+
+The committed cache stores textHash, provider, effective model, dimension and each
+vector rounded to `embeddingDecimals` (4). Refresh reuses valid entries only when
+textHash and provider/model match; removed capabilities disappear. A provider/model
+switch refreshes all entries to prevent mixing vector spaces. Output is written only
+after every request succeeds. No generated vectors for the actual catalog are fixtures.
+
+Both model commands remain offline: they read the cache without importing the LLM
+facade or an adapter. Missing, stale and invalid entries appear in
+`gaps.embeddingCacheEntries`, and do not abort generation. Cache bytes and the text
+builder source are included in sourceHash. Pairs from different providers, models or
+dimensions are incomparable and supply no semantic evidence.
+
+Cosine similarity must meet `semanticSimilarityThreshold=0.85`. Grouping adds
+`semanticGroupingWeight * cosine` to the existing structural overlap, capped at 1,
+with the same complete-link rule. Weight 0.72 deliberately permits sufficiently
+similar texts to merge without structural overlap (0.72 × 0.85 > 0.6), addressing
+#708's missing-structure problem. This grouping score is distinct from edge weights,
+just as existing structural overlap is distinct from bounded structural evidence.
+
+Neighborhoods add at most one semantic signal per function pair, using the highest
+comparable cross-capability cosine. Its contribution is
+`maxEvidenceContribution * min(1, semanticNeighborWeight * cosine)`, so one signal
+cannot reach the default minWeight, even with a large semanticNeighborWeight.
+Existing mutual selection applies after scoring and still bounds both endpoints.
+The evidence record includes kind `semantic`, weight and similarity. These vectors
+are consumed only by the offline generator, never by runtime routing/classification.
+
+The report section **Zusammenführungen ohne strukturelle Evidenz** lists every
+cross-capability pair joined during agglomeration without an unsuppressed shared
+operation, declared action, service, data source, entity or write target. Those kinds
+are configured in structuralEvidenceKinds; shared text/domain names are insufficient
+for structural evidence. The list is deterministic and preserves capability IDs and
+cosines for human review. Persistent cumulative lineage handles changed memberships;
+the generated lineage report records all historical IDs and current successors.
+
+After merging main, regenerate all function-model artifacts and llm.txt; never
+resolve generated conflicts by hand. Cache refresh is a separate explicit online
+operation, while normal generation and drift checks require no provider.
