@@ -1,0 +1,30 @@
+name: Shared Service Harness
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: '23 2 * * *'
+
+jobs:
+  shared-service:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Normalize existing lockfile for Node 22
+        run: npm install --package-lock-only --ignore-scripts
+      - name: Install existing dependencies
+        run: npm ci --ignore-scripts
+      - name: Catalog domain check and three fixed seeds (59 s deadline)
+        run: npm run test:shared-service:ci
+      - name: Additional random seed (nightly and manual)
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        run: npm run test:shared-service
