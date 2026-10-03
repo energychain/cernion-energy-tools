@@ -407,6 +407,7 @@ describe('event and drift regressions', () => {
       for (const name of [
         'generate-function-model.js',
         'function-model-projection.js',
+        'function-model-lineage.js',
         'function-model-sources.js',
       ]) {
         fs.copyFileSync(path.join(root, 'scripts', name), path.join(outputDir, 'scripts', name));

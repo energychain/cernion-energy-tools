@@ -4,6 +4,7 @@ const { Utils } = require('moleculer');
 const { tokenize } = require('../src/operation-capability-index');
 const { compareCanonicalStrings } = require('../src/canonical-order');
 const DEFAULT_PARAMETERS = require('../function-model.parameters.json');
+const { assignFunctionLineage } = require('./function-model-lineage');
 
 const unique = (values) => [...new Set(values.filter(Boolean))].sort(compareCanonicalStrings);
 const normalizeDomain = (value) =>
@@ -342,6 +343,7 @@ function projectFunctionModel({
   parameters = DEFAULT_PARAMETERS,
   sourceHash = null,
   sourceActions = [],
+  previousModel = null,
 }) {
   const ids = capabilities.map((cap) => cap.capability);
   if (ids.some((id) => typeof id !== 'string' || !id) || new Set(ids).size !== ids.length) {
@@ -372,12 +374,15 @@ function projectFunctionModel({
   const functions = groupCapabilities(sorted, context)
     .map((group) => aggregate(group, context))
     .sort((a, b) => compareCanonicalStrings(a.functionId, b.functionId));
+  const lineage = assignFunctionLineage(functions, previousModel);
+  functions.sort((a, b) => compareCanonicalStrings(a.functionId, b.functionId));
   if (new Set(functions.map((fn) => fn.functionId)).size !== functions.length) {
     throw new Error('Function ID collision after normalization');
   }
   const neighborhood = connectFunctions(functions, parameters);
   const actionSet = new Set(operations.map((op) => op.action));
   const gaps = {
+    retiredFunctionIds: lineage.retiredFunctionIds,
     unassignedCapabilities: [],
     capabilitiesWithoutOperations: sorted
       .filter((cap) => !(cap.preferredActions || []).some((action) => actionSet.has(action)))
@@ -460,7 +465,9 @@ function projectFunctionModel({
     generator: 'scripts/generate-function-model.js',
     sourceHash,
     parameters,
+    lineageHistory: lineage.lineageHistory,
     statistics: {
+      idChanges: lineage.idChanges,
       indexOperationCount: operations.length,
       indexOperationsWithoutAction: operations.filter((op) => !op.action).length,
       capabilityCount: capabilities.length,

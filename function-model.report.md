@@ -1,6 +1,6 @@
 # Function model — generated report
 
-Source SHA-256: `1356eaeedfad431505a306ad4cbdcc2658c5c528fbdd49744d42fa5492ffc755`
+Source SHA-256: `cbd9bf5e493e5ef8cd3961b981332e48e6f3819f7dcf6fd2215280e2cd4799d4`
 
 Capabilities: 172; functions: 123.
 Directed density at minWeight=0.2: **0.055711** (836/15006).
@@ -17,6 +17,22 @@ Operation index entries without action: 19/982.
 
 All curated capabilities are assigned once, including entries without resolvable operations.
 Edges describe catalog evidence only; they grant no authorization.
+
+## ID-Änderungen gegenüber Vorversion
+
+same: 105; merged: 7; split: 9; retired: 6; new: 8.
+Previous source SHA-256: 5f523aa56cfcf570931a1aa6ab87562d206a89e594a67f88a66cbec6f60a257a.
+Counts describe prior IDs in the last membership transition; retired counts IDs that lost their active identity, including merges. No-op generation preserves this provenance.
+Permanently reserved retired IDs: 6.
+
+## retiredFunctionIds (6)
+
+- fn-cls-digital-twin-compliance-gate
+- fn-imsys-schedule-value-chain-readiness
+- fn-off-balancing-metering-pruefmatrix
+- fn-process-sensitization-readiness-map
+- fn-redispatch-call-data-quality-gate
+- fn-vnb-delta-signal-classifier
 
 ## unassignedCapabilities (0)
 

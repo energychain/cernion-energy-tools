@@ -54,7 +54,8 @@ population, preventing shifting frequencies during clustering. Complete linkage
 prevents an overlap chain from combining disjoint endpoints. Canonical UTF-16
 capability ordering breaks ties deterministically.
 
-IDs use the first canonical capability identifier, not the domain name. Labels
+Initial IDs use the first canonical capability identifier. Subsequent generations
+match capability membership to the committed model and retain identities (see below). Labels
 come from that capability's label or identifier. Thus multiple functions may have
 the same domain and a function may contain multiple domains.
 
@@ -134,8 +135,42 @@ are additive projection metadata. Sources use `{kind, ref}`; edges use
 scanned modules, generator implementation and parameters. It contains no absolute
 paths. `derivation.generatedAt` is a configured reproducible ISO timestamp (Unix
 epoch by default), not the wall-clock time of each run. The derivation version is
-now 2; capability-based IDs and grouping membership differ from the first draft.
-No runtime consumer of this PR's graph existed, so no migration is introduced.
+now 2. ID lineage adds metadata without changing the accepted grouping algorithm.
+
+## Stable IDs and lineage
+
+The generator reads `HEAD:function-model.json`, the last committed model, rather than
+trusting a possibly edited working artifact. A missing committed model bootstraps IDs;
+malformed committed JSON fails generation. Repeated generation before or after committing
+outputs is byte-stable. `sourceHash` covers the implementation and catalogs, while
+`statistics.idChanges.previousSourceHash` identifies the lineage baseline.
+
+An old ID goes to its largest overlapping successor when more than half of its previous
+capabilities survive there. For a split, the largest part keeps the old ID even if no
+part has an absolute majority. Ties use canonical capability membership. In a merge,
+the largest qualifying predecessor supplies the ID, with canonical ID tie-breaking.
+New IDs use the original naming rule plus deterministic numeric suffixes when necessary.
+Every previously assigned ID stays reserved; `gaps.retiredFunctionIds` accumulates IDs
+that cease to be active. Retired IDs are never reassigned, even when names normalize alike.
+
+Each function has `derivation.lineage: [{previousId, relation, overlap}]`. Relations
+are `same`, `merged` or `split`, with `split` taking priority when an ancestor has
+multiple successors. `overlap` is the intersecting capability count divided by that
+ancestor's recorded capability count (range 0–1). Additive root `lineageHistory` stores
+the capability union ever assigned to each ID, including retired IDs. This permits
+precise resolution across multiple committed generations: an old alias resolves only
+to descendants sharing its recorded capabilities, while later additions to a retained
+ID remain resolvable too. Nested historical aliases can therefore retain `merged`
+relations even after the immediately preceding group splits.
+
+The report's **ID-Änderungen gegenüber Vorversion** section counts previous active IDs
+by their immediate membership transition (`same`, `merged`, `split`), IDs retired in
+that transition and newly allocated IDs. Retired counts can overlap merged counts.
+No-op generations preserve the last transition's counters and lineage rather than
+erasing the recorded transition when its output becomes the next committed baseline.
+
+These additive fields extend the #693 data contract for durable ID resolution; required
+fields and event names stay unchanged. Lineage is identity metadata, never authorization.
 
 ## Loader
 
@@ -144,13 +179,16 @@ const {
   getFunctionModel,
   getFunction,
   getNeighbors,
+  resolveFunctionId,
   findFunctionsForCapability,
   findFunctionsForOperation,
 } = require('../src/function-model');
 
 const model = getFunctionModel(); // loads only the committed JSON, once
 const options = { model }; // injected fixtures need no filesystem I/O
-const fn = getFunction('fn-a', options); // null if absent
+const successors = resolveFunctionId('fn-a', options);
+// [{ functionId, relation: 'same' | 'merged' | 'split', overlap }]
+const fn = getFunction('fn-a', options); // exact current ID only; null if absent
 const neighbors = getNeighbors('fn-a', { model, minWeight: 0.2 });
 const byCapability = findFunctionsForCapability('a', options);
 const byAction = findFunctionsForOperation('svc-a.read', options);
@@ -158,3 +196,10 @@ const byAction = findFunctionsForOperation('svc-a.read', options);
 
 Treat returned objects as read-only. Queries never authorize execution. The module
 is not wired into routing, receipts, coverage, agents or authorization.
+
+Consumers of stored `functionId` values must call `resolveFunctionId(id, options)`
+before looking up current functions. A split can return multiple successors, including
+the larger part retaining the queried ID. Unknown IDs and retired IDs without any
+surviving capabilities return `[]`. Consumers must explicitly handle multiple/empty
+results when migrating their own state; this loader performs no persistence or automatic
+copying of coverage, activation, agents or journal entries.

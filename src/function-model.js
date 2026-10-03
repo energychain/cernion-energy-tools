@@ -1,5 +1,7 @@
 'use strict';
 
+const { compareCanonicalStrings } = require('./canonical-order');
+
 let cachedModel;
 
 function getFunctionModel(options = {}) {
@@ -28,7 +30,20 @@ function findFunctionsForOperation(action, options = {}) {
   return getFunctionModel(options).functions.filter((fn) => fn.operations.includes(action));
 }
 
+/** Resolve stored identities before reading current state; lineage grants no authorization. */
+function resolveFunctionId(id, options = {}) {
+  return getFunctionModel(options)
+    .functions.flatMap((fn) => {
+      const entry = fn.derivation?.lineage?.find((item) => item.previousId === id);
+      if (entry)
+        return [{ functionId: fn.functionId, relation: entry.relation, overlap: entry.overlap }];
+      return fn.functionId === id ? [{ functionId: id, relation: 'same', overlap: 1 }] : [];
+    })
+    .sort((a, b) => compareCanonicalStrings(a.functionId, b.functionId));
+}
+
 module.exports = {
+  resolveFunctionId,
   getFunctionModel,
   getFunction,
   getNeighbors,
