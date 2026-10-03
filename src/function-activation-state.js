@@ -34,17 +34,16 @@ function coverageRecords(document, model) {
 function activationRows(document, model, settings, now) {
   const touches = resolveRecords(document.touches, model);
   // Ambiguous prior coverage does not establish coverage of each successor.
-  // Ambiguous prior coverage does not establish coverage of each successor.
   const coverage = coverageRecords(document, model);
   const activity = resolveRecords(document.activity, model);
   const previous = resolveRecords(document.activations || [], model);
   const live = (at) =>
     at != null && now - Date.parse(at) >= 0 && now - Date.parse(at) <= settings.restWindowMs;
   const rows = model.functions.map(({ functionId }) => {
+    const saved = previous.filter((record) => record.functionId === functionId);
     const current = touches.filter((record) => record.functionId === functionId);
     const touchedAt =
-      current
-        .map((record) => record.at)
+      [...current.map((record) => record.at), ...saved.map((record) => record.touchedAt)]
         .filter(Boolean)
         .sort(compare)
         .at(-1) || null;
@@ -78,7 +77,12 @@ function activationRows(document, model, settings, now) {
       functionId,
       state,
       touchedAt,
-      touchedBy: [...new Set(current.map((record) => record.actorId))].sort(compare),
+      touchedBy: [
+        ...new Set([
+          ...current.map((record) => record.actorId),
+          ...saved.flatMap((record) => record.touchedBy || []),
+        ]),
+      ].sort(compare),
       responsibility: { humans, cet: false },
       reason: touchedAt ? [{ kind: 'touched', at: touchedAt }] : [],
     };
@@ -134,7 +138,17 @@ function activationRows(document, model, settings, now) {
       document.history.filter((entry) => entry.kind === 'handoff'),
       model
     ).filter((entry) => entry.functionId === row.functionId);
-    row.reason.push(...handoff.map(({ kind, actorId, at }) => ({ kind, actorId, at })));
+    const summaries = previous
+      .filter((entry) => entry.functionId === row.functionId)
+      .flatMap((entry) => entry.reason || [])
+      .filter((entry) => entry.kind === 'handoff');
+    const latest = [
+      ...summaries,
+      ...handoff.map(({ kind, actorId, at }) => ({ kind, actorId, at })),
+    ]
+      .sort((a, b) => compare(a.at, b.at))
+      .at(-1);
+    if (latest) row.reason.push(latest);
   }
   return rows.sort((a, b) => compare(a.functionId, b.functionId));
 }

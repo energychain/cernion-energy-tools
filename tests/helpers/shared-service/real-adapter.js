@@ -110,7 +110,17 @@ async function createAdapter({
       };
     },
     async close() {
-      await broker.stop();
+      const stopping = broker.stop();
+      // Moleculer waits on internal timers while stopping; advance only fake timers.
+      if (typeof setTimeout.clock === 'object') {
+        let done = false;
+        stopping.then(
+          () => (done = true),
+          () => (done = true)
+        );
+        while (!done) await jestApi.advanceTimersByTimeAsync(50);
+      }
+      await stopping;
       fs.rmSync(root, { recursive: true, force: true });
     },
   };

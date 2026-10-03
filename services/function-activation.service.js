@@ -26,6 +26,9 @@ module.exports = {
     coverageThreshold: 0.5,
     restWindowMs: 86400000,
     sweepIntervalMs: 60000,
+    touchRetentionWindows: 4,
+    historyLimit: 200,
+    historyRetentionMs: 2592000000,
     clock: null,
   },
   actions: {
@@ -164,7 +167,6 @@ module.exports = {
               (item) =>
                 item.functionId === functionId &&
                 item.actorId === event.actorId &&
-                item.conversationId === event.conversationId &&
                 item.modelSourceHash === this.model.sourceHash
             );
             if (previous && Date.parse(previous.at) >= at) continue;
@@ -265,9 +267,24 @@ module.exports = {
       );
     },
 
+    compactTouches(document) {
+      const latest = new Map();
+      for (const record of resolveRecords(document.touches, this.model)) {
+        const key = JSON.stringify([record.functionId, record.actorId]);
+        const previous = latest.get(key);
+        if (!previous || Date.parse(record.at) > Date.parse(previous.at))
+          latest.set(key, {
+            ...record,
+            modelSourceHash: this.model.sourceHash,
+            capabilities: getFunction(record.functionId, { model: this.model }).capabilities || [],
+          });
+      }
+      document.touches = [...latest.values()];
+    },
     async updateDocument(tenantId, mutate, event) {
       const document = await this.readDocument(tenantId);
       const original = JSON.stringify(document);
+      this.compactTouches(document);
       mutate(document);
       const previous = resolveRecords(document.activations, this.model);
       const next = activationRows(document, this.model, this.settings, this.now());
@@ -291,27 +308,36 @@ module.exports = {
         };
         if (handoff) entry.actorId = event?.actorId || row.responsibility.humans[0];
         document.history.push(entry);
-        document.outbox.push({
+        if (handoff) row.reason.push({ kind: entry.kind, actorId: entry.actorId, at: entry.at });
+        const notification = {
           tenantId,
           modelSourceHash: this.model.sourceHash,
           capabilities: getFunction(row.functionId, { model: this.model }).capabilities || [],
           functionId: row.functionId,
           state: row.state,
           responsibility: copy(row.responsibility),
-        });
+        };
+        const queued = document.outbox.find((item) => item.functionId === row.functionId);
+        if (queued) Object.assign(queued, notification);
+        else document.outbox.push(notification);
       }
-      document.activations = next.map((row) => ({
-        ...row,
-        modelSourceHash: this.model.sourceHash,
-        capabilities: getFunction(row.functionId, { model: this.model }).capabilities || [],
-      }));
-      document.activations = activationRows(document, this.model, this.settings, this.now()).map(
-        (row) => ({
+      document.activations = next
+        .filter((row) => row.state !== 'latent')
+        .map((row) => ({
           ...row,
           modelSourceHash: this.model.sourceHash,
           capabilities: getFunction(row.functionId, { model: this.model }).capabilities || [],
-        })
+        }));
+      const cutoff = this.now() - this.settings.restWindowMs * this.settings.touchRetentionWindows;
+      const influencing = new Set(
+        next.filter((row) => row.state === 'active').map((row) => row.functionId)
       );
+      document.touches = document.touches.filter(
+        (record) => Date.parse(record.at) >= cutoff || influencing.has(record.functionId)
+      );
+      document.history = document.history
+        .filter((entry) => this.now() - Date.parse(entry.at) <= this.settings.historyRetentionMs)
+        .slice(-this.settings.historyLimit);
       if (JSON.stringify(document) !== original) {
         const result = await this.db.put(document);
         document._rev = result.rev;
@@ -323,7 +349,12 @@ module.exports = {
       const ids = new Set(
         resolveRecords(document.outbox, this.model).map((entry) => entry.functionId)
       );
-      for (const row of document.activations.filter((entry) => ids.has(entry.functionId))) {
+      for (const functionId of ids) {
+        const row = document.activations.find((entry) => entry.functionId === functionId) || {
+          functionId,
+          state: 'latent',
+          responsibility: { humans: [], cet: false },
+        };
         await this.broker.emit('function.activation.changed.v1', {
           tenantId: document.tenantId,
           functionId: row.functionId,
@@ -357,8 +388,17 @@ module.exports = {
       tenantBudgets,
       minWeight,
       coverageThreshold,
+      touchRetentionWindows,
+      historyLimit,
+      historyRetentionMs,
     } = this.settings;
     if (
+      !Number.isFinite(touchRetentionWindows) ||
+      touchRetentionWindows < 1 ||
+      !Number.isInteger(historyLimit) ||
+      historyLimit < 1 ||
+      !Number.isFinite(historyRetentionMs) ||
+      historyRetentionMs < 0 ||
       !Number.isFinite(restWindowMs) ||
       restWindowMs < 0 ||
       !Number.isFinite(sweepIntervalMs) ||

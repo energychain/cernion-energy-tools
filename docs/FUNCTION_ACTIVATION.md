@@ -68,6 +68,9 @@ All parameters are service settings, injected as data:
 | `coverageThreshold` | 0.5 | Inclusive human evidence threshold |
 | `restWindowMs` | 86400000 | Inactivity window in milliseconds |
 | `sweepIntervalMs` | 60000 | Internal sweep interval; 0 disables timer |
+| `touchRetentionWindows` | 4 | Minimum age of removable inactive touch records, in rest windows; >= 1 |
+| `historyLimit` | 200 | Maximum recent transition entries; positive integer |
+| `historyRetentionMs` | 2592000000 | Maximum transition age (30 days); nonnegative |
 | `model` | committed model | Injected Function model for tests |
 | `clock` | `Date.now` | Test clock injection |
 
@@ -81,8 +84,19 @@ Writes serialize per tenant in the repository's single-process broker architectu
 No cross-process consensus is introduced; sharing this database between concurrent
 independent writers is not supported by this slice.
 
-Touches use an actor/conversation timestamp watermark; duplicate or older events
-for that key are no-ops. Identical coverage states are no-ops, including after a
+Touches retain only the latest entry per function/person, across conversations.
+Duplicate or older timestamps for that pair are no-ops. Entries older than
+`restWindowMs * touchRetentionWindows` are removed when their function is no longer
+active. Non-latent activation summaries preserve `touchedAt`, `touchedBy` and the
+latest handoff reason, so removing expired raw events does not change the public
+activation result or its future neighbor eligibility. Latent functions are supplied
+by the model at read time and are not stored in `activations`.
+
+Recent transition history is capped by both `historyLimit` and
+`historyRetentionMs`; `explain.history` intentionally exposes only this retained
+window. The latest handoff remains in the activation explanation independently of
+history retention. Permanent activity history belongs to Journal #698. Pending
+notifications coalesce per function, including during publication failures. Identical coverage states are no-ops, including after a
 restart. Coverage events have no event ID or timestamp in #693, so their arrival
 order is authoritative. A replayed older *different* coverage value cannot be
 identified as stale from that contract alone.

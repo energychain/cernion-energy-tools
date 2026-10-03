@@ -473,3 +473,133 @@ test('a formerly touched but now uncovered neighbor may receive CET responsibili
   await sendTouch('fn-a');
   expect((await row('fn-b')).responsibility.cet).toBe(true);
 });
+
+test('10,000 touches across conversations stay bounded with identical list and explain results', async () => {
+  const reference = await createAdapter({ model: chain(), jest });
+  try {
+    const initial = adapter.clock.value;
+    await sendTouch('fn-a');
+    await reference.broker.emit('function.touched.v1', touch('fn-a'));
+    await reference.service.settle();
+    const before = await adapter.service.readDocument('tenant-a');
+    for (let index = 1; index <= 10000; index++) {
+      adapter.clock.value = initial + index;
+      await sendTouch('fn-a', { conversationId: `conversation-${index}` });
+    }
+    reference.clock.value = adapter.clock.value;
+    await reference.broker.emit(
+      'function.touched.v1',
+      touch('fn-a', { conversationId: 'conversation-10000' })
+    );
+    await reference.service.settle();
+    const document = await adapter.service.readDocument('tenant-a');
+    expect(document.touches).toHaveLength(1);
+    expect(document.history).toHaveLength(before.history.length);
+    expect(document.activations.every((entry) => entry.state !== 'latent')).toBe(true);
+    expect(Buffer.byteLength(JSON.stringify(document))).toBeLessThan(
+      Buffer.byteLength(JSON.stringify(before)) + 100
+    );
+    expect(await list()).toEqual(
+      await reference.broker.call('activation.list', { tenantId: 'tenant-a' })
+    );
+    for (const functionId of ['fn-a', 'fn-b', 'fn-c']) {
+      const params = { tenantId: 'tenant-a', functionId };
+      expect(await adapter.broker.call('activation.explain', params)).toEqual(
+        await reference.broker.call('activation.explain', params)
+      );
+    }
+  } finally {
+    await reference.close();
+  }
+}, 30000);
+
+test('expired non-influencing touches are removed without changing list or explain', async () => {
+  adapter.service.settings.touchRetentionWindows = 2;
+  await sendTouch('fn-a');
+  adapter.clock.value += adapter.service.settings.restWindowMs * 3;
+  const beforeCompaction = await list();
+  await adapter.service.sweep();
+  expect(await list()).toEqual(beforeCompaction);
+  const beforeList = await list();
+  const params = { tenantId: 'tenant-a', functionId: 'fn-a' };
+  const beforeExplain = await adapter.broker.call('activation.explain', params);
+  const document = await adapter.service.readDocument('tenant-a');
+  expect(document.touches).toEqual([]);
+  expect(document.activations).toHaveLength(2);
+  await adapter.service.sweep();
+  expect(await list()).toEqual(beforeList);
+  expect(await adapter.broker.call('activation.explain', params)).toEqual(beforeExplain);
+});
+
+test('history count and age are bounded while the latest handoff stays explainable', async () => {
+  adapter.service.settings.historyLimit = 7;
+  adapter.service.settings.historyRetentionMs = 1000;
+  await sendTouch('fn-a');
+  for (let index = 0; index < 30; index++) {
+    adapter.clock.value += 1;
+    await coverage('fn-b', index % 2 ? 1 : 0);
+  }
+  expect((await adapter.service.readDocument('tenant-a')).history).toHaveLength(7);
+  const before = await row('fn-b');
+  adapter.clock.value += 1001;
+  await adapter.service.sweep();
+  expect((await adapter.service.readDocument('tenant-a')).history).toEqual([]);
+  expect(await row('fn-b')).toEqual(before);
+  expect(before.reason.some((entry) => entry.kind === 'handoff')).toBe(true);
+});
+
+test('failed notifications coalesce per function while history remains bounded', async () => {
+  adapter.service.settings.historyLimit = 5;
+  const emit = jest.spyOn(adapter.broker, 'emit').mockRejectedValue(new Error('unavailable'));
+  await expect(adapter.service.acceptTouch(touch('fn-a'))).rejects.toThrow('unavailable');
+  for (let index = 0; index < 30; index++) {
+    await expect(
+      adapter.service.acceptCoverage({
+        tenantId: 'tenant-a',
+        actorId: 'actor-b',
+        functionId: 'fn-b',
+        score: index % 2,
+        origin: 'observed',
+      })
+    ).rejects.toThrow('unavailable');
+  }
+  const document = await adapter.service.readDocument('tenant-a');
+  expect(document.history).toHaveLength(5);
+  expect(document.outbox).toHaveLength(2);
+  emit.mockRestore();
+  await adapter.service.sweep();
+  expect((await adapter.service.readDocument('tenant-a')).outbox).toEqual([]);
+});
+
+test('real adapter closes under fake timers and restores normal timer behavior', async () => {
+  await adapter.close();
+  adapter = null;
+  jest.useFakeTimers({ now: Date.UTC(2026, 0, 1), doNotFake: ['hrtime', 'performance'] });
+  let timed;
+  try {
+    timed = await createAdapter({ model: chain(), jest });
+    await timed.close();
+    timed = null;
+  } finally {
+    if (timed) await timed.close();
+    jest.useRealTimers();
+  }
+});
+
+test('expired source records may be compacted while recent neighbor activity retains responsibility', async () => {
+  adapter.service.settings.touchRetentionWindows = 2;
+  await sendTouch('fn-a');
+  adapter.clock.value += adapter.service.settings.restWindowMs * 3;
+  await adapter.broker.emit('shared-agent.lifecycle.v1', {
+    tenantId: 'tenant-a',
+    agentId: 'agent-a',
+    functionId: 'fn-b',
+    lifecycle: 'active',
+  });
+  await adapter.service.settle();
+  const before = await list();
+  expect((await row('fn-b')).responsibility.cet).toBe(true);
+  expect((await adapter.service.readDocument('tenant-a')).touches).toEqual([]);
+  await adapter.service.sweep();
+  expect(await list()).toEqual(before);
+});
