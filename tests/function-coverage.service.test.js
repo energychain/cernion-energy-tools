@@ -4,7 +4,7 @@ const { ServiceBroker } = require('moleculer');
 const schema = require('../services/function-coverage.service');
 const { memoryPouch } = require('./helpers/shared-service/memory-pouch');
 const { visible } = require('../src/domain-router-policy');
-const { configuration, project } = require('../src/function-coverage');
+const { configuration, project, mapSignals } = require('../src/function-coverage');
 const turn = require('../src/function-coverage-turn');
 const { compareCanonicalStrings } = require('../src/canonical-order');
 const model = {
@@ -44,7 +44,13 @@ function createService(options = {}) {
         async started() {},
       },
     ],
-    settings: { ...schema.settings, model, clock: () => Date.UTC(2026, 0, 1), ...options },
+    settings: {
+      ...schema.settings,
+      coverage: { maxOperationFunctionShare: 1 },
+      model,
+      clock: () => Date.UTC(2026, 0, 1),
+      ...options,
+    },
   });
   service.db = db;
   broker.emit = jest.fn().mockResolvedValue();
@@ -231,7 +237,7 @@ describe('observed function coverage', () => {
         conversationId: 'conv-a',
       },
       requestID: 'req-a',
-      call: jest.fn().mockResolvedValue({ candidateCapabilities: [{ capability: 'cap-a' }] }),
+      call: jest.fn().mockResolvedValue({ selectedCapabilities: [{ capability: 'cap-a' }] }),
     };
     const original = ctx.call;
     turn.before(ctx);
@@ -253,6 +259,8 @@ describe('observed function coverage', () => {
     expect(await call('recordTouch', input('ref-a', { capabilities: ['cap-unknown'] }))).toEqual({
       recorded: 0,
       unresolved: 1,
+      suppressedOperations: 0,
+      overflow: 0,
     });
     expect(service.unresolvedSignals).toBe(1);
     await expect(
@@ -380,4 +388,86 @@ test('shared adapter delivers coverage events to real activation without changin
   } finally {
     await adapter.close();
   }
+});
+
+test('operation hubs use frequency and both automatic and configured model features', () => {
+  const functions = Array.from({ length: 20 }, (_, index) => ({
+    functionId: `fn-${index}`,
+    capabilities: [],
+    operations: index < 3 ? ['svc-a.read'] : [],
+  }));
+  const input = { operations: ['svc-a.read'] };
+  expect(mapSignals(input, { functions }, configuration()).suppressedOperations).toBe(1);
+  expect(
+    mapSignals(input, { functions }, configuration({ maxOperationFunctionShare: 0.15 })).functionIds
+  ).toHaveLength(3);
+  for (const model of [
+    { functions, statistics: { automaticHubs: ['operations:svc-a.read'] } },
+    { functions, statistics: { automaticHubs: ['declaredActions:svc-a.read'] } },
+    { functions, parameters: { hubFeatures: { services: ['svc-a'] } } },
+  ])
+    expect(
+      mapSignals(input, model, configuration({ maxOperationFunctionShare: 1 })).functionIds
+    ).toEqual([]);
+  expect(
+    mapSignals(
+      input,
+      { functions },
+      configuration({ maxOperationFunctionShare: 1, hubFeatures: { operations: ['svc-a.read'] } })
+    ).functionIds
+  ).toEqual([]);
+  expect(() => configuration({ maxOperationFunctionShare: 0 })).toThrow();
+  expect(() => configuration({ hubFeatures: { operations: 1 } })).toThrow();
+});
+
+test('turn budget counts overflow and gives selections priority over operation fanout', async () => {
+  const functions = Array.from({ length: 9 }, (_, index) => ({
+    functionId: `fn-${index}`,
+    capabilities: [`cap-${index}`],
+    operations: ['svc-a.read'],
+  }));
+  const { service, call } = createService({
+    model: { functions },
+    coverage: { maxOperationFunctionShare: 1, maxSignalsPerTurn: 2 },
+  });
+  const result = await call(
+    'recordTouch',
+    input('budget-a', { capabilities: ['cap-8'], operations: ['svc-a.read'] })
+  );
+  expect(result).toMatchObject({ recorded: 2, overflow: 7 });
+  expect(service.signalOverflow).toBe(7);
+  expect((await call('byActor')).items.map((row) => row.functionId)).toContain('fn-8');
+});
+
+test('router candidates and recommendation objects never become touches', async () => {
+  const { broker, service } = createService();
+  const result = {
+    capability: 'cap-a',
+    candidateCapabilities: ['cap-a'],
+    recommendedCapabilities: ['cap-a'],
+    operationCandidates: ['svc-a.read'],
+  };
+  const ctx = {
+    broker,
+    meta: meta(),
+    params: { intentMode: 'case_start', requestId: 'proposal-a' },
+    call: jest.fn().mockResolvedValue(result),
+  };
+  turn.before(ctx);
+  await ctx.call('router-a.classify');
+  turn.after(ctx, result);
+  await new Promise(setImmediate);
+  await service.queue;
+  expect((await service.actions.byActor({}, { meta: meta() })).items).toEqual([]);
+});
+
+test('repetition changes score mass but never promotes weak touch confidence', async () => {
+  const { call, broker } = createService({ coverage: { crossConversationMultiplier: 10 } });
+  for (const conversationId of ['conv-a', 'conv-b'])
+    await call(
+      'recordTouch',
+      input(conversationId, { conversationId, signalClass: 'data_lookup' })
+    );
+  const touches = broker.emit.mock.calls.filter(([name]) => name === 'function.touched.v1');
+  expect(touches.every(([, payload]) => payload.confidence === 0.1)).toBe(true);
 });

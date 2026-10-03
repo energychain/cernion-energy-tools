@@ -485,7 +485,7 @@ module.exports = {
             message: followup
               ? `Vorheriges Thema (Gesprächskontext): ${followup.topic}\n${followup.observations.join('\n')}\nAktuelle Rückfrage: ${question}\nBitte erkläre den fachlichen Zusammenhang und die Bedeutung mit nötigen Einschränkungen und benötigten Details.`
               : question,
-            intentMode,
+            ...(isReadOnlyIntent(intentMode) ? { intentMode } : {}),
             requestId: metadata.requestId,
             correlationId: metadata.correlationId,
             ...(isReadOnlyIntent(intentMode) ? { cetCaseId: metadata.cetCaseId } : {}),

@@ -62,12 +62,20 @@ async function generateStructured(schema, prompt, options = {}) {
   return result.response.text();
 }
 
-async function embeddings(texts) {
+async function embeddings(texts, options = {}) {
   const model = getClient().getGenerativeModel({ model: getEmbeddingModelName() });
   const vectors = [];
 
   for (const text of texts) {
-    const response = await model.embedContent(String(text || ''));
+    const input = String(text || '');
+    const request =
+      options.outputDimensionality == null
+        ? input
+        : {
+            content: { role: 'user', parts: [{ text: input }] },
+            outputDimensionality: options.outputDimensionality,
+          };
+    const response = await model.embedContent(request);
     vectors.push(Array.isArray(response?.embedding?.values) ? response.embedding.values : []);
   }
 
@@ -254,6 +262,7 @@ function capabilities() {
 }
 
 module.exports = {
+  getEmbeddingModelName,
   id: 'gemini',
   generateText,
   generateStructured,

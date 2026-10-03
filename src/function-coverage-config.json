@@ -5,7 +5,7 @@
   "hysteresis": 0.05,
   "crossConversationMultiplier": 1.5,
   "recentReferenceLimit": 8,
-  "maxSignalsPerTurn": 64,
+  "maxSignalsPerTurn": 5,
   "maxPendingTurns": 128,
   "weights": {
     "knowledge_query": 0.04,
@@ -16,5 +16,8 @@
     "decision_support": 0.4,
     "tool_run_request": 0.5,
     "evidence_attachment": 0.5
-  }
+  },
+  "maxOperationFunctionShare": 0.1,
+  "hubFeatures": {},
+  "maxInputSignalsPerTurn": 64
 }

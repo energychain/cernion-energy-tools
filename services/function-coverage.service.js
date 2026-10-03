@@ -32,6 +32,8 @@ module.exports = {
     this.pendingTurns = 0;
     this.droppedTurns = 0;
     this.unresolvedSignals = 0;
+    this.suppressedOperations = 0;
+    this.signalOverflow = 0;
     this.queue = Promise.resolve();
   },
   async stopped() {
@@ -47,8 +49,9 @@ module.exports = {
         sourceRef: { type: 'string', min: 1, max: 256 },
         conversationId: { type: 'string', min: 1, max: 256 },
         signalClass: 'string',
-        capabilities: { type: 'array', items: 'string', max: 64, optional: true },
-        operations: { type: 'array', items: 'string', max: 64, optional: true },
+        capabilities: { type: 'array', items: 'string', max: 1024, optional: true },
+        operations: { type: 'array', items: 'string', max: 1024, optional: true },
+        observationOverflow: { type: 'number', integer: true, min: 0, optional: true },
       },
       handler(ctx) {
         const p = principal(ctx, ctx.params);
@@ -133,6 +136,13 @@ module.exports = {
       const model = this.settings.model || modelApi.getFunctionModel();
       const mapped = mapSignals(input, model, this.config);
       this.unresolvedSignals = Math.min(1000000, this.unresolvedSignals + mapped.unresolved);
+      this.suppressedOperations = Math.min(
+        1000000,
+        this.suppressedOperations + mapped.suppressedOperations
+      );
+      this.signalOverflow = Math.min(1000000, this.signalOverflow + mapped.overflow);
+      if (mapped.overflow)
+        this.logger.warn('Coverage signal budget exceeded', { overflow: mapped.overflow });
       const weight = Object.hasOwn(this.config.weights, input.signalClass)
         ? this.config.weights[input.signalClass]
         : undefined;
@@ -183,6 +193,7 @@ module.exports = {
           sourceRef: reference(input.sourceRef),
           conversationId,
           scoreVersion: this.config.scoreVersion,
+          ...(model.sourceHash ? { modelSourceHash: model.sourceHash } : {}),
           modelVersion: String(model.derivation?.version || model.version || '1'),
           pendingEvents: [],
         };
@@ -199,7 +210,7 @@ module.exports = {
             actorId: doc.actorId,
             functionId,
             conversationId,
-            confidence: Math.min(1, doc.weight),
+            confidence: weight,
             at: new Date(now).toISOString(),
           },
         });
@@ -225,7 +236,12 @@ module.exports = {
         recorded++;
         await this.deliver(doc);
       }
-      return { recorded, unresolved: mapped.unresolved };
+      return {
+        recorded,
+        unresolved: mapped.unresolved,
+        suppressedOperations: mapped.suppressedOperations,
+        overflow: mapped.overflow,
+      };
     },
     async deliver(doc) {
       while (doc.pendingEvents.length) {

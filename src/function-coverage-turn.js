@@ -6,22 +6,17 @@ const { reference } = require('./function-coverage');
 const defaults = require('./function-coverage-config.json');
 const observations = new WeakMap();
 
+function addFact(facts, kind, id) {
+  if (typeof id !== 'string' || facts[kind].has(id)) return;
+  if (facts[kind].size < facts.limit) facts[kind].add(id);
+  else facts.overflow++;
+}
+
 function collect(result, facts) {
   if (!result || typeof result !== 'object') return;
-  for (const value of [
-    ...(typeof result.capability === 'string' ? [result.capability] : []),
-    ...(result.candidateCapabilities || []),
-    ...(result.selectedCapabilities || []),
-    ...(result.recommendedCapabilities || []),
-  ]) {
-    const id = typeof value === 'string' ? value : value?.capability;
-    if (typeof id === 'string' && facts.capabilities.size < defaults.maxSignalsPerTurn)
-      facts.capabilities.add(id);
-  }
-  for (const value of result.operationCandidates || []) {
-    const id = typeof value === 'string' ? value : value?.action || value?.operationId;
-    if (typeof id === 'string' && facts.operations.size < defaults.maxSignalsPerTurn)
-      facts.operations.add(id);
+  // Router proposals are not evidence of selected or executed work.
+  for (const value of result.selectedCapabilities || []) {
+    addFact(facts, 'capabilities', typeof value === 'string' ? value : value?.capability);
   }
 }
 
@@ -32,12 +27,19 @@ function before(ctx) {
     ctx.params.model === 'cernion-governance-assistant'
   )
     return;
-  const facts = { capabilities: new Set(), operations: new Set(), call: ctx.call };
+  const service = ctx.broker.getLocalService('function-coverage');
+  const facts = {
+    capabilities: new Set(),
+    operations: new Set(),
+    call: ctx.call,
+    limit: service?.config.maxInputSignalsPerTurn || defaults.maxInputSignalsPerTurn,
+    overflow: 0,
+  };
   observations.set(ctx, facts);
   ctx.call = async (...args) => {
     const result = await facts.call.apply(ctx, args);
     try {
-      if (facts.operations.size < defaults.maxSignalsPerTurn) facts.operations.add(args[0]);
+      addFact(facts, 'operations', args[0]);
       collect(result, facts);
       if (args[2]?.meta) facts.meta = args[2].meta;
     } catch {
@@ -100,6 +102,7 @@ function after(ctx, result) {
           : mode,
       capabilities: [...facts.capabilities],
       operations: [...facts.operations],
+      observationOverflow: facts.overflow,
     };
     void service.actions
       .recordTouch(input, { meta })

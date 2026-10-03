@@ -29,7 +29,7 @@ test('Workbench and OpenAI share the completed-turn seam; persistence errors pre
   broker.createService({
     name: 'personal-agent',
     actions: {
-      chat: () => ({ reply: 'neutral reply', candidateCapabilities: [{ capability: 'cap-a' }] }),
+      chat: () => ({ reply: 'neutral reply', selectedCapabilities: [{ capability: 'cap-a' }] }),
     },
   });
   broker.createService({
@@ -69,7 +69,7 @@ test('Workbench and OpenAI share the completed-turn seam; persistence errors pre
         cetCaseId: 'case-a',
         caseStateVersion: 1,
         responseText: 'neutral reply',
-        candidateCapabilities: [{ capability: 'cap-a' }],
+        selectedCapabilities: [{ capability: 'cap-a' }],
       }),
     },
   });

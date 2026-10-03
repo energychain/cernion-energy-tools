@@ -19,7 +19,12 @@ function configuration(overrides = {}) {
     if (!Number.isFinite(config[field]) || config[field] <= 0)
       throw new Error('Invalid configuration');
   }
-  for (const field of ['recentReferenceLimit', 'maxSignalsPerTurn', 'maxPendingTurns']) {
+  for (const field of [
+    'recentReferenceLimit',
+    'maxSignalsPerTurn',
+    'maxPendingTurns',
+    'maxInputSignalsPerTurn',
+  ]) {
     if (!Number.isInteger(config[field]) || config[field] < 1 || config[field] > 1024)
       throw new Error('Invalid configuration');
   }
@@ -31,31 +36,77 @@ function configuration(overrides = {}) {
     )
   )
     throw new Error('Invalid weights');
+  if (
+    !Number.isFinite(config.maxOperationFunctionShare) ||
+    config.maxOperationFunctionShare <= 0 ||
+    config.maxOperationFunctionShare > 1
+  )
+    throw new Error('Invalid operation share');
+  if (
+    !config.hubFeatures ||
+    Object.values(config.hubFeatures).some(
+      (ids) => !Array.isArray(ids) || ids.some((id) => typeof id !== 'string')
+    )
+  )
+    throw new Error('Invalid hub features');
   return config;
+}
+
+function isHubOperation(id, functions, model, config) {
+  if (functions.length / model.functions.length > config.maxOperationFunctionShare) return true;
+  const features = [`operations:${id}`, `declaredActions:${id}`, `services:${id.split('.')[0]}`];
+  const automatic = new Set(model.statistics?.automaticHubs || []);
+  const configured = { ...model.parameters?.hubFeatures };
+  for (const [kind, values] of Object.entries(config.hubFeatures))
+    configured[kind] = [...(configured[kind] || []), ...values];
+  return features.some((feature) => {
+    const separator = feature.indexOf(':');
+    return (
+      automatic.has(feature) ||
+      configured[feature.slice(0, separator)]?.includes(feature.slice(separator + 1))
+    );
+  });
 }
 
 function mapSignals(input, model, config) {
   const ids = new Set();
   let unresolved = 0;
+  let suppressedOperations = 0;
+  let overflow = input.observationOverflow || 0;
+  // Explicit selections take priority over broader operation mappings.
   for (const [kind, lookup] of [
-    ['operations', modelApi.findFunctionsForOperation],
     ['capabilities', modelApi.findFunctionsForCapability],
+    ['operations', modelApi.findFunctionsForOperation],
   ]) {
-    for (const id of (input[kind] || []).slice(0, config.maxSignalsPerTurn)) {
+    const values = [...new Set(input[kind] || [])];
+    overflow += Math.max(0, values.length - config.maxInputSignalsPerTurn);
+    for (const id of values.slice(0, config.maxInputSignalsPerTurn)) {
       const functions = lookup(id, { model });
       if (!functions.length) unresolved++;
+      if (kind === 'operations' && isHubOperation(id, functions, model, config)) {
+        suppressedOperations++;
+        continue;
+      }
       for (const fn of functions) ids.add(fn.functionId);
     }
   }
+  overflow += Math.max(0, ids.size - config.maxSignalsPerTurn);
   return {
-    functionIds: [...ids].sort(compareCanonicalStrings).slice(0, config.maxSignalsPerTurn),
+    functionIds: [...ids].slice(0, config.maxSignalsPerTurn),
     unresolved,
+    suppressedOperations,
+    overflow,
   };
 }
 
 function resolvedTouches(documents, model) {
   return documents.flatMap((doc) => {
-    const resolved = modelApi.resolveFunctionId(doc.functionId, { model });
+    const resolved =
+      doc.modelSourceHash &&
+      doc.modelSourceHash === model.sourceHash &&
+      modelApi.getFunction(doc.functionId, { model })
+        ? [{ functionId: doc.functionId }]
+        : modelApi.resolveFunctionId(doc.functionId, { model });
     return resolved.length === 1 ? [{ ...doc, functionId: resolved[0].functionId }] : [];
   });
 }

@@ -43,8 +43,7 @@ function memoryPouch(stores = new Map()) {
       };
     }
     async remove(document) {
-      const old = this.records.get(document._id);
-      if (!old) throw Object.assign(new Error('missing'), { status: 404 });
+      const old = await this.get(document._id);
       if (old._rev !== document._rev) throw Object.assign(new Error('conflict'), { status: 409 });
       this.records.delete(document._id);
       return { ok: true, id: document._id };

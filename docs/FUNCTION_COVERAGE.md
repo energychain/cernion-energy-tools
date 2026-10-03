@@ -11,9 +11,12 @@ Workbench `chat` and `query` and OpenAI chat completions reuse one shared
 before/after/error hook implementation. Delegated governance requests are observed
 only at Workbench. Successful downstream
 calls contribute their action identifiers and existing structured Capability Broker
-and Domain Router capability/operation candidates. Domain labels, prompts and replies
+and Domain Router selected capabilities. Router candidateCapabilities,
+recommendedCapabilities and operationCandidates are excluded entirely. Domain labels, prompts and replies
 are never classified into functions by this service. OpenAI governance requests use
-these same Workbench actions and pass their already determined intent mode.
+these same Workbench actions. Only read-only requests pass the determined intent
+mode; chat keeps its original parameters and the hook classifies missing intent
+through the existing Workbench classifier.
 
 The hook captures only IDs in bounded sets, restores the original call function on
 success/error, and starts coverage recording without awaiting persistence or event
@@ -69,7 +72,10 @@ Versioned defaults live in `src/function-coverage-config.json`, overridden by se
 | hysteresis | 0.05 | Minimum absolute difference from last persisted changed-event score |
 | crossConversationMultiplier | 1.5 | Weight increase after observing a different conversation |
 | recentReferenceLimit | 8 | Maximum references per read row |
-| maxSignalsPerTurn | 64 | Maximum mapped functions per turn |
+| maxSignalsPerTurn | 5 | Maximum touched functions per turn; explicit selections precede operation mappings |
+| maxInputSignalsPerTurn | 64 | Maximum collected IDs per kind before mapping |
+| maxOperationFunctionShare | 0.10 | Operations mapped to a larger share of the model are excluded |
+| hubFeatures | `{}` | Additional operation/declared-action/service hub features, unioned with model parameters |
 | maxPendingTurns | 128 | Maximum background recordings from Workbench |
 
 Weights: knowledge/status 0.04, data lookup 0.10, case start/decision support 0.40,
@@ -79,6 +85,18 @@ increase accumulated mass; a different session increases the new touch's weight.
 `score = 1 - exp(-sum(weight * 2^(-age/halfLifeMs)))` stays in [0,1]. Reads at the same
 `asOf` are deterministic and never write or emit. `nextDecayAt` identifies one
 half-life after the latest touch, not a scheduled event.
+
+Operation filtering also honors `statistics.automaticHubs` and model
+`parameters.hubFeatures` for operations, declared actions and owning services. No
+action denylist exists. Successful calls contribute operation IDs; unselected
+receipt IDs and unexecuted tool plans do not establish executed work. Excess input
+IDs/mapped functions increment `signalOverflow` and produce a count-only warning;
+filtered aggregate operations increment `suppressedOperations`. Neither diagnostic
+stores chat contents. Event confidence is the base intent weight; repetition affects
+only coverage mass, so recurring questions cannot cross the activation threshold.
+
+New records retain the model source hash to distinguish a current exact ID from an
+older retained ID involved in a split. Reads still resolve older IDs through lineage.
 
 Touch IDs hash tenant + actor + source type/reference + function + signal class.
 In-process writes are serialized (the repository uses a single-process broker).
@@ -103,5 +121,26 @@ real services using the existing `memory-pouch.js` constructor seam, supplies co
 and event observations plus before/after authorization decisions and policy snapshots,
 and preserves the existing fake-timer shutdown loop. I-3 now runs against real activation
 state after coverage signals; I-8 remains todo until #701. Other dependent invariants
-await their owning services. This issue adds no activation, agent, scheduler, journal,
-correction or public UI behavior.
+await their owning services. The explicitly authorized PR #712 review correction adds the activation confidence
+threshold; it adds no agent, scheduler, journal, correction or public UI behavior.
+
+
+## Signal precision review (PR #712)
+
+Measured with the merged committed model (106 functions), the same capability
+selection, production neighbor budget 8 and empty tenant state. Counts include
+all active direct/CET functions; activation uses the persisted exact model scope.
+The previous mapping and confidence policy are compared with the revised policy.
+
+| Turn kind | Before touched / active | After touched / active |
+| --- | ---: | ---: |
+| knowledge_query with successful knowledge-rag.query | 1 / 3 | 1 / 0 |
+| case_start with internal vdmi.dossier only | 49 / 49 | 0 / 0 |
+| case_start with one selected capability | 1 / 9 | 1 / 9 |
+
+The review's earlier model mapped the aggregate operation to 62 functions; after
+the required main merge it maps to 49. The filter excludes it in either model.
+The real-broker regression uses budget 2 and proves one directly touched function
+plus at most two eligible direct neighbors. Router proposals contribute zero
+functions. Weak observations remain available to coverage reads, including IDs
+retained in older split lineage, but never activate or renew complementary work.

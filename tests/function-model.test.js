@@ -233,11 +233,11 @@ describe('function model projection (#694)', () => {
     const outputDir = temporaryDirectory();
     try {
       const model = fixture();
-      expect(writeOrCheck(model, { check: true, outputDir })).toHaveLength(2);
+      expect(writeOrCheck(model, { check: true, outputDir })).toHaveLength(3);
       writeOrCheck(model, { outputDir });
       expect(writeOrCheck(model, { check: true, outputDir })).toEqual([]);
       const changed = fixture({ capabilities: [cap('d', 'd')] });
-      expect(writeOrCheck(changed, { check: true, outputDir })).toHaveLength(2);
+      expect(writeOrCheck(changed, { check: true, outputDir })).toHaveLength(3);
       const file = path.join(outputDir, 'function-model.json');
       fs.writeFileSync(file, '{}\n');
       expect(writeOrCheck(model, { check: true, outputDir })).toEqual(['function-model.json']);
@@ -409,6 +409,7 @@ describe('event and drift regressions', () => {
         'function-model-projection.js',
         'function-model-lineage.js',
         'function-model-sources.js',
+        'function-model-embeddings.js',
       ]) {
         fs.copyFileSync(path.join(root, 'scripts', name), path.join(outputDir, 'scripts', name));
       }
@@ -418,6 +419,7 @@ describe('event and drift regressions', () => {
         'node_modules',
         'operation-capability-index.json',
         'function-model.parameters.json',
+        'function-model.embeddings.json',
       ]) {
         fs.symlinkSync(path.join(root, name), path.join(outputDir, name));
       }
