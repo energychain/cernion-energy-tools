@@ -4,7 +4,13 @@ const { Utils } = require('moleculer');
 const { tokenize } = require('../src/operation-capability-index');
 const { compareCanonicalStrings } = require('../src/canonical-order');
 const DEFAULT_PARAMETERS = require('../function-model.parameters.json');
-const { resolveEmbeddings, semanticScore } = require('./function-model-embeddings');
+const {
+  resolveEmbeddings,
+  semanticScore,
+  cosine,
+  functionCoherence,
+  summarizeCoherence,
+} = require('./function-model-embeddings');
 const { assignFunctionLineage } = require('./function-model-lineage');
 
 const unique = (values) => [...new Set(values.filter(Boolean))].sort(compareCanonicalStrings);
@@ -165,6 +171,24 @@ function recordSemanticOnlyPairs(leftGroup, rightGroup, capabilities, maps, rari
     }
 }
 
+function mergeGroupScore(left, right, pairScores, structuralScores, semanticScores, parameters) {
+  const score = Math.min(...left.flatMap((a) => right.map((b) => pairScores[a][b])));
+  if (score < parameters.mergeSimilarity) return 0;
+  const combined = [...left, ...right];
+  const pairs = combined.flatMap((a, index) => combined.slice(index + 1).map((b) => [a, b]));
+  if (pairs.every(([a, b]) => structuralScores[a][b] >= parameters.mergeSimilarity)) return score;
+  // Any group needing semantic evidence must be a complete semantic clique,
+  // including pairs already inside either input group, and respect its size cap.
+  if (combined.length > parameters.maxSemanticGroupSize) return 0;
+  return pairs.every(
+    ([a, b]) =>
+      semanticScores[a][b] !== null &&
+      semanticScores[a][b] >= parameters.semanticSimilarityThreshold
+  )
+    ? score
+    : 0;
+}
+
 function groupCapabilities(capabilities, context) {
   const maps = capabilities.map((cap) =>
     featureMap(aggregate([cap], context), {
@@ -175,6 +199,14 @@ function groupCapabilities(capabilities, context) {
   const rarity = featureRarity(maps, context.parameters);
   const structuralScores = maps.map((left) =>
     maps.map((right) => similarity(left, right, rarity, context.parameters))
+  );
+  const semanticScores = capabilities.map((left) =>
+    capabilities.map((right) =>
+      cosine(
+        context.embeddingEntries.get(left.capability),
+        context.embeddingEntries.get(right.capability)
+      )
+    )
   );
   const pairScores = maps.map((_, a) =>
     maps.map((_, b) => {
@@ -198,7 +230,14 @@ function groupCapabilities(capabilities, context) {
     let best = null;
     for (let i = 0; i < groups.length; i++) {
       for (let j = i + 1; j < groups.length; j++) {
-        const score = Math.min(...groups[i].flatMap((a) => groups[j].map((b) => pairScores[a][b])));
+        const score = mergeGroupScore(
+          groups[i],
+          groups[j],
+          pairScores,
+          structuralScores,
+          semanticScores,
+          context.parameters
+        );
         if (score >= context.parameters.mergeSimilarity && (!best || score > best.score))
           best = { i, j, score };
       }
@@ -430,13 +469,21 @@ function projectFunctionModel({
     parameters.maxEvidenceContribution < parameters.minWeight
   ))
     throw new Error('Evidence contribution must be below minWeight');
+  if (!Number.isInteger(parameters.maxSemanticGroupSize) || parameters.maxSemanticGroupSize < 1)
+    throw new Error('Invalid semantic group size');
   const availableActions = new Set(
     [
       ...operations.map((op) => op.action),
       ...sourceActions.flatMap((entry) => [entry.action, ...(entry.aliases || [])]),
     ].filter(Boolean)
   );
-  const embeddings = resolveEmbeddings(capabilities, operations, semanticDomains, embeddingCache);
+  const embeddings = resolveEmbeddings(
+    capabilities,
+    operations,
+    semanticDomains,
+    embeddingCache,
+    parameters
+  );
   const semanticOnlyMerges = [];
   const context = {
     embeddingEntries: embeddings.entries,
@@ -454,6 +501,7 @@ function projectFunctionModel({
   const functions = groupCapabilities(sorted, context)
     .map((group) => aggregate(group, context))
     .sort((a, b) => compareCanonicalStrings(a.functionId, b.functionId));
+  for (const fn of functions) fn.coherence = functionCoherence(fn.capabilities, embeddings.entries);
   const lineage = assignFunctionLineage(functions, previousModel);
   functions.sort((a, b) => compareCanonicalStrings(a.functionId, b.functionId));
   if (new Set(functions.map((fn) => fn.functionId)).size !== functions.length) {
@@ -549,6 +597,7 @@ function projectFunctionModel({
     semanticOnlyMerges,
     lineageHistory: lineage.lineageHistory,
     statistics: {
+      coherence: summarizeCoherence(functions),
       semanticOnlyMergeCount: semanticOnlyMerges.length,
       idChanges: lineage.idChanges,
       indexOperationCount: operations.length,

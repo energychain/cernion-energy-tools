@@ -207,55 +207,99 @@ copying of coverage, activation, agents or journal entries.
 ## Semantic evidence (#708)
 
 `npm run generate:function-model-embeddings` is the only online step. It loads the
-existing `.env` configuration and calls `src/llm-client.js.embeddings()`; the facade's
-`embeddingConfiguration()` returns the effective provider and embedding model from
-its adapter, including local Ollama. `LLM_EMBEDDING_MODEL` and provider-specific
-fallbacks have exactly the same meaning as other embedding calls in CET.
+existing `.env` and calls `src/llm-client.js.embeddings()`; `embeddingConfiguration()`
+returns the effective provider/model from its adapter, including local Ollama.
+`LLM_EMBEDDING_MODEL` and provider-specific fallbacks retain their existing meaning.
 
-Text format version 1 is a JSON object with a fixed field order: version, tokenized
-capability ID, canonically sorted/deduplicated keywords, canonical required-input
-objects (all their fields), risksAndNotes, tokenized abstractionLevel/routingPattern,
-resolved-operation summaries, and descriptions of semantic domains whose normalized
-ID matches the capability domain. Tokenization splits camel case and `_ . / -`;
-domain matching additionally removes combining marks and folds case. Text format
-changes require a version bump. SHA-256 covers the complete UTF-8 text, including
-its version. Operation and array ordering do not alter that text.
+### Corpus-derived text, version 2
 
-The committed cache stores textHash, provider, effective model, dimension and each
-vector rounded to `embeddingDecimals` (4). Refresh reuses valid entries only when
-textHash and provider/model match; removed capabilities disappear. A provider/model
-switch refreshes all entries to prevent mixing vector spaces. Output is written only
-after every request succeeds. No generated vectors for the actual catalog are fixtures.
+Text is a compact JSON array: text version followed by canonically ordered, unique
+filtered fragments. Fragments originate exclusively from tokenized capability IDs,
+keywords, all string values in requiredInputs, risksAndNotes, resolved-operation
+summaries and descriptions of matching semantic domains. Input object keys are
+canonically traversed; metadata keys themselves do not become embedding text.
+**abstractionLevel and routingPattern are excluded** because they describe form.
+
+Camel case and `_ . / -` separators are split; NFKD removes combining marks and
+case is folded. Sentence boundaries use terminal punctuation followed by whitespace
+and line breaks. Sentence keys are normalized Unicode word sequences, so case and
+punctuation variants count together. Document frequency counts a token or sentence
+at most once per capability, across every field, including notes and summaries.
+
+A token or sentence recurring in more than `embeddingBoilerplateMaxFraction=0.2`
+of all capabilities is removed before embedding. A value occurring in only one
+capability is never recurring boilerplate, including small fixture catalogs. Whole
+frequent sentences are removed first, then frequent tokens from remaining fragments;
+empty fragments disappear. Completely empty results are reported as `empty` gaps
+and never embedded as a shared placeholder. There is no domain vocabulary or manually chosen stoplist.
+Changing corpus membership can change filtered text for otherwise untouched entries;
+only resulting textHash changes cause a refresh. SHA-256 covers the complete text,
+including version 2. Permuting capabilities, operations or input fields is irrelevant.
+
+### Cache and dimensionality
+
+The committed cache remains valid JSON but has **one capability entry per line**,
+with a compact vector array. Each entry records textHash, provider, model, actual
+`dimension`, requested `outputDimensionality` and the rounded vector. Precision is
+`embeddingDecimals=4`; requested dimensionality is `outputDimensionality=768`.
+Set the latter to null to request the provider's native dimension.
+
+The facade forwards the optional hint: Gemini uses outputDimensionality
+([API reference](https://ai.google.dev/api/embeddings)); OpenAI-compatible providers
+use dimensions. Existing calls with no hint retain their payload. Ollama retains
+its native output; providers that do not implement the hint are never simulated by
+slicing a vector. Requested and actual dimensions remain separately visible.
+The actual configured Gemini response was verified to contain 768 values. A change
+of provider, model, requested dimension or filtered text refreshes affected entries.
+The cache is written only after every request succeeds. No real-catalog vectors
+are invented, and cached vectors are never truncated locally.
 
 Both model commands remain offline: they read the cache without importing the LLM
-facade or an adapter. Missing, stale and invalid entries appear in
-`gaps.embeddingCacheEntries`, and do not abort generation. Cache bytes and the text
-builder source are included in sourceHash. Pairs from different providers, models or
-dimensions are incomparable and supply no semantic evidence.
+facade or adapters. Missing, stale and invalid entries are reported in
+`gaps.embeddingCacheEntries` without aborting. Cache bytes and the text-builder
+implementation enter sourceHash. Different providers, models or actual dimensions
+are incomparable and supply no semantic evidence.
 
-Cosine similarity must meet `semanticSimilarityThreshold=0.85`. Grouping adds
-`semanticGroupingWeight * cosine` to the existing structural overlap, capped at 1,
-with the same complete-link rule. Weight 0.72 deliberately permits sufficiently
-similar texts to merge without structural overlap (0.72 × 0.85 > 0.6), addressing
-#708's missing-structure problem. This grouping score is distinct from edge weights,
-just as existing structural overlap is distinct from bounded structural evidence.
+### Complete linkage and bounded semantic groups
 
-Neighborhoods add at most one semantic signal per function pair, using the highest
-comparable cross-capability cosine. Its contribution is
-`maxEvidenceContribution * min(1, semanticNeighborWeight * cosine)`, so one signal
-cannot reach the default minWeight, even with a large semanticNeighborWeight.
-Existing mutual selection applies after scoring and still bounds both endpoints.
-The evidence record includes kind `semantic`, weight and similarity. These vectors
-are consumed only by the offline generator, never by runtime routing/classification.
+Cosine must meet semanticSimilarityThreshold=0.85. Pair grouping scores add
+semanticGroupingWeight × cosine to structural overlap, capped at 1. Weight 0.72
+permits semantic-only merges (0.72 × 0.85 > mergeSimilarity=0.6).
 
-The report section **Zusammenführungen ohne strukturelle Evidenz** lists every
-cross-capability pair joined during agglomeration without an unsuppressed shared
-operation, declared action, service, data source, entity or write target. Those kinds
-are configured in structuralEvidenceKinds; shared text/domain names are insufficient
-for structural evidence. The list is deterministic and preserves capability IDs and
-cosines for human review. Persistent cumulative lineage handles changed memberships;
-the generated lineage report records all historical IDs and current successors.
+For each candidate group union, all cross-pair weighted scores must qualify.
+If **every pair in the entire union** also qualifies on structural overlap alone,
+the existing structural rules apply. Otherwise **every pair in the entire union**
+must have comparable embeddings and cosine at least the semantic threshold, and
+its total size must not exceed maxSemanticGroupSize=5. This includes intra-group
+pairs, preventing structural subgroups or similarity chains from bypassing the
+semantic complete-link rule. The size cap conservatively covers every grouping
+that needs semantic support, not just grouping with no structural references.
 
-After merging main, regenerate all function-model artifacts and llm.txt; never
-resolve generated conflicts by hand. Cache refresh is a separate explicit online
-operation, while normal generation and drift checks require no provider.
+Neighborhoods contribute at most one semantic signal per function pair, using the
+highest comparable cross-capability cosine. Contribution remains
+maxEvidenceContribution × min(1, semanticNeighborWeight × cosine); a single signal
+cannot reach default minWeight. Existing mutual selection still bounds both endpoints.
+Vectors are used only by the offline generator, never runtime routing/classification.
+
+### Coherence and review
+
+Every function records meanSimilarity, minimumSimilarity, comparedPairs and
+possiblePairs over **all** unordered capability pairs, including below-threshold
+cosines. Singleton and unavailable comparisons are null/N/A, not artificially 1.
+The report lists every function and separately the 10 lowest measurable minima.
+Global coherence reports the smallest pair cosine and median of per-function
+minima (also median of means), excluding singletons and incomplete comparisons.
+Structural groups may have minima below the semantic threshold; this is visible
+rather than silently removed or mislabeled as semantic evidence.
+
+**Zusammenführungen ohne strukturelle Evidenz** lists every cross-capability pair
+joined without an unsuppressed shared operation, declared action, service, data
+source, entity or write target, preserving IDs and cosines for review. Kinds remain
+configured in structuralEvidenceKinds. Cumulative lineage protects saved main IDs;
+the generated lineage report lists historical IDs and successors. The reviewed
+regeneration uses the model on the merged main revision as its identity baseline;
+subsequent no-op generations retain that transition's provenance.
+
+After each merge of main regenerate function-model.json, both reports and llm.txt;
+never resolve generated conflicts by hand. Refresh changed cache texts separately
+through the explicit online command. Normal generation/checking needs no provider.

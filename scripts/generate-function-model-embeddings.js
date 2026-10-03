@@ -6,7 +6,8 @@ const path = require('path');
 const { compareCanonicalStrings } = require('../src/canonical-order');
 const {
   TEXT_VERSION,
-  capabilityText,
+  buildEmbeddingTexts,
+  hasEmbeddingText,
   textHash,
   validEntry,
 } = require('./function-model-embeddings');
@@ -20,26 +21,39 @@ async function updateEmbeddingCache({
   parameters,
 }) {
   const configuration = client.embeddingConfiguration();
+  const outputDimensionality = parameters.outputDimensionality ?? null;
+  if (
+    outputDimensionality !== null &&
+    (!Number.isInteger(outputDimensionality) || outputDimensionality < 1)
+  )
+    throw new Error('Invalid output dimensionality');
+  const texts = buildEmbeddingTexts(capabilities, operations, semanticDomains, parameters);
   const entries = {};
   for (const cap of [...capabilities].sort((a, b) =>
     compareCanonicalStrings(a.capability, b.capability)
   )) {
-    const text = capabilityText(cap, operations, semanticDomains);
+    const text = texts.get(cap.capability);
+    if (!hasEmbeddingText(text)) continue;
     const hash = textHash(text);
     const previous = cache.entries?.[cap.capability];
     if (
       validEntry(previous) &&
       previous.textHash === hash &&
       previous.provider === configuration.provider &&
-      previous.model === configuration.model
+      previous.model === configuration.model &&
+      previous.outputDimensionality === outputDimensionality
     ) {
       entries[cap.capability] = previous;
       continue;
     }
-    const [vector] = await client.embeddings([text]);
+    const [vector] = await client.embeddings(
+      [text],
+      outputDimensionality === null ? {} : { outputDimensionality }
+    );
     const entry = {
       textHash: hash,
       ...configuration,
+      outputDimensionality,
       dimension: vector?.length,
       vector: vector?.map((value) => Number(value.toFixed(parameters.embeddingDecimals))),
     };
@@ -47,6 +61,13 @@ async function updateEmbeddingCache({
     entries[cap.capability] = entry;
   }
   return { schemaVersion: '1', textVersion: TEXT_VERSION, entries };
+}
+
+function serializeEmbeddingCache(cache) {
+  const lines = Object.entries(cache.entries)
+    .sort(([a], [b]) => compareCanonicalStrings(a, b))
+    .map(([id, entry]) => `    ${JSON.stringify(id)}:${JSON.stringify(entry)}`);
+  return `{\n  "schemaVersion":${JSON.stringify(cache.schemaVersion)},\n  "textVersion":${JSON.stringify(cache.textVersion)},\n  "entries":{\n${lines.join(',\n')}\n  }\n}\n`;
 }
 
 async function main() {
@@ -65,7 +86,7 @@ async function main() {
     parameters: require('../function-model.parameters.json'),
   });
   // Write only after all requests succeed; failures preserve the existing cache.
-  fs.writeFileSync(file, `${JSON.stringify(result, null, 2)}\n`);
+  fs.writeFileSync(file, serializeEmbeddingCache(result));
   console.log(`[function-model-embeddings] ${Object.keys(result.entries).length} entries`);
 }
 
@@ -74,4 +95,4 @@ if (require.main === module)
     console.error(error.message);
     process.exitCode = 1;
   });
-module.exports = { updateEmbeddingCache };
+module.exports = { updateEmbeddingCache, serializeEmbeddingCache };

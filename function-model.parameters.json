@@ -72,5 +72,8 @@
     "dataSources",
     "entityTypes",
     "writesTo"
-  ]
+  ],
+  "embeddingBoilerplateMaxFraction": 0.2,
+  "maxSemanticGroupSize": 5,
+  "outputDimensionality": 768
 }

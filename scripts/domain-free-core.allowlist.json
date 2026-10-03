@@ -69,6 +69,10 @@
       "reason": "Generic assertion and authorization observation."
     },
     {
+      "term": "class",
+      "reason": "JavaScript class syntax in the memory database test double."
+    },
+    {
       "term": "confidence",
       "reason": "Required function.touched.v1 payload field."
     },
@@ -91,6 +95,10 @@
     {
       "term": "cross",
       "reason": "Cross-group pair scoring in complete linkage."
+    },
+    {
+      "term": "cutoff",
+      "reason": "Generic timestamp boundary for configurable touch retention, independent of catalog contents."
     },
     {
       "term": "delete",
@@ -197,12 +205,20 @@
       "reason": "Local CommonJS source analysis; no domain-specific behavior."
     },
     {
+      "term": "mismatch",
+      "reason": "Generic rejection of a mismatched tenant identifier."
+    },
+    {
       "term": "model",
       "reason": "Generic Function data source; no special scenario."
     },
     {
       "term": "module",
       "reason": "CommonJS module.exports syntax."
+    },
+    {
+      "term": "multi",
+      "reason": "Generic function membership cardinality used in coherence reporting."
     },
     {
       "term": "object",
@@ -215,6 +231,10 @@
     {
       "term": "order",
       "reason": "Sortierreihenfolge im allgemeinen Helfer canonical-order; kein Fachbegriff im Kern."
+    },
+    {
+      "term": "pending",
+      "reason": "Promises for serializing tenant writes; no subject-specific state."
     },
     {
       "term": "placeholder",
@@ -259,6 +279,10 @@
     {
       "term": "return",
       "reason": "JavaScript return keyword."
+    },
+    {
+      "term": "revision",
+      "reason": "PouchDB document revision checked by the test double."
     },
     {
       "term": "routing",
@@ -311,6 +335,10 @@
     {
       "term": "state",
       "reason": "Activation contract field and test observation."
+    },
+    {
+      "term": "status",
+      "reason": "Standard PouchDB/HTTP error status used to distinguish missing documents."
     },
     {
       "term": "system",

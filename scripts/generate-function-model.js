@@ -101,6 +101,7 @@ function renderReport(model) {
     '',
   ];
   lines.push(
+    ...renderCoherenceReport(model),
     '## Zusammenführungen ohne strukturelle Evidenz',
     '',
     ...(model.semanticOnlyMerges.length
@@ -146,6 +147,39 @@ function renderReport(model) {
     ''
   );
   return lines.join('\n');
+}
+
+function renderCoherenceReport(model) {
+  const format = (value) => (value === null ? 'N/A' : value.toFixed(6));
+  const row = (fn) =>
+    `| ${fn.functionId} | ${format(fn.coherence.meanSimilarity)} | ${format(fn.coherence.minimumSimilarity)} | ${fn.coherence.comparedPairs}/${fn.coherence.possiblePairs} |`;
+  const header = [
+    '| Function | Mean cosine | Minimum cosine | Comparable pairs |',
+    '| --- | ---: | ---: | ---: |',
+  ];
+  const weakest = model.functions
+    .filter((fn) => fn.coherence.comparedPairs > 0)
+    .sort(
+      (a, b) =>
+        a.coherence.minimumSimilarity - b.coherence.minimumSimilarity ||
+        compareCanonicalStrings(a.functionId, b.functionId)
+    )
+    .slice(0, 10);
+  return [
+    '## Kohärenz je Funktion',
+    '',
+    `Complete multi-capability functions: ${model.statistics.coherence.measuredFunctions}; minimum pair cosine: ${format(model.statistics.coherence.minimumPairSimilarity)}; median function minimum: ${format(model.statistics.coherence.medianMinimumSimilarity)}; median function mean: ${format(model.statistics.coherence.medianMeanSimilarity)}.`,
+    'Singletons and unavailable comparisons are N/A, never assigned an artificial coherence of 1. Global statistics exclude incomplete and singleton functions.',
+    '',
+    ...header,
+    ...model.functions.map(row),
+    '',
+    '## 10 Funktionen mit geringster Kohärenz',
+    '',
+    ...header,
+    ...weakest.map(row),
+    '',
+  ];
 }
 
 function renderLineageReport(model) {

@@ -62,10 +62,11 @@ async function generateStructured(_schema, prompt, options = {}) {
   return data?.choices?.[0]?.message?.content || '';
 }
 
-async function embeddings(texts) {
+async function embeddings(texts, options = {}) {
   const data = await post('/embeddings', {
     model: getEmbeddingModelName(),
     input: texts,
+    ...(options.outputDimensionality == null ? {} : { dimensions: options.outputDimensionality }),
   });
 
   return Array.isArray(data?.data) ? data.data.map((item) => item.embedding || []) : [];
