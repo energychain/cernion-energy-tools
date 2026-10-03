@@ -130,12 +130,12 @@ Touches and received coverage/lifecycle events are delivered to the real handler
 Advance steps sweep the service against the test clock. Signals, activity queries
 and correction steps belong to other issues and do not mutate this service.
 
-PR #704 is still unmerged at this implementation stage. Its harness code and
-readiness table are deliberately not copied or provisionally implemented here.
-**Harness-Abnahme ausstehend bis #704.** After it lands, merge `origin/main`
-(no rebase), register the activation helper/core paths, extend the generic allowlist
-with `tests/fixtures/shared-service/activation-core.allowlist.json`, activate the
-#696-only parts of I-1/I-2 and I-3, and run `npm run test:shared-service:ci`.
-Agent-dependent portions and other services remain todo; no fake agents may be
-invented to satisfy I-2. The service tests already exercise the activation portions
+PR #704 is merged, and `origin/main` has been merged into this branch without
+rebasing. The activation state helper is a required core path, and the generic
+catalog collisions have reviewable reasons in
+`scripts/domain-free-core.allowlist.json`. The real adapter is loaded automatically.
+`npm run test:shared-service:ci` activates I-3 against the actual service and committed
+function model. It passes 50 tests with 8 todo; no substitute agents are introduced.
+The complete I-1/I-2 tests and other agent-dependent invariants remain todo until
+their services land. The service tests already exercise the #696 activation portions
 of I-1/I-2 and all budget bounds in I-3 with neutral chains, stars, hubs and users.
