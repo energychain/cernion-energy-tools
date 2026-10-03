@@ -8,11 +8,21 @@
   "automaticHubFrequency": 0.25,
   "automaticHubMinimumFunctions": 10,
   "hubFeatures": {
-    "services": ["dashboard-api", "interface-placeholder", "vdmi"],
-    "entityTypes": ["datapoint"],
-    "domains": ["platform"]
+    "services": [
+      "dashboard-api",
+      "interface-placeholder",
+      "vdmi"
+    ],
+    "entityTypes": [
+      "datapoint"
+    ],
+    "domains": [
+      "platform"
+    ]
   },
-  "placeholderServices": ["interface-placeholder"],
+  "placeholderServices": [
+    "interface-placeholder"
+  ],
   "featureWeights": {
     "operations": 1,
     "services": 0.5,
@@ -32,7 +42,10 @@
   "maxEvidenceContribution": 0.18,
   "sharedWeight": 1,
   "maxDegreeFraction": 0.25,
-  "groupingExcludedFeatures": ["domains", "departments"],
+  "groupingExcludedFeatures": [
+    "domains",
+    "departments"
+  ],
   "groupingFeatureWeights": {
     "operations": 0.3,
     "services": 1,
@@ -47,5 +60,20 @@
     "keywordTokens": 0.01
   },
   "keywordTokenMinimumLength": 4,
-  "degreeBudgetMinimumFunctions": 10
+  "degreeBudgetMinimumFunctions": 10,
+  "semanticSimilarityThreshold": 0.85,
+  "semanticGroupingWeight": 0.72,
+  "semanticNeighborWeight": 1,
+  "embeddingDecimals": 4,
+  "structuralEvidenceKinds": [
+    "operations",
+    "declaredActions",
+    "services",
+    "dataSources",
+    "entityTypes",
+    "writesTo"
+  ],
+  "embeddingBoilerplateMaxFraction": 0.2,
+  "maxSemanticGroupSize": 5,
+  "outputDimensionality": 768
 }

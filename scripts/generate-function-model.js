@@ -39,7 +39,11 @@ function buildFunctionModel({ previousModel = readCommittedFunctionModel() } = {
   const { semanticDomains } = require('../src/semantic-domains');
   const { operations } = require('../operation-capability-index.json');
   const parameters = require('../function-model.parameters.json');
+  const embeddingFile = path.join(ROOT, 'function-model.embeddings.json');
+  const embeddingText = fs.existsSync(embeddingFile) ? fs.readFileSync(embeddingFile, 'utf8') : '';
+  const embeddingCache = embeddingText ? JSON.parse(embeddingText) : {};
   const { events, sources, actions } = loadServiceEvents(ROOT);
+  sources.set('function-model.embeddings.json', embeddingText);
   for (const ref of [
     'src/capability-catalog.js',
     'src/semantic-domains.js',
@@ -50,6 +54,7 @@ function buildFunctionModel({ previousModel = readCommittedFunctionModel() } = {
     'scripts/generate-function-model.js',
     'scripts/function-model-projection.js',
     'scripts/function-model-lineage.js',
+    'scripts/function-model-embeddings.js',
     'scripts/function-model-sources.js',
   ]) {
     sources.set(ref, fs.readFileSync(path.join(ROOT, ref), 'utf8'));
@@ -67,6 +72,7 @@ function buildFunctionModel({ previousModel = readCommittedFunctionModel() } = {
     parameters,
     sourceHash,
     previousModel,
+    embeddingCache,
   });
 }
 
@@ -94,6 +100,18 @@ function renderReport(model) {
     'Edges describe catalog evidence only; they grant no authorization.',
     '',
   ];
+  lines.push(
+    ...renderCoherenceReport(model),
+    '## Zusammenführungen ohne strukturelle Evidenz',
+    '',
+    ...(model.semanticOnlyMerges.length
+      ? model.semanticOnlyMerges.map(
+          (entry) =>
+            `- ${entry.capabilities.join(' ↔ ')}; similarity=${entry.similarity.toFixed(6)}`
+        )
+      : ['None.']),
+    ''
+  );
   const changes = stats.idChanges;
   lines.push(
     '## ID-Änderungen gegenüber Vorversion',
@@ -131,10 +149,67 @@ function renderReport(model) {
   return lines.join('\n');
 }
 
+function renderCoherenceReport(model) {
+  const format = (value) => (value === null ? 'N/A' : value.toFixed(6));
+  const row = (fn) =>
+    `| ${fn.functionId} | ${format(fn.coherence.meanSimilarity)} | ${format(fn.coherence.minimumSimilarity)} | ${fn.coherence.comparedPairs}/${fn.coherence.possiblePairs} |`;
+  const header = [
+    '| Function | Mean cosine | Minimum cosine | Comparable pairs |',
+    '| --- | ---: | ---: | ---: |',
+  ];
+  const weakest = model.functions
+    .filter((fn) => fn.coherence.comparedPairs > 0)
+    .sort(
+      (a, b) =>
+        a.coherence.minimumSimilarity - b.coherence.minimumSimilarity ||
+        compareCanonicalStrings(a.functionId, b.functionId)
+    )
+    .slice(0, 10);
+  return [
+    '## Kohärenz je Funktion',
+    '',
+    `Complete multi-capability functions: ${model.statistics.coherence.measuredFunctions}; minimum pair cosine: ${format(model.statistics.coherence.minimumPairSimilarity)}; median function minimum: ${format(model.statistics.coherence.medianMinimumSimilarity)}; median function mean: ${format(model.statistics.coherence.medianMeanSimilarity)}.`,
+    'Singletons and unavailable comparisons are N/A, never assigned an artificial coherence of 1. Global statistics exclude incomplete and singleton functions.',
+    '',
+    ...header,
+    ...model.functions.map(row),
+    '',
+    '## 10 Funktionen mit geringster Kohärenz',
+    '',
+    ...header,
+    ...weakest.map(row),
+    '',
+  ];
+}
+
+function renderLineageReport(model) {
+  const lines = [
+    '# Function model lineage — generated report',
+    '',
+    `Current source SHA-256: ${model.sourceHash}.`,
+    `Transition statistics (last membership transition): ${JSON.stringify(model.statistics.idChanges)}.`,
+    '',
+    '| Historical ID | Current successors |',
+    '| --- | --- |',
+  ];
+  for (const previous of model.lineageHistory) {
+    const successors = model.functions.filter(
+      (fn) =>
+        fn.functionId === previous.functionId ||
+        fn.derivation.lineage.some((entry) => entry.previousId === previous.functionId)
+    );
+    lines.push(
+      `| ${previous.functionId} | ${successors.map((fn) => fn.functionId).join(', ') || 'No surviving capability'} |`
+    );
+  }
+  return [...lines, ''].join('\n');
+}
+
 function writeOrCheck(model, { check = false, outputDir = ROOT } = {}) {
   const outputs = {
     'function-model.json': `${JSON.stringify(model, null, 2)}\n`,
     'function-model.report.md': renderReport(model),
+    'function-model.lineage.report.md': renderLineageReport(model),
   };
   const stale = [];
   for (const [name, text] of Object.entries(outputs)) {

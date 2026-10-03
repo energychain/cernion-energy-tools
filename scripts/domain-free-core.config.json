@@ -12,7 +12,12 @@
     "src/workbench-system-activity.js",
     "src/shared-service-learning.js",
     "services/shared-service-learning.service.js",
-    "tests/helpers/shared-service/*.js"
+    "tests/helpers/shared-service/*.js",
+    "scripts/generate-function-model.js",
+    "scripts/function-model-projection.js",
+    "scripts/function-model-embeddings.js",
+    "scripts/generate-function-model-embeddings.js",
+    "scripts/function-model-lineage.js"
   ],
   "optionalPaths": [
     "src/function-model.js",

@@ -97,6 +97,7 @@ function capabilities() {
 }
 
 module.exports = {
+  getEmbeddingModelName,
   id: 'ollama',
   generateText,
   generateStructured,
