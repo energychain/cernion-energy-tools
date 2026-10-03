@@ -365,3 +365,48 @@ test('at-least-once activation/lifecycle retries are idempotent and later transi
   expect((await call('digest', { functionId: 'fn-a' })).status.state).toBe('active');
   expect(await call('byFunction', { functionId: 'fn-a', kinds: ['decided'] })).toHaveLength(3);
 });
+
+test('missing/denied HITL and operation responses are counted, while authorized references are returned', async () => {
+  const { Errors } = require('moleculer');
+  const { principal, authorize } = require('../src/domain-router-policy');
+  const state = {
+    tenantId: 'tenant-a',
+    actorId: 'actor-a',
+    accessRoles: ['ROLE_USER'],
+    sensitivityFlags: [],
+  };
+  adapter.broker.getLocalService = jest.fn(() => ({
+    async loadCase(p) {
+      authorize(p, state);
+      return state;
+    },
+  }));
+  const ctx = {
+    meta,
+    async call(action, params) {
+      const id = params.id || params.toolRunId;
+      if (id === 'missing') throw new Errors.MoleculerClientError('Missing', 404);
+      if (id === 'denied') throw new Errors.MoleculerClientError('Denied', 403);
+      if (id === 'unavailable') throw new Errors.MoleculerServerError('Unavailable', 503);
+      return action === 'hitl.get' ? { item: { tenantId: 'tenant-a' } } : { toolRun: { id } };
+    },
+  };
+  const refs = [
+    { kind: 'hitl', id: 'allowed' },
+    { kind: 'hitl', id: 'denied' },
+    { kind: 'hitl', id: 'missing' },
+    { kind: 'operation', id: 'allowed', caseId: 'case-a' },
+    { kind: 'operation', id: 'missing', caseId: 'case-a' },
+    { kind: 'operation', id: 'unavailable', caseId: 'case-a' },
+  ];
+  const entry = await adapter.journal.appendEntry({
+    tenantId: 'tenant-a',
+    functionId: 'fn-a',
+    kind: 'awaiting',
+    summary: 'Antwort steht aus.',
+    refs,
+  });
+  const presented = await adapter.journal.presentEntry(ctx, principal(ctx), entry);
+  expect(presented.refs).toEqual([refs[0], refs[3]]);
+  expect(presented.hiddenRefCount).toBe(4);
+});

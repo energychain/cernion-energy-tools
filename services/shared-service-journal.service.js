@@ -376,8 +376,8 @@ module.exports = {
         return false;
       } catch (error) {
         if (
-          error.code === 403 ||
-          error.status === 404 ||
+          [403, 404, 503].includes(error.code) ||
+          [403, 404, 503].includes(error.status) ||
           error.type === 'SERVICE_NOT_FOUND' ||
           error instanceof TypeError
         )
