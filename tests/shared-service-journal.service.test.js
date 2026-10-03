@@ -216,6 +216,7 @@ test('AC-05: bounded lossless retention preserves digest, reads and immutable ID
 test('stored identities resolve on read, including splits, while digest requires one current identity', async () => {
   await append({ entryId: 'entry-a' });
   adapter.journal.settings.functionModel = {
+    sourceHash: 'split-epoch',
     functions: ['fn-b', 'fn-c'].map((functionId) => ({
       functionId,
       derivation: { lineage: [{ previousId: 'fn-a', relation: 'split', overlap: 0.5 }] },
@@ -225,6 +226,8 @@ test('stored identities resolve on read, including splits, while digest requires
   expect(await call('byFunction', { functionId: 'fn-a' })).toHaveLength(2);
   await expect(call('digest', { functionId: 'fn-a' })).rejects.toMatchObject({ code: 422 });
   expect((await call('digest', { functionId: 'fn-c' })).entryCount).toBe(1);
+  await append({ functionId: 'fn-a', entryId: 'late-historical-entry' });
+  expect(await call('byFunction', { functionId: 'fn-b' })).toHaveLength(2);
 });
 
 test('same-time activation and settlement preserve append order rather than random IDs', async () => {
@@ -409,4 +412,38 @@ test('missing/denied HITL and operation responses are counted, while authorized 
   const presented = await adapter.journal.presentEntry(ctx, principal(ctx), entry);
   expect(presented.refs).toEqual([refs[0], refs[3]]);
   expect(presented.hiddenRefCount).toBe(4);
+});
+
+test('current retained split IDs remain digestible and new entries stay in their current scope', async () => {
+  adapter.journal.settings.functionModel = {
+    sourceHash: 'epoch-a',
+    functions: [{ functionId: 'fn-a', capabilities: ['cap-a', 'cap-b'] }],
+  };
+  await append({ entryId: 'historical-entry' });
+  adapter.journal.settings.functionModel = {
+    sourceHash: 'epoch-b',
+    functions: ['fn-a', 'fn-b'].map((functionId) => ({
+      functionId,
+      capabilities: [functionId === 'fn-a' ? 'cap-a' : 'cap-b'],
+      derivation: { lineage: [{ previousId: 'fn-a', relation: 'split', overlap: 0.5 }] },
+    })),
+  };
+  await append({ entryId: 'current-entry', kind: 'awaiting' });
+  await emit('function.activation.changed.v1', {
+    tenantId: 'tenant-a',
+    functionId: 'fn-a',
+    state: 'active',
+    responsibility: { humans: [], cet: true },
+  });
+  const current = await call('digest', { functionId: 'fn-a' });
+  expect(current.status.state).toBe('active');
+  expect(current.entryCount).toBe(3);
+  adapter.journal.settings.functionModel.sourceHash = 'epoch-c';
+  expect((await call('digest', { functionId: 'fn-a' })).entryCount).toBe(3);
+  const sibling = await call('digest', { functionId: 'fn-b' });
+  expect(sibling.entryCount).toBe(1);
+  expect(sibling.openExpectations).toEqual([]);
+  expect((await call('byFunction', { functionId: 'fn-b' })).map((entry) => entry.entryId)).toEqual([
+    'historical-entry',
+  ]);
 });

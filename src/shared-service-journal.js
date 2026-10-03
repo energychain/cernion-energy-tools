@@ -1,7 +1,7 @@
 'use strict';
 
 const { compareCanonicalStrings } = require('./canonical-order');
-const { resolveFunctionId } = require('./function-model');
+const { resolveRecords } = require('./function-activation-state');
 
 const JOURNAL_KINDS = Object.freeze([
   'observed',
@@ -24,14 +24,7 @@ function compareEntries(a, b) {
 }
 
 function resolveEntries(entries, model) {
-  return entries
-    .flatMap((entry) =>
-      resolveFunctionId(entry.functionId, { model }).map(({ functionId }) => ({
-        ...entry,
-        functionId,
-      }))
-    )
-    .sort(compareEntries);
+  return resolveRecords(entries, model).sort(compareEntries);
 }
 
 // Identity references close expectations/proposals without changing their original records.

@@ -6,7 +6,7 @@ const { Errors } = require('moleculer');
 const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 const { principal } = require('../src/domain-router-policy');
 const { canViewEvidence } = require('../src/workbench-evidence');
-const { getFunctionModel, resolveFunctionId } = require('../src/function-model');
+const { getFunctionModel, getFunction, resolveFunctionId } = require('../src/function-model');
 const {
   JOURNAL_KINDS,
   compareEntries,
@@ -73,9 +73,7 @@ module.exports = {
         const p = principal(ctx, ctx.params);
         const entries = await this.readEntries(p.tenantId);
         const ids = new Set(
-          resolveFunctionId(ctx.params.functionId, { model: this.model() }).map(
-            (item) => item.functionId
-          )
+          this.readIdentities(ctx.params.functionId).map((item) => item.functionId)
         );
         return this.presentEntries(
           ctx,
@@ -103,7 +101,7 @@ module.exports = {
       'Compute a deterministic function state without a language model',
       async function (ctx) {
         const p = principal(ctx, ctx.params);
-        const ids = resolveFunctionId(ctx.params.functionId, { model: this.model() });
+        const ids = this.readIdentities(ctx.params.functionId);
         if (ids.length !== 1) fail('Use a current function identity for the digest');
         const digest = computeJournalDigest(
           await this.readEntries(p.tenantId),
@@ -167,6 +165,13 @@ module.exports = {
     now() {
       return this.settings.clock ? this.settings.clock() : Date.now();
     },
+    readIdentities(functionId) {
+      const model = this.model();
+      const current = getFunction(functionId, { model });
+      return current
+        ? [{ functionId: current.functionId }]
+        : resolveFunctionId(functionId, { model });
+    },
     serializeWrite(work) {
       const result = this.writeQueue.then(work);
       this.writeQueue = result.catch(() => {});
@@ -218,6 +223,7 @@ module.exports = {
       const at = input.at || new Date(this.now()).toISOString();
       if (!Number.isFinite(Date.parse(at))) fail('Invalid timestamp');
       const previous = await this.rawEntries(input.tenantId);
+      const currentFunction = getFunction(input.functionId, { model: this.model() });
       const entry = JSON.parse(
         JSON.stringify({
           entryId: input.entryId || randomUUID(),
@@ -229,6 +235,8 @@ module.exports = {
           refs: input.refs || [],
           at: new Date(at).toISOString(),
           position: previous.reduce((maximum, old) => Math.max(maximum, old.position || 0), 0) + 1,
+          modelSourceHash: currentFunction ? this.model().sourceHash || null : null,
+          capabilities: currentFunction?.capabilities || [],
           ...internal,
         })
       );

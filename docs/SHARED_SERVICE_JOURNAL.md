@@ -28,8 +28,13 @@ records. Public reads add `hiddenRefCount`, never storage metadata.
 
 Stored IDs resolve through `resolveFunctionId()` on every read. Split predecessors
 appear under each current successor; merged predecessors appear under the current
-function. `byFunction` accepts old IDs. A digest requires an identity resolving to
-exactly one function; ambiguous splits return 422 so callers choose a successor.
+function. `byFunction` accepts old IDs and treats a current ID as its current function.
+Digests accept every current ID, including IDs retained through a split. Historical
+aliases must resolve to exactly one function; ambiguous aliases return 422 so callers
+choose a successor. Private model-source and capability-membership metadata preserve
+the scope of entries written after a retained-ID split, including across later model
+regenerations. The existing generic `resolveRecords` helper calls `resolveFunctionId`
+and filters successors by stored membership; no activation policy is reused.
 Lineage never grants permissions.
 
 ## Deterministic digest contract for #700
