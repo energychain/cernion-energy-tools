@@ -107,7 +107,9 @@ test('AC-03: all lifecycle events and four correction targets are automatically 
     expect.arrayContaining(['created', 'woke', 'slept', 'retired', 'corrected'])
   );
   expect(state.journal.filter((entry) => entry.kind === 'corrected')).toHaveLength(4);
-  expect(await call('byAgent', { agentId: 'agent-a' })).toHaveLength(4);
+  const agentEntries = await call('byAgent', { agentId: 'agent-a' });
+  expect(agentEntries).toHaveLength(5);
+  expect(agentEntries.at(-1).kind).toBe('corrected');
   expect((await call('digest', { functionId: 'fn-a' })).status.agents).toEqual([
     { agentId: 'agent-a', lifecycle: 'retired' },
   ]);

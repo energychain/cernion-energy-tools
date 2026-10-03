@@ -288,6 +288,7 @@ module.exports = {
       if (!functionId) fail('Correction requires a resolvable function reference');
       return this.appendEntry({
         tenantId: input.tenantId,
+        ...(input.target === 'agent' ? { agentId: input.ref } : {}),
         functionId,
         kind: 'corrected',
         summary: 'Korrektur wurde protokolliert.',
