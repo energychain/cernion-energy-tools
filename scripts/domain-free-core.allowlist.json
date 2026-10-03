@@ -207,6 +207,14 @@
     {
       "term": "value",
       "reason": "Internal PRNG state variable."
+    },
+    {
+      "term": "capability",
+      "reason": "Name des Katalogobjekts im Datenvertrag #693; allgemeines Vertragsvokabular, keine fachliche Fallunterscheidung."
+    },
+    {
+      "term": "order",
+      "reason": "Sortierreihenfolge im allgemeinen Helfer canonical-order; kein Fachbegriff im Kern."
     }
   ]
 }

@@ -9,7 +9,13 @@ const {
   loadRawOperations,
   checkCoverage,
 } = require('../scripts/generate-operation-capability-index');
-const { OPERATION_KINDS } = require('../src/operation-capability-classifier');
+const { actionCoverage } = require('../scripts/operation-action-resolution');
+const { OPERATION_KINDS, classifyOperation } = require('../src/operation-capability-classifier');
+const { rankOperations } = require('../src/operation-capability-index');
+const {
+  CURATED_CAPABILITIES,
+  INTERFACE_PLACEHOLDER_CAPABILITY,
+} = require('../src/capability-catalog');
 
 const ROOT = path.join(__dirname, '..');
 const ARTIFACT_PATH = path.join(ROOT, 'operation-capability-index.json');
@@ -79,12 +85,26 @@ describe('generate-operation-capability-index', () => {
   // -------------------------------------------------------------------------
   describe('checkCoverage', () => {
     it('passes for a fully agentable set with valid kinds', () => {
-      const entries = [{ operationKind: 'data_read', agentable: true, nonAgentableReason: null }];
+      const entries = [
+        {
+          action: 'fn-a.read',
+          operationKind: 'data_read',
+          agentable: true,
+          nonAgentableReason: null,
+        },
+      ];
       expect(checkCoverage(entries, 1)).toEqual([]);
     });
 
     it('flags an entry count mismatch', () => {
-      const entries = [{ operationKind: 'data_read', agentable: true, nonAgentableReason: null }];
+      const entries = [
+        {
+          action: 'fn-a.read',
+          operationKind: 'data_read',
+          agentable: true,
+          nonAgentableReason: null,
+        },
+      ];
       const problems = checkCoverage(entries, 2);
       expect(problems.some((p) => p.includes('Expected 2'))).toBe(true);
     });
@@ -138,6 +158,56 @@ describe('generate-operation-capability-index', () => {
     it('passes its own coverage check with zero problems', () => {
       const problems = checkCoverage(result.entries, result.deduplicatedOperationCount);
       expect(problems).toEqual([]);
+    });
+
+    it('preserves classifier metadata for every operation', () => {
+      const raw = dedupeOperations(
+        loadRawOperations(
+          JSON.parse(fs.readFileSync(path.join(ROOT, 'openapi-export.json'), 'utf8'))
+        )
+      );
+      for (const entry of result.entries) {
+        const {
+          action: _action,
+          actionResolutionReason: _reason,
+          aliases: _aliases,
+          ...metadata
+        } = entry;
+        const { action: _oldAction, ...expected } = classifyOperation(
+          raw.find((op) => op.operationId === entry.operationId),
+          {
+            curatedCapabilities: [...CURATED_CAPABILITIES, INTERFACE_PLACEHOLDER_CAPABILITY],
+            allOperations: raw,
+          }
+        );
+        expect(metadata).toEqual(expected);
+      }
+    });
+
+    it('preserves ranking scores when the operation ID already identifies the resolved action', () => {
+      const entry = result.entries.find((op) => op.path === '/api/dashboard/a2mdm-decision-object');
+      const resolved = { operations: [entry] };
+      const unresolved = { operations: [{ ...entry, action: null }] };
+      const [after] = rankOperations(entry.action, { index: resolved });
+      const [before] = rankOperations(entry.action, { index: unresolved });
+      expect(after.score).toBe(before.score);
+      expect(
+        rankOperations('neutral query', { index: resolved }).map((op) => [op.operationId, op.score])
+      ).toEqual(
+        rankOperations('neutral query', { index: unresolved }).map((op) => [
+          op.operationId,
+          op.score,
+        ])
+      );
+    });
+
+    it('assigns all dashboard routes including split action modules', () => {
+      const routes = result.entries.filter((entry) => entry.path.startsWith('/api/dashboard/'));
+      expect(routes).toHaveLength(127);
+      expect(routes.every((entry) => entry.action?.startsWith('dashboard-api.'))).toBe(true);
+      expect(
+        routes.find((entry) => entry.path === '/api/dashboard/a2mdm-decision-object').action
+      ).toBe('dashboard-api.a2mdmDecisionObjectStatus');
     });
 
     it('gives every entry a valid operationKind from the documented enum', () => {
@@ -203,6 +273,7 @@ describe('generate-operation-capability-index', () => {
           agentableCount,
           nonAgentableCount: entries.length - agentableCount,
           byOperationKind: kindCounts,
+          ...actionCoverage(entries),
         },
         operations: entries,
       };

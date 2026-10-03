@@ -63,7 +63,8 @@ The generator's coverage check (`checkCoverage()` in
 
 - any deduplicated OpenAPI operation is missing from the output, or
 - any entry has an invalid `operationKind`, or
-- any entry with `agentable: false` lacks a concrete `nonAgentableReason`.
+- any entry with `agentable: false` lacks a concrete `nonAgentableReason`, or
+- any entry without an `action` lacks an `actionResolutionReason`.
 
 As of this writing there are exactly **2** non-agentable operations in the
 whole surface (`GET /api/openapi.json` and `GET /api/openapi-copilot.json`)
@@ -76,6 +77,33 @@ Operations sharing one `operationId` across multiple paths (see
 listed under `aliases` - nothing is dropped, but nothing is double-counted
 either. `coverage.rawOperationCount` in the artifact is the pre-dedup count;
 `coverage.operationCount` is the post-dedup entry count.
+
+### Static action resolution
+
+The generator reads service declarations through the shared static extractor in
+`scripts/function-model-sources.js`, including local CommonJS spreads, split modules,
+versioned references and unconditional schema-returning IIFEs. It never executes
+service modules. API gateway aliases are matched by HTTP method and full route,
+normalizing `:parameter` and `{parameter}` notation. String aliases and object
+aliases with an `action` are verified against declared actions. Conflicting aliases,
+unknown targets and function handlers receive a reason instead of a guessed action.
+If no gateway alias applies, a unique declared OpenAPI operation ID is used;
+exported dotted action names are matched to their underscore spelling.
+
+Resolution only replaces `action` and adds `actionResolutionReason`; classifier
+metadata, scopes, consequences and ranking logic remain unchanged. A statically
+verified reference does not establish runtime availability or grant authorization.
+Actions built dynamically from factories are not executed to discover their names.
+
+`coverage.resolvedActionCount`, `coverage.unresolvedActionCount` and
+`coverage.unresolvedActions` account for all entries. Every unresolved record contains
+operation ID, method, path and reason; the same reason is on the operation entry.
+The drift check rebuilds this resolution from current service and gateway sources.
+
+The regenerated function graph uses the existing catalog, projection and grouping
+parameters. `function-model.lineage.report.md` records ID and membership changes
+against the PR #703 baseline using unchanged capability IDs, including splits and
+merges. Function IDs alone do not imply equivalent membership.
 
 ## 4. Classification model
 
