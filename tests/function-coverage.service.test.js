@@ -2,7 +2,7 @@
 
 const { ServiceBroker } = require('moleculer');
 const schema = require('../services/function-coverage.service');
-const { createMemoryDb } = require('./helpers/shared-service/coverage-memory-db');
+const { memoryPouch } = require('./helpers/shared-service/memory-pouch');
 const { visible } = require('../src/domain-router-policy');
 const { configuration, project } = require('../src/function-coverage');
 const turn = require('../src/function-coverage-turn');
@@ -29,7 +29,10 @@ const input = (sourceRef = 'ref-a', extra = {}) => ({
 
 function createService(options = {}) {
   const broker = new ServiceBroker({ logger: false, transporter: null });
-  const db = createMemoryDb();
+  const Pouch = memoryPouch();
+  const db = new Pouch('coverage');
+  db.put = jest.fn(db.put.bind(db));
+  Object.defineProperty(db, 'writes', { get: () => db.put.mock.calls.length });
   const service = broker.createService({
     ...schema,
     mixins: [
@@ -64,7 +67,7 @@ describe('observed function coverage', () => {
     const rows = (await call('byActor')).items;
     expect(rows.map((row) => row.functionId)).toEqual(['fn-a', 'fn-b']);
     expect(rows.every((row) => row.signalCount === 1 && row.observedActivity)).toBe(true);
-    expect(db.docs.size).toBe(2);
+    expect(db.records.size).toBe(2);
     expect(broker.emit.mock.calls).toHaveLength(4);
     for (const [name, payload] of broker.emit.mock.calls) {
       expect(Object.keys(payload).sort(compareCanonicalStrings)).toEqual(
@@ -165,7 +168,7 @@ describe('observed function coverage', () => {
     expect(visible(policy, state)).toBe(before);
     expect(before).toBe(false);
     expect(policy).toEqual(snapshot);
-    expect(JSON.stringify([...db.docs.values()])).not.toMatch(
+    expect(JSON.stringify([...db.records.values()])).not.toMatch(
       /SECRET_CONTENT|domainsAllowed|roleFamilies|sensitivityClearance|message|response|token/
     );
   });
@@ -174,10 +177,10 @@ describe('observed function coverage', () => {
     const { call, broker, db } = createService();
     broker.emit.mockRejectedValue(new Error('offline'));
     await call('recordTouch', input());
-    expect([...db.docs.values()].every((doc) => doc.pendingEvents.length === 2)).toBe(true);
+    expect([...db.records.values()].every((doc) => doc.pendingEvents.length === 2)).toBe(true);
     broker.emit.mockResolvedValue();
     await call('recordTouch', input());
-    expect([...db.docs.values()].every((doc) => doc.pendingEvents.length === 0)).toBe(true);
+    expect([...db.records.values()].every((doc) => doc.pendingEvents.length === 0)).toBe(true);
     expect((await call('byActor')).items[0].signalCount).toBe(1);
   });
 
@@ -213,7 +216,7 @@ describe('observed function coverage', () => {
     now += configuration().retentionMs + 1;
     expect((await call('byActor')).items).toEqual([]);
     await call('maintain', {}, meta('admin-a', 'tenant-a', ['ROLE_TENANT_ADMIN']));
-    expect(db.docs.size).toBe(0);
+    expect(db.records.size).toBe(0);
   });
 
   test('completed-turn seam observes structured facts and never waits for persistence', async () => {
@@ -320,8 +323,8 @@ test('DB pages and read provenance remain bounded across many touches', async ()
   const rows = (await call('byActor')).items;
   expect(rows.every((row) => row.signalCount === 130)).toBe(true);
   expect(rows.every((row) => row.recentSourceReferences.length === 8)).toBe(true);
-  expect(db.docs.size).toBe(260);
-  expect([...db.docs.values()].every((doc) => doc.pendingEvents.length <= 2)).toBe(true);
+  expect(db.records.size).toBe(260);
+  expect([...db.records.values()].every((doc) => doc.pendingEvents.length <= 2)).toBe(true);
 });
 
 test('failed turns restore the call function and do not record observations', async () => {
@@ -333,5 +336,48 @@ test('failed turns restore the call function and do not record observations', as
   await expect(ctx.call('svc-a.read')).rejects.toBe(failure);
   expect(() => turn.error(ctx, failure)).toThrow(failure);
   expect(ctx.call).toBe(call);
-  expect(db.docs.size).toBe(0);
+  expect(db.records.size).toBe(0);
+});
+
+test('shared adapter delivers coverage events to real activation without changing authority', async () => {
+  const { createAdapter } = require('./helpers/shared-service/real-adapter');
+  const functions = [
+    {
+      functionId: 'fn-a',
+      capabilities: ['cap-a'],
+      operations: [],
+      neighbors: [{ functionId: 'fn-b', weight: 0.8, evidence: [] }],
+    },
+    { functionId: 'fn-b', capabilities: ['cap-b'], operations: [], neighbors: [] },
+  ];
+  const adapter = await createAdapter({ functions, jest });
+  const signal = (functionId, actorId, conversationId) =>
+    adapter.apply({
+      type: 'signal',
+      tenantId: 'tenant-a',
+      functionId,
+      actorId,
+      conversationId,
+      signalKind: 'session',
+    });
+  try {
+    await signal('fn-a', 'actor-a', 'conv-a');
+    expect(
+      (await adapter.snapshot()).activations.find((row) => row.functionId === 'fn-b').responsibility
+        .cet
+    ).toBe(true);
+    await signal('fn-b', 'actor-b', 'conv-b');
+    await signal('fn-b', 'actor-b', 'conv-c');
+    const state = await adapter.snapshot();
+    expect(state.activations.find((row) => row.functionId === 'fn-b').responsibility).toEqual({
+      humans: ['actor-b'],
+      cet: false,
+    });
+    expect(state.authorizationChecks).toHaveLength(3);
+    expect(
+      state.authorizationChecks.every((check) => check.before === false && check.after === false)
+    ).toBe(true);
+  } finally {
+    await adapter.close();
+  }
 });

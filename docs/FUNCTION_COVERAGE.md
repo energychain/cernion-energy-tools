@@ -98,9 +98,10 @@ later aggregate/index optimization. Shutdown drains accepted background writes.
 
 ## Harness and scope
 
-The real adapter instantiates coverage with the lifecycle-mixin DB seam replaced by
-an in-memory double. It supplies real before/after authorization decisions and policy
-snapshots now. I-8 remains todo until #701; the other dependent invariants remain todo
-until their owning services land. #709 was open on the implementation baseline, so
-this adapter provides the coverage portion without implementing activation behavior.
-No activation, agent, scheduler, journal, correction or public UI is implemented.
+The real adapter extends the activation adapter merged in #709. It instantiates both
+real services using the existing `memory-pouch.js` constructor seam, supplies coverage
+and event observations plus before/after authorization decisions and policy snapshots,
+and preserves the existing fake-timer shutdown loop. I-3 now runs against real activation
+state after coverage signals; I-8 remains todo until #701. Other dependent invariants
+await their owning services. This issue adds no activation, agent, scheduler, journal,
+correction or public UI behavior.

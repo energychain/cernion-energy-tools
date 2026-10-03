@@ -3,12 +3,13 @@ const { ServiceBroker } = require('moleculer');
 const coverage = require('../services/function-coverage.service');
 const workbench = require('../services/workbench.service');
 const openai = require('../services/openai-compatible.service');
-const { createMemoryDb } = require('./helpers/shared-service/coverage-memory-db');
+const { memoryPouch } = require('./helpers/shared-service/memory-pouch');
 
 // Real entrypoints, neutral structured upstream results, injected persistence.
 test('Workbench and OpenAI share the completed-turn seam; persistence errors preserve replies', async () => {
   const broker = new ServiceBroker({ logger: false, transporter: null });
-  const db = createMemoryDb();
+  const Pouch = memoryPouch();
+  const db = new Pouch('coverage');
   const service = broker.createService({
     ...coverage,
     mixins: [
@@ -99,7 +100,7 @@ test('Workbench and OpenAI share the completed-turn seam; persistence errors pre
     expect(events[0].functionId).toBe('fn-a');
     await broker.call('openai-compatible.chatCompletions', request, { meta });
     await service.queue;
-    expect(db.docs.size).toBe(1);
+    expect(db.records.size).toBe(1);
     for (let index = 0; index < 20; index++) {
       await broker.call(
         'workbench.chat',

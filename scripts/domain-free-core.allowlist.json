@@ -217,16 +217,60 @@
       "reason": "Sortierreihenfolge im allgemeinen Helfer canonical-order; kein Fachbegriff im Kern."
     },
     {
+      "term": "context",
+      "reason": "Existing tenant-context utility module; no subject-specific behavior."
+    },
+    {
+      "term": "threshold",
+      "reason": "Generic configurable comparison threshold for received coverage evidence."
+    },
+    {
+      "term": "mismatch",
+      "reason": "Generic rejection of a mismatched tenant identifier."
+    },
+    {
+      "term": "status",
+      "reason": "Standard PouchDB/HTTP error status used to distinguish missing documents."
+    },
+    {
+      "term": "pending",
+      "reason": "Promises for serializing tenant writes; no subject-specific state."
+    },
+    {
+      "term": "update",
+      "reason": "Generic atomic document update method."
+    },
+    {
+      "term": "record",
+      "reason": "Generic saved contract record, independent of its catalog content."
+    },
+    {
+      "term": "evidence",
+      "reason": "Required Function.neighbors evidence field from data contract #693."
+    },
+    {
+      "term": "revision",
+      "reason": "PouchDB document revision checked by the test double."
+    },
+    {
+      "term": "class",
+      "reason": "JavaScript class syntax in the memory database test double."
+    },
+    {
+      "term": "schema",
+      "reason": "Moleculer service schema instantiated by the real test adapter."
+    },
+    {
+      "term": "cutoff",
+      "reason": "Generic timestamp boundary for configurable touch retention, independent of catalog contents."
+    },
+    {
       "term": "access",
       "reason": "Generic authorization access decision in #695 tests; no domain behavior."
     },
     {
       "term": "break",
       "reason": "JavaScript loop control keyword."
-    },
-    {
-      "term": "class",
-      "reason": "Generic configurable signal class, not a business classification."
     },
     {
       "term": "clearance",
@@ -261,10 +305,6 @@
       "reason": "Existing domain-router-policy module import; coverage adds no domain classification."
     },
     {
-      "term": "evidence",
-      "reason": "Existing evidence_attachment signal band and privacy test payload; no business content."
-    },
-    {
       "term": "governance",
       "reason": "Existing cernion-governance-assistant facade model identifier in entrypoint regressions."
     },
@@ -297,14 +337,6 @@
       "reason": "Required paginated Person x Function read contract from #695."
     },
     {
-      "term": "mismatch",
-      "reason": "Fail-closed tenant/actor equality validation."
-    },
-    {
-      "term": "pending",
-      "reason": "Bounded outbox and background task delivery state."
-    },
-    {
       "term": "period",
       "reason": "Broker shutdown grace period in the fake-timer adapter."
     },
@@ -319,10 +351,6 @@
     {
       "term": "queue",
       "reason": "In-process serialized persistence promise queue."
-    },
-    {
-      "term": "record",
-      "reason": "Generic touch recording action and method."
     },
     {
       "term": "reference",
@@ -341,28 +369,12 @@
       "reason": "Originating response preserved by best-effort observations; never persisted."
     },
     {
-      "term": "schema",
-      "reason": "Moleculer service schema and closed document schema."
-    },
-    {
       "term": "scope",
       "reason": "Neutral scope-a policy fixture proving permissions stay unchanged."
     },
     {
-      "term": "status",
-      "reason": "Generic DB conflict status and existing status_query intent."
-    },
-    {
-      "term": "update",
-      "reason": "SHA-256 update API and outbox marker update."
-    },
-    {
       "term": "version",
       "reason": "Score/model source version metadata."
-    },
-    {
-      "term": "context",
-      "reason": "Existing Workbench context method and generic request context; coverage stores none of it."
     },
     {
       "term": "delta",
