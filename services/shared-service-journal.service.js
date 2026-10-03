@@ -43,6 +43,7 @@ module.exports = {
     retentionIntervalMs: 3600000,
     archiveBatchSize: 100,
     functionModel: null,
+    clock: null,
   },
   actions: {
     append: action(
@@ -157,7 +158,14 @@ module.exports = {
   },
   methods: {
     model() {
-      return getFunctionModel({ model: this.settings.functionModel });
+      const model =
+        typeof this.settings.functionModel === 'function'
+          ? this.settings.functionModel()
+          : this.settings.functionModel;
+      return getFunctionModel({ model });
+    },
+    now() {
+      return this.settings.clock ? this.settings.clock() : Date.now();
     },
     serializeWrite(work) {
       const result = this.writeQueue.then(work);
@@ -207,7 +215,7 @@ module.exports = {
         fail('Unknown function identity');
       if (input.refs && (!Array.isArray(input.refs) || input.refs.length > 100))
         fail('Invalid refs');
-      const at = input.at || new Date().toISOString();
+      const at = input.at || new Date(this.now()).toISOString();
       if (!Number.isFinite(Date.parse(at))) fail('Invalid timestamp');
       const previous = await this.rawEntries(input.tenantId);
       const entry = JSON.parse(
@@ -246,6 +254,12 @@ module.exports = {
         latent: 'Funktion ist bereit.',
       };
       const handoff = !input.responsibility.cet && input.responsibility.humans.length;
+      const activation = { state: input.state, responsibility: input.responsibility };
+      const previous = (await this.rawEntries(input.tenantId)).findLast(
+        (entry) => entry.functionId === input.functionId && entry.activation
+      );
+      if (previous && JSON.stringify(previous.activation) === JSON.stringify(activation))
+        return previous;
       return this.appendEntry(
         {
           ...input,
@@ -253,7 +267,7 @@ module.exports = {
           summary: handoff ? 'Verantwortung liegt bei Menschen.' : messages[input.state],
           refs: [],
         },
-        { activation: { state: input.state, responsibility: input.responsibility } }
+        { activation }
       );
     },
     async recordLifecycle(input) {
@@ -265,6 +279,13 @@ module.exports = {
         retired: 'Agent wurde beendet.',
       };
       if (!input.agentId || !kinds[input.lifecycle]) fail('Invalid lifecycle event');
+      const previous = (await this.rawEntries(input.tenantId)).findLast(
+        (entry) =>
+          entry.functionId === input.functionId &&
+          entry.agentId === input.agentId &&
+          entry.lifecycle
+      );
+      if (previous?.lifecycle === input.lifecycle) return previous;
       return this.appendEntry(
         { ...input, kind: kinds[input.lifecycle], summary: messages[input.lifecycle], refs: [] },
         { lifecycle: input.lifecycle }
@@ -381,7 +402,7 @@ module.exports = {
       for (const doc of batch) await this.db.remove(doc);
     },
     async compactEntries() {
-      const cutoff = Date.now() - this.settings.retentionMs;
+      const cutoff = this.now() - this.settings.retentionMs;
       const docs = (await this.db.allDocs({ include_docs: true })).rows
         .map((row) => row.doc)
         .filter((doc) => doc?.type === 'journal-entry' && Date.parse(doc.entry.at) < cutoff);

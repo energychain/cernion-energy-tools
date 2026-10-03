@@ -18,7 +18,7 @@ const emit = (event, payload) => adapter.apply({ event, payload });
 
 beforeEach(async () => {
   jest.useFakeTimers({ now: Date.UTC(2026, 0, 1) });
-  adapter = await createAdapter({ functions, jest });
+  adapter = await createAdapter({ functions, jest, journalSettings: { clock: () => Date.now() } });
 });
 afterEach(async () => {
   if (adapter) await adapter.close();
@@ -38,11 +38,11 @@ test('AC-01: immutable identities, detached values and concurrent duplicate reje
   await expect(append({ entryId: 'entry-a', summary: 'changed' })).rejects.toMatchObject({
     code: 409,
   });
-  const entries = await adapter.service.rawEntries('tenant-a');
+  const entries = await adapter.journal.rawEntries('tenant-a');
   expect(entries[0].summary).toBe('Beobachtung liegt vor.');
   expect(entries[0].refs[0].id).toBe('unknown');
-  expect(adapter.service.schema.actions.update).toBeUndefined();
-  expect(adapter.service.schema.actions.remove).toBeUndefined();
+  expect(adapter.journal.schema.actions.update).toBeUndefined();
+  expect(adapter.journal.schema.actions.remove).toBeUndefined();
 });
 
 test('AC-02/03: deterministic state, open items, settlement, activation and handoff without agents', async () => {
@@ -78,7 +78,7 @@ test('AC-02/03: deterministic state, open items, settlement, activation and hand
   expect(digest.openProposals).toEqual([]);
   expect(digest.lastDecisions.length).toBeGreaterThan(0);
   expect(await call('digest', { functionId: 'fn-a' })).toEqual(digest);
-  const raw = await adapter.service.readEntries('tenant-a');
+  const raw = await adapter.journal.readEntries('tenant-a');
   const independentlyOrdered = computeJournalDigest([...raw].reverse(), 'fn-a', 'tenant-a');
   expect(independentlyOrdered.status).toEqual(digest.status);
 });
@@ -192,28 +192,30 @@ test('AC-05: authenticated tenant isolation and filters', async () => {
 });
 
 test('AC-05: bounded lossless retention preserves digest, reads and immutable IDs', async () => {
-  adapter.service.settings.retentionMs = 1000;
-  adapter.service.settings.archiveBatchSize = 2;
+  adapter.journal.settings.retentionMs = 1000;
+  adapter.journal.settings.archiveBatchSize = 2;
   for (let i = 0; i < 5; i++) await append({ entryId: `entry-${i}`, kind: 'awaiting' });
   const before = await call('digest', { functionId: 'fn-a' });
   jest.advanceTimersByTime(2000);
-  expect(await adapter.service.serializeWrite(() => adapter.service.compactEntries())).toEqual({
+  expect(await adapter.journal.serializeWrite(() => adapter.journal.compactEntries())).toEqual({
     compacted: 5,
   });
-  const docs = (await adapter.service.db.allDocs()).rows.map((row) => row.doc);
+  const docs = (await adapter.journal.db.allDocs({ include_docs: true })).rows.map(
+    (row) => row.doc
+  );
   expect(docs).toHaveLength(3);
   expect(docs.every((doc) => doc.type === 'journal-archive' && doc.count <= 2)).toBe(true);
   expect(await call('digest', { functionId: 'fn-a' })).toEqual(before);
   expect(await call('byFunction', { functionId: 'fn-a' })).toHaveLength(5);
   await expect(append({ entryId: 'entry-0' })).rejects.toMatchObject({ code: 409 });
-  expect(await adapter.service.serializeWrite(() => adapter.service.compactEntries())).toEqual({
+  expect(await adapter.journal.serializeWrite(() => adapter.journal.compactEntries())).toEqual({
     compacted: 0,
   });
 });
 
 test('stored identities resolve on read, including splits, while digest requires one current identity', async () => {
   await append({ entryId: 'entry-a' });
-  adapter.service.settings.functionModel = {
+  adapter.journal.settings.functionModel = {
     functions: ['fn-b', 'fn-c'].map((functionId) => ({
       functionId,
       derivation: { lineage: [{ previousId: 'fn-a', relation: 'split', overlap: 0.5 }] },
@@ -251,16 +253,16 @@ test('same-time activation and settlement preserve append order rather than rand
 
 test('retention crash between archive and removal preserves reads and allows recovery', async () => {
   await append({ entryId: 'entry-a', kind: 'proposed' });
-  adapter.service.settings.retentionMs = 0;
+  adapter.journal.settings.retentionMs = 0;
   jest.advanceTimersByTime(1);
-  const originalRemove = adapter.service.db.remove;
-  adapter.service.db.remove = jest.fn().mockRejectedValueOnce(new Error('interrupted'));
+  const originalRemove = adapter.journal.db.remove;
+  adapter.journal.db.remove = jest.fn().mockRejectedValueOnce(new Error('interrupted'));
   await expect(
-    adapter.service.serializeWrite(() => adapter.service.compactEntries())
+    adapter.journal.serializeWrite(() => adapter.journal.compactEntries())
   ).rejects.toThrow('interrupted');
   expect(await call('byFunction', { functionId: 'fn-a' })).toHaveLength(1);
-  adapter.service.db.remove = originalRemove;
-  await adapter.service.serializeWrite(() => adapter.service.compactEntries());
+  adapter.journal.db.remove = originalRemove;
+  await adapter.journal.serializeWrite(() => adapter.journal.compactEntries());
   expect(await call('byFunction', { functionId: 'fn-a' })).toHaveLength(1);
 });
 
@@ -268,14 +270,14 @@ test('invalid entries, events and unresolved corrections cannot corrupt journal 
   await expect(append({ functionId: 'missing' })).rejects.toMatchObject({ code: 422 });
   await expect(append({ at: 'invalid' })).rejects.toMatchObject({ code: 422 });
   await expect(append({ summary: ' ' })).rejects.toMatchObject({ code: 422 });
-  await expect(adapter.service.recordActivation({ state: 'unknown' })).rejects.toMatchObject({
+  await expect(adapter.journal.recordActivation({ state: 'unknown' })).rejects.toMatchObject({
     code: 422,
   });
-  await expect(adapter.service.recordLifecycle({ lifecycle: 'unknown' })).rejects.toMatchObject({
+  await expect(adapter.journal.recordLifecycle({ lifecycle: 'unknown' })).rejects.toMatchObject({
     code: 422,
   });
   await expect(
-    adapter.service.recordCorrection({
+    adapter.journal.recordCorrection({
       tenantId: 'tenant-a',
       actorId: 'actor-a',
       target: 'agent',
@@ -283,7 +285,7 @@ test('invalid entries, events and unresolved corrections cannot corrupt journal 
       correction: {},
     })
   ).rejects.toMatchObject({ code: 422 });
-  await adapter.service.recordCorrection({
+  await adapter.journal.recordCorrection({
     tenantId: 'tenant-a',
     actorId: 'actor-a',
     target: 'neighbor',
@@ -291,4 +293,75 @@ test('invalid entries, events and unresolved corrections cannot corrupt journal 
     correction: { functionId: 'fn-a' },
   });
   expect(await call('byFunction', { functionId: 'fn-a' })).toHaveLength(1);
+});
+
+test('real activation producer journals touch, complementary responsibility, handoff and dormancy', async () => {
+  await adapter.close();
+  adapter = await createAdapter({
+    jest,
+    functions: [
+      { functionId: 'fn-a', neighbors: [{ functionId: 'fn-b', weight: 0.8, evidence: [] }] },
+      { functionId: 'fn-b', neighbors: [] },
+    ],
+  });
+  await adapter.apply({
+    type: 'touch',
+    payload: {
+      tenantId: 'tenant-a',
+      actorId: 'actor-a',
+      functionId: 'fn-a',
+      conversationId: 'conversation-a',
+      confidence: 1,
+    },
+  });
+  let digest = await call('digest', { functionId: 'fn-b' });
+  expect(digest.status).toMatchObject({
+    state: 'active',
+    responsibility: { humans: [], cet: true },
+  });
+  expect((await adapter.snapshot()).journal.length).toBeGreaterThan(0);
+  await adapter.apply({
+    event: 'function.coverage.changed.v1',
+    payload: {
+      tenantId: 'tenant-a',
+      actorId: 'actor-b',
+      functionId: 'fn-b',
+      score: 1,
+      origin: 'observed',
+    },
+  });
+  digest = await call('digest', { functionId: 'fn-b' });
+  expect(digest.status.responsibility).toEqual({ humans: ['actor-b'], cet: false });
+  expect(digest.lastDecisions.at(-1).summary).toBe('Verantwortung liegt bei Menschen.');
+  await adapter.apply({ type: 'advance', milliseconds: adapter.service.settings.restWindowMs + 1 });
+  const state = await adapter.snapshot();
+  const activation = state.activations.find((item) => item.functionId === 'fn-a');
+  expect(activation.state).toBe('dormant');
+  expect((await call('digest', { functionId: 'fn-a' })).status.state).toBe(activation.state);
+});
+
+test('at-least-once activation/lifecycle retries are idempotent and later transitions remain visible', async () => {
+  const event = {
+    tenantId: 'tenant-a',
+    functionId: 'fn-a',
+    state: 'active',
+    responsibility: { humans: [], cet: true },
+  };
+  await emit('function.activation.changed.v1', event);
+  await append({ kind: 'observed' });
+  await emit('function.activation.changed.v1', event);
+  expect((await call('digest', { functionId: 'fn-a' })).entryCount).toBe(2);
+  const lifecycle = {
+    tenantId: 'tenant-a',
+    functionId: 'fn-a',
+    agentId: 'agent-a',
+    lifecycle: 'sleeping',
+  };
+  await emit('shared-agent.lifecycle.v1', lifecycle);
+  await emit('shared-agent.lifecycle.v1', lifecycle);
+  expect(await call('byAgent', { agentId: 'agent-a' })).toHaveLength(1);
+  await emit('function.activation.changed.v1', { ...event, state: 'dormant' });
+  await emit('function.activation.changed.v1', event);
+  expect((await call('digest', { functionId: 'fn-a' })).status.state).toBe('active');
+  expect(await call('byFunction', { functionId: 'fn-a', kinds: ['decided'] })).toHaveLength(3);
 });

@@ -81,10 +81,13 @@ ID already recorded in that tenant. Opaque coverage/neighbor references require
 `correction.functionId` (or additive top-level `functionId`). An unresolvable
 association is rejected, rather than guessing or creating cross-tenant links.
 
-#709 was still open when this implementation started. Its production activation
-emitter/real adapter will be integrated when available on main. Fixture events
-exercise the exact versioned contract now, without implementing activation (#696),
-agents (#697), activity queries (#700) or learning (#701).
+The production activation producer from #709 is now integrated after merging
+`origin/main` without rebasing. Its real touch, complementary responsibility,
+human handoff and dormancy transitions are tested through the shared adapter.
+Consecutive identical activation snapshots and lifecycle states are deduplicated,
+including after retention/restart, to accept the activation outbox's at-least-once
+retries. Distinct transitions and returns to earlier states remain separate entries.
+No agent implementation (#697), activity-query (#700) or learning (#701) is added.
 
 ## Reference visibility
 
@@ -127,10 +130,12 @@ journal documents. Pagination/indexed archival reads are future scale work.
 
 ## Harness
 
-`tests/helpers/shared-service/real-adapter.js` instantiates the real journal and
-injects an in-memory PouchDB double at the existing lifecycle seam. Its snapshot
-returns the `journal` observation array with #693 fields and stored correction
-refs, independently of activity-query responses. `close()` advances fake timers
-while Moleculer stops. Upstream input types remain unimplemented until the relevant
-services land. I-5 (#700) and I-7 (#701) remain todo. Journal-specific tests cover
-AC-01–AC-05 now, including event emission and retention under fake time.
+`tests/helpers/shared-service/real-adapter.js` extends #709's existing activation
+adapter with the real journal. Both services reuse `memory-pouch.js` at the
+PouchDB constructor seam. The helper gains revision-checked removal for retention;
+there is no separate journal DB double. The adapter's existing fake-timer-aware
+`close()` remains unchanged. Both services share the injected clock and current
+Function model; journal observation reads actual entries for all observed tenants.
+The production activation emitter is exercised directly, while missing services'
+observations remain empty. I-5 (#700) and I-7 (#701) remain todo. Journal-specific
+tests cover AC-01–AC-05, event retries, retention and real PouchDB restart behavior.

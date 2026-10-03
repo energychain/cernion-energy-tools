@@ -2,6 +2,7 @@
   "minimumLength": 5,
   "corePaths": [
     "src/function-model.js",
+    "src/function-activation-state.js",
     "services/function-coverage.service.js",
     "services/function-activation.service.js",
     "services/shared-service-agent.service.js",
@@ -16,7 +17,6 @@
   "optionalPaths": [
     "src/function-model.js",
     "services/function-coverage.service.js",
-    "services/function-activation.service.js",
     "services/shared-service-agent.service.js",
     "src/shared-service-wake.js",
     "src/workbench-system-activity.js",

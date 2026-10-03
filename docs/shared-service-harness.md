@@ -131,16 +131,17 @@ module; its older branches are not blanket-allowlisted.
 
 ## Journal observations (#698)
 
-The default `real-adapter.js` now instantiates the real `journal` service with a
-PouchDB test double at the lifecycle seam. `snapshot().journal` contains the
-actual tenant journal entries, including automatically recorded correction refs.
-Fixture activation/lifecycle events can be sent through `apply`; correction
-steps emit the versioned event directly. Missing services' observations remain
-absent. No activation, agent, activity-query or learning behavior is simulated.
+The existing activation `real-adapter.js` from #709 also starts the real `journal`
+service, reusing `memory-pouch.js` at the constructor seam and retaining the
+existing fake-timer-aware `close()`. `snapshot().journal` contains actual records
+for all observed tenants, including correction refs. Real activation transitions
+from touches, received coverage and time advances automatically populate it.
+Fixture lifecycle/correction events are also delivered to the real subscribers.
+Both services use the same injected clock and function model. Missing services'
+observations remain empty; no agent, activity-query or learning behavior is simulated.
 
-`tests/shared-service-journal.service.test.js` exercises this adapter for immutable
-writes, deterministic digests, reference visibility, identity lineage, event
-subscriptions and lossless retention. I-5 and I-7 still require #700 and #701,
-respectively, and remain explicit todos. When #709 lands, extend its activation
-adapter with these journal service/observation hooks and retain fake-timer-aware
-broker teardown.
+`tests/shared-service-journal.service.test.js` checks immutable writes,
+deterministic digests, visibility, identity lineage, the production activation
+producer, event retries and lossless retention. The journal persistence test
+checks real PouchDB restarts and archival. I-3 remains active against the actual
+activation service; I-5 and I-7 remain explicit todos pending #700 and #701.

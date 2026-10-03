@@ -217,12 +217,56 @@
       "reason": "Sortierreihenfolge im allgemeinen Helfer canonical-order; kein Fachbegriff im Kern."
     },
     {
-      "term": "domain",
-      "reason": "Existing domain-router service/import name used solely to reuse case authorization; no domain semantics."
+      "term": "context",
+      "reason": "Existing tenant-context utility module; no subject-specific behavior."
+    },
+    {
+      "term": "threshold",
+      "reason": "Generic configurable comparison threshold for received coverage evidence."
+    },
+    {
+      "term": "mismatch",
+      "reason": "Generic rejection of a mismatched tenant identifier."
+    },
+    {
+      "term": "status",
+      "reason": "Standard PouchDB/HTTP error status used to distinguish missing documents."
+    },
+    {
+      "term": "pending",
+      "reason": "Promises for serializing tenant writes; no subject-specific state."
+    },
+    {
+      "term": "update",
+      "reason": "Generic atomic document update method."
+    },
+    {
+      "term": "record",
+      "reason": "Generic saved contract record, independent of its catalog content."
     },
     {
       "term": "evidence",
-      "reason": "Generic EvidenceRef contract and existing sensitivity helper."
+      "reason": "Required Function.neighbors evidence field from data contract #693."
+    },
+    {
+      "term": "revision",
+      "reason": "PouchDB document revision checked by the test double."
+    },
+    {
+      "term": "class",
+      "reason": "JavaScript class syntax in the memory database test double."
+    },
+    {
+      "term": "schema",
+      "reason": "Moleculer service schema instantiated by the real test adapter."
+    },
+    {
+      "term": "cutoff",
+      "reason": "Generic timestamp boundary for configurable touch retention, independent of catalog contents."
+    },
+    {
+      "term": "domain",
+      "reason": "Existing domain-router service/import name used solely to reuse case authorization; no domain semantics."
     },
     {
       "term": "process",
@@ -231,10 +275,6 @@
     {
       "term": "identity",
       "reason": "Generic journal/function identity validation."
-    },
-    {
-      "term": "record",
-      "reason": "Generic journal record and event handler naming."
     },
     {
       "term": "queue",
@@ -269,24 +309,8 @@
       "reason": "Existing sensitivity clearance authorization field."
     },
     {
-      "term": "status",
-      "reason": "Generic function state and HTTP error status."
-    },
-    {
-      "term": "cutoff",
-      "reason": "Retention timestamp boundary."
-    },
-    {
-      "term": "update",
-      "reason": "Node.js crypto Hash.update API."
-    },
-    {
       "term": "freeze",
       "reason": "JavaScript Object.freeze for immutable kind constants."
-    },
-    {
-      "term": "schema",
-      "reason": "Moleculer service schema and digest schema version."
     },
     {
       "term": "schema version",
