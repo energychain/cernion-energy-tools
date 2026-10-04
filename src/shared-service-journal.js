@@ -43,7 +43,13 @@ function computeJournalDigest(entries, functionId, tenantId) {
   const decisions = [];
   let status = { state: 'latent', responsibility: { humans: [], cet: false }, agents: [] };
   const agents = new Map();
+  const metrics = new Map();
   for (const entry of ordered) {
+    if ((entry.refs || []).some((ref) => ref?.kind === 'wake-metrics'))
+      settleOpenEntries(entry.refs, awaiting, proposals);
+    for (const ref of entry.refs || [])
+      if (ref?.kind === 'wake-metrics' && entry.agentId && ref.stats)
+        metrics.set(entry.agentId, ref.stats);
     if (entry.activation) status = { ...status, ...entry.activation };
     if (entry.lifecycle && entry.agentId) agents.set(entry.agentId, entry.lifecycle);
     if (entry.kind === 'awaiting') awaiting.set(entry.entryId, entry);
@@ -66,6 +72,13 @@ function computeJournalDigest(entries, functionId, tenantId) {
     openProposals: [...proposals.values()],
     entryCount: ordered.length,
     lastEntryAt: ordered.at(-1)?.at || null,
+    ...(metrics.size
+      ? {
+          wakeMetrics: [...metrics]
+            .sort(([a], [b]) => compareCanonicalStrings(a, b))
+            .map(([agentId, stats]) => ({ agentId, ...stats })),
+        }
+      : {}),
   };
 }
 

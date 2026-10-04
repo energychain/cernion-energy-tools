@@ -17,6 +17,7 @@ async function createAdapter({
   dbPath,
   clock,
   journalSettings = {},
+  wakeSettings = {},
 } = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'activation-adapter-'));
   const events = [];
@@ -27,12 +28,17 @@ async function createAdapter({
   let schema;
   let coverageSchema;
   let journalSchema;
+  let wakeSchema;
+  let agentSchema;
   jestApi.doMock('pouchdb', () => Pouch);
   try {
     jestApi.isolateModules(() => {
       schema = require('../../../services/function-activation.service');
       coverageSchema = require('../../../services/function-coverage.service');
       journalSchema = require('../../../services/shared-service-journal.service');
+      wakeSchema = require('../../../services/shared-service-wake.service');
+      const agentPath = path.join(__dirname, '../../../services/shared-service-agent.service.js');
+      if (fs.existsSync(agentPath)) agentSchema = require(agentPath);
     });
   } finally {
     jestApi.dontMock('pouchdb');
@@ -86,6 +92,42 @@ async function createAdapter({
       ...journalSettings,
     },
   });
+  // #697 owns execution and consumption. Until it lands, expose only its exact contract.
+  const cycleCalls = [];
+  const agentService = agentSchema
+    ? broker.createService({
+        ...agentSchema,
+        settings: {
+          ...agentSchema.settings,
+          model: service.model,
+          dbPath: path.join(root, 'agents'),
+          clock: () => now.value,
+        },
+      })
+    : broker.createService({
+        name: 'shared-service-agent',
+        actions: {
+          runCycle: {
+            params: { tenantId: 'string', agentId: 'string' },
+            handler(ctx) {
+              cycleCalls.push({ ...ctx.params });
+              return { findings: 0, consumedUnits: 0, proposals: [] };
+            },
+          },
+        },
+      });
+  const wake = broker.createService({
+    ...wakeSchema,
+    settings: {
+      ...wakeSchema.settings,
+      model: service.model,
+      dbPath: dbPath ? `${dbPath}-wake` : path.join(root, 'wake'),
+      clock: () => now.value,
+      pushMode: 'hybrid',
+      ...wakeSettings,
+    },
+  });
+  const emptyWakes = [];
   const attentionTransitions = [];
   let fresh = true;
   const tenants = new Set(['tenant-a']);
@@ -102,6 +144,10 @@ async function createAdapter({
     coverageService,
     coverageEvents,
     journal,
+    wake,
+    agentService,
+    cycleCalls,
+    agentMode: agentSchema ? 'real' : 'contract-stub',
     events,
     clock: now,
     async apply(step) {
@@ -109,6 +155,37 @@ async function createAdapter({
         now.value += step.milliseconds;
         await service.sweep();
         await journal.serializeWrite(() => journal.compactEntries());
+        return;
+      }
+      if (step.type === 'wake-exercise' && !agentSchema) {
+        const rows = await broker.call('activation.list', { tenantId: 'tenant-a' });
+        const row = rows.find(
+          (item) =>
+            item.responsibility.cet &&
+            !item.attention.allowanceExhausted &&
+            item.attention.allowance >= 0.1
+        );
+        if (!row) return;
+        const agentId = `agent-${row.functionId}`;
+        await broker.emit('shared-agent.lifecycle.v1', {
+          tenantId: row.tenantId,
+          functionId: row.functionId,
+          agentId,
+          lifecycle: 'active',
+        });
+        await service.settle();
+        await wake.settle();
+        const before = (await wake.records(row.tenantId)).find((item) => item.agentId === agentId);
+        if (!before || before.wake.mode === 'event') return;
+        now.value = Math.max(now.value, before.nextAt);
+        await wake.drainDue();
+        const after = (await wake.records(row.tenantId)).find((item) => item.agentId === agentId);
+        if (after.stats.emptyWakes > (before.stats.emptyWakes || 0))
+          emptyWakes.push({
+            beforeIntervalSec: before.wake.intervalSec,
+            afterIntervalSec: after.wake.intervalSec,
+            maximumIntervalSec: wake.settings.maximumIntervalSec,
+          });
         return;
       }
       if (step.type === 'signal') {
@@ -171,6 +248,7 @@ async function createAdapter({
       if (step.type === 'touch') event.at = new Date(now.value).toISOString();
       await broker.emit(step.event || 'function.touched.v1', event, { meta: step.meta || {} });
       await service.settle();
+      await wake.settle();
       await journal.writeQueue;
       fresh = false;
     },
@@ -202,7 +280,7 @@ async function createAdapter({
         restWindowMs: service.settings.restWindowMs,
         operationAttempts: [],
         activityQueries: [],
-        emptyWakes: [],
+        emptyWakes: structuredClone(emptyWakes),
         corrections: [],
         authorizationChecks: structuredClone(authorizationChecks),
         coverage,

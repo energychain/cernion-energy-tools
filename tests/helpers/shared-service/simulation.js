@@ -191,6 +191,7 @@ function generateHistory({ seed, functions, users = 5, steps = 80 }) {
         },
       }
     );
+    if (steps >= 7) history.splice(5, 2, turn(anchor.functionId, 2), { type: 'wake-exercise' });
   }
   return history;
 }

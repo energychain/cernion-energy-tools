@@ -1,6 +1,26 @@
 {
   "entries": [
     {
+      "term": "claim",
+      "reason": "Generic revision-protected scheduler execution claim; no domain behavior."
+    },
+    { "term": "owner", "reason": "Opaque scheduler instance identity on an execution claim." },
+    {
+      "term": "deadline",
+      "reason": "Generic dueAt clock boundary used for adaptive wake intervals."
+    },
+    { "term": "factors", "reason": "Configurable numeric interval multipliers." },
+    { "term": "strategy", "reason": "Existing Moleculer test broker registry configuration." },
+    { "term": "polling", "reason": "Generic scheduling mode distinct from push events." },
+    {
+      "term": "absent",
+      "reason": "Generic missing event/tenant metadata in neutral scheduler tests."
+    },
+    {
+      "term": "derived",
+      "reason": "Generic derivation of wake metadata from the Function contract."
+    },
+    {
       "term": "activation",
       "reason": "Activation contract and invariant metadata."
     },

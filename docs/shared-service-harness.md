@@ -201,3 +201,24 @@ turn and an inert time advance for every fixed seed. I-10 exercise detection
 requires actual decay, successful consumption and a step without turns. Positive
 and separate negative self-tests cover all three properties. I-3 remains active;
 I-1/I-2/I-4–I-9 keep their existing upstream-service dependencies and todos.
+
+## Wake observations (#699)
+
+I-6 is active against the real wake service and its lifecycle mixin. Until #697
+lands, only shared-service-agent.runCycle({tenantId, agentId}) is stubbed, returning
+{findings: 0, consumedUnits: 0, proposals: []}. It implements no lifecycle, mandate
+or consumption. The adapter selects the real service when its file lands on main.
+Stub mode does not claim I-1/I-2/I-4/I-9 acceptance.
+
+The graph-derived prefix supplies actual human turns followed by wake-exercise.
+It publishes a contract lifecycle input, advances the injected clock to persisted
+nextAt and dispatches through the real scheduler. emptyWakes records actual
+before/after intervals only when the persisted empty-cycle counter increases.
+Hybrid promotion keeps due scheduling exercisable for real-model listeners.
+I-3 and I-10 continue against real activation; the stub injects no allowance.
+
+Separate tests cover pure event/no polling, tenant/scope rejection, exhausted
+attention, funding-only rearming, errors, two-instance revision claims, one timer,
+shutdown and real PouchDB restart with journal metrics. See
+[SHARED_SERVICE_WAKE.md](SHARED_SERVICE_WAKE.md) for boundaries and parameters.
+The unchanged 59-second harness deadline applies; each PR reports measured runtime.
