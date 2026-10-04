@@ -30,7 +30,8 @@
     "src/shared-service-agent-policy.js",
     "tests/shared-service-agent.service.test.js",
     "services/shared-service-agents.service.js",
-    "tests/shared-service-agent-persistence.test.js"
+    "tests/shared-service-agent-persistence.test.js",
+    "services/persona-inbox.service.js"
   ],
   "optionalPaths": [
     "src/function-model.js",

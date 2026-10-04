@@ -315,6 +315,18 @@
     {
       "term": "review",
       "reason": "Generic human proposal review text, no function-specific behavior."
+    },
+    {
+      "term": "approval",
+      "reason": "Existing generic HITL/persona-inbox message type; human authorization workflow, no domain-specific approval logic."
+    },
+    {
+      "term": "persona inbox",
+      "reason": "Existing internal persona inbox channel name and generic error text; required proposal integration for #697."
+    },
+    {
+      "term": "freigabe",
+      "reason": "Existing German HITL/persona-inbox user text for generic human approval; #697 never approves or dispatches externally."
     }
   ]
 }

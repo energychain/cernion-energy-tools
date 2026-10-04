@@ -151,6 +151,17 @@ module.exports = {
           updatedItems.push(updated);
         }
 
+        if (updatedItems.length) {
+          await this.broker.emit(
+            'persona-inbox.item.resolved.v1',
+            {
+              tenantId,
+              itemId: hitlItemId,
+              resolutionSource: trimString(ctx.params.resolutionSource),
+            },
+            { meta: ctx.meta }
+          );
+        }
         return {
           success: true,
           hitlItemId,

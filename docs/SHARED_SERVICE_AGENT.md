@@ -96,6 +96,11 @@ before LLM sleeps the agent until a funding event supplies a useful cycle's unit
 inbox item and emits `shared-agent.feedback.v1` using the proposal's persisted
 agent/function association. Existing `hitl.item.resolved` events use the same
 association if present: approved → accepted, completed → used, rejected → rejected.
+The existing `persona-inbox.resolveByHitlItem` action also publishes a versioned
+resolution event after persistence. A recipient's accepted/used/rejected resolution
+through that original action reaches the same feedback path automatically; no new
+chat flow is required. Unknown or unauthenticated resolutions do not invent a
+positive outcome.
 Unrelated, other-tenant and duplicate resolutions do not manufacture feedback.
 No proposal is auto-approved, and no observed finding counts as positive feedback.
 The first terminal human resolution determines the proposal's outcome.

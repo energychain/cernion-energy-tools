@@ -123,7 +123,7 @@ module.exports = {
               hitlItemId: proposal.ref,
               resolutionSource: ctx.params.outcome,
             },
-            { meta: { ...ctx.meta, tenantId: p.tenantId } }
+            { meta: { ...ctx.meta, tenantId: p.tenantId, sharedAgentResolution: true } }
           );
           if (!result.count) deny('Proposal not delivered');
           await this.feedback({
@@ -199,6 +199,14 @@ module.exports = {
           doc.coverage = doc.coverage.slice(-this.settings.maxCoverageRecords);
           await this.save(doc);
         }).catch((error) => this.logger.warn(error.type || error.name));
+      },
+    },
+    'persona-inbox.item.resolved.v1': {
+      handler(ctx) {
+        const work = () => this.inboxFeedback(ctx.params, ctx.meta);
+        // resolveProposal is already in this queue and applies feedback itself.
+        if (ctx.meta.sharedAgentResolution) return;
+        return this.enqueue(work);
       },
     },
     'hitl.item.resolved': {
@@ -626,6 +634,29 @@ module.exports = {
         }
       }
       return result;
+    },
+    async inboxFeedback(event, meta) {
+      const status = {
+        accepted: 'approved',
+        used: 'completed',
+        rejected: 'rejected',
+        'hitl:approved': 'approved',
+        'hitl:rejected': 'rejected',
+        'hitl:completed': 'completed',
+      }[event.resolutionSource];
+      if (!status) return;
+      let p;
+      try {
+        p = principal({ meta }, { tenantId: event.tenantId });
+      } catch {
+        return;
+      }
+      const doc = await this.readDocument(p.tenantId);
+      const proposal = doc.agents
+        .flatMap((item) => item.proposals)
+        .find((item) => item.ref === event.itemId);
+      if (!proposal?.recipients.includes(p.actorId)) return;
+      await this.feedback({ tenantId: p.tenantId, itemId: event.itemId, status });
     },
     async feedback(event) {
       this.checkTenant(event.tenantId);

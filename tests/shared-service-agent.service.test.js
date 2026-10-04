@@ -705,3 +705,52 @@ test('AC-07: bounded coverage and unresolved proposal associations apply backpre
   await adapter.agents.settle();
   expect((await adapter.agents.readDocument('tenant-a')).coverage).toHaveLength(3);
 });
+
+test('AC-04: resolving through the original Inbox action automatically publishes associated human feedback', async () => {
+  await setup();
+  neutralRead(() => ({ findings: [{}] }));
+  adapter.broker.createService({
+    name: 'agent-persona',
+    actions: {
+      list: () => ({
+        items: [
+          {
+            id: 'persona-a',
+            tenantId: 'tenant-a',
+            openclawUserId: 'person-a',
+            personaType: 'human',
+            status: 'active',
+          },
+        ],
+      }),
+    },
+  });
+  jest
+    .spyOn(adapter.agents.llmClient, 'generateStructured')
+    .mockResolvedValue({ summary: 'Review observed state.' });
+  await adapter.apply({
+    event: 'function.coverage.changed.v1',
+    payload: {
+      tenantId: 'tenant-a',
+      actorId: 'person-a',
+      functionId: 'fn-a',
+      score: 1,
+      origin: 'observed',
+    },
+  });
+  await touch();
+  const proposal = (await adapter.agents.readDocument('tenant-a')).agents[0].proposals[0];
+  await adapter.broker.call(
+    'persona-inbox.resolveByHitlItem',
+    { tenantId: 'tenant-a', hitlItemId: proposal.ref, resolutionSource: 'rejected' },
+    { meta: meta() }
+  );
+  await adapter.agents.settle();
+  expect(adapter.agentEvents.filter((event) => event.outcome)).toEqual([
+    expect.objectContaining({ outcome: 'rejected', functionId: 'fn-b' }),
+  ]);
+  expect(
+    (await adapter.service.readRows('tenant-a')).find((row) => row.functionId === 'fn-b').attention
+      .reactivationScore
+  ).toBe(0);
+});
