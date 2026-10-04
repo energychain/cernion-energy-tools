@@ -1,35 +1,9 @@
 'use strict';
 
 const { compareCanonicalStrings: compare } = require('./canonical-order');
-const { getNeighbors, resolveFunctionId } = require('./function-model');
-
-function resolveRecords(records, model) {
-  return records.flatMap((record) => {
-    const successors = resolveFunctionId(record.functionId, { model });
-    const resolved = successors.filter(({ functionId }) => {
-      if (record.modelSourceHash && record.modelSourceHash === model.sourceHash)
-        return functionId === record.functionId;
-      if (!record.capabilities?.length) return true;
-      return model.functions
-        .find((fn) => fn.functionId === functionId)
-        ?.capabilities?.some((id) => record.capabilities.includes(id));
-    });
-    return resolved.map(({ functionId }) => ({ ...record, functionId }));
-  });
-}
-
-function coverageRecords(document, model) {
-  const byActor = new Map();
-  for (const record of [...document.coverage].sort(
-    (a, b) => (a.sequence || 0) - (b.sequence || 0)
-  )) {
-    const resolved = resolveRecords([record], model);
-    if (resolved.length !== 1) continue;
-    const [entry] = resolved;
-    byActor.set(JSON.stringify([entry.functionId, entry.actorId]), entry);
-  }
-  return [...byActor.values()];
-}
+const { getNeighbors } = require('./function-model');
+const { resolveRecords, coverageRecords } = require('./function-activation-records');
+const { attentionState } = require('./function-attention');
 
 function activationRows(document, model, settings, now) {
   const touches = resolveRecords(document.touches, model).filter(
@@ -87,12 +61,18 @@ function activationRows(document, model, settings, now) {
       ].sort(compare),
       responsibility: { humans, cet: false },
       reason: touchedAt ? [{ kind: 'touched', at: touchedAt }] : [],
+      ...(saved.find((item) => item.attention)
+        ? { attention: attentionState(saved.find((item) => item.attention).attention, settings) }
+        : {}),
     };
   });
   const byId = new Map(rows.map((row) => [row.functionId, row]));
   const candidates = new Map();
   for (const source of rows.filter((row) => row.touchedAt)) {
-    for (const edge of getNeighbors(source.functionId, { model, minWeight: settings.minWeight })) {
+    const edges = getNeighbors(source.functionId, { model, minWeight: settings.minWeight })
+      .sort((a, b) => b.weight - a.weight || compare(a.functionId, b.functionId))
+      .slice(0, settings.maxNeighborsPerTouch);
+    for (const edge of edges) {
       const target = byId.get(edge.functionId);
       if (!target || target.functionId === source.functionId || target.responsibility.humans.length)
         continue;
@@ -102,7 +82,7 @@ function activationRows(document, model, settings, now) {
         .filter(Boolean)
         .sort(compare)
         .at(-1);
-      if (!live(source.touchedAt) && !live(lastActivity)) continue;
+      if (!live(source.touchedAt) && !live(lastActivity) && !target.attention?.inventory) continue;
       const reasons = candidates.get(target.functionId) || [];
       reasons.push({
         kind: 'neighbor',
@@ -121,12 +101,18 @@ function activationRows(document, model, settings, now) {
   const budget = Object.hasOwn(settings.tenantBudgets, document.tenantId)
     ? settings.tenantBudgets[document.tenantId]
     : settings.tenantBudget;
-  ranked.forEach(([functionId, reasons], index) => {
+  let selected = 0;
+  ranked.forEach(([functionId, reasons]) => {
     const row = byId.get(functionId);
     row.reason.push(...reasons);
-    if (index < budget) {
+    if (row.attention?.retired) {
+      row.state = 'dormant';
+      row.reason.push({ kind: 'attention_retired' });
+    } else if (selected < budget) {
+      selected += 1;
       row.state = 'active';
       row.responsibility.cet = true;
+      row.attention = attentionState(row.attention, settings);
     } else row.reason.push({ kind: 'budget_deferred', budget });
   });
   for (const row of rows) {

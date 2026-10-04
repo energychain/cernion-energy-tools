@@ -110,6 +110,39 @@ const invariants = {
       assert.deepEqual(check.policyBefore, check.policyAfter);
     }
   },
+  'I-10': (state) => {
+    for (const row of state.activations.filter((item) => item.attention)) {
+      const a = row.attention;
+      assert.ok(
+        a.allowance >= 0 && (state.allowanceCap === undefined || a.allowance <= state.allowanceCap),
+        'allowance outside cap'
+      );
+      assert.ok(
+        a.consumedUnits <= a.replenishedUnits + 1e-9,
+        'consumption exceeds funded allowance'
+      );
+    }
+    if (state.activatingTurns !== undefined)
+      assert.ok(
+        state.activations.reduce((sum, row) => sum + (row.attention?.replenishedUnits || 0), 0) <=
+          state.activatingTurns * state.allowancePerTurn + 1e-9,
+        'funding exceeds turns'
+      );
+    for (const change of state.attentionTransitions || []) {
+      if (!change.refreshed)
+        assert.ok(
+          change.after.relevance <= change.before.relevance + 1e-12,
+          'relevance increased without refresh'
+        );
+      const consumed = change.after.consumedUnits - change.before.consumedUnits;
+      const refill = change.after.replenishedUnits - change.before.replenishedUnits;
+      assert.ok(
+        consumed <= change.before.allowance + refill + 1e-9,
+        'consumption exceeds allowance'
+      );
+      if (!change.turns) assert.equal(refill, 0, 'refill without activating turns');
+    }
+  },
   'I-9': (state) => {
     for (const handoff of state.handoffs) {
       assert.notEqual(handoff.firstActorId, handoff.secondActorId);
@@ -122,6 +155,10 @@ const invariants = {
 };
 
 const dependencies = {
+  'I-10': {
+    issues: '#715',
+    paths: ['services/function-activation.service.js', 'src/function-attention.js'],
+  },
   'I-1': {
     issues: '#696/#697',
     paths: ['services/function-activation.service.js', 'services/shared-service-agent.service.js'],

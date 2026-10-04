@@ -18,7 +18,16 @@ test('AC-03: at least three distinct fixed seeds and reproducible histories', ()
   expect(make(702)).toEqual(make(702));
   expect(make(702)).not.toEqual(make(693));
   expect(new Set(make(702).map((s) => s.type))).toEqual(
-    new Set(['touch', 'signal', 'correction', 'advance', 'activity'])
+    new Set([
+      'touch',
+      'signal',
+      'correction',
+      'advance',
+      'activity',
+      'consumption',
+      'feedback',
+      'attention-correction',
+    ])
   );
   expect(
     new Set(

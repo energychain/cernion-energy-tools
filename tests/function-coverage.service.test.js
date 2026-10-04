@@ -78,7 +78,7 @@ describe('observed function coverage', () => {
     for (const [name, payload] of broker.emit.mock.calls) {
       expect(Object.keys(payload).sort(compareCanonicalStrings)).toEqual(
         (name === 'function.touched.v1'
-          ? ['tenantId', 'actorId', 'functionId', 'conversationId', 'confidence', 'at']
+          ? ['tenantId', 'actorId', 'functionId', 'conversationId', 'confidence', 'at', 'turnRef']
           : ['tenantId', 'actorId', 'functionId', 'score', 'origin']
         ).sort(compareCanonicalStrings)
       );
