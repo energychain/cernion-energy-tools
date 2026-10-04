@@ -175,3 +175,29 @@ deterministic digests, visibility, identity lineage, the production activation
 producer, event retries and lossless retention. The journal persistence test
 checks real PouchDB restarts and archival. I-3 remains active against the actual
 activation service; I-5 and I-7 remain explicit todos pending #700 and #701.
+
+
+## Attention observations (#715)
+
+I-10 is active against the real activation service and checks three independent
+properties: relevance does not increase without a refreshing input, committed
+consumption never exceeds funded allowance, and funded units never increase
+without an activating turn. It also checks nonnegative/capped allowance and the
+total tenant funding bound. The dependency table requires the actual activation
+service and `src/function-attention.js`; no agent implementation is needed.
+
+The adapter adds `attentionTransitions[]` with `{tenantId, functionId, before,
+after, turns, refreshed}`, plus aggregate `activatingTurns`, `allowancePerTurn`
+and `allowanceCap`. `before`/`after` are actual attention values; `turns` is the
+persisted activating-counter difference. Refresh expectations derive from supplied
+touch/feedback/correction inputs and observed Coverage-produced touches, not from
+the resulting relevance. Snapshots include newly created attention with a zero
+funding baseline, so unauthorized creation of allowance cannot evade the oracle.
+
+The seeded simulation adds consumption (wake/llm/operation), feedback
+(accepted/used/rejected), and authenticated retain/unretain/pin/unpin correction
+steps. A graph-derived neutral prefix guarantees consumption, a nonrefreshing
+turn and an inert time advance for every fixed seed. I-10 exercise detection
+requires actual decay, successful consumption and a step without turns. Positive
+and separate negative self-tests cover all three properties. I-3 remains active;
+I-1/I-2/I-4–I-9 keep their existing upstream-service dependencies and todos.

@@ -243,6 +243,26 @@
     {
       "term": "priority",
       "reason": "Generic ordering of selected IDs before operation fanout when applying a configurable signal budget."
+    },
+    {
+      "term": "anchor",
+      "reason": "Generic attention-budget accounting, event contract or graph/test terminology for #715; no catalog-specific behavior."
+    },
+    {
+      "term": "consumption",
+      "reason": "Generic attention-budget accounting, event contract or graph/test terminology for #715; no catalog-specific behavior."
+    },
+    {
+      "term": "inventory",
+      "reason": "Generic attention-budget accounting, event contract or graph/test terminology for #715; no catalog-specific behavior."
+    },
+    {
+      "term": "units",
+      "reason": "Generic attention-budget accounting, event contract or graph/test terminology for #715; no catalog-specific behavior."
+    },
+    {
+      "term": "rejection",
+      "reason": "Generic compatibility, input-patch or feedback-rejection terminology in neutral #715 tests; no catalog-specific behavior."
     }
   ]
 }

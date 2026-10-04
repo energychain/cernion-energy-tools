@@ -50,9 +50,9 @@ counts and recent hashed source references. `origin` is always `observed`; corre
 belong to #701. `resolveFunctionId` runs for every stored identity. Empty/ambiguous
 lineage is omitted instead of copying a person's coverage to multiple descendants.
 
-Events retain exactly the epic fields:
+Events preserve the epic fields and add turn identity for #715:
 
-- `function.touched.v1`: `{tenantId, actorId, functionId, conversationId, confidence, at}`
+- `function.touched.v1`: `{tenantId, actorId, functionId, conversationId, confidence, at, turnRef}`
 - `function.coverage.changed.v1`: `{tenantId, actorId, functionId, score, origin}`
 
 Conversation IDs in observations/events are tenant-bound SHA-256 references, not
@@ -144,3 +144,5 @@ The real-broker regression uses budget 2 and proves one directly touched functio
 plus at most two eligible direct neighbors. Router proposals contribute zero
 functions. Weak observations remain available to coverage reads, including IDs
 retained in older split lineage, but never activate or renew complementary work.
+
+`turnRef` is the already hashed source reference of the completed turn; all mapped functions from one source receive the same value. It contains no chat text or raw source identifier.

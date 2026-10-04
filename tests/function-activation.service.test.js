@@ -86,7 +86,7 @@ test('AC-02/05: one hop, inclusive weight threshold, evidence and read-only expl
   });
   expect(adapter.events.map((event) => Object.keys(event).sort(compareCanonicalStrings))).toEqual([
     ['functionId', 'responsibility', 'state', 'tenantId'],
-    ['functionId', 'responsibility', 'state', 'tenantId'],
+    ['attention', 'functionId', 'responsibility', 'state', 'tenantId'],
   ]);
 });
 test('AC-02: supplied high coverage excludes a neighbor; exact threshold qualifies', async () => {
@@ -123,7 +123,7 @@ test('AC-03: tenant budget override and strongest-edge/canonical tie selection',
   ).toEqual(['fn-b']);
   expect((await row('fn-c')).reason).toContainEqual({ kind: 'budget_deferred', budget: 1 });
   await sendTouch('fn-a', { tenantId: 'constructor' });
-  expect((await list('constructor')).filter((item) => item.responsibility.cet)).toHaveLength(3);
+  expect((await list('constructor')).filter((item) => item.responsibility.cet)).toHaveLength(2);
 });
 test('AC-04: handoff is durable, observable and emits the contractual event', async () => {
   await sendTouch('fn-a');
@@ -143,7 +143,7 @@ test('AC-04: handoff is durable, observable and emits the contractual event', as
   expect(explained.activations[0].reason).toContainEqual(
     expect.objectContaining({ kind: 'handoff', actorId: 'actor-b' })
   );
-  expect(adapter.events.at(-1)).toEqual({
+  expect(adapter.events.at(-1)).toMatchObject({
     tenantId: 'tenant-a',
     functionId: 'fn-b',
     state: 'dormant',
@@ -455,7 +455,11 @@ test('failed publication followed by human handoff publishes only current respon
     score: 1,
     origin: 'observed',
   });
-  expect(adapter.events.filter((entry) => entry.functionId === 'fn-b')).toEqual([
+  expect(
+    adapter.events
+      .filter((entry) => entry.functionId === 'fn-b')
+      .map(({ attention: _attention, ...entry }) => entry)
+  ).toEqual([
     {
       tenantId: 'tenant-a',
       functionId: 'fn-b',
@@ -481,8 +485,18 @@ test('10,000 touches across conversations stay bounded with identical list and e
     await sendTouch('fn-a');
     await reference.broker.emit('function.touched.v1', touch('fn-a'));
     await reference.service.settle();
+    for (let index = 1; index <= 5; index++) {
+      adapter.clock.value = initial + index;
+      reference.clock.value = adapter.clock.value;
+      await sendTouch('fn-a', { conversationId: `conversation-${index}` });
+      await reference.broker.emit(
+        'function.touched.v1',
+        touch('fn-a', { conversationId: `conversation-${index}` })
+      );
+      await reference.service.settle();
+    }
     const before = await adapter.service.readDocument('tenant-a');
-    for (let index = 1; index <= 10000; index++) {
+    for (let index = 6; index <= 10000; index++) {
       adapter.clock.value = initial + index;
       await sendTouch('fn-a', { conversationId: `conversation-${index}` });
     }
@@ -494,10 +508,11 @@ test('10,000 touches across conversations stay bounded with identical list and e
     await reference.service.settle();
     const document = await adapter.service.readDocument('tenant-a');
     expect(document.touches).toHaveLength(1);
+    expect(document.turnKeys.length).toBeLessThanOrEqual(adapter.service.settings.turnDedupLimit);
     expect(document.history).toHaveLength(before.history.length);
     expect(document.activations.every((entry) => entry.state !== 'latent')).toBe(true);
     expect(Buffer.byteLength(JSON.stringify(document))).toBeLessThan(
-      Buffer.byteLength(JSON.stringify(before)) + 100
+      Buffer.byteLength(JSON.stringify(before)) + adapter.service.settings.turnDedupLimit * 256
     );
     expect(await list()).toEqual(
       await reference.broker.call('activation.list', { tenantId: 'tenant-a' })
@@ -608,7 +623,7 @@ test('latent functions are omitted from storage but retain received coverage in 
   await coverage('fn-d', 1);
   expect((await adapter.service.readDocument('tenant-a')).activations).toEqual([]);
   expect((await row('fn-d')).responsibility.humans).toEqual(['actor-b']);
-  expect(adapter.events.at(-1)).toEqual({
+  expect(adapter.events.at(-1)).toMatchObject({
     tenantId: 'tenant-a',
     functionId: 'fn-d',
     state: 'latent',

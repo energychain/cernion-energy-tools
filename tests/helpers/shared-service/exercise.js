@@ -28,6 +28,16 @@ function observeExercise(state, seen) {
   if (emptyWakes.length) seen.add('I-6');
   for (const item of corrections) seen.add(`I-7:${item.event.target}`);
   if (authorizationChecks.some((item) => item.before === false)) seen.add('I-8');
+  if (
+    (state.attentionTransitions || []).some(
+      (item) => item.after.relevance < item.before.relevance
+    ) &&
+    (state.attentionTransitions || []).some(
+      (item) => item.after.consumedUnits > item.before.consumedUnits
+    ) &&
+    (state.attentionTransitions || []).some((item) => !item.turns)
+  )
+    seen.add('I-10');
   if (handoffs.length) seen.add('I-9');
 }
 
