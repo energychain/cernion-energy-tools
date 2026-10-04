@@ -71,6 +71,12 @@ existing permissions. It never uses wall time or an LLM.
 
 ## Automatic event producers
 
+#699 adds optional wakeMetrics[] containing the latest cumulative counters per
+agent: {agentId, wakes, emptyWakes, pushWakes, pushShare, consumedUnits, errors}.
+They derive from immutable wake-metrics refs. Completed wake records close their
+awaiting claim through a journal ref; private scheduler refs remain hidden by the
+existing public reference policy. Digests without wake metrics are unchanged.
+
 Subscriptions accept the tenant-scoped in-process events defined in #693:
 
 | Event                            | Journal representation                                                                                                         |

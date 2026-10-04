@@ -6,6 +6,10 @@ function createContractStub(functions, clock = { now: Date.UTC(2026, 0, 1) }) {
   return {
     seen,
     async apply(step) {
+      if (step.type === 'wake-exercise') {
+        seen.push(step);
+        return;
+      }
       if (step.type === 'advance') {
         clock.now += step.milliseconds;
         return;

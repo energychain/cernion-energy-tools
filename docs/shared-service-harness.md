@@ -219,3 +219,20 @@ this avoids multiplying broker/database work as services arrive. Observation
 caching applies only within those deterministic histories; injected isolated
 service tests read fresh snapshots. No production behavior or oracle is replaced.
 See `docs/SHARED_SERVICE_AGENT.md` for costs, feedback and the exact #699 interface.
+
+## Wake observations (#699)
+
+I-6 is active against the real wake service and the real shared-service agent from
+#697 / PR #718. The adapter preserves agents, denied operationAttempts and handoffs.
+The graph-derived prefix supplies actual human turns followed by wake-exercise.
+It advances the injected clock to an actual agent's persisted nextAt and dispatches
+shared-service-agent.runCycle({tenantId, agentId}) through the scheduler. emptyWakes
+records before/after intervals only when the persisted empty-cycle counter increases.
+Hybrid promotion keeps due scheduling exercisable for real-model listeners.
+I-3 and I-10 continue against real activation and actual agent consumption.
+
+Separate tests cover pure event/no polling, tenant/scope rejection, exhausted
+attention, funding-only rearming, errors, two-instance revision claims, one timer,
+shutdown and real PouchDB restart with journal metrics. See
+[SHARED_SERVICE_WAKE.md](SHARED_SERVICE_WAKE.md) for boundaries and parameters.
+The unchanged 59-second harness deadline applies; each PR reports measured runtime.

@@ -17,6 +17,7 @@ async function createAdapter({
   dbPath,
   clock,
   journalSettings = {},
+  wakeSettings = {},
   agentSettings = {},
   cacheObservations = !model,
   withAgents = !model,
@@ -32,6 +33,7 @@ async function createAdapter({
   let journalSchema;
   let agentSchema;
   let inboxSchema;
+  let wakeSchema;
   jestApi.doMock('pouchdb', () => Pouch);
   try {
     jestApi.isolateModules(() => {
@@ -40,6 +42,7 @@ async function createAdapter({
       journalSchema = require('../../../services/shared-service-journal.service');
       agentSchema = require('../../../services/shared-service-agent.service');
       inboxSchema = require('../../../services/persona-inbox.service');
+      wakeSchema = require('../../../services/shared-service-wake.service');
     });
   } finally {
     jestApi.dontMock('pouchdb');
@@ -120,6 +123,18 @@ async function createAdapter({
         },
       })
     : null;
+  const wake = broker.createService({
+    ...wakeSchema,
+    settings: {
+      ...wakeSchema.settings,
+      model: service.model,
+      dbPath: dbPath ? `${dbPath}-wake` : path.join(root, 'wake'),
+      clock: () => now.value,
+      pushMode: 'hybrid',
+      ...wakeSettings,
+    },
+  });
+  const emptyWakes = [];
   const attentionTransitions = [];
   let fresh = true;
   const tenants = new Set(['tenant-a']);
@@ -137,6 +152,8 @@ async function createAdapter({
     coverageService,
     coverageEvents,
     journal,
+    wake,
+    agentMode: 'real',
     events,
     agents,
     inbox,
@@ -147,7 +164,32 @@ async function createAdapter({
         now.value += step.milliseconds;
         await service.sweep();
         await agents?.settle();
+        await wake.settle();
         await journal.serializeWrite(() => journal.compactEntries());
+        return;
+      }
+      if (step.type === 'wake-exercise' && agents) {
+        await agents.settle();
+        await wake.settle();
+        const records = await wake.records('tenant-a');
+        const before = records.find(
+          (item) => item.lifecycle === 'active' && !item.blocked && item.nextAt
+        );
+        if (!before) return;
+        now.value = Math.max(now.value, before.nextAt);
+        await wake.drainDue();
+        await agents.settle();
+        await service.settle();
+        await wake.settle();
+        const after = (await wake.records('tenant-a')).find(
+          (item) => item.agentId === before.agentId
+        );
+        if (after.stats.emptyWakes > (before.stats.emptyWakes || 0))
+          emptyWakes.push({
+            beforeIntervalSec: before.wake.intervalSec,
+            afterIntervalSec: after.wake.intervalSec,
+            maximumIntervalSec: wake.settings.maximumIntervalSec,
+          });
         return;
       }
       if (step.type === 'signal') {
@@ -187,6 +229,7 @@ async function createAdapter({
         );
         await service.settle();
         await agents?.settle();
+        await wake.settle();
         authorizationChecks.push({
           before,
           after: visible(policy, target),
@@ -212,6 +255,7 @@ async function createAdapter({
       await broker.emit(step.event || 'function.touched.v1', event, { meta: step.meta || {} });
       await service.settle();
       await agents?.settle();
+      await wake.settle();
       await journal.writeQueue;
       fresh = false;
     },
@@ -250,7 +294,7 @@ async function createAdapter({
         restWindowMs: service.settings.restWindowMs,
         operationAttempts: structuredClone(operationAttempts),
         activityQueries: [],
-        emptyWakes: [],
+        emptyWakes: structuredClone(emptyWakes),
         corrections: [],
         authorizationChecks: structuredClone(authorizationChecks),
         coverage,
@@ -395,6 +439,7 @@ async function createAdapter({
     after.attentionTransitions = structuredClone(attentionTransitions);
     after.operationAttempts = structuredClone(operationAttempts);
     after.handoffs = structuredClone(handoffs);
+    after.emptyWakes = structuredClone(emptyWakes);
   };
   return adapter;
 }

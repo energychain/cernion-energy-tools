@@ -27,6 +27,7 @@ test('AC-03: at least three distinct fixed seeds and reproducible histories', ()
       'consumption',
       'feedback',
       'attention-correction',
+      'wake-exercise',
       'coverage',
     ])
   );
