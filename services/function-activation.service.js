@@ -28,6 +28,7 @@ module.exports = {
     tenantBudget: 8,
     tenantBudgets: {},
     minWeight: 0.2,
+    minTouchConfidence: 0.2,
     coverageThreshold: 0.5,
     restWindowMs: 86400000,
     sweepIntervalMs: 60000,
@@ -165,6 +166,7 @@ module.exports = {
         event.confidence > 1
       )
         throw new Errors.MoleculerClientError('Invalid touch', 400);
+      if (event.confidence < this.settings.minTouchConfidence) return;
       return this.enqueue(tenantId, () =>
         this.updateDocument(tenantId, (document) => {
           for (const { functionId } of resolved) {
@@ -406,6 +408,7 @@ module.exports = {
       tenantBudget,
       tenantBudgets,
       minWeight,
+      minTouchConfidence,
       coverageThreshold,
       touchRetentionWindows,
       historyLimit,
@@ -425,7 +428,7 @@ module.exports = {
       !Number.isInteger(tenantBudget) ||
       tenantBudget < 0 ||
       Object.values(tenantBudgets).some((budget) => !Number.isInteger(budget) || budget < 0) ||
-      [minWeight, coverageThreshold].some(
+      [minWeight, minTouchConfidence, coverageThreshold].some(
         (value) => !Number.isFinite(value) || value < 0 || value > 1
       )
     )

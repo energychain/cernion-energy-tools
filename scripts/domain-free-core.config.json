@@ -17,11 +17,16 @@
     "scripts/function-model-projection.js",
     "scripts/function-model-embeddings.js",
     "scripts/generate-function-model-embeddings.js",
-    "scripts/function-model-lineage.js"
+    "scripts/function-model-lineage.js",
+    "src/function-coverage.js",
+    "src/function-coverage-turn.js",
+    "src/function-coverage-config.json",
+    "tests/function-coverage.service.test.js",
+    "tests/function-coverage-turn.test.js",
+    "tests/function-coverage-model.test.js"
   ],
   "optionalPaths": [
     "src/function-model.js",
-    "services/function-coverage.service.js",
     "services/shared-service-agent.service.js",
     "src/shared-service-wake.js",
     "src/workbench-system-activity.js",

@@ -16,8 +16,15 @@ Every current function has an Activation with the exact required #693 fields:
 `reason`. A fresh tenant reads only `latent` states, with empty humans and no CET
 responsibility; reading does not create a database document.
 
-- `function.touched.v1` activates the touched function. Tenant, actor, conversation,
+- `function.touched.v1` activates the touched function only when `confidence >= minTouchConfidence`. Tenant, actor, conversation,
   confidence and timestamp are validated. Future and invalid timestamps are rejected.
+  Weaker touches remain Coverage observations but do not create or refresh activation
+  or complementary responsibility. Equality qualifies. The default 0.2 excludes
+  knowledge/status (0.04) and lookup (0.10), and accepts case followup (0.30),
+  case start/decision support (0.40) and tool/evidence (0.50). Coverage repetition
+  increases score mass, never touch confidence. Raising the threshold applies to
+  incoming touches and retained raw touches; it does not rewrite prior activation
+  summaries or historical decisions.
 - Direct neighbors with `weight >= minWeight` and no actor score at or above
   `coverageThreshold` may receive CET responsibility. Missing coverage means no
   qualifying evidence was received, not an authorization conclusion. No recursive
@@ -65,6 +72,7 @@ All parameters are service settings, injected as data:
 | `tenantBudget` | 8 | Maximum CET-responsible functions |
 | `tenantBudgets` | `{}` | Per-tenant budget overrides |
 | `minWeight` | 0.2 | Inclusive edge threshold |
+| `minTouchConfidence` | 0.2 | Inclusive touch threshold for direct and complementary activation; finite 0–1 |
 | `coverageThreshold` | 0.5 | Inclusive human evidence threshold |
 | `restWindowMs` | 86400000 | Inactivity window in milliseconds |
 | `sweepIntervalMs` | 60000 | Internal sweep interval; 0 disables timer |

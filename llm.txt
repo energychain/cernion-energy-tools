@@ -241,7 +241,7 @@ Agents resolving capabilities/recipes/operations do not need to read past this p
 - `tests/vdmi-blueprint-pack-seeds.test.js` — 15 new tests for #591 covering the MaKo/M2C Resolution Value Review seed: catalog lookup/list registration, the six `source_hint_only` read-model references and `metadata_only` command hints, full validator coverage (required roles/evidence/data classes/forbidden actions), qualitative-only Resolution Value framing with positive missing-evidence follow-ups, the explicit HITL boundary/no-call guard, non-executing workbench-clarification-item mapping for `ROLE_MAKO_OWNER`, the exact four-row canonical matrix (roles, gate outcomes, pending downstream sync) via `buildDemoProcessMatrixSync`/`buildLandingRegistryDraftFromBlueprintSeed`, and five negative cases (missing required evidence key, non-role matrix cell, wrong `roleLegend.M`, an executable command hint, and a missing forbidden/consequential-action guard). Full suite: `tests/vdmi-blueprint-pack-seeds.test.js` — 1 suite / 87 tests pass.
 
 ## Source File Hashes
-- CHANGELOG.md: 4f304ea3525ac782a50ea5db08faf1da8f585ddb3644ce766d7288cdc5022f28
+- CHANGELOG.md: e239b0f97c3665e15948fa9c9b42dc04b36fd4f6faf5a9ed85d29cf855268a82
 - README.md: 9de87395798902a6fece2da52b033d09e4274f62fc2deda582fc24761e4f0665
 - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
 - src/cookbook-recipes.js: 9e48573ca263ef129bc3944a83b013cff25157e25afc703be0ada62d5af8163d
@@ -254,4 +254,4 @@ Agents resolving capabilities/recipes/operations do not need to read past this p
 - full_spec: openapi-export.json (repo root) or GET /api/openapi.json
 
 ## Integrity
-- llm_txt_sha256: 2c62fc7f724bde0ae2a77b68930400a0d8c64acb86208a083ec196da0298ca9e
+- llm_txt_sha256: 86317fa7de66073019a566e9755d9eb4dc8225f4b4f2d877ad2ebada28db5eee
