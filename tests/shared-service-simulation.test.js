@@ -83,7 +83,15 @@ test('malformed #693 Function shape fails closed instead of accepting the real m
       (fn) => ({ ...fn, events: { emits: [], listens: [1] } }),
       (fn) => ({ ...fn, neighbors: [{ functionId: 'fn-x', evidence: [] }] }),
       (fn) => ({ ...fn, neighbors: [{ functionId: 'fn-x', weight: 'high', evidence: [] }] }),
+      (fn) => ({ ...fn, neighbors: [{ functionId: 'fn-x', weight: -0.5, evidence: [] }] }),
+      (fn) => ({ ...fn, neighbors: [{ functionId: 'fn-x', weight: 1.5, evidence: [] }] }),
+      (fn) => ({ ...fn, neighbors: [{ functionId: 'fn-x', weight: null, evidence: [] }] }),
       (fn) => ({ ...fn, derivation: null }),
+      (fn) => ({ ...fn, derivation: [] }),
+      (fn) => ({ ...fn, derivation: { generatedAt: '2026-01-01T00:00:00.000Z' } }),
+      (fn) => ({ ...fn, derivation: { version: '2' } }),
+      (fn) => ({ ...fn, derivation: { version: '', generatedAt: '2026-01-01T00:00:00.000Z' } }),
+      (fn) => ({ ...fn, derivation: { version: '2', generatedAt: '' } }),
     ];
     for (const mutate of mutations) {
       const broken = mutate(structuredClone(valid));
@@ -92,6 +100,47 @@ test('malformed #693 Function shape fails closed instead of accepting the real m
     }
     fs.writeFileSync(file, JSON.stringify({ functions: [valid] }));
     expect(loadFunctions(root)).toEqual({ source: file, functions: [valid] });
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('#693 neighbor weight accepts the inclusive [0, 1] endpoints', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'shared-model-'));
+  try {
+    const file = path.join(root, 'function-model.json');
+    const valid = functions[0];
+    for (const weight of [0, 1]) {
+      const withEndpoint = {
+        ...valid,
+        neighbors: [{ functionId: 'fn-x', weight, evidence: [] }],
+      };
+      fs.writeFileSync(file, JSON.stringify({ functions: [withEndpoint] }));
+      expect(loadFunctions(root)).toEqual({ source: file, functions: [withEndpoint] });
+    }
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('#693 neighbor weight rejects a non-finite value surviving JSON parsing', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'shared-model-'));
+  try {
+    const file = path.join(root, 'function-model.json');
+    const valid = functions[0];
+    const withInfiniteWeight = {
+      ...valid,
+      neighbors: [{ functionId: 'fn-x', weight: 0, evidence: [] }],
+    };
+    // 1e400 is valid JSON syntax but overflows to Infinity once parsed,
+    // unlike JS-literal NaN/Infinity which JSON.stringify collapses to null.
+    const raw = JSON.stringify({ functions: [withInfiniteWeight] }).replace(
+      '"weight":0',
+      '"weight":1e400'
+    );
+    expect(JSON.parse(raw).functions[0].neighbors[0].weight).toBe(Infinity);
+    fs.writeFileSync(file, raw);
+    expect(() => loadFunctions(root)).toThrow('Invalid function model');
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }

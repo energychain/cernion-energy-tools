@@ -20,12 +20,20 @@ const isValidNeighbor = (neighbor) =>
   typeof neighbor === 'object' &&
   isNonEmptyString(neighbor.functionId) &&
   Number.isFinite(neighbor.weight) &&
+  neighbor.weight >= 0 &&
+  neighbor.weight <= 1 &&
   Array.isArray(neighbor.evidence);
 const isValidEvents = (events) =>
   !!events &&
   typeof events === 'object' &&
   isStringArray(events.emits) &&
   isStringArray(events.listens);
+const isValidDerivation = (derivation) =>
+  !!derivation &&
+  typeof derivation === 'object' &&
+  !Array.isArray(derivation) &&
+  isNonEmptyString(derivation.version) &&
+  isNonEmptyString(derivation.generatedAt);
 
 function isValidFunctionShape(item) {
   return (
@@ -42,8 +50,7 @@ function isValidFunctionShape(item) {
     isValidEvents(item.events) &&
     Array.isArray(item.neighbors) &&
     item.neighbors.every(isValidNeighbor) &&
-    !!item.derivation &&
-    typeof item.derivation === 'object'
+    isValidDerivation(item.derivation)
   );
 }
 
