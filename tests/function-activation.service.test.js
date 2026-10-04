@@ -621,3 +621,20 @@ test('latent functions are omitted from storage but retain received coverage in 
   await coverage('fn-d', 0);
   expect(adapter.events.at(-1).responsibility.humans).toEqual([]);
 });
+
+test('weak touches neither activate nor refresh direct or complementary responsibility', async () => {
+  for (const confidence of [0, 0.04, 0.1, 0.199999]) await sendTouch('fn-a', { confidence });
+  expect((await list()).every((item) => item.state === 'latent' && !item.responsibility.cet)).toBe(
+    true
+  );
+  expect(adapter.events).toEqual([]);
+  await sendTouch('fn-a', { confidence: 0.2 });
+  expect((await row('fn-a')).state).toBe('active');
+  expect((await row('fn-b')).responsibility.cet).toBe(true);
+  adapter.clock.value += adapter.service.settings.restWindowMs + 1;
+  await sendTouch('fn-a', { confidence: 0.1 });
+  expect((await list()).some((item) => item.state === 'active')).toBe(false);
+  adapter.service.settings.minTouchConfidence = 0.4;
+  await sendTouch('fn-d', { confidence: 0.3 });
+  expect((await row('fn-d')).state).toBe('latent');
+});

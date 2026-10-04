@@ -32,7 +32,9 @@ function coverageRecords(document, model) {
 }
 
 function activationRows(document, model, settings, now) {
-  const touches = resolveRecords(document.touches, model);
+  const touches = resolveRecords(document.touches, model).filter(
+    (record) => record.confidence >= settings.minTouchConfidence
+  );
   // Ambiguous prior coverage does not establish coverage of each successor.
   const coverage = coverageRecords(document, model);
   const activity = resolveRecords(document.activity, model);

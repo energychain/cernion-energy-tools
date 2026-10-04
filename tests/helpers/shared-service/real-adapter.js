@@ -5,6 +5,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { ServiceBroker } = require('moleculer');
 const { memoryPouch } = require('./memory-pouch');
+const { visible } = require('../../../src/domain-router-policy');
 const { getFunctionModel } = require('../../../src/function-model');
 
 async function createAdapter({
@@ -19,14 +20,18 @@ async function createAdapter({
 } = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'activation-adapter-'));
   const events = [];
+  const coverageEvents = [];
+  const authorizationChecks = [];
   const now = clock || { value: Date.UTC(2026, 0, 1) };
   const Pouch = memoryPouch(stores);
   let schema;
+  let coverageSchema;
   let journalSchema;
   jestApi.doMock('pouchdb', () => Pouch);
   try {
     jestApi.isolateModules(() => {
       schema = require('../../../services/function-activation.service');
+      coverageSchema = require('../../../services/function-coverage.service');
       journalSchema = require('../../../services/shared-service-journal.service');
     });
   } finally {
@@ -36,6 +41,10 @@ async function createAdapter({
   broker.createService({
     name: 'activation-observer',
     events: {
+      'function.touched.v1': (ctx) =>
+        coverageEvents.push({ name: 'function.touched.v1', payload: ctx.params }),
+      'function.coverage.changed.v1': (ctx) =>
+        coverageEvents.push({ name: 'function.coverage.changed.v1', payload: ctx.params }),
       'function.activation.changed.v1': {
         handler(ctx) {
           events.push(ctx.params);
@@ -57,6 +66,16 @@ async function createAdapter({
       ...settings,
     },
   });
+  const coverageService = broker.createService({
+    ...coverageSchema,
+    settings: {
+      ...coverageSchema.settings,
+      model: service.model,
+      dbPath: path.join(root, 'coverage'),
+      clock: () => now.value,
+    },
+  });
+  let sequence = 0;
   const journal = broker.createService({
     ...journalSchema,
     settings: {
@@ -79,6 +98,8 @@ async function createAdapter({
   return {
     broker,
     service,
+    coverageService,
+    coverageEvents,
     journal,
     events,
     clock: now,
@@ -87,6 +108,51 @@ async function createAdapter({
         now.value += step.milliseconds;
         await service.sweep();
         await journal.serializeWrite(() => journal.compactEntries());
+        return;
+      }
+      if (step.type === 'signal') {
+        const fn = service.model.functions.find((item) => item.functionId === step.functionId);
+        if (!fn) return;
+        const policy = {
+          tenantId: step.tenantId,
+          actorId: step.actorId,
+          roles: ['ROLE_USER'],
+          clearance: [],
+          domainsAllowed: [],
+          roleFamilies: [],
+          sensitivityClearance: [],
+        };
+        const target = {
+          tenantId: step.tenantId,
+          actorId: step.actorId,
+          accessRoles: ['ROLE_ADMIN'],
+          sensitivityFlags: [],
+          sharedWithRoles: [],
+        };
+        const before = visible(policy, target);
+        const policyBefore = structuredClone(policy);
+        tenants.add(step.tenantId);
+        await coverageService.actions.recordTouch(
+          {
+            tenantId: step.tenantId,
+            actorId: step.actorId,
+            sourceType: 'completed_turn',
+            sourceRef: `ref-${sequence++}`,
+            conversationId: step.conversationId || 'conv-a',
+            signalClass: step.signalKind === 'question' ? 'knowledge_query' : 'case_followup',
+            capabilities: (fn.capabilities || []).slice(0, 1),
+            operations: fn.capabilities?.length ? [] : (fn.operations || []).slice(0, 1),
+          },
+          { meta: { apiToken: { tenantId: step.tenantId, id: step.actorId, roles: policy.roles } } }
+        );
+        await service.settle();
+        authorizationChecks.push({
+          before,
+          after: visible(policy, target),
+          policyBefore,
+          policyAfter: structuredClone(policy),
+        });
+        fresh = false;
         return;
       }
       if (
@@ -107,8 +173,15 @@ async function createAdapter({
     },
     async snapshot() {
       const activations = [];
-      for (const tenantId of tenants)
+      const coverage = [];
+      for (const tenantId of tenants) {
         activations.push(...(await broker.call('activation.list', { tenantId })));
+        const result = await coverageService.actions.matrix(
+          {},
+          { meta: { apiToken: { tenantId, id: 'admin-a', roles: ['ROLE_TENANT_ADMIN'] } } }
+        );
+        coverage.push(...result.items);
+      }
       return {
         fresh,
         activations,
@@ -122,10 +195,12 @@ async function createAdapter({
         activityQueries: [],
         emptyWakes: [],
         corrections: [],
+        authorizationChecks: structuredClone(authorizationChecks),
+        coverage,
+        coverageEvents: structuredClone(coverageEvents),
         journal: (
           await Promise.all([...tenants].map((tenantId) => journal.readEntries(tenantId)))
         ).flat(),
-        authorizationChecks: [],
         handoffs: [],
       };
     },

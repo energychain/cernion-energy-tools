@@ -1,5 +1,7 @@
 'use strict';
 
+const { compareCanonicalStrings } = require('../../../src/canonical-order');
+
 const clone = (value) => JSON.parse(JSON.stringify(value));
 
 // Test double at the lifecycle mixin's constructor seam, with revision checks.
@@ -25,10 +27,18 @@ function memoryPouch(stores = new Map()) {
       this.records.set(document._id, clone({ ...document, _rev: rev }));
       return { ok: true, id: document._id, rev };
     }
-    async allDocs({ startkey = '', endkey = '\uffff', include_docs = false } = {}) {
+    async allDocs({
+      startkey = '',
+      endkey = '\uffff',
+      include_docs = false,
+      skip = 0,
+      limit = Infinity,
+    } = {}) {
       return {
         rows: [...this.records]
           .filter(([id]) => id >= startkey && id <= endkey)
+          .sort(([left], [right]) => compareCanonicalStrings(left, right))
+          .slice(skip, skip + limit)
           .map(([id, doc]) => ({ id, ...(include_docs ? { doc: clone(doc) } : {}) })),
       };
     }
