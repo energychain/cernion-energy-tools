@@ -26,11 +26,14 @@
     "src/function-coverage-config.json",
     "tests/function-coverage.service.test.js",
     "tests/function-coverage-turn.test.js",
-    "tests/function-coverage-model.test.js"
+    "tests/function-coverage-model.test.js",
+    "src/shared-service-agent-policy.js",
+    "tests/shared-service-agent.service.test.js",
+    "services/shared-service-agents.service.js",
+    "tests/shared-service-agent-persistence.test.js"
   ],
   "optionalPaths": [
     "src/function-model.js",
-    "services/shared-service-agent.service.js",
     "src/shared-service-wake.js",
     "src/workbench-system-activity.js",
     "src/shared-service-learning.js",
@@ -41,7 +44,11 @@
   "genericPackageShare": 0.05,
   "referenceCorpus": {
     "maxFilesPerPackage": 40,
-    "extensions": [".js", ".cjs", ".mjs"],
+    "extensions": [
+      ".js",
+      ".cjs",
+      ".mjs"
+    ],
     "generatedAt": "2026-10-03T00:00:00.000Z"
   }
 }

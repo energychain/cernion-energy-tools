@@ -201,3 +201,21 @@ turn and an inert time advance for every fixed seed. I-10 exercise detection
 requires actual decay, successful consumption and a step without turns. Positive
 and separate negative self-tests cover all three properties. I-3 remains active;
 I-1/I-2/I-4–I-9 keep their existing upstream-service dependencies and todos.
+
+## Agent observations (#697)
+
+The real adapter starts `shared-service-agent` and the existing internal persona
+inbox. Snapshots add real `agents`, denied `operationAttempts` and `handoffs` after
+human coverage replaces CET responsibility. I-1, I-2, I-4 and I-9 now run alongside
+I-3 and I-10. A graph-derived seeded prefix touches both ends of an eligible edge
+and delivers second-person coverage so handoff exercise cannot be accidental.
+Each actual external/high operation is separately attempted and rejected in
+`tests/shared-service-agent.service.test.js`; 24 seeded draws from the real model
+exercise generic mandate and lifecycle behavior.
+
+All active real-service invariants share each fixed-seed execution and are checked
+after every step. Individual invariant tests still verify their own exercise;
+this avoids multiplying broker/database work as services arrive. Observation
+caching applies only within those deterministic histories; injected isolated
+service tests read fresh snapshots. No production behavior or oracle is replaced.
+See `docs/SHARED_SERVICE_AGENT.md` for costs, feedback and the exact #699 interface.
