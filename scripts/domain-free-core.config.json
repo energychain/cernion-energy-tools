@@ -34,7 +34,13 @@
     "tests/shared-service-agent.service.test.js",
     "services/shared-service-agents.service.js",
     "tests/shared-service-agent-persistence.test.js",
-    "services/persona-inbox.service.js"
+    "services/persona-inbox.service.js",
+    "src/signal-projection.js",
+    "services/signals.service.js",
+    "scripts/generate-signal-catalog.js",
+    "signal-projection.rules.json",
+    "tests/signals.test.js",
+    "tests/signals-persistence.test.js"
   ],
   "optionalPaths": [
     "src/function-model.js",

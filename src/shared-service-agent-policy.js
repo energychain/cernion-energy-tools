@@ -80,26 +80,18 @@ function assertOperation(operation, fn, ctx, input = {}) {
     deny('missing_parameters');
 }
 
-function rowFindings(row, now, limit) {
-  if (!row || typeof row !== 'object') return [];
-  const findings = (Array.isArray(row.findings) ? row.findings : [])
-    .slice(0, limit)
-    .filter((item) => item && typeof item === 'object')
-    .map((item) => ({
-      kind: 'finding',
-      summary: String(item.summary || item.message || '').slice(0, 240),
-    }));
-  if (row.dueAt && Number.isFinite(Date.parse(row.dueAt)) && Date.parse(row.dueAt) <= now)
-    findings.push({ kind: 'deadline' });
-  if (row.deviation === true) findings.push({ kind: 'deviation' });
-  return findings;
-}
-function collectFindings(result, now, limit) {
-  const rows = Array.isArray(result) ? result : [result];
-  return rows
-    .slice(0, limit)
-    .flatMap((row) => rowFindings(row, now, limit))
-    .slice(0, limit);
+function assertReadObservation(operation, fn, ctx, input, broker) {
+  if (!readKinds.has(operation?.operationKind)) deny('read_required');
+  assertOperation(operation, fn, ctx, input);
+  const split = operation.action.lastIndexOf('.');
+  const backend = broker.getLocalService(operation.action.slice(0, split));
+  const definition = backend?.schema.actions?.[operation.action.slice(split + 1)];
+  const p = principal(ctx, input);
+  if (
+    definition?.requiredRoles?.length &&
+    !definition.requiredRoles.some((r) => p.roles.includes(r))
+  )
+    deny('Role required');
 }
 
-module.exports = { policyReason, deriveMandate, assertOperation, collectFindings, readKinds };
+module.exports = { policyReason, deriveMandate, assertOperation, assertReadObservation, readKinds };
