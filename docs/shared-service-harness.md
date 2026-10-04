@@ -202,20 +202,34 @@ requires actual decay, successful consumption and a step without turns. Positive
 and separate negative self-tests cover all three properties. I-3 remains active;
 I-1/I-2/I-4–I-9 keep their existing upstream-service dependencies and todos.
 
+## Agent observations (#697)
+
+The real adapter starts `shared-service-agent` and the existing internal persona
+inbox. Snapshots add real `agents`, denied `operationAttempts` and `handoffs` after
+human coverage replaces CET responsibility. I-1, I-2, I-4 and I-9 now run alongside
+I-3 and I-10. A graph-derived seeded prefix touches both ends of an eligible edge
+and delivers second-person coverage so handoff exercise cannot be accidental.
+Each actual external/high operation is separately attempted and rejected in
+`tests/shared-service-agent.service.test.js`; 24 seeded draws from the real model
+exercise generic mandate and lifecycle behavior.
+
+All active real-service invariants share each fixed-seed execution and are checked
+after every step. Individual invariant tests still verify their own exercise;
+this avoids multiplying broker/database work as services arrive. Observation
+caching applies only within those deterministic histories; injected isolated
+service tests read fresh snapshots. No production behavior or oracle is replaced.
+See `docs/SHARED_SERVICE_AGENT.md` for costs, feedback and the exact #699 interface.
+
 ## Wake observations (#699)
 
-I-6 is active against the real wake service and its lifecycle mixin. Until #697
-lands, only shared-service-agent.runCycle({tenantId, agentId}) is stubbed, returning
-{findings: 0, consumedUnits: 0, proposals: []}. It implements no lifecycle, mandate
-or consumption. The adapter selects the real service when its file lands on main.
-Stub mode does not claim I-1/I-2/I-4/I-9 acceptance.
-
+I-6 is active against the real wake service and the real shared-service agent from
+#697 / PR #718. The adapter preserves agents, denied operationAttempts and handoffs.
 The graph-derived prefix supplies actual human turns followed by wake-exercise.
-It publishes a contract lifecycle input, advances the injected clock to persisted
-nextAt and dispatches through the real scheduler. emptyWakes records actual
-before/after intervals only when the persisted empty-cycle counter increases.
+It advances the injected clock to an actual agent's persisted nextAt and dispatches
+shared-service-agent.runCycle({tenantId, agentId}) through the scheduler. emptyWakes
+records before/after intervals only when the persisted empty-cycle counter increases.
 Hybrid promotion keeps due scheduling exercisable for real-model listeners.
-I-3 and I-10 continue against real activation; the stub injects no allowance.
+I-3 and I-10 continue against real activation and actual agent consumption.
 
 Separate tests cover pure event/no polling, tenant/scope rejection, exhausted
 attention, funding-only rearming, errors, two-instance revision claims, one timer,

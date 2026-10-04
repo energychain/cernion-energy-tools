@@ -18,7 +18,13 @@ const emit = (event, payload) => adapter.apply({ event, payload });
 
 beforeEach(async () => {
   jest.useFakeTimers({ now: Date.UTC(2026, 0, 1) });
-  adapter = await createAdapter({ functions, jest, journalSettings: { clock: () => Date.now() } });
+  adapter = await createAdapter({
+    functions,
+    jest,
+    withAgents: false,
+    cacheObservations: false,
+    journalSettings: { clock: () => Date.now() },
+  });
 });
 afterEach(async () => {
   if (adapter) await adapter.close();

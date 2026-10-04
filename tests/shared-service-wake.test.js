@@ -70,7 +70,7 @@ async function setup({ sharedPath, settings = {}, result, run } = {}) {
         params: { tenantId: 'string', agentId: 'string' },
         async handler(ctx) {
           calls.push(ctx.params);
-          return run ? run(ctx) : result || { findings: 0, consumedUnits: 0.1, proposals: [] };
+          return run ? run(ctx) : result || { findings: 0, consumedUnits: 0.1, proposals: 0 };
         },
       },
     },
@@ -142,9 +142,14 @@ test('real activation funds the harness wake through actual activating turns', a
   const functions = loadFunctions().functions;
   const adapter = await createAdapter({ jest, functions });
   try {
-    for (const step of generateHistory({ seed: 702, functions }).slice(0, 7)) {
+    for (const step of generateHistory({ seed: 702, functions })) {
       await adapter.apply(step);
+      if (step.type === 'wake-exercise') break;
     }
+    expect(adapter.agentMode).toBe('real');
+    expect(adapter.agentEvents.some((event) => event.kind === 'wake' && event.units === 0.1)).toBe(
+      true
+    );
     expect((await adapter.snapshot()).emptyWakes.length).toBeGreaterThan(0);
   } finally {
     await adapter.close();
@@ -316,7 +321,7 @@ test('AC-04: revision claim prevents two instances from executing the same due o
     await b.broker.emit('source.changed', { tenantId: 'tenant-a', functionId: 'fn-a' });
     expect(a.calls).toHaveLength(1);
     expect(b.calls).toHaveLength(0);
-    finish({ findings: 0, consumedUnits: 0.1, proposals: [] });
+    finish({ findings: 0, consumedUnits: 0.1, proposals: 0 });
     await running;
     expect((await a.wake.records())[0].sequence).toBe(1);
   } finally {
@@ -415,7 +420,7 @@ test('journal failure before dispatch spends nothing and retains bounded publica
 });
 
 test('invalid results never create negative counters; fresh funding and active lifecycle are both required', async () => {
-  const s = await setup({ result: { findings: 0, consumedUnits: -1, proposals: [] } });
+  const s = await setup({ result: { findings: 0, consumedUnits: -1, proposals: 0 } });
   try {
     await s.activate();
     s.clock.value = (await s.wake.records())[0].nextAt;
@@ -447,12 +452,12 @@ test('AC-06: rhythms are data-driven, no-listener gaps are explicit, findings/de
   ).toMatchObject({ intervalSec: 300, pushGaps: [{ eventType: '*', reason: 'missing_listener' }] });
   const wake = { intervalSec: 900, findingStreak: 1 };
   expect(
-    adaptInterval(wake, { findings: 1, consumedUnits: 1, proposals: [] }, settings, 0).intervalSec
+    adaptInterval(wake, { findings: 1, consumedUnits: 1, proposals: 0 }, settings, 0).intervalSec
   ).toBe(450);
   expect(
     adaptInterval(
       wake,
-      { findings: [{ dueAt: new Date(1000).toISOString() }], consumedUnits: 1, proposals: [] },
+      { findings: [{ dueAt: new Date(1000).toISOString() }], consumedUnits: 1, proposals: 0 },
       settings,
       0
     ).intervalSec

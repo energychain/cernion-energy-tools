@@ -47,6 +47,38 @@ function missingDependencies(spec) {
   return missing;
 }
 
+const activeInvariantIds = Object.entries(dependencies)
+  .filter(([, spec]) => !missingDependencies(spec).length)
+  .map(([id]) => id);
+const realRuns = new Map();
+async function exerciseRealServices(seed) {
+  const { functions } = loadFunctions();
+  const seen = new Set();
+  jest.useFakeTimers({ now: Date.UTC(2026, 0, 1), doNotFake: ['hrtime', 'performance'] });
+  try {
+    await runSimulation({
+      seed,
+      history: generateHistory({ seed, functions }),
+      createAdapter: async () => {
+        jest.setSystemTime(Date.UTC(2026, 0, 1));
+        const adapter = await realAdapter.createAdapter({ functions, jest });
+        return {
+          apply: (step) => adapter.apply(step),
+          close: () => adapter.close(),
+          snapshot: async () => {
+            const state = await adapter.snapshot();
+            observeExercise(state, seen);
+            return state;
+          },
+        };
+      },
+      ids: activeInvariantIds,
+    });
+    return seen;
+  } finally {
+    jest.useRealTimers();
+  }
+}
 for (const [id, spec] of Object.entries(dependencies)) {
   const missing = missingDependencies(spec);
   if (missing.length) {
@@ -58,32 +90,8 @@ for (const [id, spec] of Object.entries(dependencies)) {
           `${id}: dependencies landed; provide tests/helpers/shared-service/real-adapter.js or configure SHARED_SERVICE_TEST_ADAPTER (see docs/shared-service-harness.md). Each service issue extends this adapter with its own observations. This invariant must no longer remain todo.`
         );
       for (const seed of seeds) {
-        const { functions } = loadFunctions();
-        const seen = new Set();
-        jest.useFakeTimers({ now: Date.UTC(2026, 0, 1), doNotFake: ['hrtime', 'performance'] });
-        try {
-          await runSimulation({
-            seed,
-            history: generateHistory({ seed, functions }),
-            createAdapter: async () => {
-              jest.setSystemTime(Date.UTC(2026, 0, 1));
-              const adapter = await realAdapter.createAdapter({ functions, jest });
-              return {
-                apply: (step) => adapter.apply(step),
-                close: () => adapter.close(),
-                snapshot: async () => {
-                  const state = await adapter.snapshot();
-                  observeExercise(state, seen);
-                  return state;
-                },
-              };
-            },
-            ids: [id],
-          });
-          assertExercise(seen, id, seed);
-        } finally {
-          jest.useRealTimers();
-        }
+        if (!realRuns.has(seed)) realRuns.set(seed, exerciseRealServices(seed));
+        assertExercise(await realRuns.get(seed), id, seed);
       }
     });
   }

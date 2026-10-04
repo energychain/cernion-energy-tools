@@ -27,7 +27,7 @@ test('AC-04: real PouchDB restart preserves due times, stats and digest; one cyc
           params: { tenantId: 'string', agentId: 'string' },
           handler() {
             calls++;
-            return { findings: 0, consumedUnits: 0.1, proposals: [] };
+            return { findings: 0, consumedUnits: 0.1, proposals: 0 };
           },
         },
       },

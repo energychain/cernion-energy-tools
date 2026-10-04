@@ -28,6 +28,7 @@ test('AC-03: at least three distinct fixed seeds and reproducible histories', ()
       'feedback',
       'attention-correction',
       'wake-exercise',
+      'coverage',
     ])
   );
   expect(
@@ -159,7 +160,7 @@ test('invariants checked initially and after EVERY step, not just final state', 
       };
     },
   });
-  expect(snapshots).toBe(11);
+  expect(snapshots).toBe(generateHistory({ seed: 702, functions, steps: 10 }).length + 1);
 });
 
 test('real-service adapters cannot pass with empty observations', async () => {

@@ -1,6 +1,6 @@
 # Function model — generated report
 
-Source SHA-256: `1c58067491ca3c4b88bbc1b289df18f52ee4ab8211e12966c3832dddd961ecc6`
+Source SHA-256: `1f6f25a96b42342b16bdbe4415e28cc31460e90a25f51cfd63004cc2dd959b9f`
 
 Capabilities: 172; functions: 106.
 Directed density at minWeight=0.2: **0.065948** (734/11130).
@@ -477,7 +477,7 @@ None.
 - fn-vdmi-portfolio-gatekeeping
 - fn-vnb-100-tage-assessment
 
-## unresolvedStaticEvents (63)
+## unresolvedStaticEvents (65)
 
 - {"service":"agent","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"agent","ref":"src/llm-client.js:159: dynamic emission"}
@@ -531,6 +531,8 @@ None.
 - {"service":"query","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"redispatch-expost","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"residual-load","ref":"src/job-store.js:67: dynamic emission"}
+- {"service":"shared-service-agent","ref":"src/job-store.js:67: dynamic emission"}
+- {"service":"shared-service-agent","ref":"src/llm-client.js:159: dynamic emission"}
 - {"service":"system","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"system","ref":"src/llm-client.js:159: dynamic emission"}
 - {"service":"tabular","ref":"src/job-store.js:67: dynamic emission"}

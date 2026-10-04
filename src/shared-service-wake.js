@@ -72,7 +72,10 @@ function adaptInterval(wake, result, settings, now) {
     findings < 0 ||
     !Number.isFinite(result.consumedUnits) ||
     result.consumedUnits < 0 ||
-    !Array.isArray(result.proposals)
+    !(
+      Array.isArray(result.proposals) ||
+      (Number.isInteger(result.proposals) && result.proposals >= 0)
+    )
   )
     throw new Error('Invalid runCycle result');
   const findingStreak = findings ? (wake.findingStreak || 0) + 1 : 0;
@@ -83,7 +86,7 @@ function adaptInterval(wake, result, settings, now) {
     if (findingStreak >= settings.frequentFindings) intervalSec *= settings.findingFactor;
     const deadlines = [
       ...(Array.isArray(result.findings) ? result.findings : []),
-      ...result.proposals,
+      ...(Array.isArray(result.proposals) ? result.proposals : []),
     ]
       .map((item) => Date.parse(item?.dueAt))
       .filter(Number.isFinite);

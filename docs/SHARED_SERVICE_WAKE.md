@@ -6,13 +6,13 @@ consumption. Its sole execution boundary is:
 
 ```text
 shared-service-agent.runCycle({ tenantId, agentId })
-  -> { findings: nonnegative integer | array, consumedUnits: nonnegative number, proposals: array }
+  -> { findings: nonnegative integer | array, consumedUnits: nonnegative number, proposals: nonnegative integer | array }
 ```
 
-Findings/proposals may carry ISO `dueAt`. #697 owns wake-unit consumption and final
-budget enforcement. Without #697, production attempts are journaled errors and
-stop until funded activation. Only tests supply an exact-signature contract stub;
-the adapter selects the real service automatically once its file lands on main.
+The real agent from #697 returns integer findings/proposal counts. Optional array
+results may carry ISO dueAt hints. #697 owns wake-unit consumption and final budget
+enforcement. Production and harness dispatch to the real service; isolated scheduler
+unit tests supply the same two-parameter action contract.
 
 ## Modes, sources and gaps
 

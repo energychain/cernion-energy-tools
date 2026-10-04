@@ -18,6 +18,9 @@ async function createAdapter({
   clock,
   journalSettings = {},
   wakeSettings = {},
+  agentSettings = {},
+  cacheObservations = !model,
+  withAgents = !model,
 } = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'activation-adapter-'));
   const events = [];
@@ -28,17 +31,18 @@ async function createAdapter({
   let schema;
   let coverageSchema;
   let journalSchema;
-  let wakeSchema;
   let agentSchema;
+  let inboxSchema;
+  let wakeSchema;
   jestApi.doMock('pouchdb', () => Pouch);
   try {
     jestApi.isolateModules(() => {
       schema = require('../../../services/function-activation.service');
       coverageSchema = require('../../../services/function-coverage.service');
       journalSchema = require('../../../services/shared-service-journal.service');
+      agentSchema = require('../../../services/shared-service-agent.service');
+      inboxSchema = require('../../../services/persona-inbox.service');
       wakeSchema = require('../../../services/shared-service-wake.service');
-      const agentPath = path.join(__dirname, '../../../services/shared-service-agent.service.js');
-      if (fs.existsSync(agentPath)) agentSchema = require(agentPath);
     });
   } finally {
     jestApi.dontMock('pouchdb');
@@ -92,30 +96,33 @@ async function createAdapter({
       ...journalSettings,
     },
   });
-  // #697 owns execution and consumption. Until it lands, expose only its exact contract.
-  const cycleCalls = [];
-  const agentService = agentSchema
+  const operationAttempts = [];
+  const handoffs = [];
+  const agentEvents = [];
+  broker.createService({
+    name: 'agent-observer',
+    events: {
+      'shared-agent.lifecycle.v1': (ctx) => agentEvents.push(ctx.params),
+      'shared-agent.feedback.v1': (ctx) => agentEvents.push(ctx.params),
+      'shared-agent.consumption.v1': (ctx) => agentEvents.push(ctx.params),
+    },
+  });
+  const inbox = broker.createService({
+    ...inboxSchema,
+    settings: { ...inboxSchema.settings, dbPath: path.join(root, 'inbox') },
+  });
+  const agents = withAgents
     ? broker.createService({
         ...agentSchema,
         settings: {
           ...agentSchema.settings,
           model: service.model,
-          dbPath: path.join(root, 'agents'),
+          dbPath: dbPath ? `${dbPath}-agents` : path.join(root, 'agents'),
           clock: () => now.value,
+          ...agentSettings,
         },
       })
-    : broker.createService({
-        name: 'shared-service-agent',
-        actions: {
-          runCycle: {
-            params: { tenantId: 'string', agentId: 'string' },
-            handler(ctx) {
-              cycleCalls.push({ ...ctx.params });
-              return { findings: 0, consumedUnits: 0, proposals: [] };
-            },
-          },
-        },
-      });
+    : null;
   const wake = broker.createService({
     ...wakeSchema,
     settings: {
@@ -138,6 +145,7 @@ async function createAdapter({
     fs.rmSync(root, { recursive: true, force: true });
     throw error;
   }
+  let cachedObservation;
   const adapter = {
     broker,
     service,
@@ -145,41 +153,37 @@ async function createAdapter({
     coverageEvents,
     journal,
     wake,
-    agentService,
-    cycleCalls,
-    agentMode: agentSchema ? 'real' : 'contract-stub',
+    agentMode: 'real',
     events,
+    agents,
+    inbox,
+    agentEvents,
     clock: now,
     async apply(step) {
       if (step.type === 'advance') {
         now.value += step.milliseconds;
         await service.sweep();
+        await agents?.settle();
+        await wake.settle();
         await journal.serializeWrite(() => journal.compactEntries());
         return;
       }
-      if (step.type === 'wake-exercise' && !agentSchema) {
-        const rows = await broker.call('activation.list', { tenantId: 'tenant-a' });
-        const row = rows.find(
-          (item) =>
-            item.responsibility.cet &&
-            !item.attention.allowanceExhausted &&
-            item.attention.allowance >= 0.1
-        );
-        if (!row) return;
-        const agentId = `agent-${row.functionId}`;
-        await broker.emit('shared-agent.lifecycle.v1', {
-          tenantId: row.tenantId,
-          functionId: row.functionId,
-          agentId,
-          lifecycle: 'active',
-        });
-        await service.settle();
+      if (step.type === 'wake-exercise' && agents) {
+        await agents.settle();
         await wake.settle();
-        const before = (await wake.records(row.tenantId)).find((item) => item.agentId === agentId);
-        if (!before || before.wake.mode === 'event') return;
+        const records = await wake.records('tenant-a');
+        const before = records.find(
+          (item) => item.lifecycle === 'active' && !item.blocked && item.nextAt
+        );
+        if (!before) return;
         now.value = Math.max(now.value, before.nextAt);
         await wake.drainDue();
-        const after = (await wake.records(row.tenantId)).find((item) => item.agentId === agentId);
+        await agents.settle();
+        await service.settle();
+        await wake.settle();
+        const after = (await wake.records('tenant-a')).find(
+          (item) => item.agentId === before.agentId
+        );
         if (after.stats.emptyWakes > (before.stats.emptyWakes || 0))
           emptyWakes.push({
             beforeIntervalSec: before.wake.intervalSec,
@@ -224,6 +228,8 @@ async function createAdapter({
           { meta: { apiToken: { tenantId: step.tenantId, id: step.actorId, roles: policy.roles } } }
         );
         await service.settle();
+        await agents?.settle();
+        await wake.settle();
         authorizationChecks.push({
           before,
           after: visible(policy, target),
@@ -248,11 +254,13 @@ async function createAdapter({
       if (step.type === 'touch') event.at = new Date(now.value).toISOString();
       await broker.emit(step.event || 'function.touched.v1', event, { meta: step.meta || {} });
       await service.settle();
+      await agents?.settle();
       await wake.settle();
       await journal.writeQueue;
       fresh = false;
     },
     async snapshot() {
+      if (cacheObservations && cachedObservation) return cachedObservation;
       const activations = [];
       const coverage = [];
       for (const tenantId of tenants) {
@@ -263,7 +271,7 @@ async function createAdapter({
         );
         coverage.push(...result.items);
       }
-      return {
+      const observation = {
         fresh,
         attentionTransitions: structuredClone(attentionTransitions),
         activatingTurns: (
@@ -272,13 +280,19 @@ async function createAdapter({
         allowancePerTurn: service.settings.allowancePerTurn,
         allowanceCap: service.settings.allowanceCap,
         activations,
-        agents: [],
+        agents: agents
+          ? (
+              await Promise.all(
+                [...tenants].map(async (id) => agents.publicAgents(await agents.readDocument(id)))
+              )
+            ).flat()
+          : [],
         functions: service.model.functions,
         tenantBudget: service.settings.tenantBudget,
         minWeight: service.settings.minWeight,
         now: now.value,
         restWindowMs: service.settings.restWindowMs,
-        operationAttempts: [],
+        operationAttempts: structuredClone(operationAttempts),
         activityQueries: [],
         emptyWakes: structuredClone(emptyWakes),
         corrections: [],
@@ -288,8 +302,10 @@ async function createAdapter({
         journal: (
           await Promise.all([...tenants].map((tenantId) => journal.readEntries(tenantId)))
         ).flat(),
-        handoffs: [],
+        handoffs: structuredClone(handoffs),
       };
+      if (cacheObservations) cachedObservation = observation;
+      return observation;
     },
     async close() {
       const stopping = broker.stop();
@@ -306,12 +322,77 @@ async function createAdapter({
       fs.rmSync(root, { recursive: true, force: true });
     },
   };
+  function observeHandoffs(before, after) {
+    for (const row of after.activations) {
+      const prior = before.activations.find(
+        (item) => item.tenantId === row.tenantId && item.functionId === row.functionId
+      );
+      if (
+        prior?.responsibility.cet &&
+        !row.responsibility.cet &&
+        row.responsibility.humans.length
+      ) {
+        const source = prior.reason.find((reason) => reason.kind === 'neighbor')?.functionId;
+        const firstActorId = before.activations.find(
+          (item) => item.functionId === source && item.tenantId === row.tenantId
+        )?.touchedBy[0];
+        const secondActorId = row.responsibility.humans.find((id) => id !== firstActorId);
+        if (firstActorId && secondActorId)
+          handoffs.push({
+            firstActorId,
+            secondActorId,
+            before: prior,
+            after: row,
+            agents: after.agents.filter(
+              (item) => item.tenantId === row.tenantId && item.functionId === row.functionId
+            ),
+          });
+      }
+    }
+  }
+  async function observeDeniedOperation(after) {
+    if (agents && !operationAttempts.length && after.agents.length) {
+      const agent = after.agents[0];
+      const operation = agents.operations.find((item) =>
+        item.sideEffects.includes('external_system_call')
+      );
+      if (operation) {
+        let executed = false;
+        try {
+          await agents.actions.executeOperation(
+            {
+              tenantId: agent.tenantId,
+              agentId: agent.agentId,
+              operationId: operation.operationId,
+            },
+            {
+              meta: {
+                authUser: { tenantId: agent.tenantId, id: 'reviewer-a', roles: ['ROLE_USER'] },
+              },
+            }
+          );
+          executed = true;
+        } catch {
+          /* Expected policy rejection is an observed attempt. */
+        }
+        operationAttempts.push({
+          externalEffect: true,
+          authorized: true,
+          noCallBlocked: true,
+          executed,
+        });
+      }
+    }
+  }
   const apply = adapter.apply.bind(adapter);
   adapter.apply = async (step) => {
     const before = await adapter.snapshot();
     const eventOffset = coverageEvents.length;
     await apply(step);
+    cachedObservation = null;
     const after = await adapter.snapshot();
+    observeHandoffs(before, after);
+    await observeDeniedOperation(after);
     for (const row of after.activations.filter((item) => item.attention)) {
       const prior = before.activations.find(
         (item) => item.tenantId === row.tenantId && item.functionId === row.functionId
@@ -355,6 +436,10 @@ async function createAdapter({
             ['shared-agent.feedback.v1', 'shared-service.correction.v1'].includes(step.event)),
       });
     }
+    after.attentionTransitions = structuredClone(attentionTransitions);
+    after.operationAttempts = structuredClone(operationAttempts);
+    after.handoffs = structuredClone(handoffs);
+    after.emptyWakes = structuredClone(emptyWakes);
   };
   return adapter;
 }

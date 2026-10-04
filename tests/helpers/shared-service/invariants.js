@@ -179,8 +179,12 @@ const dependencies = {
     marker: 'system_activity_query',
   },
   'I-6': {
-    issues: '#699 (runCycle contract stub until #697)',
-    paths: ['services/shared-service-wake.service.js', 'src/shared-service-wake.js'],
+    issues: '#699/#697',
+    paths: [
+      'services/shared-service-wake.service.js',
+      'src/shared-service-wake.js',
+      'services/shared-service-agent.service.js',
+    ],
   },
   'I-7': {
     issues: '#698/#701',
