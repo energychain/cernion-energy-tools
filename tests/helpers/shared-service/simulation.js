@@ -192,6 +192,52 @@ function generateHistory({ seed, functions, users = 5, steps = 80 }) {
       }
     );
   }
+  if (anchor && steps >= 8) {
+    const target = anchor.neighbors
+      .slice()
+      .sort(
+        (a, b) => b.weight - a.weight || compareCanonicalStrings(a.functionId, b.functionId)
+      )[0].functionId;
+    history.splice(
+      6,
+      0,
+      {
+        type: 'touch',
+        event: 'function.touched.v1',
+        payload: {
+          tenantId: 'tenant-a',
+          actorId: 'actor-0',
+          functionId: target,
+          conversationId: 'handoff-target',
+          confidence: 1,
+          at: new Date(now).toISOString(),
+        },
+      },
+      {
+        type: 'touch',
+        event: 'function.touched.v1',
+        payload: {
+          tenantId: 'tenant-a',
+          actorId: 'actor-0',
+          functionId: anchor.functionId,
+          conversationId: 'handoff-source',
+          confidence: 1,
+          at: new Date(now).toISOString(),
+        },
+      },
+      {
+        type: 'coverage',
+        event: 'function.coverage.changed.v1',
+        payload: {
+          tenantId: 'tenant-a',
+          actorId: 'actor-1',
+          functionId: target,
+          score: 1,
+          origin: 'observed',
+        },
+      }
+    );
+  }
   return history;
 }
 

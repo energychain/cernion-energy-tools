@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "33377396ff3e6e81595225c2e454894b8b9e4a048601c70ca0d2ee77faaec01e",
+  "sourceHash": "44e197512d8955212be5bdcb30e12ffb84d461003afff3ecb3f5b6ff5da7268d",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -107878,6 +107878,14 @@
       {
         "service": "residual-load",
         "ref": "src/job-store.js:67: dynamic emission"
+      },
+      {
+        "service": "shared-service-agent",
+        "ref": "src/job-store.js:67: dynamic emission"
+      },
+      {
+        "service": "shared-service-agent",
+        "ref": "src/llm-client.js:159: dynamic emission"
       },
       {
         "service": "system",

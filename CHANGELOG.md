@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.99.22] — 2026-09-27
 
 ### Fixed
+- RC3 Shared Service agent (#697): add one function-parametrized, persistent actor with event-driven lifecycle, guarded internal operations, committed attention-unit charges, quota-bound findings evaluation, observed-coverage inbox proposals and durable human feedback; activate agent safety/handoff invariants without timers or external effects.
 - RC3 Shared Service activation (#696): bound per-person touch records and recent transition history, store only non-latent activation summaries, coalesce pending notifications and stop the real harness broker safely under fake timers.
 - RC3 operation-capability index: resolve static service actions, split CommonJS declarations and API route aliases; report every unresolved action with a coverage reason. Regenerate the function graph without changing its catalog or grouping parameters.
 - Sonar RC3 corrections: explicit UTF-16 canonical ordering without hash/cursor/idempotency changes; await requested RCS trace persistence; reuse hydration regex guards; use cryptographic graph/alarm IDs; harden manual UAT transport, job paths and logs. Disable implicit dependency lifecycle scripts in CI and explicitly build reviewed native modules.

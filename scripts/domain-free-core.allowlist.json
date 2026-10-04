@@ -263,6 +263,70 @@
     {
       "term": "rejection",
       "reason": "Generic compatibility, input-patch or feedback-rejection terminology in neutral #715 tests; no catalog-specific behavior."
+    },
+    {
+      "term": "advisory",
+      "reason": "Existing operation index kind advisory_plan; generic internal reasoning, not domain vocabulary."
+    },
+    {
+      "term": "dashboard",
+      "reason": "Existing operation index kind dashboard_read; generic read-only interface metadata."
+    },
+    {
+      "term": "deadline",
+      "reason": "Generic overdue timestamp finding, independent of function domain."
+    },
+    {
+      "term": "draft",
+      "reason": "Existing operation index kind draft_write and internal draft effect contract."
+    },
+    {
+      "term": "forbidden",
+      "reason": "Generic policy denial and neutral security fixtures."
+    },
+    {
+      "term": "guard",
+      "reason": "Generic authorization check and neutral backend-denial fixture."
+    },
+    {
+      "term": "guards",
+      "reason": "Existing authorization enforcement, independent of domain."
+    },
+    {
+      "term": "human",
+      "reason": "Epic #693 human responsibility and existing personaType contract."
+    },
+    {
+      "term": "inbox",
+      "reason": "Existing internal persona inbox channel required by #697."
+    },
+    {
+      "term": "persona",
+      "reason": "Existing human actor identity contract; no role-based routing."
+    },
+    {
+      "term": "persona-inbox",
+      "reason": "Existing internal proposal delivery service required by #697."
+    },
+    {
+      "term": "reconcile",
+      "reason": "Generic state reconciliation on activation events."
+    },
+    {
+      "term": "review",
+      "reason": "Generic human proposal review text, no function-specific behavior."
+    },
+    {
+      "term": "approval",
+      "reason": "Existing generic HITL/persona-inbox message type; human authorization workflow, no domain-specific approval logic."
+    },
+    {
+      "term": "persona inbox",
+      "reason": "Existing internal persona inbox channel name and generic error text; required proposal integration for #697."
+    },
+    {
+      "term": "freigabe",
+      "reason": "Existing German HITL/persona-inbox user text for generic human approval; #697 never approves or dispatches externally."
     }
   ]
 }
