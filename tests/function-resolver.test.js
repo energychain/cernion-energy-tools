@@ -47,10 +47,45 @@ test('ambiguous matches are bounded, deterministic and do not guess from order',
       keywords: [],
     })),
   };
-  const result = resolveFunctions('Same label', { model: fixture });
+  const result = resolveFunctions('Same label', { model: fixture, maxCandidates: 5 });
   expect(result).toMatchObject({ status: 'ambiguous', totalMatches: 10 });
   expect(result.matches).toHaveLength(5);
   expect(
-    resolveFunctions('Same label', { model: { functions: fixture.functions.reverse() } })
+    resolveFunctions('Same label', {
+      model: { functions: fixture.functions.reverse() },
+      maxCandidates: 5,
+    })
   ).toEqual(result);
+});
+
+test('weights rare semantic tokens and supports configurable separation and compound fragments', () => {
+  const fixture = {
+    functions: [
+      {
+        functionId: 'fn-a',
+        label: 'Example Planning',
+        domains: ['shared'],
+        departments: ['portfolio'],
+        keywords: ['compoundplanning'],
+      },
+      {
+        functionId: 'fn-b',
+        label: 'Other',
+        domains: ['shared'],
+        keywords: ['portfolio', 'example'],
+      },
+    ],
+  };
+  expect(resolveFunctions('portfolio', { model: fixture })).toMatchObject({
+    status: 'resolved',
+    matches: [{ functionId: 'fn-a' }],
+  });
+  expect(resolveFunctions('shared', { model: fixture })).toMatchObject({ status: 'ambiguous' });
+  expect(resolveFunctions('example', { model: fixture, minScoreGap: 1 })).toMatchObject({
+    status: 'ambiguous',
+  });
+  expect(resolveFunctions('compound', { model: fixture })).toMatchObject({
+    status: 'resolved',
+    matches: [{ functionId: 'fn-a' }],
+  });
 });

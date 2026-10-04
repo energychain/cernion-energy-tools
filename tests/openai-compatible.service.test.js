@@ -944,7 +944,7 @@ describe('governance contextual follow-up delivery', () => {
   });
 });
 
-test('system activity renders the state presenter through the read-only Workbench path and never calls an LLM', async () => {
+test('system activity renders state and fallback metadata without LLM text generation', async () => {
   llmClient.generateChat.mockClear();
   const ctx = {
     params: {
@@ -955,6 +955,7 @@ test('system activity renders the state presenter through the read-only Workbenc
     meta: { apiToken: { tenantId: 'tenant-a', id: 'actor-a', roles: ['ROLE_USER'] } },
     call: jest.fn().mockResolvedValue({
       mode: 'system_activity_query',
+      resolution: { path: 'lexical', fallbackReason: 'embedding_failed' },
       state: 'state_unavailable',
       items: [],
       responseText: 'Routing advice only.',
@@ -966,6 +967,10 @@ test('system activity renders the state presenter through the read-only Workbenc
     'workbench.query',
     expect.objectContaining({ intentMode: 'system_activity_query' })
   );
+  expect(result.metadata.resolution).toEqual({
+    path: 'lexical',
+    fallbackReason: 'embedding_failed',
+  });
   expect(result.choices[0].message.content).toMatch(/Systemzustand.*nicht erreichbar/);
   expect(result.choices[0].message.content).not.toContain('Routing advice');
   expect(llmClient.generateChat).not.toHaveBeenCalled();

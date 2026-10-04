@@ -1,8 +1,9 @@
 # Function model — generated report
 
-Source SHA-256: `7b6fe383bf6a1e8b3e0b555456fa5c260927c1cebe470f00d976985ef551414a`
+Source SHA-256: `e25fb4c62415dd742c12a9fbaee058ef527a1dec4199ee258fc894da0829f13d`
 
 Capabilities: 172; functions: 106.
+Function vectors: 106/106; missing or incompatible capability vectors: 0.
 Directed density at minWeight=0.2: **0.065948** (734/11130).
 Naive baseline: 0.49; target: ≤ 0.15; target met: yes.
 
@@ -477,7 +478,7 @@ None.
 - fn-vdmi-portfolio-gatekeeping
 - fn-vnb-100-tage-assessment
 
-## unresolvedStaticEvents (65)
+## unresolvedStaticEvents (67)
 
 - {"service":"agent","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"agent","ref":"src/llm-client.js:159: dynamic emission"}
@@ -542,6 +543,8 @@ None.
 - {"service":"willi-federated","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"willi-mako","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"willi-regulatorik","ref":"src/job-store.js:67: dynamic emission"}
+- {"service":"workbench","ref":"src/job-store.js:67: dynamic emission"}
+- {"service":"workbench","ref":"src/llm-client.js:159: dynamic emission"}
 - {"service":"znp","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"znp","ref":"src/llm-client.js:159: dynamic emission"}
 

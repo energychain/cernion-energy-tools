@@ -185,7 +185,7 @@ test('AC-05: only management coverage projects identities; upstream pseudonyms s
 
 test('unknown/ambiguous function is clarified without guessed state calls or ID-text matching', async () => {
   for (const [target, fixture, state] of [
-    ['unmatched phrase', model, 'function_unknown'],
+    ['unmapped expression', model, 'function_unknown'],
     [
       'Function A',
       { functions: [...model.functions, { ...model.functions[0], functionId: 'fn-b' }] },
@@ -308,4 +308,47 @@ test('open journal summaries are bounded while counts remain exact', async () =>
   expect(renderWorkbenchResponse(result, 'system_activity_query')).toContain(
     'Offene Erwartungen: 25'
   );
+});
+
+test('only a system question requests one embedding; fallback reason is response metadata', async () => {
+  const client = {
+    embeddingConfiguration: jest.fn(() => ({ provider: 'fixture', model: 'same-model' })),
+    embeddings: jest.fn().mockResolvedValue([[1, 0]]),
+  };
+  const fixture = {
+    functions: [
+      {
+        ...model.functions[0],
+        embedding: { provider: 'fixture', model: 'same-model', dimension: 2, vector: [1, 0] },
+      },
+    ],
+  };
+  const answer = await answerSystemActivity(context(), 'Was macht Function A gerade?', {
+    model: fixture,
+    resolverOptions: { client },
+  });
+  expect(client.embeddings).toHaveBeenCalledTimes(1);
+  expect(answer.resolution).toMatchObject({ path: 'hybrid', dimension: 2 });
+  client.embeddings.mockRejectedValueOnce(new Error('offline'));
+  const fallback = await answerSystemActivity(context(), 'Was macht Function A gerade?', {
+    model: fixture,
+    resolverOptions: { client },
+  });
+  expect(fallback.resolution).toEqual({ path: 'lexical', fallbackReason: 'embedding_failed' });
+  const calls = client.embeddings.mock.calls.length;
+  expect(classifyWorkbenchIntent('Was ist Function A?')).toBe('knowledge_query');
+  await answerSystemActivity(context(), 'Was ist Function A?', {
+    model: fixture,
+    resolverOptions: { client },
+  });
+  expect(client.embeddings).toHaveBeenCalledTimes(calls);
+});
+
+test.each([
+  'Arbeitest du an Function A?',
+  'Warum kümmert sich CET um Function A?',
+  'Was ist dein aktueller Arbeitsstand bei Function A?',
+  'Welche deiner Agents laufen gerade?',
+])('natural second-person activity: %s', (question) => {
+  expect(classifyWorkbenchIntent(question)).toBe('system_activity_query');
 });

@@ -84,6 +84,7 @@ function renderReport(model) {
     `Source SHA-256: \`${model.sourceHash}\``,
     '',
     `Capabilities: ${stats.capabilityCount}; functions: ${stats.functionCount}.`,
+    `Function vectors: ${model.functions.filter((fn) => fn.embedding?.vector).length}/${stats.functionCount}; missing or incompatible capability vectors: ${model.functions.reduce((sum, fn) => sum + (fn.embedding?.missingCapabilities.length || 0), 0)}.`,
     `Directed density at minWeight=${parameters.minWeight}: **${stats.density.toFixed(6)}** (${stats.edgeCount}/${stats.possibleEdges}).`,
     `Naive baseline: ${parameters.baselineDensity}; target: ≤ ${parameters.targetDensity}; target met: ${stats.density <= parameters.targetDensity ? 'yes' : 'no'}.`,
     '',

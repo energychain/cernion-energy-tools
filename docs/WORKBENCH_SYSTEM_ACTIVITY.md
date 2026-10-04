@@ -4,28 +4,54 @@ The governed OpenAI model uses the existing mapped-principal `workbench.query`
 path for `system_activity_query`. The intent router delegates recognition and
 presentation to `src/workbench-system-activity.js`. It does not create a case,
 reserve a conversation, record a Coverage turn, append a journal entry, wake an
-agent or call Knowledge, RAG, Personal-Agent or an LLM.
+agent or call Knowledge, RAG, Personal-Agent or an LLM text-generation API.
+Only this intent may request one question embedding through `src/llm-client.js`;
+the existing facade applies scrubbing, tracing and quota accounting.
 
 ## Resolver interface for #701
 
 ```js
 const { resolveFunctions } = require('../src/function-resolver');
-const result = resolveFunctions(message, { model, maxCandidates: 5 });
+const result = resolveFunctions(message, { model, maxCandidates: 25, minScoreGap: 0.25 });
 // {status: 'none'|'resolved'|'ambiguous', totalMatches,
-//  matches: [{functionId, label, confidence, matchedBy: 'label'|'alias'|'keyword'}]}
+//  matches: [{functionId, label, confidence, score, matchedBy}]}
+const { resolveFunctionsHybrid } = require('../src/function-resolver-hybrid');
+const hybrid = await resolveFunctionsHybrid(message, { model, wordWeight: 0.7, vectorWeight: 0.3 });
+// same result, plus metadata: {path: 'hybrid', provider, model, dimension}
+// or {path: 'lexical', fallbackReason}
 ```
 
-Inputs are current Function labels, additive semantic `aliases[]` if supplied by
-the model, and projected capability `keywords[]`. IDs, capability/operation IDs,
-lineage labels, domains and embedding vectors are never semantic search inputs.
-Opaque fn-* input tokens are excluded even when their historic spelling matches
-current vocabulary. Case, Unicode accents, camelCase and label separators normalize
-for matching. Exact bounded phrases score label 1, alias 0.95, keyword 0.7. Only
-the highest-confidence group is retained; ties are ambiguous and prompt the user
-with at most five candidates. A unique result is a current model identity. This
-resolver performs no persistence, correction or authorization; #701 must apply
-its own existing authorization before publishing any correction. Stored references
-continue to resolve through the source services' existing lineage handling.
+Words come only from labels, semantic aliases, domains, departments, keywords and
+keywordTokens. IDs remain opaque and fn-* tokens are removed from both lexical
+and embedding inputs. Shared Unicode/case/separator normalization tokenizes both
+sides. Compounds additionally use pieces found in the model vocabulary; substring
+and prefix matches require at least five characters and receive a squared length
+ratio penalty. Each query token contributes its strongest match, weighted by
+`log(1 + functionCount / documentFrequency)` and field weight (label/domain/department
+4, alias/keyword 1). Repeated keywords cannot inflate scores. Confidence is relative
+to the best lexical score, not a probability. Resolution requires a relative score
+gap of at least 0.25; otherwise at most 25 ranked candidates are returned. The larger
+candidate bound preserves broad-domain ambiguity rather than hiding plausible functions.
+
+The offline generator averages compatible capability vectors and normalizes the
+mean. Every function records provider, model, dimension and missing capabilities;
+invalid/incompatible entries are gaps. Existing stale-cache reporting remains
+unchanged. No provider is called by model generation.
+
+The hybrid resolver checks the effective facade provider/model and the configured
+`dimension` against cache identity, requests that exact model/dimension, and verifies
+the returned vector. Default score is 0.7 normalized word score + 0.3 positive
+cosine similarity; `wordWeight`, `vectorWeight`, `minScoreGap`, `minPrefixLength`,
+`maxCandidates`, `dimension` and `timeoutMs` are configurable via
+`workbench.settings.systemActivityResolver`. Embedding timeout defaults to 3000 ms;
+retries are disabled (one attempt). Missing cache, incompatible identity/dimension
+or embedding failure returns the full lexical result, logs a reason code without
+question text, and includes `resolution.fallbackReason` in the Workbench response.
+No Knowledge/RAG fallback exists. Other intents never request this embedding.
+
+The resolver performs no correction or authorization; #701 must apply its own
+existing authorization before publishing any correction. Stored references continue
+to resolve through the source services' existing lineage handling.
 
 ## Sources and visibility
 

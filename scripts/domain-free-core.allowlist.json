@@ -1,6 +1,10 @@
 {
   "entries": [
     {
+      "term": "arbeitsstand",
+      "reason": "Generic German system-activity question vocabulary; no domain branch."
+    },
+    {
       "term": "account",
       "reason": "Existing Workbench mailAccountDbPath persistence setting in the shared-service adapter; no domain behavior."
     },

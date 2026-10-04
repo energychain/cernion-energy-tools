@@ -1332,6 +1332,8 @@ module.exports = {
           return answerSystemActivity(
             {
               meta,
+              logger: this.logger,
+              broker: this.broker,
               call: (name, input) =>
                 ctx.call(name, input, {
                   meta,
@@ -1339,7 +1341,10 @@ module.exports = {
                 }),
             },
             envelope.userRequest,
-            { model: this.settings.systemActivityModel }
+            {
+              model: this.settings.systemActivityModel,
+              resolverOptions: this.settings.systemActivityResolver || {},
+            }
           );
         }
         if (ctx.params.intentMode === 'knowledge_query') {

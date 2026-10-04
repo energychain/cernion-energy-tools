@@ -1,7 +1,8 @@
 'use strict';
 
 const { getFunctionModel } = require('./function-model');
-const { resolveFunctions, normalizePhrase } = require('./function-resolver');
+const { normalizePhrase } = require('./function-resolver');
+const { resolveFunctionsHybrid } = require('./function-resolver-hybrid');
 const { principal } = require('./domain-router-policy');
 const { compareCanonicalStrings } = require('./canonical-order');
 
@@ -32,27 +33,36 @@ function display(value) {
 function activityScope(message) {
   const text = String(message || '').trim();
   if (/\bcase[_-][\w-]+\b|\b(case|fall|klärfall|klaerfall)\b/i.test(text)) return null;
-  const target =
-    text.match(
-      /^(?:was macht|woran arbeitet|what is)\s+(.+?)\s+(?:gerade|aktuell|currently|doing(?: right now)?|working on)\s*[?.!]*$/i
-    ) || text.match(/^(?:warum|wieso) kümmerst du dich um\s+(.+?)\s*[?.!]*$/i);
-  if (target) {
-    const value = target[1].trim();
-    return /^(?:cet|du|you|the assistant|der assistent)$/i.test(value)
-      ? { overview: true }
-      : { overview: false, target: value };
-  }
   if (
-    /^(?:was (?:machst|tust) du|woran arbeitest du|wor(?:um|an) kümmerst du dich|what are you (?:doing|working on)|what does cet do)(?:\s+(?:gerade|aktuell|currently|right now))?\s*[?.!]*$/i.test(
+    /\b(bewerte|vergleiche|empfiehl|empfehlung|recommend|compare|assess)\b|was soll ich|what should i/i.test(
       text
-    ) ||
-    /^(?:welche|which)\s+(?:agents?|agenten|funktionen|functions)\s+(?:laufen|sind aktiv|are (?:running|active))(?:\s+(?:gerade|aktuell|currently))?\s*[?.!]*$/i.test(
-      text
-    ) ||
-    /^(?:was gehört zum inventar|what is (?:in|part of) (?:the )?inventory)\s*[?.!]*$/i.test(text)
+    )
   )
-    return { overview: true, inventoryOnly: /inventar|inventory/i.test(text) };
-  return null;
+    return null;
+  if (/^(?:was gehört zum inventar|what is (?:in|part of) (?:the )?inventory)[?.!\s]*$/i.test(text))
+    return { overview: true, inventoryOnly: true };
+  if (
+    /^(?:welche|which)\s+(?:deiner\s+|your\s+)?(?:agents?|agenten|funktionen|functions)\s+(?:laufen|sind aktiv|are (?:running|active))(?:\s+(?:gerade|aktuell|momentan|currently))?[?.!\s]*$/i.test(
+      text
+    )
+  )
+    return { overview: true };
+  const patterns = [
+    /^(?:was ist|wie ist)\s+(?:dein|deine)\s+(?:(?:gerade|aktuell|momentan|aktueller|aktuelle)\s+)?(?:arbeitsstand|arbeit|tätigkeit|aufgabe|status|inventar)\b(.*?)[?.!]*$/i,
+    /^(?:was macht(?: eigentlich)?|woran arbeitet)\s+(.+?)[?.!]*$/i,
+    /^(?:was (?:machst|tust) du|woran arbeitest du|wor(?:um|an) kümmerst du dich|(?:warum |wieso )?kümmerst du dich|arbeitest du|(?:warum |wieso )?kümmert sich cet|what are you (?:doing|working on)|what does cet do|are you working)\b(.*?)[?.!]*$/i,
+    /^was passiert(?:\s+(?:gerade|aktuell|momentan))?\s+(?:mit|bei)\s+(.+?)[?.!]*$/i,
+    /^what is\s+(.+?)\s+(?:doing(?: right now)?|working on|currently)[?.!]*$/i,
+  ];
+  const match = patterns.map((pattern) => text.match(pattern)).find(Boolean);
+  if (!match) return null;
+  const target = match[1]
+    .replace(/\b(?:gerade|aktuell|momentan|eigentlich|currently|right now)\b/gi, '')
+    .replace(/^(?:cet|du|you|the assistant|der assistent)\b/i, '')
+    .replace(/^\s*(?:beim|bei|an|um|mit|on|with|about)\s+/i, '')
+    .replace(/^\s*(?:die|der|das|the)\s+/i, '')
+    .trim();
+  return target ? { overview: false, target } : { overview: true };
 }
 
 function isFunctionKnowledgeQuery(message) {
@@ -204,16 +214,23 @@ function projectFunction(fn, p, row, agentRows, digest, agents, coverage) {
 async function answerSystemActivity(
   ctx,
   message,
-  { model = getFunctionModel(), overviewLimit = 5 } = {}
+  { model = getFunctionModel(), overviewLimit = 5, resolverOptions = {} } = {}
 ) {
   const p = principal(ctx);
   const scope = activityScope(message);
   if (!scope) return { mode: 'system_activity_query', state: 'function_unknown', items: [] };
+  const resolution = await resolveFunctionsHybrid(message, {
+    ...resolverOptions,
+    model,
+    tenantId: p.tenantId,
+    broker: ctx.broker,
+    logger: ctx.logger,
+  });
   if (!scope.overview) {
-    const resolution = resolveFunctions(scope.target, { model });
     if (resolution.status !== 'resolved')
       return {
         mode: 'system_activity_query',
+        resolution: resolution.metadata,
         state: resolution.status === 'ambiguous' ? 'function_ambiguous' : 'function_unknown',
         candidates: resolution.matches.map(({ functionId, label, confidence }) => ({
           functionId,
@@ -224,11 +241,21 @@ async function answerSystemActivity(
       };
     const fn = model.functions.find((item) => item.functionId === resolution.matches[0].functionId);
     const item = await readFunction(ctx, fn, p);
-    return { mode: 'system_activity_query', state: item.state, items: [item] };
+    return {
+      mode: 'system_activity_query',
+      resolution: resolution.metadata,
+      state: item.state,
+      items: [item],
+    };
   }
   const source = await readSource(ctx, 'activation.list', { tenantId: p.tenantId }, Array.isArray);
   if (!source.available)
-    return { mode: 'system_activity_query', state: 'state_unavailable', items: [] };
+    return {
+      mode: 'system_activity_query',
+      resolution: resolution.metadata,
+      state: 'state_unavailable',
+      items: [],
+    };
   const rows = source.value
     .filter(
       (row) =>
@@ -254,6 +281,7 @@ async function answerSystemActivity(
   );
   return {
     mode: 'system_activity_query',
+    resolution: resolution.metadata,
     state: 'overview',
     inventoryOnly: scope.inventoryOnly === true,
     items,

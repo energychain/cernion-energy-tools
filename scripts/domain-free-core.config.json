@@ -3,6 +3,7 @@
   "corePaths": [
     "src/function-model.js",
     "src/function-resolver.js",
+    "src/function-resolver-hybrid.js",
     "src/function-activation-state.js",
     "src/function-activation-records.js",
     "src/function-attention.js",

@@ -21,6 +21,7 @@ function classifyWorkbenchIntent(message, { cetCaseId, recentMessages } = {}) {
     /\b(case|fall|klärfall|klaerfall|evaluation|bewertung)\b/.test(text)
   )
     return 'case_start';
+  if (isSystemActivityQuery(message)) return 'system_activity_query';
   if (/prüfe.*\b(case|fall)|check.*\bcase/.test(text)) return 'case_followup';
   if (
     /\b(continue|follow.?up|fortsetzen|weiter|nachreich|cetcaseid)\b|hier (ist|sind).*beleg|provide.*evidence/.test(
@@ -28,7 +29,6 @@ function classifyWorkbenchIntent(message, { cetCaseId, recentMessages } = {}) {
     )
   )
     return 'case_followup';
-  if (isSystemActivityQuery(message)) return 'system_activity_query';
   if (isFunctionKnowledgeQuery(message)) return 'knowledge_query';
   if (
     /\b(status|stand|bearbeitungsstand)\b/.test(text) &&
