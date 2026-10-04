@@ -11,7 +11,7 @@ proposing a pure advisory evaluator is not the scope of this implementation.
 
 ## State and evidence
 
-Every current function has an Activation with the exact required #693 fields:
+Every current function has an Activation with the required #693 fields:
 `tenantId`, `functionId`, `state`, `touchedAt`, `touchedBy`, `responsibility` and
 `reason`. A fresh tenant reads only `latent` states, with empty humans and no CET
 responsibility; reading does not create a database document.
@@ -132,18 +132,20 @@ Moleculer broker. Only the PouchDB constructor used by the existing mixin is rep
 with a revision-checking in-memory test double. Another test uses real PouchDB and
 restarts the broker to verify persistence and close behavior. The adapter reports
 actual activations, configured graph, budget, clock and rest window. Missing-service
-observations (`agents`, `journal`, corrections, and others) stay empty.
+observations (`agents`, activity queries, and others) stay empty; the adapter also
+starts the existing Journal and reports attention transitions.
 
 Touches and received coverage/lifecycle events are delivered to the real handlers.
-Advance steps sweep the service against the test clock. Signals, activity queries
-and correction steps belong to other issues and do not mutate this service.
+Advance steps sweep the service against the test clock. Signals use the existing
+Coverage ingestion path, and authorized attention corrections use this service.
+Activity queries remain outside this implementation.
 
 PR #704 is merged, and `origin/main` has been merged into this branch without
 rebasing. The activation state helper is a required core path, and the generic
 catalog collisions have reviewable reasons in
 `scripts/domain-free-core.allowlist.json`. The real adapter is loaded automatically.
 `npm run test:shared-service:ci` activates I-3 against the actual service and committed
-function model. It passes 50 tests with 8 todo; no substitute agents are introduced.
+function model. Together with #715 it passes 54 tests with 8 todo; no substitute agents are introduced.
 The complete I-1/I-2 tests and other agent-dependent invariants remain todo until
 their services land. The service tests already exercise the #696 activation portions
 of I-1/I-2 and all budget bounds in I-3 with neutral chains, stars, hubs and users.
