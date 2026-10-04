@@ -1,16 +1,8 @@
 {
   "entries": [
     {
-      "term": "action",
-      "reason": "Generic action signal; no operation-specific behavior."
-    },
-    {
       "term": "activation",
       "reason": "Activation contract and invariant metadata."
-    },
-    {
-      "term": "actual",
-      "reason": "Test comment describing the real lifecycle mixin."
     },
     {
       "term": "adapter",
@@ -33,16 +25,8 @@
       "reason": "Existing guard result observed by the safety oracle."
     },
     {
-      "term": "break",
-      "reason": "JavaScript loop control keyword."
-    },
-    {
       "term": "budget",
       "reason": "Tenant activation bound from the invariant contract."
-    },
-    {
-      "term": "cache",
-      "reason": "Offline embedding cache, independent of catalog semantics."
     },
     {
       "term": "candidate",
@@ -61,36 +45,12 @@
       "reason": "Generic input data source, with no catalog-specific branches."
     },
     {
-      "term": "cause",
-      "reason": "Standard Error cause property."
-    },
-    {
-      "term": "change",
-      "reason": "Generic correction observation, independent of target semantics."
-    },
-    {
-      "term": "check",
-      "reason": "Generic assertion and authorization observation."
-    },
-    {
-      "term": "class",
-      "reason": "JavaScript class syntax in the memory database test double."
-    },
-    {
       "term": "clearance",
       "reason": "Existing sensitivity clearance authorization field."
     },
     {
       "term": "confidence",
       "reason": "Required function.touched.v1 payload field."
-    },
-    {
-      "term": "context",
-      "reason": "Generic projection dependency container."
-    },
-    {
-      "term": "contract",
-      "reason": "Common data contract and trace-recording stub name."
     },
     {
       "term": "correction",
@@ -109,30 +69,6 @@
       "reason": "Generic timestamp boundary for configurable touch retention, independent of catalog contents."
     },
     {
-      "term": "delete",
-      "reason": "Generic deletion of trace chunks during minimization."
-    },
-    {
-      "term": "dependencies",
-      "reason": "Upstream readiness metadata for explicit todos."
-    },
-    {
-      "term": "domain",
-      "reason": "Catalog field name used for data-driven joins and normalization."
-    },
-    {
-      "term": "error",
-      "reason": "Standard error handling in the harness."
-    },
-    {
-      "term": "event",
-      "reason": "Versioned Moleculer event and SharedAgent wake mode."
-    },
-    {
-      "term": "events",
-      "reason": "Function contract field and versioned event transport."
-    },
-    {
       "term": "evidence",
       "reason": "Generic graph evidence contract."
     },
@@ -141,20 +77,8 @@
       "reason": "Required German report heading for human review."
     },
     {
-      "term": "external",
-      "reason": "Generic effect classification in safety observations."
-    },
-    {
       "term": "factor",
       "reason": "Numeric rarity multiplier."
-    },
-    {
-      "term": "filter",
-      "reason": "Standard Array.filter operation."
-    },
-    {
-      "term": "freeze",
-      "reason": "JavaScript Object.freeze for immutable kind constants."
     },
     {
       "term": "functions",
@@ -165,24 +89,8 @@
       "reason": "Offline artifact generation and provenance."
     },
     {
-      "term": "generator",
-      "reason": "Offline artifact generator metadata."
-    },
-    {
-      "term": "group",
-      "reason": "Generic clustering operation."
-    },
-    {
       "term": "handoff",
       "reason": "Generic human responsibility transfer observation."
-    },
-    {
-      "term": "identity",
-      "reason": "Persistent function identity metadata."
-    },
-    {
-      "term": "interval",
-      "reason": "SharedAgent wake interval in the common contract."
     },
     {
       "term": "isolated",
@@ -197,10 +105,6 @@
       "reason": "Generic forbidden response path in I-5; no domain content."
     },
     {
-      "term": "known",
-      "reason": "Static event availability description."
-    },
-    {
       "term": "korrektur",
       "reason": "Generic correction event summary from the shared contract."
     },
@@ -209,64 +113,20 @@
       "reason": "Upstream generic correction module path from #701."
     },
     {
-      "term": "level",
-      "reason": "Catalog abstractionLevel field copied as data."
-    },
-    {
       "term": "lifecycle",
       "reason": "SharedAgent contract field."
-    },
-    {
-      "term": "local",
-      "reason": "Local CommonJS source analysis; no domain-specific behavior."
     },
     {
       "term": "mismatch",
       "reason": "Generic rejection of a mismatched tenant identifier."
     },
     {
-      "term": "model",
-      "reason": "Generic Function data source; no special scenario."
-    },
-    {
-      "term": "module",
-      "reason": "CommonJS module.exports syntax."
-    },
-    {
-      "term": "multi",
-      "reason": "Generic function membership cardinality used in coherence reporting."
-    },
-    {
-      "term": "object",
-      "reason": "Generic Object.keys and target mutation terminology."
-    },
-    {
       "term": "operations",
       "reason": "Function contract field; generic operation collection."
     },
     {
-      "term": "order",
-      "reason": "Sortierreihenfolge im allgemeinen Helfer canonical-order; kein Fachbegriff im Kern."
-    },
-    {
-      "term": "other",
-      "reason": "Test comment referring to upstream services."
-    },
-    {
-      "term": "pending",
-      "reason": "Promises for serializing tenant writes; no subject-specific state."
-    },
-    {
-      "term": "placeholder",
-      "reason": "Configured infrastructure suppression, populated from parameters."
-    },
-    {
       "term": "policy",
       "reason": "Existing authorization policy observed without modification."
-    },
-    {
-      "term": "process",
-      "reason": "Node.js process API and CLI lifecycle."
     },
     {
       "term": "project",
@@ -281,32 +141,8 @@
       "reason": "Generic signal kind, no question text or domain example."
     },
     {
-      "term": "queue",
-      "reason": "Promise queue serializes persistence and retention."
-    },
-    {
-      "term": "record",
-      "reason": "Generic recording of clustering pairs in the generated review report."
-    },
-    {
-      "term": "reference",
-      "reason": "Source-reference diagnostics."
-    },
-    {
       "term": "replay",
       "reason": "Generic deterministic trace replay."
-    },
-    {
-      "term": "report",
-      "reason": "Generated review artifact."
-    },
-    {
-      "term": "response",
-      "reason": "Generic API response variable."
-    },
-    {
-      "term": "return",
-      "reason": "JavaScript return keyword."
     },
     {
       "term": "revision",
@@ -321,24 +157,12 @@
       "reason": "SharedAgent wake mode in the common contract."
     },
     {
-      "term": "schema",
-      "reason": "Cache and model schema metadata."
-    },
-    {
       "term": "schema version",
       "reason": "Generic cache format metadata."
     },
     {
       "term": "service",
       "reason": "Generic upstream service paths and versioned event names."
-    },
-    {
-      "term": "shared",
-      "reason": "Common Shared Service identifiers from #693."
-    },
-    {
-      "term": "signal",
-      "reason": "Generic simulation signal metadata."
     },
     {
       "term": "simulation",
@@ -349,32 +173,12 @@
       "reason": "Test-only observation envelope method."
     },
     {
-      "term": "source",
-      "reason": "Generic model source path and error location."
-    },
-    {
       "term": "sources",
       "reason": "Function contract source references."
     },
     {
       "term": "stale",
       "reason": "Cache freshness and generated artifact drift diagnostics."
-    },
-    {
-      "term": "state",
-      "reason": "Activation contract field and test observation."
-    },
-    {
-      "term": "status",
-      "reason": "Standard PouchDB/HTTP error status used to distinguish missing documents."
-    },
-    {
-      "term": "system",
-      "reason": "system_activity_query contract intent."
-    },
-    {
-      "term": "target",
-      "reason": "shared-service.correction.v1 contract payload field."
     },
     {
       "term": "tenant",
@@ -385,32 +189,60 @@
       "reason": "Configurable numeric similarity or edge threshold."
     },
     {
-      "term": "timestamp",
-      "reason": "Generic ISO timestamp validation."
-    },
-    {
       "term": "transition",
       "reason": "Persistent lineage transition metadata."
-    },
-    {
-      "term": "update",
-      "reason": "Hash and cache update operations."
-    },
-    {
-      "term": "value",
-      "reason": "Internal PRNG state variable."
     },
     {
       "term": "verantwortung",
       "reason": "Generic human/CET responsibility summary required by the Activation contract."
     },
     {
-      "term": "version",
-      "reason": "Versioned text and derivation metadata."
+      "term": "concept",
+      "reason": "Neutral intent-routing test request, without a catalog example."
     },
     {
-      "term": "window",
-      "reason": "Generic configurable inactivity time window for I-2, as clarified in #693; no domain behavior."
+      "term": "contracts",
+      "reason": "Closed event payload contract assertions."
+    },
+    {
+      "term": "decision",
+      "reason": "Existing decision_support intent mode and authorization decision metadata."
+    },
+    {
+      "term": "delivery",
+      "reason": "Generic persisted event delivery state, not a business delivery process."
+    },
+    {
+      "term": "governance",
+      "reason": "Existing cernion-governance-assistant facade model identifier in entrypoint regressions."
+    },
+    {
+      "term": "intent",
+      "reason": "Existing generic Workbench intent mode."
+    },
+    {
+      "term": "management",
+      "reason": "Existing tenant management audience for coverage reads."
+    },
+    {
+      "term": "manager",
+      "reason": "Generic existing-role audience predicate."
+    },
+    {
+      "term": "matrix",
+      "reason": "Required paginated Person x Function read contract from #695."
+    },
+    {
+      "term": "period",
+      "reason": "Broker shutdown grace period in the fake-timer adapter."
+    },
+    {
+      "term": "boundary",
+      "reason": "Generic numerical hysteresis threshold boundary in exact/adjacent-value tests."
+    },
+    {
+      "term": "priority",
+      "reason": "Generic ordering of selected IDs before operation fanout when applying a configurable signal budget."
     }
   ]
 }

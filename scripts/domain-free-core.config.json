@@ -28,5 +28,12 @@
     "src/shared-service-learning.js",
     "services/shared-service-learning.service.js"
   ],
-  "allowlist": "scripts/domain-free-core.allowlist.json"
+  "allowlist": "scripts/domain-free-core.allowlist.json",
+  "genericVocabulary": "scripts/domain-free-core.generic-vocabulary.json",
+  "genericPackageShare": 0.05,
+  "referenceCorpus": {
+    "maxFilesPerPackage": 40,
+    "extensions": [".js", ".cjs", ".mjs"],
+    "generatedAt": "2026-10-03T00:00:00.000Z"
+  }
 }

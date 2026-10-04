@@ -1,0 +1,644 @@
+{
+  "generatedAt": "2026-10-03T00:00:00.000Z",
+  "parameters": {
+    "minimumLength": 5,
+    "genericPackageShare": 0.05,
+    "maxFilesPerPackage": 40,
+    "extensions": [
+      ".js",
+      ".cjs",
+      ".mjs"
+    ],
+    "excludeMinified": true,
+    "excludeNestedNodeModules": true
+  },
+  "packageCount": 685,
+  "fileCount": 4670,
+  "terms": [
+    {
+      "term": "access",
+      "packageCount": 75,
+      "packageShare": 0.10948905109489052
+    },
+    {
+      "term": "action",
+      "packageCount": 50,
+      "packageShare": 0.072992700729927
+    },
+    {
+      "term": "actual",
+      "packageCount": 88,
+      "packageShare": 0.12846715328467154
+    },
+    {
+      "term": "based",
+      "packageCount": 132,
+      "packageShare": 0.1927007299270073
+    },
+    {
+      "term": "break",
+      "packageCount": 223,
+      "packageShare": 0.32554744525547447
+    },
+    {
+      "term": "cache",
+      "packageCount": 134,
+      "packageShare": 0.19562043795620437
+    },
+    {
+      "term": "cause",
+      "packageCount": 64,
+      "packageShare": 0.09343065693430656
+    },
+    {
+      "term": "chain",
+      "packageCount": 59,
+      "packageShare": 0.08613138686131387
+    },
+    {
+      "term": "change",
+      "packageCount": 99,
+      "packageShare": 0.14452554744525548
+    },
+    {
+      "term": "check",
+      "packageCount": 245,
+      "packageShare": 0.35766423357664234
+    },
+    {
+      "term": "class",
+      "packageCount": 252,
+      "packageShare": 0.3678832116788321
+    },
+    {
+      "term": "cleanup",
+      "packageCount": 42,
+      "packageShare": 0.061313868613138686
+    },
+    {
+      "term": "comparison",
+      "packageCount": 35,
+      "packageShare": 0.051094890510948905
+    },
+    {
+      "term": "condition",
+      "packageCount": 48,
+      "packageShare": 0.07007299270072993
+    },
+    {
+      "term": "conditions",
+      "packageCount": 60,
+      "packageShare": 0.08759124087591241
+    },
+    {
+      "term": "connection",
+      "packageCount": 46,
+      "packageShare": 0.06715328467153285
+    },
+    {
+      "term": "context",
+      "packageCount": 138,
+      "packageShare": 0.20145985401459854
+    },
+    {
+      "term": "contract",
+      "packageCount": 37,
+      "packageShare": 0.05401459854014599
+    },
+    {
+      "term": "control",
+      "packageCount": 67,
+      "packageShare": 0.09781021897810219
+    },
+    {
+      "term": "custom",
+      "packageCount": 121,
+      "packageShare": 0.17664233576642335
+    },
+    {
+      "term": "defaults",
+      "packageCount": 96,
+      "packageShare": 0.14014598540145987
+    },
+    {
+      "term": "definition",
+      "packageCount": 63,
+      "packageShare": 0.09197080291970802
+    },
+    {
+      "term": "delete",
+      "packageCount": 195,
+      "packageShare": 0.2846715328467153
+    },
+    {
+      "term": "delta",
+      "packageCount": 42,
+      "packageShare": 0.061313868613138686
+    },
+    {
+      "term": "dependencies",
+      "packageCount": 56,
+      "packageShare": 0.08175182481751825
+    },
+    {
+      "term": "dependency",
+      "packageCount": 37,
+      "packageShare": 0.05401459854014599
+    },
+    {
+      "term": "direct",
+      "packageCount": 59,
+      "packageShare": 0.08613138686131387
+    },
+    {
+      "term": "domain",
+      "packageCount": 36,
+      "packageShare": 0.052554744525547446
+    },
+    {
+      "term": "element",
+      "packageCount": 125,
+      "packageShare": 0.18248175182481752
+    },
+    {
+      "term": "error",
+      "packageCount": 445,
+      "packageShare": 0.6496350364963503
+    },
+    {
+      "term": "event",
+      "packageCount": 137,
+      "packageShare": 0.2
+    },
+    {
+      "term": "events",
+      "packageCount": 77,
+      "packageShare": 0.11240875912408758
+    },
+    {
+      "term": "exception",
+      "packageCount": 62,
+      "packageShare": 0.0905109489051095
+    },
+    {
+      "term": "execution",
+      "packageCount": 40,
+      "packageShare": 0.058394160583941604
+    },
+    {
+      "term": "export",
+      "packageCount": 271,
+      "packageShare": 0.3956204379562044
+    },
+    {
+      "term": "external",
+      "packageCount": 41,
+      "packageShare": 0.059854014598540145
+    },
+    {
+      "term": "fallback",
+      "packageCount": 77,
+      "packageShare": 0.11240875912408758
+    },
+    {
+      "term": "filter",
+      "packageCount": 176,
+      "packageShare": 0.2569343065693431
+    },
+    {
+      "term": "final",
+      "packageCount": 82,
+      "packageShare": 0.11970802919708029
+    },
+    {
+      "term": "follow",
+      "packageCount": 43,
+      "packageShare": 0.06277372262773723
+    },
+    {
+      "term": "forward",
+      "packageCount": 58,
+      "packageShare": 0.08467153284671533
+    },
+    {
+      "term": "frame",
+      "packageCount": 39,
+      "packageShare": 0.05693430656934306
+    },
+    {
+      "term": "freeze",
+      "packageCount": 48,
+      "packageShare": 0.07007299270072993
+    },
+    {
+      "term": "generator",
+      "packageCount": 67,
+      "packageShare": 0.09781021897810219
+    },
+    {
+      "term": "group",
+      "packageCount": 66,
+      "packageShare": 0.09635036496350365
+    },
+    {
+      "term": "identifier",
+      "packageCount": 90,
+      "packageShare": 0.13138686131386862
+    },
+    {
+      "term": "identity",
+      "packageCount": 45,
+      "packageShare": 0.06569343065693431
+    },
+    {
+      "term": "import",
+      "packageCount": 259,
+      "packageShare": 0.3781021897810219
+    },
+    {
+      "term": "information",
+      "packageCount": 70,
+      "packageShare": 0.10218978102189781
+    },
+    {
+      "term": "install",
+      "packageCount": 40,
+      "packageShare": 0.058394160583941604
+    },
+    {
+      "term": "interface",
+      "packageCount": 64,
+      "packageShare": 0.09343065693430656
+    },
+    {
+      "term": "interval",
+      "packageCount": 37,
+      "packageShare": 0.05401459854014599
+    },
+    {
+      "term": "known",
+      "packageCount": 56,
+      "packageShare": 0.08175182481751825
+    },
+    {
+      "term": "leading",
+      "packageCount": 78,
+      "packageShare": 0.11386861313868613
+    },
+    {
+      "term": "legacy",
+      "packageCount": 67,
+      "packageShare": 0.09781021897810219
+    },
+    {
+      "term": "level",
+      "packageCount": 121,
+      "packageShare": 0.17664233576642335
+    },
+    {
+      "term": "local",
+      "packageCount": 103,
+      "packageShare": 0.15036496350364964
+    },
+    {
+      "term": "location",
+      "packageCount": 76,
+      "packageShare": 0.11094890510948906
+    },
+    {
+      "term": "logic",
+      "packageCount": 58,
+      "packageShare": 0.08467153284671533
+    },
+    {
+      "term": "lookup",
+      "packageCount": 45,
+      "packageShare": 0.06569343065693431
+    },
+    {
+      "term": "mapping",
+      "packageCount": 133,
+      "packageShare": 0.19416058394160585
+    },
+    {
+      "term": "model",
+      "packageCount": 43,
+      "packageShare": 0.06277372262773723
+    },
+    {
+      "term": "module",
+      "packageCount": 567,
+      "packageShare": 0.8277372262773722
+    },
+    {
+      "term": "multi",
+      "packageCount": 55,
+      "packageShare": 0.08029197080291971
+    },
+    {
+      "term": "negative",
+      "packageCount": 70,
+      "packageShare": 0.10218978102189781
+    },
+    {
+      "term": "object",
+      "packageCount": 516,
+      "packageShare": 0.7532846715328467
+    },
+    {
+      "term": "operator",
+      "packageCount": 59,
+      "packageShare": 0.08613138686131387
+    },
+    {
+      "term": "option",
+      "packageCount": 143,
+      "packageShare": 0.20875912408759123
+    },
+    {
+      "term": "order",
+      "packageCount": 119,
+      "packageShare": 0.17372262773722627
+    },
+    {
+      "term": "other",
+      "packageCount": 195,
+      "packageShare": 0.2846715328467153
+    },
+    {
+      "term": "package",
+      "packageCount": 108,
+      "packageShare": 0.15766423357664233
+    },
+    {
+      "term": "patch",
+      "packageCount": 40,
+      "packageShare": 0.058394160583941604
+    },
+    {
+      "term": "pending",
+      "packageCount": 58,
+      "packageShare": 0.08467153284671533
+    },
+    {
+      "term": "placeholder",
+      "packageCount": 39,
+      "packageShare": 0.05693430656934306
+    },
+    {
+      "term": "platform",
+      "packageCount": 86,
+      "packageShare": 0.12554744525547445
+    },
+    {
+      "term": "point",
+      "packageCount": 129,
+      "packageShare": 0.18832116788321168
+    },
+    {
+      "term": "positive",
+      "packageCount": 72,
+      "packageShare": 0.10510948905109489
+    },
+    {
+      "term": "private",
+      "packageCount": 136,
+      "packageShare": 0.19854014598540146
+    },
+    {
+      "term": "process",
+      "packageCount": 254,
+      "packageShare": 0.3708029197080292
+    },
+    {
+      "term": "purpose",
+      "packageCount": 50,
+      "packageShare": 0.072992700729927
+    },
+    {
+      "term": "queue",
+      "packageCount": 73,
+      "packageShare": 0.10656934306569343
+    },
+    {
+      "term": "received",
+      "packageCount": 73,
+      "packageShare": 0.10656934306569343
+    },
+    {
+      "term": "record",
+      "packageCount": 67,
+      "packageShare": 0.09781021897810219
+    },
+    {
+      "term": "reference",
+      "packageCount": 111,
+      "packageShare": 0.16204379562043797
+    },
+    {
+      "term": "register",
+      "packageCount": 59,
+      "packageShare": 0.08613138686131387
+    },
+    {
+      "term": "registry",
+      "packageCount": 38,
+      "packageShare": 0.05547445255474453
+    },
+    {
+      "term": "release",
+      "packageCount": 43,
+      "packageShare": 0.06277372262773723
+    },
+    {
+      "term": "report",
+      "packageCount": 73,
+      "packageShare": 0.10656934306569343
+    },
+    {
+      "term": "reports",
+      "packageCount": 37,
+      "packageShare": 0.05401459854014599
+    },
+    {
+      "term": "request",
+      "packageCount": 94,
+      "packageShare": 0.13722627737226278
+    },
+    {
+      "term": "requested",
+      "packageCount": 40,
+      "packageShare": 0.058394160583941604
+    },
+    {
+      "term": "reset",
+      "packageCount": 109,
+      "packageShare": 0.1591240875912409
+    },
+    {
+      "term": "resolution",
+      "packageCount": 38,
+      "packageShare": 0.05547445255474453
+    },
+    {
+      "term": "response",
+      "packageCount": 64,
+      "packageShare": 0.09343065693430656
+    },
+    {
+      "term": "restore",
+      "packageCount": 40,
+      "packageShare": 0.058394160583941604
+    },
+    {
+      "term": "resume",
+      "packageCount": 40,
+      "packageShare": 0.058394160583941604
+    },
+    {
+      "term": "return",
+      "packageCount": 600,
+      "packageShare": 0.8759124087591241
+    },
+    {
+      "term": "rules",
+      "packageCount": 51,
+      "packageShare": 0.07445255474452554
+    },
+    {
+      "term": "runtime",
+      "packageCount": 59,
+      "packageShare": 0.08613138686131387
+    },
+    {
+      "term": "schema",
+      "packageCount": 57,
+      "packageShare": 0.08321167883211679
+    },
+    {
+      "term": "scope",
+      "packageCount": 74,
+      "packageShare": 0.10802919708029197
+    },
+    {
+      "term": "section",
+      "packageCount": 63,
+      "packageShare": 0.09197080291970802
+    },
+    {
+      "term": "shared",
+      "packageCount": 61,
+      "packageShare": 0.08905109489051095
+    },
+    {
+      "term": "signal",
+      "packageCount": 46,
+      "packageShare": 0.06715328467153285
+    },
+    {
+      "term": "source",
+      "packageCount": 270,
+      "packageShare": 0.39416058394160586
+    },
+    {
+      "term": "special",
+      "packageCount": 104,
+      "packageShare": 0.15182481751824817
+    },
+    {
+      "term": "standard",
+      "packageCount": 97,
+      "packageShare": 0.1416058394160584
+    },
+    {
+      "term": "state",
+      "packageCount": 127,
+      "packageShare": 0.1854014598540146
+    },
+    {
+      "term": "status",
+      "packageCount": 92,
+      "packageShare": 0.1343065693430657
+    },
+    {
+      "term": "storage",
+      "packageCount": 37,
+      "packageShare": 0.05401459854014599
+    },
+    {
+      "term": "stream",
+      "packageCount": 116,
+      "packageShare": 0.16934306569343066
+    },
+    {
+      "term": "system",
+      "packageCount": 64,
+      "packageShare": 0.09343065693430656
+    },
+    {
+      "term": "target",
+      "packageCount": 154,
+      "packageShare": 0.22481751824817517
+    },
+    {
+      "term": "template",
+      "packageCount": 76,
+      "packageShare": 0.11094890510948906
+    },
+    {
+      "term": "timestamp",
+      "packageCount": 38,
+      "packageShare": 0.05547445255474453
+    },
+    {
+      "term": "trace",
+      "packageCount": 88,
+      "packageShare": 0.12846715328467154
+    },
+    {
+      "term": "track",
+      "packageCount": 63,
+      "packageShare": 0.09197080291970802
+    },
+    {
+      "term": "update",
+      "packageCount": 132,
+      "packageShare": 0.1927007299270073
+    },
+    {
+      "term": "usage",
+      "packageCount": 60,
+      "packageShare": 0.08759124087591241
+    },
+    {
+      "term": "validation",
+      "packageCount": 66,
+      "packageShare": 0.09635036496350365
+    },
+    {
+      "term": "value",
+      "packageCount": 445,
+      "packageShare": 0.6496350364963503
+    },
+    {
+      "term": "variable",
+      "packageCount": 83,
+      "packageShare": 0.12116788321167883
+    },
+    {
+      "term": "variables",
+      "packageCount": 60,
+      "packageShare": 0.08759124087591241
+    },
+    {
+      "term": "version",
+      "packageCount": 197,
+      "packageShare": 0.2875912408759124
+    },
+    {
+      "term": "window",
+      "packageCount": 70,
+      "packageShare": 0.10218978102189781
+    }
+  ]
+}

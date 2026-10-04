@@ -94,6 +94,24 @@ function checkCore({ root = ROOT, config, catalogs = loadCatalogs(root) } = {}) 
   const allowlist = JSON.parse(
     fs.readFileSync(path.resolve(root, config.allowlist), 'utf8')
   ).entries;
+  const generic = JSON.parse(
+    fs.readFileSync(
+      path.resolve(
+        root,
+        config.genericVocabulary || 'scripts/domain-free-core.generic-vocabulary.json'
+      ),
+      'utf8'
+    )
+  );
+  const threshold = config.genericPackageShare ?? 0.05;
+  if (!Number.isFinite(threshold) || threshold <= 0 || threshold > 1)
+    throw new Error('genericPackageShare must be > 0 and <= 1');
+  const genericTerms = new Set(
+    generic.terms
+      .filter(({ packageShare }) => packageShare >= threshold)
+      .map(({ term }) => normalize(term))
+  );
+  const checkedVocabulary = vocabulary.filter((term) => !genericTerms.has(term));
   const files = new Set();
   const missing = [];
   for (const pattern of config.corePaths) {
@@ -106,13 +124,16 @@ function checkCore({ root = ROOT, config, catalogs = loadCatalogs(root) } = {}) 
   const findings = [...files]
     .sort(compareCanonicalStrings)
     .flatMap((file) =>
-      scanText(fs.readFileSync(path.resolve(root, file), 'utf8'), vocabulary, allowlist).map(
+      scanText(fs.readFileSync(path.resolve(root, file), 'utf8'), checkedVocabulary, allowlist).map(
         (finding) => ({ file, ...finding })
       )
     );
   return {
     files: [...files].sort(compareCanonicalStrings),
     vocabularySize: vocabulary.length,
+    automaticallyExemptedTerms: vocabulary.filter((term) => genericTerms.has(term)),
+    automaticallyExemptedCount: vocabulary.length - checkedVocabulary.length,
+    redundantAllowlistEntries: allowlist.filter((entry) => genericTerms.has(normalize(entry.term))),
     findings,
   };
 }
@@ -133,4 +154,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { buildVocabulary, loadCatalogs, scanText, checkCore };
+module.exports = { normalize, buildVocabulary, loadCatalogs, scanText, checkCore };
