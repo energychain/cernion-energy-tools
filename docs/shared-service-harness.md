@@ -40,6 +40,22 @@ exceptions require a term and a reviewable reason in
 by allowing one of its generic tokens. The contamination self-test creates a
 fixture file from an actual catalog keyword and verifies CLI exit status 1.
 
+## Scanner equivalence scope
+
+The harness compares the token scanner with the frozen pre-optimization RegExp
+oracle on a contaminated fixture from real catalogs and three fixed core files:
+`src/function-activation-state.js`, `src/function-coverage-turn.js` and
+`src/shared-service-wake.js`. This sample stays fixed as the core grows. The normal
+catalog check still scans **every** configured core file.
+
+Run `npm run check:domain-free-equivalence` manually when changing
+`scripts/check-domain-free-core.js` (or the equivalence oracle). It compares exact
+file/line/term hits across **all** current core files plus the contamination fixture,
+without allowlist exemptions, and exits nonzero on any difference. This expensive
+regression check is intentionally outside the harness and regular CI test path;
+scanner changes should report its result in their PR. No CI path-filter workflow
+is added; maintainers run this check manually for those changes.
+
 ## Neutral reference corpus (#713)
 
 Run `npm run generate:domain-free-vocabulary` manually to sample dependency code
