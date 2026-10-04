@@ -263,23 +263,44 @@ module.exports = {
       } = agent;
       return structuredClone(item);
     },
-    publicAgents(doc) {
-      const resolved = resolveRecords(doc.agents, this.model);
+    resolvedAgent(saved, successor, split) {
+      const fn = getFunction(successor.functionId, { model: this.model });
+      const keepIdentity = !split || successor.functionId === saved.functionId;
+      return {
+        ...successor,
+        agentId: keepIdentity ? saved.agentId : agentIdFor(saved.tenantId, successor.functionId),
+        lifecycle: split ? 'retired' : saved.lifecycle,
+        mandate: deriveMandate(fn, this.operations),
+        stats: keepIdentity
+          ? saved.stats
+          : { cycles: 0, findings: 0, consumedUnits: 0, proposals: 0 },
+        proposals: split ? [] : saved.proposals,
+        pendingJournal: keepIdentity ? saved.pendingJournal : null,
+        capabilities: fn.capabilities || [],
+        modelSourceHash: this.model.sourceHash,
+      };
+    },
+    resolvedAgents(records) {
       const byFunction = new Map();
-      for (const agent of resolved) {
-        const previous = byFunction.get(agent.functionId);
-        if (!previous || previous.lifecycle === 'retired') byFunction.set(agent.functionId, agent);
+      for (const saved of records) {
+        const successors = resolveRecords([saved], this.model);
+        for (const successor of successors) {
+          const agent = this.resolvedAgent(saved, successor, successors.length > 1);
+          const prior = byFunction.get(agent.functionId);
+          if (!prior || prior.lifecycle === 'retired') byFunction.set(agent.functionId, agent);
+        }
       }
-      return [...byFunction.values()]
+      return [...byFunction.values()];
+    },
+    publicAgents(doc) {
+      return this.resolvedAgents(doc.agents)
         .map((agent) => this.publicAgent(agent))
         .sort((a, b) => compareCanonicalStrings(a.agentId, b.agentId));
     },
     findAgent(doc, agentId) {
+      doc.agents = this.resolvedAgents(doc.agents);
       const saved = doc.agents.find((agent) => agent.agentId === agentId);
       if (!saved) throw new Errors.MoleculerClientError('Agent not found', 404, 'AGENT_NOT_FOUND');
-      const resolved = resolveRecords([saved], this.model);
-      if (resolved.length !== 1) deny('Unresolved or ambiguous function');
-      saved.functionId = resolved[0].functionId;
       return saved;
     },
     actorMeta(agent) {
@@ -330,10 +351,7 @@ module.exports = {
     },
     async reconcile(row, previous) {
       const doc = await this.readDocument(row.tenantId);
-      doc.agents = resolveRecords(doc.agents, this.model).filter(
-        (agent, index, rows) =>
-          rows.findIndex((other) => other.functionId === agent.functionId) === index
-      );
+      doc.agents = this.resolvedAgents(doc.agents);
       let agent = doc.agents.find((item) => item.functionId === row.functionId);
       if (!agent && !eligible(row)) return;
       if (!agent) {

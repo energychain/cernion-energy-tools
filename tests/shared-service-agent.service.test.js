@@ -754,3 +754,43 @@ test('AC-04: resolving through the original Inbox action automatically publishes
       .reactivationScore
   ).toBe(0);
 });
+
+test('AC-07: model splits never duplicate agent IDs, costs or ambiguous proposal associations', async () => {
+  await setup();
+  neutralRead();
+  await touch();
+  const prior = await agent();
+  const doc = await adapter.agents.readDocument('tenant-a');
+  doc.agents[0].pendingJournal = { entryId: 'pending-old-cycle' };
+  doc.agents[0].proposals.push({
+    ref: 'ambiguous-ref',
+    recipients: ['person-a'],
+    functionId: 'fn-b',
+    outcome: null,
+  });
+  await adapter.agents.save(doc);
+  const nextModel = {
+    sourceHash: 'neutral-split',
+    functions: ['fn-b', 'fn-c'].map((functionId) => ({
+      functionId,
+      capabilities: [],
+      operations: [],
+      neighbors: [],
+      derivation: { lineage: [{ previousId: 'fn-b', relation: 'split', overlap: 0.5 }] },
+    })),
+  };
+  adapter.agents.model = nextModel;
+  const agents = adapter.agents.publicAgents(await adapter.agents.readDocument('tenant-a'));
+  expect(agents).toHaveLength(2);
+  expect(new Set(agents.map((item) => item.agentId)).size).toBe(2);
+  expect(agents.every((item) => item.lifecycle === 'retired')).toBe(true);
+  expect(agents.reduce((sum, item) => sum + item.stats.consumedUnits, 0)).toBe(
+    prior.stats.consumedUnits
+  );
+  const migrated = adapter.agents.resolvedAgents(
+    (await adapter.agents.readDocument('tenant-a')).agents
+  );
+  expect(migrated.every((item) => item.proposals.length === 0)).toBe(true);
+  expect(migrated.every((item) => item.modelSourceHash === nextModel.sourceHash)).toBe(true);
+  expect(migrated.filter((item) => item.pendingJournal)).toHaveLength(1);
+});

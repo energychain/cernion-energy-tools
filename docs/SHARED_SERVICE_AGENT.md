@@ -25,7 +25,10 @@ never creates credit. Manual retirement remains in force. `attention`, including
 tier, is copied from activation; only activation's real human feedback policy can
 establish a function. Stored identities use `resolveFunctionId` through the existing
 membership-aware `resolveRecords` helper. Ambiguous execution/feedback references
-fail closed.
+fail closed. After a model split, successors have distinct identities and remain
+retired until an explicit activation. Historic counters and a pending journal
+entry remain attached to only one identity; ambiguous proposal associations are
+not copied. A singular successor keeps the original agent identity.
 
 The activation consumer enqueues work without awaiting it from the producer's
 serialized event outbox. Otherwise the consumption/lifecycle feedback path would
