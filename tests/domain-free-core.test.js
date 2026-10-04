@@ -3,6 +3,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const {
+  normalize,
   buildVocabulary,
   loadCatalogs,
   scanText,
@@ -10,6 +11,26 @@ const {
 } = require('../scripts/check-domain-free-core');
 const ROOT = path.resolve(__dirname, '..');
 const { generateVocabulary } = require('../scripts/generate-domain-free-vocabulary');
+
+// Frozen pre-optimization oracle: deliberately retain the independent RegExp search.
+function legacyScanText(text, vocabulary, allowlist = []) {
+  const allowed = new Set(allowlist.map((entry) => normalize(entry.term)));
+  const terms = vocabulary
+    .filter((term) => !allowed.has(term))
+    .map((term) => ({
+      term,
+      pattern: new RegExp(
+        `(?<![\\p{L}\\p{N}])${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\p{L}\\p{N}])`,
+        'u'
+      ),
+    }));
+  return text.split(/\r?\n/).flatMap((line, index) => {
+    const normalized = normalize(line);
+    return terms
+      .filter(({ pattern }) => pattern.test(normalized))
+      .map(({ term }) => ({ line: index + 1, term }));
+  });
+}
 
 const catalogs = {
   capabilities: [
@@ -84,6 +105,67 @@ test('case, comments, literals and camelCase/underscore identifiers are checked'
     expect(scanText(source, ['keyword'])).toHaveLength(1);
   expect(scanText('const parameters = 1;', ['meter'])).toEqual([]);
 });
+
+test('token n-grams preserve literal separators, punctuation boundaries, Unicode and vocabulary order', () => {
+  const vocabulary = [
+    'plain word',
+    'word',
+    'plain',
+    'plain-word',
+    'plain_word',
+    'plain\tword',
+    '§plain word',
+    '(plain word)',
+    'plain?',
+    '-----',
+    'café',
+    '𐐨word',
+    'plain',
+  ];
+  const source = [
+    'plainWord plain_word plain-word plain word plain  word plain\tword',
+    'plain word plain word',
+    '§plain word x§plain word (plain word) x(plain word)y',
+    'plain? plain?x ----- x----- -----x',
+    'CAFÉ cafe\u0301 𐐀word x𐐀word',
+    '',
+  ].join('\r\n');
+  const allowlist = [{ term: 'plain-word', reason: 'Neutral fixture exception' }];
+  expect(scanText(source, vocabulary, allowlist)).toEqual(
+    legacyScanText(source, vocabulary, allowlist)
+  );
+});
+
+test('old and token scans return identical file/line/term hits on every current core file and contamination fixture', () => {
+  const vocabulary = buildVocabulary(loadCatalogs());
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'scan-equivalence-'));
+  try {
+    const fixture = path.join(root, 'contaminated.js');
+    const keyword = loadCatalogs()
+      .capabilities.flatMap((item) => item.keywords)
+      .find((term) => term.length > 15 && !term.includes('\n'));
+    fs.writeFileSync(fixture, `// ${keyword}\n`);
+    const files = [...checkCore().files, fixture];
+    const scanFiles = (scan) =>
+      files.flatMap((file) =>
+        scan(fs.readFileSync(path.resolve(ROOT, file), 'utf8'), vocabulary).map((hit) => ({
+          file,
+          ...hit,
+        }))
+      );
+    // No exceptions: exercise actual positive hits rather than comparing two clean reports.
+    const legacy = scanFiles(legacyScanText);
+    expect(legacy.length).toBeGreaterThan(0);
+    expect(legacy).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ file: fixture, line: 1, term: normalize(keyword) }),
+      ])
+    );
+    expect(scanFiles(scanText)).toEqual(legacy);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+}, 45000);
 
 test('allowlist requires explicit reason and only exempts its exact term', () => {
   expect(() => scanText('keyword', ['keyword'], [{ term: 'keyword' }])).toThrow('reason');

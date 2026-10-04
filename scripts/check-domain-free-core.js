@@ -58,6 +58,77 @@ function loadCatalogs(root = ROOT) {
   };
 }
 
+function indexVocabulary(vocabulary, allowed) {
+  const terms = new Set();
+  const decorated = new Map();
+  const symbols = new Set();
+  const firstWords = new Set();
+  let maxWords = 0;
+  for (const term of vocabulary) {
+    if (allowed.has(term)) continue;
+    const words = [...term.matchAll(/[\p{L}\p{N}]+/gu)];
+    if (!words.length) {
+      symbols.add(term);
+      continue;
+    }
+    firstWords.add(words[0][0]);
+    maxWords = Math.max(maxWords, words.length);
+    const start = words[0].index;
+    const last = words.at(-1);
+    const end = last.index + last[0].length;
+    if (start === 0 && end === term.length) terms.add(term);
+    else {
+      const core = term.slice(start, end);
+      if (!decorated.has(core)) decorated.set(core, []);
+      decorated.get(core).push({ term, prefixLength: start });
+    }
+  }
+  return { terms, decorated, symbols, firstWords, maxWords };
+}
+
+function matchesBoundaries(line, term, start) {
+  return (
+    start >= 0 &&
+    line.startsWith(term, start) &&
+    !/[\p{L}\p{N}]$/u.test(line.slice(0, start)) &&
+    !/^[\p{L}\p{N}]/u.test(line.slice(start + term.length))
+  );
+}
+
+function scanSymbols(line, symbols, found) {
+  if (!symbols.size) return;
+  const lengths = new Set([...symbols].map((term) => term.length));
+  for (const gap of line.matchAll(/[^\p{L}\p{N}]+/gu)) {
+    for (let offset = 0; offset < gap[0].length; offset++) {
+      for (const length of lengths) {
+        const candidate = gap[0].slice(offset, offset + length);
+        if (symbols.has(candidate) && matchesBoundaries(line, candidate, gap.index + offset))
+          found.add(candidate);
+      }
+    }
+  }
+}
+
+function scanLine(line, index) {
+  const words = [...line.matchAll(/[\p{L}\p{N}]+/gu)];
+  const found = new Set();
+  for (let start = 0; start < words.length; start++) {
+    if (!index.firstWords.has(words[start][0])) continue;
+    const limit = Math.min(words.length, start + index.maxWords);
+    for (let end = start; end < limit; end++) {
+      // Preserve separators exactly: a space, a tab and a hyphen are different terms.
+      const candidate = line.slice(words[start].index, words[end].index + words[end][0].length);
+      if (index.terms.has(candidate)) found.add(candidate);
+      for (const { term, prefixLength } of index.decorated.get(candidate) || []) {
+        if (matchesBoundaries(line, term, words[start].index - prefixLength)) found.add(term);
+      }
+    }
+  }
+  // buildVocabulary also accepts catalog values consisting entirely of punctuation.
+  scanSymbols(line, index.symbols, found);
+  return found;
+}
+
 function scanText(text, vocabulary, allowlist = []) {
   const allowed = new Set(
     allowlist.map((entry) => {
@@ -66,20 +137,18 @@ function scanText(text, vocabulary, allowlist = []) {
       return normalize(entry.term);
     })
   );
-  const terms = vocabulary
-    .filter((term) => !allowed.has(term))
-    .map((term) => ({
-      term,
-      pattern: new RegExp(
-        `(?<![\\p{L}\\p{N}])${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\p{L}\\p{N}])`,
-        'u'
-      ),
-    }));
+  const vocabularyIndex = indexVocabulary(vocabulary, allowed);
+  const positions = new Map();
+  vocabulary.forEach((term, position) => {
+    if (!positions.has(term)) positions.set(term, []);
+    positions.get(term).push(position);
+  });
   return text.split(/\r?\n/).flatMap((line, index) => {
-    const normalized = normalize(line);
-    return terms
-      .filter(({ pattern }) => pattern.test(normalized))
-      .map(({ term }) => ({ line: index + 1, term }));
+    const found = scanLine(normalize(line), vocabularyIndex);
+    return [...found]
+      .flatMap((term) => positions.get(term))
+      .sort((left, right) => left - right)
+      .map((position) => ({ line: index + 1, term: vocabulary[position] }));
   });
 }
 
