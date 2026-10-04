@@ -40,7 +40,7 @@ const digest = {
 };
 function context(activation = row, overrides = {}, roles = ['ROLE_USER']) {
   return {
-    meta: { apiToken: { ...meta.apiToken, roles } },
+    meta: { apiToken: { tenantId: 'tenant-a', id: 'actor-a', roles } },
     call: jest.fn(async (name) => {
       if (Object.hasOwn(overrides, name)) {
         if (overrides[name] instanceof Error) throw overrides[name];
