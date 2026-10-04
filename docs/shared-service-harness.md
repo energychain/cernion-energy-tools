@@ -236,3 +236,22 @@ attention, funding-only rearming, errors, two-instance revision claims, one time
 shutdown and real PouchDB restart with journal metrics. See
 [SHARED_SERVICE_WAKE.md](SHARED_SERVICE_WAKE.md) for boundaries and parameters.
 The unchanged 59-second harness deadline applies; each PR reports measured runtime.
+
+
+## System activity observations (#700)
+
+The real adapter starts Workbench and the existing `agents` forwarding service.
+Activity steps classify model-derived questions and invoke the actual mapped-principal
+`workbench.query` action. `activityQueries` captures the resulting mode, actual
+Knowledge/Personal-Agent and RAG call-attempt counts, scalar answer state and an
+independently computed journal digest from stored entries under the same visibility
+policy. The adapter never copies the answer into its expected digest. A seeded
+activity step ensures I-5 is exercised for every fixed seed. Existing agents,
+operationAttempts, handoffs, emptyWakes and attention observations are preserved.
+
+I-5 is active alongside I-1/I-2/I-3/I-4/I-6/I-9/I-10; I-7/I-8 still await #701.
+The query does not record a Coverage turn or mutate any service database. Tests
+also generate positive/negative German/English corpora from 24 seeded draws of
+real Function labels, verify visibility/mapping and spy on forbidden source calls.
+See [WORKBENCH_SYSTEM_ACTIVITY.md](WORKBENCH_SYSTEM_ACTIVITY.md) for the resolver
+interface shared with #701 and the bounded presenter contract.

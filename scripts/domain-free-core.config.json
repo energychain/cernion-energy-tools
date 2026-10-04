@@ -2,6 +2,7 @@
   "minimumLength": 5,
   "corePaths": [
     "src/function-model.js",
+    "src/function-resolver.js",
     "src/function-activation-state.js",
     "src/function-activation-records.js",
     "src/function-attention.js",
@@ -39,7 +40,6 @@
   "optionalPaths": [
     "src/function-model.js",
     "src/shared-service-wake.js",
-    "src/workbench-system-activity.js",
     "src/shared-service-learning.js",
     "services/shared-service-learning.service.js"
   ],

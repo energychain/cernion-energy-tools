@@ -1,6 +1,7 @@
 'use strict';
 
 const crypto = require('crypto');
+const { answerSystemActivity } = require('../src/workbench-system-activity');
 const coverageTurn = require('../src/function-coverage-turn');
 const { Errors } = require('moleculer');
 const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
@@ -1317,13 +1318,30 @@ module.exports = {
     // without reserving conversations, classifying cases or acknowledging events.
     query: {
       params: {
-        intentMode: { type: 'enum', values: ['status_query', 'knowledge_query', 'data_lookup'] },
+        intentMode: {
+          type: 'enum',
+          values: ['status_query', 'knowledge_query', 'data_lookup', 'system_activity_query'],
+        },
       },
       async handler(ctx) {
         const p = principal(ctx, ctx.params);
         const envelope = normalizeTaskEnvelope(ctx.params);
         const mapping = await this.resolveUserMapping(ctx, p, envelope);
         const meta = this.metaForMapping(ctx, p, mapping);
+        if (ctx.params.intentMode === 'system_activity_query') {
+          return answerSystemActivity(
+            {
+              meta,
+              call: (name, input) =>
+                ctx.call(name, input, {
+                  meta,
+                  timeout: this.settings.systemActivityReadTimeoutMs || 3000,
+                }),
+            },
+            envelope.userRequest,
+            { model: this.settings.systemActivityModel }
+          );
+        }
         if (ctx.params.intentMode === 'knowledge_query') {
           const result = await ctx.call(
             'personal-agent.chat',

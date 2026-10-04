@@ -1,6 +1,27 @@
 {
   "entries": [
     {
+      "term": "account",
+      "reason": "Existing Workbench mailAccountDbPath persistence setting in the shared-service adapter; no domain behavior."
+    },
+    {
+      "term": "klaerfall",
+      "reason": "Generic case-status separation vocabulary; no domain branch."
+    },
+    {
+      "term": "klärfall",
+      "reason": "Generic case-status separation vocabulary; no domain branch."
+    },
+    { "term": "doing", "reason": "Generic English current-activity question wording." },
+    { "term": "warum", "reason": "Generic German explanation question wording." },
+    { "term": "overview", "reason": "Generic bounded system-state overview." },
+    { "term": "welche", "reason": "Generic German selection question wording." },
+    { "term": "nicht", "reason": "Generic German negation in state answers." },
+    { "term": "keine", "reason": "Generic German negation in state answers." },
+    { "term": "rahmen", "reason": "Generic finite attention-unit budget presentation." },
+    { "term": "offene", "reason": "Generic open expectations/proposals presentation." },
+    { "term": "klärung", "reason": "Generic safe clarification follow-up wording." },
+    {
       "term": "claim",
       "reason": "Generic revision-protected scheduler execution claim; no domain behavior."
     },
