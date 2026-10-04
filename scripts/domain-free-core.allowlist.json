@@ -499,6 +499,42 @@
     {
       "term": "reports",
       "reason": "Generic test assertion that budget overflow is reported as a count, unrelated to domain reporting."
+    },
+    {
+      "term": "anchor",
+      "reason": "Generic attention-budget accounting, event contract or graph/test terminology for #715; no catalog-specific behavior."
+    },
+    {
+      "term": "consumption",
+      "reason": "Generic attention-budget accounting, event contract or graph/test terminology for #715; no catalog-specific behavior."
+    },
+    {
+      "term": "inventory",
+      "reason": "Generic attention-budget accounting, event contract or graph/test terminology for #715; no catalog-specific behavior."
+    },
+    {
+      "term": "negative",
+      "reason": "Generic attention-budget accounting, event contract or graph/test terminology for #715; no catalog-specific behavior."
+    },
+    {
+      "term": "positive",
+      "reason": "Generic attention-budget accounting, event contract or graph/test terminology for #715; no catalog-specific behavior."
+    },
+    {
+      "term": "units",
+      "reason": "Generic attention-budget accounting, event contract or graph/test terminology for #715; no catalog-specific behavior."
+    },
+    {
+      "term": "legacy",
+      "reason": "Generic compatibility, input-patch or feedback-rejection terminology in neutral #715 tests; no catalog-specific behavior."
+    },
+    {
+      "term": "patch",
+      "reason": "Generic compatibility, input-patch or feedback-rejection terminology in neutral #715 tests; no catalog-specific behavior."
+    },
+    {
+      "term": "rejection",
+      "reason": "Generic compatibility, input-patch or feedback-rejection terminology in neutral #715 tests; no catalog-specific behavior."
     }
   ]
 }

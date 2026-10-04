@@ -11,6 +11,14 @@ const {
 } = require('../src/function-activation-state');
 const { compareCanonicalStrings } = require('../src/canonical-order');
 
+const { principal, deny } = require('../src/domain-router-policy');
+const {
+  attentionState,
+  advanceAttention,
+  refillAttention,
+  validateAttentionSettings,
+} = require('../src/function-attention');
+
 const copy = (value) => JSON.parse(JSON.stringify(value));
 const tenantParams = { tenantId: { type: 'string', min: 1 } };
 const getParams = { ...tenantParams, functionId: { type: 'string', min: 1 } };
@@ -26,6 +34,17 @@ module.exports = {
   settings: {
     model: null,
     tenantBudget: 8,
+    maxNeighborsPerTouch: 2,
+    halfLifeTurns: 20,
+    retireThreshold: 0.05,
+    retainFactor: 4,
+    maxRetainFactor: 20,
+    establishedFactor: 10,
+    establishThreshold: 3,
+    hysteresis: 0.5,
+    allowanceCap: 10,
+    allowancePerTurn: 2,
+    turnDedupLimit: 256,
     tenantBudgets: {},
     minWeight: 0.2,
     minTouchConfidence: 0.2,
@@ -86,6 +105,21 @@ module.exports = {
     'function.coverage.changed.v1': {
       async handler(ctx) {
         await this.acceptCoverage(ctx.params);
+      },
+    },
+    'shared-agent.feedback.v1': {
+      async handler(ctx) {
+        await this.acceptFeedback(ctx.params);
+      },
+    },
+    'shared-agent.consumption.v1': {
+      async handler(ctx) {
+        await this.acceptConsumption(ctx.params);
+      },
+    },
+    'shared-service.correction.v1': {
+      async handler(ctx) {
+        await this.acceptCorrection(ctx.params, ctx.meta);
       },
     },
     'shared-agent.lifecycle.v1': {
@@ -166,9 +200,31 @@ module.exports = {
         event.confidence > 1
       )
         throw new Errors.MoleculerClientError('Invalid touch', 400);
+      if (
+        event.turnRef !== undefined &&
+        (typeof event.turnRef !== 'string' || !event.turnRef.trim() || event.turnRef.length > 256)
+      )
+        throw new Errors.MoleculerClientError('Invalid turnRef', 400);
       if (event.confidence < this.settings.minTouchConfidence) return;
       return this.enqueue(tenantId, () =>
         this.updateDocument(tenantId, (document) => {
+          const newer = resolved.some(({ functionId }) => {
+            const prior = document.touches.find(
+              (item) => item.functionId === functionId && item.actorId === event.actorId
+            );
+            return (
+              !prior ||
+              Date.parse(prior.at) < at ||
+              (Date.parse(prior.at) === at && event.turnRef && prior.turnRef !== event.turnRef)
+            );
+          });
+          if (!newer) return;
+          advanceAttention(
+            document,
+            { ...event, functionIds: resolved.map((item) => item.functionId) },
+            this.model,
+            this.settings
+          );
           for (const { functionId } of resolved) {
             const previous = document.touches.find(
               (item) =>
@@ -176,11 +232,18 @@ module.exports = {
                 item.actorId === event.actorId &&
                 item.modelSourceHash === this.model.sourceHash
             );
-            if (previous && Date.parse(previous.at) >= at) continue;
+            if (
+              previous &&
+              (Date.parse(previous.at) > at ||
+                (Date.parse(previous.at) === at &&
+                  (!event.turnRef || previous.turnRef === event.turnRef)))
+            )
+              continue;
             const record = {
               tenantId,
               actorId: event.actorId,
               conversationId: event.conversationId,
+              ...(event.turnRef ? { turnRef: event.turnRef } : {}),
               confidence: event.confidence,
               functionId,
               modelSourceHash: this.model.sourceHash,
@@ -274,6 +337,131 @@ module.exports = {
       );
     },
 
+    checkedAgentEvent(event) {
+      const tenantId = this.checkedTenant(event.tenantId);
+      const resolved = this.checkedFunction(event.functionId);
+      if (
+        resolved.length !== 1 ||
+        typeof event.agentId !== 'string' ||
+        !event.agentId.trim() ||
+        !Number.isFinite(Date.parse(event.at)) ||
+        Date.parse(event.at) > this.now()
+      )
+        throw new Errors.MoleculerClientError('Invalid agent event', 400);
+      return { tenantId, functionId: resolved[0].functionId };
+    },
+    async acceptConsumption(event) {
+      const { tenantId, functionId } = this.checkedAgentEvent(event);
+      if (
+        !Number.isFinite(event.units) ||
+        event.units <= 0 ||
+        !['wake', 'llm', 'operation'].includes(event.kind)
+      )
+        throw new Errors.MoleculerClientError('Invalid consumption', 400);
+      return this.enqueue(tenantId, () =>
+        this.updateDocument(
+          tenantId,
+          (document) => {
+            const row = resolveRecords(document.activations, this.model).find(
+              (item) => item.functionId === functionId && item.responsibility.cet
+            );
+            if (!row) return;
+            document.activations = resolveRecords(document.activations, this.model);
+            const saved = document.activations.find((item) => item.functionId === functionId);
+            const attention = attentionState(saved.attention, this.settings);
+            if (event.units > attention.allowance) {
+              attention.allowanceExhausted = true;
+            } else {
+              attention.allowance -= event.units;
+              attention.consumedUnits += event.units;
+              attention.allowanceExhausted = attention.allowance === 0;
+            }
+            saved.attention = attention;
+          },
+          { ...event, functionId, consumption: true }
+        )
+      );
+    },
+    async acceptFeedback(event) {
+      const { tenantId, functionId } = this.checkedAgentEvent(event);
+      if (
+        !['accepted', 'used', 'rejected'].includes(event.outcome) ||
+        typeof event.ref !== 'string' ||
+        !event.ref.trim() ||
+        event.ref.length > 256
+      )
+        throw new Errors.MoleculerClientError('Invalid feedback', 400);
+      return this.enqueue(tenantId, () =>
+        this.updateDocument(tenantId, (document) => {
+          document.activations = resolveRecords(document.activations, this.model);
+          const row = document.activations.find(
+            (item) => item.functionId === functionId && item.attention
+          );
+          if (!row) return;
+          const identity = JSON.stringify([event.agentId, event.outcome, event.ref]);
+          document.feedbackKeys ||= [];
+          if (document.feedbackKeys.includes(identity)) return;
+          document.feedbackKeys.push(identity);
+          document.feedbackKeys = document.feedbackKeys.slice(-this.settings.turnDedupLimit);
+          row.attention.turnsSinceRefresh = 0;
+          row.attention.retired = false;
+          if (event.outcome !== 'rejected') row.attention.reactivationScore += 1;
+          row.attention = attentionState(row.attention, this.settings);
+        })
+      );
+    },
+    async acceptCorrection(event, meta = {}) {
+      if (
+        event.target !== 'agent' ||
+        !['retain', 'unretain', 'pin', 'unpin'].includes(event.correction?.kind)
+      )
+        return;
+      let p;
+      try {
+        p = principal({ meta }, event);
+        if (p.actorId !== event.actorId) deny('Actor mismatch');
+        if (
+          ['pin', 'unpin'].includes(event.correction.kind) &&
+          !p.roles.some((role) => ['ROLE_ADMIN', 'ROLE_TENANT_ADMIN'].includes(role))
+        )
+          deny('Admin role required');
+      } catch (error) {
+        this.logger.warn('Attention correction rejected', {
+          tenantId: event.tenantId,
+          actorId: event.actorId,
+          reason: error.message,
+        });
+        throw error;
+      }
+      const tenantId = this.checkedTenant(p.tenantId);
+      const resolved = this.checkedFunction(
+        event.correction.functionId || event.functionId || event.ref
+      );
+      if (resolved.length !== 1) throw new Errors.MoleculerClientError('Ambiguous correction', 409);
+      const functionId = resolved[0].functionId;
+      const factor = event.correction.factor ?? this.settings.retainFactor;
+      if (!Number.isFinite(factor) || factor < 1)
+        throw new Errors.MoleculerClientError('Invalid retain factor', 400);
+      return this.enqueue(tenantId, () =>
+        this.updateDocument(tenantId, (document) => {
+          document.activations = resolveRecords(document.activations, this.model);
+          const row = document.activations.find(
+            (item) => item.functionId === functionId && item.attention
+          );
+          if (!row) return;
+          const attention = row.attention;
+          if (event.correction.kind === 'retain')
+            attention.retainFactor = Math.min(factor, this.settings.maxRetainFactor);
+          if (event.correction.kind === 'unretain') attention.retainFactor = 1;
+          if (event.correction.kind === 'pin') attention.inventory = true;
+          if (event.correction.kind === 'unpin') attention.inventory = false;
+          attention.turnsSinceRefresh = 0;
+          attention.retired = false;
+          row.attention = attentionState(attention, this.settings);
+        })
+      );
+    },
+
     compactTouches(document) {
       const latest = new Map();
       for (const record of resolveRecords(document.touches, this.model)) {
@@ -294,12 +482,13 @@ module.exports = {
       const priorCoverage = coverageRecords(document, this.model);
       this.compactTouches(document);
       mutate(document);
-      const previous = resolveRecords(document.activations, this.model);
+      const previous = resolveRecords(JSON.parse(original).activations, this.model);
       const next = activationRows(document, this.model, this.settings, this.now());
+      refillAttention(document, next, this.settings);
       for (const row of next) {
         const old = previous.find((item) => item.functionId === row.functionId);
         const oldState = old
-          ? [old.state, old.responsibility]
+          ? [old.state, old.responsibility, old.attention]
           : [
               'latent',
               {
@@ -313,8 +502,19 @@ module.exports = {
                   .sort(compareCanonicalStrings),
                 cet: false,
               },
+              undefined,
             ];
-        if (JSON.stringify(oldState) === JSON.stringify([row.state, row.responsibility])) continue;
+        if (
+          JSON.stringify(oldState) ===
+            JSON.stringify([row.state, row.responsibility, row.attention]) &&
+          !(
+            event?.consumption &&
+            event.functionId === row.functionId &&
+            row.responsibility.cet &&
+            row.attention?.allowanceExhausted
+          )
+        )
+          continue;
         const handoff =
           old?.responsibility.cet && !row.responsibility.cet && row.responsibility.humans.length;
         const entry = {
@@ -325,10 +525,17 @@ module.exports = {
           at: new Date(this.now()).toISOString(),
           state: row.state,
           responsibility: copy(row.responsibility),
+          ...(row.attention ? { attention: copy(row.attention) } : {}),
           reason: copy(row.reason),
         };
         if (handoff) entry.actorId = event?.actorId || row.responsibility.humans[0];
-        document.history.push(entry);
+        const status = (value) => [value?.tier, value?.retired, value?.allowanceExhausted];
+        if (
+          !old ||
+          JSON.stringify([old.state, old.responsibility, status(old.attention)]) !==
+            JSON.stringify([row.state, row.responsibility, status(row.attention)])
+        )
+          document.history.push(entry);
         if (handoff) row.reason.push({ kind: entry.kind, actorId: entry.actorId, at: entry.at });
         const notification = {
           tenantId,
@@ -337,6 +544,7 @@ module.exports = {
           functionId: row.functionId,
           state: row.state,
           responsibility: copy(row.responsibility),
+          ...(row.attention ? { attention: copy(row.attention) } : {}),
         };
         const queued = document.outbox.find((item) => item.functionId === row.functionId);
         if (queued) Object.assign(queued, notification);
@@ -381,6 +589,7 @@ module.exports = {
           functionId: row.functionId,
           state: row.state,
           responsibility: copy(row.responsibility),
+          ...(row.attention ? { attention: copy(row.attention) } : {}),
         });
       }
       document.outbox = [];
@@ -402,6 +611,7 @@ module.exports = {
   created() {
     this.model = getFunctionModel({ model: this.settings.model });
     this.pending = new Map();
+    validateAttentionSettings(this.settings);
     const {
       restWindowMs,
       sweepIntervalMs,

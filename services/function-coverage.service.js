@@ -210,6 +210,7 @@ module.exports = {
             actorId: doc.actorId,
             functionId,
             conversationId,
+            turnRef: doc.sourceRef,
             confidence: weight,
             at: new Date(now).toISOString(),
           },

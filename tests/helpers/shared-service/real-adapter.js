@@ -86,6 +86,7 @@ async function createAdapter({
       ...journalSettings,
     },
   });
+  const attentionTransitions = [];
   let fresh = true;
   const tenants = new Set(['tenant-a']);
   try {
@@ -95,7 +96,7 @@ async function createAdapter({
     fs.rmSync(root, { recursive: true, force: true });
     throw error;
   }
-  return {
+  const adapter = {
     broker,
     service,
     coverageService,
@@ -159,6 +160,8 @@ async function createAdapter({
         step.type !== 'touch' &&
         step.event !== 'function.coverage.changed.v1' &&
         step.event !== 'shared-agent.lifecycle.v1' &&
+        step.event !== 'shared-agent.feedback.v1' &&
+        step.event !== 'shared-agent.consumption.v1' &&
         step.event !== 'function.activation.changed.v1' &&
         step.event !== 'shared-service.correction.v1'
       )
@@ -166,7 +169,7 @@ async function createAdapter({
       const event = { ...step.payload };
       tenants.add(event.tenantId);
       if (step.type === 'touch') event.at = new Date(now.value).toISOString();
-      await broker.emit(step.event || 'function.touched.v1', event);
+      await broker.emit(step.event || 'function.touched.v1', event, { meta: step.meta || {} });
       await service.settle();
       await journal.writeQueue;
       fresh = false;
@@ -184,6 +187,12 @@ async function createAdapter({
       }
       return {
         fresh,
+        attentionTransitions: structuredClone(attentionTransitions),
+        activatingTurns: (
+          await Promise.all([...tenants].map((id) => service.readDocument(id)))
+        ).reduce((sum, doc) => sum + (doc.activatingTurns || 0), 0),
+        allowancePerTurn: service.settings.allowancePerTurn,
+        allowanceCap: service.settings.allowanceCap,
         activations,
         agents: [],
         functions: service.model.functions,
@@ -219,6 +228,57 @@ async function createAdapter({
       fs.rmSync(root, { recursive: true, force: true });
     },
   };
+  const apply = adapter.apply.bind(adapter);
+  adapter.apply = async (step) => {
+    const before = await adapter.snapshot();
+    const eventOffset = coverageEvents.length;
+    await apply(step);
+    const after = await adapter.snapshot();
+    for (const row of after.activations.filter((item) => item.attention)) {
+      const prior = before.activations.find(
+        (item) => item.tenantId === row.tenantId && item.functionId === row.functionId
+      );
+      const touchEvents =
+        step.type === 'touch'
+          ? [step.payload]
+          : step.type === 'signal'
+            ? coverageEvents
+                .slice(eventOffset)
+                .filter((entry) => entry.name === 'function.touched.v1')
+                .map((entry) => entry.payload)
+            : [];
+      const refreshedByTouch = touchEvents.some(
+        (event) =>
+          event.tenantId === row.tenantId &&
+          event.confidence >= service.settings.minTouchConfidence &&
+          (event.functionId === row.functionId ||
+            (prior?.reason || row.reason).some(
+              (reason) => reason.kind === 'neighbor' && reason.functionId === event.functionId
+            ))
+      );
+      const targeted =
+        step.payload?.tenantId === row.tenantId &&
+        (step.payload?.functionId || step.payload?.correction?.functionId || step.payload?.ref) ===
+          row.functionId;
+      attentionTransitions.push({
+        tenantId: row.tenantId,
+        functionId: row.functionId,
+        before: prior?.attention || {
+          relevance: 1,
+          allowance: 0,
+          consumedUnits: 0,
+          replenishedUnits: 0,
+        },
+        after: row.attention,
+        turns: after.activatingTurns - before.activatingTurns,
+        refreshed:
+          refreshedByTouch ||
+          (targeted &&
+            ['shared-agent.feedback.v1', 'shared-service.correction.v1'].includes(step.event)),
+      });
+    }
+  };
+  return adapter;
 }
 
 module.exports = { createAdapter };

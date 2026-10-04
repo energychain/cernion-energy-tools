@@ -127,7 +127,7 @@ module.exports = {
     },
     'shared-service.correction.v1': {
       async handler(ctx) {
-        await this.serializeWrite(() => this.recordCorrection(ctx.params));
+        await this.serializeWrite(() => this.recordCorrection(ctx.params, ctx.meta));
       },
     },
   },
@@ -262,7 +262,26 @@ module.exports = {
         latent: 'Funktion ist bereit.',
       };
       const handoff = !input.responsibility.cet && input.responsibility.humans.length;
-      const activation = { state: input.state, responsibility: input.responsibility };
+      const activation = {
+        state: input.state,
+        responsibility: input.responsibility,
+        ...(input.attention
+          ? {
+              attention: {
+                tier: input.attention.tier,
+                retired: input.attention.retired,
+                allowanceExhausted: input.attention.allowanceExhausted,
+              },
+            }
+          : {}),
+      };
+      const attentionReason = input.attention?.retired
+        ? 'attention_retired'
+        : input.attention?.allowanceExhausted
+          ? 'allowance_exhausted'
+          : input.attention
+            ? `attention_${input.attention.tier}`
+            : null;
       const previous = (await this.rawEntries(input.tenantId)).findLast(
         (entry) => entry.functionId === input.functionId && entry.activation
       );
@@ -272,7 +291,11 @@ module.exports = {
         {
           ...input,
           kind: 'decided',
-          summary: handoff ? 'Verantwortung liegt bei Menschen.' : messages[input.state],
+          summary: handoff
+            ? 'Verantwortung liegt bei Menschen.'
+            : attentionReason
+              ? `${messages[input.state]} ${attentionReason}`
+              : messages[input.state],
           refs: [],
         },
         { activation }
@@ -299,7 +322,19 @@ module.exports = {
         { lifecycle: input.lifecycle }
       );
     },
-    async recordCorrection(input) {
+    async recordCorrection(input, meta = {}) {
+      if (
+        input.target === 'agent' &&
+        ['retain', 'unretain', 'pin', 'unpin'].includes(input.correction?.kind)
+      ) {
+        const p = principal({ meta }, input);
+        if (
+          p.actorId !== input.actorId ||
+          (['pin', 'unpin'].includes(input.correction.kind) &&
+            !p.roles.some((role) => ['ROLE_ADMIN', 'ROLE_TENANT_ADMIN'].includes(role)))
+        )
+          fail('Unauthorized attention correction', 403);
+      }
       if (
         !['coverage', 'activation', 'agent', 'neighbor'].includes(input.target) ||
         !input.ref ||

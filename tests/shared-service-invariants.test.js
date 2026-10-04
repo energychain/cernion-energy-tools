@@ -151,6 +151,17 @@ const agent = () => ({
   stats: {},
 });
 const observations = {
+  'I-10': () => ({
+    ...base(),
+    attentionTransitions: [
+      {
+        before: { relevance: 1, allowance: 2, consumedUnits: 0, replenishedUnits: 2 },
+        after: { relevance: 0.5, allowance: 1, consumedUnits: 1, replenishedUnits: 2 },
+        turns: 0,
+        refreshed: false,
+      },
+    ],
+  }),
   'I-1': () => ({
     ...base(),
     fresh: true,
@@ -247,6 +258,9 @@ const observations = {
   }),
 };
 const corrupt = {
+  'I-10': (s) => {
+    s.attentionTransitions[0].after.relevance = 2;
+  },
   'I-1': (s) => {
     s.agents.push(agent());
   },
@@ -384,3 +398,10 @@ test.each(['coverage', 'activation', 'agent', 'neighbor'])(
     expect(() => assertInvariants(state, ['I-7'])).toThrow('I-7');
   }
 );
+
+test.each(['consumption', 'refill'])('I-10 rejects %s without funding or turns', (kind) => {
+  const state = observations['I-10']();
+  if (kind === 'consumption') state.attentionTransitions[0].after.consumedUnits = 3;
+  else state.attentionTransitions[0].after.replenishedUnits = 3;
+  expect(() => assertInvariants(state, ['I-10'])).toThrow('I-10');
+});

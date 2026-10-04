@@ -3,7 +3,7 @@
 `services/function-activation.service.js` exposes the read-only Moleculer actions
 `activation.list`, `activation.get` and `activation.explain` (service name `activation`).
 There are no REST aliases. The service has no LLM, provider, workflow, operation,
-agent-creation or authorization calls. Coverage never grants permission.
+agent-creation calls. Agent attention corrections reuse the existing principal policy. Coverage never grants permission.
 
 The implementation follows the original issue and the #693 clarification, as
 explicitly requested by the current assignment. The later Phase-B comment in #696
@@ -112,8 +112,8 @@ identified as stale from that contract alone.
 State is committed before notification. The durable outbox is retried on the next
 mutation or sweep/startup. Delivery is at least once and coalesces retries to current
 state, never stale CET responsibility. Consumers must be idempotent. Published
-`function.activation.changed.v1` contains exactly `{tenantId, functionId, state,
-responsibility}`. Private history is activation audit data, not #698's Journal service.
+`function.activation.changed.v1` contains `{tenantId, functionId, state,
+responsibility, attention?}`. Private history is activation audit data, not #698's Journal service.
 
 Stored IDs are resolved through `resolveFunctionId()` when read. Private source-hash
 and capability-membership metadata distinguish the saved scope from an older split
@@ -147,3 +147,135 @@ function model. It passes 50 tests with 8 todo; no substitute agents are introdu
 The complete I-1/I-2 tests and other agent-dependent invariants remain todo until
 their services land. The service tests already exercise the #696 activation portions
 of I-1/I-2 and all budget bounds in I-3 with neutral chains, stars, hubs and users.
+
+
+## Attention budget (#715)
+
+CET responsibility adds `attention` to Activation and to
+`function.activation.changed.v1`, preserving all existing fields. Functions never
+assigned CET responsibility may omit it. Saved attention remains visible after a
+handoff or retirement, so costs are not erased when responsibility ends.
+
+```text
+attention {
+  relevance, turnsSinceRefresh, halfLifeTurns,
+  tier: transient|established|retained|inventory,
+  reactivationScore, allowance, allowanceExhausted,
+  established, retainFactor, inventory, retired,
+  consumedUnits, replenishedUnits
+}
+```
+
+`relevance = 0.5 ** (turnsSinceRefresh / halfLifeTurns)`. The effective half-life
+is `halfLifeTurns` setting times the maximum of the retained factor and the
+established factor (when established). Inventory has relevance 1 and suspends
+relevance decay; it still consumes the same finite allowance. A score at or above
+`establishThreshold` establishes a function, and a score strictly below
+`establishThreshold * hysteresis` removes that status. Positive reactivation scores
+decay over the same relevant turn clock using the effective half-life. The tier
+precedence is inventory, retained, established, transient; the underlying flags
+remain independently reversible.
+
+Only activating human touch events (`confidence >= minTouchConfidence`) count.
+`function.touched.v1` now additively carries `turnRef`, the existing hashed
+Coverage `sourceRef`. A turn is deduplicated by `(actorId, conversationId, turnRef)`;
+older producers without that field use `(actorId, conversationId, at)`. Multiple
+functions from one turn refresh their own/triggering targets but supply only one
+clock tick and one allocation. A function-specific stale touch remains ignored.
+The first qualifying event of a turn allocates its units to the CET functions
+known at that point; functions first discovered by later events receive units on
+the next qualifying turn. No extra allocation is manufactured for them.
+
+Relevant people come exclusively from already received coverage events: anyone
+with score at least `coverageThreshold` for a triggering function or any of its
+direct neighbors. With no such people, all activating tenant turns count. The
+service makes no synchronous Coverage calls. Touching a CET function itself or
+any currently triggering source resets its clock. Relevance below
+`retireThreshold` marks it retired, makes it dormant and relinquishes CET
+responsibility; another refreshing touch or feedback clears retirement. Existing
+rest-window rules remain in force; pinned inventory preserves eligible neighbor
+responsibility across that window. Tenant and per-touch neighbor caps still apply.
+
+### New events
+
+```text
+shared-agent.feedback.v1 {
+  tenantId, agentId, functionId,
+  outcome: accepted|used|rejected, at, ref
+}
+shared-agent.consumption.v1 {
+  tenantId, agentId, functionId, units,
+  kind: wake|llm|operation, at
+}
+shared-service.correction.v1 {
+  tenantId, actorId, target: "agent", ref,
+  correction: { functionId, kind: retain|unretain|pin|unpin, factor? }
+}
+function.touched.v1 {
+  tenantId, actorId, functionId, conversationId, confidence, at, turnRef?
+}
+function.activation.changed.v1 {
+  tenantId, functionId, state, responsibility, attention?
+}
+```
+
+`at` is a valid ISO timestamp no later than the service clock. Consumption units
+must be finite and positive. Unresolved or ambiguous agent-event function IDs are
+rejected. Consumption only affects currently CET-responsible functions. Requests
+larger than the available allowance consume zero units and publish
+`attention.allowanceExhausted: true`; consuming the exact remainder also marks
+exhaustion. #697/#699 must wait for this service's committed decision before doing
+cost-bearing work, and react by sleeping / not waking. This issue does not execute
+operations, create agents or implement a wake mechanism. Consumption has no event
+ID in this contract: each delivery is a separate charge; producers must avoid
+replaying a successful charge as a new request. Feedback is deduplicated by
+`(agentId, outcome, ref)` in a bounded cache.
+
+Accepted/used feedback resets the turn clock and adds one to reactivation score.
+Rejected feedback only resets the clock. Feedback, corrections, lifecycle events,
+reads, wall-clock passage and sweeps never allocate allowance. Each distinct
+activating tenant turn distributes at most `allowancePerTurn` units among the
+currently CET-responsible functions, proportional to their relevance, individually
+capped at `allowanceCap`. Capped shares are not redistributed. New functions start
+with zero units. Thus total committed consumption cannot exceed
+`allowancePerTurn * activatingTurns`; there is no time-based credit, including for
+inventory. Aggregate consumed/funded counters make that bound observable.
+
+Corrections require authenticated metadata from the existing
+`principal(ctx, input)` policy (`authUser` or `apiToken`), matching tenant and actor.
+`retain`/`unretain` accept every tenant user accepted by that policy; coverage never
+authorizes them. `pin`/`unpin` require `ROLE_ADMIN` or `ROLE_TENANT_ADMIN`.
+`ref` may identify an agent; `correction.functionId` then supplies the function.
+If `ref` itself is a resolvable function ID, it can be used without that field.
+A requested retain factor is clamped to `maxRetainFactor`. Unauthorized requests
+are rejected and logged. All four corrections refresh relevance without funding.
+The Journal receives meaningful tier/retirement/exhaustion transitions through the
+existing activation event and records their `attention_*` / `allowance_exhausted`
+reason. It independently applies the same policy to these correction events.
+
+### Parameters and persistence
+
+| Setting | Default | Meaning |
+| --- | ---: | --- |
+| `maxNeighborsPerTouch` | 2 | Strongest eligible direct neighbors per touched source |
+| `halfLifeTurns` | 20 | Base half-life H₀, in relevant activating turns |
+| `retireThreshold` | 0.05 | Strict relevance retirement boundary |
+| `retainFactor` | 4 | Default user retention factor |
+| `maxRetainFactor` | 20 | Retention factor ceiling |
+| `establishedFactor` | 10 | Established half-life multiplier |
+| `establishThreshold` | 3 | Positive reactivation score required to establish |
+| `hysteresis` | 0.5 | Fraction below which established status is removed |
+| `allowanceCap` | 10 | Maximum units per function; initial allowance is 0 |
+| `allowancePerTurn` | 2 | Total tenant allocation per unique activating turn |
+| `turnDedupLimit` | 256 | Maximum retained turn keys and feedback keys, each |
+
+These settings are validated at service creation. Touch and feedback deduplication
+caches are bounded and persisted; their replay horizon is the most recent
+`turnDedupLimit` identities. Arbitrarily old feedback replay is not identifiable
+after eviction and must be avoided by producers. Counters are aggregate values,
+not growing event histories. Attention records use the same stored identity
+resolution and membership rules as activation; an ambiguous split divides funded,
+consumed and remaining units equally among surviving successors so it never
+multiplies allowance. Ambiguous merges conservatively retain one surviving attention
+record rather than create credit. The lifecycle mixin, serialized tenant writes,
+capped history and coalesced durable activation outbox remain unchanged.
