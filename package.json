@@ -57,7 +57,8 @@
     "test:shared-service": "SHARED_SERVICE_RANDOM=1 node scripts/run-shared-service-harness.js",
     "generate:function-model": "node scripts/generate-function-model.js",
     "check:function-model": "node scripts/generate-function-model.js --check",
-    "generate:function-model-embeddings": "node scripts/generate-function-model-embeddings.js"
+    "generate:function-model-embeddings": "node scripts/generate-function-model-embeddings.js",
+    "generate:domain-free-vocabulary": "node scripts/generate-domain-free-vocabulary.js"
   },
   "repository": {
     "type": "git",

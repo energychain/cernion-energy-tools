@@ -33,11 +33,41 @@ index domains, semantic-domain IDs/labels/departments/indicator keywords and rea
 function labels/keywords when available. Full values and tokens above the minimum
 length are checked case-insensitively, including comments and literals; camelCase,
 underscore and hyphen identifiers are covered. Unicode normalization is applied.
-No handwritten domain word list is used. Generic catalog collisions may only be
-exempted with a term and a reviewable reason in
+No handwritten domain word list is used. Generic catalog collisions are automatically
+exempted using the committed reference vocabulary described below. Remaining
+exceptions require a term and a reviewable reason in
 `scripts/domain-free-core.allowlist.json`; a longer domain phrase is not exempted
 by allowing one of its generic tokens. The contamination self-test creates a
 fixture file from an actual catalog keyword and verifies CLI exit status 1.
+
+## Neutral reference corpus (#713)
+
+Run `npm run generate:domain-free-vocabulary` manually to sample dependency code
+in `node_modules`, never CET source/services: CET itself contains frequent domain
+terminology and cannot provide a neutral baseline. Packages and source paths are
+sorted canonically, with at most 40 files per top-level package (including scoped
+packages). Nested `node_modules`, hidden paths, symlinks inside packages, `.min.`
+files and non-code files are excluded. Packages without eligible source files
+still count in the denominator. `referenceCorpus` configures source extensions
+and the per-package cap.
+
+Each catalog term counts at most once per package, using the check's normalization
+and word boundaries. `genericPackageShare` defaults to 0.05: a term occurring in
+at least 5% of packages is general vocabulary. Only qualifying terms are stored
+in `scripts/domain-free-core.generic-vocabulary.json`, with package shares,
+sample counts, parameters and the fixed `referenceCorpus.generatedAt` ISO timestamp.
+Set that timestamp deliberately when refreshing; wall clock time is never used,
+so identical inputs produce byte-identical JSON.
+
+The check reads only the committed artifact and reports automatically exempted
+terms/counts and redundant manual exceptions as informational fields. It does
+not read installed dependencies or enforce corpus drift on dependency updates.
+New catalog terms remain checked until deliberately measured. To refresh: install
+existing dependencies, update the fixed timestamp if appropriate, run the generator,
+review terms and shares, remove now-redundant allowlist entries, and run
+`npm run test:shared-service:ci`. Remaining contract vocabulary and German exceptions
+retain their reasons. Raising the threshold can re-enable stored terms; lowering
+it requires regeneration because below-threshold terms are absent from the artifact.
 
 ## Current upstream gaps and activation
 
