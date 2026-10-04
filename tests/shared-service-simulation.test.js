@@ -67,6 +67,36 @@ test('AC-04: real function-model.json takes precedence; invalid real data fails 
   }
 });
 
+test('malformed #693 Function shape fails closed instead of accepting the real model', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'shared-model-'));
+  try {
+    const file = path.join(root, 'function-model.json');
+    const valid = functions[0];
+    const mutations = [
+      (fn) => ({ ...fn, label: '' }),
+      (fn) => ({ ...fn, sources: [{ kind: 'capability' }] }),
+      (fn) => ({ ...fn, sources: 'not-an-array' }),
+      (fn) => ({ ...fn, capabilities: [1, 2] }),
+      (fn) => ({ ...fn, dataSources: undefined }),
+      (fn) => ({ ...fn, entityTypes: 'Task' }),
+      (fn) => ({ ...fn, events: { emits: [] } }),
+      (fn) => ({ ...fn, events: { emits: [], listens: [1] } }),
+      (fn) => ({ ...fn, neighbors: [{ functionId: 'fn-x', evidence: [] }] }),
+      (fn) => ({ ...fn, neighbors: [{ functionId: 'fn-x', weight: 'high', evidence: [] }] }),
+      (fn) => ({ ...fn, derivation: null }),
+    ];
+    for (const mutate of mutations) {
+      const broken = mutate(structuredClone(valid));
+      fs.writeFileSync(file, JSON.stringify({ functions: [broken] }));
+      expect(() => loadFunctions(root)).toThrow('Invalid function model');
+    }
+    fs.writeFileSync(file, JSON.stringify({ functions: [valid] }));
+    expect(loadFunctions(root)).toEqual({ source: file, functions: [valid] });
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test('generator rejects invalid seed/parameters', () => {
   expect(() => generateHistory({ seed: -1, functions })).toThrow('uint32');
   expect(() => generateHistory({ seed: 1, functions: [] })).toThrow();

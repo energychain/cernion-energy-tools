@@ -372,6 +372,11 @@ describe('invariant oracle self-tests', () => {
     s.handoffs[0].agents[0].lifecycle = 'active';
     expect(() => assertInvariants(s, ['I-9'])).toThrow('I-9');
   });
+  test('I-9 fails closed when no matching tenant/function agent exists', () => {
+    const s = observations['I-9']();
+    s.handoffs[0].agents = [];
+    expect(() => assertInvariants(s, ['I-9'])).toThrow('no matching tenant/function agent');
+  });
 });
 
 test.each(['coverage', 'activation', 'agent', 'neighbor'])(

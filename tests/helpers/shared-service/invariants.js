@@ -116,6 +116,7 @@ const invariants = {
       assert.ok(handoff.before.responsibility.cet);
       assert.equal(handoff.after.responsibility.cet, false);
       assert.ok(handoff.after.responsibility.humans.includes(handoff.secondActorId));
+      assert.ok(handoff.agents.length > 0, 'no matching tenant/function agent found for handoff');
       assert.ok(handoff.agents.every((agent) => ['sleeping', 'retired'].includes(agent.lifecycle)));
     }
   },

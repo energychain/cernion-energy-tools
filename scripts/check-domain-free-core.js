@@ -10,7 +10,9 @@ function normalize(value) {
   return value
     .replace(/([a-z])([A-Z])/g, '$1 $2')
     .normalize('NFKC')
-    .toLocaleLowerCase('en');
+    .toLocaleLowerCase('en')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim();
 }
 
 function buildVocabulary(
