@@ -167,6 +167,7 @@ const CAPABILITY_DOMAIN_MAP = {
 // Covers every tag currently present in openapi-export.json. New services MUST
 // add their tag here or they surface as "unmapped" in the build stats.
 const OPENAPI_TAG_DOMAIN_MAP = {
+  'Shared Service Notices': 'platform',
   'Actor Personas': 'platform',
   'Agent Manifest': 'platform',
   'Evidence Router': 'platform',

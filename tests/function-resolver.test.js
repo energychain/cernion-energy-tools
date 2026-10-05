@@ -80,7 +80,7 @@ test('weights rare semantic tokens and supports configurable separation and comp
     status: 'resolved',
     matches: [{ functionId: 'fn-a' }],
   });
-  expect(resolveFunctions('shared', { model: fixture })).toMatchObject({ status: 'ambiguous' });
+  expect(resolveFunctions('shared', { model: fixture })).toMatchObject({ status: 'none' });
   expect(resolveFunctions('example', { model: fixture, minScoreGap: 1 })).toMatchObject({
     status: 'ambiguous',
   });

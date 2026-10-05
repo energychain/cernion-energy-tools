@@ -247,6 +247,14 @@ function generateHistory({ seed, functions, users = 5, steps = 80 }) {
       functionId: anchor.functionId,
       mode: 'system_activity_query',
     };
+  if (anchor && steps >= 11) {
+    history.splice(11, 0, {
+      type: 'notice-exercise',
+      tenantId: 'tenant-a',
+      actorId: 'actor-0',
+      functionId: anchor.functionId,
+    });
+  }
   return history;
 }
 

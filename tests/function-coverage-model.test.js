@@ -34,7 +34,7 @@ async function observe(signalClass, operations, result = {}) {
   };
   turn.before(ctx);
   for (const operation of operations) await ctx.call(operation);
-  turn.after(ctx, result);
+  await turn.after(ctx, result);
   while (adapter.coverageService.pendingTurns) await new Promise(setImmediate);
   await adapter.coverageService.queue;
   await adapter.service.settle();

@@ -1,6 +1,21 @@
 {
   "entries": [
     {
+      "term": "new",
+      "resolverGeneric": true,
+      "reason": "Generic English news query vocabulary, below the reference corpus minimum length; never a Function target."
+    },
+    {
+      "term": "neuer",
+      "resolverGeneric": true,
+      "reason": "Generic German next-turn notice presentation; no domain behavior."
+    },
+    {
+      "term": "neues",
+      "resolverGeneric": true,
+      "reason": "Generic German next-turn notice overview question; no domain behavior."
+    },
+    {
       "term": "arbeitsstand",
       "reason": "Generic German system-activity question vocabulary; no domain branch."
     },

@@ -255,6 +255,14 @@ test('AC-04/06: findings precede quota-bound LLM; only neighboring observed peop
   expect(messages).toHaveLength(1);
   expect(messages[0].personaId).toBe('persona-a');
   const item = await agent();
+  expect(adapter.agentEvents.filter((event) => event.proposalRef)).toEqual([
+    expect.objectContaining({
+      tenantId: 'tenant-a',
+      agentId: item.agentId,
+      functionId: 'fn-b',
+      summary: 'Internal review requested.',
+    }),
+  ]);
   expect(item.stats.consumedUnits).toBeCloseTo(1.85);
   const proposal = (await adapter.agents.readDocument('tenant-a')).agents[0].proposals[0];
   await expect(

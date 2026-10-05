@@ -146,3 +146,14 @@ functions. Weak observations remain available to coverage reads, including IDs
 retained in older split lineage, but never activate or renew complementary work.
 
 `turnRef` is the already hashed source reference of the completed turn; all mapped functions from one source receive the same value. It contains no chat text or raw source identifier.
+
+## Next-turn notice extension (#723)
+
+The same completed-turn hook now awaits fail-soft notice attachment after answer
+calculation, before the unchanged asynchronous coverage observation. Workbench
+records its already-mapped principal in the hook's existing per-context WeakMap;
+no authorization or tenant mapping changes. Delegated governance completions
+remain observed once. System activity requests skip Coverage as before, but can
+consume notice own-turns. Notice calls are not collected as executed coverage
+signals. Missing/failing notice services never block a normal reply.
+See [SHARED_SERVICE_NOTICES.md](SHARED_SERVICE_NOTICES.md).

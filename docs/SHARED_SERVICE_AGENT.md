@@ -135,3 +135,14 @@ and second-person handoffs. I-1/I-2/I-3/I-4/I-9/I-10 run together after every st
 each fixed-seed history; each invariant still independently requires actual
 exercise. Missing #699/#700/#701 invariants remain explicit todos. Isolated upstream
 unit tests can disable agent integration with `withAgents: false`.
+
+## Additive proposal notice event (#723)
+
+After persisting the proposal association and at least one successful persona-inbox
+delivery, the service emits `shared-agent.proposal.created.v1 { tenantId, agentId,
+functionId, proposalRef, summary, createdAt }`. Summary is the fixed safe text
+`Internal review requested.`; recipient-visible notice text comes from Function
+labels and deterministic templates. This adds no LLM call, operation charge,
+feedback or new proposal execution. `notices.resolveRef` maps displayed short refs
+back to the existing proposal ref for #701; the original proposal resolution
+recipient guard remains authoritative. See [SHARED_SERVICE_NOTICES.md](SHARED_SERVICE_NOTICES.md).

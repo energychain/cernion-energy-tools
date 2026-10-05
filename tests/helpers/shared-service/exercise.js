@@ -46,6 +46,7 @@ function observeExercise(state, seen) {
   )
     seen.add('I-11');
   if (handoffs.length) seen.add('I-9');
+  if (state.notices?.length) seen.add('I-12');
 }
 
 function assertExercise(seen, id, seed) {

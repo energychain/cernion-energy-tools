@@ -21,8 +21,6 @@ function collect(result, facts) {
 }
 
 function before(ctx) {
-  if (ctx.action?.name === 'workbench.query' && ctx.params.intentMode === 'system_activity_query')
-    return;
   // Delegated requests are observed by Workbench, once.
   if (
     ctx.action?.name === 'openai-compatible.chatCompletions' &&
@@ -36,6 +34,8 @@ function before(ctx) {
     call: ctx.call,
     limit: service?.config.maxInputSignalsPerTurn || defaults.maxInputSignalsPerTurn,
     overflow: 0,
+    skipCoverage:
+      ctx.action?.name === 'workbench.query' && ctx.params.intentMode === 'system_activity_query',
   };
   observations.set(ctx, facts);
   ctx.call = async (...args) => {
@@ -51,6 +51,11 @@ function before(ctx) {
   };
 }
 
+function mapped(ctx, meta) {
+  const facts = observations.get(ctx);
+  if (facts) facts.noticeMeta = meta;
+}
+
 function release(ctx) {
   const facts = observations.get(ctx);
   if (facts) ctx.call = facts.call;
@@ -61,6 +66,12 @@ function release(ctx) {
 function after(ctx, result) {
   const facts = release(ctx);
   if (!facts) return result;
+  if (!ctx.broker.getLocalService('notices')) return recordAfter(ctx, result, facts);
+  return attachNotices(ctx, result, facts).then((reply) => recordAfter(ctx, reply, facts));
+}
+
+function recordAfter(ctx, result, facts) {
+  if (facts.skipCoverage) return result;
   try {
     collect(result, facts);
     const meta = facts.meta || ctx.meta;
@@ -118,9 +129,51 @@ function after(ctx, result) {
   return result;
 }
 
+async function attachNotices(ctx, result, facts) {
+  if (!ctx.broker.getLocalService('notices')) return result;
+  // Governance completions delegate once; Workbench uses the mapped principal.
+  if (ctx.action?.name === 'openai-compatible.chatCompletions') return result;
+  try {
+    const meta = facts.noticeMeta || facts.meta || ctx.meta;
+    const p = principal({ meta });
+    const fullQueue = result.state === 'notices';
+    const notice = await ctx.call(
+      'notices.completeTurn',
+      {
+        tenantId: p.tenantId,
+        actorId: p.actorId,
+        turnRef: reference(ctx.params.requestId || ctx.params.correlationId || ctx.requestID),
+        structured:
+          !!meta.sharedServiceNoticesStructured ||
+          !!ctx.params.response_format ||
+          !!result.tool_calls ||
+          !!result.toolCalls ||
+          !!result.structuredOutput,
+        fullQueue,
+      },
+      { meta, timeout: 1500 }
+    );
+    if (fullQueue) return { ...result, noticeQueue: notice, noticeBlock: notice.block };
+    if (!notice.block) return result;
+    if (meta.sharedServiceNoticesDefer) return { ...result, noticeBlock: notice.block };
+    if (typeof result.responseText === 'string')
+      return { ...result, responseText: `${notice.block}\n\n${result.responseText}` };
+    if (typeof result.reply === 'string')
+      return { ...result, reply: `${notice.block}\n\n${result.reply}` };
+    return { ...result, noticeBlock: notice.block };
+  } catch (error) {
+    const service = ctx.broker.getLocalService('notices');
+    service.failures = Math.min(1000000, service.failures + 1);
+    ctx.broker.logger.warn('Notice attachment failed', { errorClass: error.type || error.name });
+    return result.state === 'notices'
+      ? { ...result, state: 'notices_unavailable', noticeQueue: null }
+      : result;
+  }
+}
+
 function error(ctx, failure) {
   release(ctx);
   throw failure;
 }
 
-module.exports = { before, after, error, collect };
+module.exports = { before, after, error, collect, mapped };

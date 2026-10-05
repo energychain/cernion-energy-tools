@@ -63992,6 +63992,111 @@
         ]
       }
     },
+    "/api/notices/": {
+      "get": {
+        "operationId": "notices_list",
+        "summary": "Read own visible next-turn notices",
+        "tags": [
+          "Shared Service Notices"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "tenant-a"
+            }
+          },
+          {
+            "name": "actorId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "actor-a"
+            }
+          }
+        ]
+      }
+    },
+    "/api/notices/preference": {
+      "post": {
+        "operationId": "notices_setPreference",
+        "summary": "Set own next-turn notice preference",
+        "tags": [
+          "Shared Service Notices"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "tenantId",
+                  "actorId",
+                  "preference"
+                ],
+                "properties": {
+                  "tenantId": {
+                    "type": "string",
+                    "example": "tenant-a"
+                  },
+                  "actorId": {
+                    "type": "string",
+                    "example": "actor-a"
+                  },
+                  "preference": {
+                    "type": "string",
+                    "enum": [
+                      "all",
+                      "proposals_only",
+                      "off"
+                    ],
+                    "example": "all"
+                  }
+                }
+              },
+              "examples": {
+                "own": {
+                  "value": {
+                    "tenantId": "tenant-a",
+                    "actorId": "actor-a",
+                    "preference": "all"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/slp/profiles": {
       "get": {
         "operationId": "slp_listProfiles",
