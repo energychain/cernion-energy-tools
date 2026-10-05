@@ -46,7 +46,7 @@ function combineScores(message, model, vector, options) {
   return {
     status: resolved ? 'resolved' : matches.length ? 'ambiguous' : 'none',
     matches: matches
-      .slice(0, resolved ? 1 : (options.maxCandidates ?? 25))
+      .slice(0, resolved ? 1 : (options.maxCandidates ?? model.functions.length))
       .map((match) => ({ ...match, confidence: match.score / top })),
     totalMatches: matches.length,
   };

@@ -22,10 +22,11 @@ function confirmedCapability(message, previous, model) {
   const classification = previous?.lastClassification;
   if (!classification?.uncertain) return null;
   const choices = choiceCandidates(classification, model);
-  const text = String(message)
-    .trim()
-    .replace(/[.!]+$/, '');
-  const number = text.match(/^(?:nummer\s+|number\s+)?([1-5])$/i);
+  const value = String(message).trim();
+  let end = value.length;
+  while (end && (value[end - 1] === '.' || value[end - 1] === '!')) end--;
+  const text = value.slice(0, end);
+  const number = /^(?:nummer\s+|number\s+)?([1-5])$/i.exec(text);
   return number
     ? choices[Number(number[1]) - 1]?.candidate || null
     : choices.find((choice) => choice.label.toLocaleLowerCase() === text.toLocaleLowerCase())

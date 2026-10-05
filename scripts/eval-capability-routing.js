@@ -1,7 +1,7 @@
 'use strict';
-const fs = require('fs');
-const crypto = require('crypto');
-const Module = require('module');
+const fs = require('node:fs');
+const crypto = require('node:crypto');
+const Module = require('node:module');
 const { CURATED_CAPABILITIES } = require('../src/capability-catalog');
 const { rankCapabilities } = require('../src/capability-routing');
 const fixturePath = require.resolve('../tests/fixtures/capability-routing-eval.json');
@@ -14,7 +14,7 @@ if (hash !== baseline.fixtureHash) throw new Error('Evaluation corpus changed af
 const brokerPath = require.resolve('../services/capability-broker.service');
 const broker = new Module(brokerPath, module);
 broker.filename = brokerPath;
-broker.paths = Module._nodeModulePaths(require('path').dirname(brokerPath));
+broker.paths = Module._nodeModulePaths(require('node:path').dirname(brokerPath));
 broker._compile(
   fs.readFileSync(brokerPath, 'utf8') + '\nmodule.exports.selectForEval = findBestCapability;',
   brokerPath
@@ -52,10 +52,9 @@ function metrics(rows, cases) {
     };
   });
   const rate = (field) => observations.filter((r) => r[field]).length / observations.length;
-  const bins = [0, 0.2, 0.4, 0.6, 0.8].map((lower) => {
+  const bins = [0, 0.2, 0.4, 0.6, 0.8].map((lower, index) => {
     const values = observations.filter(
-      (r) =>
-        r.confidence >= lower && (lower === 0.8 ? r.confidence <= 1 : r.confidence < lower + 0.2)
+      (r) => r.confidence >= lower && (index === 4 ? r.confidence <= 1 : r.confidence < lower + 0.2)
     );
     return {
       lower,
@@ -137,7 +136,7 @@ const report = {
 };
 if (process.argv.includes('--write'))
   fs.writeFileSync(
-    require('path').join(__dirname, '../docs/reviews/730-capability-routing-evaluation.json'),
+    require('node:path').join(__dirname, '../docs/reviews/730-capability-routing-evaluation.json'),
     JSON.stringify(report, null, 2) + '\n'
   );
 console.log(JSON.stringify({ ...report, results: undefined }, null, 2));

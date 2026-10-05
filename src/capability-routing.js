@@ -87,7 +87,7 @@ function phraseMatch(phrase, query, parts, parameters) {
 }
 
 function calibratedConfidence(score, secondScore, parameters = defaults) {
-  if (!(score > 0)) return 0;
+  if (!Number.isFinite(score) || score <= 0) return 0;
   const gap = Math.max(0, (score - secondScore) / score);
   const strength = 1 - Math.exp(-score / parameters.confidenceScale);
   return Math.min(
@@ -100,7 +100,7 @@ function rankCapabilities(message, catalog, options = {}) {
   const parameters = { ...defaults, ...options.parameters };
   const index = indexCatalog(catalog);
   const query = tokens(String(message || '').toLowerCase(), { includeGeneric: true });
-  const parts = query.map(index.split);
+  const parts = query.map((token) => index.split(token));
   const model = options.model || getFunctionModel();
   const domain = normalizePhrase(options.primaryDomain);
   const resolved = new Set(
@@ -159,11 +159,11 @@ function rankCapabilities(message, catalog, options = {}) {
         similarity >= parameters.semanticThreshold ? similarity * parameters.semanticWeight : 0;
       const evidenceScore = lexicalScore + semanticScore;
       const domainBonus = evidenceScore > 0 && domainMatch ? parameters.domainBonus : 0;
+      const requiredInputs = Array.isArray(cap.requiredInputs) ? cap.requiredInputs : [];
       const inputBonus =
         evidenceScore > 0
-          ? (Array.isArray(cap.requiredInputs) ? cap.requiredInputs : []).filter((key) =>
-              Object.hasOwn(options.resolvedParams || {}, key)
-            ).length * parameters.inputBonus
+          ? requiredInputs.filter((key) => Object.hasOwn(options.resolvedParams || {}, key))
+              .length * parameters.inputBonus
           : 0;
       const resolvedPenalty = resolved.has(cap.capability) ? parameters.resolvedPenalty : 0;
       const explicitRouteBonus =

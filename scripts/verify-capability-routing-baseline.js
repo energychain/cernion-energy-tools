@@ -11,7 +11,7 @@ function archived(file, append = '') {
   m.filename = filename;
   m.paths = Module._nodeModulePaths(path.dirname(filename));
   m._compile(
-    execFileSync('git', ['show', `${baseline.baseCommit}:${file}`], {
+    execFileSync('/usr/bin/git', ['show', `${baseline.baseCommit}:${file}`], {
       encoding: 'utf8',
       maxBuffer: 5e6,
     }) + append,
@@ -27,10 +27,14 @@ broker.paths = Module._nodeModulePaths(path.dirname(filename));
 const original = broker.require.bind(broker);
 broker.require = (id) => (id === '../src/capability-catalog' ? catalog : original(id));
 broker._compile(
-  execFileSync('git', ['show', `${baseline.baseCommit}:services/capability-broker.service.js`], {
-    encoding: 'utf8',
-    maxBuffer: 5e6,
-  }) + '\nmodule.exports.selectForEval=findBestCapability;',
+  execFileSync(
+    '/usr/bin/git',
+    ['show', `${baseline.baseCommit}:services/capability-broker.service.js`],
+    {
+      encoding: 'utf8',
+      maxBuffer: 5e6,
+    }
+  ) + '\nmodule.exports.selectForEval=findBestCapability;',
   filename
 );
 const mismatches = [];

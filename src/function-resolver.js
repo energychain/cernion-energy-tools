@@ -127,7 +127,12 @@ function scoreFunction(document, query, index, minPrefixLength) {
 // IDs are opaque lineage identities, never semantic search terms.
 function resolveFunctions(
   message,
-  { model = getFunctionModel(), maxCandidates = 25, minScoreGap = 0.25, minPrefixLength = 5 } = {}
+  {
+    model = getFunctionModel(),
+    maxCandidates = model.functions.length,
+    minScoreGap = 0.25,
+    minPrefixLength = 5,
+  } = {}
 ) {
   const index = indexModel(model);
   const query = new Set(tokens(String(message || '').replace(/\bfn-[\p{L}\p{N}_-]+/giu, '')));
