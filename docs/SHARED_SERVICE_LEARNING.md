@@ -126,3 +126,9 @@ fields, proposal descriptions/identifiers, one feedback emission, inbox visibili
 notice preferences and replay. The persistence test uses real PouchDB across restart.
 The real-service harness observes correction targets and authorization policies
 before/after; I-7 and I-8 are active alongside I-3/I-5/I-10.
+
+## Contextual gaps (#727)
+
+See [SHARED_SERVICE_GAPS.md](SHARED_SERVICE_GAPS.md) for the additive gap state,
+bounded lists, visible `L-n` notices and confirmed `gap_done`/`gap_ignore` reactions.
+The existing attention feedback event and unchanged paid observation cycle are reused.

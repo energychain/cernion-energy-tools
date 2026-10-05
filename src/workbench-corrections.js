@@ -15,6 +15,16 @@ function recognizeCorrection(message) {
   if (/^(?:ja(?:,? richtig)?|richtig|bestätigt|bestätigen|yes|correct|confirm)[.!\s]*$/i.test(text))
     return { type: 'confirm' };
   if (/^(?:nein|abbrechen|no|cancel)[.!\s]*$/i.test(text)) return { type: 'cancel' };
+  const gapReaction = text.match(
+    /^(L-\d+|(?:die )?lücken(?:liste)?(?: für| zu)?\s+.+?)\s+(erledigt|ignorieren)[.!]*$/i
+  );
+  if (gapReaction)
+    return {
+      type: 'gap',
+      identifier: text.match(/\bL-\d+\b/i)?.[0].toUpperCase(),
+      description: gapReaction[1].replace(/^(?:die )?lücken(?:liste)?(?: für| zu)?\s+/i, ''),
+      kind: gapReaction[2].toLowerCase() === 'ignorieren' ? 'gap_ignore' : 'gap_done',
+    };
   const preferences = [
     [/^(?:keine hinweise mehr|no more notices|turn off notices)[.!\s]*$/i, 'off'],
     [/^(?:nur vorschläge|only proposals)[.!\s]*$/i, 'proposals_only'],
@@ -154,6 +164,8 @@ function confirmation(pending) {
   let effect;
   if (pending.type === 'proposal')
     effect = `Vorschlag „${pending.label}“ ${pending.outcome === 'accepted' ? 'annehmen' : 'als falsch ablehnen'}`;
+  else if (pending.type === 'gap')
+    effect = `Lückenliste „${pending.label}“ ${pending.kind === 'gap_ignore' ? 'bis zur Inhaltsänderung ignorieren' : 'bei der nächsten Beobachtung auf Erledigung prüfen'}`;
   else if (pending.type === 'preference')
     effect = `Hinweis-Präferenz auf ${pending.preference} setzen`;
   else if (pending.type === 'undo') effect = `Korrektur für „${pending.label}“ rückgängig machen`;
@@ -229,6 +241,18 @@ async function handleCorrectionTurn(ctx, envelope, store, { model = getFunctionM
         ref: pending.ref,
         outcome: pending.outcome,
       });
+    else if (pending.type === 'gap')
+      result = await ctx.call('shared-service-learning.confirm', {
+        tenantId: p.tenantId,
+        target: 'gap',
+        correctionId: pending.correctionId,
+        correction: {
+          functionId: pending.functionId,
+          gapRef: pending.ref,
+          contentHash: pending.contentHash,
+          kind: pending.kind,
+        },
+      });
     else if (pending.type === 'preference')
       result = await ctx.call('notices.setPreference', {
         tenantId: p.tenantId,
@@ -247,7 +271,7 @@ async function handleCorrectionTurn(ctx, envelope, store, { model = getFunctionM
         correction: pending.correction,
         correctionId: pending.correctionId,
       });
-    if (result.correctionId && pending.type !== 'undo')
+    if (result.correctionId && !['undo', 'gap'].includes(pending.type))
       memory.lastCorrection = { ...pending, correctionId: result.correctionId };
     if (pending.type === 'undo') delete memory.lastCorrection;
     delete memory.pending;
@@ -282,6 +306,34 @@ async function handleCorrectionTurn(ctx, envelope, store, { model = getFunctionM
       );
     }
     memory.pending = { ...intent, ref: matches[0].ref, label: matches[0].summary };
+  } else if (intent.type === 'gap') {
+    const gaps = await ctx.call('shared-service-agent.gapLists', { tenantId: p.tenantId });
+    const notice = intent.identifier
+      ? await resolveNoticeRef(ctx, intent.identifier, p.tenantId)
+      : null;
+    let matches = intent.identifier
+      ? gaps.filter((item) => notice?.kind === 'gap' && item.ref === notice.objectRef)
+      : gaps.filter((item) =>
+          normalizePhrase(item.summary).includes(normalizePhrase(intent.description))
+        );
+    if (!intent.identifier && !matches.length) {
+      const resolution = resolveFunctions(intent.description, { model });
+      if (resolution.status === 'resolved')
+        matches = gaps.filter((item) => item.functionId === resolution.matches[0].functionId);
+    }
+    if (matches.length !== 1) {
+      delete memory.pending;
+      await save();
+      return reply(
+        'Welche sichtbare Lückenliste meinst du? Bitte nenne ihre eindeutige Beschreibung oder Kennung.'
+      );
+    }
+    memory.pending = {
+      ...intent,
+      ...matches[0],
+      label: matches[0].summary,
+      correctionId: require('node:crypto').randomUUID(),
+    };
   } else if (intent.type === 'preference') memory.pending = intent;
   else {
     const phrase = intent.phrase || memory.lastFunctionLabel;

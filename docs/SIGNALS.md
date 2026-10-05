@@ -11,7 +11,7 @@ Signal {
   signalId, operationId, functionIds[], label,
   kind: score|count|state|finding|timestamp,
   value?, unit?, asOf,
-  state: ok|warn|breach|needs_context|unknown,
+  state: ok|warn|breach|gap|needs_context|unknown,
   severity?, code?, threshold?, dueAt?,
   context: { kind, ref }?, evidenceRef?
 }
@@ -38,9 +38,9 @@ Unknown severity stays `unknown`. Explicit failed/not-found responses and
 unavailable/unknown/outside-tenant statuses suppress findings. Without context,
 `needs_*`/`missing_*` responses and every contextual assessment are
 `needs_context`, including their scores and arrays. With supplied context,
-projected missing-evidence statuses can be warnings; native `needs_context`
+projected missing statuses and missing entries become `gap`; native `needs_context`
 remains authoritative. A finding is `warn`/`breach` or kind `finding`, excluding
-`needs_context` and `unknown` first.
+`needs_context`, `unknown` and `gap` first.
 
 ## Catalog generation and limitations
 
@@ -76,9 +76,9 @@ Probe summaries contain only `responded`, `statusClass` and top-level `fields`.
 
 `stateRule` references `signal-projection.rules.json`: `score` uses its normalized
 thresholds/hysteresis; `severity` uses its severity lists; `tokens` uses its status
-patterns. `nonempty` warns when a missing-field array is nonempty, `missing`
-warns for each missing item, `ok` is informational and `native` preserves the
-native state. All rules remain subject to the runtime unavailable/context guards.
+patterns. `nonempty` and `missing` use `contextMissingState` (`gap`) with context and
+`needs_context` without context for nonempty arrays and their individual items.
+`ok` is informational and `native` preserves the native state. All rules remain subject to the runtime unavailable/context guards.
 Runtime projection requires actual response fields. Operations with no matching
 roles remain reported rather than padded with invented signals. Tests validate
 all committed definitions and replay independent observation fixtures; neither
@@ -92,8 +92,9 @@ principal and returns catalog entries associated with the current model.
 `signals.observe({ tenantId, functionId, context?, operationIds? })` requires that
 same principal and accepts an optional subset of operation IDs, never an arbitrary
 action. `context` has opaque `kind` and `ref`; optional `params` supplies existing
-case inputs. Only declared parameter names are forwarded, and tenant overrides
-are rejected. `kind: case` maps `ref` to `caseId` when declared.
+case inputs. Only declared parameter names are forwarded. A supplied context is
+retained only when an actual operation parameter receives it; an unused reference
+cannot create `gap`. Tenant overrides are rejected. `kind: case` maps `ref` to `caseId` when declared.
 
 Only indexed read operations in the function's mandate pass the existing policy,
 No-Call, scope, capability-governance and backend-role guards. Calls forward the
@@ -137,3 +138,6 @@ Dashboard cycles without and with existing-case fixture context, AC-07 no timed
 observation, AC-09 unchanged technical identity and denied privileged roles.
 I-11's real adapter and separate negative self-tests cover context suppression,
 determinism (including values) and calls only from cycles/requests.
+
+See [SHARED_SERVICE_GAPS.md](SHARED_SERVICE_GAPS.md) for contextual gap lists,
+confirmed reactions and the additive #727 contract.

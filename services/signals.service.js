@@ -69,7 +69,9 @@ module.exports = {
           assertReadObservation(operation, fn, ctx, input, this.broker);
           const response = await ctx.call(operation.action, input, { meta: ctx.meta });
           calledOperations++;
-          const projected = await this.persist(p.tenantId, entry, response, context);
+          const observedContext =
+            context && Object.keys(input).some((name) => name !== 'tenantId') ? context : null;
+          const projected = await this.persist(p.tenantId, entry, response, observedContext);
           signals.push(...projected);
         }
         return { signals, calledOperations };

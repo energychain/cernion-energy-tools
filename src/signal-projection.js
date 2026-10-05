@@ -36,7 +36,7 @@ function scoreState(value, previous, rules = defaultRules) {
 }
 function isFinding(signal) {
   return (
-    !['needs_context', 'unknown'].includes(signal.state) &&
+    !['needs_context', 'unknown', 'gap'].includes(signal.state) &&
     (['warn', 'breach'].includes(signal.state) || signal.kind === 'finding')
   );
 }
@@ -66,7 +66,11 @@ function projectSignals(
   const needsContext =
     !context &&
     (operation.classification === 'contextual' ||
-      statusState(response.status, rules) === 'needs_context');
+      statusState(response.status, rules) === 'needs_context' ||
+      Object.entries(response).some(
+        ([field, value]) =>
+          matches(rules.roles.missing, field) && Array.isArray(value) && value.length > 0
+      ));
   const base = {
     operationId: operation.operationId,
     functionIds: [...(operation.functionIds || [])].sort(compareCanonicalStrings),
@@ -77,7 +81,13 @@ function projectSignals(
     ...item,
     ...base,
     signalId: `${operation.operationId}:${identity}`,
-    state: needsContext ? 'needs_context' : unavailable ? 'unknown' : item.state,
+    state: needsContext
+      ? 'needs_context'
+      : unavailable
+        ? 'unknown'
+        : item.state === 'gap' && !context
+          ? 'needs_context'
+          : item.state,
   });
   // Native signals replace the projection, including an intentionally empty array.
   if (Array.isArray(response.signals))
@@ -86,7 +96,7 @@ function projectSignals(
         (s) =>
           s &&
           ['score', 'count', 'state', 'finding', 'timestamp'].includes(s.kind) &&
-          ['ok', 'warn', 'breach', 'needs_context', 'unknown'].includes(s.state)
+          ['ok', 'warn', 'breach', 'gap', 'needs_context', 'unknown'].includes(s.state)
       )
       .map((s) => normalize(s, `native:${s.signalId || signalKey(s.kind, s.code, s.label)}`))
       .sort((a, b) => compareCanonicalStrings(a.signalId, b.signalId));
@@ -96,7 +106,7 @@ function projectSignals(
       {
         label: field,
         ...item,
-        state: context && item.state === 'needs_context' ? 'warn' : item.state,
+        state: item.state === 'needs_context' && context ? rules.contextMissingState : item.state,
       },
       `${field}${suffix}`
     );
@@ -113,7 +123,11 @@ function projectSignals(
         state: scoreState(value, null, rules),
         threshold: rules.score,
       });
-    else if (matches(rules.roles.finding, field) && Array.isArray(value)) {
+    else if (
+      matches(rules.roles.finding, field) &&
+      !matches(rules.roles.missing, field) &&
+      Array.isArray(value)
+    ) {
       const unique = new Map();
       for (const row of value.filter((s) => s && typeof s === 'object')) {
         const identity = signalKey(row.code || row.id || canonical(row));
@@ -146,9 +160,19 @@ function projectSignals(
       }
       for (const [id, item] of unique) add(field, item, `:${id}`);
     } else if (matches(rules.roles.missing, field) && Array.isArray(value)) {
-      add(field, { kind: 'count', value: value.length, state: value.length ? 'warn' : 'ok' });
+      const missingState = context ? rules.contextMissingState : 'needs_context';
+      add(field, { kind: 'count', value: value.length, state: value.length ? missingState : 'ok' });
       for (const row of value)
-        add(field, { kind: 'finding', value: canonical(row), state: 'warn' }, `:${signalKey(row)}`);
+        add(
+          field,
+          {
+            kind: 'finding',
+            value: canonical(row),
+            label: typeof row === 'string' ? row : row?.label || row?.message || field,
+            state: missingState,
+          },
+          `:${signalKey(row)}`
+        );
     } else if (matches(rules.roles.count, field) && Number.isFinite(value))
       add(field, { kind: 'count', value, state: 'ok' });
     else if (matches(rules.roles.state, field) && typeof value === 'string')

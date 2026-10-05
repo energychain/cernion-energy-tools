@@ -38,7 +38,8 @@ function signalDefinitions(response, operation) {
       const role = (name) => new RegExp(rules.roles[name], 'i').test(field);
       if (role('score') && Number.isFinite(value) && value >= 0 && value <= 1)
         add(field, 'score', 'score');
-      else if (role('finding') && Array.isArray(value)) add(field, 'finding', 'severity');
+      else if (role('finding') && !role('missing') && Array.isArray(value))
+        add(field, 'finding', 'severity');
       else if (role('missing') && Array.isArray(value)) {
         add(field, 'count', 'nonempty');
         add(field, 'finding', 'missing');

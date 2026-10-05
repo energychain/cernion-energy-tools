@@ -337,3 +337,15 @@ visibility, bounded queues and own-turn expiry, preferences, errors and restarts
 full news queue without embedding/Knowledge/RAG, and the first buffered SSE
 frame. See [SHARED_SERVICE_NOTICES.md](SHARED_SERVICE_NOTICES.md) for the #701
 reference interface, source contracts and bounded replay/delivery limitations.
+
+## Contextual gap observations (#727)
+
+I-11 additionally rejects `gap` without observation context, duplicate open lists
+for a tenant/function/context, gap signals treated as findings and lists newly
+created from `needs_context`. The real adapter records observation context, actual
+open lists and created-list counts from persisted agent cycles; snapshots expose
+bounded gap associations with tenant and function identities. A separate neutral
+real-service exercise repeats contextual observations and checks one bundled list.
+Positive exercise and independent negative self-tests run inside the unchanged
+59-second harness deadline, alongside all I-1 through I-12. Unit and persistence
+acceptance tests remain outside the harness to keep its time margin.

@@ -27,6 +27,7 @@ function noticeText(item, model) {
     .slice(0, 180);
   const text = {
     proposal: 'Neuer Vorschlag',
+    gap: `Lücken: ${(item.labels || []).join('; ')} (${item.context?.ref || ''})`,
     signal: `Signal: ${item.state}`,
     responsibility: item.cet ? 'CET übernimmt Verantwortung' : 'CET gibt Verantwortung ab',
     tier: item.tier === 'inventory' ? 'Jetzt im Inventar' : 'Jetzt eingesessen',

@@ -14,6 +14,8 @@ const invariants = {
       assert.equal(notice.sourceEvent.tenantId, notice.tenantId, 'notice source tenant mismatch');
       if (notice.kind === 'proposal')
         assert.equal(notice.objectRef, notice.sourceEvent.proposalRef, 'proposal source mismatch');
+      if (notice.kind === 'gap')
+        assert.equal(notice.objectRef, notice.sourceEvent.gapRef, 'gap source mismatch');
       if (notice.kind === 'signal')
         assert.equal(notice.objectRef, notice.sourceEvent.signalId, 'signal source mismatch');
       if (notice.kind === 'responsibility')
@@ -32,6 +34,14 @@ const invariants = {
     }
   },
   'I-11': (state) => {
+    const open = new Set();
+    for (const gap of state.gapLists || []) {
+      assert.ok(gap.context?.kind && gap.context?.ref, 'gap list without context');
+      if (gap.state !== 'open') continue;
+      const key = JSON.stringify([gap.tenantId, gap.functionId, gap.context.kind, gap.context.ref]);
+      assert.ok(!open.has(key), 'duplicate open gap list');
+      open.add(key);
+    }
     for (const call of state.signalCalls || [])
       assert.ok(
         ['agent-cycle', 'request'].includes(call.source),
@@ -48,8 +58,13 @@ const invariants = {
         row.previousFingerprint,
         'same input produced different signal values'
       );
+      for (const signal of row.signals)
+        if (signal.state === 'gap')
+          assert.ok(row.context?.kind && row.context?.ref, 'gap without context');
+      if (row.signals.length && row.signals.every((s) => s.state === 'needs_context'))
+        assert.equal(row.gapListsCreated || 0, 0, 'context absence became a gap list');
       assert.ok(
-        row.findings.every((s) => !['needs_context', 'unknown'].includes(s.state)),
+        row.findings.every((s) => !['needs_context', 'unknown', 'gap'].includes(s.state)),
         'context absence became a finding'
       );
       if (

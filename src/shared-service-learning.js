@@ -20,6 +20,7 @@ function validateCorrection(input, model) {
     activation: ['functionId', 'cet'],
     agent: ['functionId', 'kind', 'factor'],
     neighbor: ['functionId', 'neighborId', 'weight'],
+    gap: ['functionId', 'gapRef', 'contentHash', 'kind'],
   };
   const fields = allowed[input.target];
   const c = input.correction;
@@ -42,6 +43,16 @@ function validateCorrection(input, model) {
     (!kinds.has(c.kind) || (c.factor !== undefined && (!Number.isFinite(c.factor) || c.factor < 1)))
   )
     deny('Invalid agent correction');
+  if (
+    input.target === 'gap' &&
+    (!['gap_done', 'gap_ignore'].includes(c.kind) ||
+      typeof c.gapRef !== 'string' ||
+      !c.gapRef ||
+      c.gapRef.length > 256 ||
+      typeof c.contentHash !== 'string' ||
+      !/^[a-f0-9]{64}$/.test(c.contentHash))
+  )
+    deny('Invalid gap correction');
   if (input.target === 'neighbor') {
     result.neighborId = resolve(c.neighborId);
     if (
