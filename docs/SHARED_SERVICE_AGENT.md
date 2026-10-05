@@ -76,9 +76,13 @@ means zero work. There is no local or time-based funding. Activation supplies at
 most two units per activating tenant turn, apportioned by relevance. #699 does not
 charge separately: `runCycle` charges wake units even for an empty observation.
 
-A cycle first reads eligible cheap operations. Structured `findings`, `deviation`
-and overdue `dueAt` values are interpreted generically; finding summaries are
-bounded. An empty observation never calls an LLM. Findings plus eligible recipients
+A cycle selects eligible operations from `signals.catalog` and observes through
+`signals.observe` (#722). Without accessible case references it selects only
+standing operations. Referenced activation/journal cases supply contextual inputs
+under the technical read-only principal. Only signal `warn`/`breach` or `finding`
+values count, with `needs_context` and `unknown` excluded first. Each called
+operation retains its configured unit cost; catalog bookkeeping adds no charge.
+See [SIGNALS.md](SIGNALS.md) for projection, context and state-event contracts. An empty observation never calls an LLM. Findings plus eligible recipients
 and enough units for both LLM and delivery permit `src/llm-client.js`'s structured
 facade, with explicit tenant quota context. Invalid model output or quota errors
 produce an error-class journal entry, never a proposal.
@@ -137,3 +141,14 @@ unit tests can disable agent integration with `withAgents: false`.
 See [SHARED_SERVICE_LEARNING.md](SHARED_SERVICE_LEARNING.md) for confirmed chat
 corrections, reversible preferences/neighbor overlays, admin actions and proposal
 resolution through the existing feedback path.
+
+## Additive proposal notice event (#723)
+
+After persisting the proposal association and at least one successful persona-inbox
+delivery, the service emits `shared-agent.proposal.created.v1 { tenantId, agentId,
+functionId, proposalRef, summary, createdAt }`. Summary is the fixed safe text
+`Internal review requested.`; recipient-visible notice text comes from Function
+labels and deterministic templates. This adds no LLM call, operation charge,
+feedback or new proposal execution. `notices.resolveRef` maps displayed short refs
+back to the existing proposal ref for #701; the original proposal resolution
+recipient guard remains authoritative. See [SHARED_SERVICE_NOTICES.md](SHARED_SERVICE_NOTICES.md).

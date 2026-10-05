@@ -36,6 +36,7 @@ module.exports = {
     clock: null,
     availableEvents: null,
     dataSources: [],
+    signalCatalog: null,
   },
   actions: {
     pushGaps: {
@@ -82,10 +83,20 @@ module.exports = {
         return this.track(this.receiveLifecycle(ctx.params));
       },
     },
+    'signal.state.changed.v1': {
+      handler(ctx) {
+        // A signal producer may be inside the agent cycle this event wakes.
+        // Accept work without awaiting the next cycle from the producer callback.
+        this.track(this.receiveEvent(ctx.eventName, ctx.params, ctx.id)).catch((error) =>
+          this.logger.warn('Signal wake deferred', error.type || error.name)
+        );
+      },
+    },
     '**': {
       group: 'shared-service-wake-push',
       handler(ctx) {
         if (
+          ctx.eventName === 'signal.state.changed.v1' ||
           ctx.eventName.startsWith('function.') ||
           ctx.eventName.startsWith('shared-agent.') ||
           ctx.eventName.startsWith('$') ||
@@ -112,8 +123,14 @@ module.exports = {
   },
   async started() {
     this.model = getFunctionModel({ model: this.settings.model });
-    this.availableEvents =
-      this.settings.availableEvents || this.model.functions.flatMap((fn) => fn.events?.emits || []);
+    this.settings.signalCatalog ||= require('../signal-catalog.json');
+    this.availableEvents = [
+      ...new Set([
+        ...(this.settings.availableEvents ||
+          this.model.functions.flatMap((fn) => fn.events?.emits || [])),
+        'signal.state.changed.v1',
+      ]),
+    ];
     for (const record of await this.records()) {
       await this.flushJournal(record);
       this.reportMetrics(record);

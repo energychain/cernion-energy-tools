@@ -31,7 +31,7 @@ Person: Ja.
 CET: Korrektur rückgängig gemacht.
 ```
 
-Proposal example, once #723 supplies the identifier:
+Proposal example using an identifier supplied by the real Notices service (#723):
 
 ```text
 Person: Nimm V-12 an.
@@ -98,10 +98,11 @@ Aggregated suggestions give one weight per tenant and pair, the contributing ten
 count, and their mean. They disclose no actor IDs and never write
 `function-model.overrides.json`. Deployment review is required to adopt a suggestion.
 
-## #723 contract seam
+## Notices integration (#723)
 
-Until notices are installed, identifier lookup fails closed; no V identifiers are
-invented. The stub calls:
+The correction dialog uses the real Notices service. Identifier lookup fails
+closed if the service or a visible retained reference is absent; no V identifiers
+are invented. Calls remain under the authenticated actor's principal:
 
 - `notices.resolveRef({ tenantId, actorId, ref })`: returns a visible proposal notice
   `{ kind: 'proposal', objectRef, ref, ... }` or null.
@@ -109,6 +110,11 @@ invented. The stub calls:
   proposals_only or all after chat confirmation. Absence cannot claim success.
 
 This issue implements no notice rendering or signal processing.
+
+Integration tests create a real queued proposal notice and use its assigned
+reference for the confirmed reaction. Terminal proposals no longer resolve through
+that reference. Preference tests verify the real person's persisted document before
+and after confirmation instead of a contract stub.
 
 ## Validation
 

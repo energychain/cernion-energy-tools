@@ -32,6 +32,12 @@ function display(value) {
 
 function activityScope(message) {
   const text = String(message || '').trim();
+  if (
+    /^(?:was gibt es neues|gibt[’']?s (?:was|etwas) neues|was ist passiert|irgendwelche hinweise für mich|what[’']?s new)[?.!\s]*$/i.test(
+      text
+    )
+  )
+    return { overview: true, noticesOnly: true };
   if (/\bcase[_-][\w-]+\b|\b(case|fall|klärfall|klaerfall)\b/i.test(text)) return null;
   if (
     /\b(bewerte|vergleiche|empfiehl|empfehlung|recommend|compare|assess)\b|was soll ich|what should i/i.test(
@@ -219,13 +225,29 @@ async function answerSystemActivity(
   const p = principal(ctx);
   const scope = activityScope(message);
   if (!scope) return { mode: 'system_activity_query', state: 'function_unknown', items: [] };
-  const resolution = await resolveFunctionsHybrid(message, {
-    ...resolverOptions,
-    model,
-    tenantId: p.tenantId,
-    broker: ctx.broker,
-    logger: ctx.logger,
-  });
+  if (scope.noticesOnly) {
+    const source = await readSource(
+      ctx,
+      'notices.list',
+      { tenantId: p.tenantId, actorId: p.actorId },
+      (value) => Array.isArray(value?.items)
+    );
+    return {
+      mode: 'system_activity_query',
+      state: source.available ? 'notices' : 'notices_unavailable',
+      items: [],
+      noticeQueue: source.value || null,
+    };
+  }
+  const resolution = scope.overview
+    ? { metadata: { path: 'overview' } }
+    : await resolveFunctionsHybrid(message, {
+        ...resolverOptions,
+        model,
+        tenantId: p.tenantId,
+        broker: ctx.broker,
+        logger: ctx.logger,
+      });
   if (!scope.overview) {
     if (resolution.status !== 'resolved')
       return {
@@ -357,6 +379,10 @@ function renderFunctionActivity(item) {
 }
 
 function renderSystemActivity(result = {}) {
+  if (result.state === 'notices')
+    return result.noticeQueue?.block || 'Derzeit gibt es keine neuen Hinweise für dich.';
+  if (result.state === 'notices_unavailable')
+    return 'Hinweise sind derzeit nicht erreichbar. Bitte versuche es später erneut.';
   if (result.state === 'function_ambiguous')
     return `Welche Funktion meinst du? ${result.candidates
       .map((item) => display(item.label))

@@ -15,11 +15,20 @@ function normalizePhrase(value) {
 
 const FIELDS = { label: 4, alias: 1, domain: 4, department: 4, keyword: 1 };
 const indexes = new WeakMap();
+const genericVocabulary = require('../scripts/domain-free-core.generic-vocabulary.json');
+const genericExceptions = require('../scripts/domain-free-core.allowlist.json');
+// The measured #713 reference terms and centrally reviewed generic exceptions share normalization.
+const genericTerms = new Set(
+  [
+    ...genericVocabulary.terms,
+    ...genericExceptions.entries.filter((entry) => entry.resolverGeneric === true),
+  ].flatMap(({ term }) => normalizePhrase(term).split(' '))
+);
 
 function tokens(value) {
   return normalizePhrase(value)
     .split(' ')
-    .filter((token) => token.length >= 1);
+    .filter((token) => token.length >= 1 && !genericTerms.has(token));
 }
 
 function texts(fn) {

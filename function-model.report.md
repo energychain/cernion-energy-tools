@@ -1,6 +1,6 @@
 # Function model — generated report
 
-Source SHA-256: `0b29c428501a556a73ddbd6262c30dff9d2842489f6287a76302f8e2937378f9`
+Source SHA-256: `71459bf0ca49c6eeb21822e4412c941efb5240ea2ff1ca744dc9e9facab70b3d`
 
 Capabilities: 172; functions: 106.
 Function vectors: 106/106; missing or incompatible capability vectors: 0.
@@ -478,7 +478,7 @@ None.
 - fn-vdmi-portfolio-gatekeeping
 - fn-vnb-100-tage-assessment
 
-## unresolvedStaticEvents (67)
+## unresolvedStaticEvents (68)
 
 - {"service":"agent","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"agent","ref":"src/llm-client.js:159: dynamic emission"}
@@ -534,6 +534,7 @@ None.
 - {"service":"residual-load","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"shared-service-agent","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"shared-service-agent","ref":"src/llm-client.js:159: dynamic emission"}
+- {"service":"notices","ref":"services/shared-service-notices.service.js:203: spread event handlers"}
 - {"service":"system","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"system","ref":"src/llm-client.js:159: dynamic emission"}
 - {"service":"tabular","ref":"src/job-store.js:67: dynamic emission"}

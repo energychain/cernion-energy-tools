@@ -182,7 +182,7 @@ recipes:
   transformation-financing-scenario-view "Management needs one dossier-safe view over cashflow, gas…"
 resolve: GET /api/_agent/operations?domain=governance
 
-### platform (13 capabilities · 9 recipes · 489 operations)
+### platform (13 capabilities · 9 recipes · 491 operations)
 capabilities: datasource_registry_classification_governance, dr_readiness_evidence_gate, energy_sidecar_route_registry, evidence_grounding_confidence_audit, evu_api_migration_diagnostics, file_ingest_monitor, hitl_role_based_evidence_request, live_update_stream_contract_status, receipt_grounded_presentation_contract, stadtwerk_mauer_e2e_process_demo, stadtwerk_mauer_external_interface_stubs, stadtwerk_mauer_mastr_data_overlay, stadtwerk_mauer_sandbox_runtime
 recipes:
   agentic-production-feedback-prompt "An engineering agent should receive a consistent, redacted…"
@@ -241,17 +241,17 @@ Agents resolving capabilities/recipes/operations do not need to read past this p
 - `tests/vdmi-blueprint-pack-seeds.test.js` — 15 new tests for #591 covering the MaKo/M2C Resolution Value Review seed: catalog lookup/list registration, the six `source_hint_only` read-model references and `metadata_only` command hints, full validator coverage (required roles/evidence/data classes/forbidden actions), qualitative-only Resolution Value framing with positive missing-evidence follow-ups, the explicit HITL boundary/no-call guard, non-executing workbench-clarification-item mapping for `ROLE_MAKO_OWNER`, the exact four-row canonical matrix (roles, gate outcomes, pending downstream sync) via `buildDemoProcessMatrixSync`/`buildLandingRegistryDraftFromBlueprintSeed`, and five negative cases (missing required evidence key, non-role matrix cell, wrong `roleLegend.M`, an executable command hint, and a missing forbidden/consequential-action guard). Full suite: `tests/vdmi-blueprint-pack-seeds.test.js` — 1 suite / 87 tests pass.
 
 ## Source File Hashes
-- CHANGELOG.md: 21ab5a732bb6a6d04484b1ab310a21ae5c0cc2ef57cd6057a8c8f6586037710c
+- CHANGELOG.md: c8a618699096ab1793fdb20645af6b6df21bfa03c03f278fd9c2a2ca165b27a9
 - README.md: 9de87395798902a6fece2da52b033d09e4274f62fc2deda582fc24761e4f0665
 - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
 - src/cookbook-recipes.js: 9e48573ca263ef129bc3944a83b013cff25157e25afc703be0ada62d5af8163d
 - src/capability-catalog.js: 36dea47cc8a157233f709c2e9acda65bc5a453f81bc96e04ced013f9db443ec8
-- openapi-export.json: ad86a5b2993ec536a6a1e3624c3b47ba68c55e2fc080be248c4daecfffb012c4
+- openapi-export.json: a56110dd0050d53c5d4fa26d12d3f818da9f498506dd829e8677db2d60f29a43
 
 ## OpenAPI Surface (full contract, not embedded)
-- path_count: 1123
-- operation_count: 1242
+- path_count: 1125
+- operation_count: 1244
 - full_spec: openapi-export.json (repo root) or GET /api/openapi.json
 
 ## Integrity
-- llm_txt_sha256: aace9e738a1781dc65491727959dbf672b1573b0f27ff4b575a5aa9b1cc7d671
+- llm_txt_sha256: e5cba4a0ed81709bc2c05b9532d3ccb450d0cb0b169f3eb3032be89f24cf1faf

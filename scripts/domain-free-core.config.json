@@ -1,6 +1,8 @@
 {
   "minimumLength": 5,
   "corePaths": [
+    "services/shared-service-notices.service.js",
+    "src/shared-service-notices.js",
     "src/function-model.js",
     "src/function-resolver.js",
     "src/function-resolver-hybrid.js",
@@ -37,7 +39,13 @@
     "services/shared-service-agents.service.js",
     "tests/shared-service-agent-persistence.test.js",
     "services/persona-inbox.service.js",
-    "src/workbench-corrections.js"
+    "src/workbench-corrections.js",
+    "src/signal-projection.js",
+    "services/signals.service.js",
+    "scripts/generate-signal-catalog.js",
+    "signal-projection.rules.json",
+    "tests/signals.test.js",
+    "tests/signals-persistence.test.js"
   ],
   "optionalPaths": [
     "src/function-model.js",
@@ -50,11 +58,7 @@
   "genericPackageShare": 0.05,
   "referenceCorpus": {
     "maxFilesPerPackage": 40,
-    "extensions": [
-      ".js",
-      ".cjs",
-      ".mjs"
-    ],
+    "extensions": [".js", ".cjs", ".mjs"],
     "generatedAt": "2026-10-03T00:00:00.000Z"
   }
 }

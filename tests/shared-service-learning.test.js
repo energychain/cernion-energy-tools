@@ -299,15 +299,28 @@ test.each(['identifier', 'description', 'english'])(
       outcome: null,
     });
     await adapter.agents.save(doc);
-    adapter.broker.createService({
-      name: 'notices',
-      actions: {
-        resolveRef: (ctx) =>
-          ctx.params.ref === 'V-12'
-            ? { kind: 'proposal', objectRef: 'proposal-one', ref: 'V-12' }
-            : null,
-      },
+    await adapter.broker.emit('function.coverage.changed.v1', {
+      tenantId: 'tenant-a',
+      actorId: 'person',
+      functionId: 'fn-b',
+      score: 1,
     });
+    await adapter.noticesService.settle();
+    await adapter.broker.emit('shared-agent.proposal.created.v1', {
+      tenantId: 'tenant-a',
+      agentId: agent.agentId,
+      functionId: 'fn-b',
+      proposalRef: 'proposal-one',
+      summary: 'Internal review requested.',
+    });
+    await adapter.noticesService.settle();
+    const notices = await adapter.broker.call(
+      'notices.list',
+      { tenantId: 'tenant-a', actorId: 'person' },
+      { meta: meta() }
+    );
+    const notice = notices.items.find((item) => item.objectRef === 'proposal-one');
+    expect(notice).toMatchObject({ kind: 'proposal', agentId: agent.agentId });
     const original = adapter.broker.call.getMockImplementation();
     const calls = [];
     jest.spyOn(adapter.broker, 'call').mockImplementation((name, ...args) => {
@@ -317,7 +330,7 @@ test.each(['identifier', 'description', 'english'])(
     });
     const response = await chat(
       mode === 'identifier'
-        ? 'Nimm V-12 an'
+        ? `Nimm ${notice.ref} an`
         : mode === 'english'
           ? 'Accept the proposal about Beta Review follow-up'
           : 'Den Vorschlag zum Beta Review follow-up nehme ich an'
@@ -330,6 +343,13 @@ test.each(['identifier', 'description', 'english'])(
       (item) => item.outcome === 'accepted' && item.ref === 'proposal-one'
     );
     expect(feedbacks).toHaveLength(1);
+    expect(
+      await adapter.broker.call(
+        'notices.resolveRef',
+        { tenantId: 'tenant-a', actorId: 'person', ref: notice.ref },
+        { meta: meta() }
+      )
+    ).toBeNull();
     await chat('Ja');
     expect(
       adapter.agentEvents.filter(
@@ -387,27 +407,23 @@ test('unknown notice identifiers and invisible/ambiguous proposals cannot be acc
   expect(adapter.agentEvents.some((event) => event.outcome)).toBe(false);
 });
 test.each(['off', 'proposals_only', 'all'])(
-  'notice preference %s uses #723 seam only after confirmation',
+  'notice preference %s is persisted by the real notices service only after confirmation',
   async (preference) => {
-    const values = [];
-    adapter.broker.createService({
-      name: 'notices',
-      actions: {
-        setPreference: (ctx) => {
-          values.push(ctx.params.preference);
-          return { preference: ctx.params.preference };
-        },
-      },
-    });
+    const prior = preference === 'all' ? 'off' : 'all';
+    await adapter.broker.call(
+      'notices.setPreference',
+      { tenantId: 'tenant-a', actorId: 'person', preference: prior },
+      { meta: meta() }
+    );
     const command = {
       off: 'Keine Hinweise mehr',
       proposals_only: 'Nur Vorschläge',
       all: 'Alle Hinweise',
     }[preference];
     await chat(command);
-    expect(values).toEqual([]);
+    expect((await adapter.noticesService.read('tenant-a', 'person')).preference).toBe(prior);
     await chat('Ja');
-    expect(values).toEqual([preference]);
+    expect((await adapter.noticesService.read('tenant-a', 'person')).preference).toBe(preference);
   }
 );
 test('idempotent correction retries and undo retries have one effect and one journal record', async () => {

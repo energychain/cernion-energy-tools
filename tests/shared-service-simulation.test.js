@@ -29,6 +29,7 @@ test('AC-03: at least three distinct fixed seeds and reproducible histories', ()
       'attention-correction',
       'wake-exercise',
       'coverage',
+      'notice-exercise',
     ])
   );
   expect(

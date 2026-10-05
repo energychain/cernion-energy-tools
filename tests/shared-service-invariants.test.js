@@ -58,7 +58,7 @@ async function exerciseRealServices(seed) {
   try {
     await runSimulation({
       seed,
-      history: generateHistory({ seed, functions }),
+      history: [{ type: 'signal-exercise' }, ...generateHistory({ seed, functions })],
       createAdapter: async () => {
         jest.setSystemTime(Date.UTC(2026, 0, 1));
         const adapter = await realAdapter.createAdapter({ functions, jest });
@@ -159,6 +159,34 @@ const agent = () => ({
   stats: {},
 });
 const observations = {
+  'I-12': () => ({
+    ...base(),
+    notices: [
+      {
+        tenantId: 'tenant-a',
+        actorId: 'actor-a',
+        ref: 'V-1',
+        functionId: 'fn-a',
+        visible: true,
+        kind: 'proposal',
+        objectRef: 'proposal-a',
+        sourceEvent: { tenantId: 'tenant-a', functionId: 'fn-a', proposalRef: 'proposal-a' },
+      },
+    ],
+  }),
+  'I-11': () => ({
+    ...base(),
+    signalCalls: [{ source: 'agent-cycle' }],
+    signalObservations: [
+      {
+        source: 'agent-cycle',
+        signals: [{ state: 'needs_context' }],
+        previousSignals: [{ state: 'needs_context' }],
+        findings: [],
+        proposals: 0,
+      },
+    ],
+  }),
   'I-10': () => ({
     ...base(),
     attentionTransitions: [
@@ -266,6 +294,12 @@ const observations = {
   }),
 };
 const corrupt = {
+  'I-12': (s) => {
+    s.notices.push({ ...s.notices[0] });
+  },
+  'I-11': (s) => {
+    s.signalObservations[0].findings.push({ state: 'needs_context' });
+  },
   'I-10': (s) => {
     s.attentionTransitions[0].after.relevance = 2;
   },
@@ -413,3 +447,29 @@ test.each(['consumption', 'refill'])('I-10 rejects %s without funding or turns',
   else state.attentionTransitions[0].after.replenishedUnits = 3;
   expect(() => assertInvariants(state, ['I-10'])).toThrow('I-10');
 });
+
+test.each(['visibility', 'event', 'tenant', 'function', 'reference'])(
+  'I-12 rejects %s violation',
+  (kind) => {
+    const s = observations['I-12']();
+    if (kind === 'visibility') s.notices[0].visible = false;
+    if (kind === 'event') s.notices[0].sourceEvent = null;
+    if (kind === 'tenant') s.notices[0].sourceEvent.tenantId = 'tenant-b';
+    if (kind === 'function') s.notices[0].sourceEvent.functionId = 'fn-b';
+    if (kind === 'reference') s.notices[0].sourceEvent.proposalRef = 'proposal-b';
+    expect(() => assertInvariants(s, ['I-12'])).toThrow('I-12');
+  }
+);
+
+test.each(['source', 'call', 'determinism', 'proposal'])(
+  'I-11 rejects %s independently',
+  (kind) => {
+    const state = observations['I-11']();
+    const row = state.signalObservations[0];
+    if (kind === 'source') row.source = 'timer';
+    if (kind === 'call') state.signalCalls[0].source = 'timer';
+    if (kind === 'determinism') row.previousSignals = [];
+    if (kind === 'proposal') row.proposals = 1;
+    expect(() => assertInvariants(state, ['I-11'])).toThrow('I-11');
+  }
+);
