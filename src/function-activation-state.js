@@ -69,7 +69,10 @@ function activationRows(document, model, settings, now) {
             ...contexts
               .filter((item) => item.functionId === functionId)
               .slice(-5)
-              .map(({ kind, ref }) => ({ kind: 'touched', context: { kind, ref } })),
+              .map(({ kind, ref, actors }) => ({
+                kind: 'touched',
+                context: { kind, ref, actorIds: (actors || []).map((actor) => actor.actorId) },
+              })),
           ]
         : [],
       ...(saved.find((item) => item.attention)
@@ -105,7 +108,7 @@ function activationRows(document, model, settings, now) {
         weight: edge.weight,
         evidence: edge.evidence,
       });
-      for (const { kind, ref } of contexts
+      for (const { kind, ref, actors } of contexts
         .filter((item) => item.functionId === source.functionId)
         .slice(-5))
         reasons.push({
@@ -113,7 +116,7 @@ function activationRows(document, model, settings, now) {
           functionId: source.functionId,
           weight: edge.weight,
           evidence: edge.evidence,
-          context: { kind, ref },
+          context: { kind, ref, actorIds: (actors || []).map((actor) => actor.actorId) },
         });
       candidates.set(target.functionId, reasons);
     }

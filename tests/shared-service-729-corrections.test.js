@@ -20,6 +20,10 @@ const model = {
   ],
 };
 test.each([
+  ['Ich übernehme Function Alpha', 'coverage'],
+  ['Das übernehme ich: Function Alpha', 'coverage'],
+  ['Function Alpha mache ab jetzt ich', 'coverage'],
+  ['Function Alpha liegt jetzt bei mir', 'coverage'],
   ['Darum musst du dich nicht kümmern: Function Alpha', 'activation'],
   ['Das mache ich selbst: Function Alpha', 'coverage'],
   ['Nimm Function Alpha ins Inventar auf', 'agent'],
@@ -35,7 +39,7 @@ test.each([
   ['Set Function Alpha to inventory', 'agent'],
   ['Put Function Alpha into the inventory', 'agent'],
 ])('%s resolves through the common resolver before assessment/case routing', (message, target) => {
-  expect(classifyWorkbenchIntent(message)).toBe('correction');
+  expect(classifyWorkbenchIntent(message, { cetCaseId: 'existing-case' })).toBe('correction');
   const correction = recognizeCorrection(message);
   expect(correction.target).toBe(target);
   expect(resolveFunctions(correction.phrase, { model }).status).toBe('resolved');

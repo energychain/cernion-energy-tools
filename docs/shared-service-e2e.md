@@ -12,20 +12,24 @@ filesystem paths into its temporary directory; their service code stays unchange
 The test calls `openai-compatible.chatCompletions` with a service token and real
 Workbench tenant/user mappings for Alice and Bob. The broker recommendation and
 domain routing run normally. Selected capabilities are read from the actual
-persisted routing result; assertions never name the chosen capability. A fixture
-graph, derived from the committed function/signal/operation catalogs, connects all
-possible touched functions to two distinct functions with permitted contextual
-Dashboard reads. These real reads accept case IDs and reliably produce missing
-input signals. This prevents #730 selection changes from choosing away the
-integration under test. The selected functions' other operation memberships are
-restricted in the fixture to those reads, keeping this test independent of unrelated
-backends. The harness separately retains the unmodified committed graph and every
-invariant.
+persisted routing result; assertions never name the chosen capability. Every neighbor
+edge from the committed `function-model.json` is preserved and checked for equality.
+The only operation fixture restricts each function to one of its own real, permitted
+contextual Dashboard reads, selected from the committed signal/operation catalogs.
+The test does not create edges or seed coverage, recipients, agents or proposals.
 
-The only external seams are empty embedding vectors for startup enrichment and
-empty knowledge routing hints. Text/chat/structured LLM generation throws and its
-call count must stay zero. No selected capability, case state, coverage, activation,
-agent, gap, notice, correction or authorization result is stubbed.
+External Open-WebUI IDs (`alice`, `bob`) differ from their mapped CET actor IDs
+(`cet-alice`, `cet-bob`). Assertions use the CET IDs for coverage, context creators,
+proposal associations and internal inbox delivery. No agent-persona entries are created.
+
+External seams are empty startup embeddings/knowledge hints and a deterministic
+structured proposal summary at the existing LLM facade. Text/chat generation
+throws; no LLM credentials or network are required. All observations, budget charges,
+proposal persistence/delivery, corrections and visibility checks run normally.
+
+The creator receives a gap notice after exactly one activating case turn, at observed
+coverage below the threshold. Further real case follow-ups fund at least one internal
+proposal; this preserves the normal allowance and HITL policies.
 
 The script prints a compact snapshot after every required step and the turn
 transcript. It checks:
@@ -39,10 +43,10 @@ transcript. It checks:
    “Darum musst du dich nicht kümmern” correction removes CET responsibility only
    after confirmation.
 7. Undo restores that confirmed responsibility change through the learning service.
-8. Bob's confirmed self-responsibility transfers human coverage and retires the
+8. Bob's confirmed “Ich übernehme …” transfers human coverage and retires the
    complementary agent.
-9. Bob's inventory request is recognized, but confirmation fails without admin
-   authority; inventory remains false.
+9. Bob's inventory confirmation returns a polite admin-only answer and journals
+   the rejection; no client exception and inventory remains false.
 
 Additional negative turns keep the case count unchanged. An unmapped service turn
 increments the skip counter and receives no coverage. Unit tests additionally cover
@@ -55,8 +59,3 @@ A newly qualifying recipient can receive an already open gap on its next
 observation even if the first observation preceded human coverage. Republishing
 uses the same content-event identity, preserving once-only delivery to people who
 already received it.
-
-For reproducible reporting, record the final line's wall-clock time separately from
-Jest's test duration. The local acceptance run on Node 24.18 started 155 services,
-completed in 7.83 s, and passed every real stop hook. Its corresponding unchanged
-harness invariants completed in 29.44 s. CI independently repeats the e2e on Node 22.

@@ -549,23 +549,9 @@ module.exports = {
       await this.charge(agent, 'operation', record);
       return this.broker.call(operation.action, { ...input, tenantId: agent.tenantId }, { meta });
     },
-    async propose(doc, agent, findings, record) {
+    async propose(doc, agent, findings, record, context) {
       const fn = getFunction(agent.functionId, { model: this.model });
-      const edges = await this.broker.call(
-        'activation.neighbors',
-        { tenantId: agent.tenantId, functionId: agent.functionId },
-        { meta: this.actorMeta(agent) }
-      );
-      const neighbors = new Set(edges.map((row) => row.functionId));
-      const actors = [
-        ...new Set(
-          resolveRecords(doc.coverage, this.model)
-            .filter(
-              (row) => neighbors.has(row.functionId) && row.score >= this.settings.coverageThreshold
-            )
-            .map((row) => row.actorId)
-        ),
-      ].sort(compareCanonicalStrings);
+      const actors = await this.gapRecipients(doc, agent, context);
       if (
         !actors.length ||
         ((agent.stats.rejected || 0) > 0 &&
@@ -574,18 +560,24 @@ module.exports = {
       )
         return 0;
       await this.charge(agent, 'operation', record);
-      const directory = await this.broker.call(
-        'agent-persona.list',
-        { tenantId: agent.tenantId },
-        { meta: this.actorMeta(agent) }
-      );
-      const recipients = (directory.items || []).filter(
-        (item) =>
-          item.tenantId === agent.tenantId &&
-          item.personaType === 'human' &&
-          item.status === 'active' &&
-          actors.includes(item.openclawUserId || item.id)
-      );
+      const directory = await this.broker
+        .call('agent-persona.list', { tenantId: agent.tenantId }, { meta: this.actorMeta(agent) })
+        .catch((error) => {
+          if (['SERVICE_NOT_FOUND', 'SERVICE_NOT_AVAILABLE'].includes(error.type))
+            return { items: [] };
+          throw error;
+        });
+      const recipients = actors
+        .map((actorId) => {
+          const persona = (directory.items || []).find(
+            (item) =>
+              item.tenantId === agent.tenantId && (item.openclawUserId || item.id) === actorId
+          );
+          if (persona && (persona.personaType !== 'human' || persona.status !== 'active'))
+            return null;
+          return { id: persona?.id || actorId, actorId };
+        })
+        .filter(Boolean);
       if (!recipients.length) return 0;
       // Keep enough units for the model AND at least one internal delivery.
       if (
@@ -616,6 +608,7 @@ module.exports = {
         summary,
         functionId: agent.functionId,
         outcome: null,
+        ...(context ? { context: { kind: context.kind, ref: context.ref } } : {}),
         recipients: [],
       };
       // Persist the association before publishing a human-facing proposal.
@@ -642,7 +635,7 @@ module.exports = {
         );
         if (result.success) {
           delivered++;
-          proposal.recipients.push(recipient.openclawUserId || recipient.id);
+          proposal.recipients.push(recipient.actorId);
           await this.save(doc);
         }
       }
@@ -805,7 +798,8 @@ module.exports = {
             doc,
             agent,
             findings.slice(0, this.settings.maxFindings),
-            record
+            record,
+            context
           );
       } catch (error) {
         errorClass = error.type || error.name;

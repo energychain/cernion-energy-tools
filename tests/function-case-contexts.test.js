@@ -69,7 +69,10 @@ test('case context reaches only immediate uncovered neighbor and expires from pr
   const rows = activationRows(doc, model, settings, Date.now());
   expect(rows.find((row) => row.functionId === 'fn-b').reason).toEqual(
     expect.arrayContaining([
-      expect.objectContaining({ kind: 'neighbor', context: { kind: 'case', ref: 'case-a' } }),
+      expect.objectContaining({
+        kind: 'neighbor',
+        context: { kind: 'case', ref: 'case-a', actorIds: ['person-a'] },
+      }),
     ])
   );
   expect(rows.find((row) => row.functionId === 'fn-c').reason).toEqual([]);
@@ -79,4 +82,15 @@ test('case context reaches only immediate uncovered neighbor and expires from pr
       .flatMap((row) => row.reason)
       .some((reason) => reason.context)
   ).toBe(false);
+});
+
+test('context contributors stay bounded and expire independently when a case is refreshed', () => {
+  touch('case-a', false);
+  touch('case-a', true, 'person-b');
+  expect(doc.contexts[0].actors.map((actor) => actor.actorId)).toEqual(['person-a', 'person-b']);
+  touch('case-a', true, 'person-b');
+  touch('case-a', true, 'person-b');
+  expect(doc.contexts[0].actors).toEqual([{ actorId: 'person-b', ageTurns: 0 }]);
+  for (let n = 0; n < 12; n++) touch('case-a', false, `person-${n}`);
+  expect(doc.contexts[0].actors).toHaveLength(5);
 });

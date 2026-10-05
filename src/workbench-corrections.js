@@ -73,6 +73,11 @@ function recognizeCorrection(message) {
     [
       'coverage',
       { score: 1 },
+      /^(?:ich übernehme\s*:?\s*(.+?)|das übernehme ich\s*[:–-]\s*(.+?)|(.+?) mache ab jetzt ich|(.+?) liegt jetzt bei mir)[.!]*$/i,
+    ],
+    [
+      'coverage',
+      { score: 1 },
       /^(?:ich kümmere mich (?:selbst|allein) um (.+?)|(.+?) übernehme ich(?: selbst)?|(?:leave|hand) (.+?) to me|I(?:'ll| will) take care of (.+?) myself)[.!]*$/i,
     ],
     [
@@ -264,6 +269,23 @@ async function handleCorrectionTurn(ctx, envelope, store, { model = getFunctionM
     const pending = memory.pending;
     if (!pending || pending.candidates)
       return reply('Es liegt keine eindeutig aufgelöste Korrektur zur Bestätigung vor.');
+    if (
+      pending.target === 'agent' &&
+      ['pin', 'unpin'].includes(pending.correction?.kind) &&
+      !p.roles.some((role) => ['ROLE_ADMIN', 'ROLE_TENANT_ADMIN'].includes(role))
+    ) {
+      const responseText = 'Das kann nur eine Administratorin bzw. ein Administrator festlegen.';
+      await ctx.call('journal.append', {
+        tenantId: p.tenantId,
+        functionId: pending.correction.functionId,
+        kind: 'decided',
+        summary: `Inventarkorrektur abgelehnt: ${responseText}`,
+        refs: [],
+      });
+      delete memory.pending;
+      await save();
+      return reply(responseText);
+    }
     let result;
     if (pending.type === 'proposal')
       result = await ctx.call('shared-service-agent.resolveProposal', {

@@ -294,7 +294,7 @@ module.exports = {
             conversationId,
             turnRef: doc.sourceRef,
             confidence: weight,
-            ...(input.context ? { context: input.context } : {}),
+            ...(input.context ? { context: { ...input.context, actorId: doc.actorId } } : {}),
             at: new Date(now).toISOString(),
           },
         });

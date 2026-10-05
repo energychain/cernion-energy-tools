@@ -332,3 +332,21 @@ inaccessible and missing cases, are audited in the function Journal; an audit
 failure prevents identifiers from being returned. All subsequent signal reads
 continue under the same read-only agent identity and existing scope/role/mandate,
 tenant and backend visibility checks.
+
+### Context contributors and internal recipients (#729 review)
+
+`function.touched.v1.context.actorId` is set from the authenticated mapped CET actor,
+never from caller-supplied context. Each retained case reference also holds up to five
+contributors, with their own relevant-turn ages. Refreshing the same case by another
+person does not extend old contributors indefinitely. They expire on the same turn
+clock as the reference; reasons expose only live `context.actorIds`.
+
+Gap recipients are the union of threshold coverage on the function/direct neighbors
+and live contributors of that specific case context. Proposal recipients use the
+same source, with optional existing persona aliases; an agent-persona entry is not
+required. Proposals still use the internal inbox, existing budget charges and HITL.
+The notice queue honors these persisted associations only while currently eligible;
+ordinary `canSeeGap`/signal/case visibility checks are unchanged.
+
+Confirmed pin/unpin requests by non-admins leave state unchanged, append a readable
+rejection to the function journal and return a polite chat response.

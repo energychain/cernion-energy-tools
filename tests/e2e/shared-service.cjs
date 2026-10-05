@@ -29,7 +29,12 @@ for (const method of [
 const llm = require(path.join(root, 'src/llm-client'));
 let modelCalls = 0;
 llm.embeddings = async () => []; // startup catalog enrichment uses an empty offline vector fixture
-for (const method of ['generateText', 'generateChat', 'generateStructured'])
+let proposalModelCalls = 0;
+llm.generateStructured = async () => {
+  proposalModelCalls++;
+  return { summary: 'Bitte prüfe die fehlenden Angaben zum aktuellen Fall.' };
+};
+for (const method of ['generateText', 'generateChat'])
   llm[method] = async () => {
     modelCalls++;
     throw new Error('Unexpected LLM call');
@@ -45,8 +50,9 @@ broker.localBus.on('$broker.error', (event) => {
   if (event.type === 'FAILED_STOPPING_SERVICES') stopFailures.push(event.error);
 });
 const tenantId = 'e2e-tenant';
+const actor = (id) => (['alice', 'bob'].includes(id) ? `cet-${id}` : id);
 const auth = (id, roles = ['ROLE_USER']) => ({
-  authUser: { tenantId, id, roles, scope: 'read-only' },
+  authUser: { tenantId, id: actor(id), roles, scope: 'read-only' },
 });
 const serviceMeta = {
   apiToken: {
@@ -69,33 +75,12 @@ const candidates = catalog.operations.filter(
     entry.parameterNames.includes('caseId') &&
     !policyReason(index.operations.find((op) => op.operationId === entry.operationId))
 );
-const targets = [];
-for (const entry of candidates) {
-  const fn = model.functions.find((item) => item.operations.includes(entry.action));
-  if (fn && !targets.some((target) => target.fn.functionId === fn.functionId))
-    targets.push({ fn, entry });
-  if (targets.length === 2) break;
-}
-assert.equal(targets.length, 2);
-// Catalog-derived fixture graph guarantees a contextual read regardless of #730
-// capability selection. Routing itself and the real dashboard actions are untouched.
-for (const fn of model.functions)
-  fn.neighbors = targets
-    .filter((target) => target.fn !== fn)
-    .map(({ fn: target }) => ({
-      functionId: target.functionId,
-      weight: 1,
-      evidence: ['e2e catalog fixture'],
-    }));
-for (const { fn, entry } of targets) {
-  fn.operations = [entry.action];
-  fn.neighbors = model.functions
-    .filter((other) => other !== fn)
-    .map((other) => ({
-      functionId: other.functionId,
-      weight: 1,
-      evidence: ['e2e catalog fixture'],
-    }));
+// Only select real contextual read operations. Preserve every committed neighbor
+// edge: recipients must come from the actual case turn, never a fixture graph.
+const committedNeighbors = model.functions.map((fn) => structuredClone(fn.neighbors));
+for (const fn of model.functions) {
+  const entry = candidates.find((item) => fn.operations.includes(item.action));
+  fn.operations = entry ? [entry.action] : [];
 }
 let sequence = 0;
 const turns = [];
@@ -152,7 +137,14 @@ async function snapshot(step) {
       agents: doc.agents.map((agent) => ({
         functionId: agent.functionId,
         lifecycle: agent.lifecycle,
-        gaps: (agent.gapLists || []).map((gap) => gap.state),
+        gaps: (agent.gapLists || []).map((gap) => ({
+          state: gap.state,
+          recipients: gap.recipients,
+        })),
+        proposals: (agent.proposals || []).map((proposal) => ({
+          recipients: proposal.recipients,
+          outcome: proposal.outcome || 'pending',
+        })),
       })),
     })
   );
@@ -184,10 +176,10 @@ async function main() {
       if (schema.name === 'signals')
         Object.assign(settings, {
           model,
-          catalog: { ...catalog, operations: targets.map((target) => target.entry) },
+          catalog: { ...catalog, operations: candidates },
         });
       if (schema.name === 'shared-service-agent')
-        settings.signalCatalog = { ...catalog, operations: targets.map((target) => target.entry) };
+        settings.signalCatalog = { ...catalog, operations: candidates };
       if (schema.name === 'shared-service-learning') settings.model = model;
       broker.createService({ ...schema, settings });
     }
@@ -218,7 +210,7 @@ async function main() {
       client: 'open-webui',
       externalOrgId: 'org',
       externalUserId: person,
-      cetActorId: person,
+      cetActorId: actor(person),
       roles: ['ROLE_USER'],
     });
   const started = await turn(
@@ -236,47 +228,44 @@ async function main() {
     ).lastClassification.selectedCapabilities || [];
   assert(selected.length, 'real router supplies selected capabilities');
   await snapshot('1 case_start');
-  await turn(
-    'alice',
-    'Weiter mit diesem Fall: Netzanschluss Anschlussleistung Mittelspannung prüfen.'
-  );
-  await turn('bob', 'Starte einen Fall: Netzanschluss Anschlussleistung Mittelspannung prüfen.');
-  await turn(
-    'bob',
-    'Weiter mit diesem Fall: Netzanschluss Anschlussleistung Mittelspannung prüfen.'
-  );
   const matrix = await call('function-coverage.matrix', { tenantId, limit: 100 });
-  assert(matrix.items.some((row) => row.actorId === 'alice'));
-  assert(matrix.items.some((row) => row.actorId === 'bob'));
+  assert(matrix.items.some((row) => row.actorId === actor('alice')));
   assert(!matrix.items.some((row) => row.actorId === 'svc-openwebui'));
-  await snapshot('2 separate coverage');
+  assert.equal(sequence, 1);
+  assert.deepEqual(
+    model.functions.map((fn) => fn.neighbors),
+    committedNeighbors
+  );
+  await snapshot('2 creator coverage after one case turn');
   const rows = await call('activation.list', { tenantId });
   const row = rows.find(
     (item) =>
-      item.responsibility.cet && item.reason.some((reason) => reason.context?.ref === caseId)
+      item.responsibility.cet &&
+      item.reason.some((reason) => reason.context?.ref === caseId) &&
+      model.functions.find((fn) => fn.functionId === item.functionId).operations.length
   );
   assert(row, 'complementary CET activation retains the actual case');
   const agents = broker.getLocalService('shared-service-agent');
+  assert(
+    matrix.items.every((item) => item.score < agents.settings.coverageThreshold),
+    'single-turn creator receives the gap below the coverage threshold'
+  );
   const agent = (await agents.readDocument(tenantId)).agents.find(
     (item) => item.functionId === row.functionId
   );
   assert(agent);
   await snapshot('3 activation and agent');
-  // Prefer Alice's most recent context through the normal turn path.
-  await turn(
-    'alice',
-    'Weiter mit diesem Fall: Netzanschluss Anschlussleistung Mittelspannung prüfen.'
-  );
-  const run = await call('shared-service-agent.runCycle', { tenantId, agentId: agent.agentId });
-  await settle();
-  console.log('cycle', JSON.stringify(run));
   const stored = (await agents.readDocument(tenantId)).agents.find(
     (item) => item.agentId === agent.agentId
   );
   const gap = stored.gapLists.find((item) => item.context.ref === caseId && item.state === 'open');
-  assert(gap, 'real contextual dashboard with missing inputs creates a gap list');
-  assert.equal(modelCalls, 0);
-  await snapshot('4 context observation and gap list');
+  assert(gap, 'one real case turn creates a contextual gap list');
+  assert(
+    gap.recipients.includes(actor('alice')),
+    'case creator receives gaps without threshold coverage'
+  );
+  assert.equal(sequence, 1);
+  await snapshot('4 creator gap after one case turn');
   const next = await turn('alice', 'Was gibt es Neues?');
   const text = next.choices[0].message.content;
   const notice = text.match(/L-\d+/)?.[0];
@@ -286,13 +275,34 @@ async function main() {
       JSON.stringify({
         text,
         gap: stored.gapLists,
-        queue: await call('notices.list', { tenantId, actorId: 'alice' }, auth('alice')),
+        queue: await call('notices.list', { tenantId, actorId: actor('alice') }, auth('alice')),
         matrix: matrix.items,
       })
     );
   assert(notice, 'next mapped turn displays the gap notice');
   assert(!/attention_|Push source unavailable/.test(text));
   await snapshot('5 next-turn notice');
+  let proposal;
+  for (let attempt = 0; attempt < 3 && !proposal; attempt++) {
+    await turn(
+      'alice',
+      'Weiter mit diesem Fall: Netzanschluss Anschlussleistung Mittelspannung prüfen.'
+    );
+    proposal = (await agents.readDocument(tenantId)).agents
+      .flatMap((item) => item.proposals)
+      .find((item) => item.recipients.includes(actor('alice')));
+  }
+  assert(proposal, 'real activating turns fund an internal proposal for the mapped creator');
+  const pendingInbox = await broker
+    .getLocalService('persona-inbox')
+    .getTenantInboxMessages(tenantId);
+  assert(
+    pendingInbox.some(
+      (item) => item.personaId === actor('alice') && item.hitlItemId === proposal.ref
+    )
+  );
+  assert(proposalModelCalls > 0);
+
   const correction = await turn('alice', `${notice} erledigt`);
   assert.equal(correction.metadata.intentMode, 'correction');
   const acceptedGap = await turn('alice', 'Ja');
@@ -329,16 +339,27 @@ async function main() {
     true
   );
   await snapshot('7 responsibility undo');
-  await turn('bob', `Das mache ich selbst: ${fn.displayLabel}`);
+  await turn('bob', 'Starte einen Fall: Netzanschluss Anschlussleistung Mittelspannung prüfen.');
+  const twoPeople = await call('function-coverage.matrix', { tenantId, limit: 100 });
+  assert(twoPeople.items.some((item) => item.actorId === actor('alice')));
+  assert(twoPeople.items.some((item) => item.actorId === actor('bob')));
+  const takeover = await turn('bob', `Ich übernehme ${fn.displayLabel}`);
+  assert.equal(takeover.metadata.intentMode, 'correction');
   await turn('bob', 'Ja');
   const handoff = (await call('activation.list', { tenantId })).find(
     (item) => item.functionId === row.functionId
   );
-  assert(handoff.responsibility.humans.includes('bob'));
+  assert(handoff.responsibility.humans.includes(actor('bob')));
   assert.equal(handoff.responsibility.cet, false);
   await snapshot('8 second-person handoff');
   await turn('bob', `Nimm ${fn.displayLabel} ins Inventar auf`);
-  await assert.rejects(turn('bob', 'Ja'), /Admin|admin|role|Role/);
+  const rejectedPin = await turn('bob', 'Ja');
+  assert.match(
+    rejectedPin.choices[0].message.content,
+    /Das kann nur eine Administratorin bzw. ein Administrator festlegen/
+  );
+  const audit = await call('journal.byFunction', { tenantId, functionId: row.functionId });
+  assert(audit.some((entry) => /Inventarkorrektur abgelehnt/.test(entry.summary)));
   const afterPin = (await call('activation.list', { tenantId })).find(
     (item) => item.functionId === row.functionId
   );

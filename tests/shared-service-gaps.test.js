@@ -366,3 +366,40 @@ test('729: existing open gaps reach newly covered people without notifying exist
     0
   );
 });
+
+test('729 review: low-coverage context creators receive gaps, expired and unrelated actors do not', async () => {
+  await adapter.apply({
+    type: 'touch',
+    payload: {
+      tenantId: 'tenant-a',
+      actorId: 'person-a',
+      functionId: 'fn-a',
+      conversationId: 'context',
+      turnRef: 'context-turn',
+      confidence: 1,
+      context: { kind: 'case', ref: contextRef },
+      at: new Date(adapter.clock.value).toISOString(),
+    },
+  });
+  const doc = await adapter.agents.readDocument('tenant-a');
+  doc.coverage = [];
+  await adapter.agents.save(doc);
+  await cycle();
+  expect((await gaps())[0].recipients).toEqual(['person-a']);
+  expect((await deliver('creator')).items.some((item) => item.kind === 'gap')).toBe(true);
+  const state = await adapter.service.readDocument('tenant-a');
+  for (const context of state.contexts)
+    context.ageTurns = adapter.service.settings.contextRetentionTurns;
+  await adapter.service.db.put(state);
+  const saved = await adapter.agents.readDocument('tenant-a');
+  expect(
+    await adapter.agents.gapRecipients(saved, saved.agents[0], { kind: 'case', ref: contextRef })
+  ).toEqual([]);
+  expect(
+    await adapter.broker.call(
+      'shared-service-agent.gapLists',
+      { tenantId: 'tenant-a' },
+      { meta: meta() }
+    )
+  ).toEqual([]);
+});
