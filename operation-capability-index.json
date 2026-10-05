@@ -2,16 +2,16 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.99.22",
-  "sourceOpenApiHash": "ad86a5b2993ec536a6a1e3624c3b47ba68c55e2fc080be248c4daecfffb012c4",
+  "sourceOpenApiHash": "a56110dd0050d53c5d4fa26d12d3f818da9f498506dd829e8677db2d60f29a43",
   "coverage": {
-    "rawOperationCount": 1242,
-    "operationCount": 986,
-    "agentableCount": 984,
+    "rawOperationCount": 1244,
+    "operationCount": 988,
+    "agentableCount": 986,
     "nonAgentableCount": 2,
     "byOperationKind": {
-      "data_read": 425,
+      "data_read": 426,
       "admin": 21,
-      "object_store_write": 263,
+      "object_store_write": 264,
       "process_step": 26,
       "process_start": 50,
       "advisory_plan": 48,
@@ -20,7 +20,7 @@
       "dashboard_read": 125,
       "internal": 7
     },
-    "resolvedActionCount": 967,
+    "resolvedActionCount": 969,
     "unresolvedActionCount": 19,
     "unresolvedActions": [
       {
@@ -69212,6 +69212,171 @@
           "VDMI",
           "V/D/M/I matrix",
           "audit trail"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "notices_list",
+      "method": "GET",
+      "path": "/api/notices/",
+      "service": "notices",
+      "action": "notices.list",
+      "summary": "Read own visible next-turn notices",
+      "tags": [
+        "Shared Service Notices"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "notices.list"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "notices:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": "tenant_id"
+          },
+          {
+            "name": "actorId",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "notices",
+          "list",
+          "read",
+          "own",
+          "visible",
+          "next",
+          "turn",
+          "shared",
+          "service"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me read own visible next-turn notices"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "notices_setPreference",
+      "method": "POST",
+      "path": "/api/notices/preference",
+      "service": "notices",
+      "action": "notices.setPreference",
+      "summary": "Set own next-turn notice preference",
+      "tags": [
+        "Shared Service Notices"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "notices.set_preference"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "notices:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "notices"
+      ],
+      "sideEffects": [
+        "creates_or_modifies_stored_object"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "parameters": {
+        "required": [
+          {
+            "name": "tenantId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": "tenant_id"
+          },
+          {
+            "name": "actorId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "preference",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "notices",
+          "set",
+          "preference",
+          "own",
+          "next",
+          "turn",
+          "notice",
+          "shared",
+          "service"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please set own next-turn notice preference"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
         ],
         "curated": false
       },
