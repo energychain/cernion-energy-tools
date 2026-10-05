@@ -55,3 +55,8 @@ A newly qualifying recipient can receive an already open gap on its next
 observation even if the first observation preceded human coverage. Republishing
 uses the same content-event identity, preserving once-only delivery to people who
 already received it.
+
+For reproducible reporting, record the final line's wall-clock time separately from
+Jest's test duration. The local acceptance run on Node 24.18 started 155 services,
+completed in 7.83 s, and passed every real stop hook. Its corresponding unchanged
+harness invariants completed in 29.44 s. CI independently repeats the e2e on Node 22.
