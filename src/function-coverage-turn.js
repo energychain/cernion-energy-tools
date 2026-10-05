@@ -74,13 +74,14 @@ function after(ctx, result) {
 function recordAfter(ctx, result, facts) {
   // An unresolved choice is not selected work. RPC calls made while
   // asking the question must not activate unrelated functions either.
-  if (facts.skipCoverage || result?.uncertain === true) return result;
+  if (facts.skipCoverage) return result;
   try {
     collect(result, facts);
     const meta = facts.noticeMeta || facts.meta || ctx.meta;
     const service = ctx.broker.getLocalService('function-coverage');
     if (!service) return result;
     if (unmappedServiceTurn(ctx, facts)) return result;
+    if (result?.uncertain === true) return result;
     const p = principal({ meta }, ctx.params);
     if (service.pendingTurns >= service.config.maxPendingTurns) {
       service.droppedTurns = Math.min(1000000, service.droppedTurns + 1);

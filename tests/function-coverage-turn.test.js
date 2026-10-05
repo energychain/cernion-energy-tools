@@ -150,6 +150,27 @@ test('Workbench and OpenAI share the completed-turn seam; persistence errors pre
     await service.queue;
     expect(events).toHaveLength(touchCount);
     expect((await service.actions.byActor({}, { meta })).items[0].signalCount).toBe(22);
+    const unmappedBefore = service.unmappedServiceTurns || 0;
+    await broker.call(
+      'workbench.chat',
+      {
+        conversationId: 'conv-unmapped',
+        message: 'uncertain selection',
+        requestId: 'unmapped-uncertain-turn',
+      },
+      {
+        meta: {
+          apiToken: {
+            id: 'svc-unmapped',
+            actorType: 'service',
+            tenantId: 'tenant-a',
+            roles: ['ROLE_USER'],
+          },
+        },
+      }
+    );
+    expect(service.unmappedServiceTurns).toBe(unmappedBefore + 1);
+    expect(events).toHaveLength(touchCount);
     db.allDocs = async () => {
       throw new Error('unavailable');
     };
