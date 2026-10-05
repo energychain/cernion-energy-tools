@@ -23,7 +23,13 @@ function combineScores(message, model, vector, options) {
       const score =
         (wordWeight * wordScore + vectorWeight * Math.max(0, similarity || 0)) /
         (wordWeight + vectorWeight);
-      return { functionId: fn.functionId, label: fn.label, score, wordScore, similarity };
+      return {
+        functionId: fn.functionId,
+        label: fn.displayLabel || fn.label,
+        score,
+        wordScore,
+        similarity,
+      };
     })
     .filter((match) => match.score > 0);
   matches.sort((a, b) => b.score - a.score || compareCanonicalStrings(a.functionId, b.functionId));

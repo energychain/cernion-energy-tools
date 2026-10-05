@@ -1,5 +1,6 @@
 'use strict';
 
+const { readableSharedServiceText } = require('./shared-service-display');
 const { getFunctionModel } = require('./function-model');
 const { normalizePhrase } = require('./function-resolver');
 const { resolveFunctionsHybrid } = require('./function-resolver-hybrid');
@@ -22,9 +23,9 @@ const LIFECYCLES = {
 const POLICY =
   /routing advice only|unverified routing hints|never claim approval|policy blocked|no.call.guard/i;
 
-function display(value) {
+function display(value, translate = true) {
   if (typeof value !== 'string' || POLICY.test(value)) return '';
-  return value
+  return (translate ? readableSharedServiceText(value) : value)
     .replace(/[\u0000-\u001f]/g, ' ')
     .trim()
     .slice(0, 280);
@@ -78,7 +79,7 @@ function isFunctionKnowledgeQuery(message) {
   if (!match) return false;
   const target = normalizePhrase(match[1]);
   return getFunctionModel().functions.some((fn) =>
-    [fn.label, ...(fn.aliases || [])].some(
+    [fn.displayLabel, fn.label, ...(fn.aliases || [])].some(
       (label) => typeof label === 'string' && normalizePhrase(label) === target
     )
   );
@@ -93,7 +94,7 @@ function presentDigest(digest) {
   if (!digest) return null;
   const items = (values) =>
     (Array.isArray(values) ? values : []).slice(-10).map((entry) => ({
-      summary: display(entry.summary),
+      summary: display(entry.summary, false),
       at: display(entry.at),
       hiddenRefCount: Number(entry.hiddenRefCount) || 0,
     }));
@@ -183,7 +184,7 @@ function projectFunction(fn, p, row, agentRows, digest, agents, coverage) {
     : [];
   return {
     functionId: fn.functionId,
-    label: display(fn.label),
+    label: display(fn.displayLabel || fn.label),
     state: activityState(row, agentRows),
     cetResponsibility: row?.responsibility?.cet === true,
     humanCoverageObserved: (row?.responsibility?.humans?.length || 0) > 0,
@@ -254,7 +255,7 @@ async function answerSystemActivity(
         mode: 'system_activity_query',
         resolution: resolution.metadata,
         state: resolution.status === 'ambiguous' ? 'function_ambiguous' : 'function_unknown',
-        candidates: resolution.matches.map(({ functionId, label, confidence }) => ({
+        candidates: resolution.matches.slice(0, 5).map(({ functionId, label, confidence }) => ({
           functionId,
           label: display(label),
           confidence,
@@ -385,6 +386,7 @@ function renderSystemActivity(result = {}) {
     return 'Hinweise sind derzeit nicht erreichbar. Bitte versuche es später erneut.';
   if (result.state === 'function_ambiguous')
     return `Welche Funktion meinst du? ${result.candidates
+      .slice(0, 5)
       .map((item) => display(item.label))
       .filter(Boolean)
       .join('; ')}.`;

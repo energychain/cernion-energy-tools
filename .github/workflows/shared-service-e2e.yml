@@ -1,0 +1,25 @@
+name: Shared Service E2E
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  shared-service-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Normalize existing lockfile for Node 22
+        run: npm install --package-lock-only --ignore-scripts
+      - name: Install existing dependencies
+        run: npm ci --ignore-scripts
+      - name: Build existing SQLite binding for all-service startup
+        run: npm rebuild better-sqlite3 leveldown
+      - name: Real Open WebUI path with two mapped people (no LLM keys)
+        run: npm run test:e2e:shared-service

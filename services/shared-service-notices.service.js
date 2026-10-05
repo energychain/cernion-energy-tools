@@ -360,7 +360,41 @@ module.exports = {
       const docs = (await this.db.allDocs({ include_docs: true })).rows
         .map((row) => row.doc)
         .filter((doc) => doc.tenantId === event.tenantId);
-      for (const doc of docs) await this.recordForPerson(doc, source, event, functionId, related);
+      const recipients = new Set();
+      if ([events[0], events[3]].includes(source)) {
+        const agents = this.broker.getLocalService('shared-service-agent');
+        const state = await agents?.readDocument(event.tenantId);
+        const agent =
+          state &&
+          agents
+            .resolvedAgents(state.agents)
+            .find((row) => row.agentId === event.agentId && row.functionId === functionId);
+        const association =
+          source === events[0]
+            ? agent?.proposals.find((item) => item.ref === event.proposalRef && !item.outcome)
+            : agent?.gapLists?.find(
+                (item) => item.ref === event.gapRef && item.contentHash === event.contentHash
+              );
+        const eligible =
+          agent && agents.gapRecipients
+            ? await agents.gapRecipients(state, agent, association?.context)
+            : [];
+        for (const actorId of association?.recipients || []) {
+          if (!eligible.includes(actorId)) continue;
+          recipients.add(actorId);
+          if (!docs.some((doc) => doc.actorId === actorId))
+            docs.push(await this.read(event.tenantId, actorId));
+        }
+      }
+      for (const doc of docs)
+        await this.recordForPerson(
+          doc,
+          source,
+          event,
+          functionId,
+          related,
+          recipients.has(doc.actorId)
+        );
     },
     async relatedFunctions(functionId, tenantId) {
       const activation = this.broker.getLocalService('activation');
@@ -372,7 +406,7 @@ module.exports = {
       });
       return new Set([functionId, ...neighbors.map((edge) => edge.functionId)]);
     },
-    async recordForPerson(doc, source, event, functionId, related) {
+    async recordForPerson(doc, source, event, functionId, related, associatedRecipient = false) {
       const prior = doc.activations[functionId];
       const kinds = this.kinds(source, event, prior);
       if (source === events[2])
@@ -384,7 +418,8 @@ module.exports = {
       const covered = Object.entries(doc.coverage).some(
         ([id, score]) => related.has(id) && score >= this.settings.coverageThreshold
       );
-      if (covered) for (const kind of kinds) this.addNotice(doc, source, event, functionId, kind);
+      if (covered || associatedRecipient)
+        for (const kind of kinds) this.addNotice(doc, source, event, functionId, kind);
       const current = new Set(this.model.functions.map((row) => row.functionId));
       doc.activations = Object.fromEntries(
         Object.entries(doc.activations).filter(([id]) => current.has(id))
@@ -464,6 +499,11 @@ module.exports = {
         gap.contentHash !== item.contentHash ||
         gap.ignoredHash === gap.contentHash ||
         !gap.recipients.includes(p.actorId)
+      )
+        return false;
+      if (
+        agents.gapRecipients &&
+        !(await agents.gapRecipients(doc, agent, gap.context)).includes(p.actorId)
       )
         return false;
       for (const part of gap.parts)

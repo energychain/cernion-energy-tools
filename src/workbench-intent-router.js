@@ -19,8 +19,13 @@ function classifyWorkbenchIntent(message, { cetCaseId, recentMessages } = {}) {
   )
     return 'tool_run_request';
   if (
-    /\b(start|create|open|starte|erstelle|eröffne|lege)\b/.test(text) &&
-    /\b(case|fall|klärfall|klaerfall|evaluation|bewertung)\b/.test(text)
+    /^(?:bitte\s+|please\s+)?(?:start|create|open|starte|erstelle|eröffne|lege)\b/.test(
+      text.trim()
+    ) &&
+    /\b(case|fall|klärfall|klaerfall|evaluation|bewertung)\b/.test(text) &&
+    !/^(?:bitte\s+|please\s+)?(?:start|create|open|starte|erstelle|eröffne|lege)\s+(?:nicht|kein\w*|not|no)\b/.test(
+      text.trim()
+    )
   )
     return 'case_start';
   if (isSystemActivityQuery(message)) return 'system_activity_query';

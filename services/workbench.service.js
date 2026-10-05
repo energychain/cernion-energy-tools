@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const { handleCorrectionTurn } = require('../src/workbench-corrections');
 const { answerSystemActivity } = require('../src/workbench-system-activity');
 const coverageTurn = require('../src/function-coverage-turn');
+const { classifyWorkbenchIntent } = require('../src/workbench-intent-router');
 const { Errors } = require('moleculer');
 const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 const { principal, deny } = require('../src/domain-router-policy');
@@ -180,7 +181,7 @@ module.exports = {
         }
         const starter = getCaseStarter(ctx.params.starterId);
         if (!starter) throw new Errors.MoleculerClientError('Case starter not found', 404);
-        const message = renderStarterPrompt(starter, ctx.params);
+        const message = `Starte einen Fall: ${renderStarterPrompt(starter, ctx.params)}`;
         const chatParams = {
           ...ctx.params,
           channel: ctx.params.channel || 'open-webui',
@@ -1443,6 +1444,16 @@ module.exports = {
           },
           { optional: true }
         );
+        const intent = classifyWorkbenchIntent(envelope.userRequest, {
+          cetCaseId: conversation?.cetCaseId,
+        });
+        if (!conversation && intent !== 'case_start') {
+          return {
+            state: 'clarification_required',
+            responseText:
+              'Möchtest du einen neuen Fall starten? Bitte bestätige dies ausdrücklich mit „Starte einen Fall“ und dem Anliegen.',
+          };
+        }
         let reservation = null;
         if (!conversation) {
           reservation = await this.store.reserveConversation({
@@ -1788,10 +1799,27 @@ module.exports = {
     metaForMapping(ctx, p, mapping) {
       return {
         ...ctx.meta,
+        ...(mapping
+          ? {
+              workbenchMappedActor: mapping.cetActorId,
+              ...(ctx.meta.authUser
+                ? {
+                    authUser: {
+                      ...ctx.meta.authUser,
+                      userId: mapping.cetActorId,
+                      id: mapping.cetActorId,
+                      roles: mapping.roles?.length ? mapping.roles : p.roles,
+                      sensitivityFlags: mapping.sensitivityClearance || [],
+                    },
+                  }
+                : {}),
+            }
+          : {}),
         apiToken: {
           ...(ctx.meta?.apiToken || {}),
           tenantId: p.tenantId,
           id: mapping?.cetActorId || p.actorId,
+          ...(mapping ? { userId: mapping.cetActorId, tokenId: mapping.cetActorId } : {}),
           roles: mapping?.roles?.length ? mapping.roles : p.roles,
           sensitivityFlags: mapping?.sensitivityClearance || p.clearance || [],
         },

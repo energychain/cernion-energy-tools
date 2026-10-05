@@ -46,7 +46,7 @@ function createCompoundTokenizer(vocabulary, options = {}) {
 function texts(fn) {
   return [
     ['label', [fn.label]],
-    ['alias', fn.aliases || []],
+    ['alias', [...(fn.aliases || []), fn.displayLabel].filter(Boolean)],
     ['domain', fn.domains || []],
     ['department', fn.departments || []],
     ['keyword', [...(fn.keywords || []), ...(fn.keywordTokens || [])]],
@@ -115,7 +115,12 @@ function scoreFunction(document, query, index, minPrefixLength) {
     score += best;
   }
   return score
-    ? { functionId: document.fn.functionId, label: document.fn.label, score, matchedBy }
+    ? {
+        functionId: document.fn.functionId,
+        label: document.fn.displayLabel || document.fn.label,
+        score,
+        matchedBy,
+      }
     : null;
 }
 

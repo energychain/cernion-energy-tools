@@ -14,7 +14,7 @@ const model = {
   ],
 };
 const meta = (actor = 'actor-a', tenant = 'tenant-a', roles = ['ROLE_USER']) => ({
-  apiToken: { id: actor, tenantId: tenant, roles },
+  apiToken: { id: actor, userId: actor, tenantId: tenant, roles },
 });
 const input = (sourceRef = 'ref-a', extra = {}) => ({
   tenantId: 'tenant-a',

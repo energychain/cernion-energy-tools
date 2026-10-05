@@ -77,7 +77,9 @@ test('Workbench and OpenAI share the completed-turn seam; persistence errors pre
     },
   });
   broker.createService(openai);
-  const meta = { apiToken: { id: 'actor-a', tenantId: 'tenant-a', roles: ['ROLE_USER'] } };
+  const meta = {
+    apiToken: { id: 'actor-a', userId: 'actor-a', tenantId: 'tenant-a', roles: ['ROLE_USER'] },
+  };
   const events = [];
   broker.createService({
     name: 'observer',

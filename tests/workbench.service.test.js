@@ -519,7 +519,7 @@ describe('Workbench RC3 Open WebUI Tenant Gateway', () => {
       openWebuiConversationId: 'mako-willi-flow',
       clientId: 'openwebui-tenant-a',
       message:
-        'Lieferant reklamiert fehlende MSCONS-Zeitreihe. EDM-Werte sind plausibilisiert, Versandjob lief, aber APERAK Z18 liegt vor. Am Vortag gab es eine Lieferbeginn-/Stammdatenänderung.',
+        'Starte einen Fall: Lieferant reklamiert fehlende MSCONS-Zeitreihe. EDM-Werte sind plausibilisiert, Versandjob lief, aber APERAK Z18 liegt vor. Am Vortag gab es eine Lieferbeginn-/Stammdatenänderung.',
       asyncDelivery: { mode: 'poll', clientId: 'openwebui-tenant-a', ackMode: 'explicit' },
     });
     expect(started.cetCaseId).toBeTruthy();
@@ -916,7 +916,7 @@ describe('Workbench RC3 Open WebUI Tenant Gateway', () => {
       openWebuiUserId: 'ow-user',
       openWebuiConversationId: 'chat-context',
       clientId: 'openwebui-tenant-a',
-      message: 'APERAK Z18 nach MSCONS bitte prüfen',
+      message: 'Starte einen Fall: APERAK Z18 nach MSCONS bitte prüfen',
     });
     expect(response.cetCaseId).toBeTruthy();
 
@@ -1353,7 +1353,7 @@ describe('Workbench RC3 Open WebUI Tenant Gateway', () => {
       openWebuiUserId: 'ow-user',
       openWebuiConversationId: 'chat-1',
       clientId: 'openwebui-tenant-a',
-      message: 'MSCONS fehlt, APERAK Z18 ist vorhanden',
+      message: 'Starte einen Fall: MSCONS fehlt, APERAK Z18 ist vorhanden',
     });
     expect(first.usedOperation).toBe('classify');
     expect(first.cetCaseId).toBeTruthy();
@@ -1392,7 +1392,7 @@ describe('Workbench RC3 Open WebUI Tenant Gateway', () => {
       openWebuiUserId: 'ow-user',
       openWebuiConversationId: 'chat-memory',
       clientId: 'openwebui-tenant-a',
-      message: 'MSCONS fehlt, bitte als MaKo/EDM Klärfall einordnen',
+      message: 'Starte einen Fall: MSCONS fehlt, bitte als MaKo/EDM Klärfall einordnen',
       knownContext: { workingAssumptions: ['Lieferant reklamiert fehlende Zeitreihe'] },
     });
     expect(first.turnMemorySummary).toMatchObject({
@@ -1438,7 +1438,7 @@ describe('Workbench RC3 Open WebUI Tenant Gateway', () => {
       openWebuiUserId: 'ow-user',
       openWebuiConversationId: 'chat-race',
       clientId: 'openwebui-tenant-a',
-      message: 'MSCONS fehlt, APERAK Z18 ist vorhanden',
+      message: 'Starte einen Fall: MSCONS fehlt, APERAK Z18 ist vorhanden',
     };
     const [a, b] = await Promise.all([call('chat', params), call('chat', params)]);
     expect(a.cetCaseId).toBeTruthy();
@@ -1503,7 +1503,7 @@ describe('Workbench RC3 Open WebUI Tenant Gateway', () => {
         openWebuiUserId: 'ow-user-no-org',
         openWebuiConversationId: 'partial-chat',
         clientId: 'openwebui-tenant-a',
-        message: 'MSCONS fehlt',
+        message: 'Starte einen Fall: MSCONS fehlt',
       })
     ).rejects.toThrow(/identifiers must be provided together|WORKBENCH_IDENTITY_INCOMPLETE/iu);
 
@@ -1527,7 +1527,7 @@ describe('Workbench RC3 Open WebUI Tenant Gateway', () => {
         openWebuiUserId: 'ow-user',
         openWebuiConversationId: 'unmapped-org-chat',
         clientId: 'openwebui-tenant-a',
-        message: 'MSCONS fehlt',
+        message: 'Starte einen Fall: MSCONS fehlt',
       })
     ).rejects.toThrow(/tenant mapping required|WORKBENCH_TENANT_MAPPING_REQUIRED/iu);
   });
@@ -1647,7 +1647,7 @@ describe('Workbench RC3 Open WebUI Tenant Gateway', () => {
       openWebuiUserId: 'ow-user',
       openWebuiConversationId: 'chat-event-counts',
       clientId: 'openwebui-tenant-a',
-      message: 'MSCONS fehlt, APERAK Z18 ist vorhanden',
+      message: 'Starte einen Fall: MSCONS fehlt, APERAK Z18 ist vorhanden',
     });
     await router('ingestUpdate', {
       cetCaseId: first.cetCaseId,
@@ -1951,7 +1951,7 @@ describe('Workbench RC3 Open WebUI Tenant Gateway', () => {
           openWebuiUserId: 'ow-user',
           openWebuiConversationId: conversationId,
           clientId: 'openwebui-tenant-a',
-          message: 'APERAK Z18 bitte prüfen',
+          message: 'Starte einen Fall: APERAK Z18 bitte prüfen',
         });
         const summary = await call('cases.get', { caseId: response.cetCaseId }, userMeta);
         return summary.appliedPlaybooks.map((p) => p.skillId);
@@ -2178,7 +2178,7 @@ describe('Workbench RC3 Open WebUI Tenant Gateway', () => {
         openWebuiUserId: 'ow-user',
         openWebuiConversationId: 'chat-applied-skill',
         clientId: 'openwebui-tenant-a',
-        message: 'APERAK Z18 nach MSCONS bitte prüfen',
+        message: 'Starte einen Fall: APERAK Z18 nach MSCONS bitte prüfen',
       });
       const summary = await call('cases.get', { caseId: response.cetCaseId }, userMeta);
       expect(summary.appliedPlaybooks).toEqual(

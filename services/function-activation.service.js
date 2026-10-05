@@ -8,6 +8,7 @@ const {
   resolveFunctionId,
   getNeighbors,
 } = require('../src/function-model');
+const { retainCaseContexts } = require('../src/function-case-contexts');
 const { validateTenantId } = require('../src/tenant-context');
 const {
   activationRows,
@@ -39,6 +40,7 @@ module.exports = {
   settings: {
     model: null,
     tenantBudget: 8,
+    contextRetentionTurns: 20,
     maxNeighborsPerTouch: 2,
     halfLifeTurns: 20,
     retireThreshold: 0.05,
@@ -232,6 +234,14 @@ module.exports = {
         (typeof event.turnRef !== 'string' || !event.turnRef.trim() || event.turnRef.length > 256)
       )
         throw new Errors.MoleculerClientError('Invalid turnRef', 400);
+      if (
+        event.context !== undefined &&
+        (event.context?.kind !== 'case' ||
+          typeof event.context.ref !== 'string' ||
+          !event.context.ref.trim() ||
+          event.context.ref.length > 256)
+      )
+        throw new Errors.MoleculerClientError('Invalid case context', 400);
       if (event.confidence < this.settings.minTouchConfidence) return;
       return this.enqueue(tenantId, () =>
         this.updateDocument(tenantId, (document) => {
@@ -246,11 +256,20 @@ module.exports = {
             );
           });
           if (!newer) return;
+          const priorTurns = document.activatingTurns || 0;
           advanceAttention(
             document,
             { ...event, functionIds: resolved.map((item) => item.functionId) },
             this.model,
             this.settings
+          );
+          retainCaseContexts(
+            document,
+            event,
+            resolved,
+            this.model,
+            this.settings,
+            document.activatingTurns > priorTurns
           );
           for (const { functionId } of resolved) {
             const previous = document.touches.find(
@@ -715,6 +734,8 @@ module.exports = {
       historyRetentionMs,
     } = this.settings;
     if (
+      !Number.isInteger(this.settings.contextRetentionTurns) ||
+      this.settings.contextRetentionTurns < 1 ||
       !Number.isFinite(touchRetentionWindows) ||
       touchRetentionWindows < 1 ||
       !Number.isInteger(historyLimit) ||

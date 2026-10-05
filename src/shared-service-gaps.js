@@ -4,6 +4,7 @@ const { randomUUID } = require('node:crypto');
 const { principal, deny } = require('./domain-router-policy');
 const { getNeighbors } = require('./function-model');
 const { resolveRecords } = require('./function-activation-records');
+const { activationRows } = require('./function-activation-state');
 const { signalKey } = require('./signal-projection');
 const { compareCanonicalStrings } = require('./canonical-order');
 
@@ -66,7 +67,7 @@ const methods = {
       return false;
     }
   },
-  async gapRecipients(doc, agent) {
+  async gapRecipients(doc, agent, context) {
     const activation = this.broker.getLocalService('activation');
     const state = await activation?.readDocument(agent.tenantId);
     const related = new Set([
@@ -77,14 +78,24 @@ const methods = {
         minWeight: activation?.settings.minWeight ?? 0,
       }).map((edge) => edge.functionId),
     ]);
+    const reasons = state
+      ? activationRows(state, this.model, activation.settings, this.now()).find(
+          (row) => row.functionId === agent.functionId
+        )?.reason || []
+      : [];
+    const contextualActors = reasons
+      .map((reason) => reason.context)
+      .filter((ref) => ref && (!context || (ref.kind === context.kind && ref.ref === context.ref)))
+      .flatMap((ref) => ref.actorIds || []);
     return [
-      ...new Set(
-        resolveRecords(doc.coverage, this.model)
+      ...new Set([
+        ...contextualActors,
+        ...resolveRecords(doc.coverage, this.model)
           .filter(
             (row) => related.has(row.functionId) && row.score >= this.settings.coverageThreshold
           )
-          .map((row) => row.actorId)
-      ),
+          .map((row) => row.actorId),
+      ]),
     ]
       .sort(compareCanonicalStrings)
       .slice(0, this.settings.maxCoverageRecords);
@@ -168,7 +179,7 @@ const methods = {
         parts: [],
         delivered: false,
         used: false,
-        recipients: await this.gapRecipients(doc, agent),
+        recipients: await this.gapRecipients(doc, agent, context),
       };
       agent.gapLists.push(gap);
     }
@@ -176,7 +187,18 @@ const methods = {
       compareCanonicalStrings(a.operationId, b.operationId)
     );
     const fingerprint = signalKey(ordered.map((part) => [part.operationId, part.contentHash]));
-    if (fingerprint === gap.fingerprint) return this.publishGapNotice(doc, agent, gap);
+    if (fingerprint === gap.fingerprint) {
+      const recipients = await this.gapRecipients(doc, agent, context);
+      if (JSON.stringify(recipients) !== JSON.stringify(gap.recipients)) {
+        // Reuse the content event identity: already notified people stay deduped,
+        // newly qualifying people can receive the existing open work.
+        if (recipients.some((actorId) => !gap.recipients.includes(actorId)))
+          gap.pendingNotice = true;
+        gap.recipients = recipients;
+        await this.save(doc);
+      }
+      return this.publishGapNotice(doc, agent, gap);
+    }
     const contentHash = signalKey(gap.ref, gap.contentHash || null, fingerprint);
     gap.fingerprint = fingerprint;
     gap.parts = ordered;
@@ -187,7 +209,7 @@ const methods = {
     gap.ignoredHash = null;
     gap.completionRequested = false;
     gap.pendingNotice = parts.size > 0;
-    gap.recipients = await this.gapRecipients(doc, agent);
+    gap.recipients = await this.gapRecipients(doc, agent, context);
     if (!parts.size) {
       gap.state = 'completed';
       if (gap.delivered && !gap.used) {

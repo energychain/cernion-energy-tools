@@ -21,7 +21,8 @@ function resolvedNotice(item, model) {
 }
 
 function noticeText(item, model) {
-  const label = model.functions.find((fn) => fn.functionId === item.functionId)?.label || '';
+  const fn = model.functions.find((fn) => fn.functionId === item.functionId);
+  const label = fn?.displayLabel || fn?.label || '';
   const clean = String(label)
     .replace(/[\u0000-\u001f]/g, ' ')
     .slice(0, 180);
