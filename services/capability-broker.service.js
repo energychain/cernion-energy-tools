@@ -3530,6 +3530,7 @@ module.exports = {
           domainBonus: ranked.matches[0]?.domainBonus || 0,
           domainConflict: ranked.matches[0]?.domainConflict || false,
           explicitRouteBonus: ranked.matches[0]?.explicitRouteBonus || 0,
+          identifierBonus: ranked.matches[0]?.identifierBonus || 0,
           usedFallback: selected.usedFallback,
           resolvedCapabilityPenaltyApplied: Array.isArray(resolvedCapabilities)
             ? resolvedCapabilities.some(

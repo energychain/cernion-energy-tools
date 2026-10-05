@@ -42,6 +42,22 @@ describe('calibrated capability routing #730', () => {
     expect(calibratedConfidence(5, 0)).toBeGreaterThan(calibratedConfidence(5, 4.9));
     expect(calibratedConfidence(0, 0)).toBe(0);
   });
+  test('exact catalog identifiers disambiguate technical requests and remain configurable', () => {
+    const catalog = [cap('quartz_review', ['quartz']), cap('other', ['quartz review'])];
+    expect(rank('quartz-review.analyze', catalog).matches[0].capability.capability).toBe(
+      'quartz_review'
+    );
+    expect(
+      rank('quartz-review.analyze', catalog, { parameters: { identifierBonus: 0 } }).matches[0]
+        .capability.capability
+    ).toBe('other');
+  });
+  test('short word variants keep weaker evidence and bounded phrase locality', () => {
+    const catalog = [cap('lookup', ['quartz code'])];
+    expect(rank('Read quartz codes', catalog).matches[0].capability.capability).toBe('lookup');
+    expect(rank('quartz ' + 'separate '.repeat(20) + 'codes', catalog).matches).toHaveLength(0);
+    expect(rank('codes', [cap('lookup', ['code'])]).confidence).toBeLessThan(0.7);
+  });
   test('domain bonus uses function domains/departments and exposes contradiction', () => {
     const catalog = [cap('a', ['quartz']), cap('b', ['quartz'])];
     const functions = [

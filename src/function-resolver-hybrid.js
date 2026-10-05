@@ -18,17 +18,24 @@ function combineScores(message, model, vector, options) {
   const vectorWeight = options.vectorWeight ?? 0.3;
   const matches = model.functions
     .map((fn) => {
-      const similarity = cosine(fn.embedding, vector);
+      const missingCapabilities = fn.embedding?.missingCapabilities || [];
+      const similarity = missingCapabilities.length ? null : cosine(fn.embedding, vector);
       const wordScore = lexical.get(fn.functionId) || 0;
       const score =
-        (wordWeight * wordScore + vectorWeight * Math.max(0, similarity || 0)) /
-        (wordWeight + vectorWeight);
+        similarity === null
+          ? wordScore
+          : (wordWeight * wordScore + vectorWeight * Math.max(0, similarity || 0)) /
+            (wordWeight + vectorWeight);
       return {
         functionId: fn.functionId,
         label: fn.displayLabel || fn.label,
         score,
         wordScore,
         similarity,
+        semanticPath: similarity === null ? 'lexical' : 'hybrid',
+        ...(missingCapabilities.length
+          ? { fallbackReason: 'capability_vectors_unavailable', missingCapabilities }
+          : {}),
       };
     })
     .filter((match) => match.score > 0);

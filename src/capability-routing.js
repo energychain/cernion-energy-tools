@@ -56,6 +56,8 @@ function phraseMatch(phrase, query, parts, parameters) {
   const positions = words.map((word) =>
     query.flatMap((token, i) => {
       if (token === word) return [{ i, weight: parameters.wordWeight, kind: 'word' }];
+      if (word.length >= 4 && token.startsWith(word) && token.length <= word.length + 2)
+        return [{ i, weight: parameters.partWeight, kind: 'word_variant' }];
       if (parts[i].has(word)) return [{ i, weight: parameters.partWeight, kind: 'compound' }];
       return [];
     })
@@ -166,7 +168,18 @@ function rankCapabilities(message, catalog, options = {}) {
       const resolvedPenalty = resolved.has(cap.capability) ? parameters.resolvedPenalty : 0;
       const explicitRouteBonus =
         options.explicitCapability === cap.capability ? parameters.explicitRouteBonus : 0;
-      const score = evidenceScore + domainBonus + inputBonus + explicitRouteBonus - resolvedPenalty;
+      const identifier = normalizePhrase(cap.capability);
+      const identifierBonus =
+        identifier.includes(' ') && ` ${normalizePhrase(message)} `.includes(` ${identifier} `)
+          ? parameters.identifierBonus || 0
+          : 0;
+      const score =
+        evidenceScore +
+        domainBonus +
+        inputBonus +
+        explicitRouteBonus +
+        identifierBonus -
+        resolvedPenalty;
       return {
         capability: cap,
         score,
@@ -180,6 +193,7 @@ function rankCapabilities(message, catalog, options = {}) {
         inputBonus,
         resolvedPenalty,
         explicitRouteBonus,
+        identifierBonus,
       };
     })
     .filter((item) => item.score > 0);

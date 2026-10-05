@@ -14,6 +14,7 @@ function addFact(facts, kind, id) {
 
 function collect(result, facts) {
   if (!result || typeof result !== 'object') return;
+  if (result.uncertain === true) return;
   // Router proposals are not evidence of selected or executed work.
   for (const value of result.selectedCapabilities || []) {
     addFact(facts, 'capabilities', typeof value === 'string' ? value : value?.capability);
@@ -71,7 +72,9 @@ function after(ctx, result) {
 }
 
 function recordAfter(ctx, result, facts) {
-  if (facts.skipCoverage) return result;
+  // An unresolved choice is not selected work. RPC calls made while
+  // asking the question must not activate unrelated functions either.
+  if (facts.skipCoverage || result?.uncertain === true) return result;
   try {
     collect(result, facts);
     const meta = facts.noticeMeta || facts.meta || ctx.meta;

@@ -46,6 +46,12 @@ const broker = new ServiceBroker({
   retryPolicy: { enabled: false },
 });
 const stopFailures = [];
+const touchEvents = [];
+const originalEmit = broker.emit.bind(broker);
+broker.emit = (...args) => {
+  if (args[0] === 'function.touched.v1') touchEvents.push(structuredClone(args[1]));
+  return originalEmit(...args);
+};
 broker.localBus.on('$broker.error', (event) => {
   if (event.type === 'FAILED_STOPPING_SERVICES') stopFailures.push(event.error);
 });
@@ -215,10 +221,30 @@ async function main() {
     });
   const started = await turn(
     'alice',
-    'Starte einen Fall: Netzanschluss Anschlussleistung Mittelspannung prüfen.'
+    'Starte bitte einen Fall: Netzanschlussanfrage für einen 2-MW-Batteriespeicher am Umspannwerk Nord prüfen.'
   );
   const caseId = started.metadata.cetCaseId;
   assert(caseId, 'explicit case_start creates a case');
+  let classification = (
+    await router.loadCase(
+      require(path.join(root, 'src/domain-router-policy')).principal({ meta: auth('alice') }),
+      caseId
+    )
+  ).lastClassification;
+  if (classification.uncertain) {
+    assert.match(started.choices[0].message.content, /Nummer oder dem Namen/);
+    assert.equal(
+      (await call('function-coverage.matrix', { tenantId, limit: 100 })).items.length,
+      0
+    );
+    await turn('alice', '1');
+    classification = (
+      await router.loadCase(
+        require(path.join(root, 'src/domain-router-policy')).principal({ meta: auth('alice') }),
+        caseId
+      )
+    ).lastClassification;
+  }
   const selected =
     (
       await router.loadCase(
@@ -227,6 +253,13 @@ async function main() {
       )
     ).lastClassification.selectedCapabilities || [];
   assert(selected.length, 'real router supplies selected capabilities');
+  const touchedFunction = model.functions.find((fn) =>
+    fn.capabilities.includes(selected[0].capability)
+  );
+  assert(
+    touchedFunction.domains.some((domain) => domain.startsWith('grid-connection')),
+    'real formulation touches a grid connection function'
+  );
   await snapshot('1 case_start');
   const matrix = await call('function-coverage.matrix', { tenantId, limit: 100 });
   assert(matrix.items.some((row) => row.actorId === actor('alice')));
@@ -238,6 +271,18 @@ async function main() {
   );
   await snapshot('2 creator coverage after one case turn');
   const rows = await call('activation.list', { tenantId });
+  const activated = rows.filter((item) => item.responsibility.cet);
+  const neighborIds = new Set(touchedFunction.neighbors.map((edge) => edge.functionId));
+  assert(
+    activated.every((item) => neighborIds.has(item.functionId)),
+    'CET functions are actual direct neighbors'
+  );
+  assert(
+    !activated.some((item) =>
+      /leadership-delta-cockpit|communication-break-process-risk/.test(item.functionId)
+    ),
+    'unrelated functions are not activated'
+  );
   const row = rows.find(
     (item) =>
       item.responsibility.cet &&
@@ -286,7 +331,7 @@ async function main() {
   for (let attempt = 0; attempt < 3 && !proposal; attempt++) {
     await turn(
       'alice',
-      'Weiter mit diesem Fall: Netzanschluss Anschlussleistung Mittelspannung prüfen.'
+      'Weiter mit diesem Fall: Netzanschlussanfrage für einen 2-MW-Batteriespeicher am Umspannwerk Nord prüfen.'
     );
     proposal = (await agents.readDocument(tenantId)).agents
       .flatMap((item) => item.proposals)
@@ -339,7 +384,10 @@ async function main() {
     true
   );
   await snapshot('7 responsibility undo');
-  await turn('bob', 'Starte einen Fall: Netzanschluss Anschlussleistung Mittelspannung prüfen.');
+  await turn(
+    'bob',
+    'Starte bitte einen Fall: Netzanschlussanfrage für einen 2-MW-Batteriespeicher am Umspannwerk Nord prüfen.'
+  );
   const twoPeople = await call('function-coverage.matrix', { tenantId, limit: 100 });
   assert(twoPeople.items.some((item) => item.actorId === actor('alice')));
   assert(twoPeople.items.some((item) => item.actorId === actor('bob')));
@@ -365,6 +413,95 @@ async function main() {
   );
   assert.equal(afterPin.attention.inventory, false);
   await snapshot('9 non-admin pin denied');
+  // Real uncertain Workbench turns, with neither a broker fixture nor graph edits.
+  for (const [person, byName] of [
+    ['alice', false],
+    ['bob', true],
+  ]) {
+    const conversation = `uncertain-${person}`;
+    const coverageService = broker.getLocalService('function-coverage');
+    const coverageBefore = await call('function-coverage.byActor', {
+      tenantId,
+      actorId: actor(person),
+    });
+    const touchCount = touchEvents.length;
+    const initial = await turn(
+      person,
+      'Starte einen Fall: Prüfe die Anschlusskapazität am Umspannwerk.',
+      {
+        openWebuiConversationId: conversation,
+      }
+    );
+    const pendingCase = initial.metadata.cetCaseId;
+    assert(pendingCase, 'case_start creates a case despite uncertain capability selection');
+    const pending = (
+      await router.loadCase(
+        require(path.join(root, 'src/domain-router-policy')).principal({ meta: auth(person) }),
+        pendingCase
+      )
+    ).lastClassification;
+    assert.equal(pending.uncertain, true);
+    assert.deepEqual(
+      (await call('function-coverage.byActor', { tenantId, actorId: actor(person) })).items.map(
+        ({ functionId, signalCount }) => ({ functionId, signalCount })
+      ),
+      coverageBefore.items.map(({ functionId, signalCount }) => ({ functionId, signalCount })),
+      'uncertain real Workbench turn produces no coverage'
+    );
+    assert.equal(touchEvents.length, touchCount, 'uncertain turn emits no function touch');
+    const choices = require(path.join(root, 'src/capability-clarification')).choiceCandidates(
+      pending
+    );
+    const question = initial.choices[0].message.content;
+    assert(choices.length > 0 && choices.length <= 5);
+    for (const choice of choices) {
+      assert(question.includes(choice.label));
+      assert(!question.includes(choice.candidate.capability));
+    }
+    assert(!/uncertain_capability_selection|attention_transient/.test(question));
+    const confirmed = await turn(person, byName ? choices[0].label : '1', {
+      openWebuiConversationId: conversation,
+    });
+    assert.equal(confirmed.metadata.cetCaseId, pendingCase);
+    await coverageService.queue;
+    const resolved = (
+      await router.loadCase(
+        require(path.join(root, 'src/domain-router-policy')).principal({ meta: auth(person) }),
+        pendingCase
+      )
+    ).lastClassification;
+    assert.equal(resolved.uncertain, false);
+    assert.equal(resolved.selectedCapabilities[0].capability, choices[0].candidate.capability);
+    const confirmedCoverage = await call('function-coverage.byActor', {
+      tenantId,
+      actorId: actor(person),
+    });
+    assert(
+      confirmedCoverage.items.some((record) => record.actorId === actor(person)),
+      'confirmed touch belongs to mapped actor'
+    );
+    const contexts = (await broker.getLocalService('activation').readDocument(tenantId)).contexts;
+    assert(
+      contexts.some(
+        (context) =>
+          context.ref === pendingCase &&
+          context.actors.some((item) => item.actorId === actor(person))
+      ),
+      'confirmed choice carries the actual case and contributor into activation'
+    );
+    const confirmedTouch = touchEvents
+      .slice(touchCount)
+      .find((event) => event.context?.ref === pendingCase);
+    assert(confirmedTouch, 'choice emits a real activating function.touched.v1');
+    assert.equal(confirmedTouch.actorId, actor(person));
+    assert.equal(confirmedTouch.context.actorId, actor(person));
+    assert(
+      confirmedTouch.confidence >= broker.getLocalService('activation').settings.minTouchConfidence
+    );
+    await snapshot(
+      byName ? '11 named capability clarification' : '10 numbered capability clarification'
+    );
+  }
   const countBefore = (await router.db.allDocs()).total_rows;
   for (const message of [
     'Nimm eine unklare Tätigkeit ins Inventar auf',

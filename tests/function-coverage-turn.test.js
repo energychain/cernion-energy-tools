@@ -68,7 +68,8 @@ test('Workbench and OpenAI share the completed-turn seam; persistence errors pre
   broker.createService({
     name: 'domain-router',
     actions: {
-      continue: () => ({
+      continue: (ctx) => ({
+        uncertain: ctx.params.userRequest === 'uncertain selection',
         cetCaseId: 'case-a',
         caseStateVersion: 1,
         responseText: 'neutral reply',
@@ -133,6 +134,21 @@ test('Workbench and OpenAI share the completed-turn seam; persistence errors pre
     );
     expect(facade.choices[0].message.content).toContain('neutral reply');
     await service.queue;
+    expect((await service.actions.byActor({}, { meta })).items[0].signalCount).toBe(22);
+    const touchCount = events.length;
+    const uncertain = await broker.call(
+      'workbench.chat',
+      {
+        conversationId: 'conv-a',
+        message: 'uncertain selection',
+        intentMode: 'case_followup',
+        requestId: 'uncertain-real-turn',
+      },
+      { meta }
+    );
+    expect(uncertain.uncertain).toBe(true);
+    await service.queue;
+    expect(events).toHaveLength(touchCount);
     expect((await service.actions.byActor({}, { meta })).items[0].signalCount).toBe(22);
     db.allDocs = async () => {
       throw new Error('unavailable');

@@ -10,6 +10,7 @@
   "resolvedPenalty": 30,
   "inputBonus": 2,
   "explicitRouteBonus": 6,
+  "identifierBonus": 6,
   "semanticWeight": 1,
   "semanticThreshold": 0.65,
   "confidenceScale": 2,

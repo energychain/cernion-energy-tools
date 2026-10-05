@@ -68,6 +68,11 @@ function metrics(rows, cases) {
   });
   return {
     count: observations.length,
+    uncertaintyBreakdown: {
+      fallback: observations.filter((row) => row.usedFallback).length,
+      lowConfidence: observations.filter((row) => row.uncertain && !row.usedFallback).length,
+    },
+    correctFallback: observations.filter((row) => row.usedFallback && row.correct).length,
     top1: rate('correct'),
     top3: rate('top3'),
     uncertain: rate('uncertain'),
@@ -103,6 +108,31 @@ const report = {
       );
     })
     .map((row) => row.id),
+  previouslyCorrect: {
+    count: fixture.cases.filter((row) =>
+      row.expectedCapabilities.includes(
+        baseline.results.find((item) => item.id === row.id).capabilities[0]
+      )
+    ).length,
+    lost: fixture.cases
+      .filter(
+        (row) =>
+          row.expectedCapabilities.includes(
+            baseline.results.find((item) => item.id === row.id).capabilities[0]
+          ) &&
+          !row.expectedCapabilities.includes(
+            after.find((item) => item.id === row.id).capabilities[0]
+          )
+      )
+      .map((row) => ({
+        id: row.id,
+        query: row.query,
+        expectedCapabilities: row.expectedCapabilities,
+        before: baseline.results.find((item) => item.id === row.id).capabilities,
+        after: after.find((item) => item.id === row.id).capabilities,
+      })),
+  },
+  uncertaintyThreshold: require('../capability-routing.parameters.json').uncertaintyThreshold,
   results: after,
 };
 if (process.argv.includes('--write'))

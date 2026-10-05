@@ -3,6 +3,7 @@
 const { listCompiledDomainRoutes } = require('./domain-routes-registry');
 const { semanticDomains } = require('./semantic-domains');
 const { domainHintsForText } = require('./workbench-activity-taxonomy');
+const { confirmedCapability, choiceText } = require('./capability-clarification');
 
 // Domain signals only: capabilities and receipts remain owned by their existing services.
 const DOMAIN_SIGNALS = {
@@ -100,6 +101,7 @@ function buildRouterDiagnostics(c) {
 async function classifyDomain(input, dependencies = {}) {
   const known = input.knownContext || {};
   const text = input.userRequest || '';
+  const choice = confirmedCapability(text, dependencies.previousState, dependencies.model);
   const signals = [];
   const scores = {};
   const sourceDiagnostics = {};
@@ -115,6 +117,7 @@ async function classifyDomain(input, dependencies = {}) {
     }
   };
   infer(text, 60, 'task');
+  if (choice) add(dependencies.previousState.currentDomain, 60, 'confirmed_choice', 'person');
   const activityHints = domainHintsForText(text, { limit: 4 });
   for (const hint of activityHints) {
     add(hint.domain, Math.min(25, 8 + hint.score), 'activity_taxonomy', hint.activityId);
@@ -170,15 +173,28 @@ async function classifyDomain(input, dependencies = {}) {
       return {};
     }
   };
-  const broker = await consult(
-    'broker',
-    dependencies.recommend &&
-      (() =>
-        dependencies.recommend({
-          ...input,
-          primaryDomain: Object.entries(scores).sort((a, b) => b[1] - a[1])[0]?.[0] || 'unknown',
-        }))
-  );
+  const broker = choice
+    ? {
+        uncertain: false,
+        candidateCapabilities: [choice],
+        recommendedCapabilities: [choice],
+        scoringBreakdown: {
+          ...dependencies.previousState.lastClassification.scoringBreakdown,
+          uncertain: false,
+          activatesCoverage: true,
+          selectionSource: 'person',
+        },
+      }
+    : await consult(
+        'broker',
+        dependencies.recommend &&
+          (() =>
+            dependencies.recommend({
+              ...input,
+              primaryDomain:
+                Object.entries(scores).sort((a, b) => b[1] - a[1])[0]?.[0] || 'unknown',
+            }))
+      );
   const receiptResponse = await consult(
     'receipts',
     dependencies.selectReceipts && (() => dependencies.selectReceipts(input)),
@@ -274,7 +290,14 @@ async function classifyDomain(input, dependencies = {}) {
   };
   c.transition = evaluateDomainTransition(previous, c);
   c.requiredClarifications = buildClarificationPrompt(c);
-  if (!c.uncertain && !['clarify', 'fallback'].includes(c.transition.type))
+  if (c.uncertain) {
+    c.responseGuidance = choiceText(c, dependencies.model);
+    c.requiredClarifications = [c.responseGuidance];
+  }
+  if (choice)
+    c.responseGuidance =
+      'Die Funktion ist ausgewählt. Bitte ergänze die noch fehlenden Angaben zum Fall.';
+  if (choice || (!c.uncertain && !['clarify', 'fallback'].includes(c.transition.type)))
     c.selectedCapabilities = broker.recommendedCapabilities || candidateCapabilities.slice(0, 1);
   c.diagnostics = buildRouterDiagnostics(c);
   return c;
