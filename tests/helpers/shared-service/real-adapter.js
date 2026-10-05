@@ -40,10 +40,13 @@ async function createAdapter({
   let signalSchema;
   let workbenchSchema;
   let agentsSchema;
+  let learningSchema;
+  const corrections = [];
   let noticesSchema;
   jestApi.doMock('pouchdb', () => Pouch);
   try {
     jestApi.isolateModules(() => {
+      learningSchema = require('../../../services/shared-service-learning.service');
       schema = require('../../../services/function-activation.service');
       coverageSchema = require('../../../services/function-coverage.service');
       journalSchema = require('../../../services/shared-service-journal.service');
@@ -94,6 +97,14 @@ async function createAdapter({
       model: service.model,
       dbPath: path.join(root, 'coverage'),
       clock: () => now.value,
+    },
+  });
+  const learning = broker.createService({
+    ...learningSchema,
+    settings: {
+      ...learningSchema.settings,
+      model: service.model,
+      dbPath: path.join(root, 'learning'),
     },
   });
   let sequence = 0;
@@ -384,6 +395,7 @@ async function createAdapter({
     inbox,
     agentEvents,
     workbench,
+    learning,
     noticesService,
     clock: now,
     async apply(step) {
@@ -574,6 +586,62 @@ async function createAdapter({
         return;
       const event = { ...step.payload };
       tenants.add(event.tenantId);
+      if (step.type === 'correction') {
+        const meta = {
+          authUser: { tenantId: event.tenantId, id: event.actorId, roles: ['ROLE_TENANT_ADMIN'] },
+        };
+        const policy = {
+          tenantId: event.tenantId,
+          actorId: event.actorId,
+          roles: ['ROLE_USER'],
+          clearance: [],
+          domainsAllowed: [],
+          roleFamilies: [],
+          sensitivityClearance: [],
+        };
+        const target = {
+          tenantId: event.tenantId,
+          actorId: event.actorId,
+          accessRoles: ['ROLE_ADMIN'],
+          sensitivityFlags: [],
+          sharedWithRoles: [],
+        };
+        const beforeDecision = visible(policy, target);
+        const policyBefore = structuredClone(policy);
+        const observe = async () => {
+          const doc = await service.readDocument(event.tenantId);
+          if (event.target === 'neighbor') return doc.neighborCorrections || [];
+          if (event.target === 'activation') return doc.responsibilityCorrections || [];
+          if (event.target === 'agent')
+            return (
+              (await service.readRows(event.tenantId)).find(
+                (r) => r.functionId === event.correction.functionId
+              )?.attention || null
+            );
+          return (await coverageService.actions.byActor({ tenantId: event.tenantId }, { meta }))
+            .items;
+        };
+        const before = await observe();
+        const result = await learning.actions.apply(
+          { tenantId: event.tenantId, target: event.target, correction: event.correction },
+          { meta }
+        );
+        await service.settle();
+        await agents?.settle();
+        await wake.settle();
+        await journal.writeQueue;
+        const after = await observe();
+        if (JSON.stringify(before) !== JSON.stringify(after))
+          corrections.push({ before, after, event: { ...event, ref: result.correctionId } });
+        authorizationChecks.push({
+          before: beforeDecision,
+          after: visible(policy, target),
+          policyBefore,
+          policyAfter: structuredClone(policy),
+        });
+        fresh = false;
+        return;
+      }
       if (step.type === 'touch') event.at = new Date(now.value).toISOString();
       await broker.emit(step.event || 'function.touched.v1', event, { meta: step.meta || {} });
       await service.settle();
@@ -595,6 +663,7 @@ async function createAdapter({
         );
         coverage.push(...result.items);
       }
+      const serviceOverlay = (await service.readDocument('tenant-a')).neighborCorrections || [];
       const observation = {
         fresh,
         signalObservations: structuredClone(signalObservations.slice(-64)),
@@ -613,7 +682,14 @@ async function createAdapter({
               )
             ).flat()
           : [],
-        functions: service.model.functions,
+        functions: service.model.functions.map((fn) => ({
+          ...fn,
+          neighbors: require('../../../src/function-model').getNeighbors(fn.functionId, {
+            model: service.model,
+            overlay: serviceOverlay,
+            minWeight: 0,
+          }),
+        })),
         tenantBudget: service.settings.tenantBudget,
         minWeight: service.settings.minWeight,
         now: now.value,
@@ -622,7 +698,7 @@ async function createAdapter({
         activityQueries: structuredClone(activityQueries),
         notices: structuredClone(notices),
         emptyWakes: structuredClone(emptyWakes),
-        corrections: [],
+        corrections: structuredClone(corrections),
         authorizationChecks: structuredClone(authorizationChecks),
         coverage,
         coverageEvents: structuredClone(coverageEvents),

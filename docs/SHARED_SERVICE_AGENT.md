@@ -136,6 +136,12 @@ each fixed-seed history; each invariant still independently requires actual
 exercise. Missing #699/#700/#701 invariants remain explicit todos. Isolated upstream
 unit tests can disable agent integration with `withAgents: false`.
 
+## Correction learning (#701)
+
+See [SHARED_SERVICE_LEARNING.md](SHARED_SERVICE_LEARNING.md) for confirmed chat
+corrections, reversible preferences/neighbor overlays, admin actions and proposal
+resolution through the existing feedback path.
+
 ## Additive proposal notice event (#723)
 
 After persisting the proposal association and at least one successful persona-inbox

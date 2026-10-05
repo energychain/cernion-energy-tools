@@ -62,7 +62,11 @@ function advanceAttention(document, event, model, settings) {
     const relevantIds = new Set(
       sources.flatMap((id) => [
         id,
-        ...getNeighbors(id, { model, minWeight: 0 }).map((edge) => edge.functionId),
+        ...getNeighbors(id, {
+          model,
+          minWeight: 0,
+          overlay: document.neighborCorrections || [],
+        }).map((edge) => edge.functionId),
       ])
     );
     const actors = new Set(

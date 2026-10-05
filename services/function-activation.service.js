@@ -2,7 +2,12 @@
 
 const { Errors } = require('moleculer');
 const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
-const { getFunctionModel, getFunction, resolveFunctionId } = require('../src/function-model');
+const {
+  getFunctionModel,
+  getFunction,
+  resolveFunctionId,
+  getNeighbors,
+} = require('../src/function-model');
 const { validateTenantId } = require('../src/tenant-context');
 const {
   activationRows,
@@ -57,6 +62,28 @@ module.exports = {
     clock: null,
   },
   actions: {
+    neighbors: {
+      visibility: 'protected',
+      params: getParams,
+      async handler(ctx) {
+        const p = principal(ctx, ctx.params);
+        const ids = this.checkedFunction(ctx.params.functionId);
+        if (ids.length !== 1) deny('Ambiguous function');
+        await this.pending.get(p.tenantId);
+        const doc = await this.readDocument(p.tenantId);
+        return getNeighbors(ids[0].functionId, {
+          model: this.model,
+          overlay: doc.neighborCorrections || [],
+          minWeight: this.settings.minWeight,
+        });
+      },
+    },
+    correct: {
+      visibility: 'protected',
+      handler(ctx) {
+        return this.acceptCorrection(ctx.params, ctx.meta);
+      },
+    },
     list: {
       params: tenantParams,
       async handler(ctx) {
@@ -411,6 +438,8 @@ module.exports = {
       );
     },
     async acceptCorrection(event, meta = {}) {
+      if (['activation', 'neighbor'].includes(event.target))
+        return this.acceptModelCorrection(event, meta);
       if (
         event.target !== 'agent' ||
         !['retain', 'unretain', 'pin', 'unpin'].includes(event.correction?.kind)
@@ -449,6 +478,35 @@ module.exports = {
             (item) => item.functionId === functionId && item.attention
           );
           if (!row) return;
+          document.agentCorrections ||= [];
+          const c = event.correction;
+          if (c.undoRef) {
+            const record = document.agentCorrections.find((item) => item.ref === c.undoRef);
+            if (!record || record.undone) return;
+            const newer = document.agentCorrections
+              .slice(document.agentCorrections.indexOf(record) + 1)
+              .some((item) => item.functionId === functionId && !item.undone);
+            if (newer) deny('Undo newer agent corrections first');
+            row.attention.retainFactor = record.before.retainFactor;
+            row.attention.inventory = record.before.inventory;
+            record.undone = true;
+            row.attention = attentionState(row.attention, this.settings);
+            return;
+          }
+          if (
+            document.agentCorrections.some((item) => item.ref === event.ref && item.kind === c.kind)
+          )
+            return;
+          document.agentCorrections.push({
+            ref: event.ref,
+            kind: c.kind,
+            functionId,
+            at: event.at || new Date(this.now()).toISOString(),
+            before: {
+              retainFactor: row.attention.retainFactor,
+              inventory: row.attention.inventory,
+            },
+          });
           const attention = row.attention;
           if (event.correction.kind === 'retain')
             attention.retainFactor = Math.min(factor, this.settings.maxRetainFactor);
@@ -462,6 +520,38 @@ module.exports = {
       );
     },
 
+    async acceptModelCorrection(event, meta) {
+      const { correctionPrincipal } = require('../src/shared-service-learning');
+      correctionPrincipal(event, meta);
+      const c = event.correction;
+      const ids = this.checkedFunction(c.functionId || event.ref);
+      if (ids.length !== 1) deny('Ambiguous correction');
+      const functionId = ids[0].functionId;
+      if (event.target === 'activation' && typeof c.cet !== 'boolean')
+        deny('Invalid responsibility');
+      let neighborId;
+      if (event.target === 'neighbor') {
+        const neighbors = this.checkedFunction(c.neighborId);
+        if (neighbors.length !== 1 || !Number.isFinite(c.weight) || c.weight < 0 || c.weight > 1)
+          deny('Invalid neighbor');
+        neighborId = neighbors[0].functionId;
+      }
+      return this.enqueue(event.tenantId, () =>
+        this.updateDocument(event.tenantId, (document) => {
+          const field =
+            event.target === 'neighbor' ? 'neighborCorrections' : 'responsibilityCorrections';
+          document[field] ||= [];
+          if (c.undoRef) document[field] = document[field].filter((row) => row.ref !== c.undoRef);
+          else if (!document[field].some((row) => row.ref === event.ref))
+            document[field].push({
+              ref: event.ref,
+              functionId,
+              ...(neighborId ? { neighborId, weight: c.weight } : { cet: c.cet }),
+              modelSourceHash: this.model.sourceHash,
+            });
+        })
+      );
+    },
     compactTouches(document) {
       const latest = new Map();
       for (const record of resolveRecords(document.touches, this.model)) {

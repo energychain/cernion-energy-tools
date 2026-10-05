@@ -281,3 +281,9 @@ consumed and remaining units equally among surviving successors so it never
 multiplies allowance. Ambiguous merges conservatively retain one surviving attention
 record rather than create credit. The lifecycle mixin, serialized tenant writes,
 capped history and coalesced durable activation outbox remain unchanged.
+
+## Correction learning (#701)
+
+See [SHARED_SERVICE_LEARNING.md](SHARED_SERVICE_LEARNING.md) for confirmed chat
+corrections, reversible preferences/neighbor overlays, admin actions and proposal
+resolution through the existing feedback path.

@@ -1,5 +1,6 @@
 'use strict';
 
+const { isCorrectionTurn } = require('./workbench-corrections');
 const {
   isSystemActivityQuery,
   isFunctionKnowledgeQuery,
@@ -8,6 +9,7 @@ const {
 
 // Intent is a presentation/routing hint, never authorization to execute a tool.
 function classifyWorkbenchIntent(message, { cetCaseId, recentMessages } = {}) {
+  if (isCorrectionTurn(message)) return 'correction';
   const text = String(message || '').toLowerCase();
   if (
     /\b(run|execute|fetch|search|lookup|attach|ausführen|ausfuehren|führe|fuehre|abrufen|suche|anhängen)\b/.test(

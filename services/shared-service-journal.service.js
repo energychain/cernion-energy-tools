@@ -350,7 +350,14 @@ module.exports = {
           (entry) => entry.agentId === input.ref
         )?.functionId;
       if (!functionId) fail('Correction requires a resolvable function reference');
+      if (input.correctionId) {
+        const existing = (await this.rawEntries(input.tenantId)).find(
+          (entry) => entry.entryId === `correction-${input.correctionId}`
+        );
+        if (existing) return existing;
+      }
       return this.appendEntry({
+        ...(input.correctionId ? { entryId: `correction-${input.correctionId}` } : {}),
         tenantId: input.tenantId,
         ...(input.target === 'agent' ? { agentId: input.ref } : {}),
         functionId,

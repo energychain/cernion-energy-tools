@@ -1,6 +1,7 @@
 'use strict';
 
 const crypto = require('crypto');
+const { handleCorrectionTurn } = require('../src/workbench-corrections');
 const { answerSystemActivity } = require('../src/workbench-system-activity');
 const coverageTurn = require('../src/function-coverage-turn');
 const { Errors } = require('moleculer');
@@ -1276,7 +1277,32 @@ module.exports = {
           caseId,
           status: ctx.params.status,
         });
-        return { items: tasks.map((task) => safeTask(task)), nextCursor: null };
+        let proposals = [];
+        try {
+          proposals = await ctx.call('shared-service-agent.proposals', { tenantId: p.tenantId });
+        } catch (error) {
+          if (!['SERVICE_NOT_FOUND', 'SERVICE_NOT_AVAILABLE'].includes(error.type)) throw error;
+        }
+        return {
+          items: [
+            ...tasks.map((task) => safeTask(task)),
+            ...proposals.map((proposal) => ({
+              taskId: proposal.ref,
+              type: 'shared-service-proposal',
+              attentionState: 'proposal_review_required',
+              severity: 'info',
+              blockingReason: proposal.summary,
+              nextSafeAction:
+                'Vorschlag im Chat anhand seiner Beschreibung annehmen oder ablehnen.',
+              status: 'open',
+              title: proposal.summary,
+              summary: proposal.summary,
+              functionId: proposal.functionId,
+              proposalRef: proposal.ref,
+            })),
+          ],
+          nextCursor: null,
+        };
       }
     ),
     'inbox.tasks.assign': action(
@@ -1397,6 +1423,18 @@ module.exports = {
         const envelope = normalizeTaskEnvelope(ctx.params);
         const mapping = await this.resolveUserMapping(ctx, p, envelope);
         coverageTurn.mapped(ctx, this.metaForMapping(ctx, p, mapping));
+        const correctionMeta = this.metaForMapping(ctx, p, mapping);
+        const correctionResult = await handleCorrectionTurn(
+          {
+            params: ctx.params,
+            meta: correctionMeta,
+            call: (name, input) => ctx.call(name, input, { meta: correctionMeta }),
+          },
+          envelope,
+          this.store,
+          { model: this.settings.systemActivityModel }
+        );
+        if (correctionResult) return correctionResult;
         let conversation = await this.store.resolveConversation(
           {
             tenantId: p.tenantId,

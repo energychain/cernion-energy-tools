@@ -39,6 +39,7 @@
     "services/shared-service-agents.service.js",
     "tests/shared-service-agent-persistence.test.js",
     "services/persona-inbox.service.js",
+    "src/workbench-corrections.js",
     "src/signal-projection.js",
     "services/signals.service.js",
     "scripts/generate-signal-catalog.js",

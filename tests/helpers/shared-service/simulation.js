@@ -102,18 +102,37 @@ function generateHistory({ seed, functions, users = 5, steps = 80 }) {
     }
     if (type === 'activity')
       return { type, tenantId, actorId, functionId, mode: 'system_activity_query' };
-    if (type === 'correction')
+    if (type === 'correction') {
+      const target = pick(['coverage', 'activation', 'agent', 'neighbor']);
+      const anchor = functions.find((fn) => fn.neighbors.some((edge) => edge.weight >= 0.2));
+      const neighborId =
+        anchor?.neighbors[0]?.functionId ||
+        functions.find((fn) => fn.functionId !== functionId)?.functionId;
+      const correctedId = ['activation', 'agent'].includes(target)
+        ? neighborId
+        : target === 'neighbor'
+          ? anchor?.functionId || functionId
+          : functionId;
+      const correction =
+        target === 'coverage'
+          ? { score: random() }
+          : target === 'activation'
+            ? { cet: false }
+            : target === 'agent'
+              ? { kind: 'retain' }
+              : { neighborId, weight: random() };
       return {
         type,
         event: 'shared-service.correction.v1',
         payload: {
           tenantId,
           actorId,
-          target: pick(['coverage', 'activation', 'agent', 'neighbor']),
-          ref: functionId,
-          correction: { score: random(), responsibility: { humans: [actorId], cet: false } },
+          target,
+          ref: correctedId,
+          correction: { functionId: correctedId, ...correction },
         },
       };
+    }
     if (type === 'signal')
       return {
         type,
@@ -247,6 +266,40 @@ function generateHistory({ seed, functions, users = 5, steps = 80 }) {
       functionId: anchor.functionId,
       mode: 'system_activity_query',
     };
+  if (anchor && steps >= 16) {
+    const targetId = anchor.neighbors
+      .slice()
+      .sort(
+        (a, b) => b.weight - a.weight || compareCanonicalStrings(a.functionId, b.functionId)
+      )[0].functionId;
+    history.splice(1, 0, {
+      type: 'correction',
+      event: 'shared-service.correction.v1',
+      payload: {
+        tenantId: 'tenant-a',
+        actorId: 'actor-0',
+        target: 'agent',
+        ref: targetId,
+        correction: { functionId: targetId, kind: 'retain' },
+      },
+    });
+    for (const [target, correction] of [
+      ['coverage', { score: 1 }],
+      ['activation', { cet: false }],
+      ['neighbor', { neighborId: targetId, weight: 0 }],
+    ])
+      history.push({
+        type: 'correction',
+        event: 'shared-service.correction.v1',
+        payload: {
+          tenantId: 'tenant-a',
+          actorId: 'actor-0',
+          target,
+          ref: anchor.functionId,
+          correction: { functionId: anchor.functionId, ...correction },
+        },
+      });
+  }
   if (anchor && steps >= 11) {
     history.splice(11, 0, {
       type: 'notice-exercise',

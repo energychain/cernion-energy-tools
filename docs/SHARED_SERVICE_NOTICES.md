@@ -6,6 +6,13 @@ a Function or its neighbors selects potential recipients; it grants no permissio
 All Function labels come from the model. Presentation uses deterministic templates
 and never displays the proposal's generated summary.
 
+Recipient selection reads the persisted activation tenant's neighbor corrections
+through the existing `getNeighbors` model resolver. Adding, removing or undoing an
+edge therefore affects subsequent notice receipt within that tenant. This selects
+recipients only; source visibility and recorded proposal addressing still authorize
+each displayed notice independently. Previously queued notices remain subject to
+their existing source-visibility checks.
+
 ## Sources and contract extension for #693
 
 The agent emits the additive event after persisting a proposal and successfully

@@ -2,16 +2,16 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.99.22",
-  "sourceOpenApiHash": "6fb16d9d5d9f68cda82f03a15859c8165974ebb61f62c3c1201aca047d2a0d5d",
+  "sourceOpenApiHash": "a56110dd0050d53c5d4fa26d12d3f818da9f498506dd829e8677db2d60f29a43",
   "coverage": {
-    "rawOperationCount": 1240,
-    "operationCount": 984,
-    "agentableCount": 982,
+    "rawOperationCount": 1244,
+    "operationCount": 988,
+    "agentableCount": 986,
     "nonAgentableCount": 2,
     "byOperationKind": {
-      "data_read": 424,
-      "admin": 20,
-      "object_store_write": 263,
+      "data_read": 426,
+      "admin": 21,
+      "object_store_write": 264,
       "process_step": 26,
       "process_start": 50,
       "advisory_plan": 48,
@@ -20,7 +20,7 @@
       "dashboard_read": 125,
       "internal": 7
     },
-    "resolvedActionCount": 965,
+    "resolvedActionCount": 969,
     "unresolvedActionCount": 19,
     "unresolvedActions": [
       {
@@ -78304,6 +78304,259 @@
           "Redispatch 2.0",
           "curtailment",
           "congestion management"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "shared-service-learning_list",
+      "method": "GET",
+      "path": "/api/shared-service-learning/corrections",
+      "service": "shared-service-learning",
+      "action": "shared-service-learning.list",
+      "summary": "Read correction audit records",
+      "tags": [
+        "shared-service-learning"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "shared-service-learning.list"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "shared-service-learning:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "shared",
+          "service",
+          "learning",
+          "list",
+          "read",
+          "correction",
+          "audit",
+          "records"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me read correction audit records"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "shared-service-learning_apply",
+      "method": "POST",
+      "path": "/api/shared-service-learning/corrections",
+      "service": "shared-service-learning",
+      "action": "shared-service-learning.apply",
+      "summary": "Apply an authenticated admin correction",
+      "tags": [
+        "shared-service-learning"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "admin",
+      "consequenceLevel": "high",
+      "recommendedExecutionMode": "confirm",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "shared-service-learning.apply"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "shared-service-learning:write",
+        "admin"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "shared-service-learning"
+      ],
+      "sideEffects": [
+        "privileged_configuration_change"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "May not be reversible via API - verify with backend/tenant admin before invoking.",
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "shared",
+          "service",
+          "learning",
+          "apply",
+          "an",
+          "authenticated",
+          "admin",
+          "correction"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please apply an authenticated admin correction"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "shared-service-learning_undo",
+      "method": "POST",
+      "path": "/api/shared-service-learning/corrections/:correctionId/undo",
+      "service": "shared-service-learning",
+      "action": "shared-service-learning.undo",
+      "summary": "Undo a correction",
+      "tags": [
+        "shared-service-learning"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "object_store_write",
+      "consequenceLevel": "medium",
+      "recommendedExecutionMode": "prepare",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "shared-service-learning.undo"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "shared-service-learning:write"
+      ],
+      "tenantScoped": true,
+      "writesTo": [
+        "shared-service-learning"
+      ],
+      "sideEffects": [
+        "creates_or_modifies_stored_object"
+      ],
+      "idempotency": "not_idempotent",
+      "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "shared",
+          "service",
+          "learning",
+          "undo",
+          "correction"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Please undo a correction"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "shared-service-learning_overrideProposals",
+      "method": "GET",
+      "path": "/api/shared-service-learning/corrections/override-proposals",
+      "service": "shared-service-learning",
+      "action": "shared-service-learning.overrideProposals",
+      "summary": "Read aggregate suggestions; never apply them",
+      "tags": [
+        "shared-service-learning"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "shared-service-learning.override_proposals"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "shared-service-learning:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [],
+        "optional": []
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "shared",
+          "service",
+          "learning",
+          "override",
+          "proposals",
+          "read",
+          "aggregate",
+          "suggestions;",
+          "never",
+          "apply",
+          "them"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me read aggregate suggestions; never apply them"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
         ],
         "curated": false
       },

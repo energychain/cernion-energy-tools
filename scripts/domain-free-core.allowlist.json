@@ -31,27 +31,66 @@
       "term": "klärfall",
       "reason": "Generic case-status separation vocabulary; no domain branch."
     },
-    { "term": "doing", "reason": "Generic English current-activity question wording." },
-    { "term": "warum", "reason": "Generic German explanation question wording." },
-    { "term": "overview", "reason": "Generic bounded system-state overview." },
-    { "term": "welche", "reason": "Generic German selection question wording." },
-    { "term": "nicht", "reason": "Generic German negation in state answers." },
-    { "term": "keine", "reason": "Generic German negation in state answers." },
-    { "term": "rahmen", "reason": "Generic finite attention-unit budget presentation." },
-    { "term": "offene", "reason": "Generic open expectations/proposals presentation." },
-    { "term": "klärung", "reason": "Generic safe clarification follow-up wording." },
+    {
+      "term": "doing",
+      "reason": "Generic English current-activity question wording."
+    },
+    {
+      "term": "warum",
+      "reason": "Generic German explanation question wording."
+    },
+    {
+      "term": "overview",
+      "reason": "Generic bounded system-state overview."
+    },
+    {
+      "term": "welche",
+      "reason": "Generic German selection question wording."
+    },
+    {
+      "term": "nicht",
+      "reason": "Generic German negation in state answers."
+    },
+    {
+      "term": "keine",
+      "reason": "Generic German negation in state answers."
+    },
+    {
+      "term": "rahmen",
+      "reason": "Generic finite attention-unit budget presentation."
+    },
+    {
+      "term": "offene",
+      "reason": "Generic open expectations/proposals presentation."
+    },
+    {
+      "term": "klärung",
+      "reason": "Generic safe clarification follow-up wording."
+    },
     {
       "term": "claim",
       "reason": "Generic revision-protected scheduler execution claim; no domain behavior."
     },
-    { "term": "owner", "reason": "Opaque scheduler instance identity on an execution claim." },
+    {
+      "term": "owner",
+      "reason": "Opaque scheduler instance identity on an execution claim."
+    },
     {
       "term": "deadline",
       "reason": "Generic dueAt clock boundary used for adaptive wake intervals."
     },
-    { "term": "factors", "reason": "Configurable numeric interval multipliers." },
-    { "term": "strategy", "reason": "Existing Moleculer test broker registry configuration." },
-    { "term": "polling", "reason": "Generic scheduling mode distinct from push events." },
+    {
+      "term": "factors",
+      "reason": "Configurable numeric interval multipliers."
+    },
+    {
+      "term": "strategy",
+      "reason": "Existing Moleculer test broker registry configuration."
+    },
+    {
+      "term": "polling",
+      "reason": "Generic scheduling mode distinct from push events."
+    },
     {
       "term": "absent",
       "reason": "Generic missing event/tenant metadata in neutral scheduler tests."
@@ -387,6 +426,34 @@
     {
       "term": "freigabe",
       "reason": "Existing German HITL/persona-inbox user text for generic human approval; #697 never approves or dispatches externally."
+    },
+    {
+      "term": "audit",
+      "reason": "Generic immutable correction audit records; no domain branch."
+    },
+    {
+      "term": "bestätigung",
+      "reason": "Generic German correction confirmation wording."
+    },
+    {
+      "term": "channel",
+      "reason": "Existing Workbench conversation channel key; no domain behavior."
+    },
+    {
+      "term": "hinweis",
+      "reason": "Generic notices preference wording."
+    },
+    {
+      "term": "overlay",
+      "reason": "Generic tenant graph overlay storage and projection."
+    },
+    {
+      "term": "recognition",
+      "reason": "Generic deterministic correction recognition."
+    },
+    {
+      "term": "zuständig",
+      "reason": "Generic German human responsibility correction vocabulary."
     },
     {
       "term": "classification",
