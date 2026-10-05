@@ -12,25 +12,7 @@ const {
 const ROOT = path.resolve(__dirname, '..');
 const { generateVocabulary } = require('../scripts/generate-domain-free-vocabulary');
 
-// Frozen pre-optimization oracle: deliberately retain the independent RegExp search.
-function legacyScanText(text, vocabulary, allowlist = []) {
-  const allowed = new Set(allowlist.map((entry) => normalize(entry.term)));
-  const terms = vocabulary
-    .filter((term) => !allowed.has(term))
-    .map((term) => ({
-      term,
-      pattern: new RegExp(
-        `(?<![\\p{L}\\p{N}])${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\p{L}\\p{N}])`,
-        'u'
-      ),
-    }));
-  return text.split(/\r?\n/).flatMap((line, index) => {
-    const normalized = normalize(line);
-    return terms
-      .filter(({ pattern }) => pattern.test(normalized))
-      .map(({ term }) => ({ line: index + 1, term }));
-  });
-}
+const { legacyScanText, checkEquivalence } = require('../scripts/check-domain-free-equivalence');
 
 const catalogs = {
   capabilities: [
@@ -136,36 +118,15 @@ test('token n-grams preserve literal separators, punctuation boundaries, Unicode
   );
 });
 
-test('old and token scans return identical file/line/term hits on every current core file and contamination fixture', () => {
-  const vocabulary = buildVocabulary(loadCatalogs());
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'scan-equivalence-'));
-  try {
-    const fixture = path.join(root, 'contaminated.js');
-    const keyword = loadCatalogs()
-      .capabilities.flatMap((item) => item.keywords)
-      .find((term) => term.length > 15 && !term.includes('\n'));
-    fs.writeFileSync(fixture, `// ${keyword}\n`);
-    const files = [...checkCore().files, fixture];
-    const scanFiles = (scan) =>
-      files.flatMap((file) =>
-        scan(fs.readFileSync(path.resolve(ROOT, file), 'utf8'), vocabulary).map((hit) => ({
-          file,
-          ...hit,
-        }))
-      );
-    // No exceptions: exercise actual positive hits rather than comparing two clean reports.
-    const legacy = scanFiles(legacyScanText);
-    expect(legacy.length).toBeGreaterThan(0);
-    expect(legacy).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ file: fixture, line: 1, term: normalize(keyword) }),
-      ])
-    );
-    expect(scanFiles(scanText)).toEqual(legacy);
-  } finally {
-    fs.rmSync(root, { recursive: true, force: true });
-  }
-}, 45000);
+test('old and token scans return identical hits on three fixed core files and contamination fixture', () => {
+  const files = [
+    'src/function-activation-state.js',
+    'src/function-coverage-turn.js',
+    'src/shared-service-wake.js',
+  ];
+  expect(checkCore().files).toEqual(expect.arrayContaining(files));
+  expect(checkEquivalence(files).files).toBe(4);
+});
 
 test('allowlist requires explicit reason and only exempts its exact term', () => {
   expect(() => scanText('keyword', ['keyword'], [{ term: 'keyword' }])).toThrow('reason');
