@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const coverageTurn = require('../src/function-coverage-turn');
+const { noticeDeliveryOptions, prependNotice } = require('../src/shared-service-notices');
 const { Errors } = require('moleculer');
 const { CHAT_MODES } = require('../src/personal-agent-routing');
 const llmClient = require('../src/llm-client');
@@ -475,22 +476,29 @@ module.exports = {
               ? resolveWorkbenchFollowup(question, { recentMessages })
               : null;
           const sourceAction = isReadOnlyIntent(intentMode) ? 'workbench.query' : 'workbench.chat';
-          const workbench = await ctx.call(sourceAction, {
-            client: metadata.client || 'open-webui',
-            channel: 'open-webui',
-            openWebuiConversationId: metadata.openWebuiConversationId || metadata.conversationId,
-            openWebuiUserId: metadata.openWebuiUserId,
-            openWebuiOrgId: metadata.openWebuiOrgId,
-            clientId: metadata.clientId,
-            message: followup
-              ? `Vorheriges Thema (Gesprächskontext): ${followup.topic}\n${followup.observations.join('\n')}\nAktuelle Rückfrage: ${question}\nBitte erkläre den fachlichen Zusammenhang und die Bedeutung mit nötigen Einschränkungen und benötigten Details.`
-              : question,
-            ...(isReadOnlyIntent(intentMode) ? { intentMode } : {}),
-            requestId: metadata.requestId,
-            correlationId: metadata.correlationId,
-            ...(isReadOnlyIntent(intentMode) ? { cetCaseId: metadata.cetCaseId } : {}),
-          });
-          const content = compactMarkdown(renderWorkbenchResponse(workbench, intentMode, followup));
+          const workbench = await ctx.call(
+            sourceAction,
+            {
+              client: metadata.client || 'open-webui',
+              channel: 'open-webui',
+              openWebuiConversationId: metadata.openWebuiConversationId || metadata.conversationId,
+              openWebuiUserId: metadata.openWebuiUserId,
+              openWebuiOrgId: metadata.openWebuiOrgId,
+              clientId: metadata.clientId,
+              message: followup
+                ? `Vorheriges Thema (Gesprächskontext): ${followup.topic}\n${followup.observations.join('\n')}\nAktuelle Rückfrage: ${question}\nBitte erkläre den fachlichen Zusammenhang und die Bedeutung mit nötigen Einschränkungen und benötigten Details.`
+                : question,
+              ...(isReadOnlyIntent(intentMode) ? { intentMode } : {}),
+              requestId: metadata.requestId,
+              correlationId: metadata.correlationId,
+              ...(isReadOnlyIntent(intentMode) ? { cetCaseId: metadata.cetCaseId } : {}),
+            },
+            ...noticeDeliveryOptions(ctx, tools)
+          );
+          const rendered = compactMarkdown(
+            renderWorkbenchResponse(workbench, intentMode, followup)
+          );
+          const content = prependNotice(workbench, rendered);
           const promptTokens = estimateTokens(question);
           const completionTokens = estimateTokens(content);
           return {

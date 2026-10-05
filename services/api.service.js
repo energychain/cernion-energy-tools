@@ -717,9 +717,28 @@ function buildOpenAiStreamChunks(response) {
   const finishReason = choice?.finish_reason || 'stop';
   const base = { id, object: 'chat.completion.chunk', created, model };
 
+  const noticeBlock = response?.cernion?.result?.noticeBlock;
+  const prefix =
+    typeof noticeBlock === 'string' && noticeBlock && content.startsWith(noticeBlock)
+      ? noticeBlock + (content.startsWith(`${noticeBlock}\n\n`) ? '\n\n' : '')
+      : '';
   return [
-    { ...base, choices: [{ index: 0, delta: { role: 'assistant' }, finish_reason: null }] },
-    { ...base, choices: [{ index: 0, delta: { content }, finish_reason: null }] },
+    {
+      ...base,
+      choices: [
+        {
+          index: 0,
+          delta: { role: 'assistant', ...(prefix ? { content: prefix } : {}) },
+          finish_reason: null,
+        },
+      ],
+    },
+    {
+      ...base,
+      choices: [
+        { index: 0, delta: { content: content.slice(prefix.length) }, finish_reason: null },
+      ],
+    },
     { ...base, choices: [{ index: 0, delta: {}, finish_reason: finishReason }] },
   ];
 }

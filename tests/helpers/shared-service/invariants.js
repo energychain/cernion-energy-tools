@@ -3,6 +3,34 @@ const DEFAULT_REST_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 // Observation envelope is test-only; its records retain the #693 data contract.
 const invariants = {
+  'I-12': (state) => {
+    const seen = new Set();
+    for (const notice of state.notices || []) {
+      const key = JSON.stringify([notice.tenantId, notice.actorId, notice.ref]);
+      assert.ok(!seen.has(key), 'notice delivered more than once');
+      seen.add(key);
+      assert.equal(notice.visible, true, 'notice delivered without visibility');
+      assert.ok(notice.sourceEvent, 'notice has no source event');
+      assert.equal(notice.sourceEvent.tenantId, notice.tenantId, 'notice source tenant mismatch');
+      if (notice.kind === 'proposal')
+        assert.equal(notice.objectRef, notice.sourceEvent.proposalRef, 'proposal source mismatch');
+      if (notice.kind === 'signal')
+        assert.equal(notice.objectRef, notice.sourceEvent.signalId, 'signal source mismatch');
+      if (notice.kind === 'responsibility')
+        assert.equal(
+          notice.cet,
+          notice.sourceEvent.responsibility?.cet,
+          'responsibility source mismatch'
+        );
+      if (notice.kind === 'tier')
+        assert.equal(notice.tier, notice.sourceEvent.attention?.tier, 'tier source mismatch');
+      assert.ok(
+        notice.sourceEvent.functionIds?.includes(notice.functionId) ||
+          notice.sourceEvent.functionId === notice.functionId,
+        'notice source function mismatch'
+      );
+    }
+  },
   'I-1': (state) => {
     if (!state.fresh) return;
     assert.ok(
@@ -155,6 +183,10 @@ const invariants = {
 };
 
 const dependencies = {
+  'I-12': {
+    issues: '#723',
+    paths: ['services/shared-service-notices.service.js', 'src/shared-service-notices.js'],
+  },
   'I-10': {
     issues: '#715',
     paths: ['services/function-activation.service.js', 'src/function-attention.js'],

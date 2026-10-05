@@ -159,6 +159,21 @@ const agent = () => ({
   stats: {},
 });
 const observations = {
+  'I-12': () => ({
+    ...base(),
+    notices: [
+      {
+        tenantId: 'tenant-a',
+        actorId: 'actor-a',
+        ref: 'V-1',
+        functionId: 'fn-a',
+        visible: true,
+        kind: 'proposal',
+        objectRef: 'proposal-a',
+        sourceEvent: { tenantId: 'tenant-a', functionId: 'fn-a', proposalRef: 'proposal-a' },
+      },
+    ],
+  }),
   'I-10': () => ({
     ...base(),
     attentionTransitions: [
@@ -266,6 +281,9 @@ const observations = {
   }),
 };
 const corrupt = {
+  'I-12': (s) => {
+    s.notices.push({ ...s.notices[0] });
+  },
   'I-10': (s) => {
     s.attentionTransitions[0].after.relevance = 2;
   },
@@ -413,3 +431,16 @@ test.each(['consumption', 'refill'])('I-10 rejects %s without funding or turns',
   else state.attentionTransitions[0].after.replenishedUnits = 3;
   expect(() => assertInvariants(state, ['I-10'])).toThrow('I-10');
 });
+
+test.each(['visibility', 'event', 'tenant', 'function', 'reference'])(
+  'I-12 rejects %s violation',
+  (kind) => {
+    const s = observations['I-12']();
+    if (kind === 'visibility') s.notices[0].visible = false;
+    if (kind === 'event') s.notices[0].sourceEvent = null;
+    if (kind === 'tenant') s.notices[0].sourceEvent.tenantId = 'tenant-b';
+    if (kind === 'function') s.notices[0].sourceEvent.functionId = 'fn-b';
+    if (kind === 'reference') s.notices[0].sourceEvent.proposalRef = 'proposal-b';
+    expect(() => assertInvariants(s, ['I-12'])).toThrow('I-12');
+  }
+);

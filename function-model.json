@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "e25fb4c62415dd742c12a9fbaee058ef527a1dec4199ee258fc894da0829f13d",
+  "sourceHash": "90af22d0b350d7178115f1fb92a71c108d877b37f171c8c7b6f988ee34eb2767",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -1080,7 +1080,7 @@
       "new": 6,
       "previousSourceHash": "7763b4afac944e380825ff10fbbd4a7ab46c64b3bab81424500c29294b9fccfa"
     },
-    "indexOperationCount": 982,
+    "indexOperationCount": 984,
     "indexOperationsWithoutAction": 19,
     "capabilityCount": 172,
     "functionCount": 106,
@@ -190248,6 +190248,10 @@
       {
         "service": "shared-service-agent",
         "ref": "src/llm-client.js:159: dynamic emission"
+      },
+      {
+        "service": "notices",
+        "ref": "services/shared-service-notices.service.js:158: spread event handlers"
       },
       {
         "service": "system",

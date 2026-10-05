@@ -1472,6 +1472,87 @@ describe('API Gateway Service', () => {
       expect(chunkFrames[2].choices[0].finish_reason).toBe('stop');
     });
 
+    it('#723: emits the notice in the FIRST SSE frame, preserving the answer exactly', async () => {
+      const v1Route = ApiService.settings.routes.find((r) => r.path === '/v1');
+      const brokerCall = jest.fn(async (action) => {
+        if (action === 'token-manager.verify') {
+          return {
+            valid: true,
+            tokenId: 'token-stream',
+            scope: 'full-access',
+            scopes: ['full-access'],
+            tenantId: 'tenant-stream',
+            userId: 'user-stream',
+          };
+        }
+        if (action === 'openai-compatible.chatCompletions') {
+          return {
+            id: 'chatcmpl_stream_test',
+            object: 'chat.completion',
+            created: 1234,
+            model: 'cernion-agent-mvp',
+            choices: [
+              {
+                index: 0,
+                message: {
+                  role: 'assistant',
+                  content: 'Hinweise für dich:\nV-1: Neuer Vorschlag.\n\nStreamed answer.',
+                },
+                finish_reason: 'stop',
+              },
+            ],
+            usage: { prompt_tokens: 1, completion_tokens: 2, total_tokens: 3 },
+            cernion: { result: { noticeBlock: 'Hinweise für dich:\nV-1: Neuer Vorschlag.' } },
+          };
+        }
+        throw new Error(`Unexpected action ${action}`);
+      });
+      const res = createSseCollectingRes();
+
+      await v1Route.aliases['POST /chat/completions'].call(
+        { broker: { call: brokerCall, emit: jest.fn() }, logger: { debug: jest.fn() } },
+        {
+          headers: { authorization: 'Bearer ck_stream_token' },
+          method: 'POST',
+          body: {
+            model: 'cernion-agent-mvp',
+            stream: true,
+            messages: [{ role: 'user', content: 'Hallo' }],
+          },
+        },
+        res
+      );
+
+      expect(res.statusCode).toBe(200);
+      expect(res.headers['Content-Type']).toBe('text/event-stream; charset=utf-8');
+      expect(res.ended).toBe(true);
+
+      // Last write is the terminal [DONE] frame; everything before it is a
+      // "data: {...}\n\n" chat.completion.chunk frame.
+      expect(res.writes[res.writes.length - 1]).toBe('data: [DONE]\n\n');
+      const chunkFrames = res.writes.slice(0, -1).map((frame) => {
+        expect(frame.startsWith('data: ')).toBe(true);
+        expect(frame.endsWith('\n\n')).toBe(true);
+        return JSON.parse(frame.slice('data: '.length, -2));
+      });
+
+      expect(chunkFrames).toHaveLength(3);
+      for (const chunk of chunkFrames) {
+        expect(chunk.object).toBe('chat.completion.chunk');
+        expect(chunk.id).toBe('chatcmpl_stream_test');
+        expect(chunk.model).toBe('cernion-agent-mvp');
+      }
+      expect(chunkFrames[0].choices[0].delta).toEqual({
+        role: 'assistant',
+        content: 'Hinweise für dich:\nV-1: Neuer Vorschlag.\n\n',
+      });
+      expect(chunkFrames[0].choices[0].finish_reason).toBeNull();
+      expect(chunkFrames[1].choices[0].delta).toEqual({ content: 'Streamed answer.' });
+      expect(chunkFrames[1].choices[0].finish_reason).toBeNull();
+      expect(chunkFrames[2].choices[0].delta).toEqual({});
+      expect(chunkFrames[2].choices[0].finish_reason).toBe('stop');
+    });
+
     it('should leave non-streaming JSON responses unchanged when stream is omitted', async () => {
       const v1Route = ApiService.settings.routes.find((r) => r.path === '/v1');
       const brokerCall = jest.fn(async (action) => {

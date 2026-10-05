@@ -1,6 +1,8 @@
 {
   "minimumLength": 5,
   "corePaths": [
+    "services/shared-service-notices.service.js",
+    "src/shared-service-notices.js",
     "src/function-model.js",
     "src/function-resolver.js",
     "src/function-resolver-hybrid.js",
@@ -49,11 +51,7 @@
   "genericPackageShare": 0.05,
   "referenceCorpus": {
     "maxFilesPerPackage": 40,
-    "extensions": [
-      ".js",
-      ".cjs",
-      ".mjs"
-    ],
+    "extensions": [".js", ".cjs", ".mjs"],
     "generatedAt": "2026-10-03T00:00:00.000Z"
   }
 }

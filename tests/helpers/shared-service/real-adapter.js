@@ -38,6 +38,7 @@ async function createAdapter({
   let wakeSchema;
   let workbenchSchema;
   let agentsSchema;
+  let noticesSchema;
   jestApi.doMock('pouchdb', () => Pouch);
   try {
     jestApi.isolateModules(() => {
@@ -49,6 +50,7 @@ async function createAdapter({
       wakeSchema = require('../../../services/shared-service-wake.service');
       workbenchSchema = require('../../../services/workbench.service');
       agentsSchema = require('../../../services/shared-service-agents.service');
+      noticesSchema = require('../../../services/shared-service-notices.service');
     });
   } finally {
     jestApi.dontMock('pouchdb');
@@ -102,6 +104,33 @@ async function createAdapter({
       ...journalSettings,
     },
   });
+  const noticesService = broker.createService({
+    ...noticesSchema,
+    settings: {
+      ...noticesSchema.settings,
+      model: service.model,
+      dbPath: path.join(root, 'notices'),
+    },
+  });
+  const notices = [];
+  const noticeSources = [];
+  broker.createService({
+    name: 'notice-source-observer',
+    events: Object.fromEntries(
+      [
+        'shared-agent.proposal.created.v1',
+        'signal.state.changed.v1',
+        'function.activation.changed.v1',
+      ].map((name) => [
+        name,
+        {
+          handler(ctx) {
+            noticeSources.push({ name, payload: structuredClone(ctx.params) });
+          },
+        },
+      ])
+    ),
+  });
   const activityQueries = [];
   const queryCalls = [];
   const call = broker.call.bind(broker);
@@ -135,6 +164,7 @@ async function createAdapter({
     events: {
       'shared-agent.lifecycle.v1': (ctx) => agentEvents.push(ctx.params),
       'shared-agent.feedback.v1': (ctx) => agentEvents.push(ctx.params),
+      'shared-agent.proposal.created.v1': (ctx) => agentEvents.push(ctx.params),
       'shared-agent.consumption.v1': (ctx) => agentEvents.push(ctx.params),
     },
   });
@@ -177,6 +207,66 @@ async function createAdapter({
     throw error;
   }
   let cachedObservation;
+  async function exerciseNotices(step) {
+    const fn = service.model.functions.find((row) => row.functionId === step.functionId);
+    const actorId = 'notice-actor';
+    const meta = { apiToken: { tenantId: 'tenant-a', id: actorId, roles: ['ROLE_USER'] } };
+    await broker.emit('function.coverage.changed.v1', {
+      tenantId: 'tenant-a',
+      actorId,
+      functionId: fn.functionId,
+      score: 0.8,
+      origin: 'observed',
+    });
+    await noticesService.settle();
+    // Replay a received real activation transition; never synthesize a notice record.
+    const transition = events.find(
+      (row) =>
+        row.responsibility?.cet &&
+        (row.functionId === fn.functionId ||
+          fn.neighbors.some((edge) => edge.functionId === row.functionId))
+    );
+    if (!transition) return;
+    await broker.emit('function.activation.changed.v1', transition, { groups: ['notices'] });
+    await noticesService.settle();
+    for (let n = 0; n < 2; n++) {
+      const result = await broker.call(
+        'notices.completeTurn',
+        { tenantId: 'tenant-a', actorId, turnRef: `notice-turn-${n}` },
+        { meta }
+      );
+      for (const item of result.items) {
+        const sourceEvent = noticeSources.find(
+          (source) =>
+            source.name === item.source &&
+            source.payload.functionId === item.functionId &&
+            source.payload.responsibility?.cet === item.cet &&
+            (item.kind !== 'tier' || source.payload.attention?.tier === item.tier)
+        )?.payload;
+        const visible = (
+          await broker.call(
+            'activation.explain',
+            { tenantId: 'tenant-a', functionId: item.functionId },
+            { meta }
+          )
+        ).activations.some(
+          (row) => row.tenantId === 'tenant-a' && row.functionId === item.functionId
+        );
+        notices.push({
+          tenantId: 'tenant-a',
+          actorId,
+          ref: item.ref,
+          functionId: item.functionId,
+          kind: item.kind,
+          cet: item.cet,
+          tier: item.tier,
+          objectRef: item.objectRef,
+          visible,
+          sourceEvent,
+        });
+      }
+    }
+  }
   const adapter = {
     broker,
     service,
@@ -190,6 +280,7 @@ async function createAdapter({
     inbox,
     agentEvents,
     workbench,
+    noticesService,
     clock: now,
     async apply(step) {
       if (step.type === 'advance') {
@@ -354,6 +445,7 @@ async function createAdapter({
       await agents?.settle();
       await wake.settle();
       await journal.writeQueue;
+      await noticesService.settle();
       fresh = false;
     },
     async snapshot() {
@@ -391,6 +483,7 @@ async function createAdapter({
         restWindowMs: service.settings.restWindowMs,
         operationAttempts: structuredClone(operationAttempts),
         activityQueries: structuredClone(activityQueries),
+        notices: structuredClone(notices),
         emptyWakes: structuredClone(emptyWakes),
         corrections: [],
         authorizationChecks: structuredClone(authorizationChecks),
@@ -482,10 +575,13 @@ async function createAdapter({
     }
   }
   const apply = adapter.apply.bind(adapter);
+  function dispatch(step) {
+    return step.type === 'notice-exercise' ? exerciseNotices(step) : apply(step);
+  }
   adapter.apply = async (step) => {
     const before = await adapter.snapshot();
     const eventOffset = coverageEvents.length;
-    await apply(step);
+    await dispatch(step);
     cachedObservation = null;
     const after = await adapter.snapshot();
     observeHandoffs(before, after);
@@ -538,6 +634,7 @@ async function createAdapter({
     after.handoffs = structuredClone(handoffs);
     after.emptyWakes = structuredClone(emptyWakes);
     after.activityQueries = structuredClone(activityQueries);
+    after.notices = structuredClone(notices);
   };
   return adapter;
 }

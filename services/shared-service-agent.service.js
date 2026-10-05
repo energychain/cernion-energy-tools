@@ -543,6 +543,15 @@ module.exports = {
           await this.save(doc);
         }
       }
+      if (delivered)
+        await this.broker.emit('shared-agent.proposal.created.v1', {
+          tenantId: agent.tenantId,
+          agentId: agent.agentId,
+          functionId: agent.functionId,
+          proposalRef: proposal.ref,
+          summary: 'Internal review requested.',
+          createdAt: new Date(this.now()).toISOString(),
+        });
       return delivered ? 1 : 0;
     },
     async appendCycle(agent, result, errorClass) {

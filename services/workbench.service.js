@@ -1328,6 +1328,7 @@ module.exports = {
         const envelope = normalizeTaskEnvelope(ctx.params);
         const mapping = await this.resolveUserMapping(ctx, p, envelope);
         const meta = this.metaForMapping(ctx, p, mapping);
+        coverageTurn.mapped(ctx, meta);
         if (ctx.params.intentMode === 'system_activity_query') {
           return answerSystemActivity(
             {
@@ -1395,6 +1396,7 @@ module.exports = {
         const p = principal(ctx, ctx.params);
         const envelope = normalizeTaskEnvelope(ctx.params);
         const mapping = await this.resolveUserMapping(ctx, p, envelope);
+        coverageTurn.mapped(ctx, this.metaForMapping(ctx, p, mapping));
         let conversation = await this.store.resolveConversation(
           {
             tenantId: p.tenantId,
