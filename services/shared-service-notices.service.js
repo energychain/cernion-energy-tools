@@ -3,7 +3,7 @@
 const { createHash } = require('node:crypto');
 const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 const { principal, deny } = require('../src/domain-router-policy');
-const { getFunctionModel, resolveFunctionId } = require('../src/function-model');
+const { getFunctionModel, getNeighbors, resolveFunctionId } = require('../src/function-model');
 const { validateTenantId } = require('../src/tenant-context');
 const { assertReadObservation } = require('../src/shared-service-agent-policy');
 const { signalKey, operationInput } = require('../src/signal-projection');
@@ -333,12 +333,21 @@ module.exports = {
       validateTenantId(event.tenantId);
       const functionId = this.resolveEventFunction(event);
       if (!functionId) return;
-      const fn = this.model.functions.find((row) => row.functionId === functionId);
-      const related = new Set([functionId, ...(fn.neighbors || []).map((edge) => edge.functionId)]);
+      const related = await this.relatedFunctions(functionId, event.tenantId);
       const docs = (await this.db.allDocs({ include_docs: true })).rows
         .map((row) => row.doc)
         .filter((doc) => doc.tenantId === event.tenantId);
       for (const doc of docs) await this.recordForPerson(doc, source, event, functionId, related);
+    },
+    async relatedFunctions(functionId, tenantId) {
+      const activation = this.broker.getLocalService('activation');
+      const state = await activation?.readDocument?.(tenantId);
+      const neighbors = getNeighbors(functionId, {
+        model: this.model,
+        overlay: state?.neighborCorrections || [],
+        minWeight: activation?.settings.minWeight ?? this.model.parameters?.minWeight ?? 0,
+      });
+      return new Set([functionId, ...neighbors.map((edge) => edge.functionId)]);
     },
     async recordForPerson(doc, source, event, functionId, related) {
       const prior = doc.activations[functionId];

@@ -406,6 +406,70 @@ test('unknown notice identifiers and invisible/ambiguous proposals cannot be acc
   await chat('Ja');
   expect(adapter.agentEvents.some((event) => event.outcome)).toBe(false);
 });
+
+test('real notices follow corrected neighbors, removal, undo and tenant isolation', async () => {
+  for (const tenantId of ['tenant-a', 'tenant-b']) {
+    await adapter.broker.emit('function.coverage.changed.v1', {
+      tenantId,
+      actorId: 'person',
+      functionId: 'fn-a',
+      score: 1,
+    });
+  }
+  await adapter.agents.settle();
+  await adapter.noticesService.settle();
+  const proposal = async (ref, tenantId = 'tenant-a') => {
+    await adapter.agents.settle();
+    const doc = await adapter.agents.readDocument(tenantId);
+    if (tenantId === 'tenant-a') {
+      const agent = doc.agents.find((row) => row.functionId === 'fn-b');
+      if (!agent.proposals.some((row) => row.ref === ref)) {
+        agent.proposals.push({ ref, recipients: ['person'], outcome: null });
+        await adapter.agents.save(doc);
+      }
+      await adapter.broker.emit('shared-agent.proposal.created.v1', {
+        tenantId,
+        agentId: agent.agentId,
+        functionId: 'fn-b',
+        proposalRef: ref,
+      });
+    } else {
+      await adapter.broker.emit('shared-agent.proposal.created.v1', {
+        tenantId,
+        agentId: 'other-agent',
+        functionId: 'fn-b',
+        proposalRef: ref,
+      });
+    }
+    await adapter.noticesService.settle();
+  };
+  const refs = async () =>
+    (
+      await adapter.broker.call(
+        'notices.list',
+        { tenantId: 'tenant-a', actorId: 'person' },
+        { meta: meta() }
+      )
+    ).items
+      .filter((item) => item.kind === 'proposal')
+      .map((item) => item.objectRef);
+  await proposal('neighbor-one');
+  expect(await refs()).toEqual([]);
+  const added = await apply('neighbor', { functionId: 'fn-a', neighborId: 'fn-b', weight: 1 });
+  await proposal('neighbor-one');
+  expect(await refs()).toEqual(['neighbor-one']);
+  await proposal('other-tenant', 'tenant-b');
+  expect((await adapter.noticesService.read('tenant-b', 'person')).queue).toEqual([]);
+  const removed = await apply('neighbor', { functionId: 'fn-a', neighborId: 'fn-b', weight: 0 });
+  await proposal('neighbor-two');
+  expect(await refs()).toEqual(['neighbor-one']);
+  await adapter.learning.actions.undo({ correctionId: removed.correctionId }, { meta: meta() });
+  await proposal('neighbor-two');
+  expect(await refs()).toEqual(['neighbor-one', 'neighbor-two']);
+  await adapter.learning.actions.undo({ correctionId: added.correctionId }, { meta: meta() });
+  await proposal('neighbor-three');
+  expect(await refs()).toEqual(['neighbor-one', 'neighbor-two']);
+});
 test.each(['off', 'proposals_only', 'all'])(
   'notice preference %s is persisted by the real notices service only after confirmation',
   async (preference) => {

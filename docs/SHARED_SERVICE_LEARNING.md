@@ -115,6 +115,8 @@ Integration tests create a real queued proposal notice and use its assigned
 reference for the confirmed reaction. Terminal proposals no longer resolve through
 that reference. Preference tests verify the real person's persisted document before
 and after confirmation instead of a contract stub.
+Notice recipient selection also reads the persisted tenant neighbor overlay;
+tests cover added/removed edges, undo and isolation from another tenant.
 
 ## Validation
 
