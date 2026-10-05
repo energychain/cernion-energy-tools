@@ -113,12 +113,12 @@ test('AC-02/03: all Dashboard operations use committed definitions and independe
 });
 
 test('AC-04: field roles, severity, normalized scores and thresholds', () => {
-  const signals = projectSignals(response, neutral);
+  const signals = projectSignals(response, neutral, { context: { kind: 'case', ref: 'case-a' } });
   expect(signals).toEqual(
     expect.arrayContaining([
       expect.objectContaining({ kind: 'state', state: 'breach' }),
       expect.objectContaining({ kind: 'score', value: 0.4, state: 'breach' }),
-      expect.objectContaining({ kind: 'count', value: 1, state: 'warn' }),
+      expect.objectContaining({ kind: 'count', value: 1, state: 'gap' }),
       expect.objectContaining({ kind: 'finding', code: 'a', state: 'breach' }),
       expect.objectContaining({ kind: 'finding', code: 'b', state: 'warn' }),
     ])
@@ -364,7 +364,7 @@ test.each(['blocked', 'findings'])(
       tenantId: 'tenant-a',
       agentId: agent.agentId,
     });
-    expect(result.findings).toBe(kind === 'blocked' ? 18 : 5);
+    expect(result.findings).toBe(kind === 'blocked' ? 9 : 2);
     expect(result.proposals).toBe(1);
     expect(result.consumedUnits).toBeCloseTo(1.85);
     expect(generate).toHaveBeenCalledTimes(1);

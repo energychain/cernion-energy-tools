@@ -473,3 +473,66 @@ test.each(['source', 'call', 'determinism', 'proposal'])(
     expect(() => assertInvariants(state, ['I-11'])).toThrow('I-11');
   }
 );
+
+test('I-11: real contextual gaps are bundled once per function/context', async () => {
+  const { createGapAdapter } = require('./helpers/shared-service/gap-adapter');
+  const adapter = await createGapAdapter(jest);
+  try {
+    const doc = await adapter.agents.readDocument('tenant-a');
+    for (let n = 0; n < 2; n++) {
+      await adapter.broker.call('shared-service-agent.runCycle', {
+        tenantId: 'tenant-a',
+        agentId: doc.agents[0].agentId,
+      });
+      const observation = await adapter.snapshot();
+      assertInvariants(observation, ['I-11']);
+      expect(observation.gapLists.filter((gap) => gap.state === 'open')).toHaveLength(1);
+      expect(
+        observation.signalObservations.some((row) =>
+          row.signals.some((signal) => signal.state === 'gap')
+        )
+      ).toBe(true);
+    }
+    await adapter.gapFixture.deliver('gap-harness-turn');
+    const delivered = await adapter.snapshot();
+    assertInvariants(delivered, ['I-11', 'I-12']);
+    expect(delivered.notices.some((notice) => notice.kind === 'gap')).toBe(true);
+  } finally {
+    await adapter.close();
+  }
+});
+
+test.each(['context', 'duplicate', 'needs_context-list', 'gap-finding'])(
+  'I-11 rejects gap %s violation independently',
+  (kind) => {
+    const state = observations['I-11']();
+    const row = state.signalObservations[0];
+    const gap = {
+      tenantId: 'tenant-a',
+      functionId: 'fn-a',
+      context: { kind: 'case', ref: 'case-a' },
+      state: 'open',
+    };
+    if (kind === 'context') {
+      row.signals = [{ state: 'gap' }];
+      row.previousSignals = row.signals;
+    }
+    if (kind === 'duplicate') state.gapLists = [gap, { ...gap }];
+    if (kind === 'needs_context-list') row.gapListsCreated = 1;
+    if (kind === 'gap-finding') row.findings = [{ state: 'gap' }];
+    expect(() => assertInvariants(state, ['I-11'])).toThrow('I-11');
+  }
+);
+
+test('I-12 verifies actual gap source references', () => {
+  const state = observations['I-12']();
+  state.notices[0] = {
+    ...state.notices[0],
+    kind: 'gap',
+    objectRef: 'gap-a',
+    sourceEvent: { tenantId: 'tenant-a', functionId: 'fn-a', gapRef: 'gap-a' },
+  };
+  assertInvariants(state, ['I-12']);
+  state.notices[0].sourceEvent.gapRef = 'gap-b';
+  expect(() => assertInvariants(state, ['I-12'])).toThrow('I-12');
+});

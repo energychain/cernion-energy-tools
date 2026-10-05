@@ -3,6 +3,7 @@
 const { randomUUID, createHash } = require('node:crypto');
 const { gzipSync, gunzipSync } = require('node:zlib');
 const { Errors } = require('moleculer');
+const { correctionPrincipal, validateCorrection } = require('../src/shared-service-learning');
 const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 const { principal } = require('../src/domain-router-policy');
 const { canViewEvidence } = require('../src/workbench-evidence');
@@ -323,6 +324,10 @@ module.exports = {
       );
     },
     async recordCorrection(input, meta = {}) {
+      if (input.target === 'gap') {
+        correctionPrincipal(input, meta);
+        validateCorrection(input, this.model());
+      }
       if (
         input.target === 'agent' &&
         ['retain', 'unretain', 'pin', 'unpin'].includes(input.correction?.kind)
@@ -336,7 +341,7 @@ module.exports = {
           fail('Unauthorized attention correction', 403);
       }
       if (
-        !['coverage', 'activation', 'agent', 'neighbor'].includes(input.target) ||
+        !['coverage', 'activation', 'agent', 'neighbor', 'gap'].includes(input.target) ||
         !input.ref ||
         !input.actorId ||
         !input.correction

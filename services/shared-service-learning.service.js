@@ -13,7 +13,7 @@ const admin = (p) => {
 };
 const id = { type: 'string', min: 1, max: 256 };
 const correctionParams = {
-  target: { type: 'enum', values: ['coverage', 'activation', 'agent', 'neighbor'] },
+  target: { type: 'enum', values: ['coverage', 'activation', 'agent', 'neighbor', 'gap'] },
   correction: 'object',
   correctionId: { ...id, optional: true },
   tenantId: { ...id, optional: true },
@@ -168,7 +168,12 @@ module.exports = {
       if (doc.pending) {
         const consumer =
           doc.target === 'coverage' ? 'function-coverage.correct' : 'activation.correct';
-        await ctx.call(consumer, { ...event, at: doc.at });
+        if (doc.target === 'gap')
+          await ctx.call('shared-service-agent.correctGap', {
+            tenantId: p.tenantId,
+            ...correction,
+          });
+        else await ctx.call(consumer, { ...event, at: doc.at });
         await this.broker.emit('shared-service.correction.v1', event, { meta: ctx.meta });
         doc.pending = false;
         doc._rev = (await this.db.put(doc)).rev;
@@ -180,6 +185,8 @@ module.exports = {
       const doc = await this.db.get(
         `correction:${encodeURIComponent(p.tenantId)}:${encodeURIComponent(ctx.params.correctionId)}`
       );
+      if (doc.target === 'gap')
+        deny('Gap reactions require a new confirmed observation; no undo outcome');
       if (doc.actorId !== p.actorId) admin(p);
       correctionPrincipal({ ...doc, actorId: p.actorId }, ctx.meta);
       if (!doc.undone) {

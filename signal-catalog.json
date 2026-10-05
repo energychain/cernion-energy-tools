@@ -1,8 +1,8 @@
 {
  "version": 2,
  "generatedAt": "2026-01-01T00:00:00.000Z",
- "modelSourceHash": "b55ebbc0c077de5525bf58389bfce3191c3bf97694f6e4d458b817630372231f",
- "sourceHash": "fcaade903993241137e3fd13818f5f0e10e50ff301acbbd606de4d853459790c",
+ "modelSourceHash": "1ff05a57cd64a90e3cbe987a4b4b255dacb2d21594ab13c21cc27652c6df4977",
+ "sourceHash": "663c2107fbe1495a486de747d640ea7956632486d46cdf55dd92f2e5b0b2e651",
  "probeEnvironment": {
   "tenantId": "stadtwerk-mauer",
   "services": [
@@ -17,8 +17,8 @@
   "responding": 123,
   "covered": 121,
   "coverage": 0.983739837398374,
-  "standing": 21,
-  "contextual": 106,
+  "standing": 17,
+  "contextual": 110,
   "kinds": {
    "count": 128,
    "finding": 220,
@@ -7961,7 +7961,7 @@
    "functionIds": [
     "fn-load-profile-stream-monitor"
    ],
-   "classification": "standing",
+   "classification": "contextual",
    "contextKinds": [
     "assetId",
     "auditId",
@@ -9512,7 +9512,7 @@
    "functionIds": [
     "fn-stadtwerk-mauer-e2e-process-demo"
    ],
-   "classification": "standing",
+   "classification": "contextual",
    "contextKinds": [
     "caseId"
    ],
@@ -9705,7 +9705,7 @@
    "functionIds": [
     "fn-stadtwerk-mauer-e2e-process-demo"
    ],
-   "classification": "standing",
+   "classification": "contextual",
    "contextKinds": [],
    "parameterNames": [],
    "requiredParameters": [],
@@ -10012,7 +10012,7 @@
    "functionIds": [
     "fn-stadtwerk-mauer-mastr-data-overlay"
    ],
-   "classification": "standing",
+   "classification": "contextual",
    "contextKinds": [
     "caseId"
    ],

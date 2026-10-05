@@ -22,6 +22,7 @@ const events = [
   'shared-agent.proposal.created.v1',
   'signal.state.changed.v1',
   'function.activation.changed.v1',
+  'shared-agent.gaps.changed.v1',
 ];
 
 module.exports = {
@@ -190,6 +191,16 @@ module.exports = {
             remaining: result.items.length - selected.length,
             block: renderNoticeBlock(selected, result.items.length - selected.length, this.model),
           };
+        }).then(async (result) => {
+          // Release the notice queue before entering the agent queue. Agent cycles
+          // publish notices and must be able to complete while this turn waits.
+          for (const item of result.items.filter((row) => row.kind === 'gap'))
+            await ctx.call('shared-service-agent.markGapDelivered', {
+              tenantId: p.tenantId,
+              gapRef: item.objectRef,
+              contentHash: item.contentHash,
+            });
+          return result;
         });
       },
     },
@@ -280,12 +291,24 @@ module.exports = {
       await this.save(doc);
     },
     kinds(source, event, prior = {}) {
+      if (source === events[3])
+        return event.agentId && event.gapRef && event.contentHash
+          ? [
+              {
+                kind: 'gap',
+                objectRef: event.gapRef,
+                agentId: event.agentId,
+                contentHash: event.contentHash,
+              },
+            ]
+          : [];
       if (source === events[0])
         return event.agentId && event.proposalRef
           ? [{ kind: 'proposal', objectRef: event.proposalRef, agentId: event.agentId }]
           : [];
       if (source === events[1])
         return ['warn', 'breach', 'ok'].includes(event.toState) &&
+          event.fromState !== 'gap' &&
           event.toState !== event.fromState &&
           event.signalId
           ? [
@@ -377,9 +400,15 @@ module.exports = {
             : event.eventId;
       const key = noticeKey(source, [functionId, kind, reference]);
       if (doc.seen.includes(key)) return;
+      if (kind.kind === 'gap')
+        doc.queue = doc.queue.filter(
+          (row) => row.kind !== 'gap' || row.objectRef !== kind.objectRef
+        );
       doc.seen = [...doc.seen, key].slice(-this.settings.dedupLimit);
       const sequence = ++doc.sequence;
-      const prefix = { proposal: 'V', signal: 'S', responsibility: 'R', tier: 'R' }[kind.kind];
+      const prefix = { proposal: 'V', signal: 'S', responsibility: 'R', tier: 'R', gap: 'L' }[
+        kind.kind
+      ];
       const ref = `${prefix}-${sequence}`;
       doc.queue.push({
         ...kind,
@@ -406,6 +435,7 @@ module.exports = {
           const proposal = agent?.proposals.find((row) => row.ref === item.objectRef);
           return !!proposal && !proposal.outcome && proposal.recipients.includes(p.actorId);
         }
+        if (item.kind === 'gap') return await this.canSeeGap(ctx, p, item);
         if (item.kind === 'signal') return await this.canSeeSignal(ctx, p, item);
         const explanation = await ctx.call('activation.explain', {
           tenantId: p.tenantId,
@@ -419,6 +449,28 @@ module.exports = {
       } catch {
         return false;
       }
+    },
+    async canSeeGap(ctx, p, item) {
+      const agents = this.broker.getLocalService('shared-service-agent');
+      if (!agents) return false;
+      const doc = await agents.readDocument(p.tenantId);
+      const agent = agents
+        .resolvedAgents(doc.agents)
+        .find((row) => row.agentId === item.agentId && row.functionId === item.functionId);
+      const gap = agent?.gapLists?.find((row) => row.ref === item.objectRef);
+      if (
+        !gap ||
+        gap.state !== 'open' ||
+        gap.contentHash !== item.contentHash ||
+        gap.ignoredHash === gap.contentHash ||
+        !gap.recipients.includes(p.actorId)
+      )
+        return false;
+      for (const part of gap.parts)
+        for (const objectRef of part.signalRefs)
+          if (!(await this.canSeeSignal(ctx, p, { ...item, objectRef, context: gap.context })))
+            return false;
+      return gap.parts.length > 0;
     },
     async canSeeSignal(ctx, p, item) {
       const signals = this.broker.getLocalService('signals');
@@ -456,7 +508,20 @@ module.exports = {
     async present(ctx, p, doc) {
       const items = [];
       for (const item of eligibleNotices(doc, this.model))
-        if (await this.canSee(ctx, p, item)) items.push(this.publicNotice(item));
+        if (await this.canSee(ctx, p, item)) {
+          const publicItem = this.publicNotice(item);
+          if (item.kind === 'gap') {
+            const doc = await this.broker
+              .getLocalService('shared-service-agent')
+              .readDocument(p.tenantId);
+            const gap = doc.agents
+              .flatMap((row) => row.gapLists || [])
+              .find((row) => row.ref === item.objectRef);
+            publicItem.labels = gap.labels;
+            publicItem.context = gap.context;
+          }
+          items.push(publicItem);
+        }
       return { items, preference: doc.preference, block: renderNoticeBlock(items, 0, this.model) };
     },
   },

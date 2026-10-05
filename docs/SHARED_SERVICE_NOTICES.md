@@ -148,3 +148,9 @@ Und 2 weitere – frag: „Was gibt es Neues?“
 
 Die eigentliche Antwort bleibt hier unverändert.
 ```
+
+## Contextual gaps (#727)
+
+See [SHARED_SERVICE_GAPS.md](SHARED_SERVICE_GAPS.md) for the additive gap state,
+bounded lists, visible `L-n` notices and confirmed `gap_done`/`gap_ignore` reactions.
+The existing attention feedback event and unchanged paid observation cycle are reused.

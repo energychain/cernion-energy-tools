@@ -152,3 +152,9 @@ labels and deterministic templates. This adds no LLM call, operation charge,
 feedback or new proposal execution. `notices.resolveRef` maps displayed short refs
 back to the existing proposal ref for #701; the original proposal resolution
 recipient guard remains authoritative. See [SHARED_SERVICE_NOTICES.md](SHARED_SERVICE_NOTICES.md).
+
+## Contextual gaps (#727)
+
+See [SHARED_SERVICE_GAPS.md](SHARED_SERVICE_GAPS.md) for the additive gap state,
+bounded lists, visible `L-n` notices and confirmed `gap_done`/`gap_ignore` reactions.
+The existing attention feedback event and unchanged paid observation cycle are reused.

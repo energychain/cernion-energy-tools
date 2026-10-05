@@ -14,6 +14,7 @@ const {
   assertReadObservation,
   readKinds,
 } = require('../src/shared-service-agent-policy');
+const { methods: gapMethods } = require('../src/shared-service-gaps');
 const { isFinding, operationInput } = require('../src/signal-projection');
 const { compareCanonicalStrings } = require('../src/canonical-order');
 const idParam = { type: 'string', min: 1, max: 256 };
@@ -49,9 +50,68 @@ module.exports = {
     maxFindings: 20,
     maxProposalsPerAgent: 20,
     maxCoverageRecords: 256,
+    maxGapLists: 20,
+    maxGapLabels: 20,
     coverageThreshold: 0.5,
   },
   actions: {
+    gapLists: {
+      params: { tenantId: idParam },
+      async handler(ctx) {
+        const p = principal(ctx, ctx.params);
+        await this.settle();
+        const doc = await this.readDocument(p.tenantId);
+        const items = [];
+        for (const agent of this.resolvedAgents(doc.agents))
+          for (const gap of agent.gapLists || [])
+            if (await this.visibleGap(ctx, p, agent, gap))
+              items.push({
+                ref: gap.ref,
+                functionId: agent.functionId,
+                contentHash: gap.contentHash,
+                summary: gap.labels.join('; '),
+                context: gap.context,
+              });
+        return items;
+      },
+    },
+    correctGap: {
+      visibility: 'protected',
+      params: {
+        tenantId: idParam,
+        gapRef: idParam,
+        functionId: idParam,
+        contentHash: idParam,
+        kind: { type: 'enum', values: ['gap_done', 'gap_ignore'] },
+      },
+      handler(ctx) {
+        return this.enqueue(() => this.correctGap(ctx));
+      },
+    },
+    markGapDelivered: {
+      visibility: 'protected',
+      params: { tenantId: idParam, gapRef: idParam, contentHash: idParam },
+      handler(ctx) {
+        const p = principal(ctx, ctx.params);
+        return this.enqueue(async () => {
+          const doc = await this.readDocument(p.tenantId);
+          doc.agents = this.resolvedAgents(doc.agents);
+          const agent = doc.agents.find((row) =>
+            row.gapLists?.some((gap) => gap.ref === ctx.params.gapRef)
+          );
+          const gap = agent?.gapLists.find((row) => row.ref === ctx.params.gapRef);
+          if (
+            !gap ||
+            gap.contentHash !== ctx.params.contentHash ||
+            !(await this.visibleGap(ctx, p, agent, gap))
+          )
+            deny('Gap list not visible');
+          gap.delivered = true;
+          await this.save(doc);
+          return { delivered: true };
+        });
+      },
+    },
     list: {
       params: { tenantId: idParam },
       async handler(ctx) {
@@ -238,6 +298,7 @@ module.exports = {
     },
   },
   methods: {
+    ...gapMethods,
     now() {
       return this.settings.clock ? this.settings.clock() : Date.now();
     },
@@ -279,6 +340,7 @@ module.exports = {
         modelSourceHash: _hash,
         capabilities: _caps,
         proposals: _proposals,
+        gapLists: _gaps,
         pendingJournal: _journal,
         pendingLifecycle: _lifecycle,
         ...item
@@ -297,6 +359,7 @@ module.exports = {
           ? saved.stats
           : { cycles: 0, findings: 0, consumedUnits: 0, proposals: 0 },
         proposals: split ? [] : saved.proposals,
+        gapLists: split ? [] : saved.gapLists || [],
         pendingJournal: keepIdentity ? saved.pendingJournal : null,
         capabilities: fn.capabilities || [],
         modelSourceHash: this.model.sourceHash,
@@ -701,6 +764,7 @@ module.exports = {
           )
           .slice(0, this.settings.maxOperationsPerCycle);
         const findings = [];
+        const observations = [];
         for (const entry of reads) {
           const operation = this.operations.find((op) => op.operationId === entry.operationId);
           const input = operationInput(entry, context, tenantId);
@@ -722,7 +786,10 @@ module.exports = {
             { meta: this.actorMeta(agent) }
           );
           findings.push(...observation.signals.filter(isFinding));
+          if (observation.calledOperations)
+            observations.push({ operationId: entry.operationId, signals: observation.signals });
         }
+        await this.updateGapLists(doc, agent, observations, context);
         result.findings = Math.min(findings.length, this.settings.maxFindings);
         if (result.findings)
           result.proposals = await this.propose(
@@ -840,6 +907,8 @@ module.exports = {
       'maxFindings',
       'maxProposalsPerAgent',
       'maxCoverageRecords',
+      'maxGapLists',
+      'maxGapLabels',
     ])
       if (!Number.isInteger(this.settings[field]) || this.settings[field] < 1)
         throw new Error('Positive limits required');
@@ -854,6 +923,10 @@ module.exports = {
       for (const agent of doc.agents) {
         await this.publish(agent);
         for (const proposal of agent.proposals) await this.deliverFeedback(doc, agent, proposal);
+        for (const gap of agent.gapLists || []) {
+          await this.flushGapFeedback(doc, agent, gap);
+          await this.publishGapNotice(doc, agent, gap);
+        }
         if (agent.pendingJournal) {
           try {
             await this.deliverJournal(agent, agent.pendingJournal);

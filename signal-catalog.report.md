@@ -3,8 +3,8 @@
 Generated deterministically at 2026-01-01T00:00:00.000Z.
 
 121/123 responding operations covered (98.37%); 127 total.
-Standing: 21; contextual: 106.
-Catalog size: 289808 bytes (limit: 300000).
+Standing: 17; contextual: 110.
+Catalog size: 289816 bytes (limit: 300000).
 Signals by kind: {"count":128,"finding":220,"state":113,"timestamp":121,"score":60}. Findings without context: 0.
 
 Probe environment: {"tenantId":"stadtwerk-mauer","services":["dashboard-api","object-store","stadtwerk-mauer-sandbox-runtime"],"upstream":"absent services use existing dashboard fallbacks; external calls disabled"}. Definitions contain no observed values. Probe summaries record status class and field names; context parameters are recorded per operation. Native signals take precedence. Function associations use the generated model; empty associations are retained, never invented.
@@ -96,7 +96,7 @@ Probe environment: {"tenantId":"stadtwerk-mauer","services":["dashboard-api","ob
 | dashboard-api_processSensitizationReadinessMapStatus | standing | 7 | 1 | — |
 | dashboard-api_qualitySummary | standing | 1 | 1 | — |
 | dashboard-api_receiptGroundedPresentationContract | standing | 1 | 1 | — |
-| dashboard-api_redispatchCallQualityGate | standing | 3 | 1 | — |
+| dashboard-api_redispatchCallQualityGate | contextual | 3 | 1 | — |
 | dashboard-api_redispatchMeteringCockpit | standing | 1 | 0 | — |
 | dashboard-api_redispatchParticipationReadinessStatus | contextual | 5 | 0 | — |
 | dashboard-api_redispatchProjectControllingKpiCockpitStatus | contextual | 5 | 1 | — |
@@ -114,13 +114,13 @@ Probe environment: {"tenantId":"stadtwerk-mauer","services":["dashboard-api","ob
 | dashboard-api_stadtwerkMauerCaseActionsStatus | contextual | 4 | 0 | — |
 | dashboard-api_stadtwerkMauerCaseAnnotationCommand | standing | 0 | 0 | no_matching_field_role |
 | dashboard-api_stadtwerkMauerCaseDetailStatus | contextual | 4 | 0 | — |
-| dashboard-api_stadtwerkMauerE2eProcessDemoStatus | standing | 6 | 1 | — |
+| dashboard-api_stadtwerkMauerE2eProcessDemoStatus | contextual | 6 | 1 | — |
 | dashboard-api_stadtwerkMauerEventReplayPreviewStatus | contextual | 8 | 1 | — |
-| dashboard-api_stadtwerkMauerExternalInterfaceStubsStatus | standing | 6 | 1 | — |
+| dashboard-api_stadtwerkMauerExternalInterfaceStubsStatus | contextual | 6 | 1 | — |
 | dashboard-api_stadtwerkMauerGridPlanningRoleQueueStatus | contextual | 4 | 0 | — |
 | dashboard-api_stadtwerkMauerGridPlanningSelectedItemDetailStatus | contextual | 4 | 0 | — |
 | dashboard-api_stadtwerkMauerLandingRegistryDraftStatus | standing | 3 | 0 | — |
-| dashboard-api_stadtwerkMauerMastrDataOverlayStatus | standing | 5 | 1 | — |
+| dashboard-api_stadtwerkMauerMastrDataOverlayStatus | contextual | 5 | 1 | — |
 | dashboard-api_stadtwerkMauerRoleWorkbenchCatalogStatus | standing | 4 | 0 | — |
 | dashboard-api_stadtwerkMauerSalesWorkbenchBriefingStatus | contextual | 4 | 0 | — |
 | dashboard-api_stadtwerkMauerSandboxRuntimeStatus | contextual | 6 | 1 | — |

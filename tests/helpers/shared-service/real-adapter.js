@@ -133,6 +133,7 @@ async function createAdapter({
     events: Object.fromEntries(
       [
         'shared-agent.proposal.created.v1',
+        'shared-agent.gaps.changed.v1',
         'signal.state.changed.v1',
         'function.activation.changed.v1',
       ].map((name) => [
@@ -249,6 +250,8 @@ async function createAdapter({
     const previous = signalObservations.findLast((row) => row.input === input);
     signalObservations.push({
       input,
+      context: args[3],
+      gapLists: [],
       signals: projected.map(({ signalId, kind, state }) => ({ signalId, kind, state })),
       previousSignals:
         previous?.signals ||
@@ -277,11 +280,25 @@ async function createAdapter({
   if (agents) {
     const cycle = agents.cycle.bind(agents);
     agents.cycle = async (input) => {
+      const before = await agents.readDocument(input.tenantId);
+      const priorRefs = new Set(
+        before.agents.flatMap((agent) => (agent.gapLists || []).map((gap) => gap.ref))
+      );
       const start = signalObservations.length;
       cycleDepth++;
       try {
         const result = await cycle(input);
-        for (const row of signalObservations.slice(start)) row.proposals = result.proposals;
+        const doc = await agents.readDocument(input.tenantId);
+        const current = doc.agents.find((row) => row.agentId === input.agentId);
+        for (const row of signalObservations.slice(start)) {
+          row.proposals = result.proposals;
+          row.gapListsCreated = (current?.gapLists || []).filter(
+            (gap) => !priorRefs.has(gap.ref)
+          ).length;
+          row.gapLists = structuredClone(
+            (current?.gapLists || []).filter((gap) => gap.state === 'open')
+          );
+        }
         return result;
       } finally {
         cycleDepth--;
@@ -397,6 +414,8 @@ async function createAdapter({
     workbench,
     learning,
     noticesService,
+    noticeSources,
+    noticeObservations: notices,
     clock: now,
     async apply(step) {
       if (step.type === 'signal-exercise') {
@@ -668,6 +687,22 @@ async function createAdapter({
         fresh,
         signalObservations: structuredClone(signalObservations.slice(-64)),
         signalCalls: structuredClone(signalCalls.slice(-128)),
+        gapLists: agents
+          ? (
+              await Promise.all(
+                [...tenants].map(async (tenantId) => {
+                  const doc = await agents.readDocument(tenantId);
+                  return agents.resolvedAgents(doc.agents).flatMap((agent) =>
+                    (agent.gapLists || []).map((gap) => ({
+                      ...gap,
+                      tenantId,
+                      functionId: agent.functionId,
+                    }))
+                  );
+                })
+              )
+            ).flat()
+          : [],
         attentionTransitions: structuredClone(attentionTransitions),
         activatingTurns: (
           await Promise.all([...tenants].map((id) => service.readDocument(id)))
