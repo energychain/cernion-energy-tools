@@ -69,7 +69,17 @@ function createPouchDbLifecycleMixin({
 
     async stopped() {
       if (this[dbProperty]) {
-        await this[dbProperty].close();
+        try {
+          await this[dbProperty].close();
+        } catch (error) {
+          if (error.message !== 'database is closed') {
+            throw error;
+          }
+          this.logger.warn(
+            `[${logLabel || this.name}] PouchDB ${dbProperty} already closed`,
+            error
+          );
+        }
       }
     },
   };
