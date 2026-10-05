@@ -25,6 +25,8 @@ jobs:
         run: npm ci --ignore-scripts
       - name: Catalog domain check and three fixed seeds (59 s deadline)
         run: npm run test:shared-service:ci
+      - name: Signal catalog drift (generator probes, outside harness)
+        run: npm run check:signal-catalog
       - name: Additional random seed (nightly and manual)
         if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         run: npm run test:shared-service

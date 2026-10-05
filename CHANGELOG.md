@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.99.22] — 2026-09-27
 
 ### Fixed
+- RC3 Headless Signals catalog follow-up (#722): retain value-free field definitions and compact probe summaries, move observation values into test fixtures, and merge #700 Workbench/agents harness observations while preserving I-11.
+- RC3 Headless Signals (#722, part of #693): project technical response roles into a deterministic signal catalog, observe under caller permissions with bounded tenant state and change events, replace agent finding heuristics with context-safe signals, and expose signal push gaps plus I-11 without changing Dashboard operations.
 - RC3 Shared Service agent (#697): add one function-parametrized, persistent actor with event-driven lifecycle, guarded internal operations, committed attention-unit charges, quota-bound findings evaluation, observed-coverage inbox proposals and durable human feedback; activate agent safety/handoff invariants without timers or external effects.
 - RC3 Shared Service activation (#696): bound per-person touch records and recent transition history, store only non-latent activation summaries, coalesce pending notifications and stop the real harness broker safely under fake timers.
 - RC3 operation-capability index: resolve static service actions, split CommonJS declarations and API route aliases; report every unresolved action with a coverage reason. Regenerate the function graph without changing its catalog or grouping parameters.

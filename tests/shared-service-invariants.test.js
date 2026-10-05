@@ -58,7 +58,7 @@ async function exerciseRealServices(seed) {
   try {
     await runSimulation({
       seed,
-      history: generateHistory({ seed, functions }),
+      history: [{ type: 'signal-exercise' }, ...generateHistory({ seed, functions })],
       createAdapter: async () => {
         jest.setSystemTime(Date.UTC(2026, 0, 1));
         const adapter = await realAdapter.createAdapter({ functions, jest });
@@ -159,6 +159,19 @@ const agent = () => ({
   stats: {},
 });
 const observations = {
+  'I-11': () => ({
+    ...base(),
+    signalCalls: [{ source: 'agent-cycle' }],
+    signalObservations: [
+      {
+        source: 'agent-cycle',
+        signals: [{ state: 'needs_context' }],
+        previousSignals: [{ state: 'needs_context' }],
+        findings: [],
+        proposals: 0,
+      },
+    ],
+  }),
   'I-10': () => ({
     ...base(),
     attentionTransitions: [
@@ -266,6 +279,9 @@ const observations = {
   }),
 };
 const corrupt = {
+  'I-11': (s) => {
+    s.signalObservations[0].findings.push({ state: 'needs_context' });
+  },
   'I-10': (s) => {
     s.attentionTransitions[0].after.relevance = 2;
   },
@@ -413,3 +429,16 @@ test.each(['consumption', 'refill'])('I-10 rejects %s without funding or turns',
   else state.attentionTransitions[0].after.replenishedUnits = 3;
   expect(() => assertInvariants(state, ['I-10'])).toThrow('I-10');
 });
+
+test.each(['source', 'call', 'determinism', 'proposal'])(
+  'I-11 rejects %s independently',
+  (kind) => {
+    const state = observations['I-11']();
+    const row = state.signalObservations[0];
+    if (kind === 'source') row.source = 'timer';
+    if (kind === 'call') state.signalCalls[0].source = 'timer';
+    if (kind === 'determinism') row.previousSignals = [];
+    if (kind === 'proposal') row.proposals = 1;
+    expect(() => assertInvariants(state, ['I-11'])).toThrow('I-11');
+  }
+);

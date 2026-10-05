@@ -41,7 +41,18 @@ function clampInterval(value, settings) {
 }
 
 function deriveWake(fn, settings, availableEvents, dataSources = []) {
-  const desired = [...new Set(fn.events?.listens || [])].sort(compareCanonicalStrings);
+  const signalOperations = (settings.signalCatalog?.operations || []).filter(
+    (entry) =>
+      (entry.action
+        ? fn.operations?.includes(entry.action)
+        : entry.functionIds.includes(fn.functionId)) && entry.signals.length
+  );
+  const desired = [
+    ...new Set([
+      ...(fn.events?.listens || []),
+      ...(signalOperations.length ? ['signal.state.changed.v1'] : []),
+    ]),
+  ].sort(compareCanonicalStrings);
   const events = [...new Set(availableEvents)]
     .filter((event) => desired.some((pattern) => Utils.match(event, pattern)))
     .sort(compareCanonicalStrings);
@@ -57,11 +68,18 @@ function deriveWake(fn, settings, availableEvents, dataSources = []) {
     mode: events.length ? 'hybrid' : 'schedule',
     intervalSec,
     events,
-    pushGaps: desired.length
-      ? desired
-          .filter((pattern) => !events.some((event) => Utils.match(event, pattern)))
-          .map((eventType) => ({ eventType, reason: 'missing_producer' }))
-      : [{ eventType: '*', reason: 'missing_listener' }],
+    pushGaps: [
+      ...signalOperations.map((entry) => ({
+        eventType: 'signal.state.changed.v1',
+        operationId: entry.operationId,
+        reason: entry.classification === 'contextual' ? 'context_required' : 'observation_required',
+      })),
+      ...(desired.length
+        ? desired
+            .filter((pattern) => !events.some((event) => Utils.match(event, pattern)))
+            .map((eventType) => ({ eventType, reason: 'missing_producer' }))
+        : [{ eventType: '*', reason: 'missing_listener' }]),
+    ],
   };
 }
 
@@ -113,6 +131,8 @@ function eventMatches(fn, eventName, payload, wake) {
   if (!payload?.tenantId || !fn || !wake.events.some((event) => Utils.match(eventName, event)))
     return false;
   // Event names select a kind, never an actor or tenant. Scope must be explicit.
+  if (eventName === 'signal.state.changed.v1')
+    return Array.isArray(payload.functionIds) && payload.functionIds.includes(fn.functionId);
   if (payload.functionId) return payload.functionId === fn.functionId;
   if (payload.sourceId) return (fn.dataSources || []).includes(payload.sourceId);
   return false;

@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "asOf": "2026-01-01T00:00:00.000Z",
+  "roles": {
+    "score": "(Score|Completeness)$",
+    "finding": "(^findings$|Findings$)",
+    "missing": "^missing",
+    "count": "(Count|Total)$",
+    "state": "^status$",
+    "timestamp": "^timestamp$",
+    "context": "(Id|Ref|Context)$|^subject$"
+  },
+  "tokens": {
+    "needs_context": "^(needs|missing)_|(^|_)(insufficient)(_|$)|evidence_gap|with_gaps",
+    "unknown": "(^|_)(unavailable|unknown)(_|$)|outside_.*tenant",
+    "breach": "(^|_)(blocked|blocking|critical|error)(_|$)",
+    "warn": "(^|_)(partial|open|warning|warn)(_|$)",
+    "ok": "(^|_)(ready|completed|known|ok|available)(_|$)"
+  },
+  "score": {
+    "warnBelow": 0.8,
+    "breachBelow": 0.5,
+    "hysteresis": 0.02
+  },
+  "severity": {
+    "breach": [
+      "critical",
+      "error",
+      "high",
+      "breach"
+    ],
+    "warn": [
+      "warning",
+      "warn",
+      "medium"
+    ]
+  },
+  "controlParameters": [
+    "tenantId",
+    "limit",
+    "offset",
+    "sinceMinutes",
+    "slowActionThresholdMs"
+  ]
+}

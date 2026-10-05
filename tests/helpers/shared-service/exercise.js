@@ -38,6 +38,13 @@ function observeExercise(state, seen) {
     (state.attentionTransitions || []).some((item) => !item.turns)
   )
     seen.add('I-10');
+  if (
+    (state.signalObservations || []).some((row) =>
+      row.signals.some((s) => s.state === 'needs_context')
+    ) &&
+    (state.signalCalls || []).some((call) => call.source === 'request')
+  )
+    seen.add('I-11');
   if (handoffs.length) seen.add('I-9');
 }
 
