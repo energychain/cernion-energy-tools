@@ -65,11 +65,25 @@ An assessment with missing-input tokens or findings/incomplete scores is
 `contextual`; other responding operations are `standing`. Failed probes default
 to contextual and retain their reason. Context kinds come from technical
 parameter-name patterns. A contextual operation with no applicable input remains
-skipped, even if a context object is present. Catalog schemas are evidence, not
-fabricated signals: projection requires actual response fields. Operations with
-no matching roles remain reported rather than padded with invented signals.
-Tests validate every committed probe; the harness replays committed upstream
-responses and does not perform probe generation.
+skipped, even if a context object is present. The version-2 catalog stores only
+operation classification, context/parameter names, function associations and
+signal definitions (`signalId`, `label`, `kind`, `sourceField`, optional `unit`,
+`stateRule`). Repeated finding rows share one field definition; `:*` denotes
+runtime identities derived from each finding. Empty finding arrays still declare
+their field role. Native definitions retain their declared identity and unit.
+No observed values, concrete finding records or response schemas are retained.
+Probe summaries contain only `responded`, `statusClass` and top-level `fields`.
+
+`stateRule` references `signal-projection.rules.json`: `score` uses its normalized
+thresholds/hysteresis; `severity` uses its severity lists; `tokens` uses its status
+patterns. `nonempty` warns when a missing-field array is nonempty, `missing`
+warns for each missing item, `ok` is informational and `native` preserves the
+native state. All rules remain subject to the runtime unavailable/context guards.
+Runtime projection requires actual response fields. Operations with no matching
+roles remain reported rather than padded with invented signals. Tests validate
+all committed definitions and replay independent observation fixtures; neither
+unit tests nor the harness perform catalog probes. Catalog size is gated below
+300,000 bytes.
 
 ## Broker actions, identity and retention
 

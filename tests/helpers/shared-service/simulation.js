@@ -239,6 +239,14 @@ function generateHistory({ seed, functions, users = 5, steps = 80 }) {
       }
     );
   }
+  if (anchor && steps >= 11)
+    history[10] = {
+      type: 'activity',
+      tenantId: 'tenant-a',
+      actorId: 'actor-0',
+      functionId: anchor.functionId,
+      mode: 'system_activity_query',
+    };
   return history;
 }
 

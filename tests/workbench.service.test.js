@@ -785,7 +785,48 @@ describe('Workbench RC3 Open WebUI Tenant Gateway', () => {
     expect((await broker.getLocalService('workbench').conversationsDb.allDocs()).rows).toEqual([]);
   });
 
-  test.each(['knowledge_query', 'status_query', 'data_lookup'])(
+  test('system activity preserves mapped identity and is read-only without knowledge fallback', async () => {
+    await provisionOpenWebUiUser();
+    const fn = require('../src/function-model').getFunctionModel().functions[0];
+    const activation = jest.fn((ctx) => {
+      expect(ctx.meta.apiToken).toMatchObject({
+        tenantId: 'tenant-a',
+        id: 'user-a',
+        roles: ['ROLE_GRID_OPERATOR'],
+      });
+      return {
+        activations: [
+          {
+            tenantId: 'tenant-a',
+            functionId: fn.functionId,
+            state: 'latent',
+            responsibility: { humans: [], cet: false },
+            reason: [],
+          },
+        ],
+      };
+    });
+    broker.createService({ name: 'activation', actions: { explain: activation } });
+    const chat = jest.fn();
+    broker.createService({ name: 'personal-agent', actions: { chat } });
+    const service = broker.getLocalService('workbench');
+    const before = await service.conversationsDb.allDocs({ include_docs: true });
+    const result = await call('query', {
+      openWebuiConversationId: 'activity-chat',
+      openWebuiOrgId: 'ow-org',
+      openWebuiUserId: 'ow-user',
+      message: `Was macht ${fn.label} gerade?`,
+      intentMode: 'system_activity_query',
+    });
+    expect(result.state).toBe('latent');
+    expect(result.items[0].sources.journal).toBe(false);
+    expect(activation).toHaveBeenCalledTimes(1);
+    expect(chat).not.toHaveBeenCalled();
+    expect(await service.conversationsDb.allDocs({ include_docs: true })).toEqual(before);
+    expect((await call('cases.list', {}, userMeta)).items).toEqual([]);
+  });
+
+  test.each(['knowledge_query', 'status_query', 'data_lookup', 'system_activity_query'])(
     'query %s enforces Open WebUI mapping',
     async (intentMode) => {
       await expect(

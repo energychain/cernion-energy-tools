@@ -6,6 +6,8 @@ const path = require('node:path');
 const { ServiceBroker } = require('moleculer');
 const { memoryPouch } = require('./memory-pouch');
 const { visible } = require('../../../src/domain-router-policy');
+const { classifyWorkbenchIntent } = require('../../../src/workbench-intent-router');
+const { computeJournalDigest } = require('../../../src/shared-service-journal');
 const { getFunctionModel } = require('../../../src/function-model');
 
 async function createAdapter({
@@ -36,6 +38,8 @@ async function createAdapter({
   let inboxSchema;
   let wakeSchema;
   let signalSchema;
+  let workbenchSchema;
+  let agentsSchema;
   jestApi.doMock('pouchdb', () => Pouch);
   try {
     jestApi.isolateModules(() => {
@@ -46,6 +50,8 @@ async function createAdapter({
       inboxSchema = require('../../../services/persona-inbox.service');
       wakeSchema = require('../../../services/shared-service-wake.service');
       signalSchema = require('../../../services/signals.service');
+      workbenchSchema = require('../../../services/workbench.service');
+      agentsSchema = require('../../../services/shared-service-agents.service');
     });
   } finally {
     jestApi.dontMock('pouchdb');
@@ -99,6 +105,31 @@ async function createAdapter({
       ...journalSettings,
     },
   });
+  const activityQueries = [];
+  const queryCalls = [];
+  const call = broker.call.bind(broker);
+  jestApi.spyOn(broker, 'call').mockImplementation((name, ...args) => {
+    queryCalls.push(name);
+    return call(name, ...args);
+  });
+  broker.createService(agentsSchema);
+  const workbenchSettings = {
+    dbPath: path.join(root, 'workbench'),
+    systemActivityModel: service.model,
+  };
+  for (const field of [
+    'identity',
+    'delivery',
+    'evidence',
+    'turnMemory',
+    'context',
+    'playbook',
+    'inbox',
+    'toolRun',
+    'mailAccount',
+  ])
+    workbenchSettings[`${field}DbPath`] = path.join(root, `workbench-${field}`);
+  const workbench = broker.createService({ ...workbenchSchema, settings: workbenchSettings });
   const operationAttempts = [];
   const handoffs = [];
   const agentEvents = [];
@@ -115,12 +146,11 @@ async function createAdapter({
     settings: { ...inboxSchema.settings, dbPath: path.join(root, 'inbox') },
   });
   const committedCatalog = require('../../../signal-catalog.json');
+  const observationFixtures = require('../../fixtures/signals/observations.json');
   const replayActions = {};
   for (const entry of committedCatalog.operations.filter((o) => o.probe.responded))
-    replayActions[entry.action.slice(entry.action.lastIndexOf('.') + 1)] = () => ({
-      ...structuredClone(entry.probe.response),
-      signals: structuredClone(entry.signals),
-    });
+    replayActions[entry.action.slice(entry.action.lastIndexOf('.') + 1)] = () =>
+      structuredClone(observationFixtures[entry.classification]);
   if (!model)
     broker.createService({
       name: committedCatalog.operations[0].action.split('.')[0],
@@ -263,6 +293,7 @@ async function createAdapter({
     agents,
     inbox,
     agentEvents,
+    workbench,
     clock: now,
     async apply(step) {
       if (step.type === 'signal-exercise') {
@@ -326,6 +357,71 @@ async function createAdapter({
             afterIntervalSec: after.wake.intervalSec,
             maximumIntervalSec: wake.settings.maximumIntervalSec,
           });
+        return;
+      }
+      if (step.type === 'activity') {
+        const fn = service.model.functions.find((item) => item.functionId === step.functionId);
+        if (!fn) return;
+        const message = `Was macht ${fn.label} gerade?`;
+        const mode = classifyWorkbenchIntent(message);
+        const meta = {
+          apiToken: { tenantId: step.tenantId, id: step.actorId, roles: ['ROLE_TENANT_ADMIN'] },
+        };
+        const offset = queryCalls.length;
+        const answer = await broker.call(
+          'workbench.query',
+          { message, intentMode: mode, conversationId: 'activity-query' },
+          { meta }
+        );
+        const observedCalls = queryCalls.slice(offset);
+        const item = answer.items?.[0];
+        if (item) {
+          // Independent digest read/reduction; never copy the query's answer state.
+          const expected = computeJournalDigest(
+            await journal.readEntries(step.tenantId),
+            item.functionId,
+            step.tenantId
+          );
+          const p = {
+            tenantId: step.tenantId,
+            actorId: step.actorId,
+            roles: ['ROLE_TENANT_ADMIN'],
+            clearance: [],
+          };
+          for (const key of ['openExpectations', 'openProposals', 'lastDecisions'])
+            expected[key] = await journal.presentEntries(
+              { meta, call: (name, input) => broker.call(name, input, { meta }) },
+              p,
+              expected[key]
+            );
+          const view = (entries) =>
+            entries.slice(-10).map((entry) => ({
+              summary: entry.summary,
+              at: entry.at,
+              hiddenRefCount: entry.hiddenRefCount || 0,
+            }));
+          activityQueries.push({
+            mode,
+            knowledgeCalls: observedCalls.filter((name) =>
+              /^(?:knowledge\.|personal-agent\.)/.test(name)
+            ).length,
+            ragCalls: observedCalls.filter((name) => /^knowledge-rag\./.test(name)).length,
+            answerState: item.journal,
+            journalDigest: {
+              state: expected.status.state,
+              cet: expected.status.responsibility.cet,
+              humanCount: expected.status.responsibility.humans.length,
+              lifecycles: expected.status.agents.map((agent) => agent.lifecycle),
+              openExpectationCount: expected.openExpectations.length,
+              openProposalCount: expected.openProposals.length,
+              openExpectations: view(expected.openExpectations),
+              openProposals: view(expected.openProposals),
+              lastDecisions: view(expected.lastDecisions),
+              entryCount: expected.entryCount,
+              lastEntryAt: expected.lastEntryAt,
+            },
+          });
+        }
         return;
       }
       if (step.type === 'signal') {
@@ -431,7 +527,7 @@ async function createAdapter({
         now: now.value,
         restWindowMs: service.settings.restWindowMs,
         operationAttempts: structuredClone(operationAttempts),
-        activityQueries: [],
+        activityQueries: structuredClone(activityQueries),
         emptyWakes: structuredClone(emptyWakes),
         corrections: [],
         authorizationChecks: structuredClone(authorizationChecks),
@@ -578,6 +674,7 @@ async function createAdapter({
     after.operationAttempts = structuredClone(operationAttempts);
     after.handoffs = structuredClone(handoffs);
     after.emptyWakes = structuredClone(emptyWakes);
+    after.activityQueries = structuredClone(activityQueries);
   };
   return adapter;
 }

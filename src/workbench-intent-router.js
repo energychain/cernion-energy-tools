@@ -1,5 +1,11 @@
 'use strict';
 
+const {
+  isSystemActivityQuery,
+  isFunctionKnowledgeQuery,
+  renderSystemActivity,
+} = require('./workbench-system-activity');
+
 // Intent is a presentation/routing hint, never authorization to execute a tool.
 function classifyWorkbenchIntent(message, { cetCaseId, recentMessages } = {}) {
   const text = String(message || '').toLowerCase();
@@ -15,6 +21,7 @@ function classifyWorkbenchIntent(message, { cetCaseId, recentMessages } = {}) {
     /\b(case|fall|klärfall|klaerfall|evaluation|bewertung)\b/.test(text)
   )
     return 'case_start';
+  if (isSystemActivityQuery(message)) return 'system_activity_query';
   if (/prüfe.*\b(case|fall)|check.*\bcase/.test(text)) return 'case_followup';
   if (
     /\b(continue|follow.?up|fortsetzen|weiter|nachreich|cetcaseid)\b|hier (ist|sind).*beleg|provide.*evidence/.test(
@@ -22,6 +29,12 @@ function classifyWorkbenchIntent(message, { cetCaseId, recentMessages } = {}) {
     )
   )
     return 'case_followup';
+  if (isFunctionKnowledgeQuery(message)) return 'knowledge_query';
+  if (
+    /\b(status|stand|bearbeitungsstand)\b/.test(text) &&
+    /\b(case|fall)\b|\bcase[_-][\w-]+\b/.test(text)
+  )
+    return 'status_query';
   if (
     /compare|recommend|assess|bewerte|vergleiche|empfehl|abwäg|abwaeg|was soll ich tun|what should i do|nächste.*schritt|naechste.*schritt|next.*step/.test(
       text
@@ -105,7 +118,9 @@ function renderContextualExplanation({ topic, message, observations = [] }) {
 }
 
 function isReadOnlyIntent(intent) {
-  return ['status_query', 'knowledge_query', 'data_lookup'].includes(intent);
+  return ['status_query', 'knowledge_query', 'data_lookup', 'system_activity_query'].includes(
+    intent
+  );
 }
 
 const INTERNAL_POLICY =
@@ -118,6 +133,7 @@ function readable(value) {
 }
 
 function renderWorkbenchResponse(result = {}, intent, followup) {
+  if (intent === 'system_activity_query') return renderSystemActivity(result);
   const reply = readable(result.responseText);
   if (
     reply &&

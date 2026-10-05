@@ -75,7 +75,10 @@ async function setup({ classification = 'standing', maxStatesPerTenant = 512 } =
   return adapter;
 }
 
-test('AC-02/03: all Dashboard operations use committed classifications and probe responses, never live probes', () => {
+test('AC-02/03: all Dashboard operations use committed definitions and independent fixtures, never live probes', () => {
+  expect(require('node:fs').statSync(require.resolve('../signal-catalog.json')).size).toBeLessThan(
+    300000
+  );
   expect(catalog.statistics.coverage).toBeGreaterThanOrEqual(0.9);
   expect(catalog.operations.length).toBe(
     Object.keys(require('../services/dashboard-api.service').actions).length
@@ -86,11 +89,25 @@ test('AC-02/03: all Dashboard operations use committed classifications and probe
       expect(entry.uncoveredReason).toBeTruthy();
       continue;
     }
-    const signals = projectSignals(entry.probe.response, entry);
-    expect(signals).toEqual(entry.signals);
-    expect(projectSignals(entry.probe.response, entry)).toEqual(signals);
-    if (/(^|_)(needs|missing)(_|$)/i.test(entry.probe.response.status || ''))
-      expect(signals.some(isFinding)).toBe(false);
+    expect(entry.probe).not.toHaveProperty('response');
+    expect(entry.probe.fields).toEqual(expect.any(Array));
+    for (const definition of entry.signals) {
+      expect(
+        Object.keys(definition)
+          .filter((key) => key !== 'unit')
+          .sort(require('../src/canonical-order').compareCanonicalStrings)
+      ).toEqual(
+        ['signalId', 'label', 'kind', 'sourceField', 'stateRule'].sort(
+          require('../src/canonical-order').compareCanonicalStrings
+        )
+      );
+      expect(entry.probe.fields).toContain(definition.sourceField);
+      expect(definition.stateRule).toEqual(expect.any(String));
+    }
+    const fixture = require('./fixtures/signals/observations.json')[entry.classification];
+    const signals = projectSignals(fixture, entry);
+    expect(projectSignals(fixture, entry)).toEqual(signals);
+    expect(signals.some(isFinding)).toBe(false);
   }
   expect(catalog.statistics.findingsWithoutContext).toBe(0);
 });
