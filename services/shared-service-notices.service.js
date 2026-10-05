@@ -69,7 +69,24 @@ module.exports = {
   actions: {
     list: {
       rest: 'GET /',
-      openapi: { summary: 'Read own visible next-turn notices', tags: ['Shared Service Notices'] },
+      openapi: {
+        summary: 'Read own visible next-turn notices',
+        tags: ['Shared Service Notices'],
+        parameters: [
+          {
+            name: 'tenantId',
+            in: 'query',
+            required: true,
+            schema: { type: 'string', example: 'tenant-a' },
+          },
+          {
+            name: 'actorId',
+            in: 'query',
+            required: true,
+            schema: { type: 'string', example: 'actor-a' },
+          },
+        ],
+      },
       params: personParams,
       handler(ctx) {
         const p = this.self(ctx);
@@ -94,7 +111,33 @@ module.exports = {
     },
     setPreference: {
       rest: 'POST /preference',
-      openapi: { summary: 'Set own next-turn notice preference', tags: ['Shared Service Notices'] },
+      openapi: {
+        summary: 'Set own next-turn notice preference',
+        tags: ['Shared Service Notices'],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['tenantId', 'actorId', 'preference'],
+                properties: {
+                  tenantId: { type: 'string', example: 'tenant-a' },
+                  actorId: { type: 'string', example: 'actor-a' },
+                  preference: {
+                    type: 'string',
+                    enum: ['all', 'proposals_only', 'off'],
+                    example: 'all',
+                  },
+                },
+              },
+              examples: {
+                own: { value: { tenantId: 'tenant-a', actorId: 'actor-a', preference: 'all' } },
+              },
+            },
+          },
+        },
+      },
       params: {
         ...personParams,
         preference: { type: 'enum', values: ['all', 'proposals_only', 'off'] },

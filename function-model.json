@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "90af22d0b350d7178115f1fb92a71c108d877b37f171c8c7b6f988ee34eb2767",
+  "sourceHash": "84322a7a1a95f2618137ae41f22754042864447b2a3dbcc0af38fb0bcc46aa0e",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -190251,7 +190251,7 @@
       },
       {
         "service": "notices",
-        "ref": "services/shared-service-notices.service.js:158: spread event handlers"
+        "ref": "services/shared-service-notices.service.js:201: spread event handlers"
       },
       {
         "service": "system",

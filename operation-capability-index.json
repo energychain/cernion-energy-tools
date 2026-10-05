@@ -2,7 +2,7 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.99.22",
-  "sourceOpenApiHash": "7e8dc5f8ddbcb6d27ca939e1fa91c5a8f5bcb13091ca0496cbb19c3339332414",
+  "sourceOpenApiHash": "6fb16d9d5d9f68cda82f03a15859c8165974ebb61f62c3c1201aca047d2a0d5d",
   "coverage": {
     "rawOperationCount": 1240,
     "operationCount": 984,
@@ -69252,7 +69252,22 @@
       "idempotency": "idempotent",
       "rollbackHint": null,
       "parameters": {
-        "required": [],
+        "required": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": "tenant_id"
+          },
+          {
+            "name": "actorId",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
         "optional": []
       },
       "rankingSignals": {
@@ -69318,7 +69333,29 @@
       "idempotency": "not_idempotent",
       "rollbackHint": "Use the corresponding update/delete operation on the same resource to revert.",
       "parameters": {
-        "required": [],
+        "required": [
+          {
+            "name": "tenantId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": "tenant_id"
+          },
+          {
+            "name": "actorId",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          },
+          {
+            "name": "preference",
+            "in": "body",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ],
         "optional": []
       },
       "rankingSignals": {
