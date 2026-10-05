@@ -219,8 +219,36 @@ function summarizeCoherence(functions) {
   };
 }
 
+function functionEmbedding(ids, entries) {
+  const available = ids
+    .map((id) => ({ id, entry: entries.get(id) }))
+    .filter(({ entry }) => validEntry(entry));
+  const identity = available[0]?.entry;
+  const compatible = available.filter(
+    ({ entry }) =>
+      entry.provider === identity.provider &&
+      entry.model === identity.model &&
+      entry.dimension === identity.dimension
+  );
+  const missingCapabilities = ids.filter((id) => !compatible.some((item) => item.id === id));
+  if (!identity)
+    return { provider: null, model: null, dimension: null, vector: null, missingCapabilities };
+  const vector = Array(identity.dimension).fill(0);
+  for (const { entry } of compatible)
+    for (let i = 0; i < vector.length; i++) vector[i] += entry.vector[i] / compatible.length;
+  const norm = Math.sqrt(vector.reduce((sum, value) => sum + value * value, 0));
+  return {
+    provider: identity.provider,
+    model: identity.model,
+    dimension: identity.dimension,
+    vector: norm ? vector.map((value) => Number((value / norm).toFixed(10))) : null,
+    missingCapabilities,
+  };
+}
+
 module.exports = {
   TEXT_VERSION,
+  functionEmbedding,
   functionCoherence,
   summarizeCoherence,
   buildEmbeddingTexts,

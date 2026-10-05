@@ -21,6 +21,8 @@ function collect(result, facts) {
 }
 
 function before(ctx) {
+  if (ctx.action?.name === 'workbench.query' && ctx.params.intentMode === 'system_activity_query')
+    return;
   // Delegated requests are observed by Workbench, once.
   if (
     ctx.action?.name === 'openai-compatible.chatCompletions' &&

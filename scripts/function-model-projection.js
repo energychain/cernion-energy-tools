@@ -9,6 +9,7 @@ const {
   semanticScore,
   cosine,
   functionCoherence,
+  functionEmbedding,
   summarizeCoherence,
 } = require('./function-model-embeddings');
 const { assignFunctionLineage } = require('./function-model-lineage');
@@ -501,7 +502,13 @@ function projectFunctionModel({
   const functions = groupCapabilities(sorted, context)
     .map((group) => aggregate(group, context))
     .sort((a, b) => compareCanonicalStrings(a.functionId, b.functionId));
-  for (const fn of functions) fn.coherence = functionCoherence(fn.capabilities, embeddings.entries);
+  for (const fn of functions) {
+    fn.coherence = functionCoherence(fn.capabilities, embeddings.entries);
+    fn.embedding = functionEmbedding(fn.capabilities, embeddings.entries);
+    fn.embedding.staleCapabilities = fn.capabilities.filter((id) =>
+      embeddings.gaps.some((gap) => gap.capability === id && gap.reason === 'stale')
+    );
+  }
   const lineage = assignFunctionLineage(functions, previousModel);
   functions.sort((a, b) => compareCanonicalStrings(a.functionId, b.functionId));
   if (new Set(functions.map((fn) => fn.functionId)).size !== functions.length) {
