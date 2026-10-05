@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.99.22] — 2026-09-27
 
 ### Fixed
+- RC3 PouchDB shutdown (#731): leave datapoint database closure to the persistence mixin while preserving scheduler cleanup; warn on already-closed databases, propagate unrelated close failures, and guard ownership plus clean shutdown of all local services without LLM credentials.
 - RC3 Shared Service notices (#723): surface bounded, person-scoped proposal/responsibility/tier notices on the next completed turn, preserve visibility and structured responses, add stable reaction refs and a no-RAG news overview, and activate I-12.
 - RC3 Headless Signals catalog follow-up (#722): retain value-free field definitions and compact probe summaries, move observation values into test fixtures, and merge #700 Workbench/agents harness observations while preserving I-11.
 - RC3 Headless Signals (#722, part of #693): project technical response roles into a deterministic signal catalog, observe under caller permissions with bounded tenant state and change events, replace agent finding heuristics with context-safe signals, and expose signal push gaps plus I-11 without changing Dashboard operations.

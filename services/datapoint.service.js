@@ -61,7 +61,6 @@ module.exports = {
       clearInterval(this.schedulerInterval);
       this.schedulerInterval = null;
     }
-    await this.db.close();
   },
 
   actions: {
