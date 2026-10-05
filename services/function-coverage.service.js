@@ -31,6 +31,7 @@ module.exports = {
     this.config = configuration(this.settings.coverage);
     this.pendingTurns = 0;
     this.droppedTurns = 0;
+    this.unmappedServiceTurns = 0;
     this.unresolvedSignals = 0;
     this.suppressedOperations = 0;
     this.signalOverflow = 0;
@@ -57,6 +58,15 @@ module.exports = {
         signalClass: 'string',
         capabilities: { type: 'array', items: 'string', max: 1024, optional: true },
         operations: { type: 'array', items: 'string', max: 1024, optional: true },
+        context: {
+          type: 'object',
+          optional: true,
+          strict: true,
+          props: {
+            kind: { type: 'enum', values: ['case'] },
+            ref: { type: 'string', min: 1, max: 256 },
+          },
+        },
         observationOverflow: { type: 'number', integer: true, min: 0, optional: true },
       },
       handler(ctx) {
@@ -284,6 +294,7 @@ module.exports = {
             conversationId,
             turnRef: doc.sourceRef,
             confidence: weight,
+            ...(input.context ? { context: { ...input.context, actorId: doc.actorId } } : {}),
             at: new Date(now).toISOString(),
           },
         });

@@ -17,7 +17,9 @@ const selected = model.functions.find(
     fn.neighbors.length &&
     findFunctionsForCapability(fn.capabilities[0], { model }).length === 1
 );
-const meta = { apiToken: { tenantId: 'tenant-a', id: 'actor-a', roles: ['ROLE_USER'] } };
+const meta = {
+  apiToken: { tenantId: 'tenant-a', id: 'actor-a', userId: 'actor-a', roles: ['ROLE_USER'] },
+};
 let adapter;
 beforeEach(async () => {
   adapter = await createAdapter({ jest, model, settings: { tenantBudget: 2 } });

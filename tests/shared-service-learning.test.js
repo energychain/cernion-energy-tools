@@ -226,7 +226,15 @@ test('pin/unpin need existing admin roles, while retain/unretain accept tenant u
   }
   for (const command of ['pin Beta Review', 'unpin Beta Review']) {
     await chat(command);
-    await expect(chat('Ja')).rejects.toThrow('Admin role');
+    expect((await chat('Ja')).responseText).toBe(
+      'Das kann nur eine Administratorin bzw. ein Administrator festlegen.'
+    );
+    const audit = await adapter.broker.call(
+      'journal.byFunction',
+      { tenantId: 'tenant-a', functionId: 'fn-b' },
+      { meta: meta() }
+    );
+    expect(audit.some((entry) => entry.summary.includes('Inventarkorrektur abgelehnt'))).toBe(true);
   }
 });
 test.each([
@@ -382,7 +390,7 @@ test('wrong proposal updates rejection statistics and decreases generation frequ
   const saved = updated.agents.find((item) => item.functionId === 'fn-b');
   expect(saved.stats.rejected).toBe(1);
   saved.stats.cycles = 1;
-  updated.coverage = [{ functionId: 'fn-a', actorId: 'person', score: 1 }];
+  updated.coverage = [{ functionId: 'fn-b', actorId: 'person', score: 1 }];
   adapter.broker.call.mockImplementation((name, ...args) =>
     name === 'activation.neighbors'
       ? Promise.resolve([{ functionId: 'fn-a' }])

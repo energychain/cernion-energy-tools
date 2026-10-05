@@ -73,6 +73,41 @@ function recognizeCorrection(message) {
     [
       'coverage',
       { score: 1 },
+      /^(?:ich übernehme\s*:?\s*(.+?)|das übernehme ich\s*[:–-]\s*(.+?)|(.+?) mache ab jetzt ich|(.+?) liegt jetzt bei mir)[.!]*$/i,
+    ],
+    [
+      'coverage',
+      { score: 1 },
+      /^(?:ich kümmere mich (?:selbst|allein) um (.+?)|(.+?) übernehme ich(?: selbst)?|(?:leave|hand) (.+?) to me|I(?:'ll| will) take care of (.+?) myself)[.!]*$/i,
+    ],
+    [
+      'activation',
+      { cet: false },
+      /^(?:(?:you|CET) (?:don't|do not) have to (?:worry about|take care of) (.+?)|für (.+?) brauchst du nichts zu tun|(.+?) ist nicht (?:deine|CETs) aufgabe)[.!]*$/i,
+    ],
+    [
+      'agent',
+      { kind: 'pin' },
+      /^(?:nimm (.+?) in (?:dein|das) inventar auf|set (.+?) to inventory|put (.+?) on (?:the )?inventory)[.!]*$/i,
+    ],
+    [
+      'coverage',
+      { score: 1 },
+      /^(?:das (?:mache|erledige|übernehme) ich (?:selbst|allein)|I(?:'ll| will) (?:handle|do|take care of) (?:this|that) myself)\s*[:–-]\s*(.+?)[.!]*$/i,
+    ],
+    [
+      'activation',
+      { cet: false },
+      /^(?:darum (?:musst|brauchst) du dich nicht (?:mehr )?(?:zu )?kümmern|(?:you|CET) (?:need not|don't need to|do not need to|shouldn't) (?:handle|take care of) (?:this|that))\s*[:–-]\s*(.+?)[.!]*$/i,
+    ],
+    [
+      'agent',
+      { kind: 'pin' },
+      /^(?:nimm (.+?) (?:ins|in das) inventar auf|setze (.+?) (?:auf|ins) inventar|(?:put|place|set) (.+?) (?:in|into|on) (?:the )?inventory|add (.+?) to (?:the )?inventory)[.!]*$/i,
+    ],
+    [
+      'coverage',
+      { score: 1 },
       /^(?:für (.+?) bin ich (?:selbst )?zuständig|(.+?) erledige ich selbst|I am responsible for (.+?))[.!]*$/i,
     ],
     [
@@ -145,7 +180,7 @@ function recognizeCorrection(message) {
         type: 'function',
         target,
         correction,
-        phrase: match[1] || match[2] || match[3] || '',
+        phrase: match.slice(1).find(Boolean) || '',
       };
   }
   return null;
@@ -234,6 +269,23 @@ async function handleCorrectionTurn(ctx, envelope, store, { model = getFunctionM
     const pending = memory.pending;
     if (!pending || pending.candidates)
       return reply('Es liegt keine eindeutig aufgelöste Korrektur zur Bestätigung vor.');
+    if (
+      pending.target === 'agent' &&
+      ['pin', 'unpin'].includes(pending.correction?.kind) &&
+      !p.roles.some((role) => ['ROLE_ADMIN', 'ROLE_TENANT_ADMIN'].includes(role))
+    ) {
+      const responseText = 'Das kann nur eine Administratorin bzw. ein Administrator festlegen.';
+      await ctx.call('journal.append', {
+        tenantId: p.tenantId,
+        functionId: pending.correction.functionId,
+        kind: 'decided',
+        summary: `Inventarkorrektur abgelehnt: ${responseText}`,
+        refs: [],
+      });
+      delete memory.pending;
+      await save();
+      return reply(responseText);
+    }
     let result;
     if (pending.type === 'proposal')
       result = await ctx.call('shared-service-agent.resolveProposal', {
@@ -347,7 +399,10 @@ async function handleCorrectionTurn(ctx, envelope, store, { model = getFunctionM
       memory.pending = { ...intent, candidates: resolution.matches };
       await save();
       return reply(
-        `Welche Funktion meinst du? ${resolution.matches.map((item) => item.label).join('; ')}. Bitte wiederhole die Korrektur mit der eindeutigen Bezeichnung.`
+        `Welche Funktion meinst du? ${resolution.matches
+          .slice(0, 5)
+          .map((item) => item.label)
+          .join('; ')}. Bitte wiederhole die Korrektur mit der eindeutigen Bezeichnung.`
       );
     }
     const fn = resolution.matches[0];
@@ -368,7 +423,10 @@ async function handleCorrectionTurn(ctx, envelope, store, { model = getFunctionM
         };
         await save();
         return reply(
-          `Welche zweite Funktion meinst du? ${neighbor.matches.map((item) => item.label).join('; ')}.`
+          `Welche zweite Funktion meinst du? ${neighbor.matches
+            .slice(0, 5)
+            .map((item) => item.label)
+            .join('; ')}.`
         );
       }
       memory.pending.correction.neighborId = neighbor.matches[0].functionId;

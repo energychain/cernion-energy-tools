@@ -63,6 +63,15 @@ async function createGapAdapter(jest) {
   adapter.broker.createService({ name: 'neutral', actions: { read: { handler: backend } } });
   adapter.broker.createService({
     name: 'domain-router',
+    actions: {
+      agentCaseContext: {
+        handler(ctx) {
+          if (ctx.params.tenantId !== 'tenant-a' || ctx.params.caseId !== contextRef)
+            throw new Error('Not visible');
+          return { knownContext: {} };
+        },
+      },
+    },
     methods: {
       async loadCase(p, ref) {
         if (

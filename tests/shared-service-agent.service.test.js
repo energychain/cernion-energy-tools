@@ -775,3 +775,40 @@ test('AC-07: model splits never duplicate agent IDs, costs or ambiguous proposal
   expect(migrated.every((item) => item.modelSourceHash === nextModel.sourceHash)).toBe(true);
   expect(migrated.filter((item) => item.pendingJournal)).toHaveLength(1);
 });
+
+test('729 review: observed CET actors receive internal proposals without a persona directory entry', async () => {
+  await setup();
+  neutralRead(() => ({ findings: [{ kind: 'neutral' }] }));
+  jest
+    .spyOn(adapter.agents.llmClient, 'generateStructured')
+    .mockResolvedValue({ summary: 'Review the finding.' });
+  await adapter.apply({
+    event: 'function.coverage.changed.v1',
+    payload: {
+      tenantId: 'tenant-a',
+      actorId: 'person-a',
+      functionId: 'fn-a',
+      score: 1,
+      origin: 'observed',
+    },
+  });
+  await touch();
+  const saved = (await adapter.agents.readDocument('tenant-a')).agents[0];
+  expect(saved.proposals[0].recipients).toEqual(['person-a']);
+  const messages = await adapter.inbox.getTenantInboxMessages('tenant-a');
+  expect(messages).toHaveLength(1);
+  expect(messages[0].personaId).toBe('person-a');
+  const proposals = await adapter.broker.call(
+    'shared-service-agent.proposals',
+    { tenantId: 'tenant-a' },
+    { meta: meta() }
+  );
+  expect(proposals).toHaveLength(1);
+  expect(
+    await adapter.broker.call(
+      'shared-service-agent.proposals',
+      { tenantId: 'tenant-a' },
+      { meta: meta('tenant-a', 'other') }
+    )
+  ).toEqual([]);
+});
