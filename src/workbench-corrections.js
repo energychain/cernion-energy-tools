@@ -259,7 +259,7 @@ async function handleCorrectionTurn(ctx, envelope, store, { model = getFunctionM
   if (intent.type === 'undo') {
     if (!memory.lastCorrection)
       return reply('In diesem Gespräch liegt keine rücknehmbare Korrektur vor.');
-    memory.pending = { type: 'undo', ...memory.lastCorrection, type: 'undo' };
+    memory.pending = { ...memory.lastCorrection, type: 'undo' };
   } else if (intent.type === 'proposal') {
     const proposals = await ctx.call('shared-service-agent.proposals', { tenantId: p.tenantId });
     const notice = intent.identifier

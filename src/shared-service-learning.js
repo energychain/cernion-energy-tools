@@ -3,7 +3,7 @@
 const { principal, deny } = require('./domain-router-policy');
 const { resolveFunctionId, getFunction } = require('./function-model');
 
-const kinds = ['retain', 'unretain', 'pin', 'unpin'];
+const kinds = new Set(['retain', 'unretain', 'pin', 'unpin']);
 function correctionPrincipal(event, meta) {
   const p = principal({ meta }, event);
   if (event.actorId !== p.actorId) deny('Actor mismatch');
@@ -39,8 +39,7 @@ function validateCorrection(input, model) {
   if (input.target === 'activation' && typeof c.cet !== 'boolean') deny('Invalid responsibility');
   if (
     input.target === 'agent' &&
-    (!kinds.includes(c.kind) ||
-      (c.factor !== undefined && (!Number.isFinite(c.factor) || c.factor < 1)))
+    (!kinds.has(c.kind) || (c.factor !== undefined && (!Number.isFinite(c.factor) || c.factor < 1)))
   )
     deny('Invalid agent correction');
   if (input.target === 'neighbor') {

@@ -128,7 +128,7 @@ function project(documents, asOf, config) {
   }
   const last = ordered.at(-1);
   const observed = Math.min(1, Math.max(0, 1 - Math.exp(-mass)));
-  const corrected = ordered.filter((doc) => doc.origin === 'corrected').at(-1);
+  const corrected = ordered.findLast((doc) => doc.origin === 'corrected');
   const strength = corrected
     ? Math.pow(0.5, Math.max(0, asOf - corrected.at) / (config.halfLifeMs * 4))
     : 0;
