@@ -175,7 +175,12 @@ const dependencies = {
   'I-4': { issues: '#697', paths: ['services/shared-service-agent.service.js'] },
   'I-5': {
     issues: '#698/#700',
-    paths: ['services/shared-service-journal.service.js'],
+    paths: [
+      'services/shared-service-journal.service.js',
+      'services/workbench.service.js',
+      'src/workbench-system-activity.js',
+      'src/function-resolver.js',
+    ],
     marker: 'system_activity_query',
   },
   'I-6': {

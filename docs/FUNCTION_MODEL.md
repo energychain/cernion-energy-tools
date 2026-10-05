@@ -303,3 +303,20 @@ subsequent no-op generations retain that transition's provenance.
 After each merge of main regenerate function-model.json, both reports and llm.txt;
 never resolve generated conflicts by hand. Refresh changed cache texts separately
 through the explicit online command. Normal generation/checking needs no provider.
+
+### Offline function vectors for activity resolution (#700)
+
+The generator adds `Function.embedding` from compatible capability vectors in
+`function-model.embeddings.json`: `{ provider, model, dimension, vector,
+missingCapabilities, staleCapabilities }`. `vector` is the normalized arithmetic
+mean, rounded deterministically to ten decimals; missing/incompatible entries are
+reported without stopping generation. If no usable entries exist, identity fields
+and vector are null. Cache text validity continues to use the existing #708 check;
+stale entries are excluded and remain listed in the gap report. Function grouping,
+lineage and neighbors do not use this new field and remain unchanged.
+
+Activity resolution may embed a question through the LLM facade, using the same
+provider/model/dimension, then combine positive cosine similarity with normalized
+lexical overlap. See `WORKBENCH_SYSTEM_ACTIVITY.md` for the configuration, fallback
+metadata and bounded clarification contract. No embedding provider is called by
+the model generator.

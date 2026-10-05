@@ -506,6 +506,9 @@ module.exports = {
             },
             metadata: {
               intentMode,
+              ...(intentMode === 'system_activity_query' && workbench.resolution
+                ? { resolution: workbench.resolution }
+                : {}),
               cetCaseId: workbench.cetCaseId,
               caseStateVersion: workbench.caseStateVersion,
               primaryDomain: workbench.primaryDomain,

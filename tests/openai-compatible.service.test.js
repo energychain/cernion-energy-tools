@@ -798,6 +798,7 @@ describe('OpenAI governance intent modes', () => {
     ['What is the status of case-1?', 'status_query', 'workbench.query'],
     ['What does APERAK Z18 mean?', 'knowledge_query', 'workbench.query'],
     ['Show open MaKo cases', 'data_lookup', 'workbench.query'],
+    ['Woran arbeitest du?', 'system_activity_query', 'workbench.query'],
     ['Start a new clarification case', 'case_start', 'workbench.chat'],
     ['Continue case-1 with evidence', 'case_followup', 'workbench.chat'],
     ['Compare options', 'decision_support', 'workbench.chat'],
@@ -941,4 +942,36 @@ describe('governance contextual follow-up delivery', () => {
     const explained = await OpenAICompatibleService.actions.chatCompletions.handler(ctx);
     expect(explained.choices[0].message.content).toBe('Fachliche Erklärung mit Einschränkungen.');
   });
+});
+
+test('system activity renders state and fallback metadata without LLM text generation', async () => {
+  llmClient.generateChat.mockClear();
+  const ctx = {
+    params: {
+      model: 'cernion-governance-assistant',
+      messages: [{ role: 'user', content: 'Welche Agents laufen?' }],
+      metadata: { conversationId: 'activity-chat' },
+    },
+    meta: { apiToken: { tenantId: 'tenant-a', id: 'actor-a', roles: ['ROLE_USER'] } },
+    call: jest.fn().mockResolvedValue({
+      mode: 'system_activity_query',
+      resolution: { path: 'lexical', fallbackReason: 'embedding_failed' },
+      state: 'state_unavailable',
+      items: [],
+      responseText: 'Routing advice only.',
+    }),
+  };
+  const result = await OpenAICompatibleService.actions.chatCompletions.handler(ctx);
+  expect(ctx.call).toHaveBeenCalledTimes(1);
+  expect(ctx.call).toHaveBeenCalledWith(
+    'workbench.query',
+    expect.objectContaining({ intentMode: 'system_activity_query' })
+  );
+  expect(result.metadata.resolution).toEqual({
+    path: 'lexical',
+    fallbackReason: 'embedding_failed',
+  });
+  expect(result.choices[0].message.content).toMatch(/Systemzustand.*nicht erreichbar/);
+  expect(result.choices[0].message.content).not.toContain('Routing advice');
+  expect(llmClient.generateChat).not.toHaveBeenCalled();
 });
