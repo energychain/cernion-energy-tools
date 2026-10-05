@@ -390,7 +390,12 @@ module.exports = {
         recommend: (i) =>
           ctx.call(
             'capability-broker.recommend',
-            { task: i.userRequest, knownContext: i.knownContext, agentRole: p.roles[0] },
+            {
+              task: i.userRequest,
+              knownContext: i.knownContext,
+              agentRole: p.roles[0],
+              primaryDomain: i.primaryDomain,
+            },
             { timeout: 5000 }
           ),
         selectReceipts: (i) =>

@@ -1,4 +1,9 @@
 const {
+  rankCapabilities,
+  queryEmbeddingForTurn,
+  capabilityEmbeddings,
+} = require('../src/capability-routing');
+const {
   BROKER_SCHEMA_VERSION,
   CURATED_CAPABILITIES,
   INTERFACE_PLACEHOLDER_CAPABILITY,
@@ -73,13 +78,6 @@ function findCapabilityByName(capabilityName) {
 
 function findBestCapability(taskText, options = {}) {
   const haystack = taskText.toLowerCase();
-  const resolvedParams = options?.resolvedParams || {};
-  const resolvedCapabilities = Array.isArray(options?.resolvedCapabilities)
-    ? options.resolvedCapabilities
-    : [];
-  const resolvedCapNames = new Set(
-    resolvedCapabilities.map((rc) => (typeof rc === 'string' ? rc : rc?.capability)).filter(Boolean)
-  );
 
   const cyaSignals = [
     'versorgungssicherheit',
@@ -2745,81 +2743,12 @@ function findBestCapability(taskText, options = {}) {
     }
   }
 
-  let best = null;
-
-  for (const capability of CURATED_CAPABILITIES) {
-    let score = capability.keywords.reduce(
-      (acc, keyword) => (haystack.includes(keyword.toLowerCase()) ? acc + 1 : acc),
-      0
-    );
-
-    // Deprioritize already-resolved capabilities (-30 penalty)
-    if (resolvedCapNames.has(capability.capability)) {
-      score -= 30;
-    }
-
-    // Boost capabilities whose requiredInputs are satisfied by resolvedParams (+20 per match)
-    const requiredInputs = Array.isArray(capability.requiredInputs)
-      ? capability.requiredInputs
-      : [];
-    const resolvedKeys = Object.keys(resolvedParams);
-    const satisfiedInputs = requiredInputs.filter((ri) => resolvedKeys.includes(ri));
-    score += satisfiedInputs.length * 20;
-
-    // Extra boost for capabilities that CONSUME resolved intermediate results
-    // e.g. grid-connection.validate consumes bdewCode / gridOperatorName.
-    // Requires score > 0 (some genuine keyword relevance already established) —
-    // otherwise this name-prefix check alone can promote a capability with ZERO
-    // keyword overlap into "best match" purely because resolvedParams.gridOperatorName
-    // is present (which is common/generic context), bypassing the interface-placeholder
-    // fallback for genuinely unmatched requests. See energychain/cernion-energy-tools
-    // personal-agent.service.test.js "remains partial for a genuine capability gap".
-    if (
-      score > 0 &&
-      capability.capability.startsWith('grid_connection') &&
-      (resolvedParams.bdew || resolvedParams.gridOperatorName || resolvedParams.gridOperatorId)
-    ) {
-      score += 40;
-    }
-
-    if (capability.capability === 'mastr_asset_inventory') {
-      const hasExplicitMastrSignal = [
-        'mastr',
-        'redispatch',
-        'fernsteuerbarkeit',
-        'anlage',
-        'anlagen',
-        'pv',
-        'wind',
-        'speicher',
-      ].some((signal) => haystack.includes(signal));
-
-      const hasCompetingScenarioSignal = [...cyaSignals, ...benchmarkSignals, ...fnavSignals].some(
-        (signal) => haystack.includes(signal)
-      );
-
-      if (!hasExplicitMastrSignal || hasCompetingScenarioSignal) {
-        score = 0;
-      }
-    }
-
-    if (!best || score > best.score) {
-      best = { capability, score };
-    }
-  }
-
-  if (!best || best.score === 0) {
-    return {
-      capability: INTERFACE_PLACEHOLDER_CAPABILITY,
-      score: 0,
-      usedFallback: true,
-    };
-  }
-
+  const ranked = rankCapabilities(taskText, CURATED_CAPABILITIES, options);
   return {
-    capability: best.capability,
-    score: best.score,
-    usedFallback: false,
+    capability: ranked.matches[0]?.capability || INTERFACE_PLACEHOLDER_CAPABILITY,
+    score: ranked.matches[0]?.score || 0,
+    usedFallback: ranked.matches.length === 0,
+    ranked,
   };
 }
 
@@ -3413,6 +3342,7 @@ module.exports = {
         },
         task: { type: 'string', min: 3 },
         agentRole: { type: 'string', optional: true },
+        primaryDomain: { type: 'string', optional: true },
         knownContext: { type: 'object', optional: true, default: {} },
         alreadyExecutedSteps: { type: 'array', optional: true, default: [] },
         currentQuestion: { type: 'string', optional: true },
@@ -3447,10 +3377,37 @@ module.exports = {
         const resolvedCapabilities = Array.isArray(ctx.params.resolvedCapabilities)
           ? ctx.params.resolvedCapabilities
           : [];
-        const selected = findBestCapability(taskText, {
+        const routingOptions = {
           resolvedParams,
           resolvedCapabilities,
+          primaryDomain: ctx.params.primaryDomain,
+        };
+        const deterministic = findBestCapability(taskText, routingOptions);
+        const cache = capabilityEmbeddings(CURATED_CAPABILITIES);
+        const semantic = await queryEmbeddingForTurn(taskText, cache.entries, {
+          context: ctx,
+          tenantId: ctx.meta?.tenantId,
+          broker: ctx.broker,
         });
+        const ranked = rankCapabilities(taskText, CURATED_CAPABILITIES, {
+          ...routingOptions,
+          entries: cache.entries,
+          vector: semantic.vector,
+          // Preserve existing explicit multi-signal intent routes and safety fallbacks.
+          // The general keyword path supplies no such bonus.
+          explicitCapability:
+            !deterministic.ranked && !deterministic.usedFallback
+              ? deterministic.capability.capability
+              : undefined,
+        });
+        const forcedFallback = deterministic.usedFallback && !deterministic.ranked;
+        const selected = {
+          capability: forcedFallback
+            ? deterministic.capability
+            : ranked.matches[0]?.capability || INTERFACE_PLACEHOLDER_CAPABILITY,
+          score: forcedFallback ? 0 : ranked.matches[0]?.score || 0,
+          usedFallback: forcedFallback || !ranked.matches.length,
+        };
         const capability = selected.capability;
 
         const blockedActions = new Set([
@@ -3559,11 +3516,20 @@ module.exports = {
           })),
         ];
 
-        const confidenceBase = selected.score > 0 ? 0.8 : 0.55;
-        const confidence = Math.min(0.98, confidenceBase + Math.min(selected.score, 4) * 0.04);
+        const confidence = selected.usedFallback ? 0 : ranked.confidence;
+        const uncertain = selected.usedFallback || ranked.uncertain;
         const scoringBreakdown = {
           rawScore: selected.score,
-          confidenceBase,
+          margin: ranked.margin,
+          uncertain,
+          activatesCoverage: !uncertain,
+          semantic: { ...semantic.metadata, cacheGaps: cache.gaps.length },
+          weightedScore: selected.score,
+          lexicalScore: ranked.matches[0]?.lexicalScore || 0,
+          keywordContributions: ranked.matches[0]?.contributions || [],
+          domainBonus: ranked.matches[0]?.domainBonus || 0,
+          domainConflict: ranked.matches[0]?.domainConflict || false,
+          explicitRouteBonus: ranked.matches[0]?.explicitRouteBonus || 0,
           usedFallback: selected.usedFallback,
           resolvedCapabilityPenaltyApplied: Array.isArray(resolvedCapabilities)
             ? resolvedCapabilities.some(
@@ -3596,6 +3562,14 @@ module.exports = {
           capability: capability.capability,
           confidence: Number(confidence.toFixed(2)),
           scoringBreakdown,
+          uncertain,
+          candidateCapabilities: selected.usedFallback
+            ? []
+            : ranked.matches.slice(0, 3).map((match) => ({
+                capability: match.capability.capability,
+                score: match.score,
+                domainConflict: match.domainConflict,
+              })),
           mode: ctx.params.mode,
           effectiveMode,
           recommendedCapabilities: [

@@ -2789,7 +2789,12 @@ describe('Capability Broker Service', () => {
       task: 'Erstelle Rechtsgutachten und provisioniere AccessManager IAM Rollen mit Credentials fuer Frist Nachhaltung.',
     });
 
-    expect(result.capability).not.toBe('owner_deadline_evidence_gate');
+    // Weighted phrase evidence may propose the read-only gate; it must remain uncertain.
+    if (result.capability === 'owner_deadline_evidence_gate') expect(result.uncertain).toBe(true);
+    expect(result.recommendedPlan.map((step) => step.action)).not.toContain('legal.opinion');
+    expect(result.recommendedPlan.map((step) => step.action)).not.toContain(
+      'access-manager.provision'
+    );
   });
 
   it('routes RPA Fehlerfolgen / automation risk prompts to the read-only gate', async () => {
@@ -2868,7 +2873,10 @@ describe('Capability Broker Service', () => {
       task: 'Provisioniere Tenant stadtwerk-mauer, erstelle User und Token, schreibe Eve Agent Directory, starte Scheduler Channel Approval und fuehre Workflow aus.',
     });
 
-    expect(result.capability).not.toBe('stadtwerk_mauer_vdmi_profile');
+    // Entity-name overlap is a candidate, never a confident execution intent.
+    if (result.capability === 'stadtwerk_mauer_vdmi_profile') expect(result.uncertain).toBe(true);
+    expect(result.recommendedPlan.map((step) => step.action)).not.toContain('tenant.create');
+    expect(result.recommendedPlan.map((step) => step.action)).not.toContain('eve.runtime.execute');
   });
 
   it('routes Stadtwerk Mauer capability projection prompts to the read-only projection capability', async () => {

@@ -48,7 +48,9 @@
     "scripts/generate-signal-catalog.js",
     "signal-projection.rules.json",
     "tests/signals.test.js",
-    "tests/signals-persistence.test.js"
+    "tests/signals-persistence.test.js",
+    "src/capability-routing.js",
+    "capability-routing.parameters.json"
   ],
   "optionalPaths": [
     "src/function-model.js",
@@ -61,7 +63,11 @@
   "genericPackageShare": 0.05,
   "referenceCorpus": {
     "maxFilesPerPackage": 40,
-    "extensions": [".js", ".cjs", ".mjs"],
+    "extensions": [
+      ".js",
+      ".cjs",
+      ".mjs"
+    ],
     "generatedAt": "2026-10-03T00:00:00.000Z"
   }
 }
