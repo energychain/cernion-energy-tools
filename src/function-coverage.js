@@ -114,17 +114,25 @@ function resolvedTouches(documents, model) {
 function project(documents, asOf, config) {
   if (!documents.length) return null;
   const ordered = [...documents].sort(
-    (a, b) => a.at - b.at || compareCanonicalStrings(a._id, b._id)
+    (a, b) =>
+      a.at - b.at || (a.ordinal || 0) - (b.ordinal || 0) || compareCanonicalStrings(a._id, b._id)
   );
   const first = ordered[0];
   let mass = 0;
   const counts = {};
   for (const doc of ordered) {
-    mass += doc.weight * Math.pow(0.5, Math.max(0, asOf - doc.at) / config.halfLifeMs);
+    mass +=
+      (doc.origin === 'corrected' ? 0 : doc.weight) *
+      Math.pow(0.5, Math.max(0, asOf - doc.at) / config.halfLifeMs);
     counts[doc.signalClass] = (counts[doc.signalClass] || 0) + 1;
   }
   const last = ordered.at(-1);
-  const score = Math.min(1, Math.max(0, 1 - Math.exp(-mass)));
+  const observed = Math.min(1, Math.max(0, 1 - Math.exp(-mass)));
+  const corrected = ordered.filter((doc) => doc.origin === 'corrected').at(-1);
+  const strength = corrected
+    ? Math.pow(0.5, Math.max(0, asOf - corrected.at) / (config.halfLifeMs * 4))
+    : 0;
+  const score = corrected ? corrected.score * strength + observed * (1 - strength) : observed;
   return {
     tenantId: first.tenantId,
     actorId: first.actorId,
@@ -132,7 +140,7 @@ function project(documents, asOf, config) {
     score,
     signalCount: ordered.length,
     lastSignalAt: new Date(last.at).toISOString(),
-    origin: 'observed',
+    origin: corrected ? 'corrected' : 'observed',
     coverageScore: score,
     observedActivity: true,
     scoreVersion: config.scoreVersion,

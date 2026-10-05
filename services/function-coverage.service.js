@@ -40,6 +40,12 @@ module.exports = {
     await this.queue;
   },
   actions: {
+    correct: {
+      visibility: 'protected',
+      handler(ctx) {
+        return this.serialize(() => this.correct(ctx.params, ctx.meta));
+      },
+    },
     recordTouch: {
       visibility: 'protected',
       params: {
@@ -104,7 +110,73 @@ module.exports = {
       },
     },
   },
+  events: {
+    'shared-service.correction.v1': {
+      handler(ctx) {
+        if (ctx.params.target !== 'coverage') return;
+        return this.serialize(() => this.correct(ctx.params, ctx.meta));
+      },
+    },
+  },
   methods: {
+    async correct(event, meta) {
+      const { correctionPrincipal } = require('../src/shared-service-learning');
+      correctionPrincipal(event, meta);
+      const model = this.settings.model || modelApi.getFunctionModel();
+      const requested = event.correction.functionId || event.ref;
+      const resolutions = modelApi.resolveFunctionId(requested, { model });
+      const ids = modelApi.getFunction(requested, { model })
+        ? resolutions.filter((row) => row.functionId === requested)
+        : resolutions;
+      if (ids.length !== 1) deny('Ambiguous correction');
+      const functionId = ids[0].functionId;
+      const c = event.correction;
+      if (!Number.isFinite(c.score) || c.score < 0 || c.score > 1) deny('Invalid coverage');
+      const id = `${prefix(event.tenantId)}correction:${reference(c.undoRef || event.ref)}`;
+      let existing;
+      try {
+        existing = await this.db.get(id);
+      } catch (error) {
+        if (error.status !== 404) throw error;
+      }
+      if (c.undoRef) {
+        if (existing) await this.db.remove(existing);
+      } else if (!existing) {
+        const now = this.settings.clock();
+        await this.db.put({
+          _id: id,
+          tenantId: event.tenantId,
+          actorId: event.actorId,
+          functionId,
+          origin: 'corrected',
+          ordinal:
+            1 +
+            Math.max(0, ...(await this.documents(event.tenantId)).map((doc) => doc.ordinal || 0)),
+          score: c.score,
+          weight: 0,
+          at: now,
+          expiresAt: now + this.config.retentionMs * 4,
+          signalClass: 'correction',
+          sourceRef: event.ref,
+          modelSourceHash: model.sourceHash,
+          pendingEvents: [],
+        });
+      }
+      const docs = resolvedTouches(await this.documents(event.tenantId), model).filter(
+        (doc) =>
+          doc.actorId === (existing?.actorId || event.actorId) &&
+          doc.functionId === functionId &&
+          doc.expiresAt > this.settings.clock()
+      );
+      const row = project(docs, this.settings.clock(), this.config);
+      await this.broker.emit(CHANGED_EVENT, {
+        tenantId: event.tenantId,
+        actorId: existing?.actorId || event.actorId,
+        functionId,
+        score: row?.score || 0,
+        origin: row?.origin || 'observed',
+      });
+    },
     serialize(task) {
       const work = this.queue.then(task);
       this.queue = work.catch(() => {});
@@ -226,7 +298,7 @@ module.exports = {
               actorId: doc.actorId,
               functionId,
               score: projection.score,
-              origin: 'observed',
+              origin: projection.origin,
             },
           });
         }

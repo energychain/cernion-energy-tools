@@ -63992,6 +63992,88 @@
         ]
       }
     },
+    "/api/shared-service-learning/corrections": {
+      "post": {
+        "operationId": "shared-service-learning_apply",
+        "summary": "Apply an authenticated admin correction",
+        "tags": [
+          "shared-service-learning"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "shared-service-learning_list",
+        "summary": "Read correction audit records",
+        "tags": [
+          "shared-service-learning"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/shared-service-learning/corrections/:correctionId/undo": {
+      "post": {
+        "operationId": "shared-service-learning_undo",
+        "summary": "Undo a correction",
+        "tags": [
+          "shared-service-learning"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/shared-service-learning/corrections/override-proposals": {
+      "get": {
+        "operationId": "shared-service-learning_overrideProposals",
+        "summary": "Read aggregate suggestions; never apply them",
+        "tags": [
+          "shared-service-learning"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/slp/profiles": {
       "get": {
         "operationId": "slp_listProfiles",

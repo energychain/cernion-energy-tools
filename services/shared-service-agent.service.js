@@ -96,6 +96,26 @@ module.exports = {
         return this.enqueue(() => this.cycle(ctx.params));
       },
     },
+    proposals: {
+      async handler(ctx) {
+        const p = principal(ctx, ctx.params);
+        await this.settle();
+        const doc = await this.readDocument(p.tenantId);
+        return doc.agents.flatMap((agent) =>
+          agent.proposals
+            .filter((proposal) => !proposal.outcome && proposal.recipients.includes(p.actorId))
+            .map((proposal) => ({
+              ref: proposal.ref,
+              agentId: agent.agentId,
+              functionId: agent.functionId,
+              summary:
+                proposal.summary ||
+                getFunction(agent.functionId, { model: this.model })?.label ||
+                '',
+            }))
+        );
+      },
+    },
     resolveProposal: {
       params: {
         tenantId: idParam,
@@ -456,7 +476,12 @@ module.exports = {
     },
     async propose(doc, agent, findings, record) {
       const fn = getFunction(agent.functionId, { model: this.model });
-      const neighbors = new Set(fn.neighbors.map((row) => row.functionId));
+      const edges = await this.broker.call(
+        'activation.neighbors',
+        { tenantId: agent.tenantId, functionId: agent.functionId },
+        { meta: this.actorMeta(agent) }
+      );
+      const neighbors = new Set(edges.map((row) => row.functionId));
       const actors = [
         ...new Set(
           resolveRecords(doc.coverage, this.model)
@@ -468,6 +493,8 @@ module.exports = {
       ].sort(compareCanonicalStrings);
       if (
         !actors.length ||
+        ((agent.stats.rejected || 0) > 0 &&
+          agent.stats.cycles % (1 + Math.min(10, agent.stats.rejected)) !== 0) ||
         agent.proposals.filter((item) => !item.outcome).length >= this.settings.maxProposalsPerAgent
       )
         return 0;
@@ -511,6 +538,7 @@ module.exports = {
       const summary = response.summary.trim().slice(0, 280);
       const proposal = {
         ref: randomUUID(),
+        summary,
         functionId: agent.functionId,
         outcome: null,
         recipients: [],
@@ -690,6 +718,7 @@ module.exports = {
       ];
       if (!outcome) return;
       proposal.outcome = outcome;
+      if (outcome === 'rejected') agent.stats.rejected = (agent.stats.rejected || 0) + 1;
       proposal.pendingFeedback = true;
       await this.save(doc);
       await this.deliverFeedback(doc, agent, proposal);

@@ -131,3 +131,9 @@ and second-person handoffs. I-1/I-2/I-3/I-4/I-9/I-10 run together after every st
 each fixed-seed history; each invariant still independently requires actual
 exercise. Missing #699/#700/#701 invariants remain explicit todos. Isolated upstream
 unit tests can disable agent integration with `withAgents: false`.
+
+## Correction learning (#701)
+
+See [SHARED_SERVICE_LEARNING.md](SHARED_SERVICE_LEARNING.md) for confirmed chat
+corrections, reversible preferences/neighbor overlays, admin actions and proposal
+resolution through the existing feedback path.

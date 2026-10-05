@@ -69,7 +69,11 @@ function activationRows(document, model, settings, now) {
   const byId = new Map(rows.map((row) => [row.functionId, row]));
   const candidates = new Map();
   for (const source of rows.filter((row) => row.touchedAt)) {
-    const edges = getNeighbors(source.functionId, { model, minWeight: settings.minWeight })
+    const edges = getNeighbors(source.functionId, {
+      model,
+      minWeight: settings.minWeight,
+      overlay: document.neighborCorrections || [],
+    })
       .sort((a, b) => b.weight - a.weight || compare(a.functionId, b.functionId))
       .slice(0, settings.maxNeighborsPerTouch);
     for (const edge of edges) {
@@ -93,10 +97,24 @@ function activationRows(document, model, settings, now) {
       candidates.set(target.functionId, reasons);
     }
   }
+  const preferences = [
+    ...new Map(
+      resolveRecords(document.responsibilityCorrections || [], model).map((row) => [
+        row.functionId,
+        row,
+      ])
+    ).values(),
+  ];
+  for (const pref of preferences) {
+    if (!pref.cet) candidates.delete(pref.functionId);
+  }
   const ranked = [...candidates].sort(
     (a, b) =>
+      Number(preferences.findLast((p) => p.functionId === b[0])?.cet === true) -
+        Number(preferences.findLast((p) => p.functionId === a[0])?.cet === true) ||
       Math.max(...b[1].map((reason) => reason.weight)) -
-        Math.max(...a[1].map((reason) => reason.weight)) || compare(a[0], b[0])
+        Math.max(...a[1].map((reason) => reason.weight)) ||
+      compare(a[0], b[0])
   );
   const budget = Object.hasOwn(settings.tenantBudgets, document.tenantId)
     ? settings.tenantBudgets[document.tenantId]

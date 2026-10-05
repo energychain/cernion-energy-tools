@@ -17,9 +17,29 @@ function getFunction(functionId, options = {}) {
 function getNeighbors(functionId, options = {}) {
   const model = getFunctionModel(options);
   const minWeight = options.minWeight ?? model.parameters.minWeight;
-  return (getFunction(functionId, { model })?.neighbors || []).filter(
-    (edge) => edge.weight >= minWeight
+  const edges = new Map(
+    (getFunction(functionId, { model })?.neighbors || []).map((edge) => [edge.functionId, edge])
   );
+  for (const row of options.overlay || []) {
+    const currentId = (id) => {
+      const resolved = resolveFunctionId(id, { model });
+      const current = getFunction(id, { model })
+        ? resolved.filter((item) => item.functionId === id)
+        : resolved;
+      return current.length === 1 ? current[0].functionId : null;
+    };
+    const sourceId = currentId(row.functionId);
+    const targetId = currentId(row.neighborId);
+    const neighborId =
+      sourceId === functionId ? targetId : targetId === functionId ? sourceId : null;
+    if (neighborId)
+      edges.set(neighborId, {
+        functionId: neighborId,
+        weight: row.weight,
+        evidence: [{ kind: 'corrected' }],
+      });
+  }
+  return [...edges.values()].filter((edge) => edge.weight >= minWeight);
 }
 
 function findFunctionsForCapability(capability, options = {}) {

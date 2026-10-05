@@ -41,6 +41,9 @@ test('Workbench and OpenAI share the completed-turn seam; persistence errors pre
           return { cetCaseId: 'case-a' };
         },
         async linkConversation() {},
+        async getTurnMemory() {
+          return null;
+        },
       };
     },
     methods: {
