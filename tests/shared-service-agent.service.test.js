@@ -2,11 +2,7 @@
 
 const { createAdapter } = require('./helpers/shared-service/real-adapter');
 const { getFunctionModel } = require('../src/function-model');
-const {
-  deriveMandate,
-  policyReason,
-  collectFindings,
-} = require('../src/shared-service-agent-policy');
+const { deriveMandate, policyReason } = require('../src/shared-service-agent-policy');
 const { compareCanonicalStrings } = require('../src/canonical-order');
 const index = require('../operation-capability-index.json');
 const operation = (extra = {}) => ({
@@ -541,29 +537,6 @@ test('AC-06: findings with insufficient remaining allowance stop before the LLM 
   adapter.clock.value += 1;
   await touch({ conversationId: 'funding-turn' });
   expect(generate).toHaveBeenCalledTimes(1);
-});
-
-test('AC-03/05: neutral structured findings and overdue timestamps are bounded and exclude malformed input', () => {
-  const now = Date.UTC(2026, 0, 1);
-  const rows = [
-    null,
-    { dueAt: 'invalid' },
-    { dueAt: new Date(now + 1).toISOString() },
-    {
-      dueAt: new Date(now).toISOString(),
-      deviation: true,
-      findings: [null, 'invalid', { summary: 'Observed difference.' }],
-    },
-  ];
-  expect(collectFindings(rows, now, 10)).toEqual([
-    { kind: 'finding', summary: 'Observed difference.' },
-    { kind: 'deadline' },
-    { kind: 'deviation' },
-  ]);
-  expect(collectFindings({ findings: [{ summary: 'a'.repeat(1000) }, {}] }, now, 1)).toEqual([
-    { kind: 'finding', summary: 'a'.repeat(240) },
-  ]);
-  expect(collectFindings('invalid', now, 10)).toEqual([]);
 });
 
 test('AC-04/07: feedback publication is durable and retries without creating another positive reaction', async () => {

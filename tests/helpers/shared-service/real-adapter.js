@@ -21,6 +21,7 @@ async function createAdapter({
   journalSettings = {},
   wakeSettings = {},
   agentSettings = {},
+  signalSettings = {},
   cacheObservations = !model,
   withAgents = !model,
 } = {}) {
@@ -36,6 +37,7 @@ async function createAdapter({
   let agentSchema;
   let inboxSchema;
   let wakeSchema;
+  let signalSchema;
   let workbenchSchema;
   let agentsSchema;
   let noticesSchema;
@@ -48,6 +50,7 @@ async function createAdapter({
       agentSchema = require('../../../services/shared-service-agent.service');
       inboxSchema = require('../../../services/persona-inbox.service');
       wakeSchema = require('../../../services/shared-service-wake.service');
+      signalSchema = require('../../../services/signals.service');
       workbenchSchema = require('../../../services/workbench.service');
       agentsSchema = require('../../../services/shared-service-agents.service');
       noticesSchema = require('../../../services/shared-service-notices.service');
@@ -172,18 +175,108 @@ async function createAdapter({
     ...inboxSchema,
     settings: { ...inboxSchema.settings, dbPath: path.join(root, 'inbox') },
   });
+  const committedCatalog = require('../../../signal-catalog.json');
+  const observationFixtures = require('../../fixtures/signals/observations.json');
+  const replayActions = {};
+  for (const entry of committedCatalog.operations.filter((o) => o.probe.responded))
+    replayActions[entry.action.slice(entry.action.lastIndexOf('.') + 1)] = () =>
+      structuredClone(observationFixtures[entry.classification]);
+  if (!model)
+    broker.createService({
+      name: committedCatalog.operations[0].action.split('.')[0],
+      actions: replayActions,
+    });
+  const signalObservations = [];
+  const signalCalls = [];
+  let cycleDepth = 0;
+  let requestDepth = 0;
+  const signals = broker.createService({
+    ...signalSchema,
+    actions: {
+      ...signalSchema.actions,
+      observe: {
+        ...signalSchema.actions.observe,
+        async handler(ctx) {
+          signalCalls.push({
+            tenantId: ctx.params.tenantId,
+            functionId: ctx.params.functionId,
+            source: cycleDepth ? 'agent-cycle' : requestDepth ? 'request' : 'outside',
+          });
+          return signalSchema.actions.observe.handler.call(this, ctx);
+        },
+      },
+    },
+    settings: {
+      ...signalSchema.settings,
+      model: service.model,
+      dbPath: path.join(root, 'signals'),
+      ...(agentSettings.operationIndex
+        ? {
+            operationIndex: agentSettings.operationIndex,
+            catalog: {
+              version: 1,
+              operations: agentSettings.operationIndex.operations.map((op) => ({
+                operationId: op.operationId,
+                action: op.action,
+                functionIds: [],
+                classification: 'standing',
+                parameterNames: [],
+                signals: [],
+              })),
+            },
+          }
+        : {}),
+      ...signalSettings,
+    },
+  });
+  const persistSignals = signals.persist.bind(signals);
+  signals.persist = async (...args) => {
+    const projected = await persistSignals(...args);
+    const { signalKey } = require('../../../src/signal-projection');
+    const input = signalKey(args);
+    const fingerprint = signalKey(projected);
+    const previous = signalObservations.findLast((row) => row.input === input);
+    signalObservations.push({
+      input,
+      signals: projected.map(({ signalId, kind, state }) => ({ signalId, kind, state })),
+      previousSignals:
+        previous?.signals ||
+        projected.map(({ signalId, kind, state }) => ({ signalId, kind, state })),
+      fingerprint,
+      previousFingerprint: previous?.fingerprint || fingerprint,
+      source: cycleDepth ? 'agent-cycle' : requestDepth ? 'request' : 'outside',
+      findings: projected.filter(require('../../../src/signal-projection').isFinding),
+      proposals: 0,
+    });
+    return projected;
+  };
   const agents = withAgents
     ? broker.createService({
         ...agentSchema,
         settings: {
           ...agentSchema.settings,
           model: service.model,
+          signalCatalog: signals.signalCatalog,
           dbPath: dbPath ? `${dbPath}-agents` : path.join(root, 'agents'),
           clock: () => now.value,
           ...agentSettings,
         },
       })
     : null;
+  if (agents) {
+    const cycle = agents.cycle.bind(agents);
+    agents.cycle = async (input) => {
+      const start = signalObservations.length;
+      cycleDepth++;
+      try {
+        const result = await cycle(input);
+        for (const row of signalObservations.slice(start)) row.proposals = result.proposals;
+        return result;
+      } finally {
+        cycleDepth--;
+      }
+    };
+  }
   const wake = broker.createService({
     ...wakeSchema,
     settings: {
@@ -273,6 +366,17 @@ async function createAdapter({
     coverageService,
     coverageEvents,
     journal,
+    signals,
+    signalObservations,
+    signalCalls,
+    async observeSignals(input, options) {
+      requestDepth++;
+      try {
+        return await signals.actions.observe(input, options);
+      } finally {
+        requestDepth--;
+      }
+    },
     wake,
     agentMode: 'real',
     events,
@@ -283,6 +387,37 @@ async function createAdapter({
     noticesService,
     clock: now,
     async apply(step) {
+      if (step.type === 'signal-exercise') {
+        const entry = signals
+          .catalogEntries()
+          .find(
+            (row) =>
+              row.classification === 'contextual' &&
+              row.contextKinds.length &&
+              row.functionIds.length &&
+              row.signals.length
+          );
+        if (!entry) return;
+        const input = {
+          tenantId: 'tenant-a',
+          functionId: entry.functionIds[0],
+          context: { kind: entry.contextKinds[0], ref: 'fixture-context' },
+          operationIds: [entry.operationId],
+        };
+        const options = {
+          meta: {
+            authUser: {
+              tenantId: 'tenant-a',
+              id: 'request-a',
+              roles: ['ROLE_USER'],
+              scope: 'read-only',
+            },
+          },
+        };
+        await adapter.observeSignals(input, options);
+        await adapter.observeSignals(input, options);
+        return;
+      }
       if (step.type === 'advance') {
         now.value += step.milliseconds;
         await service.sweep();
@@ -462,6 +597,8 @@ async function createAdapter({
       }
       const observation = {
         fresh,
+        signalObservations: structuredClone(signalObservations.slice(-64)),
+        signalCalls: structuredClone(signalCalls.slice(-128)),
         attentionTransitions: structuredClone(attentionTransitions),
         activatingTurns: (
           await Promise.all([...tenants].map((id) => service.readDocument(id)))

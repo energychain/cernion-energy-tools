@@ -11,9 +11,10 @@ const llm = require('../src/llm-client');
 const {
   deriveMandate,
   assertOperation,
-  collectFindings,
+  assertReadObservation,
   readKinds,
 } = require('../src/shared-service-agent-policy');
+const { isFinding, operationInput } = require('../src/signal-projection');
 const { compareCanonicalStrings } = require('../src/canonical-order');
 const idParam = { type: 'string', min: 1, max: 256 };
 const cycleParams = { tenantId: idParam, agentId: idParam };
@@ -39,6 +40,7 @@ module.exports = {
   settings: {
     model: null,
     operationIndex: null,
+    signalCatalog: null,
     clock: null,
     unitCosts: { wake: 0.1, operation: 0.25, llm: 1 },
     actorRoles: ['ROLE_USER'],
@@ -392,8 +394,17 @@ module.exports = {
         await this.cycle({ tenantId: row.tenantId, agentId: agent.agentId });
     },
     minimumCycleUnits(agent) {
+      const catalog = this.settings.signalCatalog || require('../signal-catalog.json');
+      const standing = new Set(
+        catalog.operations
+          .filter((entry) => entry.classification === 'standing')
+          .map((entry) => entry.operationId)
+      );
       const reads = this.operations.filter(
-        (op) => agent.mandate.operations.includes(op.operationId) && readKinds.has(op.operationKind)
+        (op) =>
+          standing.has(op.operationId) &&
+          agent.mandate.operations.includes(op.operationId) &&
+          readKinds.has(op.operationKind)
       );
       return (
         this.settings.unitCosts.wake +
@@ -597,6 +608,29 @@ module.exports = {
           throw error;
       }
     },
+    async observationContext(agent, row) {
+      const entries = await this.broker.call(
+        'journal.byFunction',
+        { tenantId: agent.tenantId, functionId: agent.functionId },
+        { meta: this.actorMeta(agent) }
+      );
+      const references = [...(row.reason || []), ...entries.flatMap((entry) => entry.refs || [])];
+      const ref = references.find((item) => item?.kind === 'case' && (item.ref || item.id));
+      if (!ref) return null;
+      const context = { kind: ref.kind, ref: ref.ref || ref.id };
+      // Existing visibility checks are authoritative; inaccessible cases stay absent.
+      const router = this.broker.getLocalService('domain-router');
+      if (!router) return null;
+      try {
+        const state = await router.loadCase(
+          principal({ meta: this.actorMeta(agent) }),
+          context.ref
+        );
+        return { ...context, params: state.knownContext || {} };
+      } catch {
+        return null;
+      }
+    },
     async cycle({ tenantId, agentId }) {
       const doc = await this.readDocument(tenantId);
       const agent = this.findAgent(doc, agentId);
@@ -620,14 +654,46 @@ module.exports = {
         await this.charge(agent, 'wake', record);
         const fn = getFunction(agent.functionId, { model: this.model });
         agent.mandate = deriveMandate(fn, this.operations);
-        const reads = this.operations.filter(
-          (op) =>
-            agent.mandate.operations.includes(op.operationId) && readKinds.has(op.operationKind)
-        );
+        const context = await this.observationContext(agent, row);
+        const catalog = agent.mandate.operations.length
+          ? await this.broker.call(
+              'signals.catalog',
+              { tenantId, functionId: agent.functionId },
+              { meta: this.actorMeta(agent) }
+            )
+          : { operations: [] };
+        const reads = catalog.operations
+          .filter(
+            (entry) =>
+              agent.mandate.operations.includes(entry.operationId) &&
+              readKinds.has(
+                this.operations.find((op) => op.operationId === entry.operationId)?.operationKind
+              ) &&
+              (entry.classification === 'standing' || context)
+          )
+          .slice(0, this.settings.maxOperationsPerCycle);
         const findings = [];
-        for (const operation of reads.slice(0, this.settings.maxOperationsPerCycle)) {
-          const observation = await this.execute(agent, operation.operationId, {}, record);
-          findings.push(...collectFindings(observation, this.now(), this.settings.maxFindings));
+        for (const entry of reads) {
+          const operation = this.operations.find((op) => op.operationId === entry.operationId);
+          const input = operationInput(entry, context, tenantId);
+          if (
+            entry.classification === 'contextual' &&
+            !Object.keys(input).some((k) => k !== 'tenantId')
+          )
+            continue;
+          assertReadObservation(operation, fn, { meta: this.actorMeta(agent) }, input, this.broker);
+          await this.charge(agent, 'operation', record);
+          const observation = await this.broker.call(
+            'signals.observe',
+            {
+              tenantId,
+              functionId: agent.functionId,
+              ...(context ? { context } : {}),
+              operationIds: [entry.operationId],
+            },
+            { meta: this.actorMeta(agent) }
+          );
+          findings.push(...observation.signals.filter(isFinding));
         }
         result.findings = Math.min(findings.length, this.settings.maxFindings);
         if (result.findings)

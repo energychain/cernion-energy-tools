@@ -12,17 +12,31 @@ const hook = require('../src/function-coverage-turn');
 
 const model = {
   functions: [
-    { functionId: 'fn-a', label: 'Function A', neighbors: [{ functionId: 'fn-b', weight: 1 }] },
-    { functionId: 'fn-b', label: 'Function B', neighbors: [{ functionId: 'fn-a', weight: 1 }] },
+    {
+      functionId: 'fn-a',
+      label: 'Function A',
+      operations: [],
+      neighbors: [{ functionId: 'fn-b', weight: 1 }],
+    },
+    {
+      functionId: 'fn-b',
+      label: 'Function B',
+      operations: ['notice-source.read'],
+      neighbors: [{ functionId: 'fn-a', weight: 1 }],
+    },
   ],
 };
-const meta = { apiToken: { tenantId: 'tenant-a', id: 'actor-a', roles: ['ROLE_USER'] } };
+const meta = {
+  apiToken: { tenantId: 'tenant-a', id: 'actor-a', roles: ['ROLE_USER'], scope: 'read-only' },
+};
 const identity = { tenantId: 'tenant-a', actorId: 'actor-a' };
 async function setup(settings = {}, stores = new Map()) {
   let schema;
+  let signalsSchema;
   jest.doMock('pouchdb', () => memoryPouch(stores));
   jest.isolateModules(() => {
     schema = require('../services/shared-service-notices.service');
+    signalsSchema = require('../services/signals.service');
   });
   jest.dontMock('pouchdb');
   const broker = new ServiceBroker({ logger: false, transporter: null });
@@ -55,6 +69,39 @@ async function setup(settings = {}, stores = new Map()) {
     },
   });
   const access = { allowed: true };
+  const observation = { status: 'ok' };
+  const operation = {
+    operationId: 'notice-source-read',
+    action: 'notice-source.read',
+    agentable: true,
+    operationKind: 'dashboard_read',
+    consequenceLevel: 'none',
+    sideEffects: [],
+  };
+  const signals = broker.createService({
+    ...signalsSchema,
+    settings: {
+      ...signalsSchema.settings,
+      model,
+      dbPath: '/tmp/cet-notice-signals-unit',
+      catalog: {
+        version: 2,
+        operations: [
+          {
+            operationId: operation.operationId,
+            action: operation.action,
+            classification: 'standing',
+            parameterNames: ['caseId'],
+          },
+        ],
+      },
+      operationIndex: { operations: [operation] },
+    },
+  });
+  const source = broker.createService({
+    name: 'notice-source',
+    actions: { read: { handler: () => ({ status: observation.status }) } },
+  });
   broker.createService({
     name: 'journal',
     methods: {
@@ -83,7 +130,30 @@ async function setup(settings = {}, stores = new Map()) {
       summary: 'PRIVATE NOT FOR PRESENTATION',
       createdAt: '2026-01-01T00:00:00.000Z',
     });
-  return { broker, service, activation, proposals, call, emit, proposal, access, stores };
+  const observe = async (status, context = { kind: 'case', ref: 'case-a' }) => {
+    observation.status = status;
+    const result = await broker.call(
+      'signals.observe',
+      { tenantId: identity.tenantId, functionId: 'fn-b', ...(context ? { context } : {}) },
+      { meta }
+    );
+    await service.settle();
+    return result;
+  };
+  return {
+    broker,
+    service,
+    activation,
+    proposals,
+    call,
+    emit,
+    proposal,
+    access,
+    stores,
+    signals,
+    source,
+    observe,
+  };
 }
 let env;
 afterEach(async () => {
@@ -119,14 +189,8 @@ test('AC-02: coverage does not authorize a private proposal or signal', async ()
   env.proposals[0].recipients = ['actor-b'];
   await env.proposal();
   expect((await env.call('list')).items).toEqual([]);
-  await env.emit('signal.state.changed.v1', {
-    signalId: 'signal-a',
-    functionIds: ['fn-b'],
-    fromState: 'ok',
-    toState: 'warn',
-    eventId: 'event-a',
-    context: { kind: 'case', ref: 'case-a' },
-  });
+  await env.observe('ok');
+  await env.observe('warn');
   env.access.allowed = false;
   expect((await env.call('list')).items).toEqual([]);
   env.access.allowed = true;
@@ -326,29 +390,39 @@ test('repeated responsibility transfers and tier entries remain distinct, equal 
   ).toEqual(['established', 'inventory']);
 });
 
-test('signal contract accepts warn/breach/recovery, excludes equal and unknown states', async () => {
+test('real signal producer delivers warn/breach/recovery, excludes equal and unknown states', async () => {
   env = await setup();
-  for (const [n, fromState, toState] of [
-    [0, 'ok', 'warn'],
-    [1, 'warn', 'breach'],
-    [2, 'breach', 'ok'],
-    [3, 'ok', 'ok'],
-    [4, 'ok', 'unknown'],
-  ]) {
-    await env.emit('signal.state.changed.v1', {
-      signalId: 'signal-a',
-      functionIds: ['fn-b'],
-      fromState,
-      toState,
-      eventId: `event-${n}`,
-      context: { kind: 'case', ref: 'case-a' },
-    });
-  }
+  for (const state of ['ok', 'warn', 'blocked', 'ok', 'ok', 'unknown']) await env.observe(state);
   expect((await env.call('list')).items.map((item) => item.state)).toEqual([
     'warn',
     'breach',
     'ok',
   ]);
+});
+
+test('standing signal visibility rechecks backend roles without observing again', async () => {
+  env = await setup();
+  await env.observe('ok', null);
+  await env.observe('warn', null);
+  const before = await env.signals.db.get('signals:tenant-a');
+  const result = await env.call('list');
+  expect(result.items).toHaveLength(1);
+  const ref = result.items[0].ref;
+  expect(await env.call('resolveRef', { ref })).toMatchObject({ kind: 'signal' });
+  expect(await env.signals.db.get('signals:tenant-a')).toEqual(before);
+  env.source.schema.actions.read.requiredRoles = ['ROLE_ADMIN'];
+  expect((await env.call('list')).items).toEqual([]);
+  expect(await env.call('resolveRef', { ref })).toBeNull();
+});
+
+test('unobserved or evicted signal references fail closed despite visible context', async () => {
+  env = await setup();
+  await env.observe('ok');
+  await env.observe('warn');
+  const doc = await env.signals.db.get('signals:tenant-a');
+  doc.states = [];
+  await env.signals.db.put(doc);
+  expect((await env.call('list')).items).toEqual([]);
 });
 
 test('own turns of a different person do not expire the covered recipient queue', async () => {

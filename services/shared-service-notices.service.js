@@ -5,6 +5,8 @@ const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin'
 const { principal, deny } = require('../src/domain-router-policy');
 const { getFunctionModel, resolveFunctionId } = require('../src/function-model');
 const { validateTenantId } = require('../src/tenant-context');
+const { assertReadObservation } = require('../src/shared-service-agent-policy');
+const { signalKey, operationInput } = require('../src/signal-projection');
 const {
   noticeKey,
   eligibleNotices,
@@ -395,13 +397,7 @@ module.exports = {
           const proposal = agent?.proposals.find((row) => row.ref === item.objectRef);
           return !!proposal && !proposal.outcome && proposal.recipients.includes(p.actorId);
         }
-        if (item.kind === 'signal') {
-          if (item.context?.kind !== 'case') return false;
-          const journal = this.broker.getLocalService('journal');
-          return journal
-            ? await journal.referenceVisible(ctx, p, { kind: 'case', id: item.context.ref })
-            : false;
-        }
+        if (item.kind === 'signal') return await this.canSeeSignal(ctx, p, item);
         const explanation = await ctx.call('activation.explain', {
           tenantId: p.tenantId,
           functionId: item.functionId,
@@ -414,6 +410,36 @@ module.exports = {
       } catch {
         return false;
       }
+    },
+    async canSeeSignal(ctx, p, item) {
+      const signals = this.broker.getLocalService('signals');
+      if (!signals) return false;
+      const entry = signals
+        .catalogEntries(item.functionId)
+        .find((row) => item.objectRef.startsWith(`${row.operationId}:`));
+      if (!entry || (entry.classification === 'contextual' && !item.context)) return false;
+      const doc = await signals.db.get(`signals:${p.tenantId}`);
+      if (
+        !doc.states.some(
+          (row) => row.signalId === item.objectRef && row.contextKey === signalKey(item.context)
+        )
+      )
+        return false;
+      const operation = signals.operations.find((row) => row.operationId === entry.operationId);
+      const fn = signals.model.functions.find((row) => row.functionId === item.functionId);
+      assertReadObservation(
+        operation,
+        fn,
+        ctx,
+        operationInput(entry, item.context, p.tenantId),
+        this.broker
+      );
+      if (!item.context) return entry.classification === 'standing';
+      if (item.context.kind !== 'case') return false;
+      const journal = this.broker.getLocalService('journal');
+      return journal
+        ? await journal.referenceVisible(ctx, p, { kind: 'case', id: item.context.ref })
+        : false;
     },
     publicNotice(item) {
       return { ...item };

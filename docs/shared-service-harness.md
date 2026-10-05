@@ -40,6 +40,22 @@ exceptions require a term and a reviewable reason in
 by allowing one of its generic tokens. The contamination self-test creates a
 fixture file from an actual catalog keyword and verifies CLI exit status 1.
 
+## Scanner equivalence scope
+
+The harness compares the token scanner with the frozen pre-optimization RegExp
+oracle on a contaminated fixture from real catalogs and three fixed core files:
+`src/function-activation-state.js`, `src/function-coverage-turn.js` and
+`src/shared-service-wake.js`. This sample stays fixed as the core grows. The normal
+catalog check still scans **every** configured core file.
+
+Run `npm run check:domain-free-equivalence` manually when changing
+`scripts/check-domain-free-core.js` (or the equivalence oracle). It compares exact
+file/line/term hits across **all** current core files plus the contamination fixture,
+without allowlist exemptions, and exits nonzero on any difference. This expensive
+regression check is intentionally outside the harness and regular CI test path;
+scanner changes should report its result in their PR. No CI path-filter workflow
+is added; maintainers run this check manually for those changes.
+
 ## Neutral reference corpus (#713)
 
 Run `npm run generate:domain-free-vocabulary` manually to sample dependency code
@@ -237,6 +253,32 @@ shutdown and real PouchDB restart with journal metrics. See
 [SHARED_SERVICE_WAKE.md](SHARED_SERVICE_WAKE.md) for boundaries and parameters.
 The unchanged 59-second harness deadline applies; each PR reports measured runtime.
 
+## Signal observations (#722)
+
+I-11 requires `services/signals.service.js`, `src/signal-projection.js` and the real
+agent. `signalObservations[]` records actual persisted observations: an input hash
+(response, operation and context), signals with IDs/kinds/states, complete-output
+fingerprints and preceding outputs for identical inputs, source (`agent-cycle` or
+`request`), actual findings and the cycle's actual proposal count. A bounded
+snapshot keeps the last 64 observations; no production persistence is substituted.
+A separate `signalCalls[]` trace includes calls with no projected output. Request
+origins are marked explicitly around adapter requests; unmarked non-cycle calls
+are `outside` and fail I-11. Separate negative self-tests corrupt findings,
+proposals, determinism, call origins and observation origins.
+
+The adapter starts the real signals service at the existing PouchDB constructor
+seam. Upstream responses come from independent observation fixtures selected
+by committed operation classification, including explicit context states; the adapter never probes real Dashboard
+operations or generates a catalog. Each fixed-seed real history includes two
+identical authenticated requests with a catalog-derived opaque context. Actual
+agent cycles remain wrapped to associate proposal counts with their observations.
+The existing I-1–I-10 dependencies and observations are preserved, including the
+Workbench/agents observations from #700 and the still-pending #701 dependency.
+
+The local and CI commands print wall-clock runtime and enforce the same 59-second
+deadline. PR #722 reports both measurements. AC-06 separately uses real Dashboard
+operations through real agent cycles; these are requested observations, not
+catalog probes. All AC-03 checks read the committed catalog without live calls.
 
 ## System activity observations (#700)
 

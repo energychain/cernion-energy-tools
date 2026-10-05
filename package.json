@@ -37,7 +37,7 @@
     "generate:public-website-backlog": "node scripts/generate-public-website-backlog.js",
     "extract:release-signals": "node scripts/extract-release-signals.js",
     "check:quality-gate": "node scripts/check-quality-gate.js",
-    "release:check": "npm run test:unit:ci && npm run test:tdd-matrix && npm run check:tdd-matrix-coverage && npm run audit:openapi && npm run check:llm && npm run check:operation-capability-index && npm run check:quality-gate && npm run audit:security",
+    "release:check": "npm run test:unit:ci && npm run test:tdd-matrix && npm run check:tdd-matrix-coverage && npm run audit:openapi && npm run check:llm && npm run check:operation-capability-index && npm run check:signal-catalog && npm run check:quality-gate && npm run audit:security",
     "export:openapi": "node scripts/export-openapi.js",
     "export:openapi:copilot": "node scripts/export-openapi.js --copilot",
     "sync:oeo": "node scripts/sync-oeo.js",
@@ -53,12 +53,15 @@
     "build": "echo 'No build step required'",
     "blueprint:export": "node scripts/export-blueprints.js",
     "check:domain-free-core": "node scripts/check-domain-free-core.js",
+    "check:domain-free-equivalence": "node scripts/check-domain-free-equivalence.js",
     "test:shared-service:ci": "node scripts/run-shared-service-harness.js",
     "test:shared-service": "SHARED_SERVICE_RANDOM=1 node scripts/run-shared-service-harness.js",
     "generate:function-model": "node scripts/generate-function-model.js",
     "check:function-model": "node scripts/generate-function-model.js --check",
     "generate:function-model-embeddings": "node scripts/generate-function-model-embeddings.js",
-    "generate:domain-free-vocabulary": "node scripts/generate-domain-free-vocabulary.js"
+    "generate:domain-free-vocabulary": "node scripts/generate-domain-free-vocabulary.js",
+    "generate:signal-catalog": "node scripts/generate-signal-catalog.js",
+    "check:signal-catalog": "node scripts/generate-signal-catalog.js --check"
   },
   "repository": {
     "type": "git",

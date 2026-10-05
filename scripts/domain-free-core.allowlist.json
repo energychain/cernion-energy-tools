@@ -387,6 +387,18 @@
     {
       "term": "freigabe",
       "reason": "Existing German HITL/persona-inbox user text for generic human approval; #697 never approves or dispatches externally."
+    },
+    {
+      "term": "classification",
+      "reason": "Technical standing/contextual operation classification in the Signal catalog contract (#722); no domain branch."
+    },
+    {
+      "term": "readiness",
+      "reason": "Existing numeric readinessScore field role projected by generic Score suffix rules (#722); no domain-specific interpretation."
+    },
+    {
+      "term": "known context",
+      "reason": "Existing generic Case knownContext data contract read under the technical agent principal; no domain-specific context invented."
     }
   ]
 }

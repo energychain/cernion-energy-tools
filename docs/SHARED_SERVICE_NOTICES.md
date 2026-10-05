@@ -26,20 +26,22 @@ not accept or reject proposals and never emit feedback themselves.
 Activation events generate notices when CET takes/releases responsibility or the
 attention tier enters `established`/`inventory`. Their display calls the existing
 `activation.explain` under the recipient principal. A `signal.state.changed.v1`
-subscription is prepared for #722's proposed contract:
+subscription consumes the real Signals service's contract from #722:
 
 ```text
 { tenantId, signalId, functionIds[], context?: { kind, ref },
   fromState, toState, asOf, eventId }
 ```
 
-Only transitions into `warn`/`breach` or back to `ok` qualify. #722 is absent from
-the base branch. Fixtures test the subscription; case-context visibility uses the
-Journal's existing case-reference check. Signals without an independently
-checkable visible case reference are withheld, including standing signals. No
-signal read/observation operation or missing permission is invented. This boundary
-must be revisited with #722's real read/visibility contract; nothing modifies its
-core files in this PR.
+Only transitions into `warn`/`breach` or back to `ok` qualify. Tests produce these
+events through real `signals.observe` calls. Before display or reference resolution,
+the Signals service's function/catalog association and retained tenant/context
+state must match. Its existing `assertReadObservation` checks the recipient's
+scope, mandate, policy, required parameters and backend roles without another
+observation or operation charge. Case-context signals additionally use the
+Journal's case-reference check; other context types are withheld. Standing signals
+are visible when the same read checks pass. Missing services, evicted states and
+revoked permissions withhold the notice.
 
 ## Actions for #701 and API callers
 

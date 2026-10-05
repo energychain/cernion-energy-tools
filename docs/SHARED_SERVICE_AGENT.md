@@ -76,9 +76,13 @@ means zero work. There is no local or time-based funding. Activation supplies at
 most two units per activating tenant turn, apportioned by relevance. #699 does not
 charge separately: `runCycle` charges wake units even for an empty observation.
 
-A cycle first reads eligible cheap operations. Structured `findings`, `deviation`
-and overdue `dueAt` values are interpreted generically; finding summaries are
-bounded. An empty observation never calls an LLM. Findings plus eligible recipients
+A cycle selects eligible operations from `signals.catalog` and observes through
+`signals.observe` (#722). Without accessible case references it selects only
+standing operations. Referenced activation/journal cases supply contextual inputs
+under the technical read-only principal. Only signal `warn`/`breach` or `finding`
+values count, with `needs_context` and `unknown` excluded first. Each called
+operation retains its configured unit cost; catalog bookkeeping adds no charge.
+See [SIGNALS.md](SIGNALS.md) for projection, context and state-event contracts. An empty observation never calls an LLM. Findings plus eligible recipients
 and enough units for both LLM and delivery permit `src/llm-client.js`'s structured
 facade, with explicit tenant quota context. Invalid model output or quota errors
 produce an error-class journal entry, never a proposal.

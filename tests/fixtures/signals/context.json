@@ -1,0 +1,33 @@
+{
+  "blocked": {
+    "action": "dashboard-api.communicationBreakProcessRiskStatus",
+    "params": {
+      "processDomain": "neutral",
+      "affectedDecision": "review",
+      "presentationStatus": "provided",
+      "protocolStatus": "missing",
+      "owner": "reviewer"
+    }
+  },
+  "findings": {
+    "action": "dashboard-api.controllabilityAssetHandoverStatus",
+    "params": {
+      "caseId": "case-a",
+      "assetId": "asset-a",
+      "mastrId": "ref-a",
+      "napId": "ref-b",
+      "meloId": "ref-c",
+      "technologyType": "neutral",
+      "capacityKW": 10,
+      "controllabilityScope": "review",
+      "technicalStatus": "known",
+      "feedbackCapability": "provided",
+      "checkStatus": "provided",
+      "nonExecutionReason": "review",
+      "evidenceStatus": "provided",
+      "lineOwnerRole": "reviewer",
+      "handoverDecision": "review",
+      "nextReportingCycle": "next"
+    }
+  }
+}
