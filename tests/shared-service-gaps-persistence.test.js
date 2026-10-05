@@ -46,6 +46,7 @@ test('AC-03/04/08: real PouchDB restart retains lists, ignore and once-only used
     broker.createService({ name: 'neutral', actions: { read: () => response } });
     broker.createService({
       name: 'domain-router',
+      actions: { agentCaseContext: () => ({ knownContext: {} }) },
       methods: {
         loadCase() {
           return { knownContext: {} };

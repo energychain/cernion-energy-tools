@@ -297,6 +297,16 @@ test.each(['blocked', 'findings'])(
     adapter.broker.createService(require('../services/dashboard-api.service'));
     adapter.broker.createService({
       name: 'domain-router',
+      actions: {
+        agentCaseContext: {
+          handler(ctx) {
+            expect(ctx.params.tenantId).toBe('tenant-a');
+            expect(ctx.meta.authUser.roles).toEqual(['ROLE_USER']);
+            expect(ctx.params.caseId).toBe('case-a');
+            return { knownContext: fixture.params };
+          },
+        },
+      },
       methods: {
         loadCase(p, ref) {
           expect(p.tenantId).toBe('tenant-a');

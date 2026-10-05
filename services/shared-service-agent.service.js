@@ -172,6 +172,7 @@ module.exports = {
               functionId: agent.functionId,
               summary:
                 proposal.summary ||
+                getFunction(agent.functionId, { model: this.model })?.displayLabel ||
                 getFunction(agent.functionId, { model: this.model })?.label ||
                 '',
             }))
@@ -604,7 +605,7 @@ module.exports = {
       await this.charge(agent, 'llm', record);
       const response = await this.llmClient.generateStructured(
         { type: 'object', properties: { summary: { type: 'string' } }, required: ['summary'] },
-        `Create a brief internal review proposal. Do not execute actions. Function: ${JSON.stringify(fn.label)}. Findings: ${JSON.stringify(findings)}.`,
+        `Create a brief internal review proposal. Do not execute actions. Function: ${JSON.stringify(fn.displayLabel || fn.label)}. Findings: ${JSON.stringify(findings)}.`,
         { tenantId: agent.tenantId, broker: this.broker, maxOutputTokens: 256 }
       );
       if (typeof response?.summary !== 'string' || !response.summary.trim())
@@ -705,19 +706,27 @@ module.exports = {
         { tenantId: agent.tenantId, functionId: agent.functionId },
         { meta: this.actorMeta(agent) }
       );
-      const references = [...(row.reason || []), ...entries.flatMap((entry) => entry.refs || [])];
+      const references = [
+        ...(row.reason || []).map((reason) => reason.context || reason).reverse(),
+        ...entries
+          .filter((entry) => entry.agentId !== agent.agentId)
+          .flatMap((entry) => entry.refs || [])
+          .reverse(),
+      ];
       const ref = references.find((item) => item?.kind === 'case' && (item.ref || item.id));
       if (!ref) return null;
       const context = { kind: ref.kind, ref: ref.ref || ref.id };
-      // Existing visibility checks are authoritative; inaccessible cases stay absent.
-      const router = this.broker.getLocalService('domain-router');
-      if (!router) return null;
       try {
-        const state = await router.loadCase(
-          principal({ meta: this.actorMeta(agent) }),
-          context.ref
+        const state = await this.broker.call(
+          'domain-router.agentCaseContext',
+          {
+            tenantId: agent.tenantId,
+            functionId: agent.functionId,
+            caseId: context.ref,
+          },
+          { meta: this.actorMeta(agent) }
         );
-        return { ...context, params: state.knownContext || {} };
+        return { ...context, params: state.knownContext };
       } catch {
         return null;
       }

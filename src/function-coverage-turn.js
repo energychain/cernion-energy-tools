@@ -74,10 +74,11 @@ function recordAfter(ctx, result, facts) {
   if (facts.skipCoverage) return result;
   try {
     collect(result, facts);
-    const meta = facts.meta || ctx.meta;
-    const p = principal({ meta }, ctx.params);
+    const meta = facts.noticeMeta || facts.meta || ctx.meta;
     const service = ctx.broker.getLocalService('function-coverage');
     if (!service) return result;
+    if (unmappedServiceTurn(ctx, facts)) return result;
+    const p = principal({ meta }, ctx.params);
     if (service.pendingTurns >= service.config.maxPendingTurns) {
       service.droppedTurns = Math.min(1000000, service.droppedTurns + 1);
       return result;
@@ -90,6 +91,7 @@ function recordAfter(ctx, result, facts) {
       classifyWorkbenchIntent(ctx.params.message || (typeof latest === 'string' ? latest : ''), {
         cetCaseId: ctx.params.cetCaseId,
       });
+    if (mode === 'correction') return result;
     service.pendingTurns++;
     const input = {
       tenantId: p.tenantId,
@@ -116,6 +118,14 @@ function recordAfter(ctx, result, facts) {
       capabilities: [...facts.capabilities],
       operations: [...facts.operations],
       observationOverflow: facts.overflow,
+      ...(result.cetCaseId || ctx.params.cetCaseId || metadata.cetCaseId
+        ? {
+            context: {
+              kind: 'case',
+              ref: result.cetCaseId || ctx.params.cetCaseId || metadata.cetCaseId,
+            },
+          }
+        : {}),
     };
     void service.actions
       .recordTouch(input, { meta })
@@ -171,8 +181,25 @@ async function attachNotices(ctx, result, facts) {
   }
 }
 
+function unmappedServiceTurn(ctx, facts) {
+  const meta = facts.noticeMeta || facts.meta || ctx.meta;
+  const auth = meta.authUser || meta.apiToken || {};
+  const service = ctx.broker.getLocalService('function-coverage');
+  if (
+    service &&
+    !meta.workbenchMappedActor &&
+    (auth.actorType === 'service' || (!meta.authUser && meta.apiToken && !auth.userId))
+  ) {
+    service.unmappedServiceTurns = Math.min(1000000, (service.unmappedServiceTurns || 0) + 1);
+    service.logger.warn('Coverage skipped: service identity has no Workbench mapping');
+    return true;
+  }
+  return false;
+}
+
 function error(ctx, failure) {
-  release(ctx);
+  const facts = release(ctx);
+  if (facts) unmappedServiceTurn(ctx, facts);
   throw failure;
 }
 

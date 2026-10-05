@@ -340,3 +340,29 @@ test('native gap aggregates close only on their explicit ok counterpart', async 
   expect((await gaps())[0].state).toBe('completed');
   expect(feedback().filter((e) => e.outcome === 'used')).toHaveLength(1);
 });
+
+test('729: existing open gaps reach newly covered people without notifying existing recipients twice', async () => {
+  // Observe before qualifying human coverage arrives, as in the real turn path.
+  const doc = await adapter.agents.readDocument('tenant-a');
+  doc.coverage = [];
+  await adapter.agents.save(doc);
+  await cycle();
+  expect((await gaps())[0].recipients).toEqual([]);
+  await adapter.broker.emit('function.coverage.changed.v1', {
+    tenantId: 'tenant-a',
+    actorId: 'person-a',
+    functionId: 'fn-a',
+    score: 1,
+    origin: 'observed',
+  });
+  await adapter.agents.settle();
+  await adapter.noticesService.settle();
+  await cycle();
+  expect((await gaps())[0].recipients).toEqual(['person-a']);
+  const delivered = await deliver('new-coverage');
+  expect(delivered.items.filter((item) => item.kind === 'gap')).toHaveLength(1);
+  await cycle();
+  expect((await deliver('same-content')).items.filter((item) => item.kind === 'gap')).toHaveLength(
+    0
+  );
+});

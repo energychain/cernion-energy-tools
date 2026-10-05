@@ -176,7 +176,18 @@ const methods = {
       compareCanonicalStrings(a.operationId, b.operationId)
     );
     const fingerprint = signalKey(ordered.map((part) => [part.operationId, part.contentHash]));
-    if (fingerprint === gap.fingerprint) return this.publishGapNotice(doc, agent, gap);
+    if (fingerprint === gap.fingerprint) {
+      const recipients = await this.gapRecipients(doc, agent);
+      if (JSON.stringify(recipients) !== JSON.stringify(gap.recipients)) {
+        // Reuse the content event identity: already notified people stay deduped,
+        // newly qualifying people can receive the existing open work.
+        if (recipients.some((actorId) => !gap.recipients.includes(actorId)))
+          gap.pendingNotice = true;
+        gap.recipients = recipients;
+        await this.save(doc);
+      }
+      return this.publishGapNotice(doc, agent, gap);
+    }
     const contentHash = signalKey(gap.ref, gap.contentHash || null, fingerprint);
     gap.fingerprint = fingerprint;
     gap.parts = ordered;

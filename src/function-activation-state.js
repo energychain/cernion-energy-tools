@@ -15,6 +15,9 @@ function activationRows(document, model, settings, now) {
   const previous = resolveRecords(document.activations || [], model);
   const live = (at) =>
     at != null && now - Date.parse(at) >= 0 && now - Date.parse(at) <= settings.restWindowMs;
+  const contexts = resolveRecords(document.contexts || [], model).filter(
+    (item) => (item.ageTurns || 0) < (settings.contextRetentionTurns ?? 20)
+  );
   const rows = model.functions.map(({ functionId }) => {
     const saved = previous.filter((record) => record.functionId === functionId);
     const current = touches.filter((record) => record.functionId === functionId);
@@ -60,7 +63,15 @@ function activationRows(document, model, settings, now) {
         ]),
       ].sort(compare),
       responsibility: { humans, cet: false },
-      reason: touchedAt ? [{ kind: 'touched', at: touchedAt }] : [],
+      reason: touchedAt
+        ? [
+            { kind: 'touched', at: touchedAt },
+            ...contexts
+              .filter((item) => item.functionId === functionId)
+              .slice(-5)
+              .map(({ kind, ref }) => ({ kind: 'touched', context: { kind, ref } })),
+          ]
+        : [],
       ...(saved.find((item) => item.attention)
         ? { attention: attentionState(saved.find((item) => item.attention).attention, settings) }
         : {}),
@@ -94,6 +105,16 @@ function activationRows(document, model, settings, now) {
         weight: edge.weight,
         evidence: edge.evidence,
       });
+      for (const { kind, ref } of contexts
+        .filter((item) => item.functionId === source.functionId)
+        .slice(-5))
+        reasons.push({
+          kind: 'neighbor',
+          functionId: source.functionId,
+          weight: edge.weight,
+          evidence: edge.evidence,
+          context: { kind, ref },
+        });
       candidates.set(target.functionId, reasons);
     }
   }

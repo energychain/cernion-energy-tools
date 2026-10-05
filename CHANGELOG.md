@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.99.22] — 2026-09-27
 
 ### Fixed
+- RC3 Shared Service integration (#729, part of #693): unify mapped person identity across coverage, notices and corrections; propagate bounded turn-expiring case references to complementary agents; add journaled, clearance-limited `ids_only` case parameter access with tenant opt-out; recognize ownership/inventory corrections before case routing, require explicit new-case intent, and render catalog-derived function labels with bounded clarification lists. Adds a separate all-service Open WebUI e2e CI job without LLM keys and preserves broker selection, ordinary visibility and read-only operation policy.
 - RC3 PouchDB shutdown (#731): leave datapoint database closure to the persistence mixin while preserving scheduler cleanup; warn on already-closed databases, propagate unrelated close failures, and guard ownership plus clean shutdown of all local services without LLM credentials.
 - RC3 Shared Service notices (#723): surface bounded, person-scoped proposal/responsibility/tier notices on the next completed turn, preserve visibility and structured responses, add stable reaction refs and a no-RAG news overview, and activate I-12.
 - RC3 Headless Signals catalog follow-up (#722): retain value-free field definitions and compact probe summaries, move observation values into test fixtures, and merge #700 Workbench/agents harness observations while preserving I-11.

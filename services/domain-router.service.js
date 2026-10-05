@@ -43,6 +43,7 @@ const KNOWLEDGE_COLLECTIONS = [
 module.exports = {
   name: 'domain-router',
   mixins: [
+    require('../src/shared-service-case-context'),
     createPouchDbLifecycleMixin({
       defaultDbPath: './data/cet_case_state',
       dbPathEnvVar: 'CET_CASE_STATE_DB_PATH',

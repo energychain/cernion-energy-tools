@@ -287,3 +287,48 @@ capped history and coalesced durable activation outbox remain unchanged.
 See [SHARED_SERVICE_LEARNING.md](SHARED_SERVICE_LEARNING.md) for confirmed chat
 corrections, reversible preferences/neighbor overlays, admin actions and proposal
 resolution through the existing feedback path.
+
+## Case context integration (#729)
+
+The optional `function.touched.v1.context = { kind: 'case', ref }` comes from the
+completed Workbench turn's `cetCaseId`. Coverage uses the same mapped principal as
+notices and corrections. Service identities without that mapping produce no
+coverage and increment `function-coverage.unmappedServiceTurns` with a warning.
+
+Activation retains at most five distinct, most recently touched case references
+per function. Repeated references refresh their position and age. They expire after
+`contextRetentionTurns` relevant activating human turns (default 20), using #715's
+turn deduplication and coverage-based people selection: a person covering the
+function or a direct neighbor advances its clock; without such people, activating
+tenant turns count. Duplicate/weak/unrelated turns, wall time, reads, feedback,
+corrections and agent cycles do not age these references. Saved references follow
+the existing source hash/capability lineage rules and remain bounded after merges.
+
+Touched and direct complementary neighbor reasons add `context: { kind: 'case', ref }`.
+Existing reason fields, confidence thresholds, one-hop propagation, attention
+funding and ordinary case visibility remain unchanged. Agents prefer the newest
+activation context; legacy externally supplied journal references remain a fallback.
+An agent's own access audit cannot refresh or resurrect an expired context.
+
+`domain-router.agentCaseContext` is a protected, read-only broker action (no REST
+alias or capability-selection change). It requires the authenticated tenant to
+match, a registered Shared Service agent for the requested function, read-only
+scope and every case sensitivity flag to be present in the agent's clearance.
+It deliberately does not grant ordinary case visibility or bypass any downstream
+operation policy. The response is only `{ knownContext }`: scalar strings with
+parameter names ending in `Id` or `Ref`, max 256 characters. Secret-shaped names,
+free text, nested context, values, roles and evidence bodies are excluded.
+
+The existing tenant registry (`CERNION_TENANT_REGISTRY_FILE`, default
+`uploads/.api-tenants.json`) accepts this additive tenant setting:
+
+```json
+[{ "tenantId": "tenant-a", "sharedService": { "caseContextAccess": "ids_only" } }]
+```
+
+The default is `ids_only`; `off` prevents this access. Invalid settings or an
+unreadable registry fail closed. Authorized agent attempts, including disabled,
+inaccessible and missing cases, are audited in the function Journal; an audit
+failure prevents identifiers from being returned. All subsequent signal reads
+continue under the same read-only agent identity and existing scope/role/mandate,
+tenant and backend visibility checks.
