@@ -73,7 +73,8 @@
       "domains": [
         "market_communication",
         "market_master_data",
-        "market-regulatory"
+        "market-regulatory",
+        "grid_connection"
       ],
       "functions": [],
       "requiresMapping": true,
@@ -86,7 +87,8 @@
       "id": "knowledge-rag-federated",
       "domains": [
         "market_communication",
-        "regulatory"
+        "regulatory",
+        "grid_connection"
       ],
       "functions": [],
       "requiresMapping": true,

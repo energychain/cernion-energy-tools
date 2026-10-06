@@ -2,6 +2,7 @@
 
 const { listCompiledDomainRoutes } = require('./domain-routes-registry');
 const { semanticDomains } = require('./semantic-domains');
+const { normalizePhrase } = require('./function-resolver');
 const { domainHintsForText } = require('./workbench-activity-taxonomy');
 const {
   confirmedCapability,
@@ -160,7 +161,9 @@ async function classifyDomain(input, dependencies = {}) {
   for (const hypothesis of input.knownContext?.situation?.hypotheses || []) {
     if (hypothesis.kind === 'domain' && hypothesis.confidence >= 0.5)
       add(
-        hypothesis.id,
+        Object.keys(DOMAIN_SIGNALS).find(
+          (domain) => normalizePhrase(domain) === normalizePhrase(hypothesis.id)
+        ) || hypothesis.id,
         Math.min(80, hypothesis.confidence * 80),
         'situation_hypothesis',
         hypothesis.id

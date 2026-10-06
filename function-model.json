@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "ce7954707887f03872c8da4eeeaa0ee9911af66a3810ed0f3a785fcae692651a",
+  "sourceHash": "8709f56602ffb724238afe916a60f606c9bd533b221ae0aed9f8f86dfb742b8f",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -117587,11 +117587,23 @@
         },
         {
           "kind": "service",
+          "ref": "src/agent-sidecar-policy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/agent-sidecar-tool-manifest.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/answer-dossier-builder.js"
         },
         {
           "kind": "service",
           "ref": "src/async-job-runner.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/auth-role-helpers.js"
         },
         {
           "kind": "service",
@@ -117703,6 +117715,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/domain-router-policy.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/domain-router-shadow-mixin.js"
         },
         {
@@ -117724,6 +117740,18 @@
         {
           "kind": "service",
           "ref": "src/execution-trace.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/function-model.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/function-resolver.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/governance-policy-evaluator.js"
         },
         {
           "kind": "service",
@@ -117899,6 +117927,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/shared-service-agent-policy.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/source-license-map.js"
         },
         {
@@ -117923,7 +117955,15 @@
         },
         {
           "kind": "service",
+          "ref": "src/vdmi-matrix-schema.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/vdmi-system-templates.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-retrieval.js"
         },
         {
           "kind": "service",

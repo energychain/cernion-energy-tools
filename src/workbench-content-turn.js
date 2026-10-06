@@ -106,6 +106,7 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
       message: envelope.userRequest,
       messages: ctx.params.messages,
       previous: pending?.situation || state?.knownContext?.situation,
+      asked: pending?.askedQuestions || [],
       tenantId: p.tenantId,
       model: service.settings.systemActivityModel,
     });
@@ -265,7 +266,10 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
     .filter((h) => h.kind === 'domain' && h.confidence >= 0.5)
     .map((h) => h.id);
   const choices =
-    result.uncertain && allowedDomains.includes(result.primaryDomain)
+    result.uncertain &&
+    allowedDomains.some(
+      (domain) => normalizePhrase(domain) === normalizePhrase(result.primaryDomain)
+    )
       ? choiceCandidates(result, service.settings.systemActivityModel).slice(0, 3)
       : [];
   result.responseText = [

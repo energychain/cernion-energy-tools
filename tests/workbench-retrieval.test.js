@@ -210,3 +210,42 @@ test('read capabilities require a matching hypothesis and delegate all authoriza
   expect(denied.hits).toEqual([]);
   expect(denied.trace.operations[0].status).toBe('blocked_or_unavailable');
 });
+
+test('catalog-selected planner bypasses legacy keyword gate without inventing read parameters', async () => {
+  const ctx = { meta: { tenantId: 'tenant-a' }, call: jest.fn() };
+  const legacy = await methods.collectCopilotPlanningEvidence.call({}, ctx, {
+    analysisSignals: { active: false },
+  });
+  expect(legacy.status).toBe('skipped');
+  const selected = await methods.collectCopilotPlanningEvidence.call({}, ctx, {
+    analysisSignals: { active: false },
+    selected: true,
+  });
+  expect(selected.status).not.toBe('skipped');
+  expect(ctx.call).not.toHaveBeenCalled();
+  expect(filterEvidence(selected.hits, situation, { source: 'analysis-planner' }).hits).toEqual([]);
+});
+
+test('catalog IDs normalize punctuation without keyword-based selection', () => {
+  const selected = selectSources(
+    { ...situation, hypotheses: [{ kind: 'domain', id: 'grid-connection', confidence: 0.9 }] },
+    { access: { 'willi-mako': true } }
+  );
+  expect(selected).toContain('willi-mako');
+  expect(selected).toContain('analysis-planner');
+});
+
+test('function hypotheses select sources through catalog function-domain metadata', () => {
+  const input = {
+    ...situation,
+    hypotheses: [{ kind: 'function', id: 'fn-custom', confidence: 0.9 }],
+  };
+  const options = {
+    access: { 'willi-mako': true },
+    model: { functions: [{ functionId: 'fn-custom', domains: ['grid-connection'] }] },
+  };
+  expect(selectSources(input, options)).toEqual(
+    expect.arrayContaining(['willi-mako', 'analysis-planner'])
+  );
+  expect(selectSources(input, { ...options, access: {} })).not.toContain('willi-mako');
+});

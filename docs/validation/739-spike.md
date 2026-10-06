@@ -1,14 +1,14 @@
 # Phase 0: existing evidence pipeline
 
-Baseline: origin/main `9d64e83b`. Run: `node scripts/spike-739-evidence.js`.
-The script invokes the actual, unmodified personal-agent `collectCopilot*` methods with anonymous stub sources. No LLM call.
+Baseline: origin/main `9d64e83b`; recorded in spike commit `951176d5`. Reproduce in a separate worktree at that commit with `node scripts/spike-739-evidence.js`.
+At that commit the script invokes the actual, unmodified personal-agent `collectCopilot*` methods with anonymous stub sources. Running the script at the implementation HEAD exercises the corrected collectors instead. No LLM call.
 
-| Source | Called for foreign mail? | Hits | Relevance |
-| --- | --- | --- | --- |
-| knowledge-rag | yes | 1, score 0.58 | unrelated rotor maintenance accepted |
-| willi-mako | no (skipped) | 0 | EDIFACT-only gate prevents lookup |
-| datapoints | yes | 0 | no relevant data in stub |
-| planner | collector yes; downstream no (skipped) | 0 | no active analysis signals |
+| Source        | Called for foreign mail?               | Hits          | Relevance                            |
+| ------------- | -------------------------------------- | ------------- | ------------------------------------ |
+| knowledge-rag | yes                                    | 1, score 0.58 | unrelated rotor maintenance accepted |
+| willi-mako    | no (skipped)                           | 0             | EDIFACT-only gate prevents lookup    |
+| datapoints    | yes                                    | 0             | no relevant data in stub             |
+| planner       | collector yes; downstream no (skipped) | 0             | no active analysis signals           |
 
 EDIFACT control: two copies of one document survive; only title/URL survive even when the source contains an excerpt. Guardrail `No dispatch` survives. See `739-spike.json` for exact results. This confirms production findings (a), (b), (c), without asserting stub results are production retrieval quality measurements.
 

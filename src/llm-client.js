@@ -385,6 +385,7 @@ async function generateStructured(responseSchema, prompt, options = {}) {
     );
     return parseJsonResponse(raw);
   } catch (_error) {
+    if (options.structuredFallback === false) throw _error;
     process.stderr.write(
       `[llm-client] silent-catch-fallback (line 387): ${_error && _error.message}\n`
     );

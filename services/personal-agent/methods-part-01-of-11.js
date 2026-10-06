@@ -435,8 +435,11 @@ module.exports = {
     };
   },
 
-  async collectCopilotPlanningEvidence(ctx, { analysisSignals = {}, maxEvidence = 5 } = {}) {
-    if (!analysisSignals?.active) {
+  async collectCopilotPlanningEvidence(
+    ctx,
+    { analysisSignals = {}, maxEvidence = 5, selected = false } = {}
+  ) {
+    if (!selected && !analysisSignals?.active) {
       return { source: 'analysis-planner', status: 'skipped', hits: [] };
     }
 

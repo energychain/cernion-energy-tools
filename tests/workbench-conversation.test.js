@@ -157,11 +157,18 @@ describe('Workbench understands, answers with evidence, and keeps the case in th
     expect(state.knownContext.situation.deadlines[0].basis).toBe('Frist überschritten');
     expect(state.initialRequest).toBe(`${result.situation.concern}\n${result.situation.situation}`);
     expect(llm.generateStructured).toHaveBeenCalledTimes(1);
+    expect(JSON.stringify(llm.generateStructured.mock.calls[0][0])).not.toContain(
+      'additionalProperties'
+    );
+    expect(JSON.parse(llm.generateStructured.mock.calls[0][1]).schema.additionalProperties).toBe(
+      false
+    );
     expect(retrieval).toHaveBeenCalledTimes(1);
     expect(llm.generateText).toHaveBeenCalledTimes(1);
     expect(llm.generateStructured.mock.calls[0][2]).toMatchObject({
       tenantId: 'tenant-a',
       maxRetries: 1,
+      structuredFallback: false,
     });
     expect(result.latencyMs).toBeLessThan(15000);
   });
@@ -180,6 +187,19 @@ describe('Workbench understands, answers with evidence, and keeps the case in th
       expect(result.requiredClarifications.length).toBeLessThanOrEqual(3);
     }
   );
+
+  test('a model may omit an unrequested draft without losing the grounded answer', async () => {
+    llm.generateText.mockResolvedValue(
+      JSON.stringify({
+        expectation: [{ text: 'Referenz und Eingangsbestätigung prüfen.', evidenceIds: ['E1'] }],
+        nextSteps: [],
+      })
+    );
+    const result = await call(productionMail);
+    expect(result.answerStatus).toBe('grounded');
+    expect(result.responseText).toContain('[E1]');
+    expect(result.draftId).toBeUndefined();
+  });
 
   test('AC-02: empty retrieval never invents rules or deadlines', async () => {
     knowledge.mockReturnValue({ results: [] });

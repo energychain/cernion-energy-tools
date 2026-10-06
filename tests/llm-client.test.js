@@ -171,6 +171,19 @@ describe('llm-client provider abstraction', () => {
     expect(geminiAdapter.generateText).toHaveBeenCalled();
   });
 
+  it('strict per-turn budget skips fallback and makes only one provider request', async () => {
+    const failure = new Error('schema failed');
+    geminiAdapter.generateStructured.mockRejectedValueOnce(failure);
+    await expect(
+      llmClient.generateStructured({ type: 'object' }, 'test', {
+        maxRetries: 1,
+        structuredFallback: false,
+      })
+    ).rejects.toBe(failure);
+    expect(geminiAdapter.generateStructured).toHaveBeenCalledTimes(1);
+    expect(geminiAdapter.generateText).not.toHaveBeenCalled();
+  });
+
   it('returns capability matrix for provider', () => {
     process.env.LLM_PROVIDER = 'openai-compat';
 

@@ -548,6 +548,11 @@
       "term": "reversible",
       "resolverGeneric": true,
       "reason": "Generic privacy and prompt processing vocabulary; no domain behavior."
+    },
+    {
+      "term": "datum",
+      "resolverGeneric": true,
+      "reason": "Generic date provenance in the required situation schema; no domain-specific behavior."
     }
   ]
 }

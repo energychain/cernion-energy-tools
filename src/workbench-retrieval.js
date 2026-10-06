@@ -1,11 +1,15 @@
 'use strict';
 
 const defaults = require('./workbench-knowledge-sources.json');
+const { getFunctionModel } = require('./function-model');
 const { createHash } = require('node:crypto');
 const { normalizePhrase } = require('./function-resolver');
 const { readKinds } = require('./shared-service-agent-policy');
 
-function selectSources(situation, { catalog = defaults, access = {} } = {}) {
+function selectSources(
+  situation,
+  { catalog = defaults, access = {}, model = getFunctionModel() } = {}
+) {
   const hypotheses = (situation.hypotheses || []).filter(
     (entry) => entry.confidence >= catalog.minimumConfidence
   );
@@ -15,7 +19,20 @@ function selectSources(situation, { catalog = defaults, access = {} } = {}) {
       return (
         hypotheses.some((hypothesis) => {
           const values = hypothesis.kind === 'function' ? source.functions : source.domains;
-          return values.includes('*') || values.includes(hypothesis.id);
+          const relatedDomains =
+            hypothesis.kind === 'function'
+              ? model.functions.find((fn) => fn.functionId === hypothesis.id)?.domains || []
+              : [];
+          if (
+            relatedDomains.some((domain) =>
+              source.domains.some((value) => normalizePhrase(value) === normalizePhrase(domain))
+            )
+          )
+            return true;
+          return (
+            values.includes('*') ||
+            values.some((value) => normalizePhrase(value) === normalizePhrase(hypothesis.id))
+          );
         }) ||
         (!source.requiresMapping && source.domains.includes('*'))
       );
