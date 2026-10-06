@@ -57,7 +57,7 @@ Read-capability evidence delegates to existing `signals.observe` and its permiss
 
 ## Manual review with real LLM, stubbed source services
 
-`LLM_MODEL=gemini-3.5-flash-lite node scripts/validate-workbench-739-live.js <env-file>` invokes the real `src/llm-client.js` facade, real Workbench/Router/store/Personal-Agent collectors and explicit local source stubs. The opt-in generator whitelists only LLM configuration from the supplied environment file; it never exports credentials. Full anonymous transcript: `739-live-model.json`.
+`LLM_MODEL=gemini-3.5-flash-lite node scripts/validate-workbench-739-live.js` invokes the real `src/llm-client.js` facade, real Workbench/Router/store/Personal-Agent collectors and explicit local source stubs. The opt-in generator reads the existing LLM process environment and never exports credentials. Supply keys through the process environment; it does not read arbitrary credential-file paths. Full anonymous transcript: `739-live-model.json`.
 
 | Turn                | Manual assessment                                                                                                                                                                           | Elapsed |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------: |

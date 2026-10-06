@@ -4,19 +4,7 @@
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const envFile = process.argv[2];
-if (envFile) {
-  const values = require('dotenv').parse(fs.readFileSync(envFile));
-  for (const name of [
-    'GEMINI_API_KEY',
-    'GEMINI_MODEL',
-    'LLM_API_KEY',
-    'LLM_PROVIDER',
-    'LLM_MODEL',
-    'LLM_BASE_URL',
-  ])
-    if (values[name] && !process.env[name]) process.env[name] = values[name];
-}
+// LLM configuration is supplied through the process environment, like the application.
 const { ServiceBroker } = require('moleculer');
 const Workbench = require('../services/workbench.service');
 const Router = require('../services/domain-router.service');
