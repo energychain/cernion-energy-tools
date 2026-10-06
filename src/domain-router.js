@@ -102,6 +102,39 @@ async function classifyDomain(input, dependencies = {}) {
   const known = input.knownContext || {};
   const text = input.userRequest || '';
   const choice = confirmedCapability(text, dependencies.previousState, dependencies.model);
+  if (choice) {
+    const previous = dependencies.previousState;
+    const c = {
+      ...previous.lastClassification,
+      primaryDomain: previous.currentDomain || previous.lastClassification.primaryDomain,
+      uncertain: false,
+      ambiguityFlags: (previous.lastClassification.ambiguityFlags || []).filter(
+        (flag) => flag !== 'uncertain_capability_selection'
+      ),
+      selectedCapabilities: [choice],
+      scoringBreakdown: {
+        ...previous.lastClassification.scoringBreakdown,
+        uncertain: false,
+        activatesCoverage: true,
+        selectionSource: 'person',
+      },
+      matchedSignals: [
+        { domain: previous.currentDomain, source: 'confirmed_choice', ref: 'person' },
+      ],
+      sourceDiagnostics: {
+        confirmation: 'persisted_choice',
+        receipts: 'skipped',
+        knowledge: 'skipped',
+      },
+      roleInterpretation: { actorRoles: input.actorRoles || [], source: 'authenticated_policy' },
+      responseGuidance:
+        'Die Funktion ist ausgewählt. Bitte ergänze die noch fehlenden Angaben zum Fall.',
+    };
+    c.transition = evaluateDomainTransition(previous, c);
+    c.requiredClarifications = buildClarificationPrompt(c);
+    c.diagnostics = buildRouterDiagnostics(c);
+    return c;
+  }
   const signals = [];
   const scores = {};
   const sourceDiagnostics = {};
@@ -117,7 +150,6 @@ async function classifyDomain(input, dependencies = {}) {
     }
   };
   infer(text, 60, 'task');
-  if (choice) add(dependencies.previousState.currentDomain, 60, 'confirmed_choice', 'person');
   const activityHints = domainHintsForText(text, { limit: 4 });
   for (const hint of activityHints) {
     add(hint.domain, Math.min(25, 8 + hint.score), 'activity_taxonomy', hint.activityId);
@@ -173,28 +205,15 @@ async function classifyDomain(input, dependencies = {}) {
       return {};
     }
   };
-  const broker = choice
-    ? {
-        uncertain: false,
-        candidateCapabilities: [choice],
-        recommendedCapabilities: [choice],
-        scoringBreakdown: {
-          ...dependencies.previousState.lastClassification.scoringBreakdown,
-          uncertain: false,
-          activatesCoverage: true,
-          selectionSource: 'person',
-        },
-      }
-    : await consult(
-        'broker',
-        dependencies.recommend &&
-          (() =>
-            dependencies.recommend({
-              ...input,
-              primaryDomain:
-                Object.entries(scores).sort((a, b) => b[1] - a[1])[0]?.[0] || 'unknown',
-            }))
-      );
+  const broker = await consult(
+    'broker',
+    dependencies.recommend &&
+      (() =>
+        dependencies.recommend({
+          ...input,
+          primaryDomain: Object.entries(scores).sort((a, b) => b[1] - a[1])[0]?.[0] || 'unknown',
+        }))
+  );
   const receiptResponse = await consult(
     'receipts',
     dependencies.selectReceipts && (() => dependencies.selectReceipts(input)),
@@ -207,6 +226,10 @@ async function classifyDomain(input, dependencies = {}) {
       type: 'RECEIPT_NOT_FOUND_OR_INVALID',
     });
   const candidateCapabilities =
+    broker.candidates?.map((candidate) => ({
+      capability: candidate.capabilityId,
+      score: candidate.score,
+    })) ||
     broker.candidateCapabilities ||
     broker.recommendedCapabilities ||
     (broker.capability ? [{ capability: broker.capability }] : []);
@@ -294,10 +317,7 @@ async function classifyDomain(input, dependencies = {}) {
     c.responseGuidance = choiceText(c, dependencies.model);
     c.requiredClarifications = [c.responseGuidance];
   }
-  if (choice)
-    c.responseGuidance =
-      'Die Funktion ist ausgewählt. Bitte ergänze die noch fehlenden Angaben zum Fall.';
-  if (choice || (!c.uncertain && !['clarify', 'fallback'].includes(c.transition.type)))
+  if (!c.uncertain && !['clarify', 'fallback'].includes(c.transition.type))
     c.selectedCapabilities = broker.recommendedCapabilities || candidateCapabilities.slice(0, 1);
   c.diagnostics = buildRouterDiagnostics(c);
   return c;

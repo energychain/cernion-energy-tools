@@ -12,6 +12,32 @@ Der sichtbare Fall enthält die zuletzt angebotenen Kandidaten. Eine Nummer oder
 
 Der E2E-Durchstich startet alle Services wie `index.js` ohne API/MQTT, behält sämtliche echten Nachbarschaften und verwendet keine Fixture-Auswahl. Nur die pro Funktion gewählte eigene kontextabhängige Read-Operation bleibt als Fixture für den Agent-Lückenpfad. Die realistische Anfrage „Starte bitte einen Fall: Netzanschlussanfrage für einen 2-MW-Batteriespeicher am Umspannwerk Nord prüfen.“ berührt die Großspeicher-Netzanschlussfunktion; CET aktiviert Anschlusskapazität und FNAV-Fast-Track als echte Nachbarn. Leadership/Communication-Break werden nicht aktiviert. Schritte 1–9 bleiben enthalten. Zwei weitere Abläufe prüfen unsicheren Fallstart, unveränderte Abdeckung/keine Touch-Events, Nummer bzw. Anzeigename, gemappten Actor und erhaltenen Kontext.
 
+## Review: Kandidaten sind nicht ausführbar
+
+`capability-broker.recommend` kehrt bei `uncertain: true` vor dem Aufbau von Action-Pfaden zurück: `intent: clarify`, `candidates: [{ capabilityId, displayLabel, score }]`, Konfidenz/Diagnostik und Klärungsfrage. Es gibt weder `capability` als ausgewählte Funktion noch `recommendedPlan`, `recommendedCapabilities`, `operationCandidates`, `preferredActions` oder `fallbackActions`. Auch ein Fallback legt nicht selbst eine Lückenmarkierung an. Die sichere Antwort bleibt unverändert. Alle Verbraucher bekommen dieselbe zentrale Sperre; der Router übersetzt die nicht ausführbaren Kandidaten in seinen bestehenden Fall-Vertrag.
+
+Erkannte Nummern und Anzeigenamen kehren vor jeglicher Neu-Klassifikation zurück. Domäne, Evidenzlücken und Prozesskontext stammen aus dem vorherigen sichtbaren Fall, einschließlich `unknown`. Kein Receipt-, Knowledge-, Taxonomie- oder Domain-Route-Aufruf sieht den Bestätigungstext. Nummer und Label erzeugen denselben gespeicherten Fallzustand; ein fremdes Signalwort wie „Redispatch“ im Label ändert keinen Netzanschlussfall. Die sichere Berührung bleibt unter der gemappten Person mit dem bisherigen Fall-Kontext.
+
+Zwei lokale Ersatzmechanismen des Personal Agent respektieren jetzt ebenfalls die zentrale Abstention: `buildExecutionPlan` darf bei unsicherer Broker-Antwort nicht erneut per lokaler Matrix/Blueprint auswählen; Dossier-Hydration darf keine eigenständig ergänzte EV/CO2-Action hinzufügen. Diese Änderungen treffen keine Auswahl und sind keine neuen Sicherheitsschwellen.
+
+| Direkter Verbraucher | Negativnachweis / Verhalten |
+|---|---|
+| Personal Agent `getBrokerRecommendation` → `buildExecutionPlan` | echter Broker; keine Steps, keine lokale Neu-Auswahl/Blueprint-Umgehung |
+| Personal Agent `answerDossier` / Hydration | echter Broker; kein kandidatenspezifischer Aufruf; zusätzlich EV/CO2-Ergänzung bei Abstention gesperrt |
+| `agent.analyze` | echter Broker im Service-Test; keine Actions der Kandidaten aufgerufen |
+| `agent-sidecar.callTool` | transportiert Kandidaten; kein Action-Aufruf |
+| `chatgpt-sidecar.plan` / `browserPlan` | echter Broker, beide Transporte; kein Action-Aufruf |
+| Domain Router | reine Kandidaten bis Auswahl; Bestätigung ohne Broker/Receipt/Knowledge-Neuaufruf |
+| `domain-routes-management._runTestMatrix` | Kandidat zählt nicht als ausgewählte Capability; keine Folge-Action |
+| CYA `getPlanningOntologySignals` | keine ausführbaren Top-Actions |
+| ZNP `getPlanningAssist` | nur Klärungsmetadaten, kein Action-Aufruf |
+| Utility Report `getPlanningAssist` | keine ausgewählte Capability, kein Action-Aufruf |
+| Dashboard `evidenceGroundingConfidenceAudit` | Broker-Antwort nur Routing-Evidenz; die parallel gelesenen Health-/Evidenzquellen sind unabhängig vom Ranking, keine Ausführung des Broker-Plans |
+
+Die bestehenden Personal-Agent-Ausführungs-/Preflight-Fixtures isolieren jetzt lokale Routing- und Onboarding-Invarianten mit einem nicht verfügbaren Broker bzw. einer explizit ausgewählten Identity-Capability. Sie behaupten keine sichere automatische Auswahl aus einer unsicheren Formulierung. Separate echte Broker-/Chat-/Dossier-Negativtests prüfen die Abstention; der Arbeitsannahmen-Follow-up bleibt bei Unsicherheit ohne neue Action und erhält den gespeicherten Kontext.
+
+Die weiteren Dashboard-Treffer der Aufruferliste sind deklarative `referenced`-/`notCalled`-Metadaten und Health-Status, keine dynamischen Broker-Verbraucher. Regressionen stehen in `capability-uncertain-consumers.test.js`, `agent.service.test.js`, `answer-dossier.service.test.js`, `domain-router-confirmation.test.js` und im echten PouchDB-Falltest von `domain-router.service.test.js`.
+
 ## Evaluation: alle 413 Fälle
 
 Baseline `3d618836`; der archivierte Broker und Katalog werden durch `node scripts/verify-capability-routing-baseline.js` erneut ausgewertet: 413 identische Top-1-Ergebnisse, keine Abweichung zur eingefrorenen Baseline. Korpus-SHA unverändert: `09ce6e64f9645a3cb11953dda93d1eb8c20f5b3cc9493d11863a93cd2bc610b6`. Auswertung ausschließlich durch `npm run eval:capability-routing -- --write` generiert. Die vorher korrekte Menge wird über alle 413 Fälle gebildet, nicht nur über den Einzelfall `known-correct`.
@@ -26,12 +52,12 @@ Baseline `3d618836`; der archivierte Broker und Katalog werden durch `node scrip
 | receipt-example (5) | 60.0 % → 60.0 % | 60.0 % → 80.0 % | 0.0 % → 60.0 % | 20.0 % → 20.0 % | 0.418 → 0.612 |
 | operation-summary (328) | 41.8 % → 65.5 % | 41.8 % → 69.2 % | 0.0 % → 36.6 % | 20.7 % → 20.1 % | 0.409 → 0.051 |
 
-**192 zuvor korrekte Top-1-Fälle, davon 190 weiterhin korrekt; 2 verloren.** Die vollständige Differenzmenge samt Anfrage, Erwartung und beiden Ergebnislisten steht in `previouslyCorrect.lost` des Evaluations-JSON.
+**192 zuvor korrekte Top-1-Fälle, davon 190 weiterhin korrekt; 2 verloren. Die Begründungen sind keine AC-03-Abnahme; diese entscheidet der Maintainer.** Die vollständige Differenzmenge samt Anfrage, Erwartung und beiden Ergebnislisten steht in `previouslyCorrect.lost` des Evaluations-JSON.
 
 | Verlorene ID | Einzelbegründung |
 |---|---|
 | `datasource-cache_query` | „Query cached datasource rows“ nennt keine Inhouse-Quelle oder Zeitreihe. Die Registry-Klassifikation liegt nun vor dem Inhouse-Lesen, das weiterhin Top-2 ist. Die Auswahl ist unsicher und erfordert Klärung. Keine datenquellenspezifische Regel oder Keyword nur für diese technische Summary eingeführt. |
-| `mscons-import_import` | Die unveränderte Erwartung lautet `regulatory_change_simulator_readiness`, obwohl die Anfrage MSCONS-EDIFACT-Import nach EDM beschreibt. EDM-Evidenz und Marktkommunikation liegen nun davor; regulatorischer Simulator bleibt Top-3. Diese fachlich plausiblere Reihenfolge wird einzeln akzeptiert, ohne den Korpus nachträglich passend zu machen. |
+| `mscons-import_import` | Die unveränderte Erwartung lautet `regulatory_change_simulator_readiness`, obwohl die Anfrage MSCONS-EDIFACT-Import nach EDM beschreibt. EDM-Evidenz und Marktkommunikation liegen nun davor; regulatorischer Simulator bleibt Top-3. Diese fachlich plausiblere Reihenfolge ist hier einzeln begründet; die Abnahme bzw. eine Ausnahme zu AC-03 entscheidet ausschließlich der Maintainer. Der Korpus wurde nicht nachträglich angepasst. |
 
 Die sieben weiteren ursprünglichen Regressionen sind behoben: `capex-prioritization_list`, `capex-prioritization_analyze`, `capex-prioritization_get`, `fnav-commercial-hedging_listContracts`, `fnav-commercial-hedging_createContract` durch katalogabgeleitete exakte Kennzeichen; `eic-codes_gasFacilities`, `eic-codes_gasOperators` durch schwach gewichtete kurze Wortvarianten (z. B. code/codes).
 

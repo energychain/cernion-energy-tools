@@ -17,6 +17,7 @@ const {
   findRuntimeCapability,
 } = require('../src/domain-routes-registry');
 const { rankOperations } = require('../src/operation-capability-index');
+const { getFunctionModel } = require('../src/function-model');
 
 const MODES = new Set(['initial', 'next_step', 'repair', 'compare']);
 
@@ -3409,6 +3410,45 @@ module.exports = {
           usedFallback: forcedFallback || !ranked.matches.length,
         };
         const capability = selected.capability;
+        const confidence = selected.usedFallback ? 0 : ranked.confidence;
+        const uncertain = selected.usedFallback || ranked.uncertain;
+
+        // A ranking is not a selection. Return before constructing any action
+        // paths or operation candidates so every consumer receives only choices.
+        if (uncertain) {
+          const model = getFunctionModel();
+          return {
+            schemaVersion: BROKER_SCHEMA_VERSION,
+            summary: 'Bitte wähle eine Funktion oder beschreibe dein Anliegen genauer.',
+            intent: 'clarify',
+            confidence: Number(confidence.toFixed(2)),
+            uncertain: true,
+            candidates: selected.usedFallback
+              ? []
+              : ranked.matches.slice(0, 5).map((match) => {
+                  const capabilityId = match.capability.capability;
+                  const fn = model.functions.find((row) => row.capabilities.includes(capabilityId));
+                  return {
+                    capabilityId,
+                    displayLabel: fn?.displayLabel || fn?.label || 'Weitere Klärung',
+                    score: match.score,
+                  };
+                }),
+            scoringBreakdown: {
+              rawScore: selected.score,
+              margin: ranked.margin,
+              uncertain: true,
+              activatesCoverage: false,
+              usedFallback: selected.usedFallback,
+              semantic: { ...semantic.metadata, cacheGaps: cache.gaps.length },
+              finalConfidence: Number(confidence.toFixed(2)),
+            },
+            mode: ctx.params.mode,
+            effectiveMode,
+            nextBrokerQuestionSuggestion: 'Welche der genannten Funktionen möchtest du auswählen?',
+            warnings,
+          };
+        }
 
         const blockedActions = new Set([
           ...GLOBAL_DO_NOT_USE.map((item) => item.action),
@@ -3516,8 +3556,6 @@ module.exports = {
           })),
         ];
 
-        const confidence = selected.usedFallback ? 0 : ranked.confidence;
-        const uncertain = selected.usedFallback || ranked.uncertain;
         const scoringBreakdown = {
           rawScore: selected.score,
           margin: ranked.margin,

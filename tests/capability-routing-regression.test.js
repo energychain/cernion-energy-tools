@@ -22,7 +22,7 @@ describe('broker and router #730 regression', () => {
     expect(
       result.capability === row.expectedCapabilities[0] ||
         (result.uncertain &&
-          result.candidateCapabilities.some((r) => r.capability === row.expectedCapabilities[0]))
+          result.candidates.some((r) => r.capabilityId === row.expectedCapabilities[0]))
     ).toBe(true);
     expect(result.capability === 'vnb_delta_signal_classifier' && result.confidence >= 0.8).toBe(
       false

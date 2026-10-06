@@ -225,7 +225,7 @@ async function main() {
   );
   const caseId = started.metadata.cetCaseId;
   assert(caseId, 'explicit case_start creates a case');
-  let classification = (
+  const classification = (
     await router.loadCase(
       require(path.join(root, 'src/domain-router-policy')).principal({ meta: auth('alice') }),
       caseId
@@ -238,12 +238,6 @@ async function main() {
       0
     );
     await turn('alice', '1');
-    classification = (
-      await router.loadCase(
-        require(path.join(root, 'src/domain-router-policy')).principal({ meta: auth('alice') }),
-        caseId
-      )
-    ).lastClassification;
   }
   const selected =
     (
