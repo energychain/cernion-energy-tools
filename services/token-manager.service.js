@@ -315,7 +315,7 @@ module.exports = {
         },
       },
       handler(ctx) {
-        return this._doCreateToken(ctx.params);
+        return this._doCreateToken(ctx.params, { enforceLimit: false });
       },
     },
 
@@ -507,7 +507,10 @@ module.exports = {
   },
 
   methods: {
-    _doCreateToken({ name, tenantId, userId, scope: rawScope, scopes: extraScopes = [] }) {
+    _doCreateToken(
+      { name, tenantId, userId, scope: rawScope, scopes: extraScopes = [] },
+      { enforceLimit = true } = {}
+    ) {
       // Explicit checks so direct invocation — bypassing moleculer-web validator —
       // still rejects unbound tokens. Issue #157: no new token without tenant/user binding.
       if (!tenantId) {
@@ -546,7 +549,7 @@ module.exports = {
 
       const tokens = this.loadTokens();
       const activeCount = tokens.filter((entry) => entry.active !== false).length;
-      if (activeCount >= this.settings.maxTokensPerInstallation) {
+      if (enforceLimit && activeCount >= this.settings.maxTokensPerInstallation) {
         throw new Error(
           `Token limit reached (${this.settings.maxTokensPerInstallation}). Revoke unused tokens first.`
         );

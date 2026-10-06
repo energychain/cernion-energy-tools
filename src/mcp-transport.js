@@ -536,7 +536,7 @@ function createMcpHttpHandlers(broker) {
 
     writeJsonError(
       res,
-      400,
+      sessionId ? 404 : 400,
       sessionId
         ? 'Unknown or expired mcp-session-id'
         : 'First request on a new MCP connection must be an "initialize" request'
@@ -547,7 +547,7 @@ function createMcpHttpHandlers(broker) {
     const sessionId = req.headers['mcp-session-id'];
     const session = sessionId && sessions.get(sessionId);
     if (!session) {
-      writeJsonError(res, 400, 'Unknown or expired mcp-session-id');
+      writeJsonError(res, sessionId ? 404 : 400, 'Unknown or expired mcp-session-id');
       return;
     }
     await session.transport.handleRequest(req, res);
@@ -557,7 +557,7 @@ function createMcpHttpHandlers(broker) {
     const sessionId = req.headers['mcp-session-id'];
     const session = sessionId && sessions.get(sessionId);
     if (!session) {
-      writeJsonError(res, 400, 'Unknown or expired mcp-session-id');
+      writeJsonError(res, sessionId ? 404 : 400, 'Unknown or expired mcp-session-id');
       return;
     }
     await session.transport.handleRequest(req, res);
