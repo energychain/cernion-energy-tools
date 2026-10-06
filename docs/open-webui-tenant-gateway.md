@@ -239,3 +239,103 @@ A Willi-MaKo APERAK Z18 reference may include allowlisted fields such as `williC
 - CET service tokens stay server-side.
 - Case State, Event Outbox, EvidenceRefs and audit stay in CET.
 - External or binding effects remain protected by CET RBAC/HITL/No-Call-Guards.
+
+## Inbetriebnahme in vier Schritten (Gateway-Tokens, Issue #736)
+
+Die lokalen Provisionierungs-CLIs verwenden weiterhin den vorhandenen Bootstrap-Schutz:
+`CERNION_SUPPORT_TOKEN` muss konfiguriert sein und der passende Wert über
+`CERNION_SUPPORT_TOKEN_INPUT` oder `--support-token` vorliegen. Der Schlüssel gehört auf den
+CET-Server, nicht in Open WebUI. Alle Befehle im CET-Projektverzeichnis ausführen.
+
+1. **Gateway-Token erzeugen.**
+
+   ```bash
+   npm run token:create -- --tenant=stadtwerk-a --user=svc:open-webui --name=OpenWebUI --gateway --client=open-webui --org=owui-org-1
+   ```
+
+   Den einmalig ausgegebenen `data.token` sicher speichern. Der Datensatz trägt
+   `type: 'gateway'`, `client: 'open-webui'`, `tenantId` und `externalOrgId`, aber keine eigenen Rollen oder
+   Zusatz-Scopes. `--gateway` und `--roles` schließen sich aus.
+
+2. **Jeden Nutzer zuordnen und kontrollieren.**
+
+   ```bash
+   npm run workbench:map -- --tenant=stadtwerk-a --client=open-webui --org=owui-org-1 --email=user@example.org --actor=cet-user-1 --roles=ROLE_USER --clearance=tenant_internal
+   # Alternativ zur E-Mail: --user=owui-user-1 (nicht zusammen mit --email).
+   npm run workbench:map -- --tenant=stadtwerk-a --client=open-webui --list
+   ```
+
+   Die CLI legt Organisations- und Nutzer-Mapping über dieselben Admin-Actions und
+   Validierungen wie die REST-API an. `--clearance` ist optional; ohne Angabe ist die
+   Clearance leer. `--list` zeigt ausschließlich Mappings des angegebenen Mandanten/Clients.
+
+3. **Open WebUI verbinden.**
+
+   OpenAI-kompatible Verbindung auf `https://<cet-host>/v1` setzen, als API-Schlüssel den
+   Gateway-Token verwenden und `cernion-governance-assistant` als Standardmodell wählen.
+   In Open WebUI `ENABLE_FORWARD_USER_INFO_HEADERS=true` setzen. Die Organisation ist durch
+   `--org` am Token gebunden. Eine Standard-Verbindung genügt; Pipe, Function oder zusätzliche
+   Request-Metadata sind nicht erforderlich.
+
+   CET verwendet `X-OpenWebUI-User-Id`, `X-OpenWebUI-Chat-Id` und als optionalen Fallback
+   `X-OpenWebUI-User-Email`. E-Mail-Adressen werden getrimmt und kleingeschrieben, danach exakt
+   verglichen; es gibt keine Domain-, Alias- oder Teilstring-Suche. Eine bestehende User-ID-
+   Zuordnung hat immer Vorrang, auch wenn sie deaktiviert ist. Ein fehlendes oder deaktiviertes
+   Mapping bleibt gesperrt. Akteur, Rollen und Clearance kommen ausschließlich aus dem Mapping.
+   Explizite `metadata.openWebuiUserId` und `metadata.openWebuiConversationId` bzw.
+   `conversationId` haben Vorrang vor den jeweiligen Headern. `metadata.openWebuiOrgId` ist
+   optional: der Token-Wert wird verwendet, ein gleicher Metadata-Wert ist erlaubt und ein
+   abweichender ergibt 403. Identitäts-Header und Nutzer-/Organisations-Metadata werden bei
+   normalen API-Tokens nicht zur Delegation verwendet. Rollen-Header werden immer ignoriert.
+   Die offiziellen Namen und die Schalterwirkung sind in der
+   [Open-WebUI-Dokumentation](https://docs.openwebui.com/reference/env-configuration/#enable_forward_user_info_headers)
+   beschrieben. Die Standardnamen müssen beibehalten werden.
+
+   Der Gateway-Token erlaubt `GET /v1/models` (HTTP 200, ausschließlich
+   `cernion-governance-assistant`) und `POST /v1/chat/completions` mit diesem Modell sowie
+   die daraus entstehenden internen Workbench-Chat/Query-Aufrufe. Direkte Workbench-, Admin-,
+   Notices-, Domain-Router-, MCP- und Sidecar-Aufrufe sowie andere Modelle erhalten 403.
+
+   **Altfall:** Bereits gespeicherte Gateway-Tokens ohne `externalOrgId` benötigen weiterhin
+   `metadata.openWebuiOrgId`. Ein Hinweis im Server-Log macht auf diesen Fall aufmerksam.
+   Für den Header-only-Betrieb einen neuen Gateway-Token mit `--org` erzeugen und die
+   Verbindung umstellen. Neue Gateway-Tokens ohne `--org` werden abgewiesen.
+
+4. **Smoke-Test ausführen.**
+
+   ```bash
+   # GATEWAY_TOKEN enthält den zuvor einmalig ausgegebenen data.token.
+   curl --fail-with-body https://<cet-host>/v1/models -H "Authorization: Bearer $GATEWAY_TOKEN"
+   curl --fail-with-body https://<cet-host>/v1/chat/completions \
+     -H "Authorization: Bearer $GATEWAY_TOKEN" \
+     -H 'Content-Type: application/json' \
+     -H 'X-OpenWebUI-User-Id: owui-user-1' \
+     -H 'X-OpenWebUI-User-Email: user@example.org' \
+     -H 'X-OpenWebUI-Chat-Id: smoke-736' \
+     -d '{"model":"cernion-governance-assistant","messages":[{"role":"user","content":"Starte einen Fall: Netzanschluss für einen Batteriespeicher prüfen."}]}'
+   ```
+
+   Erwartet: HTTP 200, OpenAI-kompatible `choices` und CET-Metadata. Ein unbekannter Nutzer,
+   deaktiviertes Mapping oder fremder Mandant erhält 403. Bei fehlender Zuordnung enthält
+   die Antwort einen verständlichen Hinweis, sich an die Administration zu wenden.
+
+### Normale API-Tokens und Support-Rollen
+
+```bash
+npm run token:create -- --tenant=stadtwerk-a --user=admin --name=TenantAdmin --roles=ROLE_USER,ROLE_TENANT_ADMIN
+npm run token:create -- --tenant=stadtwerk-a --user=support --name=Support --roles=ROLE_ADMIN,ROLE_UTILITY_HQ --support
+```
+
+Die Rollen-Allowlist liegt zentral in `src/auth/token-policy.js`. Nicht erlaubte Rollen
+werden mit 422 abgewiesen. `ROLE_ADMIN` und die mandantenübergreifende `ROLE_UTILITY_HQ`
+setzen zusätzlich `--support` voraus. Support-Ausstellungen werden ohne Tokengeheimnis in
+`TOKEN_ROLE_AUDIT_FILE` (Standard: `uploads/.token-role-audit.jsonl`) auditiert. Bestehende
+Token-Datensätze erhalten keine neuen Rollen und behalten ihre bisherigen Scopes.
+
+Jede erfolgreiche Gateway-Delegation schreibt vor der Ausführung einen dauerhaften
+`workbench_gateway_delegation`-Datensatz in die Workbench-Identitätsdatenbank: Token-ID,
+Client, externe Nutzer-ID, CET-Akteur, Mandant und Zeitstempel; keine Gesprächsinhalte.
+Akteur, Rollen und Clearance stammen ausschließlich aus dem Mapping. Die interne
+Personenprojektion ist auf kontextuelle Lesezugriffe begrenzt (`read-only`); sie erbt
+keinen `full-access`-Scope vom Verbindungsschlüssel. Fachliche Rechte und No-Call-Guards
+werden weiterhin von CET geprüft. Fehler beim Mapping oder Audit bleiben fail-closed.

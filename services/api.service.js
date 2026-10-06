@@ -16,7 +16,9 @@ const metrics = require('../src/metrics');
 const rateQuotaStore = require('../src/rate-quota-store');
 const tracing = require('../src/tracing');
 const { mergeObservabilityContext } = require('../src/observability-context');
-const { hasRole, mapRolesFromLegacyToken } = require('../src/auth/rbac');
+const { rolesFromToken, gatewayForbidden } = require('../src/auth/token-policy');
+const { SUPPORTED_MODELS, GOVERNANCE_MODEL } = require('../src/openai-models');
+const { hasRole } = require('../src/auth/rbac');
 const { validateTenantId, isTenantAllowed } = require('../src/tenant-context');
 const {
   isReadMethod,
@@ -606,6 +608,7 @@ async function buildOpenAiFacadeMeta(service, req, facadePath = '/v1/chat/comple
     });
 
     if (!verification?.valid) {
+      if (verification?.reason === 'GATEWAY_TOKEN_FORBIDDEN') gatewayForbidden();
       throw new Errors.MoleculerClientError(
         'Invalid or revoked API token.',
         401,
@@ -622,11 +625,20 @@ async function buildOpenAiFacadeMeta(service, req, facadePath = '/v1/chat/comple
       );
     }
 
-    const roles = mapRolesFromLegacyToken(verification.scope, verification.scopes);
-    enforceRbacForPath(roles, req?.method || 'POST', '/api/copilot/ask-cernion-agent');
+    const roles = rolesFromToken(verification);
+    if (verification.type !== 'gateway') {
+      enforceRbacForPath(roles, req?.method || 'POST', '/api/copilot/ask-cernion-agent');
+    }
     addLegacyTokenDeprecationHeaders({ meta });
     meta.apiToken = {
       id: verification.tokenId,
+      ...(verification.type
+        ? {
+            type: verification.type,
+            client: verification.client,
+            externalOrgId: verification.externalOrgId,
+          }
+        : {}),
       name: verification.name,
       scope: verification.scope,
       scopes: verification.scopes || [],
@@ -866,24 +878,35 @@ async function handleOpenAiEmbeddings(req, res) {
 // Static OpenAPI-compatible model catalog for GET /v1/models. Intentionally
 // unauthenticated: OpenWebUI (and similar clients) call model discovery before
 // a user has necessarily supplied a working token, and the catalog is fixed,
-// non-tenant, non-secret metadata — the same shape every caller gets. Actual
+// non-tenant, non-secret metadata. Gateway discovery filters it to the governance model. Actual
 // completions still require a valid Cernion token via handleOpenAiChatCompletions.
 const OPENAI_MODEL_CATALOG = Object.freeze({
   object: 'list',
-  data: [
+  data: [...SUPPORTED_MODELS].map((id) =>
     Object.freeze({
-      id: 'cernion-agent-mvp',
+      id,
       object: 'model',
       created: 1700000000,
       owned_by: 'cernion',
-    }),
-  ],
+    })
+  ),
 });
 
-function handleOpenAiModels(req, res) {
+async function handleOpenAiModels(req, res) {
+  const token = extractRawToken(req);
+  const verification = token?.startsWith('ck_')
+    ? await this.broker.call('token-manager.verify', { token, method: 'GET', path: '/v1/models' })
+    : null;
+  const catalog =
+    verification?.valid && verification.type === 'gateway'
+      ? {
+          ...OPENAI_MODEL_CATALOG,
+          data: OPENAI_MODEL_CATALOG.data.filter((model) => model.id === GOVERNANCE_MODEL),
+        }
+      : OPENAI_MODEL_CATALOG;
   res.setHeader(CONTENT_TYPE_HEADER, CONTENT_TYPE_JSON);
   res.writeHead(200);
-  res.end(JSON.stringify(OPENAI_MODEL_CATALOG));
+  res.end(JSON.stringify(catalog));
 }
 
 function requiresHitlApproverRole(method, requestPath) {
@@ -979,6 +1002,33 @@ function enforceRbacForPath(roles, method, requestPath) {
   }
 }
 
+// Route middleware also covers raw MCP/sidecar handlers, which bypass onBeforeCall.
+// Existing MCP auth and sidecar code remain responsible for every non-gateway token.
+async function restrictGatewayTransport(req, _res, next) {
+  try {
+    if (normalizeRequestPath(req) === '/api/token-manager/createCli') {
+      throw new Errors.MoleculerClientError(
+        'Token provisioning requires the local CLI.',
+        403,
+        'TOKEN_CLI_REQUIRED'
+      );
+    }
+    const token = extractRawToken(req);
+    if (token?.startsWith('ck_')) {
+      const verification = await this.broker.call('token-manager.verify', {
+        token,
+        method: req.method,
+        path: normalizeRequestPath(req),
+        trackUsage: false,
+      });
+      if (verification.reason === 'GATEWAY_TOKEN_FORBIDDEN') gatewayForbidden();
+    }
+    next();
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   name: 'api',
   mixins: [ApiGateway, OpenapiMixin],
@@ -988,7 +1038,7 @@ module.exports = {
 
     ip: '0.0.0.0',
 
-    use: [],
+    use: [restrictGatewayTransport],
 
     // OpenAPI settings
     openapi: {
@@ -2749,6 +2799,7 @@ module.exports = {
               });
 
               if (!verification?.valid) {
+                if (verification?.reason === 'GATEWAY_TOKEN_FORBIDDEN') gatewayForbidden();
                 if (verification?.reason === 'SCOPE_VIOLATION') {
                   throw new Errors.MoleculerClientError(
                     'Scope violation: read-only token cannot call this endpoint.',
@@ -2788,7 +2839,7 @@ module.exports = {
                 );
               }
 
-              const roles = mapRolesFromLegacyToken(verification.scope, verification.scopes);
+              const roles = rolesFromToken(verification);
               enforceRbacForPath(roles, req?.method, requestPath);
               addLegacyTokenDeprecationHeaders(ctx);
 

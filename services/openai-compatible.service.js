@@ -11,15 +11,8 @@ const {
   renderWorkbenchResponse,
 } = require('../src/workbench-intent-router');
 
-const FACADE_MODEL = 'cernion-agent-mvp';
-const GOVERNANCE_MODEL = 'cernion-governance-assistant';
-const SUPPORTED_MODELS = new Set([
-  FACADE_MODEL,
-  GOVERNANCE_MODEL,
-  'cernion-agent',
-  'gpt-4o-mini',
-  'gpt-4o',
-]);
+const { FACADE_MODEL, GOVERNANCE_MODEL, SUPPORTED_MODELS } = require('../src/openai-models');
+const { gatewayForbidden } = require('../src/auth/token-policy');
 const FACADE_IMAGE_MODEL = 'cernion-image-mvp';
 const MAX_IMAGE_COUNT = 4;
 const MAX_IMAGE_PROMPT_LENGTH = 4000;
@@ -450,9 +443,11 @@ module.exports = {
         // responsible for re-framing that object as buffered SSE chunks when the
         // caller requested stream=true — this action must stay transport-agnostic.
         const requestedModel = String(ctx.params.model || FACADE_MODEL).trim() || FACADE_MODEL;
+        const gateway = ctx.meta.apiToken?.type === 'gateway';
+        if (gateway && requestedModel !== GOVERNANCE_MODEL) gatewayForbidden();
         if (!SUPPORTED_MODELS.has(requestedModel)) {
           throw openAiError(
-            `Unsupported model '${requestedModel}'. Use '${FACADE_MODEL}'.`,
+            `Unsupported model '${requestedModel}'. Use '${FACADE_MODEL}' or '${GOVERNANCE_MODEL}'.`,
             400,
             'model_not_supported'
           );
@@ -461,7 +456,43 @@ module.exports = {
         const messages = normalizeMessages(ctx.params.messages);
         const tools = normalizeTools(ctx.params.tools);
         const metadata =
-          ctx.params.metadata && typeof ctx.params.metadata === 'object' ? ctx.params.metadata : {};
+          ctx.params.metadata && typeof ctx.params.metadata === 'object'
+            ? { ...ctx.params.metadata }
+            : {};
+        if (gateway) {
+          if (metadata.client && metadata.client !== ctx.meta.apiToken.client) gatewayForbidden();
+          metadata.client = ctx.meta.apiToken.client;
+          const tokenOrg = ctx.meta.apiToken.externalOrgId;
+          if (tokenOrg) {
+            if (metadata.openWebuiOrgId != null && metadata.openWebuiOrgId !== tokenOrg)
+              gatewayForbidden();
+            metadata.openWebuiOrgId = tokenOrg;
+          } else {
+            ctx.broker?.logger?.warn(
+              'Legacy gateway token without organization: metadata.openWebuiOrgId is required.'
+            );
+          }
+          const headers = ctx.meta.requestHeaders || {};
+          metadata.openWebuiUserId ??= headers['x-openwebui-user-id'];
+          metadata.openWebuiUserEmail = headers['x-openwebui-user-email'];
+          metadata.openWebuiConversationId ??=
+            metadata.conversationId ?? headers['x-openwebui-chat-id'];
+          if (
+            (!metadata.openWebuiUserId && !metadata.openWebuiUserEmail) ||
+            !metadata.openWebuiOrgId
+          ) {
+            throw openAiError(
+              'Für diesen Nutzer ist noch kein Zugang eingerichtet. Bitte wenden Sie sich an Ihre Administration.',
+              403,
+              'WORKBENCH_MAPPING_REQUIRED'
+            );
+          }
+        } else {
+          // Caller metadata/forwarded headers are never delegated identity without a gateway token.
+          delete metadata.openWebuiUserId;
+          delete metadata.openWebuiOrgId;
+          delete metadata.openWebuiUserEmail;
+        }
 
         if (requestedModel === GOVERNANCE_MODEL) {
           const latestUserIndex = findLatestUserMessageIndex(messages);
@@ -483,6 +514,9 @@ module.exports = {
               channel: 'open-webui',
               openWebuiConversationId: metadata.openWebuiConversationId || metadata.conversationId,
               openWebuiUserId: metadata.openWebuiUserId,
+              ...(metadata.openWebuiUserEmail
+                ? { openWebuiUserEmail: metadata.openWebuiUserEmail }
+                : {}),
               openWebuiOrgId: metadata.openWebuiOrgId,
               clientId: metadata.clientId,
               knownContext: metadata.context,

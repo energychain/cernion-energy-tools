@@ -2,6 +2,7 @@
 
 const { randomBytes } = require('node:crypto');
 const { Errors } = require('moleculer');
+const { normalizeMappingEmail } = require('./workbench-identity');
 
 const now = () => new Date().toISOString();
 const randomSuffix = () => randomBytes(4).toString('hex');
@@ -225,7 +226,10 @@ class WorkbenchStore {
   }
 
   async saveUserMapping(input) {
-    const _id = identityId(input.client, input.externalOrgId, input.externalUserId);
+    const email = normalizeMappingEmail(input.externalUserEmail);
+    const _id = input.externalUserId
+      ? identityId(input.client, input.externalOrgId, input.externalUserId)
+      : key('identity-email', input.client, input.externalOrgId, email);
     let existing = null;
     try {
       existing = await this.identityDb.get(_id);
@@ -238,7 +242,8 @@ class WorkbenchStore {
       type: 'workbench_user_mapping',
       client: input.client,
       externalOrgId: input.externalOrgId,
-      externalUserId: input.externalUserId,
+      externalUserId: input.externalUserId || null,
+      ...(email ? { externalUserEmail: email } : {}),
       cetTenantId: input.cetTenantId,
       cetActorId: input.cetActorId,
       roles: [...new Set(input.roles || [])],
@@ -250,6 +255,21 @@ class WorkbenchStore {
     });
     const saved = await this.identityDb.put(doc);
     return { ...doc, _rev: saved.rev };
+  }
+
+  async getUserMappingByEmail(input) {
+    const email = normalizeMappingEmail(input.externalUserEmail);
+    if (!email) return null;
+    try {
+      const doc = await this.identityDb.get(
+        key('identity-email', input.client, input.externalOrgId, email)
+      );
+      if (doc.enabled === false) disabled('User mapping disabled');
+      return doc;
+    } catch (error) {
+      if (error.status === 404) return null;
+      throw error;
+    }
   }
 
   async getUserMapping(input, { optional = false } = {}) {

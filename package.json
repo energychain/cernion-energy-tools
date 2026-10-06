@@ -48,6 +48,7 @@
     "tenant:create": "node scripts/provision-tenant.js",
     "user:create": "node scripts/provision-user.js",
     "token:create": "node scripts/provision-token.js",
+    "workbench:map": "node scripts/provision-workbench-mapping.js",
     "verify:agent-shapes": "node scripts/verify-agent-shapes.js",
     "verify:agent-shapes:curl": "bash scripts/verify-agent-shapes-curl.sh",
     "verify:open-webui": "node integrations/open-webui/smoke-test.js",

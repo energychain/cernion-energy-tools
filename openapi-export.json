@@ -71285,7 +71285,12 @@
                   },
                   "externalUserId": {
                     "type": "string",
-                    "description": "Open WebUI user id"
+                    "description": "Open WebUI user id; alternative to externalUserEmail"
+                  },
+                  "externalUserEmail": {
+                    "type": "string",
+                    "description": "Exact normalized Open WebUI email; alternative to externalUserId",
+                    "format": "email"
                   },
                   "openWebuiOrgId": {
                     "type": "string",

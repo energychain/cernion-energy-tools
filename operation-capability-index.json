@@ -2,7 +2,7 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.99.22",
-  "sourceOpenApiHash": "a56110dd0050d53c5d4fa26d12d3f818da9f498506dd829e8677db2d60f29a43",
+  "sourceOpenApiHash": "5ff679f83364526376891388aa69f92df614fc3fc5416323030791bd05ee4a9f",
   "coverage": {
     "rawOperationCount": 1244,
     "operationCount": 988,
@@ -87994,7 +87994,14 @@
             "name": "externalUserId",
             "in": "body",
             "type": "string",
-            "description": "Open WebUI user id",
+            "description": "Open WebUI user id; alternative to externalUserEmail",
+            "extractionHint": null
+          },
+          {
+            "name": "externalUserEmail",
+            "in": "body",
+            "type": "string",
+            "description": "Exact normalized Open WebUI email; alternative to externalUserId",
             "extractionHint": null
           },
           {
