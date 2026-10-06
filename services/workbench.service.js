@@ -7,6 +7,7 @@ const coverageTurn = require('../src/function-coverage-turn');
 const { classifyWorkbenchIntent } = require('../src/workbench-intent-router');
 const { Errors } = require('moleculer');
 const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
+const { gatewayForbidden, validateRoles } = require('../src/auth/token-policy');
 const { principal, deny } = require('../src/domain-router-policy');
 const { WorkbenchStore } = require('../src/workbench-store');
 const {
@@ -109,7 +110,18 @@ function workbenchError(message, code = 'WORKBENCH_POLICY_BLOCKED', data = {}) {
 module.exports = {
   name: 'workbench',
   hooks: {
-    before: { chat: coverageTurn.before, query: coverageTurn.before },
+    before: {
+      '*': function gatewayBoundary(ctx) {
+        if (
+          ctx.meta.apiToken?.type === 'gateway' &&
+          (!['workbench.chat', 'workbench.query'].includes(ctx.action.name) ||
+            ctx.options.parentCtx?.action?.name !== 'openai-compatible.chatCompletions')
+        )
+          gatewayForbidden();
+      },
+      chat: coverageTurn.before,
+      query: coverageTurn.before,
+    },
     after: { chat: coverageTurn.after, query: coverageTurn.after },
     error: { chat: coverageTurn.error, query: coverageTurn.error },
   },
@@ -660,7 +672,9 @@ module.exports = {
       async function (ctx) {
         const p = this.requireAdmin(ctx);
         const client = normalizeClient(ctx.params.client || 'open-webui');
-        const roles = Array.isArray(ctx.params.roles) ? ctx.params.roles : p.roles;
+        const roles = validateRoles(Array.isArray(ctx.params.roles) ? ctx.params.roles : p.roles, {
+          support: p.roles.some((r) => ['ROLE_ADMIN', 'ROLE_UTILITY_HQ'].includes(r)),
+        });
         const externalOrgId = cleanString(
           ctx.params.externalOrgId || ctx.params.openWebuiOrgId,
           'externalOrgId',
@@ -696,7 +710,9 @@ module.exports = {
             }
           ),
           roles,
-          sensitivityClearance: ctx.params.sensitivityClearance || p.clearance || [],
+          sensitivityClearance: this.validateMappingClearance(
+            ctx.params.sensitivityClearance || p.clearance || []
+          ),
           defaultClientId: cleanString(ctx.params.defaultClientId, 'defaultClientId'),
           enabled: ctx.params.enabled !== false,
         });
@@ -1351,9 +1367,8 @@ module.exports = {
         },
       },
       async handler(ctx) {
-        const p = principal(ctx, ctx.params);
         const envelope = normalizeTaskEnvelope(ctx.params);
-        const mapping = await this.resolveUserMapping(ctx, p, envelope);
+        const { p, mapping } = await this.resolveTurnPrincipal(ctx, envelope);
         const meta = this.metaForMapping(ctx, p, mapping);
         coverageTurn.mapped(ctx, meta);
         if (ctx.params.intentMode === 'system_activity_query') {
@@ -1420,9 +1435,8 @@ module.exports = {
       'POST /chat',
       'Run a CET-led Workbench chat turn: classify new conversations, continue mapped cases',
       async function (ctx) {
-        const p = principal(ctx, ctx.params);
         const envelope = normalizeTaskEnvelope(ctx.params);
-        const mapping = await this.resolveUserMapping(ctx, p, envelope);
+        const { p, mapping } = await this.resolveTurnPrincipal(ctx, envelope);
         coverageTurn.mapped(ctx, this.metaForMapping(ctx, p, mapping));
         const correctionMeta = this.metaForMapping(ctx, p, mapping);
         const correctionResult = await handleCorrectionTurn(
@@ -1800,7 +1814,88 @@ module.exports = {
         routingSignals: playbooks.flatMap((playbook) => playbook.routingSignals || []).slice(0, 30),
       };
     },
+    validateMappingClearance(values) {
+      if (
+        !Array.isArray(values) ||
+        values.some(
+          (value) =>
+            !['public', 'tenant_internal', 'restricted', 'highly_sensitive'].includes(value)
+        )
+      ) {
+        throw new Errors.MoleculerClientError(
+          'Unsupported sensitivity clearance',
+          422,
+          'WORKBENCH_CONTRACT_INVALID'
+        );
+      }
+      return [...new Set(values)];
+    },
+    async resolveTurnPrincipal(ctx, envelope) {
+      const gateway = ctx.meta.apiToken?.type === 'gateway';
+      const token = ctx.meta.apiToken;
+      if (!gateway) {
+        const p = principal(ctx, ctx.params);
+        if (ctx.meta.authUser?.authType === 'legacy-token') {
+          // A normal HTTP API token always acts as itself, including on direct Workbench routes.
+          delete envelope.openWebuiUserId;
+          delete envelope.openWebuiOrgId;
+          return { p, mapping: null };
+        }
+        return { p, mapping: await this.resolveUserMapping(ctx, p, envelope) };
+      }
+      if (
+        envelope.channel !== token.client ||
+        !envelope.openWebuiUserId ||
+        !envelope.openWebuiOrgId ||
+        !token.tenantId
+      )
+        gatewayForbidden();
+      // Only the token's tenant may select the mapping. No token roles enter principal().
+      const mapping = await this.resolveUserMapping(ctx, { tenantId: token.tenantId }, envelope);
+      const meta = this.metaForMapping(ctx, { tenantId: token.tenantId }, mapping);
+      const p = principal({ meta }, ctx.params);
+      // Persist before executing the delegated operation; an audit failure fails closed.
+      await this.identityDb.put({
+        _id: `gateway-delegation:${crypto.randomUUID()}`,
+        type: 'workbench_gateway_delegation',
+        tokenId: token.id,
+        client: token.client,
+        externalUserId: envelope.openWebuiUserId,
+        cetActorId: mapping.cetActorId,
+        tenantId: token.tenantId,
+        createdAt: new Date().toISOString(),
+      });
+      return { p, mapping };
+    },
     metaForMapping(ctx, p, mapping) {
+      if (ctx.meta.apiToken?.type === 'gateway') {
+        // Replace the transport principal entirely, including scopes/groups/global meta roles.
+        return {
+          tenantId: p.tenantId,
+          workbenchMappedActor: mapping.cetActorId,
+          sharedServiceNoticesStructured: ctx.meta.sharedServiceNoticesStructured,
+          sharedServiceNoticesDefer: ctx.meta.sharedServiceNoticesDefer,
+          authUser: {
+            authType: 'workbench-mapping',
+            // Mapped people can perform contextual reads; never inherit transport full-access.
+            scope: 'read-only',
+            tenantId: p.tenantId,
+            id: mapping.cetActorId,
+            userId: mapping.cetActorId,
+            roles: mapping.roles || [],
+            sensitivityFlags: mapping.sensitivityClearance || [],
+          },
+          apiToken: {
+            type: 'delegated-person',
+            tenantId: p.tenantId,
+            id: mapping.cetActorId,
+            userId: mapping.cetActorId,
+            roles: mapping.roles || [],
+            scopes: [],
+            sensitivityFlags: mapping.sensitivityClearance || [],
+          },
+        };
+      }
       return {
         ...ctx.meta,
         ...(mapping
@@ -1841,7 +1936,7 @@ module.exports = {
       );
       if (!tenantMapping) {
         throw new Errors.MoleculerClientError(
-          'Workbench tenant mapping required',
+          'Für diese Organisation ist noch kein Zugang eingerichtet. Bitte wenden Sie sich an Ihre Administration.',
           403,
           'WORKBENCH_TENANT_MAPPING_REQUIRED'
         );
@@ -1857,7 +1952,7 @@ module.exports = {
       );
       if (!mapping) {
         throw new Errors.MoleculerClientError(
-          'Workbench identity mapping required',
+          'Für diesen Nutzer ist noch kein Zugang eingerichtet. Bitte wenden Sie sich an Ihre Administration.',
           403,
           'WORKBENCH_MAPPING_REQUIRED'
         );

@@ -325,3 +325,92 @@ control, HITL resolution, deployment, external messaging, webhooks, signatures, 
 approval, tenant mutations, or direct database paths. The Process Intake adapter's only permitted
 upstream call is `POST <CERNION_BASE_URL>/api/copilot-process/intents`, and it never decides
 policy itself — only Cernion and a human reviewer do.
+
+## Inbetriebnahme in vier Schritten (Gateway-Tokens, Issue #736)
+
+Die lokalen Provisionierungs-CLIs verwenden weiterhin den vorhandenen Bootstrap-Schutz:
+`CERNION_SUPPORT_TOKEN` muss konfiguriert sein und der passende Wert über
+`CERNION_SUPPORT_TOKEN_INPUT` oder `--support-token` vorliegen. Der Schlüssel gehört auf den
+CET-Server, nicht in Open WebUI. Alle Befehle im CET-Projektverzeichnis ausführen.
+
+1. **Gateway-Token erzeugen.**
+
+   ```bash
+   npm run token:create -- --tenant=stadtwerk-a --user=svc:open-webui --name=OpenWebUI --gateway --client=open-webui
+   ```
+
+   Den einmalig ausgegebenen `data.token` sicher speichern. Der Datensatz trägt
+   `type: 'gateway'`, `client: 'open-webui'` und `tenantId`, aber keine eigenen Rollen oder
+   Zusatz-Scopes. `--gateway` und `--roles` schließen sich aus.
+
+2. **Jeden Nutzer zuordnen und kontrollieren.**
+
+   ```bash
+   npm run workbench:map -- --tenant=stadtwerk-a --client=open-webui --org=owui-org-1 --user=owui-user-1 --actor=cet-user-1 --roles=ROLE_USER --clearance=tenant_internal
+   npm run workbench:map -- --tenant=stadtwerk-a --client=open-webui --list
+   ```
+
+   Die CLI legt Organisations- und Nutzer-Mapping über dieselben Admin-Actions und
+   Validierungen wie die REST-API an. `--clearance` ist optional; ohne Angabe ist die
+   Clearance leer. `--list` zeigt ausschließlich Mappings des angegebenen Mandanten/Clients.
+
+3. **Open WebUI verbinden.**
+
+   OpenAI-kompatible Verbindung auf `https://<cet-host>/v1` setzen, als API-Schlüssel den
+   Gateway-Token verwenden und `cernion-governance-assistant` als Standardmodell wählen.
+   In Open WebUI `ENABLE_FORWARD_USER_INFO_HEADERS=true` setzen. Die Integration muss
+   `metadata.openWebuiOrgId: "owui-org-1"` mitliefern: Open WebUI leitet keine Organisations-ID
+   über die beiden unten genannten Header weiter. Die bestehenden Metadata-Beispiele in
+   diesem Dokument bleiben dafür verwendbar.
+
+   CET akzeptiert `X-OpenWebUI-User-Id` und `X-OpenWebUI-Chat-Id` als Fallback; explizite
+   `metadata.openWebuiUserId` und `metadata.openWebuiConversationId` bzw. `conversationId`
+   haben Vorrang. Identitäts-Header und Nutzer-/Organisations-Metadata werden bei normalen
+   API-Tokens nicht zur Delegation verwendet. Rollen-Header werden immer ignoriert.
+   Die offiziellen Namen und die Schalterwirkung sind in der
+   [Open-WebUI-Dokumentation](https://docs.openwebui.com/reference/env-configuration/#enable_forward_user_info_headers)
+   beschrieben.
+
+   Der Gateway-Token erlaubt ausschließlich `POST /v1/chat/completions` mit diesem Modell
+   und die daraus entstehenden internen Workbench-Chat/Query-Aufrufe. Direkte Workbench-,
+   Admin-, Notices-, Domain-Router-, MCP- und Sidecar-Aufrufe sowie andere Modelle erhalten
+   403. Die öffentliche Modellliste bleibt ohne Authentifizierung unter `/v1/models`
+   abrufbar; ein mitgesendeter Gateway-Token wird auch dort abgewiesen. Den Governance-
+   Modellnamen daher bei der Verbindung explizit konfigurieren.
+
+4. **Smoke-Test ausführen.**
+
+   ```bash
+   # GATEWAY_TOKEN enthält den zuvor einmalig ausgegebenen data.token.
+   curl --fail-with-body https://<cet-host>/v1/chat/completions \
+     -H "Authorization: Bearer $GATEWAY_TOKEN" \
+     -H 'Content-Type: application/json' \
+     -H 'X-OpenWebUI-User-Id: owui-user-1' \
+     -H 'X-OpenWebUI-Chat-Id: smoke-736' \
+     -d '{"model":"cernion-governance-assistant","messages":[{"role":"user","content":"Starte einen Fall: Netzanschluss für einen Batteriespeicher prüfen."}],"metadata":{"openWebuiOrgId":"owui-org-1"}}'
+   ```
+
+   Erwartet: HTTP 200, OpenAI-kompatible `choices` und CET-Metadata. Ein unbekannter Nutzer,
+   deaktiviertes Mapping oder fremder Mandant erhält 403. Bei fehlender Zuordnung enthält
+   die Antwort einen verständlichen Hinweis, sich an die Administration zu wenden.
+
+### Normale API-Tokens und Support-Rollen
+
+```bash
+npm run token:create -- --tenant=stadtwerk-a --user=admin --name=TenantAdmin --roles=ROLE_USER,ROLE_TENANT_ADMIN
+npm run token:create -- --tenant=stadtwerk-a --user=support --name=Support --roles=ROLE_ADMIN,ROLE_UTILITY_HQ --support
+```
+
+Die Rollen-Allowlist liegt zentral in `src/auth/token-policy.js`. Nicht erlaubte Rollen
+werden mit 422 abgewiesen. `ROLE_ADMIN` und die mandantenübergreifende `ROLE_UTILITY_HQ`
+setzen zusätzlich `--support` voraus. Support-Ausstellungen werden ohne Tokengeheimnis in
+`TOKEN_ROLE_AUDIT_FILE` (Standard: `uploads/.token-role-audit.jsonl`) auditiert. Bestehende
+Token-Datensätze erhalten keine neuen Rollen und behalten ihre bisherigen Scopes.
+
+Jede erfolgreiche Gateway-Delegation schreibt vor der Ausführung einen dauerhaften
+`workbench_gateway_delegation`-Datensatz in die Workbench-Identitätsdatenbank: Token-ID,
+Client, externe Nutzer-ID, CET-Akteur, Mandant und Zeitstempel; keine Gesprächsinhalte.
+Akteur, Rollen und Clearance stammen ausschließlich aus dem Mapping. Die interne
+Personenprojektion ist auf kontextuelle Lesezugriffe begrenzt (`read-only`); sie erbt
+keinen `full-access`-Scope vom Verbindungsschlüssel. Fachliche Rechte und No-Call-Guards
+werden weiterhin von CET geprüft. Fehler beim Mapping oder Audit bleiben fail-closed.

@@ -345,7 +345,9 @@ describe('OpenAI Compatible Service', () => {
           clientId: 'openwebui-tenant-a',
         },
       },
-      meta: { apiToken: { tenantId: 'tenant-a', id: 'actor-a', roles: ['ROLE_EDM'] } },
+      meta: {
+        apiToken: { tenantId: 'tenant-a', id: 'gateway-a', type: 'gateway', client: 'open-webui' },
+      },
       call: jest.fn().mockResolvedValue({
         cetCaseId: 'case-1',
         caseStateVersion: 2,
@@ -365,6 +367,7 @@ describe('OpenAI Compatible Service', () => {
       openWebuiUserId: 'ow-user',
       openWebuiOrgId: 'ow-org',
       clientId: 'openwebui-tenant-a',
+      knownContext: undefined,
       message: 'MSCONS fehlt, was ist der nächste sichere Schritt?',
       requestId: undefined,
       correlationId: undefined,
@@ -822,7 +825,9 @@ describe('OpenAI governance intent modes', () => {
           intentMode: 'tool_run_request',
         },
       },
-      meta: { apiToken: { tenantId: 'tenant-a', id: 'actor-a', roles: ['ROLE_EDM'] } },
+      meta: {
+        apiToken: { tenantId: 'tenant-a', id: 'gateway-a', type: 'gateway', client: 'open-webui' },
+      },
       call: jest.fn().mockResolvedValue({
         responseText: policy,
         cetCaseId: 'case-1',

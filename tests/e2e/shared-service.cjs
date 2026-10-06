@@ -57,20 +57,23 @@ broker.localBus.on('$broker.error', (event) => {
 });
 const tenantId = 'e2e-tenant';
 const actor = (id) => (['alice', 'bob'].includes(id) ? `cet-${id}` : id);
-const auth = (id, roles = ['ROLE_USER']) => ({
-  authUser: { tenantId, id: actor(id), roles, scope: 'read-only' },
-});
-const serviceMeta = {
-  apiToken: {
-    tenantId,
-    id: 'svc-openwebui',
-    actorType: 'service',
-    scope: 'agentos-session',
-    scopes: ['read-only'],
-    roles: ['ROLE_USER'],
-  },
-};
-const admin = auth('admin', ['ROLE_TENANT_ADMIN']);
+const { provisionToken } = require(path.join(root, 'scripts/provision-token'));
+const { rolesFromToken } = require(path.join(root, 'src/auth/token-policy'));
+let admin;
+let gatewayToken;
+let adminToken;
+let baseUrl;
+const people = new Map();
+const auth = (id) => people.get(id) || admin;
+async function http(route, token, body, headers = {}, method = body ? 'POST' : 'GET') {
+  const response = await fetch(`${baseUrl}${route}`, {
+    method,
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...headers },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  });
+  const result = await response.json();
+  return { status: response.status, result };
+}
 const model = structuredClone(require(path.join(root, 'function-model.json')));
 const catalog = require(path.join(root, 'signal-catalog.json'));
 const index = require(path.join(root, 'operation-capability-index.json'));
@@ -93,21 +96,18 @@ const turns = [];
 const call = (name, params, meta = admin) =>
   broker.call(name, params, { meta: structuredClone(meta) });
 const turn = async (person, message, extra = {}) => {
-  const response = await call(
-    'openai-compatible.chatCompletions',
-    {
-      model: 'cernion-governance-assistant',
-      messages: [{ role: 'user', content: message }],
-      metadata: {
-        openWebuiUserId: person,
-        openWebuiOrgId: 'org',
-        openWebuiConversationId: `conversation-${person}`,
-        requestId: `turn-${++sequence}`,
-        ...extra,
-      },
+  const { status, result: response } = await http('/v1/chat/completions', gatewayToken, {
+    model: 'cernion-governance-assistant',
+    messages: [{ role: 'user', content: message }],
+    metadata: {
+      openWebuiUserId: person,
+      openWebuiOrgId: 'org',
+      openWebuiConversationId: `conversation-${person}`,
+      requestId: `turn-${++sequence}`,
+      ...extra,
     },
-    serviceMeta
-  );
+  });
+  assert.equal(status, 200, JSON.stringify(response));
   await settle();
   turns.push({
     person,
@@ -161,11 +161,7 @@ async function main() {
     if (!fs.existsSync(dir)) continue;
     for (const file of fs
       .readdirSync(dir)
-      .filter(
-        (name) =>
-          name.endsWith('.service.js') &&
-          !['api.service.js', 'mqtt-broker.service.js'].includes(name)
-      )) {
+      .filter((name) => name.endsWith('.service.js') && name !== 'mqtt-broker.service.js')) {
       const schema = require(path.join(dir, file));
       if (typeof schema === 'function') {
         broker.loadService(path.join(dir, file));
@@ -176,6 +172,7 @@ async function main() {
         ['function-coverage', 'activation', 'shared-service-agent', 'notices'].includes(schema.name)
       )
         settings.model = model;
+      if (schema.name === 'api') settings.port = 0;
       if (schema.name === 'workbench') settings.systemActivityModel = model;
       if (schema.name === 'journal') settings.functionModel = () => model;
       if (schema.name === 'activation') settings.sweepIntervalMs = 0;
@@ -202,23 +199,108 @@ async function main() {
     };
   }
   await broker.start();
-  console.log(`Started ${broker.services.length} services; excluded api and mqtt-broker.`);
-  // External retrieval has no bearing on this contract; no credentials/network.
+  const api = broker.getLocalService('api');
+  for (const route of api.routes.filter((entry) => entry.opts.autoAliases))
+    api.regenerateAutoAliases(route);
+  baseUrl = `http://127.0.0.1:${broker.getLocalService('api').server.address().port}`;
+  console.log(`Started ${broker.services.length} services including HTTP API on a free port.`);
+  // Same provisioning functions and checks as npm run token:create; real stored hashes.
+  process.env.CERNION_SUPPORT_TOKEN = 'isolated-e2e-bootstrap';
+  process.env.CERNION_SUPPORT_TOKEN_INPUT = process.env.CERNION_SUPPORT_TOKEN;
+  const create = (args) =>
+    provisionToken({ tenant: tenantId, user: 'svc-openwebui', name: 'E2E', ...args }, broker);
+  gatewayToken = (await create({ gateway: true, client: 'open-webui' })).data.token;
+  adminToken = (await create({ user: 'admin', roles: 'ROLE_USER,ROLE_TENANT_ADMIN' })).data.token;
+  const verified = await broker.call('token-manager.verify', { token: adminToken });
+  admin = {
+    authUser: {
+      tenantId: verified.tenantId,
+      userId: verified.userId,
+      roles: rolesFromToken(verified),
+    },
+  };
   const router = broker.getLocalService('domain-router');
   router.knowledgeHints = async () => [];
-  await call('workbench.admin.tenantMappings.create', {
+  let saved = await http('/api/workbench/admin/tenant-mappings', adminToken, {
     client: 'open-webui',
     externalOrgId: 'org',
     cetTenantId: tenantId,
   });
-  for (const person of ['alice', 'bob'])
-    await call('workbench.admin.userMappings.create', {
+  assert.equal(saved.status, 200, JSON.stringify(saved.result));
+  for (const person of ['alice', 'bob']) {
+    saved = await http('/api/workbench/admin/user-mappings', adminToken, {
       client: 'open-webui',
       externalOrgId: 'org',
       externalUserId: person,
       cetActorId: actor(person),
       roles: ['ROLE_USER'],
     });
+    assert.equal(saved.status, 200, JSON.stringify(saved.result));
+    // Diagnostic reads use the stored mapped identity. Turns themselves always use HTTP.
+    people.set(
+      person,
+      broker
+        .getLocalService('workbench')
+        .metaForMapping(
+          { meta: { apiToken: { type: 'gateway' } } },
+          { tenantId },
+          saved.result.mapping
+        )
+    );
+  }
+  const completion = {
+    model: 'cernion-governance-assistant',
+    messages: [{ role: 'user', content: 'Eine unklare Nachricht' }],
+    metadata: { openWebuiOrgId: 'org', openWebuiUserId: 'missing', conversationId: 'negative' },
+  };
+  assert.equal((await http('/v1/chat/completions', gatewayToken, completion)).status, 403);
+  for (const route of [
+    '/api/workbench/admin/tenant-mappings',
+    '/api/workbench/chat',
+    '/api/domain-router/classify',
+    '/api/notices/',
+    '/api/chatgpt-sidecar/sessions',
+    '/api/mcp',
+    '/v1/models',
+    '/api/tokens',
+  ]) {
+    assert.equal((await http(route, gatewayToken, {})).status, 403, route);
+  }
+  assert.equal(
+    (
+      await http('/v1/chat/completions', gatewayToken, {
+        ...completion,
+        model: 'cernion-agent-mvp',
+      })
+    ).status,
+    403
+  );
+  const otherToken = (await create({ tenant: 'other-e2e', gateway: true, client: 'open-webui' }))
+    .data.token;
+  assert.equal(
+    (
+      await http('/v1/chat/completions', otherToken, {
+        ...completion,
+        metadata: { ...completion.metadata, openWebuiUserId: 'alice' },
+      })
+    ).status,
+    403
+  );
+  const headers = { 'X-OpenWebUI-User-Id': 'alice', 'X-OpenWebUI-Chat-Id': 'header-chat' };
+  const headerTurn = await http(
+    '/v1/chat/completions',
+    gatewayToken,
+    {
+      ...completion,
+      metadata: { openWebuiOrgId: 'org' },
+    },
+    headers
+  );
+  assert.equal(headerTurn.status, 200, JSON.stringify(headerTurn.result));
+  // Admin token ignores header and metadata identities: no missing-user mapping lookup.
+  const withoutGateway = await http('/v1/chat/completions', adminToken, completion, headers);
+  assert.equal(withoutGateway.status, 200, JSON.stringify(withoutGateway.result));
+  console.log('HTTP gateway negative cases PASS');
   const started = await turn(
     'alice',
     'Starte bitte einen Fall: Netzanschlussanfrage für einen 2-MW-Batteriespeicher am Umspannwerk Nord prüfen.'
@@ -505,18 +587,23 @@ async function main() {
   ])
     await turn('alice', message, { openWebuiConversationId: `unclear-${sequence}` });
   assert.equal((await router.db.allDocs()).total_rows, countBefore);
-  const beforeUnmapped = broker.getLocalService('function-coverage').unmappedServiceTurns;
-  await call(
-    'openai-compatible.chatCompletions',
-    {
-      model: 'cernion-governance-assistant',
-      messages: [{ role: 'user', content: 'Eine unklare Nachricht' }],
-      metadata: { conversationId: 'unmapped' },
-    },
-    serviceMeta
+  assert.equal(
+    (
+      await http('/v1/chat/completions', gatewayToken, {
+        model: 'cernion-governance-assistant',
+        messages: [{ role: 'user', content: 'Eine unklare Nachricht' }],
+        metadata: { conversationId: 'unmapped' },
+      })
+    ).status,
+    403
   );
-  await settle();
-  assert(broker.getLocalService('function-coverage').unmappedServiceTurns > beforeUnmapped);
+  const delegationAudits = (
+    await broker.getLocalService('workbench').identityDb.allDocs({ include_docs: true })
+  ).rows
+    .map((entry) => entry.doc)
+    .filter((doc) => doc.type === 'workbench_gateway_delegation');
+  assert(delegationAudits.some((entry) => entry.cetActorId === actor('alice')));
+  assert(delegationAudits.every((entry) => !entry.message && !entry.content));
   assert.equal(
     (await call('function-coverage.byActor', { tenantId, actorId: 'svc-openwebui' })).items.length,
     0

@@ -1614,9 +1614,12 @@ describe('API Gateway Service', () => {
       expect(res.headers['Content-Type']).toBe('application/json; charset=utf-8');
       const body = JSON.parse(res.writes[0]);
       expect(body.object).toBe('list');
-      expect(body.data).toEqual([
-        expect.objectContaining({ id: 'cernion-agent-mvp', object: 'model', owned_by: 'cernion' }),
+      expect(body.data.map((entry) => entry.id)).toEqual([
+        ...require('../src/openai-models').SUPPORTED_MODELS,
       ]);
+      expect(body.data.map((entry) => entry.id)).toEqual(
+        expect.arrayContaining(['cernion-agent-mvp', 'cernion-governance-assistant'])
+      );
       // No tenant data or credentials in the static discovery catalog.
       const serialized = JSON.stringify(body);
       expect(serialized).not.toMatch(/tenant|token|secret|apiKey|api_key/i);

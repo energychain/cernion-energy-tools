@@ -1529,7 +1529,7 @@ describe('Workbench RC3 Open WebUI Tenant Gateway', () => {
         clientId: 'openwebui-tenant-a',
         message: 'Starte einen Fall: MSCONS fehlt',
       })
-    ).rejects.toThrow(/tenant mapping required|WORKBENCH_TENANT_MAPPING_REQUIRED/iu);
+    ).rejects.toThrow(/Organisation.*Zugang eingerichtet/iu);
   });
 
   test('case summary, conversation resolve and UI-safe events do not expose raw payloads', async () => {
