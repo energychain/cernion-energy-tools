@@ -1,0 +1,81 @@
+{
+  "question": "Mail eines Lieferanten an einen Netzbetreiber: Überfällige Antwort auf Netzanmeldung, Marktlokation 99000000001, Frist überschritten. Kannst du mir helfen?",
+  "results": [
+    {
+      "source": "knowledge-rag",
+      "status": "available",
+      "query": "Mail eines Lieferanten an einen Netzbetreiber: Überfällige Antwort auf Netzanmeldung, Marktlokation 99000000001, Frist überschritten. Kannst du mir helfen?",
+      "hits": [
+        {
+          "source": "knowledge-rag",
+          "value": "Windturbinen: Wartung von Rotorblättern · Score: 0.580",
+          "metadata": {
+            "hitId": "unrelated",
+            "timestamp": null,
+            "documentType": null,
+            "score": 0.58
+          }
+        }
+      ],
+      "trace": {
+        "hitCount": 1
+      }
+    },
+    {
+      "source": "willi-mako",
+      "status": "skipped",
+      "hits": [],
+      "trace": {
+        "hitCount": 0
+      }
+    },
+    {
+      "source": "datapoint",
+      "status": "missing",
+      "hits": [],
+      "trace": {
+        "scannedCount": 0,
+        "hitCount": 0
+      }
+    },
+    {
+      "source": "analysis-planner",
+      "status": "skipped",
+      "hits": []
+    }
+  ],
+  "calls": [
+    "knowledge-rag.query",
+    "datapoint.list",
+    "willi-mako.resolveStructure"
+  ],
+  "edifactControl": {
+    "source": "willi-mako",
+    "status": "available",
+    "hits": [
+      {
+        "source": "willi-mako",
+        "value": "Netzanmeldung klären · URL: https://example.invalid/knowledge/1",
+        "metadata": {
+          "sourceId": "document-1",
+          "score": 0.91
+        }
+      },
+      {
+        "source": "willi-mako",
+        "value": "Netzanmeldung klären · URL: https://example.invalid/knowledge/1",
+        "metadata": {
+          "sourceId": "document-1",
+          "score": 0.91
+        }
+      }
+    ],
+    "noCallBoundaries": [
+      "No dispatch"
+    ],
+    "trace": {
+      "hitCount": 2,
+      "confidence": "none"
+    }
+  }
+}
