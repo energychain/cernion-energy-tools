@@ -466,6 +466,10 @@
     {
       "term": "known context",
       "reason": "Existing generic Case knownContext data contract read under the technical agent principal; no domain-specific context invented."
+    },
+    {
+      "term": "route",
+      "reason": "Generic dispatch terminology in capability routing score metadata and parameters (#730); no domain term or domain-specific branch."
     }
   ]
 }

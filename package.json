@@ -63,6 +63,8 @@
     "generate:domain-free-vocabulary": "node scripts/generate-domain-free-vocabulary.js",
     "generate:signal-catalog": "node scripts/generate-signal-catalog.js",
     "check:signal-catalog": "node scripts/generate-signal-catalog.js --check",
+    "check:capability-keywords": "node scripts/check-capability-keywords.js",
+    "eval:capability-routing": "node scripts/eval-capability-routing.js",
     "test:e2e:shared-service": "node scripts/run-shared-service-e2e.js"
   },
   "repository": {

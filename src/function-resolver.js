@@ -25,10 +25,22 @@ const genericTerms = new Set(
   ].flatMap(({ term }) => normalizePhrase(term).split(' '))
 );
 
-function tokens(value) {
+function tokens(value, { includeGeneric = false } = {}) {
   return normalizePhrase(value)
     .split(' ')
-    .filter((token) => token.length >= 1 && !genericTerms.has(token));
+    .filter((token) => token.length >= 1 && (includeGeneric || !genericTerms.has(token)));
+}
+
+// Shared by function resolution and capability routing; vocabulary is always corpus-derived.
+function createCompoundTokenizer(vocabulary, options = {}) {
+  return (value) => {
+    const result = new Set(tokens(value, options));
+    for (const token of result)
+      for (const part of vocabulary)
+        if (part.length >= 5 && part.length < token.length && token.includes(part))
+          result.add(part);
+    return result;
+  };
 }
 
 function texts(fn) {
@@ -46,15 +58,7 @@ function indexModel(model) {
   const vocabulary = new Set(
     model.functions.flatMap((fn) => texts(fn).flatMap(([, values]) => values.flatMap(tokens)))
   );
-  // Split compounds only using substrings present in the model itself.
-  const split = (value) => {
-    const result = new Set(tokens(value));
-    for (const token of result)
-      for (const part of vocabulary)
-        if (part.length >= 5 && part.length < token.length && token.includes(part))
-          result.add(part);
-    return result;
-  };
+  const split = createCompoundTokenizer(vocabulary);
   const documents = model.functions.map((fn) => {
     const terms = new Map();
     for (const [kind, values] of texts(fn))
@@ -123,7 +127,12 @@ function scoreFunction(document, query, index, minPrefixLength) {
 // IDs are opaque lineage identities, never semantic search terms.
 function resolveFunctions(
   message,
-  { model = getFunctionModel(), maxCandidates = 25, minScoreGap = 0.25, minPrefixLength = 5 } = {}
+  {
+    model = getFunctionModel(),
+    maxCandidates = model.functions.length,
+    minScoreGap = 0.25,
+    minPrefixLength = 5,
+  } = {}
 ) {
   const index = indexModel(model);
   const query = new Set(tokens(String(message || '').replace(/\bfn-[\p{L}\p{N}_-]+/giu, '')));
@@ -143,4 +152,4 @@ function resolveFunctions(
   };
 }
 
-module.exports = { resolveFunctions, normalizePhrase };
+module.exports = { resolveFunctions, normalizePhrase, tokens, createCompoundTokenizer };

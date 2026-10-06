@@ -82,6 +82,47 @@ describe('Domain Router #595 (real Moleculer + PouchDB)', () => {
     fs.rmSync(dir, { recursive: true, force: true });
   });
 
+  test('number and foreign-domain label produce identical persisted case state', async () => {
+    const { getFunctionModel } = require('../src/function-model');
+    const fn = getFunctionModel().functions.find((row) => /redispatch/i.test(row.displayLabel));
+    recommend.mockReturnValue({
+      uncertain: true,
+      candidates: [{ capabilityId: fn.capabilities[0], displayLabel: fn.displayLabel, score: 1 }],
+    });
+    select.mockReturnValue({ data: { selected: false } });
+    const cases = [];
+    for (const userRequest of ['Nummer 1', fn.displayLabel]) {
+      const started = await classify('Netzanschluss am Umspannwerk prüfen', {
+        knownContext: { stationId: 'station-nord', controlPoint: 'connection-review' },
+      });
+      recommend.mockClear();
+      select.mockClear();
+      knowledge.mockClear();
+      const next = await call('continue', { cetCaseId: started.cetCaseId, userRequest });
+      expect(next.primaryDomain).toBe('grid_connection');
+      expect(next.uncertain).toBe(false);
+      expect(recommend).not.toHaveBeenCalled();
+      expect(select).not.toHaveBeenCalled();
+      expect(knowledge).not.toHaveBeenCalled();
+      const state = await service.loadCase(
+        require('../src/domain-router-policy').principal({ meta }),
+        started.cetCaseId
+      );
+      expect(state.knownContext.cetCaseId).toBe(started.cetCaseId);
+      const { cetCaseId: _caseRef, ...knownContext } = state.knownContext;
+      cases.push({
+        currentDomain: state.currentDomain,
+        knownContext,
+        selectedCapabilities: state.selectedCapabilities,
+        lastTransition: state.lastTransition,
+        domainHistory: state.domainHistory,
+        openClarifications: state.openClarifications,
+      });
+    }
+    expect(cases[0]).toEqual(cases[1]);
+    expect(cases[0].knownContext).toMatchObject({ stationId: 'station-nord' });
+  });
+
   test.each([
     ['APERAK Z18 Ablehnung prüfen', 'market_communication'],
     ['Lastgang plausibilisieren, Datenqualitätslücke im EDM', 'edm'],

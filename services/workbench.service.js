@@ -1486,6 +1486,10 @@ module.exports = {
           : null;
         const params = {
           ...envelope,
+          // Keep the router's bounded request contract for one-character replies.
+          userRequest: /^[1-5][.!]?$/.test(envelope.userRequest.trim())
+            ? `Nummer ${envelope.userRequest.trim().replace(/[.!]$/, '')}`
+            : envelope.userRequest,
           knownContext: {
             ...envelope.knownContext,
             workbenchContext,
@@ -2110,6 +2114,9 @@ module.exports = {
         alternativeDomains: result.alternativeDomains || [],
         activityHints: result.activityHints || [],
         readinessState: result.readinessState,
+        uncertain: result.uncertain === true,
+        selectedCapabilities: result.selectedCapabilities || [],
+        ...(result.uncertain ? { state: 'capability_clarification_required' } : {}),
         responseText: result.responseText || result.responseGuidance || '',
         requiredClarifications: result.requiredClarifications || [],
         missingEvidence: result.missingEvidence || [],

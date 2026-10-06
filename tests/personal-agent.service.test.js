@@ -957,8 +957,50 @@ describe('personal-agent.service', () => {
   });
 
   afterEach(async () => {
+    jest.restoreAllMocks();
     await broker.stop();
     fs.rmSync(objectStorePath, { recursive: true, force: true });
+  });
+
+  // Execution/preflight fixtures isolate local routing from broker classification.
+  // Real broker abstention is covered separately below and in the consumer contract suite.
+  function useLocalRoutingWithoutBroker() {
+    jest
+      .spyOn(broker.getLocalService('personal-agent'), 'getBrokerRecommendation')
+      .mockResolvedValue(null);
+  }
+
+  function useSelectedBrokerFixture(capabilityId) {
+    jest
+      .spyOn(broker.getLocalService('personal-agent'), 'getBrokerRecommendation')
+      .mockImplementation(async (_ctx, message, knownContext = {}) => {
+        const result = await broker.call('capability-broker.recommend', {
+          task: `${message} ${capabilityId}`,
+          knownContext,
+        });
+        expect(result.uncertain).toBe(false);
+        return result;
+      });
+  }
+
+  it('a real uncertain broker result never executes a candidate in Personal Agent chat', async () => {
+    const message = 'Prüfe die Anschlusskapazität am Umspannwerk.';
+    const recommendation = await broker.call('capability-broker.recommend', { task: message });
+    expect(recommendation.uncertain).toBe(true);
+    const result = await broker.call(
+      'personal-agent.chat',
+      {
+        message,
+        chatMode: 'execution',
+        executionMode: 'auto',
+        disableReceiptSelection: true,
+      },
+      { meta: { tenantId: 'tenant-a', authUser: { userId: 'user-1' } } }
+    );
+    expect(result.plan.status).toBe('clarification_required');
+    expect(result.plan.steps).toEqual([]);
+    expect(executedActions).toEqual([]);
+    expect(placeholderCalls).toEqual([]);
   });
 
   it('creates a session turn and persists only L0-L3', async () => {
@@ -1139,6 +1181,7 @@ describe('personal-agent.service', () => {
   });
 
   it('returns a stable deterministic plan in HITL mode without executing tools', async () => {
+    useLocalRoutingWithoutBroker();
     const result = await broker.call(
       'personal-agent.chat',
       {
@@ -1164,6 +1207,7 @@ describe('personal-agent.service', () => {
   });
 
   it('auto-executes deterministic matrix chains in fixed order', async () => {
+    useLocalRoutingWithoutBroker();
     const result = await broker.call(
       'personal-agent.chat',
       {
@@ -1193,6 +1237,7 @@ describe('personal-agent.service', () => {
   });
 
   it('forwards contract-gate fields through Personal Agent execution', async () => {
+    useLocalRoutingWithoutBroker();
     await broker.call(
       'personal-agent.chat',
       {
@@ -1272,6 +1317,7 @@ describe('personal-agent.service', () => {
   });
 
   it('blocks dependent step execution when lookup result list is empty', async () => {
+    useLocalRoutingWithoutBroker();
     const result = await broker.call(
       'personal-agent.chat',
       {
@@ -1300,6 +1346,7 @@ describe('personal-agent.service', () => {
   });
 
   it('classifies Standort/VNB consistency as due-diligence evidence checkpoint', async () => {
+    useSelectedBrokerFixture('grid_operator_identity_resolution');
     const result = await broker.call(
       'personal-agent.chat',
       {
@@ -1332,6 +1379,7 @@ describe('personal-agent.service', () => {
   });
 
   it('gracefully degrades unsupported extra domains after the last valid step', async () => {
+    useLocalRoutingWithoutBroker();
     const result = await broker.call(
       'personal-agent.chat',
       {
@@ -1357,7 +1405,7 @@ describe('personal-agent.service', () => {
     expect(placeholderCalls).toHaveLength(0);
   });
 
-  it('remains partial for a genuine capability gap and explains the missing interface', async () => {
+  it('requests clarification for a genuine capability gap without executing a gap marker', async () => {
     const result = await broker.call(
       'personal-agent.chat',
       {
@@ -1371,10 +1419,10 @@ describe('personal-agent.service', () => {
       { meta: { tenantId: 'tenant-a', authUser: { userId: 'user-1' } } }
     );
 
-    expect(result.execution.status).toBe('partial');
-    expect(result.execution.stopPoint).toBeTruthy();
-    expect(result.execution.stopPoint.status).toBe('interface-placeholder');
-    expect(result.reply).toMatch(/Schnittstelle|Evidenzquelle|Prüfpunkt/i);
+    expect(result.plan.status).toBe('clarification_required');
+    expect(result.plan.steps).toEqual([]);
+    expect(executedActions).toEqual([]);
+    expect(placeholderCalls).toEqual([]);
     expect(result.reply).not.toMatch(/ACTION_FAILED|VALIDATION_ERROR|__step_/i);
   });
 
@@ -1425,6 +1473,7 @@ describe('personal-agent.service', () => {
   });
 
   it('asks whether to use an existing or new project before ZNP portfolio assessment', async () => {
+    useLocalRoutingWithoutBroker();
     const result = await broker.call(
       'personal-agent.chat',
       {
@@ -1452,6 +1501,7 @@ describe('personal-agent.service', () => {
   });
 
   it('captures onboarding answer and resumes deterministic execution', async () => {
+    useLocalRoutingWithoutBroker();
     const first = await broker.call(
       'personal-agent.chat',
       {
@@ -1601,6 +1651,7 @@ describe('personal-agent.service', () => {
   });
 
   it('emits onboarding Work Out Loud without leaking raw onboarding answer text', async () => {
+    useLocalRoutingWithoutBroker();
     const first = await broker.call(
       'personal-agent.chat',
       {
@@ -1655,6 +1706,7 @@ describe('personal-agent.service', () => {
   });
 
   it('preserves working assumptions across turns and does not repeat the T1 onboarding question on a persisted follow-up', async () => {
+    useSelectedBrokerFixture('grid_operator_identity_resolution');
     const meta = { meta: { tenantId: 'tenant-cetred-followup', authUser: { userId: 'user-1' } } };
     const first = await broker.call(
       'personal-agent.chat',
@@ -1677,6 +1729,8 @@ describe('personal-agent.service', () => {
       ])
     );
     const firstQuestion = first.execution.stopPoint.onboardingQuestion.questionText;
+    broker.getLocalService('personal-agent').getBrokerRecommendation.mockRestore();
+    const executedBeforeFollowup = executedActions.length;
 
     const second = await broker.call(
       'personal-agent.chat',
@@ -1690,9 +1744,9 @@ describe('personal-agent.service', () => {
       meta
     );
 
-    expect(second.reply).toMatch(
-      /Risikoflag|vorläufig|noch nicht durch Evidenz belegt|Working Assumption/i
-    );
+    expect(second.plan.status).toBe('clarification_required');
+    expect(second.plan.steps).toEqual([]);
+    expect(executedActions).toHaveLength(executedBeforeFollowup);
     expect(second.reply).not.toContain(firstQuestion);
     expect(second.reply).not.toMatch(
       /operatorEvidence|interface_placeholder|interface-placeholder|__step_|ACTION_FAILED/i
@@ -2320,6 +2374,7 @@ describe('personal-agent.service', () => {
   });
 
   it('HITL mode returns onboarding hints but no awaiting status', async () => {
+    useLocalRoutingWithoutBroker();
     const result = await broker.call(
       'personal-agent.chat',
       {
@@ -5724,6 +5779,7 @@ describe('personal-agent.service', () => {
   });
 
   it('routes known-location EV/CO₂ execution directly to CO₂ forecast without DSO/VNB detour', async () => {
+    useLocalRoutingWithoutBroker();
     const result = await broker.call(
       'personal-agent.chat',
       {
@@ -5964,6 +6020,7 @@ describe('personal-agent.service', () => {
   });
 
   it('returns a stable EWR data-center execution gap without PREFLIGHT leakage', async () => {
+    useLocalRoutingWithoutBroker();
     const result = await broker.call(
       'personal-agent.chat',
       {
@@ -6218,6 +6275,7 @@ describe('personal-agent.service', () => {
   });
 
   it('keeps legacy execution path when disableReceiptSelection=true and exposes fallback metadata', async () => {
+    useSelectedBrokerFixture('grid_operator_identity_resolution');
     const result = await broker.call(
       'personal-agent.chat',
       {
@@ -6474,6 +6532,7 @@ describe('personal-agent.service', () => {
   });
 
   it('ZNP-PREFLIGHT: Turn-2 znp.assessPortfolio without projectId triggers awaiting-onboarding, not Parameters validation error', async () => {
+    useLocalRoutingWithoutBroker();
     const sessionId = `znp-preflight-test-${Date.now()}`;
 
     // Turn 2: execution request — projectId deliberately absent
@@ -6517,6 +6576,7 @@ describe('personal-agent.service', () => {
   });
 
   it('GENERIC-PREFLIGHT-001: empty string projectId triggers awaiting-onboarding, action not called', async () => {
+    useLocalRoutingWithoutBroker();
     const sessionId = `generic-preflight-001-${Date.now()}`;
 
     const result = await broker.call(

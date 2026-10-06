@@ -1,0 +1,449 @@
+{
+  "baselineReport": [
+    {
+      "capability": "blindflug_radar_anomaly_detection",
+      "keywords": [
+        {
+          "keyword": "redispatch",
+          "frequency": 20
+        }
+      ]
+    },
+    {
+      "capability": "znp_portfolio_assessment",
+      "keywords": [
+        {
+          "keyword": "fnav",
+          "frequency": 8
+        }
+      ]
+    },
+    {
+      "capability": "vnb_delta_signal_classifier",
+      "keywords": [
+        {
+          "keyword": "frist",
+          "frequency": 14
+        },
+        {
+          "keyword": "owner",
+          "frequency": 18
+        },
+        {
+          "keyword": "anschluss",
+          "frequency": 25
+        },
+        {
+          "keyword": "kapazitaet",
+          "frequency": 12
+        },
+        {
+          "keyword": "kapazität",
+          "frequency": 10
+        }
+      ]
+    },
+    {
+      "capability": "leadership_delta_cockpit",
+      "keywords": [
+        {
+          "keyword": "eskalation",
+          "frequency": 9
+        }
+      ]
+    },
+    {
+      "capability": "netzfahrplan_fnav_assessment",
+      "keywords": [
+        {
+          "keyword": "fnav",
+          "frequency": 8
+        }
+      ]
+    },
+    {
+      "capability": "residual_load_forecast_for_dso",
+      "keywords": [
+        {
+          "keyword": "stadtwerk",
+          "frequency": 10
+        },
+        {
+          "keyword": "vnb",
+          "frequency": 12
+        }
+      ]
+    },
+    {
+      "capability": "vdmi_role_boundary_governance",
+      "keywords": [
+        {
+          "keyword": "rollen",
+          "frequency": 13
+        },
+        {
+          "keyword": "rolle",
+          "frequency": 13
+        }
+      ]
+    },
+    {
+      "capability": "vdmi_asset_validation_governance",
+      "keywords": [
+        {
+          "keyword": "evidence",
+          "frequency": 31
+        },
+        {
+          "keyword": "evidenz",
+          "frequency": 20
+        },
+        {
+          "keyword": "nachweis",
+          "frequency": 19
+        }
+      ]
+    },
+    {
+      "capability": "grid_operator_identity_resolution",
+      "keywords": [
+        {
+          "keyword": "vnb",
+          "frequency": 12
+        }
+      ]
+    },
+    {
+      "capability": "mastr_asset_inventory",
+      "keywords": [
+        {
+          "keyword": "anlage",
+          "frequency": 8
+        },
+        {
+          "keyword": "wind",
+          "frequency": 8
+        },
+        {
+          "keyword": "speicher",
+          "frequency": 8
+        },
+        {
+          "keyword": "redispatch",
+          "frequency": 20
+        }
+      ]
+    },
+    {
+      "capability": "oep_research_dataset_discovery",
+      "keywords": [
+        {
+          "keyword": "szenario",
+          "frequency": 8
+        }
+      ]
+    },
+    {
+      "capability": "vnb_kpi_benchmark_comparison",
+      "keywords": [
+        {
+          "keyword": "kpi",
+          "frequency": 16
+        }
+      ]
+    },
+    {
+      "capability": "agnes_bottleneck",
+      "keywords": [
+        {
+          "keyword": "engpass",
+          "frequency": 8
+        }
+      ]
+    },
+    {
+      "capability": "fnav_commercial_hedging",
+      "keywords": [
+        {
+          "keyword": "fnav",
+          "frequency": 8
+        },
+        {
+          "keyword": "fna",
+          "frequency": 11
+        }
+      ]
+    },
+    {
+      "capability": "flexibilitaetskosten_raster",
+      "keywords": [
+        {
+          "keyword": "steuerbarkeit",
+          "frequency": 13
+        }
+      ]
+    },
+    {
+      "capability": "nkp_reporting",
+      "keywords": [
+        {
+          "keyword": "kpi",
+          "frequency": 16
+        }
+      ]
+    },
+    {
+      "capability": "reporting_governance",
+      "keywords": [
+        {
+          "keyword": "governance",
+          "frequency": 17
+        }
+      ]
+    },
+    {
+      "capability": "gasnetz_waermeplanung",
+      "keywords": [
+        {
+          "keyword": "gasnetz",
+          "frequency": 9
+        }
+      ]
+    },
+    {
+      "capability": "vdmi_portfolio_gatekeeping",
+      "keywords": [
+        {
+          "keyword": "vdmi",
+          "frequency": 8
+        },
+        {
+          "keyword": "governance",
+          "frequency": 17
+        }
+      ]
+    },
+    {
+      "capability": "scqa_decision_framing",
+      "keywords": [
+        {
+          "keyword": "transformation",
+          "frequency": 13
+        }
+      ]
+    },
+    {
+      "capability": "jour_fixe_decision_closure_tracker",
+      "keywords": [
+        {
+          "keyword": "owner",
+          "frequency": 18
+        },
+        {
+          "keyword": "kpi",
+          "frequency": 16
+        },
+        {
+          "keyword": "eskalation",
+          "frequency": 9
+        }
+      ]
+    },
+    {
+      "capability": "off_balancing_metering_pruefmatrix",
+      "keywords": [
+        {
+          "keyword": "datenqualitaet",
+          "frequency": 9
+        },
+        {
+          "keyword": "datenqualität",
+          "frequency": 10
+        }
+      ]
+    },
+    {
+      "capability": "grid_connection_transformation_gate",
+      "keywords": [
+        {
+          "keyword": "netzanschluss",
+          "frequency": 11
+        }
+      ]
+    },
+    {
+      "capability": "investment_risk_translation_status",
+      "keywords": [
+        {
+          "keyword": "folgeentscheidung",
+          "frequency": 8
+        }
+      ]
+    },
+    {
+      "capability": "e2e_controllability_check_governance",
+      "keywords": [
+        {
+          "keyword": "steuerbarkeit",
+          "frequency": 13
+        }
+      ]
+    },
+    {
+      "capability": "redispatch_participation_readiness",
+      "keywords": [
+        {
+          "keyword": "steuerbarkeit",
+          "frequency": 13
+        }
+      ]
+    },
+    {
+      "capability": "gasnetz_waermeplanung_assessment",
+      "keywords": [
+        {
+          "keyword": "gasnetz",
+          "frequency": 9
+        }
+      ]
+    }
+  ],
+  "changes": [
+    {
+      "capability": "blindflug_radar_anomaly_detection",
+      "removed": ["redispatch"],
+      "added": []
+    },
+    {
+      "capability": "znp_portfolio_assessment",
+      "removed": ["fnav"],
+      "added": []
+    },
+    {
+      "capability": "vnb_delta_signal_classifier",
+      "removed": ["frist", "owner", "anschluss", "kapazitaet", "kapazität"],
+      "added": []
+    },
+    {
+      "capability": "leadership_delta_cockpit",
+      "removed": ["eskalation"],
+      "added": []
+    },
+    {
+      "capability": "netzfahrplan_fnav_assessment",
+      "removed": ["fnav"],
+      "added": []
+    },
+    {
+      "capability": "residual_load_forecast_for_dso",
+      "removed": ["stadtwerk", "vnb"],
+      "added": []
+    },
+    {
+      "capability": "vdmi_role_boundary_governance",
+      "removed": ["rollen", "rolle"],
+      "added": []
+    },
+    {
+      "capability": "vdmi_asset_validation_governance",
+      "removed": ["evidence", "evidenz", "nachweis"],
+      "added": []
+    },
+    {
+      "capability": "grid_operator_identity_resolution",
+      "removed": ["vnb"],
+      "added": []
+    },
+    {
+      "capability": "mastr_asset_inventory",
+      "removed": ["anlage", "wind", "speicher", "redispatch"],
+      "added": ["mastr anlagen", "mastr netzgebiet", "mastr inventory"]
+    },
+    {
+      "capability": "oep_research_dataset_discovery",
+      "removed": ["szenario"],
+      "added": []
+    },
+    {
+      "capability": "vnb_kpi_benchmark_comparison",
+      "removed": ["kpi"],
+      "added": []
+    },
+    {
+      "capability": "agnes_bottleneck",
+      "removed": ["engpass"],
+      "added": []
+    },
+    {
+      "capability": "fnav_commercial_hedging",
+      "removed": ["fnav", "fna"],
+      "added": []
+    },
+    {
+      "capability": "flexibilitaetskosten_raster",
+      "removed": ["steuerbarkeit"],
+      "added": []
+    },
+    {
+      "capability": "nkp_reporting",
+      "removed": ["kpi"],
+      "added": []
+    },
+    {
+      "capability": "reporting_governance",
+      "removed": ["governance"],
+      "added": []
+    },
+    {
+      "capability": "gasnetz_waermeplanung",
+      "removed": ["gasnetz"],
+      "added": []
+    },
+    {
+      "capability": "vdmi_portfolio_gatekeeping",
+      "removed": ["vdmi", "governance"],
+      "added": []
+    },
+    {
+      "capability": "scqa_decision_framing",
+      "removed": ["transformation"],
+      "added": []
+    },
+    {
+      "capability": "jour_fixe_decision_closure_tracker",
+      "removed": ["owner", "kpi", "eskalation"],
+      "added": []
+    },
+    {
+      "capability": "off_balancing_metering_pruefmatrix",
+      "removed": ["datenqualitaet", "datenqualität"],
+      "added": []
+    },
+    {
+      "capability": "grid_connection_transformation_gate",
+      "removed": ["netzanschluss"],
+      "added": []
+    },
+    {
+      "capability": "investment_risk_translation_status",
+      "removed": ["folgeentscheidung"],
+      "added": []
+    },
+    {
+      "capability": "e2e_controllability_check_governance",
+      "removed": ["steuerbarkeit"],
+      "added": []
+    },
+    {
+      "capability": "redispatch_participation_readiness",
+      "removed": ["steuerbarkeit"],
+      "added": []
+    },
+    {
+      "capability": "gasnetz_waermeplanung_assessment",
+      "removed": ["gasnetz"],
+      "added": []
+    }
+  ],
+  "nonKeywordFieldsHash": "a89d23ca244fb9b5ab58815d54dd0ddd456de7f521e5422607b5d227aa881852"
+}

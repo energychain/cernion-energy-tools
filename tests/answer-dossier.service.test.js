@@ -47,6 +47,26 @@ const handler = PersonalAgentService.actions.answerDossier.handler;
 // ── Tests ────────────────────────────────────────────────────────────────────
 
 describe('answerDossier action', () => {
+  test('uncertainty also prevents the local EV/CO2 hydration supplement', async () => {
+    const ctx = buildCtx(
+      { question: 'Wann soll ich mein Elektroauto CO2-arm laden?', timeBudgetMs: 30000 },
+      {
+        'capability-broker.recommend': {
+          uncertain: true,
+          intent: 'clarify',
+          candidates: [
+            { capabilityId: 'ev_co2_charging_window', displayLabel: 'Ladefenster', score: 1 },
+          ],
+        },
+      }
+    );
+    const result = await handler.call(buildServiceHarness(), ctx);
+    expect(result.success).toBe(true);
+    expect(ctx.call.mock.calls.some(([action]) => action === 'energy-market.co2Intensity')).toBe(
+      false
+    );
+  });
+
   // 1. Renderer package and mandatory sections present
   test('dossierMarkdown is a renderer package and contains all mandatory dossier headings', async () => {
     const service = buildServiceHarness();

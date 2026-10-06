@@ -49,6 +49,9 @@
     "signal-projection.rules.json",
     "tests/signals.test.js",
     "tests/signals-persistence.test.js",
+    "src/capability-routing.js",
+    "src/capability-clarification.js",
+    "capability-routing.parameters.json",
     "src/shared-service-case-context.js",
     "src/shared-service-display.js",
     "src/function-case-contexts.js"

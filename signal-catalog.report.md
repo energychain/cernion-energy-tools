@@ -4,7 +4,7 @@ Generated deterministically at 2026-01-01T00:00:00.000Z.
 
 121/123 responding operations covered (98.37%); 127 total.
 Standing: 17; contextual: 110.
-Catalog size: 289816 bytes (limit: 300000).
+Catalog size: 289897 bytes (limit: 300000).
 Signals by kind: {"count":128,"finding":220,"state":113,"timestamp":121,"score":60}. Findings without context: 0.
 
 Probe environment: {"tenantId":"stadtwerk-mauer","services":["dashboard-api","object-store","stadtwerk-mauer-sandbox-runtime"],"upstream":"absent services use existing dashboard fallbacks; external calls disabled"}. Definitions contain no observed values. Probe summaries record status class and field names; context parameters are recorded per operation. Native signals take precedence. Function associations use the generated model; empty associations are retained, never invented.
@@ -72,7 +72,7 @@ Probe environment: {"tenantId":"stadtwerk-mauer","services":["dashboard-api","ob
 | dashboard-api_jourFixeDecisionClosureStatus | contextual | 7 | 1 | — |
 | dashboard-api_kiFloorwalkerGovernanceStatus | contextual | 7 | 1 | — |
 | dashboard-api_layer0AuditDrilldownNoteStatus | contextual | 6 | 1 | — |
-| dashboard-api_leadershipDeltaCockpitStatus | contextual | 5 | 3 | — |
+| dashboard-api_leadershipDeltaCockpitStatus | contextual | 5 | 4 | — |
 | dashboard-api_legacyControlTechnologyTransitionStatus | contextual | 7 | 1 | — |
 | dashboard-api_legalClarificationOperatingModelStatus | contextual | 6 | 1 | — |
 | dashboard-api_liquidityPlanningGovernanceStatus | contextual | 6 | 1 | — |
@@ -133,7 +133,7 @@ Probe environment: {"tenantId":"stadtwerk-mauer","services":["dashboard-api","ob
 | dashboard-api_steeringArtifactAcceptanceGateStatus | contextual | 5 | 2 | — |
 | dashboard-api_techCommercialOfferCockpitStatus | contextual | 8 | 1 | — |
 | dashboard-api_transformationFinancingScenarioViewStatus | contextual | 5 | 1 | — |
-| dashboard-api_vnbDeltaSignalClassifierStatus | contextual | 6 | 1 | — |
+| dashboard-api_vnbDeltaSignalClassifierStatus | contextual | 6 | 2 | — |
 | dashboard-api_vnbOverview | contextual | 0 | 2 | required_context_parameters |
 | dashboard-api_vnbSpecialTopicWorkstateStatus | contextual | 4 | 2 | — |
 | dashboard-api_waterPricingNetInvestmentAlignmentStatus | contextual | 5 | 1 | — |

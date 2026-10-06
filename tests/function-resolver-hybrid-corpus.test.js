@@ -27,20 +27,35 @@ test.each(regressions)(
 
 test('hybrid corpus uses the real capability cache and independently recorded same-model question vectors', async () => {
   const model = getFunctionModel();
-  expect(
-    model.functions.every(
-      (fn) =>
-        fn.embedding?.provider === fixture.provider &&
-        fn.embedding.model === fixture.model &&
-        fn.embedding.dimension === fixture.dimension
-    )
-  ).toBe(true);
+  for (const fn of model.functions) {
+    if (fn.embedding?.vector) {
+      expect(fn.embedding.provider).toBe(fixture.provider);
+      expect(fn.embedding.model).toBe(fixture.model);
+      expect(fn.embedding.dimension).toBe(fixture.dimension);
+    } else expect(fn.embedding.missingCapabilities.length).toBeGreaterThan(0);
+  }
   const metrics = { total: 0, modeHits: 0, resolved: 0, ambiguous: 0, wrong: 0, missing: 0 };
   for (const [question, functionId] of corpus()) {
     metrics.total++;
     metrics.modeHits += classifyWorkbenchIntent(question) === 'system_activity_query' ? 1 : 0;
     const result = await resolveFunctionsHybrid(question, { model, client });
-    expect(result.metadata.path).toBe('hybrid');
+    if (fixture.entries[question]) expect(result.metadata.path).toBe('hybrid');
+    else
+      expect(result.metadata).toMatchObject({
+        path: 'lexical',
+        fallbackReason: 'embedding_failed',
+      });
+    const target = model.functions.find((fn) => fn.functionId === functionId);
+    const targetMatch = result.matches.find((item) => item.functionId === functionId);
+    if (
+      result.metadata.path === 'hybrid' &&
+      target.embedding.missingCapabilities.length &&
+      targetMatch
+    ) {
+      expect(targetMatch.semanticPath).toBe('lexical');
+      expect(targetMatch.similarity).toBeNull();
+      expect(targetMatch.fallbackReason).toBe('capability_vectors_unavailable');
+    }
     const correct = result.matches.some((item) => item.functionId === functionId);
     if (result.status === 'resolved') metrics[correct ? 'resolved' : 'wrong']++;
     else if (result.status === 'ambiguous' && correct) metrics.ambiguous++;

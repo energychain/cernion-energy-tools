@@ -1181,7 +1181,8 @@ module.exports = {
       if (
         hydrationBudgetMs > 0 &&
         capabilityRouting.status === 'success' &&
-        capabilityRouting.result
+        capabilityRouting.result &&
+        !capabilityRouting.result.uncertain
       ) {
         const brokerPlanActions = Array.isArray(capabilityRouting.result.recommendedPlan)
           ? capabilityRouting.result.recommendedPlan.map((step) => step?.action).filter(Boolean)
