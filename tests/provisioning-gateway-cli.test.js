@@ -32,14 +32,25 @@ test('CLI gateway token, API roles and mapping bootstrap/list work without a run
       '--name=Gateway',
       '--gateway',
       '--client=open-webui',
+      '--org=org',
     ]);
     expect(gateway.status).toBe(0);
     expect(JSON.parse(gateway.stdout).data).toMatchObject({
       type: 'gateway',
+      externalOrgId: 'org',
       client: 'open-webui',
       tenantId: 'cli-736',
       scopes: [],
     });
+    const noOrg = run('provision-token.js', [
+      '--tenant=cli-736',
+      '--user=svc:owui',
+      '--name=MissingOrg',
+      '--gateway',
+      '--client=open-webui',
+    ]);
+    expect(noOrg.status).toBe(1);
+    expect(noOrg.stderr).toMatch(/--org required/);
     const admin = run('provision-token.js', [
       '--tenant=cli-736',
       '--user=admin',
@@ -62,13 +73,39 @@ test('CLI gateway token, API roles and mapping bootstrap/list work without a run
       cetActorId: 'cet-alice',
       sensitivityClearance: ['tenant_internal'],
     });
+    const emailMapping = run('provision-workbench-mapping.js', [
+      '--tenant=cli-736',
+      '--org=org',
+      '--email= Alice@Example.org ',
+      '--actor=cet-email',
+      '--roles=ROLE_USER',
+    ]);
+    expect(emailMapping.status).toBe(0);
+    expect(JSON.parse(emailMapping.stdout).mapping).toMatchObject({
+      externalUserEmail: 'alice@example.org',
+      cetActorId: 'cet-email',
+    });
+    for (const identity of [
+      [],
+      ['--email=invalid'],
+      ['--email=alice@example.org', '--user=alice'],
+    ]) {
+      const badMapping = run('provision-workbench-mapping.js', [
+        '--tenant=cli-736',
+        '--org=org',
+        '--actor=invalid',
+        '--roles=ROLE_USER',
+        ...identity,
+      ]);
+      expect(badMapping.status).toBe(1);
+    }
     const list = run('provision-workbench-mapping.js', [
       '--tenant=cli-736',
       '--client=open-webui',
       '--list',
     ]);
     expect(list.status).toBe(0);
-    expect(JSON.parse(list.stdout).mappings).toHaveLength(2);
+    expect(JSON.parse(list.stdout).mappings).toHaveLength(3);
     const rejected = run('provision-token.js', [
       '--tenant=cli-736',
       '--user=admin',

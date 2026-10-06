@@ -48,7 +48,8 @@ async function provisionMapping(args, broker) {
     client,
     externalOrgId,
     cetTenantId: tenantId,
-    externalUserId: required(args, 'user'),
+    externalUserId: optional(args, 'user'),
+    externalUserEmail: optional(args, 'email'),
     cetActorId: required(args, 'actor'),
     roles: required(args, 'roles')
       .split(',')

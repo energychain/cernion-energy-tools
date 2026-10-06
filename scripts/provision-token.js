@@ -34,8 +34,9 @@ async function provisionToken(args, broker) {
           .map((r) => r.trim());
   const gateway = args.gateway === true;
   const client = optional(args, 'client');
+  const externalOrgId = optional(args, 'org');
   const support = args.support === true;
-  validateTokenIdentity({ gateway, client, roles, support });
+  validateTokenIdentity({ gateway, client, externalOrgId, roles, support });
 
   const tenant = upsertTenant({ tenantId, name: optional(args, 'tenant-name', tenantId) });
   const user = upsertUser({ tenantId: tenant.tenantId, userId, email });
@@ -46,6 +47,7 @@ async function provisionToken(args, broker) {
     scopes,
     gateway,
     client,
+    externalOrgId,
     roles,
     support,
     tenantId: tenant.tenantId,

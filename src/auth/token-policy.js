@@ -2,6 +2,7 @@
 
 const { Errors } = require('moleculer');
 const { mapRolesFromLegacyToken } = require('./rbac');
+const { cleanString } = require('../workbench-contract');
 
 // Explicit energy-role allowlist. Scope names and role-like arbitrary strings
 // cannot grant energy privileges. HQ and platform roles need audited support issuance.
@@ -57,11 +58,18 @@ function validateRoles(values = [], { support = false } = {}) {
   return roles;
 }
 
-function validateTokenIdentity({ gateway = false, client, roles = [], support = false }) {
+function validateTokenIdentity({
+  gateway = false,
+  client,
+  externalOrgId,
+  roles = [],
+  support = false,
+}) {
   const validated = validateRoles(roles, { support });
   if (gateway && roles.length) invalid('--gateway and --roles are mutually exclusive.');
   if (gateway && client !== 'open-webui') invalid('Gateway client must be open-webui.');
-  if (!gateway && client) invalid('--client requires --gateway.');
+  if (gateway) cleanString(externalOrgId, '--org', { required: true });
+  if (!gateway && (client || externalOrgId)) invalid('--client and --org require --gateway.');
   return validated;
 }
 

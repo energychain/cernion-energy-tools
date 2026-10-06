@@ -250,17 +250,18 @@ CET-Server, nicht in Open WebUI. Alle Befehle im CET-Projektverzeichnis ausführ
 1. **Gateway-Token erzeugen.**
 
    ```bash
-   npm run token:create -- --tenant=stadtwerk-a --user=svc:open-webui --name=OpenWebUI --gateway --client=open-webui
+   npm run token:create -- --tenant=stadtwerk-a --user=svc:open-webui --name=OpenWebUI --gateway --client=open-webui --org=owui-org-1
    ```
 
    Den einmalig ausgegebenen `data.token` sicher speichern. Der Datensatz trägt
-   `type: 'gateway'`, `client: 'open-webui'` und `tenantId`, aber keine eigenen Rollen oder
+   `type: 'gateway'`, `client: 'open-webui'`, `tenantId` und `externalOrgId`, aber keine eigenen Rollen oder
    Zusatz-Scopes. `--gateway` und `--roles` schließen sich aus.
 
 2. **Jeden Nutzer zuordnen und kontrollieren.**
 
    ```bash
-   npm run workbench:map -- --tenant=stadtwerk-a --client=open-webui --org=owui-org-1 --user=owui-user-1 --actor=cet-user-1 --roles=ROLE_USER --clearance=tenant_internal
+   npm run workbench:map -- --tenant=stadtwerk-a --client=open-webui --org=owui-org-1 --email=user@example.org --actor=cet-user-1 --roles=ROLE_USER --clearance=tenant_internal
+   # Alternativ zur E-Mail: --user=owui-user-1 (nicht zusammen mit --email).
    npm run workbench:map -- --tenant=stadtwerk-a --client=open-webui --list
    ```
 
@@ -272,36 +273,46 @@ CET-Server, nicht in Open WebUI. Alle Befehle im CET-Projektverzeichnis ausführ
 
    OpenAI-kompatible Verbindung auf `https://<cet-host>/v1` setzen, als API-Schlüssel den
    Gateway-Token verwenden und `cernion-governance-assistant` als Standardmodell wählen.
-   In Open WebUI `ENABLE_FORWARD_USER_INFO_HEADERS=true` setzen. Die Integration muss
-   `metadata.openWebuiOrgId: "owui-org-1"` mitliefern: Open WebUI leitet keine Organisations-ID
-   über die beiden unten genannten Header weiter. Die bestehenden Metadata-Beispiele in
-   diesem Dokument bleiben dafür verwendbar.
+   In Open WebUI `ENABLE_FORWARD_USER_INFO_HEADERS=true` setzen. Die Organisation ist durch
+   `--org` am Token gebunden. Eine Standard-Verbindung genügt; Pipe, Function oder zusätzliche
+   Request-Metadata sind nicht erforderlich.
 
-   CET akzeptiert `X-OpenWebUI-User-Id` und `X-OpenWebUI-Chat-Id` als Fallback; explizite
-   `metadata.openWebuiUserId` und `metadata.openWebuiConversationId` bzw. `conversationId`
-   haben Vorrang. Identitäts-Header und Nutzer-/Organisations-Metadata werden bei normalen
-   API-Tokens nicht zur Delegation verwendet. Rollen-Header werden immer ignoriert.
+   CET verwendet `X-OpenWebUI-User-Id`, `X-OpenWebUI-Chat-Id` und als optionalen Fallback
+   `X-OpenWebUI-User-Email`. E-Mail-Adressen werden getrimmt und kleingeschrieben, danach exakt
+   verglichen; es gibt keine Domain-, Alias- oder Teilstring-Suche. Eine bestehende User-ID-
+   Zuordnung hat immer Vorrang, auch wenn sie deaktiviert ist. Ein fehlendes oder deaktiviertes
+   Mapping bleibt gesperrt. Akteur, Rollen und Clearance kommen ausschließlich aus dem Mapping.
+   Explizite `metadata.openWebuiUserId` und `metadata.openWebuiConversationId` bzw.
+   `conversationId` haben Vorrang vor den jeweiligen Headern. `metadata.openWebuiOrgId` ist
+   optional: der Token-Wert wird verwendet, ein gleicher Metadata-Wert ist erlaubt und ein
+   abweichender ergibt 403. Identitäts-Header und Nutzer-/Organisations-Metadata werden bei
+   normalen API-Tokens nicht zur Delegation verwendet. Rollen-Header werden immer ignoriert.
    Die offiziellen Namen und die Schalterwirkung sind in der
    [Open-WebUI-Dokumentation](https://docs.openwebui.com/reference/env-configuration/#enable_forward_user_info_headers)
-   beschrieben.
+   beschrieben. Die Standardnamen müssen beibehalten werden.
 
-   Der Gateway-Token erlaubt ausschließlich `POST /v1/chat/completions` mit diesem Modell
-   und die daraus entstehenden internen Workbench-Chat/Query-Aufrufe. Direkte Workbench-,
-   Admin-, Notices-, Domain-Router-, MCP- und Sidecar-Aufrufe sowie andere Modelle erhalten
-   403. Die öffentliche Modellliste bleibt ohne Authentifizierung unter `/v1/models`
-   abrufbar; ein mitgesendeter Gateway-Token wird auch dort abgewiesen. Den Governance-
-   Modellnamen daher bei der Verbindung explizit konfigurieren.
+   Der Gateway-Token erlaubt `GET /v1/models` (HTTP 200, ausschließlich
+   `cernion-governance-assistant`) und `POST /v1/chat/completions` mit diesem Modell sowie
+   die daraus entstehenden internen Workbench-Chat/Query-Aufrufe. Direkte Workbench-, Admin-,
+   Notices-, Domain-Router-, MCP- und Sidecar-Aufrufe sowie andere Modelle erhalten 403.
+
+   **Altfall:** Bereits gespeicherte Gateway-Tokens ohne `externalOrgId` benötigen weiterhin
+   `metadata.openWebuiOrgId`. Ein Hinweis im Server-Log macht auf diesen Fall aufmerksam.
+   Für den Header-only-Betrieb einen neuen Gateway-Token mit `--org` erzeugen und die
+   Verbindung umstellen. Neue Gateway-Tokens ohne `--org` werden abgewiesen.
 
 4. **Smoke-Test ausführen.**
 
    ```bash
    # GATEWAY_TOKEN enthält den zuvor einmalig ausgegebenen data.token.
+   curl --fail-with-body https://<cet-host>/v1/models -H "Authorization: Bearer $GATEWAY_TOKEN"
    curl --fail-with-body https://<cet-host>/v1/chat/completions \
      -H "Authorization: Bearer $GATEWAY_TOKEN" \
      -H 'Content-Type: application/json' \
      -H 'X-OpenWebUI-User-Id: owui-user-1' \
+     -H 'X-OpenWebUI-User-Email: user@example.org' \
      -H 'X-OpenWebUI-Chat-Id: smoke-736' \
-     -d '{"model":"cernion-governance-assistant","messages":[{"role":"user","content":"Starte einen Fall: Netzanschluss für einen Batteriespeicher prüfen."}],"metadata":{"openWebuiOrgId":"owui-org-1"}}'
+     -d '{"model":"cernion-governance-assistant","messages":[{"role":"user","content":"Starte einen Fall: Netzanschluss für einen Batteriespeicher prüfen."}]}'
    ```
 
    Erwartet: HTTP 200, OpenAI-kompatible `choices` und CET-Metadata. Ein unbekannter Nutzer,

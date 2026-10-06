@@ -96,17 +96,19 @@ const turns = [];
 const call = (name, params, meta = admin) =>
   broker.call(name, params, { meta: structuredClone(meta) });
 const turn = async (person, message, extra = {}) => {
-  const { status, result: response } = await http('/v1/chat/completions', gatewayToken, {
-    model: 'cernion-governance-assistant',
-    messages: [{ role: 'user', content: message }],
-    metadata: {
-      openWebuiUserId: person,
-      openWebuiOrgId: 'org',
-      openWebuiConversationId: `conversation-${person}`,
-      requestId: `turn-${++sequence}`,
-      ...extra,
+  const { status, result: response } = await http(
+    '/v1/chat/completions',
+    gatewayToken,
+    {
+      model: 'cernion-governance-assistant',
+      messages: [{ role: 'user', content: message }],
     },
-  });
+    {
+      'X-OpenWebUI-User-Id': person,
+      'X-OpenWebUI-Chat-Id': extra.openWebuiConversationId || `conversation-${person}`,
+      'X-Request-Id': `turn-${++sequence}`,
+    }
+  );
   assert.equal(status, 200, JSON.stringify(response));
   await settle();
   turns.push({
@@ -209,7 +211,7 @@ async function main() {
   process.env.CERNION_SUPPORT_TOKEN_INPUT = process.env.CERNION_SUPPORT_TOKEN;
   const create = (args) =>
     provisionToken({ tenant: tenantId, user: 'svc-openwebui', name: 'E2E', ...args }, broker);
-  gatewayToken = (await create({ gateway: true, client: 'open-webui' })).data.token;
+  gatewayToken = (await create({ gateway: true, client: 'open-webui', org: 'org' })).data.token;
   adminToken = (await create({ user: 'admin', roles: 'ROLE_USER,ROLE_TENANT_ADMIN' })).data.token;
   const verified = await broker.call('token-manager.verify', { token: adminToken });
   admin = {
@@ -275,8 +277,9 @@ async function main() {
     ).status,
     403
   );
-  const otherToken = (await create({ tenant: 'other-e2e', gateway: true, client: 'open-webui' }))
-    .data.token;
+  const otherToken = (
+    await create({ tenant: 'other-e2e', gateway: true, client: 'open-webui', org: 'org' })
+  ).data.token;
   assert.equal(
     (
       await http('/v1/chat/completions', otherToken, {
@@ -291,8 +294,8 @@ async function main() {
     '/v1/chat/completions',
     gatewayToken,
     {
-      ...completion,
-      metadata: { openWebuiOrgId: 'org' },
+      model: completion.model,
+      messages: completion.messages,
     },
     headers
   );
@@ -300,7 +303,13 @@ async function main() {
   // Admin token ignores header and metadata identities: no missing-user mapping lookup.
   const withoutGateway = await http('/v1/chat/completions', adminToken, completion, headers);
   assert.equal(withoutGateway.status, 200, JSON.stringify(withoutGateway.result));
-  console.log('HTTP gateway negative cases PASS');
+  const models = await http('/v1/models', gatewayToken);
+  assert.equal(models.status, 200);
+  assert.deepEqual(
+    models.result.data.map((entry) => entry.id),
+    ['cernion-governance-assistant']
+  );
+  console.log('HTTP gateway negative cases and header-only setup PASS');
   const started = await turn(
     'alice',
     'Starte bitte einen Fall: Netzanschlussanfrage für einen 2-MW-Batteriespeicher am Umspannwerk Nord prüfen.'

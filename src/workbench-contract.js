@@ -51,6 +51,9 @@ function normalizeConversationRef(input = {}) {
     openWebuiConversationId: input.openWebuiConversationId || conversationId,
     openWebuiUserId: cleanString(input.openWebuiUserId || input.externalUserId, 'openWebuiUserId'),
     openWebuiOrgId: cleanString(input.openWebuiOrgId || input.externalOrgId, 'openWebuiOrgId'),
+    ...(input.openWebuiUserEmail
+      ? { openWebuiUserEmail: cleanString(input.openWebuiUserEmail, 'openWebuiUserEmail') }
+      : {}),
     requestId: cleanString(input.requestId, 'requestId'),
     correlationId: cleanString(input.correlationId, 'correlationId'),
   };
@@ -101,6 +104,9 @@ function normalizeTaskEnvelope(input = {}, mapping = {}) {
     openWebuiConversationId: conversation.openWebuiConversationId,
     openWebuiUserId: conversation.openWebuiUserId,
     openWebuiOrgId: conversation.openWebuiOrgId,
+    ...(conversation.openWebuiUserEmail
+      ? { openWebuiUserEmail: conversation.openWebuiUserEmail }
+      : {}),
     clientId,
     asyncDelivery: normalizeAsyncDelivery(input, clientId),
     knownContext:
@@ -435,7 +441,11 @@ const schemas = {
     {
       client: stringSchema('Workbench client'),
       externalOrgId: stringSchema('Open WebUI organization id'),
-      externalUserId: stringSchema('Open WebUI user id'),
+      externalUserId: stringSchema('Open WebUI user id; alternative to externalUserEmail'),
+      externalUserEmail: stringSchema(
+        'Exact normalized Open WebUI email; alternative to externalUserId',
+        { format: 'email' }
+      ),
       openWebuiOrgId: stringSchema('Open WebUI organization id'),
       openWebuiUserId: stringSchema('Open WebUI user id'),
       cetTenantId: stringSchema('CET tenant id'),
@@ -445,7 +455,7 @@ const schemas = {
       defaultClientId: stringSchema('Default registered delivery client id'),
       enabled: booleanSchema('Whether the mapping is active'),
     },
-    ['externalOrgId', 'externalUserId']
+    ['externalOrgId']
   ),
   DeliveryClientRequest: objectSchema(
     {

@@ -292,9 +292,11 @@ module.exports = {
     // Gating belongs on the `create` action above (the HTTP-facing path).
     // Callers: scripts/provision-token.js (guarded by CERNION_SUPPORT_TOKEN).
     createCli: {
+      visibility: 'protected',
       params: {
         gateway: { type: 'boolean', optional: true },
         client: { type: 'string', optional: true },
+        externalOrgId: { type: 'string', optional: true, trim: true, min: 1, max: 500 },
         roles: { type: 'array', items: 'string', optional: true },
         support: { type: 'boolean', optional: true },
         name: { type: 'string', min: 1, max: MAX_NAME_LENGTH, trim: true },
@@ -418,7 +420,10 @@ module.exports = {
         const scope = normaliseScope(record.scope);
         if (
           record.type === 'gateway' &&
-          (method !== 'POST' || requestPath !== '/v1/chat/completions')
+          !(
+            (method === 'POST' && requestPath === '/v1/chat/completions') ||
+            (method === 'GET' && requestPath === '/v1/models')
+          )
         ) {
           return { success: true, valid: false, reason: 'GATEWAY_TOKEN_FORBIDDEN' };
         }
@@ -463,7 +468,9 @@ module.exports = {
           success: true,
           valid: true,
           tokenId: record.id,
-          ...(record.type ? { type: record.type, client: record.client } : {}),
+          ...(record.type
+            ? { type: record.type, client: record.client, externalOrgId: record.externalOrgId }
+            : {}),
           ...(record.roles ? { roles: record.roles } : {}),
           name: record.name,
           scope,
@@ -540,6 +547,7 @@ module.exports = {
         scopes: extraScopes = [],
         gateway = false,
         client,
+        externalOrgId,
         roles,
         support = false,
       },
@@ -562,14 +570,20 @@ module.exports = {
         );
       }
 
-      if (!cli && (gateway || roles !== undefined || client || support)) {
+      if (!cli && (gateway || roles !== undefined || client || externalOrgId || support)) {
         throw new Errors.MoleculerClientError(
           'Gateway and role issuance requires the provisioning CLI.',
           403,
           'TOKEN_CLI_REQUIRED'
         );
       }
-      const validatedRoles = validateTokenIdentity({ gateway, client, roles, support });
+      const validatedRoles = validateTokenIdentity({
+        gateway,
+        client,
+        externalOrgId,
+        roles,
+        support,
+      });
       if (gateway && extraScopes.length) {
         throw new Errors.MoleculerClientError(
           'Gateway tokens cannot have scopes.',
@@ -610,7 +624,7 @@ module.exports = {
         id: crypto.randomUUID(),
         name,
         tokenHash: sha256(rawToken),
-        ...(gateway ? { type: 'gateway', client } : {}),
+        ...(gateway ? { type: 'gateway', client, externalOrgId: externalOrgId.trim() } : {}),
         ...(roles !== undefined ? { roles: validatedRoles } : {}),
         tokenMasked: maskToken(rawToken),
         createdAt,
@@ -653,7 +667,9 @@ module.exports = {
         success: true,
         data: {
           id: record.id,
-          ...(record.type ? { type: record.type, client: record.client } : {}),
+          ...(record.type
+            ? { type: record.type, client: record.client, externalOrgId: record.externalOrgId }
+            : {}),
           ...(record.roles ? { roles: record.roles } : {}),
           name: record.name,
           token: rawToken,

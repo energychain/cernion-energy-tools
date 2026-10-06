@@ -89,6 +89,7 @@ describe('Gateway identity over authenticated HTTP (#736)', () => {
           name: 'Gateway',
           gateway: true,
           client: 'open-webui',
+          org: 'org',
         },
         broker
       )
@@ -119,6 +120,9 @@ describe('Gateway identity over authenticated HTTP (#736)', () => {
     fs.rmSync(dir, { recursive: true, force: true });
   });
 
+  test('CLI issuance is protected and accessible only on the local broker', () => {
+    expect(TokenManager.actions.createCli.visibility).toBe('protected');
+  });
   test('gateway stores neither personal roles nor scope privileges', () => {
     const stored = broker
       .getLocalService('token-manager')
@@ -127,6 +131,7 @@ describe('Gateway identity over authenticated HTTP (#736)', () => {
     expect(stored).toMatchObject({
       type: 'gateway',
       client: 'open-webui',
+      externalOrgId: 'org',
       tenantId: 'public',
       scopes: [],
     });
@@ -135,11 +140,16 @@ describe('Gateway identity over authenticated HTTP (#736)', () => {
     expect(JSON.stringify(stored)).not.toContain(gateway.token);
   });
   test('headers delegate mapped actor, roles, clearance, with a content-free durable audit', async () => {
-    const response = await request('/v1/chat/completions', gateway.token, complete(), {
-      'X-OpenWebUI-User-Id': 'alice',
-      'X-OpenWebUI-Chat-Id': 'header-chat',
-      'X-OpenWebUI-User-Role': 'admin',
-    });
+    const response = await request(
+      '/v1/chat/completions',
+      gateway.token,
+      { model: 'cernion-governance-assistant', messages: complete().messages },
+      {
+        'X-OpenWebUI-User-Id': 'alice',
+        'X-OpenWebUI-Chat-Id': 'header-chat',
+        'X-OpenWebUI-User-Role': 'admin',
+      }
+    );
     expect(response.status).toBe(200);
     expect(mappedCalls.at(-1).authUser).toMatchObject({
       userId: 'cet-alice',
@@ -163,6 +173,138 @@ describe('Gateway identity over authenticated HTTP (#736)', () => {
       ])
     );
     expect(JSON.stringify(audits)).not.toMatch(/APERAK|messages|content|Read-only/);
+  });
+  test('token organization accepts matching metadata and rejects overriding it', async () => {
+    expect(
+      (await request('/v1/chat/completions', gateway.token, complete({ openWebuiUserId: 'alice' })))
+        .status
+    ).toBe(200);
+    expect(
+      (
+        await request(
+          '/v1/chat/completions',
+          gateway.token,
+          complete({ openWebuiUserId: 'alice', openWebuiOrgId: 'foreign' })
+        )
+      ).status
+    ).toBe(403);
+  });
+  test('legacy gateway without organization retains metadata requirement and logs a migration hint', async () => {
+    const manager = broker.getLocalService('token-manager');
+    const records = manager.loadTokens();
+    const index = records.findIndex((entry) => entry.id === gateway.id);
+    const original = records[index];
+    const legacy = { ...original };
+    delete legacy.externalOrgId;
+    records[index] = legacy;
+    manager.saveTokens(records);
+    const warn = jest.spyOn(broker.logger, 'warn');
+    try {
+      const body = { model: 'cernion-governance-assistant', messages: complete().messages };
+      const headers = { 'X-OpenWebUI-User-Id': 'alice', 'X-OpenWebUI-Chat-Id': 'legacy' };
+      expect((await request('/v1/chat/completions', gateway.token, body, headers)).status).toBe(
+        403
+      );
+      expect(
+        (
+          await request(
+            '/v1/chat/completions',
+            gateway.token,
+            complete({ openWebuiUserId: 'alice' })
+          )
+        ).status
+      ).toBe(200);
+      expect(warn).toHaveBeenCalledWith(
+        expect.stringContaining('Legacy gateway token without organization')
+      );
+    } finally {
+      const current = manager.loadTokens();
+      current[current.findIndex((entry) => entry.id === gateway.id)] = original;
+      manager.saveTokens(current);
+      warn.mockRestore();
+    }
+  });
+  test('email fallback matches exactly after normalization; ID mappings always win', async () => {
+    await provisionMapping(
+      {
+        tenant: 'public',
+        org: 'org',
+        email: ' Alice@Example.Org ',
+        actor: 'cet-email-alice',
+        roles: 'ROLE_USER',
+      },
+      broker
+    );
+    const body = { model: 'cernion-governance-assistant', messages: complete().messages };
+    const headers = {
+      'X-OpenWebUI-User-Id': 'new-webui-id',
+      'X-OpenWebUI-Chat-Id': 'email-chat',
+      'X-OpenWebUI-User-Email': 'ALICE@example.org',
+    };
+    expect((await request('/v1/chat/completions', gateway.token, body, headers)).status).toBe(200);
+    expect(mappedCalls.at(-1).authUser).toMatchObject({
+      userId: 'cet-email-alice',
+      roles: ['ROLE_USER'],
+      sensitivityFlags: [],
+    });
+    expect(
+      (
+        await request('/v1/chat/completions', gateway.token, body, {
+          ...headers,
+          'X-OpenWebUI-User-Id': 'alice',
+        })
+      ).status
+    ).toBe(200);
+    expect(mappedCalls.at(-1).authUser.userId).toBe('cet-alice');
+    for (const email of ['foreign@example.org', 'alice+other@example.org', 'alice@example.net']) {
+      expect(
+        (
+          await request('/v1/chat/completions', gateway.token, body, {
+            ...headers,
+            'X-OpenWebUI-User-Email': email,
+          })
+        ).status
+      ).toBe(403);
+    }
+    expect(
+      (
+        await request(
+          '/v1/chat/completions',
+          admin.token,
+          { ...body, metadata: { conversationId: 'ordinary-email-chat' } },
+          headers
+        )
+      ).status
+    ).toBe(200);
+    expect(mappedCalls.at(-1).authUser.userId).toBe('admin');
+    expect(mappedCalls.at(-1)).not.toHaveProperty('workbenchMappedActor');
+    await provisionMapping(
+      {
+        tenant: 'public',
+        org: 'other-org',
+        email: 'foreign-org@example.org',
+        actor: 'foreign',
+        roles: 'ROLE_USER',
+      },
+      broker
+    );
+    expect(
+      (
+        await request('/v1/chat/completions', gateway.token, body, {
+          ...headers,
+          'X-OpenWebUI-User-Email': 'foreign-org@example.org',
+        })
+      ).status
+    ).toBe(403);
+    const store = broker.getLocalService('workbench').store;
+    const mapping = await store.getUserMappingByEmail({
+      client: 'open-webui',
+      externalOrgId: 'org',
+      externalUserEmail: 'alice@example.org',
+    });
+    expect(mapping.externalUserEmail).toBe('alice@example.org');
+    await store.saveUserMapping({ ...mapping, enabled: false });
+    expect((await request('/v1/chat/completions', gateway.token, body, headers)).status).toBe(403);
   });
   test('metadata identity takes precedence over a valid forwarded header', async () => {
     const response = await request(
@@ -200,8 +342,11 @@ describe('Gateway identity over authenticated HTTP (#736)', () => {
   ])('gateway cannot enter %s', async (route) => {
     expect((await request(route, gateway.token, {})).status).toBe(403);
   });
-  test('gateway cannot enter model discovery or the agent model', async () => {
-    expect((await request('/v1/models', gateway.token)).status).toBe(403);
+  test('gateway discovery exposes only governance while the agent completion is forbidden', async () => {
+    const models = await request('/v1/models', gateway.token);
+    expect(models.status).toBe(200);
+    expect(models.body.object).toBe('list');
+    expect(models.body.data.map((entry) => entry.id)).toEqual(['cernion-governance-assistant']);
     expect(
       (
         await request('/v1/chat/completions', gateway.token, {
@@ -230,6 +375,7 @@ describe('Gateway identity over authenticated HTTP (#736)', () => {
           name: 'Other',
           gateway: true,
           client: 'open-webui',
+          org: 'org',
         },
         broker
       )
@@ -249,12 +395,23 @@ describe('Gateway identity over authenticated HTTP (#736)', () => {
       externalUserId: 'disabled',
     });
     await store.saveUserMapping({ ...mapping, enabled: false });
+    await provisionMapping(
+      {
+        tenant: 'public',
+        org: 'org',
+        email: 'enabled@example.org',
+        actor: 'cet-enabled',
+        roles: 'ROLE_USER',
+      },
+      broker
+    );
     expect(
       (
         await request(
           '/v1/chat/completions',
           gateway.token,
-          complete({ openWebuiUserId: 'disabled' })
+          complete({ openWebuiUserId: 'disabled' }),
+          { 'X-OpenWebUI-User-Email': 'enabled@example.org' }
         )
       ).status
     ).toBe(403);
@@ -294,6 +451,7 @@ describe('Gateway identity over authenticated HTTP (#736)', () => {
       (
         await request('/api/workbench/admin/user-mappings', admin.token, {
           client: 'open-webui',
+          org: 'org',
           externalOrgId: 'org',
           externalUserId: 'invalid',
           cetActorId: 'invalid',
@@ -393,6 +551,7 @@ describe('Gateway identity over authenticated HTTP (#736)', () => {
           name: 'Invalid',
           gateway: true,
           client: 'open-webui',
+          org: 'org',
           roles: 'ROLE_USER',
         },
         broker

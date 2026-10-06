@@ -462,11 +462,25 @@ module.exports = {
         if (gateway) {
           if (metadata.client && metadata.client !== ctx.meta.apiToken.client) gatewayForbidden();
           metadata.client = ctx.meta.apiToken.client;
+          const tokenOrg = ctx.meta.apiToken.externalOrgId;
+          if (tokenOrg) {
+            if (metadata.openWebuiOrgId != null && metadata.openWebuiOrgId !== tokenOrg)
+              gatewayForbidden();
+            metadata.openWebuiOrgId = tokenOrg;
+          } else {
+            ctx.broker?.logger?.warn(
+              'Legacy gateway token without organization: metadata.openWebuiOrgId is required.'
+            );
+          }
           const headers = ctx.meta.requestHeaders || {};
           metadata.openWebuiUserId ??= headers['x-openwebui-user-id'];
+          metadata.openWebuiUserEmail = headers['x-openwebui-user-email'];
           metadata.openWebuiConversationId ??=
             metadata.conversationId ?? headers['x-openwebui-chat-id'];
-          if (!metadata.openWebuiUserId || !metadata.openWebuiOrgId) {
+          if (
+            (!metadata.openWebuiUserId && !metadata.openWebuiUserEmail) ||
+            !metadata.openWebuiOrgId
+          ) {
             throw openAiError(
               'Für diesen Nutzer ist noch kein Zugang eingerichtet. Bitte wenden Sie sich an Ihre Administration.',
               403,
@@ -477,6 +491,7 @@ module.exports = {
           // Caller metadata/forwarded headers are never delegated identity without a gateway token.
           delete metadata.openWebuiUserId;
           delete metadata.openWebuiOrgId;
+          delete metadata.openWebuiUserEmail;
         }
 
         if (requestedModel === GOVERNANCE_MODEL) {
@@ -499,6 +514,9 @@ module.exports = {
               channel: 'open-webui',
               openWebuiConversationId: metadata.openWebuiConversationId || metadata.conversationId,
               openWebuiUserId: metadata.openWebuiUserId,
+              ...(metadata.openWebuiUserEmail
+                ? { openWebuiUserEmail: metadata.openWebuiUserEmail }
+                : {}),
               openWebuiOrgId: metadata.openWebuiOrgId,
               clientId: metadata.clientId,
               knownContext: metadata.context,
