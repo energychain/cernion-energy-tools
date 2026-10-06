@@ -9,6 +9,7 @@ const Routes = require('../services/domain-routes-management.service');
 const Cya = require('../services/cya.service');
 const Znp = require('../services/znp.service');
 const Utility = require('../services/utility-report.service');
+const Dashboard = require('../services/dashboard-api.service');
 const { buildExecutionPlan } = require('../src/personal-agent-routing');
 
 const task = 'Prüfe die Anschlusskapazität am Umspannwerk.';
@@ -176,5 +177,43 @@ describe('uncertain broker contract at direct consumers (real recommendation)', 
     expect(result.capabilities).toEqual([]);
     expect(result.intent).toBe('clarify');
     expect(calls).toEqual(['capability-broker.recommend']);
+  });
+
+  test('Dashboard grounding audit reads routing evidence without executing a candidate', async () => {
+    const auditCtx = {
+      meta,
+      params: { query: task },
+      call: jest.fn(async (action, params, options) => {
+        if (action === 'capability-broker.recommend') {
+          const result = await broker.call(action, params, options);
+          expect(result.uncertain).toBe(true);
+          return result;
+        }
+        if (action === 'datapoint.health') return { available: true };
+        if (action === 'vdmi.findings') return { findings: [] };
+        if (action === 'knowledge-rag.query') return { results: [] };
+        throw new Error(`Unexpected capability action: ${action}`);
+      }),
+    };
+    const service = {
+      ...Dashboard.methods,
+      logger,
+      settings: Dashboard.settings,
+      cacheGetOrFetch: (_key, _ttl, fetch) => fetch(),
+    };
+    const result = await Dashboard.actions.evidenceGroundingConfidenceAudit.handler.call(
+      service,
+      auditCtx
+    );
+    expect(result._errors).toEqual([]);
+    expect(calls).toEqual(['capability-broker.recommend']);
+    expect(
+      auditCtx.call.mock.calls.map(([action]) => action).sort((a, b) => a.localeCompare(b))
+    ).toEqual([
+      'capability-broker.recommend',
+      'datapoint.health',
+      'knowledge-rag.query',
+      'vdmi.findings',
+    ]);
   });
 });
