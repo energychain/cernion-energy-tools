@@ -1,4 +1,5 @@
 'use strict';
+jest.mock('../src/llm-client', () => require('./helpers/workbench-llm-stub'));
 const fs = require('fs');
 const http = require('http');
 const os = require('os');
@@ -160,6 +161,7 @@ describe('Workbench RC3 Open WebUI Tenant Gateway', () => {
       name: 'test-assistance',
       settings: { $noServiceNamePrefix: true },
       actions: {
+        'personal-agent.collectWorkbenchEvidence': () => ({ evidence: [], trace: [] }),
         'personal-agent.answerDossier': () => ({
           answer: 'Evidenz prüfen; die Einschätzung bleibt unverbindlich.',
         }),

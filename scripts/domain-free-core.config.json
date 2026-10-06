@@ -56,7 +56,11 @@
     "capability-routing.parameters.json",
     "src/shared-service-case-context.js",
     "src/shared-service-display.js",
-    "src/function-case-contexts.js"
+    "src/function-case-contexts.js",
+    "src/workbench-understanding.js",
+    "src/workbench-content-turn.js",
+    "src/workbench-retrieval.js",
+    "src/workbench-identifier-context.js"
   ],
   "optionalPaths": [
     "src/function-model.js",
@@ -69,7 +73,11 @@
   "genericPackageShare": 0.05,
   "referenceCorpus": {
     "maxFilesPerPackage": 40,
-    "extensions": [".js", ".cjs", ".mjs"],
+    "extensions": [
+      ".js",
+      ".cjs",
+      ".mjs"
+    ],
     "generatedAt": "2026-10-03T00:00:00.000Z"
   }
 }

@@ -142,6 +142,54 @@ class WorkbenchStore {
     }
   }
 
+  async unlinkConversation(input) {
+    const doc = await this.conversationsDb.get(
+      conversationId(input.tenantId, input.client, input.conversationId)
+    );
+    await this.conversationsDb.remove(doc);
+  }
+
+  async caseDisplayRef({ tenantId, caseId }) {
+    const _id = key('case-display', tenantId, caseId);
+    try {
+      return (await this.conversationsDb.get(_id)).ref;
+    } catch (error) {
+      if (error.status !== 404) throw error;
+    }
+    const counterId = key('case-display-sequence', tenantId);
+    for (let attempt = 0; attempt < 20; attempt++) {
+      let counter;
+      try {
+        counter = await this.conversationsDb.get(counterId);
+      } catch (error) {
+        if (error.status !== 404) throw error;
+        counter = { _id: counterId, sequence: 0 };
+      }
+      const sequence = counter.sequence + 1;
+      try {
+        await this.conversationsDb.put({ ...counter, sequence });
+      } catch (error) {
+        if (error.status === 409) continue;
+        throw error;
+      }
+      const ref = `F-${sequence}`;
+      try {
+        await this.conversationsDb.put({
+          _id,
+          tenantId,
+          caseId,
+          ref,
+          type: 'workbench_case_display',
+        });
+        return ref;
+      } catch (error) {
+        if (error.status === 409) return (await this.conversationsDb.get(_id)).ref;
+        throw error;
+      }
+    }
+    conflict('Case display sequence conflict');
+  }
+
   async reserveConversation(input) {
     const _id = conversationId(input.tenantId, input.client, input.conversationId);
     const timestamp = now();

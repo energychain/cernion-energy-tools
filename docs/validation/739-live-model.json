@@ -1,0 +1,660 @@
+{
+  "mode": "live central LLM / stubbed sources; no test-instance retrieval",
+  "provider": "gemini",
+  "model": "gemini-3.5-flash-lite",
+  "turns": [
+    {
+      "message": "Mail eines Lieferanten an einen Netzbetreiber: Überfällige Antwort auf Netzanmeldung, Marktlokation 99000000001, Frist überschritten. Kannst du mir helfen?",
+      "elapsedMs": 4022,
+      "state": "assistance",
+      "answerStatus": "grounded",
+      "responseText": "Unverbindliche Einschätzung:\n\nEs geht um: Überfällige Antwort auf eine Netzanmeldung für eine Marktlokation und Fristüberschreitung gemäß einer Lieferanten-Mail an den Netzbetreiber.\nEin Lieferant hat eine Mail an einen Netzbetreiber gesendet, in der er bemängelt, dass die Antwort auf eine Netzanmeldung überfällig ist und eine Frist überschritten wurde.\n\nDas Gegenüber erwartet vermutlich, dass die überfällige Netzanmeldung für die Marktlokation 99000000001 bearbeitet wird, da die Frist laut der Lieferanten-Mail überschritten wurde. [E1]\n\nDie Anfrage dokumentieren, die Referenz, das Eingangsdatum sowie die zuständige Bearbeitung prüfen und die behauptete Fristüberschreitung anhand der ursprünglichen Anfrage und der Eingangsbestätigung verifizieren. [E1]\n\n[E1] knowledge-rag: https://example.invalid/anonymous-process-note\n\nWelche genauen Daten und Belege liegen zur versendeten Netzanmeldung und zur ursprünglichen Fristsetzung vor?\n\nIch führe das als Fall F-1. Mit „Kein Fall“ kannst du ihn verwerfen.",
+      "situation": {
+        "concern": "Überfällige Antwort auf eine Netzanmeldung für eine Marktlokation und Fristüberschreitung gemäß einer Lieferanten-Mail an den Netzbetreiber.",
+        "situation": "Ein Lieferant hat eine Mail an einen Netzbetreiber gesendet, in der er bemängelt, dass die Antwort auf eine Netzanmeldung überfällig ist und eine Frist überschritten wurde.",
+        "participants": [
+          "Lieferant",
+          "Netzbetreiber"
+        ],
+        "identifiers": [
+          {
+            "kind": "Marktlokation",
+            "value": "99000000001"
+          }
+        ],
+        "deadlines": [
+          {
+            "value": "Frist überschritten",
+            "basis": "Frist überschritten"
+          }
+        ],
+        "hypotheses": [
+          {
+            "kind": "domain",
+            "id": "grid-connection",
+            "confidence": 0.9
+          },
+          {
+            "kind": "function",
+            "id": "fn-anschlusskapazitaet-evidence-queue",
+            "confidence": 0.8
+          }
+        ],
+        "missingInformation": [
+          {
+            "key": "netzanmeldung_details",
+            "question": "Welche genauen Daten und Belege liegen zur versendeten Netzanmeldung und zur ursprünglichen Fristsetzung vor?"
+          }
+        ],
+        "requestedAction": {
+          "description": "Unterstützung bei der Bearbeitung oder Beantwortung der Beschwerde über die Fristüberschreitung bei der Netzanmeldung anbieten.",
+          "externalEffect": false,
+          "draftRequested": false
+        },
+        "turnKind": "work",
+        "retrievalTerms": [
+          "Netzanmeldung",
+          "Marktlokation",
+          "Fristüberschreitung",
+          "Lieferant",
+          "Netzbetreiber"
+        ]
+      },
+      "evidence": [
+        {
+          "source": "knowledge-rag",
+          "value": "Netzanmeldung: Anfrage dokumentieren. Referenz, Eingangsdatum und zuständige Bearbeitung prüfen. Die behauptete Fristüberschreitung anhand der ursprünglichen Anfrage und Eingangsbestätigung verifizieren. · Score: 0.920",
+          "url": "https://example.invalid/anonymous-process-note",
+          "metadata": {
+            "hitId": "local-process-note",
+            "sectionId": null,
+            "timestamp": null,
+            "documentType": null,
+            "score": 0.92
+          },
+          "retrievalSource": "knowledge-rag",
+          "evidenceId": "E1"
+        }
+      ],
+      "retrievalTrace": [
+        {
+          "source": "knowledge-rag",
+          "called": true,
+          "status": "available",
+          "hitCount": 1,
+          "rejected": [
+            {
+              "hitId": "irrelevant-note",
+              "source": "knowledge-rag",
+              "score": 0.58,
+              "summary": "Rotorblattwartung und Schmierstoffkontrolle.",
+              "reason": "below_score_threshold",
+              "overlap": 0
+            }
+          ]
+        },
+        {
+          "source": "datapoint",
+          "called": true,
+          "status": "missing",
+          "hitCount": 0,
+          "scannedCount": 0,
+          "rejected": []
+        },
+        {
+          "source": "object-store",
+          "called": true,
+          "status": "missing",
+          "hitCount": 0,
+          "namespaces": [
+            {
+              "namespace": "cya_sessions",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "cya_profiles",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "finance_agent_memory",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "copilot_context",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "process_context",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "evidence",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "znp_projects",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "vdmi_context",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            }
+          ],
+          "rejected": []
+        },
+        {
+          "source": "willi-mako",
+          "called": false,
+          "status": "skipped",
+          "hitCount": 0
+        },
+        {
+          "source": "knowledge-rag-federated",
+          "called": false,
+          "status": "skipped",
+          "hitCount": 0
+        },
+        {
+          "source": "analysis-planner",
+          "called": true,
+          "status": "available",
+          "hitCount": 0,
+          "signals": {
+            "postalCode": null,
+            "power": null,
+            "assetClass": null,
+            "perspectives": [],
+            "active": false
+          },
+          "toolCalls": [],
+          "rejected": [
+            {
+              "source": "analysis-planner",
+              "value": "Cernion Analysis Planner:",
+              "metadata": {
+                "kind": "signals"
+              },
+              "reason": "situation_mismatch",
+              "overlap": 0
+            }
+          ]
+        },
+        {
+          "source": "capability-read",
+          "called": false,
+          "status": "skipped",
+          "hitCount": 0,
+          "calledOperations": 0,
+          "rejected": []
+        },
+        {
+          "source": "response_boundary",
+          "rejected": []
+        }
+      ],
+      "caseCreated": true,
+      "draftCreated": false
+    },
+    {
+      "message": "Antwort per Mail senden",
+      "elapsedMs": 3308,
+      "state": "assistance",
+      "answerStatus": "grounded",
+      "responseText": "Unverbindliche Einschätzung:\n\nEs geht um: Die Anforderung, eine Antwort per Mail an den Lieferanten zu senden bezüglich der überfälligen Netzanmeldung für die Marktlokation 99000000001.\nDer Nutzer fordert auf, eine Antwort per E-Mail zu versenden, nachdem zuvor eine Fristüberschreitung durch den Netzbetreiber bemängelt wurde.\n\nDas Gegenüber erwartet vermutlich, dass die Anfrage dokumentiert und die behauptete Fristüberschreitung anhand der ursprünglichen Anfrage und Eingangsbestätigung verifiziert wird. [E1]\n\nDie Referenz, das Eingangsdatum und die zuständige Bearbeitung prüfen. [E1]\n\n[E1] knowledge-rag: https://example.invalid/anonymous-process-note\n\nCET versendet oder übermittelt selbst nichts. Auf Wunsch erstelle ich einen internen Antwortentwurf („Entwurf bitte“).\n\nIch führe das als Fall F-1. Mit „Kein Fall“ kannst du ihn verwerfen.",
+      "situation": {
+        "concern": "Die Anforderung, eine Antwort per Mail an den Lieferanten zu senden bezüglich der überfälligen Netzanmeldung für die Marktlokation 99000000001.",
+        "situation": "Der Nutzer fordert auf, eine Antwort per E-Mail zu versenden, nachdem zuvor eine Fristüberschreitung durch den Netzbetreiber bemängelt wurde.",
+        "participants": [
+          "Lieferant",
+          "Netzbetreiber",
+          "Nutzer"
+        ],
+        "identifiers": [
+          {
+            "kind": "Marktlokation",
+            "value": "99000000001"
+          }
+        ],
+        "deadlines": [
+          {
+            "value": "Frist überschritten",
+            "basis": "Frist überschritten"
+          }
+        ],
+        "hypotheses": [
+          {
+            "kind": "domain",
+            "id": "grid-connection",
+            "confidence": 0.9
+          },
+          {
+            "kind": "function",
+            "id": "fn-anschlusskapazitaet-evidence-queue",
+            "confidence": 0.8
+          }
+        ],
+        "missingInformation": [
+          {
+            "key": "netzanmeldung_details",
+            "question": "Welche genauen Daten und Belege liegen zur versendeten Netzanmeldung und zur ursprünglichen Fristsetzung vor?"
+          }
+        ],
+        "requestedAction": {
+          "description": "Antwort per Mail an den Lieferanten bezüglich der Netzanmeldung senden.",
+          "externalEffect": true,
+          "draftRequested": false
+        },
+        "turnKind": "work",
+        "retrievalTerms": [
+          "Netzanmeldung",
+          "Marktlokation",
+          "Fristüberschreitung",
+          "Lieferant",
+          "Netzbetreiber",
+          "Antwort per Mail"
+        ]
+      },
+      "evidence": [
+        {
+          "source": "knowledge-rag",
+          "value": "Netzanmeldung: Anfrage dokumentieren. Referenz, Eingangsdatum und zuständige Bearbeitung prüfen. Die behauptete Fristüberschreitung anhand der ursprünglichen Anfrage und Eingangsbestätigung verifizieren. · Score: 0.920",
+          "url": "https://example.invalid/anonymous-process-note",
+          "metadata": {
+            "hitId": "local-process-note",
+            "sectionId": null,
+            "timestamp": null,
+            "documentType": null,
+            "score": 0.92
+          },
+          "retrievalSource": "knowledge-rag",
+          "evidenceId": "E1"
+        }
+      ],
+      "retrievalTrace": [
+        {
+          "source": "knowledge-rag",
+          "called": true,
+          "status": "available",
+          "hitCount": 1,
+          "rejected": [
+            {
+              "hitId": "irrelevant-note",
+              "source": "knowledge-rag",
+              "score": 0.58,
+              "summary": "Rotorblattwartung und Schmierstoffkontrolle.",
+              "reason": "below_score_threshold",
+              "overlap": 0
+            }
+          ]
+        },
+        {
+          "source": "datapoint",
+          "called": true,
+          "status": "missing",
+          "hitCount": 0,
+          "scannedCount": 0,
+          "rejected": []
+        },
+        {
+          "source": "object-store",
+          "called": true,
+          "status": "missing",
+          "hitCount": 0,
+          "namespaces": [
+            {
+              "namespace": "cya_sessions",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "cya_profiles",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "finance_agent_memory",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "copilot_context",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "process_context",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "evidence",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "znp_projects",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "vdmi_context",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            }
+          ],
+          "rejected": []
+        },
+        {
+          "source": "willi-mako",
+          "called": false,
+          "status": "skipped",
+          "hitCount": 0
+        },
+        {
+          "source": "knowledge-rag-federated",
+          "called": false,
+          "status": "skipped",
+          "hitCount": 0
+        },
+        {
+          "source": "analysis-planner",
+          "called": true,
+          "status": "available",
+          "hitCount": 0,
+          "signals": {
+            "postalCode": null,
+            "power": null,
+            "assetClass": null,
+            "perspectives": [],
+            "active": false
+          },
+          "toolCalls": [],
+          "rejected": [
+            {
+              "source": "analysis-planner",
+              "value": "Cernion Analysis Planner:",
+              "metadata": {
+                "kind": "signals"
+              },
+              "reason": "situation_mismatch",
+              "overlap": 0
+            }
+          ]
+        },
+        {
+          "source": "capability-read",
+          "called": false,
+          "status": "skipped",
+          "hitCount": 0,
+          "calledOperations": 0,
+          "rejected": []
+        },
+        {
+          "source": "response_boundary",
+          "rejected": []
+        }
+      ],
+      "caseCreated": true,
+      "draftCreated": false
+    },
+    {
+      "message": "Entwurf bitte",
+      "elapsedMs": 4529,
+      "state": "assistance",
+      "answerStatus": "grounded",
+      "responseText": "Unverbindliche Einschätzung:\n\nEs geht um: Es wird ausdrücklich ein E-Mail-Entwurf für die Antwort bezüglich der überfälligen Netzanmeldung für die Marktlokation 99000000001 an den Lieferanten gewünscht.\nDer Nutzer bittet im aktuellen Turn konkret um die Erstellung eines Entwurfs, aufbauend auf dem bisherigen Sachverhalt zur Fristüberschreitung der Netzanmeldung durch den Netzbetreiber.\n\nDas Gegenüber erwartet vermutlich eine Klärung bezüglich der überfälligen Netzanmeldung für die Marktlokation sowie eine Dokumentation der Anfrage, um die behauptete Fristüberschreitung anhand der ursprünglichen Anfrage und Eingangsbestätigung zu verifizieren. [E1]\n\nAls nächster Schritt wird üblicherweise die Referenz, das Eingangsdatum und die zuständige Bearbeitung geprüft sowie die behauptete Fristüberschreitung anhand der ursprünglichen Anfrage und Eingangsbestätigung verifiziert. [E1]\n\n[E1] knowledge-rag: https://example.invalid/anonymous-process-note\n\nCET versendet oder übermittelt selbst nichts. Auf Wunsch erstelle ich einen internen Antwortentwurf („Entwurf bitte“).\n\nInterner Entwurf, ohne Versand:\nBetreff: Netzanmeldung für Marktlokation 99000000001\n\nGuten Tag,\n\nbezüglich der Netzanmeldung für die Marktlokation 99000000001 kommen wir auf Ihre Anfrage zurück. Wir prüfen derzeit die Referenz, das Eingangsdatum sowie die zuständige Bearbeitung und gleichen die behauptete Fristüberschreitung mit unserer ursprünglichen Anfrage und Eingangsbestätigung ab.\n\nMit freundlichen Grüßen\n[Dein Name/Unternehmensinterner Entwurf]\n\nIch führe das als Fall F-1. Mit „Kein Fall“ kannst du ihn verwerfen.",
+      "situation": {
+        "concern": "Es wird ausdrücklich ein E-Mail-Entwurf für die Antwort bezüglich der überfälligen Netzanmeldung für die Marktlokation 99000000001 an den Lieferanten gewünscht.",
+        "situation": "Der Nutzer bittet im aktuellen Turn konkret um die Erstellung eines Entwurfs, aufbauend auf dem bisherigen Sachverhalt zur Fristüberschreitung der Netzanmeldung durch den Netzbetreiber.",
+        "participants": [
+          "Lieferant",
+          "Netzbetreiber",
+          "Nutzer"
+        ],
+        "identifiers": [
+          {
+            "kind": "Marktlokation",
+            "value": "99000000001"
+          }
+        ],
+        "deadlines": [
+          {
+            "value": "Frist überschritten",
+            "basis": "Frist überschritten"
+          }
+        ],
+        "hypotheses": [
+          {
+            "kind": "domain",
+            "id": "grid-connection",
+            "confidence": 0.9
+          },
+          {
+            "kind": "function",
+            "id": "fn-anschlusskapazitaet-evidence-queue",
+            "confidence": 0.8
+          }
+        ],
+        "missingInformation": [
+          {
+            "key": "netzanmeldung_details",
+            "question": "Welche genauen Daten und Belege liegen zur versendeten Netzanmeldung und zur ursprünglichen Fristsetzung vor?"
+          }
+        ],
+        "requestedAction": {
+          "description": "Einen Entwurf für die Antwort per E-Mail an den Lieferanten bezüglich der Netzanmeldung erstellen.",
+          "externalEffect": true,
+          "draftRequested": true
+        },
+        "turnKind": "work",
+        "retrievalTerms": [
+          "Netzanmeldung",
+          "Marktlokation",
+          "Fristüberschreitung",
+          "Lieferant",
+          "Netzbetreiber",
+          "Entwurf"
+        ]
+      },
+      "evidence": [
+        {
+          "source": "knowledge-rag",
+          "value": "Netzanmeldung: Anfrage dokumentieren. Referenz, Eingangsdatum und zuständige Bearbeitung prüfen. Die behauptete Fristüberschreitung anhand der ursprünglichen Anfrage und Eingangsbestätigung verifizieren. · Score: 0.920",
+          "url": "https://example.invalid/anonymous-process-note",
+          "metadata": {
+            "hitId": "local-process-note",
+            "sectionId": null,
+            "timestamp": null,
+            "documentType": null,
+            "score": 0.92
+          },
+          "retrievalSource": "knowledge-rag",
+          "evidenceId": "E1"
+        }
+      ],
+      "retrievalTrace": [
+        {
+          "source": "knowledge-rag",
+          "called": true,
+          "status": "available",
+          "hitCount": 1,
+          "rejected": [
+            {
+              "hitId": "irrelevant-note",
+              "source": "knowledge-rag",
+              "score": 0.58,
+              "summary": "Rotorblattwartung und Schmierstoffkontrolle.",
+              "reason": "below_score_threshold",
+              "overlap": 0
+            }
+          ]
+        },
+        {
+          "source": "datapoint",
+          "called": true,
+          "status": "missing",
+          "hitCount": 0,
+          "scannedCount": 0,
+          "rejected": []
+        },
+        {
+          "source": "object-store",
+          "called": true,
+          "status": "missing",
+          "hitCount": 0,
+          "namespaces": [
+            {
+              "namespace": "cya_sessions",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "cya_profiles",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "finance_agent_memory",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "copilot_context",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "process_context",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "evidence",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "znp_projects",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "vdmi_context",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            }
+          ],
+          "rejected": []
+        },
+        {
+          "source": "willi-mako",
+          "called": false,
+          "status": "skipped",
+          "hitCount": 0
+        },
+        {
+          "source": "knowledge-rag-federated",
+          "called": false,
+          "status": "skipped",
+          "hitCount": 0
+        },
+        {
+          "source": "analysis-planner",
+          "called": true,
+          "status": "available",
+          "hitCount": 0,
+          "signals": {
+            "postalCode": null,
+            "power": null,
+            "assetClass": null,
+            "perspectives": [],
+            "active": false
+          },
+          "toolCalls": [],
+          "rejected": [
+            {
+              "source": "analysis-planner",
+              "value": "Cernion Analysis Planner:",
+              "metadata": {
+                "kind": "signals"
+              },
+              "reason": "situation_mismatch",
+              "overlap": 0
+            }
+          ]
+        },
+        {
+          "source": "capability-read",
+          "called": false,
+          "status": "skipped",
+          "hitCount": 0,
+          "calledOperations": 0,
+          "rejected": []
+        },
+        {
+          "source": "response_boundary",
+          "rejected": []
+        }
+      ],
+      "caseCreated": true,
+      "draftCreated": true
+    },
+    {
+      "message": "Kein Fall",
+      "elapsedMs": 418,
+      "state": "case_discarded",
+      "responseText": "Der Fall ist verworfen. Die Korrektur ist gespeichert; ich helfe in diesem Gespräch ohne automatische Fallanlage weiter.",
+      "caseCreated": false,
+      "draftCreated": false
+    }
+  ],
+  "answerDiagnostics": [
+    {
+      "valid": true,
+      "errors": null,
+      "draftType": "undefined"
+    },
+    {
+      "valid": true,
+      "errors": null,
+      "draftType": "undefined"
+    },
+    {
+      "valid": true,
+      "errors": null,
+      "draftType": "string"
+    }
+  ]
+}

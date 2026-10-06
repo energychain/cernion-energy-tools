@@ -405,3 +405,12 @@ für entfernte Hosts HTTPS verwenden. Dieser optionale Weg benötigt kein Suppor
 Die separaten PouchDB-Migrations-/Seed-Skripte (`migrate-jobs`,
 `migrate-tenant-energy-sharing`, `seed-rcs-demo-tenant`) sind keine Provisioning-CLIs und
 werden nicht über den lokalen Admin-Kanal exponiert.
+
+
+## Understand-first conversation (#739)
+
+Content turns use the central LLM facade to produce a validated, domain-free situation. Retrieval reuses the Personal-Agent collectors; source associations and score thresholds are configuration in `src/workbench-knowledge-sources.json`. Only persisted tenant/actor mappings authorize mapped sources. Relevant citations precede at most three new specialist questions. Rejected retrieval hits remain in trace.
+
+A concrete work request creates a case in the background, displayed as `F-n`. Smalltalk, pure knowledge and status requests create no case. `Kein Fall` withdraws the case and records the correction; this conversation then suppresses automatic case creation. Routing receives the understood concern and situation. Follow-up turns reuse that situation and the persistent question ledger. Assistant history is not authoritative evidence.
+
+External wishes produce a notice; `Entwurf bitte` stores an internal draft without dispatch. Status and corrections remain deterministic. Additive chat fields include `situation`, `evidence`, `retrievalTrace`, `caseDisplayRef`, and `latencyMs`. Existing facade/MCP callers retain their contracts and do not acquire automatic cases; shared collectors gain relevance filtering and bounded, deduplicated Willi content.

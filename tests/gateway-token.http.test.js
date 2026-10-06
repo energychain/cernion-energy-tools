@@ -1,4 +1,5 @@
 'use strict';
+jest.mock('../src/llm-client', () => require('./helpers/workbench-llm-stub'));
 
 const fs = require('fs');
 const os = require('os');
@@ -70,6 +71,15 @@ describe('Gateway identity over authenticated HTTP (#736)', () => {
     broker.createService({
       name: 'personal-agent',
       actions: {
+        collectWorkbenchEvidence: (ctx) => {
+          mappedCalls.push(structuredClone(ctx.meta));
+          return {
+            evidence: [
+              { source: 'test', value: ctx.params.situation.situation, metadata: { score: 0.9 } },
+            ],
+            trace: [],
+          };
+        },
         chat: (ctx) => {
           mappedCalls.push(structuredClone(ctx.meta));
           return { reply: 'Read-only answer' };

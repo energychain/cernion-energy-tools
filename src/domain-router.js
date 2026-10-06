@@ -2,6 +2,7 @@
 
 const { listCompiledDomainRoutes } = require('./domain-routes-registry');
 const { semanticDomains } = require('./semantic-domains');
+const { normalizePhrase } = require('./function-resolver');
 const { domainHintsForText } = require('./workbench-activity-taxonomy');
 const {
   confirmedCapability,
@@ -105,7 +106,11 @@ function buildRouterDiagnostics(c) {
 async function classifyDomain(input, dependencies = {}) {
   const known = input.knownContext || {};
   const text = input.userRequest || '';
-  const choice = confirmedCapability(text, dependencies.previousState, dependencies.model);
+  const choice = confirmedCapability(
+    known.capabilityChoice || text,
+    dependencies.previousState,
+    dependencies.model
+  );
   if (choice) {
     const previous = dependencies.previousState;
     const c = {
@@ -153,6 +158,17 @@ async function classifyDomain(input, dependencies = {}) {
         add(domain, score, source, String(value));
     }
   };
+  for (const hypothesis of input.knownContext?.situation?.hypotheses || []) {
+    if (hypothesis.kind === 'domain' && hypothesis.confidence >= 0.5)
+      add(
+        Object.keys(DOMAIN_SIGNALS).find(
+          (domain) => normalizePhrase(domain) === normalizePhrase(hypothesis.id)
+        ) || hypothesis.id,
+        Math.min(80, hypothesis.confidence * 80),
+        'situation_hypothesis',
+        hypothesis.id
+      );
+  }
   infer(text, 60, 'task');
   const activityHints = domainHintsForText(text, { limit: 4 });
   for (const hint of activityHints) {

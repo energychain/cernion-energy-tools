@@ -35,6 +35,7 @@ function normalizeResultItem(item = {}, includeContent) {
     excerpt: item.excerpt,
     url: item.url,
   };
+  if (item.sectionId) normalized.sectionId = item.sectionId;
   if (includeContent && item.content !== undefined) {
     normalized.content = item.content;
   }
@@ -218,7 +219,13 @@ module.exports = {
       },
       async handler(ctx) {
         const { query, limit, tag, category } = ctx.params;
-        const searchResult = await ctx.call('willi-mako.search', { query, limit, tag, category });
+        const searchResult = await ctx.call('willi-mako.search', {
+          query,
+          limit,
+          tag,
+          category,
+          includeContent: true,
+        });
 
         if (!searchResult || searchResult.success === false) {
           return {
@@ -232,6 +239,8 @@ module.exports = {
         const sources = results.map((item) => ({
           id: item.id,
           title: item.title,
+          excerpt: String(item.excerpt || item.content || '').slice(0, 1200),
+          sectionId: item.sectionId || item.slug || null,
           url: item.url,
           score: item.score,
         }));

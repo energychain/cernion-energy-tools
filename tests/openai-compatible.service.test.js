@@ -808,12 +808,10 @@ describe('OpenAI governance intent modes', () => {
         messages: [{ role: 'user', content: message }],
       },
       meta: { apiToken: { tenantId: 'tenant-a' } },
-      call: jest
-        .fn()
-        .mockResolvedValue({
-          responseText: 'CET versendet selbst nichts. Ich kann einen Entwurf vorbereiten.',
-          nonBinding: true,
-        }),
+      call: jest.fn().mockResolvedValue({
+        responseText: 'CET versendet selbst nichts. Ich kann einen Entwurf vorbereiten.',
+        nonBinding: true,
+      }),
     };
     const result = await handler(ctx);
     expect(ctx.call).toHaveBeenCalledWith('workbench.chat', expect.objectContaining({ message }));

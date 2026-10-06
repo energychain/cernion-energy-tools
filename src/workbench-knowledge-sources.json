@@ -1,0 +1,123 @@
+{
+  "minimumConfidence": 0.5,
+  "minimumScore": 0.65,
+  "minimumOverlap": 1,
+  "stopWords": [
+    "bitte",
+    "kannst",
+    "helfen",
+    "hilfe",
+    "einer",
+    "einen",
+    "eine",
+    "einem",
+    "dieser",
+    "dieses",
+    "wurde",
+    "werden",
+    "haben",
+    "hatte",
+    "welche",
+    "welcher",
+    "meine",
+    "unser",
+    "their",
+    "please",
+    "could",
+    "would",
+    "about",
+    "gegen\u00fcber",
+    "situation",
+    "anliegen",
+    "pr\u00fcfen",
+    "kl\u00e4ren",
+    "antwort",
+    "mail"
+  ],
+  "sources": [
+    {
+      "id": "knowledge-rag",
+      "domains": [
+        "*"
+      ],
+      "functions": [
+        "*"
+      ],
+      "scoreScale": "unit",
+      "collector": "collectCopilotKnowledgeEvidence"
+    },
+    {
+      "id": "datapoint",
+      "domains": [
+        "*"
+      ],
+      "functions": [
+        "*"
+      ],
+      "scoreScale": "none",
+      "collector": "collectCopilotDatapointEvidence"
+    },
+    {
+      "id": "object-store",
+      "domains": [
+        "*"
+      ],
+      "functions": [
+        "*"
+      ],
+      "scoreScale": "none",
+      "collector": "collectCopilotObjectEvidence"
+    },
+    {
+      "id": "willi-mako",
+      "domains": [
+        "market_communication",
+        "market_master_data",
+        "market-regulatory",
+        "grid_connection"
+      ],
+      "functions": [],
+      "requiresMapping": true,
+      "scoreScale": "provider",
+      "collector": "collectCopilotMakoKnowledgeEvidence",
+      "mappingType": "workbench_willi_mapping",
+      "staffField": "isWilliStaff"
+    },
+    {
+      "id": "knowledge-rag-federated",
+      "domains": [
+        "market_communication",
+        "regulatory",
+        "grid_connection"
+      ],
+      "functions": [],
+      "requiresMapping": true,
+      "scoreScale": "unit",
+      "collector": "collectCopilotFederatedKnowledgeEvidence",
+      "mappingType": "workbench_willi_mapping",
+      "staffField": "isWilliStaff"
+    },
+    {
+      "id": "analysis-planner",
+      "domains": [
+        "grid_connection",
+        "grid_planning"
+      ],
+      "functions": [],
+      "scoreScale": "none",
+      "collector": "collectCopilotPlanningEvidence"
+    },
+    {
+      "id": "capability-read",
+      "domains": [
+        "*"
+      ],
+      "functions": [
+        "*"
+      ],
+      "kind": "capability",
+      "scoreScale": "none"
+    }
+  ],
+  "defaultSource": "knowledge-rag"
+}

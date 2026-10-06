@@ -35,6 +35,8 @@ const {
   COPILOT_CONSULTING_BRIEF_SCHEMA,
 } = require('./shared');
 
+const { filterEvidence } = require('../../src/workbench-retrieval');
+
 module.exports = {
   async _executeChatCoreLogic(ctx) {
     const chatActionSchema = this?.schema?.actions?.chat;
@@ -154,8 +156,11 @@ module.exports = {
     }
   },
 
-  async collectCopilotMakoKnowledgeEvidence(ctx, { question, maxEvidence = 5 } = {}) {
-    if (!isCopilotMakoEdifactQuestion(question)) {
+  async collectCopilotMakoKnowledgeEvidence(
+    ctx,
+    { question, maxEvidence = 5, selected = false } = {}
+  ) {
+    if (!selected && !isCopilotMakoEdifactQuestion(question)) {
       return { source: 'willi-mako', status: 'skipped', hits: [], trace: { hitCount: 0 } };
     }
     try {
@@ -171,16 +176,31 @@ module.exports = {
           trace: { hitCount: 0, error: result?.error?.code || 'MAKO_KNOWLEDGE_UNAVAILABLE' },
         };
       }
-      const sources = Array.isArray(result.data?.sources) ? result.data.sources : [];
+      const seen = new Set();
+      const sources = (Array.isArray(result.data?.sources) ? result.data.sources : []).filter(
+        (entry) => {
+          const key = `${entry.id || entry.url || entry.title}:${entry.sectionId || entry.excerpt || entry.content || ''}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        }
+      );
       const hits = toCopilotList(
         sources,
         (entry) => ({
           source: 'willi-mako',
           value: compactString(
-            [entry.title, entry.url ? `URL: ${entry.url}` : null].filter(Boolean).join(' · '),
-            400
+            [entry.title, entry.excerpt || entry.content, entry.url ? `URL: ${entry.url}` : null]
+              .filter(Boolean)
+              .join(' · '),
+            1600
           ),
-          metadata: { sourceId: entry.id || null, score: entry.score ?? null },
+          url: entry.url || null,
+          metadata: {
+            sourceId: entry.id || null,
+            sectionId: entry.sectionId || null,
+            score: entry.score ?? null,
+          },
         }),
         maxEvidence
       );
@@ -230,7 +250,12 @@ module.exports = {
         (hit) => ({
           source: compactString(hit.source || 'knowledge-rag-federated', 120),
           value: compactString([hit.summary, hit.retrievalHint].filter(Boolean).join(' · '), 500),
-          metadata: { hitId: hit.hitId || null, score: hit.score ?? null },
+          url: hit.url || null,
+          metadata: {
+            hitId: hit.hitId || null,
+            sectionId: hit.sectionId || null,
+            score: hit.score ?? null,
+          },
         }),
         maxEvidence
       ),
@@ -238,14 +263,22 @@ module.exports = {
     };
   },
 
-  async collectCopilotKnowledgeEvidence(ctx, { question, searchTerm, maxEvidence = 5 } = {}) {
+  async collectCopilotKnowledgeEvidence(
+    ctx,
+    { question, searchTerm, maxEvidence = 5, situation, catalog } = {}
+  ) {
     const query = compactString([searchTerm, question].filter(Boolean).join(' · '), 600);
     const result = await queryKnowledgeEvidenceAdapter(ctx, {
       query,
       limit: Math.min(Math.max(Number(maxEvidence) || 5, 1), 8),
       timeoutMs: COPILOT_KNOWLEDGE_TIMEOUT_MS,
     });
-    const filteredHits = result.hits
+    const relevance = filterEvidence(
+      result.hits,
+      situation || { concern: question, situation: searchTerm },
+      { catalog }
+    );
+    const filteredHits = relevance.hits
       .filter((hit) => copilotKnowledgeHitIsAllowedForQuery(hit, query))
       .filter((hit) => copilotKnowledgeHitHasStrictQueryRelevance(hit, query));
 
@@ -269,8 +302,10 @@ module.exports = {
             520
           ),
           retrievalHint: compactString(hit.retrievalHint || '', 500) || undefined,
+          url: hit.url || null,
           metadata: {
             hitId: hit.hitId || null,
+            sectionId: hit.sectionId || null,
             timestamp: hit.timestamp || null,
             documentType: hit.documentType || null,
             score: Number.isFinite(Number(hit.score)) ? Number(hit.score) : null,
@@ -278,7 +313,7 @@ module.exports = {
         }),
         maxEvidence
       ),
-      trace: result.trace || { hitCount: 0 },
+      trace: { ...result.trace, hitCount: filteredHits.length, rejected: relevance.rejected },
     };
   },
 
@@ -400,8 +435,11 @@ module.exports = {
     };
   },
 
-  async collectCopilotPlanningEvidence(ctx, { analysisSignals = {}, maxEvidence = 5 } = {}) {
-    if (!analysisSignals?.active) {
+  async collectCopilotPlanningEvidence(
+    ctx,
+    { analysisSignals = {}, maxEvidence = 5, selected = false } = {}
+  ) {
+    if (!selected && !analysisSignals?.active) {
       return { source: 'analysis-planner', status: 'skipped', hits: [] };
     }
 

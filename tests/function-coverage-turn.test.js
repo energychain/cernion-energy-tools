@@ -1,4 +1,5 @@
 'use strict';
+jest.mock('../src/llm-client', () => require('./helpers/workbench-llm-stub'));
 const { ServiceBroker } = require('moleculer');
 const coverage = require('../services/function-coverage.service');
 const workbench = require('../services/workbench.service');
@@ -30,13 +31,22 @@ test('Workbench and OpenAI share the completed-turn seam; persistence errors pre
     name: 'personal-agent',
     actions: {
       chat: () => ({ reply: 'neutral reply', selectedCapabilities: [{ capability: 'cap-a' }] }),
+      collectWorkbenchEvidence: () => ({
+        evidence: [{ source: 'test-evidence', value: 'neutral reply' }],
+        trace: [],
+      }),
     },
   });
   broker.createService({
     ...workbench,
     mixins: [],
     created() {
+      this.conversationsDb = new Pouch('conversations');
+      this.identityDb = new Pouch('identities');
       this.store = {
+        async caseDisplayRef() {
+          return 'F-1';
+        },
         async resolveConversation() {
           return { cetCaseId: 'case-a' };
         },
@@ -48,6 +58,9 @@ test('Workbench and OpenAI share the completed-turn seam; persistence errors pre
     },
     methods: {
       ...workbench.methods,
+      async loadVisibleCase() {
+        return { knownContext: {}, currentDomain: 'unknown', lastClassification: {} };
+      },
       async loadWorkbenchContext() {
         return {};
       },
@@ -68,8 +81,9 @@ test('Workbench and OpenAI share the completed-turn seam; persistence errors pre
   broker.createService({
     name: 'domain-router',
     actions: {
+      recordWorkbenchTurn: () => ({ caseStateVersion: 2 }),
       continue: (ctx) => ({
-        uncertain: ctx.params.userRequest === 'uncertain selection',
+        uncertain: ctx.params.knownContext.situation.concern === 'uncertain selection',
         cetCaseId: 'case-a',
         caseStateVersion: 1,
         responseText: 'neutral reply',
@@ -95,7 +109,7 @@ test('Workbench and OpenAI share the completed-turn seam; persistence errors pre
     const policyBefore = await broker.call('workbench.tools.list', {}, { meta });
     const request = {
       model: 'cernion-governance-assistant',
-      messages: [{ role: 'user', content: 'What is a neutral concept?' }],
+      messages: [{ role: 'user', content: 'neutral' }],
       metadata: { conversationId: 'conv-a', requestId: 'req-a' },
     };
     const response = await broker.call('openai-compatible.chatCompletions', request, { meta });

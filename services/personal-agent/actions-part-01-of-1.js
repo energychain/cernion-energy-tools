@@ -134,6 +134,19 @@ const {
 } = require('./shared');
 
 module.exports = {
+  collectWorkbenchEvidence: {
+    visibility: 'protected',
+    params: { situation: 'object' },
+    async handler(ctx) {
+      return require('../../src/workbench-retrieval').collectEvidence(this, ctx, {
+        situation: ctx.params.situation,
+        analysisSignals: extractCopilotAnalysisSignals(
+          [ctx.params.situation.concern, ctx.params.situation.situation].join(' ')
+        ),
+        catalog: this.settings.workbenchKnowledgeSources,
+      });
+    },
+  },
   askCernionAgent: {
     params: {
       question: { type: 'string', min: 1, trim: true, max: 8000 },

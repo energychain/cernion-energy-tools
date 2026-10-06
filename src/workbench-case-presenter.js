@@ -23,10 +23,16 @@ function presentCase(state, { evidenceRefs = [], eventSummary = null, clearance 
     caseStateVersion: state.caseStateVersion,
     tenantId: state.tenantId,
     title: titleFromCase(state),
+    situation: state.knownContext?.situation || null,
     primaryDomain: c.primaryDomain || state.currentDomain || 'unknown',
     alternativeDomains: c.alternativeDomains || [],
     readinessState: c.readinessState || 'unknown',
-    status: c.readinessState === 'evidence_required' ? 'waiting' : 'active',
+    status:
+      state.disposition === 'discarded'
+        ? 'discarded'
+        : c.readinessState === 'evidence_required'
+          ? 'waiting'
+          : 'active',
     allowedActions: c.allowedActions || [],
     blockedActions: c.blockedActions || [],
     requiredClarifications: c.requiredClarifications || state.openClarifications || [],
@@ -68,7 +74,12 @@ function presentCaseListItem(state, eventSummary = null, taskSummary = null) {
     title: titleFromCase(state),
     primaryDomain: c.primaryDomain || state.currentDomain || 'unknown',
     readinessState: c.readinessState || 'unknown',
-    status: c.readinessState === 'evidence_required' ? 'waiting' : 'active',
+    status:
+      state.disposition === 'discarded'
+        ? 'discarded'
+        : c.readinessState === 'evidence_required'
+          ? 'waiting'
+          : 'active',
     pendingEvents: events.unacknowledged || events.pending || 0,
     severity,
     taskSummary: tasks,

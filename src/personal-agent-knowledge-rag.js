@@ -346,6 +346,10 @@ function toSafeEvidenceHit(
     safe.documentType = String(documentType).trim().slice(0, 120);
   }
 
+  const url = hit.url || hit.sourceUrl || metadata.url || metadata.sourceUrl;
+  if (url) safe.url = String(url).slice(0, 1000);
+  const sectionId = hit.sectionId || metadata.sectionId;
+  if (sectionId) safe.sectionId = String(sectionId).slice(0, 120);
   return safe;
 }
 
