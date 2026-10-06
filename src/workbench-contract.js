@@ -613,6 +613,7 @@ const operationSchemas = {
     request: 'UserMappingRequest',
     responseFields: ['saved', 'mapping'],
   },
+  'GET /admin/mappings': { responseFields: ['tenantId', 'mappings'] },
   'GET /admin/user-mappings/:externalUserId': { responseFields: ['found', 'mapping'] },
   'POST /delivery-clients': {
     request: 'DeliveryClientRequest',

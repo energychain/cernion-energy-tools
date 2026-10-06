@@ -1,6 +1,10 @@
 'use strict';
 
 const crypto = require('crypto');
+const {
+  startLocalProvisioning,
+  stopLocalProvisioning,
+} = require('../src/local-provisioning-channel');
 const { handleCorrectionTurn } = require('../src/workbench-corrections');
 const { answerSystemActivity } = require('../src/workbench-system-activity');
 const coverageTurn = require('../src/function-coverage-turn');
@@ -643,6 +647,28 @@ module.exports = {
         return presentEvent(event, await this.findConversationForCase(p.tenantId, event.cetCaseId));
       },
       { eventId: 'string', clientId: 'string' }
+    ),
+    'admin.mappings.list': action(
+      'GET /admin/mappings',
+      'List tenant and user mappings for the authenticated tenant and client',
+      async function (ctx) {
+        const p = this.requireAdmin(ctx);
+        const tenantId = this.authorizeTargetTenant(p, ctx.params.tenantId || p.tenantId);
+        const client = normalizeClient(ctx.params.client || 'open-webui');
+        const rows = await this.identityDb.allDocs({ include_docs: true });
+        return {
+          tenantId,
+          mappings: rows.rows
+            .map((row) => row.doc)
+            .filter(
+              (doc) =>
+                ['workbench_tenant_mapping', 'workbench_user_mapping'].includes(doc.type) &&
+                doc.cetTenantId === tenantId &&
+                doc.client === client
+            ),
+        };
+      },
+      { tenantId: { type: 'string', optional: true }, client: { type: 'string', optional: true } }
     ),
     'admin.tenantMappings.create': action(
       'POST /admin/tenant-mappings',
@@ -1669,6 +1695,12 @@ module.exports = {
       },
       caseParams
     ),
+  },
+  async started() {
+    await startLocalProvisioning(this);
+  },
+  async stopped() {
+    await stopLocalProvisioning(this);
   },
   created() {
     this.store = new WorkbenchStore({
