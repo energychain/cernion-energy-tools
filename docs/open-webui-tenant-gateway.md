@@ -339,3 +339,69 @@ Akteur, Rollen und Clearance stammen ausschließlich aus dem Mapping. Die intern
 Personenprojektion ist auf kontextuelle Lesezugriffe begrenzt (`read-only`); sie erbt
 keinen `full-access`-Scope vom Verbindungsschlüssel. Fachliche Rechte und No-Call-Guards
 werden weiterhin von CET geprüft. Fehler beim Mapping oder Audit bleiben fail-closed.
+
+
+## Provisionierung bei laufendem CET / pm2
+
+`workbench:map` und `workbench:map --list` verwenden automatisch die laufende CET-Instanz,
+wenn deren lokaler Provisionierungskanal erreichbar ist. Die CLI öffnet dabei keine zweite
+PouchDB/LevelDB und benötigt weder einen zusätzlichen Admin-Token noch einen Neustart:
+
+```bash
+# Im gleichen Projektverzeichnis (pm2 cwd) und unter dem CET-Betriebsbenutzer ausführen.
+npm run workbench:map -- --tenant=stadtwerk-a --client=open-webui --org=owui-org-1 --email=user@example.org --actor=cet-user-1 --roles=ROLE_USER --clearance=tenant_internal
+npm run workbench:map -- --tenant=stadtwerk-a --client=open-webui --list
+```
+
+Der vorhandene Bootstrap-Schutz gilt unverändert: `CERNION_SUPPORT_TOKEN` muss in CET und
+CLI konfiguriert sein, und die CLI benötigt den passenden `CERNION_SUPPORT_TOKEN_INPUT`
+oder `--support-token`. Support-Credentials gehören nicht in Open WebUI. Der Kanal stellt
+nur den festen Mapping-Workflow bereit; beliebige Action-Namen oder Rollen-Kontexte aus
+Requests werden nicht übernommen. Mapping-Schreibvorgänge verwenden dieselben Admin-Actions,
+Mandantengrenzen, Rollen-/Clearance-Validierungen und persistierten Mapping-Metadaten wie
+REST. Die Liste verwendet `workbench.admin.mappings.list` mit derselben Admin-/Tenant-Prüfung.
+
+Der Kanal ist ein **Unix-Socket**, kein TCP-Port. Sein Verzeichnis hat Modus `0700`, der
+Socket `0600`; Zugriff haben der CET-Betriebsbenutzer und root. Bei einem als root gestarteten
+pm2 ist der Kanal entsprechend nur für root zugänglich. Zusätzlich prüft der Server bei
+jedem Request das bestehende Support-Secret. Der Standardpfad wird aus dem absoluten
+`CET_WORKBENCH_IDENTITY_DB_PATH` und der Unix-UID abgeleitet und liegt unter
+`<os.tmpdir()>/cet-provisioning-<uid>/<hash>.sock`.
+
+Für explizite pm2-Konfiguration kann `CET_PROVISIONING_SOCKET=/run/cet-provisioning/admin.sock`
+in **Dienst und CLI** gesetzt werden. Das Elternverzeichnis muss dem CET-Betriebsbenutzer
+gehören und Modus `0700` haben. Neue Umgebungswerte bei pm2 einmalig mit
+`pm2 restart <cet-prozess> --update-env` übernehmen; spätere Mapping-Änderungen brauchen
+keinen Neustart. CET muss den neuen Code einmal laden, damit der Kanal bereitsteht.
+`CET_PROVISIONING_CHANNEL_ENABLED=false` deaktiviert den lokalen Kanal.
+
+Ohne laufenden Dienst bleibt das Offline-Verhalten erhalten: Die CLI startet ihren lokalen
+Broker und legt die Mappings wie bisher an. Ein verweigerter Zugriff, falsches Secret oder
+Timeout am Online-Kanal führt **nicht** zum Offline-Fallback. Verwaiste Socket-Dateien nach
+einem Prozessabbruch werden beim nächsten Dienststart geprüft und ersetzt.
+
+Hält eine ältere CET-Instanz die DB-Sperre und bietet noch keinen Kanal, nennt die CLI
+statt des LevelDB-Fehlers den API-Weg. Falls bereits ein berechtigter Tenant-Admin-Token
+vorhanden ist, kann er optional verwendet werden:
+
+```bash
+npm run workbench:map -- --tenant=stadtwerk-a --client=open-webui --org=owui-org-1 --user=owui-user-1 --actor=cet-user-1 --roles=ROLE_USER --via-api --url=http://127.0.0.1:3000 --token="$ADMIN_TOKEN"
+npm run workbench:map -- --tenant=stadtwerk-a --client=open-webui --list --via-api --url=http://127.0.0.1:3000 --token="$ADMIN_TOKEN"
+```
+
+Der API-Weg verwendet die vorhandene HTTP-Authentifizierung und deren Berechtigungen.
+Ein Gateway-Token eignet sich dafür nicht. `--url` bezeichnet die CET-Basis-URL ohne `/v1`;
+für entfernte Hosts HTTPS verwenden. Dieser optionale Weg benötigt kein Support-Secret.
+
+### Prüfung der übrigen Provisioning-CLIs
+
+| CLI | Speicherung | LevelDB-Lock betroffen? |
+| --- | --- | --- |
+| `workbench:map` / `--list` | Workbench-PouchDB | Online-Kanal, ansonsten Offline-/API-Weg |
+| `tenant:create` | JSON-Tenant-Registry | Nein |
+| `user:create` | JSON-Tenant-/User-Registry | Nein |
+| `token:create` | JSON-Registry und Token-/Signal-Dateien | Nein |
+
+Die separaten PouchDB-Migrations-/Seed-Skripte (`migrate-jobs`,
+`migrate-tenant-energy-sharing`, `seed-rcs-demo-tenant`) sind keine Provisioning-CLIs und
+werden nicht über den lokalen Admin-Kanal exponiert.

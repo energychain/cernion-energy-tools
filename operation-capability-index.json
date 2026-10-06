@@ -2,14 +2,14 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.99.22",
-  "sourceOpenApiHash": "5ff679f83364526376891388aa69f92df614fc3fc5416323030791bd05ee4a9f",
+  "sourceOpenApiHash": "9ed444201086aa2acb2cc53ace565ce7e14f67530e159ccb7a41218816d4eea3",
   "coverage": {
-    "rawOperationCount": 1244,
-    "operationCount": 988,
-    "agentableCount": 986,
+    "rawOperationCount": 1245,
+    "operationCount": 989,
+    "agentableCount": 987,
     "nonAgentableCount": 2,
     "byOperationKind": {
-      "data_read": 426,
+      "data_read": 427,
       "admin": 21,
       "object_store_write": 264,
       "process_step": 26,
@@ -20,7 +20,7 @@
       "dashboard_read": 125,
       "internal": 7
     },
-    "resolvedActionCount": 969,
+    "resolvedActionCount": 970,
     "unresolvedActionCount": 19,
     "unresolvedActions": [
       {
@@ -87750,6 +87750,82 @@
         "negativeCues": [],
         "examples": [
           "Show me return one workbench activity taxonomy entry"
+        ],
+        "synonyms": [
+          "agent infrastructure",
+          "system"
+        ],
+        "curated": false
+      },
+      "actionResolutionReason": null,
+      "aliases": []
+    },
+    {
+      "operationId": "workbench_admin_mappings_list",
+      "method": "GET",
+      "path": "/api/workbench/admin/mappings",
+      "service": "workbench",
+      "action": "workbench.admin.mappings.list",
+      "summary": "List tenant and user mappings for the authenticated tenant and client",
+      "tags": [
+        "Workbench"
+      ],
+      "uiPage": null,
+      "oeoClass": null,
+      "operationKind": "data_read",
+      "consequenceLevel": "none",
+      "recommendedExecutionMode": "direct",
+      "agentable": true,
+      "nonAgentableReason": null,
+      "capabilityCandidates": [
+        "workbench.admin_mappings_list"
+      ],
+      "domains": [
+        "platform"
+      ],
+      "dataSources": [],
+      "entityTypes": [],
+      "requiredScopes": [
+        "workbench:read"
+      ],
+      "tenantScoped": true,
+      "writesTo": [],
+      "sideEffects": [],
+      "idempotency": "idempotent",
+      "rollbackHint": null,
+      "parameters": {
+        "required": [],
+        "optional": [
+          {
+            "name": "tenantId",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": "tenant_id"
+          },
+          {
+            "name": "client",
+            "in": "query",
+            "type": "string",
+            "description": null,
+            "extractionHint": null
+          }
+        ]
+      },
+      "rankingSignals": {
+        "positiveKeywords": [
+          "workbench",
+          "admin",
+          "mappings",
+          "list",
+          "tenant",
+          "user",
+          "authenticated",
+          "client"
+        ],
+        "negativeCues": [],
+        "examples": [
+          "Show me list tenant and user mappings for the authenticated tenant and client"
         ],
         "synonyms": [
           "agent infrastructure",
