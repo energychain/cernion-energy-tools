@@ -9,8 +9,7 @@ const { handleCorrectionTurn } = require('../src/workbench-corrections');
 const { answerSystemActivity } = require('../src/workbench-system-activity');
 const coverageTurn = require('../src/function-coverage-turn');
 const { classifyWorkbenchIntent } = require('../src/workbench-intent-router');
-const { classifyRequestedEffect } = require('../src/operation-capability-classifier');
-const { choiceText } = require('../src/capability-clarification');
+const contentTurn = require('../src/workbench-content-turn');
 const conversationAssistance = require('../src/workbench-conversation');
 const { Errors } = require('moleculer');
 const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
@@ -1486,6 +1485,9 @@ module.exports = {
         const correctionMeta = this.metaForMapping(ctx, p, mapping);
         p = principal({ meta: correctionMeta }, ctx.params);
         const pending = await conversationAssistance.readTurn(this.conversationsDb, p, envelope);
+        if (/^(?:kein fall|no case)[.!\s]*$/i.test(envelope.userRequest.trim())) {
+          return contentTurn.discard(this, ctx, p, envelope, pending, correctionMeta);
+        }
         const confirmation = conversationAssistance.emptyConfirmation(envelope.userRequest);
         const offeredContent =
           pending?.offeredContent || conversationAssistance.substantiveMessage(ctx.params.messages);
@@ -1499,7 +1501,9 @@ module.exports = {
           this.store,
           {
             model: this.settings.systemActivityModel,
-            allowUnmatchedConfirmation: confirmation && !!(offeredContent || pending?.lastQuestion),
+            allowUnmatchedConfirmation:
+              confirmation &&
+              !!(offeredContent || pending?.lastQuestion || pending?.askedQuestions?.length),
           }
         );
         if (correctionResult) {
@@ -1507,14 +1511,22 @@ module.exports = {
           const question = correctionResult.responseText.includes('?')
             ? correctionResult.responseText
             : '';
-          if (question && question === pending?.lastQuestion) {
+          const alreadyAsked =
+            question &&
+            (question === pending?.lastQuestion ||
+              (pending?.askedQuestions || []).some((item) => item.question === question));
+          if (alreadyAsked) {
             offeredCorrectionContent ||= envelope.userRequest;
             correctionResult.responseText =
               'Du kannst eine eindeutige Bezeichnung wählen, mit „Starte einen Fall“ einen Fall starten oder mit „Frage beantworten“ eine unverbindliche Einschätzung anfordern.';
           }
           await conversationAssistance.saveTurn(this.conversationsDb, p, envelope, {
             offeredContent: offeredCorrectionContent,
-            lastQuestion: question && question !== pending?.lastQuestion ? question : '',
+            lastQuestion: question && !alreadyAsked ? question : '',
+            askedQuestions: [
+              ...(pending?.askedQuestions || []),
+              ...(question && !alreadyAsked ? [{ key: `correction:${question}`, question }] : []),
+            ],
           });
           return correctionResult;
         }
@@ -1526,202 +1538,32 @@ module.exports = {
           },
           { optional: true }
         );
+        const choice = await contentTurn.selectChoice(this, ctx, {
+          p,
+          mapping,
+          envelope,
+          conversation,
+          meta: correctionMeta,
+        });
+        if (choice) return choice;
         const intent = classifyWorkbenchIntent(envelope.userRequest, {
           cetCaseId: conversation?.cetCaseId,
         });
-        const effect = classifyRequestedEffect(envelope.userRequest);
-        const draftRequested = effect === 'draft_write';
-        const startRequested =
-          intent === 'case_start' ||
-          (confirmation && !!offeredContent) ||
-          (draftRequested && !!offeredContent);
-        if (!conversation && !startRequested) {
-          if (conversationAssistance.assistanceChoice(envelope.userRequest) && offeredContent) {
-            envelope.userRequest = offeredContent;
-          }
-          const responseText = await conversationAssistance.assist(
-            (name, input) => ctx.call(name, input, { meta: correctionMeta }),
-            envelope,
-            pending?.offeredContent ? { initialRequest: pending.offeredContent } : null
+        if (['status_query', 'data_lookup', 'system_activity_query'].includes(intent)) {
+          return ctx.call(
+            'workbench.query',
+            { ...ctx.params, intentMode: intent },
+            { meta: correctionMeta }
           );
-          await conversationAssistance.saveTurn(this.conversationsDb, p, envelope, {
-            offeredContent: confirmation
-              ? pending?.offeredContent || ''
-              : effect === 'external_effect' && pending?.offeredContent
-                ? `${pending.offeredContent}\n\n${envelope.userRequest}`.slice(0, 8000)
-                : envelope.userRequest,
-            lastQuestion: '',
-          });
-          return {
-            state: 'assistance',
-            nonBinding: true,
-            responseText: [
-              responseText,
-              effect === 'external_effect' ? conversationAssistance.DRAFT_INVITATION : '',
-              conversationAssistance.CASE_INVITATION,
-            ]
-              .filter(Boolean)
-              .join('\n\n'),
-          };
         }
-        if (!conversation && (confirmation || draftRequested) && offeredContent) {
-          envelope.userRequest = offeredContent;
-        }
-        let reservation = null;
-        if (!conversation) {
-          reservation = await this.store.reserveConversation({
-            tenantId: p.tenantId,
-            client: envelope.channel,
-            conversationId: envelope.conversationId,
-            openWebuiConversationId: envelope.openWebuiConversationId,
-            openWebuiUserId: envelope.openWebuiUserId,
-            openWebuiOrgId: envelope.openWebuiOrgId,
-            clientId: envelope.asyncDelivery.clientId,
-          });
-          conversation = reservation.reserved
-            ? null
-            : await this.waitForConversationCase({
-                tenantId: p.tenantId,
-                client: envelope.channel,
-                conversationId: envelope.conversationId,
-              });
-        } else if (!conversation.cetCaseId) {
-          conversation = await this.waitForConversationCase({
-            tenantId: p.tenantId,
-            client: envelope.channel,
-            conversationId: envelope.conversationId,
-          });
-        }
-        const workbenchContext = await this.loadWorkbenchContext(p, envelope, mapping);
-        const meta = this.metaForMapping(ctx, p, mapping);
-        const previousMemory = conversation?.cetCaseId
-          ? await this.loadTurnMemory(p, conversation.cetCaseId)
-          : null;
-        const params = {
-          ...envelope,
-          // Keep the router's bounded request contract for one-character replies.
-          userRequest: /^[1-5][.!]?$/.test(envelope.userRequest.trim())
-            ? `Nummer ${envelope.userRequest.trim().replace(/[.!]$/, '')}`
-            : envelope.userRequest.trim().length < 3
-              ? `Kurze Antwort: ${envelope.userRequest}`
-              : envelope.userRequest,
-          knownContext: {
-            ...envelope.knownContext,
-            workbenchContext,
-            ...(previousMemory ? { cetTurnMemory: safeTurnMemory(previousMemory) } : {}),
-          },
-          requestedMode: conversation ? 'continue' : 'classify',
-          ...(conversation ? { cetCaseId: conversation.cetCaseId } : {}),
-        };
-        const result = await ctx.call(
-          conversation ? 'domain-router.continue' : 'domain-router.classify',
-          params,
-          { meta }
-        );
-        if (!conversation) {
-          await this.store.linkConversation({
-            tenantId: p.tenantId,
-            client: envelope.channel,
-            conversationId: envelope.conversationId,
-            openWebuiConversationId: envelope.openWebuiConversationId,
-            openWebuiUserId: envelope.openWebuiUserId,
-            openWebuiOrgId: envelope.openWebuiOrgId,
-            cetCaseId: result.cetCaseId,
-            caseStateVersion: result.caseStateVersion,
-            clientId: envelope.asyncDelivery.clientId,
-          });
-        } else if (result?.caseStateVersion) {
-          await this.store.linkConversation({
-            tenantId: p.tenantId,
-            client: envelope.channel,
-            conversationId: envelope.conversationId,
-            openWebuiConversationId: envelope.openWebuiConversationId,
-            openWebuiUserId: envelope.openWebuiUserId,
-            openWebuiOrgId: envelope.openWebuiOrgId,
-            cetCaseId: result.cetCaseId || conversation.cetCaseId,
-            caseStateVersion: result.caseStateVersion,
-            clientId: envelope.asyncDelivery.clientId,
-          });
-        }
-        const caseId = result.cetCaseId || conversation?.cetCaseId;
-        let assistance = null;
-        let draftId = null;
-        let question = result.uncertain ? choiceText(result) : '';
-        const repeatedQuestion = question && question === pending?.lastQuestion;
-        if (repeatedQuestion || (pending?.lastQuestion && result.primaryDomain === 'unknown'))
-          question = '';
-        if (
-          effect === 'external_effect' ||
-          draftRequested ||
-          !result.selectedCapabilities?.length ||
-          result.primaryDomain === 'unknown' ||
-          repeatedQuestion ||
-          conversationAssistance.contentQuestion(envelope.userRequest) ||
-          /(?:frage beantworten|answer (?:my |the )?question)/i.test(envelope.userRequest)
-        ) {
-          const state = caseId ? await this.loadVisibleCase(ctx, p, caseId) : null;
-          const responseText = await conversationAssistance.assist(
-            (name, input) => ctx.call(name, input, { meta }),
-            envelope,
-            state,
-            { draft: draftRequested }
-          );
-          if (draftRequested && caseId) {
-            draftId = await conversationAssistance.saveDraft(
-              this.conversationsDb,
-              p,
-              caseId,
-              responseText
-            );
-          }
-          result.responseText = [
-            responseText,
-            effect === 'external_effect' ? conversationAssistance.DRAFT_INVITATION : '',
-            question,
-          ]
-            .filter(Boolean)
-            .join('\n\n');
-          result.requiredClarifications = question ? [question] : [];
-          assistance = { state: 'assistance', nonBinding: true, ...(draftId ? { draftId } : {}) };
-        }
-        await conversationAssistance.saveTurn(this.conversationsDb, p, envelope, {
-          offeredContent: '',
-          lastQuestion: question,
+        return contentTurn.runContentTurn(this, ctx, {
+          p,
+          mapping,
+          envelope,
+          pending,
+          conversation,
+          meta: correctionMeta,
         });
-        const turnMemory = caseId
-          ? await this.saveTurnMemory(p, {
-              caseId,
-              caseStateVersion: result.caseStateVersion,
-              previousMemory,
-              classification: result,
-              envelope,
-              mapping,
-              workbenchContext,
-            })
-          : null;
-        const clientId = envelope.asyncDelivery?.clientId;
-        const eventSummary = caseId
-          ? await this.eventSummary(p, caseId, { clientId })
-          : this.emptyEventSummary();
-        if (turnMemory) {
-          turnMemory.recentEventStatus = eventSummary;
-          await this.store.saveTurnMemory({
-            tenantId: p.tenantId,
-            actorId: p.actorId,
-            caseId,
-            caseStateVersion: result.caseStateVersion,
-            memory: turnMemory,
-          });
-        }
-        return {
-          ...this.chatResponse(
-            conversation ? 'continue' : 'classify',
-            result,
-            eventSummary,
-            turnMemory
-          ),
-          ...assistance,
-        };
       }
     ),
     'cases.attachEvidence': action(

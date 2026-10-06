@@ -30,12 +30,23 @@ const llm = require(path.join(root, 'src/llm-client'));
 let modelCalls = 0;
 llm.embeddings = async () => []; // startup catalog enrichment uses an empty offline vector fixture
 let proposalModelCalls = 0;
-llm.generateStructured = async () => {
+let contentModelCalls = 0;
+const contentStub = require(path.join(root, 'tests/helpers/workbench-llm-stub'));
+const contentLatencies = [];
+llm.generateStructured = async (schema, prompt) => {
+  if (schema.properties?.turnKind) {
+    contentModelCalls++;
+    return contentStub.generateStructured(schema, prompt);
+  }
   proposalModelCalls++;
   return { summary: 'Bitte prüfe die fehlenden Angaben zum aktuellen Fall.' };
 };
 for (const method of ['generateText', 'generateChat'])
-  llm[method] = async () => {
+  llm[method] = async (prompt) => {
+    if (method === 'generateText' && typeof prompt === 'string' && prompt.includes('evidenceIds')) {
+      contentModelCalls++;
+      return contentStub.generateText(prompt);
+    }
     modelCalls++;
     throw new Error('Unexpected LLM call');
   };
@@ -206,6 +217,22 @@ async function main() {
         schema.name === 'personal-agent'
           ? {
               ...schema.actions,
+              collectWorkbenchEvidence: {
+                ...schema.actions.collectWorkbenchEvidence,
+                async handler(ctx) {
+                  assistanceRequests.push(structuredClone({ params: ctx.params, meta: ctx.meta }));
+                  return {
+                    evidence: [
+                      {
+                        source: 'http-evidence-stub',
+                        value: `${ctx.params.situation.concern}: Referenzen und Eingangsbestätigung prüfen.`,
+                        metadata: { score: 0.92 },
+                      },
+                    ],
+                    trace: [],
+                  };
+                },
+              },
               answerDossier: {
                 ...schema.actions.answerDossier,
                 async handler(ctx) {
@@ -355,7 +382,7 @@ async function main() {
     )
   ).lastClassification;
   if (classification.uncertain) {
-    assert.match(started.choices[0].message.content, /Nummer oder dem Namen/);
+    assert.match(started.choices[0].message.content, /Unverbindliche Einschätzung/);
     assert.equal(
       (await call('function-coverage.matrix', { tenantId, limit: 100 })).items.length,
       0
@@ -566,9 +593,22 @@ async function main() {
       'uncertain real Workbench turn produces no coverage'
     );
     assert.equal(touchEvents.length, touchCount, 'uncertain turn emits no function touch');
-    const choices = require(path.join(root, 'src/capability-clarification')).choiceCandidates(
-      pending
-    );
+    if (
+      !initial.cernion.result.situation.hypotheses.some(
+        (hypothesis) =>
+          hypothesis.kind === 'domain' &&
+          hypothesis.confidence >= 0.5 &&
+          hypothesis.id === pending.primaryDomain
+      )
+    ) {
+      assert(!initial.choices[0].message.content.includes('Optional passende Funktion'));
+      assert(initial.choices[0].message.content.includes('Unverbindliche Einschätzung'));
+      await snapshot('10 unmatched uncertain candidates stay hidden');
+      continue;
+    }
+    const choices = require(path.join(root, 'src/capability-clarification'))
+      .choiceCandidates(pending)
+      .slice(0, 3);
     const question = initial.choices[0].message.content;
     assert(choices.length > 0 && choices.length <= 5);
     for (const choice of choices) {
@@ -678,13 +718,19 @@ async function main() {
     const document = `Weitergeleitetes Dokument:\n${row.query}\nKannst du mir helfen?`;
     const initial = await chat(conversationId, [{ role: 'user', content: document }]);
     assert.equal(initial.nonBinding, true);
-    assert(!initial.cetCaseId);
-    assert(initial.responseText.includes('Starte einen Fall'));
-    const started = await chat(conversationId, [{ role: 'user', content: 'ja, bitte' }]);
+    assert(initial.cetCaseId);
+    assert(!initial.responseText.includes('Starte einen Fall'));
+    assert(initial.responseText.includes('[E1]'));
+    assert(initial.requiredClarifications.length <= 3);
+    contentLatencies.push(initial.latencyMs);
+    const started = initial;
     assert(started.cetCaseId);
     assert.notEqual(started.primaryDomain, 'unknown');
     const summary = await call('workbench.cases.get', { caseId: started.cetCaseId }, auth('alice'));
-    assert.equal(summary.initialRequest, document);
+    assert.equal(
+      summary.initialRequest,
+      `${initial.situation.concern}\n${initial.situation.situation}`
+    );
     const shipping = await chat(conversationId, [
       { role: 'user', content: 'Antwort per Mail senden' },
     ]);
@@ -712,10 +758,30 @@ async function main() {
   ]);
   assert(recovered.cetCaseId);
   assert.equal(
-    (await call('workbench.cases.get', { caseId: recovered.cetCaseId }, auth('alice')))
-      .initialRequest,
+    (await call('workbench.cases.get', { caseId: recovered.cetCaseId }, auth('alice'))).situation
+      .concern,
     historyContent
   );
+  const anonymous =
+    'Mail eines Lieferanten an einen Netzbetreiber: Überfällige Antwort auf Netzanmeldung, Marktlokation 99000000001, Frist überschritten. Kannst du mir helfen?';
+  const productionCase = await chat('production-739', [{ role: 'user', content: anonymous }]);
+  assert(productionCase.cetCaseId);
+  assert(productionCase.responseText.includes('Ich führe das als Fall F-'));
+  assert(productionCase.situation.identifiers.some((entry) => entry.value === '99000000001'));
+  contentLatencies.push(productionCase.latencyMs);
+  const withdrawn = await chat('production-739', [{ role: 'user', content: 'Kein Fall' }]);
+  assert.equal(withdrawn.state, 'case_discarded');
+  const latencies = contentLatencies.slice().sort((a, b) => a - b);
+  console.log(
+    'Content turn latency (stub facade):',
+    JSON.stringify({
+      count: latencies.length,
+      maxMs: Math.max(...latencies),
+      medianMs: latencies[Math.floor(latencies.length / 2)],
+      contentModelCalls,
+    })
+  );
+  assert(Math.max(...latencies) < 15000);
   assert.equal(externalEffects.length, 0, externalEffects.join(', '));
   assert(assistanceRequests.length > 0);
   assert(assistanceRequests.every((entry) => entry.meta.apiToken.id !== 'svc-openwebui'));

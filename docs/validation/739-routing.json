@@ -1,0 +1,6504 @@
+{
+  "methodology": "Offline deterministic facade stub and production classifyDomain/rankCapabilities. No model-quality inference. Full frozen #730 corpus plus one foreign-text wrapper per existing independent-regression domain.",
+  "corpus": {
+    "before": {
+      "count": 413,
+      "top1": 268,
+      "top3": 280,
+      "unknownDomain": 153,
+      "wrongDomain": 219
+    },
+    "after": {
+      "count": 413,
+      "top1": 271,
+      "top3": 282,
+      "unknownDomain": 153,
+      "wrongDomain": 219
+    }
+  },
+  "foreign": {
+    "before": {
+      "count": 16,
+      "top1": 16,
+      "top3": 16,
+      "unknownDomain": 0,
+      "wrongDomain": 3
+    },
+    "after": {
+      "count": 16,
+      "top1": 16,
+      "top3": 16,
+      "unknownDomain": 0,
+      "wrongDomain": 3
+    }
+  },
+  "rows": [
+    {
+      "id": "issue-1",
+      "expectedDomain": "grid_connection",
+      "beforeDomain": "grid_connection",
+      "afterDomain": "grid_connection",
+      "before": [
+        "grossspeicher_anschluss_readiness_gate"
+      ],
+      "after": [
+        "grossspeicher_anschluss_readiness_gate"
+      ],
+      "expectedCapabilities": [
+        "grossspeicher_anschluss_readiness_gate"
+      ]
+    },
+    {
+      "id": "issue-2",
+      "expectedDomain": "grid_connection",
+      "beforeDomain": "grid_connection",
+      "afterDomain": "grid_connection",
+      "before": [
+        "grossspeicher_anschluss_readiness_gate"
+      ],
+      "after": [
+        "grossspeicher_anschluss_readiness_gate"
+      ],
+      "expectedCapabilities": [
+        "grossspeicher_anschluss_readiness_gate"
+      ]
+    },
+    {
+      "id": "issue-3",
+      "expectedDomain": "grid_connection",
+      "beforeDomain": "grid_connection",
+      "afterDomain": "grid_connection",
+      "before": [
+        "grossspeicher_anschluss_readiness_gate"
+      ],
+      "after": [
+        "grossspeicher_anschluss_readiness_gate"
+      ],
+      "expectedCapabilities": [
+        "grossspeicher_anschluss_readiness_gate"
+      ]
+    },
+    {
+      "id": "issue-4",
+      "expectedDomain": "grid_connection",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "anschlusskapazitaet_evidence_queue"
+      ],
+      "after": [
+        "anschlusskapazitaet_evidence_queue"
+      ],
+      "expectedCapabilities": [
+        "anschlusskapazitaet_evidence_queue"
+      ]
+    },
+    {
+      "id": "market_communication-1",
+      "expectedDomain": "market_communication",
+      "beforeDomain": "market_communication",
+      "afterDomain": "market_communication",
+      "before": [
+        "process_sensitization_readiness_map"
+      ],
+      "after": [
+        "market_communication_evidence_chain",
+        "process_sensitization_readiness_map"
+      ],
+      "expectedCapabilities": [
+        "market_communication_evidence_chain"
+      ]
+    },
+    {
+      "id": "market_communication-2",
+      "expectedDomain": "market_communication",
+      "beforeDomain": "market_communication",
+      "afterDomain": "market_communication",
+      "before": [
+        "market_communication_evidence_chain",
+        "regulatory_change_simulator_readiness"
+      ],
+      "after": [
+        "market_communication_evidence_chain",
+        "regulatory_change_simulator_readiness"
+      ],
+      "expectedCapabilities": [
+        "market_communication_evidence_chain"
+      ]
+    },
+    {
+      "id": "market_communication-3",
+      "expectedDomain": "market_communication",
+      "beforeDomain": "market_master_data",
+      "afterDomain": "market_master_data",
+      "before": [
+        "market_communication_evidence_chain"
+      ],
+      "after": [
+        "market_communication_evidence_chain"
+      ],
+      "expectedCapabilities": [
+        "market_communication_evidence_chain"
+      ]
+    },
+    {
+      "id": "market_master_data-1",
+      "expectedDomain": "market_master_data",
+      "beforeDomain": "market_master_data",
+      "afterDomain": "market_master_data",
+      "before": [
+        "eic_code_lookup",
+        "interconnection_release_file"
+      ],
+      "after": [
+        "eic_code_lookup",
+        "interconnection_release_file"
+      ],
+      "expectedCapabilities": [
+        "eic_code_lookup"
+      ]
+    },
+    {
+      "id": "market_master_data-2",
+      "expectedDomain": "market_master_data",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "eic_code_lookup"
+      ],
+      "after": [
+        "eic_code_lookup"
+      ],
+      "expectedCapabilities": [
+        "eic_code_lookup"
+      ]
+    },
+    {
+      "id": "market_master_data-3",
+      "expectedDomain": "market_master_data",
+      "beforeDomain": "market_master_data",
+      "afterDomain": "market_master_data",
+      "before": [
+        "eic_code_lookup"
+      ],
+      "after": [
+        "eic_code_lookup"
+      ],
+      "expectedCapabilities": [
+        "eic_code_lookup"
+      ]
+    },
+    {
+      "id": "edm-1",
+      "expectedDomain": "edm",
+      "beforeDomain": "edm",
+      "afterDomain": "edm",
+      "before": [
+        "bilanzkreis_slp_edm_operations",
+        "inhouse_timeseries_analysis",
+        "settlement_a96_reconciliation"
+      ],
+      "after": [
+        "bilanzkreis_slp_edm_operations",
+        "inhouse_timeseries_analysis",
+        "settlement_a96_reconciliation"
+      ],
+      "expectedCapabilities": [
+        "bilanzkreis_slp_edm_operations"
+      ]
+    },
+    {
+      "id": "edm-2",
+      "expectedDomain": "edm",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "bilanzkreis_slp_edm_operations",
+        "settlement_a96_reconciliation"
+      ],
+      "after": [
+        "bilanzkreis_slp_edm_operations",
+        "settlement_a96_reconciliation"
+      ],
+      "expectedCapabilities": [
+        "bilanzkreis_slp_edm_operations"
+      ]
+    },
+    {
+      "id": "edm-3",
+      "expectedDomain": "edm",
+      "beforeDomain": "edm",
+      "afterDomain": "edm",
+      "before": [
+        "bilanzkreis_slp_edm_operations"
+      ],
+      "after": [
+        "bilanzkreis_slp_edm_operations"
+      ],
+      "expectedCapabilities": [
+        "bilanzkreis_slp_edm_operations"
+      ]
+    },
+    {
+      "id": "metering_msb-1",
+      "expectedDomain": "metering_msb",
+      "beforeDomain": "metering_msb",
+      "afterDomain": "metering_msb",
+      "before": [
+        "metering_rollout_process_indicator",
+        "vnb_kpi_benchmark_comparison",
+        "imsys_taf2_compliance_status"
+      ],
+      "after": [
+        "metering_rollout_process_indicator",
+        "vnb_kpi_benchmark_comparison",
+        "imsys_taf2_compliance_status"
+      ],
+      "expectedCapabilities": [
+        "metering_rollout_process_indicator"
+      ]
+    },
+    {
+      "id": "metering_msb-2",
+      "expectedDomain": "metering_msb",
+      "beforeDomain": "metering_msb",
+      "afterDomain": "metering_msb",
+      "before": [
+        "metering_rollout_process_indicator",
+        "zaehlpark_finanzierung_szenario_cockpit"
+      ],
+      "after": [
+        "metering_rollout_process_indicator",
+        "zaehlpark_finanzierung_szenario_cockpit"
+      ],
+      "expectedCapabilities": [
+        "metering_rollout_process_indicator"
+      ]
+    },
+    {
+      "id": "metering_msb-3",
+      "expectedDomain": "metering_msb",
+      "beforeDomain": "metering_msb",
+      "afterDomain": "metering_msb",
+      "before": [
+        "metering_rollout_process_indicator",
+        "imsys_taf2_compliance_status",
+        "jour_fixe_decision_closure_tracker"
+      ],
+      "after": [
+        "metering_rollout_process_indicator",
+        "imsys_taf2_compliance_status",
+        "jour_fixe_decision_closure_tracker"
+      ],
+      "expectedCapabilities": [
+        "metering_rollout_process_indicator"
+      ]
+    },
+    {
+      "id": "m2c_revenue_assurance-1",
+      "expectedDomain": "m2c_revenue_assurance",
+      "beforeDomain": "edm",
+      "afterDomain": "edm",
+      "before": [
+        "process_sensitization_readiness_map",
+        "edm_customer_moveout_billing_evidence"
+      ],
+      "after": [
+        "process_sensitization_readiness_map",
+        "edm_customer_moveout_billing_evidence"
+      ],
+      "expectedCapabilities": [
+        "edm_customer_moveout_billing_evidence"
+      ]
+    },
+    {
+      "id": "m2c_revenue_assurance-2",
+      "expectedDomain": "m2c_revenue_assurance",
+      "beforeDomain": "m2c_revenue_assurance",
+      "afterDomain": "m2c_revenue_assurance",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "edm_customer_moveout_billing_evidence"
+      ]
+    },
+    {
+      "id": "m2c_revenue_assurance-3",
+      "expectedDomain": "m2c_revenue_assurance",
+      "beforeDomain": "edm",
+      "afterDomain": "edm",
+      "before": [
+        "edm_customer_moveout_billing_evidence",
+        "edm_metering_concept_evidence"
+      ],
+      "after": [
+        "edm_customer_moveout_billing_evidence",
+        "edm_metering_concept_evidence"
+      ],
+      "expectedCapabilities": [
+        "edm_customer_moveout_billing_evidence"
+      ]
+    },
+    {
+      "id": "grid_operations_system_control-1",
+      "expectedDomain": "grid_operations_system_control",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "schedule_management_governance_roadmap",
+        "flexibility_conductor_role_model"
+      ],
+      "after": [
+        "schedule_management_governance_roadmap",
+        "flexibility_conductor_role_model"
+      ],
+      "expectedCapabilities": [
+        "schedule_management_governance_roadmap"
+      ]
+    },
+    {
+      "id": "grid_operations_system_control-2",
+      "expectedDomain": "grid_operations_system_control",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "schedule_management_governance_roadmap"
+      ],
+      "after": [
+        "schedule_management_governance_roadmap"
+      ],
+      "expectedCapabilities": [
+        "schedule_management_governance_roadmap"
+      ]
+    },
+    {
+      "id": "grid_operations_system_control-3",
+      "expectedDomain": "grid_operations_system_control",
+      "beforeDomain": "grid_operations_system_control",
+      "afterDomain": "grid_operations_system_control",
+      "before": [
+        "schedule_management_governance_roadmap"
+      ],
+      "after": [
+        "schedule_management_governance_roadmap"
+      ],
+      "expectedCapabilities": [
+        "schedule_management_governance_roadmap"
+      ]
+    },
+    {
+      "id": "redispatch-1",
+      "expectedDomain": "redispatch",
+      "beforeDomain": "m2c_revenue_assurance",
+      "afterDomain": "m2c_revenue_assurance",
+      "before": [
+        "redispatch_settlement_sandbox",
+        "settlement_a96_reconciliation",
+        "vnb_kpi_benchmark_comparison"
+      ],
+      "after": [
+        "redispatch_settlement_sandbox",
+        "settlement_a96_reconciliation",
+        "vnb_kpi_benchmark_comparison"
+      ],
+      "expectedCapabilities": [
+        "redispatch_settlement_sandbox"
+      ]
+    },
+    {
+      "id": "redispatch-2",
+      "expectedDomain": "redispatch",
+      "beforeDomain": "redispatch",
+      "afterDomain": "redispatch",
+      "before": [
+        "redispatch_settlement_sandbox",
+        "settlement_a96_reconciliation"
+      ],
+      "after": [
+        "redispatch_settlement_sandbox",
+        "settlement_a96_reconciliation"
+      ],
+      "expectedCapabilities": [
+        "redispatch_settlement_sandbox"
+      ]
+    },
+    {
+      "id": "redispatch-3",
+      "expectedDomain": "redispatch",
+      "beforeDomain": "m2c_revenue_assurance",
+      "afterDomain": "m2c_revenue_assurance",
+      "before": [
+        "redispatch_settlement_sandbox"
+      ],
+      "after": [
+        "redispatch_settlement_sandbox"
+      ],
+      "expectedCapabilities": [
+        "redispatch_settlement_sandbox"
+      ]
+    },
+    {
+      "id": "asset_grid_planning-1",
+      "expectedDomain": "asset_grid_planning",
+      "beforeDomain": "asset_grid_planning",
+      "afterDomain": "asset_grid_planning",
+      "before": [
+        "reinvest_signal",
+        "blindflug_radar_anomaly_detection"
+      ],
+      "after": [
+        "reinvest_signal",
+        "blindflug_radar_anomaly_detection"
+      ],
+      "expectedCapabilities": [
+        "reinvest_signal"
+      ]
+    },
+    {
+      "id": "asset_grid_planning-2",
+      "expectedDomain": "asset_grid_planning",
+      "beforeDomain": "asset_grid_planning",
+      "afterDomain": "asset_grid_planning",
+      "before": [
+        "reinvest_signal"
+      ],
+      "after": [
+        "reinvest_signal"
+      ],
+      "expectedCapabilities": [
+        "reinvest_signal"
+      ]
+    },
+    {
+      "id": "asset_grid_planning-3",
+      "expectedDomain": "asset_grid_planning",
+      "beforeDomain": "asset_grid_planning",
+      "afterDomain": "asset_grid_planning",
+      "before": [
+        "reinvest_signal",
+        "regulatorische_entgeltlogik",
+        "gas_network_decision_chain"
+      ],
+      "after": [
+        "reinvest_signal",
+        "regulatorische_entgeltlogik",
+        "gas_network_decision_chain"
+      ],
+      "expectedCapabilities": [
+        "reinvest_signal"
+      ]
+    },
+    {
+      "id": "target_grid_planning-1",
+      "expectedDomain": "target_grid_planning",
+      "beforeDomain": "target_grid_planning",
+      "afterDomain": "target_grid_planning",
+      "before": [
+        "znp_portfolio_assessment"
+      ],
+      "after": [
+        "znp_portfolio_assessment"
+      ],
+      "expectedCapabilities": [
+        "znp_portfolio_assessment"
+      ]
+    },
+    {
+      "id": "target_grid_planning-2",
+      "expectedDomain": "target_grid_planning",
+      "beforeDomain": "target_grid_planning",
+      "afterDomain": "target_grid_planning",
+      "before": [
+        "znp_portfolio_assessment"
+      ],
+      "after": [
+        "znp_portfolio_assessment"
+      ],
+      "expectedCapabilities": [
+        "znp_portfolio_assessment"
+      ]
+    },
+    {
+      "id": "target_grid_planning-3",
+      "expectedDomain": "target_grid_planning",
+      "beforeDomain": "target_grid_planning",
+      "afterDomain": "target_grid_planning",
+      "before": [
+        "znp_portfolio_assessment"
+      ],
+      "after": [
+        "znp_portfolio_assessment"
+      ],
+      "expectedCapabilities": [
+        "znp_portfolio_assessment"
+      ]
+    },
+    {
+      "id": "grid_connection-1",
+      "expectedDomain": "grid_connection",
+      "beforeDomain": "grid_connection",
+      "afterDomain": "grid_connection",
+      "before": [
+        "grossspeicher_anschluss_readiness_gate"
+      ],
+      "after": [
+        "grossspeicher_anschluss_readiness_gate"
+      ],
+      "expectedCapabilities": [
+        "grossspeicher_anschluss_readiness_gate"
+      ]
+    },
+    {
+      "id": "grid_connection-2",
+      "expectedDomain": "grid_connection",
+      "beforeDomain": "grid_connection",
+      "afterDomain": "grid_connection",
+      "before": [
+        "bess_screening",
+        "flex_forecast_bess_grid_operations_advisory",
+        "grossspeicher_anschluss_readiness_gate"
+      ],
+      "after": [
+        "bess_screening",
+        "flex_forecast_bess_grid_operations_advisory",
+        "grossspeicher_anschluss_readiness_gate"
+      ],
+      "expectedCapabilities": [
+        "grossspeicher_anschluss_readiness_gate"
+      ]
+    },
+    {
+      "id": "grid_connection-3",
+      "expectedDomain": "grid_connection",
+      "beforeDomain": "grid_connection",
+      "afterDomain": "grid_connection",
+      "before": [
+        "grossspeicher_anschluss_readiness_gate"
+      ],
+      "after": [
+        "grossspeicher_anschluss_readiness_gate"
+      ],
+      "expectedCapabilities": [
+        "grossspeicher_anschluss_readiness_gate"
+      ]
+    },
+    {
+      "id": "regulatory_compliance-1",
+      "expectedDomain": "regulatory_compliance",
+      "beforeDomain": "regulatory_compliance",
+      "afterDomain": "regulatory_compliance",
+      "before": [
+        "mastr_quality_oemetadata",
+        "mastr_asset_inventory"
+      ],
+      "after": [
+        "mastr_quality_oemetadata",
+        "mastr_asset_inventory"
+      ],
+      "expectedCapabilities": [
+        "mastr_quality_oemetadata"
+      ]
+    },
+    {
+      "id": "regulatory_compliance-2",
+      "expectedDomain": "regulatory_compliance",
+      "beforeDomain": "regulatory_compliance",
+      "afterDomain": "regulatory_compliance",
+      "before": [
+        "mastr_quality_oemetadata",
+        "mastr_asset_inventory"
+      ],
+      "after": [
+        "mastr_quality_oemetadata",
+        "mastr_asset_inventory"
+      ],
+      "expectedCapabilities": [
+        "mastr_quality_oemetadata"
+      ]
+    },
+    {
+      "id": "regulatory_compliance-3",
+      "expectedDomain": "regulatory_compliance",
+      "beforeDomain": "regulatory_compliance",
+      "afterDomain": "regulatory_compliance",
+      "before": [
+        "mastr_quality_oemetadata",
+        "mastr_asset_inventory"
+      ],
+      "after": [
+        "mastr_quality_oemetadata",
+        "mastr_asset_inventory"
+      ],
+      "expectedCapabilities": [
+        "mastr_quality_oemetadata"
+      ]
+    },
+    {
+      "id": "controlling_finance-1",
+      "expectedDomain": "controlling_finance",
+      "beforeDomain": "controlling_finance",
+      "afterDomain": "controlling_finance",
+      "before": [
+        "liquidity_planning_governance_module"
+      ],
+      "after": [
+        "liquidity_planning_governance_module"
+      ],
+      "expectedCapabilities": [
+        "liquidity_planning_governance_module"
+      ]
+    },
+    {
+      "id": "controlling_finance-2",
+      "expectedDomain": "controlling_finance",
+      "beforeDomain": "controlling_finance",
+      "afterDomain": "controlling_finance",
+      "before": [
+        "liquidity_planning_governance_module"
+      ],
+      "after": [
+        "liquidity_planning_governance_module"
+      ],
+      "expectedCapabilities": [
+        "liquidity_planning_governance_module"
+      ]
+    },
+    {
+      "id": "controlling_finance-3",
+      "expectedDomain": "controlling_finance",
+      "beforeDomain": "controlling_finance",
+      "afterDomain": "controlling_finance",
+      "before": [
+        "liquidity_planning_governance_module"
+      ],
+      "after": [
+        "liquidity_planning_governance_module"
+      ],
+      "expectedCapabilities": [
+        "liquidity_planning_governance_module"
+      ]
+    },
+    {
+      "id": "strategic_committee_governance-1",
+      "expectedDomain": "strategic_committee_governance",
+      "beforeDomain": "strategic_committee_governance",
+      "afterDomain": "strategic_committee_governance",
+      "before": [
+        "gremiencoach_workbook_readiness"
+      ],
+      "after": [
+        "gremiencoach_workbook_readiness"
+      ],
+      "expectedCapabilities": [
+        "gremiencoach_workbook_readiness"
+      ]
+    },
+    {
+      "id": "strategic_committee_governance-2",
+      "expectedDomain": "strategic_committee_governance",
+      "beforeDomain": "strategic_committee_governance",
+      "afterDomain": "strategic_committee_governance",
+      "before": [
+        "gremiencoach_workbook_readiness",
+        "budget_waterfall_governance"
+      ],
+      "after": [
+        "gremiencoach_workbook_readiness",
+        "budget_waterfall_governance"
+      ],
+      "expectedCapabilities": [
+        "gremiencoach_workbook_readiness"
+      ]
+    },
+    {
+      "id": "strategic_committee_governance-3",
+      "expectedDomain": "strategic_committee_governance",
+      "beforeDomain": "strategic_committee_governance",
+      "afterDomain": "strategic_committee_governance",
+      "before": [
+        "gremiencoach_workbook_readiness"
+      ],
+      "after": [
+        "gremiencoach_workbook_readiness"
+      ],
+      "expectedCapabilities": [
+        "gremiencoach_workbook_readiness"
+      ]
+    },
+    {
+      "id": "it_data_vendor_governance-1",
+      "expectedDomain": "it_data_vendor_governance",
+      "beforeDomain": "it_data_vendor_governance",
+      "afterDomain": "it_data_vendor_governance",
+      "before": [
+        "evu_api_migration_diagnostics",
+        "altdaten_assessment",
+        "vdmi_role_boundary_governance"
+      ],
+      "after": [
+        "evu_api_migration_diagnostics",
+        "altdaten_assessment",
+        "vdmi_role_boundary_governance"
+      ],
+      "expectedCapabilities": [
+        "evu_api_migration_diagnostics"
+      ]
+    },
+    {
+      "id": "it_data_vendor_governance-2",
+      "expectedDomain": "it_data_vendor_governance",
+      "beforeDomain": "it_data_vendor_governance",
+      "afterDomain": "it_data_vendor_governance",
+      "before": [
+        "evu_api_migration_diagnostics",
+        "altdaten_assessment"
+      ],
+      "after": [
+        "evu_api_migration_diagnostics",
+        "altdaten_assessment"
+      ],
+      "expectedCapabilities": [
+        "evu_api_migration_diagnostics"
+      ]
+    },
+    {
+      "id": "it_data_vendor_governance-3",
+      "expectedDomain": "it_data_vendor_governance",
+      "beforeDomain": "it_data_vendor_governance",
+      "afterDomain": "it_data_vendor_governance",
+      "before": [
+        "evu_api_migration_diagnostics",
+        "altdaten_assessment",
+        "vdmi_role_boundary_governance"
+      ],
+      "after": [
+        "evu_api_migration_diagnostics",
+        "altdaten_assessment",
+        "vdmi_role_boundary_governance"
+      ],
+      "expectedCapabilities": [
+        "evu_api_migration_diagnostics"
+      ]
+    },
+    {
+      "id": "org_roles_competence-1",
+      "expectedDomain": "org_roles_competence",
+      "beforeDomain": "org_roles_competence",
+      "afterDomain": "org_roles_competence",
+      "before": [
+        "knowledge_continuity_governance_gate",
+        "grid_operator_identity_resolution"
+      ],
+      "after": [
+        "knowledge_continuity_governance_gate",
+        "grid_operator_identity_resolution"
+      ],
+      "expectedCapabilities": [
+        "knowledge_continuity_governance_gate"
+      ]
+    },
+    {
+      "id": "org_roles_competence-2",
+      "expectedDomain": "org_roles_competence",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "knowledge_continuity_governance_gate"
+      ],
+      "after": [
+        "knowledge_continuity_governance_gate"
+      ],
+      "expectedCapabilities": [
+        "knowledge_continuity_governance_gate"
+      ]
+    },
+    {
+      "id": "org_roles_competence-3",
+      "expectedDomain": "org_roles_competence",
+      "beforeDomain": "org_roles_competence",
+      "afterDomain": "org_roles_competence",
+      "before": [
+        "knowledge_continuity_governance_gate"
+      ],
+      "after": [
+        "knowledge_continuity_governance_gate"
+      ],
+      "expectedCapabilities": [
+        "knowledge_continuity_governance_gate"
+      ]
+    },
+    {
+      "id": "management-1",
+      "expectedDomain": "management",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "communication_break_process_risk",
+        "leadership_delta_cockpit",
+        "vnb_delta_signal_classifier"
+      ],
+      "after": [
+        "communication_break_process_risk",
+        "leadership_delta_cockpit",
+        "vnb_delta_signal_classifier"
+      ],
+      "expectedCapabilities": [
+        "leadership_delta_cockpit"
+      ]
+    },
+    {
+      "id": "management-2",
+      "expectedDomain": "management",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "leadership_delta_cockpit",
+        "settlement_a96_reconciliation"
+      ],
+      "after": [
+        "leadership_delta_cockpit",
+        "settlement_a96_reconciliation"
+      ],
+      "expectedCapabilities": [
+        "leadership_delta_cockpit"
+      ]
+    },
+    {
+      "id": "management-3",
+      "expectedDomain": "management",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "leadership_delta_cockpit",
+        "cross_channel_vnb_signal_queue",
+        "settlement_a96_reconciliation"
+      ],
+      "after": [
+        "leadership_delta_cockpit",
+        "cross_channel_vnb_signal_queue",
+        "settlement_a96_reconciliation"
+      ],
+      "expectedCapabilities": [
+        "leadership_delta_cockpit"
+      ]
+    },
+    {
+      "id": "existing-mastr",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "mastr_asset_inventory",
+        "ghost_asset_alert",
+        "grid_operator_identity_resolution"
+      ],
+      "after": [
+        "mastr_asset_inventory",
+        "ghost_asset_alert",
+        "grid_operator_identity_resolution"
+      ],
+      "expectedCapabilities": [
+        "mastr_asset_inventory"
+      ]
+    },
+    {
+      "id": "semantic-metering-0",
+      "beforeDomain": "edm",
+      "afterDomain": "edm",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "semantic-metering-1",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "battery_redispatch_special_gate"
+      ],
+      "after": [
+        "battery_redispatch_special_gate"
+      ],
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "semantic-grid-assets-0",
+      "beforeDomain": "grid_connection",
+      "afterDomain": "grid_connection",
+      "before": [
+        "mastr_asset_inventory"
+      ],
+      "after": [
+        "mastr_asset_inventory"
+      ],
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "semantic-grid-assets-1",
+      "beforeDomain": "asset_grid_planning",
+      "afterDomain": "asset_grid_planning",
+      "before": [
+        "ghost_asset_alert",
+        "grid_operator_identity_resolution"
+      ],
+      "after": [
+        "ghost_asset_alert",
+        "grid_operator_identity_resolution"
+      ],
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "semantic-grid-incidents-0",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "semantic-grid-incidents-1",
+      "beforeDomain": "asset_grid_planning",
+      "afterDomain": "asset_grid_planning",
+      "before": [
+        "blindflug_radar_anomaly_detection"
+      ],
+      "after": [
+        "blindflug_radar_anomaly_detection"
+      ],
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "semantic-redispatch-queue-0",
+      "beforeDomain": "redispatch",
+      "afterDomain": "redispatch",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "semantic-redispatch-queue-1",
+      "beforeDomain": "market_master_data",
+      "afterDomain": "market_master_data",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "semantic-mastr-local-0",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "mastr_asset_inventory"
+      ],
+      "after": [
+        "mastr_asset_inventory"
+      ],
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "semantic-mastr-local-1",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "semantic-procurement-0",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "semantic-procurement-1",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "semantic-forecast-vs-actual-0",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "settlement_a96_reconciliation"
+      ],
+      "after": [
+        "settlement_a96_reconciliation"
+      ],
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "semantic-forecast-vs-actual-1",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "semantic-billing-overview-0",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "semantic-billing-overview-1",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "semantic-receivables-0",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "semantic-receivables-1",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "semantic-mako-process-log-0",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "semantic-mako-process-log-1",
+      "beforeDomain": "market_communication",
+      "afterDomain": "market_communication",
+      "before": [
+        "market_communication_evidence_chain",
+        "regulatory_change_simulator_readiness"
+      ],
+      "after": [
+        "market_communication_evidence_chain",
+        "regulatory_change_simulator_readiness"
+      ],
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "semantic-customer-projects-0",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "semantic-customer-projects-1",
+      "beforeDomain": "it_data_vendor_governance",
+      "afterDomain": "it_data_vendor_governance",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "semantic-other-0",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "semantic-other-1",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "semantic-other-2",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "semantic-metering-point-master-0",
+      "beforeDomain": "asset_grid_planning",
+      "afterDomain": "asset_grid_planning",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "semantic-metering-point-master-1",
+      "beforeDomain": "market_master_data",
+      "afterDomain": "market_master_data",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "vnb-lookup-v1",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "grid_operator_identity_resolution"
+      ],
+      "after": [
+        "grid_operator_identity_resolution"
+      ],
+      "expectedCapabilities": [
+        "residual_load_forecast_for_dso",
+        "grid_operator_identity_resolution",
+        "mastr_asset_inventory",
+        "vnb_kpi_benchmark_comparison"
+      ]
+    },
+    {
+      "id": "vnb-resolution-chain-v1",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "grid_operator_identity_resolution"
+      ],
+      "after": [
+        "grid_operator_identity_resolution"
+      ],
+      "expectedCapabilities": [
+        "residual_load_forecast_for_dso",
+        "grid_operator_identity_resolution",
+        "mastr_asset_inventory",
+        "vnb_kpi_benchmark_comparison"
+      ]
+    },
+    {
+      "id": "netzbetreiber-flexibility-potential-v1",
+      "beforeDomain": "asset_grid_planning",
+      "afterDomain": "asset_grid_planning",
+      "before": [
+        "grid_operator_identity_resolution",
+        "mastr_asset_inventory",
+        "connection_rejection_fnav_14a_evidence"
+      ],
+      "after": [
+        "grid_operator_identity_resolution",
+        "mastr_asset_inventory",
+        "connection_rejection_fnav_14a_evidence"
+      ],
+      "expectedCapabilities": [
+        "residual_load_forecast_for_dso",
+        "grid_operator_identity_resolution",
+        "mastr_asset_inventory",
+        "vnb_kpi_benchmark_comparison"
+      ]
+    },
+    {
+      "id": "mako-resolution-value-v1",
+      "beforeDomain": "market_communication",
+      "afterDomain": "market_communication",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "asset-to-decision-v1",
+      "beforeDomain": "asset_grid_planning",
+      "afterDomain": "asset_grid_planning",
+      "before": [
+        "budget_waterfall_governance"
+      ],
+      "after": [
+        "budget_waterfall_governance"
+      ],
+      "expectedCapabilities": [
+        "interface_placeholder"
+      ]
+    },
+    {
+      "id": "agnes-bottleneck_list",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "agnes_bottleneck",
+        "blindflug_radar_anomaly_detection"
+      ],
+      "after": [
+        "agnes_bottleneck",
+        "blindflug_radar_anomaly_detection"
+      ],
+      "expectedCapabilities": [
+        "agnes_bottleneck"
+      ]
+    },
+    {
+      "id": "agnes-bottleneck_assess",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "agnes_bottleneck",
+        "blindflug_radar_anomaly_detection"
+      ],
+      "after": [
+        "agnes_bottleneck",
+        "blindflug_radar_anomaly_detection"
+      ],
+      "expectedCapabilities": [
+        "agnes_bottleneck"
+      ]
+    },
+    {
+      "id": "agnes-bottleneck_get",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "agnes_bottleneck",
+        "blindflug_radar_anomaly_detection"
+      ],
+      "after": [
+        "agnes_bottleneck",
+        "blindflug_radar_anomaly_detection"
+      ],
+      "expectedCapabilities": [
+        "agnes_bottleneck"
+      ]
+    },
+    {
+      "id": "altdaten-assessment_list",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "altdaten_assessment"
+      ],
+      "after": [
+        "altdaten_assessment"
+      ],
+      "expectedCapabilities": [
+        "altdaten_assessment"
+      ]
+    },
+    {
+      "id": "altdaten-assessment_assess",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "altdaten_assessment"
+      ],
+      "after": [
+        "altdaten_assessment"
+      ],
+      "expectedCapabilities": [
+        "altdaten_assessment"
+      ]
+    },
+    {
+      "id": "altdaten-assessment_get",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "altdaten_assessment"
+      ],
+      "after": [
+        "altdaten_assessment"
+      ],
+      "expectedCapabilities": [
+        "altdaten_assessment"
+      ]
+    },
+    {
+      "id": "assets_effective",
+      "beforeDomain": "asset_grid_planning",
+      "afterDomain": "asset_grid_planning",
+      "before": [
+        "mastr_asset_inventory"
+      ],
+      "after": [
+        "mastr_asset_inventory"
+      ],
+      "expectedCapabilities": [
+        "asset_valuation_transformation_gate",
+        "gas_network_decision_chain",
+        "gas_transformation_dataroom_status",
+        "legacy_control_technology_transition",
+        "controllability_data_alignment",
+        "gas_infrastructure_risk_governance",
+        "heat_transformation_line_asset_model",
+        "heat_asset_tariff_steering",
+        "redispatch_project_controlling_kpi_cockpit",
+        "gas_transformation_dependency_map",
+        "grid_connection_transformation_gate",
+        "controllability_asset_handover"
+      ]
+    },
+    {
+      "id": "assets_all",
+      "beforeDomain": "asset_grid_planning",
+      "afterDomain": "asset_grid_planning",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "gas_grid_transformation_asset_cockpit",
+        "vnb_kpi_benchmark_comparison"
+      ]
+    },
+    {
+      "id": "automatisierungsradar_list",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "blindflug_radar_anomaly_detection",
+        "automatisierungsradar"
+      ],
+      "after": [
+        "blindflug_radar_anomaly_detection",
+        "automatisierungsradar"
+      ],
+      "expectedCapabilities": [
+        "automatisierungsradar"
+      ]
+    },
+    {
+      "id": "automatisierungsradar_analyze",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "blindflug_radar_anomaly_detection",
+        "automatisierungsradar"
+      ],
+      "after": [
+        "blindflug_radar_anomaly_detection",
+        "automatisierungsradar"
+      ],
+      "expectedCapabilities": [
+        "automatisierungsradar"
+      ]
+    },
+    {
+      "id": "automatisierungsradar_get",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "blindflug_radar_anomaly_detection",
+        "automatisierungsradar"
+      ],
+      "after": [
+        "blindflug_radar_anomaly_detection",
+        "automatisierungsradar"
+      ],
+      "expectedCapabilities": [
+        "automatisierungsradar"
+      ]
+    },
+    {
+      "id": "battery-redispatch-special-gate_getStatus",
+      "beforeDomain": "redispatch",
+      "afterDomain": "redispatch",
+      "before": [
+        "battery_redispatch_special_gate"
+      ],
+      "after": [
+        "battery_redispatch_special_gate"
+      ],
+      "expectedCapabilities": [
+        "battery_redispatch_special_gate"
+      ]
+    },
+    {
+      "id": "battery-redispatch-special-gate_evaluate",
+      "beforeDomain": "redispatch",
+      "afterDomain": "redispatch",
+      "before": [
+        "battery_redispatch_special_gate"
+      ],
+      "after": [
+        "battery_redispatch_special_gate"
+      ],
+      "expectedCapabilities": [
+        "battery_redispatch_special_gate"
+      ]
+    },
+    {
+      "id": "battery-redispatch-special-gate_listGates",
+      "beforeDomain": "redispatch",
+      "afterDomain": "redispatch",
+      "before": [
+        "battery_redispatch_special_gate"
+      ],
+      "after": [
+        "battery_redispatch_special_gate"
+      ],
+      "expectedCapabilities": [
+        "battery_redispatch_special_gate"
+      ]
+    },
+    {
+      "id": "battery-redispatch-special-gate_getGate",
+      "beforeDomain": "redispatch",
+      "afterDomain": "redispatch",
+      "before": [
+        "battery_redispatch_special_gate"
+      ],
+      "after": [
+        "battery_redispatch_special_gate"
+      ],
+      "expectedCapabilities": [
+        "battery_redispatch_special_gate"
+      ]
+    },
+    {
+      "id": "bess-screening_list",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "bess_screening",
+        "flex_forecast_bess_grid_operations_advisory",
+        "grossspeicher_anschluss_readiness_gate"
+      ],
+      "after": [
+        "bess_screening",
+        "flex_forecast_bess_grid_operations_advisory",
+        "grossspeicher_anschluss_readiness_gate"
+      ],
+      "expectedCapabilities": [
+        "bess_screening"
+      ]
+    },
+    {
+      "id": "bess-screening_screen",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "bess_screening",
+        "flex_forecast_bess_grid_operations_advisory",
+        "grossspeicher_anschluss_readiness_gate"
+      ],
+      "after": [
+        "bess_screening",
+        "flex_forecast_bess_grid_operations_advisory",
+        "grossspeicher_anschluss_readiness_gate"
+      ],
+      "expectedCapabilities": [
+        "bess_screening"
+      ]
+    },
+    {
+      "id": "bess-screening_get",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "bess_screening",
+        "flex_forecast_bess_grid_operations_advisory",
+        "grossspeicher_anschluss_readiness_gate"
+      ],
+      "after": [
+        "bess_screening",
+        "flex_forecast_bess_grid_operations_advisory",
+        "grossspeicher_anschluss_readiness_gate"
+      ],
+      "expectedCapabilities": [
+        "bess_screening"
+      ]
+    },
+    {
+      "id": "bilanzkreis_list",
+      "beforeDomain": "edm",
+      "afterDomain": "edm",
+      "before": [
+        "bilanzkreis_slp_edm_operations"
+      ],
+      "after": [
+        "bilanzkreis_slp_edm_operations"
+      ],
+      "expectedCapabilities": [
+        "bilanzkreis_slp_edm_operations"
+      ]
+    },
+    {
+      "id": "bilanzkreis_get",
+      "beforeDomain": "edm",
+      "afterDomain": "edm",
+      "before": [
+        "bilanzkreis_slp_edm_operations"
+      ],
+      "after": [
+        "bilanzkreis_slp_edm_operations"
+      ],
+      "expectedCapabilities": [
+        "bilanzkreis_slp_edm_operations"
+      ]
+    },
+    {
+      "id": "business-intelligence_dynamicTariffCalculator",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "residual_load_forecast_for_dso"
+      ],
+      "after": [
+        "residual_load_forecast_for_dso"
+      ],
+      "expectedCapabilities": [
+        "heat_asset_tariff_steering"
+      ]
+    },
+    {
+      "id": "capex-prioritization_list",
+      "beforeDomain": "controlling_finance",
+      "afterDomain": "controlling_finance",
+      "before": [
+        "capex_prioritization",
+        "no_regret_measure_proof_gate",
+        "finance_nkp_capex_reinvest_governance"
+      ],
+      "after": [
+        "capex_prioritization",
+        "no_regret_measure_proof_gate",
+        "finance_nkp_capex_reinvest_governance"
+      ],
+      "expectedCapabilities": [
+        "capex_prioritization"
+      ]
+    },
+    {
+      "id": "capex-prioritization_analyze",
+      "beforeDomain": "controlling_finance",
+      "afterDomain": "controlling_finance",
+      "before": [
+        "capex_prioritization",
+        "no_regret_measure_proof_gate",
+        "finance_nkp_capex_reinvest_governance"
+      ],
+      "after": [
+        "capex_prioritization",
+        "no_regret_measure_proof_gate",
+        "finance_nkp_capex_reinvest_governance"
+      ],
+      "expectedCapabilities": [
+        "capex_prioritization"
+      ]
+    },
+    {
+      "id": "capex-prioritization_get",
+      "beforeDomain": "controlling_finance",
+      "afterDomain": "controlling_finance",
+      "before": [
+        "capex_prioritization",
+        "no_regret_measure_proof_gate",
+        "finance_nkp_capex_reinvest_governance"
+      ],
+      "after": [
+        "capex_prioritization",
+        "no_regret_measure_proof_gate",
+        "finance_nkp_capex_reinvest_governance"
+      ],
+      "expectedCapabilities": [
+        "capex_prioritization"
+      ]
+    },
+    {
+      "id": "connection-rejection-evidence_list",
+      "beforeDomain": "grid_connection",
+      "afterDomain": "grid_connection",
+      "before": [
+        "connection_rejection_evidence",
+        "connection_rejection_fnav_14a_evidence"
+      ],
+      "after": [
+        "connection_rejection_evidence",
+        "connection_rejection_fnav_14a_evidence"
+      ],
+      "expectedCapabilities": [
+        "connection_rejection_evidence"
+      ]
+    },
+    {
+      "id": "connection-rejection-evidence_create",
+      "beforeDomain": "grid_connection",
+      "afterDomain": "grid_connection",
+      "before": [
+        "connection_rejection_evidence",
+        "connection_rejection_fnav_14a_evidence"
+      ],
+      "after": [
+        "connection_rejection_evidence",
+        "connection_rejection_fnav_14a_evidence"
+      ],
+      "expectedCapabilities": [
+        "connection_rejection_evidence"
+      ]
+    },
+    {
+      "id": "connection-rejection-evidence_get",
+      "beforeDomain": "grid_connection",
+      "afterDomain": "grid_connection",
+      "before": [
+        "connection_rejection_evidence",
+        "connection_rejection_fnav_14a_evidence"
+      ],
+      "after": [
+        "connection_rejection_evidence",
+        "connection_rejection_fnav_14a_evidence"
+      ],
+      "expectedCapabilities": [
+        "connection_rejection_evidence"
+      ]
+    },
+    {
+      "id": "cookbook_get",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "regulatory_risk_revenue_scenario"
+      ]
+    },
+    {
+      "id": "cookbook_search",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "regulatory_risk_revenue_scenario"
+      ]
+    },
+    {
+      "id": "listProcessIntents",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "netzprozess_readiness_gate",
+        "owner_deadline_evidence_gate"
+      ]
+    },
+    {
+      "id": "cya_generate",
+      "beforeDomain": "edm",
+      "afterDomain": "edm",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "ki_floorwalker_governance",
+        "regulatory_risk_revenue_scenario"
+      ]
+    },
+    {
+      "id": "dashboard-api_a2mdmDecisionObjectStatus",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "coordination_meaning_preservation_profile"
+      ],
+      "after": [
+        "coordination_meaning_preservation_profile"
+      ],
+      "expectedCapabilities": [
+        "a2mdm_decision_object_meaning_preservation"
+      ]
+    },
+    {
+      "id": "dashboard-api_anschlusskapazitaetEvidenceQueueStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "anschlusskapazitaet_evidence_queue"
+      ],
+      "after": [
+        "anschlusskapazitaet_evidence_queue",
+        "investment_committee_steering_cards"
+      ],
+      "expectedCapabilities": [
+        "anschlusskapazitaet_evidence_queue"
+      ]
+    },
+    {
+      "id": "dashboard-api_arealNetworkIntegrationOfferGateStatus",
+      "beforeDomain": "target_grid_planning",
+      "afterDomain": "target_grid_planning",
+      "before": [
+        "areal_network_integration_offer_gate"
+      ],
+      "after": [
+        "areal_network_integration_offer_gate"
+      ],
+      "expectedCapabilities": [
+        "areal_network_integration_offer_gate"
+      ]
+    },
+    {
+      "id": "dashboard-api_assetValuationTransformationGateStatus",
+      "beforeDomain": "asset_grid_planning",
+      "afterDomain": "asset_grid_planning",
+      "before": [
+        "asset_valuation_transformation_gate"
+      ],
+      "after": [
+        "asset_valuation_transformation_gate"
+      ],
+      "expectedCapabilities": [
+        "asset_valuation_transformation_gate"
+      ]
+    },
+    {
+      "id": "dashboard-api_automationRequirementsDecisionValueStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "automation_requirements_decision_value"
+      ],
+      "after": [
+        "automation_requirements_decision_value"
+      ],
+      "expectedCapabilities": [
+        "automation_requirements_decision_value"
+      ]
+    },
+    {
+      "id": "dashboard-api_automationRiskGateStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "automation_risk_gate"
+      ],
+      "after": [
+        "automation_risk_gate"
+      ],
+      "expectedCapabilities": [
+        "automation_risk_gate"
+      ]
+    },
+    {
+      "id": "dashboard-api_budgetWaterfallGovernanceStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "budget_waterfall_governance",
+        "knowledge_continuity_governance_gate"
+      ],
+      "after": [
+        "budget_waterfall_governance",
+        "knowledge_continuity_governance_gate"
+      ],
+      "expectedCapabilities": [
+        "budget_waterfall_governance"
+      ]
+    },
+    {
+      "id": "dashboard-api_capacityContractRiskAssetCockpitStatus",
+      "beforeDomain": "asset_grid_planning",
+      "afterDomain": "asset_grid_planning",
+      "before": [
+        "capacity_contract_risk_asset_cockpit",
+        "gas_decommissioning_roadmap_status"
+      ],
+      "after": [
+        "capacity_contract_risk_asset_cockpit",
+        "gas_decommissioning_roadmap_status"
+      ],
+      "expectedCapabilities": [
+        "capacity_contract_risk_asset_cockpit"
+      ]
+    },
+    {
+      "id": "dashboard-api_clsDigitalTwinComplianceGateStatus",
+      "beforeDomain": "regulatory_compliance",
+      "afterDomain": "regulatory_compliance",
+      "before": [
+        "cls_digital_twin_compliance_gate"
+      ],
+      "after": [
+        "cls_digital_twin_compliance_gate"
+      ],
+      "expectedCapabilities": [
+        "cls_digital_twin_compliance_gate"
+      ]
+    },
+    {
+      "id": "dashboard-api_communicationBreakProcessRiskStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "communication_break_process_risk"
+      ],
+      "after": [
+        "communication_break_process_risk"
+      ],
+      "expectedCapabilities": [
+        "communication_break_process_risk"
+      ]
+    },
+    {
+      "id": "dashboard-api_connectionDeadlineEvidenceQueueStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "connection_deadline_evidence_queue"
+      ],
+      "after": [
+        "connection_deadline_evidence_queue",
+        "investment_committee_steering_cards"
+      ],
+      "expectedCapabilities": [
+        "connection_deadline_evidence_queue"
+      ]
+    },
+    {
+      "id": "dashboard-api_controllabilityAssetHandoverStatus",
+      "beforeDomain": "asset_grid_planning",
+      "afterDomain": "asset_grid_planning",
+      "before": [
+        "controllability_asset_handover"
+      ],
+      "after": [
+        "controllability_asset_handover"
+      ],
+      "expectedCapabilities": [
+        "controllability_asset_handover"
+      ]
+    },
+    {
+      "id": "dashboard-api_controllabilityDataAlignmentStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "controllability_data_alignment"
+      ],
+      "after": [
+        "controllability_data_alignment"
+      ],
+      "expectedCapabilities": [
+        "controllability_data_alignment"
+      ]
+    },
+    {
+      "id": "dashboard-api_controllabilitySubmissionCockpitStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "controllability_submission_cockpit"
+      ],
+      "after": [
+        "controllability_submission_cockpit"
+      ],
+      "expectedCapabilities": [
+        "controllability_submission_cockpit"
+      ]
+    },
+    {
+      "id": "dashboard-api_coordinationMeaningPreservationProfile",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "coordination_meaning_preservation_profile"
+      ],
+      "after": [
+        "coordination_meaning_preservation_profile"
+      ],
+      "expectedCapabilities": [
+        "a2mdm_decision_object_meaning_preservation",
+        "coordination_meaning_preservation_profile"
+      ]
+    },
+    {
+      "id": "dashboard-api_costReviewCommitteeStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "cost_review_committee_status",
+        "investment_committee_steering_cards"
+      ],
+      "after": [
+        "cost_review_committee_status",
+        "investment_committee_steering_cards"
+      ],
+      "expectedCapabilities": [
+        "cost_review_committee_status"
+      ]
+    },
+    {
+      "id": "dashboard-api_crisisDecisionRoutineStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "crisis_decision_routine",
+        "no_regret_measure_proof_gate",
+        "regulatory_risk_revenue_scenario"
+      ],
+      "after": [
+        "crisis_decision_routine",
+        "no_regret_measure_proof_gate",
+        "regulatory_risk_revenue_scenario"
+      ],
+      "expectedCapabilities": [
+        "crisis_decision_routine"
+      ]
+    },
+    {
+      "id": "dashboard-api_crossChannelVnbSignalQueueStatus",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "cross_channel_vnb_signal_queue",
+        "owner_deadline_evidence_gate"
+      ],
+      "after": [
+        "cross_channel_vnb_signal_queue",
+        "owner_deadline_evidence_gate"
+      ],
+      "expectedCapabilities": [
+        "evidence_freshness_guard",
+        "cross_channel_vnb_signal_queue"
+      ]
+    },
+    {
+      "id": "dashboard-api_crossDomainSpecialTopicsQueueStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "cross_domain_special_topics_queue"
+      ],
+      "after": [
+        "cross_domain_special_topics_queue"
+      ],
+      "expectedCapabilities": [
+        "vnb_special_topic_workstate",
+        "non_escalation_control_evidence",
+        "cross_domain_special_topics_queue"
+      ]
+    },
+    {
+      "id": "dashboard-api_crossSystemVarianceMatrixStatus",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "cross_system_variance_matrix"
+      ],
+      "after": [
+        "cross_system_variance_matrix"
+      ],
+      "expectedCapabilities": [
+        "cross_system_variance_matrix"
+      ]
+    },
+    {
+      "id": "dashboard-api_decisionReadinessMatrixStatus",
+      "beforeDomain": "controlling_finance",
+      "afterDomain": "controlling_finance",
+      "before": [
+        "decision_readiness_matrix"
+      ],
+      "after": [
+        "decision_readiness_matrix"
+      ],
+      "expectedCapabilities": [
+        "decision_readiness_matrix"
+      ]
+    },
+    {
+      "id": "dashboard-api_decommissionedAssetReconciliationStatus",
+      "beforeDomain": "asset_grid_planning",
+      "afterDomain": "asset_grid_planning",
+      "before": [
+        "decommissioned_asset_reconciliation",
+        "settlement_a96_reconciliation"
+      ],
+      "after": [
+        "decommissioned_asset_reconciliation",
+        "settlement_a96_reconciliation"
+      ],
+      "expectedCapabilities": [
+        "decommissioned_asset_reconciliation"
+      ]
+    },
+    {
+      "id": "dashboard-api_directMarketerRiskGateStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "direct_marketer_risk_gate"
+      ]
+    },
+    {
+      "id": "dashboard-api_drReadinessEvidenceStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "dr_readiness_evidence_gate"
+      ],
+      "after": [
+        "dr_readiness_evidence_gate",
+        "investment_committee_steering_cards"
+      ],
+      "expectedCapabilities": [
+        "dr_readiness_evidence_gate"
+      ]
+    },
+    {
+      "id": "dashboard-api_e2eControllabilityGovernanceStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "e2e_connection_check"
+      ],
+      "after": [
+        "e2e_connection_check"
+      ],
+      "expectedCapabilities": [
+        "e2e_controllability_check_governance"
+      ]
+    },
+    {
+      "id": "dashboard-api_energySharing42cCutoverReadinessStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "energy_sharing_42c_cutover_readiness",
+        "energy_sharing_prosumer_advisory"
+      ],
+      "after": [
+        "energy_sharing_42c_cutover_readiness",
+        "energy_sharing_prosumer_advisory"
+      ],
+      "expectedCapabilities": [
+        "energy_sharing_42c_cutover_readiness"
+      ]
+    },
+    {
+      "id": "dashboard-api_energySharingCollectiveApprovalStatus",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "energy_sharing_collective_approval",
+        "energy_sharing_prosumer_advisory"
+      ],
+      "after": [
+        "energy_sharing_collective_approval",
+        "energy_sharing_prosumer_advisory"
+      ],
+      "expectedCapabilities": [
+        "energy_sharing_collective_approval"
+      ]
+    },
+    {
+      "id": "dashboard-api_energySharingSimulationGateStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "energy_sharing_simulation_gate",
+        "energy_sharing_prosumer_advisory"
+      ],
+      "after": [
+        "energy_sharing_simulation_gate",
+        "energy_sharing_prosumer_advisory"
+      ],
+      "expectedCapabilities": [
+        "energy_sharing_simulation_gate"
+      ]
+    },
+    {
+      "id": "dashboard-api_energySidecarRouteRegistryStatus",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "energy_sidecar_route_registry"
+      ],
+      "after": [
+        "energy_sidecar_route_registry"
+      ],
+      "expectedCapabilities": [
+        "energy_sidecar_route_registry"
+      ]
+    },
+    {
+      "id": "dashboard-api_energyTaxInformationPackageStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "energy_tax_information_package"
+      ],
+      "after": [
+        "energy_tax_information_package"
+      ],
+      "expectedCapabilities": [
+        "energy_tax_information_package"
+      ]
+    },
+    {
+      "id": "dashboard-api_evidenceFreshnessGuardStatus",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "evidence_freshness_guard",
+        "cross_channel_vnb_signal_queue",
+        "owner_deadline_evidence_gate"
+      ],
+      "after": [
+        "evidence_freshness_guard",
+        "cross_channel_vnb_signal_queue",
+        "owner_deadline_evidence_gate"
+      ],
+      "expectedCapabilities": [
+        "evidence_freshness_guard",
+        "vnb_special_topic_workstate"
+      ]
+    },
+    {
+      "id": "dashboard-api_evidenceGroundingConfidenceAudit",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "evidence_grounding_confidence_audit",
+        "investment_committee_steering_cards"
+      ],
+      "after": [
+        "evidence_grounding_confidence_audit",
+        "investment_committee_steering_cards"
+      ],
+      "expectedCapabilities": [
+        "evidence_grounding_confidence_audit"
+      ]
+    },
+    {
+      "id": "dashboard-api_evuApiMigrationDiagnosticsStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "evu_api_migration_diagnostics",
+        "altdaten_assessment"
+      ],
+      "after": [
+        "evu_api_migration_diagnostics",
+        "altdaten_assessment"
+      ],
+      "expectedCapabilities": [
+        "evu_api_migration_diagnostics"
+      ]
+    },
+    {
+      "id": "dashboard-api_flexStrategicDemandIntakeStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "flex_strategic_demand_intake"
+      ],
+      "after": [
+        "flex_strategic_demand_intake"
+      ],
+      "expectedCapabilities": [
+        "flex_strategic_demand_intake"
+      ]
+    },
+    {
+      "id": "dashboard-api_fnavFastTrackContractGateStatus",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "fnav_fast_track_contract_gate"
+      ],
+      "after": [
+        "fnav_fast_track_contract_gate"
+      ],
+      "expectedCapabilities": [
+        "fnav_fast_track_contract_gate"
+      ]
+    },
+    {
+      "id": "dashboard-api_gasCapacityBookingReviewGateStatus",
+      "beforeDomain": "target_grid_planning",
+      "afterDomain": "target_grid_planning",
+      "before": [
+        "gas_capacity_booking_review_gate"
+      ],
+      "after": [
+        "gas_capacity_booking_review_gate"
+      ],
+      "expectedCapabilities": [
+        "gas_capacity_booking_review_gate"
+      ]
+    },
+    {
+      "id": "dashboard-api_gasDecommissioningRoadmapStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "gas_decommissioning_roadmap_status"
+      ],
+      "after": [
+        "gas_decommissioning_roadmap_status"
+      ],
+      "expectedCapabilities": [
+        "gas_decommissioning_roadmap_status",
+        "gas_transformation_dataroom_status"
+      ]
+    },
+    {
+      "id": "dashboard-api_gasGridTransformationAssetCockpitStatus",
+      "beforeDomain": "asset_grid_planning",
+      "afterDomain": "asset_grid_planning",
+      "before": [
+        "gas_grid_transformation_asset_cockpit",
+        "capacity_contract_risk_asset_cockpit"
+      ],
+      "after": [
+        "gas_grid_transformation_asset_cockpit",
+        "capacity_contract_risk_asset_cockpit",
+        "gas_decommissioning_roadmap_status"
+      ],
+      "expectedCapabilities": [
+        "gas_grid_transformation_asset_cockpit"
+      ]
+    },
+    {
+      "id": "dashboard-api_gasInfrastructureRiskGovernanceStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "gas_infrastructure_risk_governance"
+      ],
+      "after": [
+        "gas_infrastructure_risk_governance"
+      ],
+      "expectedCapabilities": [
+        "gas_infrastructure_risk_governance"
+      ]
+    },
+    {
+      "id": "dashboard-api_gasNetworkDecisionChainStatus",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "gas_network_decision_chain"
+      ],
+      "after": [
+        "gas_network_decision_chain"
+      ],
+      "expectedCapabilities": [
+        "gas_network_decision_chain",
+        "gas_transformation_dataroom_status"
+      ]
+    },
+    {
+      "id": "dashboard-api_gasTransformationDataroomStatus",
+      "beforeDomain": "asset_grid_planning",
+      "afterDomain": "asset_grid_planning",
+      "before": [
+        "gas_transformation_dataroom_status",
+        "gas_grid_transformation_asset_cockpit",
+        "ki_floorwalker_governance"
+      ],
+      "after": [
+        "gas_transformation_dataroom_status",
+        "gas_grid_transformation_asset_cockpit",
+        "ki_floorwalker_governance"
+      ],
+      "expectedCapabilities": [
+        "gas_transformation_dataroom_status"
+      ]
+    },
+    {
+      "id": "dashboard-api_gasTransformationDependencyMapStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "heat_transformation_line_asset_model",
+        "regulatory_signal_process_translator",
+        "gas_transformation_dependency_map"
+      ],
+      "after": [
+        "heat_transformation_line_asset_model",
+        "regulatory_signal_process_translator",
+        "gas_transformation_dependency_map"
+      ],
+      "expectedCapabilities": [
+        "gas_transformation_dependency_map"
+      ]
+    },
+    {
+      "id": "dashboard-api_gremiencoachWorkbookReadinessStatus",
+      "beforeDomain": "strategic_committee_governance",
+      "afterDomain": "strategic_committee_governance",
+      "before": [
+        "gremiencoach_workbook_readiness"
+      ],
+      "after": [
+        "gremiencoach_workbook_readiness"
+      ],
+      "expectedCapabilities": [
+        "gremiencoach_workbook_readiness"
+      ]
+    },
+    {
+      "id": "dashboard-api_gridConnectionTransformationGateStatus",
+      "beforeDomain": "grid_connection",
+      "afterDomain": "grid_connection",
+      "before": [
+        "grid_connection_transformation_gate",
+        "asset_valuation_transformation_gate"
+      ],
+      "after": [
+        "grid_connection_transformation_gate",
+        "asset_valuation_transformation_gate"
+      ],
+      "expectedCapabilities": [
+        "grid_connection_transformation_gate"
+      ]
+    },
+    {
+      "id": "dashboard-api_grossspeicherAnschlussReadinessGateStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "grossspeicher_anschluss_readiness_gate",
+        "bess_screening"
+      ],
+      "after": [
+        "grossspeicher_anschluss_readiness_gate",
+        "bess_screening"
+      ],
+      "expectedCapabilities": [
+        "grossspeicher_anschluss_readiness_gate"
+      ]
+    },
+    {
+      "id": "dashboard-api_heatAssetTariffSteeringStatus",
+      "beforeDomain": "asset_grid_planning",
+      "afterDomain": "asset_grid_planning",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "heat_asset_tariff_steering"
+      ]
+    },
+    {
+      "id": "dashboard-api_heatTransformationLineAssetModelStatus",
+      "beforeDomain": "asset_grid_planning",
+      "afterDomain": "asset_grid_planning",
+      "before": [
+        "heat_transformation_line_asset_model"
+      ],
+      "after": [
+        "heat_transformation_line_asset_model"
+      ],
+      "expectedCapabilities": [
+        "heat_transformation_line_asset_model"
+      ]
+    },
+    {
+      "id": "dashboard-api_imsysScheduleValueChainReadinessStatus",
+      "beforeDomain": "metering_msb",
+      "afterDomain": "metering_msb",
+      "before": [
+        "imsys_schedule_value_chain_readiness",
+        "imsys_taf2_compliance_status"
+      ],
+      "after": [
+        "imsys_schedule_value_chain_readiness",
+        "imsys_taf2_compliance_status"
+      ],
+      "expectedCapabilities": [
+        "imsys_schedule_value_chain_readiness"
+      ]
+    },
+    {
+      "id": "dashboard-api_imsysTaf2ComplianceStatus",
+      "beforeDomain": "regulatory_compliance",
+      "afterDomain": "regulatory_compliance",
+      "before": [
+        "imsys_taf2_compliance_status"
+      ],
+      "after": [
+        "imsys_taf2_compliance_status"
+      ],
+      "expectedCapabilities": [
+        "imsys_taf2_compliance_status"
+      ]
+    },
+    {
+      "id": "dashboard-api_interconnectionReleaseFileStatus",
+      "beforeDomain": "target_grid_planning",
+      "afterDomain": "target_grid_planning",
+      "before": [
+        "interconnection_release_file",
+        "investment_committee_steering_cards"
+      ],
+      "after": [
+        "interconnection_release_file",
+        "investment_committee_steering_cards"
+      ],
+      "expectedCapabilities": [
+        "a2mdm_decision_object_meaning_preservation",
+        "interconnection_release_file"
+      ]
+    },
+    {
+      "id": "dashboard-api_investmentBudgetCapExceptionGovernanceStatus",
+      "beforeDomain": "controlling_finance",
+      "afterDomain": "controlling_finance",
+      "before": [
+        "investment_budget_cap_exception_governance"
+      ],
+      "after": [
+        "investment_budget_cap_exception_governance"
+      ],
+      "expectedCapabilities": [
+        "investment_budget_cap_exception_governance"
+      ]
+    },
+    {
+      "id": "dashboard-api_investmentCommitteeSteeringCardsStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "investment_committee_steering_cards"
+      ],
+      "after": [
+        "investment_committee_steering_cards"
+      ],
+      "expectedCapabilities": [
+        "investment_committee_steering_cards"
+      ]
+    },
+    {
+      "id": "dashboard-api_investmentDataReviewQueueStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "investment_data_review_queue"
+      ],
+      "after": [
+        "investment_data_review_queue",
+        "investment_committee_steering_cards"
+      ],
+      "expectedCapabilities": [
+        "investment_data_review_queue"
+      ]
+    },
+    {
+      "id": "dashboard-api_investmentOwnerDeadlineBudgetGateStatus",
+      "beforeDomain": "controlling_finance",
+      "afterDomain": "controlling_finance",
+      "before": [
+        "investment_owner_deadline_budget_gate",
+        "cross_channel_vnb_signal_queue",
+        "leadership_delta_cockpit"
+      ],
+      "after": [
+        "investment_owner_deadline_budget_gate",
+        "cross_channel_vnb_signal_queue",
+        "leadership_delta_cockpit"
+      ],
+      "expectedCapabilities": [
+        "investment_owner_deadline_budget_gate",
+        "no_regret_measure_proof_gate"
+      ]
+    },
+    {
+      "id": "dashboard-api_investmentRiskTranslationStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "investment_risk_translation_status"
+      ],
+      "after": [
+        "investment_risk_translation_status"
+      ],
+      "expectedCapabilities": [
+        "investment_risk_translation_status"
+      ]
+    },
+    {
+      "id": "dashboard-api_investmentTwoTrackControlStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "investment_two_track_control"
+      ],
+      "after": [
+        "investment_two_track_control"
+      ],
+      "expectedCapabilities": [
+        "investment_two_track_control"
+      ]
+    },
+    {
+      "id": "dashboard-api_investmentWaterfallGovernanceStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "investment_waterfall_governance",
+        "budget_waterfall_governance"
+      ],
+      "after": [
+        "investment_waterfall_governance",
+        "budget_waterfall_governance"
+      ],
+      "expectedCapabilities": [
+        "investment_waterfall_governance"
+      ]
+    },
+    {
+      "id": "dashboard-api_jourFixeDecisionClosureStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "jour_fixe_decision_closure_tracker"
+      ],
+      "after": [
+        "jour_fixe_decision_closure_tracker"
+      ],
+      "expectedCapabilities": [
+        "jour_fixe_decision_closure_tracker"
+      ]
+    },
+    {
+      "id": "dashboard-api_kiFloorwalkerGovernanceStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "ki_floorwalker_governance"
+      ],
+      "after": [
+        "ki_floorwalker_governance"
+      ],
+      "expectedCapabilities": [
+        "ki_floorwalker_governance"
+      ]
+    },
+    {
+      "id": "dashboard-api_layer0AuditDrilldownNoteStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "layer0_audit_drilldown_note",
+        "znp_portfolio_assessment"
+      ],
+      "after": [
+        "layer0_audit_drilldown_note",
+        "znp_portfolio_assessment"
+      ],
+      "expectedCapabilities": [
+        "layer0_audit_drilldown_note"
+      ]
+    },
+    {
+      "id": "dashboard-api_leadershipDeltaCockpitStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "leadership_delta_cockpit",
+        "settlement_a96_reconciliation"
+      ],
+      "after": [
+        "leadership_delta_cockpit",
+        "settlement_a96_reconciliation"
+      ],
+      "expectedCapabilities": [
+        "evidence_freshness_guard",
+        "vnb_delta_signal_classifier",
+        "vnb_special_topic_workstate",
+        "leadership_delta_cockpit"
+      ]
+    },
+    {
+      "id": "dashboard-api_legacyControlTechnologyTransitionStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "legacy_control_technology_transition"
+      ],
+      "after": [
+        "legacy_control_technology_transition"
+      ],
+      "expectedCapabilities": [
+        "legacy_control_technology_transition"
+      ]
+    },
+    {
+      "id": "dashboard-api_legalClarificationOperatingModelStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "legal_clarification_operating_model"
+      ],
+      "after": [
+        "legal_clarification_operating_model"
+      ],
+      "expectedCapabilities": [
+        "legal_clarification_operating_model"
+      ]
+    },
+    {
+      "id": "dashboard-api_liquidityPlanningGovernanceStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "liquidity_planning_governance_module"
+      ],
+      "after": [
+        "liquidity_planning_governance_module"
+      ],
+      "expectedCapabilities": [
+        "liquidity_planning_governance_module"
+      ]
+    },
+    {
+      "id": "dashboard-api_liveUpdateStreamContractStatus",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "live_update_stream_contract_status"
+      ],
+      "after": [
+        "live_update_stream_contract_status"
+      ],
+      "expectedCapabilities": [
+        "live_update_stream_contract_status"
+      ]
+    },
+    {
+      "id": "dashboard-api_loadProfileStreamMonitor",
+      "beforeDomain": "edm",
+      "afterDomain": "edm",
+      "before": [
+        "load_profile_stream_monitor"
+      ],
+      "after": [
+        "load_profile_stream_monitor"
+      ],
+      "expectedCapabilities": [
+        "live_update_stream_contract_status",
+        "load_profile_stream_monitor",
+        "redispatch_call_data_quality_gate"
+      ]
+    },
+    {
+      "id": "dashboard-api_marketCommunicationEvidenceChainStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "market_communication_evidence_chain"
+      ],
+      "after": [
+        "market_communication_evidence_chain",
+        "investment_committee_steering_cards"
+      ],
+      "expectedCapabilities": [
+        "smart_meter_cls_data_governance_receipt",
+        "market_communication_evidence_chain"
+      ]
+    },
+    {
+      "id": "dashboard-api_mastrSyncGapStatus",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "mastr_sync_gap_alerting",
+        "mastr_asset_inventory"
+      ],
+      "after": [
+        "mastr_sync_gap_alerting",
+        "mastr_asset_inventory"
+      ],
+      "expectedCapabilities": [
+        "mastr_sync_gap_alerting"
+      ]
+    },
+    {
+      "id": "dashboard-api_meteringRolloutProcessIndicatorStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "metering_rollout_process_indicator",
+        "zaehlpark_finanzierung_szenario_cockpit"
+      ],
+      "after": [
+        "metering_rollout_process_indicator",
+        "zaehlpark_finanzierung_szenario_cockpit"
+      ],
+      "expectedCapabilities": [
+        "metering_rollout_process_indicator"
+      ]
+    },
+    {
+      "id": "dashboard-api_modelViabilityEvidenceGateStatus",
+      "beforeDomain": "target_grid_planning",
+      "afterDomain": "target_grid_planning",
+      "before": [
+        "model_viability_evidence_gate"
+      ],
+      "after": [
+        "model_viability_evidence_gate"
+      ],
+      "expectedCapabilities": [
+        "model_viability_evidence_gate"
+      ]
+    },
+    {
+      "id": "dashboard-api_monitoringNonEscalationStatus",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "evidence_freshness_guard",
+        "non_escalation_control_evidence",
+        "investment_committee_steering_cards"
+      ],
+      "after": [
+        "non_escalation_control_evidence",
+        "evidence_freshness_guard",
+        "investment_committee_steering_cards"
+      ],
+      "expectedCapabilities": [
+        "non_escalation_control_evidence"
+      ]
+    },
+    {
+      "id": "dashboard-api_netzprozessReadinessGateStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "netzprozess_readiness_gate",
+        "process_sensitization_readiness_map"
+      ],
+      "after": [
+        "netzprozess_readiness_gate",
+        "process_sensitization_readiness_map"
+      ],
+      "expectedCapabilities": [
+        "netzprozess_readiness_gate",
+        "role_permission_access_readiness_gate"
+      ]
+    },
+    {
+      "id": "dashboard-api_netzsignalDeltaGatingStatus",
+      "beforeDomain": "asset_grid_planning",
+      "afterDomain": "asset_grid_planning",
+      "before": [
+        "netzsignal_delta_gating",
+        "evidence_freshness_guard",
+        "netzfahrplan_fnav_assessment"
+      ],
+      "after": [
+        "netzsignal_delta_gating",
+        "evidence_freshness_guard",
+        "netzfahrplan_fnav_assessment"
+      ],
+      "expectedCapabilities": [
+        "netzsignal_delta_gating"
+      ]
+    },
+    {
+      "id": "dashboard-api_noRegretMeasureDefinitionGateStatus",
+      "beforeDomain": "target_grid_planning",
+      "afterDomain": "target_grid_planning",
+      "before": [
+        "no_regret_measure_definition_gate",
+        "legal_clarification_operating_model",
+        "no_regret_measure_proof_gate"
+      ],
+      "after": [
+        "no_regret_measure_definition_gate",
+        "legal_clarification_operating_model",
+        "no_regret_measure_proof_gate"
+      ],
+      "expectedCapabilities": [
+        "no_regret_measure_definition_gate"
+      ]
+    },
+    {
+      "id": "dashboard-api_noRegretMeasureProofGateStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "no_regret_measure_proof_gate",
+        "legal_clarification_operating_model"
+      ],
+      "after": [
+        "no_regret_measure_proof_gate",
+        "legal_clarification_operating_model"
+      ],
+      "expectedCapabilities": [
+        "no_regret_measure_proof_gate"
+      ]
+    },
+    {
+      "id": "dashboard-api_novaDecisionLifecycleReadinessStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "nova_decision_lifecycle_readiness"
+      ],
+      "after": [
+        "nova_decision_lifecycle_readiness"
+      ],
+      "expectedCapabilities": [
+        "nova_decision_lifecycle_readiness"
+      ]
+    },
+    {
+      "id": "dashboard-api_offBalancingMeteringPruefmatrixStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "off_balancing_metering_pruefmatrix",
+        "smart_meter_off_balancing_purpose_lock"
+      ],
+      "after": [
+        "off_balancing_metering_pruefmatrix",
+        "smart_meter_off_balancing_purpose_lock"
+      ],
+      "expectedCapabilities": [
+        "off_balancing_metering_pruefmatrix"
+      ]
+    },
+    {
+      "id": "dashboard-api_ownerDeadlineEvidenceGateStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "cross_channel_vnb_signal_queue",
+        "leadership_delta_cockpit",
+        "owner_deadline_evidence_gate"
+      ],
+      "after": [
+        "cross_channel_vnb_signal_queue",
+        "leadership_delta_cockpit",
+        "owner_deadline_evidence_gate"
+      ],
+      "expectedCapabilities": [
+        "owner_deadline_evidence_gate",
+        "communication_break_process_risk",
+        "steering_artifact_acceptance_gate"
+      ]
+    },
+    {
+      "id": "dashboard-api_processSensitizationReadinessMapStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "process_sensitization_readiness_map"
+      ],
+      "after": [
+        "process_sensitization_readiness_map"
+      ],
+      "expectedCapabilities": [
+        "process_sensitization_readiness_map"
+      ]
+    },
+    {
+      "id": "dashboard-api_qualitySummary",
+      "beforeDomain": "it_data_vendor_governance",
+      "afterDomain": "it_data_vendor_governance",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "process_sensitization_readiness_map"
+      ]
+    },
+    {
+      "id": "dashboard-api_receiptGroundedPresentationContract",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "receipt_grounded_presentation_contract",
+        "evidence_grounding_confidence_audit"
+      ],
+      "after": [
+        "receipt_grounded_presentation_contract",
+        "evidence_grounding_confidence_audit"
+      ],
+      "expectedCapabilities": [
+        "receipt_grounded_presentation_contract"
+      ]
+    },
+    {
+      "id": "dashboard-api_redispatchCallQualityGate",
+      "beforeDomain": "redispatch",
+      "afterDomain": "redispatch",
+      "before": [
+        "redispatch_call_data_quality_gate"
+      ],
+      "after": [
+        "redispatch_call_data_quality_gate"
+      ],
+      "expectedCapabilities": [
+        "redispatch_call_data_quality_gate"
+      ]
+    },
+    {
+      "id": "dashboard-api_redispatchProjectControllingKpiCockpitStatus",
+      "beforeDomain": "redispatch",
+      "afterDomain": "redispatch",
+      "before": [
+        "redispatch_project_controlling_kpi_cockpit"
+      ],
+      "after": [
+        "redispatch_project_controlling_kpi_cockpit"
+      ],
+      "expectedCapabilities": [
+        "redispatch_project_controlling_kpi_cockpit"
+      ]
+    },
+    {
+      "id": "dashboard-api_regulatoryChangeReadinessStatus",
+      "beforeDomain": "regulatory_compliance",
+      "afterDomain": "regulatory_compliance",
+      "before": [
+        "regulatory_change_simulator_readiness"
+      ],
+      "after": [
+        "regulatory_change_simulator_readiness"
+      ],
+      "expectedCapabilities": [
+        "smart_meter_cls_data_governance_receipt",
+        "regulatory_change_simulator_readiness"
+      ]
+    },
+    {
+      "id": "dashboard-api_regulatorySignalProcessTranslatorStatus",
+      "beforeDomain": "regulatory_compliance",
+      "afterDomain": "regulatory_compliance",
+      "before": [
+        "regulatory_signal_process_translator"
+      ],
+      "after": [
+        "regulatory_signal_process_translator"
+      ],
+      "expectedCapabilities": [
+        "smart_meter_cls_data_governance_receipt",
+        "regulatory_signal_process_translator"
+      ]
+    },
+    {
+      "id": "dashboard-api_rolePermissionAccessReadinessGateStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "role_permission_access_readiness_gate"
+      ],
+      "after": [
+        "role_permission_access_readiness_gate"
+      ],
+      "expectedCapabilities": [
+        "role_permission_access_readiness_gate",
+        "owner_deadline_evidence_gate",
+        "steering_artifact_acceptance_gate"
+      ]
+    },
+    {
+      "id": "dashboard-api_sapBudgetPspGateStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "sap_budget_psp_gate",
+        "altdaten_assessment"
+      ],
+      "after": [
+        "sap_budget_psp_gate",
+        "altdaten_assessment"
+      ],
+      "expectedCapabilities": [
+        "sap_budget_psp_gate"
+      ]
+    },
+    {
+      "id": "dashboard-api_scheduleManagementGovernanceRoadmapStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "schedule_management_governance_roadmap",
+        "flexibility_conductor_role_model"
+      ],
+      "after": [
+        "schedule_management_governance_roadmap",
+        "flexibility_conductor_role_model"
+      ],
+      "expectedCapabilities": [
+        "schedule_management_governance_roadmap"
+      ]
+    },
+    {
+      "id": "dashboard-api_smartMeterOffBalancingPurposeLockStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "smart_meter_off_balancing_purpose_lock"
+      ],
+      "after": [
+        "smart_meter_off_balancing_purpose_lock"
+      ],
+      "expectedCapabilities": [
+        "smart_meter_cls_data_governance_receipt",
+        "smart_meter_off_balancing_purpose_lock"
+      ]
+    },
+    {
+      "id": "dashboard-api_smgwConnectorReadinessStatus",
+      "beforeDomain": "target_grid_planning",
+      "afterDomain": "target_grid_planning",
+      "before": [
+        "smgw_connector_readiness_status",
+        "investment_committee_steering_cards"
+      ],
+      "after": [
+        "smgw_connector_readiness_status",
+        "investment_committee_steering_cards"
+      ],
+      "expectedCapabilities": [
+        "smgw_connector_readiness_status"
+      ]
+    },
+    {
+      "id": "dashboard-api_specialGridUsageImpactMapStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "special_grid_usage_impact_map"
+      ],
+      "after": [
+        "special_grid_usage_impact_map"
+      ],
+      "expectedCapabilities": [
+        "special_grid_usage_impact_map"
+      ]
+    },
+    {
+      "id": "dashboard-api_stadtwerkMauerCapabilityProjectionStatus",
+      "beforeDomain": "asset_grid_planning",
+      "afterDomain": "asset_grid_planning",
+      "before": [
+        "stadtwerk_mauer_capability_projection",
+        "stadtwerk_mauer_vdmi_profile"
+      ],
+      "after": [
+        "stadtwerk_mauer_capability_projection",
+        "stadtwerk_mauer_vdmi_profile"
+      ],
+      "expectedCapabilities": [
+        "stadtwerk_mauer_capability_projection",
+        "stadtwerk_mauer_event_replay_preview"
+      ]
+    },
+    {
+      "id": "dashboard-api_stadtwerkMauerE2eProcessDemoStatus",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "stadtwerk_mauer_vdmi_profile",
+        "e2e_connection_check"
+      ],
+      "after": [
+        "stadtwerk_mauer_vdmi_profile",
+        "e2e_connection_check"
+      ],
+      "expectedCapabilities": [
+        "stadtwerk_mauer_e2e_process_demo"
+      ]
+    },
+    {
+      "id": "dashboard-api_stadtwerkMauerEventReplayPreviewStatus",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "stadtwerk_mauer_event_replay_preview",
+        "stadtwerk_mauer_vdmi_profile"
+      ],
+      "after": [
+        "stadtwerk_mauer_event_replay_preview",
+        "stadtwerk_mauer_vdmi_profile"
+      ],
+      "expectedCapabilities": [
+        "stadtwerk_mauer_event_replay_preview"
+      ]
+    },
+    {
+      "id": "dashboard-api_stadtwerkMauerExternalInterfaceStubsStatus",
+      "beforeDomain": "it_data_vendor_governance",
+      "afterDomain": "it_data_vendor_governance",
+      "before": [
+        "stadtwerk_mauer_external_interface_stubs",
+        "stadtwerk_mauer_vdmi_profile"
+      ],
+      "after": [
+        "stadtwerk_mauer_external_interface_stubs",
+        "stadtwerk_mauer_vdmi_profile"
+      ],
+      "expectedCapabilities": [
+        "stadtwerk_mauer_external_interface_stubs"
+      ]
+    },
+    {
+      "id": "dashboard-api_stadtwerkMauerMastrDataOverlayStatus",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "stadtwerk_mauer_mastr_data_overlay",
+        "stadtwerk_mauer_vdmi_profile",
+        "mastr_asset_inventory"
+      ],
+      "after": [
+        "stadtwerk_mauer_mastr_data_overlay",
+        "stadtwerk_mauer_vdmi_profile",
+        "mastr_asset_inventory"
+      ],
+      "expectedCapabilities": [
+        "stadtwerk_mauer_mastr_data_overlay"
+      ]
+    },
+    {
+      "id": "dashboard-api_stadtwerkMauerSandboxRuntimeStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "stadtwerk_mauer_sandbox_runtime",
+        "stadtwerk_mauer_vdmi_profile"
+      ],
+      "after": [
+        "stadtwerk_mauer_sandbox_runtime",
+        "stadtwerk_mauer_vdmi_profile"
+      ],
+      "expectedCapabilities": [
+        "stadtwerk_mauer_sandbox_runtime"
+      ]
+    },
+    {
+      "id": "dashboard-api_stadtwerkMauerVdmiProfileStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "stadtwerk_mauer_vdmi_profile"
+      ],
+      "after": [
+        "stadtwerk_mauer_vdmi_profile"
+      ],
+      "expectedCapabilities": [
+        "stadtwerk_mauer_vdmi_profile",
+        "stadtwerk_mauer_capability_projection",
+        "stadtwerk_mauer_event_replay_preview"
+      ]
+    },
+    {
+      "id": "dashboard-api_steeringArtifactAcceptanceGateStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "steering_artifact_acceptance_gate"
+      ],
+      "after": [
+        "steering_artifact_acceptance_gate"
+      ],
+      "expectedCapabilities": [
+        "communication_break_process_risk",
+        "steering_artifact_acceptance_gate",
+        "no_regret_measure_proof_gate"
+      ]
+    },
+    {
+      "id": "dashboard-api_techCommercialOfferCockpitStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "tech_commercial_offer_cockpit"
+      ],
+      "after": [
+        "tech_commercial_offer_cockpit"
+      ],
+      "expectedCapabilities": [
+        "tech_commercial_offer_cockpit"
+      ]
+    },
+    {
+      "id": "dashboard-api_transformationFinancingScenarioViewStatus",
+      "beforeDomain": "target_grid_planning",
+      "afterDomain": "target_grid_planning",
+      "before": [
+        "transformation_financing_scenario_view"
+      ],
+      "after": [
+        "transformation_financing_scenario_view",
+        "asset_valuation_transformation_gate"
+      ],
+      "expectedCapabilities": [
+        "transformation_financing_scenario_view"
+      ]
+    },
+    {
+      "id": "dashboard-api_vnbDeltaSignalClassifierStatus",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "vnb_delta_signal_classifier",
+        "cross_channel_vnb_signal_queue",
+        "owner_deadline_evidence_gate"
+      ],
+      "after": [
+        "vnb_delta_signal_classifier",
+        "cross_channel_vnb_signal_queue",
+        "owner_deadline_evidence_gate"
+      ],
+      "expectedCapabilities": [
+        "evidence_freshness_guard",
+        "vnb_delta_signal_classifier"
+      ]
+    },
+    {
+      "id": "dashboard-api_vnbOverview",
+      "beforeDomain": "asset_grid_planning",
+      "afterDomain": "asset_grid_planning",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "live_update_stream_contract_status",
+        "leadership_delta_cockpit"
+      ]
+    },
+    {
+      "id": "dashboard-api_vnbSpecialTopicWorkstateStatus",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "vnb_special_topic_workstate"
+      ],
+      "after": [
+        "vnb_special_topic_workstate"
+      ],
+      "expectedCapabilities": [
+        "vnb_special_topic_workstate",
+        "non_escalation_control_evidence"
+      ]
+    },
+    {
+      "id": "dashboard-api_waterPricingNetInvestmentAlignmentStatus",
+      "beforeDomain": "target_grid_planning",
+      "afterDomain": "target_grid_planning",
+      "before": [
+        "water_pricing_net_investment_alignment_gate"
+      ],
+      "after": [
+        "water_pricing_net_investment_alignment_gate"
+      ],
+      "expectedCapabilities": [
+        "water_pricing_net_investment_alignment_gate"
+      ]
+    },
+    {
+      "id": "dashboard-api_zaehlparkFinanzierungSzenarioCockpitStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "zaehlpark_finanzierung_szenario_cockpit"
+      ],
+      "after": [
+        "zaehlpark_finanzierung_szenario_cockpit"
+      ],
+      "expectedCapabilities": [
+        "zaehlpark_finanzierung_szenario_cockpit"
+      ]
+    },
+    {
+      "id": "datapoint_oemetadata",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "ki_floorwalker_governance"
+      ],
+      "after": [
+        "ki_floorwalker_governance"
+      ],
+      "expectedCapabilities": [
+        "ki_floorwalker_governance"
+      ]
+    },
+    {
+      "id": "datapoint_health",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "cross_channel_vnb_signal_queue",
+        "gas_grid_transformation_asset_cockpit",
+        "transformation_financing_scenario_view",
+        "asset_valuation_transformation_gate",
+        "gas_capacity_booking_review_gate",
+        "layer0_audit_drilldown_note",
+        "budget_waterfall_governance",
+        "off_balancing_metering_pruefmatrix",
+        "automation_requirements_decision_value",
+        "smart_meter_off_balancing_purpose_lock",
+        "imsys_schedule_value_chain_readiness",
+        "cls_digital_twin_compliance_gate",
+        "legacy_control_technology_transition",
+        "controllability_submission_cockpit",
+        "heat_transformation_line_asset_model",
+        "tech_commercial_offer_cockpit",
+        "zaehlpark_finanzierung_szenario_cockpit",
+        "process_sensitization_readiness_map",
+        "automation_risk_gate",
+        "redispatch_project_controlling_kpi_cockpit",
+        "mastr_quality_oemetadata",
+        "imsys_taf2_compliance_status",
+        "schedule_management_governance_roadmap",
+        "gas_transformation_dependency_map",
+        "energy_tax_information_package",
+        "sap_budget_psp_gate",
+        "investment_two_track_control",
+        "regulatory_change_simulator_readiness",
+        "special_grid_usage_impact_map",
+        "liquidity_planning_governance_module",
+        "dr_readiness_evidence_gate",
+        "controllability_asset_handover",
+        "evidence_grounding_confidence_audit",
+        "redispatch_call_data_quality_gate"
+      ]
+    },
+    {
+      "id": "datapoint_createSnapshot",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "regulatory_risk_revenue_scenario"
+      ]
+    },
+    {
+      "id": "datapoint_validateSnapshot",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "zaehlpark_finanzierung_szenario_cockpit",
+        "regulatory_change_simulator_readiness"
+      ]
+    },
+    {
+      "id": "datasource-cache_query",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "datasource_registry_classification_governance",
+        "inhouse_timeseries_analysis"
+      ],
+      "after": [
+        "datasource_registry_classification_governance",
+        "inhouse_timeseries_analysis"
+      ],
+      "expectedCapabilities": [
+        "inhouse_timeseries_analysis",
+        "investment_data_review_queue",
+        "metering_rollout_process_indicator"
+      ]
+    },
+    {
+      "id": "datasource-registry_list",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "inhouse_timeseries_analysis"
+      ],
+      "after": [
+        "inhouse_timeseries_analysis"
+      ],
+      "expectedCapabilities": [
+        "investment_data_review_queue",
+        "automation_risk_gate",
+        "metering_rollout_process_indicator"
+      ]
+    },
+    {
+      "id": "datasource-registry_get",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "inhouse_timeseries_analysis"
+      ],
+      "after": [
+        "inhouse_timeseries_analysis"
+      ],
+      "expectedCapabilities": [
+        "gas_grid_transformation_asset_cockpit",
+        "no_regret_measure_definition_gate",
+        "transformation_financing_scenario_view",
+        "budget_waterfall_governance",
+        "off_balancing_metering_pruefmatrix",
+        "automation_requirements_decision_value",
+        "smart_meter_off_balancing_purpose_lock",
+        "imsys_schedule_value_chain_readiness",
+        "cls_digital_twin_compliance_gate",
+        "redispatch_project_controlling_kpi_cockpit",
+        "energy_tax_information_package",
+        "sap_budget_psp_gate",
+        "investment_two_track_control",
+        "regulatory_change_simulator_readiness",
+        "special_grid_usage_impact_map",
+        "liquidity_planning_governance_module"
+      ]
+    },
+    {
+      "id": "datasource-registry_updateDictionary",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "energy_tax_information_package"
+      ],
+      "after": [
+        "energy_tax_information_package"
+      ],
+      "expectedCapabilities": [
+        "energy_tax_information_package"
+      ]
+    },
+    {
+      "id": "decision-frame_list",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "scqa_decision_framing"
+      ],
+      "after": [
+        "scqa_decision_framing"
+      ],
+      "expectedCapabilities": [
+        "leadership_delta_cockpit",
+        "scqa_decision_framing",
+        "decision_readiness_matrix",
+        "owner_deadline_evidence_gate"
+      ]
+    },
+    {
+      "id": "decision-frame_create",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "scqa_decision_framing"
+      ],
+      "after": [
+        "scqa_decision_framing"
+      ],
+      "expectedCapabilities": [
+        "scqa_decision_framing",
+        "regulatory_risk_revenue_scenario"
+      ]
+    },
+    {
+      "id": "decision-frame_get",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "scqa_decision_framing"
+      ],
+      "after": [
+        "scqa_decision_framing"
+      ],
+      "expectedCapabilities": [
+        "gas_capacity_booking_review_gate",
+        "gas_network_decision_chain",
+        "scqa_decision_framing",
+        "netzprozess_readiness_gate"
+      ]
+    },
+    {
+      "id": "decision-frame_generateStarter",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "scqa_decision_framing"
+      ],
+      "after": [
+        "scqa_decision_framing"
+      ],
+      "expectedCapabilities": [
+        "scqa_decision_framing"
+      ]
+    },
+    {
+      "id": "e2e-connection-check_list",
+      "beforeDomain": "grid_connection",
+      "afterDomain": "grid_connection",
+      "before": [
+        "e2e_connection_check"
+      ],
+      "after": [
+        "e2e_connection_check"
+      ],
+      "expectedCapabilities": [
+        "e2e_connection_check"
+      ]
+    },
+    {
+      "id": "e2e-connection-check_create",
+      "beforeDomain": "grid_connection",
+      "afterDomain": "grid_connection",
+      "before": [
+        "e2e_connection_check"
+      ],
+      "after": [
+        "e2e_connection_check"
+      ],
+      "expectedCapabilities": [
+        "e2e_connection_check"
+      ]
+    },
+    {
+      "id": "e2e-connection-check_updateThread",
+      "beforeDomain": "grid_connection",
+      "afterDomain": "grid_connection",
+      "before": [
+        "e2e_connection_check"
+      ],
+      "after": [
+        "e2e_connection_check"
+      ],
+      "expectedCapabilities": [
+        "e2e_connection_check"
+      ]
+    },
+    {
+      "id": "edm-messkonzept_evaluateAll",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "zaehlpark_finanzierung_szenario_cockpit",
+        "imsys_taf2_compliance_status"
+      ]
+    },
+    {
+      "id": "edm-messkonzept_list",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "edm_metering_concept_evidence"
+      ]
+    },
+    {
+      "id": "edm-messkonzept_get",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "edm_metering_concept_evidence"
+      ]
+    },
+    {
+      "id": "edm-messkonzept_evaluate",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "legacy_control_technology_transition",
+        "e2e_controllability_check_governance"
+      ]
+    },
+    {
+      "id": "edm_getTimeseriesSummary",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "metering_rollout_process_indicator"
+      ]
+    },
+    {
+      "id": "edm-validation_validate",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "controllability_submission_cockpit",
+        "tech_commercial_offer_cockpit",
+        "zaehlpark_finanzierung_szenario_cockpit",
+        "process_sensitization_readiness_map",
+        "imsys_taf2_compliance_status",
+        "schedule_management_governance_roadmap",
+        "regulatory_change_simulator_readiness",
+        "e2e_controllability_check_governance",
+        "market_communication_evidence_chain",
+        "redispatch_call_data_quality_gate"
+      ]
+    },
+    {
+      "id": "eic-codes_gasFacilities",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "eic_code_lookup"
+      ],
+      "after": [
+        "eic_code_lookup"
+      ],
+      "expectedCapabilities": [
+        "eic_code_lookup"
+      ]
+    },
+    {
+      "id": "eic-codes_gasOperators",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "eic_code_lookup"
+      ],
+      "after": [
+        "eic_code_lookup"
+      ],
+      "expectedCapabilities": [
+        "eic_code_lookup"
+      ]
+    },
+    {
+      "id": "eic-codes_search",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "eic_code_lookup"
+      ],
+      "after": [
+        "eic_code_lookup"
+      ],
+      "expectedCapabilities": [
+        "eic_code_lookup"
+      ]
+    },
+    {
+      "id": "eic-codes_statistics",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "eic_code_lookup"
+      ]
+    },
+    {
+      "id": "eic-codes_validate",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "eic_code_lookup"
+      ],
+      "after": [
+        "eic_code_lookup"
+      ],
+      "expectedCapabilities": [
+        "eic_code_lookup"
+      ]
+    },
+    {
+      "id": "energy-market_co2Intensity",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "residual_load_forecast_for_dso"
+      ],
+      "after": [
+        "residual_load_forecast_for_dso"
+      ],
+      "expectedCapabilities": [
+        "residual_load_forecast_for_dso"
+      ]
+    },
+    {
+      "id": "energy-market_installations",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "mastr_asset_inventory"
+      ],
+      "after": [
+        "mastr_asset_inventory"
+      ],
+      "expectedCapabilities": [
+        "stadtwerk_mauer_mastr_data_overlay"
+      ]
+    },
+    {
+      "id": "energy-market_prices",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "cross_commodity_supply_security_lagebild"
+      ],
+      "after": [
+        "cross_commodity_supply_security_lagebild"
+      ],
+      "expectedCapabilities": [
+        "residual_load_forecast_for_dso"
+      ]
+    },
+    {
+      "id": "entsoe_dayAheadPrices",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "cross_commodity_supply_security_lagebild"
+      ],
+      "after": [
+        "cross_commodity_supply_security_lagebild"
+      ],
+      "expectedCapabilities": [
+        "cross_commodity_supply_security_lagebild"
+      ]
+    },
+    {
+      "id": "entsoe_loadForecast",
+      "beforeDomain": "edm",
+      "afterDomain": "edm",
+      "before": [
+        "cross_commodity_supply_security_lagebild"
+      ],
+      "after": [
+        "cross_commodity_supply_security_lagebild"
+      ],
+      "expectedCapabilities": [
+        "cross_commodity_supply_security_lagebild"
+      ]
+    },
+    {
+      "id": "entsoe_windSolarForecast",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "cross_commodity_supply_security_lagebild",
+        "renewable_generation_forecast"
+      ],
+      "after": [
+        "cross_commodity_supply_security_lagebild",
+        "renewable_generation_forecast"
+      ],
+      "expectedCapabilities": [
+        "cross_commodity_supply_security_lagebild"
+      ]
+    },
+    {
+      "id": "eog-calculator_calculate",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "off_balancing_metering_pruefmatrix"
+      ],
+      "after": [
+        "off_balancing_metering_pruefmatrix"
+      ],
+      "expectedCapabilities": [
+        "regulatory_risk_revenue_scenario"
+      ]
+    },
+    {
+      "id": "eog-calculator_inputStatus",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "off_balancing_metering_pruefmatrix"
+      ],
+      "after": [
+        "off_balancing_metering_pruefmatrix"
+      ],
+      "expectedCapabilities": [
+        "regulatory_risk_revenue_scenario"
+      ]
+    },
+    {
+      "id": "eog-calculator_scenario",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "regulatory_risk_revenue_scenario",
+        "off_balancing_metering_pruefmatrix"
+      ],
+      "after": [
+        "regulatory_risk_revenue_scenario",
+        "off_balancing_metering_pruefmatrix"
+      ],
+      "expectedCapabilities": [
+        "transformation_financing_scenario_view",
+        "off_balancing_metering_pruefmatrix",
+        "heat_asset_tariff_steering",
+        "zaehlpark_finanzierung_szenario_cockpit",
+        "regulatory_risk_revenue_scenario",
+        "special_grid_usage_impact_map"
+      ]
+    },
+    {
+      "id": "ewk-monitoring_benchmarkVnb",
+      "beforeDomain": "edm",
+      "afterDomain": "edm",
+      "before": [
+        "vnb_kpi_benchmark_comparison"
+      ],
+      "after": [
+        "vnb_kpi_benchmark_comparison"
+      ],
+      "expectedCapabilities": [
+        "vnb_kpi_benchmark_comparison",
+        "eeg_clawback_ewk_monitoring"
+      ]
+    },
+    {
+      "id": "file-ingest-monitor_listMonitors",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "file_ingest_monitor"
+      ],
+      "after": [
+        "file_ingest_monitor"
+      ],
+      "expectedCapabilities": [
+        "file_ingest_monitor"
+      ]
+    },
+    {
+      "id": "file-ingest-monitor_createMonitor",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "file_ingest_monitor"
+      ],
+      "after": [
+        "file_ingest_monitor"
+      ],
+      "expectedCapabilities": [
+        "file_ingest_monitor"
+      ]
+    },
+    {
+      "id": "file-ingest-monitor_getFindings",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "file_ingest_monitor"
+      ]
+    },
+    {
+      "id": "file-ingest-monitor_scan",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "file_ingest_monitor"
+      ]
+    },
+    {
+      "id": "file-ingest-monitor_getStatus",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "file_ingest_monitor"
+      ]
+    },
+    {
+      "id": "finance-agent_analyze",
+      "beforeDomain": "regulatory_compliance",
+      "afterDomain": "regulatory_compliance",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "gas_grid_transformation_asset_cockpit",
+        "investment_budget_cap_exception_governance",
+        "investment_owner_deadline_budget_gate",
+        "no_regret_measure_definition_gate",
+        "transformation_financing_scenario_view",
+        "asset_valuation_transformation_gate",
+        "financier_due_diligence_assessment",
+        "budget_waterfall_governance",
+        "gas_decommissioning_roadmap_status",
+        "off_balancing_metering_pruefmatrix",
+        "smart_meter_off_balancing_purpose_lock",
+        "cls_digital_twin_compliance_gate",
+        "crisis_decision_routine",
+        "investment_committee_steering_cards",
+        "flex_strategic_demand_intake",
+        "heat_transformation_line_asset_model",
+        "heat_asset_tariff_steering",
+        "tech_commercial_offer_cockpit",
+        "zaehlpark_finanzierung_szenario_cockpit",
+        "investment_waterfall_governance",
+        "imsys_taf2_compliance_status",
+        "gas_transformation_dependency_map",
+        "capacity_contract_risk_asset_cockpit",
+        "sap_budget_psp_gate",
+        "investment_two_track_control",
+        "regulatory_risk_revenue_scenario",
+        "special_grid_usage_impact_map",
+        "liquidity_planning_governance_module"
+      ]
+    },
+    {
+      "id": "finance-agent_fnavEconomics",
+      "beforeDomain": "controlling_finance",
+      "afterDomain": "controlling_finance",
+      "before": [
+        "capex_prioritization",
+        "finance_nkp_capex_reinvest_governance"
+      ],
+      "after": [
+        "capex_prioritization",
+        "finance_nkp_capex_reinvest_governance"
+      ],
+      "expectedCapabilities": [
+        "fnav_fast_track_contract_gate",
+        "netzfahrplan_fnav_assessment",
+        "tech_commercial_offer_cockpit",
+        "capacity_contract_risk_asset_cockpit"
+      ]
+    },
+    {
+      "id": "flex_listDevices",
+      "beforeDomain": "grid_connection",
+      "afterDomain": "grid_connection",
+      "before": [
+        "connection_rejection_fnav_14a_evidence",
+        "netzfahrplan_fnav_assessment",
+        "regulatorische_entgeltlogik"
+      ],
+      "after": [
+        "connection_rejection_fnav_14a_evidence",
+        "netzfahrplan_fnav_assessment",
+        "regulatorische_entgeltlogik"
+      ],
+      "expectedCapabilities": [
+        "imsys_schedule_value_chain_readiness",
+        "grossspeicher_anschluss_readiness_gate"
+      ]
+    },
+    {
+      "id": "flexibilitaetskosten-raster_list",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "flexibilitaetskosten_raster",
+        "vnb_delta_signal_classifier"
+      ],
+      "after": [
+        "flexibilitaetskosten_raster",
+        "vnb_delta_signal_classifier"
+      ],
+      "expectedCapabilities": [
+        "flexibilitaetskosten_raster"
+      ]
+    },
+    {
+      "id": "flexibilitaetskosten-raster_create",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "flexibilitaetskosten_raster",
+        "vnb_delta_signal_classifier"
+      ],
+      "after": [
+        "flexibilitaetskosten_raster",
+        "vnb_delta_signal_classifier"
+      ],
+      "expectedCapabilities": [
+        "flexibilitaetskosten_raster"
+      ]
+    },
+    {
+      "id": "flexibilitaetskosten-raster_get",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "flexibilitaetskosten_raster",
+        "vnb_delta_signal_classifier"
+      ],
+      "after": [
+        "flexibilitaetskosten_raster",
+        "vnb_delta_signal_classifier"
+      ],
+      "expectedCapabilities": [
+        "flexibilitaetskosten_raster"
+      ]
+    },
+    {
+      "id": "flexibility-conductor-role-model_getStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "flexibility_conductor_role_model"
+      ],
+      "after": [
+        "flexibility_conductor_role_model"
+      ],
+      "expectedCapabilities": [
+        "flexibility_conductor_role_model"
+      ]
+    },
+    {
+      "id": "flexibility-conductor-role-model_evaluate",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "flexibility_conductor_role_model"
+      ],
+      "after": [
+        "flexibility_conductor_role_model"
+      ],
+      "expectedCapabilities": [
+        "flexibility_conductor_role_model"
+      ]
+    },
+    {
+      "id": "flexibility-conductor-role-model_listModels",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "flexibility_conductor_role_model"
+      ],
+      "after": [
+        "flexibility_conductor_role_model"
+      ],
+      "expectedCapabilities": [
+        "flexibility_conductor_role_model"
+      ]
+    },
+    {
+      "id": "flexibility-conductor-role-model_getModel",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "flexibility_conductor_role_model"
+      ],
+      "after": [
+        "flexibility_conductor_role_model"
+      ],
+      "expectedCapabilities": [
+        "flexibility_conductor_role_model"
+      ]
+    },
+    {
+      "id": "fnav-commercial-hedging_listContracts",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "fnav_commercial_hedging"
+      ],
+      "after": [
+        "fnav_commercial_hedging"
+      ],
+      "expectedCapabilities": [
+        "fnav_commercial_hedging"
+      ]
+    },
+    {
+      "id": "fnav-commercial-hedging_createContract",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "fnav_commercial_hedging"
+      ],
+      "after": [
+        "fnav_commercial_hedging"
+      ],
+      "expectedCapabilities": [
+        "fnav_commercial_hedging"
+      ]
+    },
+    {
+      "id": "fnav-commercial-hedging_createScenario",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "fnav_commercial_hedging"
+      ],
+      "after": [
+        "fnav_commercial_hedging"
+      ],
+      "expectedCapabilities": [
+        "fnav_fast_track_contract_gate",
+        "fnav_commercial_hedging"
+      ]
+    },
+    {
+      "id": "forecast_generationForecast",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "renewable_generation_forecast"
+      ],
+      "after": [
+        "renewable_generation_forecast"
+      ],
+      "expectedCapabilities": [
+        "renewable_generation_forecast"
+      ]
+    },
+    {
+      "id": "forecast-engine_evaluateQuality",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "load_profile_stream_monitor"
+      ],
+      "after": [
+        "load_profile_stream_monitor"
+      ],
+      "expectedCapabilities": [
+        "redispatch_call_data_quality_gate"
+      ]
+    },
+    {
+      "id": "forecast-engine_createSchedule",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "cross_commodity_supply_security_lagebild"
+      ],
+      "after": [
+        "cross_commodity_supply_security_lagebild"
+      ],
+      "expectedCapabilities": [
+        "grossspeicher_anschluss_readiness_gate"
+      ]
+    },
+    {
+      "id": "forecast-engine_storageDispatch",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "grossspeicher_anschluss_readiness_gate"
+      ]
+    },
+    {
+      "id": "gas-capacity-order-revision-gate_evaluate",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "gas_capacity_order_revision_gate"
+      ],
+      "after": [
+        "gas_capacity_order_revision_gate"
+      ],
+      "expectedCapabilities": [
+        "gas_capacity_order_revision_gate"
+      ]
+    },
+    {
+      "id": "gas-capacity-order-revision-gate_listRevisions",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "gas_capacity_order_revision_gate"
+      ],
+      "after": [
+        "gas_capacity_order_revision_gate"
+      ],
+      "expectedCapabilities": [
+        "gas_capacity_order_revision_gate"
+      ]
+    },
+    {
+      "id": "gas-capacity-order-revision-gate_getRevision",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "gas_capacity_order_revision_gate"
+      ],
+      "after": [
+        "gas_capacity_order_revision_gate"
+      ],
+      "expectedCapabilities": [
+        "gas_capacity_order_revision_gate"
+      ]
+    },
+    {
+      "id": "gas-capacity-order-revision-gate_getStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "gas_capacity_order_revision_gate"
+      ],
+      "after": [
+        "gas_capacity_order_revision_gate"
+      ],
+      "expectedCapabilities": [
+        "gas_capacity_order_revision_gate"
+      ]
+    },
+    {
+      "id": "gas-storage_countryStorage",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "gas_grid_transformation_asset_cockpit",
+        "cross_commodity_supply_security_lagebild"
+      ]
+    },
+    {
+      "id": "gas-storage_supplySecurityCheck",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "cross_commodity_supply_security_lagebild"
+      ]
+    },
+    {
+      "id": "gasnetz-waermeplanung_list",
+      "beforeDomain": "asset_grid_planning",
+      "afterDomain": "asset_grid_planning",
+      "before": [
+        "gasnetz_waermeplanung",
+        "gasnetz_waermeplanung_assessment"
+      ],
+      "after": [
+        "gasnetz_waermeplanung",
+        "gasnetz_waermeplanung_assessment"
+      ],
+      "expectedCapabilities": [
+        "gasnetz_waermeplanung"
+      ]
+    },
+    {
+      "id": "gasnetz-waermeplanung_reconcile",
+      "beforeDomain": "asset_grid_planning",
+      "afterDomain": "asset_grid_planning",
+      "before": [
+        "gasnetz_waermeplanung",
+        "settlement_a96_reconciliation",
+        "gasnetz_waermeplanung_assessment"
+      ],
+      "after": [
+        "gasnetz_waermeplanung",
+        "settlement_a96_reconciliation",
+        "gasnetz_waermeplanung_assessment"
+      ],
+      "expectedCapabilities": [
+        "asset_valuation_transformation_gate",
+        "gas_capacity_booking_review_gate",
+        "gas_network_decision_chain",
+        "gasnetz_waermeplanung",
+        "gas_transformation_dataroom_status"
+      ]
+    },
+    {
+      "id": "gasnetz-waermeplanung_get",
+      "beforeDomain": "asset_grid_planning",
+      "afterDomain": "asset_grid_planning",
+      "before": [
+        "gasnetz_waermeplanung",
+        "gasnetz_waermeplanung_assessment"
+      ],
+      "after": [
+        "gasnetz_waermeplanung",
+        "gasnetz_waermeplanung_assessment"
+      ],
+      "expectedCapabilities": [
+        "gasnetz_waermeplanung"
+      ]
+    },
+    {
+      "id": "german-grid_forecast",
+      "beforeDomain": "edm",
+      "afterDomain": "edm",
+      "before": [
+        "renewable_generation_forecast"
+      ],
+      "after": [
+        "renewable_generation_forecast"
+      ],
+      "expectedCapabilities": [
+        "german_grid_market_data"
+      ]
+    },
+    {
+      "id": "german-grid_negativePrices",
+      "beforeDomain": "regulatory_compliance",
+      "afterDomain": "regulatory_compliance",
+      "before": [
+        "german_grid_market_data"
+      ],
+      "after": [
+        "german_grid_market_data"
+      ],
+      "expectedCapabilities": [
+        "german_grid_market_data"
+      ]
+    },
+    {
+      "id": "german-grid_redispatch",
+      "beforeDomain": "redispatch",
+      "afterDomain": "redispatch",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "german_grid_market_data"
+      ]
+    },
+    {
+      "id": "german-grid_spotprices",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "german_grid_market_data"
+      ],
+      "after": [
+        "german_grid_market_data"
+      ],
+      "expectedCapabilities": [
+        "german_grid_market_data"
+      ]
+    },
+    {
+      "id": "ghost-asset-alert_list",
+      "beforeDomain": "asset_grid_planning",
+      "afterDomain": "asset_grid_planning",
+      "before": [
+        "ghost_asset_alert"
+      ],
+      "after": [
+        "ghost_asset_alert"
+      ],
+      "expectedCapabilities": [
+        "ghost_asset_alert"
+      ]
+    },
+    {
+      "id": "ghost-asset-alert_scan",
+      "beforeDomain": "asset_grid_planning",
+      "afterDomain": "asset_grid_planning",
+      "before": [
+        "ghost_asset_alert"
+      ],
+      "after": [
+        "ghost_asset_alert"
+      ],
+      "expectedCapabilities": [
+        "ghost_asset_alert"
+      ]
+    },
+    {
+      "id": "ghost-asset-alert_get",
+      "beforeDomain": "asset_grid_planning",
+      "afterDomain": "asset_grid_planning",
+      "before": [
+        "ghost_asset_alert"
+      ],
+      "after": [
+        "ghost_asset_alert"
+      ],
+      "expectedCapabilities": [
+        "ghost_asset_alert"
+      ]
+    },
+    {
+      "id": "grid-connection_fnavValidate",
+      "beforeDomain": "grid_connection",
+      "afterDomain": "grid_connection",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "fnav_fast_track_contract_gate",
+        "netzfahrplan_fnav_assessment",
+        "tech_commercial_offer_cockpit",
+        "process_sensitization_readiness_map",
+        "netzprozess_readiness_gate",
+        "grossspeicher_anschluss_readiness_gate",
+        "schedule_management_governance_roadmap",
+        "legal_clarification_operating_model"
+      ]
+    },
+    {
+      "id": "grid-connection_validate",
+      "beforeDomain": "grid_connection",
+      "afterDomain": "grid_connection",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "areal_network_integration_offer_gate",
+        "tech_commercial_offer_cockpit",
+        "grid_connection_transformation_gate",
+        "capacity_contract_risk_asset_cockpit",
+        "anschlusskapazitaet_evidence_queue",
+        "connection_deadline_evidence_queue"
+      ]
+    },
+    {
+      "id": "grid-operations_capacityUtilization",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "tech_commercial_offer_cockpit",
+        "investment_waterfall_governance",
+        "capacity_contract_risk_asset_cockpit"
+      ]
+    },
+    {
+      "id": "grid-operations_connectionCapacityCheck",
+      "beforeDomain": "grid_connection",
+      "afterDomain": "grid_connection",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "tech_commercial_offer_cockpit",
+        "capacity_contract_risk_asset_cockpit"
+      ]
+    },
+    {
+      "id": "grid-operations_controlMeasures",
+      "beforeDomain": "grid_connection",
+      "afterDomain": "grid_connection",
+      "before": [
+        "connection_rejection_fnav_14a_evidence",
+        "netzfahrplan_fnav_assessment",
+        "regulatorische_entgeltlogik"
+      ],
+      "after": [
+        "connection_rejection_fnav_14a_evidence",
+        "netzfahrplan_fnav_assessment",
+        "regulatorische_entgeltlogik"
+      ],
+      "expectedCapabilities": [
+        "legacy_control_technology_transition",
+        "controllability_submission_cockpit",
+        "e2e_controllability_check_governance"
+      ]
+    },
+    {
+      "id": "grid-operations_marketPartners",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "grid_operator_identity_resolution"
+      ],
+      "after": [
+        "grid_operator_identity_resolution"
+      ],
+      "expectedCapabilities": [
+        "residual_load_forecast_for_dso",
+        "grid_operator_identity_resolution",
+        "mastr_asset_inventory",
+        "vnb_kpi_benchmark_comparison"
+      ]
+    },
+    {
+      "id": "grid-operations_vnbLookup",
+      "beforeDomain": "asset_grid_planning",
+      "afterDomain": "asset_grid_planning",
+      "before": [
+        "grid_operator_identity_resolution",
+        "mastr_asset_inventory"
+      ],
+      "after": [
+        "grid_operator_identity_resolution",
+        "mastr_asset_inventory"
+      ],
+      "expectedCapabilities": [
+        "residual_load_forecast_for_dso",
+        "grid_operator_identity_resolution",
+        "mastr_asset_inventory",
+        "vnb_kpi_benchmark_comparison"
+      ]
+    },
+    {
+      "id": "grid-operations_vnbLookupCodes",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "grid_operator_identity_resolution"
+      ],
+      "after": [
+        "grid_operator_identity_resolution"
+      ],
+      "expectedCapabilities": [
+        "grid_operator_identity_resolution"
+      ]
+    },
+    {
+      "id": "hitl_list",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "leadership_delta_cockpit",
+        "netzprozess_readiness_gate",
+        "redispatch_project_controlling_kpi_cockpit"
+      ]
+    },
+    {
+      "id": "hitl_create",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "gas_decommissioning_roadmap_status",
+        "jour_fixe_decision_closure_tracker",
+        "heat_asset_tariff_steering",
+        "investment_waterfall_governance",
+        "imsys_taf2_compliance_status",
+        "capacity_contract_risk_asset_cockpit"
+      ]
+    },
+    {
+      "id": "hitl_summary",
+      "beforeDomain": "edm",
+      "afterDomain": "edm",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "leadership_delta_cockpit",
+        "controllability_submission_cockpit",
+        "crisis_decision_routine",
+        "investment_committee_steering_cards",
+        "investment_data_review_queue",
+        "gas_infrastructure_risk_governance",
+        "metering_rollout_process_indicator"
+      ]
+    },
+    {
+      "id": "in-memory-join_join",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "inhouse_timeseries_analysis"
+      ],
+      "after": [
+        "inhouse_timeseries_analysis"
+      ],
+      "expectedCapabilities": [
+        "metering_rollout_process_indicator"
+      ]
+    },
+    {
+      "id": "in-memory-join_meteringSpotCost",
+      "beforeDomain": "metering_msb",
+      "afterDomain": "metering_msb",
+      "before": [
+        "inhouse_timeseries_analysis"
+      ],
+      "after": [
+        "inhouse_timeseries_analysis"
+      ],
+      "expectedCapabilities": [
+        "inhouse_timeseries_analysis"
+      ]
+    },
+    {
+      "id": "interface-placeholder_listGaps",
+      "beforeDomain": "it_data_vendor_governance",
+      "afterDomain": "it_data_vendor_governance",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "cya_assessment_briefing",
+        "edm_customer_moveout_billing_evidence",
+        "energy_sharing_prosumer_advisory",
+        "redispatch_rcs_special_case_governance",
+        "datasource_registry_classification_governance",
+        "hitl_role_based_evidence_request",
+        "automation_risk_gate"
+      ]
+    },
+    {
+      "id": "interface-placeholder_markGap",
+      "beforeDomain": "it_data_vendor_governance",
+      "afterDomain": "it_data_vendor_governance",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "cya_assessment_briefing",
+        "edm_customer_moveout_billing_evidence",
+        "energy_sharing_prosumer_advisory",
+        "redispatch_rcs_special_case_governance",
+        "datasource_registry_classification_governance",
+        "hitl_role_based_evidence_request",
+        "edm_metering_concept_evidence",
+        "flex_forecast_bess_grid_operations_advisory",
+        "finance_nkp_capex_reinvest_governance",
+        "bilanzkreis_slp_edm_operations",
+        "connection_rejection_fnav_14a_evidence",
+        "gasnetz_waermeplanung_assessment",
+        "eeg_clawback_ewk_monitoring"
+      ]
+    },
+    {
+      "id": "interface-placeholder_requestEvidence",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "cya_assessment_briefing",
+        "edm_customer_moveout_billing_evidence",
+        "energy_sharing_prosumer_advisory",
+        "redispatch_rcs_special_case_governance",
+        "datasource_registry_classification_governance",
+        "hitl_role_based_evidence_request",
+        "gas_transformation_dataroom_status",
+        "cls_digital_twin_compliance_gate",
+        "legacy_control_technology_transition",
+        "controllability_data_alignment",
+        "controllability_submission_cockpit",
+        "gas_infrastructure_risk_governance",
+        "heat_asset_tariff_steering",
+        "process_sensitization_readiness_map",
+        "imsys_taf2_compliance_status",
+        "schedule_management_governance_roadmap",
+        "gas_transformation_dependency_map",
+        "grid_connection_transformation_gate",
+        "capacity_contract_risk_asset_cockpit",
+        "energy_tax_information_package",
+        "sap_budget_psp_gate",
+        "investment_two_track_control",
+        "special_grid_usage_impact_map",
+        "liquidity_planning_governance_module",
+        "dr_readiness_evidence_gate",
+        "legal_clarification_operating_model",
+        "anschlusskapazitaet_evidence_queue",
+        "connection_deadline_evidence_queue",
+        "a2mdm_decision_object_meaning_preservation",
+        "coordination_meaning_preservation_profile",
+        "controllability_asset_handover",
+        "gremiencoach_workbook_readiness",
+        "e2e_controllability_check_governance",
+        "flex_forecast_bess_grid_operations_advisory",
+        "finance_nkp_capex_reinvest_governance",
+        "connection_rejection_fnav_14a_evidence",
+        "gasnetz_waermeplanung_assessment"
+      ]
+    },
+    {
+      "id": "investment-maturity-off-balance-gate_evaluate",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "investment_maturity_off_balance_gate"
+      ],
+      "after": [
+        "investment_maturity_off_balance_gate"
+      ],
+      "expectedCapabilities": [
+        "investment_maturity_off_balance_gate"
+      ]
+    },
+    {
+      "id": "investment-maturity-off-balance-gate_listGates",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "investment_maturity_off_balance_gate"
+      ],
+      "after": [
+        "investment_maturity_off_balance_gate"
+      ],
+      "expectedCapabilities": [
+        "investment_maturity_off_balance_gate"
+      ]
+    },
+    {
+      "id": "investment-maturity-off-balance-gate_getGate",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "investment_maturity_off_balance_gate"
+      ],
+      "after": [
+        "investment_maturity_off_balance_gate"
+      ],
+      "expectedCapabilities": [
+        "investment_maturity_off_balance_gate"
+      ]
+    },
+    {
+      "id": "investment-maturity-off-balance-gate_getStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "investment_maturity_off_balance_gate"
+      ],
+      "after": [
+        "investment_maturity_off_balance_gate"
+      ],
+      "expectedCapabilities": [
+        "investment_maturity_off_balance_gate"
+      ]
+    },
+    {
+      "id": "investment-planning_createPlan",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "settlement_a96_reconciliation"
+      ],
+      "after": [
+        "settlement_a96_reconciliation"
+      ],
+      "expectedCapabilities": [
+        "gas_grid_transformation_asset_cockpit",
+        "transformation_financing_scenario_view",
+        "asset_valuation_transformation_gate",
+        "budget_waterfall_governance",
+        "gas_decommissioning_roadmap_status",
+        "off_balancing_metering_pruefmatrix",
+        "investment_committee_steering_cards",
+        "investment_data_review_queue",
+        "heat_transformation_line_asset_model",
+        "heat_asset_tariff_steering",
+        "tech_commercial_offer_cockpit",
+        "zaehlpark_finanzierung_szenario_cockpit",
+        "investment_waterfall_governance",
+        "gas_transformation_dependency_map",
+        "capacity_contract_risk_asset_cockpit",
+        "sap_budget_psp_gate",
+        "investment_two_track_control",
+        "liquidity_planning_governance_module"
+      ]
+    },
+    {
+      "id": "knowledge-continuity-governance-gate_evaluate",
+      "beforeDomain": "regulatory_compliance",
+      "afterDomain": "regulatory_compliance",
+      "before": [
+        "knowledge_continuity_governance_gate"
+      ],
+      "after": [
+        "knowledge_continuity_governance_gate"
+      ],
+      "expectedCapabilities": [
+        "knowledge_continuity_governance_gate"
+      ]
+    },
+    {
+      "id": "knowledge-continuity-governance-gate_listGates",
+      "beforeDomain": "regulatory_compliance",
+      "afterDomain": "regulatory_compliance",
+      "before": [
+        "knowledge_continuity_governance_gate"
+      ],
+      "after": [
+        "knowledge_continuity_governance_gate"
+      ],
+      "expectedCapabilities": [
+        "knowledge_continuity_governance_gate"
+      ]
+    },
+    {
+      "id": "knowledge-continuity-governance-gate_getGate",
+      "beforeDomain": "regulatory_compliance",
+      "afterDomain": "regulatory_compliance",
+      "before": [
+        "knowledge_continuity_governance_gate"
+      ],
+      "after": [
+        "knowledge_continuity_governance_gate"
+      ],
+      "expectedCapabilities": [
+        "knowledge_continuity_governance_gate"
+      ]
+    },
+    {
+      "id": "knowledge-continuity-governance-gate_getStatus",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "knowledge_continuity_governance_gate"
+      ],
+      "after": [
+        "knowledge_continuity_governance_gate"
+      ],
+      "expectedCapabilities": [
+        "knowledge_continuity_governance_gate"
+      ]
+    },
+    {
+      "id": "knowledge-rag_query",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "evidence_grounding_confidence_audit"
+      ]
+    },
+    {
+      "id": "mastr-quality_audit",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "znp_portfolio_assessment",
+        "mastr_asset_inventory"
+      ],
+      "after": [
+        "znp_portfolio_assessment",
+        "mastr_asset_inventory"
+      ],
+      "expectedCapabilities": [
+        "layer0_audit_drilldown_note",
+        "imsys_schedule_value_chain_readiness",
+        "controllability_data_alignment",
+        "tech_commercial_offer_cockpit",
+        "process_sensitization_readiness_map",
+        "redispatch_project_controlling_kpi_cockpit",
+        "grid_connection_transformation_gate",
+        "regulatory_change_simulator_readiness",
+        "controllability_asset_handover"
+      ]
+    },
+    {
+      "id": "mastr-quality_list",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "mastr_asset_inventory"
+      ],
+      "after": [
+        "mastr_asset_inventory"
+      ],
+      "expectedCapabilities": [
+        "mastr_quality_oemetadata"
+      ]
+    },
+    {
+      "id": "mastr-quality_get",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "mastr_asset_inventory"
+      ],
+      "after": [
+        "mastr_asset_inventory"
+      ],
+      "expectedCapabilities": [
+        "mastr_quality_oemetadata"
+      ]
+    },
+    {
+      "id": "mastr-quality_oemetadata",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [],
+      "after": [
+        "mastr_quality_oemetadata"
+      ],
+      "expectedCapabilities": [
+        "mastr_quality_oemetadata"
+      ]
+    },
+    {
+      "id": "mscons-import_import",
+      "beforeDomain": "market_communication",
+      "afterDomain": "market_communication",
+      "before": [
+        "market_communication_evidence_chain",
+        "edm_metering_concept_evidence",
+        "regulatory_change_simulator_readiness"
+      ],
+      "after": [
+        "market_communication_evidence_chain",
+        "edm_metering_concept_evidence",
+        "regulatory_change_simulator_readiness"
+      ],
+      "expectedCapabilities": [
+        "regulatory_change_simulator_readiness"
+      ]
+    },
+    {
+      "id": "grid-operations_netzfahrplanGenerate",
+      "beforeDomain": "redispatch",
+      "afterDomain": "redispatch",
+      "before": [
+        "imsys_schedule_value_chain_readiness",
+        "netzfahrplan_fnav_assessment"
+      ],
+      "after": [
+        "imsys_schedule_value_chain_readiness",
+        "netzfahrplan_fnav_assessment"
+      ],
+      "expectedCapabilities": [
+        "netzfahrplan_fnav_assessment",
+        "imsys_schedule_value_chain_readiness",
+        "tech_commercial_offer_cockpit",
+        "grossspeicher_anschluss_readiness_gate",
+        "schedule_management_governance_roadmap",
+        "grid_connection_transformation_gate",
+        "capacity_contract_risk_asset_cockpit",
+        "legal_clarification_operating_model"
+      ]
+    },
+    {
+      "id": "netzkoppelvertrag-workflow_list",
+      "beforeDomain": "asset_grid_planning",
+      "afterDomain": "asset_grid_planning",
+      "before": [
+        "netzkoppelvertrag_workflow"
+      ],
+      "after": [
+        "netzkoppelvertrag_workflow"
+      ],
+      "expectedCapabilities": [
+        "netzkoppelvertrag_workflow"
+      ]
+    },
+    {
+      "id": "netzkoppelvertrag-workflow_create",
+      "beforeDomain": "asset_grid_planning",
+      "afterDomain": "asset_grid_planning",
+      "before": [
+        "netzkoppelvertrag_workflow"
+      ],
+      "after": [
+        "netzkoppelvertrag_workflow"
+      ],
+      "expectedCapabilities": [
+        "netzkoppelvertrag_workflow"
+      ]
+    },
+    {
+      "id": "netzkoppelvertrag-workflow_get",
+      "beforeDomain": "asset_grid_planning",
+      "afterDomain": "asset_grid_planning",
+      "before": [
+        "netzkoppelvertrag_workflow"
+      ],
+      "after": [
+        "netzkoppelvertrag_workflow"
+      ],
+      "expectedCapabilities": [
+        "netzprozess_readiness_gate"
+      ]
+    },
+    {
+      "id": "netzkoppelvertrag-workflow_updateStatus",
+      "beforeDomain": "asset_grid_planning",
+      "afterDomain": "asset_grid_planning",
+      "before": [
+        "netzkoppelvertrag_workflow"
+      ],
+      "after": [
+        "netzkoppelvertrag_workflow"
+      ],
+      "expectedCapabilities": [
+        "netzkoppelvertrag_workflow"
+      ]
+    },
+    {
+      "id": "nkp-reporting_list",
+      "beforeDomain": "regulatory_compliance",
+      "afterDomain": "regulatory_compliance",
+      "before": [
+        "nkp_reporting",
+        "finance_nkp_capex_reinvest_governance",
+        "gas_capacity_order_revision_gate"
+      ],
+      "after": [
+        "nkp_reporting",
+        "finance_nkp_capex_reinvest_governance",
+        "gas_capacity_order_revision_gate"
+      ],
+      "expectedCapabilities": [
+        "nkp_reporting"
+      ]
+    },
+    {
+      "id": "nkp-reporting_importReport",
+      "beforeDomain": "regulatory_compliance",
+      "afterDomain": "regulatory_compliance",
+      "before": [
+        "nkp_reporting",
+        "finance_nkp_capex_reinvest_governance",
+        "gas_capacity_order_revision_gate"
+      ],
+      "after": [
+        "nkp_reporting",
+        "finance_nkp_capex_reinvest_governance",
+        "gas_capacity_order_revision_gate"
+      ],
+      "expectedCapabilities": [
+        "nkp_reporting"
+      ]
+    },
+    {
+      "id": "nkp-reporting_get",
+      "beforeDomain": "regulatory_compliance",
+      "afterDomain": "regulatory_compliance",
+      "before": [
+        "nkp_reporting",
+        "finance_nkp_capex_reinvest_governance",
+        "gas_capacity_order_revision_gate"
+      ],
+      "after": [
+        "nkp_reporting",
+        "finance_nkp_capex_reinvest_governance",
+        "gas_capacity_order_revision_gate"
+      ],
+      "expectedCapabilities": [
+        "nkp_reporting"
+      ]
+    },
+    {
+      "id": "nova_listDecisions",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "leadership_delta_cockpit"
+      ]
+    },
+    {
+      "id": "nova_pendingDecisions",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "crisis_decision_routine",
+        "flex_strategic_demand_intake"
+      ]
+    },
+    {
+      "id": "object-store_query",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "gas_transformation_dataroom_status",
+        "stadtwerk_mauer_sandbox_runtime"
+      ]
+    },
+    {
+      "id": "oep_energyTables",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "oep_research_dataset_discovery"
+      ],
+      "after": [
+        "oep_research_dataset_discovery"
+      ],
+      "expectedCapabilities": [
+        "oep_research_dataset_discovery"
+      ]
+    },
+    {
+      "id": "oep_search",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "oep_research_dataset_discovery"
+      ],
+      "after": [
+        "oep_research_dataset_discovery"
+      ],
+      "expectedCapabilities": [
+        "oep_research_dataset_discovery"
+      ]
+    },
+    {
+      "id": "oep_query",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "oep_research_dataset_discovery"
+      ],
+      "after": [
+        "oep_research_dataset_discovery"
+      ],
+      "expectedCapabilities": [
+        "oep_research_dataset_discovery"
+      ]
+    },
+    {
+      "id": "personal-agent_chat",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "ki_floorwalker_governance"
+      ]
+    },
+    {
+      "id": "presentation_render",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "fnav_fast_track_contract_gate",
+        "cross_channel_vnb_signal_queue",
+        "asset_valuation_transformation_gate",
+        "gas_capacity_booking_review_gate",
+        "redispatch_project_controlling_kpi_cockpit",
+        "receipt_grounded_presentation_contract"
+      ]
+    },
+    {
+      "id": "re4de-variable-grid-fee_calculate",
+      "beforeDomain": "asset_grid_planning",
+      "afterDomain": "asset_grid_planning",
+      "before": [
+        "re4de_variable_grid_fee_layer3"
+      ],
+      "after": [
+        "re4de_variable_grid_fee_layer3"
+      ],
+      "expectedCapabilities": [
+        "re4de_variable_grid_fee_layer3"
+      ]
+    },
+    {
+      "id": "re4de-variable-grid-fee_getCalculation",
+      "beforeDomain": "asset_grid_planning",
+      "afterDomain": "asset_grid_planning",
+      "before": [
+        "re4de_variable_grid_fee_layer3"
+      ],
+      "after": [
+        "re4de_variable_grid_fee_layer3"
+      ],
+      "expectedCapabilities": [
+        "re4de_variable_grid_fee_layer3"
+      ]
+    },
+    {
+      "id": "re4de-variable-grid-fee_getEvidence",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "re4de_variable_grid_fee_layer3"
+      ],
+      "after": [
+        "re4de_variable_grid_fee_layer3"
+      ],
+      "expectedCapabilities": [
+        "re4de_variable_grid_fee_layer3"
+      ]
+    },
+    {
+      "id": "redispatch-asset-register_listProjections",
+      "beforeDomain": "asset_grid_planning",
+      "afterDomain": "asset_grid_planning",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "redispatch_asset_register"
+      ]
+    },
+    {
+      "id": "redispatch-asset-register_createProjection",
+      "beforeDomain": "asset_grid_planning",
+      "afterDomain": "asset_grid_planning",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "redispatch_asset_register"
+      ]
+    },
+    {
+      "id": "redispatch-asset-register_listRelationships",
+      "beforeDomain": "asset_grid_planning",
+      "afterDomain": "asset_grid_planning",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "redispatch_asset_register"
+      ]
+    },
+    {
+      "id": "redispatch-asset-register_createRelationship",
+      "beforeDomain": "asset_grid_planning",
+      "afterDomain": "asset_grid_planning",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "redispatch_asset_register"
+      ]
+    },
+    {
+      "id": "redispatch-data-governance_evaluate",
+      "beforeDomain": "regulatory_compliance",
+      "afterDomain": "regulatory_compliance",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "redispatch_data_governance"
+      ]
+    },
+    {
+      "id": "redispatch-data-governance_listEvaluations",
+      "beforeDomain": "regulatory_compliance",
+      "afterDomain": "regulatory_compliance",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "redispatch_data_governance"
+      ]
+    },
+    {
+      "id": "redispatch-data-governance_listPolicies",
+      "beforeDomain": "regulatory_compliance",
+      "afterDomain": "regulatory_compliance",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "redispatch_data_governance"
+      ]
+    },
+    {
+      "id": "redispatch-data-governance_createPolicy",
+      "beforeDomain": "regulatory_compliance",
+      "afterDomain": "regulatory_compliance",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "redispatch_data_governance"
+      ]
+    },
+    {
+      "id": "redispatch-readiness-gate_evaluate",
+      "beforeDomain": "redispatch",
+      "afterDomain": "redispatch",
+      "before": [
+        "redispatch_readiness_gate"
+      ],
+      "after": [
+        "redispatch_readiness_gate"
+      ],
+      "expectedCapabilities": [
+        "redispatch_readiness_gate"
+      ]
+    },
+    {
+      "id": "redispatch-readiness-gate_listRuns",
+      "beforeDomain": "redispatch",
+      "afterDomain": "redispatch",
+      "before": [
+        "redispatch_readiness_gate"
+      ],
+      "after": [
+        "redispatch_readiness_gate"
+      ],
+      "expectedCapabilities": [
+        "redispatch_readiness_gate"
+      ]
+    },
+    {
+      "id": "redispatch-readiness-gate_getRun",
+      "beforeDomain": "redispatch",
+      "afterDomain": "redispatch",
+      "before": [
+        "redispatch_readiness_gate"
+      ],
+      "after": [
+        "redispatch_readiness_gate"
+      ],
+      "expectedCapabilities": [
+        "redispatch_readiness_gate"
+      ]
+    },
+    {
+      "id": "redispatch-readiness-gate_getStatus",
+      "beforeDomain": "redispatch",
+      "afterDomain": "redispatch",
+      "before": [
+        "redispatch_readiness_gate"
+      ],
+      "after": [
+        "redispatch_readiness_gate"
+      ],
+      "expectedCapabilities": [
+        "redispatch_readiness_gate"
+      ]
+    },
+    {
+      "id": "redispatch-settlement-sandbox_listScenarios",
+      "beforeDomain": "m2c_revenue_assurance",
+      "afterDomain": "m2c_revenue_assurance",
+      "before": [
+        "settlement_a96_reconciliation"
+      ],
+      "after": [
+        "settlement_a96_reconciliation"
+      ],
+      "expectedCapabilities": [
+        "redispatch_settlement_sandbox"
+      ]
+    },
+    {
+      "id": "redispatch-settlement-sandbox_createScenario",
+      "beforeDomain": "m2c_revenue_assurance",
+      "afterDomain": "m2c_revenue_assurance",
+      "before": [
+        "settlement_a96_reconciliation"
+      ],
+      "after": [
+        "settlement_a96_reconciliation"
+      ],
+      "expectedCapabilities": [
+        "redispatch_settlement_sandbox"
+      ]
+    },
+    {
+      "id": "redispatch-settlement-sandbox_getScenario",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "redispatch_settlement_sandbox"
+      ]
+    },
+    {
+      "id": "redispatch-settlement-sandbox_reconcile",
+      "beforeDomain": "m2c_revenue_assurance",
+      "afterDomain": "m2c_revenue_assurance",
+      "before": [
+        "settlement_a96_reconciliation"
+      ],
+      "after": [
+        "settlement_a96_reconciliation"
+      ],
+      "expectedCapabilities": [
+        "redispatch_settlement_sandbox"
+      ]
+    },
+    {
+      "id": "redispatch-special-case-gate_evaluate",
+      "beforeDomain": "asset_grid_planning",
+      "afterDomain": "asset_grid_planning",
+      "before": [
+        "redispatch_special_case_gate"
+      ],
+      "after": [
+        "redispatch_special_case_gate"
+      ],
+      "expectedCapabilities": [
+        "redispatch_special_case_gate"
+      ]
+    },
+    {
+      "id": "redispatch-special-case-gate_listRuns",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "redispatch_special_case_gate"
+      ]
+    },
+    {
+      "id": "redispatch-special-case-gate_getRun",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "redispatch_special_case_gate"
+      ]
+    },
+    {
+      "id": "redispatch-expost_audit",
+      "beforeDomain": "redispatch",
+      "afterDomain": "redispatch",
+      "before": [
+        "settlement_a96_reconciliation"
+      ],
+      "after": [
+        "settlement_a96_reconciliation"
+      ],
+      "expectedCapabilities": [
+        "imsys_schedule_value_chain_readiness",
+        "controllability_data_alignment",
+        "process_sensitization_readiness_map",
+        "redispatch_project_controlling_kpi_cockpit",
+        "schedule_management_governance_roadmap",
+        "controllability_asset_handover"
+      ]
+    },
+    {
+      "id": "redispatch-expost_list",
+      "beforeDomain": "redispatch",
+      "afterDomain": "redispatch",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "redispatch_project_controlling_kpi_cockpit",
+        "redispatch_call_data_quality_gate"
+      ]
+    },
+    {
+      "id": "regulatorische-entgeltlogik_getActive",
+      "beforeDomain": "regulatory_compliance",
+      "afterDomain": "regulatory_compliance",
+      "before": [
+        "regulatorische_entgeltlogik"
+      ],
+      "after": [
+        "regulatorische_entgeltlogik"
+      ],
+      "expectedCapabilities": [
+        "regulatorische_entgeltlogik",
+        "regulatory_risk_revenue_scenario"
+      ]
+    },
+    {
+      "id": "regulatorische-entgeltlogik_list",
+      "beforeDomain": "regulatory_compliance",
+      "afterDomain": "regulatory_compliance",
+      "before": [
+        "regulatorische_entgeltlogik"
+      ],
+      "after": [
+        "regulatorische_entgeltlogik"
+      ],
+      "expectedCapabilities": [
+        "regulatorische_entgeltlogik"
+      ]
+    },
+    {
+      "id": "regulatorische-entgeltlogik_registerRuleSet",
+      "beforeDomain": "regulatory_compliance",
+      "afterDomain": "regulatory_compliance",
+      "before": [
+        "regulatorische_entgeltlogik"
+      ],
+      "after": [
+        "regulatorische_entgeltlogik"
+      ],
+      "expectedCapabilities": [
+        "regulatorische_entgeltlogik"
+      ]
+    },
+    {
+      "id": "reinvest-signal_list",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "reinvest_signal"
+      ],
+      "after": [
+        "reinvest_signal"
+      ],
+      "expectedCapabilities": [
+        "reinvest_signal"
+      ]
+    },
+    {
+      "id": "reinvest-signal_analyze",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "reinvest_signal"
+      ],
+      "after": [
+        "reinvest_signal"
+      ],
+      "expectedCapabilities": [
+        "reinvest_signal"
+      ]
+    },
+    {
+      "id": "reinvest-signal_get",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "reinvest_signal"
+      ],
+      "after": [
+        "reinvest_signal"
+      ],
+      "expectedCapabilities": [
+        "reinvest_signal"
+      ]
+    },
+    {
+      "id": "reporting-governance_list",
+      "beforeDomain": "regulatory_compliance",
+      "afterDomain": "regulatory_compliance",
+      "before": [
+        "reporting_governance",
+        "nkp_reporting"
+      ],
+      "after": [
+        "reporting_governance",
+        "nkp_reporting"
+      ],
+      "expectedCapabilities": [
+        "reporting_governance"
+      ]
+    },
+    {
+      "id": "reporting-governance_check",
+      "beforeDomain": "regulatory_compliance",
+      "afterDomain": "regulatory_compliance",
+      "before": [
+        "reporting_governance",
+        "nkp_reporting"
+      ],
+      "after": [
+        "reporting_governance",
+        "nkp_reporting"
+      ],
+      "expectedCapabilities": [
+        "reporting_governance"
+      ]
+    },
+    {
+      "id": "reporting-governance_get",
+      "beforeDomain": "regulatory_compliance",
+      "afterDomain": "regulatory_compliance",
+      "before": [
+        "reporting_governance",
+        "nkp_reporting"
+      ],
+      "after": [
+        "reporting_governance",
+        "nkp_reporting"
+      ],
+      "expectedCapabilities": [
+        "reporting_governance"
+      ]
+    },
+    {
+      "id": "residual-load_netResidualLoad",
+      "beforeDomain": "edm",
+      "afterDomain": "edm",
+      "before": [
+        "renewable_generation_forecast",
+        "residual_load_forecast_for_dso",
+        "mastr_asset_inventory"
+      ],
+      "after": [
+        "renewable_generation_forecast",
+        "residual_load_forecast_for_dso",
+        "mastr_asset_inventory"
+      ],
+      "expectedCapabilities": [
+        "residual_load_forecast_for_dso"
+      ]
+    },
+    {
+      "id": "settlement_reconcileA96",
+      "beforeDomain": "m2c_revenue_assurance",
+      "afterDomain": "m2c_revenue_assurance",
+      "before": [
+        "settlement_a96_reconciliation"
+      ],
+      "after": [
+        "settlement_a96_reconciliation"
+      ],
+      "expectedCapabilities": [
+        "settlement_a96_reconciliation"
+      ]
+    },
+    {
+      "id": "stadtwerk-mauer-e2e-process-demo_getStatus",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "stadtwerk_mauer_e2e_process_demo",
+        "stadtwerk_mauer_vdmi_profile",
+        "e2e_connection_check"
+      ],
+      "after": [
+        "stadtwerk_mauer_e2e_process_demo",
+        "stadtwerk_mauer_vdmi_profile",
+        "e2e_connection_check"
+      ],
+      "expectedCapabilities": [
+        "stadtwerk_mauer_e2e_process_demo"
+      ]
+    },
+    {
+      "id": "stadtwerk-mauer-external-interface-stubs_getStatus",
+      "beforeDomain": "it_data_vendor_governance",
+      "afterDomain": "it_data_vendor_governance",
+      "before": [
+        "stadtwerk_mauer_external_interface_stubs",
+        "stadtwerk_mauer_vdmi_profile"
+      ],
+      "after": [
+        "stadtwerk_mauer_external_interface_stubs",
+        "stadtwerk_mauer_vdmi_profile"
+      ],
+      "expectedCapabilities": [
+        "stadtwerk_mauer_external_interface_stubs",
+        "stadtwerk_mauer_e2e_process_demo"
+      ]
+    },
+    {
+      "id": "stadtwerk-mauer-mastr-data-overlay_getStatus",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "stadtwerk_mauer_mastr_data_overlay",
+        "stadtwerk_mauer_vdmi_profile",
+        "mastr_asset_inventory"
+      ],
+      "after": [
+        "stadtwerk_mauer_mastr_data_overlay",
+        "stadtwerk_mauer_vdmi_profile",
+        "mastr_asset_inventory"
+      ],
+      "expectedCapabilities": [
+        "stadtwerk_mauer_mastr_data_overlay"
+      ]
+    },
+    {
+      "id": "stadtwerk-mauer-sandbox-runtime_status",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "stadtwerk_mauer_sandbox_runtime",
+        "stadtwerk_mauer_vdmi_profile"
+      ],
+      "after": [
+        "stadtwerk_mauer_sandbox_runtime",
+        "stadtwerk_mauer_vdmi_profile"
+      ],
+      "expectedCapabilities": [
+        "stadtwerk_mauer_sandbox_runtime",
+        "stadtwerk_mauer_external_interface_stubs",
+        "stadtwerk_mauer_e2e_process_demo"
+      ]
+    },
+    {
+      "id": "vdmi-governance-templates_listInstances",
+      "beforeDomain": "asset_grid_planning",
+      "afterDomain": "asset_grid_planning",
+      "before": [
+        "vdmi_governance_templates"
+      ],
+      "after": [
+        "vdmi_governance_templates"
+      ],
+      "expectedCapabilities": [
+        "vdmi_governance_templates"
+      ]
+    },
+    {
+      "id": "vdmi-governance-templates_instantiate",
+      "beforeDomain": "asset_grid_planning",
+      "afterDomain": "asset_grid_planning",
+      "before": [
+        "vdmi_governance_templates"
+      ],
+      "after": [
+        "vdmi_governance_templates"
+      ],
+      "expectedCapabilities": [
+        "vdmi_governance_templates"
+      ]
+    },
+    {
+      "id": "vdmi-governance-templates_listBaseTemplates",
+      "beforeDomain": "asset_grid_planning",
+      "afterDomain": "asset_grid_planning",
+      "before": [
+        "vdmi_governance_templates"
+      ],
+      "after": [
+        "vdmi_governance_templates"
+      ],
+      "expectedCapabilities": [
+        "vdmi_governance_templates"
+      ]
+    },
+    {
+      "id": "vdmi-portfolio-gatekeeping_gate",
+      "beforeDomain": "asset_grid_planning",
+      "afterDomain": "asset_grid_planning",
+      "before": [
+        "vdmi_portfolio_gatekeeping",
+        "znp_portfolio_assessment"
+      ],
+      "after": [
+        "vdmi_portfolio_gatekeeping",
+        "znp_portfolio_assessment"
+      ],
+      "expectedCapabilities": [
+        "fnav_fast_track_contract_gate",
+        "gas_capacity_booking_review_gate",
+        "vdmi_portfolio_gatekeeping"
+      ]
+    },
+    {
+      "id": "vdmi-portfolio-gatekeeping_list",
+      "beforeDomain": "asset_grid_planning",
+      "afterDomain": "asset_grid_planning",
+      "before": [
+        "vdmi_portfolio_gatekeeping",
+        "znp_portfolio_assessment"
+      ],
+      "after": [
+        "vdmi_portfolio_gatekeeping",
+        "znp_portfolio_assessment"
+      ],
+      "expectedCapabilities": [
+        "vdmi_portfolio_gatekeeping"
+      ]
+    },
+    {
+      "id": "vdmi-portfolio-gatekeeping_get",
+      "beforeDomain": "asset_grid_planning",
+      "afterDomain": "asset_grid_planning",
+      "before": [
+        "vdmi_portfolio_gatekeeping",
+        "znp_portfolio_assessment"
+      ],
+      "after": [
+        "vdmi_portfolio_gatekeeping",
+        "znp_portfolio_assessment"
+      ],
+      "expectedCapabilities": [
+        "vdmi_portfolio_gatekeeping"
+      ]
+    },
+    {
+      "id": "vdmi_evidence",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "process_sensitization_readiness_map",
+        "e2e_controllability_check_governance"
+      ]
+    },
+    {
+      "id": "vdmi_agentRole",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "vdmi_role_boundary_governance",
+        "vdmi_asset_validation_governance",
+        "vdmi_grid_connection_decision_governance",
+        "process_sensitization_readiness_map"
+      ]
+    },
+    {
+      "id": "vdmi_context",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "vdmi_role_boundary_governance"
+      ]
+    },
+    {
+      "id": "vdmi_findings",
+      "beforeDomain": "asset_grid_planning",
+      "afterDomain": "asset_grid_planning",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "controllability_submission_cockpit",
+        "process_sensitization_readiness_map",
+        "redispatch_project_controlling_kpi_cockpit",
+        "market_communication_evidence_chain",
+        "evidence_grounding_confidence_audit",
+        "redispatch_call_data_quality_gate"
+      ]
+    },
+    {
+      "id": "vdmi_myResponsibilities",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "role_permission_access_readiness_gate",
+        "owner_deadline_evidence_gate"
+      ]
+    },
+    {
+      "id": "vdmi_dossier",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "znp_production_readiness_evidence_gate",
+        "fnav_fast_track_contract_gate",
+        "evidence_freshness_guard",
+        "netzsignal_delta_gating",
+        "vnb_delta_signal_classifier",
+        "cross_channel_vnb_signal_queue",
+        "live_update_stream_contract_status",
+        "smgw_connector_readiness_status",
+        "smart_meter_cls_data_governance_receipt",
+        "vnb_special_topic_workstate",
+        "non_escalation_control_evidence",
+        "leadership_delta_cockpit",
+        "gas_grid_transformation_asset_cockpit",
+        "investment_budget_cap_exception_governance",
+        "investment_owner_deadline_budget_gate",
+        "direct_marketer_risk_gate",
+        "no_regret_measure_definition_gate",
+        "transformation_financing_scenario_view",
+        "asset_valuation_transformation_gate",
+        "gas_capacity_booking_review_gate",
+        "gas_network_decision_chain",
+        "water_pricing_net_investment_alignment_gate",
+        "areal_network_integration_offer_gate",
+        "vdmi_asset_validation_governance",
+        "vdmi_grid_connection_decision_governance",
+        "layer0_audit_drilldown_note",
+        "budget_waterfall_governance",
+        "gas_decommissioning_roadmap_status",
+        "gas_transformation_dataroom_status",
+        "jour_fixe_decision_closure_tracker",
+        "off_balancing_metering_pruefmatrix",
+        "automation_requirements_decision_value",
+        "model_viability_evidence_gate",
+        "smart_meter_off_balancing_purpose_lock",
+        "imsys_schedule_value_chain_readiness",
+        "cls_digital_twin_compliance_gate",
+        "legacy_control_technology_transition",
+        "controllability_data_alignment",
+        "controllability_submission_cockpit",
+        "crisis_decision_routine",
+        "cross_system_variance_matrix",
+        "regulatory_signal_process_translator",
+        "decision_readiness_matrix",
+        "investment_committee_steering_cards",
+        "investment_data_review_queue",
+        "cross_domain_special_topics_queue",
+        "flex_strategic_demand_intake",
+        "gas_infrastructure_risk_governance",
+        "heat_transformation_line_asset_model",
+        "heat_asset_tariff_steering",
+        "tech_commercial_offer_cockpit",
+        "process_sensitization_readiness_map",
+        "netzprozess_readiness_gate",
+        "grossspeicher_anschluss_readiness_gate",
+        "automation_risk_gate",
+        "redispatch_project_controlling_kpi_cockpit",
+        "stadtwerk_mauer_vdmi_profile",
+        "mastr_quality_oemetadata",
+        "ki_floorwalker_governance",
+        "investment_waterfall_governance",
+        "imsys_taf2_compliance_status",
+        "schedule_management_governance_roadmap",
+        "gas_transformation_dependency_map",
+        "grid_connection_transformation_gate",
+        "capacity_contract_risk_asset_cockpit",
+        "metering_rollout_process_indicator",
+        "investment_risk_translation_status",
+        "energy_tax_information_package",
+        "sap_budget_psp_gate",
+        "investment_two_track_control",
+        "regulatory_change_simulator_readiness",
+        "special_grid_usage_impact_map",
+        "liquidity_planning_governance_module",
+        "dr_readiness_evidence_gate",
+        "legal_clarification_operating_model",
+        "anschlusskapazitaet_evidence_queue",
+        "connection_deadline_evidence_queue",
+        "communication_break_process_risk",
+        "steering_artifact_acceptance_gate",
+        "no_regret_measure_proof_gate",
+        "a2mdm_decision_object_meaning_preservation",
+        "coordination_meaning_preservation_profile",
+        "controllability_asset_handover",
+        "stadtwerk_mauer_sandbox_runtime",
+        "stadtwerk_mauer_external_interface_stubs",
+        "stadtwerk_mauer_e2e_process_demo",
+        "stadtwerk_mauer_mastr_data_overlay",
+        "gremiencoach_workbook_readiness",
+        "e2e_controllability_check_governance"
+      ]
+    },
+    {
+      "id": "vdmi_negotiationTrace",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "vdmi_asset_validation_governance",
+        "vdmi_grid_connection_decision_governance"
+      ]
+    },
+    {
+      "id": "vnb-100-tage-assessment_list",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "vnb_100_tage_assessment"
+      ],
+      "after": [
+        "vnb_100_tage_assessment"
+      ],
+      "expectedCapabilities": [
+        "vnb_100_tage_assessment"
+      ]
+    },
+    {
+      "id": "vnb-100-tage-assessment_assess",
+      "beforeDomain": "asset_grid_planning",
+      "afterDomain": "asset_grid_planning",
+      "before": [
+        "vnb_100_tage_assessment"
+      ],
+      "after": [
+        "vnb_100_tage_assessment"
+      ],
+      "expectedCapabilities": [
+        "vnb_100_tage_assessment"
+      ]
+    },
+    {
+      "id": "vnb-100-tage-assessment_get",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [
+        "vnb_100_tage_assessment"
+      ],
+      "after": [
+        "vnb_100_tage_assessment"
+      ],
+      "expectedCapabilities": [
+        "vnb_100_tage_assessment"
+      ]
+    },
+    {
+      "id": "vnb-monitor_snapshot",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "layer0_audit_drilldown_note"
+      ]
+    },
+    {
+      "id": "willi-federated_resolveStructure",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "market_communication_evidence_chain"
+      ]
+    },
+    {
+      "id": "willi-federated_search",
+      "beforeDomain": "market_communication",
+      "afterDomain": "market_communication",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "market_communication_evidence_chain"
+      ]
+    },
+    {
+      "id": "willi-mako_resolveStructure",
+      "beforeDomain": "market_communication",
+      "afterDomain": "market_communication",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "market_communication_evidence_chain"
+      ]
+    },
+    {
+      "id": "willi-mako_search",
+      "beforeDomain": "market_communication",
+      "afterDomain": "market_communication",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "market_communication_evidence_chain"
+      ]
+    },
+    {
+      "id": "willi-regulatorik_resolveStructure",
+      "beforeDomain": "regulatory_compliance",
+      "afterDomain": "regulatory_compliance",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "market_communication_evidence_chain"
+      ]
+    },
+    {
+      "id": "willi-regulatorik_search",
+      "beforeDomain": "regulatory_compliance",
+      "afterDomain": "regulatory_compliance",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "market_communication_evidence_chain"
+      ]
+    },
+    {
+      "id": "znp_listProjects",
+      "beforeDomain": "target_grid_planning",
+      "afterDomain": "target_grid_planning",
+      "before": [
+        "znp_portfolio_assessment"
+      ],
+      "after": [
+        "znp_portfolio_assessment"
+      ],
+      "expectedCapabilities": [
+        "heat_transformation_line_asset_model"
+      ]
+    },
+    {
+      "id": "znp_getProjectMeta",
+      "beforeDomain": "target_grid_planning",
+      "afterDomain": "target_grid_planning",
+      "before": [
+        "znp_portfolio_assessment"
+      ],
+      "after": [
+        "znp_portfolio_assessment"
+      ],
+      "expectedCapabilities": [
+        "znp_production_readiness_evidence_gate"
+      ]
+    },
+    {
+      "id": "znp_getProjectAssets",
+      "beforeDomain": "target_grid_planning",
+      "afterDomain": "target_grid_planning",
+      "before": [
+        "znp_portfolio_assessment",
+        "mastr_asset_inventory"
+      ],
+      "after": [
+        "znp_portfolio_assessment",
+        "mastr_asset_inventory"
+      ],
+      "expectedCapabilities": [
+        "heat_transformation_line_asset_model"
+      ]
+    },
+    {
+      "id": "znp_addAssumption",
+      "beforeDomain": "unknown",
+      "afterDomain": "unknown",
+      "before": [],
+      "after": [],
+      "expectedCapabilities": [
+        "gas_transformation_dependency_map",
+        "legal_clarification_operating_model"
+      ]
+    },
+    {
+      "id": "znp_correlateDisturbance",
+      "beforeDomain": "target_grid_planning",
+      "afterDomain": "target_grid_planning",
+      "before": [
+        "blindflug_radar_anomaly_detection",
+        "znp_portfolio_assessment"
+      ],
+      "after": [
+        "blindflug_radar_anomaly_detection",
+        "znp_portfolio_assessment"
+      ],
+      "expectedCapabilities": [
+        "blindflug_radar_anomaly_detection"
+      ]
+    },
+    {
+      "id": "znp_assessPortfolio",
+      "beforeDomain": "target_grid_planning",
+      "afterDomain": "target_grid_planning",
+      "before": [
+        "znp_portfolio_assessment"
+      ],
+      "after": [
+        "znp_portfolio_assessment"
+      ],
+      "expectedCapabilities": [
+        "znp_portfolio_assessment",
+        "znp_production_readiness_evidence_gate",
+        "gas_grid_transformation_asset_cockpit",
+        "tech_commercial_offer_cockpit",
+        "investment_waterfall_governance",
+        "gas_transformation_dependency_map",
+        "grid_connection_transformation_gate"
+      ]
+    },
+    {
+      "id": "znp_productionReadinessStatus",
+      "beforeDomain": "target_grid_planning",
+      "afterDomain": "target_grid_planning",
+      "before": [
+        "znp_production_readiness_evidence_gate",
+        "znp_portfolio_assessment"
+      ],
+      "after": [
+        "znp_production_readiness_evidence_gate",
+        "znp_portfolio_assessment"
+      ],
+      "expectedCapabilities": [
+        "znp_production_readiness_evidence_gate"
+      ]
+    },
+    {
+      "id": "znp_strategicPrompts",
+      "beforeDomain": "target_grid_planning",
+      "afterDomain": "target_grid_planning",
+      "before": [
+        "znp_portfolio_assessment"
+      ],
+      "after": [
+        "znp_portfolio_assessment"
+      ],
+      "expectedCapabilities": [
+        "gas_transformation_dependency_map"
+      ]
+    },
+    {
+      "id": "foreign:market_communication-3",
+      "expectedDomain": "market_communication",
+      "beforeDomain": "market_master_data",
+      "afterDomain": "market_master_data",
+      "before": [
+        "market_communication_evidence_chain"
+      ],
+      "after": [
+        "market_communication_evidence_chain"
+      ],
+      "expectedCapabilities": [
+        "market_communication_evidence_chain"
+      ]
+    },
+    {
+      "id": "foreign:market_master_data-3",
+      "expectedDomain": "market_master_data",
+      "beforeDomain": "market_master_data",
+      "afterDomain": "market_master_data",
+      "before": [
+        "eic_code_lookup"
+      ],
+      "after": [
+        "eic_code_lookup"
+      ],
+      "expectedCapabilities": [
+        "eic_code_lookup"
+      ]
+    },
+    {
+      "id": "foreign:edm-3",
+      "expectedDomain": "edm",
+      "beforeDomain": "edm",
+      "afterDomain": "edm",
+      "before": [
+        "bilanzkreis_slp_edm_operations"
+      ],
+      "after": [
+        "bilanzkreis_slp_edm_operations"
+      ],
+      "expectedCapabilities": [
+        "bilanzkreis_slp_edm_operations"
+      ]
+    },
+    {
+      "id": "foreign:metering_msb-3",
+      "expectedDomain": "metering_msb",
+      "beforeDomain": "metering_msb",
+      "afterDomain": "metering_msb",
+      "before": [
+        "metering_rollout_process_indicator",
+        "imsys_taf2_compliance_status",
+        "jour_fixe_decision_closure_tracker"
+      ],
+      "after": [
+        "metering_rollout_process_indicator",
+        "imsys_taf2_compliance_status",
+        "jour_fixe_decision_closure_tracker"
+      ],
+      "expectedCapabilities": [
+        "metering_rollout_process_indicator"
+      ]
+    },
+    {
+      "id": "foreign:m2c_revenue_assurance-3",
+      "expectedDomain": "m2c_revenue_assurance",
+      "beforeDomain": "edm",
+      "afterDomain": "edm",
+      "before": [
+        "edm_customer_moveout_billing_evidence",
+        "edm_metering_concept_evidence"
+      ],
+      "after": [
+        "edm_customer_moveout_billing_evidence",
+        "edm_metering_concept_evidence"
+      ],
+      "expectedCapabilities": [
+        "edm_customer_moveout_billing_evidence"
+      ]
+    },
+    {
+      "id": "foreign:grid_operations_system_control-3",
+      "expectedDomain": "grid_operations_system_control",
+      "beforeDomain": "grid_operations_system_control",
+      "afterDomain": "grid_operations_system_control",
+      "before": [
+        "schedule_management_governance_roadmap"
+      ],
+      "after": [
+        "schedule_management_governance_roadmap"
+      ],
+      "expectedCapabilities": [
+        "schedule_management_governance_roadmap"
+      ]
+    },
+    {
+      "id": "foreign:redispatch-3",
+      "expectedDomain": "redispatch",
+      "beforeDomain": "m2c_revenue_assurance",
+      "afterDomain": "m2c_revenue_assurance",
+      "before": [
+        "redispatch_settlement_sandbox"
+      ],
+      "after": [
+        "redispatch_settlement_sandbox"
+      ],
+      "expectedCapabilities": [
+        "redispatch_settlement_sandbox"
+      ]
+    },
+    {
+      "id": "foreign:asset_grid_planning-3",
+      "expectedDomain": "asset_grid_planning",
+      "beforeDomain": "asset_grid_planning",
+      "afterDomain": "asset_grid_planning",
+      "before": [
+        "reinvest_signal",
+        "regulatorische_entgeltlogik",
+        "gas_network_decision_chain"
+      ],
+      "after": [
+        "reinvest_signal",
+        "regulatorische_entgeltlogik",
+        "gas_network_decision_chain"
+      ],
+      "expectedCapabilities": [
+        "reinvest_signal"
+      ]
+    },
+    {
+      "id": "foreign:target_grid_planning-3",
+      "expectedDomain": "target_grid_planning",
+      "beforeDomain": "target_grid_planning",
+      "afterDomain": "target_grid_planning",
+      "before": [
+        "znp_portfolio_assessment"
+      ],
+      "after": [
+        "znp_portfolio_assessment"
+      ],
+      "expectedCapabilities": [
+        "znp_portfolio_assessment"
+      ]
+    },
+    {
+      "id": "foreign:grid_connection-3",
+      "expectedDomain": "grid_connection",
+      "beforeDomain": "grid_connection",
+      "afterDomain": "grid_connection",
+      "before": [
+        "grossspeicher_anschluss_readiness_gate"
+      ],
+      "after": [
+        "grossspeicher_anschluss_readiness_gate"
+      ],
+      "expectedCapabilities": [
+        "grossspeicher_anschluss_readiness_gate"
+      ]
+    },
+    {
+      "id": "foreign:regulatory_compliance-3",
+      "expectedDomain": "regulatory_compliance",
+      "beforeDomain": "regulatory_compliance",
+      "afterDomain": "regulatory_compliance",
+      "before": [
+        "mastr_quality_oemetadata",
+        "mastr_asset_inventory"
+      ],
+      "after": [
+        "mastr_quality_oemetadata",
+        "mastr_asset_inventory"
+      ],
+      "expectedCapabilities": [
+        "mastr_quality_oemetadata"
+      ]
+    },
+    {
+      "id": "foreign:controlling_finance-3",
+      "expectedDomain": "controlling_finance",
+      "beforeDomain": "controlling_finance",
+      "afterDomain": "controlling_finance",
+      "before": [
+        "liquidity_planning_governance_module"
+      ],
+      "after": [
+        "liquidity_planning_governance_module"
+      ],
+      "expectedCapabilities": [
+        "liquidity_planning_governance_module"
+      ]
+    },
+    {
+      "id": "foreign:strategic_committee_governance-3",
+      "expectedDomain": "strategic_committee_governance",
+      "beforeDomain": "strategic_committee_governance",
+      "afterDomain": "strategic_committee_governance",
+      "before": [
+        "gremiencoach_workbook_readiness"
+      ],
+      "after": [
+        "gremiencoach_workbook_readiness"
+      ],
+      "expectedCapabilities": [
+        "gremiencoach_workbook_readiness"
+      ]
+    },
+    {
+      "id": "foreign:it_data_vendor_governance-3",
+      "expectedDomain": "it_data_vendor_governance",
+      "beforeDomain": "it_data_vendor_governance",
+      "afterDomain": "it_data_vendor_governance",
+      "before": [
+        "evu_api_migration_diagnostics",
+        "altdaten_assessment",
+        "vdmi_role_boundary_governance"
+      ],
+      "after": [
+        "evu_api_migration_diagnostics",
+        "altdaten_assessment",
+        "vdmi_role_boundary_governance"
+      ],
+      "expectedCapabilities": [
+        "evu_api_migration_diagnostics"
+      ]
+    },
+    {
+      "id": "foreign:org_roles_competence-3",
+      "expectedDomain": "org_roles_competence",
+      "beforeDomain": "org_roles_competence",
+      "afterDomain": "org_roles_competence",
+      "before": [
+        "knowledge_continuity_governance_gate"
+      ],
+      "after": [
+        "knowledge_continuity_governance_gate"
+      ],
+      "expectedCapabilities": [
+        "knowledge_continuity_governance_gate"
+      ]
+    },
+    {
+      "id": "foreign:management-3",
+      "expectedDomain": "management",
+      "beforeDomain": "management",
+      "afterDomain": "management",
+      "before": [
+        "leadership_delta_cockpit",
+        "cross_channel_vnb_signal_queue",
+        "settlement_a96_reconciliation"
+      ],
+      "after": [
+        "leadership_delta_cockpit",
+        "cross_channel_vnb_signal_queue",
+        "settlement_a96_reconciliation"
+      ],
+      "expectedCapabilities": [
+        "leadership_delta_cockpit"
+      ]
+    }
+  ]
+}

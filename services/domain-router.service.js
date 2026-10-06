@@ -57,6 +57,54 @@ module.exports = {
   ],
   settings: { knowledgeTimeoutMs: 1500 },
   actions: {
+    recordWorkbenchTurn: {
+      visibility: 'protected',
+      params: {
+        cetCaseId: 'string',
+        caseStateVersion: 'number',
+        responseText: { type: 'string', max: 16000 },
+        requiredClarifications: { type: 'array', max: 3, items: 'string' },
+        noCallGuards: { type: 'array', items: 'string' },
+      },
+      async handler(ctx) {
+        const p = principal(ctx, ctx.params);
+        const state = await this.loadCase(p, ctx.params.cetCaseId);
+        if (
+          state.caseStateVersion !== ctx.params.caseStateVersion ||
+          state.disposition === 'discarded'
+        )
+          throw new Errors.MoleculerClientError('Case version conflict', 409);
+        state.caseStateVersion++;
+        state.lastClassification.responseText = ctx.params.responseText;
+        state.lastClassification.requiredClarifications = ctx.params.requiredClarifications;
+        state.lastClassification.noCallGuards = [
+          ...new Set([
+            ...(state.lastClassification.noCallGuards || []),
+            ...ctx.params.noCallGuards,
+          ]),
+        ];
+        state.openClarifications = ctx.params.requiredClarifications;
+        await this.saveState(p, state);
+        return { caseStateVersion: state.caseStateVersion };
+      },
+    },
+    discard: {
+      visibility: 'protected',
+      params: { cetCaseId: 'string' },
+      async handler(ctx) {
+        const p = principal(ctx, ctx.params);
+        const state = await this.loadCase(p, ctx.params.cetCaseId);
+        if (state.disposition === 'discarded') return { discarded: true };
+        state.disposition = 'discarded';
+        state.discardedAt = new Date().toISOString();
+        state.caseStateVersion++;
+        state.openClarifications = [];
+        state.pendingJobs = [];
+        state.eventIntents = [];
+        await this.saveState(p, state);
+        return { discarded: true };
+      },
+    },
     classify: action(
       'POST /classify',
       'Classify a task and persist advisory case state',
@@ -299,7 +347,7 @@ module.exports = {
     async visibleStates(p) {
       return (await this.db.allDocs({ include_docs: true })).rows
         .map((r) => r.doc)
-        .filter((s) => s.cetCaseId && visible(p, s));
+        .filter((s) => s.cetCaseId && s.disposition !== 'discarded' && visible(p, s));
     },
     async saveState(p, state) {
       authorize(p, state);
@@ -373,6 +421,8 @@ module.exports = {
       if (input.schemaVersion && input.schemaVersion !== '1.1')
         throw new Errors.MoleculerClientError('Unsupported Task Envelope version', 422);
       const previous = input.cetCaseId ? await this.loadCase(p, input.cetCaseId) : null;
+      if (previous?.disposition === 'discarded')
+        throw new Errors.MoleculerClientError('Case was discarded', 409);
       if (continuing && !previous)
         throw new Errors.MoleculerClientError('Continue requires cetCaseId', 422);
       if (

@@ -71,9 +71,9 @@ async function readTurn(db, p, envelope, time = Date.now()) {
 
 async function expireTurn(db, doc) {
   // The last question contains no document text and lasts with the conversation.
-  if (doc.lastQuestion) {
-    if (!doc.offeredContent) return doc;
-    const next = { ...doc, offeredContent: '' };
+  if (doc.lastQuestion || doc.askedQuestions?.length || doc.caseSuppressed) {
+    if (!doc.offeredContent && !doc.situation) return doc;
+    const next = { ...doc, offeredContent: '', situation: null };
     await db.put(next);
     return next;
   }
@@ -127,7 +127,16 @@ async function saveTurn(db, p, envelope, patch, time = Date.now()) {
     const doc = {
       ...(existing?.expiresAt > time
         ? existing
-        : { _id, ...(existing ? { _rev: existing._rev } : {}) }),
+        : {
+            _id,
+            ...(existing
+              ? {
+                  _rev: existing._rev,
+                  askedQuestions: existing.askedQuestions || [],
+                  caseSuppressed: existing.caseSuppressed === true,
+                }
+              : {}),
+          }),
       type: 'workbench_conversation_assistance',
       tenantId: p.tenantId,
       actorId: p.actorId,

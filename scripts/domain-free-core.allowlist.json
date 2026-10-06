@@ -28,7 +28,7 @@
       "reason": "Generic case-status separation vocabulary; no domain branch."
     },
     {
-      "term": "klärfall",
+      "term": "kl\u00e4rfall",
       "reason": "Generic case-status separation vocabulary; no domain branch."
     },
     {
@@ -64,7 +64,7 @@
       "reason": "Generic open expectations/proposals presentation."
     },
     {
-      "term": "klärung",
+      "term": "kl\u00e4rung",
       "reason": "Generic safe clarification follow-up wording."
     },
     {
@@ -432,7 +432,7 @@
       "reason": "Generic immutable correction audit records; no domain branch."
     },
     {
-      "term": "bestätigung",
+      "term": "best\u00e4tigung",
       "reason": "Generic German correction confirmation wording."
     },
     {
@@ -452,7 +452,7 @@
       "reason": "Generic deterministic correction recognition."
     },
     {
-      "term": "zuständig",
+      "term": "zust\u00e4ndig",
       "reason": "Generic German human responsibility correction vocabulary."
     },
     {
@@ -478,6 +478,76 @@
     {
       "term": "dossier",
       "reason": "Existing personal-agent.answerDossier Knowledge facade and its dossierMarkdown response; no domain branch."
+    },
+    {
+      "term": "situation",
+      "reason": "Generic domain-independent description of the user situation in the fixed understanding schema; no domain branch."
+    },
+    {
+      "term": "fehlende",
+      "reason": "Generic understanding/answer presentation vocabulary used across all domains; no domain-dependent branch or rule."
+    },
+    {
+      "term": "lagebild",
+      "reason": "Generic understanding/answer presentation vocabulary used across all domains; no domain-dependent branch or rule."
+    },
+    {
+      "term": "rollen",
+      "reason": "Generic understanding/answer presentation vocabulary used across all domains; no domain-dependent branch or rule."
+    },
+    {
+      "term": "fachliche",
+      "reason": "Generic understanding/answer presentation vocabulary used across all domains; no domain-dependent branch or rule."
+    },
+    {
+      "term": "interner",
+      "reason": "Generic understanding/answer presentation vocabulary used across all domains; no domain-dependent branch or rule."
+    },
+    {
+      "term": "grounded",
+      "reason": "Generic understanding/answer presentation vocabulary used across all domains; no domain-dependent branch or rule."
+    },
+    {
+      "term": "claims",
+      "reason": "Generic understanding/answer presentation vocabulary used across all domains; no domain-dependent branch or rule."
+    },
+    {
+      "term": "belastbare",
+      "reason": "Generic understanding/answer presentation vocabulary used across all domains; no domain-dependent branch or rule."
+    },
+    {
+      "term": "wunsch",
+      "reason": "Generic understanding/answer presentation vocabulary used across all domains; no domain-dependent branch or rule."
+    },
+    {
+      "term": "schritt",
+      "reason": "Generic understanding/answer presentation vocabulary used across all domains; no domain-dependent branch or rule."
+    },
+    {
+      "term": "clarification",
+      "reason": "Generic pipeline, clarification or analysis vocabulary; no specialist rule or domain-dependent branch."
+    },
+    {
+      "term": "pipeline",
+      "reason": "Generic pipeline, clarification or analysis vocabulary; no specialist rule or domain-dependent branch."
+    },
+    {
+      "term": "analysis",
+      "reason": "Generic pipeline, clarification or analysis vocabulary; no specialist rule or domain-dependent branch."
+    },
+    {
+      "term": "externe",
+      "reason": "Generic boundary for external effects, not a specialist domain term."
+    },
+    {
+      "term": "prompt",
+      "resolverGeneric": true,
+      "reason": "Generic privacy and prompt processing vocabulary; no domain behavior."
+    },
+    {
+      "term": "reversible",
+      "resolverGeneric": true,
+      "reason": "Generic privacy and prompt processing vocabulary; no domain behavior."
     }
   ]
 }
