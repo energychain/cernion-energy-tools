@@ -470,6 +470,14 @@
     {
       "term": "route",
       "reason": "Generic dispatch terminology in capability routing score metadata and parameters (#730); no domain term or domain-specific branch."
+    },
+    {
+      "term": "entwurf",
+      "reason": "Generic German internal text draft presentation and effect classification, independent of any function domain."
+    },
+    {
+      "term": "dossier",
+      "reason": "Existing personal-agent.answerDossier Knowledge facade and its dossierMarkdown response; no domain branch."
     }
   ]
 }

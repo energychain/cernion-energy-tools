@@ -156,6 +156,15 @@ describe('Workbench RC3 Open WebUI Tenant Gateway', () => {
       name: 'knowledge-rag',
       actions: { query: () => ({ results: [] }) },
     });
+    broker.createService({
+      name: 'test-assistance',
+      settings: { $noServiceNamePrefix: true },
+      actions: {
+        'personal-agent.answerDossier': () => ({
+          answer: 'Evidenz prüfen; die Einschätzung bleibt unverbindlich.',
+        }),
+      },
+    });
     await broker.start();
   });
 

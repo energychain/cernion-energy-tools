@@ -730,7 +730,10 @@ function classifyOperation(op, options = {}) {
   };
 }
 
+const { classifyRequestedEffect } = require('./requested-effect');
+
 module.exports = {
+  classifyRequestedEffect,
   OPERATION_KINDS,
   CONSEQUENCE_LEVELS,
   EXECUTION_MODES,

@@ -443,6 +443,7 @@ module.exports = {
         ],
         caseStateVersion: (previous?.caseStateVersion || 0) + 1,
         currentDomain: classification.primaryDomain,
+        initialRequest: previous?.initialRequest || input.userRequest,
         conversationId: input.conversationId || previous?.conversationId || null,
         agentSessionId: input.agentSessionId || previous?.agentSessionId || null,
         knownContext: input.knownContext,

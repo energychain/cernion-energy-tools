@@ -1,6 +1,6 @@
 # Function model — generated report
 
-Source SHA-256: `085e54ceb7f495f83b92cb160ffaffc70f36007ed5c6f7f58c9f6dd944d4762c`
+Source SHA-256: `ce7954707887f03872c8da4eeeaa0ee9911af66a3810ed0f3a785fcae692651a`
 
 Capabilities: 172; functions: 110.
 Function vectors: 95/110; missing or incompatible capability vectors: 25.
@@ -14,7 +14,7 @@ Maximum degree target: ≤ 0.25 × 110 = 27.5; met: yes.
 
 Candidate degree before mutual selection: {"minimum":0,"median":3.5,"maximum":36,"isolatedFraction":0.2727272727272727}; pruned directed edges: 70; peer limit: 27.
 
-Operation index entries without action: 19/988.
+Operation index entries without action: 19/989.
 
 All curated capabilities are assigned once, including entries without resolvable operations.
 Edges describe catalog evidence only; they grant no authorization.
@@ -514,7 +514,7 @@ None.
 
 - {"service":"agent","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"agent","ref":"src/llm-client.js:159: dynamic emission"}
-- {"service":"api","ref":"services/api.service.js:532: dynamic emission"}
+- {"service":"api","ref":"services/api.service.js:534: dynamic emission"}
 - {"service":"assets","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"business-intelligence","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"capability-broker","ref":"src/job-store.js:67: dynamic emission"}

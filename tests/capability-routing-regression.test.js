@@ -45,8 +45,9 @@ describe('broker and router #730 regression', () => {
       }
     );
     expect(result.selectedCapabilities).toEqual([]);
-    expect(result.candidateCapabilities).toHaveLength(1);
-    expect(result.requiredClarifications.length).toBeGreaterThan(0);
+    expect(result.candidateCapabilities).toEqual([]);
+    expect(result.requiredClarifications).toEqual([]);
+    expect(result.responseGuidance).toBe('');
     expect(result.scoringBreakdown.activatesCoverage).toBe(false);
   });
   test('handoff cannot promote uncertain candidates to fixed selection', async () => {
@@ -61,7 +62,7 @@ describe('broker and router #730 regression', () => {
     );
     expect(result.transition.type).toBe('handoff');
     expect(result.selectedCapabilities).toEqual([]);
-    expect(result.requiredClarifications.length).toBeGreaterThan(0);
+    expect(result.requiredClarifications).toEqual([]);
   });
   test.each(
     fixtures.cases.filter(

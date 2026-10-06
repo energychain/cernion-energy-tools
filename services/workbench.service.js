@@ -9,6 +9,9 @@ const { handleCorrectionTurn } = require('../src/workbench-corrections');
 const { answerSystemActivity } = require('../src/workbench-system-activity');
 const coverageTurn = require('../src/function-coverage-turn');
 const { classifyWorkbenchIntent } = require('../src/workbench-intent-router');
+const { classifyRequestedEffect } = require('../src/operation-capability-classifier');
+const { choiceText } = require('../src/capability-clarification');
+const conversationAssistance = require('../src/workbench-conversation');
 const { Errors } = require('moleculer');
 const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin');
 const { gatewayForbidden, validateRoles } = require('../src/auth/token-policy');
@@ -130,7 +133,7 @@ module.exports = {
     after: { chat: coverageTurn.after, query: coverageTurn.after },
     error: { chat: coverageTurn.error, query: coverageTurn.error },
   },
-  mixins: WORKBENCH_DATABASES.map(workbenchDbMixin),
+  mixins: [...WORKBENCH_DATABASES.map(workbenchDbMixin), conversationAssistance.lifecycle],
   actions: {
     'activities.list': action(
       'GET /activities',
@@ -503,7 +506,7 @@ module.exports = {
           ? await this.store.listEvidence({ tenantId: p.tenantId, caseId: ctx.params.caseId })
           : [];
         const turnMemory = await this.loadTurnMemory(p, ctx.params.caseId);
-        return presentCase(
+        const summary = presentCase(
           { ...full, lastClassification: state, turnMemory },
           {
             evidenceRefs,
@@ -511,6 +514,15 @@ module.exports = {
             clearance: p.clearance,
           }
         );
+        return {
+          ...summary,
+          initialRequest: full.initialRequest || '',
+          internalDrafts: await conversationAssistance.listDrafts(
+            this.conversationsDb,
+            p,
+            ctx.params.caseId
+          ),
+        };
       },
       caseParams
     ),
@@ -1469,9 +1481,14 @@ module.exports = {
       'Run a CET-led Workbench chat turn: classify new conversations, continue mapped cases',
       async function (ctx) {
         const envelope = normalizeTaskEnvelope(ctx.params);
-        const { p, mapping } = await this.resolveTurnPrincipal(ctx, envelope);
+        let { p, mapping } = await this.resolveTurnPrincipal(ctx, envelope);
         coverageTurn.mapped(ctx, this.metaForMapping(ctx, p, mapping));
         const correctionMeta = this.metaForMapping(ctx, p, mapping);
+        p = principal({ meta: correctionMeta }, ctx.params);
+        const pending = await conversationAssistance.readTurn(this.conversationsDb, p, envelope);
+        const confirmation = conversationAssistance.emptyConfirmation(envelope.userRequest);
+        const offeredContent =
+          pending?.offeredContent || conversationAssistance.substantiveMessage(ctx.params.messages);
         const correctionResult = await handleCorrectionTurn(
           {
             params: ctx.params,
@@ -1480,9 +1497,27 @@ module.exports = {
           },
           envelope,
           this.store,
-          { model: this.settings.systemActivityModel }
+          {
+            model: this.settings.systemActivityModel,
+            allowUnmatchedConfirmation: confirmation && !!(offeredContent || pending?.lastQuestion),
+          }
         );
-        if (correctionResult) return correctionResult;
+        if (correctionResult) {
+          let offeredCorrectionContent = pending?.offeredContent || '';
+          const question = correctionResult.responseText.includes('?')
+            ? correctionResult.responseText
+            : '';
+          if (question && question === pending?.lastQuestion) {
+            offeredCorrectionContent ||= envelope.userRequest;
+            correctionResult.responseText =
+              'Du kannst eine eindeutige Bezeichnung wählen, mit „Starte einen Fall“ einen Fall starten oder mit „Frage beantworten“ eine unverbindliche Einschätzung anfordern.';
+          }
+          await conversationAssistance.saveTurn(this.conversationsDb, p, envelope, {
+            offeredContent: offeredCorrectionContent,
+            lastQuestion: question && question !== pending?.lastQuestion ? question : '',
+          });
+          return correctionResult;
+        }
         let conversation = await this.store.resolveConversation(
           {
             tenantId: p.tenantId,
@@ -1494,12 +1529,43 @@ module.exports = {
         const intent = classifyWorkbenchIntent(envelope.userRequest, {
           cetCaseId: conversation?.cetCaseId,
         });
-        if (!conversation && intent !== 'case_start') {
+        const effect = classifyRequestedEffect(envelope.userRequest);
+        const draftRequested = effect === 'draft_write';
+        const startRequested =
+          intent === 'case_start' ||
+          (confirmation && !!offeredContent) ||
+          (draftRequested && !!offeredContent);
+        if (!conversation && !startRequested) {
+          if (conversationAssistance.assistanceChoice(envelope.userRequest) && offeredContent) {
+            envelope.userRequest = offeredContent;
+          }
+          const responseText = await conversationAssistance.assist(
+            (name, input) => ctx.call(name, input, { meta: correctionMeta }),
+            envelope,
+            pending?.offeredContent ? { initialRequest: pending.offeredContent } : null
+          );
+          await conversationAssistance.saveTurn(this.conversationsDb, p, envelope, {
+            offeredContent: confirmation
+              ? pending?.offeredContent || ''
+              : effect === 'external_effect' && pending?.offeredContent
+                ? `${pending.offeredContent}\n\n${envelope.userRequest}`.slice(0, 8000)
+                : envelope.userRequest,
+            lastQuestion: '',
+          });
           return {
-            state: 'clarification_required',
-            responseText:
-              'Möchtest du einen neuen Fall starten? Bitte bestätige dies ausdrücklich mit „Starte einen Fall“ und dem Anliegen.',
+            state: 'assistance',
+            nonBinding: true,
+            responseText: [
+              responseText,
+              effect === 'external_effect' ? conversationAssistance.DRAFT_INVITATION : '',
+              conversationAssistance.CASE_INVITATION,
+            ]
+              .filter(Boolean)
+              .join('\n\n'),
           };
+        }
+        if (!conversation && (confirmation || draftRequested) && offeredContent) {
+          envelope.userRequest = offeredContent;
         }
         let reservation = null;
         if (!conversation) {
@@ -1536,7 +1602,9 @@ module.exports = {
           // Keep the router's bounded request contract for one-character replies.
           userRequest: /^[1-5][.!]?$/.test(envelope.userRequest.trim())
             ? `Nummer ${envelope.userRequest.trim().replace(/[.!]$/, '')}`
-            : envelope.userRequest,
+            : envelope.userRequest.trim().length < 3
+              ? `Kurze Antwort: ${envelope.userRequest}`
+              : envelope.userRequest,
           knownContext: {
             ...envelope.knownContext,
             workbenchContext,
@@ -1576,6 +1644,50 @@ module.exports = {
           });
         }
         const caseId = result.cetCaseId || conversation?.cetCaseId;
+        let assistance = null;
+        let draftId = null;
+        let question = result.uncertain ? choiceText(result) : '';
+        const repeatedQuestion = question && question === pending?.lastQuestion;
+        if (repeatedQuestion || (pending?.lastQuestion && result.primaryDomain === 'unknown'))
+          question = '';
+        if (
+          effect === 'external_effect' ||
+          draftRequested ||
+          !result.selectedCapabilities?.length ||
+          result.primaryDomain === 'unknown' ||
+          repeatedQuestion ||
+          conversationAssistance.contentQuestion(envelope.userRequest) ||
+          /(?:frage beantworten|answer (?:my |the )?question)/i.test(envelope.userRequest)
+        ) {
+          const state = caseId ? await this.loadVisibleCase(ctx, p, caseId) : null;
+          const responseText = await conversationAssistance.assist(
+            (name, input) => ctx.call(name, input, { meta }),
+            envelope,
+            state,
+            { draft: draftRequested }
+          );
+          if (draftRequested && caseId) {
+            draftId = await conversationAssistance.saveDraft(
+              this.conversationsDb,
+              p,
+              caseId,
+              responseText
+            );
+          }
+          result.responseText = [
+            responseText,
+            effect === 'external_effect' ? conversationAssistance.DRAFT_INVITATION : '',
+            question,
+          ]
+            .filter(Boolean)
+            .join('\n\n');
+          result.requiredClarifications = question ? [question] : [];
+          assistance = { state: 'assistance', nonBinding: true, ...(draftId ? { draftId } : {}) };
+        }
+        await conversationAssistance.saveTurn(this.conversationsDb, p, envelope, {
+          offeredContent: '',
+          lastQuestion: question,
+        });
         const turnMemory = caseId
           ? await this.saveTurnMemory(p, {
               caseId,
@@ -1601,12 +1713,15 @@ module.exports = {
             memory: turnMemory,
           });
         }
-        return this.chatResponse(
-          conversation ? 'continue' : 'classify',
-          result,
-          eventSummary,
-          turnMemory
-        );
+        return {
+          ...this.chatResponse(
+            conversation ? 'continue' : 'classify',
+            result,
+            eventSummary,
+            turnMemory
+          ),
+          ...assistance,
+        };
       }
     ),
     'cases.attachEvidence': action(

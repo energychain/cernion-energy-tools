@@ -69976,6 +69976,35 @@
                   "type": "object",
                   "additionalProperties": false,
                   "properties": {
+                    "initialRequest": {
+                      "type": "string",
+                      "description": "Original bounded user content retained when the case starts"
+                    },
+                    "internalDrafts": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "draftId": {
+                            "type": "string",
+                            "description": "Internal text draft id"
+                          },
+                          "content": {
+                            "type": "string",
+                            "description": "Non-binding text draft; never transmitted"
+                          },
+                          "effectClass": {
+                            "type": "string",
+                            "description": "Internal case state effect"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "description": "ISO timestamp"
+                          }
+                        }
+                      }
+                    },
                     "caseId": {
                       "type": "string",
                       "description": "CET case id"
@@ -73814,6 +73843,18 @@
                   "type": "object",
                   "additionalProperties": false,
                   "properties": {
+                    "state": {
+                      "type": "string",
+                      "description": "Conversation state, including non-binding assistance"
+                    },
+                    "nonBinding": {
+                      "type": "boolean",
+                      "description": "True for an advisory response"
+                    },
+                    "draftId": {
+                      "type": "string",
+                      "description": "Optional internal text draft id"
+                    },
                     "caseId": {
                       "type": "string",
                       "description": "CET case id"
@@ -74122,6 +74163,24 @@
                     "type": "string",
                     "description": "User message routed through CET classify/continue",
                     "maxLength": 8000
+                  },
+                  "messages": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "role": {
+                          "type": "string",
+                          "description": "History role; only substantive user turns supply case content"
+                        },
+                        "content": {
+                          "type": "string",
+                          "description": "Prior message text, bounded to 8000 characters on recovery"
+                        }
+                      }
+                    },
+                    "description": "Optional prior messages for recovering an empty case-start confirmation"
                   },
                   "asyncDelivery": {
                     "type": "object",

@@ -1,14 +1,34 @@
 'use strict';
 
 const { getFunctionModel } = require('./function-model');
+const { normalizePhrase } = require('./function-resolver');
+
+function matchingFunction(candidate, classification, model) {
+  const domain = classification.primaryDomain;
+  return model.functions.find(
+    (row) =>
+      row.capabilities.includes(candidate.capability) &&
+      (!domain ||
+        domain === 'unknown' ||
+        [...(row.domains || []), ...(row.departments || [])].some(
+          (value) => normalizePhrase(value) === normalizePhrase(domain)
+        ))
+  );
+}
+
+function compatibleCandidates(classification, model = getFunctionModel()) {
+  return (classification.candidateCapabilities || []).filter((candidate) =>
+    matchingFunction(candidate, classification, model)
+  );
+}
 
 // Choices are derived only from the visible case's persisted candidates, never
 // from a client-supplied capability ID. A choice selects work, not execution rights.
 function choiceCandidates(classification, model = getFunctionModel()) {
   const seen = new Set();
-  return (classification.candidateCapabilities || [])
+  return compatibleCandidates(classification, model)
     .map((candidate) => {
-      const fn = model.functions.find((row) => row.capabilities.includes(candidate.capability));
+      const fn = matchingFunction(candidate, classification, model);
       const label = fn?.displayLabel || fn?.label || 'Weitere Klärung';
       if (seen.has(label)) return null;
       seen.add(label);
@@ -21,7 +41,13 @@ function choiceCandidates(classification, model = getFunctionModel()) {
 function confirmedCapability(message, previous, model) {
   const classification = previous?.lastClassification;
   if (!classification?.uncertain) return null;
-  const choices = choiceCandidates(classification, model);
+  const choices = choiceCandidates(
+    {
+      ...classification,
+      primaryDomain: classification.primaryDomain || previous.currentDomain,
+    },
+    model
+  );
   const value = String(message).trim();
   let end = value.length;
   while (end && (value[end - 1] === '.' || value[end - 1] === '!')) end--;
@@ -38,8 +64,8 @@ function choiceText(classification, model) {
   return choices.length
     ? `Welche Funktion passt zu deinem Anliegen? Antworte mit der Nummer oder dem Namen:\n${choices
         .map((choice, index) => `${index + 1}. ${choice.label}`)
-        .join('\n')}`
-    : 'Bitte beschreibe genauer, welche Tätigkeit du in diesem Fall bearbeiten möchtest.';
+        .join('\n')}\nOder: „Frage beantworten“ für eine unverbindliche Einschätzung.`
+    : '';
 }
 
-module.exports = { choiceCandidates, confirmedCapability, choiceText };
+module.exports = { compatibleCandidates, choiceCandidates, confirmedCapability, choiceText };

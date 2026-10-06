@@ -226,7 +226,12 @@ async function resolveNoticeRef(ctx, identifier, tenantId) {
     throw error;
   }
 }
-async function handleCorrectionTurn(ctx, envelope, store, { model = getFunctionModel() } = {}) {
+async function handleCorrectionTurn(
+  ctx,
+  envelope,
+  store,
+  { model = getFunctionModel(), allowUnmatchedConfirmation = false } = {}
+) {
   const p = principal(ctx, ctx.params);
   const memoryId = `correction-conversation-${reference(p.actorId, envelope.channel, envelope.conversationId)}`;
   const saved = await store.getTurnMemory({ tenantId: p.tenantId, caseId: memoryId });
@@ -267,6 +272,7 @@ async function handleCorrectionTurn(ctx, envelope, store, { model = getFunctionM
   }
   if (intent.type === 'confirm') {
     const pending = memory.pending;
+    if (!pending && allowUnmatchedConfirmation) return null;
     if (!pending || pending.candidates)
       return reply('Es liegt keine eindeutig aufgelöste Korrektur zur Bestätigung vor.');
     if (

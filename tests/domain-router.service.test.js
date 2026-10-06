@@ -84,7 +84,11 @@ describe('Domain Router #595 (real Moleculer + PouchDB)', () => {
 
   test('number and foreign-domain label produce identical persisted case state', async () => {
     const { getFunctionModel } = require('../src/function-model');
-    const fn = getFunctionModel().functions.find((row) => /redispatch/i.test(row.displayLabel));
+    const fn = getFunctionModel().functions.find(
+      (row) =>
+        row.domains.some((domain) => domain === 'grid-connection') &&
+        /zielnetz|redispatch|management|budget/i.test(row.displayLabel)
+    );
     recommend.mockReturnValue({
       uncertain: true,
       candidates: [{ capabilityId: fn.capabilities[0], displayLabel: fn.displayLabel, score: 1 }],

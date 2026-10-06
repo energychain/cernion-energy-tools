@@ -3,7 +3,11 @@
 const { listCompiledDomainRoutes } = require('./domain-routes-registry');
 const { semanticDomains } = require('./semantic-domains');
 const { domainHintsForText } = require('./workbench-activity-taxonomy');
-const { confirmedCapability, choiceText } = require('./capability-clarification');
+const {
+  confirmedCapability,
+  compatibleCandidates,
+  choiceText,
+} = require('./capability-clarification');
 
 // Domain signals only: capabilities and receipts remain owned by their existing services.
 const DOMAIN_SIGNALS = {
@@ -314,8 +318,9 @@ async function classifyDomain(input, dependencies = {}) {
   c.transition = evaluateDomainTransition(previous, c);
   c.requiredClarifications = buildClarificationPrompt(c);
   if (c.uncertain) {
+    c.candidateCapabilities = compatibleCandidates(c, dependencies.model);
     c.responseGuidance = choiceText(c, dependencies.model);
-    c.requiredClarifications = [c.responseGuidance];
+    c.requiredClarifications = c.responseGuidance ? [c.responseGuidance] : [];
   }
   if (!c.uncertain && !['clarify', 'fallback'].includes(c.transition.type))
     c.selectedCapabilities = broker.recommendedCapabilities || candidateCapabilities.slice(0, 1);

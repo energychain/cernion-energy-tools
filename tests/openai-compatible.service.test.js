@@ -368,6 +368,7 @@ describe('OpenAI Compatible Service', () => {
       openWebuiOrgId: 'ow-org',
       clientId: 'openwebui-tenant-a',
       knownContext: undefined,
+      messages: [],
       message: 'MSCONS fehlt, was ist der nächste sichere Schritt?',
       requestId: undefined,
       correlationId: undefined,
@@ -798,8 +799,30 @@ describe('OpenAI governance intent modes', () => {
   const handler = OpenAICompatibleService.actions.chatCompletions.handler;
   const policy = 'Routing advice only. Knowledge hits are unverified routing hints.';
   test.each([
+    'Status: Antwort per Mail senden',
+    'Woran arbeitest du? Bitte übermittle die Antwort',
+  ])('external effect hint stays visible alongside a read query: %s', async (message) => {
+    const ctx = {
+      params: {
+        model: 'cernion-governance-assistant',
+        messages: [{ role: 'user', content: message }],
+      },
+      meta: { apiToken: { tenantId: 'tenant-a' } },
+      call: jest
+        .fn()
+        .mockResolvedValue({
+          responseText: 'CET versendet selbst nichts. Ich kann einen Entwurf vorbereiten.',
+          nonBinding: true,
+        }),
+    };
+    const result = await handler(ctx);
+    expect(ctx.call).toHaveBeenCalledWith('workbench.chat', expect.objectContaining({ message }));
+    expect(result.choices[0].message.content).toContain('CET versendet selbst nichts');
+    expect(result.choices[0].message.content).toContain('Entwurf');
+  });
+  test.each([
     ['What is the status of case-1?', 'status_query', 'workbench.query'],
-    ['What does APERAK Z18 mean?', 'knowledge_query', 'workbench.query'],
+    ['What does APERAK Z18 mean?', 'knowledge_query', 'workbench.chat'],
     ['Show open MaKo cases', 'data_lookup', 'workbench.query'],
     ['Woran arbeitest du?', 'system_activity_query', 'workbench.query'],
     ['Start a new clarification case', 'case_start', 'workbench.chat'],
@@ -931,7 +954,7 @@ describe('governance contextual follow-up delivery', () => {
     const result = await OpenAICompatibleService.actions.chatCompletions.handler(ctx);
     expect(ctx.call).toHaveBeenCalledTimes(1);
     expect(ctx.call).toHaveBeenCalledWith(
-      'workbench.query',
+      'workbench.chat',
       expect.objectContaining({
         intentMode: 'knowledge_query',
         message: expect.stringContaining(topic),

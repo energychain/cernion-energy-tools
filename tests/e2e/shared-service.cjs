@@ -63,6 +63,7 @@ let admin;
 let gatewayToken;
 let adminToken;
 let baseUrl;
+const assistanceRequests = [];
 const people = new Map();
 const auth = (id) => people.get(id) || admin;
 async function http(route, token, body, headers = {}, method = body ? 'POST' : 'GET') {
@@ -77,6 +78,19 @@ async function http(route, token, body, headers = {}, method = body ? 'POST' : '
 const model = structuredClone(require(path.join(root, 'function-model.json')));
 const catalog = require(path.join(root, 'signal-catalog.json'));
 const index = require(path.join(root, 'operation-capability-index.json'));
+let observeExternalEffects = false;
+const externalEffects = [];
+const originalCall = broker.call.bind(broker);
+broker.call = (...args) => {
+  if (
+    observeExternalEffects &&
+    index.operations.some(
+      (operation) => operation.action === args[0] && operation.operationKind === 'external_effect'
+    )
+  )
+    externalEffects.push(args[0]);
+  return originalCall(...args);
+};
 const { policyReason } = require(path.join(root, 'src/shared-service-agent-policy'));
 const candidates = catalog.operations.filter(
   (entry) =>
@@ -186,7 +200,25 @@ async function main() {
       if (schema.name === 'shared-service-agent')
         settings.signalCatalog = { ...catalog, operations: candidates };
       if (schema.name === 'shared-service-learning') settings.model = model;
-      broker.createService({ ...schema, settings });
+      // Offline evidence response at the existing facade boundary. All routing,
+      // mapping, case persistence and HTTP authentication remain real.
+      const actions =
+        schema.name === 'personal-agent'
+          ? {
+              ...schema.actions,
+              answerDossier: {
+                ...schema.actions.answerDossier,
+                async handler(ctx) {
+                  assistanceRequests.push(structuredClone({ params: ctx.params, meta: ctx.meta }));
+                  return {
+                    answer:
+                      'Prüfe Referenzen und Dokumentversion anhand der bereitgestellten Evidenz. Offene Angaben müssen vor einer verbindlichen Entscheidung geprüft werden.',
+                  };
+                },
+              },
+            }
+          : schema.actions;
+      broker.createService({ ...schema, actions, settings });
     }
   }
   for (const service of broker.services) {
@@ -618,6 +650,78 @@ async function main() {
     0
   );
   assert.equal(modelCalls, 0);
+  // Conversation regression runs through the same real Open WebUI gateway.
+  observeExternalEffects = true;
+  const corpus = require(path.join(root, 'tests/fixtures/capability-routing-eval.json')).cases;
+  const documents = [
+    ...new Map(
+      corpus
+        .filter((row) => row.source === 'independent-regression')
+        .map((row) => [row.primaryDomain, row])
+    ).values(),
+  ].slice(0, 4);
+  const chat = async (conversationId, messages) => {
+    const response = await http(
+      '/v1/chat/completions',
+      gatewayToken,
+      {
+        model: 'cernion-governance-assistant',
+        messages,
+      },
+      { 'X-OpenWebUI-User-Id': 'alice', 'X-OpenWebUI-Chat-Id': conversationId }
+    );
+    assert.equal(response.status, 200, JSON.stringify(response.result));
+    return response.result.cernion.result;
+  };
+  for (const [number, row] of documents.entries()) {
+    const conversationId = `context-document-${number}`;
+    const document = `Weitergeleitetes Dokument:\n${row.query}\nKannst du mir helfen?`;
+    const initial = await chat(conversationId, [{ role: 'user', content: document }]);
+    assert.equal(initial.nonBinding, true);
+    assert(!initial.cetCaseId);
+    assert(initial.responseText.includes('Starte einen Fall'));
+    const started = await chat(conversationId, [{ role: 'user', content: 'ja, bitte' }]);
+    assert(started.cetCaseId);
+    assert.notEqual(started.primaryDomain, 'unknown');
+    const summary = await call('workbench.cases.get', { caseId: started.cetCaseId }, auth('alice'));
+    assert.equal(summary.initialRequest, document);
+    const shipping = await chat(conversationId, [
+      { role: 'user', content: 'Antwort per Mail senden' },
+    ]);
+    assert(shipping.responseText.includes('CET versendet oder übermittelt selbst nichts'));
+    assert(shipping.responseText.includes('Entwurf bitte'));
+    const draft = await chat(conversationId, [{ role: 'user', content: 'Entwurf bitte' }]);
+    const withDraft = await call(
+      'workbench.cases.get',
+      { caseId: started.cetCaseId },
+      auth('alice')
+    );
+    assert(withDraft.internalDrafts.some((item) => item.draftId === draft.draftId));
+    const question = await chat(conversationId, [
+      { role: 'user', content: 'Warum ist das unklar?' },
+    ]);
+    assert.equal(question.nonBinding, true);
+    assert(question.responseText.includes('Unverbindliche Einschätzung'));
+  }
+  const historyContent = documents[0].query;
+  const recovered = await chat('history-only', [
+    { role: 'system', content: 'Nicht als Fallinhalt verwenden' },
+    { role: 'user', content: historyContent },
+    { role: 'assistant', content: 'Möchtest du einen Fall starten?' },
+    { role: 'user', content: 'Ja' },
+  ]);
+  assert(recovered.cetCaseId);
+  assert.equal(
+    (await call('workbench.cases.get', { caseId: recovered.cetCaseId }, auth('alice')))
+      .initialRequest,
+    historyContent
+  );
+  assert.equal(externalEffects.length, 0, externalEffects.join(', '));
+  assert(assistanceRequests.length > 0);
+  assert(assistanceRequests.every((entry) => entry.meta.apiToken.id !== 'svc-openwebui'));
+  console.log(
+    'HTTP conversation context, multi-domain assistance, history fallback and internal drafts PASS'
+  );
   console.log('Turns:', JSON.stringify(turns));
 }
 main()

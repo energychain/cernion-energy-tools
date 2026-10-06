@@ -257,6 +257,15 @@ const turnMemorySummarySchema = objectSchema({
 });
 
 const caseSummarySchema = objectSchema({
+  initialRequest: stringSchema('Original bounded user content retained when the case starts'),
+  internalDrafts: arrayOf(
+    objectSchema({
+      draftId: stringSchema('Internal text draft id'),
+      content: stringSchema('Non-binding text draft; never transmitted'),
+      effectClass: stringSchema('Internal case state effect'),
+      createdAt: stringSchema('ISO timestamp'),
+    })
+  ),
   caseId: stringSchema('CET case id'),
   cetCaseId: stringSchema('CET case id'),
   caseStateVersion: numberSchema('Case-state version'),
@@ -317,6 +326,13 @@ const schemas = {
       message: stringSchema('User message routed through CET classify/continue', {
         maxLength: 8000,
       }),
+      messages: arrayOf(
+        objectSchema({
+          role: stringSchema('History role; only substantive user turns supply case content'),
+          content: stringSchema('Prior message text, bounded to 8000 characters on recovery'),
+        }),
+        'Optional prior messages for recovering an empty case-start confirmation'
+      ),
       asyncDelivery: asyncDeliverySchema,
       requestId: stringSchema('Caller request id'),
       correlationId: stringSchema('Caller correlation id'),
@@ -387,6 +403,9 @@ const schemas = {
     pendingEvents: numberSchema('Pending event count'),
   }),
   WorkbenchChatResponse: objectSchema({
+    state: stringSchema('Conversation state, including non-binding assistance'),
+    nonBinding: booleanSchema('True for an advisory response'),
+    draftId: stringSchema('Optional internal text draft id'),
     caseId: stringSchema('CET case id'),
     cetCaseId: stringSchema('CET case id'),
     caseStateVersion: numberSchema('Case-state version'),

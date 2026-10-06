@@ -6,7 +6,11 @@ const { getFunctionModel } = require('../src/function-model');
 describe('candidate confirmation is not a new routing request', () => {
   const model = {
     functions: [
-      { capabilities: ['candidate-a'], displayLabel: 'Redispatch Lastgang – Management Budget' },
+      {
+        capabilities: ['candidate-a'],
+        domains: ['grid-connection'],
+        displayLabel: 'Redispatch Lastgang – Management Budget',
+      },
     ],
   };
 
@@ -73,7 +77,11 @@ describe('candidate confirmation is not a new routing request', () => {
 
   test('a real model label containing a foreign domain does not reclassify a prior case', async () => {
     const model = getFunctionModel();
-    const fn = model.functions.find((row) => /redispatch/i.test(row.displayLabel));
+    const fn = model.functions.find(
+      (row) =>
+        row.domains.some((domain) => domain === 'grid-connection') &&
+        /zielnetz|redispatch|management|budget/i.test(row.displayLabel)
+    );
     expect(fn).toBeDefined();
     const previousState = {
       currentDomain: 'grid_connection',

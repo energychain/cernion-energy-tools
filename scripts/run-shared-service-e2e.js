@@ -21,6 +21,7 @@ try {
         NODE_ENV: 'test',
         JOB_STORE_DIR: path.join(dir, 'jobs'),
         RATE_QUOTA_DIR: path.join(dir, 'rate-quotas'),
+        RATE_LIMIT_COMPUTE_PER_MINUTE: '200',
         FORECAST_PORTFOLIO_RUNTIME_PATH: path.join(dir, 'forecast-runtime.json'),
         FORECAST_PORTFOLIO_DATA_PATH: path.join(dir, 'forecast-data.json'),
         CERNION_TENANT_REGISTRY_FILE: path.join(dir, 'tenants.json'),

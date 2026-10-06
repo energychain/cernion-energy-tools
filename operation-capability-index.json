@@ -2,7 +2,7 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.99.22",
-  "sourceOpenApiHash": "9ed444201086aa2acb2cc53ace565ce7e14f67530e159ccb7a41218816d4eea3",
+  "sourceOpenApiHash": "12398f374a5751e98c5ae69df86cea6c1b9dad40b197760d96c47879645360c0",
   "coverage": {
     "rawOperationCount": 1245,
     "operationCount": 989,
@@ -89875,6 +89875,13 @@
             "in": "body",
             "type": "string",
             "description": "User message routed through CET classify/continue",
+            "extractionHint": null
+          },
+          {
+            "name": "messages",
+            "in": "body",
+            "type": "array",
+            "description": "Optional prior messages for recovering an empty case-start confirmation",
             "extractionHint": null
           },
           {

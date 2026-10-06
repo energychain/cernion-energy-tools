@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "085e54ceb7f495f83b92cb160ffaffc70f36007ed5c6f7f58c9f6dd944d4762c",
+  "sourceHash": "ce7954707887f03872c8da4eeeaa0ee9911af66a3810ed0f3a785fcae692651a",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -1105,7 +1105,7 @@
       "new": 6,
       "previousSourceHash": "1f0866ec0eb79538c3201e4fbbdfa19ac60fd987e4db6ec7cf73d380090bf44e"
     },
-    "indexOperationCount": 988,
+    "indexOperationCount": 989,
     "indexOperationsWithoutAction": 19,
     "capabilityCount": 172,
     "functionCount": 110,
@@ -188291,7 +188291,7 @@
       },
       {
         "service": "api",
-        "ref": "services/api.service.js:532: dynamic emission"
+        "ref": "services/api.service.js:534: dynamic emission"
       },
       {
         "service": "assets",

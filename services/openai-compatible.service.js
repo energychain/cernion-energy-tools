@@ -4,6 +4,7 @@ const { noticeDeliveryOptions, prependNotice } = require('../src/shared-service-
 const { Errors } = require('moleculer');
 const { CHAT_MODES } = require('../src/personal-agent-routing');
 const llmClient = require('../src/llm-client');
+const { classifyRequestedEffect } = require('../src/operation-capability-classifier');
 const {
   classifyWorkbenchIntent,
   resolveWorkbenchFollowup,
@@ -66,7 +67,7 @@ function normalizeContent(content) {
   return '';
 }
 
-function normalizeMessages(rawMessages) {
+function normalizeMessages(rawMessages, { preserveDocuments = false } = {}) {
   if (!Array.isArray(rawMessages) || rawMessages.length === 0) {
     throw openAiError('messages must be a non-empty array.', 400, 'messages_required');
   }
@@ -85,7 +86,9 @@ function normalizeMessages(rawMessages) {
     // expected there, not a malformed request.
     const hasToolCalls =
       role === 'assistant' && Array.isArray(message?.tool_calls) && message.tool_calls.length > 0;
-    const content = compactString(normalizeContent(message?.content), 2000);
+    const content = preserveDocuments
+      ? compactMarkdown(normalizeContent(message?.content), 8000)
+      : compactString(normalizeContent(message?.content), 2000);
 
     if (!content && !hasToolCalls) {
       throw openAiError(`messages[${index}].content is required.`, 400, 'message_content_required');
@@ -453,7 +456,9 @@ module.exports = {
           );
         }
 
-        const messages = normalizeMessages(ctx.params.messages);
+        const messages = normalizeMessages(ctx.params.messages, {
+          preserveDocuments: requestedModel === GOVERNANCE_MODEL,
+        });
         const tools = normalizeTools(ctx.params.tools);
         const metadata =
           ctx.params.metadata && typeof ctx.params.metadata === 'object'
@@ -498,15 +503,26 @@ module.exports = {
           const latestUserIndex = findLatestUserMessageIndex(messages);
           const question = messages[latestUserIndex].content;
           const recentMessages = messages.slice(0, latestUserIndex);
-          const intentMode = classifyWorkbenchIntent(question, {
-            cetCaseId: metadata.cetCaseId,
-            recentMessages,
-          });
+          const requestedEffect = classifyRequestedEffect(question);
+          const intentMode =
+            requestedEffect === 'external_effect'
+              ? 'tool_run_request'
+              : requestedEffect === 'draft_write'
+                ? 'decision_support'
+                : classifyWorkbenchIntent(question, {
+                    cetCaseId: metadata.cetCaseId,
+                    recentMessages,
+                  });
           const followup =
             intentMode === 'knowledge_query'
               ? resolveWorkbenchFollowup(question, { recentMessages })
               : null;
-          const sourceAction = isReadOnlyIntent(intentMode) ? 'workbench.query' : 'workbench.chat';
+          const sourceAction =
+            isReadOnlyIntent(intentMode) &&
+            intentMode !== 'knowledge_query' &&
+            requestedEffect === 'advisory_plan'
+              ? 'workbench.query'
+              : 'workbench.chat';
           const workbench = await ctx.call(
             sourceAction,
             {
@@ -520,6 +536,7 @@ module.exports = {
               openWebuiOrgId: metadata.openWebuiOrgId,
               clientId: metadata.clientId,
               knownContext: metadata.context,
+              messages: recentMessages,
               message: followup
                 ? `Vorheriges Thema (Gesprächskontext): ${followup.topic}\n${followup.observations.join('\n')}\nAktuelle Rückfrage: ${question}\nBitte erkläre den fachlichen Zusammenhang und die Bedeutung mit nötigen Einschränkungen und benötigten Details.`
                 : question,
