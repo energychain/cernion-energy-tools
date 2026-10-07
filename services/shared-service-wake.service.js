@@ -201,10 +201,28 @@ module.exports = {
       ).rows
         .map((row) => row.doc)
         .filter((doc) => doc && (!tenantId || doc.tenantId === tenantId))
-        .map((doc) => ({
-          ...doc,
-          functionId: this.functionId(doc.functionId, doc.modelSourceHash || null),
-        }))
+        .flatMap((doc) => {
+          this.unresolvedWakeRecords ||= new Map();
+          try {
+            const functionId = this.functionId(doc.functionId, doc.modelSourceHash || null);
+            this.unresolvedWakeRecords.delete(doc._id);
+            return [{ ...doc, functionId }];
+          } catch (error) {
+            if (error.type !== 'WAKE_INVALID') throw error;
+            // Model changes can remove or split stored identities. Keep their
+            // state intact, but never schedule them or abort the whole broker.
+            if (this.unresolvedWakeRecords.get(doc._id) !== doc._rev) {
+              this.logger.warn('Wake record suspended: unresolved function identity', {
+                recordId: doc._id,
+                functionId: doc.functionId,
+                modelSourceHash: doc.modelSourceHash || null,
+                currentModelSourceHash: this.model.sourceHash || null,
+              });
+              this.unresolvedWakeRecords.set(doc._id, doc._rev);
+            }
+            return [];
+          }
+        })
         .sort(
           (a, b) =>
             compareCanonicalStrings(a.tenantId, b.tenantId) ||
