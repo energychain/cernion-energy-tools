@@ -104,15 +104,15 @@ function llmOptions(tenantId, phase = 'understanding') {
     ollama: 'llama3.1:8b',
   };
   const timeout = Number(pair(process.env.WORKBENCH_LLM_TIMEOUT_MS) || 4500);
+  const thinking = pair(process.env.WORKBENCH_LLM_THINKING) || 'minimal';
   return {
     tenantId,
-    temperature: 0,
     model: pair(process.env.WORKBENCH_LLM_MODEL) || defaults[provider],
     timeoutMs: Number.isFinite(timeout) && timeout > 0 ? timeout : 4500,
     maxRetries: 1,
     structuredFallback: false,
     temperature: 0,
-    thinking: pair(process.env.WORKBENCH_LLM_THINKING) || 'minimal',
+    thinking: ['default', 'standard'].includes(thinking.toLowerCase()) ? undefined : thinking,
   };
 }
 
@@ -352,7 +352,7 @@ async function answer({
             ].join('\n'),
             schema: ANSWER_SCHEMA,
             turnInstruction: followup
-              ? 'Der erste claim in interpretation beantwortet unmittelbar die aktuelle Nutzerfrage, ohne Einleitung oder Zusammenfassung der alten Lage. Nenne nur relevante Änderungen und nächste Schritte. Beschreibe nicht erneut, was das Gegenüber erwartet. Bei Entwurfswunsch liefere direkt den fertigen Text aus dem Lagebild.'
+              ? 'Der erste claim in interpretation beantwortet unmittelbar die aktuelle Nutzerfrage, ohne Einleitung oder Zusammenfassung der alten Lage. Antworte knapp: ein kurzer Einordnungssatz, höchstens zwei nächste Schritte. Lasse expectation leer. Erzeuge keinen unveränderten proaktiven Entwurf erneut. Bei Entwurfswunsch liefere ausschließlich den vollständigen Entwurf in draft; interpretation, expectation, nextSteps und assumptions bleiben leer.'
               : 'Ordne die neue Anfrage ein und unterstütze die nächsten Schritte.',
             provenanceInstruction:
               'Setze origin=input für wörtlich übernommene Angaben aus Nutzertext/Lagebild (auch DAR, MaLo, Adressen), origin=evidence für belegte Quellenangaben, origin=model für Fachwissen. Eingabe-Angaben werden nie als Modellwissen markiert. supported bleibt evidence bei Quellen und model bei input/model. Keine erfundenen Personendaten. Bei vorhandener Evidenz nutze passende evidenceIds.',

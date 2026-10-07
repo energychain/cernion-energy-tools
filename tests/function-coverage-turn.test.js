@@ -190,7 +190,10 @@ test('Workbench and OpenAI share the completed-turn seam; persistence errors pre
     };
     request.metadata.requestId = 'req-b';
     const preserved = await broker.call('openai-compatible.chatCompletions', request, { meta });
-    expect(preserved.choices[0].message.content).toContain('neutral reply');
+    expect(preserved.choices[0].message.content).toContain(
+      'Prüfe den bisherigen Stand und stimme den nächsten Schritt ab.'
+    );
+    expect(preserved.choices[0].message.content).toContain('Quellen: test-evidence');
     await service.queue;
   } finally {
     await broker.stop();
