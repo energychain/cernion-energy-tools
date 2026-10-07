@@ -87,7 +87,7 @@ werden. Die technische Handlungssperre verhindert eigenständigen Versand.
 
 904 Tests aus 21 Suites (Workbench, Scrubber, zentrale LLM-Fassade,
 Willi-Facade, Gateway/RBAC/HITL) bestanden; danach gezielte Wiederholung der
-geänderten Pfade und 15 Nacharbeitstests. Harness: 86 Tests in 33,13 s (<60 s).
+geänderten Pfade und 16 Nacharbeitstests. Harness: 86 Tests in 33,13 s (<60 s).
 HTTP-e2e: 21,38 s; Disclaimer-Wächter im Korpus und Quellen-/Masken-/Versand-
 Tests grün. lint: 0 Fehler, eine bestehende Warnung. check:llm und
 check:domain-free-core, git diff --check geprüft. TDD-Matrix-Hardgate 66/66

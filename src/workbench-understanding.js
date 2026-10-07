@@ -348,7 +348,7 @@ function draftFromSituation(situation) {
   return [
     'Variante 1 – nur verwenden, wenn die Anfrage bestätigt werden kann:',
     opening,
-    'Wir bestätigen Ihre Anfrage. Die zugehörige Prozessantwort lautet: [konkrete Antwort / Ergebnis].',
+    'Wir bestätigen Ihre Anfrage. Für Rückfragen stehen wir Ihnen zur Verfügung.',
     'Mit freundlichen Grüßen',
     '',
     'Variante 2 – nur verwenden, wenn Angaben zur Bearbeitung fehlen:',
@@ -501,7 +501,7 @@ async function answer({
     (answerStatus === 'fallback' || !followup || isDraftRequest(message) || draft !== previousDraft)
   )
     lines.push(`Entwurf:\n${draft}`);
-  if (explicitlyRequestsSending(message))
+  if (situation.requestedAction.externalEffect && explicitlyRequestsSending(message))
     lines.push(
       draft
         ? 'Hier ist der fertige Text – schick ihn bitte über euer System raus.'
