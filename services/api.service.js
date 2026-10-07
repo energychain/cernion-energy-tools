@@ -28,6 +28,7 @@ const {
 } = require('../src/gateway-request-classifiers');
 const { createMcpHttpHandlers } = require('../src/mcp-transport');
 const { createOAuthHttpHandlers } = require('../src/oauth-server');
+const { serveAiCatalog, advertiseAiCatalog } = require('../src/ai-catalog');
 
 const UPLOAD_DIR = path.join(__dirname, '..', 'uploads');
 const CONTENT_TYPE_HEADER = 'Content-Type';
@@ -1359,7 +1360,7 @@ module.exports = {
 
         whitelist: [],
 
-        use: [],
+        use: [advertiseAiCatalog],
 
         mergeParams: true,
 
@@ -1370,6 +1371,8 @@ module.exports = {
         autoAliases: true,
 
         aliases: {
+          'GET /.well-known/ai-catalog.json': serveAiCatalog,
+          'GET /.well-known/ard.json': serveAiCatalog,
           'GET /'(req, res) {
             res.writeHead(302, { Location: '/api/docs' });
             res.end();

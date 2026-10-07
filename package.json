@@ -32,6 +32,7 @@
     "audit:security": "node scripts/audit-security.js",
     "audit:security:advisory": "node scripts/audit-security.js",
     "generate:llm": "node scripts/generate-llm-txt.js",
+    "sync:ai-catalog-schemas": "node scripts/sync-ai-catalog-schemas.js",
     "check:llm": "node scripts/generate-llm-txt.js --check",
     "generate:operation-capability-index": "node scripts/generate-operation-capability-index.js",
     "check:operation-capability-index": "node scripts/generate-operation-capability-index.js --check",

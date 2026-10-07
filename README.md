@@ -131,6 +131,26 @@ the OpenAPI export is the source of truth.
 
 ## Agentic Components
 
+### Agentic Sitemap / AI Catalog
+
+`GET /.well-known/ai-catalog.json` and `GET /.well-known/ard.json` publish a public
+catalog generated on each request from the loaded service registry and live OpenAPI
+metadata. Each published REST service has an entry with action/capability tokens,
+representative queries and an inline OpenAPI contract. The catalog also links to
+the full OpenAPI document and `llm.txt`. Root responses advertise both discovery
+paths through HTTP `Link` headers; conditional requests support ETags.
+
+No manual JSON maintenance or LLM call is needed. Protected/private actions,
+service settings and runtime data are excluded. Catalog visibility grants no
+permission to invoke an action. See [deployment details](docs/DEPLOYMENT_RUNBOOK.md#agentic-sitemap--ai-catalog).
+
+The formats are drafts: [AI Catalog](https://ai-catalog.io/spec/) and
+[Agentic Resource Discovery](https://github.com/ards-project/ard-spec/blob/main/spec/ard.md).
+ARD now uses `ard.json`; the requested `ai-catalog.json` remains available for
+clients using the predecessor path. Offline tests validate both formats against
+pinned upstream schemas; `npm run sync:ai-catalog-schemas` refreshes those fixtures
+from the revision pinned in the sync script (Apache-2.0).
+
 ### Personal Agent
 
 `services/personal-agent.service.js` is the user-facing orchestration layer. It keeps
