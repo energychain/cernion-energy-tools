@@ -26,47 +26,38 @@
     "could",
     "would",
     "about",
-    "gegen\u00fcber",
+    "gegenüber",
     "situation",
     "anliegen",
-    "pr\u00fcfen",
-    "kl\u00e4ren",
+    "prüfen",
+    "klären",
     "antwort",
     "mail"
   ],
   "sources": [
     {
       "id": "knowledge-rag",
-      "domains": [
-        "*"
-      ],
-      "functions": [
-        "*"
-      ],
+      "domains": ["*"],
+      "functions": ["*"],
       "scoreScale": "unit",
-      "collector": "collectCopilotKnowledgeEvidence"
+      "collector": "collectCopilotKnowledgeEvidence",
+      "timeoutMs": 4000
     },
     {
       "id": "datapoint",
-      "domains": [
-        "*"
-      ],
-      "functions": [
-        "*"
-      ],
+      "domains": ["*"],
+      "functions": ["*"],
       "scoreScale": "none",
-      "collector": "collectCopilotDatapointEvidence"
+      "collector": "collectCopilotDatapointEvidence",
+      "timeoutMs": 4000
     },
     {
       "id": "object-store",
-      "domains": [
-        "*"
-      ],
-      "functions": [
-        "*"
-      ],
+      "domains": ["*"],
+      "functions": ["*"],
       "scoreScale": "none",
-      "collector": "collectCopilotObjectEvidence"
+      "collector": "collectCopilotObjectEvidence",
+      "timeoutMs": 4000
     },
     {
       "id": "willi-mako",
@@ -77,46 +68,46 @@
         "grid_connection"
       ],
       "functions": [],
-      "requiresMapping": true,
       "scoreScale": "provider",
       "collector": "collectCopilotMakoKnowledgeEvidence",
-      "mappingType": "workbench_willi_mapping",
-      "staffField": "isWilliStaff"
+      "timeoutMs": 10000
     },
     {
       "id": "knowledge-rag-federated",
-      "domains": [
-        "market_communication",
-        "regulatory",
-        "grid_connection"
-      ],
+      "domains": ["market_communication", "regulatory", "grid_connection"],
       "functions": [],
       "requiresMapping": true,
       "scoreScale": "unit",
       "collector": "collectCopilotFederatedKnowledgeEvidence",
       "mappingType": "workbench_willi_mapping",
-      "staffField": "isWilliStaff"
+      "staffField": "isWilliStaff",
+      "timeoutMs": 10000
     },
     {
       "id": "analysis-planner",
-      "domains": [
-        "grid_connection",
-        "grid_planning"
-      ],
+      "domains": ["grid_connection", "grid_planning"],
       "functions": [],
       "scoreScale": "none",
-      "collector": "collectCopilotPlanningEvidence"
+      "collector": "collectCopilotPlanningEvidence",
+      "timeoutMs": 4000,
+      "restrictToPrimaryDomain": true,
+      "requiredIdentifierKinds": [
+        "Ort",
+        "Standort",
+        "Postleitzahl",
+        "PLZ",
+        "Adresse",
+        "Address",
+        "Location"
+      ]
     },
     {
       "id": "capability-read",
-      "domains": [
-        "*"
-      ],
-      "functions": [
-        "*"
-      ],
+      "domains": ["*"],
+      "functions": ["*"],
       "kind": "capability",
-      "scoreScale": "none"
+      "scoreScale": "none",
+      "timeoutMs": 4000
     }
   ],
   "defaultSource": "knowledge-rag"

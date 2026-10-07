@@ -151,7 +151,7 @@ describe('askCernionAgent Willi-Mako MaKo/EDIFACT evidence (#498)', () => {
     const result = await handler.call(service, ctx);
 
     expect(result.success).toBe(true);
-    expect(result.evidenceBySource.makoKnowledge.status).toBe('unavailable');
+    expect(result.evidenceBySource.makoKnowledge.status).toBe('timeout');
     expect(result.evidenceBySource.makoKnowledge.hits).toEqual([]);
   });
 

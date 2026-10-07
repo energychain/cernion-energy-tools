@@ -3,7 +3,7 @@
 const crypto = require('node:crypto');
 const understanding = require('./workbench-understanding');
 const conversationAssistance = require('./workbench-conversation');
-const { filterEvidence } = require('./workbench-retrieval');
+const { filterEvidence, retrievalTimeoutMs } = require('./workbench-retrieval');
 const sourceDefaults = require('./workbench-knowledge-sources.json');
 const { choiceCandidates, confirmedCapability } = require('./capability-clarification');
 const { getFunctionModel } = require('./function-model');
@@ -105,6 +105,26 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
   const phaseTimes = { understandMs: 0, retrieveMs: 0, answerMs: 0 };
   let situation;
   let understandingFailed = false;
+  // Generic knowledge reads overlap understanding; current-principal meta remains intact.
+  const prefetchedKnowledge = !draftRequest
+    ? ctx
+        .call(
+          'personal-agent.collectWorkbenchEvidence',
+          {
+            situation: {
+              concern: envelope.userRequest.slice(0, 600),
+              situation: previous?.concern || '',
+              hypotheses: [],
+              retrievalTerms: [],
+            },
+          },
+          {
+            meta: { ...meta, workbenchEvidenceSources: ['knowledge-rag'] },
+            timeout: retrievalTimeoutMs(),
+          }
+        )
+        .catch(() => null)
+    : null;
   const understandStarted = performance.now();
   try {
     situation = draftRequest
@@ -116,11 +136,12 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
           asked: pending?.askedQuestions || [],
           tenantId: p.tenantId,
           model: service.settings.systemActivityModel,
+          logger: service.logger,
         });
   } catch (error) {
     understandingFailed = true;
     service.logger.warn('Workbench understanding unavailable', {
-      errorClass: error.type || error.name,
+      ...require('./workbench-llm-errors').llmErrorDetails(error),
     });
     situation = previous || {
       concern: envelope.userRequest.slice(0, 1200),
@@ -218,6 +239,16 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
       clientId: envelope.asyncDelivery.clientId,
     });
   }
+  if (result.primaryDomain) situation = { ...situation, primaryDomain: result.primaryDomain };
+  const prefetched = prefetchedKnowledge ? await prefetchedKnowledge : null;
+  const prefetchTrace = prefetched?.trace?.find((entry) => entry.source === 'knowledge-rag');
+  const knowledgeCache = prefetchTrace
+    ? {
+        status: prefetchTrace.status,
+        hits: prefetched.evidence.filter((hit) => hit.retrievalSource === 'knowledge-rag'),
+        trace: prefetchTrace,
+      }
+    : null;
   const access = await evidenceAccess(service, p);
   let retrieval;
   const retrieveStarted = performance.now();
@@ -239,12 +270,14 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
                 meta: {
                   ...meta,
                   workbenchEvidenceAccess: access,
+                  workbenchEvidenceSources: null,
+                  workbenchPrefetchedKnowledge: knowledgeCache,
                   workbenchSelectedCapabilities: (result.selectedCapabilities || []).map((entry) =>
                     typeof entry === 'string' ? entry : entry.capability
                   ),
                   workbenchEvidenceCaseId: caseId,
                 },
-                timeout: 4000,
+                timeout: retrievalTimeoutMs(),
               }
             );
     // Recheck the contract at the response boundary, including stubbed/custom facades.
@@ -279,7 +312,16 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
     retrieval = {
       evidence: [],
       noCallBoundaries: [],
-      trace: [{ source: 'pipeline', status: 'unavailable', error: error.type || error.name }],
+      trace: [
+        {
+          source: 'pipeline',
+          status: require('./workbench-retrieval').isSourceTimeout(error)
+            ? 'timeout'
+            : 'unavailable',
+          ms: Math.round(performance.now() - retrieveStarted),
+          error: error.type || error.name,
+        },
+      ],
     };
   }
   phaseTimes.retrieveMs = Math.round(performance.now() - retrieveStarted);
@@ -293,6 +335,8 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
     message: envelope.userRequest,
     followup: Boolean(previous),
     skipModel: understandingFailed,
+    lastAnswer: pending?.lastAnswer || '',
+    logger: service.logger,
   });
   phaseTimes.answerMs = Math.round(performance.now() - answerStarted);
   const { sourceMetadata } = require('./workbench-retrieval');
@@ -380,6 +424,7 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
     draft: reply.draft,
     offeredContent: '',
     lastQuestion: '',
+    lastAnswer: reply.responseText.slice(0, 600),
     askedQuestions: [...(pending?.askedQuestions || []), ...reply.questions],
   });
   const turnMemory = caseId

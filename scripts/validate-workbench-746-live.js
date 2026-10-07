@@ -89,11 +89,11 @@ async function validateLiveWorkbench() {
           sources: [
             {
               id: 'anonymous-willi-note',
-              title: 'Netzanmeldung und Rückmeldung',
+              title: 'Lieferbeginn und erwartete Marktkommunikations-Prozessantwort',
               score: 32,
               excerpt:
                 ctx.params.query +
-                '\nEingangsbestätigung und aktuellen Bearbeitungsstand abgleichen; unbestätigte Fristbehauptung anhand der Prozessversion prüfen.',
+                '\nFür den Lieferbeginn erwartet der Lieferant eine fachliche Prozessantwort auf seine Anmeldung: Bestätigung oder begründete Ablehnung beziehungsweise Klärung fehlender Angaben. Eingangsbestätigung allein ist keine fachliche Bestätigung. Den dokumentierten Status und die gültige Prozessversion prüfen; keine Frist aus der Mail ableiten.',
               url: 'https://example.invalid/anonymous-willi-note',
             },
           ],
@@ -119,7 +119,7 @@ async function validateLiveWorkbench() {
     actions: { select: () => ({ data: { selected: false } }) },
   });
   const messages = [
-    'Anonymisierte Mail eines Lieferanten an einen Netzbetreiber: Zu unserer Netzanmeldung DAR DE000000000001, Marktlokation 99000000001, Anschlussadresse Beispielstraße 1, fehlt laut unserem Bearbeitungsstand die Rückmeldung. Die Frist ist laut Mail überschritten. Bitte teilen Sie uns den Bearbeitungsstand mit. Kannst du mir helfen?',
+    'Anonymisierte Mail eines Lieferanten an einen Netzbetreiber: Zu unserer Netzanmeldung zum Lieferbeginn vom 05.10.2026, DAR DE000000000001, Marktlokation 99000000001, Anschlussadresse Beispielstraße 1, fehlt laut unserem Bearbeitungsstand die Rückmeldung. Die Frist ist laut Mail überschritten. Bitte teilen Sie uns den Bearbeitungsstand mit. Kannst du mir helfen?',
     'Die Eingangsbestätigung liegt vor. Was bedeutet das für den nächsten Schritt?',
     'Mach mir die Antwort fertig',
   ];
@@ -133,6 +133,7 @@ async function validateLiveWorkbench() {
     ).model,
     budgets: process.env.WORKBENCH_LLM_TIMEOUT_MS || '4500',
     thinking: process.env.WORKBENCH_LLM_THINKING || 'minimal',
+    followupThinking: process.env.WORKBENCH_LLM_THINKING_FOLLOWUP || 'low',
     turns: [],
     answerDiagnostics: diagnostics,
   };

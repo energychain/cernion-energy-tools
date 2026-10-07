@@ -1,6 +1,6 @@
 'use strict';
 
-const { scrubForLLM } = require('./prompt-scrubber');
+const { scrubForLLM, scrubPromptText } = require('./prompt-scrubber');
 
 // Keep local reference values reversible while the shared facade still scrubs
 // email, account and telephone patterns. Never send the local reidentification map.
@@ -11,6 +11,7 @@ function opaqueContext(value) {
       [...encoded.matchAll(/\b[A-Za-z\d_-]*\d[A-Za-z\d_-]{4,}\b/g)]
         .filter(
           (match) =>
+            !/^\d{4}-\d{2}-\d{2}$/.test(match[0]) &&
             !/[\w@.]/.test(encoded[match.index - 1] || '') &&
             !/[\w@.]/.test(encoded[match.index + match[0].length] || '')
         )
@@ -35,7 +36,7 @@ function opaqueContext(value) {
       return token;
     return substitutions.get(token) || token;
   });
-  return { value: JSON.parse(masked), reidentMap };
+  return { value: JSON.parse(scrubPromptText(masked, { reidentMap })), reidentMap };
 }
 
 function restoreContext(value, reidentMap) {
@@ -53,7 +54,7 @@ function restoreContext(value, reidentMap) {
         return /[\w-]/.test(before) || /[\w-]/.test(after) ? match : original;
       });
     }
-    return result;
+    return result.replace(/\[?(?:[A-Z]+-MASKED|MASKED-[\w-]+)\]?/g, '[Angabe]');
   }
   if (Array.isArray(value)) return value.map((entry) => restoreContext(entry, reidentMap));
   if (value && typeof value === 'object')

@@ -12,7 +12,7 @@ const situation = {
 };
 
 test('source selection uses hypotheses and configurable catalog without EDIFACT keywords', () => {
-  expect(selectSources(situation)).not.toContain('willi-mako');
+  expect(selectSources(situation)).toContain('willi-mako');
   expect(selectSources(situation, { access: { 'willi-mako': true } })).toContain('willi-mako');
   const catalog = {
     ...defaults,
@@ -233,7 +233,7 @@ test('catalog IDs normalize punctuation without keyword-based selection', () => 
     { access: { 'willi-mako': true } }
   );
   expect(selected).toContain('willi-mako');
-  expect(selected).toContain('analysis-planner');
+  expect(selected).not.toContain('analysis-planner');
 });
 
 test('function hypotheses select sources through catalog function-domain metadata', () => {
@@ -245,8 +245,6 @@ test('function hypotheses select sources through catalog function-domain metadat
     access: { 'willi-mako': true },
     model: { functions: [{ functionId: 'fn-custom', domains: ['grid-connection'] }] },
   };
-  expect(selectSources(input, options)).toEqual(
-    expect.arrayContaining(['willi-mako', 'analysis-planner'])
-  );
-  expect(selectSources(input, { ...options, access: {} })).not.toContain('willi-mako');
+  expect(selectSources(input, options)).toEqual(expect.arrayContaining(['willi-mako']));
+  expect(selectSources(input, { ...options, access: {} })).toContain('willi-mako');
 });

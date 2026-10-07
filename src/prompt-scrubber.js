@@ -193,19 +193,39 @@ function scrubForLLM(data, options = {}) {
  *
  * Targets: email addresses, IBANs, phone numbers.
  */
-function scrubPromptText(text) {
+function scrubPromptText(text, options = {}) {
   if (typeof text !== 'string') return text;
 
+  const salt = options.salt || crypto.randomBytes(8).toString('hex');
+  const mask = (value, kind) => {
+    const placeholder = options.reidentMap ? pseudonymise(value, salt) : `[${kind}-MASKED]`;
+    options.reidentMap?.set(placeholder, value);
+    return placeholder;
+  };
   let scrubbed = text;
   // Email addresses
-  scrubbed = scrubbed.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[EMAIL-MASKED]');
-  // German IBANs
-  scrubbed = scrubbed.replace(
-    /\bDE\d{2}\s?\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\s?\d{2}\b/g,
-    '[IBAN-MASKED]'
+  scrubbed = scrubbed.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, (value) =>
+    mask(value, 'EMAIL')
   );
-  // Phone numbers (German formats)
-  scrubbed = scrubbed.replace(/(\+49|0049|0)\s?[\d\s/.-]{8,15}/g, '[PHONE-MASKED]');
+  // German IBANs
+  scrubbed = scrubbed.replace(/\bDE\d{2}\s?\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\s?\d{2}\b/g, (value) =>
+    mask(value, 'IBAN')
+  );
+  // Protect complete dates before scanning phones, including dates adjacent to times.
+  const dates = [];
+  scrubbed = scrubbed.replace(/\b(?:\d{2}\.\d{2}\.\d{4}|\d{4}-\d{2}-\d{2})\b/g, (date) => {
+    dates.push(date);
+    return `DATEPLACEHOLDER${(dates.length - 1).toString(36).replace(/\d/g, (digit) => String.fromCharCode(65 + Number(digit)))}END`;
+  });
+  scrubbed = scrubbed.replace(/(?<![\d.-])(\+49|0049|0)\s?[\d\s/.-]{8,15}/g, (value) =>
+    mask(value, 'PHONE')
+  );
+  scrubbed = scrubbed.replace(/DATEPLACEHOLDER([A-Za-z]+)END/g, (token) => {
+    const index = token
+      .slice('DATEPLACEHOLDER'.length, -3)
+      .replace(/[A-J]/g, (letter) => String(letter.charCodeAt(0) - 65));
+    return dates[parseInt(index, 36)];
+  });
 
   return scrubbed;
 }
