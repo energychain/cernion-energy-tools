@@ -41,6 +41,7 @@ function buildBaseCtxCallMock({ williMakoResponse, williMakoSpy, williMakoImpl }
               title: 'APERAK-Fehlercodes in der Marktkommunikation',
               url: 'https://stromhaltig.de/wissen/aperak-fehlercodes',
               score: 30,
+              excerpt: 'Netzanmeldung: Eingangsbestätigung und Referenz prüfen.',
             },
           ],
           structuralHints: [{ category: 'edifact', tags: ['APERAK'], hint: 'context hint' }],
@@ -65,6 +66,7 @@ describe('askCernionAgent Willi-Mako MaKo/EDIFACT evidence (#498)', () => {
     'Welche UTILMD-Segmentstruktur ist für Lieferantenwechsel relevant?',
     'Was bedeutet ein MSCONS Prüfhinweis im MaKo-Kontext?',
     'EVUCL A06 andere Anmeldung wird verarbeitet',
+    'Der Lieferant wartet auf eine Antwort zur Netzanmeldung einer Marktlokation. Frist überschritten.',
   ])(
     'calls willi-mako.resolveStructure (read-only) for generic MaKo question: %s',
     async (question) => {
@@ -86,6 +88,16 @@ describe('askCernionAgent Willi-Mako MaKo/EDIFACT evidence (#498)', () => {
       expect(result.evidenceBySource.makoKnowledge.hits.length).toBeGreaterThan(0);
       expect(result.evidenceBySource.makoKnowledge.hits[0].source).toBe('willi-mako');
       expect(result.processContext).toContain('makoKnowledge:available');
+      expect(result.evidenceBySource.makoKnowledge.hits[0].value).toContain('Eingangsbestätigung');
+      expect(result.sources).toContainEqual(
+        expect.objectContaining({
+          name: 'willi-mako',
+          status: 'available',
+          hitCount: 1,
+          ms: expect.any(Number),
+        })
+      );
+      expect(JSON.stringify(result.sources)).not.toContain('Eingangsbestätigung');
 
       // Read-only / advisory: no consequential MaKo action is ever surfaced.
       expect(result.forbiddenActions).toEqual(

@@ -100,42 +100,55 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
   const state = conversation?.cetCaseId
     ? await service.loadVisibleCase(ctx, p, conversation.cetCaseId)
     : null;
+  const previous = pending?.situation || state?.knownContext?.situation;
+  const draftRequest = Boolean(previous && understanding.isDraftRequest(envelope.userRequest));
+  const phaseTimes = { understandMs: 0, retrieveMs: 0, answerMs: 0 };
   let situation;
+  let understandingFailed = false;
+  const understandStarted = performance.now();
   try {
-    situation = await understanding.understand({
-      message: envelope.userRequest,
-      messages: ctx.params.messages,
-      previous: pending?.situation || state?.knownContext?.situation,
-      asked: pending?.askedQuestions || [],
-      tenantId: p.tenantId,
-      model: service.settings.systemActivityModel,
-    });
+    situation = draftRequest
+      ? { ...previous, requestedAction: { ...previous.requestedAction, draftRequested: true } }
+      : await understanding.understand({
+          message: envelope.userRequest,
+          messages: previous ? [] : ctx.params.messages,
+          previous,
+          asked: pending?.askedQuestions || [],
+          tenantId: p.tenantId,
+          model: service.settings.systemActivityModel,
+        });
   } catch (error) {
+    understandingFailed = true;
     service.logger.warn('Workbench understanding unavailable', {
       errorClass: error.type || error.name,
     });
-    return {
-      state: 'understanding_unavailable',
-      nonBinding: true,
-      responseText: understanding.fallbackAnswer(
-        pending?.situation ||
-          state?.knownContext?.situation || {
-            concern: envelope.userRequest.slice(0, 1200),
-            situation: '',
-            requestedAction: {
-              description: 'Prüfe die Angaben im Dokument und den bisherigen Bearbeitungsstand.',
-            },
-          }
-      ),
-      latencyMs: Math.round(performance.now() - started),
+    situation = previous || {
+      concern: envelope.userRequest.slice(0, 1200),
+      situation: '',
+      participants: [],
+      identifiers: [],
+      deadlines: [],
+      hypotheses: [],
+      missingInformation: [],
+      requestedAction: {
+        description: 'Prüfe die Angaben im Dokument und den bisherigen Bearbeitungsstand.',
+        draftRequested: understanding.isDraftRequest(envelope.userRequest),
+        externalEffect: false,
+      },
+      turnKind: 'knowledge',
+      retrievalTerms: [],
     };
   }
+  phaseTimes.understandMs = Math.round(performance.now() - understandStarted);
   if (situation.turnKind === 'smalltalk') {
+    service.logger.info('Workbench turn phases and sources', { phaseTimes, sources: [] });
     return {
       state: 'assistance',
       nonBinding: true,
       responseText: 'Hallo! Wie kann ich dir helfen?',
       situation,
+      phaseTimes,
+      sources: [],
       latencyMs: Math.round(performance.now() - started),
     };
   }
@@ -207,26 +220,41 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
   }
   const access = await evidenceAccess(service, p);
   let retrieval;
+  const retrieveStarted = performance.now();
   try {
-    retrieval = await ctx.call(
-      'personal-agent.collectWorkbenchEvidence',
-      { situation },
-      {
-        meta: {
-          ...meta,
-          workbenchEvidenceAccess: access,
-          workbenchSelectedCapabilities: (result.selectedCapabilities || []).map((entry) =>
-            typeof entry === 'string' ? entry : entry.capability
-          ),
-          workbenchEvidenceCaseId: caseId,
-        },
-        timeout: 4000,
-      }
-    );
+    retrieval =
+      understandingFailed && !previous
+        ? { evidence: [], trace: [] }
+        : draftRequest && pending?.retrieval
+          ? {
+              ...pending.retrieval,
+              trace: (pending.retrieval.trace || [])
+                .filter((entry) => entry.source !== 'response_boundary')
+                .map((entry) => ({ ...entry, called: false, ms: 0 })),
+            }
+          : await ctx.call(
+              'personal-agent.collectWorkbenchEvidence',
+              { situation },
+              {
+                meta: {
+                  ...meta,
+                  workbenchEvidenceAccess: access,
+                  workbenchSelectedCapabilities: (result.selectedCapabilities || []).map((entry) =>
+                    typeof entry === 'string' ? entry : entry.capability
+                  ),
+                  workbenchEvidenceCaseId: caseId,
+                },
+                timeout: 4000,
+              }
+            );
     // Recheck the contract at the response boundary, including stubbed/custom facades.
     const groups = new Map();
     for (const hit of retrieval.evidence || []) {
       const source = hit.retrievalSource || hit.source;
+      const sourcePolicy = (
+        service.settings.workbenchKnowledgeSources || sourceDefaults
+      ).sources.find((entry) => entry.id === source);
+      if (sourcePolicy?.requiresMapping && !access[source]) continue;
       groups.set(source, [...(groups.get(source) || []), hit]);
     }
     const checks = [...groups].map(([source, hits]) =>
@@ -254,13 +282,22 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
       trace: [{ source: 'pipeline', status: 'unavailable', error: error.type || error.name }],
     };
   }
+  phaseTimes.retrieveMs = Math.round(performance.now() - retrieveStarted);
+  const answerStarted = performance.now();
   const reply = await understanding.answer({
     situation,
     retrieval,
     tenantId: p.tenantId,
     asked: pending?.askedQuestions || [],
     previousDraft: pending?.draft || '',
+    message: envelope.userRequest,
+    followup: Boolean(previous),
+    skipModel: understandingFailed,
   });
+  phaseTimes.answerMs = Math.round(performance.now() - answerStarted);
+  const { sourceMetadata } = require('./workbench-retrieval');
+  const sources = sourceMetadata(retrieval.trace);
+  service.logger.info('Workbench turn phases and sources', { phaseTimes, sources });
   let draftId;
   if (reply.draft && caseId)
     draftId = await conversationAssistance.saveDraft(
@@ -339,6 +376,7 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
   }
   await conversationAssistance.saveTurn(service.conversationsDb, p, envelope, {
     situation,
+    retrieval,
     draft: reply.draft,
     offeredContent: '',
     lastQuestion: '',
@@ -360,12 +398,14 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
     : service.emptyEventSummary();
   return {
     ...service.chatResponse(operation || 'answer', result, eventSummary, turnMemory),
-    state: 'assistance',
+    state: understandingFailed && !previous ? 'understanding_unavailable' : 'assistance',
     nonBinding: true,
     situation,
     evidence: reply.evidence,
     retrievalTrace: retrieval.trace,
     answerStatus: reply.answerStatus,
+    phaseTimes,
+    sources,
     ...(displayRef ? { caseDisplayRef: displayRef } : {}),
     ...(draftId ? { draftId } : {}),
     latencyMs: Math.round(performance.now() - started),

@@ -79267,6 +79267,35 @@
                     "forbiddenActions"
                   ],
                   "properties": {
+                    "sources": {
+                      "type": "array",
+                      "description": "Per-turn source timings and status, without document contents.",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "name",
+                          "status",
+                          "hitCount",
+                          "ms"
+                        ],
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "hitCount": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "ms": {
+                            "type": "integer",
+                            "minimum": 0
+                          }
+                        }
+                      }
+                    },
                     "success": {
                       "type": "boolean"
                     },

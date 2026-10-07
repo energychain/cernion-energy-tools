@@ -159,13 +159,9 @@ module.exports = {
     async settle() {
       while (this.pending.size) await Promise.allSettled([...this.pending]);
     },
-    functionId(id, modelSourceHash = this.model.sourceHash) {
+    functionId(id, _modelSourceHash = this.model.sourceHash) {
+      if (this.model.functions.some((fn) => fn.functionId === id)) return id;
       const resolved = resolveFunctionId(id, { model: this.model });
-      if (
-        modelSourceHash === this.model.sourceHash &&
-        this.model.functions.some((fn) => fn.functionId === id)
-      )
-        return id;
       if (resolved.length !== 1) invalid('Function identity must resolve unambiguously');
       return resolved[0].functionId;
     },
@@ -196,38 +192,52 @@ module.exports = {
       throw new Errors.MoleculerError('Wake revision contention', 409, 'WAKE_CONFLICT');
     },
     async records(tenantId) {
-      return (
+      const docs = (
         await this.db.allDocs({ startkey: 'wake:', endkey: 'wake:\uffff', include_docs: true })
       ).rows
         .map((row) => row.doc)
         .filter((doc) => doc && (!tenantId || doc.tenantId === tenantId))
-        .flatMap((doc) => {
-          this.unresolvedWakeRecords ||= new Map();
-          try {
-            const functionId = this.functionId(doc.functionId, doc.modelSourceHash || null);
-            this.unresolvedWakeRecords.delete(doc._id);
-            return [{ ...doc, functionId }];
-          } catch (error) {
-            if (error.type !== 'WAKE_INVALID') throw error;
-            // Model changes can remove or split stored identities. Keep their
-            // state intact, but never schedule them or abort the whole broker.
-            if (this.unresolvedWakeRecords.get(doc._id) !== doc._rev) {
-              this.logger.warn('Wake record suspended: unresolved function identity', {
-                recordId: doc._id,
-                functionId: doc.functionId,
-                modelSourceHash: doc.modelSourceHash || null,
-                currentModelSourceHash: this.model.sourceHash || null,
-              });
-              this.unresolvedWakeRecords.set(doc._id, doc._rev);
-            }
-            return [];
+        .filter(Boolean);
+      const records = [];
+      for (const doc of docs) {
+        this.unresolvedWakeRecords ||= new Map();
+        try {
+          const functionId = this.functionId(doc.functionId, doc.modelSourceHash || null);
+          this.unresolvedWakeRecords.delete(doc._id);
+          const current =
+            doc.functionId !== functionId || doc.modelSourceHash !== this.model.sourceHash
+              ? await this.update(doc._id, (latest) =>
+                  latest
+                    ? {
+                        ...latest,
+                        functionId: this.functionId(latest.functionId),
+                        modelSourceHash: this.model.sourceHash,
+                      }
+                    : null
+                )
+              : doc;
+          if (current)
+            records.push({ ...current, functionId: this.functionId(current.functionId) });
+        } catch (error) {
+          if (error.type !== 'WAKE_INVALID') throw error;
+          // Model changes can remove or split stored identities. Keep their
+          // state intact, but never schedule them or abort the whole broker.
+          if (this.unresolvedWakeRecords.get(doc._id) !== doc._rev) {
+            this.logger.warn('Wake record suspended: unresolved function identity', {
+              recordId: doc._id,
+              functionId: doc.functionId,
+              modelSourceHash: doc.modelSourceHash || null,
+              currentModelSourceHash: this.model.sourceHash || null,
+            });
+            this.unresolvedWakeRecords.set(doc._id, doc._rev);
           }
-        })
-        .sort(
-          (a, b) =>
-            compareCanonicalStrings(a.tenantId, b.tenantId) ||
-            compareCanonicalStrings(a.agentId, b.agentId)
-        );
+        }
+      }
+      return records.sort(
+        (a, b) =>
+          compareCanonicalStrings(a.tenantId, b.tenantId) ||
+          compareCanonicalStrings(a.agentId, b.agentId)
+      );
     },
     async activation(tenantId, functionId) {
       return (await this.load(`activation:${key(tenantId, functionId)}`))?.activation;

@@ -97,7 +97,8 @@ test('Willi pipeline retains bounded excerpt, URL, distinct sections and no-call
   const legacy = await methods.collectCopilotMakoKnowledgeEvidence.call(methods, ctx, {
     question: situation.situation,
   });
-  expect(legacy.status).toBe('skipped');
+  expect(legacy.status).toBe('available');
+  expect(legacy.hits[0].value).toContain(doc.excerpt);
 });
 
 test('resolveStructure carries search content through shared service, preserving guardrails', async () => {

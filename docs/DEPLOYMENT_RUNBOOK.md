@@ -259,12 +259,22 @@ Workbench-Verstehen und Antworten verwenden getrennte Optionen über die zentral
 | `WORKBENCH_LLM_MODEL` | Provider-Schnellmodell | Ein Modell für beide Phasen oder `Verstehen,Antworten`. Defaults: Gemini `gemini-3.5-flash-lite`, OpenAI-kompatibel `gpt-4o-mini`, Ollama `llama3.1:8b`. |
 | `WORKBENCH_LLM_TIMEOUT_MS` | `4500` | Ein Budget in Millisekunden oder `Verstehen,Antworten`, z. B. `3500,6000`. Ungültige Werte fallen auf 4500 ms zurück. |
 
+| `WORKBENCH_LLM_THINKING` | `minimal` | Gemini: Denkstufe `minimal`, `low`, `medium`, `high` oder numerisches Budget für Gemini 2.5. Ein Wert oder `Verstehen,Antworten`; explizites `options.thinkingConfig` hat Vorrang. |
+
 Empfehlung: zunächst das schnelle, beim konfigurierten Provider verfügbare Modell
 verwenden und beide Phasen anhand anonymisierter Alltagsdokumente messen. Bei eigenen
 OpenAI-kompatiblen Endpunkten deren Modellnamen explizit setzen. Bei mehr benötigter
 Entwurfsqualität nur das Antwortmodell/Budget erhöhen. Nach Timeout oder Fehler bleibt
 eine kurze Antwort mit vorhandenem Lagebild und Quellen erhalten; technische
 Außenwirkungs-Sperren gelten auch beim Rückfall. Retrieval hat separat 4000 ms Budget.
+Für Gemini empfohlen: `WORKBENCH_LLM_MODEL=gemini-3.5-flash-lite`,
+`WORKBENCH_LLM_THINKING=minimal` und `WORKBENCH_LLM_TIMEOUT_MS=4500,4500`.
+Folgeturns aktualisieren nur das gespeicherte Lagebild; Entwurfswünsche überspringen
+Verstehen und nutzen bereits gefundene Quellen unter den aktuellen Zugriffsrechten.
+Bei einem Fehler bleibt der letzte Entwurf erhalten oder entsteht ein Arbeitsentwurf
+aus den bekannten Angaben. Die Antwortmetadaten enthalten `phaseTimes`
+(`understandMs`, `retrieveMs`, `answerMs`) und `sources` (`name`, `status`,
+`hitCount`, `ms`). Dieselben Werte werden pro Turn ohne Dokumentinhalte protokolliert.
 
 #### Agentic Sitemap / AI Catalog
 

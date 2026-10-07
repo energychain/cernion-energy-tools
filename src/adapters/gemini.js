@@ -38,12 +38,24 @@ function getClient() {
   return new GoogleGenerativeAI(apiKey);
 }
 
+function generationOptions(options) {
+  const config = options.temperature != null ? { temperature: options.temperature } : {};
+  if (options.responseMimeType) config.responseMimeType = options.responseMimeType;
+  if (options.thinkingConfig) config.thinkingConfig = options.thinkingConfig;
+  else if (options.thinking != null) {
+    const value = String(options.thinking).toLowerCase();
+    if (['minimal', 'low', 'medium', 'high'].includes(value))
+      config.thinkingConfig = { thinkingLevel: value };
+    else if (Number.isInteger(Number(value)) && Number(value) >= -1)
+      config.thinkingConfig = { thinkingBudget: Number(value) };
+  }
+  return config;
+}
+
 async function generateText(prompt, options = {}) {
   const model = getClient().getGenerativeModel({
     model: options.model || getModelName(),
-    ...(options.temperature != null
-      ? { generationConfig: { temperature: options.temperature } }
-      : {}),
+    generationConfig: generationOptions(options),
   });
   const result = await model.generateContent(prompt);
   return result.response.text();
@@ -59,7 +71,7 @@ async function generateStructured(schema, prompt, options = {}) {
   const model = getClient().getGenerativeModel({
     model: options.model || getModelName(),
     generationConfig: {
-      ...(options.temperature != null ? { temperature: options.temperature } : {}),
+      ...generationOptions(options),
       responseMimeType: 'application/json',
       responseSchema: schema,
     },
@@ -231,7 +243,10 @@ async function generateChat(messages, options = {}) {
   const { contents, systemInstruction } = buildGeminiContents(messages);
   const functionDeclarations = toGeminiFunctionDeclarations(options.tools);
 
-  const modelParams = { model: options.model || getModelName() };
+  const modelParams = {
+    model: options.model || getModelName(),
+    generationConfig: generationOptions(options),
+  };
   if (systemInstruction) modelParams.systemInstruction = systemInstruction;
   if (functionDeclarations.length > 0) {
     modelParams.tools = [{ functionDeclarations }];

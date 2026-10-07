@@ -208,6 +208,7 @@ async function collectEvidence(
   };
   const results = await Promise.all(
     sources.map(async (source) => {
+      const started = performance.now();
       try {
         const config = catalog.sources.find((entry) => entry.id === source);
         const result =
@@ -219,6 +220,7 @@ async function collectEvidence(
           ...result,
           ...filtered,
           source,
+          ms: Math.round(performance.now() - started),
           trace: {
             ...result.trace,
             rejected: [...(result.trace?.rejected || []), ...filtered.rejected],
@@ -228,6 +230,7 @@ async function collectEvidence(
         return {
           source,
           status: 'unavailable',
+          ms: Math.round(performance.now() - started),
           hits: [],
           trace: { error: error.type || error.name },
         };
@@ -247,6 +250,7 @@ async function collectEvidence(
             called: result.status !== 'skipped',
             status: result.status,
             hitCount: result.hits.length,
+            ms: result.ms,
             ...result.trace,
           }
         : { source: id, called: false, status: 'skipped', hitCount: 0 };
@@ -254,4 +258,28 @@ async function collectEvidence(
   };
 }
 
-module.exports = { selectSources, filterEvidence, collectEvidence, collectReadCapabilities };
+function sourceMetadata(results = []) {
+  return results
+    .filter((entry) => entry.source !== 'response_boundary')
+    .map((entry) => ({
+      name: entry.source || entry.name,
+      status: entry.status || 'missing',
+      hitCount: entry.hitCount ?? entry.hits?.length ?? 0,
+      ms: entry.ms || 0,
+    }));
+}
+
+async function timedSource(task) {
+  const started = performance.now();
+  const result = await task();
+  return { ...result, ms: Math.round(performance.now() - started) };
+}
+
+module.exports = {
+  selectSources,
+  filterEvidence,
+  collectEvidence,
+  collectReadCapabilities,
+  sourceMetadata,
+  timedSource,
+};

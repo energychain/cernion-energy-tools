@@ -1582,7 +1582,12 @@ function findBestCapability(taskText, options = {}) {
   // evidence-chain-specific combo above so a genuine evidence-chain proof request still
   // wins on its own more specific signals; this block instead catches "explain this
   // MaKo/EDIFACT code/segment/message-type" style questions that don't mention evidence.
-  if (hasMakoEdifactCodeContextSignal(haystack)) {
+  if (
+    hasMakoEdifactCodeContextSignal(haystack) &&
+    /(fehlercode|prüfidentifikator|pruefidentifikator|nachrichtentyp|segmentstruktur|segment|prüfhinweis|pruefhinweis|erkl[aä]r|bedeutet|marktkommunikation|mako.?kontext|\bmako\b|ablehnung|zurückweisung|zurueckweisung|anmeldung|kl[aä]rfall|verarbeitet)/i.test(
+      haystack
+    )
+  ) {
     const makoCodeContextCapability = findCapabilityByName('market_communication_evidence_chain');
     if (makoCodeContextCapability) {
       return { capability: makoCodeContextCapability, score: 132, usedFallback: false };

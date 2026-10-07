@@ -573,6 +573,8 @@ module.exports = {
               caseStateVersion: workbench.caseStateVersion,
               primaryDomain: workbench.primaryDomain,
               readinessState: workbench.readinessState,
+              phaseTimes: workbench.phaseTimes,
+              sources: workbench.sources,
               pendingEvents:
                 workbench.pendingEvents ??
                 workbench.eventSummary?.unacknowledged ??
