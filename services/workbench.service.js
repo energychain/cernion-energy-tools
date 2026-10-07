@@ -1484,6 +1484,16 @@ module.exports = {
         coverageTurn.mapped(ctx, this.metaForMapping(ctx, p, mapping));
         const correctionMeta = this.metaForMapping(ctx, p, mapping);
         p = principal({ meta: correctionMeta }, ctx.params);
+        const background = require('../src/workbench-background-task');
+        if (background.backgroundTask(envelope.userRequest))
+          return background.answerBackgroundTask(envelope.userRequest, p.tenantId, this.logger);
+        if (require('../src/workbench-thread').isDocumentInput(envelope.userRequest))
+          return contentTurn.runContentTurn(this, ctx, {
+            p,
+            mapping,
+            envelope,
+            meta: correctionMeta,
+          });
         const pending = await conversationAssistance.readTurn(this.conversationsDb, p, envelope);
         if (/^(?:kein fall|no case)[.!\s]*$/i.test(envelope.userRequest.trim())) {
           return contentTurn.discard(this, ctx, p, envelope, pending, correctionMeta);

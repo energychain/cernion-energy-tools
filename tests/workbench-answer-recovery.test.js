@@ -200,7 +200,7 @@ test('raw evidence and repeated claim text never render; sources are deduplicate
   expect(reply.responseText).not.toContain(raw);
   expect(reply.responseText.split(repeated)).toHaveLength(2);
   expect(reply.responseText.match(/Quellen:/g)).toHaveLength(1);
-  expect(reply.responseText.endsWith('Quellen: willi-mako: EBD E_0608')).toBe(true);
+  expect(reply.responseText.endsWith('Quellen: EBD E_0608 · section-1')).toBe(true);
   expect(copiesEvidence('Einleitung ' + raw.slice(30) + ' Nachsatz', retrieval.evidence)).toBe(
     true
   );

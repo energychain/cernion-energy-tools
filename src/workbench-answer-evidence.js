@@ -93,9 +93,12 @@ function sourceLine(evidence) {
     ...new Set(
       evidence
         .map((hit) => {
-          const title =
-            hit.title || hit.metadata?.title || hit.metadata?.sourceId || hit.metadata?.hitId;
-          const label = [hit.source, title].filter(Boolean).join(': ');
+          const title = hit.title || hit.metadata?.title;
+          const section = hit.metadata?.sectionId || hit.sectionId;
+          const label = [title || hit.source, section]
+            .filter(Boolean)
+            .join(' · ')
+            .replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi, '');
           return scrubPromptText(label)
             .replace(/\[?(?:[A-Z]+-MASKED|MASKED-[\w-]+)\]?/g, '')
             .slice(0, 160)

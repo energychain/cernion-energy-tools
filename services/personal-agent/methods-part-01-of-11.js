@@ -213,6 +213,7 @@ module.exports = {
           ),
           url: entry.url || null,
           metadata: {
+            title: entry.title || null,
             sourceId: entry.id || null,
             sectionId: entry.sectionId || null,
             score: entry.score ?? null,

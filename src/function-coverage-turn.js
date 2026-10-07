@@ -22,6 +22,9 @@ function collect(result, facts) {
 }
 
 function before(ctx) {
+  const message =
+    ctx.params.message || ctx.params.messages?.findLast((turn) => turn.role === 'user')?.content;
+  if (require('./workbench-background-task').backgroundTask(message)) return;
   // Delegated requests are observed by Workbench, once.
   if (
     ctx.action?.name === 'openai-compatible.chatCompletions' &&

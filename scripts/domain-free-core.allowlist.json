@@ -589,6 +589,10 @@
     {
       "term": "variante",
       "reason": "Generic conditional draft label and schema description, shared across all domains; never used for domain routing or source selection."
+    },
+    {
+      "term": "thread",
+      "reason": "Generic correspondence and execution-thread terminology; no energy-market meaning or domain routing rule."
     }
   ]
 }

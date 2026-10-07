@@ -100,41 +100,57 @@ async function evidenceAccess(service, p) {
 
 async function runContentTurn(service, ctx, { p, mapping, envelope, pending, conversation, meta }) {
   const started = performance.now();
+  const rawMessage = envelope.userRequest;
+  envelope = {
+    ...envelope,
+    userRequest: require('./workbench-thread').prepareThread(envelope.userRequest, 12000).text,
+  };
   const workbenchContext = await service.loadWorkbenchContext(p, envelope, mapping);
   const state = conversation?.cetCaseId
     ? await service.loadVisibleCase(ctx, p, conversation.cetCaseId)
     : null;
   const previous = pending?.situation || state?.knownContext?.situation;
   const draftRequest = Boolean(previous && understanding.isDraftRequest(envelope.userRequest));
+  const nextStepRequest =
+    /^(?:Was soll ich (?:jetzt |konkret )?tun|Was (?:jetzt|nun)|Wie (?:geht es|machen wir) weiter)[.!?\s]*$/i.test(
+      envelope.userRequest.trim()
+    );
+  const reuseEvidence = Boolean(
+    previous &&
+    nextStepRequest &&
+    pending?.retrieval &&
+    Date.now() - (pending.evidenceRetrievedAt || 0) < 300000
+  );
   const phaseTimes = { understandMs: 0, retrieveMs: 0, answerMs: 0 };
   let situation;
   let understandingFailed = false;
   // Generic knowledge reads overlap understanding; current-principal meta remains intact.
-  const prefetchedKnowledge = !draftRequest
-    ? ctx
-        .call(
-          'personal-agent.collectWorkbenchEvidence',
-          {
-            situation: {
-              concern: envelope.userRequest.slice(0, 600),
-              situation: previous?.concern || '',
-              hypotheses: [],
-              retrievalTerms: [],
+  const prefetchedKnowledge =
+    !draftRequest && !reuseEvidence
+      ? ctx
+          .call(
+            'personal-agent.collectWorkbenchEvidence',
+            {
+              situation: {
+                concern: envelope.userRequest.slice(0, 600),
+                situation: previous?.concern || '',
+                hypotheses: [],
+                retrievalTerms: [],
+              },
             },
-          },
-          {
-            meta: { ...meta, workbenchEvidenceSources: ['knowledge-rag'] },
-            timeout: retrievalTimeoutMs(),
-          }
-        )
-        .catch(() => null)
-    : null;
+            {
+              meta: { ...meta, workbenchEvidenceSources: ['knowledge-rag'] },
+              timeout: retrievalTimeoutMs(),
+            }
+          )
+          .catch(() => null)
+      : null;
   const understandStarted = performance.now();
   try {
     situation = draftRequest
       ? { ...previous, requestedAction: { ...previous.requestedAction, draftRequested: true } }
       : await understanding.understand({
-          message: envelope.userRequest,
+          message: rawMessage,
           messages: previous ? [] : ctx.params.messages,
           previous,
           asked: pending?.askedQuestions || [],
@@ -254,13 +270,24 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
       }
     : null;
   const access = await evidenceAccess(service, p);
+  const codes = require('./workbench-codes');
+  const codeLookup = codes.resolveCodes(
+    { call: (name, params, options) => ctx.call(name, params, { ...options, meta }), meta },
+    situation,
+    access,
+    service.settings.workbenchCodeCatalog
+  );
+
   let retrieval;
   const retrieveStarted = performance.now();
+  const resolvedCodes = await codeLookup;
+  const codesUnresolved = resolvedCodes.resolutions.some((entry) => entry.status !== 'resolved');
   try {
-    retrieval =
-      understandingFailed && !previous
+    retrieval = codesUnresolved
+      ? { evidence: [], trace: [] }
+      : understandingFailed && !previous
         ? { evidence: [], trace: [] }
-        : draftRequest && pending?.retrieval
+        : (draftRequest || reuseEvidence) && pending?.retrieval
           ? {
               ...pending.retrieval,
               trace: (pending.retrieval.trace || [])
@@ -332,6 +359,13 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
       ],
     };
   }
+  situation.codeResolutions = resolvedCodes.resolutions;
+  situation.missingInformation = [
+    ...codes.unresolvedQuestions(resolvedCodes.resolutions),
+    ...situation.missingInformation,
+  ].slice(0, 10);
+  retrieval.evidence = [...resolvedCodes.evidence, ...(retrieval.evidence || [])];
+  retrieval.trace = [...(retrieval.trace || []), ...resolvedCodes.trace];
   phaseTimes.retrieveMs = Math.round(performance.now() - retrieveStarted);
   const answerStarted = performance.now();
   let reply;
@@ -344,6 +378,7 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
       previousDraft: pending?.draft || '',
       message: envelope.userRequest,
       followup: Boolean(previous),
+      nextStepOnly: Boolean(previous && nextStepRequest),
       skipModel: understandingFailed,
       lastAnswer: pending?.lastAnswer || '',
       logger: service.logger,
@@ -433,6 +468,7 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
   await conversationAssistance.saveTurn(service.conversationsDb, p, envelope, {
     situation,
     retrieval,
+    evidenceRetrievedAt: draftRequest || reuseEvidence ? pending?.evidenceRetrievedAt : Date.now(),
     draft: reply.draft,
     offeredContent: '',
     lastQuestion: '',

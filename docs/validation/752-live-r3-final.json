@@ -1,0 +1,407 @@
+{
+  "mode": "live central LLM and Willi-Mako; knowledge-rag/object/datapoint documented stubs",
+  "provider": "gemini",
+  "models": "gemini-3.5-flash-lite",
+  "answerModel": "gemini-flash-latest",
+  "budgets": "15000,45000",
+  "thinking": "minimal,default",
+  "followupThinking": "low",
+  "turns": [
+    {
+      "scenario": "R3",
+      "message": "Kannst du mir mit diesem Mail-Thread helfen?\n\nVon: Team Lieferant <team8@example.invalid>\nGesendet: 2026-10-09T10:00:00Z\nAn: Team Gegenüber <other@example.invalid>\nBetreff: Rückmeldung REF-3001\n\nKannst du diesen Verlauf einordnen und eine Begleitantwort vorbereiten? Die Zusage zur Klärung wurde gemacht, die letzte Rückmeldung verweist aber erneut nur auf die Eingangsbestätigung.\n\nIm Verlauf geht es weiterhin um dieselbe Anfrage mit der ersetzten Referenz REF-3001. Es wurde bislang kein belastbares Ergebnis übermittelt. Die Korrespondenz soll die offenen Fragen sichtbar halten und die behaupteten Schritte von den tatsächlich dokumentierten Ergebnissen unterscheiden. \n\nMit freundlichen Grüßen\nTeam Beispielversorgung\nBeispielweg 42, 00000 Beispielstadt\nTelefon: +49 000 000000\nE-Mail: team@example.invalid\n\nDiese Nachricht ist nur für die genannten Empfänger vorgesehen.\nBitte prüfen Sie vor einem Ausdruck, ob Sie diesen benötigen.\nDie Angaben in der Korrespondenz ersetzen keine fachliche Prozessantwort.\nBeispielversorgung, Geschäftsanschrift Beispielweg 42, 00000 Beispielstadt.\nDies ist ein synthetischer Test-Fußtext ohne reale personenbezogene Angaben.\n\nMit freundlichen Grüßen\nTeam Beispielversorgung\nBeispielweg 42, 00000 Beispielstadt\nTelefon: +49 000 000000\nE-Mail: team@example.invalid\n\nDiese Nachricht ist nur für die genannten Empfänger vorgesehen.\nBitte prüfen Sie vor einem Ausdruck, ob Sie diesen benötigen.\nDie Angaben in der Korrespondenz ersetzen keine fachliche Prozessantwort.\nBeispielversorgung, Geschäftsanschrift Beispielweg 42, 00000 Beispielstadt.\nDies ist ein synthetischer Test-Fußtext ohne reale personenbezogene Angaben.\n\nVon: Team Empfänger <team7@example.invalid>\nGesendet: 2026-10-08T10:00:00Z\nAn: Team Gegenüber <other@example.invalid>\nBetreff: Rückmeldung REF-3001\n\nWir benötigen jetzt eine konkrete Auskunft: Ist der gemeldete Fehler behoben und wann erhalten wir die fachliche Rückmeldung über den vorgesehenen Prozess? Bitte unterscheiden Sie Zusage und Ergebnis.\n\nIm Verlauf geht es weiterhin um dieselbe Anfrage mit der ersetzten Referenz REF-3001. Es wurde bislang kein belastbares Ergebnis übermittelt. Die Korrespondenz soll die offenen Fragen sichtbar halten und die behaupteten Schritte von den tatsächlich dokumentierten Ergebnissen unterscheiden. \n\nMit freundlichen Grüßen\nTeam Beispielversorgung\nBeispielweg 42, 00000 Beispielstadt\nTelefon: +49 000 000000\nE-Mail: team@example.invalid\n\nDiese Nachricht ist nur für die genannten Empfänger vorgesehen.\nBitte prüfen Sie vor einem Ausdruck, ob Sie diesen benötigen.\nDie Angaben in der Korrespondenz ersetzen keine fachliche Prozessantwort.\nBeispielversorgung, Geschäftsanschrift Beispielweg 42, 00000 Beispielstadt.\nDies ist ein synthetischer Test-Fußtext ohne reale personenbezogene Angaben.\n\nMit freundlichen Grüßen\nTeam Beispielversorgung\nBeispielweg 42, 00000 Beispielstadt\nTelefon: +49 000 000000\nE-Mail: team@example.invalid\n\nDiese Nachricht ist nur für die genannten Empfänger vorgesehen.\nBitte prüfen Sie vor einem Ausdruck, ob Sie diesen benötigen.\nDie Angaben in der Korrespondenz ersetzen keine fachliche Prozessantwort.\nBeispielversorgung, Geschäftsanschrift Beispielweg 42, 00000 Beispielstadt.\nDies ist ein synthetischer Test-Fußtext ohne reale personenbezogene Angaben.\n\nVon: Team Lieferant <team6@example.invalid>\nGesendet: 2026-10-07T10:00:00Z\nAn: Team Gegenüber <other@example.invalid>\nBetreff: Rückmeldung REF-3001\n\nDie erwähnte Nachricht bestätigt lediglich den Eingang. Unsere Frage nach der fachlichen Antwort und dem aktuellen Bearbeitungsstand ist damit weiterhin unbeantwortet.\n\nIm Verlauf geht es weiterhin um dieselbe Anfrage mit der ersetzten Referenz REF-3001. Es wurde bislang kein belastbares Ergebnis übermittelt. Die Korrespondenz soll die offenen Fragen sichtbar halten und die behaupteten Schritte von den tatsächlich dokumentierten Ergebnissen unterscheiden. \n\nMit freundlichen Grüßen\nTeam Beispielversorgung\nBeispielweg 42, 00000 Beispielstadt\nTelefon: +49 000 000000\nE-Mail: team@example.invalid\n\nDiese Nachricht ist nur für die genannten Empfänger vorgesehen.\nBitte prüfen Sie vor einem Ausdruck, ob Sie diesen benötigen.\nDie Angaben in der Korrespondenz ersetzen keine fachliche Prozessantwort.\nBeispielversorgung, Geschäftsanschrift Beispielweg 42, 00000 Beispielstadt.\nDies ist ein synthetischer Test-Fußtext ohne reale personenbezogene Angaben.\n\nMit freundlichen Grüßen\nTeam Beispielversorgung\nBeispielweg 42, 00000 Beispielstadt\nTelefon: +49 000 000000\nE-Mail: team@example.invalid\n\nDiese Nachricht ist nur für die genannten Empfänger vorgesehen.\nBitte prüfen Sie vor einem Ausdruck, ob Sie diesen benötigen.\nDie Angaben in der Korrespondenz ersetzen keine fachliche Prozessantwort.\nBeispielversorgung, Geschäftsanschrift Beispielweg 42, 00000 Beispielstadt.\nDies ist ein synthetischer Test-Fußtext ohne reale personenbezogene Angaben.\n\nVon: Team Empfänger <team5@example.invalid>\nGesendet: 2026-10-06T10:00:00Z\nAn: Team Gegenüber <other@example.invalid>\nBetreff: Rückmeldung REF-3001\n\nBitte beachten Sie unsere Eingangsbestätigung vom zweiten Tag. In dieser Nachricht wurde der Eingang Ihrer Anfrage bestätigt. Weitere Ergebnisse liegen in diesem Verlauf nicht vor.\n\nIm Verlauf geht es weiterhin um dieselbe Anfrage mit der ersetzten Referenz REF-3001. Es wurde bislang kein belastbares Ergebnis übermittelt. Die Korrespondenz soll die offenen Fragen sichtbar halten und die behaupteten Schritte von den tatsächlich dokumentierten Ergebnissen unterscheiden. \n\nMit freundlichen Grüßen\nTeam Beispielversorgung\nBeispielweg 42, 00000 Beispielstadt\nTelefon: +49 000 000000\nE-Mail: team@example.invalid\n\nDiese Nachricht ist nur für die genannten Empfänger vorgesehen.\nBitte prüfen Sie vor einem Ausdruck, ob Sie diesen benötigen.\nDie Angaben in der Korrespondenz ersetzen keine fachliche Prozessantwort.\nBeispielversorgung, Geschäftsanschrift Beispielweg 42, 00000 Beispielstadt.\nDies ist ein synthetischer Test-Fußtext ohne reale personenbezogene Angaben.\n\nMit freundlichen Grüßen\nTeam Beispielversorgung\nBeispielweg 42, 00000 Beispielstadt\nTelefon: +49 000 000000\nE-Mail: team@example.invalid\n\nDiese Nachricht ist nur für die genannten Empfänger vorgesehen.\nBitte prüfen Sie vor einem Ausdruck, ob Sie diesen benötigen.\nDie Angaben in der Korrespondenz ersetzen keine fachliche Prozessantwort.\nBeispielversorgung, Geschäftsanschrift Beispielweg 42, 00000 Beispielstadt.\nDies ist ein synthetischer Test-Fußtext ohne reale personenbezogene Angaben.\n\nVon: Team Lieferant <team4@example.invalid>\nGesendet: 2026-10-05T10:00:00Z\nAn: Team Gegenüber <other@example.invalid>\nBetreff: Rückmeldung REF-3001\n\nWir nehmen Ihre Zusage zur Kenntnis und fragen nach dem Ergebnis. Die fachliche Rückmeldung zur Anmeldung bleibt offen. Eine bloße Erklärung der Ursache beendet diesen Vorgang nicht.\n\nIm Verlauf geht es weiterhin um dieselbe Anfrage mit der ersetzten Referenz REF-3001. Es wurde bislang kein belastbares Ergebnis übermittelt. Die Korrespondenz soll die offenen Fragen sichtbar halten und die behaupteten Schritte von den tatsächlich dokumentierten Ergebnissen unterscheiden. \n\nMit freundlichen Grüßen\nTeam Beispielversorgung\nBeispielweg 42, 00000 Beispielstadt\nTelefon: +49 000 000000\nE-Mail: team@example.invalid\n\nDiese Nachricht ist nur für die genannten Empfänger vorgesehen.\nBitte prüfen Sie vor einem Ausdruck, ob Sie diesen benötigen.\nDie Angaben in der Korrespondenz ersetzen keine fachliche Prozessantwort.\nBeispielversorgung, Geschäftsanschrift Beispielweg 42, 00000 Beispielstadt.\nDies ist ein synthetischer Test-Fußtext ohne reale personenbezogene Angaben.\n\nMit freundlichen Grüßen\nTeam Beispielversorgung\nBeispielweg 42, 00000 Beispielstadt\nTelefon: +49 000 000000\nE-Mail: team@example.invalid\n\nDiese Nachricht ist nur für die genannten Empfänger vorgesehen.\nBitte prüfen Sie vor einem Ausdruck, ob Sie diesen benötigen.\nDie Angaben in der Korrespondenz ersetzen keine fachliche Prozessantwort.\nBeispielversorgung, Geschäftsanschrift Beispielweg 42, 00000 Beispielstadt.\nDies ist ein synthetischer Test-Fußtext ohne reale personenbezogene Angaben.\n\nVon: Team Empfänger <team3@example.invalid>\nGesendet: 2026-10-04T10:00:00Z\nAn: Team Gegenüber <other@example.invalid>\nBetreff: Rückmeldung REF-3001\n\nNach Aussage unseres Teams liegt ein Systemfehler beim Dienstleister vor. Wir haben die Klärung zugesagt. Diese Aussage beschreibt die gemeldete Ursache und bestätigt keine erfolgte Behebung.\n\nIm Verlauf geht es weiterhin um dieselbe Anfrage mit der ersetzten Referenz REF-3001. Es wurde bislang kein belastbares Ergebnis übermittelt. Die Korrespondenz soll die offenen Fragen sichtbar halten und die behaupteten Schritte von den tatsächlich dokumentierten Ergebnissen unterscheiden. \n\nMit freundlichen Grüßen\nTeam Beispielversorgung\nBeispielweg 42, 00000 Beispielstadt\nTelefon: +49 000 000000\nE-Mail: team@example.invalid\n\nDiese Nachricht ist nur für die genannten Empfänger vorgesehen.\nBitte prüfen Sie vor einem Ausdruck, ob Sie diesen benötigen.\nDie Angaben in der Korrespondenz ersetzen keine fachliche Prozessantwort.\nBeispielversorgung, Geschäftsanschrift Beispielweg 42, 00000 Beispielstadt.\nDies ist ein synthetischer Test-Fußtext ohne reale personenbezogene Angaben.\n\nMit freundlichen Grüßen\nTeam Beispielversorgung\nBeispielweg 42, 00000 Beispielstadt\nTelefon: +49 000 000000\nE-Mail: team@example.invalid\n\nDiese Nachricht ist nur für die genannten Empfänger vorgesehen.\nBitte prüfen Sie vor einem Ausdruck, ob Sie diesen benötigen.\nDie Angaben in der Korrespondenz ersetzen keine fachliche Prozessantwort.\nBeispielversorgung, Geschäftsanschrift Beispielweg 42, 00000 Beispielstadt.\nDies ist ein synthetischer Test-Fußtext ohne reale personenbezogene Angaben.\n\nVon: Team Lieferant <team2@example.invalid>\nGesendet: 2026-10-03T10:00:00Z\nAn: Team Gegenüber <other@example.invalid>\nBetreff: Rückmeldung REF-3001\n\nLeider liegt uns weiterhin keine fachliche Rückmeldung vor. Eine Eingangsbestätigung reicht für die Klärung unserer Anfrage nicht aus. Bitte nennen Sie den aktuellen Stand.\n\nIm Verlauf geht es weiterhin um dieselbe Anfrage mit der ersetzten Referenz REF-3001. Es wurde bislang kein belastbares Ergebnis übermittelt. Die Korrespondenz soll die offenen Fragen sichtbar halten und die behaupteten Schritte von den tatsächlich dokumentierten Ergebnissen unterscheiden. \n\nMit freundlichen Grüßen\nTeam Beispielversorgung\nBeispielweg 42, 00000 Beispielstadt\nTelefon: +49 000 000000\nE-Mail: team@example.invalid\n\nDiese Nachricht ist nur für die genannten Empfänger vorgesehen.\nBitte prüfen Sie vor einem Ausdruck, ob Sie diesen benötigen.\nDie Angaben in der Korrespondenz ersetzen keine fachliche Prozessantwort.\nBeispielversorgung, Geschäftsanschrift Beispielweg 42, 00000 Beispielstadt.\nDies ist ein synthetischer Test-Fußtext ohne reale personenbezogene Angaben.\n\nMit freundlichen Grüßen\nTeam Beispielversorgung\nBeispielweg 42, 00000 Beispielstadt\nTelefon: +49 000 000000\nE-Mail: team@example.invalid\n\nDiese Nachricht ist nur für die genannten Empfänger vorgesehen.\nBitte prüfen Sie vor einem Ausdruck, ob Sie diesen benötigen.\nDie Angaben in der Korrespondenz ersetzen keine fachliche Prozessantwort.\nBeispielversorgung, Geschäftsanschrift Beispielweg 42, 00000 Beispielstadt.\nDies ist ein synthetischer Test-Fußtext ohne reale personenbezogene Angaben.\n\nVon: Team Empfänger <team1@example.invalid>\nGesendet: 2026-10-02T10:00:00Z\nAn: Team Gegenüber <other@example.invalid>\nBetreff: Rückmeldung REF-3001\n\nWir haben Ihre Nachricht erhalten. Diese Eingangsbestätigung enthält noch keine fachliche Antwort zur Anmeldung. Bitte beziehen Sie sich in weiteren Nachrichten auf REF-3001.\n\nIm Verlauf geht es weiterhin um dieselbe Anfrage mit der ersetzten Referenz REF-3001. Es wurde bislang kein belastbares Ergebnis übermittelt. Die Korrespondenz soll die offenen Fragen sichtbar halten und die behaupteten Schritte von den tatsächlich dokumentierten Ergebnissen unterscheiden. \n\nMit freundlichen Grüßen\nTeam Beispielversorgung\nBeispielweg 42, 00000 Beispielstadt\nTelefon: +49 000 000000\nE-Mail: team@example.invalid\n\nDiese Nachricht ist nur für die genannten Empfänger vorgesehen.\nBitte prüfen Sie vor einem Ausdruck, ob Sie diesen benötigen.\nDie Angaben in der Korrespondenz ersetzen keine fachliche Prozessantwort.\nBeispielversorgung, Geschäftsanschrift Beispielweg 42, 00000 Beispielstadt.\nDies ist ein synthetischer Test-Fußtext ohne reale personenbezogene Angaben.\n\nMit freundlichen Grüßen\nTeam Beispielversorgung\nBeispielweg 42, 00000 Beispielstadt\nTelefon: +49 000 000000\nE-Mail: team@example.invalid\n\nDiese Nachricht ist nur für die genannten Empfänger vorgesehen.\nBitte prüfen Sie vor einem Ausdruck, ob Sie diesen benötigen.\nDie Angaben in der Korrespondenz ersetzen keine fachliche Prozessantwort.\nBeispielversorgung, Geschäftsanschrift Beispielweg 42, 00000 Beispielstadt.\nDies ist ein synthetischer Test-Fußtext ohne reale personenbezogene Angaben.\n\nVon: Team Lieferant <team0@example.invalid>\nGesendet: 2026-10-01T10:00:00Z\nAn: Team Gegenüber <other@example.invalid>\nBetreff: Rückmeldung REF-3001\n\nWir bitten um die noch ausstehende fachliche Rückmeldung zur Anmeldung REF-3001. Bitte prüfen Sie den Stand und teilen Sie uns mit, welcher Schritt als Nächstes erforderlich ist.\n\nIm Verlauf geht es weiterhin um dieselbe Anfrage mit der ersetzten Referenz REF-3001. Es wurde bislang kein belastbares Ergebnis übermittelt. Die Korrespondenz soll die offenen Fragen sichtbar halten und die behaupteten Schritte von den tatsächlich dokumentierten Ergebnissen unterscheiden. \n\nMit freundlichen Grüßen\nTeam Beispielversorgung\nBeispielweg 42, 00000 Beispielstadt\nTelefon: +49 000 000000\nE-Mail: team@example.invalid\n\nDiese Nachricht ist nur für die genannten Empfänger vorgesehen.\nBitte prüfen Sie vor einem Ausdruck, ob Sie diesen benötigen.\nDie Angaben in der Korrespondenz ersetzen keine fachliche Prozessantwort.\nBeispielversorgung, Geschäftsanschrift Beispielweg 42, 00000 Beispielstadt.\nDies ist ein synthetischer Test-Fußtext ohne reale personenbezogene Angaben.\n\nMit freundlichen Grüßen\nTeam Beispielversorgung\nBeispielweg 42, 00000 Beispielstadt\nTelefon: +49 000 000000\nE-Mail: team@example.invalid\n\nDiese Nachricht ist nur für die genannten Empfänger vorgesehen.\nBitte prüfen Sie vor einem Ausdruck, ob Sie diesen benötigen.\nDie Angaben in der Korrespondenz ersetzen keine fachliche Prozessantwort.\nBeispielversorgung, Geschäftsanschrift Beispielweg 42, 00000 Beispielstadt.\nDies ist ein synthetischer Test-Fußtext ohne reale personenbezogene Angaben.",
+      "elapsedMs": 45921,
+      "state": "assistance",
+      "phaseTimes": {
+        "understandMs": 3772,
+        "retrieveMs": 9352,
+        "answerMs": 32726
+      },
+      "sources": [
+        {
+          "name": "knowledge-rag",
+          "status": "available",
+          "hitCount": 1,
+          "ms": 32
+        },
+        {
+          "name": "datapoint",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 14
+        },
+        {
+          "name": "object-store",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 13
+        },
+        {
+          "name": "willi-mako",
+          "status": "available",
+          "hitCount": 3,
+          "ms": 9349
+        },
+        {
+          "name": "knowledge-rag-federated",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 5
+        },
+        {
+          "name": "analysis-planner",
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "capability-read",
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 3
+        }
+      ],
+      "caseId": "f45199f2-82f7-44ea-be62-3f1a04cc5847",
+      "answerStatus": "grounded",
+      "responseText": "Im E-Mail-Verlauf zur Anmeldung REF-3001 verweist Team Empfänger wiederholt auf die ursprüngliche Eingangsbestätigung, obwohl zuvor ein Systemfehler beim Dienstleister mitgeteilt und eine Klärung zugesagt wurde.\n\nEin aufgetretener Fehler führt im Standardprozess der Marktkommunikation zur Ablehnung der Anmeldung mit dem Code A99 und detaillierter Problembeschreibung; eine bloße Eingangsbestätigung schließt den Prozess nicht ab.\n\nDas Gegenüber erwartet eine verbindliche Auskunft darüber, ob der gemeldete Systemfehler beim Dienstleister behoben ist und wann die ausstehende fachliche Rückmeldung im regulären Prozess erfolgt.\n\nFordere Team Empfänger auf, den Status der Fehlerbehebung beim Dienstleister sowie einen konkreten Termin für die ausstehende fachliche Rückmeldung zur Anmeldung REF-3001 mitzuteilen.\n\nPrüfe den Nachrichteneingang im Fachsystem auf das Eintreffen einer regulären EDIFACT-Antwortnachricht zur Anmeldung REF-3001.\n\nIch gehe davon aus, dass wir die Klärung als Team Lieferant gegenüber Team Empfänger weiter einfordern müssen, da bisher weder eine Behebungsbestätigung noch ein fachliches Prüfungsergebnis vorliegt – sonst sag Bescheid.\n\nIst der gemeldete Systemfehler beim Dienstleister inzwischen konkret behoben?\n\nWann genau erfolgt die ausstehende fachliche Rückmeldung bzw. das Ergebnis zur Anmeldung REF-3001?\n\nEntwurf:\nVariante A – wenn der gemeldete Systemfehler beim Dienstleister weiterhin ungelöst ist:\nGuten Tag, bezüglich der Anmeldung REF-3001 zwischen Team Lieferant und Team Empfänger steht die fachliche Rückmeldung nach der mitgeteilten Ursache eines Systemfehlers weiterhin aus. Da die vorliegende Eingangsbestätigung keine inhaltliche Klärung darstellt, bitten wir um Auskunft zum aktuellen Status der Fehlerbehebung sowie zur Übermittlung der regulären Prozessantwort. Mit freundlichen Grüßen\n\nVariante B – wenn eine konkrete Frist zur Übermittlung des Klärungsergebnisses gesetzt werden soll:\nGuten Tag, im Vorgang zur Anmeldung REF-3001 zwischen Team Lieferant und Team Empfänger fordern wir nach der zugesagten Klärung des Systemfehlers das ausstehende fachliche Ergebnis an. Bitte übermitteln Sie die reguläre Prozessrückmeldung im Marktkommunikationsprozess bis zum [Datum]. Mit freundlichen Grüßen\n\nQuellen: willi-mako\n\nFall F-1 · Mit „Kein Fall“ kannst du ihn verwerfen.",
+      "situation": {
+        "concern": "Einordnung eines hartnäckigen E-Mail-Threads zur Anmeldung REF-3001 mit ausstehender fachlicher Rückmeldung und Vorbereitung einer Begleitantwort.",
+        "situation": "Der Nutzer bittet um Einordnung eines längeren Mail-Threads bezüglich der Anmeldung REF-3001 zwischen Team Lieferant und Team Empfänger, in dem trotz einer Fehlererklärung und zugesagter Klärung bisher kein belastbares fachliches Ergebnis vorliegt und wiederholt auf die ursprüngliche Eingangsbestätigung verwiesen wurde.",
+        "participants": [
+          "Team Lieferant",
+          "Team Empfänger"
+        ],
+        "identifiers": [
+          {
+            "kind": "Referenz",
+            "value": "REF-3001"
+          }
+        ],
+        "deadlines": [],
+        "hypotheses": [
+          {
+            "kind": "domain",
+            "id": "market-communication",
+            "confidence": 0.8
+          },
+          {
+            "kind": "function",
+            "id": "fn-market-communication-evidence-chain",
+            "confidence": 0.7
+          }
+        ],
+        "missingInformation": [
+          {
+            "key": "aktueller_fehlerstatus",
+            "question": "Ist der gemeldete Systemfehler beim Dienstleister inzwischen konkret behoben?",
+            "blocking": true
+          },
+          {
+            "key": "fachliches_ergebnis",
+            "question": "Wann genau erfolgt die ausstehende fachliche Rückmeldung bzw. das Ergebnis zur Anmeldung REF-3001?",
+            "blocking": true
+          }
+        ],
+        "requestedAction": {
+          "description": "Einordnung des E-Mail-Verlaufs und Vorbereitung einer Begleitantwort für den Vorgang REF-3001.",
+          "externalEffect": false,
+          "draftRequested": true
+        },
+        "turnKind": "work",
+        "retrievalTerms": [
+          "REF-3001",
+          "Anmeldung",
+          "fachliche Rückmeldung",
+          "Eingangsbestätigung",
+          "Systemfehler"
+        ],
+        "timeline": [
+          {
+            "role": "Team Lieferant",
+            "date": "2026-10-01T10:00:00Z",
+            "summary": "Bitte um ausstehende fachliche Rückmeldung zur Anmeldung REF-3001.",
+            "assertions": [
+              "Die fachliche Rückmeldung zur Anmeldung REF-3001 steht noch aus."
+            ]
+          },
+          {
+            "role": "Team Empfänger",
+            "date": "2026-10-02T10:00:00Z",
+            "summary": "Eingangsbestätigung zur Anmeldung REF-3001 ohne fachliche Antwort.",
+            "assertions": [
+              "Eingangsbestätigung versendet.",
+              "Keine fachliche Antwort enthalten."
+            ]
+          },
+          {
+            "role": "Team Lieferant",
+            "date": "2026-10-03T10:00:00Z",
+            "summary": "Hinweis, dass eine Eingangsbestätigung zur Klärung nicht ausreicht.",
+            "assertions": [
+              "Fachliche Rückmeldung liegt weiterhin nicht vor."
+            ]
+          },
+          {
+            "role": "Team Empfänger",
+            "date": "2026-10-04T10:00:00Z",
+            "summary": "Mitteilung über Systemfehler beim Dienstleister und Zusage der Klärung.",
+            "assertions": [
+              "Ein Systemfehler beim Dienstleister liegt vor.",
+              "Klärung wurde zugesagt."
+            ]
+          },
+          {
+            "role": "Team Lieferant",
+            "date": "2026-10-05T10:00:00Z",
+            "summary": "Nachfrage nach dem Ergebnis der zugesagten Klärung.",
+            "assertions": [
+              "Bloße Erklärung der Ursache beendet den Vorgang nicht."
+            ]
+          },
+          {
+            "role": "Team Empfänger",
+            "date": "2026-10-06T10:00:00Z",
+            "summary": "Erneuter Verweis auf die ursprüngliche Eingangsbestätigung.",
+            "assertions": [
+              "Eingangsbestätigung vom zweiten Tag wurde erwähnt."
+            ]
+          },
+          {
+            "role": "Team Lieferant",
+            "date": "2026-10-07T10:00:00Z",
+            "summary": "Rüge, dass die Eingangsbestätigung die Frage nach dem Bearbeitungsstand nicht beantwortet.",
+            "assertions": [
+              "Frage nach fachlicher Antwort ist weiterhin unbeantwortet."
+            ]
+          },
+          {
+            "role": "Team Empfänger",
+            "date": "2026-10-08T10:00:00Z",
+            "summary": "Rückfrage zur Fehlerbehebung und zum Zeitpunkt der fachlichen Rückmeldung.",
+            "assertions": [
+              "Konkrete Auskunft über Fehlerbehebung und fachliche Rückmeldung wird benötigt."
+            ]
+          },
+          {
+            "role": "Team Lieferant",
+            "date": "2026-10-09T10:00:00Z",
+            "summary": "Bitte an den Assistenten zur Einordnung des Verlaufs und Vorbereitung einer Begleitantwort.",
+            "assertions": [
+              "Zusage zur Klärung wurde gemacht, letzte Rückmeldung verweist erneut nur auf Eingangsbestätigung."
+            ]
+          }
+        ],
+        "observations": [
+          "Widerspruch im Verlauf: Team Empfänger verweist wiederholt auf die bloße Eingangsbestätigung, obwohl zuvor ein Systemfehler eingeräumt und Klärung zugesagt wurde.",
+          "Bislang liegt kein belastbares fachliches Ergebnis oder eine Bestätigung der Fehlerbehebung vor."
+        ],
+        "primaryDomain": "market_communication",
+        "codeResolutions": []
+      },
+      "caseCreated": true,
+      "draftCreated": true
+    },
+    {
+      "scenario": "R3",
+      "message": "Was soll ich konkret tun?",
+      "elapsedMs": 6106,
+      "state": "assistance",
+      "phaseTimes": {
+        "understandMs": 1815,
+        "retrieveMs": 1,
+        "answerMs": 4252
+      },
+      "sources": [
+        {
+          "name": "knowledge-rag",
+          "status": "available",
+          "hitCount": 1,
+          "ms": 0
+        },
+        {
+          "name": "datapoint",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "object-store",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "willi-mako",
+          "status": "available",
+          "hitCount": 3,
+          "ms": 0
+        },
+        {
+          "name": "knowledge-rag-federated",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "analysis-planner",
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "capability-read",
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0
+        }
+      ],
+      "caseId": "f45199f2-82f7-44ea-be62-3f1a04cc5847",
+      "answerStatus": "grounded",
+      "responseText": "Für den Vorgang REF-3001 ist zunächst intern der Status des Dienstleister-Fehlers zu ermitteln, bevor eine inhaltliche Rückmeldung an das Team Lieferant erfolgt.\n\nKläre intern mit der IT bzw. dem Dienstleister den Behebungsstatus des gemeldeten Systemfehlers und prüfe das Vorliegen eines fachlichen Prüfungsergebnisses für die Anmeldung REF-3001.\n\nSofern ein dauerhafter technischer oder inhaltlicher Fehler das Fortführen der Anmeldung REF-3001 verhindert, leite die formale Ablehnung mit Code A99 inklusive konkreter Problembeschreibung ein.\n\nIch gehe davon aus, dass die interne Klärung mit dem Dienstleister noch nicht abgeschlossen ist und daher noch kein endgültiges fachliches Prüfergebnis vorliegt – sonst sag Bescheid.\n\nQuellen: willi-mako\n\nFall F-1",
+      "situation": {
+        "concern": "Klärung des weiteren Vorgehens und konkreter Handlungsanweisungen für den Vorgang REF-3001.",
+        "situation": "Der Nutzer fragt nach einer konkreten Handlungsanweisung für den bestehenden E-Mail-Thread zur Anmeldung REF-3001.",
+        "participants": [
+          "Team Lieferant",
+          "Team Empfänger"
+        ],
+        "identifiers": [
+          {
+            "kind": "Referenz",
+            "value": "REF-3001"
+          }
+        ],
+        "deadlines": [],
+        "hypotheses": [
+          {
+            "kind": "domain",
+            "id": "market-communication",
+            "confidence": 0.8
+          },
+          {
+            "kind": "function",
+            "id": "fn-market-communication-evidence-chain",
+            "confidence": 0.7
+          }
+        ],
+        "missingInformation": [
+          {
+            "key": "aktueller_fehlerstatus",
+            "question": "Ist der gemeldete Systemfehler beim Dienstleister inzwischen konkret behoben?",
+            "blocking": true
+          },
+          {
+            "key": "fachliches_ergebnis",
+            "question": "Wann genau erfolgt die ausstehende fachliche Rückmeldung bzw. das Ergebnis zur Anmeldung REF-3001?",
+            "blocking": true
+          }
+        ],
+        "requestedAction": {
+          "description": "Benennung der konkreten nächsten Handlungsschritte für den Vorgang REF-3001.",
+          "externalEffect": false,
+          "draftRequested": true
+        },
+        "turnKind": "work",
+        "retrievalTerms": [
+          "REF-3001",
+          "Anmeldung",
+          "fachliche Rückmeldung",
+          "Eingangsbestätigung",
+          "Systemfehler"
+        ],
+        "timeline": [
+          {
+            "role": "Team Lieferant",
+            "date": "2026-10-01T10:00:00Z",
+            "summary": "Bitte um ausstehende fachliche Rückmeldung zur Anmeldung REF-3001.",
+            "assertions": [
+              "Die fachliche Rückmeldung zur Anmeldung REF-3001 steht noch aus."
+            ]
+          },
+          {
+            "role": "Team Empfänger",
+            "date": "2026-10-02T10:00:00Z",
+            "summary": "Eingangsbestätigung zur Anmeldung REF-3001 ohne fachliche Antwort.",
+            "assertions": [
+              "Eingangsbestätigung versendet.",
+              "Keine fachliche Antwort enthalten."
+            ]
+          },
+          {
+            "role": "Team Lieferant",
+            "date": "2026-10-03T10:00:00Z",
+            "summary": "Hinweis, dass eine Eingangsbestätigung zur Klärung nicht ausreicht.",
+            "assertions": [
+              "Fachliche Rückmeldung liegt weiterhin nicht vor."
+            ]
+          },
+          {
+            "role": "Team Empfänger",
+            "date": "2026-10-04T10:00:00Z",
+            "summary": "Mitteilung über Systemfehler beim Dienstleister und Zusage der Klärung.",
+            "assertions": [
+              "Ein Systemfehler beim Dienstleister liegt vor.",
+              "Klärung wurde zugesagt."
+            ]
+          },
+          {
+            "role": "Team Lieferant",
+            "date": "2026-10-05T10:00:00Z",
+            "summary": "Nachfrage nach dem Ergebnis der zugesagten Klärung.",
+            "assertions": [
+              "Bloße Erklärung der Ursache beendet den Vorgang nicht."
+            ]
+          },
+          {
+            "role": "Team Empfänger",
+            "date": "2026-10-06T10:00:00Z",
+            "summary": "Erneuter Verweis auf die ursprüngliche Eingangsbestätigung.",
+            "assertions": [
+              "Eingangsbestätigung vom zweiten Tag wurde erwähnt."
+            ]
+          },
+          {
+            "role": "Team Lieferant",
+            "date": "2026-10-07T10:00:00Z",
+            "summary": "Rüge, dass die Eingangsbestätigung die Frage nach dem Bearbeitungsstand nicht beantwortet.",
+            "assertions": [
+              "Frage nach fachlicher Antwort ist weiterhin unbeantwortet."
+            ]
+          },
+          {
+            "role": "Team Empfänger",
+            "date": "2026-10-08T10:00:00Z",
+            "summary": "Rückfrage zur Fehlerbehebung und zum Zeitpunkt der fachlichen Rückmeldung.",
+            "assertions": [
+              "Konkrete Auskunft über Fehlerbehebung und fachliche Rückmeldung wird benötigt."
+            ]
+          },
+          {
+            "role": "Team Lieferant",
+            "date": "2026-10-09T10:00:00Z",
+            "summary": "Bitte an den Assistenten zur Einordnung des Verlaufs und Vorbereitung einer Begleitantwort.",
+            "assertions": [
+              "Zusage zur Klärung wurde gemacht, letzte Rückmeldung verweist erneut nur auf Eingangsbestätigung."
+            ]
+          }
+        ],
+        "primaryDomain": "market_communication",
+        "codeResolutions": []
+      },
+      "caseCreated": true,
+      "draftCreated": false
+    }
+  ],
+  "answerDiagnostics": [
+    {
+      "valid": true,
+      "errors": null,
+      "draftType": "object"
+    },
+    {
+      "valid": true,
+      "errors": null,
+      "draftType": "object"
+    }
+  ]
+}
