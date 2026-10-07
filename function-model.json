@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "f5dfb883587094c187deb3189df1d610d33bdb972d334e1a4fa6ab874f95b73e",
+  "sourceHash": "87416f9072d46ffa34fb9e3627b46eaa46017c43a6f9f72795a70298a8267956",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -4921,6 +4921,10 @@
         {
           "kind": "service",
           "ref": "src/vdmi-system-templates.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-llm-errors.js"
         },
         {
           "kind": "service",
@@ -18500,6 +18504,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/workbench-llm-errors.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/znp-clustering-heuristics.js"
         },
         {
@@ -19029,6 +19037,10 @@
         {
           "kind": "service",
           "ref": "src/vdmi-system-templates.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-llm-errors.js"
         }
       ],
       "capabilities": [
@@ -37577,6 +37589,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/workbench-llm-errors.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/workflow-completion-plausibility.js"
         }
       ],
@@ -47196,6 +47212,10 @@
         {
           "kind": "service",
           "ref": "src/vdmi-system-templates.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-llm-errors.js"
         }
       ],
       "capabilities": [
@@ -70716,6 +70736,10 @@
         {
           "kind": "service",
           "ref": "src/vdmi-system-templates.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-llm-errors.js"
         }
       ],
       "capabilities": [
@@ -78983,6 +79007,10 @@
         {
           "kind": "service",
           "ref": "src/vdmi-system-templates.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-llm-errors.js"
         }
       ],
       "capabilities": [
@@ -81589,6 +81617,10 @@
         {
           "kind": "service",
           "ref": "src/vdmi-system-templates.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-llm-errors.js"
         }
       ],
       "capabilities": [
@@ -83944,6 +83976,10 @@
         {
           "kind": "service",
           "ref": "src/vdmi-system-templates.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-llm-errors.js"
         },
         {
           "kind": "service",
@@ -87524,6 +87560,10 @@
         {
           "kind": "service",
           "ref": "src/vdmi-system-templates.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-llm-errors.js"
         }
       ],
       "capabilities": [
@@ -92423,6 +92463,10 @@
         {
           "kind": "service",
           "ref": "src/vdmi-system-templates.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-llm-errors.js"
         },
         {
           "kind": "service",
@@ -99736,6 +99780,10 @@
         {
           "kind": "service",
           "ref": "src/vdmi-system-templates.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-llm-errors.js"
         }
       ],
       "capabilities": [
@@ -101988,6 +102036,10 @@
         {
           "kind": "service",
           "ref": "src/vdmi-system-templates.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-llm-errors.js"
         },
         {
           "kind": "service",
@@ -106865,6 +106917,10 @@
         {
           "kind": "service",
           "ref": "src/vdmi-system-templates.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-llm-errors.js"
         },
         {
           "kind": "service",
@@ -117967,6 +118023,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/workbench-llm-errors.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/workbench-retrieval.js"
         },
         {
@@ -122299,6 +122359,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/workbench-llm-errors.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/workflow-completion-plausibility.js"
         }
       ],
@@ -124025,6 +124089,10 @@
         {
           "kind": "service",
           "ref": "src/vdmi-system-templates.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-llm-errors.js"
         },
         {
           "kind": "service",
@@ -126221,6 +126289,10 @@
         {
           "kind": "service",
           "ref": "src/vdmi-system-templates.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-llm-errors.js"
         }
       ],
       "capabilities": [
@@ -140680,6 +140752,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/workbench-llm-errors.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/workflow-completion-plausibility.js"
         }
       ],
@@ -147346,6 +147422,10 @@
         {
           "kind": "service",
           "ref": "src/vdmi-system-templates.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-llm-errors.js"
         }
       ],
       "capabilities": [
@@ -156874,6 +156954,10 @@
         {
           "kind": "service",
           "ref": "src/validation-findings.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-llm-errors.js"
         }
       ],
       "capabilities": [
@@ -165670,6 +165754,10 @@
         {
           "kind": "service",
           "ref": "src/tracing.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-llm-errors.js"
         }
       ],
       "capabilities": [
@@ -184867,6 +184955,10 @@
         {
           "kind": "service",
           "ref": "src/vdmi-system-templates.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-llm-errors.js"
         },
         {
           "kind": "service",

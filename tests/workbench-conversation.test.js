@@ -173,7 +173,8 @@ describe('Workbench understands, answers with evidence, and keeps the case in th
     expect(JSON.parse(llm.generateStructured.mock.calls[0][1]).schema.additionalProperties).toBe(
       false
     );
-    expect(retrieval).toHaveBeenCalledTimes(1);
+    expect(retrieval).toHaveBeenCalledTimes(2);
+    expect(retrieval.mock.calls[0][0].meta.workbenchEvidenceSources).toEqual(['knowledge-rag']);
     expect(llm.generateText).toHaveBeenCalledTimes(1);
     expect(llm.generateStructured.mock.calls[0][2]).toMatchObject({
       tenantId: 'tenant-a',
@@ -221,6 +222,7 @@ describe('Workbench understands, answers with evidence, and keeps the case in th
   });
 
   test('AC-02: empty retrieval never invents rules or deadlines', async () => {
+    mako.mockResolvedValueOnce({ success: true, data: { sources: [] } });
     knowledge.mockReturnValue({ results: [] });
     const result = await call(productionMail);
     expect(result.responseText).toContain('Das Gegenüber erwartet');
@@ -417,13 +419,13 @@ describe('Workbench understands, answers with evidence, and keeps the case in th
     ).rejects.toThrow();
   });
 
-  test('Willi/federated require an enabled persisted tenant/actor mapping', async () => {
+  test('public Willi articles are read without mapping; federated data retains its mapping', async () => {
     llm.generateStructured.mockImplementation(async (...args) => ({
       ...(await stub.generateStructured(...args)),
       hypotheses: [{ kind: 'domain', id: 'market_communication', confidence: 0.9 }],
     }));
     await call(productionMail);
-    expect(mako).not.toHaveBeenCalled();
+    expect(mako).toHaveBeenCalledTimes(1);
     await broker.getLocalService('workbench').store.saveWilliMapping({
       cetTenantId: 'tenant-a',
       cetActorId: 'person-a',
@@ -432,7 +434,7 @@ describe('Workbench understands, answers with evidence, and keeps the case in th
       roles: ['ROLE_GRID_OPERATOR'],
     });
     const mapped = await call(productionMail, 'mapped');
-    expect(mako).toHaveBeenCalledTimes(1);
+    expect(mako).toHaveBeenCalledTimes(2);
     expect(mapped.noCallGuards).toContain('No dispatch');
     expect(mapped.evidence.some((hit) => hit.value.includes('Eingangsbestätigung'))).toBe(true);
   });
@@ -440,7 +442,8 @@ describe('Workbench understands, answers with evidence, and keeps the case in th
   test('invalid understanding fails safely and creates no case; invalid citations are never rendered', async () => {
     llm.generateStructured.mockResolvedValueOnce({ concern: 'invalid' });
     expect((await call(productionMail)).state).toBe('understanding_unavailable');
-    expect(retrieval).not.toHaveBeenCalled();
+    expect(retrieval).toHaveBeenCalledTimes(1);
+    expect(retrieval.mock.calls[0][0].meta.workbenchEvidenceSources).toEqual(['knowledge-rag']);
     llm.generateText.mockResolvedValueOnce(
       JSON.stringify({
         expectation: [

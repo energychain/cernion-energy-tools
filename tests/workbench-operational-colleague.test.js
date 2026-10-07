@@ -135,7 +135,7 @@ test('three turns keep bounded incremental prompts, skip understanding for draft
     expect(third.responseText).toContain('Mit freundlichen Grüßen');
     expect(third.phaseTimes.understandMs).toBeLessThan(5);
     expect(third.phaseTimes.answerMs).toBeGreaterThanOrEqual(25);
-    expect(retrieval).toHaveBeenCalledTimes(2);
+    expect(retrieval).toHaveBeenCalledTimes(4);
     expect(third.sources).toEqual([{ name: 'knowledge-rag', status: 'empty', hitCount: 0, ms: 0 }]);
     const outputs = [first, second, third].map((r) => r.responseText).join('\n');
     expect(outputs).not.toMatch(

@@ -258,7 +258,7 @@ Workbench-Verstehen und Antworten verwenden getrennte Optionen über die zentral
 |----------|---------|--------------|
 | `WORKBENCH_LLM_MODEL` | Provider-Schnellmodell | Ein Modell für beide Phasen oder `Verstehen,Antworten`. Defaults: Gemini `gemini-3.5-flash-lite`, OpenAI-kompatibel `gpt-4o-mini`, Ollama `llama3.1:8b`. |
 | `WORKBENCH_LLM_TIMEOUT_MS` | `4500` | Ein Budget in Millisekunden oder `Verstehen,Antworten`, z. B. `4500,45000`. Ungültige Werte fallen auf 4500 ms zurück. |
-| `WORKBENCH_LLM_THINKING` | `minimal` | Gemini: Denkstufe `minimal`, `low`, `medium`, `high` oder numerisches Budget für Gemini 2.5. `default`/`standard` lässt das Denkbudget des Providers unverändert. Ein Wert oder `Verstehen,Antworten`; explizites `options.thinkingConfig` hat Vorrang. |
+| `WORKBENCH_LLM_THINKING` | `minimal,default` | Gemini: Denkstufe `minimal`, `low`, `medium`, `high` oder numerisches Budget für Gemini 2.5. `default`/`standard` lässt das Denkbudget des Providers unverändert. Ein Wert oder `Verstehen,Antworten`; explizites `options.thinkingConfig` hat Vorrang. |
 
 Empfehlung: Verstehen mit einem schnellen Modell und niedrigem Denkbudget; Antworten
 mit einem starken Modell und dessen Standard-Denkbudget, mit bis zu 45 Sekunden Budget.
@@ -268,6 +268,8 @@ Für Gemini beispielsweise:
 WORKBENCH_LLM_MODEL=gemini-3.5-flash-lite,gemini-3.5-flash
 WORKBENCH_LLM_TIMEOUT_MS=4500,45000
 WORKBENCH_LLM_THINKING=minimal,default
+WORKBENCH_LLM_THINKING_FOLLOWUP=low
+WORKBENCH_RETRIEVAL_TIMEOUT_MS=12000
 ```
 
 Gemini 3.5 Flash nutzt standardmäßig die Denkstufe `medium`
@@ -277,7 +279,23 @@ Denkoptionen sind providerspezifisch. Ein vorgeschalteter Nginx-Proxy benötigt
 `proxy_read_timeout 120s;` (mindestens 120 Sekunden), damit CET auch bei längeren
 Modellaufrufen seine Antwort oder den Rückfall ausliefern kann.
 Nach Timeout oder Fehler bleibt eine kurze Antwort mit vorhandenem Lagebild,
-Quellen und verfügbarem Entwurf erhalten. Retrieval hat separat 4000 ms Budget.
+Quellen und verfügbarem Entwurf erhalten. Ohne Denkbudget-Konfiguration nutzt nur
+Verstehen `minimal`; Antworten nutzt den Provider-Standard. Für Folgeturns gilt
+`WORKBENCH_LLM_THINKING_FOLLOWUP=low`; `default` lässt den Provider entscheiden.
+Ein Gemini-400-Fehler wegen einer nicht unterstützten Denkstufe führt genau einmal
+zur Wiederholung ohne `thinkingConfig`, mit einer Warnung ohne Dokumentinhalt.
+
+Retrieval läuft parallel je Quelle. `WORKBENCH_RETRIEVAL_TIMEOUT_MS` setzt die
+Gesamtobergrenze (Default 12000 ms). Im Katalog
+`src/workbench-knowledge-sources.json` hat jede Quelle `timeoutMs`: Default 4000 ms,
+Willi-Mako und knowledge-rag-federated 10000 ms. Empfehlung: 12000 ms insgesamt
+und 10000 ms für beide Willi-Quellen, nicht das 4-s-Budget auf die gesamte Runde
+anwenden. Eine hängende Quelle wird mit `status=timeout` und `ms` ausgewiesen;
+andere Quellen werden unabhängig abgefragt. Willi-Suchtext: Anliegen plus
+retrievalTerms, maximal 200 Zeichen. knowledge-rag beginnt parallel zum Verstehen;
+seine Treffer werden anschließend erneut am aktuellen Lagebild geprüft.
+Die allgemeine Willi-Artikelsuche nutzt wie der Facade-Pfad kein Personen-Mapping;
+mandantenbezogene föderierte Quellen behalten ihre Zuordnungsprüfung.
 Ziel sind Folgeturns unter 10 Sekunden auch mit starkem Antwortmodell; 45 Sekunden
 sind eine Obergrenze für den Modellaufruf, keine zugesicherte Antwortzeit.
 Erst- und Folgeturns mit der eingesetzten Modellkombination vor Ort messen.

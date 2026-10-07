@@ -52,12 +52,39 @@ function generationOptions(options) {
   return config;
 }
 
+async function contentWithThinkingFallback(modelParams, input, options) {
+  const client = getClient();
+  try {
+    return await client.getGenerativeModel(modelParams).generateContent(input);
+  } catch (error) {
+    const status = error.status || error.response?.status || error.code;
+    if (
+      Number(status) !== 400 ||
+      !/thinking/i.test(error.message || '') ||
+      !modelParams.generationConfig?.thinkingConfig
+    )
+      throw error;
+    const { thinkingConfig: _thinking, ...generationConfig } = modelParams.generationConfig;
+    require('../workbench-llm-errors').logLlmError(
+      options.logger,
+      'thinking retry without configuration',
+      error
+    );
+    return await client
+      .getGenerativeModel({ ...modelParams, generationConfig })
+      .generateContent(input);
+  }
+}
+
 async function generateText(prompt, options = {}) {
-  const model = getClient().getGenerativeModel({
-    model: options.model || getModelName(),
-    generationConfig: generationOptions(options),
-  });
-  const result = await model.generateContent(prompt);
+  const result = await contentWithThinkingFallback(
+    {
+      model: options.model || getModelName(),
+      generationConfig: generationOptions(options),
+    },
+    prompt,
+    options
+  );
   return result.response.text();
 }
 
@@ -68,15 +95,18 @@ async function generateStructured(schema, prompt, options = {}) {
     return await generateText(prompt, options);
   }
 
-  const model = getClient().getGenerativeModel({
-    model: options.model || getModelName(),
-    generationConfig: {
-      ...generationOptions(options),
-      responseMimeType: 'application/json',
-      responseSchema: schema,
+  const result = await contentWithThinkingFallback(
+    {
+      model: options.model || getModelName(),
+      generationConfig: {
+        ...generationOptions(options),
+        responseMimeType: 'application/json',
+        responseSchema: schema,
+      },
     },
-  });
-  const result = await model.generateContent(prompt);
+    prompt,
+    options
+  );
   return result.response.text();
 }
 
@@ -254,8 +284,7 @@ async function generateChat(messages, options = {}) {
     if (toolConfig) modelParams.toolConfig = toolConfig;
   }
 
-  const model = getClient().getGenerativeModel(modelParams);
-  const result = await model.generateContent({ contents });
+  const result = await contentWithThinkingFallback(modelParams, { contents }, options);
   const response = result.response;
 
   const functionCalls =

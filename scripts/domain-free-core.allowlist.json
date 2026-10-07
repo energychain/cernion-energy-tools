@@ -28,7 +28,7 @@
       "reason": "Generic case-status separation vocabulary; no domain branch."
     },
     {
-      "term": "kl\u00e4rfall",
+      "term": "klärfall",
       "reason": "Generic case-status separation vocabulary; no domain branch."
     },
     {
@@ -64,7 +64,7 @@
       "reason": "Generic open expectations/proposals presentation."
     },
     {
-      "term": "kl\u00e4rung",
+      "term": "klärung",
       "reason": "Generic safe clarification follow-up wording."
     },
     {
@@ -432,7 +432,7 @@
       "reason": "Generic immutable correction audit records; no domain branch."
     },
     {
-      "term": "best\u00e4tigung",
+      "term": "bestätigung",
       "reason": "Generic German correction confirmation wording."
     },
     {
@@ -452,7 +452,7 @@
       "reason": "Generic deterministic correction recognition."
     },
     {
-      "term": "zust\u00e4ndig",
+      "term": "zuständig",
       "reason": "Generic German human responsibility correction vocabulary."
     },
     {
@@ -585,6 +585,10 @@
     {
       "term": "aussagen",
       "reason": "Generic claim validation and rendering terminology; no domain-specific rules (#742)."
+    },
+    {
+      "term": "variante",
+      "reason": "Generic conditional draft label and schema description, shared across all domains; never used for domain routing or source selection."
     }
   ]
 }

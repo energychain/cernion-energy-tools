@@ -8,7 +8,10 @@ function hasMakoEdifactCodeContextSignal(text, situation = {}) {
   const hypotheses = [
     ...(situation.hypotheses || []),
     // Physical connection planning alone must not become a MaKo capability request.
-    ...domainHintsForText(text, { limit: 1 })
+    ...(situation.hypotheses || situation.primaryDomain
+      ? []
+      : domainHintsForText(text, { limit: 1 })
+    )
       .filter((hint) => hint.domain !== 'grid_connection')
       .map((hint) => ({
         kind: 'domain',
@@ -16,7 +19,9 @@ function hasMakoEdifactCodeContextSignal(text, situation = {}) {
         confidence: 0.7,
       })),
   ];
-  return selectSources({ hypotheses }, { access: { 'willi-mako': true } }).includes('willi-mako');
+  return selectSources({ ...situation, hypotheses }, { access: { 'willi-mako': true } }).includes(
+    'willi-mako'
+  );
 }
 
 module.exports = { hasMakoEdifactCodeContextSignal };

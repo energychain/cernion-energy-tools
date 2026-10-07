@@ -18,7 +18,6 @@ const {
   isActionUnavailable,
   compactString,
   toCopilotList,
-  isCopilotMakoEdifactQuestion,
   extractCopilotLocationLabelFromObject,
   mapCopilotDomainToSearchDomain,
   objectLooksRelevantToCopilot,
@@ -158,16 +157,32 @@ module.exports = {
 
   async collectCopilotMakoKnowledgeEvidence(
     ctx,
-    { question, maxEvidence = 5, selected = false } = {}
+    { question, maxEvidence = 5, selected = false, situation, timeoutMs = 10000 } = {}
   ) {
-    if (!selected && !isCopilotMakoEdifactQuestion(question)) {
+    const contextSituation = situation ||
+      ctx.params?.context?.situation || { primaryDomain: ctx.params?.context?.primaryDomain };
+    const sourceSelected = require('../../src/mako-edifact-signal').hasMakoEdifactCodeContextSignal(
+      question,
+      contextSituation
+    );
+    if (!selected && !sourceSelected) {
       return { source: 'willi-mako', status: 'skipped', hits: [], trace: { hitCount: 0 } };
     }
     try {
-      const result = await ctx.call('willi-mako.resolveStructure', {
-        query: compactString(question, 600),
-        limit: Math.min(Math.max(Number(maxEvidence) || 5, 1), 5),
-      });
+      const query = compactString(
+        [contextSituation.concern || question, ...(contextSituation.retrievalTerms || [])].join(
+          ' '
+        ),
+        200
+      );
+      const result = await ctx.call(
+        'willi-mako.resolveStructure',
+        {
+          query,
+          limit: Math.min(Math.max(Number(maxEvidence) || 5, 1), 5),
+        },
+        { timeout: timeoutMs }
+      );
       if (!result || result.success === false) {
         return {
           source: 'willi-mako',
@@ -219,9 +234,11 @@ module.exports = {
       );
       return {
         source: 'willi-mako',
-        status: 'unavailable',
+        status: require('../../src/workbench-retrieval').isSourceTimeout(_err)
+          ? 'timeout'
+          : 'unavailable',
         hits: [],
-        trace: { hitCount: 0, error: 'MAKO_KNOWLEDGE_UNAVAILABLE' },
+        trace: { hitCount: 0, error: _err.type || 'MAKO_KNOWLEDGE_UNAVAILABLE' },
       };
     }
   },
@@ -233,13 +250,13 @@ module.exports = {
   // knowledge-rag.query used by collectCopilotKnowledgeEvidence.
   async collectCopilotFederatedKnowledgeEvidence(
     ctx,
-    { question, searchTerm, maxEvidence = 5 } = {}
+    { question, searchTerm, maxEvidence = 5, timeoutMs = COPILOT_KNOWLEDGE_TIMEOUT_MS } = {}
   ) {
     const query = compactString([searchTerm, question].filter(Boolean).join(' · '), 600);
     const result = await queryFederatedEvidenceAdapter(ctx, {
       query,
       limit: Math.min(Math.max(Number(maxEvidence) || 5, 1), 8),
-      timeoutMs: COPILOT_KNOWLEDGE_TIMEOUT_MS,
+      timeoutMs,
     });
     return {
       source: 'knowledge-rag-federated',
@@ -437,12 +454,20 @@ module.exports = {
 
   async collectCopilotPlanningEvidence(
     ctx,
-    { analysisSignals = {}, maxEvidence = 5, selected = false } = {}
+    { analysisSignals = {}, maxEvidence = 5, selected = false, situation } = {}
   ) {
     if (!selected && !analysisSignals?.active) {
       return { source: 'analysis-planner', status: 'skipped', hits: [] };
     }
 
+    const currentSituation = situation || ctx.params?.context?.situation;
+    if (
+      currentSituation &&
+      !require('../../src/workbench-retrieval')
+        .selectSources(currentSituation)
+        .includes('analysis-planner')
+    )
+      return { source: 'analysis-planner', status: 'missing', hits: [] };
     const hits = [];
     const addHit = (value, metadata = {}) => {
       const safeValue = compactString(value, 620);

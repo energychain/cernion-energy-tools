@@ -10,12 +10,25 @@ function selectSources(
   situation,
   { catalog = defaults, access = {}, model = getFunctionModel() } = {}
 ) {
-  const hypotheses = (situation.hypotheses || []).filter(
-    (entry) => entry.confidence >= catalog.minimumConfidence
-  );
+  const hypotheses = [
+    ...(situation.hypotheses || []),
+    ...(situation.primaryDomain
+      ? [{ kind: 'domain', id: situation.primaryDomain, confidence: 1 }]
+      : []),
+  ].filter((entry) => entry.confidence >= catalog.minimumConfidence);
   return catalog.sources
     .filter((source) => {
       if (source.requiresMapping && access[source.id] !== true) return false;
+      if (
+        source.restrictToPrimaryDomain &&
+        situation.primaryDomain &&
+        !source.domains.some(
+          (domain) => normalizePhrase(domain) === normalizePhrase(situation.primaryDomain)
+        )
+      )
+        return false;
+      if (source.requiredIdentifierKinds && !matchingIdentifiers(situation, source).length)
+        return false;
       return (
         hypotheses.some((hypothesis) => {
           const values = hypothesis.kind === 'function' ? source.functions : source.domains;
@@ -38,6 +51,14 @@ function selectSources(
       );
     })
     .map((source) => source.id);
+}
+
+function matchingIdentifiers(situation, policy) {
+  return (situation.identifiers || []).filter((entry) =>
+    policy.requiredIdentifierKinds.some((kind) =>
+      normalizePhrase(entry.kind).includes(normalizePhrase(kind))
+    )
+  );
 }
 
 function terms(text, catalog) {
@@ -83,15 +104,23 @@ function filterEvidence(
           normalizePhrase(hypothesis.id) === normalizePhrase(domain)
       )
     );
-    const reason = seen.has(identity)
-      ? 'duplicate'
-      : scale === 'unit' &&
-          score != null &&
-          (!Number.isFinite(Number(score)) || Number(score) < catalog.minimumScore)
-        ? 'below_score_threshold'
-        : !domainMatch && overlap < catalog.minimumOverlap
-          ? 'situation_mismatch'
-          : null;
+    const sourcePolicy = catalog.sources.find((entry) => entry.id === source);
+    const locationRelevant =
+      !sourcePolicy?.requiredIdentifierKinds ||
+      matchingIdentifiers(situation, sourcePolicy).some((entry) =>
+        String(hit.value || '').includes(entry.value)
+      );
+    const reason = !locationRelevant
+      ? 'no_location_evidence'
+      : seen.has(identity)
+        ? 'duplicate'
+        : scale === 'unit' &&
+            score != null &&
+            (!Number.isFinite(Number(score)) || Number(score) < catalog.minimumScore)
+          ? 'below_score_threshold'
+          : !domainMatch && overlap < catalog.minimumOverlap
+            ? 'situation_mismatch'
+            : null;
     seen.add(identity);
     if (reason) rejected.push({ ...hit, reason, overlap });
     else accepted.push(hit);
@@ -182,6 +211,37 @@ async function collectReadCapabilities(ctx, situation) {
   return { status: hits.length ? 'available' : 'missing', hits, trace: { operations: trace } };
 }
 
+function retrievalTimeoutMs() {
+  const value = Number(process.env.WORKBENCH_RETRIEVAL_TIMEOUT_MS || 12000);
+  return Number.isFinite(value) && value > 0 ? value : 12000;
+}
+function isSourceTimeout(error) {
+  return (
+    Number(error.code || error.status) === 504 ||
+    /timeout|timed.out/i.test(error.type || error.name || '') ||
+    /timed.out|timeout/i.test(error.message || '')
+  );
+}
+async function withinSourceBudget(task, budget) {
+  let timer;
+  try {
+    return await Promise.race([
+      task(),
+      new Promise((_, reject) => {
+        timer = setTimeout(
+          () =>
+            reject(
+              Object.assign(new Error('Source timeout'), { type: 'SOURCE_TIMEOUT', code: 504 })
+            ),
+          budget
+        );
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 // Reuse the PA collectors; this is one retrieval round, with bounded parallel reads.
 async function collectEvidence(
   collector,
@@ -192,6 +252,7 @@ async function collectEvidence(
     catalog,
     access: ctx.meta.workbenchEvidenceAccess || {},
   });
+  const selectedSources = ctx.meta.workbenchEvidenceSources;
   const question = [situation.concern, situation.situation, ...(situation.retrievalTerms || [])]
     .join(' ')
     .slice(0, 600);
@@ -206,36 +267,70 @@ async function collectEvidence(
     context: {},
     analysisSignals: analysisSignals || { active: false },
   };
+  // Finish each source before the Moleculer parent expires.
+  const overallBudget = Math.min(
+    retrievalTimeoutMs(),
+    ctx.options?.timeout ? Math.max(1, ctx.options.timeout - 25) : Infinity
+  );
   const results = await Promise.all(
-    sources.map(async (source) => {
-      const started = performance.now();
-      try {
-        const config = catalog.sources.find((entry) => entry.id === source);
-        const result =
-          config.kind === 'capability'
-            ? await collectReadCapabilities(ctx, situation)
-            : await collector[config.collector](ctx, input);
-        const filtered = filterEvidence(result.hits || [], situation, { catalog, source });
-        return {
-          ...result,
-          ...filtered,
-          source,
-          ms: Math.round(performance.now() - started),
-          trace: {
-            ...result.trace,
-            rejected: [...(result.trace?.rejected || []), ...filtered.rejected],
-          },
-        };
-      } catch (error) {
-        return {
-          source,
-          status: 'unavailable',
-          ms: Math.round(performance.now() - started),
-          hits: [],
-          trace: { error: error.type || error.name },
-        };
-      }
-    })
+    sources
+      .filter((source) => !selectedSources || selectedSources.includes(source))
+      .map(async (source) => {
+        const started = performance.now();
+        try {
+          const config = catalog.sources.find((entry) => entry.id === source);
+          const configured = Number(config.timeoutMs || 4000);
+          const budget = Math.min(
+            overallBudget,
+            Number.isFinite(configured) && configured > 0 ? configured : 4000
+          );
+          const sourceCtx = Object.create(ctx);
+          sourceCtx.call = (action, params, options = {}) =>
+            ctx.call(action, params, {
+              ...options,
+              timeout: Math.min(options.timeout || budget, budget),
+            });
+          const sourceInput = {
+            ...input,
+            timeoutMs: budget,
+            question:
+              source === 'willi-mako'
+                ? [situation.concern, ...(situation.retrievalTerms || [])].join(' ').slice(0, 200)
+                : question,
+          };
+          const cached = source === 'knowledge-rag' ? ctx.meta.workbenchPrefetchedKnowledge : null;
+          const result =
+            cached ||
+            (await withinSourceBudget(
+              () =>
+                config.kind === 'capability'
+                  ? collectReadCapabilities(sourceCtx, situation)
+                  : collector[config.collector](sourceCtx, sourceInput),
+              budget
+            ));
+          const filtered = filterEvidence(result.hits || [], situation, { catalog, source });
+          return {
+            ...result,
+            status:
+              result.status === 'available' && !filtered.hits.length ? 'missing' : result.status,
+            ...filtered,
+            source,
+            ms: cached ? cached.trace?.ms || 0 : Math.round(performance.now() - started),
+            trace: {
+              ...result.trace,
+              rejected: [...(result.trace?.rejected || []), ...filtered.rejected],
+            },
+          };
+        } catch (error) {
+          return {
+            source,
+            status: isSourceTimeout(error) ? 'timeout' : 'unavailable',
+            ms: Math.round(performance.now() - started),
+            hits: [],
+            trace: { error: error.type || error.name },
+          };
+        }
+      })
   );
   return {
     evidence: results
@@ -246,12 +341,12 @@ async function collectEvidence(
       const result = results.find((entry) => entry.source === id);
       return result
         ? {
+            ...result.trace,
             source: id,
             called: result.status !== 'skipped',
             status: result.status,
             hitCount: result.hits.length,
             ms: result.ms,
-            ...result.trace,
           }
         : { source: id, called: false, status: 'skipped', hitCount: 0 };
     }),
@@ -282,4 +377,6 @@ module.exports = {
   collectReadCapabilities,
   sourceMetadata,
   timedSource,
+  retrievalTimeoutMs,
+  isSourceTimeout,
 };
