@@ -193,7 +193,7 @@ test('Workbench and OpenAI share the completed-turn seam; persistence errors pre
     expect(preserved.choices[0].message.content).toContain(
       'Prüfe den bisherigen Stand und stimme den nächsten Schritt ab.'
     );
-    expect(preserved.choices[0].message.content).toContain('Quellen: test-evidence');
+    expect(preserved.choices[0].message.content).not.toContain('Quellen: test-evidence');
     await service.queue;
   } finally {
     await broker.stop();
