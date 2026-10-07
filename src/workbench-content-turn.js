@@ -5,6 +5,7 @@ const understanding = require('./workbench-understanding');
 const conversationAssistance = require('./workbench-conversation');
 const { filterEvidence, retrievalTimeoutMs } = require('./workbench-retrieval');
 const sourceDefaults = require('./workbench-knowledge-sources.json');
+const { knowledgeSourceAccess } = require('./workbench-knowledge-access');
 const { choiceCandidates, confirmedCapability } = require('./capability-clarification');
 const { getFunctionModel } = require('./function-model');
 const { resolveFunctions, normalizePhrase } = require('./function-resolver');
@@ -73,25 +74,28 @@ async function discard(service, ctx, p, envelope, pending, meta) {
 }
 
 async function evidenceAccess(service, p) {
-  // Access is resolved from persisted tenant/actor mappings, never from the request/LLM.
+  // Resolve server-side policy and persisted mappings under the authenticated tenant.
   const { rows } = await service.identityDb.allDocs({ include_docs: true });
   const catalog = service.settings.workbenchKnowledgeSources || sourceDefaults;
-  return Object.fromEntries(
-    catalog.sources
-      .filter((source) => source.requiresMapping)
-      .map((source) => [
-        source.id,
-        rows.some(
-          ({ doc }) =>
-            doc.type === source.mappingType &&
-            doc.enabled !== false &&
-            doc.cetTenantId === p.tenantId &&
-            doc.cetActorId === p.actorId &&
-            (!doc[source.staffField] ||
-              p.roles.some((role) => ['ROLE_ADMIN', 'ROLE_UTILITY_HQ'].includes(role)))
-        ),
-      ])
-  );
+  return {
+    ...knowledgeSourceAccess({ meta: { tenantId: p.tenantId } }, catalog.sources),
+    ...Object.fromEntries(
+      catalog.sources
+        .filter((source) => source.requiresMapping)
+        .map((source) => [
+          source.id,
+          rows.some(
+            ({ doc }) =>
+              doc.type === source.mappingType &&
+              doc.enabled !== false &&
+              doc.cetTenantId === p.tenantId &&
+              doc.cetActorId === p.actorId &&
+              (!doc[source.staffField] ||
+                p.roles.some((role) => ['ROLE_ADMIN', 'ROLE_UTILITY_HQ'].includes(role)))
+          ),
+        ])
+    ),
+  };
 }
 
 async function runContentTurn(service, ctx, { p, mapping, envelope, pending, conversation, meta }) {
@@ -287,7 +291,7 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
       const sourcePolicy = (
         service.settings.workbenchKnowledgeSources || sourceDefaults
       ).sources.find((entry) => entry.id === source);
-      if (sourcePolicy?.requiresMapping && !access[source]) continue;
+      if (access[source] === false || (sourcePolicy?.requiresMapping && !access[source])) continue;
       groups.set(source, [...(groups.get(source) || []), hit]);
     }
     const checks = [...groups].map(([source, hits]) =>
@@ -304,7 +308,11 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
       ...retrieval,
       evidence: filtered.hits,
       trace: [
-        ...(retrieval.trace || []),
+        ...(retrieval.trace || []).map((entry) =>
+          access[entry.source] === false
+            ? { ...entry, status: 'skipped', hitCount: 0, called: false }
+            : entry
+        ),
         { source: 'response_boundary', rejected: filtered.rejected },
       ],
     };

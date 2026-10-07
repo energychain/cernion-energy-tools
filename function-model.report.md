@@ -1,6 +1,6 @@
 # Function model — generated report
 
-Source SHA-256: `87416f9072d46ffa34fb9e3627b46eaa46017c43a6f9f72795a70298a8267956`
+Source SHA-256: `decdf2e7c85cc2086fa86cf02ce98b24302b4917ae9b04d73f5ac893f90e5f69`
 
 Capabilities: 172; functions: 110.
 Function vectors: 95/110; missing or incompatible capability vectors: 25.
@@ -547,7 +547,7 @@ None.
 - {"service":"grid-connection","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"grid-operations","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"job-status","ref":"src/job-store.js:67: dynamic emission"}
-- {"service":"knowledge-rag","ref":"services/knowledge-rag.service.js:136: dynamic emission"}
+- {"service":"knowledge-rag","ref":"services/knowledge-rag.service.js:137: dynamic emission"}
 - {"service":"knowledge-rag","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"knowledge-rag","ref":"src/llm-client.js:159: dynamic emission"}
 - {"service":"mastr-monitor","ref":"src/job-store.js:67: dynamic emission"}

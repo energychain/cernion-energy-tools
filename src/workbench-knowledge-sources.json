@@ -70,18 +70,17 @@
       "functions": [],
       "scoreScale": "provider",
       "collector": "collectCopilotMakoKnowledgeEvidence",
-      "timeoutMs": 10000
+      "timeoutMs": 10000,
+      "tenantSetting": "williMako"
     },
     {
       "id": "knowledge-rag-federated",
       "domains": ["market_communication", "regulatory", "grid_connection"],
       "functions": [],
-      "requiresMapping": true,
       "scoreScale": "unit",
       "collector": "collectCopilotFederatedKnowledgeEvidence",
-      "mappingType": "workbench_willi_mapping",
-      "staffField": "isWilliStaff",
-      "timeoutMs": 10000
+      "timeoutMs": 10000,
+      "tenantSetting": "federated"
     },
     {
       "id": "analysis-planner",

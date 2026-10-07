@@ -4,7 +4,9 @@ CET remains the case, audit and governance owner. Willi-MaKo is integrated as a 
 
 ## Prerequisites
 
-Before a Workbench case can use Willi-MaKo evidence, CET must have:
+The following prerequisites apply to session-based diagnostic evidence, not general article knowledge search. General Willi and federated knowledge require no person mapping and use tenant `knowledgeSources` switches (see the deployment runbook).
+
+Before a Workbench case can use session-based Willi-MaKo evidence, CET must have:
 
 - a Willi-MaKo mandant/user mapping via `/api/workbench/admin/willi-mako/mappings`;
 - a tenant-scoped role alignment via `/api/workbench/admin/willi-mako/role-alignments` or the safe defaults;

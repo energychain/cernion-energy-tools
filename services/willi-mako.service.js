@@ -14,6 +14,7 @@
  */
 
 const CernionMCPClient = require('../src/mcp-client');
+const { knowledgeSourceAccess, knowledgeSearchText } = require('../src/workbench-knowledge-access');
 
 const OPENAPI_TAG = 'Willi-Mako Marktkommunikation';
 const MCP_TOOL = 'cernion_willi_mako_search';
@@ -149,11 +150,15 @@ module.exports = {
         },
       },
       async handler(ctx) {
-        const { query, limit, tag, category, includeContent } = ctx.params;
+        if (knowledgeSourceAccess(ctx)['willi-mako'] === false)
+          return { success: false, error: { code: 'KNOWLEDGE_SOURCE_DISABLED' } };
+        const { limit, tag, category, includeContent } = ctx.params;
+        const query = knowledgeSearchText({}, ctx.params.query);
+        if (!query) return { success: false, error: { code: 'KNOWLEDGE_QUERY_EMPTY' } };
         try {
           const rawResult = await CernionMCPClient.callWithNewSession(
             MCP_TOOL,
-            { query, limit, tag, category },
+            { query, limit, tag, category, includeContent },
             ctx.meta.cernionToken
           );
           return normalizeSearchResponse(rawResult, includeContent);

@@ -35,6 +35,10 @@ const {
 } = require('./shared');
 
 const { filterEvidence } = require('../../src/workbench-retrieval');
+const {
+  knowledgeSourceAccess,
+  knowledgeSearchText,
+} = require('../../src/workbench-knowledge-access');
 
 module.exports = {
   async _executeChatCoreLogic(ctx) {
@@ -165,16 +169,13 @@ module.exports = {
       question,
       contextSituation
     );
-    if (!selected && !sourceSelected) {
+    if (knowledgeSourceAccess(ctx)['willi-mako'] === false || (!selected && !sourceSelected)) {
       return { source: 'willi-mako', status: 'skipped', hits: [], trace: { hitCount: 0 } };
     }
     try {
-      const query = compactString(
-        [contextSituation.concern || question, ...(contextSituation.retrievalTerms || [])].join(
-          ' '
-        ),
-        200
-      );
+      const query = knowledgeSearchText(contextSituation, question);
+      if (!query)
+        return { source: 'willi-mako', status: 'missing', hits: [], trace: { hitCount: 0 } };
       const result = await ctx.call(
         'willi-mako.resolveStructure',
         {
@@ -250,9 +251,26 @@ module.exports = {
   // knowledge-rag.query used by collectCopilotKnowledgeEvidence.
   async collectCopilotFederatedKnowledgeEvidence(
     ctx,
-    { question, searchTerm, maxEvidence = 5, timeoutMs = COPILOT_KNOWLEDGE_TIMEOUT_MS } = {}
+    { question, searchTerm, situation, maxEvidence = 5, timeoutMs = 10000 } = {}
   ) {
-    const query = compactString([searchTerm, question].filter(Boolean).join(' · '), 600);
+    if (knowledgeSourceAccess(ctx)['knowledge-rag-federated'] === false)
+      return {
+        source: 'knowledge-rag-federated',
+        status: 'skipped',
+        hits: [],
+        trace: { hitCount: 0 },
+      };
+    const query = knowledgeSearchText(
+      situation || ctx.params?.context?.situation,
+      [searchTerm, question].filter(Boolean).join(' ')
+    );
+    if (!query)
+      return {
+        source: 'knowledge-rag-federated',
+        status: 'missing',
+        hits: [],
+        trace: { hitCount: 0 },
+      };
     const result = await queryFederatedEvidenceAdapter(ctx, {
       query,
       limit: Math.min(Math.max(Number(maxEvidence) || 5, 1), 8),

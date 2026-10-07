@@ -1,6 +1,7 @@
 'use strict';
 
 const { Errors } = require('moleculer');
+const { knowledgeSourceAccess, knowledgeSearchText } = require('../src/workbench-knowledge-access');
 const { callWithAutoPoll } = require('../src/async-job-poller');
 const { appendLog } = require('../src/job-store');
 const { runAsync } = require('../src/async-job-runner');
@@ -841,7 +842,16 @@ module.exports = (() => {
           },
         },
         async handler(ctx) {
-          return this.startFederatedSearchJob(ctx, ctx.params);
+          if (knowledgeSourceAccess(ctx)['knowledge-rag-federated'] === false)
+            return { success: false, error: { code: 'KNOWLEDGE_SOURCE_DISABLED' } };
+          const query = knowledgeSearchText({}, ctx.params.query);
+          if (!query)
+            throw new Errors.MoleculerClientError(
+              'Parameter query is required for federatedSearch',
+              400,
+              'VALIDATION_ERROR'
+            );
+          return this.startFederatedSearchJob(ctx, { ...ctx.params, query });
         },
       },
 

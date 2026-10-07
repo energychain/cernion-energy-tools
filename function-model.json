@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "87416f9072d46ffa34fb9e3627b46eaa46017c43a6f9f72795a70298a8267956",
+  "sourceHash": "decdf2e7c85cc2086fa86cf02ce98b24302b4917ae9b04d73f5ac893f90e5f69",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -70639,6 +70639,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/capability-catalog.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/job-store.js"
         },
         {
@@ -70736,6 +70740,14 @@
         {
           "kind": "service",
           "ref": "src/vdmi-system-templates.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-activity-taxonomy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-knowledge-access.js"
         },
         {
           "kind": "service",
@@ -118023,6 +118035,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/workbench-knowledge-access.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/workbench-llm-errors.js"
         },
         {
@@ -132519,6 +132535,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/capability-catalog.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/edm-csv-importer.js"
         },
         {
@@ -132567,6 +132587,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/prompt-scrubber.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/rate-quota-store.js"
         },
         {
@@ -132600,6 +132624,14 @@
         {
           "kind": "service",
           "ref": "src/vdmi-system-templates.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-activity-taxonomy.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/workbench-knowledge-access.js"
         }
       ],
       "capabilities": [
@@ -188559,7 +188591,7 @@
       },
       {
         "service": "knowledge-rag",
-        "ref": "services/knowledge-rag.service.js:136: dynamic emission"
+        "ref": "services/knowledge-rag.service.js:137: dynamic emission"
       },
       {
         "service": "knowledge-rag",
