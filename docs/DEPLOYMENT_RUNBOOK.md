@@ -294,8 +294,35 @@ anwenden. Eine hängende Quelle wird mit `status=timeout` und `ms` ausgewiesen;
 andere Quellen werden unabhängig abgefragt. Willi-Suchtext: Anliegen plus
 retrievalTerms, maximal 200 Zeichen. knowledge-rag beginnt parallel zum Verstehen;
 seine Treffer werden anschließend erneut am aktuellen Lagebild geprüft.
-Die allgemeine Willi-Artikelsuche nutzt wie der Facade-Pfad kein Personen-Mapping;
-mandantenbezogene föderierte Quellen behalten ihre Zuordnungsprüfung.
+Allgemeine Willi- und Federated-Fachwissenssuche benötigen kein Personen-Mapping.
+Die serverseitige Mandantenregistrierung (`CERNION_TENANT_REGISTRY_FILE`, Default
+`uploads/.api-tenants.json`) steuert beide Zugangspfade, Workbench und Facade/MCP:
+
+```json
+[
+  {
+    "tenantId": "example-tenant",
+    "knowledgeSources": { "williMako": "on", "federated": "on" }
+  }
+]
+```
+
+Bestehende Mandanteneinträge um `knowledgeSources` ergänzen; andere Felder erhalten.
+Beide Werte sind `on|off`, Default `on`. Änderungen greifen ab dem nächsten Zugriff;
+`off` sperrt auch zuvor gespeicherte Workbench-Evidenz dieser Quelle. Ungültige Werte
+oder eine unlesbare Registrierungsdatei sperren diese Wissensquellen. Die Mandanten-ID
+stammt aus der authentifizierten Identität, niemals aus Chat oder Modellantwort.
+Beide Suchtexte werden vor der Übermittlung mit dem gemeinsamen PII-Scrubber und
+zusätzlichen Filtern für lokale Kennungen, Namen und Adressen bereinigt und auf
+200 Zeichen begrenzt. Prozess- und Nachrichtentypen bleiben Suchbegriffe.
+Die bestehenden Willi-Zuordnungen gelten weiterhin für die separaten APIs zur
+Session-Suche, Session-Evidenz und Fall-Verknüpfung; die Wissenssuche nutzt sie nicht.
+Der Wissenspfad ruft weiterhin `willi-mako.resolveStructure/search` und
+`knowledge-rag.federatedSearch` über den Cernion-MCP-Zugang auf. In CET wird
+`WILLI_MAKO_CET_SERVICE_TOKEN` bisher vom separaten Willi-Session-Connector genutzt.
+Für die Fachwissenssuche über Cernion-MCP ist kein zusätzlicher Willi-Service-Token
+erforderlich. Der bestehende Cernion-MCP-Zugang genügt;
+`WILLI_MAKO_CET_SERVICE_TOKEN` gehört ausschließlich zum separaten Session-Connector.
 Ziel sind Folgeturns unter 10 Sekunden auch mit starkem Antwortmodell; 45 Sekunden
 sind eine Obergrenze für den Modellaufruf, keine zugesicherte Antwortzeit.
 Erst- und Folgeturns mit der eingesetzten Modellkombination vor Ort messen.

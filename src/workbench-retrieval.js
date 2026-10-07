@@ -1,6 +1,7 @@
 'use strict';
 
 const defaults = require('./workbench-knowledge-sources.json');
+const { knowledgeSourceAccess } = require('./workbench-knowledge-access');
 const { getFunctionModel } = require('./function-model');
 const { createHash } = require('node:crypto');
 const { normalizePhrase } = require('./function-resolver');
@@ -18,6 +19,7 @@ function selectSources(
   ].filter((entry) => entry.confidence >= catalog.minimumConfidence);
   return catalog.sources
     .filter((source) => {
+      if (access[source.id] === false) return false;
       if (source.requiresMapping && access[source.id] !== true) return false;
       if (
         source.restrictToPrimaryDomain &&
@@ -250,7 +252,7 @@ async function collectEvidence(
 ) {
   const sources = selectSources(situation, {
     catalog,
-    access: ctx.meta.workbenchEvidenceAccess || {},
+    access: { ...ctx.meta.workbenchEvidenceAccess, ...knowledgeSourceAccess(ctx, catalog.sources) },
   });
   const selectedSources = ctx.meta.workbenchEvidenceSources;
   const question = [situation.concern, situation.situation, ...(situation.retrievalTerms || [])]

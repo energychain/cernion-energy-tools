@@ -419,7 +419,7 @@ describe('Workbench understands, answers with evidence, and keeps the case in th
     ).rejects.toThrow();
   });
 
-  test('public Willi articles are read without mapping; federated data retains its mapping', async () => {
+  test('public Willi articles are read without mapping; session mappings remain separate', async () => {
     llm.generateStructured.mockImplementation(async (...args) => ({
       ...(await stub.generateStructured(...args)),
       hypotheses: [{ kind: 'domain', id: 'market_communication', confidence: 0.9 }],
@@ -437,6 +437,36 @@ describe('Workbench understands, answers with evidence, and keeps the case in th
     expect(mako).toHaveBeenCalledTimes(2);
     expect(mapped.noCallGuards).toContain('No dispatch');
     expect(mapped.evidence.some((hit) => hit.value.includes('Eingangsbestätigung'))).toBe(true);
+  });
+
+  test('tenant off blocks fresh and cached Willi knowledge without changing session mappings', async () => {
+    const previousFile = process.env.CERNION_TENANT_REGISTRY_FILE;
+    const file = path.join(dir, 'tenants.json');
+    process.env.CERNION_TENANT_REGISTRY_FILE = file;
+    try {
+      llm.generateStructured.mockImplementation(async (...args) => ({
+        ...(await stub.generateStructured(...args)),
+        hypotheses: [{ kind: 'domain', id: 'market_communication', confidence: 0.9 }],
+      }));
+      const first = await call(productionMail);
+      expect(first.evidence.some((hit) => hit.source === 'willi-mako')).toBe(true);
+      fs.writeFileSync(
+        file,
+        JSON.stringify([
+          { tenantId: 'tenant-a', knowledgeSources: { williMako: 'off', federated: 'off' } },
+        ])
+      );
+      mako.mockClear();
+      const cached = await call('Bitte den Entwurf formulieren');
+      expect(mako).not.toHaveBeenCalled();
+      expect(cached.evidence.some((hit) => hit.source === 'willi-mako')).toBe(false);
+      expect(cached.sources.find((source) => source.name === 'willi-mako').status).toBe('skipped');
+      await call(productionMail, 'disabled-new');
+      expect(mako).not.toHaveBeenCalled();
+    } finally {
+      if (previousFile === undefined) delete process.env.CERNION_TENANT_REGISTRY_FILE;
+      else process.env.CERNION_TENANT_REGISTRY_FILE = previousFile;
+    }
   });
 
   test('invalid understanding fails safely and creates no case; invalid citations are never rendered', async () => {
