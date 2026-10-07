@@ -266,6 +266,37 @@ Entwurfsqualität nur das Antwortmodell/Budget erhöhen. Nach Timeout oder Fehle
 eine kurze Antwort mit vorhandenem Lagebild und Quellen erhalten; technische
 Außenwirkungs-Sperren gelten auch beim Rückfall. Retrieval hat separat 4000 ms Budget.
 
+#### Agentic Sitemap / AI Catalog
+
+Die öffentlichen GET-Endpunkte `/.well-known/ai-catalog.json` und
+`/.well-known/ard.json` liefern denselben automatisch erzeugten Katalog mit
+`Content-Type: application/ai-catalog+json`. Die Registry der laufenden Instanz
+und `api.openapi` bilden die Quelle; neu geladene Services erscheinen ohne
+Dateigenerierung oder Neustart. Nur veröffentlichte Aktionen mit REST-Vertrag
+werden als Serviceangebot aufgenommen. Interne Aktionen und Serviceeinstellungen
+werden nicht serialisiert. Die Beschreibung ersetzt keine Authentifizierung,
+RBAC- oder HITL-Prüfung beim eigentlichen Aufruf.
+
+`API_URL` auf den externen HTTP(S)-Origin setzen, z. B. `https://api.cernion.de`
+(ohne Pfad, Zugangsdaten oder Query), damit Dokumentations- und Artefakt-URLs hinter
+einem TLS-Reverse-Proxy stimmen. Ohne `API_URL` wird der direkte Host/TLS-Zustand
+des Requests verwendet; `X-Forwarded-*` allein bestimmt keine Katalogadresse.
+Nginx muss beide `/.well-known/`-Pfade an CET weiterreichen, falls es dafür eine
+eigene Location gibt. Die Root-Antworten enthalten `Link` mit `rel="ai-catalog"`
+und `rel="ard"`; `ETag`/`If-None-Match` erlauben 304-Antworten. Die Erzeugung
+benötigt keinen LLM-Schlüssel und ruft keine Fachaktion oder externe Quelle auf.
+
+```bash
+curl -i https://api.cernion.de/.well-known/ai-catalog.json
+curl -i https://api.cernion.de/.well-known/ard.json
+```
+
+Bei 503 / `AI_CATALOG_UNAVAILABLE` den konfigurierten `API_URL` und die
+Gateway-Metadatenerzeugung prüfen. Bestehende Endpunkte bleiben nutzbar.
+Der Katalog ist eine dynamische JSON-Ressource, keine manuell gepflegte Datei.
+Die Serviceeinträge enthalten native OpenAPI-Teilkontrakte; es werden keine
+A2A-Agenten, MCP-Server-Cards oder Vertrauensnachweise erfunden.
+
 #### MCP / Cernion Backend
 
 | Variable | Default | Beschreibung |
