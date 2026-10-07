@@ -11,6 +11,13 @@ const {
 function classifyWorkbenchIntent(message, { cetCaseId, recentMessages } = {}) {
   if (isCorrectionTurn(message)) return 'correction';
   const text = String(message || '').toLowerCase();
+  // Words inside a pasted document describe the counterpart's request, not a CET command.
+  if (
+    /^(?:(?:weitergeleitete|eingefügte|anonymisierte)\s+)?(?:mail|e-mail|dokument|schreiben)\b/i.test(
+      text.trim()
+    )
+  )
+    return 'decision_support';
   if (
     /\b(run|execute|fetch|search|lookup|attach|ausführen|ausfuehren|führe|fuehre|abrufen|suche|anhängen)\b/.test(
       text

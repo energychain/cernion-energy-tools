@@ -1,5 +1,7 @@
 'use strict';
 
+const { timedSource, sourceMetadata } = require('../../src/workbench-retrieval');
+
 // personal-agent actions chunk 1/1 — extracted verbatim from
 // services/personal-agent.service.js as part of the v0.99 file-size modularization.
 // Contains: askCernionAgent, answerDossier, chat, getSession, pullProactiveMessages, acknowledgeProactiveMessage, resetSession, dream-pipeline, getDreamStatus, getDreamAudit
@@ -283,6 +285,20 @@ module.exports = {
                   'forbiddenActions',
                 ],
                 properties: {
+                  sources: {
+                    type: 'array',
+                    description: 'Per-turn source timings and status, without document contents.',
+                    items: {
+                      type: 'object',
+                      required: ['name', 'status', 'hitCount', 'ms'],
+                      properties: {
+                        name: { type: 'string' },
+                        status: { type: 'string' },
+                        hitCount: { type: 'integer', minimum: 0 },
+                        ms: { type: 'integer', minimum: 0 },
+                      },
+                    },
+                  },
                   success: { type: 'boolean' },
                   sessionId: { type: 'string' },
                   question: { type: 'string' },
@@ -450,10 +466,15 @@ module.exports = {
       });
 
       if (restPlan.ok) {
-        return buildAskBlueprintAnswer(restPlan, {
-          question: ctx.params.question,
-          sessionId: ctx.params.sessionId,
-        });
+        const sources = [];
+        this.logger?.info?.('Personal Agent evidence sources', { sources });
+        return {
+          ...buildAskBlueprintAnswer(restPlan, {
+            question: ctx.params.question,
+            sessionId: ctx.params.sessionId,
+          }),
+          sources,
+        };
       }
 
       const searchTerm = deriveCopilotSearchTerm(ctx.params.question);
@@ -476,27 +497,47 @@ module.exports = {
         federatedKnowledgeEvidence,
       ] = await Promise.all([
         this.searchCopilotEntities(ctx, { searchTerm, searchDomain, maxEvidence }),
-        this.collectCopilotKnowledgeEvidence(ctx, {
-          question: ctx.params.question,
-          searchTerm,
-          maxEvidence,
-        }),
-        this.collectCopilotDatapointEvidence(ctx, { queryTerms, maxEvidence }),
-        this.collectCopilotObjectEvidence(ctx, { context, queryTerms, maxEvidence }),
-        this.collectCopilotPlanningEvidence(ctx, { analysisSignals, maxEvidence }),
-        this.collectCopilotMakoKnowledgeEvidence(ctx, {
-          question: ctx.params.question,
-          maxEvidence,
-        }),
+        timedSource(() =>
+          this.collectCopilotKnowledgeEvidence(ctx, {
+            question: ctx.params.question,
+            searchTerm,
+            maxEvidence,
+          })
+        ),
+        timedSource(() => this.collectCopilotDatapointEvidence(ctx, { queryTerms, maxEvidence })),
+        timedSource(() =>
+          this.collectCopilotObjectEvidence(ctx, { context, queryTerms, maxEvidence })
+        ),
+        timedSource(() =>
+          this.collectCopilotPlanningEvidence(ctx, { analysisSignals, maxEvidence })
+        ),
+        timedSource(() =>
+          this.collectCopilotMakoKnowledgeEvidence(ctx, {
+            question: ctx.params.question,
+            maxEvidence,
+          })
+        ),
         // v0.99.1: opt-in only — skipped unless the caller explicitly requests it.
         includeFederatedKnowledge
-          ? this.collectCopilotFederatedKnowledgeEvidence(ctx, {
-              question: ctx.params.question,
-              searchTerm,
-              maxEvidence,
-            })
+          ? timedSource(() =>
+              this.collectCopilotFederatedKnowledgeEvidence(ctx, {
+                question: ctx.params.question,
+                searchTerm,
+                maxEvidence,
+              })
+            )
           : Promise.resolve({ source: 'knowledge-rag-federated', status: 'skipped', hits: [] }),
       ]);
+
+      const sources = sourceMetadata([
+        knowledgeEvidence,
+        datapointEvidence,
+        objectEvidence,
+        planningEvidence,
+        makoKnowledgeEvidence,
+        federatedKnowledgeEvidence,
+      ]);
+      this.logger?.info?.('Personal Agent evidence sources', { sources });
 
       const baseAnswer = this.buildCopilotSearchAnswer({
         question: ctx.params.question,
@@ -520,6 +561,7 @@ module.exports = {
 
       return {
         ...enhancedAnswer,
+        sources,
         resolved: { kind: 'none' },
         canonicalInputs: {},
         execution: null,

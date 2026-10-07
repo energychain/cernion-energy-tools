@@ -75,7 +75,7 @@ function createPouchDbLifecycleMixin({
           if (error.message !== 'database is closed') {
             throw error;
           }
-          this.logger.warn(
+          this.logger.debug(
             `[${logLabel || this.name}] PouchDB ${dbProperty} already closed`,
             error
           );

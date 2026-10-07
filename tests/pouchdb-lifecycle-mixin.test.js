@@ -15,7 +15,7 @@ describe('PouchDB lifecycle shutdown', () => {
     service = {
       name: 'fixture',
       settings: { dbPath: directory },
-      logger: { info: jest.fn(), warn: jest.fn() },
+      logger: { info: jest.fn(), warn: jest.fn(), debug: jest.fn() },
     };
     mixin.created.call(service);
   });
@@ -35,10 +35,10 @@ describe('PouchDB lifecycle shutdown', () => {
     expect(service.logger.warn).not.toHaveBeenCalled();
   });
 
-  it('warns and resolves when the real database was already closed', async () => {
+  it('logs at debug and resolves when the real database was already closed', async () => {
     await service.db.close();
     await expect(mixin.stopped.call(service)).resolves.toBeUndefined();
-    expect(service.logger.warn).toHaveBeenCalledWith(
+    expect(service.logger.debug).toHaveBeenCalledWith(
       '[fixture] PouchDB db already closed',
       expect.objectContaining({ message: 'database is closed' })
     );
@@ -53,7 +53,7 @@ describe('PouchDB lifecycle shutdown', () => {
     service.store = service.db;
     await custom.stopped.call(service);
     await expect(custom.stopped.call(service)).resolves.toBeUndefined();
-    expect(service.logger.warn).toHaveBeenCalledWith(
+    expect(service.logger.debug).toHaveBeenCalledWith(
       '[custom] PouchDB store already closed',
       expect.any(Error)
     );

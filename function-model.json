@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "8709f56602ffb724238afe916a60f606c9bd533b221ae0aed9f8f86dfb742b8f",
+  "sourceHash": "f5dfb883587094c187deb3189df1d610d33bdb972d334e1a4fa6ab874f95b73e",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -117963,6 +117963,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/workbench-activity-taxonomy.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/workbench-retrieval.js"
         },
         {
@@ -188331,7 +188335,7 @@
       },
       {
         "service": "api",
-        "ref": "services/api.service.js:534: dynamic emission"
+        "ref": "services/api.service.js:535: dynamic emission"
       },
       {
         "service": "assets",

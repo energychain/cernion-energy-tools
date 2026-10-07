@@ -105,7 +105,7 @@ test('record isolation does not hide database or unexpected resolver errors', as
   ).rejects.toBe(resolverError);
 });
 
-test('current identities and unique lineage stay readable while a reused old ID stays suspended', async () => {
+test('current identities survive changed hashes and successful lineage resolution persists the new identity', async () => {
   const model = {
     sourceHash: 'current-model',
     functions: [
@@ -129,14 +129,21 @@ test('current identities and unique lineage stay readable while a reused old ID 
     logger: { warn: jest.fn() },
     db: { allDocs: async () => ({ rows: docs.map((doc) => ({ doc })) }) },
   };
+  service.update = async (id, change) => {
+    const index = docs.findIndex((doc) => doc._id === id);
+    docs[index] = change(docs[index]);
+    return docs[index];
+  };
   service.functionId = schema.methods.functionId.bind(service);
   const records = await schema.methods.records.call(service);
   expect(records.map((doc) => [doc._id, doc.functionId])).toEqual([
     ['wake:current', 'fn-a'],
     ['wake:legacy', 'fn-a'],
+    ['wake:ambiguous', 'fn-a'],
   ]);
-  expect(service.logger.warn).toHaveBeenCalledTimes(1);
-  expect(docs[1].functionId).toBe('fn-legacy');
+  expect(service.logger.warn).not.toHaveBeenCalled();
+  expect(docs[1].functionId).toBe('fn-a');
+  expect(docs.every((doc) => doc.modelSourceHash === 'current-model')).toBe(true);
 });
 
 test('AC-04: real PouchDB restart preserves due times, stats and digest; one cycle per deadline', async () => {
@@ -208,9 +215,15 @@ test('AC-04: real PouchDB restart preserves due times, stats and digest; one cyc
     });
     const before = (await wake.records())[0];
     await broker.stop();
+    model.sourceHash = 'fixture-regenerated';
     ({ broker, wake } = make());
     await broker.start();
     expect((await wake.records())[0].nextAt).toBe(before.nextAt);
+    expect((await wake.records())[0]).toMatchObject({
+      functionId: 'fn-a',
+      lifecycle: 'active',
+      modelSourceHash: 'fixture-regenerated',
+    });
     expect(calls).toBe(0);
     now = before.nextAt;
     await Promise.all([wake.drainDue(), wake.drainDue()]);

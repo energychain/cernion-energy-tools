@@ -87,7 +87,7 @@ test('Gemini text, schema and JSON fallback respect options.model', async () => 
   ]);
 });
 
-test('model error preserves situation and sources, omits missing draft instead of template', async () => {
+test('model error builds a complete working draft from available situation and sources', async () => {
   llm.generateText.mockRejectedValue(new Error('provider error'));
   const reply = await answer({
     situation: {
@@ -105,7 +105,9 @@ test('model error preserves situation and sources, omits missing draft instead o
   expect(reply.answerStatus).toBe('fallback');
   expect(reply.responseText).toContain('Eingang dokumentieren.');
   expect(reply.responseText).toContain('Quellen: Prozessnotiz');
-  expect(reply.draft).toBe('');
+  expect(reply.draft).toContain('Die Anfrage ist offen.');
+  expect(reply.draft).toContain('Bearbeitungsstand prüfen.');
+  expect(reply.draft).toContain('Mit freundlichen Grüßen');
 });
 
 test('timeout fallback retains an already available draft', async () => {
@@ -153,4 +155,32 @@ test('draft cannot assert completed work without literal evidence', async () => 
   });
   expect(reply.draft).toBe('');
   expect(reply.responseText).not.toContain('abgeschlossen');
+});
+
+test('Gemini thinking options reach text, structured and chat generation', async () => {
+  process.env.GEMINI_API_KEY = 'test-key';
+  const getGenerativeModel = jest.fn(() => ({
+    generateContent: jest.fn(async () => ({ response: { text: () => '{}' } })),
+  }));
+  GoogleGenerativeAI.mockImplementation(() => ({ getGenerativeModel }));
+  const adapter = require('../src/adapters/gemini');
+  await adapter.generateText('prompt', {
+    thinking: 'minimal',
+    responseMimeType: 'application/json',
+  });
+  await adapter.generateStructured({}, 'prompt', { thinking: '0' });
+  await adapter.generateChat([{ role: 'user', content: 'hello' }], {
+    thinkingConfig: { thinkingLevel: 'low' },
+  });
+  expect(getGenerativeModel.mock.calls.map(([o]) => o.generationConfig.thinkingConfig)).toEqual([
+    { thinkingLevel: 'minimal' },
+    { thinkingBudget: 0 },
+    { thinkingLevel: 'low' },
+  ]);
+  expect(getGenerativeModel.mock.calls[0][0].generationConfig.responseMimeType).toBe(
+    'application/json'
+  );
+  process.env.WORKBENCH_LLM_THINKING = 'minimal,low';
+  expect(llmOptions('tenant').thinking).toBe('minimal');
+  expect(llmOptions('tenant', 'answer').thinking).toBe('low');
 });

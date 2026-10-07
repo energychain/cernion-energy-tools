@@ -3,6 +3,9 @@ const { resolveFunctionId } = require('./function-model');
 
 function resolveRecords(records, model) {
   return records.flatMap((record) => {
+    // A regenerated model hash does not change an existing function's identity.
+    if (model.functions.some((fn) => fn.functionId === record.functionId))
+      return [{ ...record, modelSourceHash: model.sourceHash }];
     const successors = resolveFunctionId(record.functionId, { model });
     const resolved = successors.filter(({ functionId }) => {
       if (record.modelSourceHash && record.modelSourceHash === model.sourceHash)
@@ -15,6 +18,7 @@ function resolveRecords(records, model) {
     return resolved.map(({ functionId }) => ({
       ...record,
       functionId,
+      modelSourceHash: model.sourceHash,
       ...(record.attention && resolved.length > 1
         ? {
             attention: {

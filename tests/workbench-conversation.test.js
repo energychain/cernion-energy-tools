@@ -198,7 +198,7 @@ describe('Workbench understands, answers with evidence, and keeps the case in th
     }
   );
 
-  test('a model may omit an unrequested draft without losing the grounded answer', async () => {
+  test('a due response keeps a usable working draft when the model omits it', async () => {
     llm.generateText.mockResolvedValue(
       JSON.stringify({
         expectation: [
@@ -216,7 +216,8 @@ describe('Workbench understands, answers with evidence, and keeps the case in th
     const result = await call(productionMail);
     expect(result.answerStatus).toBe('grounded');
     expect(result.responseText).toContain('Quellen:');
-    expect(result.draftId).toBeUndefined();
+    expect(result.draftId).toBeTruthy();
+    expect(result.responseText).toContain('Mit freundlichen Grüßen');
   });
 
   test('AC-02: empty retrieval never invents rules or deadlines', async () => {
