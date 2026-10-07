@@ -650,6 +650,23 @@ npm install
 cat .env | grep GEMINI_API_KEY
 ```
 
+### Wake: gespeicherte Funktion nicht mehr eindeutig zuordenbar
+
+Nach einem Wechsel des Funktionsmodells können gespeicherte Wake-Einträge eine
+entfernte oder auf mehrere Nachfolger aufgeteilte Funktion referenzieren. Ältere
+Versionen brechen dabei den Brokerstart mit `WAKE_INVALID` / `Function identity must
+resolve unambiguously` ab. Die korrigierte Version startet weiter und meldet
+`Wake record suspended: unresolved function identity` mit Eintrags-ID, Funktions-ID
+und altem/aktuellem Modellhash einmal je Eintragsrevision und Prozessstart.
+
+Diese Einträge bleiben unverändert in `SHARED_SERVICE_WAKE_DB_PATH` (Default:
+`./data/shared_service_wake`) erhalten und werden weder durch Timer noch durch
+Push-Ereignisse ausgeführt. Gültige Einträge laufen weiter. Nicht die Wake-Datenbank
+löschen: Sie enthält auch laufende Zustände, Statistiken und Journal-Retries.
+Vor einer Wiederaufnahme die betroffenen Funktionszuordnungen und Agenten anhand
+des aktuellen Modells prüfen; eine mehrdeutige Lineage erlaubt keine automatische
+Auswahl eines Nachfolgers. Datenbankfehler werden weiterhin als Fehler behandelt.
+
 ### PouchDB-Fehler: `LEVEL_LOCKED`
 
 **Ursache:** Ein anderer Prozess (z.B. eine zweite Instanz) hält das LevelDB-Lock.
