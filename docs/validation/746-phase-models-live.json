@@ -1,0 +1,879 @@
+{
+  "mode": "live central LLM / stubbed sources; no test-instance retrieval",
+  "provider": "gemini",
+  "models": "gemini-3.5-flash-lite",
+  "answerModel": "gemini-3.5-flash",
+  "budgets": "4500,45000",
+  "thinking": "minimal,default",
+  "turns": [
+    {
+      "message": "Anonymisierte Mail eines Lieferanten an einen Netzbetreiber: Zu unserer Netzanmeldung DAR DE000000000001, Marktlokation 99000000001, Anschlussadresse Beispielstraße 1, fehlt laut unserem Bearbeitungsstand die Rückmeldung. Die Frist ist laut Mail überschritten. Bitte teilen Sie uns den Bearbeitungsstand mit. Kannst du mir helfen?",
+      "elapsedMs": 13829,
+      "state": "assistance",
+      "phaseTimes": {
+        "understandMs": 2759,
+        "retrieveMs": 12,
+        "answerMs": 10938
+      },
+      "sources": [
+        {
+          "name": "knowledge-rag",
+          "status": "available",
+          "hitCount": 1,
+          "ms": 7
+        },
+        {
+          "name": "datapoint",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 4
+        },
+        {
+          "name": "object-store",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 6
+        },
+        {
+          "name": "willi-mako",
+          "status": "available",
+          "hitCount": 1,
+          "ms": 3
+        },
+        {
+          "name": "knowledge-rag-federated",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 4
+        },
+        {
+          "name": "analysis-planner",
+          "status": "available",
+          "hitCount": 0,
+          "ms": 2
+        },
+        {
+          "name": "capability-read",
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 1
+        }
+      ],
+      "caseId": "87d29cd2-7614-4ef6-bc67-84583f7ceafd",
+      "answerStatus": "grounded",
+      "responseText": "Der Lieferant bemängelt eine fehlende Rückmeldung und eine überschrittene Frist zur Netzanmeldung mit der DAR DE000000000001 für die Marktlokation 99000000001 in der Beispielstraße 1.\n\nDer Absender erwartet eine konkrete Rückmeldung zum aktuellen Bearbeitungsstand der Netzanmeldung.\n\nDer Lieferant erwartet eine Aufklärung bezüglich der von ihm als überschritten dargestellten Frist.\n\nGleiche die Eingangsbestätigung und den aktuellen Bearbeitungsstand im System ab.\n\nPrüfe die unbestätigte Fristbehauptung des Lieferanten anhand der aktuell gültigen Prozessversion.\n\nIch gehe davon aus, dass wir als Netzbetreiber die Anfrage erhalten haben und für die Bearbeitung der genannten Marktlokation zuständig sind.\n\nEntwurf:\nSehr geehrte Damen und Herren,\n\nvielen Dank für Ihre Anfrage zur Netzanmeldung mit der DAR DE000000000001 für die Marktlokation 99000000001 in der Beispielstraße 1.\n\nNach Prüfung des Vorgangs teilen wir Ihnen folgenden aktuellen Bearbeitungsstand mit: [KONKRETEN_BEARBEITUNGSSTAND_EINFUEGEN].\n\nBezüglich der von Ihnen genannten Fristüberschreitung ergibt unsere Prüfung folgenden Sachverhalt: [ERGEBNIS_FRISTPRUEFUNG_EINFUEGEN].\n\nMit freundlichen Grüßen\n\nIhr Kundenservice\n\nQuellen: willi-mako: https://example.invalid/anonymous-willi-note\n\nFall F-1 · Mit „Kein Fall“ kannst du ihn verwerfen.",
+      "situation": {
+        "concern": "Prüfung des Bearbeitungsstands und einer überschrittenen Frist zu einer Netzanmeldung",
+        "situation": "Ein Lieferant hat eine anonymisierte Mail an einen Netzbetreiber gesendet, in der bemängelt wird, dass zur Netzanmeldung DAR DE000000000001, Marktlokation 99000000001, Anschlussadresse Beispielstraße 1, die Rückmeldung fehlt und die Frist überschritten ist.",
+        "participants": [
+          "Lieferant",
+          "Netzbetreiber"
+        ],
+        "identifiers": [
+          {
+            "kind": "Netzanmeldung",
+            "value": "DAR DE000000000001"
+          },
+          {
+            "kind": "Marktlokation",
+            "value": "99000000001"
+          },
+          {
+            "kind": "Anschlussadresse",
+            "value": "Beispielstraße 1"
+          }
+        ],
+        "deadlines": [
+          {
+            "value": "Die Frist ist laut Mail überschritten",
+            "basis": "Die Frist ist laut Mail überschritten"
+          }
+        ],
+        "hypotheses": [
+          {
+            "kind": "domain",
+            "id": "grid-connection",
+            "confidence": 0.9
+          },
+          {
+            "kind": "function",
+            "id": "fn-e2e-connection-check",
+            "confidence": 0.8
+          }
+        ],
+        "missingInformation": [],
+        "requestedAction": {
+          "description": "Den Bearbeitungsstand zur Netzanmeldung mitteilen",
+          "externalEffect": false,
+          "draftRequested": true
+        },
+        "turnKind": "work",
+        "retrievalTerms": [
+          "Netzanmeldung",
+          "DAR DE000000000001",
+          "Marktlokation 99000000001",
+          "Beispielstraße 1",
+          "Bearbeitungsstand",
+          "Frist"
+        ]
+      },
+      "evidence": [
+        {
+          "source": "knowledge-rag",
+          "value": "Prüfung des Bearbeitungsstands und einer überschrittenen Frist zu einer Netzanmeldung Ein Lieferant hat eine anonymisierte Mail an einen Netzbetreiber gesendet, in der bemängelt wird, dass zur Netzanmeldung DAR DE0000000 · Score: 0.920",
+          "url": "https://example.invalid/anonymous-process-note",
+          "metadata": {
+            "hitId": "local-process-note",
+            "sectionId": null,
+            "timestamp": null,
+            "documentType": null,
+            "score": 0.92
+          },
+          "retrievalSource": "knowledge-rag",
+          "evidenceId": "E1"
+        },
+        {
+          "source": "willi-mako",
+          "value": "Netzanmeldung und Rückmeldung · Prüfung des Bearbeitungsstands und einer überschrittenen Frist zu einer Netzanmeldung Ein Lieferant hat eine anonymisierte Mail an einen Netzbetreiber gesendet, in der bemängelt wird, dass zur Netzanmeldung DAR DE000000000001, Marktlokation 99000000001, Anschlussadresse Beispielstraße 1, die Rückmeldung fehlt und die Frist überschritten ist. Netzanmeldung DAR DE000000000001 Marktlokation 99000000001 Beispielstraße 1 Bearbeitungsstand Frist Eingangsbestätigung und aktuellen Bearbeitungsstand abgleichen; unbestätigte Fristbehauptung anhand der Prozessversion prüfen. · URL: https://example.invalid/anonymous-willi-note",
+          "url": "https://example.invalid/anonymous-willi-note",
+          "metadata": {
+            "sourceId": "anonymous-willi-note",
+            "sectionId": null,
+            "score": 32
+          },
+          "retrievalSource": "willi-mako",
+          "evidenceId": "E2"
+        }
+      ],
+      "retrievalTrace": [
+        {
+          "source": "knowledge-rag",
+          "called": true,
+          "status": "available",
+          "hitCount": 1,
+          "ms": 7,
+          "rejected": [
+            {
+              "hitId": "irrelevant-note",
+              "source": "knowledge-rag",
+              "score": 0.58,
+              "summary": "Rotorblattwartung und Schmierstoffkontrolle.",
+              "reason": "below_score_threshold",
+              "overlap": 0
+            }
+          ]
+        },
+        {
+          "source": "datapoint",
+          "called": true,
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 4,
+          "scannedCount": 0,
+          "rejected": []
+        },
+        {
+          "source": "object-store",
+          "called": true,
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 6,
+          "namespaces": [
+            {
+              "namespace": "cya_sessions",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "cya_profiles",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "finance_agent_memory",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "copilot_context",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "process_context",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "evidence",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "znp_projects",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "vdmi_context",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            }
+          ],
+          "rejected": []
+        },
+        {
+          "source": "willi-mako",
+          "called": true,
+          "status": "available",
+          "hitCount": 1,
+          "ms": 3,
+          "confidence": "none",
+          "rejected": []
+        },
+        {
+          "source": "knowledge-rag-federated",
+          "called": true,
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 4,
+          "rejected": []
+        },
+        {
+          "source": "analysis-planner",
+          "called": true,
+          "status": "available",
+          "hitCount": 0,
+          "ms": 2,
+          "signals": {
+            "postalCode": null,
+            "power": null,
+            "assetClass": null,
+            "perspectives": [],
+            "active": false
+          },
+          "toolCalls": [],
+          "rejected": [
+            {
+              "source": "analysis-planner",
+              "value": "Cernion Analysis Planner:",
+              "metadata": {
+                "kind": "signals"
+              },
+              "reason": "situation_mismatch",
+              "overlap": 0
+            }
+          ]
+        },
+        {
+          "source": "capability-read",
+          "called": false,
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 1,
+          "calledOperations": 0,
+          "rejected": []
+        },
+        {
+          "source": "response_boundary",
+          "rejected": []
+        }
+      ],
+      "caseCreated": true,
+      "draftCreated": true
+    },
+    {
+      "message": "Die Eingangsbestätigung liegt vor. Was bedeutet das für den nächsten Schritt?",
+      "elapsedMs": 16474,
+      "state": "assistance",
+      "phaseTimes": {
+        "understandMs": 2629,
+        "retrieveMs": 6,
+        "answerMs": 13760
+      },
+      "sources": [
+        {
+          "name": "knowledge-rag",
+          "status": "available",
+          "hitCount": 1,
+          "ms": 4
+        },
+        {
+          "name": "datapoint",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 3
+        },
+        {
+          "name": "object-store",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 3
+        },
+        {
+          "name": "willi-mako",
+          "status": "available",
+          "hitCount": 1,
+          "ms": 2
+        },
+        {
+          "name": "knowledge-rag-federated",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 3
+        },
+        {
+          "name": "analysis-planner",
+          "status": "available",
+          "hitCount": 0,
+          "ms": 1
+        },
+        {
+          "name": "capability-read",
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 1
+        }
+      ],
+      "caseId": "87d29cd2-7614-4ef6-bc67-84583f7ceafd",
+      "answerStatus": "grounded",
+      "responseText": "Die vorliegende Eingangsbestätigung dokumentiert zunächst nur den rein technischen Empfang der Netzanmeldung DAR DE000000000001 für die Marktlokation 99000000001, klärt jedoch noch nicht den inhaltlichen Bearbeitungsstand oder die Rechtmäßigkeit der behaupteten Fristüberschreitung.\n\nGleiche die vorliegende Eingangsbestätigung mit dem aktuellen Bearbeitungsstand im System ab.\n\nPrüfe die unbestätigte Fristbehauptung detailliert anhand der für diesen Vorgang gültigen Prozessversion.\n\nIch gehe davon aus, dass die Eingangsbestätigung im System hinterlegt ist und die zugehörigen Prozessdaten zur Netzanmeldung DAR DE000000000001 vollständig einsehbar sind.\n\nQuellen: willi-mako: https://example.invalid/anonymous-willi-note\n\nFall F-1",
+      "situation": {
+        "concern": "Klärung der Bedeutung der vorliegenden Eingangsbestätigung für den nächsten Schritt bei der Netzanmeldung",
+        "situation": "Der Nutzer fragt, was die vorliegende Eingangsbestätigung für den nächsten Schritt bedeutet. Im bisherigen Kontext ging es um die Prüfung des Bearbeitungsstands und einer überschrittenen Frist zur Netzanmeldung DAR DE000000000001 an der Marktlokation 99000000001.",
+        "participants": [
+          "Lieferant",
+          "Netzbetreiber"
+        ],
+        "identifiers": [
+          {
+            "kind": "Netzanmeldung",
+            "value": "DAR DE000000000001"
+          },
+          {
+            "kind": "Marktlokation",
+            "value": "99000000001"
+          },
+          {
+            "kind": "Anschlussadresse",
+            "value": "Beispielstraße 1"
+          }
+        ],
+        "deadlines": [
+          {
+            "value": "Die Frist ist laut Mail überschritten",
+            "basis": "Die Frist ist laut Mail überschritten"
+          }
+        ],
+        "hypotheses": [
+          {
+            "kind": "domain",
+            "id": "grid-connection",
+            "confidence": 0.9
+          },
+          {
+            "kind": "function",
+            "id": "fn-e2e-connection-check",
+            "confidence": 0.8
+          }
+        ],
+        "missingInformation": [],
+        "requestedAction": {
+          "description": "Die Bedeutung der Eingangsbestätigung für den nächsten Schritt erklären und den Bearbeitungsstand weiterführen",
+          "externalEffect": false,
+          "draftRequested": true
+        },
+        "turnKind": "work",
+        "retrievalTerms": [
+          "Netzanmeldung",
+          "DAR DE000000000001",
+          "Marktlokation 99000000001",
+          "Beispielstraße 1",
+          "Eingangsbestätigung",
+          "Bearbeitungsstand"
+        ]
+      },
+      "evidence": [
+        {
+          "source": "knowledge-rag",
+          "value": "Klärung der Bedeutung der vorliegenden Eingangsbestätigung für den nächsten Schritt bei der Netzanmeldung Der Nutzer fragt, was die vorliegende Eingangsbestätigung für den nächsten Schritt bedeutet. Im bisherigen Kontext · Score: 0.920",
+          "url": "https://example.invalid/anonymous-process-note",
+          "metadata": {
+            "hitId": "local-process-note",
+            "sectionId": null,
+            "timestamp": null,
+            "documentType": null,
+            "score": 0.92
+          },
+          "retrievalSource": "knowledge-rag",
+          "evidenceId": "E1"
+        },
+        {
+          "source": "willi-mako",
+          "value": "Netzanmeldung und Rückmeldung · Klärung der Bedeutung der vorliegenden Eingangsbestätigung für den nächsten Schritt bei der Netzanmeldung Der Nutzer fragt, was die vorliegende Eingangsbestätigung für den nächsten Schritt bedeutet. Im bisherigen Kontext ging es um die Prüfung des Bearbeitungsstands und einer überschrittenen Frist zur Netzanmeldung DAR DE000000000001 an der Marktlokation 99000000001. Netzanmeldung DAR DE000000000001 Marktlokation 99000000001 Beispielstraße 1 Eingangsbestätigung Bearbeitungsstand Eingangsbestätigung und aktuellen Bearbeitungsstand abgleichen; unbestätigte Fristbehauptung anhand der Prozessversion prüfen. · URL: https://example.invalid/anonymous-willi-note",
+          "url": "https://example.invalid/anonymous-willi-note",
+          "metadata": {
+            "sourceId": "anonymous-willi-note",
+            "sectionId": null,
+            "score": 32
+          },
+          "retrievalSource": "willi-mako",
+          "evidenceId": "E2"
+        }
+      ],
+      "retrievalTrace": [
+        {
+          "source": "knowledge-rag",
+          "called": true,
+          "status": "available",
+          "hitCount": 1,
+          "ms": 4,
+          "rejected": [
+            {
+              "hitId": "irrelevant-note",
+              "source": "knowledge-rag",
+              "score": 0.58,
+              "summary": "Rotorblattwartung und Schmierstoffkontrolle.",
+              "reason": "below_score_threshold",
+              "overlap": 0
+            }
+          ]
+        },
+        {
+          "source": "datapoint",
+          "called": true,
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 3,
+          "scannedCount": 0,
+          "rejected": []
+        },
+        {
+          "source": "object-store",
+          "called": true,
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 3,
+          "namespaces": [
+            {
+              "namespace": "cya_sessions",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "cya_profiles",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "finance_agent_memory",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "copilot_context",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "process_context",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "evidence",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "znp_projects",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "vdmi_context",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            }
+          ],
+          "rejected": []
+        },
+        {
+          "source": "willi-mako",
+          "called": true,
+          "status": "available",
+          "hitCount": 1,
+          "ms": 2,
+          "confidence": "none",
+          "rejected": []
+        },
+        {
+          "source": "knowledge-rag-federated",
+          "called": true,
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 3,
+          "rejected": []
+        },
+        {
+          "source": "analysis-planner",
+          "called": true,
+          "status": "available",
+          "hitCount": 0,
+          "ms": 1,
+          "signals": {
+            "postalCode": null,
+            "power": null,
+            "assetClass": null,
+            "perspectives": [],
+            "active": false
+          },
+          "toolCalls": [],
+          "rejected": [
+            {
+              "source": "analysis-planner",
+              "value": "Cernion Analysis Planner:",
+              "metadata": {
+                "kind": "signals"
+              },
+              "reason": "situation_mismatch",
+              "overlap": 0
+            }
+          ]
+        },
+        {
+          "source": "capability-read",
+          "called": false,
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 1,
+          "calledOperations": 0,
+          "rejected": []
+        },
+        {
+          "source": "response_boundary",
+          "rejected": []
+        }
+      ],
+      "caseCreated": true,
+      "draftCreated": true
+    },
+    {
+      "message": "Mach mir die Antwort fertig",
+      "elapsedMs": 11642,
+      "state": "assistance",
+      "phaseTimes": {
+        "understandMs": 0,
+        "retrieveMs": 1,
+        "answerMs": 11536
+      },
+      "sources": [
+        {
+          "name": "knowledge-rag",
+          "status": "available",
+          "hitCount": 1,
+          "ms": 0
+        },
+        {
+          "name": "datapoint",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "object-store",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "willi-mako",
+          "status": "available",
+          "hitCount": 1,
+          "ms": 0
+        },
+        {
+          "name": "knowledge-rag-federated",
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "analysis-planner",
+          "status": "available",
+          "hitCount": 0,
+          "ms": 0
+        },
+        {
+          "name": "capability-read",
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0
+        }
+      ],
+      "caseId": "87d29cd2-7614-4ef6-bc67-84583f7ceafd",
+      "answerStatus": "grounded",
+      "responseText": "Entwurf:\nSehr geehrte Damen und Herren,\n\nvielen Dank für Ihre Anfrage zur Netzanmeldung mit der DAR DE000000000001 für die Marktlokation 99000000001 in der Beispielstraße 1.\n\nNach Prüfung des Vorgangs teilen wir Ihnen folgenden aktuellen Bearbeitungsstand mit: [KONKRETEN_BEARBEITUNGSSTAND_EINFUEGEN].\n\nBezüglich der von Ihnen genannten Fristüberschreitung ergibt unsere Prüfung folgenden Sachverhalt: [ERGEBNIS_FRISTPRUEFUNG_EINFUEGEN].\n\nMit freundlichen Grüßen\n\nIhr Kundenservice\n\nQuellen: willi-mako: https://example.invalid/anonymous-willi-note\n\nFall F-1",
+      "situation": {
+        "concern": "Klärung der Bedeutung der vorliegenden Eingangsbestätigung für den nächsten Schritt bei der Netzanmeldung",
+        "situation": "Der Nutzer fragt, was die vorliegende Eingangsbestätigung für den nächsten Schritt bedeutet. Im bisherigen Kontext ging es um die Prüfung des Bearbeitungsstands und einer überschrittenen Frist zur Netzanmeldung DAR DE000000000001 an der Marktlokation 99000000001.",
+        "participants": [
+          "Lieferant",
+          "Netzbetreiber"
+        ],
+        "identifiers": [
+          {
+            "kind": "Netzanmeldung",
+            "value": "DAR DE000000000001"
+          },
+          {
+            "kind": "Marktlokation",
+            "value": "99000000001"
+          },
+          {
+            "kind": "Anschlussadresse",
+            "value": "Beispielstraße 1"
+          }
+        ],
+        "deadlines": [
+          {
+            "value": "Die Frist ist laut Mail überschritten",
+            "basis": "Die Frist ist laut Mail überschritten"
+          }
+        ],
+        "hypotheses": [
+          {
+            "kind": "domain",
+            "id": "grid-connection",
+            "confidence": 0.9
+          },
+          {
+            "kind": "function",
+            "id": "fn-e2e-connection-check",
+            "confidence": 0.8
+          }
+        ],
+        "missingInformation": [],
+        "requestedAction": {
+          "description": "Die Bedeutung der Eingangsbestätigung für den nächsten Schritt erklären und den Bearbeitungsstand weiterführen",
+          "externalEffect": false,
+          "draftRequested": true
+        },
+        "turnKind": "work",
+        "retrievalTerms": [
+          "Netzanmeldung",
+          "DAR DE000000000001",
+          "Marktlokation 99000000001",
+          "Beispielstraße 1",
+          "Eingangsbestätigung",
+          "Bearbeitungsstand"
+        ]
+      },
+      "evidence": [
+        {
+          "source": "knowledge-rag",
+          "value": "Klärung der Bedeutung der vorliegenden Eingangsbestätigung für den nächsten Schritt bei der Netzanmeldung Der Nutzer fragt, was die vorliegende Eingangsbestätigung für den nächsten Schritt bedeutet. Im bisherigen Kontext · Score: 0.920",
+          "url": "https://example.invalid/anonymous-process-note",
+          "metadata": {
+            "hitId": "local-process-note",
+            "sectionId": null,
+            "timestamp": null,
+            "documentType": null,
+            "score": 0.92
+          },
+          "retrievalSource": "knowledge-rag",
+          "evidenceId": "E1"
+        },
+        {
+          "source": "willi-mako",
+          "value": "Netzanmeldung und Rückmeldung · Klärung der Bedeutung der vorliegenden Eingangsbestätigung für den nächsten Schritt bei der Netzanmeldung Der Nutzer fragt, was die vorliegende Eingangsbestätigung für den nächsten Schritt bedeutet. Im bisherigen Kontext ging es um die Prüfung des Bearbeitungsstands und einer überschrittenen Frist zur Netzanmeldung DAR DE000000000001 an der Marktlokation 99000000001. Netzanmeldung DAR DE000000000001 Marktlokation 99000000001 Beispielstraße 1 Eingangsbestätigung Bearbeitungsstand Eingangsbestätigung und aktuellen Bearbeitungsstand abgleichen; unbestätigte Fristbehauptung anhand der Prozessversion prüfen. · URL: https://example.invalid/anonymous-willi-note",
+          "url": "https://example.invalid/anonymous-willi-note",
+          "metadata": {
+            "sourceId": "anonymous-willi-note",
+            "sectionId": null,
+            "score": 32
+          },
+          "retrievalSource": "willi-mako",
+          "evidenceId": "E2"
+        }
+      ],
+      "retrievalTrace": [
+        {
+          "source": "knowledge-rag",
+          "called": false,
+          "status": "available",
+          "hitCount": 1,
+          "ms": 0,
+          "rejected": [
+            {
+              "hitId": "irrelevant-note",
+              "source": "knowledge-rag",
+              "score": 0.58,
+              "summary": "Rotorblattwartung und Schmierstoffkontrolle.",
+              "reason": "below_score_threshold",
+              "overlap": 0
+            }
+          ]
+        },
+        {
+          "source": "datapoint",
+          "called": false,
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 0,
+          "scannedCount": 0,
+          "rejected": []
+        },
+        {
+          "source": "object-store",
+          "called": false,
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 0,
+          "namespaces": [
+            {
+              "namespace": "cya_sessions",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "cya_profiles",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "finance_agent_memory",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "copilot_context",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "process_context",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "evidence",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "znp_projects",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "vdmi_context",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            }
+          ],
+          "rejected": []
+        },
+        {
+          "source": "willi-mako",
+          "called": false,
+          "status": "available",
+          "hitCount": 1,
+          "ms": 0,
+          "confidence": "none",
+          "rejected": []
+        },
+        {
+          "source": "knowledge-rag-federated",
+          "called": false,
+          "status": "missing",
+          "hitCount": 0,
+          "ms": 0,
+          "rejected": []
+        },
+        {
+          "source": "analysis-planner",
+          "called": false,
+          "status": "available",
+          "hitCount": 0,
+          "ms": 0,
+          "signals": {
+            "postalCode": null,
+            "power": null,
+            "assetClass": null,
+            "perspectives": [],
+            "active": false
+          },
+          "toolCalls": [],
+          "rejected": [
+            {
+              "source": "analysis-planner",
+              "value": "Cernion Analysis Planner:",
+              "metadata": {
+                "kind": "signals"
+              },
+              "reason": "situation_mismatch",
+              "overlap": 0
+            }
+          ]
+        },
+        {
+          "source": "capability-read",
+          "called": false,
+          "status": "skipped",
+          "hitCount": 0,
+          "ms": 0,
+          "calledOperations": 0,
+          "rejected": []
+        },
+        {
+          "source": "response_boundary",
+          "rejected": []
+        }
+      ],
+      "caseCreated": true,
+      "draftCreated": true
+    }
+  ],
+  "answerDiagnostics": [
+    {
+      "valid": true,
+      "errors": null,
+      "draftType": "object"
+    },
+    {
+      "valid": true,
+      "errors": null,
+      "draftType": "object"
+    },
+    {
+      "valid": true,
+      "errors": null,
+      "draftType": "object"
+    }
+  ]
+}

@@ -184,3 +184,68 @@ test('Gemini thinking options reach text, structured and chat generation', async
   expect(llmOptions('tenant').thinking).toBe('minimal');
   expect(llmOptions('tenant', 'answer').thinking).toBe('low');
 });
+
+test('recommended model, timeout and thinking pairs remain independent', async () => {
+  process.env.GEMINI_API_KEY = 'test-key';
+  process.env.WORKBENCH_LLM_MODEL = 'gemini-3.5-flash-lite,gemini-3.5-flash';
+  process.env.WORKBENCH_LLM_TIMEOUT_MS = '4500,45000';
+  process.env.WORKBENCH_LLM_THINKING = 'minimal,default';
+  const understanding = llmOptions('tenant');
+  const answering = llmOptions('tenant', 'answer');
+  expect(understanding).toMatchObject({
+    model: 'gemini-3.5-flash-lite',
+    timeoutMs: 4500,
+    thinking: 'minimal',
+  });
+  expect(answering).toMatchObject({ model: 'gemini-3.5-flash', timeoutMs: 45000 });
+  expect(answering.thinking).toBeUndefined();
+  const getGenerativeModel = jest.fn(() => ({
+    generateContent: jest.fn(async () => ({ response: { text: () => '{}' } })),
+  }));
+  GoogleGenerativeAI.mockImplementation(() => ({ getGenerativeModel }));
+  const adapter = require('../src/adapters/gemini');
+  await adapter.generateText('understand', understanding);
+  await adapter.generateText('answer', answering);
+  expect(getGenerativeModel.mock.calls[0][0].generationConfig.thinkingConfig).toEqual({
+    thinkingLevel: 'minimal',
+  });
+  expect(getGenerativeModel.mock.calls[1][0].generationConfig).not.toHaveProperty('thinkingConfig');
+  process.env.WORKBENCH_LLM_THINKING = 'standard';
+  expect(llmOptions('tenant').thinking).toBeUndefined();
+  expect(llmOptions('tenant', 'answer').thinking).toBeUndefined();
+  process.env.WORKBENCH_LLM_THINKING = 'low';
+  expect(llmOptions('tenant').thinking).toBe('low');
+  expect(llmOptions('tenant', 'answer').thinking).toBe('low');
+});
+
+test('follow-up prompt asks for concise changes and avoids generating unchanged drafts', async () => {
+  llm.generateText.mockResolvedValue(
+    JSON.stringify({
+      expectation: [],
+      nextSteps: [],
+      draft: [],
+      interpretation: [
+        {
+          text: 'Prüfe den Stand.',
+          supported: 'model',
+          completedAction: false,
+          specific: false,
+          evidenceIds: [],
+        },
+      ],
+    })
+  );
+  await answer({
+    situation: {
+      concern: 'Anfrage',
+      missingInformation: [],
+      requestedAction: { draftRequested: false, externalEffect: false },
+    },
+    retrieval: { evidence: [] },
+    message: 'Was bedeutet das?',
+    followup: true,
+  });
+  const prompt = JSON.parse(llm.generateText.mock.calls[0][0]);
+  expect(prompt.turnInstruction).toContain('höchstens zwei nächste Schritte');
+  expect(prompt.turnInstruction).toContain('keinen unveränderten proaktiven Entwurf erneut');
+});

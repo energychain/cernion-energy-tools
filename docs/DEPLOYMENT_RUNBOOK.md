@@ -257,18 +257,30 @@ Workbench-Verstehen und Antworten verwenden getrennte Optionen über die zentral
 | Variable | Default | Beschreibung |
 |----------|---------|--------------|
 | `WORKBENCH_LLM_MODEL` | Provider-Schnellmodell | Ein Modell für beide Phasen oder `Verstehen,Antworten`. Defaults: Gemini `gemini-3.5-flash-lite`, OpenAI-kompatibel `gpt-4o-mini`, Ollama `llama3.1:8b`. |
-| `WORKBENCH_LLM_TIMEOUT_MS` | `4500` | Ein Budget in Millisekunden oder `Verstehen,Antworten`, z. B. `3500,6000`. Ungültige Werte fallen auf 4500 ms zurück. |
+| `WORKBENCH_LLM_TIMEOUT_MS` | `4500` | Ein Budget in Millisekunden oder `Verstehen,Antworten`, z. B. `4500,45000`. Ungültige Werte fallen auf 4500 ms zurück. |
+| `WORKBENCH_LLM_THINKING` | `minimal` | Gemini: Denkstufe `minimal`, `low`, `medium`, `high` oder numerisches Budget für Gemini 2.5. `default`/`standard` lässt das Denkbudget des Providers unverändert. Ein Wert oder `Verstehen,Antworten`; explizites `options.thinkingConfig` hat Vorrang. |
 
-| `WORKBENCH_LLM_THINKING` | `minimal` | Gemini: Denkstufe `minimal`, `low`, `medium`, `high` oder numerisches Budget für Gemini 2.5. Ein Wert oder `Verstehen,Antworten`; explizites `options.thinkingConfig` hat Vorrang. |
+Empfehlung: Verstehen mit einem schnellen Modell und niedrigem Denkbudget; Antworten
+mit einem starken Modell und dessen Standard-Denkbudget, mit bis zu 45 Sekunden Budget.
+Für Gemini beispielsweise:
 
-Empfehlung: zunächst das schnelle, beim konfigurierten Provider verfügbare Modell
-verwenden und beide Phasen anhand anonymisierter Alltagsdokumente messen. Bei eigenen
-OpenAI-kompatiblen Endpunkten deren Modellnamen explizit setzen. Bei mehr benötigter
-Entwurfsqualität nur das Antwortmodell/Budget erhöhen. Nach Timeout oder Fehler bleibt
-eine kurze Antwort mit vorhandenem Lagebild und Quellen erhalten; technische
-Außenwirkungs-Sperren gelten auch beim Rückfall. Retrieval hat separat 4000 ms Budget.
-Für Gemini empfohlen: `WORKBENCH_LLM_MODEL=gemini-3.5-flash-lite`,
-`WORKBENCH_LLM_THINKING=minimal` und `WORKBENCH_LLM_TIMEOUT_MS=4500,4500`.
+```dotenv
+WORKBENCH_LLM_MODEL=gemini-3.5-flash-lite,gemini-3.5-flash
+WORKBENCH_LLM_TIMEOUT_MS=4500,45000
+WORKBENCH_LLM_THINKING=minimal,default
+```
+
+Gemini 3.5 Flash nutzt standardmäßig die Denkstufe `medium`
+([Provider-Dokumentation](https://ai.google.dev/gemini-api/docs/thinking)).
+Bei eigenen OpenAI-kompatiblen Endpunkten deren Modellnamen explizit setzen;
+Denkoptionen sind providerspezifisch. Ein vorgeschalteter Nginx-Proxy benötigt
+`proxy_read_timeout 120s;` (mindestens 120 Sekunden), damit CET auch bei längeren
+Modellaufrufen seine Antwort oder den Rückfall ausliefern kann.
+Nach Timeout oder Fehler bleibt eine kurze Antwort mit vorhandenem Lagebild,
+Quellen und verfügbarem Entwurf erhalten. Retrieval hat separat 4000 ms Budget.
+Ziel sind Folgeturns unter 10 Sekunden auch mit starkem Antwortmodell; 45 Sekunden
+sind eine Obergrenze für den Modellaufruf, keine zugesicherte Antwortzeit.
+Erst- und Folgeturns mit der eingesetzten Modellkombination vor Ort messen.
 Folgeturns aktualisieren nur das gespeicherte Lagebild; Entwurfswünsche überspringen
 Verstehen und nutzen bereits gefundene Quellen unter den aktuellen Zugriffsrechten.
 Bei einem Fehler bleibt der letzte Entwurf erhalten oder entsteht ein Arbeitsentwurf
