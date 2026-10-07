@@ -320,9 +320,9 @@ Session-Suche, Session-Evidenz und Fall-Verknüpfung; die Wissenssuche nutzt sie
 Der Wissenspfad ruft weiterhin `willi-mako.resolveStructure/search` und
 `knowledge-rag.federatedSearch` über den Cernion-MCP-Zugang auf. In CET wird
 `WILLI_MAKO_CET_SERVICE_TOKEN` bisher vom separaten Willi-Session-Connector genutzt.
-Der direkte Fachwissens-Endpunkt bzw. die Service-Token-Konfiguration im MCP-System
-muss vor einem Wechsel des Transports geklärt sein; CET leitet diesen Token nicht
-an einen geratenen Endpunkt oder als Modellinhalt weiter.
+Für die Fachwissenssuche über Cernion-MCP ist kein zusätzlicher Willi-Service-Token
+erforderlich. Der bestehende Cernion-MCP-Zugang genügt;
+`WILLI_MAKO_CET_SERVICE_TOKEN` gehört ausschließlich zum separaten Session-Connector.
 Ziel sind Folgeturns unter 10 Sekunden auch mit starkem Antwortmodell; 45 Sekunden
 sind eine Obergrenze für den Modellaufruf, keine zugesicherte Antwortzeit.
 Erst- und Folgeturns mit der eingesetzten Modellkombination vor Ort messen.
