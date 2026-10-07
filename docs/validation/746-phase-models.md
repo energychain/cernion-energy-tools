@@ -18,6 +18,7 @@ WORKBENCH_LLM_THINKING=minimal,default
 | Ausgangsprompt, 3.5 Flash | 13,829 s | 16,474 s | 11,642 s |
 | Kürzerer Folgeturn-Prompt, 3.5 Flash | 13,306 s | 12,997 s | 9,174 s |
 | Vergleich, Antwortmodell 3.8 Flash | 20,915 s | 32,564 s | 23,863 s |
+| Wiederholung, 3.5 Flash | 23,010 s | 14,053 s | 10,989 s |
 
 Im empfohlenen Lauf mit kürzerem Prompt: understand/retrieve/answer in ms:
 Erstturn 2944/8/10254; Folgeturn 2810/2/10143; Entwurf 0/0/9130.
@@ -25,7 +26,8 @@ Alle drei Antworten bestanden die Schema-Validierung. Metadaten und Logs
 enthalten die Phasenzeiten bereits seit PR #747.
 
 **AC-02 unter 10 Sekunden ist nur beim Entwurfs-Folgeturn erreicht, beim
-inhaltlichen Folgeturn noch offen.** Das Provider-Denkbudget wird beim Antworten
+inhaltlichen Folgeturn noch offen. Die Wiederholung überschreitet auch beim
+Entwurfs-Folgeturn die Grenze; ein stabiler Nachweis fehlt.** Das Provider-Denkbudget wird beim Antworten
 nicht künstlich abgesenkt; 45000 ms bleibt die tatsächliche Timeout-Obergrenze.
 Die Empfehlung ist eine Qualitäts-/Budgetkonfiguration, keine Latenzgarantie.
 
@@ -36,7 +38,7 @@ den tatsächlichen Status als Platzhalter. Der inhaltliche Folgeturn wurde nach
 Claim-Filterung aus vorhandenem Lagebild/Quellen gerendert und wiederholt zu viel
 Kontext. Modell-Selbstauszeichnung von Claims bleibt eine Qualitätsgrenze.
 
-Validierung: 695 Workbench-Tests; gezielte Phasen- und Speicherfehler-Tests;
+Validierung: 695 Workbench-Tests; 61 Gateway-/RBAC-/HITL-Tests; gezielte Phasen- und Speicherfehler-Tests;
 HTTP-e2e 20,00 s; Harness 86 Tests in 28,37 s (<60 s); Lint (0 Fehler, eine
 bestehende Warnung), check:domain-free-core, check:llm, audit:openapi (0 Fehler,
 474 bestehende Warnungen), git diff --check. Der veraltete Folgeturn-Assert aus
