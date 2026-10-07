@@ -137,10 +137,44 @@ Prompts und werden nicht als Abnahmewerte verwendet.
 - Lint: keine Fehler, eine bestehende Warnung in `domain-free-core.test.js`.
 - OpenAPI-Audit: 0 Issues, bestehende 474 Warnungen.
 - `check:llm`, `check:domain-free-core`, `build`, Generator-Abgleiche und
-  `git diff --check`: grün. Vollständiger Unit-CI-Lauf: Ergebnis folgt.
+  `git diff --check`: grün. Der vollständige Unit-CI-/Coverage-Lauf ist durch
+  einen reproduzierbaren bestehenden Main-Fehler blockiert (siehe unten).
 - Generierte Funktionsmodell-/Signal-Katalog-Dateien ausschließlich über
-  `generate:function-model` und `generate:signal-catalog`; `generate:llm` lief,
-  ohne Änderung an `llm.txt`.
+  `generate:function-model` und `generate:signal-catalog`; `llm.txt` wurde nach
+  dem neuen Unreleased-Eintrag über `generate:llm` regeneriert.
+
+### Vollständige CI und Baseline-Abgleich
+
+GitHub auf Commit `7013861295a466ca85a5f384cc966fee178198e4`:
+Harness, HTTP-e2e, CodeQL sowie beide Security-Gates grün. Maintenance CI
+scheitert an `tests/shared-service-journal.service.test.js:450`, Test
+„current retained split IDs remain digestible and new entries stay in their
+current scope“: `fn-b.entryCount` ist 0, erwartet wird 1.
+[Maintenance-Lauf](https://github.com/energychain/cernion-energy-tools/actions/runs/37674365814).
+
+Der identische Einzeltest wurde in einem separaten, unveränderten Checkout von
+`origin/main` / `f211ce28` ausgeführt: gleicher Fehler, jeweils 13/14 Tests grün.
+Damit ist der Journal-Fehler nicht durch diese Workbench-Änderung eingeführt.
+Journal-Produktionscode und diese Assertion wurden nicht geändert. Die globalen
+Coverage-Gates sind wegen des fehlgeschlagenen Testblocks nicht vollständig
+abgeschlossen; Maintenance CI wird ausdrücklich nicht als grün ausgewiesen.
+
+Ein früherer CI-Lauf scheiterte zufällig am bestehenden Dossier-Test: die
+Zeichenfolge `2029` stand in einer zufällig erzeugten Dossier-UUID, nicht in
+fremden Projektdaten. Die Jahres-Negativassertion ignoriert jetzt UUID-Werte;
+alle inhaltlichen Checks bleiben bestehen. Dossier-Suite danach 74/74 grün.
+GitNexus kann den anonymen Jest-Callback nicht als Symbol auflösen; dieser reine
+Assertion-Diff wurde manuell geprüft, ohne Produktionscodeänderung.
+
+Lokale Testvoraussetzungen: Der isolierte Worktree benötigt die vorhandene
+Forecast-Python-Umgebung. Außerdem erbte die Shell `NODE_ENV=production`; nach
+explizitem `NODE_ENV=test` ist die standardmäßig deaktivierte Testpersistenz
+wieder aus. Forecast-Starter: 4/4, Registry: 11/11 grün. Der lokale vollständige
+Unit-Lauf nutzt den unveränderten CI-Runner mit den regulären 20er-Blöcken.
+Nach 18 grünen Blöcken scheitert Block 19 mit 267/269 grünen Tests: am
+oben beschriebenen Journal-Fehler und zusätzlich an einem 30-s-Timeout in
+`shared-service-learning-persistence.test.js`. Für diesen zusätzlichen lokalen
+Timeout ist keine Baseline-Reproduktion belegt; er wird nicht als grün gewertet.
 
 ## GitNexus und Risiko
 
@@ -163,7 +197,7 @@ Ein zusätzlicher Code-Durchlauf ohne Berichte/generierte Dateien zeigt 12 Datei
 Laufzeitwirkung: die separaten Symbol-Impacts bleiben HIGH/CRITICAL. Manuell
 geprüft wurden die Workbench-Aufrufkette, Gemini-Adapter und die abhängigen Tests;
 keine Guards, Gateways oder freigebende Service-Aktionen wurden geändert.
-Ein Vergleich mit `origin/main` folgt nach dem Commit.
+Der Vergleich mit `origin/main` wurde ebenfalls ausgeführt: gleicher Code-Scope, zusätzliche Changelog-/Generator-Dokumentation.
 
 Operatives Risiko: **MEDIUM**. Strengere Filter können eine Modellpassage oder
 unvollständige Entwürfe verwerfen. Der Rückfall bleibt handlungsorientiert und
