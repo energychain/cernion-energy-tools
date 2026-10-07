@@ -43,20 +43,29 @@ async function generateStructured(_schema, prompt) {
     missingInformation: smalltalk
       ? []
       : [
-          { key: 'original_reference', question: 'Welche Referenz hat die ursprüngliche Anfrage?' },
-          { key: 'received_at', question: 'Wann wurde die Anfrage empfangen?' },
           {
+            blocking: true,
+            key: 'original_reference',
+            question: 'Welche Referenz hat die ursprüngliche Anfrage?',
+          },
+          { blocking: true, key: 'received_at', question: 'Wann wurde die Anfrage empfangen?' },
+          {
+            blocking: true,
             key: 'process_version',
             question: 'Welche Prozess- oder Dokumentversion liegt zugrunde?',
           },
-          { key: 'status', question: 'Welcher Bearbeitungsstand ist dokumentiert?' },
+          {
+            blocking: true,
+            key: 'status',
+            question: 'Welcher Bearbeitungsstand ist dokumentiert?',
+          },
         ],
     requestedAction: {
       description: message,
       externalEffect:
         /senden|send|versend|übermittel|schicke|per mail/i.test(message) &&
         !/nicht|keine|do not/i.test(message),
-      draftRequested: /entwurf bitte|draft please/i.test(message),
+      draftRequested: !knowledge && !smalltalk,
     },
     turnKind: smalltalk ? 'smalltalk' : knowledge ? 'knowledge' : 'work',
     retrievalTerms: [body],
@@ -65,14 +74,27 @@ async function generateStructured(_schema, prompt) {
 
 async function generateText(prompt) {
   const { evidence = [], situation } = JSON.parse(prompt);
+  const claim = (text, ids = []) => ({
+    text,
+    evidenceIds: ids,
+    completedAction: false,
+    supported: ids.length ? 'evidence' : 'model',
+    specific: false,
+  });
   return JSON.stringify({
-    expectation: evidence.length
-      ? [{ text: evidence[0].value.replace(/\?/g, '.'), evidenceIds: [evidence[0].evidenceId] }]
-      : [],
-    nextSteps: [],
+    expectation: [
+      evidence.length
+        ? claim(evidence[0].value.replace(/\?/g, '.'), [evidence[0].evidenceId])
+        : claim('Das Gegenüber erwartet eine nachvollziehbare Antwort zum Bearbeitungsstand.'),
+    ],
+    nextSteps: [claim('Prüfe den bisherigen Stand und stimme den nächsten Schritt ab.')],
     draft: situation?.requestedAction?.draftRequested
-      ? 'Interner Antwortentwurf: [Geprüfte Angaben ergänzen].'
-      : '',
+      ? [
+          claim(
+            `Betreff: ${situation.concern.replace(/\?/g, '.')}\nGuten Tag,\nzu Ihrem Anliegen: ${situation.situation.replace(/\?/g, '.')}\nBitte teilen Sie uns den aktuellen Bearbeitungsstand und den nächsten Schritt mit.\nVielen Dank.`
+          ),
+        ]
+      : [],
   });
 }
 module.exports = { generateStructured, generateText };

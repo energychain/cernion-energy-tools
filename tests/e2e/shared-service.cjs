@@ -382,7 +382,7 @@ async function main() {
     )
   ).lastClassification;
   if (classification.uncertain) {
-    assert.match(started.choices[0].message.content, /Unverbindliche Einschätzung/);
+    assert(!/unverbindlich/i.test(started.choices[0].message.content));
     assert.equal(
       (await call('function-coverage.matrix', { tenantId, limit: 100 })).items.length,
       0
@@ -602,7 +602,7 @@ async function main() {
       )
     ) {
       assert(!initial.choices[0].message.content.includes('Optional passende Funktion'));
-      assert(initial.choices[0].message.content.includes('Unverbindliche Einschätzung'));
+      assert(!/unverbindlich/i.test(initial.choices[0].message.content));
       await snapshot('10 unmatched uncertain candidates stay hidden');
       continue;
     }
@@ -720,7 +720,7 @@ async function main() {
     assert.equal(initial.nonBinding, true);
     assert(initial.cetCaseId);
     assert(!initial.responseText.includes('Starte einen Fall'));
-    assert(initial.responseText.includes('[E1]'));
+    assert(initial.responseText.includes('Quellen:'));
     assert(initial.requiredClarifications.length <= 3);
     contentLatencies.push(initial.latencyMs);
     const started = initial;
@@ -734,8 +734,8 @@ async function main() {
     const shipping = await chat(conversationId, [
       { role: 'user', content: 'Antwort per Mail senden' },
     ]);
-    assert(shipping.responseText.includes('CET versendet oder übermittelt selbst nichts'));
-    assert(shipping.responseText.includes('Entwurf bitte'));
+    assert(shipping.responseText.includes('schick ihn bitte über euer System raus'));
+    assert(shipping.draftId);
     const draft = await chat(conversationId, [{ role: 'user', content: 'Entwurf bitte' }]);
     const withDraft = await call(
       'workbench.cases.get',
@@ -747,7 +747,7 @@ async function main() {
       { role: 'user', content: 'Warum ist das unklar?' },
     ]);
     assert.equal(question.nonBinding, true);
-    assert(question.responseText.includes('Unverbindliche Einschätzung'));
+    assert(!/unverbindlich|keine externe Handlung/i.test(question.responseText));
   }
   const historyContent = documents[0].query;
   const recovered = await chat('history-only', [
@@ -766,7 +766,7 @@ async function main() {
     'Mail eines Lieferanten an einen Netzbetreiber: Überfällige Antwort auf Netzanmeldung, Marktlokation 99000000001, Frist überschritten. Kannst du mir helfen?';
   const productionCase = await chat('production-739', [{ role: 'user', content: anonymous }]);
   assert(productionCase.cetCaseId);
-  assert(productionCase.responseText.includes('Ich führe das als Fall F-'));
+  assert(productionCase.responseText.includes('Fall F-'));
   assert(productionCase.situation.identifiers.some((entry) => entry.value === '99000000001'));
   contentLatencies.push(productionCase.latencyMs);
   const withdrawn = await chat('production-739', [{ role: 'user', content: 'Kein Fall' }]);

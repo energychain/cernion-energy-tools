@@ -553,6 +553,38 @@
       "term": "datum",
       "resolverGeneric": true,
       "reason": "Generic date provenance in the required situation schema; no domain-specific behavior."
+    },
+    {
+      "term": "nächste",
+      "reason": "Generic colleague response wording/schema; no domain-specific rules or routing (#742)."
+    },
+    {
+      "term": "nächstes",
+      "reason": "Generic colleague response wording/schema; no domain-specific rules or routing (#742)."
+    },
+    {
+      "term": "vorrang",
+      "reason": "Generic colleague response wording/schema; no domain-specific rules or routing (#742)."
+    },
+    {
+      "term": "annahme",
+      "reason": "Generic colleague response wording/schema; no domain-specific rules or routing (#742)."
+    },
+    {
+      "term": "daten",
+      "reason": "Generic colleague response wording/schema; no domain-specific rules or routing (#742)."
+    },
+    {
+      "term": "quellen",
+      "reason": "Generic colleague response wording/schema; no domain-specific rules or routing (#742)."
+    },
+    {
+      "term": "betrag",
+      "reason": "Generic colleague response wording/schema; no domain-specific rules or routing (#742)."
+    },
+    {
+      "term": "aussagen",
+      "reason": "Generic claim validation and rendering terminology; no domain-specific rules (#742)."
     }
   ]
 }

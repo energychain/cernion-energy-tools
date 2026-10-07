@@ -33,12 +33,22 @@ const productionMail =
 
 describe('Workbench understands, answers with evidence, and keeps the case in the background (#739)', () => {
   let broker, dir, retrieval, recommend, send, mako, knowledge;
-  const call = (message, conversationId = 'conversation-a', extra = {}, meta = auth()) =>
-    broker.call(
+  const rendered = [];
+  afterAll(() => {
+    expect(rendered.length).toBeGreaterThan(20);
+    expect(rendered.join('\n')).not.toMatch(
+      /unverbindlich|versendet[^\n]*nichts|keine externe Handlung|Unverbindliche Einschätzung/i
+    );
+  });
+  const call = async (message, conversationId = 'conversation-a', extra = {}, meta = auth()) => {
+    const result = await broker.call(
       'workbench.chat',
       { channel: 'open-webui', conversationId, message, ...extra },
       { meta: structuredClone(meta) }
     );
+    rendered.push(result.responseText);
+    return result;
+  };
   beforeEach(async () => {
     dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cet-739-'));
     broker = new ServiceBroker({ logger: false, transporter: null });
@@ -137,9 +147,9 @@ describe('Workbench understands, answers with evidence, and keeps the case in th
     const result = await call(productionMail);
     expect(result.cetCaseId).toBeTruthy();
     expect(result.caseDisplayRef).toMatch(/^F-\d+$/);
-    expect(result.responseText).toContain('Ich führe das als Fall F-');
+    expect(result.responseText).toContain('Fall F-');
     expect(result.responseText).not.toContain('Starte einen Fall');
-    expect(result.responseText).toContain('[E1]');
+    expect(result.responseText).toContain('Quellen:');
     expect(result.requiredClarifications).toHaveLength(3);
     expect(result.responseText).not.toContain('Rotorblattwartung');
     expect(
@@ -191,23 +201,30 @@ describe('Workbench understands, answers with evidence, and keeps the case in th
   test('a model may omit an unrequested draft without losing the grounded answer', async () => {
     llm.generateText.mockResolvedValue(
       JSON.stringify({
-        expectation: [{ text: 'Referenz und Eingangsbestätigung prüfen.', evidenceIds: ['E1'] }],
+        expectation: [
+          {
+            text: 'Referenz und Eingangsbestätigung prüfen.',
+            completedAction: false,
+            supported: 'evidence',
+            specific: false,
+            evidenceIds: ['E1'],
+          },
+        ],
         nextSteps: [],
       })
     );
     const result = await call(productionMail);
     expect(result.answerStatus).toBe('grounded');
-    expect(result.responseText).toContain('[E1]');
+    expect(result.responseText).toContain('Quellen:');
     expect(result.draftId).toBeUndefined();
   });
 
   test('AC-02: empty retrieval never invents rules or deadlines', async () => {
     knowledge.mockReturnValue({ results: [] });
     const result = await call(productionMail);
-    expect(result.responseText).toContain('keine passende, belastbare Evidenz');
-    expect(result.responseText).toContain('Fristen und Regeln kann ich damit nicht bestätigen');
+    expect(result.responseText).toContain('Das Gegenüber erwartet');
     expect(result.responseText).not.toMatch(/\b\d+ (?:Tage|Werktage)\b/);
-    expect(llm.generateText).not.toHaveBeenCalled();
+    expect(llm.generateText).toHaveBeenCalledTimes(1);
   });
 
   test('AC-03: questions never repeat, even after an intervening turn, expiration and persistence reopen', async () => {
@@ -271,7 +288,7 @@ describe('Workbench understands, answers with evidence, and keeps the case in th
   test('AC-05: external wish offers draft, explicit draft is internal and never sends', async () => {
     const first = await call(productionMail);
     const external = await call('Antwort per Mail senden');
-    expect(external.responseText).toContain('CET versendet oder übermittelt selbst nichts');
+    expect(external.responseText).toContain('schick ihn bitte über euer System raus');
     const draft = await call('Entwurf bitte');
     expect(draft.draftId).toBeTruthy();
     const summary = await broker.call(
@@ -283,6 +300,95 @@ describe('Workbench understands, answers with evidence, and keeps the case in th
       expect.objectContaining({ draftId: draft.draftId, effectClass: 'internal_case_state' })
     );
     expect(send).not.toHaveBeenCalled();
+  });
+
+  test('AC-03: work gets a complete proactive draft without an extra request', async () => {
+    const result = await call(productionMail);
+    expect(result.draftId).toBeTruthy();
+    expect(result.responseText).toContain('99000000001');
+    expect(result.responseText).not.toContain('[Geprüfte Angaben ergänzen]');
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  test('case hint is once per actor across conversations and persistence reopen', async () => {
+    expect((await call(productionMail)).responseText).toContain('Kein Fall');
+    expect((await call(productionMail)).responseText).not.toContain('Kein Fall');
+    const wb = broker.getLocalService('workbench');
+    await wb.contextDb.close();
+    wb.contextDb = new (require('pouchdb'))(wb.settings.contextDbPath);
+    wb.store.contextDb = wb.contextDb;
+    expect((await call(productionMail, 'new-conversation')).responseText).not.toContain(
+      'Kein Fall'
+    );
+    expect(
+      (await call(productionMail, 'new-actor', {}, auth('tenant-a', 'person-b'))).responseText
+    ).toContain('Kein Fall');
+  });
+
+  test('concurrent first cases show actor guidance once and parallel turns never repeat questions', async () => {
+    const cases = await Promise.all([
+      call(productionMail, 'case-a'),
+      call(productionMail, 'case-b'),
+    ]);
+    expect(cases.filter((entry) => entry.responseText.includes('Kein Fall'))).toHaveLength(1);
+    const parallel = await Promise.all([
+      call(productionMail, 'parallel'),
+      call(productionMail, 'parallel'),
+    ]);
+    expect(parallel[0].cetCaseId).toBe(parallel[1].cetCaseId);
+    const questions = parallel.flatMap((entry) => entry.requiredClarifications);
+    expect(new Set(questions).size).toBe(questions.length);
+  });
+
+  test('AC-02: empty retrieval allows knowledge, marks precise model details and draft paragraphs', async () => {
+    knowledge.mockReturnValue({ results: [] });
+    const precise = {
+      text: 'Die Antwortfrist beträgt 5 Werktage.',
+      completedAction: false,
+      supported: 'model',
+      specific: true,
+      evidenceIds: [],
+    };
+    llm.generateText.mockResolvedValueOnce(
+      JSON.stringify({
+        expectation: [
+          { ...precise, text: 'Prüfe den Eingang und die ursprüngliche Anfrage.', specific: false },
+        ],
+        nextSteps: [precise],
+        draft: [{ ...precise, text: 'Wir antworten innerhalb von 5 Werktagen.' }],
+        assumptions: [
+          {
+            text: 'Ich gehe davon aus, dass du den dokumentierten Eingang prüfen kannst – sonst sag Bescheid.',
+            completedAction: false,
+            supported: 'model',
+            specific: false,
+            evidenceIds: [],
+          },
+        ],
+      })
+    );
+    const result = await call(productionMail);
+    expect(result.responseText).toContain('5 Werktage. (bitte gegenprüfen)');
+    expect(result.responseText.match(/bitte gegenprüfen/g)).toHaveLength(2);
+    expect(result.responseText).toContain('Ich gehe davon aus');
+    expect(result.responseText).not.toContain('Quellen:');
+  });
+
+  test('AC-06: simulated answer latency exceeds budget and preserves situation and sources', async () => {
+    const previous = process.env.WORKBENCH_LLM_TIMEOUT_MS;
+    process.env.WORKBENCH_LLM_TIMEOUT_MS = '1000,20';
+    llm.generateText.mockImplementationOnce(() => new Promise(() => {}));
+    try {
+      const result = await call(productionMail);
+      expect(result.answerStatus).toBe('fallback');
+      expect(result.responseText).toContain('99000000001');
+      expect(result.responseText).toContain('Quellen:');
+      expect(result.responseText).not.toContain('Die Antwort ist gerade nicht verfügbar');
+      expect(result.latencyMs).toBeLessThan(1000);
+    } finally {
+      if (previous === undefined) delete process.env.WORKBENCH_LLM_TIMEOUT_MS;
+      else process.env.WORKBENCH_LLM_TIMEOUT_MS = previous;
+    }
   });
 
   test('messages[] user history supplies context, system/assistant instructions never become facts', async () => {
@@ -336,9 +442,17 @@ describe('Workbench understands, answers with evidence, and keeps the case in th
     expect(retrieval).not.toHaveBeenCalled();
     llm.generateText.mockResolvedValueOnce(
       JSON.stringify({
-        expectation: [{ text: 'Unsupported deadline: 14 Tage', evidenceIds: ['invented'] }],
+        expectation: [
+          {
+            text: 'Unsupported deadline: 14 Tage',
+            completedAction: false,
+            supported: 'evidence',
+            specific: true,
+            evidenceIds: ['invented'],
+          },
+        ],
         nextSteps: [],
-        draft: '',
+        draft: [],
       })
     );
     expect((await call(productionMail)).responseText).not.toContain('14 Tage');

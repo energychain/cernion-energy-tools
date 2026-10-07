@@ -579,6 +579,23 @@ class WorkbenchStore {
       .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
   }
 
+  // A create-only actor marker also makes concurrent first turns show guidance once.
+  async claimAutoCaseHint(input) {
+    try {
+      await this.contextDb.put({
+        _id: key('auto-case-hint', input.tenantId, input.actorId),
+        type: 'workbench_auto_case_hint',
+        tenantId: input.tenantId,
+        actorId: input.actorId,
+        createdAt: now(),
+      });
+      return true;
+    } catch (error) {
+      if (error.status === 409) return false;
+      throw error;
+    }
+  }
+
   async saveUserContext(input) {
     const _id = userContextId(input.tenantId, input.actorId);
     let existing = null;

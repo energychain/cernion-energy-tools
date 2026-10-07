@@ -34,9 +34,21 @@ test('one entry cannot smuggle several questions into the three-question budget'
   expect(
     questionsFor({
       missingInformation: [
-        { key: 'two', question: 'Welche Referenz? Wann empfangen?' },
-        { key: 'one', question: 'Welche Referenz?' },
+        { blocking: true, key: 'two', question: 'Welche Referenz? Wann empfangen?' },
+        { blocking: true, key: 'one', question: 'Welche Referenz?' },
       ],
     })
-  ).toEqual([{ key: 'one', question: 'Welche Referenz?' }]);
+  ).toEqual([{ blocking: true, key: 'one', question: 'Welche Referenz?' }]);
+});
+
+test('known masks survive dropped brackets without inventing unknown or prefixed references', () => {
+  const safe = opaqueContext({ message: 'Marktlokation 99000000001' });
+  const [mask] = safe.reidentMap.keys();
+  const bare = mask.slice(1, -1);
+  expect(
+    restoreContext({ text: `Referenz ${bare}.`, [bare]: 'unchanged key' }, safe.reidentMap)
+  ).toEqual({ text: 'Referenz 99000000001.', [bare]: 'unchanged key' });
+  expect(restoreContext(`X${bare} ${bare}9 MASKED-unknown`, safe.reidentMap)).toBe(
+    `X${bare} ${bare}9 MASKED-unknown`
+  );
 });

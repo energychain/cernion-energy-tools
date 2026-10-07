@@ -19,11 +19,11 @@ function getEmbeddingModelName() {
   return process.env.LLM_EMBEDDING_MODEL || getModelName() || DEFAULT_EMBEDDING_MODEL;
 }
 
-async function generateText(prompt) {
+async function generateText(prompt, options = {}) {
   const response = await axios.post(
     `${getBaseUrl()}/api/generate`,
     {
-      model: getModelName(),
+      model: options.model || getModelName(),
       prompt,
       stream: false,
     },
@@ -36,7 +36,7 @@ async function generateText(prompt) {
 async function generateStructured(_schema, prompt, options = {}) {
   const mode = options.structuredMode || 'json';
   const body = {
-    model: getModelName(),
+    model: options.model || getModelName(),
     prompt,
     stream: false,
   };

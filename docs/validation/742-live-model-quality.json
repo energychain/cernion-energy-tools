@@ -1,0 +1,1133 @@
+{
+  "mode": "live central LLM / stubbed sources; no test-instance retrieval",
+  "provider": "gemini",
+  "models": "gemini-3.5-flash-lite",
+  "answerModel": "gemini-3.5-flash",
+  "budgets": "4500,6000",
+  "examples": [
+    {
+      "id": "market_communication-1",
+      "primaryDomain": "market_communication"
+    },
+    {
+      "id": "redispatch-2",
+      "primaryDomain": "redispatch"
+    },
+    {
+      "id": "grid_connection-1",
+      "primaryDomain": "grid_connection"
+    },
+    {
+      "id": "asset_grid_planning-1",
+      "primaryDomain": "asset_grid_planning"
+    },
+    {
+      "id": "m2c_revenue_assurance-1",
+      "primaryDomain": "m2c_revenue_assurance"
+    }
+  ],
+  "turns": [
+    {
+      "message": "Mail eines Lieferanten an einen Netzbetreiber: Überfällige Antwort auf Netzanmeldung, Marktlokation 99000000001, Frist überschritten. Kannst du mir helfen?",
+      "elapsedMs": 8821,
+      "state": "assistance",
+      "answerStatus": "fallback",
+      "responseText": "Überfällige Antwort auf eine Netzanmeldung für eine Marktlokation, bei der eine Frist überschritten wurde.\n\nEin Lieferant hat eine Mail an einen Netzbetreiber gesendet bezüglich einer überfälligen Antwort auf eine Netzanmeldung für die Marktlokation 99000000001, wobei die Frist überschritten wurde.\n\nAls Nächstes: Hilfestellung bezüglich der überfälligen Antwort auf die Netzanmeldung anbieten.\n\nÜberfällige Antwort auf eine Netzanmeldung für eine Marktlokation, bei der eine Frist überschritten wurde. Ein Lieferant hat eine Mail an einen Netzbetreiber gesendet bezüglich einer überfälligen Antwort auf eine Netzanm · Score: 0.920\n\nQuellen: knowledge-rag: https://example.invalid/anonymous-process-note\n\nFall F-1 · Mit „Kein Fall“ kannst du ihn verwerfen.",
+      "situation": {
+        "concern": "Überfällige Antwort auf eine Netzanmeldung für eine Marktlokation, bei der eine Frist überschritten wurde.",
+        "situation": "Ein Lieferant hat eine Mail an einen Netzbetreiber gesendet bezüglich einer überfälligen Antwort auf eine Netzanmeldung für die Marktlokation 99000000001, wobei die Frist überschritten wurde.",
+        "participants": [
+          "Lieferant",
+          "Netzbetreiber"
+        ],
+        "identifiers": [
+          {
+            "kind": "Marktlokation",
+            "value": "99000000001"
+          }
+        ],
+        "deadlines": [
+          {
+            "value": "Frist überschritten",
+            "basis": "Frist überschritten"
+          }
+        ],
+        "hypotheses": [
+          {
+            "kind": "domain",
+            "id": "grid-connection",
+            "confidence": 0.9
+          },
+          {
+            "kind": "function",
+            "id": "fn-e2e-connection-check",
+            "confidence": 0.8
+          }
+        ],
+        "missingInformation": [
+          {
+            "key": "anschluss_details",
+            "question": "Um welche genaue Art der Netzanmeldung und Leistung handelt es sich?",
+            "blocking": false
+          }
+        ],
+        "requestedAction": {
+          "description": "Hilfestellung bezüglich der überfälligen Antwort auf die Netzanmeldung anbieten.",
+          "externalEffect": false,
+          "draftRequested": true
+        },
+        "turnKind": "work",
+        "retrievalTerms": [
+          "Netzanmeldung",
+          "Marktlokation",
+          "99000000001",
+          "Frist",
+          "Lieferant",
+          "Netzbetreiber"
+        ]
+      },
+      "evidence": [
+        {
+          "source": "knowledge-rag",
+          "value": "Überfällige Antwort auf eine Netzanmeldung für eine Marktlokation, bei der eine Frist überschritten wurde. Ein Lieferant hat eine Mail an einen Netzbetreiber gesendet bezüglich einer überfälligen Antwort auf eine Netzanm · Score: 0.920",
+          "url": "https://example.invalid/anonymous-process-note",
+          "metadata": {
+            "hitId": "local-process-note",
+            "sectionId": null,
+            "timestamp": null,
+            "documentType": null,
+            "score": 0.92
+          },
+          "retrievalSource": "knowledge-rag",
+          "evidenceId": "E1"
+        }
+      ],
+      "retrievalTrace": [
+        {
+          "source": "knowledge-rag",
+          "called": true,
+          "status": "available",
+          "hitCount": 1,
+          "rejected": [
+            {
+              "hitId": "irrelevant-note",
+              "source": "knowledge-rag",
+              "score": 0.58,
+              "summary": "Rotorblattwartung und Schmierstoffkontrolle.",
+              "reason": "below_score_threshold",
+              "overlap": 0
+            }
+          ]
+        },
+        {
+          "source": "datapoint",
+          "called": true,
+          "status": "missing",
+          "hitCount": 0,
+          "scannedCount": 0,
+          "rejected": []
+        },
+        {
+          "source": "object-store",
+          "called": true,
+          "status": "missing",
+          "hitCount": 0,
+          "namespaces": [
+            {
+              "namespace": "cya_sessions",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "cya_profiles",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "finance_agent_memory",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "copilot_context",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "process_context",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "evidence",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "znp_projects",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "vdmi_context",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            }
+          ],
+          "rejected": []
+        },
+        {
+          "source": "willi-mako",
+          "called": false,
+          "status": "skipped",
+          "hitCount": 0
+        },
+        {
+          "source": "knowledge-rag-federated",
+          "called": false,
+          "status": "skipped",
+          "hitCount": 0
+        },
+        {
+          "source": "analysis-planner",
+          "called": true,
+          "status": "available",
+          "hitCount": 0,
+          "signals": {
+            "postalCode": null,
+            "power": null,
+            "assetClass": null,
+            "perspectives": [],
+            "active": false
+          },
+          "toolCalls": [],
+          "rejected": [
+            {
+              "source": "analysis-planner",
+              "value": "Cernion Analysis Planner:",
+              "metadata": {
+                "kind": "signals"
+              },
+              "reason": "situation_mismatch",
+              "overlap": 0
+            }
+          ]
+        },
+        {
+          "source": "capability-read",
+          "called": false,
+          "status": "skipped",
+          "hitCount": 0,
+          "calledOperations": 0,
+          "rejected": []
+        },
+        {
+          "source": "response_boundary",
+          "rejected": []
+        }
+      ],
+      "caseCreated": true,
+      "draftCreated": false
+    },
+    {
+      "message": "Weitergeleitetes Dokument:\nPrüfe die Marktkommunikation: APERAK zur MaLo wurde abgelehnt, welche Evidenz fehlt?\nKannst du mir helfen?",
+      "elapsedMs": 8053,
+      "state": "assistance",
+      "answerStatus": "fallback",
+      "responseText": "Prüfung der Marktkommunikation bezüglich einer abgelehnten APERAK zur Marktlokation (MaLo) und Ermittlung der fehlenden Evidenz.\n\nEs wurde ein weitergeleitetes Dokument bzw. eine Anfrage zur Prüfung der Marktkommunikation vorgelegt, in der eine APERAK zur MaLo abgelehnt wurde.\n\nAls Nächstes: Unterstützung bei der Prüfung der fehlenden Evidenz für die abgelehnte APERAK zur MaLo in der Marktkommunikation.\n\nPrüfung der Marktkommunikation bezüglich einer abgelehnten APERAK zur Marktlokation (MaLo) und Ermittlung der fehlenden Evidenz. Es wurde ein weitergeleitetes Dokument bzw. eine Anfrage zur Prüfung der Marktkommunikation · Score: 0.920\n\nQuellen: knowledge-rag: https://example.invalid/anonymous-process-note\n\nFall F-2",
+      "situation": {
+        "concern": "Prüfung der Marktkommunikation bezüglich einer abgelehnten APERAK zur Marktlokation (MaLo) und Ermittlung der fehlenden Evidenz.",
+        "situation": "Es wurde ein weitergeleitetes Dokument bzw. eine Anfrage zur Prüfung der Marktkommunikation vorgelegt, in der eine APERAK zur MaLo abgelehnt wurde.",
+        "participants": [],
+        "identifiers": [],
+        "deadlines": [],
+        "hypotheses": [
+          {
+            "kind": "domain",
+            "id": "market-communication",
+            "confidence": 0.9
+          },
+          {
+            "kind": "function",
+            "id": "fn-market-communication-evidence-chain",
+            "confidence": 0.85
+          }
+        ],
+        "missingInformation": [],
+        "requestedAction": {
+          "description": "Unterstützung bei der Prüfung der fehlenden Evidenz für die abgelehnte APERAK zur MaLo in der Marktkommunikation.",
+          "externalEffect": false,
+          "draftRequested": false
+        },
+        "turnKind": "work",
+        "retrievalTerms": [
+          "APERAK",
+          "MaLo",
+          "Marktkommunikation",
+          "abgelehnt",
+          "Evidenz"
+        ]
+      },
+      "evidence": [
+        {
+          "source": "knowledge-rag",
+          "value": "Prüfung der Marktkommunikation bezüglich einer abgelehnten APERAK zur Marktlokation (MaLo) und Ermittlung der fehlenden Evidenz. Es wurde ein weitergeleitetes Dokument bzw. eine Anfrage zur Prüfung der Marktkommunikation · Score: 0.920",
+          "url": "https://example.invalid/anonymous-process-note",
+          "metadata": {
+            "hitId": "local-process-note",
+            "sectionId": null,
+            "timestamp": null,
+            "documentType": null,
+            "score": 0.92
+          },
+          "retrievalSource": "knowledge-rag",
+          "evidenceId": "E1"
+        }
+      ],
+      "retrievalTrace": [
+        {
+          "source": "knowledge-rag",
+          "called": true,
+          "status": "available",
+          "hitCount": 1,
+          "rejected": [
+            {
+              "hitId": "irrelevant-note",
+              "source": "knowledge-rag",
+              "score": 0.58,
+              "summary": "Rotorblattwartung und Schmierstoffkontrolle.",
+              "reason": "below_score_threshold",
+              "overlap": 0
+            }
+          ]
+        },
+        {
+          "source": "datapoint",
+          "called": true,
+          "status": "missing",
+          "hitCount": 0,
+          "scannedCount": 0,
+          "rejected": []
+        },
+        {
+          "source": "object-store",
+          "called": true,
+          "status": "missing",
+          "hitCount": 0,
+          "namespaces": [
+            {
+              "namespace": "cya_sessions",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "cya_profiles",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "finance_agent_memory",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "copilot_context",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "process_context",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "evidence",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "znp_projects",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "vdmi_context",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            }
+          ],
+          "rejected": []
+        },
+        {
+          "source": "willi-mako",
+          "called": false,
+          "status": "skipped",
+          "hitCount": 0
+        },
+        {
+          "source": "knowledge-rag-federated",
+          "called": false,
+          "status": "skipped",
+          "hitCount": 0
+        },
+        {
+          "source": "analysis-planner",
+          "called": false,
+          "status": "skipped",
+          "hitCount": 0
+        },
+        {
+          "source": "capability-read",
+          "called": false,
+          "status": "skipped",
+          "hitCount": 0,
+          "calledOperations": 0,
+          "rejected": []
+        },
+        {
+          "source": "response_boundary",
+          "rejected": []
+        }
+      ],
+      "caseCreated": true,
+      "draftCreated": false
+    },
+    {
+      "message": "Weitergeleitetes Dokument:\nCompare redispatch settlement sandbox scenarios for curtailment compensation.\nKannst du mir helfen?",
+      "elapsedMs": 8293,
+      "state": "assistance",
+      "answerStatus": "fallback",
+      "responseText": "Compare redispatch settlement sandbox scenarios for curtailment compensation.\n\nDer Nutzer hat ein Dokument zur Analyse von Redispatch-Abrechnungsszenarien für Einspeisemanagement und Abregelungsentschädigung weitergeleitet und bittet um Hilfe.\n\nAls Nächstes: Unterstützung beim Vergleich von Redispatch-Abrechnungsszenarien für die Einspeisevergütung bzw. Abregelungsentschädigung auf Basis des weitergeleiteten Dokuments.\n\nCompare redispatch settlement sandbox scenarios for curtailment compensation. Der Nutzer hat ein Dokument zur Analyse von Redispatch-Abrechnungsszenarien für Einspeisemanagement und Abregelungsentschädigung weitergeleite · Score: 0.920\n\nWelche konkreten Sandbox-Szenarien oder Datensätze sollen für den Vergleich der Abregelungsentschädigung herangezogen werden?\n\nQuellen: knowledge-rag: https://example.invalid/anonymous-process-note\n\nFall F-3",
+      "situation": {
+        "concern": "Compare redispatch settlement sandbox scenarios for curtailment compensation.",
+        "situation": "Der Nutzer hat ein Dokument zur Analyse von Redispatch-Abrechnungsszenarien für Einspeisemanagement und Abregelungsentschädigung weitergeleitet und bittet um Hilfe.",
+        "participants": [],
+        "identifiers": [],
+        "deadlines": [],
+        "hypotheses": [
+          {
+            "kind": "domain",
+            "id": "redispatch",
+            "confidence": 0.9
+          },
+          {
+            "kind": "function",
+            "id": "fn-redispatch-settlement-sandbox",
+            "confidence": 0.9
+          }
+        ],
+        "missingInformation": [
+          {
+            "key": "sandbox_scenarios",
+            "question": "Welche konkreten Sandbox-Szenarien oder Datensätze sollen für den Vergleich der Abregelungsentschädigung herangezogen werden?",
+            "blocking": true
+          }
+        ],
+        "requestedAction": {
+          "description": "Unterstützung beim Vergleich von Redispatch-Abrechnungsszenarien für die Einspeisevergütung bzw. Abregelungsentschädigung auf Basis des weitergeleiteten Dokuments.",
+          "externalEffect": false,
+          "draftRequested": true
+        },
+        "turnKind": "work",
+        "retrievalTerms": [
+          "redispatch",
+          "settlement",
+          "sandbox",
+          "curtailment compensation",
+          "Abregelungsentschädigung"
+        ]
+      },
+      "evidence": [
+        {
+          "source": "knowledge-rag",
+          "value": "Compare redispatch settlement sandbox scenarios for curtailment compensation. Der Nutzer hat ein Dokument zur Analyse von Redispatch-Abrechnungsszenarien für Einspeisemanagement und Abregelungsentschädigung weitergeleite · Score: 0.920",
+          "url": "https://example.invalid/anonymous-process-note",
+          "metadata": {
+            "hitId": "local-process-note",
+            "sectionId": null,
+            "timestamp": null,
+            "documentType": null,
+            "score": 0.92
+          },
+          "retrievalSource": "knowledge-rag",
+          "evidenceId": "E1"
+        }
+      ],
+      "retrievalTrace": [
+        {
+          "source": "knowledge-rag",
+          "called": true,
+          "status": "available",
+          "hitCount": 1,
+          "rejected": [
+            {
+              "hitId": "irrelevant-note",
+              "source": "knowledge-rag",
+              "score": 0.58,
+              "summary": "Rotorblattwartung und Schmierstoffkontrolle.",
+              "reason": "below_score_threshold",
+              "overlap": 0
+            }
+          ]
+        },
+        {
+          "source": "datapoint",
+          "called": true,
+          "status": "missing",
+          "hitCount": 0,
+          "scannedCount": 0,
+          "rejected": []
+        },
+        {
+          "source": "object-store",
+          "called": true,
+          "status": "missing",
+          "hitCount": 0,
+          "namespaces": [
+            {
+              "namespace": "cya_sessions",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "cya_profiles",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "finance_agent_memory",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "copilot_context",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "process_context",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "evidence",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "znp_projects",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "vdmi_context",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            }
+          ],
+          "rejected": []
+        },
+        {
+          "source": "willi-mako",
+          "called": false,
+          "status": "skipped",
+          "hitCount": 0
+        },
+        {
+          "source": "knowledge-rag-federated",
+          "called": false,
+          "status": "skipped",
+          "hitCount": 0
+        },
+        {
+          "source": "analysis-planner",
+          "called": false,
+          "status": "skipped",
+          "hitCount": 0
+        },
+        {
+          "source": "capability-read",
+          "called": false,
+          "status": "skipped",
+          "hitCount": 0,
+          "calledOperations": 0,
+          "rejected": []
+        },
+        {
+          "source": "response_boundary",
+          "rejected": []
+        }
+      ],
+      "caseCreated": true,
+      "draftCreated": false
+    },
+    {
+      "message": "Weitergeleitetes Dokument:\nPrüfe die Anschlussreife für einen Batteriespeicher am Mittelspannungsnetz.\nKannst du mir helfen?",
+      "elapsedMs": 8233,
+      "state": "assistance",
+      "answerStatus": "fallback",
+      "responseText": "Prüfung der Anschlussreife für einen Batteriespeicher am Mittelspannungsnetz\n\nDer Nutzer leitet ein Dokument weiter, in dem die Prüfung der Anschlussreife für einen Batteriespeicher am Mittelspannungsnetz gefordert wird, und bittet um Hilfe bei dieser Aufgabe.\n\nAls Nächstes: Unterstützung bei der Prüfung der Anschlussreife für einen Batteriespeicher am Mittelspannungsnetz auf Basis des weitergeleiteten Dokuments.\n\nPrüfung der Anschlussreife für einen Batteriespeicher am Mittelspannungsnetz Der Nutzer leitet ein Dokument weiter, in dem die Prüfung der Anschlussreife für einen Batteriespeicher am Mittelspannungsnetz gefordert wird, · Score: 0.920\n\nQuellen: knowledge-rag: https://example.invalid/anonymous-process-note\n\nFall F-4",
+      "situation": {
+        "concern": "Prüfung der Anschlussreife für einen Batteriespeicher am Mittelspannungsnetz",
+        "situation": "Der Nutzer leitet ein Dokument weiter, in dem die Prüfung der Anschlussreife für einen Batteriespeicher am Mittelspannungsnetz gefordert wird, und bittet um Hilfe bei dieser Aufgabe.",
+        "participants": [
+          "Nutzer"
+        ],
+        "identifiers": [],
+        "deadlines": [],
+        "hypotheses": [
+          {
+            "kind": "domain",
+            "id": "grid-connection",
+            "confidence": 0.9
+          },
+          {
+            "kind": "function",
+            "id": "fn-grossspeicher-anschluss-readiness-gate",
+            "confidence": 0.8
+          }
+        ],
+        "missingInformation": [
+          {
+            "key": "speicher-details",
+            "question": "Welche konkreten technischen Kennzahlen oder Leistungswerte (z.B. kW/MW, Kapazität) hat der Batteriespeicher?",
+            "blocking": false
+          }
+        ],
+        "requestedAction": {
+          "description": "Unterstützung bei der Prüfung der Anschlussreife für einen Batteriespeicher am Mittelspannungsnetz auf Basis des weitergeleiteten Dokuments.",
+          "externalEffect": false,
+          "draftRequested": true
+        },
+        "turnKind": "work",
+        "retrievalTerms": [
+          "Batteriespeicher",
+          "Mittelspannungsnetz",
+          "Anschlussreife",
+          "Netzanschluss"
+        ]
+      },
+      "evidence": [
+        {
+          "source": "knowledge-rag",
+          "value": "Prüfung der Anschlussreife für einen Batteriespeicher am Mittelspannungsnetz Der Nutzer leitet ein Dokument weiter, in dem die Prüfung der Anschlussreife für einen Batteriespeicher am Mittelspannungsnetz gefordert wird, · Score: 0.920",
+          "url": "https://example.invalid/anonymous-process-note",
+          "metadata": {
+            "hitId": "local-process-note",
+            "sectionId": null,
+            "timestamp": null,
+            "documentType": null,
+            "score": 0.92
+          },
+          "retrievalSource": "knowledge-rag",
+          "evidenceId": "E1"
+        }
+      ],
+      "retrievalTrace": [
+        {
+          "source": "knowledge-rag",
+          "called": true,
+          "status": "available",
+          "hitCount": 1,
+          "rejected": [
+            {
+              "hitId": "irrelevant-note",
+              "source": "knowledge-rag",
+              "score": 0.58,
+              "summary": "Rotorblattwartung und Schmierstoffkontrolle.",
+              "reason": "below_score_threshold",
+              "overlap": 0
+            }
+          ]
+        },
+        {
+          "source": "datapoint",
+          "called": true,
+          "status": "missing",
+          "hitCount": 0,
+          "scannedCount": 0,
+          "rejected": []
+        },
+        {
+          "source": "object-store",
+          "called": true,
+          "status": "missing",
+          "hitCount": 0,
+          "namespaces": [
+            {
+              "namespace": "cya_sessions",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "cya_profiles",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "finance_agent_memory",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "copilot_context",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "process_context",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "evidence",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "znp_projects",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "vdmi_context",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            }
+          ],
+          "rejected": []
+        },
+        {
+          "source": "willi-mako",
+          "called": false,
+          "status": "skipped",
+          "hitCount": 0
+        },
+        {
+          "source": "knowledge-rag-federated",
+          "called": false,
+          "status": "skipped",
+          "hitCount": 0
+        },
+        {
+          "source": "analysis-planner",
+          "called": true,
+          "status": "available",
+          "hitCount": 0,
+          "signals": {
+            "postalCode": null,
+            "power": null,
+            "assetClass": "battery_storage",
+            "perspectives": [
+              "Asset-spezifische Genehmigungs- und Prozesssicht"
+            ],
+            "active": true
+          },
+          "toolCalls": [],
+          "rejected": [
+            {
+              "source": "analysis-planner",
+              "value": "Cernion Analysis Planner: Asset-Klasse: battery_storage · Prüfperspektiven: Asset-spezifische Genehmigungs- und Prozesssicht",
+              "metadata": {
+                "kind": "signals"
+              },
+              "reason": "situation_mismatch",
+              "overlap": 0
+            }
+          ]
+        },
+        {
+          "source": "capability-read",
+          "called": false,
+          "status": "skipped",
+          "hitCount": 0,
+          "calledOperations": 0,
+          "rejected": []
+        },
+        {
+          "source": "response_boundary",
+          "rejected": []
+        }
+      ],
+      "caseCreated": true,
+      "draftCreated": false
+    },
+    {
+      "message": "Weitergeleitetes Dokument:\nPrüfe das Reinvestitionssignal für Betriebsmittel anhand des Wartungslogs.\nKannst du mir helfen?",
+      "elapsedMs": 8074,
+      "state": "assistance",
+      "answerStatus": "fallback",
+      "responseText": "Prüfung des Reinvestitionssignals für Betriebsmittel anhand des Wartungslogs\n\nDem System wurde ein weitergeleitetes Dokument zur Prüfung des Reinvestitionssignals für Betriebsmittel anhand des Wartungslogs vorgelegt.\n\nAls Nächstes: Unterstützung bei der Prüfung des Reinvestitionssignals für Betriebsmittel anhand des Wartungslogs anfordern\n\nPrüfung des Reinvestitionssignals für Betriebsmittel anhand des Wartungslogs Dem System wurde ein weitergeleitetes Dokument zur Prüfung des Reinvestitionssignals für Betriebsmittel anhand des Wartungslogs vorgelegt. Rein · Score: 0.920\n\nWelches konkrete Wartungslog und welche Betriebsmittel-ID sollen für die Prüfung verwendet werden?\n\nQuellen: knowledge-rag: https://example.invalid/anonymous-process-note\n\nFall F-5",
+      "situation": {
+        "concern": "Prüfung des Reinvestitionssignals für Betriebsmittel anhand des Wartungslogs",
+        "situation": "Dem System wurde ein weitergeleitetes Dokument zur Prüfung des Reinvestitionssignals für Betriebsmittel anhand des Wartungslogs vorgelegt.",
+        "participants": [],
+        "identifiers": [],
+        "deadlines": [],
+        "hypotheses": [
+          {
+            "kind": "domain",
+            "id": "asset-management",
+            "confidence": 0.8
+          },
+          {
+            "kind": "function",
+            "id": "fn-reinvest-signal",
+            "confidence": 0.9
+          }
+        ],
+        "missingInformation": [
+          {
+            "key": "wartungslog_daten",
+            "question": "Welches konkrete Wartungslog und welche Betriebsmittel-ID sollen für die Prüfung verwendet werden?",
+            "blocking": true
+          }
+        ],
+        "requestedAction": {
+          "description": "Unterstützung bei der Prüfung des Reinvestitionssignals für Betriebsmittel anhand des Wartungslogs anfordern",
+          "externalEffect": false,
+          "draftRequested": true
+        },
+        "turnKind": "work",
+        "retrievalTerms": [
+          "Reinvestitionssignal",
+          "Betriebsmittel",
+          "Wartungslog"
+        ]
+      },
+      "evidence": [
+        {
+          "source": "knowledge-rag",
+          "value": "Prüfung des Reinvestitionssignals für Betriebsmittel anhand des Wartungslogs Dem System wurde ein weitergeleitetes Dokument zur Prüfung des Reinvestitionssignals für Betriebsmittel anhand des Wartungslogs vorgelegt. Rein · Score: 0.920",
+          "url": "https://example.invalid/anonymous-process-note",
+          "metadata": {
+            "hitId": "local-process-note",
+            "sectionId": null,
+            "timestamp": null,
+            "documentType": null,
+            "score": 0.92
+          },
+          "retrievalSource": "knowledge-rag",
+          "evidenceId": "E1"
+        }
+      ],
+      "retrievalTrace": [
+        {
+          "source": "knowledge-rag",
+          "called": true,
+          "status": "available",
+          "hitCount": 1,
+          "rejected": [
+            {
+              "hitId": "irrelevant-note",
+              "source": "knowledge-rag",
+              "score": 0.58,
+              "summary": "Rotorblattwartung und Schmierstoffkontrolle.",
+              "reason": "below_score_threshold",
+              "overlap": 0
+            }
+          ]
+        },
+        {
+          "source": "datapoint",
+          "called": true,
+          "status": "missing",
+          "hitCount": 0,
+          "scannedCount": 0,
+          "rejected": []
+        },
+        {
+          "source": "object-store",
+          "called": true,
+          "status": "missing",
+          "hitCount": 0,
+          "namespaces": [
+            {
+              "namespace": "cya_sessions",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "cya_profiles",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "finance_agent_memory",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "copilot_context",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "process_context",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "evidence",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "znp_projects",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "vdmi_context",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            }
+          ],
+          "rejected": []
+        },
+        {
+          "source": "willi-mako",
+          "called": false,
+          "status": "skipped",
+          "hitCount": 0
+        },
+        {
+          "source": "knowledge-rag-federated",
+          "called": false,
+          "status": "skipped",
+          "hitCount": 0
+        },
+        {
+          "source": "analysis-planner",
+          "called": false,
+          "status": "skipped",
+          "hitCount": 0
+        },
+        {
+          "source": "capability-read",
+          "called": false,
+          "status": "skipped",
+          "hitCount": 0,
+          "calledOperations": 0,
+          "rejected": []
+        },
+        {
+          "source": "response_boundary",
+          "rejected": []
+        }
+      ],
+      "caseCreated": true,
+      "draftCreated": false
+    },
+    {
+      "message": "Weitergeleitetes Dokument:\nFür die Auszugsabrechnung fehlt der Schlusszählerstand: welche EDM-Evidenz brauchen wir?\nKannst du mir helfen?",
+      "elapsedMs": 7919,
+      "state": "assistance",
+      "answerStatus": "fallback",
+      "responseText": "Für die Auszugsabrechnung fehlt der Schlusszählerstand und es wird gefragt, welche EDM-Evidenz benötigt wird.\n\nEs liegt eine Anfrage zu einer Auszugsabrechnung vor, bei der der Schlusszählerstand fehlt und nach der erforderlichen EDM-Evidenz gefragt wird.\n\nAls Nächstes: Hilfestellung bei der Klärung, welche EDM-Evidenz für den fehlenden Schlusszählerstand bei der Auszugsabrechnung benötigt wird.\n\nFür die Auszugsabrechnung fehlt der Schlusszählerstand und es wird gefragt, welche EDM-Evidenz benötigt wird. Es liegt eine Anfrage zu einer Auszugsabrechnung vor, bei der der Schlusszählerstand fehlt und nach der erford · Score: 0.920\n\nQuellen: knowledge-rag: https://example.invalid/anonymous-process-note",
+      "situation": {
+        "concern": "Für die Auszugsabrechnung fehlt der Schlusszählerstand und es wird gefragt, welche EDM-Evidenz benötigt wird.",
+        "situation": "Es liegt eine Anfrage zu einer Auszugsabrechnung vor, bei der der Schlusszählerstand fehlt und nach der erforderlichen EDM-Evidenz gefragt wird.",
+        "participants": [],
+        "identifiers": [],
+        "deadlines": [],
+        "hypotheses": [
+          {
+            "kind": "domain",
+            "id": "edm",
+            "confidence": 0.9
+          },
+          {
+            "kind": "function",
+            "id": "fn-edm-metering-concept-evidence",
+            "confidence": 0.8
+          }
+        ],
+        "missingInformation": [],
+        "requestedAction": {
+          "description": "Hilfestellung bei der Klärung, welche EDM-Evidenz für den fehlenden Schlusszählerstand bei der Auszugsabrechnung benötigt wird.",
+          "externalEffect": false,
+          "draftRequested": false
+        },
+        "turnKind": "knowledge",
+        "retrievalTerms": [
+          "Auszugsabrechnung",
+          "Schlusszählerstand",
+          "EDM-Evidenz"
+        ]
+      },
+      "evidence": [
+        {
+          "source": "knowledge-rag",
+          "value": "Für die Auszugsabrechnung fehlt der Schlusszählerstand und es wird gefragt, welche EDM-Evidenz benötigt wird. Es liegt eine Anfrage zu einer Auszugsabrechnung vor, bei der der Schlusszählerstand fehlt und nach der erford · Score: 0.920",
+          "url": "https://example.invalid/anonymous-process-note",
+          "metadata": {
+            "hitId": "local-process-note",
+            "sectionId": null,
+            "timestamp": null,
+            "documentType": null,
+            "score": 0.92
+          },
+          "retrievalSource": "knowledge-rag",
+          "evidenceId": "E1"
+        }
+      ],
+      "retrievalTrace": [
+        {
+          "source": "knowledge-rag",
+          "called": true,
+          "status": "available",
+          "hitCount": 1,
+          "rejected": [
+            {
+              "hitId": "irrelevant-note",
+              "source": "knowledge-rag",
+              "score": 0.58,
+              "summary": "Rotorblattwartung und Schmierstoffkontrolle.",
+              "reason": "below_score_threshold",
+              "overlap": 0
+            }
+          ]
+        },
+        {
+          "source": "datapoint",
+          "called": true,
+          "status": "missing",
+          "hitCount": 0,
+          "scannedCount": 0,
+          "rejected": []
+        },
+        {
+          "source": "object-store",
+          "called": true,
+          "status": "missing",
+          "hitCount": 0,
+          "namespaces": [
+            {
+              "namespace": "cya_sessions",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "cya_profiles",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "finance_agent_memory",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "copilot_context",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "process_context",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "evidence",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "znp_projects",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            },
+            {
+              "namespace": "vdmi_context",
+              "status": "available",
+              "scannedCount": 0,
+              "hitCount": 0
+            }
+          ],
+          "rejected": []
+        },
+        {
+          "source": "willi-mako",
+          "called": false,
+          "status": "skipped",
+          "hitCount": 0
+        },
+        {
+          "source": "knowledge-rag-federated",
+          "called": false,
+          "status": "skipped",
+          "hitCount": 0
+        },
+        {
+          "source": "analysis-planner",
+          "called": false,
+          "status": "skipped",
+          "hitCount": 0
+        },
+        {
+          "source": "capability-read",
+          "called": false,
+          "status": "skipped",
+          "hitCount": 0,
+          "calledOperations": 0,
+          "rejected": []
+        },
+        {
+          "source": "response_boundary",
+          "rejected": []
+        }
+      ],
+      "caseCreated": false,
+      "draftCreated": false
+    }
+  ],
+  "answerDiagnostics": []
+}
