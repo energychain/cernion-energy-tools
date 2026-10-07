@@ -117,8 +117,16 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
     return {
       state: 'understanding_unavailable',
       nonBinding: true,
-      responseText:
-        'Ich kann den Inhalt gerade nicht zuverlässig einordnen. Bitte versuche es später erneut; es wurde keine neue Fallbearbeitung gestartet.',
+      responseText: understanding.fallbackAnswer(
+        pending?.situation ||
+          state?.knownContext?.situation || {
+            concern: envelope.userRequest.slice(0, 1200),
+            situation: '',
+            requestedAction: {
+              description: 'Prüfe die Angaben im Dokument und den bisherigen Bearbeitungsstand.',
+            },
+          }
+      ),
       latencyMs: Math.round(performance.now() - started),
     };
   }
@@ -251,6 +259,7 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
     retrieval,
     tenantId: p.tenantId,
     asked: pending?.askedQuestions || [],
+    previousDraft: pending?.draft || '',
   });
   let draftId;
   if (reply.draft && caseId)
@@ -262,6 +271,10 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
     );
   let displayRef;
   if (caseId) displayRef = await service.store.caseDisplayRef({ tenantId: p.tenantId, caseId });
+  let firstAutoCase = false;
+  if (displayRef && operation === 'classify') {
+    firstAutoCase = await service.store.claimAutoCaseHint(p);
+  }
   const allowedDomains = situation.hypotheses
     .filter((h) => h.kind === 'domain' && h.confidence >= 0.5)
     .map((h) => h.id);
@@ -278,7 +291,7 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
       ? `Optional passende Funktion (Nummer oder Name):\n${choices.map((choice, index) => `${index + 1}. ${choice.label}`).join('\n')}`
       : '',
     displayRef
-      ? `Ich führe das als Fall ${displayRef}. Mit „Kein Fall“ kannst du ihn verwerfen.`
+      ? `Fall ${displayRef}${firstAutoCase ? ' · Mit „Kein Fall“ kannst du ihn verwerfen.' : ''}`
       : '',
   ]
     .filter(Boolean)
@@ -292,17 +305,29 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
     ]),
   ];
   if (caseId) {
-    const annotation = await ctx.call(
-      'domain-router.recordWorkbenchTurn',
-      {
-        cetCaseId: caseId,
-        caseStateVersion: result.caseStateVersion,
-        responseText: result.responseText.slice(0, 16000),
-        requiredClarifications: result.requiredClarifications,
-        noCallGuards: result.noCallGuards,
-      },
-      { meta }
-    );
+    let annotation;
+    for (let attempt = 0; attempt < 4; attempt++) {
+      try {
+        annotation = await ctx.call(
+          'domain-router.recordWorkbenchTurn',
+          {
+            cetCaseId: caseId,
+            caseStateVersion: result.caseStateVersion,
+            responseText: result.responseText.slice(0, 16000),
+            requiredClarifications: result.requiredClarifications,
+            noCallGuards: result.noCallGuards,
+          },
+          { meta }
+        );
+        break;
+      } catch (error) {
+        if (error.code !== 409 && error.status !== 409) throw error;
+        const latest = await service.loadVisibleCase(ctx, p, caseId);
+        // The router still rejects discarded cases; never bypass its state guard.
+        if (latest.disposition === 'discarded' || attempt === 3) throw error;
+        result.caseStateVersion = latest.caseStateVersion;
+      }
+    }
     result.caseStateVersion = annotation.caseStateVersion;
     await service.store.linkConversation({
       tenantId: p.tenantId,
@@ -314,6 +339,7 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
   }
   await conversationAssistance.saveTurn(service.conversationsDb, p, envelope, {
     situation,
+    draft: reply.draft,
     offeredContent: '',
     lastQuestion: '',
     askedQuestions: [...(pending?.askedQuestions || []), ...reply.questions],
@@ -377,8 +403,7 @@ async function selectChoice(service, ctx, { p, mapping, envelope, conversation, 
     },
     { meta }
   );
-  result.responseText =
-    'Die passende Funktion ist ausgewählt. Die Bearbeitung bleibt unverbindlich; es wurde keine externe Handlung ausgeführt.';
+  result.responseText = 'Die passende Funktion ist ausgewählt.';
   result.requiredClarifications = [];
   const workbenchContext = await service.loadWorkbenchContext(p, envelope, mapping);
   const previousMemory = await service.loadTurnMemory(p, conversation.cetCaseId);
@@ -410,4 +435,42 @@ async function selectChoice(service, ctx, { p, mapping, envelope, conversation, 
   };
 }
 
-module.exports = { runContentTurn, discard, selectChoice };
+// Serialize content turns per actor/conversation, including the initial reservation.
+// Refresh persisted questions after waiting so parallel requests cannot repeat them.
+async function queuedContentTurn(service, ctx, input) {
+  const queues = (service.workbenchContentTurns ||= new Map());
+  const key = JSON.stringify([
+    input.p.tenantId,
+    input.p.actorId,
+    input.envelope.channel,
+    input.envelope.conversationId,
+  ]);
+  const previous = queues.get(key) || Promise.resolve();
+  let release;
+  const gate = new Promise((resolve) => {
+    release = resolve;
+  });
+  queues.set(key, gate);
+  await previous;
+  try {
+    const pending = await conversationAssistance.readTurn(
+      service.conversationsDb,
+      input.p,
+      input.envelope
+    );
+    const conversation = await service.store.resolveConversation(
+      {
+        tenantId: input.p.tenantId,
+        client: input.envelope.channel,
+        conversationId: input.envelope.conversationId,
+      },
+      { optional: true }
+    );
+    return await runContentTurn(service, ctx, { ...input, pending, conversation });
+  } finally {
+    release();
+    if (queues.get(key) === gate) queues.delete(key);
+  }
+}
+
+module.exports = { runContentTurn: queuedContentTurn, discard, selectChoice };

@@ -42,8 +42,17 @@ function restoreContext(value, reidentMap) {
   // Replace JSON string values, never raw JSON syntax or property names.
   if (typeof value === 'string') {
     let result = value;
-    for (const [placeholder, original] of reidentMap)
+    for (const [placeholder, original] of reidentMap) {
       result = result.split(placeholder).join(original);
+      // Models sometimes omit brackets. Restore only an exact known token,
+      // never a prefix of another token and never JSON keys or unknown values.
+      const bare = placeholder.slice(1, -1);
+      result = result.replaceAll(bare, (match, offset, input) => {
+        const before = input[offset - 1] || '';
+        const after = input[offset + match.length] || '';
+        return /[\w-]/.test(before) || /[\w-]/.test(after) ? match : original;
+      });
+    }
     return result;
   }
   if (Array.isArray(value)) return value.map((entry) => restoreContext(entry, reidentMap));

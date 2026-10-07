@@ -35,9 +35,9 @@ async function post(path, body) {
   return response.data;
 }
 
-async function generateText(prompt) {
+async function generateText(prompt, options = {}) {
   const data = await post('/chat/completions', {
-    model: getModelName(),
+    model: options.model || getModelName(),
     messages: [{ role: 'user', content: prompt }],
     temperature: 0,
   });
@@ -49,11 +49,11 @@ async function generateStructured(_schema, prompt, options = {}) {
   const mode = options.structuredMode || 'json';
 
   if (mode === 'tool') {
-    return await generateText(prompt);
+    return await generateText(prompt, options);
   }
 
   const data = await post('/chat/completions', {
-    model: getModelName(),
+    model: options.model || getModelName(),
     messages: [{ role: 'user', content: prompt }],
     response_format: { type: 'json_object' },
     temperature: 0,

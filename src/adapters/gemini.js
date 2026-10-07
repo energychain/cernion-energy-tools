@@ -38,8 +38,13 @@ function getClient() {
   return new GoogleGenerativeAI(apiKey);
 }
 
-async function generateText(prompt) {
-  const model = getClient().getGenerativeModel({ model: getModelName() });
+async function generateText(prompt, options = {}) {
+  const model = getClient().getGenerativeModel({
+    model: options.model || getModelName(),
+    ...(options.temperature != null
+      ? { generationConfig: { temperature: options.temperature } }
+      : {}),
+  });
   const result = await model.generateContent(prompt);
   return result.response.text();
 }
@@ -48,12 +53,13 @@ async function generateStructured(schema, prompt, options = {}) {
   const mode = options.structuredMode || 'schema';
 
   if (mode === 'json' || mode === 'tool') {
-    return await generateText(prompt);
+    return await generateText(prompt, options);
   }
 
   const model = getClient().getGenerativeModel({
-    model: getModelName(),
+    model: options.model || getModelName(),
     generationConfig: {
+      ...(options.temperature != null ? { temperature: options.temperature } : {}),
       responseMimeType: 'application/json',
       responseSchema: schema,
     },

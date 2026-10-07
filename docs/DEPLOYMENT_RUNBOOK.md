@@ -251,6 +251,21 @@ journalctl -u cernion -f
 | `GEMINI_EMBEDDING_MODEL` | `gemini-embedding-001` | Embedding-Modell für Cookbook-Suche |
 | `ASYNC_POLLER_DEBUG` | `false` | Detailliertes Logging für async Job-Poller |
 
+Workbench-Verstehen und Antworten verwenden getrennte Optionen über die zentrale
+`src/llm-client.js`-Fassade:
+
+| Variable | Default | Beschreibung |
+|----------|---------|--------------|
+| `WORKBENCH_LLM_MODEL` | Provider-Schnellmodell | Ein Modell für beide Phasen oder `Verstehen,Antworten`. Defaults: Gemini `gemini-3.5-flash-lite`, OpenAI-kompatibel `gpt-4o-mini`, Ollama `llama3.1:8b`. |
+| `WORKBENCH_LLM_TIMEOUT_MS` | `4500` | Ein Budget in Millisekunden oder `Verstehen,Antworten`, z. B. `3500,6000`. Ungültige Werte fallen auf 4500 ms zurück. |
+
+Empfehlung: zunächst das schnelle, beim konfigurierten Provider verfügbare Modell
+verwenden und beide Phasen anhand anonymisierter Alltagsdokumente messen. Bei eigenen
+OpenAI-kompatiblen Endpunkten deren Modellnamen explizit setzen. Bei mehr benötigter
+Entwurfsqualität nur das Antwortmodell/Budget erhöhen. Nach Timeout oder Fehler bleibt
+eine kurze Antwort mit vorhandenem Lagebild und Quellen erhalten; technische
+Außenwirkungs-Sperren gelten auch beim Rückfall. Retrieval hat separat 4000 ms Budget.
+
 #### MCP / Cernion Backend
 
 | Variable | Default | Beschreibung |
