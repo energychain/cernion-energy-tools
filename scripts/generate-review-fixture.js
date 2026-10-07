@@ -33,3 +33,15 @@ for (let chapter = 1; chapter <= 12; chapter++) {
 const target = path.join(__dirname, '../tests/fixtures/document-review/neutral-long-document.txt');
 fs.writeFileSync(target, chapters.join('\n\n') + '\n');
 console.log(`Synthetic review fixture: ${fs.statSync(target).size} bytes`);
+
+const listTarget = path.join(
+  __dirname,
+  '../tests/fixtures/document-review/neutral-numbered-list.txt'
+);
+const listLines = ['Kapitel 1: Synthetische Aufgabenliste', 'Seite 1'];
+for (let row = 1; row <= 360; row++) {
+  if (row === 181) listLines.push('Kapitel 2: Fortsetzung', 'Seite 2');
+  listLines.push(`${row}. Die Arbeitsgruppe prüft die Annahme und dokumentiert das Ergebnis.`);
+}
+fs.writeFileSync(listTarget, listLines.join('\n') + '\n');
+console.log(`Synthetic numbered-list fixture: ${fs.statSync(listTarget).size} bytes`);

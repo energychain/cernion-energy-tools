@@ -30,7 +30,23 @@ function documentSections(text, chunkChars = 12000) {
       });
     }
   }
-  return sections;
+  // Pack contiguous spans without losing the original chapter/page boundaries.
+  const packed = [];
+  for (const section of sections) {
+    let offset = section.start;
+    while (offset < section.end) {
+      let current = packed[packed.length - 1];
+      if (!current || current.end - current.start === chunkChars) {
+        current = { ...section, start: offset, end: offset, locations: [] };
+        packed.push(current);
+      }
+      const end = Math.min(section.end, offset + chunkChars - (current.end - current.start));
+      current.locations.push({ ...section, start: offset, end });
+      current.end = end;
+      offset = end;
+    }
+  }
+  return packed;
 }
 
 async function attachDocuments(store, identity, documents, options = {}) {

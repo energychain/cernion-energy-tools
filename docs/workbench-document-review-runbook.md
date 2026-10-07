@@ -53,18 +53,25 @@ keinen Kundentext in Logs oder Testfixtures schreiben.
 
 ## Budgets
 
-| Einstellung | Default | Zweck |
-| --- | ---: | --- |
-| WORKBENCH_DOCUMENT_MAX_CHARS | 1000000 | Aufnahmebudget pro Dokumentpaket |
-| WORKBENCH_REVIEW_MAX_CHARS | 250000 | Review-Eingabe insgesamt |
-| WORKBENCH_REVIEW_TIMEOUT_MS | 45000 | Gesamtbudget inkl. Retrieval |
-| WORKBENCH_REVIEW_MAX_MAP_CALLS | 64 | Maximale Abschnittsaufrufe |
-| WORKBENCH_REVIEW_SECTION_CHARS | 12000 | Maximale Abschnittslänge |
-| WORKBENCH_REVIEW_CRITERIA_CHARS | 12000 | Quellenbudget für Reduce |
-| WORKBENCH_REVIEW_MODEL | Antwortmodell aus WORKBENCH_LLM_MODEL | Optionales Review-Modell |
+| Einstellung                     |                               Default | Zweck                            |
+| ------------------------------- | ------------------------------------: | -------------------------------- |
+| WORKBENCH_DOCUMENT_MAX_CHARS    |                               1000000 | Aufnahmebudget pro Dokumentpaket |
+| WORKBENCH_REVIEW_MAX_CHARS      |                                250000 | Review-Eingabe insgesamt         |
+| WORKBENCH_REVIEW_TIMEOUT_MS     |                                 45000 | Gesamtbudget inkl. Retrieval     |
+| WORKBENCH_REVIEW_CONCURRENCY    |                                     4 | Maximale parallele Map-Aufrufe   |
+| WORKBENCH_REVIEW_MAX_MAP_CALLS  |                                    64 | Maximale Abschnittsaufrufe       |
+| WORKBENCH_REVIEW_SECTION_CHARS  |                                 12000 | Maximale Abschnittslänge         |
+| WORKBENCH_REVIEW_CRITERIA_CHARS |                                 12000 | Quellenbudget für Reduce         |
+| WORKBENCH_REVIEW_MODEL          | Antwortmodell aus WORKBENCH_LLM_MODEL | Optionales Review-Modell         |
 
-Überschreitungen werden vor Map-Aufrufen abgewiesen; kein stilles Kürzen. Timeout gibt
-Teilfortschritt zurück und startet keine weiteren Modellaufrufe. Bereits laufende Fassade-
+Kleine Abschnitte werden bis zur Abschnittslänge gebündelt; `locations` erhält alle Kapitel-, Seiten- und Offsetgrenzen.
+
+Überschreitungen werden vor Map-Aufrufen abgewiesen; kein stilles Kürzen. Einzelne Map-Fehler (Timeout, 429, Schemafehler) stoppen die übrigen Abschnitte nicht.
+Lücken stehen mit Fundstelle in `limitations` und strukturiert in `gaps`; Reduce erhält nur
+erfolgreiche Maps sowie diese Lücken. Bis einschließlich 50 % fehlenden Abschnitten bleibt
+der Status bei erfolgreichem Reduce `completed`; darüber lautet er `partial_failed`.
+Ohne erfolgreiche Maps entfällt Reduce. Die Gesamtdeadline gilt weiter für Retrieval, Maps
+und Reduce; nach Ablauf starten keine weiteren Modellaufrufe. Bereits laufende Fassade-
 oder Retrieval-Aufrufe können bis zu ihrem eigenen Timeout weiterlaufen; ein späteres
 Ergebnis wird nicht als fertiges Review übernommen. Die Integration muss diese Zustände
 als Budget-/Fortsetzungshinweis behandeln. Die Modellwahl und Denkbudget-Vorgaben werden aus den bestehenden Workbench-Antwortoptionen übernommen; Kommapaare wählen das Antwortmodell. Modellquoten und PII-Scrubbing liegen weiter
@@ -93,7 +100,7 @@ Gesprächspfad. Begrenzte Aufrufe, Zeit-/Größenlimits, Schema- und Fundstellen
 vorhandene Quoten und read-only-Governance reduzieren das Risiko. Phase 2 berührt den
 zentralen Chatpfad und benötigt eigene GitNexus-Auswirkungsanalyse und HTTP-Abnahme.
 
-## Phase-1-Validierung
+## Phase-1-Validierung (ursprünglicher Stand)
 
 - 23 Modulprüfungen grün; 479 bestehende Gateway-/Gesprächs-/Retrieval-Prüfungen
   grün (25,05 s), inklusive Disclaimer-Wächter.
@@ -106,3 +113,19 @@ zentralen Chatpfad und benötigt eigene GitNexus-Auswirkungsanalyse und HTTP-Abn
 - Kollegen-Rubrik für den Stub: Ausgangszahlen verstanden; Fundstellen nutzbar; Ton direkt;
   Unsicherheit über fehlende Maßstäbe explizit; Review-Entwurf optional schema-validiert.
   Diese Rubrik ersetzt keine Live-Abnahme des konkreten Akzeptanzdokuments aus AC-05.
+
+
+## Review-Nachprüfung für PR #756
+
+- 35 Modulprüfungen grün, inklusive 360 nummerierter Listenzeilen (3 Maps bei Budget 4),
+  vollständiger Offsetabdeckung, Parallelität 4/2, geordneter Ergebnisse trotz wechselnder
+  Laufzeit, einzelner Timeout-/429-/Schemafehler und der strikten >50-%-Grenze.
+- Die lange synthetische Fixture wird vollständig in 20 Maps verarbeitet; die oben
+  genannten 36 Maps beschreiben den ursprünglichen Stand vor der Bündelung.
+- Bei Ablauf der Gesamtdeadline bleiben erfolgreiche Maps und Lücken erhalten;
+  es starten weder weitere Maps noch Reduce. Ein fehlgeschlagenes Reduce liefert
+  weiterhin `failed` bzw. `timeout`, sofern nicht mehr als 50 % der Maps fehlen.
+- `tests/shared-service-journal.service.test.js`, „current retained split IDs remain
+  digestible and new entries stay in their current scope“, scheitert identisch auf
+  `origin/main@07ea207c` und dem PR-Branch: Zeile 450 erwartet `entryCount: 1`, erhält 0.
+  Jeweils 13 weitere Tests grün. Kein Journal-Fix und keine Deaktivierung in diesem PR.

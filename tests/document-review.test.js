@@ -155,8 +155,13 @@ describe('map/reduce review (AC-03/04, phase 1)', () => {
     );
     expect(result.status).toBe('completed');
     expect(
-      result.review.contradictions[0].locations.map((index) => result.maps[index].location.chapter)
-    ).toEqual(['Kapitel 1: Planung', 'Kapitel 6: Planung']);
+      result.review.contradictions[0].locations.map((index) =>
+        result.maps[index].location.locations.map((location) => location.chapter)
+      )
+    ).toEqual([
+      expect.arrayContaining(['Kapitel 1: Planung']),
+      expect.arrayContaining(['Kapitel 6: Planung']),
+    ]);
     for (const map of result.maps)
       expect(fixture.slice(map.location.start, map.location.end).length).toBeGreaterThan(0);
     expect(result.limitations.join(' ')).toContain('Keine externen Prüfmaßstäbe');
@@ -256,7 +261,8 @@ describe('map/reduce review (AC-03/04, phase 1)', () => {
       { documents: [{ name: 'Plan', text: 'Data' }] },
       { llm, timeoutMs: 15 }
     );
-    expect(result.status).toBe('timeout');
+    expect(result.status).toBe('partial_failed');
+    expect(result.limitations[0]).toContain('WORKBENCH_REVIEW_TIMEOUT');
     expect(llm.generateStructured).toHaveBeenCalledTimes(1);
   });
   test('malformed model output and fabricated citations fail closed', async () => {
@@ -264,7 +270,7 @@ describe('map/reduce review (AC-03/04, phase 1)', () => {
     expect(
       (await reviewDocuments({ documents: [{ name: 'Plan', text: 'Data' }] }, { llm: invalid }))
         .status
-    ).toBe('failed');
+    ).toBe('partial_failed');
     const llm = {
       generateStructured: jest.fn(async (_schema, prompt) =>
         JSON.parse(prompt).untrustedDocument
@@ -348,4 +354,190 @@ test('whitespace in closing tags keeps outer query separate from document', () =
   );
   expect(parsed.question).toBe('Meine Frage');
   expect(parsed.documents[0].text).toBe('Daten');
+});
+
+test('360 numbered rows are packed within the map budget with every location retained', async () => {
+  const text = fs.readFileSync(
+    path.join(__dirname, 'fixtures/document-review/neutral-numbered-list.txt'),
+    'utf8'
+  );
+  expect(text.match(/^\d+\. /gm)).toHaveLength(360);
+  const sections = documentSections(text, 12000);
+  expect(sections.length).toBeLessThanOrEqual(4);
+  expect(sections.map((section) => text.slice(section.start, section.end)).join('')).toBe(text);
+  const locations = sections.flatMap((section) => section.locations);
+  expect(locations.some((location) => location.page === 2)).toBe(true);
+  expect(locations.some((location) => location.chapter.startsWith('360.'))).toBe(true);
+  let offset = 0;
+  for (const location of locations) {
+    expect(location.start).toBe(offset);
+    expect(location.end).toBeGreaterThan(location.start);
+    offset = location.end;
+  }
+  expect(offset).toBe(text.length);
+  for (const section of sections) expect(section.end - section.start).toBeLessThanOrEqual(12000);
+  const llm = {
+    generateStructured: jest.fn(async (_schema, prompt) =>
+      JSON.parse(prompt).untrustedDocument ? emptyMap() : emptyReview()
+    ),
+  };
+  const result = await reviewDocuments(
+    { documents: [{ name: 'Liste', text }] },
+    { llm, maxMapCalls: 4 }
+  );
+  expect(result.status).toBe('completed');
+  expect(result.stats.mapCalls).toBe(sections.length);
+});
+
+test.each([undefined, 2])(
+  'map concurrency %s is bounded and ordering survives out-of-order completion',
+  async (concurrency) => {
+    let active = 0,
+      peak = 0;
+    const llm = {
+      generateStructured: jest.fn(async (_schema, prompt) => {
+        const data = JSON.parse(prompt);
+        if (!data.untrustedDocument) return emptyReview();
+        active++;
+        peak = Math.max(peak, active);
+        await new Promise((resolve) =>
+          setTimeout(resolve, data.untrustedDocument.text.startsWith('a') ? 20 : 5)
+        );
+        active--;
+        return { ...emptyMap(), claims: [data.untrustedDocument.text[0]] };
+      }),
+    };
+    const result = await reviewDocuments(
+      {
+        documents: [
+          {
+            name: 'Plan',
+            text:
+              'a'.repeat(256) +
+              'b'.repeat(256) +
+              'c'.repeat(256) +
+              'd'.repeat(256) +
+              'e'.repeat(256),
+          },
+        ],
+      },
+      { llm, chunkChars: 256, concurrency }
+    );
+    expect(result.status).toBe('completed');
+    expect(peak).toBe(concurrency ?? 4);
+    expect(result.maps.map((map) => map.claims[0])).toEqual(['a', 'b', 'c', 'd', 'e']);
+  }
+);
+
+test.each(['timeout', '429', 'schema'])(
+  'one %s map failure preserves the other maps and tells reduce about the gap',
+  async (failure) => {
+    const llm = {
+      generateStructured: jest.fn(async (_schema, prompt) => {
+        const data = JSON.parse(prompt);
+        if (!data.untrustedDocument) {
+          expect(data.maps).toHaveLength(3);
+          expect(data.gaps).toHaveLength(1);
+          return {
+            ...emptyReview(),
+            checkpoints: [{ finding: 'Prüfen', locations: [2], criterion: -1 }],
+          };
+        }
+        if (data.untrustedDocument.text.startsWith('b')) {
+          if (failure === 'schema') return { garbage: true };
+          throw Object.assign(new Error('private provider payload'), {
+            type: failure === 'timeout' ? 'WORKBENCH_REVIEW_TIMEOUT' : '429',
+          });
+        }
+        return emptyMap();
+      }),
+    };
+    const result = await reviewDocuments(
+      {
+        documents: [
+          {
+            name: 'Plan',
+            text: 'a'.repeat(256) + 'b'.repeat(256) + 'c'.repeat(256) + 'd'.repeat(256),
+          },
+        ],
+      },
+      { llm, chunkChars: 256 }
+    );
+    expect(result.status).toBe('completed');
+    expect(result.stats.reduceCalls).toBe(1);
+    expect(result.maps.map((map) => map.location.start)).toEqual([0, 512, 768]);
+    expect(result.limitations[0]).toContain('Plan');
+    expect(result.limitations[0]).toContain('Offsets 256–512');
+    expect(result.limitations.join(' ')).not.toContain('private provider payload');
+  }
+);
+
+test.each([
+  [2, 'completed'],
+  [3, 'partial_failed'],
+  [4, 'partial_failed'],
+])('missing %s of four maps yields %s', async (failCount, status) => {
+  let calls = 0;
+  const llm = {
+    generateStructured: jest.fn(async (_schema, prompt) => {
+      if (!JSON.parse(prompt).untrustedDocument) return emptyReview();
+      if (calls++ < failCount) throw new Error('failed map');
+      return emptyMap();
+    }),
+  };
+  const result = await reviewDocuments(
+    { documents: [{ name: 'Plan', text: 'x'.repeat(1024) }] },
+    { llm, chunkChars: 256 }
+  );
+  expect(result.status).toBe(status);
+  expect(result.gaps).toHaveLength(failCount);
+  expect(result.maps).toHaveLength(4 - failCount);
+  expect(result.stats.reduceCalls).toBe(failCount === 4 ? 0 : 1);
+});
+
+test('overall deadline bounds workers and prevents new external calls', async () => {
+  const llm = { generateStructured: jest.fn(() => new Promise(() => {})) };
+  const result = await reviewDocuments(
+    { documents: [{ name: 'Plan', text: 'x'.repeat(2560) }] },
+    { llm, chunkChars: 256, concurrency: 2, timeoutMs: 20 }
+  );
+  expect(result.status).toBe('partial_failed');
+  expect(result.gaps).toHaveLength(10);
+  expect(result.stats.reduceCalls).toBe(0);
+  expect(llm.generateStructured).toHaveBeenCalledTimes(2);
+  expect(result.stats.elapsedMs).toBeLessThan(1000);
+});
+
+test('concurrency environment setting is validated', () => {
+  const { reviewOptions } = require('../src/workbench-review');
+  const previous = process.env.WORKBENCH_REVIEW_CONCURRENCY;
+  try {
+    process.env.WORKBENCH_REVIEW_CONCURRENCY = '2';
+    expect(reviewOptions().concurrency).toBe(2);
+    expect(reviewOptions({ concurrency: 3 }).concurrency).toBe(3);
+    for (const concurrency of [0, -1, 1.5, NaN])
+      expect(() => reviewOptions({ concurrency })).toThrow('budget');
+  } finally {
+    if (previous === undefined) delete process.env.WORKBENCH_REVIEW_CONCURRENCY;
+    else process.env.WORKBENCH_REVIEW_CONCURRENCY = previous;
+  }
+});
+
+test('deadline preserves completed maps and their gaps without starting reduce', async () => {
+  const llm = {
+    generateStructured: jest.fn(async (_schema, prompt) => {
+      if (JSON.parse(prompt).untrustedDocument.text.startsWith('b')) return new Promise(() => {});
+      return emptyMap();
+    }),
+  };
+  const result = await reviewDocuments(
+    { documents: [{ name: 'Plan', text: 'a'.repeat(256) + 'b'.repeat(256) }] },
+    { llm, chunkChars: 256, timeoutMs: 25 }
+  );
+  expect(result.status).toBe('timeout');
+  expect(result.maps).toHaveLength(1);
+  expect(result.gaps).toHaveLength(1);
+  expect(result.limitations[0]).toContain('Offsets 256–512');
+  expect(result.stats.reduceCalls).toBe(0);
+  expect(llm.generateStructured).toHaveBeenCalledTimes(2);
 });
