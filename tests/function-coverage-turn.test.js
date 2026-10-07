@@ -113,7 +113,7 @@ test('Workbench and OpenAI share the completed-turn seam; persistence errors pre
       metadata: { conversationId: 'conv-a', requestId: 'req-a' },
     };
     const response = await broker.call('openai-compatible.chatCompletions', request, { meta });
-    expect(response.choices[0].message.content).toContain('neutral reply');
+    expect(response.choices[0].message.content).toContain('fachliche Rückmeldung');
     await service.queue;
     await new Promise(setImmediate);
     expect(events).toHaveLength(1);

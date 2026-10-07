@@ -952,10 +952,15 @@ describe('answerDossier action', () => {
     expect(result.dossierMarkdown).toContain('Stadtwerke Tuebingen');
     expect(result.dossierMarkdown).not.toContain('69256 Mauer');
     expect(result.dossierMarkdown).not.toContain('10 MW');
-    expect(result.dossierMarkdown).not.toContain('2028');
+    // A random metadata UUID can contain a year fragment without leaking a project date.
+    const renderedFacts = result.dossierMarkdown.replace(
+      /\b[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}\b/gi,
+      '[UUID]'
+    );
+    expect(renderedFacts).not.toContain('2028');
     expect(result.dossierMarkdown).not.toContain('74889 Sinsheim');
     expect(result.dossierMarkdown).not.toContain('12 MW');
-    expect(result.dossierMarkdown).not.toContain('2029');
+    expect(renderedFacts).not.toContain('2029');
   });
 
   test('Wiesloch metering scenario is classified and stored with metering and asset facts', async () => {

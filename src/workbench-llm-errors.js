@@ -17,6 +17,8 @@ function llmErrorDetails(error) {
     errorClass: error.type || error.name || 'Error',
     providerStatus: Number.isInteger(Number(status)) ? Number(status) : null,
     message,
+    ...(error.outputLength !== undefined ? { outputLength: error.outputLength } : {}),
+    ...(error.truncated !== undefined ? { truncated: error.truncated } : {}),
   };
 }
 function logLlmError(logger, phase, error) {

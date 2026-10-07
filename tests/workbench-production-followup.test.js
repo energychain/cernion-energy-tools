@@ -193,8 +193,8 @@ test('only used evidence appears in sources; no routine sending sentence; condit
     followup: true,
     lastAnswer: 'x'.repeat(2000),
   });
-  expect(result.draft).toContain('Variante 1');
-  expect(result.draft).toContain('Variante 2');
+  expect(result.draft).toContain('Variante A');
+  expect(result.draft).toContain('Variante B');
   expect(result.responseText).toContain('Quellen: willi-mako');
   expect(result.responseText).not.toContain('analysis-planner');
   expect(result.responseText).not.toContain('schick ihn');
@@ -222,7 +222,7 @@ test('error logs expose safe diagnostic fields and do not leak provider-echoed d
   llm.generateText.mockRejectedValue(error);
   const result = await answer({ situation, retrieval: { evidence: [] }, logger });
   expect(result.answerStatus).toBe('fallback');
-  expect(result.draft).toContain('Variante 2');
+  expect(result.draft).toContain('[Ergebnis nach dem Prüfen');
   llm.generateStructured.mockRejectedValue(error);
   await expect(understand({ message: 'Anfrage', logger })).rejects.toThrow();
   expect(logger.warn).toHaveBeenCalledTimes(2);
@@ -253,7 +253,7 @@ test('a supported conditional draft groups paragraphs under one prerequisite per
     })
   );
   const reply = await answer({ situation, retrieval: { evidence: [] } });
-  expect(reply.draft.match(/Variante – nur wenn/g)).toHaveLength(2);
+  expect(reply.draft.match(/Variante [AB] – wenn/g)).toHaveLength(2);
   expect(reply.draft.match(/Guten Tag,/g)).toHaveLength(2);
   expect(reply.draft.match(/Mit freundlichen Grüßen/g)).toHaveLength(2);
   expect(reply.draft).toContain('Wir bestätigen die Anfrage.');

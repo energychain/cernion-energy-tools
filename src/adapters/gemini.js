@@ -41,6 +41,10 @@ function getClient() {
 function generationOptions(options) {
   const config = options.temperature != null ? { temperature: options.temperature } : {};
   if (options.responseMimeType) config.responseMimeType = options.responseMimeType;
+  if (options.responseSchema) {
+    config.responseMimeType = 'application/json';
+    config.responseSchema = options.responseSchema;
+  }
   if (options.thinkingConfig) config.thinkingConfig = options.thinkingConfig;
   else if (options.thinking != null) {
     const value = String(options.thinking).toLowerCase();
@@ -85,7 +89,12 @@ async function generateText(prompt, options = {}) {
     prompt,
     options
   );
-  return result.response.text();
+  const text = result.response.text();
+  options.onResponseMetadata?.({
+    outputLength: text.length,
+    truncated: result.response.candidates?.[0]?.finishReason === 'MAX_TOKENS',
+  });
+  return text;
 }
 
 async function generateStructured(schema, prompt, options = {}) {

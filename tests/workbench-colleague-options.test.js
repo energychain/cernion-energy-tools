@@ -103,10 +103,10 @@ test('model error builds a complete working draft from available situation and s
     retrieval: { evidence: [{ source: 'Prozessnotiz', value: 'Eingang dokumentieren.' }] },
   });
   expect(reply.answerStatus).toBe('fallback');
-  expect(reply.responseText).toContain('Eingang dokumentieren.');
-  expect(reply.responseText).toContain('Quellen: Prozessnotiz');
+  expect(reply.responseText).not.toContain('Eingang dokumentieren.');
+  expect(reply.responseText).not.toContain('Quellen: Prozessnotiz');
   expect(reply.draft).toContain('Die Anfrage ist offen.');
-  expect(reply.draft).toContain('Bearbeitungsstand prüfen.');
+  expect(reply.draft).toContain('[Ergebnis nach dem Prüfen');
   expect(reply.draft).toContain('Mit freundlichen Grüßen');
 });
 
@@ -248,4 +248,28 @@ test('follow-up prompt asks for concise changes and avoids generating unchanged 
   const prompt = JSON.parse(llm.generateText.mock.calls[0][0]);
   expect(prompt.turnInstruction).toContain('höchstens zwei nächste Schritte');
   expect(prompt.turnInstruction).toContain('keinen unveränderten proaktiven Entwurf erneut');
+});
+
+test('Gemini honors native responseSchema on facade text calls and reports truncation without response contents', async () => {
+  process.env.GEMINI_API_KEY = 'test-key';
+  const schema = { type: 'object', properties: { text: { type: 'string' } }, required: ['text'] };
+  const getGenerativeModel = jest.fn(() => ({
+    generateContent: jest.fn(async () => ({
+      response: { text: () => '{"text":', candidates: [{ finishReason: 'MAX_TOKENS' }] },
+    })),
+  }));
+  GoogleGenerativeAI.mockImplementation(() => ({ getGenerativeModel }));
+  const onResponseMetadata = jest.fn();
+  const adapter = require('../src/adapters/gemini');
+  await adapter.generateText('prompt', {
+    model: 'configured-answer',
+    responseSchema: schema,
+    onResponseMetadata,
+  });
+  expect(getGenerativeModel).toHaveBeenCalledWith({
+    model: 'configured-answer',
+    generationConfig: { responseMimeType: 'application/json', responseSchema: schema },
+  });
+  expect(onResponseMetadata).toHaveBeenCalledWith({ outputLength: 8, truncated: true });
+  expect(JSON.stringify(onResponseMetadata.mock.calls)).not.toContain('text');
 });

@@ -138,6 +138,23 @@ describe('Workbench understands, answers with evidence, and keeps the case in th
     llm.generateText.mockReset().mockImplementation(stub.generateText);
     await broker.start();
   });
+  test('phaseTimes include the failed answer and its schema repair', async () => {
+    llm.generateText
+      .mockImplementationOnce(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        return '{invalid';
+      })
+      .mockImplementationOnce(async (prompt) => {
+        await new Promise((resolve) => setTimeout(resolve, 150));
+        return stub.generateText(prompt);
+      });
+    const result = await call(productionMail, 'schema-repair-clock');
+    expect(result.answerStatus).not.toBe('fallback');
+    expect(result.answerAttempts).toBe(2);
+    expect(result.phaseTimes.answerMs).toBeGreaterThanOrEqual(245);
+    expect(send).not.toHaveBeenCalled();
+  });
+
   afterEach(async () => {
     await broker.stop();
     fs.rmSync(dir, { recursive: true, force: true });
@@ -199,7 +216,7 @@ describe('Workbench understands, answers with evidence, and keeps the case in th
     }
   );
 
-  test('a due response keeps a usable working draft when the model omits it', async () => {
+  test('a valid model answer without a draft does not create a substitute draft', async () => {
     llm.generateText.mockResolvedValue(
       JSON.stringify({
         expectation: [
@@ -217,8 +234,8 @@ describe('Workbench understands, answers with evidence, and keeps the case in th
     const result = await call(productionMail);
     expect(result.answerStatus).toBe('grounded');
     expect(result.responseText).toContain('Quellen:');
-    expect(result.draftId).toBeTruthy();
-    expect(result.responseText).toContain('Mit freundlichen Grüßen');
+    expect(result.draftId).toBeUndefined();
+    expect(result.responseText).not.toContain('Entwurf:');
   });
 
   test('AC-02: empty retrieval never invents rules or deadlines', async () => {
@@ -385,7 +402,7 @@ describe('Workbench understands, answers with evidence, and keeps the case in th
       const result = await call(productionMail);
       expect(result.answerStatus).toBe('fallback');
       expect(result.responseText).toContain('99000000001');
-      expect(result.responseText).toContain('Quellen:');
+      expect(result.responseText).not.toContain('Quellen:');
       expect(result.responseText).not.toContain('Die Antwort ist gerade nicht verfügbar');
       expect(result.latencyMs).toBeLessThan(1000);
     } finally {

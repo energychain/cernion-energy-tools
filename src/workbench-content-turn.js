@@ -334,19 +334,23 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
   }
   phaseTimes.retrieveMs = Math.round(performance.now() - retrieveStarted);
   const answerStarted = performance.now();
-  const reply = await understanding.answer({
-    situation,
-    retrieval,
-    tenantId: p.tenantId,
-    asked: pending?.askedQuestions || [],
-    previousDraft: pending?.draft || '',
-    message: envelope.userRequest,
-    followup: Boolean(previous),
-    skipModel: understandingFailed,
-    lastAnswer: pending?.lastAnswer || '',
-    logger: service.logger,
-  });
-  phaseTimes.answerMs = Math.round(performance.now() - answerStarted);
+  let reply;
+  try {
+    reply = await understanding.answer({
+      situation,
+      retrieval,
+      tenantId: p.tenantId,
+      asked: pending?.askedQuestions || [],
+      previousDraft: pending?.draft || '',
+      message: envelope.userRequest,
+      followup: Boolean(previous),
+      skipModel: understandingFailed,
+      lastAnswer: pending?.lastAnswer || '',
+      logger: service.logger,
+    });
+  } finally {
+    phaseTimes.answerMs = Math.max(1, Math.round(performance.now() - answerStarted));
+  }
   const { sourceMetadata } = require('./workbench-retrieval');
   const sources = sourceMetadata(retrieval.trace);
   service.logger.info('Workbench turn phases and sources', { phaseTimes, sources });
@@ -455,7 +459,8 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
     nonBinding: true,
     situation,
     evidence: reply.evidence,
-    retrievalTrace: retrieval.trace,
+    retrievalTrace: [...(retrieval.trace || []), reply.evidenceTrace],
+    answerAttempts: reply.answerAttempts,
     answerStatus: reply.answerStatus,
     phaseTimes,
     sources,
