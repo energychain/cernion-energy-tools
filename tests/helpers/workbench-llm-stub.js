@@ -84,14 +84,17 @@ async function generateText(prompt) {
   return JSON.stringify({
     expectation: [
       evidence.length
-        ? claim(evidence[0].value.replace(/\?/g, '.'), [evidence[0].evidenceId])
+        ? claim(
+            'Das Gegenüber erwartet eine fachliche Rückmeldung zum dokumentierten Bearbeitungsstand.',
+            [evidence[0].evidenceId]
+          )
         : claim('Das Gegenüber erwartet eine nachvollziehbare Antwort zum Bearbeitungsstand.'),
     ],
     nextSteps: [claim('Prüfe den bisherigen Stand und stimme den nächsten Schritt ab.')],
     draft: situation?.requestedAction?.draftRequested
       ? [
           claim(
-            `Betreff: ${situation.concern.replace(/\?/g, '.')}\nGuten Tag,\nzu Ihrem Anliegen: ${situation.situation.replace(/\?/g, '.')}\nBitte teilen Sie uns den aktuellen Bearbeitungsstand und den nächsten Schritt mit.\nVielen Dank.`
+            `Betreff: Rückmeldung zu Ihrer Anfrage\nGuten Tag,\nbitte teilen Sie uns den aktuellen Bearbeitungsstand zur Anfrage${situation.identifiers?.[0]?.value ? ' ' + situation.identifiers[0].value : ''} und den nächsten Schritt mit.\nMit freundlichen Grüßen.`
           ),
         ]
       : [],
