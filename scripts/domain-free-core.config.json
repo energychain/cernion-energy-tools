@@ -60,7 +60,10 @@
     "src/workbench-understanding.js",
     "src/workbench-content-turn.js",
     "src/workbench-retrieval.js",
-    "src/workbench-identifier-context.js"
+    "src/workbench-identifier-context.js",
+    "src/openwebui-context.js",
+    "src/workbench-document.js",
+    "src/workbench-review.js"
   ],
   "optionalPaths": [
     "src/function-model.js",
@@ -73,11 +76,7 @@
   "genericPackageShare": 0.05,
   "referenceCorpus": {
     "maxFilesPerPackage": 40,
-    "extensions": [
-      ".js",
-      ".cjs",
-      ".mjs"
-    ],
+    "extensions": [".js", ".cjs", ".mjs"],
     "generatedAt": "2026-10-03T00:00:00.000Z"
   }
 }
