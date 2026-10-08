@@ -550,7 +550,9 @@ async function answer({
   let attempts = 0;
   let fallback = null;
   const filterCounts = new Map();
-  const draftRequested = isDraftRequest(message) && !nextStepOnly;
+  const draftRequested = isDraftRequest(message);
+  // Explicit current-turn intent wins even for callers passing stale next-step metadata.
+  nextStepOnly = nextStepOnly && !draftRequested;
   try {
     if (skipModel)
       throw Object.assign(new Error('Understanding unavailable'), {
@@ -609,7 +611,7 @@ async function answer({
                 ? 'Es ist nur eine Frage nach dem nächsten Schritt, ohne neue Angaben: antworte knapp mit einem Einordnungssatz und bis zu zwei konkreten Schritten. draft muss [] bleiben.'
                 : '',
               turnInstruction:
-                followup && isDraftRequest(message)
+                followup && draftRequested
                   ? 'Die aktuelle Nachricht bittet ausdrücklich nur um den Entwurf: liefere den vollständigen Entwurf in draft; interpretation, expectation, nextSteps und assumptions bleiben leer.'
                   : followup
                     ? 'Der erste claim in interpretation beantwortet unmittelbar die aktuelle Nutzerfrage, ohne Einleitung oder Zusammenfassung der alten Lage. Antworte knapp: ein kurzer Einordnungssatz, höchstens zwei nächste Schritte. Lasse expectation leer. Die Einordnung hilft bei der nächsten Handlung; wiederhole keinen vorhandenen Status als vermeintlich neue erledigte Handlung. Erzeuge keinen unveränderten proaktiven Entwurf erneut. Ein proaktives draftRequested im Lagebild ersetzt niemals die fachliche Antwort auf die aktuelle Frage.'

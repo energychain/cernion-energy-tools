@@ -1,5 +1,6 @@
 'use strict';
 
+const { persistentSituation } = require('./workbench-turn-scope');
 const crypto = require('node:crypto');
 const llmClient = require('./llm-client');
 
@@ -143,6 +144,7 @@ async function saveTurn(db, p, envelope, patch, time = Date.now()) {
       ...patch,
       expiresAt: time + PENDING_TTL_MS,
     };
+    if (doc.situation) doc.situation = persistentSituation(doc.situation);
     try {
       await db.put(doc);
       return doc;

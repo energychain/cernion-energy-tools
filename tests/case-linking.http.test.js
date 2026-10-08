@@ -225,4 +225,57 @@ describe('Case linking #753 through authenticated gateway HTTP', () => {
       'Keine verbindliche Prozessantwort'
     );
   });
+  test('next-step follow-up followed by explicit draft returns both variants across HTTP', async () => {
+    const structured = llm.generateStructured.getMockImplementation();
+    const text = llm.generateText.getMockImplementation();
+    const claim = (text, condition = '') => ({
+      text,
+      condition,
+      supported: 'model',
+      evidenceIds: [],
+      specific: false,
+      completedAction: false,
+    });
+    llm.generateStructured.mockImplementation(async (...args) => ({
+      ...(await structured(...args)),
+      followupKind: JSON.parse(args[1]).message.includes('konkret') ? 'next_step' : 'none',
+    }));
+    llm.generateText.mockImplementation(async (prompt) => {
+      const input = JSON.parse(prompt);
+      return JSON.stringify({
+        expectation: [],
+        nextSteps: input.nextStepInstruction ? [claim('Prüfe den dokumentierten Stand.')] : [],
+        draft: input.turnInstruction.includes('vollständigen Entwurf')
+          ? [
+              claim(
+                'Guten Tag, bitte teilen Sie uns den dokumentierten Stand Ihrer Anfrage mit. Mit freundlichen Grüßen',
+                'der Stand noch offen ist'
+              ),
+              claim(
+                'Guten Tag, bitte teilen Sie uns das dokumentierte Ergebnis Ihrer Anfrage mit. Mit freundlichen Grüßen',
+                'das Ergebnis vorliegt'
+              ),
+            ]
+          : [],
+      });
+    });
+    try {
+      const initial = await request('person-a', question, 'draft-after-step');
+      const next = await request('person-a', 'Was soll ich jetzt konkret tun?', 'draft-after-step');
+      expect(next.status).toBe(200);
+      expect(next.body.choices[0].message.content).toContain('Prüfe den dokumentierten Stand.');
+      const draft = await request('person-a', 'Mach mir die Antwort fertig', 'draft-after-step');
+      expect(draft.status).toBe(200);
+      expect(draft.body.metadata.cetCaseId).toBe(initial.body.metadata.cetCaseId);
+      expect(draft.body.choices[0].message.content).toMatch(/Variante A/);
+      expect(draft.body.choices[0].message.content).toMatch(/Variante B/);
+      expect(draft.body.choices[0].message.content).not.toMatch(
+        /Als Nächstes:|nicht sauber zustande/
+      );
+      expect(JSON.parse(llm.generateText.mock.calls.at(-1)[0]).nextStepInstruction).toBe('');
+    } finally {
+      llm.generateStructured.mockImplementation(structured);
+      llm.generateText.mockImplementation(text);
+    }
+  });
 });
