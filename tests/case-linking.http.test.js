@@ -1,0 +1,192 @@
+'use strict';
+
+jest.mock('../src/llm-client', () => ({ generateStructured: jest.fn(), generateText: jest.fn() }));
+const fs = require('node:fs');
+const path = require('node:path');
+const { createCaseBroker, auth } = require('./helpers/case-linking-broker');
+const llm = require('../src/llm-client');
+const TokenManager = require('../services/token-manager.service');
+const Api = require('../services/api.service');
+const OpenAi = require('../services/openai-compatible.service');
+const { GOVERNANCE_MODEL } = require('../src/openai-models');
+const { provisionToken } = require('../scripts/provision-token');
+const { provisionMapping } = require('../scripts/provision-workbench-mapping');
+
+// Entirely fictional actors and reference values. Exercise the authenticated
+// gateway, persisted mappings, actual router/store and HTTP response renderer.
+describe('Case linking #753 through authenticated gateway HTTP', () => {
+  let app, env, base, gateway;
+  const question = 'Bitte unterstütze die Bearbeitung der Referenz ANON-0001.';
+  async function request(user, message, conversationId = `chat-${user}`, metadata = {}) {
+    const response = await fetch(`${base}/v1/chat/completions`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${gateway.token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: GOVERNANCE_MODEL,
+        messages: [{ role: 'user', content: message }],
+        metadata: { conversationId, openWebuiOrgId: 'org-a', openWebuiUserId: user, ...metadata },
+      }),
+    });
+    return { status: response.status, body: await response.json() };
+  }
+  beforeAll(async () => {
+    env = { ...process.env };
+    app = await createCaseBroker();
+    Object.assign(process.env, {
+      CERNION_SUPPORT_TOKEN: 'anonymous-local-test-bootstrap',
+      CERNION_SUPPORT_TOKEN_INPUT: 'anonymous-local-test-bootstrap',
+      CERNION_TENANT_REGISTRY_FILE: app.registry,
+      CERNION_USER_REGISTRY_FILE: path.join(app.dir, 'users.json'),
+      TOKEN_ROLE_AUDIT_FILE: path.join(app.dir, 'role-audit.jsonl'),
+      RATE_QUOTA_DIR: path.join(app.dir, 'quotas'),
+    });
+    fs.writeFileSync(
+      app.registry,
+      JSON.stringify([{ tenantId: 'public', sharedService: { caseVisibility: 'team' } }])
+    );
+    app.broker.createService({
+      ...TokenManager,
+      settings: {
+        ...TokenManager.settings,
+        storageFile: path.join(app.dir, 'tokens.json'),
+        signalQueueFile: path.join(app.dir, 'signals.json'),
+      },
+    });
+    app.broker.createService({ ...Api, settings: { ...Api.settings, port: 0 } });
+    app.broker.createService(OpenAi);
+    llm.generateStructured.mockImplementation(async (_schema, prompt) => {
+      const input = JSON.parse(prompt);
+      const value = input.message.match(/\[[^\]]*MASKED[^\]]*\]/)?.[0] || 'ANON-0001';
+      return {
+        concern: 'Anonymisierte Referenz bearbeiten.',
+        situation: 'Die Bearbeitung wartet auf geprüfte Evidenz.',
+        participants: ['Anfragende Person'],
+        identifiers: [{ kind: 'reference-a', value }],
+        deadlines: [],
+        hypotheses: [],
+        missingInformation: [],
+        requestedAction: {
+          description: 'Referenz prüfen.',
+          externalEffect: false,
+          draftRequested: false,
+        },
+        turnKind: 'work',
+        retrievalTerms: ['Referenz'],
+      };
+    });
+    llm.generateText.mockImplementation(async (prompt) => {
+      const input = JSON.parse(prompt);
+      const related = input.evidence.find((entry) => entry.source === 'related_case');
+      return JSON.stringify({
+        expectation: [
+          {
+            text: related
+              ? 'Der verwandte Vorgang wartet auf geprüfte Evidenz.'
+              : 'Prüfe die angegebene Referenz.',
+            supported: related ? 'evidence' : 'model',
+            evidenceIds: related ? [related.evidenceId] : [],
+            completedAction: false,
+            specific: false,
+          },
+        ],
+        nextSteps: [],
+        draft: [],
+      });
+    });
+    await app.broker.start();
+    const api = app.broker.getLocalService('api');
+    for (const route of api.routes.filter((entry) => entry.opts.autoAliases))
+      api.regenerateAutoAliases(route);
+    base = `http://127.0.0.1:${api.server.address().port}`;
+    gateway = (
+      await provisionToken(
+        {
+          tenant: 'public',
+          user: 'svc:anonymous',
+          name: 'Test gateway',
+          gateway: true,
+          client: 'open-webui',
+          org: 'org-a',
+        },
+        app.broker
+      )
+    ).data;
+    for (const [user, actor, roles] of [
+      ['person-a', 'actor-a', 'ROLE_GRID_OPERATOR'],
+      ['person-b', 'actor-b', 'ROLE_GRID_OPERATOR'],
+      ['person-c', 'actor-c', 'ROLE_GRID_OPERATOR,ROLE_USER'],
+    ])
+      await provisionMapping(
+        { tenant: 'public', client: 'open-webui', org: 'org-a', user, actor, roles },
+        app.broker
+      );
+  });
+  afterAll(async () => {
+    await app.cleanup();
+    for (const key of Object.keys(process.env)) if (!(key in env)) delete process.env[key];
+    Object.assign(process.env, env);
+  });
+
+  test('two mapped colleagues create separate linked cases, first sentence names the colleague and status, correction and undo cross HTTP', async () => {
+    const first = await request('person-a', question);
+    expect(first.status).toBe(200);
+    const firstId = first.body.metadata.cetCaseId;
+    const second = await request('person-b', question);
+    expect(second.status).toBe(200);
+    const secondId = second.body.metadata.cetCaseId;
+    expect(secondId).toBeTruthy();
+    expect(secondId).not.toBe(firstId);
+    expect(second.body.choices[0].message.content).toMatch(
+      /^Zu dieser Kennung gibt es bereits Fall F-\d+ von actor-a: evidence_required\./
+    );
+    const answerInput = JSON.parse(llm.generateText.mock.calls.at(-1)[0]);
+    expect(answerInput.evidence).toEqual(
+      expect.arrayContaining([expect.objectContaining({ source: 'related_case' })])
+    );
+    expect(JSON.stringify(answerInput.evidence)).not.toContain(question);
+    const confirmed = await request('person-b', 'gehört zusammen');
+    expect(confirmed.status).toBe(200);
+    expect(confirmed.body.choices[0].message.content).toContain('journalisiert');
+    const rejected = await request('person-b', 'gehört nicht zusammen');
+    expect(rejected.status).toBe(200);
+    const state = await app.router.loadCase(
+      require('../src/domain-router-policy').principal({
+        meta: auth('actor-b', ['ROLE_GRID_OPERATOR'], 'public'),
+      }),
+      secondId
+    );
+    expect(state.relatedCases.find((item) => item.cetCaseId === firstId).decision).toBe('rejected');
+    const undo = await request('person-b', 'rückgängig');
+    expect(undo.status).toBe(200);
+    expect(undo.body.choices[0].message.content).toContain('rückgängig');
+  });
+
+  test('identifier status finds another assigned colleague through HTTP; foreign team, tenant and spoofed organization reveal nothing', async () => {
+    const foreign = await app.create(
+      [{ kind: 'reference-a', value: 'ANON-FOREIGN' }],
+      auth('actor-other', ['ROLE_GRID_OPERATOR'], 'tenant-b')
+    );
+    const response = await request('person-b', 'Wie ist der Stand bei ANON-0001?', 'status-b');
+    expect(response.status).toBe(200);
+    expect(response.body.choices[0].message.content).toContain('evidence_required');
+    const foreignTeam = await request('person-c', 'Wie ist der Stand bei ANON-0001?', 'status-c');
+    expect(foreignTeam.status).toBe(200);
+    expect(foreignTeam.body.choices[0].message.content).not.toMatch(
+      /actor-a|actor-b|evidence_required/
+    );
+    const foreignTenant = await request(
+      'person-b',
+      'Wie ist der Stand bei ANON-FOREIGN?',
+      'status-foreign'
+    );
+    expect(foreignTenant.status).toBe(200);
+    expect(JSON.stringify(foreignTenant.body)).not.toContain(foreign.cetCaseId);
+    expect(
+      (
+        await request('person-b', 'Wie ist der Stand bei ANON-0001?', 'spoof', {
+          openWebuiOrgId: 'org-foreign',
+        })
+      ).status
+    ).toBe(403);
+  });
+});

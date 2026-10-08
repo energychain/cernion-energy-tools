@@ -44,7 +44,7 @@ beforeEach(async () => {
   broker = new ServiceBroker({ logger: false, transporter: null });
   broker.createService({
     ...Router,
-    mixins: [Router.mixins[0]],
+    mixins: [Router.mixins[0], Router.mixins[1]],
     created() {
       this.db = db;
     },

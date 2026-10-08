@@ -246,11 +246,11 @@ Agents resolving capabilities/recipes/operations do not need to read past this p
 
 ## Source File Hashes
 - CHANGELOG.md: 70b5f2f4d98e9cd9bb2a592a2f0f705612327b1f689787ed90378eef9b04ebe0
-- README.md: 723969975d9ea3765fe721cbb78f24c3c79c6422c0acc6f0bc80f1801bc8ac76
+- README.md: cc3c4fcf8fbf2fcaa3a594328a73f9e8a2535d8def432d946dc2b7e4b9b97ae1
 - docs/BACKEND_CONTEXT.md: 3e9bf1425ed08e0741b0832e8fa4df8469975642712b79c8078a3f4c66893ac8
 - src/cookbook-recipes.js: 9e48573ca263ef129bc3944a83b013cff25157e25afc703be0ada62d5af8163d
 - src/capability-catalog.js: b0a662fd9aa255721bd0e0c90f9bd41627c18b61f10200661e4e45c92d4e091c
-- openapi-export.json: 49f56a06eeabdb9ef20940a6fe027443b0d2b69cac5bbd06bc077a8e43831457
+- openapi-export.json: 3fc5aa70f86f78448fcd96f6f6f3ed1c5ef8067bd3a17b6d769fd5ef844e6aa8
 
 ## OpenAPI Surface (full contract, not embedded)
 - path_count: 1126
@@ -258,4 +258,4 @@ Agents resolving capabilities/recipes/operations do not need to read past this p
 - full_spec: openapi-export.json (repo root) or GET /api/openapi.json
 
 ## Integrity
-- llm_txt_sha256: 1671e6fb36603bf3a1857382d34d2153915a49c18e6ccc3d3796eee84e9dd0ce
+- llm_txt_sha256: 47203dc68cabd5f1b842b522c812e28d01a7b8f38a98e8ef03cc56032e5f69fc

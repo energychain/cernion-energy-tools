@@ -1,6 +1,7 @@
 'use strict';
 
 const crypto = require('node:crypto');
+const { relatedCaseContext } = require('./workbench-case-linking');
 const understanding = require('./workbench-understanding');
 const conversationAssistance = require('./workbench-conversation');
 const { filterEvidence, retrievalTimeoutMs } = require('./workbench-retrieval');
@@ -333,6 +334,14 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
     };
   }
   phaseTimes.retrieveMs = Math.round(performance.now() - retrieveStarted);
+  const related = await relatedCaseContext(service, p, result.relatedCases);
+  retrieval.evidence.push(
+    ...related.items.map((item) => ({
+      source: 'related_case',
+      value: `Fall ${item.displayRef}: ${item.status}. ${item.summary}`,
+      metadata: { cetCaseId: item.cetCaseId },
+    }))
+  );
   const answerStarted = performance.now();
   let reply;
   try {
@@ -379,6 +388,7 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
       ? choiceCandidates(result, service.settings.systemActivityModel).slice(0, 3)
       : [];
   result.responseText = [
+    related.firstSentence,
     reply.responseText,
     choices.length
       ? `Optional passende Funktion (Nummer oder Name):\n${choices.map((choice, index) => `${index + 1}. ${choice.label}`).join('\n')}`

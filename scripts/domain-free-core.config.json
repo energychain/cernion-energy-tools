@@ -61,6 +61,9 @@
     "src/workbench-content-turn.js",
     "src/workbench-retrieval.js",
     "src/workbench-identifier-context.js",
+    "src/case-linking.js",
+    "src/case-linking-mixin.js",
+    "src/workbench-case-linking.js",
     "src/openwebui-context.js",
     "src/workbench-document.js",
     "src/workbench-review.js"
