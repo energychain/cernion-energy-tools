@@ -1,0 +1,16 @@
+{
+  "nonReferenceKinds": [
+    "plz",
+    "postleitzahl",
+    "postcode",
+    "postalcode",
+    "zip",
+    "zipcode",
+    "adresse",
+    "address",
+    "ort",
+    "city",
+    "location"
+  ],
+  "genericKinds": ["kennung", "identifier", "reference", "referenz", "code", "unknown", "unbekannt"]
+}

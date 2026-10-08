@@ -1,7 +1,7 @@
 'use strict';
 
 const { normalizePhrase } = require('./function-resolver');
-const { scrubPromptText, isSensitiveField } = require('./prompt-scrubber');
+const { scrubPromptText } = require('./prompt-scrubber');
 
 function words(text) {
   return normalizePhrase(text).match(/[\p{L}\p{N}]{4,}/gu) || [];
@@ -80,10 +80,18 @@ function safeSituationText(value, limit = 120) {
 }
 
 function situationReference(situation) {
+  const { displayIdentifier, completeReference } = require('./workbench-identifiers');
+  const facts = [situation.concern, situation.situation].filter(Boolean).join(' ');
   return (situation.identifiers || [])
-    .filter((entry) => !isSensitiveField(entry.kind) && !/@|\n/.test(entry.value || ''))
+    .filter(displayIdentifier)
+    .filter((entry) => !facts.includes(entry.value) || completeReference(facts, entry.value))
+    .filter((entry) => !/[\n\r]/u.test(entry.kind))
     .slice(0, 3)
-    .map((entry) => safeSituationText(entry.value, 60))
+    .map((entry) => {
+      // Omit references that would be scrubbed or shortened, never list a fragment.
+      const value = safeSituationText(entry.value, 256);
+      return value === entry.value ? `${safeSituationText(entry.kind, 60)}: ${value}` : '';
+    })
     .filter(Boolean)
     .join(', ');
 }

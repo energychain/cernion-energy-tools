@@ -189,4 +189,40 @@ describe('Case linking #753 through authenticated gateway HTTP', () => {
       ).status
     ).toBe(403);
   });
+  test('draft follow-up keeps the safe variant and repairs an entirely rejected response across HTTP', async () => {
+    const initial = await request('person-a', question, 'draft-hotfix');
+    expect(initial.status).toBe(200);
+    const claim = (text, condition) => ({
+      text,
+      condition,
+      supported: 'model',
+      completedAction: false,
+      specific: false,
+      evidenceIds: [],
+    });
+    const safe = claim(
+      'Guten Tag, bitte teilen Sie uns den dokumentierten Bearbeitungsstand mit. Mit freundlichen Grüßen',
+      'der Stand noch offen ist'
+    );
+    const unsafe = claim('Hiermit bestätigen wir die Netzanmeldung.', 'die Anmeldung vorliegt');
+    const output = (draft) => JSON.stringify({ expectation: [], nextSteps: [], draft });
+    llm.generateText.mockResolvedValueOnce(output([unsafe, safe]));
+    const variants = await request('person-a', 'Mach mir die Antwort fertig', 'draft-hotfix');
+    expect(variants.status).toBe(200);
+    expect(variants.body.metadata.cetCaseId).toBe(initial.body.metadata.cetCaseId);
+    expect(variants.body.choices[0].message.content).toContain('Bearbeitungsstand');
+    expect(variants.body.choices[0].message.content).not.toMatch(
+      /bestätigen|Als Nächstes:|unverbindlich|versendet.{0,40}nichts|keine externe Handlung/iu
+    );
+    llm.generateText.mockResolvedValueOnce(output([unsafe])).mockResolvedValueOnce(output([safe]));
+    const repaired = await request('person-a', 'Entwurf bitte', 'draft-hotfix');
+    expect(repaired.status).toBe(200);
+    expect(repaired.body.choices[0].message.content).toContain('Bearbeitungsstand');
+    expect(repaired.body.choices[0].message.content).not.toMatch(
+      /bestätigen|Als Nächstes:|unverbindlich|versendet.{0,40}nichts|keine externe Handlung/iu
+    );
+    expect(JSON.parse(llm.generateText.mock.calls.at(-1)[0]).repairInstruction).toContain(
+      'Keine verbindliche Prozessantwort'
+    );
+  });
 });

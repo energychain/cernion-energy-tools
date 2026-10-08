@@ -69,3 +69,25 @@ Read-capability evidence delegates to existing `signals.observe` and its permiss
 Review result: the supplied production-derived anonymous scenario is a useful colleague conversation in this provider profile. Source material is stubbed and its real retrieval relevance remains unverified. The locally configured `gemini-3.1-pro-preview` exceeded the 4.5 s per-call budget and returned safe unavailability after its per-call deadline; the earlier diagnostic run took ~9 s with a facade fallback, which Workbench now disables to enforce the hard call budget; production needs a provider profile that fits the budget. The faster model was selected only for this validation process, without changing the application's environment. The obsolete Flash-Lite name was rejected by the API; its response named the current model used for the successful run.
 
 The real-provider run found and resolved issues invisible to facade stubs: unsupported native schema metadata, missing schema in prompts for JSON-only adapters, optional unrequested draft fields, and preservation of opaque identifiers/deadline claims. Canonical domain IDs normalize punctuation for routing/source selection; catalog data associates mapped knowledge with the relevant workflow domains.
+
+## Hotfix: observable draft filtering and shared schema repair
+
+A rejected draft claim invalidates its normalized condition group, while independent
+complete variants survive. Rejected shared blocks invalidate all dependent variants;
+greeting-only remnants never count as drafts. Explicit draft requests with no accepted
+draft reuse the answer repair controller once with generic rule guidance. Understanding
+now uses that same two-attempt controller for schema failures. Both attempts share the
+phase deadline; provider failures and timeouts do not trigger repair.
+
+`Workbench answer filters` records `{field, rule, count}` once per turn, across both
+attempts. `Workbench answer fallback` and `Workbench understanding fallback` record a
+`fallbackReason`, including empty or entirely filtered model responses. Schema rejection
+logs contain only AJV `instancePath` and `keyword`; values, messages and params are omitted.
+Repair instructions contain generic rules, never the rejected output.
+
+When an explicit draft request still fails, the response naturally describes the failed
+draft and available facts, without the “Als Nächstes” template. Reference matching uses
+whole values rather than substrings. Generic identifier-kind metadata excludes address
+fields and untyped short numeric values from reference presentation; complete references
+are rendered with their type and omitted rather than shortened. `captureCodes` was not
+the source of the postal-code/reference-prefix regression.

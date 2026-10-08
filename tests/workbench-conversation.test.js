@@ -487,7 +487,9 @@ describe('Workbench understands, answers with evidence, and keeps the case in th
   });
 
   test('invalid understanding fails safely and creates no case; invalid citations are never rendered', async () => {
-    llm.generateStructured.mockResolvedValueOnce({ concern: 'invalid' });
+    llm.generateStructured
+      .mockResolvedValueOnce({ concern: 'invalid' })
+      .mockResolvedValueOnce({ concern: 'still invalid' });
     expect((await call(productionMail)).state).toBe('understanding_unavailable');
     expect(retrieval).toHaveBeenCalledTimes(1);
     expect(retrieval.mock.calls[0][0].meta.workbenchEvidenceSources).toEqual(['knowledge-rag']);
