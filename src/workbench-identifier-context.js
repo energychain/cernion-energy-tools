@@ -1,42 +1,44 @@
 'use strict';
 
-const { scrubForLLM, scrubPromptText } = require('./prompt-scrubber');
+const { scrubForLLM, mapStringValues, scrubPromptValues } = require('./prompt-scrubber');
 
 // Keep local reference values reversible while the shared facade still scrubs
 // email, account and telephone patterns. Never send the local reidentification map.
 function opaqueContext(value) {
-  const encoded = JSON.stringify(value);
-  const candidates = [
-    ...new Set(
-      [...encoded.matchAll(/\b[A-Za-z\d_-]*\d[A-Za-z\d_-]{4,}\b/g)]
-        .filter(
-          (match) =>
-            !/^\d{4}-\d{2}-\d{2}$/.test(match[0]) &&
-            !/[\w@.]/.test(encoded[match.index - 1] || '') &&
-            !/[\w@.]/.test(encoded[match.index + match[0].length] || '')
-        )
-        .map((match) => match[0])
-    ),
-  ];
+  const tokens = /[\p{L}\p{N}_-]{5,}/gu;
+  const boundary = /[\p{L}\p{N}_@.]/u;
+  const candidates = new Set();
+  mapStringValues(value, (text) => {
+    for (const match of text.matchAll(tokens)) {
+      if (
+        /\d/.test(match[0]) &&
+        !/^\d{4}-\d{2}-\d{2}$/.test(match[0]) &&
+        !boundary.test(text[match.index - 1] || '') &&
+        !boundary.test(text[match.index + match[0].length] || '')
+      )
+        candidates.add(match[0]);
+    }
+    return text;
+  });
+  const references = [...candidates];
   const { scrubbed, reidentMap } = scrubForLLM(
-    candidates.map((candidate) => ({ value: candidate })),
+    references.map((candidate) => ({ value: candidate })),
     {
       additionalBlocklist: ['value'],
-      maxRows: candidates.length,
+      maxRows: references.length,
     }
   );
   const substitutions = new Map(
-    candidates.map((candidate, index) => [candidate, scrubbed[index].value])
+    references.map((candidate, index) => [candidate, scrubbed[index].value])
   );
-  const masked = encoded.replace(/\b[A-Za-z\d_-]*\d[A-Za-z\d_-]{4,}\b/g, (token, offset) => {
-    if (
-      /[\w@.]/.test(encoded[offset - 1] || '') ||
-      /[\w@.]/.test(encoded[offset + token.length] || '')
-    )
-      return token;
-    return substitutions.get(token) || token;
-  });
-  return { value: JSON.parse(scrubPromptText(masked, { reidentMap })), reidentMap };
+  const masked = mapStringValues(value, (text) =>
+    text.replace(tokens, (token, offset) => {
+      if (boundary.test(text[offset - 1] || '') || boundary.test(text[offset + token.length] || ''))
+        return token;
+      return substitutions.get(token) || token;
+    })
+  );
+  return { value: scrubPromptValues(masked, { reidentMap }), reidentMap };
 }
 
 function restoreContext(value, reidentMap) {

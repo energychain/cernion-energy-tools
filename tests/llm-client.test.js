@@ -87,6 +87,24 @@ describe('llm-client provider abstraction', () => {
     llmClient = require('../src/llm-client');
   }
 
+  test.each(['generateText', 'generateStructured', 'generateImage', 'generateChat'])(
+    '%s scrubs JSON values without damaging escaped newlines or keys',
+    async (method) => {
+      const prompt = JSON.stringify({ 'alice@example.org': { text: 'Zeile\nalice@example.org' } });
+      const options = { provider: 'gemini' };
+      if (method === 'generateStructured') await llmClient[method]({}, prompt, options);
+      else if (method === 'generateChat')
+        await llmClient[method]([{ role: 'user', content: prompt }], options);
+      else await llmClient[method](prompt, options);
+      const args = geminiAdapter[method].mock.calls[0];
+      const wire =
+        method === 'generateChat'
+          ? args[0][0].content
+          : args[method === 'generateStructured' ? 1 : 0];
+      const safe = JSON.parse(wire);
+      expect(safe['alice@example.org'].text).toBe('Zeile\n[EMAIL-MASKED]');
+    }
+  );
   beforeEach(() => {
     process.env = { ...envBackup };
     delete process.env.LLM_PROVIDER;

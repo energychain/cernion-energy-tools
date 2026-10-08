@@ -52,3 +52,36 @@ test('known masks survive dropped brackets without inventing unknown or prefixed
     'X[Angabe] [Angabe] [Angabe]'
   );
 });
+
+test.each(['\n', '\t', '\r', '"', '\\'])(
+  'masks plaintext identifiers after escape %j without corrupting JSON',
+  (escape) => {
+    const original = {
+      12345: [
+        { m: `a${escape}12345 Ort`, unicode: `Grüße 東京${escape}Ä12345 Text` },
+        `Zeile1${escape}DE0001234567890 Text`,
+        `Kontakt${escape}alice@example.org`,
+        null,
+        12345,
+        true,
+      ],
+    };
+    const safe = opaqueContext(original);
+    const wire = JSON.stringify(safe.value);
+    expect(safe.value).toHaveProperty('12345');
+    expect(safe.value['12345'][0].m).not.toContain('12345');
+    expect(safe.value['12345'][0].unicode).not.toContain('Ä12345');
+    expect(wire).not.toContain('DE0001234567890');
+    expect(wire).not.toContain('alice@example.org');
+    expect(restoreContext(JSON.parse(wire), safe.reidentMap)).toEqual(original);
+    expect(original['12345'][0].m).toBe(`a${escape}12345 Ort`);
+  }
+);
+
+test('repeated nested identifiers share masks and schema keys remain intact', () => {
+  const original = { 'alice@example.org': ['58095', { again: '58095', date: '2026-10-08' }] };
+  const safe = opaqueContext(original);
+  expect(safe.value['alice@example.org'][0]).toBe(safe.value['alice@example.org'][1].again);
+  expect(safe.value['alice@example.org'][1].date).toBe('2026-10-08');
+  expect(restoreContext(safe.value, safe.reidentMap)).toEqual(original);
+});

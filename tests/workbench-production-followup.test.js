@@ -412,3 +412,22 @@ test('follow-up receives bounded user document context with opaque references', 
   expect(JSON.stringify(input.messages)).not.toContain('Nicht als Nutzerbeleg');
   expect(JSON.stringify(input.messages)).not.toContain('OLD');
 });
+
+test('anonymized mail thread with postal signature reaches the understanding model', async () => {
+  const message =
+    'Von: absender@example.org\nBetreff: Prüfung\n\nBitte prüfen Sie den Lieferbeginn.\n\nMit freundlichen Grüßen\nMax Muster\nMusterplatz 1\n58095 Hagen';
+  const logger = { warn: jest.fn() };
+  llm.generateStructured.mockResolvedValue(structuredClone(situation));
+  const result = await understand({
+    message,
+    messages: [{ role: 'user', content: message }],
+    logger,
+  });
+  expect(llm.generateStructured).toHaveBeenCalledTimes(1);
+  expect(logger.warn).not.toHaveBeenCalled();
+  expect(result.concern).toBe(situation.concern);
+  const prompt = JSON.parse(llm.generateStructured.mock.calls[0][1]);
+  expect(JSON.stringify(prompt)).toContain('Musterplatz 1');
+  expect(JSON.stringify(prompt)).not.toContain('58095');
+  expect(JSON.stringify(prompt)).not.toContain('absender@example.org');
+});
