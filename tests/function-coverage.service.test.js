@@ -159,6 +159,8 @@ describe('observed function coverage', () => {
       sensitivityFlags: [],
       sharedWithRoles: [],
     };
+    const foreignState = { ...state, tenantId: 'tenant-b' };
+    const foreignBefore = visible(policy, foreignState);
     const before = visible(policy, state),
       snapshot = structuredClone(policy);
     for (let index = 0; index < 20; index++)
@@ -172,7 +174,9 @@ describe('observed function coverage', () => {
       );
     expect((await call('byActor')).items[0].score).toBeGreaterThan(0.99);
     expect(visible(policy, state)).toBe(before);
-    expect(before).toBe(false);
+    expect(before).toBe(true);
+    expect(visible(policy, foreignState)).toBe(foreignBefore);
+    expect(foreignBefore).toBe(false);
     expect(policy).toEqual(snapshot);
     expect(JSON.stringify([...db.records.values()])).not.toMatch(
       /SECRET_CONTENT|domainsAllowed|roleFamilies|sensitivityClearance|message|response|token/
