@@ -40,7 +40,7 @@ afterEach(() => {
   jest.clearAllMocks();
 });
 
-test('three turns keep bounded incremental prompts, skip understanding for draft, preserve draft and case on timeout', async () => {
+test('three turns keep bounded incremental prompts, skip understanding for draft, report draft failure and preserve case on timeout', async () => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'cet-746-turns-'));
   const broker = new ServiceBroker({ logger: false, transporter: null });
   const settings = Object.assign(
@@ -134,9 +134,10 @@ test('three turns keep bounded incremental prompts, skip understanding for draft
     expect(incremental.messages.every((entry) => entry.length <= 1500)).toBe(true);
     expect(second.responseText).toMatch(/^Prüfe jetzt/);
     expect(third.cetCaseId).toBe(first.cetCaseId);
-    expect(third.draftId).toBeTruthy();
+    expect(third.draftId).toBeUndefined();
     expect(third.answerStatus).toBe('fallback');
-    expect(third.responseText).toContain('Mit freundlichen Grüßen');
+    expect(third.responseText).toContain('Entwurf ist gerade nicht sauber');
+    expect(third.responseText).not.toContain('Als Nächstes:');
     expect(third.phaseTimes.understandMs).toBeLessThan(5);
     expect(third.phaseTimes.answerMs).toBeGreaterThanOrEqual(25);
     expect(retrieval).toHaveBeenCalledTimes(4);
