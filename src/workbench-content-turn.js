@@ -217,97 +217,108 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
   let mergeProposal;
   // Pure knowledge questions never create or advance case state.
   if (situation.turnKind === 'work' && !pending?.caseSuppressed) {
-    if (!conversation?.cetCaseId) {
-      assignment = await continuation.assignCase(
-        service,
-        ctx,
-        p,
-        envelope,
-        situation,
-        pending,
-        meta
+    let assignmentResponse;
+    await continuation.withTenantCaseAssignment(service, p, async () => {
+      conversation = await service.store.resolveConversation(
+        { tenantId: p.tenantId, client: envelope.channel, conversationId: envelope.conversationId },
+        { optional: true }
       );
-      if (assignment.response) return assignment.response;
-      if (caseChoice) {
-        rawMessage = pending.caseSelection.message;
-        envelope = { ...envelope, userRequest: rawMessage };
-      }
-      if (assignment.selected) {
-        const existing = await service.loadVisibleCase(ctx, p, assignment.selected.cetCaseId);
-        caseDelivery = existing.asyncDelivery;
-        situation = continuation.mergeSituation(existing.knownContext?.situation, situation);
-        conversation = { cetCaseId: existing.cetCaseId };
-        caseNotice = `Das gehört zu ${caseLabel(assignment.selected)} – ich ergänze das neue Material dort.`;
-        mergeProposal = await continuation.duplicateProposal(
+      if (!conversation?.cetCaseId) {
+        assignment = await continuation.assignCase(
           service,
+          ctx,
           p,
-          assignment.selected,
-          assignment.items
+          envelope,
+          situation,
+          pending,
+          meta
         );
+        if (assignment.response) {
+          assignmentResponse = assignment.response;
+          return;
+        }
+        if (caseChoice) {
+          rawMessage = pending.caseSelection.message;
+          envelope = { ...envelope, userRequest: rawMessage };
+        }
+        if (assignment.selected) {
+          const existing = await service.loadVisibleCase(ctx, p, assignment.selected.cetCaseId);
+          caseDelivery = existing.asyncDelivery;
+          situation = continuation.mergeSituation(existing.knownContext?.situation, situation);
+          conversation = { cetCaseId: existing.cetCaseId };
+          caseNotice = `Das gehört zu ${caseLabel(assignment.selected)} – ich ergänze das neue Material dort.`;
+          mergeProposal = await continuation.duplicateProposal(
+            service,
+            p,
+            assignment.selected,
+            assignment.items
+          );
+        }
       }
-    }
-    if (!conversation) {
-      const reservation = await service.store.reserveConversation({
+      if (!conversation) {
+        const reservation = await service.store.reserveConversation({
+          tenantId: p.tenantId,
+          client: envelope.channel,
+          conversationId: envelope.conversationId,
+          openWebuiConversationId: envelope.openWebuiConversationId,
+          openWebuiUserId: envelope.openWebuiUserId,
+          openWebuiOrgId: envelope.openWebuiOrgId,
+          clientId: envelope.asyncDelivery.clientId,
+        });
+        if (!reservation.reserved)
+          conversation = await service.waitForConversationCase({
+            tenantId: p.tenantId,
+            client: envelope.channel,
+            conversationId: envelope.conversationId,
+          });
+      } else if (!conversation.cetCaseId) {
+        conversation = await service.waitForConversationCase({
+          tenantId: p.tenantId,
+          client: envelope.channel,
+          conversationId: envelope.conversationId,
+        });
+      }
+      previousMemory = conversation?.cetCaseId
+        ? await service.loadTurnMemory(p, conversation.cetCaseId)
+        : null;
+      operation = conversation ? 'continue' : 'classify';
+      const routedEnvelope = { ...envelope, userRequest: understanding.routingRequest(situation) };
+      result = await ctx.call(
+        `domain-router.${operation}`,
+        {
+          ...routedEnvelope,
+          ...(caseDelivery ? { asyncDelivery: caseDelivery } : {}),
+          requestedMode: operation,
+          ...(conversation ? { cetCaseId: conversation.cetCaseId } : {}),
+          disableKnowledgeRouting: true,
+          knownContext: {
+            // Do not promote client knownContext into model-derived facts.
+            situation: persistentSituation(situation),
+            userRequest: routedEnvelope.userRequest,
+            identifiers: situation.identifiers,
+            deadlines: situation.deadlines,
+            workbenchContext,
+            ...(previousMemory ? { cetTurnMemory: safeTurnMemory(previousMemory) } : {}),
+          },
+        },
+        { meta }
+      );
+      caseId = result.cetCaseId;
+      if (assignment?.selected)
+        await continuation.recordContribution(service, p, envelope, caseId, situation);
+      await service.store.linkConversation({
         tenantId: p.tenantId,
         client: envelope.channel,
         conversationId: envelope.conversationId,
         openWebuiConversationId: envelope.openWebuiConversationId,
         openWebuiUserId: envelope.openWebuiUserId,
         openWebuiOrgId: envelope.openWebuiOrgId,
+        cetCaseId: caseId,
+        caseStateVersion: result.caseStateVersion,
         clientId: envelope.asyncDelivery.clientId,
       });
-      if (!reservation.reserved)
-        conversation = await service.waitForConversationCase({
-          tenantId: p.tenantId,
-          client: envelope.channel,
-          conversationId: envelope.conversationId,
-        });
-    } else if (!conversation.cetCaseId) {
-      conversation = await service.waitForConversationCase({
-        tenantId: p.tenantId,
-        client: envelope.channel,
-        conversationId: envelope.conversationId,
-      });
-    }
-    previousMemory = conversation?.cetCaseId
-      ? await service.loadTurnMemory(p, conversation.cetCaseId)
-      : null;
-    operation = conversation ? 'continue' : 'classify';
-    const routedEnvelope = { ...envelope, userRequest: understanding.routingRequest(situation) };
-    result = await ctx.call(
-      `domain-router.${operation}`,
-      {
-        ...routedEnvelope,
-        ...(caseDelivery ? { asyncDelivery: caseDelivery } : {}),
-        requestedMode: operation,
-        ...(conversation ? { cetCaseId: conversation.cetCaseId } : {}),
-        disableKnowledgeRouting: true,
-        knownContext: {
-          // Do not promote client knownContext into model-derived facts.
-          situation: persistentSituation(situation),
-          userRequest: routedEnvelope.userRequest,
-          identifiers: situation.identifiers,
-          deadlines: situation.deadlines,
-          workbenchContext,
-          ...(previousMemory ? { cetTurnMemory: safeTurnMemory(previousMemory) } : {}),
-        },
-      },
-      { meta }
-    );
-    caseId = result.cetCaseId;
-    if (assignment?.selected)
-      await continuation.recordContribution(service, p, envelope, caseId, situation);
-    await service.store.linkConversation({
-      tenantId: p.tenantId,
-      client: envelope.channel,
-      conversationId: envelope.conversationId,
-      openWebuiConversationId: envelope.openWebuiConversationId,
-      openWebuiUserId: envelope.openWebuiUserId,
-      openWebuiOrgId: envelope.openWebuiOrgId,
-      cetCaseId: caseId,
-      caseStateVersion: result.caseStateVersion,
-      clientId: envelope.asyncDelivery.clientId,
     });
+    if (assignmentResponse) return assignmentResponse;
   }
   if (result.primaryDomain) situation = { ...situation, primaryDomain: result.primaryDomain };
   const prefetched = prefetchedKnowledge ? await prefetchedKnowledge : null;
@@ -640,11 +651,16 @@ async function selectChoice(service, ctx, { p, mapping, envelope, conversation, 
   };
 }
 
-// Serialize content turns per tenant across people and fresh conversations.
+// Serialize each conversation; the case-assignment helper separately protects tenant writes.
 // Refresh persisted questions after waiting so parallel requests cannot repeat them.
 async function queuedContentTurn(service, ctx, input) {
   const queues = (service.workbenchContentTurns ||= new Map());
-  const key = JSON.stringify([input.p.tenantId]);
+  const key = JSON.stringify([
+    input.p.tenantId,
+    input.p.actorId,
+    input.envelope.channel,
+    input.envelope.conversationId,
+  ]);
   const previous = queues.get(key) || Promise.resolve();
   let release;
   const gate = new Promise((resolve) => {

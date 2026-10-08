@@ -162,14 +162,34 @@ describe('Case continuation #764 with persisted router and workbench', () => {
       { kind: 'name', value: 'Person Example' },
       { kind: 'rejection_reason', value: 'X00' },
       { kind: 'reference', value: '12' },
+      { kind: 'status', value: 'active' },
+      { kind: 'date', value: '2030-01-01' },
+      { kind: 'capacity', value: '100' },
     ];
     expect(strongIdentifiers(weak)).toEqual([]);
     await app.create(weak);
     const second = await app.create(weak);
     expect(second.relatedCases).toEqual([]);
     expect((await candidates(weak)).items).toEqual([]);
-    expect(strongIdentifiers(ids, { 'reference-a': { strength: 'weak' } })).toEqual([ids[1]]);
-    expect(sameStrongSubject(ids, [{ ...ids[0], value: 'OTHER' }, ids[1]])).toBe(false);
+    expect(
+      strongIdentifiers(ids, {
+        'reference-a': { strength: 'weak' },
+        'reference-b': { strength: 'strong' },
+      })
+    ).toEqual([ids[1]]);
+    const knownReferences = [
+      { kind: 'process_reference', value: 'ANON-PROC' },
+      { kind: 'Lokations-ID', value: 'ANON-LOC' },
+    ];
+    expect(strongIdentifiers(knownReferences)).toEqual(knownReferences);
+    expect(strongIdentifiers([{ kind: 'custom-reference', value: 'ANON' }])).toEqual([]);
+    expect(strongIdentifiers(ids, { 'reference-a': { strength: 'strong' } })).toEqual([ids[0]]);
+    expect(
+      sameStrongSubject(ids, [{ ...ids[0], value: 'OTHER' }, ids[1]], {
+        'reference-a': { strength: 'strong' },
+        'reference-b': { strength: 'strong' },
+      })
+    ).toBe(false);
     expect(statusLabel('internal_unknown_enum')).toBe('Bearbeitungsstand noch offen');
   });
 
@@ -207,6 +227,66 @@ describe('Case continuation #764 with persisted router and workbench', () => {
     ]);
     expect(first.cetCaseId).toBe(second.cetCaseId);
     expect(first.cetCaseId).not.toBe(old.cetCaseId);
+  });
+
+  test('unknown generic attributes do not auto-continue unrelated cases', async () => {
+    const situation = await llm.generateStructured.getMockImplementation()();
+    llm.generateStructured.mockResolvedValue({
+      ...situation,
+      identifiers: [
+        { kind: 'status', value: 'active' },
+        { kind: 'capacity', value: '100' },
+      ],
+    });
+    const first = await chat('attributes-a', 'Bitte bearbeite die Angaben active und 100.');
+    const second = await chat('attributes-b', 'Bitte bearbeite die Angaben active und 100.');
+    expect(first.cetCaseId).toBeTruthy();
+    expect(second.cetCaseId).toBeTruthy();
+    expect(second.cetCaseId).not.toBe(first.cetCaseId);
+    expect(second.responseText).not.toMatch(/Das gehört zu|zusammenführen/iu);
+  });
+
+  test('one slow answer does not block a different tenant colleague chat or create duplicate cases', async () => {
+    const answer = llm.generateText.getMockImplementation();
+    const situation = await llm.generateStructured.getMockImplementation()();
+    const otherIds = ids.map((id) => ({ ...id, value: `${id.value}-OTHER` }));
+    llm.generateStructured
+      .mockResolvedValueOnce(situation)
+      .mockResolvedValueOnce({ ...situation, identifiers: otherIds });
+    let release, entered;
+    const blocked = new Promise((resolve) => {
+      release = resolve;
+    });
+    const answering = new Promise((resolve) => {
+      entered = resolve;
+    });
+    llm.generateText.mockImplementationOnce(async (...args) => {
+      entered();
+      await blocked;
+      return answer(...args);
+    });
+    const slow = chat('slow-answer');
+    await answering;
+    let timeout;
+    try {
+      const fast = await Promise.race([
+        chat(
+          'fast-answer',
+          'Bitte bearbeite ANON-764-OTHER und ANON-LOC-764-OTHER.',
+          auth('actor-b')
+        ),
+        new Promise((_, reject) => {
+          timeout = setTimeout(() => reject(new Error('Independent chat blocked by answer')), 2500);
+        }),
+      ]);
+      expect(fast.cetCaseId).toBeTruthy();
+      expect((await candidates()).items).toHaveLength(1);
+    } finally {
+      clearTimeout(timeout);
+      release();
+      await slow;
+    }
+    expect((await candidates(otherIds)).items).toHaveLength(1);
   });
 
   test('AC02: selection shows at most three candidates newest first and does not ask again on invalid input', async () => {

@@ -42,7 +42,18 @@ describe('Case linking #753 through authenticated gateway HTTP', () => {
     });
     fs.writeFileSync(
       app.registry,
-      JSON.stringify([{ tenantId: 'public', sharedService: { caseVisibility: 'team' } }])
+      JSON.stringify([
+        {
+          tenantId: 'public',
+          sharedService: {
+            caseVisibility: 'team',
+            identifierTypes: {
+              'reference-a': { strength: 'strong' },
+              'reference-b': { strength: 'strong' },
+            },
+          },
+        },
+      ])
     );
     app.broker.createService({
       ...TokenManager,

@@ -716,6 +716,7 @@ module.exports = {
     },
     async discover(ctx, p, state) {
       const relatedCases = [];
+      const identifierTypes = this.casePolicy(p).identifierTypes;
       for (const target of await this.visibleStates(p)) {
         if (target.cetCaseId === state.cetCaseId) continue;
         if (target.mergedInto) continue;
@@ -728,7 +729,7 @@ module.exports = {
         const matched = LINK_KEYS.filter((k) =>
           values(state, k).some((value) => values(target, k).includes(value))
         );
-        const typedMatches = matchingIdentifiers(state, target, this.casePolicy(p).identifierTypes);
+        const typedMatches = matchingIdentifiers(state, target, identifierTypes);
         let link =
           state.relatedCases.find((r) => r.cetCaseId === target.cetCaseId) ||
           (target.parentCaseId === state.cetCaseId

@@ -180,7 +180,27 @@ async function mergeCommand(service, ctx, p, envelope, meta) {
   };
 }
 
+// Keep only case lookup, assignment and writes serialized across tenant chats.
+async function withTenantCaseAssignment(service, p, callback) {
+  const queues = (service.workbenchCaseAssignments ||= new Map());
+  const key = p.tenantId;
+  const previous = queues.get(key) || Promise.resolve();
+  let release;
+  const gate = new Promise((resolve) => {
+    release = resolve;
+  });
+  queues.set(key, gate);
+  await previous;
+  try {
+    return await callback();
+  } finally {
+    release();
+    if (queues.get(key) === gate) queues.delete(key);
+  }
+}
+
 module.exports = {
+  withTenantCaseAssignment,
   assignCase,
   selection,
   mergeSituation,

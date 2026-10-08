@@ -57,7 +57,7 @@ identifier-type list is embedded in the core. Comparison rules are tenant data:
     "sharedService": {
       "caseVisibility": "tenant",
       "identifierTypes": {
-        "reference-a": { "caseFold": true, "stripWhitespace": true }
+        "reference-a": { "caseFold": true, "stripWhitespace": true, "strength": "strong" }
       }
     }
   }
@@ -108,9 +108,12 @@ Public reads remain available through Workbench/Gateway and the existing
 Workbench resolves open, visible cases **before** reserving or creating a new
 case. A unique tenant case with matching strong typed identifiers is continued;
 the new chat is bound to that case, the situation is updated incrementally and
-the new material is recorded in the existing case event database. Content turns
-are serialized per authenticated tenant across people and conversations, so two
-simultaneous fresh chats cannot both create the same work item.
+the new material is recorded in the existing case event database. Case lookup,
+assignment and persistence are
+serialized per authenticated tenant across people and conversations, so two
+simultaneous fresh chats cannot both create the same work item. Understanding,
+retrieval and answer generation remain outside that critical section; normal
+turns retain their conversation queue, and independent chats can answer in parallel.
 
 Multiple matches produce one selection question with at most three descriptions,
 newest first, including the creator of each case. A number or displayed `F-`
@@ -123,9 +126,10 @@ original case creator.
 
 Identifier comparison reuses the normalization in `case-linking.js`. The existing
 identifier-kind and code catalogs exclude weak features and response codes.
-Generic or untyped identifiers are weak unless tenant data explicitly marks them
-strong. Other typed reference kinds preserve the preceding typed-reference
-contract; deployments can mark a kind weak with
+Only reference kinds explicitly classified in the existing identifier-kind catalog
+are strong by default. Generic, untyped and unknown kinds, including arbitrary
+attributes such as status, date and capacity, remain weak unless tenant data
+explicitly marks them strong. Deployments can mark a kind weak with
 `sharedService.identifierTypes[kind].strength = "weak"`, or strong with
 `"strong"`. Place, postal-code and personal fields never become strong through
 this setting. A continuation requires all supplied strong identifiers to match

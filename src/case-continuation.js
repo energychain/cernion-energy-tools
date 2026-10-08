@@ -11,7 +11,7 @@ function strongIdentifiers(entries = [], types = {}) {
     if (isSensitiveField(kind) || kinds.nonReferenceKinds.includes(key)) return false;
     if (codes.types.some((item) => item.kind === kind)) return false;
     if (types[kind]?.strength === 'weak') return false;
-    return types[kind]?.strength === 'strong' || !kinds.genericKinds.includes(key);
+    return types[kind]?.strength === 'strong' || kinds.strongReferenceKinds.includes(key);
   });
 }
 
