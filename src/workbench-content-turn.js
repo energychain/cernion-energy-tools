@@ -116,6 +116,8 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
   const phaseTimes = { understandMs: 0, retrieveMs: 0, answerMs: 0 };
   let situation;
   let understandingFailed = false;
+  let understandingFailureReason;
+  let understandingRecoveryReason;
   const understandStarted = performance.now();
   try {
     situation = draftRequest
@@ -136,9 +138,13 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
           model: service.settings.systemActivityModel,
           codeCatalog: service.settings.workbenchCodeCatalog,
           logger: service.logger,
+          onRecovery: ({ reason }) => {
+            understandingRecoveryReason = reason;
+          },
         });
   } catch (error) {
     understandingFailed = true;
+    understandingFailureReason = require('./workbench-llm-repair').fallbackReason(error);
     service.logger.warn('Workbench understanding unavailable', {
       ...require('./workbench-llm-errors').llmErrorDetails(error),
     });
@@ -159,6 +165,11 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
       retrievalTerms: [],
     };
   }
+  situation = require('./workbench-conversation-mode').updatePersonFacts(
+    situation,
+    envelope.userRequest,
+    previous
+  );
   phaseTimes.understandMs = Math.round(performance.now() - understandStarted);
   const nextStepRequest =
     !understanding.isDraftRequest(envelope.userRequest) && situation.followupKind === 'next_step';
@@ -291,9 +302,7 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
   const retrieveStarted = performance.now();
   const resolvedCodes = await codeLookup;
   try {
-    if (understandingFailed && !previous) {
-      retrieval = { evidence: [], trace: [] };
-    } else if ((draftRequest || reuseEvidence) && pending?.retrieval) {
+    if ((draftRequest || reuseEvidence) && pending?.retrieval) {
       retrieval = {
         ...pending.retrieval,
         trace: (pending.retrieval.trace || [])
@@ -395,7 +404,7 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
       message: envelope.userRequest,
       followup: Boolean(previous),
       nextStepOnly: Boolean(previous && nextStepRequest),
-      skipModel: understandingFailed,
+      skipModel: false,
       lastAnswer: pending?.lastAnswer || '',
       logger: service.logger,
     });
@@ -515,6 +524,16 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
     retrievalTrace: [...(retrieval.trace || []), reply.evidenceTrace],
     answerAttempts: reply.answerAttempts,
     answerStatus: reply.answerStatus,
+    metadata: {
+      ...reply.metadata,
+      ...(understandingFailed || understandingRecoveryReason
+        ? {
+            degraded: true,
+            degradedReason: understandingFailureReason || understandingRecoveryReason,
+            degradedPhase: 'understanding',
+          }
+        : {}),
+    },
     phaseTimes,
     sources,
     ...(displayRef ? { caseDisplayRef: displayRef } : {}),

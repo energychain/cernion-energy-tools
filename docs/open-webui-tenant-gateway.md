@@ -409,8 +409,44 @@ werden nicht über den lokalen Admin-Kanal exponiert.
 
 ## Understand-first conversation (#739)
 
-Content turns use the central LLM facade to produce a validated, domain-free situation. Retrieval reuses the Personal-Agent collectors; source associations and score thresholds are configuration in `src/workbench-knowledge-sources.json`. Only persisted tenant/actor mappings authorize mapped sources. Relevant citations precede at most three new specialist questions. Rejected retrieval hits remain in trace.
+Content turns use the central LLM facade to produce a validated, domain-free situation. Retrieval reuses the Personal-Agent collectors; source associations and score thresholds are configuration in `src/workbench-knowledge-sources.json`. Only persisted tenant/actor mappings authorize mapped sources. Decisive missing facts produce at most three prioritized questions before a conditional assessment; only non-decisive gaps may be assumptions. Rejected retrieval hits remain in trace.
 
 A concrete work request creates a case in the background, displayed as `F-n`. Smalltalk, pure knowledge and status requests create no case. `Kein Fall` withdraws the case and records the correction; this conversation then suppresses automatic case creation. Routing receives the understood concern and situation. Follow-up turns reuse that situation and the persistent question ledger. Assistant history is not authoritative evidence.
 
 External wishes produce a notice; `Entwurf bitte` stores an internal draft without dispatch. Status and corrections remain deterministic. Additive chat fields include `situation`, `evidence`, `retrievalTrace`, `caseDisplayRef`, and `latencyMs`. Existing facade/MCP callers retain their contracts and do not acquire automatic cases; shared collectors gain relevance filtering and bounded, deduplicated Willi content.
+
+
+## Conversation assistance and provider degradation (#758)
+
+A live conversation, phone call or counter interaction uses `situation.responseMode=conversation`:
+short assessment, prioritized questions for the counterpart and suggested conversation steps.
+It does not proactively produce a letter. Correspondence remains a writing task; an explicit
+request for a finished answer still overrides a previous next-step question.
+
+The situation retains verbatim `personFacts`, stable missing-information keys with `decisive`
+and `answered` flags, and typed `quantities`. Physical dimensions are generic; a value in an
+energy unit cannot satisfy a power requirement. The expected dimension comes from the
+question/evidence, never an equipment list. New values and answered questions update the
+continuing situation; failed understanding also saves the current person's input for the next turn.
+
+Understanding and answering keep the phase budgets configured by `WORKBENCH_LLM_TIMEOUT_MS`.
+The central LLM facade retries a provider 429 once when its `retryAfter` fits the remaining
+budget. Otherwise it may use `WORKBENCH_LLM_FALLBACK_MODEL` (optional; one value or a comma-separated
+understanding/answer pair) through the same configured provider. With a fallback configured,
+the initial request reserves half the remaining budget for recovery. Authentication errors
+and local tenant quota checks do not bypass authorization/quota through a fallback.
+The existing schema-repair loop shares the phase deadline and never becomes another provider-retry loop.
+
+Failed understanding still permits retrieval and an answer attempt with raw input and evidence.
+If answering also fails or yields no accepted content, the response explains that the model is
+currently unavailable, lists readable source titles with short findings and the saved input.
+It supplies no placeholder letter and does not recycle an old draft as a new result.
+`metadata.degraded=true` with `degradedReason` records fallback/model recovery; failed or recovered
+understanding also identifies `degradedPhase=understanding`. These fields reach the OpenAI HTTP facade.
+Sources prefer document title metadata, use a neutral source name if unavailable, and omit
+filenames and UUIDs. Concrete unsupported details carry at most one check marker per paragraph;
+salutations, closing greetings and signature lines never carry it.
+
+The regressions in `tests/fixtures/workbench-758.json` are synthetic, with no original person or
+customer text. `tests/workbench-758.test.js`, the broker pipeline regression and authenticated
+HTTP-e2e cover conversation continuity, dimensions, provider errors, saved facts and draft continuity.

@@ -182,6 +182,96 @@ async function snapshot(step) {
     })
   );
 }
+async function validateConversationMode(chat) {
+  // #758: synthetic live conversation through the authenticated HTTP facade,
+  // including failed understanding and persisted facts in the following turn.
+  const conversationFixture = require(path.join(root, 'tests/fixtures/workbench-758.json'));
+  const savedUnderstanding = llm.generateStructured;
+  const savedAnswer = llm.generateText;
+  let failAnswer = false;
+  llm.generateStructured = async (schema, prompt) => {
+    const input = JSON.parse(prompt);
+    if (input.message === conversationFixture.liveTurns[1]) {
+      failAnswer = true;
+      throw Object.assign(new Error('Synthetic quota failure'), { status: 429 });
+    }
+    const value = await savedUnderstanding(schema, prompt);
+    if (input.message === conversationFixture.liveTurns[2]) {
+      assert(input.previous.personFacts.includes(conversationFixture.liveTurns[1]));
+      value.quantities = [
+        {
+          key: 'quantity-1',
+          value: '6',
+          unit: 'kWh',
+          dimension: 'energy',
+          expectedDimension: 'power',
+        },
+      ];
+    }
+    if (input.message === conversationFixture.draftTurns[0]) value.followupKind = 'next_step';
+    value.missingInformation = [
+      {
+        key: 'decisive-start',
+        question: 'Wann wurde die Anlage in Betrieb genommen?',
+        decisive: true,
+        blocking: false,
+      },
+    ];
+    return value;
+  };
+  llm.generateText = async (prompt, options) => {
+    if (failAnswer) {
+      failAnswer = false;
+      throw new Error('Synthetic timeout');
+    }
+    return savedAnswer(prompt, options);
+  };
+  try {
+    for (const [index, message] of conversationFixture.liveTurns.entries()) {
+      const response = await http(
+        '/v1/chat/completions',
+        gatewayToken,
+        {
+          model: 'cernion-governance-assistant',
+          messages: [{ role: 'user', content: message }],
+        },
+        { 'X-OpenWebUI-User-Id': 'alice', 'X-OpenWebUI-Chat-Id': 'conversation-758' }
+      );
+      assert.equal(response.status, 200);
+      const reply = response.result.cernion.result;
+      assert.equal(reply.situation.responseMode, 'conversation');
+      assert(!reply.responseText.includes('Entwurf:'));
+      assert(!/Als Nächstes:|\[Ergebnis/u.test(reply.responseText));
+      if (index === 1) {
+        assert.equal(response.result.metadata.degraded, true);
+        assert(response.result.metadata.degradedReason);
+        assert(reply.responseText.includes('Modell ist gerade nicht verfügbar'));
+        assert(reply.situation.personFacts.includes(message));
+      }
+      if (index === 2) {
+        assert(reply.responseText.includes('Leistung in kW'));
+        assert(reply.situation.personFacts.includes(conversationFixture.liveTurns[1]));
+      }
+    }
+    const correspondence = await chat('correspondence-758', [
+      { role: 'user', content: conversationFixture.mail },
+    ]);
+    assert.equal(correspondence.situation.responseMode, 'correspondence');
+    const step = await chat('correspondence-758', [
+      { role: 'user', content: conversationFixture.draftTurns[0] },
+    ]);
+    assert(!step.draftId);
+    const draft = await chat('correspondence-758', [
+      { role: 'user', content: conversationFixture.draftTurns[1] },
+    ]);
+    assert(draft.draftId);
+    assert(draft.responseText.includes('Entwurf:'));
+  } finally {
+    llm.generateStructured = savedUnderstanding;
+    llm.generateText = savedAnswer;
+  }
+}
+
 async function main() {
   for (const directory of ['services', 'custom-services']) {
     const dir = path.join(root, directory);
@@ -771,6 +861,7 @@ async function main() {
   contentLatencies.push(productionCase.latencyMs);
   const withdrawn = await chat('production-739', [{ role: 'user', content: 'Kein Fall' }]);
   assert.equal(withdrawn.state, 'case_discarded');
+  await validateConversationMode(chat);
   const latencies = contentLatencies.slice().sort((a, b) => a - b);
   console.log(
     'Content turn latency (stub facade):',
