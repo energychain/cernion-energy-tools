@@ -3,9 +3,13 @@ const { resolveFunctionId } = require('./function-model');
 
 function resolveRecords(records, model) {
   return records.flatMap((record) => {
-    // A regenerated model hash does not change an existing function's identity.
-    if (model.functions.some((fn) => fn.functionId === record.functionId))
-      return [{ ...record, modelSourceHash: model.sourceHash }];
+    // Hash-only regeneration preserves current scope; historical wider scope follows splits.
+    const current = model.functions.find((fn) => fn.functionId === record.functionId);
+    const scopeRetained =
+      !record.capabilities?.length ||
+      !current?.capabilities ||
+      record.capabilities.every((id) => current.capabilities.includes(id));
+    if (current && scopeRetained) return [{ ...record, modelSourceHash: model.sourceHash }];
     const successors = resolveFunctionId(record.functionId, { model });
     const resolved = successors.filter(({ functionId }) => {
       if (record.modelSourceHash && record.modelSourceHash === model.sourceHash)
