@@ -3,6 +3,7 @@ const { spawn } = require('child_process');
 const { EventEmitter } = require('events');
 const path = require('path');
 const fs = require('fs');
+const { randomUUID } = require('crypto');
 const { prepareDataset, EvaluationError, BOUNDARY } = require('./forecast-evaluation');
 const { dateOnly, shiftDate } = require('./forecast-evaluation-time');
 const { normalizeMethod } = require('./forecast-portfolio-contract');
@@ -116,12 +117,23 @@ function preparePortfolio(payload) {
 
 // Same lifecycle as a Worker: the existing serial job lane owns timeout/cancel.
 // Termination kills the Python process and waits for close, leaving no orphan fits.
+function resolvePortfolioPython() {
+  const localPython = path.join(__dirname, '../.venv-forecast/bin/python');
+  return process.env.FORECAST_PYTHON || (fs.existsSync(localPython) ? localPython : 'python3');
+}
+
 function createPortfolioWorker(payload, task) {
   const prepared = task || preparePortfolio(payload);
   const worker = new EventEmitter();
-  const localPython = path.join(__dirname, '../.venv-forecast/bin/python');
-  const python =
-    process.env.FORECAST_PYTHON || (fs.existsSync(localPython) ? localPython : 'python3');
+  const python = resolvePortfolioPython();
+  const publicFailure = (details) => {
+    const diagnosticId = randomUUID();
+    console.error('Forecast portfolio worker failed', { diagnosticId, python, details });
+    const code = /ModuleNotFoundError|ImportError/.test(String(details))
+      ? 'portfolio_runtime_unavailable'
+      : 'portfolio_failed';
+    return `${code}: Forecast worker failed. Diagnostic ID: ${diagnosticId}`;
+  };
   const child = spawn(
     python,
     ['-u', path.join(__dirname, '../tools/forecast-portfolio/engine.py')],
@@ -143,9 +155,11 @@ function createPortfolioWorker(payload, task) {
     if (!closed) child.kill('SIGKILL');
     return close;
   };
-  child.on('error', (error) => worker.emit('error', error));
+  child.on('error', (error) =>
+    worker.emit('error', new Error(publicFailure(`${error.code || ''}: ${error.message}`)))
+  );
   child.stdin.on('error', (error) => {
-    if (!closed) worker.emit('error', error);
+    if (!closed) worker.emit('error', new Error(publicFailure(error.message)));
   });
   child.stderr.on('data', (chunk) => {
     errors = (errors + chunk).slice(-4000);
@@ -170,9 +184,11 @@ function createPortfolioWorker(payload, task) {
       const line = pending.slice(0, end);
       pending = pending.slice(end + 1);
       try {
-        worker.emit('message', JSON.parse(line));
+        const message = JSON.parse(line);
+        if (message.type === 'error') message.message = publicFailure(message.message);
+        worker.emit('message', message);
       } catch (error) {
-        worker.emit('error', new Error(`Invalid portfolio worker output: ${error.message}`));
+        worker.emit('error', new Error(publicFailure(error.message)));
       }
     }
   });
@@ -180,11 +196,11 @@ function createPortfolioWorker(payload, task) {
     if (code)
       worker.emit('message', {
         type: 'error',
-        message: `portfolio_failed: ${errors || 'Python worker exited'}`,
+        message: publicFailure(errors || `Python worker exited with code ${code}`),
       });
   });
   // Defer so job handlers are attached even for immediate failures.
   setImmediate(() => child.stdin.end(JSON.stringify(prepared)));
   return worker;
 }
-module.exports = { VERSION, preparePortfolio, createPortfolioWorker };
+module.exports = { VERSION, preparePortfolio, createPortfolioWorker, resolvePortfolioPython };

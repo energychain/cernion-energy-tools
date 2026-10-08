@@ -92,7 +92,7 @@ test('portfolio subprocess timeout terminates the native process', async () => {
 test('missing Python executable becomes a terminal error', async () => {
   process.env.FORECAST_PYTHON = path.join(root, 'absent-python');
   try {
-    await expect(executeForecast(payload(), {}, null)).rejects.toThrow('ENOENT');
+    await expect(executeForecast(payload(), {}, null)).rejects.toThrow('Diagnostic ID:');
   } finally {
     delete process.env.FORECAST_PYTHON;
   }
@@ -111,3 +111,35 @@ test('oversized worker output fails the job without crashing the broker', async 
     delete process.env.FORECAST_PYTHON;
   }
 });
+
+test.each(['stderr', 'protocol'])(
+  'worker %s errors hide server paths and include diagnostics',
+  async (mode) => {
+    const launcher = path.join(root, `failing-python-${mode}`);
+    const details =
+      "Traceback: /opt/cernion-energy-tools-prod/tools/forecast-portfolio/engine.py ModuleNotFoundError: No module named 'numpy'";
+    const body =
+      mode === 'stderr'
+        ? `import sys\nsys.stdin.read()\nsys.stderr.write(${JSON.stringify(details)})\nsys.exit(1)\n`
+        : `import sys,json\nsys.stdin.read()\nprint(json.dumps({'type':'error','message':${JSON.stringify(details)}}), flush=True)\n`;
+    fs.writeFileSync(launcher, '#!/usr/bin/python3\n' + body, { mode: 0o700 });
+    process.env.FORECAST_PYTHON = launcher;
+    try {
+      const error = await executeForecast(payload(), {}, null).catch((e) => e);
+      expect(error).toBeInstanceOf(Error);
+      expect(error.message).toMatch(
+        /^portfolio_runtime_unavailable:.*Diagnostic ID: [a-f0-9-]{36}$/
+      );
+      expect(error.message).not.toMatch(/\/opt\/|Traceback|numpy/);
+      expect(console.error).toHaveBeenCalledWith(
+        'Forecast portfolio worker failed',
+        expect.objectContaining({
+          details: expect.stringContaining(details),
+          diagnosticId: expect.any(String),
+        })
+      );
+    } finally {
+      delete process.env.FORECAST_PYTHON;
+    }
+  }
+);
