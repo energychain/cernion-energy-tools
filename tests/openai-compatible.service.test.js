@@ -1001,3 +1001,22 @@ test('system activity renders state and fallback metadata without LLM text gener
   expect(result.choices[0].message.content).not.toContain('Routing advice');
   expect(llmClient.generateChat).not.toHaveBeenCalled();
 });
+
+describe('Issue #752 governance input preservation', () => {
+  test.each([
+    require('./fixtures/workbench-752.json').R3,
+    '### Task: Generate a concise title\n<chat_history>USER: Bearbeitungsstand ist offen</chat_history>',
+  ])('retains raw input and uses content chat instead of status queries', async (message) => {
+    const ctx = {
+      params: {
+        model: 'cernion-governance-assistant',
+        messages: [{ role: 'user', content: message }],
+        metadata: { conversationId: 'owui-752' },
+      },
+      meta: { apiToken: { tenantId: 'tenant-a', id: 'person-a', roles: ['ROLE_GRID_OPERATOR'] } },
+      call: jest.fn().mockResolvedValue({ responseText: 'Antwort' }),
+    };
+    await OpenAICompatibleService.actions.chatCompletions.handler(ctx);
+    expect(ctx.call).toHaveBeenCalledWith('workbench.chat', expect.objectContaining({ message }));
+  });
+});

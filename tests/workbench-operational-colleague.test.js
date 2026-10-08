@@ -125,9 +125,13 @@ test('three turns keep bounded incremental prompts, skip understanding for draft
     const third = await turn('Mach mir die Antwort fertig');
     expect(llm.generateStructured).toHaveBeenCalledTimes(2);
     const incremental = JSON.parse(llm.generateStructured.mock.calls[1][1]);
-    expect(incremental.messages).toEqual([]);
+    expect(incremental.messages).toEqual([
+      document.slice(0, 1500),
+      'Referenz liegt vor. Was jetzt?',
+    ]);
     expect(incremental.previous.concern).toBe(situation.concern);
-    expect(JSON.stringify(incremental)).not.toContain('FREMDTEXT-ORIGINAL');
+    expect(JSON.stringify(incremental)).not.toContain(document);
+    expect(incremental.messages.every((entry) => entry.length <= 1500)).toBe(true);
     expect(second.responseText).toMatch(/^Prüfe jetzt/);
     expect(third.cetCaseId).toBe(first.cetCaseId);
     expect(third.draftId).toBeTruthy();

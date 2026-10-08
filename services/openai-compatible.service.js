@@ -87,7 +87,10 @@ function normalizeMessages(rawMessages, { preserveDocuments = false } = {}) {
     const hasToolCalls =
       role === 'assistant' && Array.isArray(message?.tool_calls) && message.tool_calls.length > 0;
     const content = preserveDocuments
-      ? compactMarkdown(normalizeContent(message?.content), 8000)
+      ? compactMarkdown(
+          normalizeContent(message?.content),
+          require('../src/workbench-thread').maxInputChars()
+        )
       : compactString(normalizeContent(message?.content), 2000);
 
     if (!content && !hasToolCalls) {
@@ -504,15 +507,17 @@ module.exports = {
           const question = messages[latestUserIndex].content;
           const recentMessages = messages.slice(0, latestUserIndex);
           const requestedEffect = classifyRequestedEffect(question);
-          const intentMode =
-            requestedEffect === 'external_effect'
-              ? 'tool_run_request'
-              : requestedEffect === 'draft_write'
-                ? 'decision_support'
-                : classifyWorkbenchIntent(question, {
-                    cetCaseId: metadata.cetCaseId,
-                    recentMessages,
-                  });
+          const contentOnly =
+            require('../src/workbench-background-task').backgroundTask(question) ||
+            require('../src/workbench-thread').isDocumentInput(question);
+          let intentMode;
+          if (contentOnly || requestedEffect === 'draft_write') intentMode = 'decision_support';
+          else if (requestedEffect === 'external_effect') intentMode = 'tool_run_request';
+          else
+            intentMode = classifyWorkbenchIntent(question, {
+              cetCaseId: metadata.cetCaseId,
+              recentMessages,
+            });
           const followup =
             intentMode === 'knowledge_query'
               ? resolveWorkbenchFollowup(question, { recentMessages })

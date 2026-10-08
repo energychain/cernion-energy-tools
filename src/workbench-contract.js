@@ -88,7 +88,7 @@ function normalizeTaskEnvelope(input = {}, mapping = {}) {
   });
   const userRequest = cleanString(input.message || input.userRequest, 'userRequest', {
     required: true,
-    max: 8000,
+    max: require('./workbench-thread').maxInputChars(),
   });
   const clientId = cleanString(
     input.clientId || input.asyncDelivery?.clientId || mapping.clientId,

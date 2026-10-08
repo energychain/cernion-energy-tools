@@ -1500,7 +1500,27 @@ module.exports = {
         coverageTurn.mapped(ctx, this.metaForMapping(ctx, p, mapping));
         const correctionMeta = this.metaForMapping(ctx, p, mapping);
         p = principal({ meta: correctionMeta }, ctx.params);
+        const background = require('../src/workbench-background-task');
+        if (background.backgroundTask(envelope.userRequest))
+          return background.answerBackgroundTask(envelope.userRequest, p.tenantId, this.logger);
         const pending = await conversationAssistance.readTurn(this.conversationsDb, p, envelope);
+        const conversation = await this.store.resolveConversation(
+          {
+            tenantId: p.tenantId,
+            client: envelope.channel,
+            conversationId: envelope.conversationId,
+          },
+          { optional: true }
+        );
+        if (require('../src/workbench-thread').isDocumentInput(envelope.userRequest))
+          return contentTurn.runContentTurn(this, ctx, {
+            p,
+            mapping,
+            envelope,
+            pending,
+            conversation,
+            meta: correctionMeta,
+          });
         if (/^(?:kein fall|no case)[.!\s]*$/i.test(envelope.userRequest.trim())) {
           return contentTurn.discard(this, ctx, p, envelope, pending, correctionMeta);
         }
@@ -1555,14 +1575,6 @@ module.exports = {
           });
           return correctionResult;
         }
-        let conversation = await this.store.resolveConversation(
-          {
-            tenantId: p.tenantId,
-            client: envelope.channel,
-            conversationId: envelope.conversationId,
-          },
-          { optional: true }
-        );
         const choice = await contentTurn.selectChoice(this, ctx, {
           p,
           mapping,
