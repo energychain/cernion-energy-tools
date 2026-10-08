@@ -238,10 +238,10 @@ function policyHash(p, access = {}) {
   return createHash('sha256')
     .update(
       JSON.stringify([
-        [...(p.roles || [])].sort(),
-        [...(p.clearance || [])].sort(),
+        [...(p.roles || [])].sort((left, right) => left.localeCompare(right)),
+        [...(p.clearance || [])].sort((left, right) => left.localeCompare(right)),
         Object.keys(access)
-          .sort()
+          .sort((left, right) => left.localeCompare(right))
           .map((key) => [key, access[key]]),
       ])
     )
