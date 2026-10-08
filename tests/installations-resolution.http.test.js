@@ -54,4 +54,27 @@ describe('Issue #755 installations HTTP error regression', () => {
       });
     }
   );
+
+  it.each(['lookup', 'installations'])(
+    'returns actionable HTTP 400 when %s returns a null MCP response',
+    async (phase) => {
+      if (phase === 'installations')
+        callWithNewSession.mockResolvedValueOnce({ results: [{ mastrId: 'SNB123456789012' }] });
+      callWithNewSession.mockResolvedValueOnce(null);
+      const response = await fetch(`${base}/api/installations`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          installationType: 'storage',
+          gridOperatorName: 'Example',
+          limit: 5,
+        }),
+      });
+      expect(response.status).toBe(400);
+      expect(await response.json()).toMatchObject({
+        message: expect.stringContaining('gridOperatorMastrId'),
+      });
+      expect(callWithNewSession).toHaveBeenCalledTimes(phase === 'lookup' ? 1 : 2);
+    }
+  );
 });

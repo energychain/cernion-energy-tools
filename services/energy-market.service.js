@@ -1358,6 +1358,23 @@ fabricated all-zero forecast.
       },
       async handler(ctx) {
         const MCP_PAGE_SIZE = 10000;
+        // Keep malformed replies and polling exceptions inside this tool's
+        // actionable error contract, rather than leaking a generic HTTP 500.
+        const callTool = async (toolName, toolParams, pollOptions = {}) => {
+          try {
+            const response = await callWithAutoPoll(
+              toolName,
+              toolParams,
+              pollOptions,
+              ctx.meta.cernionToken
+            );
+            return response && typeof response === 'object' && !Array.isArray(response)
+              ? response
+              : { success: false };
+          } catch (_error) {
+            return { success: false };
+          }
+        };
         const { format, ...params } = ctx.params;
         const requestedTypes =
           params.installationType === 'all'
@@ -1395,11 +1412,10 @@ fabricated all-zero forecast.
           );
 
         if (!resolvedGridOperatorId && !resolvedBdewCode && params.gridOperatorName) {
-          const mpResult = await callWithAutoPoll(
+          const mpResult = await callTool(
             'cernion_market_partners',
             { query: params.gridOperatorName.trim(), limit: 20 },
-            { maxWaitTime: 2 * 60 * 1000, pollInterval: 2000 },
-            ctx.meta.cernionToken
+            { maxWaitTime: 2 * 60 * 1000, pollInterval: 2000 }
           );
           if (mpResult?.success === false || mpResult?.isError || mpResult?.data?.isError) {
             throw operatorError();
@@ -1503,12 +1519,11 @@ fabricated all-zero forecast.
               break;
             }
 
-            const pageResult = await callWithAutoPoll(
-              'cernion_installations_local',
-              { ...baseToolParams, limit: pageLimit, offset: currentOffset },
-              {},
-              ctx.meta.cernionToken
-            );
+            const pageResult = await callTool('cernion_installations_local', {
+              ...baseToolParams,
+              limit: pageLimit,
+              offset: currentOffset,
+            });
 
             if (pageResult?.success === false || pageResult?.isError || pageResult?.data?.isError) {
               if (params.gridOperatorName) {

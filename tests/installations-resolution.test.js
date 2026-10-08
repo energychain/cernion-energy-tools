@@ -155,4 +155,24 @@ describe('Issue #755 installations filter resolution', () => {
     expect(schema.properties.gridOperatorName.description).toContain('400');
     expect(schema.properties.location.description).toContain('postleitzahl');
   });
+
+  it.each([null, undefined, 'invalid response', []])(
+    'maps malformed non-name search responses to 502: %j',
+    async (response) => {
+      callWithNewSession.mockResolvedValueOnce(response);
+      await expect(search()).rejects.toMatchObject({
+        code: 502,
+        type: 'INSTALLATIONS_UPSTREAM_FAILED',
+      });
+    }
+  );
+
+  it('keeps a rejected lookup inside the actionable 400 contract', async () => {
+    callWithNewSession.mockRejectedValueOnce(new Error('transport failed'));
+    await expect(search({ gridOperatorName: 'Example' })).rejects.toMatchObject({
+      code: 400,
+      type: 'GRID_OPERATOR_UNRESOLVED',
+    });
+    expect(callWithNewSession).toHaveBeenCalledTimes(1);
+  });
 });
