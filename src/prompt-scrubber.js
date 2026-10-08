@@ -230,9 +230,42 @@ function scrubPromptText(text, options = {}) {
   return scrubbed;
 }
 
+// Traverse content values only; property names are application/schema metadata.
+function mapStringValues(value, transform) {
+  if (typeof value === 'string') return transform(value);
+  if (Array.isArray(value)) return value.map((entry) => mapStringValues(entry, transform));
+  if (value && typeof value === 'object')
+    return Object.fromEntries(
+      Object.entries(value).map(([key, entry]) => [key, mapStringValues(entry, transform)])
+    );
+  return value;
+}
+
+function scrubPromptValues(value, options = {}) {
+  const sharedOptions = { ...options, salt: options.salt || crypto.randomBytes(8).toString('hex') };
+  return mapStringValues(value, (text) => scrubPromptText(text, sharedOptions));
+}
+
+function scrubPrompt(prompt, options = {}) {
+  if (typeof prompt !== 'string') return prompt;
+  let value;
+  // This catch classifies free text only. Scrubbing and serialization occur
+  // outside it, so masking errors always propagate to the caller.
+  try {
+    value = JSON.parse(prompt);
+  } catch (error) {
+    if (!(error instanceof SyntaxError)) throw error;
+    return scrubPromptText(prompt, options);
+  }
+  return JSON.stringify(scrubPromptValues(value, options));
+}
+
 module.exports = {
   scrubForLLM,
   scrubPromptText,
+  mapStringValues,
+  scrubPromptValues,
+  scrubPrompt,
   isSensitiveField,
   SENSITIVE_PATTERNS,
   SAFE_PATTERNS,

@@ -20,7 +20,7 @@
 const { SchemaType } = require('@google/generative-ai');
 const { MoleculerError } = require('moleculer').Errors;
 const metrics = require('./metrics');
-const { scrubPromptText } = require('./prompt-scrubber');
+const { scrubPromptText, scrubPrompt } = require('./prompt-scrubber');
 const tracing = require('./tracing');
 const { getObservabilityContext } = require('./observability-context');
 const rateQuotaStore = require('./rate-quota-store');
@@ -350,7 +350,7 @@ async function observeLlmCall(adapter, operation, options, usageInput, task) {
  */
 async function generateText(prompt, options = {}) {
   const adapter = getAdapter();
-  const scrubbedPrompt = scrubPromptText(prompt);
+  const scrubbedPrompt = scrubPrompt(prompt);
   return await observeLlmCall(adapter, 'generate_text', options, scrubbedPrompt, () =>
     withRetries(() => adapter.generateText(scrubbedPrompt, options), options)
   );
@@ -370,7 +370,7 @@ async function generateText(prompt, options = {}) {
 async function generateStructured(responseSchema, prompt, options = {}) {
   const adapter = getAdapter();
   const mode = (options.structuredMode || getStructuredMode()).toLowerCase();
-  const scrubbedPrompt = scrubPromptText(prompt);
+  const scrubbedPrompt = scrubPrompt(prompt);
 
   try {
     const raw = await observeLlmCall(adapter, 'generate_structured', options, scrubbedPrompt, () =>
@@ -449,7 +449,7 @@ async function generateImage(prompt, options = {}) {
     );
   }
 
-  const scrubbedPrompt = scrubPromptText(prompt);
+  const scrubbedPrompt = scrubPrompt(prompt);
   return await observeLlmCall(adapter, 'generate_image', options, scrubbedPrompt, () =>
     withRetries(() => adapter.generateImage(scrubbedPrompt, options), options)
   );
@@ -482,8 +482,7 @@ async function generateChat(messages, options = {}) {
 
   const scrubbedMessages = (Array.isArray(messages) ? messages : []).map((message) => ({
     ...message,
-    content:
-      typeof message?.content === 'string' ? scrubPromptText(message.content) : message?.content,
+    content: typeof message?.content === 'string' ? scrubPrompt(message.content) : message?.content,
   }));
   const usageInput = scrubbedMessages.map((message) => message.content || '').join('\n');
 
