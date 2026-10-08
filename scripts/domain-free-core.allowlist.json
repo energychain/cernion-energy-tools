@@ -589,6 +589,22 @@
     {
       "term": "variante",
       "reason": "Generic conditional draft label and schema description, shared across all domains; never used for domain routing or source selection."
+    },
+    {
+      "term": "criterion",
+      "reason": "Generic review criterion index into retrieved evidence; no encoded domain standards."
+    },
+    {
+      "term": "kernaussagen",
+      "reason": "Generic document section summarization requested by issue 754; no domain terminology."
+    },
+    {
+      "term": "maßnahmen",
+      "reason": "Generic document action extraction requested by issue 754; no domain behavior."
+    },
+    {
+      "term": "offen",
+      "reason": "Generic German transparency instruction when review evidence is missing."
     }
   ]
 }
