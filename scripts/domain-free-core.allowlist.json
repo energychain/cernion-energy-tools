@@ -609,6 +609,18 @@
     {
       "term": "offen",
       "reason": "Generic German transparency instruction when review evidence is missing."
+    },
+    {
+      "term": "erfasst",
+      "reason": "Generic document review and evidence processing vocabulary (#754); no domain rules or routing."
+    },
+    {
+      "term": "bewertung",
+      "reason": "Generic document review and evidence processing vocabulary (#754); no domain rules or routing."
+    },
+    {
+      "term": "prüfung",
+      "reason": "Generic document review and evidence processing vocabulary (#754); no domain rules or routing."
     }
   ]
 }

@@ -1,12 +1,34 @@
 # Dokumenten-Review: Betrieb und Abnahme (#754)
 
-## Phase 1 und Integration
+## Produktiver Dokumentfluss (Phase 2)
 
-Phase 1 stellt Parser, Dokumentaufnahme und Map/Reduce als eigenständig testbare Module
-bereit. Der produktive Gesprächspfad bleibt bis zum Merge von #752 unverändert.
-Phase 2 muss danach origin/main per Merge-Commit integrieren und diese Module vor der
-Thread-Aufbereitung einbinden. Review-Erkennung, schnelle erste Antwort, Fortsetzung und
-Notice gehören ausdrücklich zu Phase 2. Bis dahin ist dies kein fertiges Chat-Feature.
+OpenAI-kompatibler Eingang und Workbench trennen `<context>/<source>` und äußere
+`<user_query>` vor Thread-Aufbereitung und Fragevalidierung. Dokumente werden vollständig
+am zugeordneten Fall gespeichert; das Fragebudget gilt getrennt vom Aufnahmebudget.
+Überlange Dokumentpakete werden abgelehnt statt still gekürzt. Normale Evidence-/Fall-
+und Dossier-Projektionen enthalten ausschließlich Dokumentmetadaten, keinen Volltext.
+
+Bewertungs-, Prüf-, Review- und Stellungnahme-Aufträge erhalten `turnKind: review`.
+Der Uploadturn wartet auf keinen Modell- oder Wissensquellenaufruf: Er bestätigt Aufnahme,
+Prüfumfang und geplante Prüfung. Verstehen, vorhandenes read-only-Retrieval und Map/Reduce
+laufen anschließend außerhalb des HTTP-Turns. Auch kurze Reviews verwenden denselben Weg,
+weil bereits ein einzelner externer Aufruf das verbleibende Turnbudget verbrauchen kann.
+`pendingEvents` zeigt die laufende Aufgabe an. Das Ergebnis wird im nächsten Turn dieser
+Unterhaltung ausgegeben; eine Seite-/Kapitelanfrage hat Vorrang und liest direkt die
+gespeicherte Fundstelle, auch ohne Chatverlauf und ohne weiteren Modellaufruf.
+
+Reviewzustand und Ergebnis liegen im bestehenden Conversation-PouchDB mit 30 Minuten
+Gültigkeit und dessen bestehender Bereinigung. Tenant, Actor, Unterhaltung, Fall und
+Dokumenthashes binden die Aufgabe; Fallzugriff und Clearance werden vor Ausgabe erneut
+geprüft. Nach Prozessneustart startet ein noch laufend markiertes Review beim nächsten
+Turn erneut, sofern die Dokumentgrundlage weiter zugänglich ist. Laufende Aufgaben werden
+beim geordneten Broker-Stopp vor dem Schließen der Datenbanken abgewartet.
+
+Urteil und Begründung, Stärken, Risiken, Prüfpunkte, Widersprüche, offene Fragen und
+Einschränkungen werden gemeinsam geliefert. Entwürfe entstehen nur aus einer ausdrücklichen
+äußeren Bitte. Teilergebnisse, fehlende Abschnitte, fehlende Prüfmaßstäbe und unbestätigte
+Vollständigkeit werden benannt. Große Fundstellenauszüge zeigen ausdrücklich nicht
+ausgegebene Zeichen; der gespeicherte Text bleibt vollständig.
 
 `parseOpenWebUIContext(text)` trennt Frage und Dokumente. `attachDocuments(store,
 identity, documents, options)` nutzt `normalizeEvidenceInput` und den bestehenden
@@ -23,9 +45,14 @@ Wissensquellen, Datapoints und freigegebenen read-only-Capabilities. Die vorhand
 Scope-/Mandatsprüfungen bleiben wirksam. Map liest sämtliche Abschnitte; Reduce erhält
 begrenzte strukturierte Maps und die gelieferten Prüfmaßstäbe. Fachliche Standards sind
 nicht im Kern kodiert. Ohne Quellen prüft der Ablauf nur innere Stimmigkeit und benennt
-das ausdrücklich. Fundstellen sind validierte Map-Indizes mit Kapitel, Seite und
+das ausdrücklich. Fundstellen sind validierte Einzelabschnitt-Indizes mit Kapitel, Seite und
 Zeichenoffsets; Maßstäbe sind validierte Quellenindizes. Modellqualität erfordert zusätzlich
 manuelle Abnahme. Dokumente, Namen und Quellen bleiben nicht vertrauenswürdige Daten.
+
+Jede Map trägt ihre erlaubten `locationIds`; die Zusammenführung referenziert ausschließlich
+Einzelabschnitte erfolgreicher Maps. Auch Stärken und Risiken sind strukturierte Befunde mit
+Fundstellen und Maßstab. Gebündelte Maps verlieren damit keine Kapitel-/Seitenpräzision.
+Die Schemaänderung ist intern; externe Clients erhalten den gerenderten Reviewtext.
 
 ## Open WebUI: Volltext statt Ausschnitte
 
@@ -81,14 +108,14 @@ Ohne tatsächlichen Modellbetrieb wird kein Geldbetrag als gemessene Kosten ange
 
 ## Akzeptanzmatrix
 
-| Kriterium | Phase-1-Nachweis | Noch erforderlich |
+| Kriterium | Nachweis in Phase 2 | Grenze |
 | --- | --- | --- |
-| AC-01 | Parser-Varianten; Injection als Daten; Quell-ID nicht in Modelltext | Antwort-Rendering aus #752 |
-| AC-02 | Synthetischer Volltext >100000 Zeichen; PouchDB-Roundtrip; Hash, Gliederung, Deduplizierung, Isolation | HTTP-Aufnahme und Folgeturn |
-| AC-03 | Map/Reduce-Struktur; validierte Fundstellen; Widerspruch in Kapitel 1/6 | turnKind review und Kollegen-Antwort |
-| AC-04 | Vorhandene Retrieval-Pipeline; Kriterienquellen; ausdrücklicher Hinweis ohne Treffer | Endgültige Quellenzeile aus #752 |
-| AC-05 | Synthetische neutrale Fixture, deterministische Fassade; kein Kundendokument | Echter öffentlicher/anonymisierter Akzeptanzfall mit Modell und Kollegen-Rubrik |
-| AC-06 | Modul- und Regressionstests; Harness/HTTP/Gateway/Wächter sowie statische Checks | Nach Phase-2-Integration erneut ausführen |
+| AC-01 | Authentifizierter HTTP-Test mit generierter Injection-Fixture; Frage und Dokument getrennt; Quell-IDs nicht in Antwort | Modellurteilsqualität zusätzlich manuell prüfen |
+| AC-02 | 233256 Zeichen unverändert im Evidence-Store; Folgeturns Seite 12 und Kapitel 3 ohne Chatverlauf/Modellaufruf; Scope-Sperren | Full Context muss vom Client geliefert werden; kein neuer Dateiabruf |
+| AC-03 | `turnKind: review`; strukturierter Reviewtext; alle Befundgruppen mit validierten Einzelabschnitten; ausdrückliche Entwurfsbitte | Kein Urteil über ungeprüfte Abschnitte |
+| AC-04 | Vorhandener Evidence-Collector mit zusätzlichen Suchbegriffen für Maßstäbe; Capabilities aus dem bestehenden Funktionsmodell; lesbare Kriterienquellen; ehrlicher Hinweis ohne Treffer | Fachliche Regeln bleiben ausschließlich Retrievaldaten |
+| AC-05 | Nur vom Generator erzeugte neutrale Dokumente und deterministische Fassade, einschließlich Kollegen-Rubrik im PR | Keine Live-Modellqualität oder Produktionskosten behauptet; keine echten Planungstexte |
+| AC-06 | Modul-/Broker-/HTTP-Tests, Harness/HTTP-e2e, Gateway-Negativfälle, Wächter, statische Prüfungen und Generatoren | Aktuelle Gesamtresultate stehen im PR |
 
 Fixture über `node scripts/generate-review-fixture.js` erzeugen. Die deterministische
 Testfassade extrahiert eingebaute Ausgangszahlen und Wachstumsannahmen. Das belegt
@@ -117,7 +144,7 @@ zentralen Chatpfad und benötigt eigene GitNexus-Auswirkungsanalyse und HTTP-Abn
 
 ## Review-Nachprüfung für PR #756
 
-- 35 Modulprüfungen grün, inklusive 360 nummerierter Listenzeilen (3 Maps bei Budget 4),
+- 36 Modulprüfungen grün, inklusive 360 nummerierter Listenzeilen (3 Maps bei Budget 4),
   vollständiger Offsetabdeckung, Parallelität 4/2, geordneter Ergebnisse trotz wechselnder
   Laufzeit, einzelner Timeout-/429-/Schemafehler und der strikten >50-%-Grenze.
 - Die lange synthetische Fixture wird vollständig in 20 Maps verarbeitet; die oben

@@ -1512,7 +1512,11 @@ module.exports = {
           },
           { optional: true }
         );
-        if (require('../src/workbench-thread').isDocumentInput(envelope.userRequest))
+        if (
+          envelope.documents?.length ||
+          require('../src/workbench-document-input').documentReference(envelope.userRequest) ||
+          require('../src/workbench-thread').isDocumentInput(envelope.userRequest)
+        )
           return contentTurn.runContentTurn(this, ctx, {
             p,
             mapping,
@@ -1694,6 +1698,7 @@ module.exports = {
     await startLocalProvisioning(this);
   },
   async stopped() {
+    await Promise.allSettled([...(this.workbenchDocumentReviews?.values() || [])]);
     await stopLocalProvisioning(this);
   },
   created() {
