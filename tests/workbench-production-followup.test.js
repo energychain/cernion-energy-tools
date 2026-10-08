@@ -388,3 +388,27 @@ test("a sending imperative inside a foreign document does not become the person'
   expect(result.responseText).not.toContain('schick ihn bitte über euer System');
   expect(result.draft).not.toContain('[konkrete Antwort / Ergebnis]');
 });
+
+test('follow-up receives bounded user document context with opaque references', async () => {
+  const document =
+    'Von: alice@example.org\nBetreff: Bericht\n\nDie neue Prüfung ist abgeschlossen.\n\n' +
+    'Zusatz '.repeat(1000);
+  llm.generateStructured.mockResolvedValue(structuredClone(situation));
+  await understand({
+    message: 'Was hat sich durch das Dokument oben geändert?',
+    previous: situation,
+    messages: [
+      { role: 'user', content: 'OLD '.repeat(2000) },
+      ...Array.from({ length: 3 }, () => ({ role: 'user', content: 'Kontext '.repeat(1000) })),
+      { role: 'assistant', content: 'Nicht als Nutzerbeleg übernehmen.' },
+      { role: 'user', content: document },
+    ],
+  });
+  const input = JSON.parse(llm.generateStructured.mock.calls[0][1]);
+  expect(input.messages).toHaveLength(4);
+  expect(input.messages.every((entry) => entry.length <= 1500)).toBe(true);
+  expect(input.messages[3]).toContain('Die neue Prüfung ist abgeschlossen.');
+  expect(JSON.stringify(input.messages)).not.toContain('alice@example.org');
+  expect(JSON.stringify(input.messages)).not.toContain('Nicht als Nutzerbeleg');
+  expect(JSON.stringify(input.messages)).not.toContain('OLD');
+});

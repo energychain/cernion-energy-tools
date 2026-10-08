@@ -1,6 +1,7 @@
 'use strict';
 
 const crypto = require('node:crypto');
+const { relatedCaseContext } = require('./workbench-case-linking');
 const understanding = require('./workbench-understanding');
 const conversationAssistance = require('./workbench-conversation');
 const { filterEvidence, retrievalTimeoutMs } = require('./workbench-retrieval');
@@ -119,7 +120,7 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
       ? { ...previous, requestedAction: { ...previous.requestedAction, draftRequested: true } }
       : await understanding.understand({
           message: rawMessage,
-          messages: previous ? [] : ctx.params.messages,
+          messages: ctx.params.messages,
           previous,
           asked: pending?.askedQuestions || [],
           tenantId: p.tenantId,
@@ -364,6 +365,14 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
   retrieval.evidence = [...resolvedCodes.evidence, ...(retrieval.evidence || [])];
   retrieval.trace = [...(retrieval.trace || []), ...resolvedCodes.trace];
   phaseTimes.retrieveMs = Math.round(performance.now() - retrieveStarted);
+  const related = await relatedCaseContext(service, p, result.relatedCases);
+  retrieval.evidence.push(
+    ...related.items.map((item) => ({
+      source: 'related_case',
+      value: `Fall ${item.displayRef}: ${item.status}. ${item.summary}`,
+      metadata: { cetCaseId: item.cetCaseId },
+    }))
+  );
   const answerStarted = performance.now();
   let reply;
   try {
@@ -411,6 +420,7 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
       ? choiceCandidates(result, service.settings.systemActivityModel).slice(0, 3)
       : [];
   result.responseText = [
+    related.firstSentence,
     reply.responseText,
     choices.length
       ? `Optional passende Funktion (Nummer oder Name):\n${choices.map((choice, index) => `${index + 1}. ${choice.label}`).join('\n')}`

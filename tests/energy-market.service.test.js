@@ -512,7 +512,7 @@ describe('Energy Market Service', () => {
     it('should filter by commissioning year', async () => {
       const result = await broker.call('energy-market.installations', {
         installationType: 'solar',
-        location: 'Baden-Württemberg',
+        location: '69256',
         commissioningYear: 2020,
         limit: 3,
       });
@@ -523,7 +523,7 @@ describe('Energy Market Service', () => {
     it('should support grid operator filters', async () => {
       const result = await broker.call('energy-market.installations', {
         installationType: 'solar',
-        location: 'Baden-Württemberg',
+        location: '69256',
         gridOperatorBdewCode: '9900992720003',
         limit: 5,
       });
@@ -1518,21 +1518,16 @@ describe('Energy Market Service', () => {
       expect(installationParams.gridOperatorMastrId).toBe('SNB924510006275');
     });
 
-    it('Bug 3: gridOperatorName resolution failure is handled gracefully', async () => {
-      callWithNewSession
-        .mockRejectedValueOnce(new Error('market_partners timeout'))
-        .mockResolvedValueOnce({
-          success: true,
-          data: { installations: [], stats: { count: 0 } },
-        });
-
-      // Should not throw — falls through to query without VNB filter
-      const result = await broker.call('energy-market.installations', {
-        installationType: 'solar',
-        gridOperatorName: 'Unknown VNB',
-        limit: 5,
-      });
-      expect(result.success).toBe(true);
+    it('Bug 3: gridOperatorName resolution failure returns 400 without dropping the filter', async () => {
+      callWithNewSession.mockRejectedValueOnce(new Error('market_partners timeout'));
+      await expect(
+        broker.call('energy-market.installations', {
+          installationType: 'solar',
+          gridOperatorName: 'Unknown VNB',
+          limit: 5,
+        })
+      ).rejects.toMatchObject({ code: 400, type: 'GRID_OPERATOR_UNRESOLVED' });
+      expect(callWithNewSession).toHaveBeenCalledTimes(1);
     });
   });
 

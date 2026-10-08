@@ -65,7 +65,13 @@
     "src/workbench-codes.js",
     "src/workbench-background-task.js",
     "src/workbench-answer-evidence.js",
-    "src/workbench-json.js"
+    "src/workbench-json.js",
+    "src/case-linking.js",
+    "src/case-linking-mixin.js",
+    "src/workbench-case-linking.js",
+    "src/openwebui-context.js",
+    "src/workbench-document.js",
+    "src/workbench-review.js"
   ],
   "optionalPaths": [
     "src/function-model.js",

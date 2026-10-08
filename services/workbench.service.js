@@ -9,6 +9,8 @@ const { handleCorrectionTurn } = require('../src/workbench-corrections');
 const { answerSystemActivity } = require('../src/workbench-system-activity');
 const coverageTurn = require('../src/function-coverage-turn');
 const { classifyWorkbenchIntent } = require('../src/workbench-intent-router');
+const caseLinking = require('../src/workbench-case-linking');
+const { rawContentAllowed } = require('../src/case-linking');
 const contentTurn = require('../src/workbench-content-turn');
 const conversationAssistance = require('../src/workbench-conversation');
 const { Errors } = require('moleculer');
@@ -497,6 +499,8 @@ module.exports = {
       'Return a UI-safe CET case summary for Workbench clients',
       async function (ctx) {
         const p = principal(ctx, ctx.params);
+        const shared = await caseLinking.sharedCaseSummary(this, p, ctx.params.caseId);
+        if (shared) return shared;
         const state = await ctx.call('domain-router.explain', {
           cetCaseId: ctx.params.caseId,
         });
@@ -549,7 +553,13 @@ module.exports = {
             state.lastClassification?.readinessState !== ctx.params.readinessState
           )
             continue;
-          items.push(presentCaseListItem(state, summary, taskSummary));
+          if (rawContentAllowed(p, state) && state.actorId !== p.actorId)
+            await this.broker.getLocalService('domain-router').auditCaseAccess(p, state);
+          items.push(
+            rawContentAllowed(p, state)
+              ? presentCaseListItem(state, summary, taskSummary)
+              : await this.broker.getLocalService('domain-router').readCaseSummary(p, state)
+          );
         }
         items.sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)));
         const limit = Number(ctx.params.limit || 50);
@@ -1446,6 +1456,12 @@ module.exports = {
           return { responseText: result.reply || '' };
         }
         if (ctx.params.intentMode === 'status_query') {
+          const linkedStatus = await caseLinking.findIdentifierStatus(
+            ctx,
+            envelope.userRequest,
+            meta
+          );
+          if (linkedStatus) return linkedStatus;
           const conversation = await this.store.resolveConversation(
             {
               tenantId: p.tenantId,
@@ -1511,6 +1527,14 @@ module.exports = {
         const confirmation = conversationAssistance.emptyConfirmation(envelope.userRequest);
         const offeredContent =
           pending?.offeredContent || conversationAssistance.substantiveMessage(ctx.params.messages);
+        const caseLinkCorrection = await caseLinking.handleCaseLinkTurn(
+          this,
+          ctx,
+          p,
+          envelope,
+          correctionMeta
+        );
+        if (caseLinkCorrection) return caseLinkCorrection;
         const correctionResult = await handleCorrectionTurn(
           {
             params: ctx.params,
@@ -1541,6 +1565,7 @@ module.exports = {
               'Du kannst eine eindeutige Bezeichnung wählen, mit „Starte einen Fall“ einen Fall starten oder mit „Frage beantworten“ eine unverbindliche Einschätzung anfordern.';
           }
           await conversationAssistance.saveTurn(this.conversationsDb, p, envelope, {
+            correctionFamily: 'function',
             offeredContent: offeredCorrectionContent,
             lastQuestion: question && !alreadyAsked ? question : '',
             askedQuestions: [
@@ -2047,6 +2072,8 @@ module.exports = {
       const existing =
         (await this.store.getInboxTask({ tenantId: p.tenantId, taskId }, { optional: true })) ||
         (await this.materializeInboxTask(p, taskId));
+      const router = this.broker.getLocalService('domain-router');
+      await router.loadCase(p, existing.caseId || existing.cetCaseId);
       const saved = await this.store.saveInboxTask({
         ...existing,
         ...patch,
@@ -2073,13 +2100,17 @@ module.exports = {
       }
       const eventId = String(taskId || '').replace(/^task_/, '');
       const states = new Map(
-        (await this.visibleDomainStates(p)).map((state) => [state.cetCaseId, state])
+        (await this.visibleDomainStates(p))
+          .filter((state) => rawContentAllowed(p, state))
+          .map((state) => [state.cetCaseId, state])
       );
       for (const { doc } of (await service.eventsDb.allDocs({ include_docs: true })).rows) {
         if (doc.tenantId !== p.tenantId || doc.eventId !== eventId || !states.has(doc.cetCaseId))
           continue;
         if (!['pending', 'delivered'].includes(doc.deliveryState)) break;
-        const task = taskFromEvent(doc, { domain: states.get(doc.cetCaseId)?.currentDomain });
+        const state = states.get(doc.cetCaseId);
+        if (state.actorId !== p.actorId) await service.auditCaseAccess(p, state);
+        const task = taskFromEvent(doc, { domain: state.currentDomain });
         return this.store.saveInboxTask({ ...task, tenantId: p.tenantId });
       }
       throw new Errors.MoleculerClientError(
@@ -2099,19 +2130,30 @@ module.exports = {
     async projectInboxTasksForCases(p, caseIds = [], { caseId = null, status = null } = {}) {
       const allowed = new Set(caseIds.filter(Boolean));
       const states = new Map(
-        (await this.visibleDomainStates(p)).map((state) => [state.cetCaseId, state])
+        (await this.visibleDomainStates(p))
+          .filter((state) => rawContentAllowed(p, state))
+          .map((state) => [state.cetCaseId, state])
       );
       const persisted = await this.store.listInboxTasks({ tenantId: p.tenantId, caseId, status });
       const byTaskId = new Map(
         persisted
-          .filter((task) => !caseIds.length || allowed.has(task.caseId || task.cetCaseId))
+          .filter(
+            (task) =>
+              states.has(task.caseId || task.cetCaseId) &&
+              (!caseIds.length || allowed.has(task.caseId || task.cetCaseId))
+          )
           .map((task) => [task.taskId, { ...task, persisted: true }])
       );
       const service = this.broker.getLocalService('domain-router');
       if (service && allowed.size) {
         const rows = await service.eventsDb.allDocs({ include_docs: true });
         for (const { doc } of rows.rows) {
-          if (doc.tenantId !== p.tenantId || !allowed.has(doc.cetCaseId)) continue;
+          if (
+            doc.tenantId !== p.tenantId ||
+            !allowed.has(doc.cetCaseId) ||
+            !states.has(doc.cetCaseId)
+          )
+            continue;
           if (!['pending', 'delivered'].includes(doc.deliveryState)) continue;
           const existing = byTaskId.get(`task_${doc.eventId}`);
           if (existing && ['resolved', 'dismissed'].includes(existing.status)) continue;
@@ -2126,11 +2168,14 @@ module.exports = {
           });
         }
       }
-      return [...byTaskId.values()]
-        .filter((task) => !status || task.status === status)
-        .sort((a, b) =>
-          String(b.updatedAt || b.createdAt).localeCompare(String(a.updatedAt || a.createdAt))
-        );
+      const result = [...byTaskId.values()].filter((task) => !status || task.status === status);
+      for (const caseId of new Set(result.map((task) => task.caseId || task.cetCaseId))) {
+        const state = states.get(caseId);
+        if (state?.actorId !== p.actorId) await service.auditCaseAccess(p, state);
+      }
+      return result.sort((a, b) =>
+        String(b.updatedAt || b.createdAt).localeCompare(String(a.updatedAt || a.createdAt))
+      );
     },
     async taskSummaries(p, caseIds = []) {
       const summaries = new Map(caseIds.map((caseId) => [caseId, this.emptyTaskSummary()]));

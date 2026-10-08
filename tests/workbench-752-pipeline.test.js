@@ -88,6 +88,7 @@ beforeEach(async () => {
   });
   coverage.config = { maxInputSignalsPerTurn: 20, maxPendingTurns: 10 };
   coverage.pendingTurns = 0;
+  coverage.documents = jest.fn(async () => []);
   llm.generateStructured.mockImplementation(async (_schema, prompt) => ({
     ...structuredClone(situation),
     followupKind: JSON.parse(prompt).previous ? 'next_step' : 'none',
@@ -258,11 +259,12 @@ test.each(['Sehr geehrter Alex Beispiel,', 'Sehr geehrte Alex Beispiel,'])(
   }
 );
 
-test('R3 followup does not resend timeline bodies or regenerate a proactive draft', async () => {
+test('R3 followup supplies bounded timeline context without regenerating a proactive draft', async () => {
   await call(fixtures.R3);
   const result = await call('Was soll ich konkret tun?');
   const prompt = JSON.parse(llm.generateStructured.mock.calls[1][1]);
-  expect(prompt.previous.timeline).toBeUndefined();
+  expect(prompt.previous.timeline).toHaveLength(8);
+  expect(prompt.previous.timeline.every((entry) => entry.summary.length <= 600)).toBe(true);
   expect(prompt.schema.properties.timeline).toBeUndefined();
   expect(result.situation.timeline).toHaveLength(9);
   expect(result.draftId).toBeUndefined();
@@ -392,4 +394,49 @@ test('new mail retains earlier identifiers and unresolved code even when delta o
   expect(result.cetCaseId).toBe(first.cetCaseId);
   expect(result.situation.identifiers).toContainEqual({ kind: 'rejection_reason', value: 'A33' });
   expect(result.situation.codeResolutions[0].status).toBe('unresolved');
+});
+
+test('knowledge → pasted mail → change question retains mail context in understanding', async () => {
+  const knowledge = { ...structuredClone(situation), turnKind: 'knowledge', hypotheses: [] };
+  const mail =
+    'Von: Team\nGesendet: 08.10.2026\nBetreff: Bearbeitung\n\nDie Prüfung ist abgeschlossen. Die Rückmeldung fehlt noch.';
+  llm.generateStructured.mockResolvedValueOnce(knowledge);
+  await call('Was bedeutet eine Eingangsbestätigung?');
+  llm.generateStructured.mockResolvedValueOnce({
+    ...structuredClone(situation),
+    followupKind: 'new_information',
+  });
+  await call(mail);
+  llm.generateStructured.mockImplementationOnce(async (_schema, prompt) => {
+    const input = JSON.parse(prompt);
+    expect(input.message).toBe('Was hat sich durch die Mail jetzt geändert?');
+    expect(input.previous.timeline[0].summary).toContain('Die Prüfung ist abgeschlossen.');
+    expect(input.previous.timeline[0].summary).toContain('Die Rückmeldung fehlt noch.');
+    return { ...structuredClone(situation), followupKind: 'question' };
+  });
+  const result = await call('Was hat sich durch die Mail jetzt geändert?');
+  expect(result.situation.followupKind).toBe('question');
+  expect(result.situation.timeline[0].summary).toContain('Die Prüfung ist abgeschlossen.');
+});
+
+test('follow-up forwards client document history even when a previous situation exists', async () => {
+  await call('Bitte hilf bei dieser offenen Frage.');
+  const document = 'Bericht: Die Prüfung ist abgeschlossen; die Rückmeldung fehlt noch.';
+  llm.generateStructured.mockImplementationOnce(async (_schema, prompt) => {
+    const input = JSON.parse(prompt);
+    expect(input.previous).toBeTruthy();
+    expect(input.messages).toEqual([document]);
+    return { ...structuredClone(situation), followupKind: 'question' };
+  });
+  const result = await broker.call(
+    'workbench.chat',
+    {
+      channel: 'open-webui',
+      conversationId: 'regression-752',
+      message: 'Was hat sich durch das Dokument oben geändert?',
+      messages: [{ role: 'user', content: document }],
+    },
+    { meta: structuredClone(meta) }
+  );
+  expect(result.situation.followupKind).toBe('question');
 });

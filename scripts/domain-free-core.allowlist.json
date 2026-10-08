@@ -593,6 +593,22 @@
     {
       "term": "thread",
       "reason": "Generic correspondence and execution-thread terminology; no energy-market meaning or domain routing rule."
+    },
+    {
+      "term": "criterion",
+      "reason": "Generic review criterion index into retrieved evidence; no encoded domain standards."
+    },
+    {
+      "term": "kernaussagen",
+      "reason": "Generic document section summarization requested by issue 754; no domain terminology."
+    },
+    {
+      "term": "maßnahmen",
+      "reason": "Generic document action extraction requested by issue 754; no domain behavior."
+    },
+    {
+      "term": "offen",
+      "reason": "Generic German transparency instruction when review evidence is missing."
     }
   ]
 }
