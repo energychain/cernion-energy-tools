@@ -5,24 +5,53 @@ function maxInputChars() {
   return Number.isInteger(value) && value > 0 ? value : 40000;
 }
 
+function isThreadStart(line) {
+  if (/^(?:Von|From):[ \t]/.test(line)) return true;
+  if (line.startsWith('Am ') && line.endsWith(':')) return line.includes(' schrieb');
+  return line.startsWith('On ') && line.endsWith(' wrote:');
+}
+
+function threadLines(raw) {
+  return String(raw || '')
+    .replaceAll('\r\n', '\n')
+    .split('\n')
+    .map((line) => line.replace(/^[ \t]*>[ \t]?/, ''));
+}
+
+function isThreadInput(raw) {
+  return threadLines(raw).some(isThreadStart);
+}
+
 // Repetition alone is not enough: only repeated multi-line trailing blocks
 // are removed. Repeated promises in the message body remain evidence.
 function prepareThread(raw, budget = 16000) {
-  const normalized = String(raw || '')
-    .replace(/\r\n/g, '\n')
-    .replace(/^\s*>\s?/gm, '');
-  const pieces = normalized.split(/(?=^(?:Von|From):\s|^(?:Am .+ schrieb.*:|On .+ wrote:))/m);
-  const messages = pieces.map((piece, index) => {
+  const original = String(raw || '');
+  const lines = threadLines(original);
+  if (!lines.some(isThreadStart)) return { text: original, timeline: [], truncated: false };
+  const normalized = lines.join('\n');
+  const pieces = [];
+  let piece = [];
+  for (const line of lines) {
+    if (isThreadStart(line) && piece.length) {
+      pieces.push(piece.join('\n'));
+      piece = [];
+    }
+    piece.push(line);
+  }
+  pieces.push(piece.join('\n'));
+  const messages = pieces.map((content, index) => {
     const sender =
-      piece.match(/^(?:Von|From):\s*(.+)$/m)?.[1] ||
-      piece.match(/^(?:Am .+ schrieb.*:|On .+ wrote:)$/m)?.[0] ||
+      /^(?:Von|From):([^\n]*)$/m.exec(content)?.[1]?.trim() ||
+      content.split('\n').find(isThreadStart) ||
       '';
-    const date = piece.match(/^(?:Gesendet|Sent|Date|Datum):\s*(.+)$/m)?.[1] || '';
-    const subject = piece.match(/^(?:Betreff|Subject):\s*(.+)$/m)?.[1] || '';
-    const body = piece
-      .replace(/^(?:Von|From|Gesendet|Sent|Date|Datum|An|To|Betreff|Subject):[^\n]*\n?/gm, '')
+    const date = /^(?:Gesendet|Sent|Date|Datum):([^\n]*)$/m.exec(content)?.[1]?.trim() || '';
+    const subject = /^(?:Betreff|Subject):([^\n]*)$/m.exec(content)?.[1]?.trim() || '';
+    const body = content
+      .split('\n')
+      .filter((line) => !/^(?:Von|From|Gesendet|Sent|Date|Datum|An|To|Betreff|Subject):/.test(line))
+      .join('\n')
       .trim();
-    return { index, sender, date, subject, blocks: body.split(/\n\s*\n/).filter(Boolean) };
+    return { index, sender, date, subject, blocks: body.split(/\n[ \t]*\n/).filter(Boolean) };
   });
   const counts = new Map();
   for (const message of messages) {
@@ -97,9 +126,9 @@ function prepareThread(raw, budget = 16000) {
 
 function isDocumentInput(message) {
   return (
-    prepareThread(message).timeline.length > 0 ||
+    isThreadInput(message) ||
     /^(?:Mein|Unser) (?:Antwort)?entwurf:/i.test(String(message || '').trim())
   );
 }
 
-module.exports = { prepareThread, maxInputChars, isDocumentInput };
+module.exports = { prepareThread, maxInputChars, isDocumentInput, isThreadInput };

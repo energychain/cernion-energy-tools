@@ -157,3 +157,54 @@ test('Willi collector keeps document titles and sections through the evidence bo
     sectionId: 'Abschnitt 3',
   });
 });
+
+test('normal free text retains header-like lines and quote markers unchanged', () => {
+  const message =
+    'Bitte prüfe meine Notizen:\nDatum: nächste Woche\nAn: unser Team\n> eine wichtige Aussage';
+  expect(prepareThread(message)).toEqual({ text: message, timeline: [], truncated: false });
+  expect(require('../src/workbench-thread').isDocumentInput(message)).toBe(false);
+});
+
+test.each([
+  'Der Code ist unklar.',
+  'Code A33 ist ein Beispiel im Programm.',
+  'Bitte lies den Code.',
+])('ordinary code wording without rejection context is not a catalog code: %s', (message) => {
+  expect(captureCodes(message)).toEqual([]);
+});
+
+test('structured lookup uses custom source budget and skips absent budgets', async () => {
+  const call = jest.fn(async () => ({ success: true, data: { sources: [] } }));
+  const identifiers = captureCodes('Ablehnungsgrund A33');
+  await resolveCodes({ call }, { identifiers }, {}, undefined, {
+    sources: [{ id: 'willi-mako', timeoutMs: 9876 }],
+  });
+  expect(call.mock.calls[0][2].timeout).toBe(9876);
+  call.mockClear();
+  const result = await resolveCodes({ call }, { identifiers }, {}, undefined, { sources: [] });
+  expect(call).not.toHaveBeenCalled();
+  expect(result.resolutions[0].status).toBe('unresolved');
+});
+
+test.each([
+  ['title', 'title', ''],
+  ['tags', 'tags', []],
+  ['follow-up questions', 'follow_ups', []],
+])(
+  'metadata parse and provider errors return valid empty %s JSON and warn',
+  async (task, key, empty) => {
+    const logger = { warn: jest.fn() };
+    const message = `### Task: Generate ${task}\n<chat_history>USER: help</chat_history>`;
+    for (const failure of [
+      'not JSON',
+      'null',
+      Object.assign(new Error('provider failed'), { status: 429 }),
+    ]) {
+      if (failure instanceof Error) llm.generateText.mockRejectedValueOnce(failure);
+      else llm.generateText.mockResolvedValueOnce(failure);
+      const result = await answerBackgroundTask(message, 'test', logger);
+      expect(JSON.parse(result.responseText)).toEqual({ [key]: empty });
+    }
+    expect(logger.warn).toHaveBeenCalledTimes(3);
+  }
+);

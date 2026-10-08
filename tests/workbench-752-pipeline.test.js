@@ -27,6 +27,7 @@ const situation = {
     draftRequested: true,
   },
   turnKind: 'work',
+  followupKind: 'none',
   retrievalTerms: [],
 };
 const claim = (text) => ({
@@ -87,7 +88,10 @@ beforeEach(async () => {
   });
   coverage.config = { maxInputSignalsPerTurn: 20, maxPendingTurns: 10 };
   coverage.pendingTurns = 0;
-  llm.generateStructured.mockImplementation(async () => structuredClone(situation));
+  llm.generateStructured.mockImplementation(async (_schema, prompt) => ({
+    ...structuredClone(situation),
+    followupKind: JSON.parse(prompt).previous ? 'next_step' : 'none',
+  }));
   llm.generateText.mockResolvedValue(
     JSON.stringify({
       interpretation: [
@@ -136,13 +140,15 @@ test('AC-01 R3 creates a case, retains timeline, keeps repeated signatures out o
   expect(prompts).not.toMatch(/Telefon:|Diese Nachricht ist nur|Beispielweg 42/);
 });
 
-test('AC-02 structured code lookup without exact hit asks and prevents any draft/model code interpretation', async () => {
+test('AC-02 structured code lookup without exact hit asks and keeps independent retrieval and answers while preventing code interpretation', async () => {
   const result = await call(fixtures.R2[0]);
   expect(exact).toHaveBeenCalled();
   expect(result.situation.identifiers).toContainEqual({ kind: 'rejection_reason', value: 'A33' });
   expect(result.responseText).toContain('Code A33 kann ich nicht sicher zuordnen');
   expect(result.draftId).toBeUndefined();
-  expect(llm.generateText).not.toHaveBeenCalled();
+  expect(llm.generateText).toHaveBeenCalled();
+  expect(retrieval).toHaveBeenCalled();
+  expect(result.responseText).toContain('Prüfe das zugesagte Ergebnis');
 });
 
 test('AC-03 background title has no case, retrieval, coverage or notice side effects', async () => {
@@ -260,4 +266,130 @@ test('R3 followup does not resend timeline bodies or regenerate a proactive draf
   expect(prompt.schema.properties.timeline).toBeUndefined();
   expect(result.situation.timeline).toHaveLength(9);
   expect(result.draftId).toBeUndefined();
+});
+
+test.each([
+  'Von: Lieferant\nGesendet: 08.10.2026\nBetreff: Neue Mail\n\nDas Ergebnis fehlt weiterhin.',
+  'Mein Antwortentwurf: Guten Tag, bitte nennen Sie den aktuellen Stand.',
+])(
+  'document followup retains the active case and passes previous situation and asked questions: %s',
+  async (message) => {
+    const first = await call(fixtures.R3);
+    const service = broker.getLocalService('workbench');
+    const rows = await service.conversationsDb.allDocs({ include_docs: true });
+    const saved = rows.rows.find(({ doc }) => doc.type === 'workbench_conversation_assistance').doc;
+    const question = { key: 'result', question: 'Welches Ergebnis liegt vor?', blocking: true };
+    await service.conversationsDb.put({ ...saved, askedQuestions: [question] });
+    llm.generateStructured.mockImplementationOnce(async (_schema, raw) => {
+      const prompt = JSON.parse(raw);
+      expect(prompt.previous.concern).toBe(first.situation.concern);
+      expect(prompt.askedQuestions).toEqual([question]);
+      return { ...structuredClone(situation), followupKind: 'new_information' };
+    });
+    retrieval.mockClear();
+    const result = await call(message);
+    expect(result.cetCaseId).toBe(first.cetCaseId);
+    expect(result.situation.concern).toBe(first.situation.concern);
+    expect(result.situation.timeline.length).toBeGreaterThanOrEqual(9);
+    expect(retrieval).toHaveBeenCalled();
+  }
+);
+
+test.each(['Welche Handlung hilft uns hier am meisten?', 'Wie bringe ich den Vorgang voran?'])(
+  'next-step reuse depends on semantic situation for varied phrasing: %s',
+  async (message) => {
+    const first = await call(fixtures.R1);
+    retrieval.mockClear();
+    const result = await call(message);
+    expect(result.cetCaseId).toBe(first.cetCaseId);
+    expect(retrieval).not.toHaveBeenCalled();
+    expect(result.draftId).toBeUndefined();
+  }
+);
+
+test('familiar next-step phrasing cannot override model-recognized new information', async () => {
+  await call(fixtures.R1);
+  llm.generateStructured.mockResolvedValueOnce({
+    ...structuredClone(situation),
+    followupKind: 'new_information',
+  });
+  retrieval.mockClear();
+  await call('Was soll ich konkret tun?');
+  expect(retrieval).toHaveBeenCalled();
+});
+
+test('open code filters both explicit and implicit code-dependent claims, keeps independent answer', async () => {
+  llm.generateText.mockResolvedValue(
+    JSON.stringify({
+      interpretation: [claim('A33 bedeutet abweichende Daten.')],
+      expectation: [],
+      nextSteps: [
+        claim('Prüfe den dokumentierten Stand.'),
+        { ...claim('Korrigiere die Zählerzuordnung.'), codeDependencies: ['A33'] },
+      ],
+      draft: [claim('Guten Tag, bitte antworten Sie.')],
+    })
+  );
+  const result = await call(fixtures.R2[0]);
+  expect(result.responseText).toContain('Prüfe den dokumentierten Stand.');
+  expect(result.responseText).toContain('Code A33 kann ich nicht sicher zuordnen');
+  expect(result.responseText).not.toContain('abweichende Daten');
+  expect(result.responseText).not.toContain('Korrigiere die Zählerzuordnung');
+  expect(result.draftId).toBeUndefined();
+});
+
+test.each(['title', 'tags', 'follow-up questions'])(
+  'provider errors in metadata tasks reach Open WebUI as valid empty JSON: %s',
+  async (task) => {
+    llm.generateText.mockRejectedValueOnce(
+      Object.assign(new Error('rate limited'), { status: 429 })
+    );
+    const result = await call(
+      `### Task: Generate ${task}\n<chat_history>USER: help</chat_history>`
+    );
+    const key = { title: 'title', tags: 'tags', 'follow-up questions': 'follow_ups' }[task];
+    expect(JSON.parse(result.responseText)).toEqual({ [key]: key === 'title' ? '' : [] });
+    expect(retrieval).not.toHaveBeenCalled();
+    expect(llm.generateStructured).not.toHaveBeenCalled();
+  }
+);
+
+test('ordinary Code wording cannot become a typed lookup through a model guess', async () => {
+  llm.generateStructured.mockResolvedValueOnce({
+    ...structuredClone(situation),
+    identifiers: [{ kind: 'rejection_reason', value: 'A33' }],
+  });
+  const result = await call(
+    'Der Code A33 ist ein Beispiel in meinem Programm. Bitte hilf beim Lesen.'
+  );
+  expect(exact).not.toHaveBeenCalled();
+  expect(result.situation.codeResolutions).toEqual([]);
+  expect(result.responseText).not.toContain('kann ich nicht sicher zuordnen');
+});
+
+test('inserted mail respects persisted case suppression', async () => {
+  await call(fixtures.R1);
+  await call('Kein Fall');
+  const result = await call(
+    'Von: Lieferant\nGesendet: 08.10.2026\n\nBitte antworte auf die Anfrage.'
+  );
+  expect(result.cetCaseId).toBeUndefined();
+  const service = broker.getLocalService('workbench');
+  const rows = await service.conversationsDb.allDocs({ include_docs: true });
+  const saved = rows.rows.find(({ doc }) => doc.type === 'workbench_conversation_assistance').doc;
+  expect(saved.caseSuppressed).toBe(true);
+});
+
+test('new mail retains earlier identifiers and unresolved code even when delta omits them', async () => {
+  const first = await call(fixtures.R2[0]);
+  llm.generateStructured.mockResolvedValueOnce({
+    ...structuredClone(situation),
+    followupKind: 'new_information',
+  });
+  const result = await call(
+    'Von: Lieferant\nGesendet: 08.10.2026\n\nEine weitere Sachangabe zur laufenden Anfrage.'
+  );
+  expect(result.cetCaseId).toBe(first.cetCaseId);
+  expect(result.situation.identifiers).toContainEqual({ kind: 'rejection_reason', value: 'A33' });
+  expect(result.situation.codeResolutions[0].status).toBe('unresolved');
 });

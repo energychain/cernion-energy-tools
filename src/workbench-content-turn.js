@@ -101,50 +101,18 @@ async function evidenceAccess(service, p) {
 async function runContentTurn(service, ctx, { p, mapping, envelope, pending, conversation, meta }) {
   const started = performance.now();
   const rawMessage = envelope.userRequest;
-  envelope = {
-    ...envelope,
-    userRequest: require('./workbench-thread').prepareThread(envelope.userRequest, 12000).text,
-  };
+  const thread = require('./workbench-thread');
+  if (thread.isThreadInput(rawMessage))
+    envelope = { ...envelope, userRequest: thread.prepareThread(rawMessage, 12000).text };
   const workbenchContext = await service.loadWorkbenchContext(p, envelope, mapping);
   const state = conversation?.cetCaseId
     ? await service.loadVisibleCase(ctx, p, conversation.cetCaseId)
     : null;
   const previous = pending?.situation || state?.knownContext?.situation;
   const draftRequest = Boolean(previous && understanding.isDraftRequest(envelope.userRequest));
-  const nextStepRequest =
-    /^(?:Was soll ich (?:jetzt |konkret )?tun|Was (?:jetzt|nun)|Wie (?:geht es|machen wir) weiter)[.!?\s]*$/i.test(
-      envelope.userRequest.trim()
-    );
-  const reuseEvidence = Boolean(
-    previous &&
-    nextStepRequest &&
-    pending?.retrieval &&
-    Date.now() - (pending.evidenceRetrievedAt || 0) < 300000
-  );
   const phaseTimes = { understandMs: 0, retrieveMs: 0, answerMs: 0 };
   let situation;
   let understandingFailed = false;
-  // Generic knowledge reads overlap understanding; current-principal meta remains intact.
-  const prefetchedKnowledge =
-    !draftRequest && !reuseEvidence
-      ? ctx
-          .call(
-            'personal-agent.collectWorkbenchEvidence',
-            {
-              situation: {
-                concern: envelope.userRequest.slice(0, 600),
-                situation: previous?.concern || '',
-                hypotheses: [],
-                retrievalTerms: [],
-              },
-            },
-            {
-              meta: { ...meta, workbenchEvidenceSources: ['knowledge-rag'] },
-              timeout: retrievalTimeoutMs(),
-            }
-          )
-          .catch(() => null)
-      : null;
   const understandStarted = performance.now();
   try {
     situation = draftRequest
@@ -156,6 +124,7 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
           asked: pending?.askedQuestions || [],
           tenantId: p.tenantId,
           model: service.settings.systemActivityModel,
+          codeCatalog: service.settings.workbenchCodeCatalog,
           logger: service.logger,
         });
   } catch (error) {
@@ -181,6 +150,34 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
     };
   }
   phaseTimes.understandMs = Math.round(performance.now() - understandStarted);
+  const nextStepRequest = situation.followupKind === 'next_step';
+  const reuseEvidence = Boolean(
+    previous &&
+    nextStepRequest &&
+    pending?.retrieval &&
+    Date.now() - (pending.evidenceRetrievedAt || 0) < 300000
+  );
+  // Use the understood turn kind before deciding whether fresh retrieval is needed.
+  const prefetchedKnowledge =
+    !draftRequest && !reuseEvidence
+      ? ctx
+          .call(
+            'personal-agent.collectWorkbenchEvidence',
+            {
+              situation: {
+                concern: envelope.userRequest.slice(0, 600),
+                situation: previous?.concern || '',
+                hypotheses: [],
+                retrievalTerms: [],
+              },
+            },
+            {
+              meta: { ...meta, workbenchEvidenceSources: ['knowledge-rag'] },
+              timeout: retrievalTimeoutMs(),
+            }
+          )
+          .catch(() => null)
+      : null;
   if (situation.turnKind === 'smalltalk') {
     service.logger.info('Workbench turn phases and sources', { phaseTimes, sources: [] });
     return {
@@ -275,42 +272,42 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
     { call: (name, params, options) => ctx.call(name, params, { ...options, meta }), meta },
     situation,
     access,
-    service.settings.workbenchCodeCatalog
+    service.settings.workbenchCodeCatalog,
+    service.settings.workbenchKnowledgeSources || sourceDefaults
   );
 
   let retrieval;
   const retrieveStarted = performance.now();
   const resolvedCodes = await codeLookup;
-  const codesUnresolved = resolvedCodes.resolutions.some((entry) => entry.status !== 'resolved');
   try {
-    retrieval = codesUnresolved
-      ? { evidence: [], trace: [] }
-      : understandingFailed && !previous
-        ? { evidence: [], trace: [] }
-        : (draftRequest || reuseEvidence) && pending?.retrieval
-          ? {
-              ...pending.retrieval,
-              trace: (pending.retrieval.trace || [])
-                .filter((entry) => entry.source !== 'response_boundary')
-                .map((entry) => ({ ...entry, called: false, ms: 0 })),
-            }
-          : await ctx.call(
-              'personal-agent.collectWorkbenchEvidence',
-              { situation },
-              {
-                meta: {
-                  ...meta,
-                  workbenchEvidenceAccess: access,
-                  workbenchEvidenceSources: null,
-                  workbenchPrefetchedKnowledge: knowledgeCache,
-                  workbenchSelectedCapabilities: (result.selectedCapabilities || []).map((entry) =>
-                    typeof entry === 'string' ? entry : entry.capability
-                  ),
-                  workbenchEvidenceCaseId: caseId,
-                },
-                timeout: retrievalTimeoutMs(),
-              }
-            );
+    if (understandingFailed && !previous) {
+      retrieval = { evidence: [], trace: [] };
+    } else if ((draftRequest || reuseEvidence) && pending?.retrieval) {
+      retrieval = {
+        ...pending.retrieval,
+        trace: (pending.retrieval.trace || [])
+          .filter((entry) => entry.source !== 'response_boundary')
+          .map((entry) => ({ ...entry, called: false, ms: 0 })),
+      };
+    } else {
+      retrieval = await ctx.call(
+        'personal-agent.collectWorkbenchEvidence',
+        { situation },
+        {
+          meta: {
+            ...meta,
+            workbenchEvidenceAccess: access,
+            workbenchEvidenceSources: null,
+            workbenchPrefetchedKnowledge: knowledgeCache,
+            workbenchSelectedCapabilities: (result.selectedCapabilities || []).map((entry) =>
+              typeof entry === 'string' ? entry : entry.capability
+            ),
+            workbenchEvidenceCaseId: caseId,
+          },
+          timeout: retrievalTimeoutMs(),
+        }
+      );
+    }
     // Recheck the contract at the response boundary, including stubbed/custom facades.
     const groups = new Map();
     for (const hit of retrieval.evidence || []) {

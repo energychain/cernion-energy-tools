@@ -8,10 +8,7 @@ require('dotenv').config({ path: process.env.WORKBENCH_ENV_FILE || '.env', quiet
 process.env.WORKBENCH_LLM_MODEL = 'gemini-3.5-flash-lite,gemini-flash-latest';
 process.env.WORKBENCH_LLM_TIMEOUT_MS = '15000,45000';
 process.env.WORKBENCH_LLM_THINKING = 'minimal,default';
-const { ServiceBroker } = require('moleculer');
-const Workbench = require('../services/workbench.service');
-const Router = require('../services/domain-router.service');
-const PersonalAgent = require('../services/personal-agent.service');
+const { createLiveHarness } = require('./workbench-live-harness');
 const llm = require('../src/llm-client');
 const validateAnswer = new (require('ajv'))({ allErrors: true }).compile(
   require('../src/workbench-understanding').ANSWER_SCHEMA
@@ -22,13 +19,14 @@ const originalText = llm.generateText;
 llm.generateText = async (...args) => {
   const raw = await originalText(...args);
   try {
-    const parsed = JSON.parse(raw.replace(/^```(?:json)?\s*|\s*```$/g, ''));
+    const parsed = JSON.parse(require('../src/workbench-json').stripJsonFence(raw));
     diagnostics.push({
       valid: !!validateAnswer(parsed),
       errors: validateAnswer.errors,
       draftType: typeof parsed.draft,
     });
   } catch (_error) {
+    // Invalid provider output is a validation result; retain it in the report.
     diagnostics.push({ valid: false, parseError: true });
   }
   return raw;
@@ -36,70 +34,46 @@ llm.generateText = async (...args) => {
 
 async function validateWorkbench752() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cet-746-live-'));
-  const broker = new ServiceBroker({ logger: false, transporter: null });
-  const settings = Object.assign(
-    {},
-    ...Workbench.mixins.map((mixin) => mixin.settings || {}),
-    Workbench.settings
-  );
-  for (const name of Object.keys(settings))
-    if (name.endsWith('DbPath') || name === 'dbPath') settings[name] = path.join(dir, name);
-  const workbench = broker.createService({ ...Workbench, settings });
-  broker.createService({
-    ...Router,
-    settings: {
-      ...Router.settings,
-      dbPath: path.join(dir, 'router'),
-      eventsDbPath: path.join(dir, 'events'),
-      knowledgeTimeoutMs: 50,
+  const knowledgeNotes = [
+    {
+      id: 'local-process-note',
+      score: 0.92,
+      summary:
+        'Anfrage dokumentieren. Referenz, Eingangsdatum und zuständige Bearbeitung prüfen. Behauptungen anhand der ursprünglichen Anfrage und Eingangsbestätigung verifizieren.',
+      url: 'https://example.invalid/anonymous-process-note',
     },
-  });
-  broker.createService({
-    name: 'personal-agent',
-    methods: PersonalAgent.methods,
-    actions: { collectWorkbenchEvidence: PersonalAgent.actions.collectWorkbenchEvidence },
-  });
-  broker.createService({
-    name: 'knowledge-rag',
-    actions: {
-      query: (ctx) => ({
-        results: [
-          {
-            id: 'local-process-note',
-            score: 0.92,
-            summary:
-              ctx.params.query +
-              '\n' +
-              'Anfrage dokumentieren. Referenz, Eingangsdatum und zuständige Bearbeitung prüfen. Behauptungen anhand der ursprünglichen Anfrage und Eingangsbestätigung verifizieren.',
-            url: 'https://example.invalid/anonymous-process-note',
-          },
-          {
-            id: 'irrelevant-note',
-            score: 0.58,
-            summary: 'Rotorblattwartung und Schmierstoffkontrolle.',
-          },
-        ],
-      }),
-      federatedSearch: () => ({ results: [] }),
+    { id: 'irrelevant-note', score: 0.58, summary: 'Rotorblattwartung und Schmierstoffkontrolle.' },
+  ];
+  const sourceServices = [
+    {
+      name: 'knowledge-rag',
+      actions: {
+        query: (ctx) => ({
+          results: knowledgeNotes.map((note, index) => ({
+            ...note,
+            summary: index ? note.summary : `${ctx.params.query}\n${note.summary}`,
+          })),
+        }),
+        federatedSearch: () => ({ results: [] }),
+      },
     },
-  });
-  broker.createService(require('../services/willi-mako.service'));
-  broker.createService({ name: 'datapoint', actions: { list: () => ({ datapoints: [] }) } });
-  broker.createService({ name: 'object-store', actions: { query: () => ({ docs: [] }) } });
-  broker.createService({
-    name: 'capability-broker',
-    actions: {
-      recommend: () => ({
-        uncertain: true,
-        candidateCapabilities: [],
-        recommendedCapabilities: [],
-      }),
+    require('../services/willi-mako.service'),
+    ...Object.entries({ datapoint: ['list', 'datapoints'], 'object-store': ['query', 'docs'] }).map(
+      ([name, [action, field]]) => ({ name, actions: { [action]: () => ({ [field]: [] }) } })
+    ),
+    {
+      name: 'capability-broker',
+      actions: {
+        recommend: () => ({
+          uncertain: true,
+          candidateCapabilities: [],
+          recommendedCapabilities: [],
+        }),
+      },
     },
-  });
-  broker.createService({
-    name: 'agent-receipts',
-    actions: { select: () => ({ data: { selected: false } }) },
-  });
+    { name: 'agent-receipts', actions: { select: () => ({ data: { selected: false } }) } },
+  ];
+  const { broker, workbench } = createLiveHarness(dir, sourceServices);
   const fixtures = require('../tests/fixtures/workbench-752.json');
   const messages = [
     { scenario: 'R1', message: fixtures.R1 },
@@ -132,11 +106,14 @@ async function validateWorkbench752() {
       cetActorId: 'anonymous-person',
     });
     const histories = new Map();
-    for (const { scenario, message } of messages.filter(
+    // Each turn requires the case and history produced by its predecessor.
+    const selectedTurns = messages.filter(
       (turn) =>
         !process.env.WORKBENCH_VALIDATION_SCENARIOS ||
         process.env.WORKBENCH_VALIDATION_SCENARIOS.split(',').includes(turn.scenario)
-    )) {
+    );
+    await selectedTurns.reduce(async (previousTurn, { scenario, message }) => {
+      await previousTurn;
       const history = histories.get(scenario) || [];
       histories.set(scenario, history);
       const start = performance.now();
@@ -176,7 +153,7 @@ async function validateWorkbench752() {
         caseCreated: !!result.cetCaseId,
         draftCreated: !!result.draftId,
       });
-    }
+    }, Promise.resolve());
     fs.mkdirSync(path.join(__dirname, '../docs/validation'), { recursive: true });
     fs.writeFileSync(
       path.join(__dirname, '../docs/validation', reportFile),

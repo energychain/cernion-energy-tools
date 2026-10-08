@@ -64,7 +64,8 @@
     "src/workbench-thread.js",
     "src/workbench-codes.js",
     "src/workbench-background-task.js",
-    "src/workbench-answer-evidence.js"
+    "src/workbench-answer-evidence.js",
+    "src/workbench-json.js"
   ],
   "optionalPaths": [
     "src/function-model.js",

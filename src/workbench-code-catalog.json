@@ -2,7 +2,7 @@
   "types": [
     {
       "kind": "rejection_reason",
-      "pattern": "(?:Ablehnungsgrund|Ablehnung(?: mit)?|Code)\\s*[:=]?\\s*([A-Z][0-9]{2})\\b",
+      "pattern": "\\b(?:Ablehnungsgrund|Ablehnung(?: mit)?(?: Code)?|(?:Ablehnungs|Antwort|Prüf)code)\\s*[:=]?\\s*([A-Z][0-9]{2})\\b",
       "source": "willi-mako",
       "action": "willi-mako.resolveStructure",
       "params": {

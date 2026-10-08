@@ -1,5 +1,6 @@
 'use strict';
 const defaults = require('./workbench-code-catalog.json');
+const sourceDefaults = require('./workbench-knowledge-sources.json');
 
 function captureCodes(message, catalog = defaults) {
   const found = new Map();
@@ -12,11 +13,17 @@ function captureCodes(message, catalog = defaults) {
 }
 
 function exactToken(text, value) {
-  const escaped = value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return new RegExp(`(?:^|[^\\p{L}\\p{N}])${escaped}(?=$|[^\\p{L}\\p{N}])`, 'u').test(text);
+  const escaped = value.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
+  return new RegExp(String.raw`(?:^|[^\p{L}\p{N}])${escaped}(?=$|[^\p{L}\p{N}])`, 'u').test(text);
 }
 
-async function resolveCodes(ctx, situation, access, catalog = defaults) {
+async function resolveCodes(
+  ctx,
+  situation,
+  access,
+  catalog = defaults,
+  sourceCatalog = sourceDefaults
+) {
   const evidence = [],
     resolutions = [],
     trace = [];
@@ -28,7 +35,9 @@ async function resolveCodes(ctx, situation, access, catalog = defaults) {
       const started = performance.now();
       let sources = [];
       let status = 'unresolved';
-      if (access[type.source] !== false) {
+      const budget = sourceCatalog.sources.find((source) => source.id === type.source)?.timeoutMs;
+      const permitted = access[type.source] !== false && Number.isFinite(budget) && budget > 0;
+      if (permitted) {
         try {
           const result = await ctx.call(
             type.action,
@@ -36,7 +45,7 @@ async function resolveCodes(ctx, situation, access, catalog = defaults) {
               ...type.params,
               query: type.query.replace('{value}', code.value),
             },
-            { meta: ctx.meta, timeout: 4000 }
+            { meta: ctx.meta, timeout: budget }
           );
           sources = result?.success === false ? [] : result?.data?.sources || [];
         } catch {
@@ -54,19 +63,16 @@ async function resolveCodes(ctx, situation, access, catalog = defaults) {
           value: source.excerpt,
           metadata: { sectionId: source.sectionId },
         });
+      let sourceStatus = 'empty';
+      if (!permitted) sourceStatus = 'skipped';
+      else if (exact.length) sourceStatus = 'available';
+      else if (status === 'unavailable') sourceStatus = 'unavailable';
       trace.push({
         source: type.source,
-        status:
-          access[type.source] === false
-            ? 'skipped'
-            : exact.length
-              ? 'available'
-              : status === 'unavailable'
-                ? 'unavailable'
-                : 'empty',
+        status: sourceStatus,
         hitCount: exact.length,
         ms: Math.round(performance.now() - started),
-        called: access[type.source] !== false,
+        called: permitted,
       });
       resolutions.push({ ...code, status: exact.length ? 'resolved' : status });
     })
@@ -85,7 +91,7 @@ function unresolvedQuestions(resolutions) {
     .map((entry) => ({
       key: `code:${entry.kind}:${entry.value}`,
       question: `Code ${entry.value} kann ich nicht sicher zuordnen – was steht in eurer Antwortnachricht dazu?`,
-      blocking: true,
+      blocking: false,
     }));
 }
-module.exports = { captureCodes, resolveCodes, unresolvedQuestions };
+module.exports = { captureCodes, resolveCodes, unresolvedQuestions, exactToken };

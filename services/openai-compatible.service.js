@@ -510,16 +510,14 @@ module.exports = {
           const contentOnly =
             require('../src/workbench-background-task').backgroundTask(question) ||
             require('../src/workbench-thread').isDocumentInput(question);
-          const intentMode = contentOnly
-            ? 'decision_support'
-            : requestedEffect === 'external_effect'
-              ? 'tool_run_request'
-              : requestedEffect === 'draft_write'
-                ? 'decision_support'
-                : classifyWorkbenchIntent(question, {
-                    cetCaseId: metadata.cetCaseId,
-                    recentMessages,
-                  });
+          let intentMode;
+          if (contentOnly || requestedEffect === 'draft_write') intentMode = 'decision_support';
+          else if (requestedEffect === 'external_effect') intentMode = 'tool_run_request';
+          else
+            intentMode = classifyWorkbenchIntent(question, {
+              cetCaseId: metadata.cetCaseId,
+              recentMessages,
+            });
           const followup =
             intentMode === 'knowledge_query'
               ? resolveWorkbenchFollowup(question, { recentMessages })
