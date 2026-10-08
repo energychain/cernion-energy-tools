@@ -202,6 +202,32 @@ function answerProviderSchema(value) {
   return schema;
 }
 
+function mergeCorrespondenceHistory(result, prepared, previous) {
+  if (prepared.timeline.length) {
+    const generated = result.timeline || [];
+    result.timeline = prepared.timeline.map(({ role, date, summary }) => {
+      const entry = generated.find((item) => item.date === date);
+      return entry
+        ? { ...entry, date }
+        : { role, date, summary: summary.slice(0, 1200), assertions: [] };
+    });
+    if (previous?.timeline) {
+      result.timeline = [
+        ...new Map(
+          [...previous.timeline, ...result.timeline].map((entry) => [
+            JSON.stringify([entry.date, entry.summary]),
+            entry,
+          ])
+        ).values(),
+      ].slice(-100);
+    }
+  } else if (previous?.timeline) result.timeline = previous.timeline;
+  if (previous?.observations)
+    result.observations = [
+      ...new Set([...previous.observations, ...(result.observations || [])]),
+    ].slice(0, 20);
+}
+
 async function understand({
   message,
   messages = [],
@@ -353,29 +379,7 @@ async function understand({
     result.requestedAction.description.trim()
   )
     result.requestedAction.draftRequested = true;
-  if (prepared.timeline.length) {
-    const generated = result.timeline || [];
-    result.timeline = prepared.timeline.map(({ role, date, summary }) => {
-      const entry = generated.find((item) => item.date === date);
-      return entry
-        ? { ...entry, date }
-        : { role, date, summary: summary.slice(0, 1200), assertions: [] };
-    });
-    if (previous?.timeline) {
-      result.timeline = [
-        ...new Map(
-          [...previous.timeline, ...result.timeline].map((entry) => [
-            JSON.stringify([entry.date, entry.summary]),
-            entry,
-          ])
-        ).values(),
-      ].slice(-100);
-    }
-  } else if (previous?.timeline) result.timeline = previous.timeline;
-  if (previous?.observations)
-    result.observations = [
-      ...new Set([...previous.observations, ...(result.observations || [])]),
-    ].slice(0, 20);
+  mergeCorrespondenceHistory(result, prepared, previous);
   const codes = require('./workbench-codes').captureCodes(message, codeCatalog);
   const recognizedCodes = [...codes, ...(previous?.identifiers || [])];
   result.identifiers = result.identifiers.filter(

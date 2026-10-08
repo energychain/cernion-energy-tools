@@ -26,7 +26,7 @@ llm.generateText = async (...args) => {
       draftType: typeof parsed.draft,
     });
   } catch (_error) {
-    // Invalid provider output is a validation result; retain it in the report.
+    console.warn('Live validation returned invalid answer JSON:', _error.name);
     diagnostics.push({ valid: false, parseError: true });
   }
   return raw;
