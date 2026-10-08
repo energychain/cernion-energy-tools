@@ -541,3 +541,30 @@ test('deadline preserves completed maps and their gaps without starting reduce',
   expect(result.stats.reduceCalls).toBe(0);
   expect(llm.generateStructured).toHaveBeenCalledTimes(2);
 });
+
+test('an early deadline timer cannot launch another map or reduce', async () => {
+  jest.useFakeTimers({ doNotFake: ['performance'] });
+  let now = 0;
+  const clock = jest.spyOn(performance, 'now').mockImplementation(() => now);
+  const llm = { generateStructured: jest.fn(() => new Promise(() => {})) };
+  try {
+    const pending = reviewDocuments(
+      { documents: [{ name: 'Plan', text: 'x'.repeat(1024) }] },
+      { llm, chunkChars: 256, concurrency: 2, timeoutMs: 20 }
+    );
+    now = 19.5;
+    await jest.advanceTimersByTimeAsync(20);
+    expect(llm.generateStructured).toHaveBeenCalledTimes(2);
+    now = 20;
+    await jest.advanceTimersByTimeAsync(1);
+    const result = await pending;
+    expect(result.status).toBe('partial_failed');
+    expect(result.gaps).toHaveLength(4);
+    expect(result.stats.mapCalls).toBe(2);
+    expect(result.stats.reduceCalls).toBe(0);
+    expect(llm.generateStructured).toHaveBeenCalledTimes(2);
+  } finally {
+    clock.mockRestore();
+    jest.useRealTimers();
+  }
+});

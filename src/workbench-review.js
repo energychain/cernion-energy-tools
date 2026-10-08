@@ -96,13 +96,16 @@ async function beforeDeadline(task, deadline) {
     return await Promise.race([
       task(remaining),
       new Promise((_, reject) => {
-        timer = setTimeout(
-          () =>
-            reject(
-              Object.assign(new Error('Review timeout'), { type: 'WORKBENCH_REVIEW_TIMEOUT' })
-            ),
-          remaining
-        );
+        const expire = () => {
+          // Node timers may fire slightly early; only the monotonic clock owns the deadline.
+          const left = deadline - performance.now();
+          if (left > 0) {
+            timer = setTimeout(expire, Math.ceil(left));
+            return;
+          }
+          reject(Object.assign(new Error('Review timeout'), { type: 'WORKBENCH_REVIEW_TIMEOUT' }));
+        };
+        timer = setTimeout(expire, remaining);
       }),
     ]);
   } finally {
