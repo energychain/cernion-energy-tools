@@ -35886,9 +35886,15 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Operator or location could not be resolved uniquely, or MaStR rejected an operator-name search. Pass an explicit gridOperatorMastrId/gridOperatorBdewCode or five-digit postleitzahl."
+          },
+          "502": {
+            "description": "MaStR backend failed to execute the installations search."
           }
         },
-        "description": "Search Marktstammdatenregister (MaStR) for energy installations.\n\n**'installationType' is required.**\n\n**Parameter Details:**\n- **installationType**: Installation type - \"solar\" (PV), \"wind\", \"storage\" (batteries), \"biomass\", \"hydro\", \"combustion\" (CHP, gas turbines), or \"all\" (aggregated across all supported types)\n- **location**: City name, postal code, or region (deprecated; use bundesland/landkreis/gemeinde/postleitzahl in MCP tool)\n- **operationalStatus**: Operational status filter - Default: \"35\" (only active/in operation). Values: \"31\" (planned), \"35\" (in operation), \"37\" (temporarily decommissioned), \"38\" (permanently decommissioned), \"all\" (all statuses), or comma-separated list (e.g., \"35,37\")\n- **limit**: Max results (optional)\n- **minCapacityKW**: Minimum installed capacity in kW (e.g., 5 for small installations, 100 for commercial)\n- **maxCapacityKW**: Maximum installed capacity in kW\n- **commissioningYear**: Filter by year of grid connection (1900-2100)\n- **gridOperatorId**: MaStR Netzbetreiber-ID (SNB/GNB...), comma-separated (deprecated)\n- **gridOperatorMastrId**: MaStR Netzbetreiber-ID (SNB/GNB...), preferred\n- **gridOperatorName**: Netzbetreiber-Name (fuzzy matching)\n- **gridOperatorBdewCode**: BDEW code (resolved to MaStR Netzbetreiber)\n- **includeNapData**: Include NAP (Netzanschlusspunkt) data per installation (default: `true`). Uses a single `$in` query — no N+1; typically < 50 ms overhead for 1,000 results. ~48 % of older installations have no MeLo on record — `napData` is `undefined` for those. Set to `false` to skip enrichment for faster responses on large result sets.\n\n**NAP data fields (when present):**\n| Field | Description |\n|---|---|\n| `napMastrNummer` | NAP identifier (SAN...) |\n| `messlokation` | MeLo-ID (DE000...) for billing and metering systems |\n| `spannungsebene` | Voltage level code from MaStR |\n| `spannungsebeneLabel` | Human-readable: Niederspannung (LV) / Mittelspannung (MV) / Hochspannung (HV) / Höchstspannung (EHV) |\n| `nettoengpassleistung` | Net transfer capacity at NAP in kW |\n| `netzMastrNummer` | Grid MaStR-ID (SNE...) |\n| `netzbetreiberMastrNummer` | Grid operator MaStR-ID (SNB...) |\n\n**New fields on all installation objects:** `latitude`, `longitude` (GPS coordinates), `netzbetreiberpruefungStatus` (grid operator verification status)\n\n| `netzbetreiberpruefungStatus` code | Meaning |\n|---|---|\n| `2954` | Geprüft ✅ — confirmed by grid operator |\n| `2955` | In Prüfung ⏳ — review in progress |\n| `3075` | Nicht vorgesehen — no verification applicable |\n| `null` | Not available for this record (older data) |\n\n**Wind turbines:** additionally `typenbezeichnung` (turbine model, e.g. \"E-115\"), `hersteller` (manufacturer, e.g. \"Enercon\")\n**Storage systems:** additionally `batterietechnologie`, `acDcKoppelung`, `wechselrichterleistung`, `einsatzort`\n\n**Use Cases:**\n- Portfolio analysis and benchmarking\n- Site selection for new installations\n- Market research and competitor analysis\n- Grid planning (DSO/TSO)\n- Redispatch 2.0 eligible installations\n- Billing/metering system setup (MeLo lookup via napData)\n\n**MaStR Database:** Official registry of all power plants, solar systems, wind turbines, and storage facilities in Germany maintained by Bundesnetzagentur.",
+        "description": "Search Marktstammdatenregister (MaStR) for energy installations.\n\n**'installationType' is required.**\n\n**Parameter Details:**\n- **installationType**: Installation type - \"solar\" (PV), \"wind\", \"storage\" (batteries), \"biomass\", \"hydro\", \"combustion\" (CHP, gas turbines), or \"all\" (aggregated across all supported types)\n- **location**: Unique municipality name, five-digit PLZ, or \"PLZ Ort\". Searches all known PLZ for a municipality. Explicit postleitzahl takes precedence. Ambiguous names and \"Ort, Landkreis\" require postleitzahl (HTTP 400).\n- **operationalStatus**: Operational status filter - Default: \"35\" (only active/in operation). Values: \"31\" (planned), \"35\" (in operation), \"37\" (temporarily decommissioned), \"38\" (permanently decommissioned), \"all\" (all statuses), or comma-separated list (e.g., \"35,37\")\n- **limit**: Max results (optional)\n- **minCapacityKW**: Minimum installed capacity in kW (e.g., 5 for small installations, 100 for commercial)\n- **maxCapacityKW**: Maximum installed capacity in kW\n- **commissioningYear**: Filter by year of grid connection (1900-2100)\n- **gridOperatorId**: MaStR Netzbetreiber-ID (SNB/GNB...), comma-separated (deprecated)\n- **gridOperatorMastrId**: MaStR Netzbetreiber-ID (SNB/GNB...), preferred\n- **gridOperatorName**: Full or partial operator name resolved via marketPartners; must identify one operator. Unresolved/ambiguous names return HTTP 400; explicit IDs take precedence.\n- **gridOperatorBdewCode**: BDEW code (resolved to MaStR Netzbetreiber)\n- **includeNapData**: Include NAP (Netzanschlusspunkt) data per installation (default: `true`). Uses a single `$in` query — no N+1; typically < 50 ms overhead for 1,000 results. ~48 % of older installations have no MeLo on record — `napData` is `undefined` for those. Set to `false` to skip enrichment for faster responses on large result sets.\n\n**NAP data fields (when present):**\n| Field | Description |\n|---|---|\n| `napMastrNummer` | NAP identifier (SAN...) |\n| `messlokation` | MeLo-ID (DE000...) for billing and metering systems |\n| `spannungsebene` | Voltage level code from MaStR |\n| `spannungsebeneLabel` | Human-readable: Niederspannung (LV) / Mittelspannung (MV) / Hochspannung (HV) / Höchstspannung (EHV) |\n| `nettoengpassleistung` | Net transfer capacity at NAP in kW |\n| `netzMastrNummer` | Grid MaStR-ID (SNE...) |\n| `netzbetreiberMastrNummer` | Grid operator MaStR-ID (SNB...) |\n\n**New fields on all installation objects:** `latitude`, `longitude` (GPS coordinates), `netzbetreiberpruefungStatus` (grid operator verification status)\n\n| `netzbetreiberpruefungStatus` code | Meaning |\n|---|---|\n| `2954` | Geprüft ✅ — confirmed by grid operator |\n| `2955` | In Prüfung ⏳ — review in progress |\n| `3075` | Nicht vorgesehen — no verification applicable |\n| `null` | Not available for this record (older data) |\n\n**Wind turbines:** additionally `typenbezeichnung` (turbine model, e.g. \"E-115\"), `hersteller` (manufacturer, e.g. \"Enercon\")\n**Storage systems:** additionally `batterietechnologie`, `acDcKoppelung`, `wechselrichterleistung`, `einsatzort`\n\n**Use Cases:**\n- Portfolio analysis and benchmarking\n- Site selection for new installations\n- Market research and competitor analysis\n- Grid planning (DSO/TSO)\n- Redispatch 2.0 eligible installations\n- Billing/metering system setup (MeLo lookup via napData)\n\n**MaStR Database:** Official registry of all power plants, solar systems, wind turbines, and storage facilities in Germany maintained by Bundesnetzagentur.",
         "requestBody": {
           "content": {
             "application/json": {
@@ -35912,9 +35918,22 @@
                     "description": "Type of energy installation",
                     "example": "solar"
                   },
+                  "postleitzahl": {
+                    "type": "string",
+                    "pattern": "^\\d{5}$",
+                    "description": "Exact five-digit German postal code; overrides location. Keep leading zeros.",
+                    "example": "01067"
+                  },
+                  "operationalStatus": {
+                    "type": "string",
+                    "pattern": "^(all|(?:31|35|37|38)(?:,(?:31|35|37|38))*)$",
+                    "description": "31 planned, 35 active, 37 temporarily closed, 38 permanently closed; comma-separated or all.",
+                    "default": "35",
+                    "example": "35,37"
+                  },
                   "location": {
                     "type": "string",
-                    "description": "Location (city, postal code, or region) - deprecated",
+                    "description": "Unique municipality name, five-digit PLZ, or PLZ + place. Searches all municipality postal codes. District/region or ambiguous text requires explicit postleitzahl (400).",
                     "example": "Heidelberg"
                   },
                   "limit": {
@@ -35930,13 +35949,12 @@
                         ]
                       }
                     ],
-                    "description": "Maximum number of results. Default: **1,000**. Set a high number (e.g. `1000000`) or `\"all\"` to retrieve the complete result set — the server paginates internally across multiple MCP calls so no offset handling is required on the client side.",
-                    "default": 1000,
+                    "description": "Maximum total number of results across types and resolved postal codes. Omit or use `\"all\"` for all results; internal MCP pagination is automatic. Set a numeric limit to bound response size.",
                     "example": 1000
                   },
                   "offset": {
                     "type": "integer",
-                    "description": "Pagination offset — number of records to skip. Use with `limit` to retrieve pages beyond the first 1,000. Example: `offset=1000&limit=1000` fetches records 1,001–2,000.",
+                    "description": "Number of records to skip per installation type and postal code. For stable client pagination, use one type and an explicit postleitzahl. Example: offset=1000, limit=1000.",
                     "minimum": 0,
                     "default": 0,
                     "example": 0
@@ -35972,7 +35990,7 @@
                   },
                   "gridOperatorName": {
                     "type": "string",
-                    "description": "Grid operator name (fuzzy matching)",
+                    "description": "Full or partial operator name; must resolve uniquely (otherwise 400). Prefer explicit gridOperatorMastrId or gridOperatorBdewCode, which override the name.",
                     "example": "Netze BW"
                   },
                   "gridOperatorBdewCode": {
@@ -36009,6 +36027,7 @@
                   "summary": "Rooftop solar in Heidelberg",
                   "value": {
                     "installationType": "solar",
+                    "location": "Heidelberg",
                     "minCapacityKW": 5,
                     "maxCapacityKW": 30,
                     "limit": 20

@@ -6,6 +6,11 @@
  */
 
 const CernionMCPClient = require('../src/mcp-client');
+const { MoleculerClientError } = require('moleculer').Errors;
+const { resolveMunicipalityProfile, gemeindenData } = require('../src/municipality-resolver');
+const { resolveLocationFromText } = require('../src/location-resolution');
+const { normalizeMarketPartner, extractCandidates } = require('../src/market-role-classifier');
+const { extractFirstOfType } = require('../src/utils/energy-id-extractor');
 const { callWithAutoPoll } = require('../src/async-job-poller');
 const jobStore = require('../src/job-store');
 const {
@@ -990,8 +995,21 @@ fabricated all-zero forecast.
           description:
             'Required. Type of installation — solar (PV), wind, storage (batteries/BESS), biomass, hydro, combustion (CHP / gas turbines), or all (aggregated query across all supported types).',
         },
-        location: { type: 'string', optional: true, min: 1 },
-        postleitzahl: { type: 'string', optional: true, min: 5, max: 5 },
+        location: {
+          type: 'string',
+          optional: true,
+          min: 1,
+          trim: true,
+          description:
+            'Unique municipality name, five-digit postal code, or PLZ + place (e.g. 69256 Mauer). All known postal codes are searched for a municipality. Ambiguous names and district/region text require explicit postleitzahl (400).',
+        },
+        postleitzahl: {
+          type: 'string',
+          optional: true,
+          pattern: /^\d{5}$/,
+          description:
+            'Exact five-digit German postal code, including leading zeros; overrides location (e.g. 01067).',
+        },
         postleitzahlNot: { type: 'string', optional: true, min: 2, max: 6 },
         limit: { type: 'any', optional: true },
         offset: { type: 'number', optional: true, min: 0, default: 0, convert: true },
@@ -1000,9 +1018,23 @@ fabricated all-zero forecast.
         commissioningYear: { type: 'number', optional: true, min: 1900, max: 2100, convert: true },
         gridOperatorId: { type: 'string', optional: true, min: 1 },
         gridOperatorMastrId: { type: 'string', optional: true, min: 1 },
-        gridOperatorName: { type: 'string', optional: true, min: 1 },
+        gridOperatorName: {
+          type: 'string',
+          optional: true,
+          min: 1,
+          trim: true,
+          description:
+            'Full or partial operator name (e.g. Netze BW). Must resolve uniquely; otherwise 400. Prefer gridOperatorMastrId or gridOperatorBdewCode. Explicit IDs take precedence.',
+        },
         gridOperatorBdewCode: { type: 'string', optional: true, min: 1 },
-        operationalStatus: { type: 'string', optional: true, default: '35' },
+        operationalStatus: {
+          type: 'string',
+          optional: true,
+          default: '35',
+          pattern: /^(all|(?:31|35|37|38)(?:,(?:31|35|37|38))*)$/,
+          description:
+            'MaStR status code: 31 planned, 35 active, 37 temporarily closed, 38 permanently closed. Comma-separated codes or all.',
+        },
         netzbetreiberPruefungStatus: { type: 'string', optional: true },
         includeNapData: { type: 'boolean', optional: true, default: true },
         updatedAfter: {
@@ -1032,7 +1064,7 @@ fabricated all-zero forecast.
 
 **Parameter Details:**
 - **installationType**: Installation type - "solar" (PV), "wind", "storage" (batteries), "biomass", "hydro", "combustion" (CHP, gas turbines), or "all" (aggregated across all supported types)
-- **location**: City name, postal code, or region (deprecated; use bundesland/landkreis/gemeinde/postleitzahl in MCP tool)
+- **location**: Unique municipality name, five-digit PLZ, or "PLZ Ort". Searches all known PLZ for a municipality. Explicit postleitzahl takes precedence. Ambiguous names and "Ort, Landkreis" require postleitzahl (HTTP 400).
 - **operationalStatus**: Operational status filter - Default: "35" (only active/in operation). Values: "31" (planned), "35" (in operation), "37" (temporarily decommissioned), "38" (permanently decommissioned), "all" (all statuses), or comma-separated list (e.g., "35,37")
 - **limit**: Max results (optional)
 - **minCapacityKW**: Minimum installed capacity in kW (e.g., 5 for small installations, 100 for commercial)
@@ -1040,7 +1072,7 @@ fabricated all-zero forecast.
 - **commissioningYear**: Filter by year of grid connection (1900-2100)
 - **gridOperatorId**: MaStR Netzbetreiber-ID (SNB/GNB...), comma-separated (deprecated)
 - **gridOperatorMastrId**: MaStR Netzbetreiber-ID (SNB/GNB...), preferred
-- **gridOperatorName**: Netzbetreiber-Name (fuzzy matching)
+- **gridOperatorName**: Full or partial operator name resolved via marketPartners; must identify one operator. Unresolved/ambiguous names return HTTP 400; explicit IDs take precedence.
 - **gridOperatorBdewCode**: BDEW code (resolved to MaStR Netzbetreiber)
 - **includeNapData**: Include NAP (Netzanschlusspunkt) data per installation (default: \`true\`). Uses a single \`$in\` query — no N+1; typically < 50 ms overhead for 1,000 results. ~48 % of older installations have no MeLo on record — \`napData\` is \`undefined\` for those. Set to \`false\` to skip enrichment for faster responses on large result sets.
 
@@ -1089,9 +1121,25 @@ fabricated all-zero forecast.
                     description: 'Type of energy installation',
                     example: 'solar',
                   },
+                  postleitzahl: {
+                    type: 'string',
+                    pattern: '^\\d{5}$',
+                    description:
+                      'Exact five-digit German postal code; overrides location. Keep leading zeros.',
+                    example: '01067',
+                  },
+                  operationalStatus: {
+                    type: 'string',
+                    pattern: '^(all|(?:31|35|37|38)(?:,(?:31|35|37|38))*)$',
+                    description:
+                      '31 planned, 35 active, 37 temporarily closed, 38 permanently closed; comma-separated or all.',
+                    default: '35',
+                    example: '35,37',
+                  },
                   location: {
                     type: 'string',
-                    description: 'Location (city, postal code, or region) - deprecated',
+                    description:
+                      'Unique municipality name, five-digit PLZ, or PLZ + place. Searches all municipality postal codes. District/region or ambiguous text requires explicit postleitzahl (400).',
                     example: 'Heidelberg',
                   },
                   limit: {
@@ -1100,14 +1148,13 @@ fabricated all-zero forecast.
                       { type: 'string', enum: ['all'] },
                     ],
                     description:
-                      'Maximum number of results. Default: **1,000**. Set a high number (e.g. `1000000`) or `"all"` to retrieve the complete result set — the server paginates internally across multiple MCP calls so no offset handling is required on the client side.',
-                    default: 1000,
+                      'Maximum total number of results across types and resolved postal codes. Omit or use `"all"` for all results; internal MCP pagination is automatic. Set a numeric limit to bound response size.',
                     example: 1000,
                   },
                   offset: {
                     type: 'integer',
                     description:
-                      'Pagination offset — number of records to skip. Use with `limit` to retrieve pages beyond the first 1,000. Example: `offset=1000&limit=1000` fetches records 1,001–2,000.',
+                      'Number of records to skip per installation type and postal code. For stable client pagination, use one type and an explicit postleitzahl. Example: offset=1000, limit=1000.',
                     minimum: 0,
                     default: 0,
                     example: 0,
@@ -1143,7 +1190,8 @@ fabricated all-zero forecast.
                   },
                   gridOperatorName: {
                     type: 'string',
-                    description: 'Grid operator name (fuzzy matching)',
+                    description:
+                      'Full or partial operator name; must resolve uniquely (otherwise 400). Prefer explicit gridOperatorMastrId or gridOperatorBdewCode, which override the name.',
                     example: 'Netze BW',
                   },
                   gridOperatorBdewCode: {
@@ -1172,6 +1220,7 @@ fabricated all-zero forecast.
                   summary: 'Rooftop solar in Heidelberg',
                   value: {
                     installationType: 'solar',
+                    location: 'Heidelberg',
                     minCapacityKW: 5,
                     maxCapacityKW: 30,
                     limit: 20,
@@ -1249,6 +1298,11 @@ fabricated all-zero forecast.
           },
         },
         responses: {
+          400: {
+            description:
+              'Operator or location could not be resolved uniquely, or MaStR rejected an operator-name search. Pass an explicit gridOperatorMastrId/gridOperatorBdewCode or five-digit postleitzahl.',
+          },
+          502: { description: 'MaStR backend failed to execute the installations search.' },
           200: {
             description: 'Installation data retrieved',
             content: {
@@ -1304,6 +1358,23 @@ fabricated all-zero forecast.
       },
       async handler(ctx) {
         const MCP_PAGE_SIZE = 10000;
+        // Keep malformed replies and polling exceptions inside this tool's
+        // actionable error contract, rather than leaking a generic HTTP 500.
+        const callTool = async (toolName, toolParams, pollOptions = {}) => {
+          try {
+            const response = await callWithAutoPoll(
+              toolName,
+              toolParams,
+              pollOptions,
+              ctx.meta.cernionToken
+            );
+            return response && typeof response === 'object' && !Array.isArray(response)
+              ? response
+              : { success: false };
+          } catch (_error) {
+            return { success: false };
+          }
+        };
         const { format, ...params } = ctx.params;
         const requestedTypes =
           params.installationType === 'all'
@@ -1328,102 +1399,85 @@ fabricated all-zero forecast.
           ? String(rawBdewCode).replace(/\s+/g, '').trim() || undefined
           : undefined;
 
-        // Bug fix: cernion_installations_local has NO fuzzy gridOperatorName support.
-        // Passing the name directly is silently ignored, returning the full local dataset
-        // (which belongs to the env-configured VNB → always the same static SNB in results).
-        // Resolve the name to a MaStR ID via cernion_market_partners first.
+        // The local installations tool accepts operator IDs, not fuzzy names. Never
+        // drop a requested operator filter when its identity cannot be resolved.
         let resolvedGridOperatorId = params.gridOperatorMastrId || params.gridOperatorId || null;
         let resolvedBdewCode = normalizedBdewCode || null;
+        const operatorError = () =>
+          new MoleculerClientError(
+            `gridOperatorName "${params.gridOperatorName}" could not be resolved uniquely. ` +
+              'Use a more specific name, gridOperatorMastrId (SNB/GNB...), or a 13-digit gridOperatorBdewCode.',
+            400,
+            'GRID_OPERATOR_UNRESOLVED'
+          );
 
         if (!resolvedGridOperatorId && !resolvedBdewCode && params.gridOperatorName) {
-          this.logger.info(
-            `Resolving gridOperatorName "${params.gridOperatorName}" via cernion_market_partners`
+          const mpResult = await callTool(
+            'cernion_market_partners',
+            { query: params.gridOperatorName.trim(), limit: 20 },
+            { maxWaitTime: 2 * 60 * 1000, pollInterval: 2000 }
           );
-          try {
-            const mpResult = await callWithAutoPoll(
-              'cernion_market_partners',
-              { query: params.gridOperatorName, limit: 5 },
-              { maxWaitTime: 2 * 60 * 1000, pollInterval: 2000 },
-              ctx.meta.cernionToken
+          if (mpResult?.success === false || mpResult?.isError || mpResult?.data?.isError) {
+            throw operatorError();
+          }
+          // MCP JSON content is returned flat; older responses use a data wrapper.
+          const mpData = mpResult?.data?.data || mpResult?.data || mpResult;
+          const candidates = extractCandidates(mpResult);
+          const matches = candidates.length ? candidates : mpData?.marketPartners || [];
+          const identities = new Map();
+          for (const match of Array.isArray(matches) ? matches : []) {
+            const partner = normalizeMarketPartner(match);
+            if (!partner) continue;
+            const rawId =
+              partner.mastrId ||
+              match.mastrNetzbetreiberId ||
+              match.mastr_id ||
+              match.mastrIds?.snb ||
+              match.mastrIds?.gnb;
+            const extractedId = extractFirstOfType(String(rawId || ''), 'mastrId');
+            const id = /^(SNB|GNB)/i.test(extractedId || '') ? extractedId.toUpperCase() : null;
+            const bdew = String(partner.bdew || '').replace(/\s+/g, '');
+            if (id) identities.set(id, { id, bdew: null });
+            else if (extractFirstOfType(bdew, 'bdewCode') === bdew) {
+              identities.set(bdew, { id: null, bdew });
+            }
+          }
+          if (identities.size !== 1 || matches.length >= 20) throw operatorError();
+          const identity = identities.values().next().value;
+          resolvedGridOperatorId = identity.id;
+          resolvedBdewCode = identity.bdew;
+        }
+
+        let postalCodes = [params.postleitzahl];
+        if (!params.postleitzahl && params.location) {
+          const embeddedPlz = resolveLocationFromText(params.location).postalCode;
+          if (embeddedPlz) {
+            postalCodes = [embeddedPlz];
+          } else {
+            const place = params.location.trim();
+            const exactMatches = gemeindenData.filter(
+              (entry) => entry.name.toLowerCase() === place.toLowerCase()
             );
-            const mpData = mpResult?.data;
-            const mpResults =
-              (typeof mpData === 'object' && !Array.isArray(mpData)
-                ? mpData.results || mpData.marketPartners
-                : null) || [];
-            if (mpResults.length > 0) {
-              const first = mpResults[0];
-              // Strip annotation suffix: "SNB935578300972 (strom, 100% Match)" → "SNB935578300972"
-              const rawId = first.mastrNetzbetreiberId || first.mastrId || first.mastr_id || null;
-              resolvedGridOperatorId = rawId ? rawId.split(' ')[0].trim() : null;
-              if (!resolvedGridOperatorId && typeof first.mastrIds === 'object') {
-                const ids = first.mastrIds;
-                resolvedGridOperatorId = ids.SNB || ids.GNB || ids.snb || ids.gnb || null;
-              }
-              if (!resolvedBdewCode) {
-                resolvedBdewCode = first.bdew || first.bdewCode || null;
-              }
-              this.logger.info(
-                `Resolved gridOperatorName "${params.gridOperatorName}" → mastrId=${resolvedGridOperatorId}, bdew=${resolvedBdewCode}`
-              );
-            } else {
-              this.logger.warn(
-                `cernion_market_partners returned 0 results for "${params.gridOperatorName}". ` +
-                  'Use gridOperatorMastrId or gridOperatorBdewCode for reliable filtering.'
+            const profile = resolveMunicipalityProfile({ municipality: place });
+            // The existing directory has no district disambiguation. Refuse fuzzy
+            // or ambiguous matches instead of choosing its largest-population default.
+            if (
+              !profile.found ||
+              profile.name.toLowerCase() !== place.toLowerCase() ||
+              exactMatches.length > 1 ||
+              !profile.postalCodes.length
+            ) {
+              throw new MoleculerClientError(
+                `Location "${params.location}" could not be resolved uniquely. ` +
+                  'Pass postleitzahl as exactly five digits (e.g. "69256") or location as ' +
+                  'a unique municipality name or "69256 Mauer". District/region text ' +
+                  '("Ort, Landkreis") requires an explicit postleitzahl.',
+                400,
+                'LOCATION_UNRESOLVED'
               );
             }
-          } catch (mpErr) {
-            this.logger.warn(
-              `gridOperatorName resolution failed for "${params.gridOperatorName}": ${mpErr.message}`
-            );
+            postalCodes = profile.postalCodes;
           }
-        }
-
-        // Bug fix (#1, cernion-openclaw-sidecar/issues/1): cernion_installations_local has
-        // no free-text city/region filter — only an exact 5-digit `postleitzahl`. Blindly
-        // forwarding a non-numeric `location` ("Mauer", "69256 Mauer") into the `postleitzahl`
-        // slot silently returns 0 rows regardless of real data. Extract an embedded PLZ from
-        // combined "PLZ Ort" strings; if none is present, refuse the unfiltered query (it would
-        // otherwise return the full unfiltered MaStR dataset — see RangeError guard elsewhere in
-        // this file) and report the limitation instead of a misleading empty array.
-        let effectivePostleitzahl = params.postleitzahl;
-        let locationResolutionWarning = null;
-        if (!effectivePostleitzahl && params.location) {
-          const embeddedPlz = String(params.location).match(/\b\d{5}\b/);
-          if (embeddedPlz) {
-            effectivePostleitzahl = embeddedPlz[0];
-          } else {
-            locationResolutionWarning =
-              `Location "${params.location}" could not be resolved to a postal code. ` +
-              'The live MaStR backend only supports exact 5-digit postleitzahl filtering, ' +
-              'not free-text city/region search. Pass "postleitzahl" directly, or resolve the ' +
-              'postal code first (e.g. via grid-operations.marketPartners or OSM Geo).';
-          }
-        }
-
-        if (locationResolutionWarning) {
-          return applyFormat(
-            ctx,
-            {
-              success: true,
-              data: {
-                installations: [],
-                stats: computeInstallationStats([]),
-                requestedTypes,
-                pagination: {
-                  offset: startOffset,
-                  limit: isUnlimited ? 'all' : requestedLimit,
-                  count: 0,
-                  hasMore: false,
-                },
-                locationResolutionWarning,
-              },
-            },
-            format,
-            'installations',
-            'Installations',
-            []
-          );
         }
 
         let allInstallations = [];
@@ -1431,10 +1485,13 @@ fabricated all-zero forecast.
         let dataExhausted = true;
         let resultTruncated = false;
 
-        for (const installationType of requestedTypes) {
+        const scopes = requestedTypes.flatMap((installationType) =>
+          postalCodes.map((postleitzahl) => ({ installationType, postleitzahl }))
+        );
+        for (const { installationType, postleitzahl } of scopes) {
           const baseToolParams = {
             type: installationType,
-            postleitzahl: effectivePostleitzahl,
+            postleitzahl,
             minCapacity: params.minCapacityKW,
             maxCapacity: params.maxCapacityKW,
             commissioningYear: params.commissioningYear,
@@ -1462,12 +1519,27 @@ fabricated all-zero forecast.
               break;
             }
 
-            const pageResult = await callWithAutoPoll(
-              'cernion_installations_local',
-              { ...baseToolParams, limit: pageLimit, offset: currentOffset },
-              {},
-              ctx.meta.cernionToken
-            );
+            const pageResult = await callTool('cernion_installations_local', {
+              ...baseToolParams,
+              limit: pageLimit,
+              offset: currentOffset,
+            });
+
+            if (pageResult?.success === false || pageResult?.isError || pageResult?.data?.isError) {
+              if (params.gridOperatorName) {
+                throw new MoleculerClientError(
+                  'MaStR rejected the installations search for the resolved gridOperatorName. ' +
+                    'Check the filters or pass gridOperatorMastrId (SNB/GNB...) or a 13-digit gridOperatorBdewCode.',
+                  400,
+                  'GRID_OPERATOR_SEARCH_FAILED'
+                );
+              }
+              throw new MoleculerClientError(
+                'MaStR installations search failed upstream. Retry or verify the supplied filters.',
+                502,
+                'INSTALLATIONS_UPSTREAM_FAILED'
+              );
+            }
 
             if (!firstResult) firstResult = pageResult;
 

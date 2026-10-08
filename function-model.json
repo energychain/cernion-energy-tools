@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "4b76ccc2eefb3ce3dd749b337ca894c5a1f747e46902cb3a7bc6534df1e7946e",
+  "sourceHash": "3ebd2dafb844f3743c541ee14753c0e94b8b4d20740458d8e91db875faddb846",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -162026,6 +162026,10 @@
         },
         {
           "kind": "service",
+          "ref": "src/canonical-order.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/domain-config.js"
         },
         {
@@ -162058,11 +162062,23 @@
         },
         {
           "kind": "service",
+          "ref": "src/location-resolution.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/market-role-classifier.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/mcp-client.js"
         },
         {
           "kind": "service",
           "ref": "src/metrics.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/municipality-resolver.js"
         },
         {
           "kind": "service",
@@ -162099,6 +162115,10 @@
         {
           "kind": "service",
           "ref": "src/tracing.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/utils/energy-id-extractor.js"
         },
         {
           "kind": "service",
@@ -174526,11 +174546,23 @@
         },
         {
           "kind": "service",
+          "ref": "src/location-resolution.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/market-role-classifier.js"
+        },
+        {
+          "kind": "service",
           "ref": "src/mcp-client.js"
         },
         {
           "kind": "service",
           "ref": "src/metrics.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/municipality-resolver.js"
         },
         {
           "kind": "service",
@@ -174563,6 +174595,10 @@
         {
           "kind": "service",
           "ref": "src/tracing.js"
+        },
+        {
+          "kind": "service",
+          "ref": "src/utils/energy-id-extractor.js"
         },
         {
           "kind": "service",
