@@ -439,7 +439,7 @@ User objective
 | [CHANGELOG.md](CHANGELOG.md) | Release history |
 | [MCP_TOOLS.md](MCP_TOOLS.md) | MCP/tool reference |
 | [docs/SHARED_SERVICE_JOURNAL.md](docs/SHARED_SERVICE_JOURNAL.md) | RC3 append-only Shared Service Journal, deterministic digests and retention |
-| [docs/domain-router.md](docs/domain-router.md) | CET Domain Router, Case State and Case Event Outbox / MWI |
+| [docs/domain-router.md](docs/domain-router.md) | CET Domain Router, typisierte Fallverknüpfung, own/team/tenant-Sichtbarkeit und Case Event Outbox / MWI |
 | [docs/open-webui-tenant-gateway.md](docs/open-webui-tenant-gateway.md) | RC3 Open WebUI / Cernion Workbench Tenant-Gateway access without AgentOS |
 | [llm.txt](llm.txt) | Machine-readable service and capability context |
 | [SECURITY.md](SECURITY.md) | Security policy |

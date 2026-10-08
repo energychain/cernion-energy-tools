@@ -60,7 +60,10 @@
     "src/workbench-understanding.js",
     "src/workbench-content-turn.js",
     "src/workbench-retrieval.js",
-    "src/workbench-identifier-context.js"
+    "src/workbench-identifier-context.js",
+    "src/case-linking.js",
+    "src/case-linking-mixin.js",
+    "src/workbench-case-linking.js"
   ],
   "optionalPaths": [
     "src/function-model.js",

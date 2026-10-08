@@ -55,6 +55,19 @@ taskParams.knownContext = {
   type: 'object',
   optional: true,
   props: {
+    identifiers: {
+      type: 'array',
+      optional: true,
+      max: 20,
+      items: {
+        type: 'object',
+        strict: true,
+        props: {
+          kind: { type: 'string', min: 1, max: 100 },
+          value: { type: 'string', min: 1, max: 256 },
+        },
+      },
+    },
     missingEvidence: { type: 'array', items: 'string', optional: true },
     branch: { type: 'boolean', optional: true },
   },
@@ -81,7 +94,25 @@ const envelopeSchema = {
     ),
     schemaVersion: { type: 'string', enum: ['1.1'] },
     userRequest: { type: 'string', minLength: 3, maxLength: 8000 },
-    knownContext: { type: 'object', additionalProperties: true },
+    knownContext: {
+      type: 'object',
+      additionalProperties: true,
+      properties: {
+        identifiers: {
+          type: 'array',
+          maxItems: 20,
+          items: {
+            type: 'object',
+            required: ['kind', 'value'],
+            additionalProperties: false,
+            properties: {
+              kind: { type: 'string', minLength: 1, maxLength: 100 },
+              value: { type: 'string', minLength: 1, maxLength: 256 },
+            },
+          },
+        },
+      },
+    },
     requestedMode: { type: 'string', enum: taskParams.requestedMode.values },
     channel: { type: 'string', enum: taskParams.channel.values },
     disableReceiptSelection: { type: 'boolean' },

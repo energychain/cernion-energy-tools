@@ -5,6 +5,11 @@ const { createPouchDbLifecycleMixin } = require('../src/pouchdb-lifecycle-mixin'
 const { classifyDomain, LINK_KEYS } = require('../src/domain-router');
 const { evaluateEventTriggers } = require('../src/domain-router-events');
 const { principal, visible, authorize, deny } = require('../src/domain-router-policy');
+const {
+  normalizeIdentifiers,
+  matchingIdentifiers,
+  rawContentAllowed,
+} = require('../src/case-linking');
 const { tenantNamespace } = require('../src/tenant-context');
 const jobStore = require('../src/job-store');
 const {
@@ -44,6 +49,7 @@ module.exports = {
   name: 'domain-router',
   mixins: [
     require('../src/shared-service-case-context'),
+    require('../src/case-linking-mixin'),
     createPouchDbLifecycleMixin({
       defaultDbPath: './data/cet_case_state',
       dbPathEnvVar: 'CET_CASE_STATE_DB_PATH',
@@ -134,8 +140,9 @@ module.exports = {
       async function (ctx) {
         const p = principal(ctx, ctx.params);
         if (!ctx.params.clientId) deny('clientId required');
-        const states = await this.visibleStates(p);
+        const states = (await this.visibleStates(p)).filter((state) => rawContentAllowed(p, state));
         for (const state of states) {
+          if (state.actorId !== p.actorId) await this.auditCaseAccess(p, state);
           await this.reconcileJobs(p, state);
           await this.flushEvents(p, state);
         }
@@ -250,6 +257,7 @@ module.exports = {
         const state = await this.loadCase(p, ctx.params.cetCaseId);
         await this.recordUpdate(p, state, ctx.params);
         for (const relation of state.relatedCases || []) {
+          if (relation.relationshipType === 'same_subject') continue;
           let target;
           try {
             target = await this.loadCase(p, relation.cetCaseId);
@@ -325,8 +333,9 @@ module.exports = {
           payloadRef: `/api/jobs/${jobId}/result`,
         });
         for (const relation of state.relatedCases || []) {
+          if (relation.relationshipType === 'same_subject') continue;
           const target = await this.db.get(key(p.tenantId, relation.cetCaseId));
-          if (visible(p, target))
+          if (visible(p, target) && rawContentAllowed(p, target))
             await this.recordUpdate(p, target, {
               kind: 'related_reply',
               version: `${jobId}:${job.status}`,
@@ -338,13 +347,17 @@ module.exports = {
         await this.saveState(p, state);
       }
     },
-    async loadCase(p, id) {
+    async loadCase(p, id, { summaryOnly = false } = {}) {
+      await this.resolveCaseTeam(p);
       if (!id) throw new Errors.MoleculerClientError('cetCaseId required', 422);
       const state = await this.db.get(key(p.tenantId, id));
       authorize(p, state);
+      if (!summaryOnly && !rawContentAllowed(p, state)) deny('Case content not accessible');
+      if (!summaryOnly && state.actorId !== p.actorId) await this.auditCaseAccess(p, state);
       return state;
     },
     async visibleStates(p) {
+      await this.resolveCaseTeam(p);
       return (await this.db.allDocs({ include_docs: true })).rows
         .map((r) => r.doc)
         .filter((s) => s.cetCaseId && s.disposition !== 'discarded' && visible(p, s));
@@ -497,6 +510,17 @@ module.exports = {
         conversationId: input.conversationId || previous?.conversationId || null,
         agentSessionId: input.agentSessionId || previous?.agentSessionId || null,
         knownContext: input.knownContext,
+        // Snapshot only for new cases: legacy documents remain own without migration.
+        caseVisibility: previous
+          ? previous.caseVisibility || 'own'
+          : this.casePolicy(p).caseVisibility,
+        typedIdentifiers: normalizeIdentifiers(
+          input.knownContext.identifiers ||
+            input.knownContext.situation?.identifiers ||
+            previous?.typedIdentifiers ||
+            [],
+          this.casePolicy(p).identifierTypes
+        ),
         asyncDelivery,
         domainHistory: [
           ...(previous?.domainHistory || []),
@@ -535,8 +559,8 @@ module.exports = {
       ];
       await this.saveState(p, state);
       if (classification.transition.type === 'branch') await this.createBranch(p, state);
-      await this.discover(ctx, p, state);
-      return state.lastClassification;
+      const discovered = await this.discover(ctx, p, state);
+      return { ...state.lastClassification, relatedCases: discovered.relatedCases };
     },
     async knowledgeHints(ctx, p, input) {
       const requested = input.knownContext.knowledgeCollection;
@@ -704,22 +728,71 @@ module.exports = {
         const matched = LINK_KEYS.filter((k) =>
           values(state, k).some((value) => values(target, k).includes(value))
         );
-        const link =
+        const typedMatches = matchingIdentifiers(state, target);
+        let link =
           state.relatedCases.find((r) => r.cetCaseId === target.cetCaseId) ||
           (target.parentCaseId === state.cetCaseId
             ? { relationshipType: 'branch_child' }
             : state.parentCaseId === target.cetCaseId
               ? { relationshipType: 'branch_parent' }
               : null);
-        if (!matched.length && !link) continue;
+        if (typedMatches.length && link?.relationshipType === 'same_process') {
+          link.relationshipType = 'same_subject';
+          link.reason = 'matching_typed_identifier';
+          link.confidence = 0.8;
+          link.matchedIdentifiers = typedMatches;
+          state.caseStateVersion++;
+          await this.saveState(p, state);
+        }
+        const reverse = target.relatedCases?.find((r) => r.cetCaseId === state.cetCaseId);
+        if (link?.decision === 'rejected' || reverse?.decision === 'rejected') continue;
+        if (link?.relationshipType === 'same_subject' && !link.decision && !typedMatches.length) {
+          state.relatedCases = state.relatedCases.filter((r) => r.cetCaseId !== target.cetCaseId);
+          state.caseStateVersion++;
+          await this.saveState(p, state);
+          link = null;
+        }
+        if (!matched.length && !typedMatches.length && !link) continue;
+        // Derived answers must retain the clearance of their source summary.
+        const inheritedFlags = target.sensitivityFlags.filter(
+          (flag) => !state.sensitivityFlags.includes(flag)
+        );
+        if (inheritedFlags.length) {
+          state.sensitivityFlags.push(...inheritedFlags);
+          state.caseStateVersion++;
+          await this.saveState(p, state);
+        }
         relatedCases.push({
           cetCaseId: target.cetCaseId,
-          relationshipType: link?.relationshipType || 'same_process',
-          confidence: link ? 1 : 0.8,
-          reason: link ? 'explicit_link' : matched.join(','),
-          allowedEventTypes: ['related.session.reply', 'evidence.available'],
+          ...(await this.readCaseSummary(p, target)),
+          relationshipType:
+            link?.relationshipType || (typedMatches.length ? 'same_subject' : 'same_process'),
+          confidence: link?.confidence ?? (link ? 1 : 0.8),
+          reason:
+            link?.reason || (typedMatches.length ? 'matching_typed_identifier' : matched.join(',')),
+          matchedIdentifiers: typedMatches,
+          allowedEventTypes:
+            rawContentAllowed(p, target) && !typedMatches.length
+              ? ['related.session.reply', 'evidence.available']
+              : [],
         });
-        if (!link) await this.linkCases(p, state, target, 'same_process');
+        if (!link) {
+          if (typedMatches.length) {
+            const relation = {
+              cetCaseId: target.cetCaseId,
+              relationshipType: 'same_subject',
+              confidence: 0.8,
+              reason: 'matching_typed_identifier',
+              matchedIdentifiers: typedMatches,
+            };
+            state.relatedCases.push(relation);
+            state.caseStateVersion++;
+            await this.saveState(p, state);
+            // Do not overwrite a colleague's explicit rejection or mutate their turn.
+          } else if (rawContentAllowed(p, target)) {
+            await this.linkCases(p, state, target, 'same_process');
+          }
+        }
       }
       const relatedSessions = [];
       // Read the existing artifact only; never create/copy a Personal Agent session.
