@@ -26,22 +26,7 @@ function principal(ctx, input = {}) {
   return { tenantId, actorId, roles, clearance };
 }
 function visible(p, state) {
-  return (
-    state.tenantId === p.tenantId &&
-    state.accessRoles.some((r) => p.roles.includes(r)) &&
-    state.sensitivityFlags.every((f) => p.clearance.includes(f)) &&
-    (state.actorId === p.actorId ||
-      state.participantActorIds?.includes(p.actorId) ||
-      state.sharedWithRoles?.some((r) => p.roles.includes(r)) ||
-      (state.caseVisibility === 'tenant' &&
-        p.caseVisibility !== 'own' &&
-        p.caseVisibility !== 'team') ||
-      (['team', 'tenant'].includes(state.caseVisibility) &&
-        p.caseVisibility !== 'own' &&
-        ((state.accessRoles.length === p.roles.length &&
-          state.accessRoles.every((r) => p.roles.includes(r))) ||
-          p.teamActorIds?.includes(state.actorId))))
-  );
+  return Boolean(p.tenantId && state.tenantId === p.tenantId);
 }
 function authorize(p, state) {
   if (!visible(p, state)) deny('Case not accessible');

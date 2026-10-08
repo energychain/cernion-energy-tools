@@ -50,6 +50,7 @@ module.exports = {
   mixins: [
     require('../src/shared-service-case-context'),
     require('../src/case-linking-mixin'),
+    require('../src/case-continuation-mixin'),
     createPouchDbLifecycleMixin({
       defaultDbPath: './data/cet_case_state',
       dbPathEnvVar: 'CET_CASE_STATE_DB_PATH',
@@ -436,6 +437,7 @@ module.exports = {
       const previous = input.cetCaseId ? await this.loadCase(p, input.cetCaseId) : null;
       if (previous?.disposition === 'discarded')
         throw new Errors.MoleculerClientError('Case was discarded', 409);
+      if (previous?.mergedInto) throw new Errors.MoleculerClientError('Case was merged', 409);
       if (continuing && !previous)
         throw new Errors.MoleculerClientError('Continue requires cetCaseId', 422);
       if (
@@ -510,10 +512,7 @@ module.exports = {
         conversationId: input.conversationId || previous?.conversationId || null,
         agentSessionId: input.agentSessionId || previous?.agentSessionId || null,
         knownContext: input.knownContext,
-        // Snapshot only for new cases: legacy documents remain own without migration.
-        caseVisibility: previous
-          ? previous.caseVisibility || 'own'
-          : this.casePolicy(p).caseVisibility,
+        caseVisibility: this.casePolicy(p).caseVisibility,
         typedIdentifiers: normalizeIdentifiers(
           input.knownContext.identifiers ||
             input.knownContext.situation?.identifiers ||
@@ -719,6 +718,7 @@ module.exports = {
       const relatedCases = [];
       for (const target of await this.visibleStates(p)) {
         if (target.cetCaseId === state.cetCaseId) continue;
+        if (target.mergedInto) continue;
         const values = (doc, k) =>
           [
             doc.identifiers[k],
@@ -728,7 +728,7 @@ module.exports = {
         const matched = LINK_KEYS.filter((k) =>
           values(state, k).some((value) => values(target, k).includes(value))
         );
-        const typedMatches = matchingIdentifiers(state, target);
+        const typedMatches = matchingIdentifiers(state, target, this.casePolicy(p).identifierTypes);
         let link =
           state.relatedCases.find((r) => r.cetCaseId === target.cetCaseId) ||
           (target.parentCaseId === state.cetCaseId

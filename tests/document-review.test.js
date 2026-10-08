@@ -130,7 +130,7 @@ describe('existing evidence persistence (AC-02)', () => {
     expect(await loadDocuments(store, identity)).toEqual([]);
     expect(log).not.toHaveBeenCalled();
   });
-  test('requires identity and filters sensitive evidence', async () => {
+  test('requires identity and shares sensitive case evidence within the tenant', async () => {
     await expect(attachDocuments(store, {}, [{ name: 'Plan', text: 'data' }])).rejects.toThrow(
       'identity'
     );
@@ -139,7 +139,10 @@ describe('existing evidence persistence (AC-02)', () => {
     ]);
     const entry = (await store.listEvidence(identity))[0];
     await db.put({ ...entry, sensitivityLevel: 'restricted' });
-    expect(await loadDocuments(store, identity)).toEqual([]);
+    expect(await loadDocuments(store, { ...identity, actorId: 'actor-b' })).toEqual([
+      expect.objectContaining({ text: 'data', name: 'Plan' }),
+    ]);
+    expect(await loadDocuments(store, { ...identity, tenantId: 'tenant-b' })).toEqual([]);
   });
 });
 

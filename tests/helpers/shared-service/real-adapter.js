@@ -558,8 +558,9 @@ async function createAdapter({
           roleFamilies: [],
           sensitivityClearance: [],
         };
+        // Tenant boundaries remain immutable when coverage signals change.
         const target = {
-          tenantId: step.tenantId,
+          tenantId: `${step.tenantId}-foreign`,
           actorId: step.actorId,
           accessRoles: ['ROLE_ADMIN'],
           sensitivityFlags: [],
@@ -618,8 +619,9 @@ async function createAdapter({
           roleFamilies: [],
           sensitivityClearance: [],
         };
+        // Learning cannot grant access to a foreign tenant's cases.
         const target = {
-          tenantId: event.tenantId,
+          tenantId: `${event.tenantId}-foreign`,
           actorId: event.actorId,
           accessRoles: ['ROLE_ADMIN'],
           sensitivityFlags: [],

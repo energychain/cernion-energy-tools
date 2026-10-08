@@ -4,6 +4,8 @@ const { persistentSituation } = require('./workbench-turn-scope');
 
 const crypto = require('node:crypto');
 const { relatedCaseContext } = require('./workbench-case-linking');
+const continuation = require('./workbench-case-continuation');
+const { caseLabel, statusLabel, readableCaseText } = require('./case-continuation');
 const understanding = require('./workbench-understanding');
 const conversationAssistance = require('./workbench-conversation');
 const { filterEvidence, retrievalTimeoutMs } = require('./workbench-retrieval');
@@ -103,7 +105,8 @@ async function evidenceAccess(service, p) {
 
 async function runContentTurn(service, ctx, { p, mapping, envelope, pending, conversation, meta }) {
   const started = performance.now();
-  const rawMessage = envelope.userRequest;
+  const caseChoice = continuation.selection(pending, envelope.userRequest);
+  let rawMessage = envelope.userRequest;
   const thread = require('./workbench-thread');
   if (thread.isThreadInput(rawMessage))
     envelope = { ...envelope, userRequest: thread.prepareThread(rawMessage, 12000).text };
@@ -118,25 +121,28 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
   let understandingFailed = false;
   const understandStarted = performance.now();
   try {
-    situation = draftRequest
-      ? {
-          ...previous,
-          requestedAction: {
-            ...previous.requestedAction,
-            externalEffect: false,
-            draftRequested: true,
-          },
-        }
-      : await understanding.understand({
-          message: rawMessage,
-          messages: ctx.params.messages,
-          previous,
-          asked: pending?.askedQuestions || [],
-          tenantId: p.tenantId,
-          model: service.settings.systemActivityModel,
-          codeCatalog: service.settings.workbenchCodeCatalog,
-          logger: service.logger,
-        });
+    situation =
+      caseChoice && pending?.situation
+        ? pending.situation
+        : draftRequest
+          ? {
+              ...previous,
+              requestedAction: {
+                ...previous.requestedAction,
+                externalEffect: false,
+                draftRequested: true,
+              },
+            }
+          : await understanding.understand({
+              message: rawMessage,
+              messages: ctx.params.messages,
+              previous,
+              asked: pending?.askedQuestions || [],
+              tenantId: p.tenantId,
+              model: service.settings.systemActivityModel,
+              codeCatalog: service.settings.workbenchCodeCatalog,
+              logger: service.logger,
+            });
   } catch (error) {
     understandingFailed = true;
     service.logger.warn('Workbench understanding unavailable', {
@@ -205,8 +211,41 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
   let previousMemory = null;
   let caseId;
   let operation;
+  let assignment;
+  let caseDelivery;
+  let caseNotice = '';
+  let mergeProposal;
   // Pure knowledge questions never create or advance case state.
   if (situation.turnKind === 'work' && !pending?.caseSuppressed) {
+    if (!conversation?.cetCaseId) {
+      assignment = await continuation.assignCase(
+        service,
+        ctx,
+        p,
+        envelope,
+        situation,
+        pending,
+        meta
+      );
+      if (assignment.response) return assignment.response;
+      if (caseChoice) {
+        rawMessage = pending.caseSelection.message;
+        envelope = { ...envelope, userRequest: rawMessage };
+      }
+      if (assignment.selected) {
+        const existing = await service.loadVisibleCase(ctx, p, assignment.selected.cetCaseId);
+        caseDelivery = existing.asyncDelivery;
+        situation = continuation.mergeSituation(existing.knownContext?.situation, situation);
+        conversation = { cetCaseId: existing.cetCaseId };
+        caseNotice = `Das gehört zu ${caseLabel(assignment.selected)} – ich ergänze das neue Material dort.`;
+        mergeProposal = await continuation.duplicateProposal(
+          service,
+          p,
+          assignment.selected,
+          assignment.items
+        );
+      }
+    }
     if (!conversation) {
       const reservation = await service.store.reserveConversation({
         tenantId: p.tenantId,
@@ -239,6 +278,7 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
       `domain-router.${operation}`,
       {
         ...routedEnvelope,
+        ...(caseDelivery ? { asyncDelivery: caseDelivery } : {}),
         requestedMode: operation,
         ...(conversation ? { cetCaseId: conversation.cetCaseId } : {}),
         disableKnowledgeRouting: true,
@@ -255,6 +295,8 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
       { meta }
     );
     caseId = result.cetCaseId;
+    if (assignment?.selected)
+      await continuation.recordContribution(service, p, envelope, caseId, situation);
     await service.store.linkConversation({
       tenantId: p.tenantId,
       client: envelope.channel,
@@ -379,7 +421,7 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
   retrieval.evidence.push(
     ...related.items.map((item) => ({
       source: 'related_case',
-      value: `Fall ${item.displayRef}: ${item.status}. ${item.summary}`,
+      value: `Fall ${item.displayRef}: ${statusLabel(item.status)}. ${item.summary}`,
       metadata: { cetCaseId: item.cetCaseId },
     }))
   );
@@ -429,18 +471,21 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
     )
       ? choiceCandidates(result, service.settings.systemActivityModel).slice(0, 3)
       : [];
-  result.responseText = [
-    related.firstSentence,
-    reply.responseText,
-    choices.length
-      ? `Optional passende Funktion (Nummer oder Name):\n${choices.map((choice, index) => `${index + 1}. ${choice.label}`).join('\n')}`
-      : '',
-    displayRef
-      ? `Fall ${displayRef}${firstAutoCase ? ' · Mit „Kein Fall“ kannst du ihn verwerfen.' : ''}`
-      : '',
-  ]
-    .filter(Boolean)
-    .join('\n\n');
+  result.responseText = readableCaseText(
+    [
+      caseNotice,
+      reply.responseText,
+      mergeProposal?.text,
+      choices.length
+        ? `Optional passende Funktion (Nummer oder Name):\n${choices.map((choice, index) => `${index + 1}. ${choice.label}`).join('\n')}`
+        : '',
+      displayRef && !caseNotice
+        ? `Fall ${displayRef}${firstAutoCase ? ' · Mit „Kein Fall“ kannst du ihn verwerfen.' : ''}`
+        : '',
+    ]
+      .filter(Boolean)
+      .join('\n\n')
+  );
   result.requiredClarifications = reply.questions.map((item) => item.question);
   result.noCallGuards = [
     ...new Set([
@@ -483,6 +528,15 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
     });
   }
   await conversationAssistance.saveTurn(service.conversationsDb, p, envelope, {
+    caseSelection: null,
+    ...(mergeProposal?.items.length
+      ? {
+          caseMergeProposal: {
+            cetCaseId: caseId,
+            sourceCaseIds: mergeProposal.items.map((item) => item.cetCaseId),
+          },
+        }
+      : {}),
     situation,
     retrieval,
     evidenceRetrievedAt: draftRequest || reuseEvidence ? pending?.evidenceRetrievedAt : Date.now(),
@@ -586,16 +640,11 @@ async function selectChoice(service, ctx, { p, mapping, envelope, conversation, 
   };
 }
 
-// Serialize content turns per actor/conversation, including the initial reservation.
+// Serialize content turns per tenant across people and fresh conversations.
 // Refresh persisted questions after waiting so parallel requests cannot repeat them.
 async function queuedContentTurn(service, ctx, input) {
   const queues = (service.workbenchContentTurns ||= new Map());
-  const key = JSON.stringify([
-    input.p.tenantId,
-    input.p.actorId,
-    input.envelope.channel,
-    input.envelope.conversationId,
-  ]);
+  const key = JSON.stringify([input.p.tenantId]);
   const previous = queues.get(key) || Promise.resolve();
   let release;
   const gate = new Promise((resolve) => {

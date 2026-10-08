@@ -23,9 +23,12 @@ function normalizeIdentifiers(entries = [], types = {}) {
   return [...result.values()];
 }
 
-function matchingIdentifiers(source, target) {
+function matchingIdentifiers(source, target, types = {}) {
+  const { strongIdentifiers } = require('./case-continuation');
   const keys = new Set((target.typedIdentifiers || []).map((id) => JSON.stringify(id)));
-  return (source.typedIdentifiers || []).filter((id) => keys.has(JSON.stringify(id)));
+  return strongIdentifiers(source.typedIdentifiers || [], types).filter((id) =>
+    keys.has(JSON.stringify(id))
+  );
 }
 
 function tenantCasePolicy(tenantId, registryFile) {
@@ -33,17 +36,14 @@ function tenantCasePolicy(tenantId, registryFile) {
     ? JSON.parse(fs.readFileSync(registryFile, 'utf8'))
     : [];
   const policy = tenants.find((tenant) => tenant.tenantId === tenantId)?.sharedService || {};
-  const caseVisibility = policy.caseVisibility ?? 'own';
+  const caseVisibility = policy.caseVisibility ?? 'tenant';
   if (!['own', 'team', 'tenant'].includes(caseVisibility)) deny('Invalid case visibility');
-  return { caseVisibility, identifierTypes: policy.identifierTypes || {} };
+  // Legacy own/team settings remain readable but no longer divide a tenant's cases.
+  return { caseVisibility: 'tenant', identifierTypes: policy.identifierTypes || {} };
 }
 
 function rawContentAllowed(p, state) {
-  return (
-    state.actorId === p.actorId ||
-    state.participantActorIds?.includes(p.actorId) ||
-    state.sharedWithRoles?.some((role) => p.roles.includes(role))
-  );
+  return Boolean(p.tenantId && state.tenantId === p.tenantId);
 }
 
 function caseSummary(state) {
@@ -89,13 +89,11 @@ function identifierQueryMatches(state, query, types = {}) {
 }
 
 function relatedCaseSentence(items) {
-  return items
-    .filter((item) => item.relationshipType === 'same_subject')
-    .map(
-      (item) =>
-        `Zu dieser Kennung gibt es bereits Fall ${item.displayRef || item.cetCaseId} von ${item.responsible.join(', ')}: ${item.status}.`
-    )
-    .join(' ');
+  const { caseLabel } = require('./case-continuation');
+  const related = items.filter((item) => item.relationshipType === 'same_subject').slice(0, 3);
+  return related.length
+    ? `Zu diesen Kennungen gibt es bereits ${related.map(caseLabel).join('; ')}.`
+    : '';
 }
 
 module.exports = {

@@ -419,7 +419,7 @@ module.exports = {
           const evidence = (
             await workbench.store.listEvidence({ tenantId: p.tenantId, caseId: ref.caseId })
           ).find((item) => item.evidenceId === ref.id);
-          return !!evidence && canViewEvidence(evidence, p.clearance);
+          return !!evidence && canViewEvidence(evidence, p.clearance, p.tenantId);
         }
         if (ref.kind === 'operation') {
           const response = await ctx.call('workbench.tool-runs.get', {

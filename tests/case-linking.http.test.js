@@ -131,14 +131,29 @@ describe('Case linking #753 through authenticated gateway HTTP', () => {
     const first = await request('person-a', question);
     expect(first.status).toBe(200);
     const firstId = first.body.metadata.cetCaseId;
+    const existing = await app.router.loadCase(
+      require('../src/domain-router-policy').principal({
+        meta: auth('actor-a', ['ROLE_GRID_OPERATOR'], 'public'),
+      }),
+      firstId
+    );
+    const created = await app.create(
+      [{ kind: 'reference-a', value: 'ANON-0001' }],
+      auth('actor-b', ['ROLE_GRID_OPERATOR'], 'public'),
+      { asyncDelivery: existing.asyncDelivery, knownContext: existing.knownContext }
+    );
+    await app.workbench.store.linkConversation({
+      tenantId: 'public',
+      client: 'open-webui',
+      conversationId: 'chat-person-b',
+      cetCaseId: created.cetCaseId,
+    });
     const second = await request('person-b', question);
     expect(second.status).toBe(200);
     const secondId = second.body.metadata.cetCaseId;
     expect(secondId).toBeTruthy();
     expect(secondId).not.toBe(firstId);
-    expect(second.body.choices[0].message.content).toMatch(
-      /^Zu dieser Kennung gibt es bereits Fall F-\d+ von actor-a: evidence_required\./
-    );
+    expect(second.body.choices[0].message.content).not.toContain('evidence_required');
     const answerInput = JSON.parse(llm.generateText.mock.calls.at(-1)[0]);
     expect(answerInput.evidence).toEqual(
       expect.arrayContaining([expect.objectContaining({ source: 'related_case' })])
@@ -161,19 +176,19 @@ describe('Case linking #753 through authenticated gateway HTTP', () => {
     expect(undo.body.choices[0].message.content).toContain('rückgängig');
   });
 
-  test('identifier status finds another assigned colleague through HTTP; foreign team, tenant and spoofed organization reveal nothing', async () => {
+  test('identifier status is tenant-wide through HTTP; foreign tenant and spoofed organization reveal nothing', async () => {
     const foreign = await app.create(
       [{ kind: 'reference-a', value: 'ANON-FOREIGN' }],
       auth('actor-other', ['ROLE_GRID_OPERATOR'], 'tenant-b')
     );
     const response = await request('person-b', 'Wie ist der Stand bei ANON-0001?', 'status-b');
     expect(response.status).toBe(200);
-    expect(response.body.choices[0].message.content).toContain('evidence_required');
+    expect(response.body.choices[0].message.content).toContain('Belege fehlen');
+    expect(response.body.choices[0].message.content).not.toContain('evidence_required');
     const foreignTeam = await request('person-c', 'Wie ist der Stand bei ANON-0001?', 'status-c');
     expect(foreignTeam.status).toBe(200);
-    expect(foreignTeam.body.choices[0].message.content).not.toMatch(
-      /actor-a|actor-b|evidence_required/
-    );
+    expect(foreignTeam.body.choices[0].message.content).toContain('actor-a');
+    expect(foreignTeam.body.choices[0].message.content).not.toContain('evidence_required');
     const foreignTenant = await request(
       'person-b',
       'Wie ist der Stand bei ANON-FOREIGN?',
@@ -190,7 +205,9 @@ describe('Case linking #753 through authenticated gateway HTTP', () => {
     ).toBe(403);
   });
   test('draft follow-up keeps the safe variant and repairs an entirely rejected response across HTTP', async () => {
-    const initial = await request('person-a', question, 'draft-hotfix');
+    let initial = await request('person-a', question, 'draft-hotfix');
+    if (!initial.body.metadata.cetCaseId)
+      initial = await request('person-a', 'neu', 'draft-hotfix');
     expect(initial.status).toBe(200);
     const claim = (text, condition) => ({
       text,
@@ -260,7 +277,9 @@ describe('Case linking #753 through authenticated gateway HTTP', () => {
       });
     });
     try {
-      const initial = await request('person-a', question, 'draft-after-step');
+      let initial = await request('person-a', question, 'draft-after-step');
+      if (!initial.body.metadata.cetCaseId)
+        initial = await request('person-a', 'neu', 'draft-after-step');
       const next = await request('person-a', 'Was soll ich jetzt konkret tun?', 'draft-after-step');
       expect(next.status).toBe(200);
       expect(next.body.choices[0].message.content).toContain('Prüfe den dokumentierten Stand.');
@@ -276,6 +295,50 @@ describe('Case linking #753 through authenticated gateway HTTP', () => {
     } finally {
       llm.generateStructured.mockImplementation(structured);
       llm.generateText.mockImplementation(text);
+    }
+  });
+  test('AC01/03/04: same person in a fresh HTTP chat continues one case and names it only in the assignment turn', async () => {
+    const implementation = llm.generateStructured.getMockImplementation();
+    const identifiers = [
+      { kind: 'reference-a', value: 'ANON-764-HTTP' },
+      { kind: 'reference-b', value: 'LOC-764-HTTP' },
+    ];
+    llm.generateStructured.mockImplementation(async (...args) => ({
+      ...(await implementation(...args)),
+      identifiers,
+    }));
+    try {
+      const message = 'Bitte bearbeite ANON-764-HTTP und LOC-764-HTTP.';
+      const first = await request('person-a', message, '764-first');
+      const second = await request('person-b', message, '764-second');
+      expect(first.status).toBe(200);
+      expect(second.status).toBe(200);
+      expect(second.body.metadata.cetCaseId).toBe(first.body.metadata.cetCaseId);
+      const content = second.body.choices[0].message.content;
+      expect(content).toMatch(/^Das gehört zu F-\d+ \(/u);
+      expect(content).toContain('angelegt von actor-a');
+      expect(content.match(/F-\d+/gu)).toHaveLength(1);
+      for (const text of ['Bitte prüfe die neuen Angaben.', 'Welche Belege fehlen noch?']) {
+        const turn = await request('person-b', text, '764-second');
+        expect(turn.status).toBe(200);
+        expect(turn.body.choices[0].message.content).not.toMatch(
+          /Das gehört zu|Zu diesen Kennungen|evidence_required|human_review_required/u
+        );
+      }
+      const events = (await app.router.eventsDb.allDocs({ include_docs: true })).rows.map(
+        ({ doc }) => doc
+      );
+      expect(events).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            kind: 'contributed',
+            cetCaseId: first.body.metadata.cetCaseId,
+            conversationId: '764-second',
+          }),
+        ])
+      );
+    } finally {
+      llm.generateStructured.mockImplementation(implementation);
     }
   });
 });
