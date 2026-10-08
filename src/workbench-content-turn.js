@@ -1,5 +1,7 @@
 'use strict';
 
+const { persistentSituation } = require('./workbench-turn-scope');
+
 const crypto = require('node:crypto');
 const { relatedCaseContext } = require('./workbench-case-linking');
 const understanding = require('./workbench-understanding');
@@ -109,7 +111,7 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
   const state = conversation?.cetCaseId
     ? await service.loadVisibleCase(ctx, p, conversation.cetCaseId)
     : null;
-  const previous = pending?.situation || state?.knownContext?.situation;
+  const previous = persistentSituation(pending?.situation || state?.knownContext?.situation);
   const draftRequest = Boolean(previous && understanding.isDraftRequest(envelope.userRequest));
   const phaseTimes = { understandMs: 0, retrieveMs: 0, answerMs: 0 };
   let situation;
@@ -117,7 +119,14 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
   const understandStarted = performance.now();
   try {
     situation = draftRequest
-      ? { ...previous, requestedAction: { ...previous.requestedAction, draftRequested: true } }
+      ? {
+          ...previous,
+          requestedAction: {
+            ...previous.requestedAction,
+            externalEffect: false,
+            draftRequested: true,
+          },
+        }
       : await understanding.understand({
           message: rawMessage,
           messages: ctx.params.messages,
@@ -151,7 +160,8 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
     };
   }
   phaseTimes.understandMs = Math.round(performance.now() - understandStarted);
-  const nextStepRequest = situation.followupKind === 'next_step';
+  const nextStepRequest =
+    !understanding.isDraftRequest(envelope.userRequest) && situation.followupKind === 'next_step';
   const reuseEvidence = Boolean(
     previous &&
     nextStepRequest &&
@@ -234,7 +244,7 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
         disableKnowledgeRouting: true,
         knownContext: {
           // Do not promote client knownContext into model-derived facts.
-          situation,
+          situation: persistentSituation(situation),
           userRequest: routedEnvelope.userRequest,
           identifiers: situation.identifiers,
           deadlines: situation.deadlines,
@@ -519,7 +529,7 @@ async function selectChoice(service, ctx, { p, mapping, envelope, conversation, 
   const model = service.settings.systemActivityModel || getFunctionModel();
   const choice = confirmedCapability(envelope.userRequest, state, model);
   if (!choice) return null;
-  const situation = state.knownContext.situation;
+  const situation = persistentSituation(state.knownContext.situation);
   if (!situation) return null;
   if (
     !situation.hypotheses.some(
