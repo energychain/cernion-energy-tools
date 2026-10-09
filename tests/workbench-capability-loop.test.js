@@ -412,6 +412,83 @@ test('full Workbench answer path executes reads and follow-up without new data e
   }
 });
 
+test('combined case continuation, delegated read, document upload and passage followup keep one case and one hint', async () => {
+  const { createCaseBroker } = require('./helpers/case-linking-broker');
+  const { loadDocuments } = require('../src/workbench-document');
+  const environment = await createCaseBroker();
+  const identifiers = [{ kind: 'processReference', value: 'ANON-COMBINED-764-755' }];
+  const reads = jest.fn(async () => ({
+    success: true,
+    data: { results: [{ municipality: 'Synthetic A', capacityKW: 300 }] },
+  }));
+  environment.broker.createService({
+    name: 'energy-market',
+    actions: { installations: { requiredRoles: ['ROLE_GRID_OPERATOR'], handler: reads } },
+  });
+  llm.generateStructured.mockResolvedValue({ ...situation, turnKind: 'work', identifiers });
+  llm.generateChat.mockResolvedValueOnce({ toolCalls: [call({ installationType: 'solar' })] });
+  llm.generateText.mockResolvedValue(
+    JSON.stringify({
+      interpretation: [claim('Die Auswertung zeigt Synthetic A.', ['E1'])],
+      expectation: [],
+      nextSteps: [],
+      draft: [],
+    })
+  );
+  await environment.broker.start();
+  try {
+    const existing = await environment.create(identifiers, {
+      apiToken: { id: 'synthetic-author', tenantId: 'synthetic', roles: ['ROLE_GRID_OPERATOR'] },
+    });
+    const input = { channel: 'open-webui', conversationId: 'combined-tools-document' };
+    const first = await environment.call(
+      'workbench.chat',
+      {
+        ...input,
+        message: 'Compare installations for ANON-COMBINED-764-755.',
+      },
+      meta
+    );
+    expect(first.cetCaseId).toBe(existing.cetCaseId);
+    expect(first.responseText).toContain('angelegt von synthetic-author');
+    expect(reads).toHaveBeenCalledTimes(1);
+    expect(first.sources).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: operation.action, status: 'available' }),
+      ])
+    );
+    const document = 'Seite 12\nSynthetischer Prüfstand: Ausgangszahl 42.\n';
+    const callsBeforeDocument = llm.generateChat.mock.calls.length;
+    const uploaded = await environment.call(
+      'workbench.chat',
+      {
+        ...input,
+        message: `<context><source name="Synthetic.txt">${document}</source></context><user_query>Dokument aufnehmen.</user_query>`,
+      },
+      meta
+    );
+    expect(uploaded.cetCaseId).toBe(existing.cetCaseId);
+    expect(uploaded.responseText).not.toContain('angelegt von');
+    const documents = await loadDocuments(environment.workbench.store, {
+      tenantId: 'synthetic',
+      caseId: existing.cetCaseId,
+    });
+    expect(documents[0].text).toBe(document);
+    const callsBeforePassage = llm.generateStructured.mock.calls.length;
+    const answersBeforePassage = llm.generateText.mock.calls.length;
+    const page = await environment.call('workbench.chat', { ...input, message: 'Seite 12?' }, meta);
+    expect(page.cetCaseId).toBe(existing.cetCaseId);
+    expect(page.responseText).toContain('Ausgangszahl 42');
+    expect(page.responseText).not.toContain('angelegt von');
+    expect(llm.generateStructured).toHaveBeenCalledTimes(callsBeforePassage);
+    expect(llm.generateText).toHaveBeenCalledTimes(answersBeforePassage);
+    expect(llm.generateChat).toHaveBeenCalledTimes(callsBeforeDocument);
+    expect(reads).toHaveBeenCalledTimes(1);
+  } finally {
+    await environment.cleanup();
+  }
+});
+
 test('HTTP-e2e: gateway transport delegates tool calls to mapped person and refuses unmapped user', async () => {
   const { createCaseBroker } = require('./helpers/case-linking-broker');
   const Api = require('../services/api.service');

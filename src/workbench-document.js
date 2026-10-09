@@ -96,7 +96,10 @@ async function attachDocuments(store, identity, documents, options = {}) {
 async function loadDocuments(store, identity) {
   if (!identity.tenantId || !identity.caseId) throw new Error('Document scope required');
   return (await store.listEvidence(identity))
-    .filter((entry) => canViewEvidence(entry, identity.clearance) && entry.extracts?.document)
+    .filter(
+      (entry) =>
+        canViewEvidence(entry, identity.clearance, identity.tenantId) && entry.extracts?.document
+    )
     .map((entry) => ({
       ...entry.extracts.document,
       evidenceId: entry.evidenceId,

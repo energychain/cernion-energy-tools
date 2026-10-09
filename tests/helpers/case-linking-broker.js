@@ -55,8 +55,29 @@ async function createCaseBroker() {
   const policy = (caseVisibility, identifierTypes = {}) =>
     fs.writeFileSync(
       registry,
-      JSON.stringify([{ tenantId: 'tenant-a', sharedService: { caseVisibility, identifierTypes } }])
+      JSON.stringify([
+        {
+          tenantId: 'tenant-a',
+          sharedService: {
+            caseVisibility,
+            identifierTypes: Object.fromEntries(
+              [...new Set(['reference-a', 'reference-b', ...Object.keys(identifierTypes)])].map(
+                (kind) => [
+                  kind,
+                  {
+                    ...(['reference-a', 'reference-b'].includes(kind)
+                      ? { strength: 'strong' }
+                      : {}),
+                    ...identifierTypes[kind],
+                  },
+                ]
+              )
+            ),
+          },
+        },
+      ])
     );
+  policy();
   const call = (action, params, meta = auth()) =>
     broker.call(action, params, { meta: structuredClone(meta) });
   const create = (ids, meta = auth(), extra = {}) =>

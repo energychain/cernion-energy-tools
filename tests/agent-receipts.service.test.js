@@ -838,6 +838,37 @@ describe('Agent Receipts Service', () => {
     expect(withDrafts.data.receiptId).toBe('preferred-draft-v1');
   });
 
+  it('prefers a ready first step on equal match scores even when the blocked receipt comes first', async () => {
+    const service = broker.getLocalService('agent-receipts');
+    const load = service.loadSelectableReceipts.bind(service);
+    const ordering = jest
+      .spyOn(service, 'loadSelectableReceipts')
+      .mockImplementation(async (options) =>
+        (await load(options)).sort((left, right) => left.receiptId.localeCompare(right.receiptId))
+      );
+    try {
+      for (const input of [
+        { message: 'Wer ist der Netzbetreiber?', knownContext: { city: 'Synthetic Town' } },
+        {
+          context: {
+            question: 'Wer ist der Netzbetreiber?',
+            knownContext: { city: 'Synthetic Town' },
+          },
+        },
+      ]) {
+        const result = await broker.call('agent-receipts.select', {
+          ...input,
+          includeEvaluation: true,
+        });
+        expect(result.data.receiptId).toBe('vnb-resolution-chain-v1');
+        expect(result.data.evaluation.plannedToolCalls[0].status).toBe('ready');
+        expect(result.data.evaluation.plannedToolCalls[1].status).toBe('scope-blocked');
+      }
+    } finally {
+      ordering.mockRestore();
+    }
+  });
+
   // v0.54.6: city-only queries select vnb-resolution-chain-v1 (2-step resolution workflow)
   // vnb-lookup-v1 now requires operatorScope (bdew/vnbName); city alone → resolution chain
   it('selects vnb-resolution-chain-v1 from top-level message + knownContext.city', async () => {

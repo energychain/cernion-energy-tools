@@ -16,7 +16,9 @@ function titleFromCase(state) {
 
 function presentCase(state, { evidenceRefs = [], eventSummary = null, clearance = [] } = {}) {
   const c = state.lastClassification || {};
-  const safeRefs = evidenceRefs.map((e) => safeEvidenceRef(e, { clearance }));
+  const safeRefs = evidenceRefs.map((e) =>
+    safeEvidenceRef(e, { clearance, tenantId: state.tenantId })
+  );
   return {
     caseId: state.cetCaseId,
     cetCaseId: state.cetCaseId,

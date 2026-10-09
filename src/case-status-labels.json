@@ -1,0 +1,10 @@
+{
+  "evidence_required": "Belege fehlen",
+  "human_review_required": "Prüfung durch eine zuständige Person steht aus",
+  "ready": "Für die weitere Bearbeitung vorbereitet",
+  "blocked": "Bearbeitung wartet auf Klärung",
+  "completed": "Abgeschlossen",
+  "closed": "Abgeschlossen",
+  "resolved": "Geklärt",
+  "unknown": "Bearbeitungsstand noch offen"
+}
