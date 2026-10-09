@@ -62,6 +62,7 @@
     "src/workbench-answer-filter.js",
     "src/workbench-identifiers.js",
     "src/workbench-content-turn.js",
+    "src/workbench-capability-loop.js",
     "src/workbench-turn-scope.js",
     "src/workbench-retrieval.js",
     "src/workbench-identifier-context.js",
