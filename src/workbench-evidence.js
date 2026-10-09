@@ -461,7 +461,17 @@ function safeEvidenceRef(evidence, { clearance = [], tenantId } = {}) {
     evidenceRole: evidence.evidenceRole,
     claimStrength: evidence.claimStrength,
     safeSummary: evidence.safeSummary,
-    extracts: evidence.extracts || {},
+    extracts: evidence.extracts?.document
+      ? {
+          ...evidence.extracts,
+          document: {
+            name: evidence.extracts.document.name,
+            completeness: evidence.extracts.document.completeness,
+            characterCount: evidence.extracts.document.text?.length || 0,
+            sectionCount: evidence.extracts.document.sections?.length || 0,
+          },
+        }
+      : evidence.extracts || {},
     routingSignals: evidence.routingSignals || [],
     readinessReviewRequired: !!evidence.readinessReviewRequired,
     duplicateOf: evidence.duplicateOf,

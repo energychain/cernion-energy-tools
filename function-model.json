@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "924ca71d9df7bdb525460977797d5e8b21c750ff5b24e56909e1b65c2db11bf5",
+  "sourceHash": "d367c8953802a0dca038777e48c841497500d8093e90da2bf6a3aa14fc8c10ac",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -188498,6 +188498,14 @@
         "ref": "services/api.service.js:535: dynamic emission"
       },
       {
+        "service": "api",
+        "ref": "src/job-store.js:67: dynamic emission"
+      },
+      {
+        "service": "api",
+        "ref": "src/llm-client.js:216: dynamic emission"
+      },
+      {
         "service": "assets",
         "ref": "src/job-store.js:67: dynamic emission"
       },
@@ -188727,6 +188735,14 @@
       },
       {
         "service": "tabular",
+        "ref": "src/llm-client.js:216: dynamic emission"
+      },
+      {
+        "service": "token-manager",
+        "ref": "src/job-store.js:67: dynamic emission"
+      },
+      {
+        "service": "token-manager",
         "ref": "src/llm-client.js:216: dynamic emission"
       },
       {

@@ -79,7 +79,9 @@
     "src/workbench-case-linking.js",
     "src/openwebui-context.js",
     "src/workbench-document.js",
-    "src/workbench-review.js"
+    "src/workbench-review.js",
+    "src/workbench-document-input.js",
+    "src/workbench-document-flow.js"
   ],
   "optionalPaths": [
     "src/function-model.js",

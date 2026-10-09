@@ -86,7 +86,10 @@ function normalizeTaskEnvelope(input = {}, mapping = {}) {
     conversationId:
       input.openWebuiConversationId || input.conversationId || mapping.externalConversationId,
   });
-  const userRequest = cleanString(input.message || input.userRequest, 'userRequest', {
+  const documentInput = require('./workbench-document-input').documentInput(
+    input.message || input.userRequest
+  );
+  const userRequest = cleanString(documentInput.question, 'userRequest', {
     required: true,
     max: require('./workbench-thread').maxInputChars(),
   });
@@ -99,6 +102,7 @@ function normalizeTaskEnvelope(input = {}, mapping = {}) {
     channel: normalizeChannel(input.channel || 'open-webui'),
     conversationId: conversation.conversationId,
     userRequest,
+    ...(documentInput.documents.length ? { documents: documentInput.documents } : {}),
     requestId: cleanString(input.requestId, 'requestId'),
     correlationId: cleanString(input.correlationId, 'correlationId'),
     openWebuiConversationId: conversation.openWebuiConversationId,
@@ -323,9 +327,9 @@ const schemas = {
       openWebuiUserId: stringSchema('Open WebUI user id'),
       openWebuiOrgId: stringSchema('Open WebUI organization id'),
       clientId: stringSchema('Registered delivery client id'),
-      message: stringSchema('User message routed through CET classify/continue', {
-        maxLength: 8000,
-      }),
+      message: stringSchema(
+        'User question, optionally with Open WebUI context/source documents. Question and document budgets are validated separately using WORKBENCH_MAX_INPUT_CHARS and WORKBENCH_DOCUMENT_MAX_CHARS.'
+      ),
       messages: arrayOf(
         objectSchema({
           role: stringSchema('History role; only substantive user turns supply case content'),

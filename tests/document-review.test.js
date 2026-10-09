@@ -17,8 +17,8 @@ const emptyMap = () => ({ claims: [], assumptions: [], numbers: [], measures: []
 const emptyReview = () => ({
   verdict: 'Der Plan ist intern widersprüchlich.',
   rationale: 'Abweichende Ausgangszahlen und unbegründete Annahmen.',
-  strengths: ['Gliederung vorhanden'],
-  risks: ['Wachstum unbegründet'],
+  strengths: [],
+  risks: [],
   checkpoints: [],
   contradictions: [],
   openQuestions: ['Welche Ausgangszahl gilt?'],
@@ -44,9 +44,12 @@ function fixtureFacade() {
         return output;
       }
       const output = emptyReview();
-      const locations = data.maps
-        .map((map, index) => (map.claims.length ? index : -1))
-        .filter((index) => index >= 0);
+      const locations = [1, 6].map((chapter) =>
+        data.locations.findIndex(
+          (location) =>
+            location.chapter === `Kapitel ${chapter}: Planung` && location.page === chapter * 3
+        )
+      );
       output.contradictions.push({
         finding: '100 und 240 Einheiten im gleichen Ausgangsjahr; Budget 1000 und 700.',
         locations,
@@ -54,9 +57,11 @@ function fixtureFacade() {
       });
       output.checkpoints.push({
         finding: 'Wachstum ohne Grundlage.',
-        locations: data.maps
-          .map((map, index) => (map.assumptions.length ? index : -1))
-          .filter((index) => index >= 0),
+        locations: [
+          data.locations.findIndex(
+            (location) => location.chapter === 'Kapitel 3: Planung' && location.page === 9
+          ),
+        ],
         criterion: -1,
       });
       return output;
@@ -148,6 +153,27 @@ describe('existing evidence persistence (AC-02)', () => {
 });
 
 describe('map/reduce review (AC-03/04, phase 1)', () => {
+  test.each(['strengths', 'risks', 'checkpoints', 'contradictions'])(
+    'rejects invalid exact citations in %s',
+    async (field) => {
+      const llm = {
+        generateStructured: jest.fn(async (_schema, prompt) =>
+          JSON.parse(prompt).untrustedDocument
+            ? emptyMap()
+            : {
+                ...emptyReview(),
+                [field]: [{ finding: 'Unbelegter Befund', locations: [999], criterion: -1 }],
+              }
+        ),
+      };
+      const result = await reviewDocuments(
+        { documents: [{ name: 'Synthetic', text: fixture }], question: 'Bewerte' },
+        { llm }
+      );
+      expect(result.status).toBe('failed');
+      expect(result.reason).toBe('WORKBENCH_REVIEW_INVALID_CITATION');
+    }
+  );
   test('fixture contradictions refer to exact stored chapter offsets; linear bounded calls', async () => {
     const llm = fixtureFacade();
     const result = await reviewDocuments(
@@ -159,13 +185,8 @@ describe('map/reduce review (AC-03/04, phase 1)', () => {
     );
     expect(result.status).toBe('completed');
     expect(
-      result.review.contradictions[0].locations.map((index) =>
-        result.maps[index].location.locations.map((location) => location.chapter)
-      )
-    ).toEqual([
-      expect.arrayContaining(['Kapitel 1: Planung']),
-      expect.arrayContaining(['Kapitel 6: Planung']),
-    ]);
+      result.review.contradictions[0].locations.map((index) => result.locations[index].chapter)
+    ).toEqual(['Kapitel 1: Planung', 'Kapitel 6: Planung']);
     for (const map of result.maps)
       expect(fixture.slice(map.location.start, map.location.end).length).toBeGreaterThan(0);
     expect(result.limitations.join(' ')).toContain('Keine externen Prüfmaßstäbe');

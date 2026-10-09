@@ -107,6 +107,8 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
   const started = performance.now();
   const caseChoice = continuation.selection(pending, envelope.userRequest);
   let rawMessage = envelope.userRequest;
+  const documentFlow = require('./workbench-document-flow');
+  const incomingDocuments = Boolean(envelope.documents?.length);
   const thread = require('./workbench-thread');
   if (thread.isThreadInput(rawMessage))
     envelope = { ...envelope, userRequest: thread.prepareThread(rawMessage, 12000).text };
@@ -114,6 +116,16 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
   const state = conversation?.cetCaseId
     ? await service.loadVisibleCase(ctx, p, conversation.cetCaseId)
     : null;
+  const access = await evidenceAccess(service, p);
+  const documentFollowup = await documentFlow.documentFollowupResponse(service, {
+    p,
+    envelope,
+    conversation,
+    state,
+    started,
+    access,
+  });
+  if (documentFollowup) return documentFollowup;
   const previous = persistentSituation(pending?.situation || state?.knownContext?.situation);
   const draftRequest = Boolean(previous && understanding.isDraftRequest(envelope.userRequest));
   const phaseTimes = { understandMs: 0, retrieveMs: 0, answerMs: 0 };
@@ -126,28 +138,30 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
     situation =
       caseChoice && pending?.situation
         ? pending.situation
-        : draftRequest
-          ? {
-              ...previous,
-              requestedAction: {
-                ...previous.requestedAction,
-                externalEffect: false,
-                draftRequested: true,
-              },
-            }
-          : await understanding.understand({
-              message: rawMessage,
-              messages: ctx.params.messages,
-              previous,
-              asked: pending?.askedQuestions || [],
-              tenantId: p.tenantId,
-              model: service.settings.systemActivityModel,
-              codeCatalog: service.settings.workbenchCodeCatalog,
-              logger: service.logger,
-              onRecovery: ({ reason }) => {
-                understandingRecoveryReason = reason;
-              },
-            });
+        : incomingDocuments
+          ? documentFlow.initialDocumentSituation(envelope)
+          : draftRequest
+            ? {
+                ...previous,
+                requestedAction: {
+                  ...previous.requestedAction,
+                  externalEffect: false,
+                  draftRequested: true,
+                },
+              }
+            : await understanding.understand({
+                message: rawMessage,
+                messages: documentFlow.cleanDocumentHistory(ctx.params.messages),
+                previous,
+                asked: pending?.askedQuestions || [],
+                tenantId: p.tenantId,
+                model: service.settings.systemActivityModel,
+                codeCatalog: service.settings.workbenchCodeCatalog,
+                logger: service.logger,
+                onRecovery: ({ reason }) => {
+                  understandingRecoveryReason = reason;
+                },
+              });
   } catch (error) {
     understandingFailed = true;
     understandingFailureReason = require('./workbench-llm-repair').fallbackReason(error);
@@ -187,7 +201,7 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
   );
   // Use the understood turn kind before deciding whether fresh retrieval is needed.
   const prefetchedKnowledge =
-    !draftRequest && !reuseEvidence
+    !incomingDocuments && !draftRequest && !reuseEvidence
       ? ctx
           .call(
             'personal-agent.collectWorkbenchEvidence',
@@ -227,7 +241,7 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
   let caseNotice = '';
   let mergeProposal;
   // Pure knowledge questions never create or advance case state.
-  if (situation.turnKind === 'work' && !pending?.caseSuppressed) {
+  if (['work', 'review'].includes(situation.turnKind) && !pending?.caseSuppressed) {
     let assignmentResponse;
     await continuation.withTenantCaseAssignment(service, p, async () => {
       conversation = await service.store.resolveConversation(
@@ -293,7 +307,11 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
         ? await service.loadTurnMemory(p, conversation.cetCaseId)
         : null;
       operation = conversation ? 'continue' : 'classify';
-      const routedEnvelope = { ...envelope, userRequest: understanding.routingRequest(situation) };
+      const { documents: _documents, ...plainEnvelope } = envelope;
+      const routedEnvelope = {
+        ...plainEnvelope,
+        userRequest: understanding.routingRequest(situation),
+      };
       result = await ctx.call(
         `domain-router.${operation}`,
         {
@@ -341,7 +359,6 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
         trace: prefetchTrace,
       }
     : null;
-  const access = await evidenceAccess(service, p);
   const codes = require('./workbench-codes');
   const codeLookup = codes.resolveCodes(
     { call: (name, params, options) => ctx.call(name, params, { ...options, meta }), meta },
@@ -355,7 +372,9 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
   const retrieveStarted = performance.now();
   const resolvedCodes = await codeLookup;
   try {
-    if ((draftRequest || reuseEvidence) && pending?.retrieval) {
+    if (incomingDocuments) {
+      retrieval = { evidence: [], trace: [] };
+    } else if ((draftRequest || reuseEvidence) && pending?.retrieval) {
       retrieval = {
         ...pending.retrieval,
         trace: (pending.retrieval.trace || [])
@@ -447,20 +466,33 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
   );
   const answerStarted = performance.now();
   let reply;
+  let documentResult;
   try {
-    reply = await understanding.answer({
+    documentResult = await documentFlow.documentReply(service, ctx, {
+      p,
+      envelope,
+      caseId: caseId || conversation?.cetCaseId,
       situation,
-      retrieval,
-      tenantId: p.tenantId,
-      asked: pending?.askedQuestions || [],
-      previousDraft: pending?.draft || '',
-      message: envelope.userRequest,
-      followup: Boolean(previous),
-      nextStepOnly: Boolean(previous && nextStepRequest),
-      skipModel: false,
-      lastAnswer: pending?.lastAnswer || '',
-      logger: service.logger,
+      retrieval: incomingDocuments ? null : retrieval,
+      meta,
+      access,
+      selectedCapabilities: result.selectedCapabilities,
     });
+    reply = documentResult
+      ? documentFlow.documentAnswer(documentResult)
+      : await understanding.answer({
+          situation,
+          retrieval,
+          tenantId: p.tenantId,
+          asked: pending?.askedQuestions || [],
+          previousDraft: pending?.draft || '',
+          message: envelope.userRequest,
+          followup: Boolean(previous),
+          nextStepOnly: Boolean(previous && nextStepRequest),
+          skipModel: false,
+          lastAnswer: pending?.lastAnswer || '',
+          logger: service.logger,
+        });
   } finally {
     phaseTimes.answerMs = Math.max(1, Math.round(performance.now() - answerStarted));
   }
@@ -601,6 +633,7 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
     },
     phaseTimes,
     sources,
+    ...documentFlow.documentResponseFields(documentResult, eventSummary),
     ...(displayRef ? { caseDisplayRef: displayRef } : {}),
     ...(draftId ? { draftId } : {}),
     latencyMs: Math.round(performance.now() - started),
