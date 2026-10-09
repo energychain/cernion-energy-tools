@@ -29,7 +29,7 @@ function normalizeResultItem(item = {}, includeContent) {
   const normalized = {
     id: item.id,
     slug: item.slug,
-    title: item.title,
+    title: item.metadata?.documentTitle || item.metadata?.title || item.documentTitle || item.title,
     score: item.score,
     category: item.category,
     tags: Array.isArray(item.tags) ? item.tags : [],

@@ -491,7 +491,8 @@ describe('Workbench understands, answers with evidence, and keeps the case in th
       .mockResolvedValueOnce({ concern: 'invalid' })
       .mockResolvedValueOnce({ concern: 'still invalid' });
     expect((await call(productionMail)).state).toBe('understanding_unavailable');
-    expect(retrieval).toHaveBeenCalledTimes(1);
+    expect(retrieval).toHaveBeenCalledTimes(2);
+    expect(llm.generateText).toHaveBeenCalled();
     expect(retrieval.mock.calls[0][0].meta.workbenchEvidenceSources).toEqual(['knowledge-rag']);
     llm.generateText.mockResolvedValueOnce(
       JSON.stringify({

@@ -87,7 +87,7 @@ test('Gemini text, schema and JSON fallback respect options.model', async () => 
   ]);
 });
 
-test('model error builds a complete working draft from available situation and sources', async () => {
+test('model error returns honest degradation with findings and facts', async () => {
   llm.generateText.mockRejectedValue(new Error('provider error'));
   const reply = await answer({
     situation: {
@@ -103,14 +103,14 @@ test('model error builds a complete working draft from available situation and s
     retrieval: { evidence: [{ source: 'Prozessnotiz', value: 'Eingang dokumentieren.' }] },
   });
   expect(reply.answerStatus).toBe('fallback');
-  expect(reply.responseText).not.toContain('Eingang dokumentieren.');
+  expect(reply.responseText).toContain('Eingang dokumentieren.');
   expect(reply.responseText).not.toContain('Quellen: Prozessnotiz');
-  expect(reply.draft).toContain('Die Anfrage ist offen.');
-  expect(reply.draft).toContain('[Ergebnis nach dem Prüfen');
-  expect(reply.draft).toContain('Mit freundlichen Grüßen');
+  expect(reply.draft).toBe('');
+  expect(reply.responseText).toContain('Die Anfrage ist offen.');
+  expect(reply.metadata.degraded).toBe(true);
 });
 
-test('timeout fallback retains an already available draft', async () => {
+test('timeout fallback does not silently supply a stale draft', async () => {
   llm.generateText.mockRejectedValue(new Error('timeout'));
   const reply = await answer({
     situation: {
@@ -122,8 +122,8 @@ test('timeout fallback retains an already available draft', async () => {
     retrieval: { evidence: [] },
     previousDraft: 'Guten Tag, bitte teilen Sie uns den dokumentierten Stand mit.',
   });
-  expect(reply.draft).toContain('Guten Tag');
-  expect(reply.responseText).toContain('Entwurf:');
+  expect(reply.draft).toBe('');
+  expect(reply.responseText).toContain('Modell ist gerade nicht verfügbar');
 });
 
 test('draft cannot assert completed work without literal evidence', async () => {

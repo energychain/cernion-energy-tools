@@ -1,6 +1,6 @@
 # Function model — generated report
 
-Source SHA-256: `5a62c3a014b262dc926ca10e67ba9968716e12f2782570c2a03f56779c4d8c7b`
+Source SHA-256: `ac44ecedafe85a15103444552c523ef82a85af95efce551653c26aa2168fd7eb`
 
 Capabilities: 172; functions: 110.
 Function vectors: 95/110; missing or incompatible capability vectors: 25.
@@ -513,24 +513,24 @@ None.
 ## unresolvedStaticEvents (70)
 
 - {"service":"agent","ref":"src/job-store.js:67: dynamic emission"}
-- {"service":"agent","ref":"src/llm-client.js:159: dynamic emission"}
+- {"service":"agent","ref":"src/llm-client.js:216: dynamic emission"}
 - {"service":"api","ref":"services/api.service.js:535: dynamic emission"}
 - {"service":"assets","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"business-intelligence","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"capability-broker","ref":"src/job-store.js:67: dynamic emission"}
-- {"service":"capability-broker","ref":"src/llm-client.js:159: dynamic emission"}
+- {"service":"capability-broker","ref":"src/llm-client.js:216: dynamic emission"}
 - {"service":"company","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"cookbook","ref":"src/job-store.js:67: dynamic emission"}
-- {"service":"cookbook","ref":"src/llm-client.js:159: dynamic emission"}
+- {"service":"cookbook","ref":"src/llm-client.js:216: dynamic emission"}
 - {"service":"customer-service","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"cya","ref":"services/cya.service.js:3412: dynamic emission"}
 - {"service":"cya","ref":"src/job-store.js:67: dynamic emission"}
-- {"service":"cya","ref":"src/llm-client.js:159: dynamic emission"}
+- {"service":"cya","ref":"src/llm-client.js:216: dynamic emission"}
 - {"service":"datasource-classifier","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"decision-frame","ref":"src/job-store.js:67: dynamic emission"}
-- {"service":"decision-frame","ref":"src/llm-client.js:159: dynamic emission"}
+- {"service":"decision-frame","ref":"src/llm-client.js:216: dynamic emission"}
 - {"service":"domain-router","ref":"src/job-store.js:67: dynamic emission"}
-- {"service":"domain-router","ref":"src/llm-client.js:159: dynamic emission"}
+- {"service":"domain-router","ref":"src/llm-client.js:216: dynamic emission"}
 - {"service":"eeg-clawback-calculator","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"eic-codes","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"energy-market","ref":"src/job-store.js:67: dynamic emission"}
@@ -539,7 +539,7 @@ None.
 - {"service":"entsoe","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"ewk-monitoring","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"finance-agent","ref":"src/job-store.js:67: dynamic emission"}
-- {"service":"finance-agent","ref":"src/llm-client.js:159: dynamic emission"}
+- {"service":"finance-agent","ref":"src/llm-client.js:216: dynamic emission"}
 - {"service":"forecast-sandbox","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"forecast","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"gas-storage","ref":"src/job-store.js:67: dynamic emission"}
@@ -549,39 +549,39 @@ None.
 - {"service":"job-status","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"knowledge-rag","ref":"services/knowledge-rag.service.js:137: dynamic emission"}
 - {"service":"knowledge-rag","ref":"src/job-store.js:67: dynamic emission"}
-- {"service":"knowledge-rag","ref":"src/llm-client.js:159: dynamic emission"}
+- {"service":"knowledge-rag","ref":"src/llm-client.js:216: dynamic emission"}
 - {"service":"mastr-monitor","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"mastr-quality","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"nova","ref":"services/nova.service.js:1079: dynamic emission"}
 - {"service":"nova","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"oep","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"openai-compatible","ref":"src/job-store.js:67: dynamic emission"}
-- {"service":"openai-compatible","ref":"src/llm-client.js:159: dynamic emission"}
+- {"service":"openai-compatible","ref":"src/llm-client.js:216: dynamic emission"}
 - {"service":"operations-runbook","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"osm-geo","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"personal-agent-work-out-loud-listener","ref":"services/personal-agent-work-out-loud-listener.service.js:30: dynamic listener"}
 - {"service":"personal-agent","ref":"services/personal-agent/methods-part-08-of-11.js:31: dynamic emission"}
 - {"service":"personal-agent","ref":"src/job-store.js:67: dynamic emission"}
-- {"service":"personal-agent","ref":"src/llm-client.js:159: dynamic emission"}
+- {"service":"personal-agent","ref":"src/llm-client.js:216: dynamic emission"}
 - {"service":"query","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"redispatch-expost","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"residual-load","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"shared-service-agent","ref":"src/job-store.js:67: dynamic emission"}
-- {"service":"shared-service-agent","ref":"src/llm-client.js:159: dynamic emission"}
+- {"service":"shared-service-agent","ref":"src/llm-client.js:216: dynamic emission"}
 - {"service":"notices","ref":"services/shared-service-notices.service.js:214: spread event handlers"}
 - {"service":"system","ref":"src/job-store.js:67: dynamic emission"}
-- {"service":"system","ref":"src/llm-client.js:159: dynamic emission"}
+- {"service":"system","ref":"src/llm-client.js:216: dynamic emission"}
 - {"service":"tabular","ref":"src/job-store.js:67: dynamic emission"}
-- {"service":"tabular","ref":"src/llm-client.js:159: dynamic emission"}
+- {"service":"tabular","ref":"src/llm-client.js:216: dynamic emission"}
 - {"service":"utility-report","ref":"src/job-store.js:67: dynamic emission"}
-- {"service":"utility-report","ref":"src/llm-client.js:159: dynamic emission"}
+- {"service":"utility-report","ref":"src/llm-client.js:216: dynamic emission"}
 - {"service":"willi-federated","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"willi-mako","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"willi-regulatorik","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"workbench","ref":"src/job-store.js:67: dynamic emission"}
-- {"service":"workbench","ref":"src/llm-client.js:159: dynamic emission"}
+- {"service":"workbench","ref":"src/llm-client.js:216: dynamic emission"}
 - {"service":"znp","ref":"src/job-store.js:67: dynamic emission"}
-- {"service":"znp","ref":"src/llm-client.js:159: dynamic emission"}
+- {"service":"znp","ref":"src/llm-client.js:216: dynamic emission"}
 
 ## overrides (0)
 

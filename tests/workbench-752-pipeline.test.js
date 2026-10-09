@@ -440,3 +440,32 @@ test('follow-up forwards client document history even when a previous situation 
   );
   expect(result.situation.followupKind).toBe('question');
 });
+
+test('758 provider failure still retrieves and answers; raw new facts persist to following turn', async () => {
+  const fixture = require('./fixtures/workbench-758.json');
+  const first = await call(fixture.liveTurns[0]);
+  llm.generateStructured.mockRejectedValueOnce(Object.assign(new Error('quota'), { status: 429 }));
+  llm.generateText.mockRejectedValueOnce(new Error('timeout'));
+  retrieval.mockReturnValue({
+    evidence: [
+      {
+        source: 'knowledge-rag',
+        value:
+          'Die fachliche Antwort erfordert die Klärung von Inbetriebnahme und bestehender Vereinbarung.',
+        metadata: { title: 'Teilnahmevoraussetzungen' },
+      },
+    ],
+    trace: [],
+  });
+  const second = await call(fixture.liveTurns[1]);
+  expect(second.cetCaseId).toBe(first.cetCaseId);
+  expect(second.metadata).toMatchObject({ degraded: true, degradedPhase: 'understanding' });
+  expect(second.responseText).toContain('Seit dem 01.01.2024');
+  expect(second.responseText).toContain('Modell ist gerade nicht verfügbar');
+  expect(second.responseText).toContain('Teilnahmevoraussetzungen');
+  expect(second.responseText).not.toMatch(/Als Nächstes:|\[Ergebnis/);
+  expect(second.situation.personFacts).toContain(fixture.liveTurns[1]);
+  await call(fixture.liveTurns[2]);
+  const prompt = JSON.parse(llm.generateStructured.mock.calls.at(-1)[1]);
+  expect(prompt.previous.personFacts).toContain(fixture.liveTurns[1]);
+});
