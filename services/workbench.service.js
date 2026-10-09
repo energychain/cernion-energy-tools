@@ -1422,8 +1422,9 @@ module.exports = {
       },
       async handler(ctx) {
         const envelope = normalizeTaskEnvelope(ctx.params);
-        const { p, mapping } = await this.resolveTurnPrincipal(ctx, envelope);
+        let { p, mapping } = await this.resolveTurnPrincipal(ctx, envelope);
         const meta = this.metaForMapping(ctx, p, mapping);
+        p = principal({ meta }, ctx.params);
         coverageTurn.mapped(ctx, meta);
         if (ctx.params.intentMode === 'system_activity_query') {
           return answerSystemActivity(
@@ -1456,23 +1457,25 @@ module.exports = {
           return { responseText: result.reply || '' };
         }
         if (ctx.params.intentMode === 'status_query') {
+          const conversationStatus = await caseLinking.conversationCaseStatus(
+            this,
+            ctx,
+            p,
+            envelope,
+            meta
+          );
           const linkedStatus = await caseLinking.findIdentifierStatus(
             ctx,
             envelope.userRequest,
             meta
           );
-          if (linkedStatus) return linkedStatus;
-          const conversation = await this.store.resolveConversation(
-            {
-              tenantId: p.tenantId,
-              client: envelope.channel,
-              conversationId: envelope.conversationId,
-            },
-            { optional: true }
+          return (
+            linkedStatus ||
+            conversationStatus || {
+              responseText:
+                'Ich kann den Vorgang noch nicht eindeutig zuordnen. Nenne mir eine Fallnummer oder eine Kennung, dann prüfe ich Bearbeitung und Stand.',
+            }
           );
-          const mentionedCase = envelope.userRequest.match(/\bcase[_-][\w-]+\b/i)?.[0];
-          const caseId = ctx.params.cetCaseId || mentionedCase || conversation?.cetCaseId;
-          return caseId ? ctx.call('workbench.cases.get', { caseId }, { meta }) : {};
         }
         const message = envelope.userRequest.toLowerCase();
         if (/\b(tools)\b/.test(message)) return ctx.call('workbench.tools.list', {}, { meta });

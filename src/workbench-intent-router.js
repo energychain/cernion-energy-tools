@@ -43,6 +43,11 @@ function classifyWorkbenchIntent(message, { cetCaseId, recentMessages } = {}) {
     )
   )
     return 'case_followup';
+  if (
+    /\b(?:bearbeitet|bearbeiter|angelegt|zuständig)\b/iu.test(text) &&
+    /\b(?:wer|bisher|zuletzt)\b/iu.test(text)
+  )
+    return 'status_query';
   if (isFunctionKnowledgeQuery(message)) return 'knowledge_query';
   if (
     /\b(status|stand|bearbeitungsstand)\b/.test(text) &&
@@ -149,16 +154,11 @@ function readable(value) {
 function renderWorkbenchResponse(result = {}, intent, followup) {
   if (intent === 'system_activity_query') return renderSystemActivity(result);
   const reply = readable(result.responseText);
-  if (
-    reply &&
-    intent !== 'status_query' &&
-    !(followup && /^(Case:|Readiness:|Missing evidence:)/im.test(reply))
-  )
-    return reply;
+  if (reply && !(followup && /^(Case:|Readiness:|Missing evidence:)/im.test(reply))) return reply;
   if (intent === 'knowledge_query')
     return followup
       ? renderContextualExplanation(followup)
-      : 'CET could not provide a verified explanation. Please specify the process and document version.';
+      : 'CET konnte keine belegte Erklärung liefern. Bitte nenne den Prozess und die Dokumentversion.';
   const entries = result.items || result.tools;
   if (Array.isArray(entries)) {
     const lines = entries
@@ -182,35 +182,35 @@ function renderWorkbenchResponse(result = {}, intent, followup) {
         return label ? `- ${label}${state ? ` (${state})` : ''}` : '';
       })
       .filter(Boolean);
-    return lines.length ? lines.join('\n') : 'No matching CET entries are available.';
+    return lines.length ? lines.join('\n') : 'Es sind keine passenden CET-Einträge verfügbar.';
   }
   const lines = [];
   const caseId = readable(result.cetCaseId || result.caseId);
-  if (caseId) lines.push(`Case: ${caseId}`);
+  if (caseId) lines.push(`Fall: ${caseId}`);
   if (readable(result.status)) lines.push(`Status: ${readable(result.status)}`);
-  if (readable(result.readinessState)) lines.push(`Readiness: ${readable(result.readinessState)}`);
+  if (readable(result.readinessState)) lines.push(`Stand: ${readable(result.readinessState)}`);
   const pending =
     result.pendingEvents ?? result.eventSummary?.unacknowledged ?? result.eventSummary?.pending;
-  if (pending != null) lines.push(`Pending events: ${Number(pending) || 0}`);
+  if (pending != null) lines.push(`Offene Ereignisse: ${Number(pending) || 0}`);
   for (const [key, label] of [
-    ['missingEvidence', 'Missing evidence'],
-    ['requiredClarifications', 'Clarifications'],
-    ['workingAssumptions', 'Assumptions'],
-    ['allowedActions', 'Next safe actions'],
+    ['missingEvidence', 'Fehlende Nachweise'],
+    ['requiredClarifications', 'Offene Fragen'],
+    ['workingAssumptions', 'Arbeitsannahmen'],
+    ['allowedActions', 'Nächste Schritte'],
   ]) {
     const values = (Array.isArray(result[key]) ? result[key] : []).map(readable).filter(Boolean);
     if (values.length) lines.push(`${label}: ${values.join('; ')}`);
   }
   if (intent === 'tool_run_request')
     lines.push(
-      'Tool requests require CET governance checks and an authorized case. No tool execution is confirmed.'
+      'Werkzeuganfragen erfordern die CET-Freigabeprüfung und einen berechtigten Fall. Eine Ausführung ist noch nicht bestätigt.'
     );
   else if (intent !== 'status_query')
     lines.push(
-      'Non-binding assessment. Provide the missing inputs and evidence before human review.'
+      'Unverbindliche Einschätzung. Ergänze die offenen Angaben und Nachweise für die Prüfung durch eine zuständige Person.'
     );
   if (!lines.length)
-    return reply || 'Please provide a CET case ID or select an existing case to view its status.';
+    return reply || 'Nenne mir eine Fallnummer oder Kennung, dann prüfe ich den Bearbeitungsstand.';
   return lines.join('\n');
 }
 

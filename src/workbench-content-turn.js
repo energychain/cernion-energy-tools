@@ -137,8 +137,8 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
   const understandStarted = performance.now();
   try {
     situation =
-      caseChoice && pending?.situation
-        ? pending.situation
+      caseChoice && pending?.caseSelection
+        ? pending.caseSelection.situation || pending.situation
         : incomingDocuments
           ? documentFlow.initialDocumentSituation(envelope)
           : draftRequest
@@ -223,6 +223,13 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
           .catch(() => null)
       : null;
   if (situation.turnKind === 'smalltalk') {
+    if (pending?.caseSelection)
+      await conversationAssistance.saveTurn(
+        service.conversationsDb,
+        p,
+        envelope,
+        continuation.advanceSelection(pending)
+      );
     service.logger.info('Workbench turn phases and sources', { phaseTimes, sources: [] });
     return {
       state: 'assistance',
@@ -243,7 +250,11 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
   let caseNotice = '';
   let mergeProposal;
   // Pure knowledge questions never create or advance case state.
-  if (['work', 'review'].includes(situation.turnKind) && !pending?.caseSuppressed) {
+  if (
+    (caseChoice || ['work', 'review'].includes(situation.turnKind)) &&
+    !pending?.caseSuppressed &&
+    !pending?.caseSelectionExpired
+  ) {
     let assignmentResponse;
     await continuation.withTenantCaseAssignment(service, p, async () => {
       conversation = await service.store.resolveConversation(
@@ -260,6 +271,7 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
           pending,
           meta
         );
+        if (assignment.deferred) return;
         if (assignment.response) {
           assignmentResponse = assignment.response;
           return;
@@ -637,6 +649,7 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
         ? `Fall ${displayRef}${firstAutoCase ? ' · Mit „Kein Fall“ kannst du ihn verwerfen.' : ''}`
         : '',
     ]
+      .concat(assignment?.question || '')
       .filter(Boolean)
       .join('\n\n')
   );
@@ -682,7 +695,11 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
     });
   }
   await conversationAssistance.saveTurn(service.conversationsDb, p, envelope, {
-    caseSelection: null,
+    ...(assignment?.deferred
+      ? { caseSelection: assignment.caseSelection, caseSelectionExpired: !assignment.caseSelection }
+      : pending?.caseSelection && !caseChoice
+        ? continuation.advanceSelection(pending)
+        : { caseSelection: null }),
     ...(mergeProposal?.items.length
       ? {
           caseMergeProposal: {
