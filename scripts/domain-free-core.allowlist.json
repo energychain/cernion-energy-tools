@@ -611,8 +611,16 @@
       "reason": "Generic German transparency instruction when review evidence is missing."
     },
     {
+      "term": "erfasst",
+      "reason": "Generic document review and evidence processing vocabulary (#754); no domain rules or routing."
+    },
+    {
       "term": "bewertung",
-      "reason": "Generic conversation, presentation or error-recovery vocabulary in Workbench (#758); no domain routing or business rule."
+      "reason": "Generic document review and evidence processing vocabulary (#754); no domain rules or routing."
+    },
+    {
+      "term": "prüfung",
+      "reason": "Generic document review and evidence processing vocabulary (#754); no domain rules or routing."
     },
     {
       "term": "energie",
@@ -621,10 +629,6 @@
     {
       "term": "energy",
       "reason": "Generic physical dimension vocabulary for quantity validation, independent of equipment or domain rules (#758)."
-    },
-    {
-      "term": "erfasst",
-      "reason": "Generic conversation, presentation or error-recovery vocabulary in Workbench (#758); no domain routing or business rule."
     },
     {
       "term": "leistung",

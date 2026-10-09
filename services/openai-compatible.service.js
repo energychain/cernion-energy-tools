@@ -86,11 +86,14 @@ function normalizeMessages(rawMessages, { preserveDocuments = false } = {}) {
     // expected there, not a malformed request.
     const hasToolCalls =
       role === 'assistant' && Array.isArray(message?.tool_calls) && message.tool_calls.length > 0;
+    const rawContent = normalizeContent(message?.content);
+    const parsed = preserveDocuments
+      ? require('../src/workbench-document-input').documentInput(rawContent)
+      : null;
     const content = preserveDocuments
-      ? compactMarkdown(
-          normalizeContent(message?.content),
-          require('../src/workbench-thread').maxInputChars()
-        )
+      ? parsed.documents.length
+        ? rawContent
+        : compactMarkdown(rawContent, require('../src/workbench-thread').maxInputChars())
       : compactString(normalizeContent(message?.content), 2000);
 
     if (!content && !hasToolCalls) {
@@ -504,10 +507,18 @@ module.exports = {
 
         if (requestedModel === GOVERNANCE_MODEL) {
           const latestUserIndex = findLatestUserMessageIndex(messages);
-          const question = messages[latestUserIndex].content;
-          const recentMessages = messages.slice(0, latestUserIndex);
+          const documentInput = require('../src/workbench-document-input');
+          const rawQuestion = messages[latestUserIndex].content;
+          const parsed = documentInput.documentInput(rawQuestion);
+          const question = parsed.question;
+          const recentMessages = messages.slice(0, latestUserIndex).map((message) => ({
+            ...message,
+            content: documentInput.documentInput(message.content).question,
+          }));
           const requestedEffect = classifyRequestedEffect(question);
           const contentOnly =
+            parsed.documents.length > 0 ||
+            documentInput.documentReference(question) ||
             require('../src/workbench-background-task').backgroundTask(question) ||
             require('../src/workbench-thread').isDocumentInput(question);
           let intentMode;
@@ -544,7 +555,7 @@ module.exports = {
               messages: recentMessages,
               message: followup
                 ? `Vorheriges Thema (Gesprächskontext): ${followup.topic}\n${followup.observations.join('\n')}\nAktuelle Rückfrage: ${question}\nBitte erkläre den fachlichen Zusammenhang und die Bedeutung mit nötigen Einschränkungen und benötigten Details.`
-                : question,
+                : rawQuestion,
               ...(isReadOnlyIntent(intentMode) ? { intentMode } : {}),
               requestId: metadata.requestId,
               correlationId: metadata.correlationId,
@@ -553,7 +564,8 @@ module.exports = {
             ...noticeDeliveryOptions(ctx, tools)
           );
           const rendered = compactMarkdown(
-            renderWorkbenchResponse(workbench, intentMode, followup)
+            renderWorkbenchResponse(workbench, intentMode, followup),
+            workbench.documentReview ? 1000000 : 6000
           );
           const content = prependNotice(workbench, rendered);
           const promptTokens = estimateTokens(question);

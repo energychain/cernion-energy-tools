@@ -2,7 +2,7 @@
   "schemaVersion": "cernion.operationCapabilityIndex.v1",
   "generator": "scripts/generate-operation-capability-index.js",
   "packageVersion": "0.99.22",
-  "sourceOpenApiHash": "3fc5aa70f86f78448fcd96f6f6f3ed1c5ef8067bd3a17b6d769fd5ef844e6aa8",
+  "sourceOpenApiHash": "cd849fd0e1466e183fc0303412bab901fcf56a2c29ee0902bd70ff5c6ecdf2b7",
   "coverage": {
     "rawOperationCount": 1245,
     "operationCount": 989,
@@ -89888,7 +89888,7 @@
             "name": "message",
             "in": "body",
             "type": "string",
-            "description": "User message routed through CET classify/continue",
+            "description": "User question, optionally with Open WebUI context/source documents. Question and document budgets are validated separately using WORKBENCH_MAX_INPUT_CHARS and WORKBENCH_DOCUMENT_MAX_CHARS.",
             "extractionHint": null
           },
           {
