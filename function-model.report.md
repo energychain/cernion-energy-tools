@@ -1,6 +1,6 @@
 # Function model — generated report
 
-Source SHA-256: `ac44ecedafe85a15103444552c523ef82a85af95efce551653c26aa2168fd7eb`
+Source SHA-256: `7f0645ecc81a9fd48f41d0c34559d0bf33c86ba47bce6fad7e8b45592c4a26bb`
 
 Capabilities: 172; functions: 110.
 Function vectors: 95/110; missing or incompatible capability vectors: 25.
@@ -510,11 +510,13 @@ None.
 - fn-vdmi-portfolio-gatekeeping
 - fn-vnb-100-tage-assessment
 
-## unresolvedStaticEvents (70)
+## unresolvedStaticEvents (74)
 
 - {"service":"agent","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"agent","ref":"src/llm-client.js:216: dynamic emission"}
 - {"service":"api","ref":"services/api.service.js:535: dynamic emission"}
+- {"service":"api","ref":"src/job-store.js:67: dynamic emission"}
+- {"service":"api","ref":"src/llm-client.js:216: dynamic emission"}
 - {"service":"assets","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"business-intelligence","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"capability-broker","ref":"src/job-store.js:67: dynamic emission"}
@@ -573,6 +575,8 @@ None.
 - {"service":"system","ref":"src/llm-client.js:216: dynamic emission"}
 - {"service":"tabular","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"tabular","ref":"src/llm-client.js:216: dynamic emission"}
+- {"service":"token-manager","ref":"src/job-store.js:67: dynamic emission"}
+- {"service":"token-manager","ref":"src/llm-client.js:216: dynamic emission"}
 - {"service":"utility-report","ref":"src/job-store.js:67: dynamic emission"}
 - {"service":"utility-report","ref":"src/llm-client.js:216: dynamic emission"}
 - {"service":"willi-federated","ref":"src/job-store.js:67: dynamic emission"}

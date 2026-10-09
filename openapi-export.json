@@ -74284,8 +74284,7 @@
                   },
                   "message": {
                     "type": "string",
-                    "description": "User message routed through CET classify/continue",
-                    "maxLength": 8000
+                    "description": "User question, optionally with Open WebUI context/source documents. Question and document budgets are validated separately using WORKBENCH_MAX_INPUT_CHARS and WORKBENCH_DOCUMENT_MAX_CHARS."
                   },
                   "messages": {
                     "type": "array",
