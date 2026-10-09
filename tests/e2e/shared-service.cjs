@@ -316,7 +316,7 @@ async function main() {
                       {
                         source: 'http-evidence-stub',
                         value: `${ctx.params.situation.concern}: Referenzen und Eingangsbestätigung prüfen.`,
-                        metadata: { score: 0.92 },
+                        metadata: { score: 0.92, documentTitle: 'Synthetischer Ablaufleitfaden' },
                       },
                     ],
                     trace: [],

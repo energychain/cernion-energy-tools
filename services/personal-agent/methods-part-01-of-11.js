@@ -214,6 +214,7 @@ module.exports = {
           url: entry.url || null,
           metadata: {
             title: entry.title || null,
+            sectionTitle: entry.sectionTitle || null,
             sourceId: entry.id || null,
             sectionId: entry.sectionId || null,
             score: entry.score ?? null,
@@ -289,6 +290,8 @@ module.exports = {
           url: hit.url || null,
           metadata: {
             hitId: hit.hitId || null,
+            documentTitle: hit.documentTitle || null,
+            sectionTitle: hit.sectionTitle || null,
             sectionId: hit.sectionId || null,
             score: hit.score ?? null,
           },
@@ -341,6 +344,8 @@ module.exports = {
           url: hit.url || null,
           metadata: {
             hitId: hit.hitId || null,
+            documentTitle: hit.documentTitle || null,
+            sectionTitle: hit.sectionTitle || null,
             sectionId: hit.sectionId || null,
             timestamp: hit.timestamp || null,
             documentType: hit.documentType || null,

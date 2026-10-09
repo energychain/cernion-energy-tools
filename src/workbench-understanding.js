@@ -471,7 +471,7 @@ function questionsFor(situation, asked = []) {
 
 function renderClaim(claim) {
   return markParagraphs(
-    claim.text,
+    claim.text.replace(/[ \t]*\(bitte gegenprüfen\)/giu, ''),
     (claim.origin || claim.supported) === 'model' && claim.specific
   );
 }
@@ -542,8 +542,10 @@ function fallbackAnswer(situation, evidence = [], questions = [], draftRequested
   const facts = (situation.personFacts || [situation.concern, situation.situation])
     .map((value) => safeSituationText(value, 1200))
     .filter(Boolean);
-  const findings = prepareAnswerEvidence(evidence, situation, 240).map(
-    (hit) => `${sourceLine([hit]).replace(/^Quellen: /u, '')}: ${safeSituationText(hit.value, 240)}`
+  const findings = prepareAnswerEvidence(evidence, situation, 240).map((hit) =>
+    [sourceLine([hit]).replace(/^Quellen: /u, ''), safeSituationText(hit.value, 240)]
+      .filter(Boolean)
+      .join(': ')
   );
   return [
     'Das Modell ist gerade nicht verfügbar; eine verlässliche neue Bewertung kann ich deshalb noch nicht formulieren.',
@@ -761,7 +763,22 @@ function answerBody({
   if (draftRequested && !draft) return [fallbackAnswer(situation, evidence, questions, true)];
   if (!claims.length) return [fallbackAnswer(situation, evidence, questions, draftRequested)];
   const questionLines = questions.map((item) => item.question);
-  const body = [...claims.map(renderClaim), ...(result.assumptions || []).map(renderClaim)];
+  const steps = new Set(result.nextSteps || []);
+  const body = [
+    markParagraphs(
+      [...claims.filter((claim) => !steps.has(claim)), ...(result.assumptions || [])]
+        .map(renderClaim)
+        .join('\n\n'),
+      false
+    ),
+    markParagraphs(
+      claims
+        .filter((claim) => steps.has(claim))
+        .map(renderClaim)
+        .join('\n\n'),
+      false
+    ),
+  ].filter(Boolean);
   return decisive ? [...questionLines, ...body] : [...body, ...questionLines];
 }
 
@@ -942,7 +959,7 @@ async function answer({
   }
   if (report) lines.push(report);
   return {
-    responseText: restoreContext(markParagraphs(lines.join('\n\n'), false), new Map()),
+    responseText: restoreContext(lines.join('\n\n'), new Map()),
     draft: restoreContext(draft, new Map()),
     questions,
     evidence,

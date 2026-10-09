@@ -37,6 +37,8 @@ function normalizeResultItem(item = {}, includeContent) {
     url: item.url,
   };
   if (item.sectionId) normalized.sectionId = item.sectionId;
+  const sectionTitle = item.sectionTitle || item.metadata?.sectionTitle;
+  if (sectionTitle) normalized.sectionTitle = sectionTitle;
   if (includeContent && item.content !== undefined) {
     normalized.content = item.content;
   }
@@ -246,6 +248,7 @@ module.exports = {
           title: item.title,
           excerpt: String(item.excerpt || item.content || '').slice(0, 1200),
           sectionId: item.sectionId || item.slug || null,
+          ...(item.sectionTitle ? { sectionTitle: item.sectionTitle } : {}),
           url: item.url,
           score: item.score,
         }));

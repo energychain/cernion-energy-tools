@@ -104,6 +104,7 @@ describe('Workbench understands, answers with evidence, and keeps the case in th
       results: [
         {
           id: 'relevant',
+          metadata: { documentTitle: 'Synthetischer Ablaufleitfaden' },
           score: 0.92,
           summary: `Netzanmeldung: ursprüngliche Referenz und Eingangsbestätigung prüfen. ${ctx.params.query}`,
         },

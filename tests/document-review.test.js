@@ -13,7 +13,14 @@ const fixture = fs.readFileSync(
   'utf8'
 );
 const identity = { tenantId: 'tenant-a', caseId: 'case-a', actorId: 'actor-a' };
-const emptyMap = () => ({ claims: [], assumptions: [], numbers: [], measures: [], schedule: [] });
+const emptyMap = () => ({
+  claims: [],
+  assumptions: [],
+  numbers: [],
+  measures: [],
+  schedule: [],
+  citations: [],
+});
 const emptyReview = () => ({
   verdict: 'Der Plan ist intern widersprüchlich.',
   rationale: 'Abweichende Ausgangszahlen und unbegründete Annahmen.',
@@ -41,6 +48,9 @@ function fixtureFacade() {
         output.schedule = data.untrustedDocument.text
           .split('\n')
           .filter((line) => /01.06.2030/.test(line));
+        output.citations = data.lines.filter((line) =>
+          [...output.claims, ...output.assumptions, ...output.schedule].includes(line.quote)
+        );
         return output;
       }
       const output = emptyReview();
@@ -170,8 +180,8 @@ describe('map/reduce review (AC-03/04, phase 1)', () => {
         { documents: [{ name: 'Synthetic', text: fixture }], question: 'Bewerte' },
         { llm }
       );
-      expect(result.status).toBe('failed');
-      expect(result.reason).toBe('WORKBENCH_REVIEW_INVALID_CITATION');
+      expect(result.status).toBe('completed');
+      expect(result.review[field]).toEqual([]);
     }
   );
   test('fixture contradictions refer to exact stored chapter offsets; linear bounded calls', async () => {
@@ -304,8 +314,9 @@ describe('map/reduce review (AC-03/04, phase 1)', () => {
       ),
     };
     expect(
-      (await reviewDocuments({ documents: [{ name: 'Plan', text: 'Data' }] }, { llm })).reason
-    ).toBe('WORKBENCH_REVIEW_INVALID_CITATION');
+      (await reviewDocuments({ documents: [{ name: 'Plan', text: 'Data' }] }, { llm })).review
+        .checkpoints
+    ).toEqual([]);
   });
 });
 

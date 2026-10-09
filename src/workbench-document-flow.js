@@ -13,6 +13,7 @@ const { understand } = require('./workbench-understanding');
 const { sourceLine } = require('./workbench-answer-evidence');
 const { filterEvidence, retrievalTimeoutMs } = require('./workbench-retrieval');
 const { normalizePhrase } = require('./function-resolver');
+const { passageLines, summarizePassages } = require('./workbench-document-passages');
 const { getFunctionModel } = require('./function-model');
 
 function reviewCapabilities(situation, model) {
@@ -154,11 +155,11 @@ function renderReview(result) {
       const points = review[key].map((point) => {
         const references = point.locations.map((index) => locationText(result.locations[index]));
         const criterion = result.criteria[point.criterion];
-        if (criterion)
+        if (criterion?.title)
           references.push(
             `Maßstab: ${criterion.title}${criterion.section ? ` · ${criterion.section}` : ''}`
           );
-        return `- ${point.finding} (${references.join('; ')})`;
+        return `- ${point.finding}${references.length ? ` (${references.join('; ')})` : ''}`;
       });
       lines.push(`**${label}:**\n${points.length ? points.join('\n') : 'Keine belegten Befunde.'}`);
     }
@@ -170,7 +171,11 @@ function renderReview(result) {
     lines.push('Vorliegende Teilergebnisse; ein Gesamturteil liegt noch nicht vor.');
     for (const map of result.maps.slice(0, 8)) {
       lines.push(
-        `${locationText(map.location)}: ${[...map.claims, ...map.assumptions].join('; ') || 'Abschnitt erfasst.'}`
+        map.locationIds
+          .map(
+            (index) => `${locationText(result.locations[index])}: ${result.locations[index].quote}`
+          )
+          .join('\n') || 'Abschnitt erfasst; keine validierten Textbelege.'
       );
     }
     if (result.maps.length > 8)
@@ -199,29 +204,38 @@ function storedPassage(documents, question) {
   const reference = documentReference(question);
   if (!reference) return null;
   const found = [];
-  let remaining = 12000;
-  let omitted = 0;
   for (const document of documents) {
-    const spans = documentSections(document.text).flatMap((section) => section.locations);
-    for (const span of spans) {
-      const chapter = span.chapter.match(/^(?:Kapitel|Chapter)\s+(\d+(?:\.\d+)*)\b/i)?.[1];
-      if (reference.page ? String(span.page) !== reference.number : chapter !== reference.number)
-        continue;
-      const text = document.text.slice(span.start, span.end);
-      const selected = text.slice(0, remaining);
-      if (selected)
-        found.push(
-          `${locationText({ ...span, document: document.name })}:\n\n${selected
-            .split('\n')
-            .map((line) => `> ${line}`)
-            .join('\n')}`
-        );
-      remaining -= selected.length;
-      omitted += text.length - selected.length;
-    }
+    const spans = documentSections(document.text)
+      .flatMap((section) => section.locations)
+      .filter((span) => {
+        const chapter = span.chapter.match(/^(?:Kapitel|Chapter)\s+(\d+(?:\.\d+)*)\b/i)?.[1];
+        return reference.page
+          ? String(span.page) === reference.number
+          : chapter === reference.number;
+      });
+    if (!spans.length) continue;
+    const summary = summarizePassages(passageLines(document.text, spans));
+    const quotes = summary.selected.map((line) => {
+      const quote = line.quote.slice(0, 300);
+      return `> ${quote}${quote.length < line.quote.length ? '…' : ''}\n\n${locationText({ ...line, end: line.start + quote.length, document: document.name })}`;
+    });
+    found.push(
+      `Kurzfassung von ${reference.page ? 'Seite' : 'Kapitel'} ${reference.number}: ` +
+        summary.selected
+          .slice(0, 3)
+          .map((line) => line.quote.split(/(?<=[.!?])\s/u)[0].slice(0, 180))
+          .join(' ') +
+        `\n\nTragende Textstellen:\n\n${quotes.join('\n\n')}` +
+        (summary.repeated
+          ? `\n\n${summary.repeated}-fach wiederholter Standardtext ausgelassen.`
+          : '') +
+        (summary.omitted
+          ? `\n\nTeilauszug: ${summary.omitted} weitere inhaltliche Zeilen sind gespeichert.`
+          : '')
+    );
   }
   return found.length
-    ? `Aus der gespeicherten Dokumentgrundlage:\n\n${found.join('\n\n')}${omitted ? `\n\nTeilauszug: ${omitted} weitere Zeichen dieses Abschnitts sind gespeichert, hier nicht ausgegeben.` : ''}`
+    ? `Aus der gespeicherten Dokumentgrundlage:\n\n${found.join('\n\n')}`
     : 'Diese Fundstelle ist in der gespeicherten Dokumentgrundlage nicht enthalten. Fehlende Seiten lassen sich aus Ausschnitten nicht rekonstruieren.';
 }
 

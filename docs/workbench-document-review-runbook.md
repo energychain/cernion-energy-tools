@@ -45,13 +45,22 @@ Wissensquellen, Datapoints und freigegebenen read-only-Capabilities. Die vorhand
 Scope-/Mandatsprüfungen bleiben wirksam. Map liest sämtliche Abschnitte; Reduce erhält
 begrenzte strukturierte Maps und die gelieferten Prüfmaßstäbe. Fachliche Standards sind
 nicht im Kern kodiert. Ohne Quellen prüft der Ablauf nur innere Stimmigkeit und benennt
-das ausdrücklich. Fundstellen sind validierte Einzelabschnitt-Indizes mit Kapitel, Seite und
+das ausdrücklich. Fundstellen sind validierte Textanker mit Kapitel, Seite und
 Zeichenoffsets; Maßstäbe sind validierte Quellenindizes. Modellqualität erfordert zusätzlich
 manuelle Abnahme. Dokumente, Namen und Quellen bleiben nicht vertrauenswürdige Daten.
 
 Jede Map trägt ihre erlaubten `locationIds`; die Zusammenführung referenziert ausschließlich
-Einzelabschnitte erfolgreicher Maps. Auch Stärken und Risiken sind strukturierte Befunde mit
-Fundstellen und Maßstab. Gebündelte Maps verlieren damit keine Kapitel-/Seitenpräzision.
+Textstellen erfolgreicher Maps. Map liefert lokale Zeilennummern und kurze wörtliche Zitate;
+der Server ordnet diese den gespeicherten Kapitel-/Seitengrenzen und Zeichenoffsets zu.
+Falsche Anker, mehrdeutige Zitate ohne Anker und unbelegte Befundverweise werden entfernt.
+Auch Stärken und Risiken verwenden diese validierten Fundstellen. Die Zeichenbereiche
+sind nullbasierte UTF-16-Offsets im unveränderten gespeicherten Text.
+
+Kapitel-/Seitenfragen liefern eine knappe extraktive Zusammenfassung mit kurzen Zitaten
+und Fundstelle je Zitat. Wiederholter Standardtext wird gezählt und ausgelassen; unterschiedliche
+Zahlenangaben bleiben erhalten. Quellenzeilen verwenden Dokument- und Abschnittstitel aus
+Metadaten. Quellen ohne lesbaren Dokumenttitel entfallen. Ungeprüfte konkrete Einzelangaben
+erhalten höchstens einen gemeinsamen Hinweis am Ende des Antwortblocks, nie an Grußzeilen.
 Die Schemaänderung ist intern; externe Clients erhalten den gerenderten Reviewtext.
 
 ## Open WebUI: Volltext statt Ausschnitte

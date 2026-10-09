@@ -113,23 +113,47 @@ function readableSourceTitle(hit) {
       .trim();
   for (const candidate of candidates) {
     // Technical references are not document titles, even with their extension removed.
-    if (!candidate || /\.[a-z0-9]{1,8}(?:$|\s)|^E[_-]\d+$|[/\\]/iu.test(candidate)) continue;
+    if (
+      !candidate ||
+      /\.[a-z][a-z0-9]{0,7}(?:$|\s)|^(?:[\w-]+\s+)?E[_-]\d+$|[/\\]/iu.test(candidate)
+    )
+      continue;
     const title = clean(candidate);
-    if (title && !/^[0-9a-f-]{16,}$/iu.test(title)) return title.slice(0, 160);
+    if (
+      title &&
+      !/^[0-9a-f-]{16,}$/iu.test(title) &&
+      ![
+        hit.source,
+        hit.retrievalSource,
+        'Wissensquelle',
+        ...require('./workbench-knowledge-sources.json').sources.map((source) => source.id),
+      ]
+        .filter(Boolean)
+        .some((source) => title.toLocaleLowerCase() === String(source).toLocaleLowerCase())
+    )
+      return title.slice(0, 160);
   }
-  const source = clean(hit.source);
-  return source && !/\.|^E[_-]\d+$|^[0-9a-f-]{16,}$/iu.test(source) ? source : 'Wissensquelle';
+  return '';
 }
 
 function sourceLine(evidence) {
   const labels = [
     ...new Set(
-      evidence.map((hit) => {
-        const section = hit.metadata?.sectionTitle || hit.metadata?.sectionId || hit.sectionId;
-        const readableSection =
-          section && !/\.|[0-9a-f]{8}-|^[0-9a-f-]{16,}$/iu.test(section) ? section : '';
-        return [readableSourceTitle(hit), readableSection].filter(Boolean).join(' · ');
-      })
+      evidence
+        .map((hit) => {
+          const title = readableSourceTitle(hit);
+          if (!title) return '';
+          const sectionId = hit.metadata?.sectionId || hit.sectionId;
+          const section =
+            hit.metadata?.sectionTitle ||
+            hit.sectionTitle ||
+            (/^(?:Abschnitt|Kapitel|Seite|Section|Chapter|Page)\s+\S/iu.test(sectionId || '')
+              ? sectionId
+              : '');
+          const readableSection = readableSourceTitle({ title: section });
+          return [title, readableSection].filter(Boolean).join(' · ');
+        })
+        .filter(Boolean)
     ),
   ];
   return labels.length ? `Quellen: ${labels.join('; ')}` : '';
