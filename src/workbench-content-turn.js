@@ -127,8 +127,9 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
   });
   if (documentFollowup) return documentFollowup;
   const previous = persistentSituation(pending?.situation || state?.knownContext?.situation);
+  if (previous) delete previous.dataNeeds;
   const draftRequest = Boolean(previous && understanding.isDraftRequest(envelope.userRequest));
-  const phaseTimes = { understandMs: 0, retrieveMs: 0, answerMs: 0 };
+  const phaseTimes = { understandMs: 0, retrieveMs: 0, toolsMs: 0, answerMs: 0 };
   let situation;
   let understandingFailed = false;
   let understandingFailureReason;
@@ -193,12 +194,13 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
   phaseTimes.understandMs = Math.round(performance.now() - understandStarted);
   const nextStepRequest =
     !understanding.isDraftRequest(envelope.userRequest) && situation.followupKind === 'next_step';
-  const reuseEvidence = Boolean(
+  const reuseTools = Boolean(
     previous &&
-    nextStepRequest &&
+    (nextStepRequest || (situation.followupKind === 'question' && !situation.dataNeeds?.trim())) &&
     pending?.retrieval &&
     Date.now() - (pending.evidenceRetrievedAt || 0) < 300000
   );
+  const reuseEvidence = reuseTools && nextStepRequest;
   // Use the understood turn kind before deciding whether fresh retrieval is needed.
   const prefetchedKnowledge =
     !incomingDocuments && !draftRequest && !reuseEvidence
@@ -359,6 +361,49 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
         trace: prefetchTrace,
       }
     : null;
+  const retrieveStarted = performance.now();
+  const toolDeadline = retrieveStarted + retrievalTimeoutMs();
+  const toolLoop = require('./workbench-capability-loop');
+  const tools =
+    situation.dataNeeds?.trim() &&
+    !incomingDocuments &&
+    !draftRequest &&
+    !reuseEvidence &&
+    !understandingFailed &&
+    access['capability-read'] !== false
+      ? toolLoop
+          .runCapabilityLoop(ctx, {
+            situation,
+            message: rawMessage,
+            meta,
+            mapping,
+            domainsAllowed:
+              workbenchContext.userProfile?.domainsAllowed || mapping?.domainsAllowed || [],
+            selectedCapabilities: (result.selectedCapabilities || []).map((entry) =>
+              typeof entry === 'string' ? entry : entry.capability
+            ),
+            model: service.settings.systemActivityModel || getFunctionModel(),
+            deadline: toolDeadline,
+            logger: service.logger,
+          })
+          .catch((error) => ({
+            evidence: [],
+            ms: Math.round(performance.now() - retrieveStarted),
+            trace: [
+              {
+                source: 'capability-read',
+                name: 'Werkzeugplanung',
+                status: 'unavailable',
+                called: false,
+                hitCount: 0,
+                ms: Math.round(performance.now() - retrieveStarted),
+                error: require('./prompt-scrubber')
+                  .scrubPromptText(error.message || 'Werkzeugplanung nicht verfügbar')
+                  .slice(0, 240),
+              },
+            ],
+          }))
+      : Promise.resolve({ trace: [], evidence: [], ms: 0 });
   const codes = require('./workbench-codes');
   const codeLookup = codes.resolveCodes(
     { call: (name, params, options) => ctx.call(name, params, { ...options, meta }), meta },
@@ -369,7 +414,6 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
   );
 
   let retrieval;
-  const retrieveStarted = performance.now();
   const resolvedCodes = await codeLookup;
   try {
     if (incomingDocuments) {
@@ -382,23 +426,37 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
           .map((entry) => ({ ...entry, called: false, ms: 0 })),
       };
     } else {
-      retrieval = await ctx.call(
-        'personal-agent.collectWorkbenchEvidence',
-        { situation },
-        {
-          meta: {
-            ...meta,
-            workbenchEvidenceAccess: access,
-            workbenchEvidenceSources: null,
-            workbenchPrefetchedKnowledge: knowledgeCache,
-            workbenchSelectedCapabilities: (result.selectedCapabilities || []).map((entry) =>
-              typeof entry === 'string' ? entry : entry.capability
-            ),
-            workbenchEvidenceCaseId: caseId,
-          },
-          timeout: retrievalTimeoutMs(),
-        }
+      retrieval = await toolLoop.withinToolBudget(
+        () =>
+          ctx.call(
+            'personal-agent.collectWorkbenchEvidence',
+            { situation },
+            {
+              meta: {
+                ...meta,
+                workbenchEvidenceAccess: access,
+                workbenchToolsManaged: true,
+                workbenchEvidenceSources: null,
+                workbenchPrefetchedKnowledge: knowledgeCache,
+                workbenchSelectedCapabilities: (result.selectedCapabilities || []).map((entry) =>
+                  typeof entry === 'string' ? entry : entry.capability
+                ),
+                workbenchEvidenceCaseId: caseId,
+              },
+              timeout: Math.max(1, Math.round(toolDeadline - performance.now())),
+            }
+          ),
+        toolDeadline - performance.now()
       );
+    }
+    if (reuseTools && !reuseEvidence && !draftRequest) {
+      retrieval.evidence = [
+        ...(retrieval.evidence || []),
+        ...(pending.retrieval.evidence || []).filter(
+          (hit) => hit.retrievalSource === 'capability-read'
+        ),
+      ];
+      retrieval.toolTrace = pending.retrieval.toolTrace || [];
     }
     // Recheck the contract at the response boundary, including stubbed/custom facades.
     const groups = new Map();
@@ -411,10 +469,17 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
       groups.set(source, [...(groups.get(source) || []), hit]);
     }
     const checks = [...groups].map(([source, hits]) =>
-      filterEvidence(hits, situation, {
-        catalog: service.settings.workbenchKnowledgeSources,
-        source,
-      })
+      source === 'capability-read'
+        ? toolLoop.validateCachedReads(ctx, hits, {
+            meta,
+            domainsAllowed:
+              workbenchContext.userProfile?.domainsAllowed || mapping?.domainsAllowed || [],
+            model: service.settings.systemActivityModel || getFunctionModel(),
+          })
+        : filterEvidence(hits, situation, {
+            catalog: service.settings.workbenchKnowledgeSources,
+            source,
+          })
     );
     const filtered = {
       hits: checks.flatMap((entry) => entry.hits),
@@ -455,6 +520,33 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
   ].slice(0, 10);
   retrieval.evidence = [...resolvedCodes.evidence, ...(retrieval.evidence || [])];
   retrieval.trace = [...(retrieval.trace || []), ...resolvedCodes.trace];
+  const toolResult = await tools;
+  phaseTimes.toolsMs = toolResult.ms;
+  const cachedTools = draftRequest || reuseTools ? retrieval.toolTrace || [] : [];
+  retrieval.toolTrace = [
+    ...cachedTools.map((entry) => {
+      const allowed = retrieval.evidence.some(
+        (hit) => hit.retrievalSource === 'capability-read' && hit.source === entry.name
+      );
+      return allowed || entry.status !== 'available'
+        ? { ...entry, called: false, cached: true, ms: 0 }
+        : {
+            ...entry,
+            called: false,
+            status: 'blocked',
+            hitCount: 0,
+            ms: 0,
+            error: 'Frühere Datenabfrage mit aktuellen Rechten nicht freigegeben.',
+          };
+    }),
+    ...toolResult.trace,
+  ];
+  retrieval.evidence.push(...toolResult.evidence);
+  if (retrieval.toolTrace.length)
+    retrieval.trace = [
+      ...retrieval.trace.filter((entry) => entry.source !== 'capability-read'),
+      ...retrieval.toolTrace,
+    ];
   phaseTimes.retrieveMs = Math.round(performance.now() - retrieveStarted);
   const related = await relatedCaseContext(service, p, result.relatedCases);
   retrieval.evidence.push(
@@ -464,6 +556,11 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
       metadata: { cetCaseId: item.cetCaseId },
     }))
   );
+  const actorUpdated =
+    previous &&
+    situation.actorContext &&
+    JSON.stringify([previous.actorContext?.role, previous.actorContext?.organization]) !==
+      JSON.stringify([situation.actorContext.role, situation.actorContext.organization]);
   const answerStarted = performance.now();
   let reply;
   let documentResult;
@@ -485,7 +582,8 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
           retrieval,
           tenantId: p.tenantId,
           asked: pending?.askedQuestions || [],
-          previousDraft: pending?.draft || '',
+          previousDraft: actorUpdated ? '' : pending?.draft || '',
+          suppressDraft: Boolean(actorUpdated),
           message: envelope.userRequest,
           followup: Boolean(previous),
           nextStepOnly: Boolean(previous && nextStepRequest),
@@ -497,7 +595,11 @@ async function runContentTurn(service, ctx, { p, mapping, envelope, pending, con
     phaseTimes.answerMs = Math.max(1, Math.round(performance.now() - answerStarted));
   }
   const { sourceMetadata } = require('./workbench-retrieval');
-  const sources = sourceMetadata(retrieval.trace);
+  const sources = sourceMetadata(
+    retrieval.trace.map((entry) =>
+      entry.source === 'capability-read' && entry.name ? { ...entry, source: entry.name } : entry
+    )
+  );
   service.logger.info('Workbench turn phases and sources', { phaseTimes, sources });
   let draftId;
   if (reply.draft && caseId)

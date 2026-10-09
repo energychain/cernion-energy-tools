@@ -1,6 +1,10 @@
 {
   "entries": [
     {
+      "term": "profile",
+      "reason": "Existing server-side Workbench userProfile authorization contract; generic identity configuration, not domain rules."
+    },
+    {
       "term": "new",
       "resolverGeneric": true,
       "reason": "Generic English news query vocabulary, below the reference corpus minimum length; never a Function target."

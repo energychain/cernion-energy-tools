@@ -131,6 +131,8 @@ function filterEvidence(
 }
 
 async function collectReadCapabilities(ctx, situation) {
+  if (ctx.meta.workbenchToolsManaged)
+    return { status: 'skipped', hits: [], trace: { calledOperations: 0 } };
   const signals = ctx.broker?.getLocalService('signals');
   const selected = ctx.meta.workbenchSelectedCapabilities || [];
   const caseId = ctx.meta.workbenchEvidenceCaseId;

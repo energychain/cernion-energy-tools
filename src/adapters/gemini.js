@@ -213,7 +213,10 @@ function buildGeminiContents(messages) {
             args = {};
           }
           if (call?.id) toolCallNameById.set(call.id, name);
-          return { functionCall: { name, args } };
+          return {
+            functionCall: { name, args },
+            ...(call.thoughtSignature ? { thoughtSignature: call.thoughtSignature } : {}),
+          };
         });
         contents.push({ role: 'model', parts });
       } else {
@@ -233,10 +236,11 @@ function buildGeminiContents(messages) {
         );
         responsePayload = { result: message.content ?? null };
       }
-      contents.push({
-        role: 'function',
-        parts: [{ functionResponse: { name, response: responsePayload } }],
-      });
+      const part = { functionResponse: { name, response: responsePayload } };
+      const previous = contents.at(-1);
+      if (previous?.role === 'user' && previous.parts.every((item) => item.functionResponse))
+        previous.parts.push(part);
+      else contents.push({ role: 'user', parts: [part] });
     }
   }
 
@@ -271,7 +275,7 @@ function toGeminiFunctionDeclarations(tools) {
     .map((tool) => ({
       name: tool.function.name,
       description: tool.function.description || '',
-      parameters: tool.function.parameters || { type: 'object', properties: {} },
+      parametersJsonSchema: tool.function.parameters || { type: 'object', properties: {} },
     }));
 }
 
@@ -301,7 +305,16 @@ async function generateChat(messages, options = {}) {
   if (Array.isArray(functionCalls) && functionCalls.length > 0) {
     return {
       content: null,
-      toolCalls: functionCalls.map((call) => ({ name: call.name, args: call.args || {} })),
+      toolCalls: functionCalls.map((call, index) => {
+        const part = response.candidates?.[0]?.content?.parts?.filter(
+          (entry) => entry.functionCall
+        )[index];
+        return {
+          name: call.name,
+          args: call.args || {},
+          ...(part?.thoughtSignature ? { thoughtSignature: part.thoughtSignature } : {}),
+        };
+      }),
       finishReason: 'tool_calls',
     };
   }
