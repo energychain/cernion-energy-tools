@@ -621,6 +621,58 @@
     {
       "term": "prüfung",
       "reason": "Generic document review and evidence processing vocabulary (#754); no domain rules or routing."
+    },
+    {
+      "term": "energie",
+      "reason": "Generic physical dimension vocabulary for quantity validation, independent of equipment or domain rules (#758)."
+    },
+    {
+      "term": "energy",
+      "reason": "Generic physical dimension vocabulary for quantity validation, independent of equipment or domain rules (#758)."
+    },
+    {
+      "term": "leistung",
+      "reason": "Generic physical dimension vocabulary for quantity validation, independent of equipment or domain rules (#758)."
+    },
+    {
+      "term": "modell",
+      "reason": "Generic conversation, presentation or error-recovery vocabulary in Workbench (#758); no domain routing or business rule."
+    },
+    {
+      "term": "paragraph",
+      "reason": "Generic conversation, presentation or error-recovery vocabulary in Workbench (#758); no domain routing or business rule."
+    },
+    {
+      "term": "power",
+      "reason": "Generic physical dimension vocabulary for quantity validation, independent of equipment or domain rules (#758)."
+    },
+    {
+      "term": "recovery",
+      "reason": "Generic conversation, presentation or error-recovery vocabulary in Workbench (#758); no domain routing or business rule."
+    },
+    {
+      "term": "spannung",
+      "reason": "Generic physical dimension vocabulary for quantity validation, independent of equipment or domain rules (#758)."
+    },
+    {
+      "term": "supply",
+      "reason": "Generic conversation, presentation or error-recovery vocabulary in Workbench (#758); no domain routing or business rule."
+    },
+    {
+      "term": "technical",
+      "reason": "Generic conversation, presentation or error-recovery vocabulary in Workbench (#758); no domain routing or business rule."
+    },
+    {
+      "term": "voltage",
+      "reason": "Generic physical dimension vocabulary for quantity validation, independent of equipment or domain rules (#758)."
+    },
+    {
+      "term": "volume",
+      "reason": "Generic physical dimension vocabulary for quantity validation, independent of equipment or domain rules (#758)."
+    },
+    {
+      "term": "welcher",
+      "reason": "Generic conversation, presentation or error-recovery vocabulary in Workbench (#758); no domain routing or business rule."
     }
   ]
 }

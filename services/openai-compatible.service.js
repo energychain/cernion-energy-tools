@@ -583,6 +583,7 @@ module.exports = {
             },
             metadata: {
               intentMode,
+              ...workbench.metadata,
               ...(intentMode === 'system_activity_query' && workbench.resolution
                 ? { resolution: workbench.resolution }
                 : {}),

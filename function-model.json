@@ -1,7 +1,7 @@
 {
   "schemaVersion": "cernion.functionModel.v1",
   "generator": "scripts/generate-function-model.js",
-  "sourceHash": "45480a5e3a9fe82400591efd368d0a7480c83a0b366a22119c5a55d73b76111e",
+  "sourceHash": "3fe00b64e87c52d1d6369c5d61b0bb6d3129689e829634edb23166db15e5da19",
   "parameters": {
     "version": "2",
     "generatedAt": "1970-01-01T00:00:00.000Z",
@@ -188491,7 +188491,7 @@
       },
       {
         "service": "agent",
-        "ref": "src/llm-client.js:159: dynamic emission"
+        "ref": "src/llm-client.js:216: dynamic emission"
       },
       {
         "service": "api",
@@ -188503,7 +188503,7 @@
       },
       {
         "service": "api",
-        "ref": "src/llm-client.js:159: dynamic emission"
+        "ref": "src/llm-client.js:216: dynamic emission"
       },
       {
         "service": "assets",
@@ -188519,7 +188519,7 @@
       },
       {
         "service": "capability-broker",
-        "ref": "src/llm-client.js:159: dynamic emission"
+        "ref": "src/llm-client.js:216: dynamic emission"
       },
       {
         "service": "company",
@@ -188531,7 +188531,7 @@
       },
       {
         "service": "cookbook",
-        "ref": "src/llm-client.js:159: dynamic emission"
+        "ref": "src/llm-client.js:216: dynamic emission"
       },
       {
         "service": "customer-service",
@@ -188547,7 +188547,7 @@
       },
       {
         "service": "cya",
-        "ref": "src/llm-client.js:159: dynamic emission"
+        "ref": "src/llm-client.js:216: dynamic emission"
       },
       {
         "service": "datasource-classifier",
@@ -188559,7 +188559,7 @@
       },
       {
         "service": "decision-frame",
-        "ref": "src/llm-client.js:159: dynamic emission"
+        "ref": "src/llm-client.js:216: dynamic emission"
       },
       {
         "service": "domain-router",
@@ -188567,7 +188567,7 @@
       },
       {
         "service": "domain-router",
-        "ref": "src/llm-client.js:159: dynamic emission"
+        "ref": "src/llm-client.js:216: dynamic emission"
       },
       {
         "service": "eeg-clawback-calculator",
@@ -188603,7 +188603,7 @@
       },
       {
         "service": "finance-agent",
-        "ref": "src/llm-client.js:159: dynamic emission"
+        "ref": "src/llm-client.js:216: dynamic emission"
       },
       {
         "service": "forecast-sandbox",
@@ -188643,7 +188643,7 @@
       },
       {
         "service": "knowledge-rag",
-        "ref": "src/llm-client.js:159: dynamic emission"
+        "ref": "src/llm-client.js:216: dynamic emission"
       },
       {
         "service": "mastr-monitor",
@@ -188671,7 +188671,7 @@
       },
       {
         "service": "openai-compatible",
-        "ref": "src/llm-client.js:159: dynamic emission"
+        "ref": "src/llm-client.js:216: dynamic emission"
       },
       {
         "service": "operations-runbook",
@@ -188695,7 +188695,7 @@
       },
       {
         "service": "personal-agent",
-        "ref": "src/llm-client.js:159: dynamic emission"
+        "ref": "src/llm-client.js:216: dynamic emission"
       },
       {
         "service": "query",
@@ -188715,7 +188715,7 @@
       },
       {
         "service": "shared-service-agent",
-        "ref": "src/llm-client.js:159: dynamic emission"
+        "ref": "src/llm-client.js:216: dynamic emission"
       },
       {
         "service": "notices",
@@ -188727,7 +188727,7 @@
       },
       {
         "service": "system",
-        "ref": "src/llm-client.js:159: dynamic emission"
+        "ref": "src/llm-client.js:216: dynamic emission"
       },
       {
         "service": "tabular",
@@ -188735,7 +188735,7 @@
       },
       {
         "service": "tabular",
-        "ref": "src/llm-client.js:159: dynamic emission"
+        "ref": "src/llm-client.js:216: dynamic emission"
       },
       {
         "service": "token-manager",
@@ -188743,7 +188743,7 @@
       },
       {
         "service": "token-manager",
-        "ref": "src/llm-client.js:159: dynamic emission"
+        "ref": "src/llm-client.js:216: dynamic emission"
       },
       {
         "service": "utility-report",
@@ -188751,7 +188751,7 @@
       },
       {
         "service": "utility-report",
-        "ref": "src/llm-client.js:159: dynamic emission"
+        "ref": "src/llm-client.js:216: dynamic emission"
       },
       {
         "service": "willi-federated",
@@ -188771,7 +188771,7 @@
       },
       {
         "service": "workbench",
-        "ref": "src/llm-client.js:159: dynamic emission"
+        "ref": "src/llm-client.js:216: dynamic emission"
       },
       {
         "service": "znp",
@@ -188779,7 +188779,7 @@
       },
       {
         "service": "znp",
-        "ref": "src/llm-client.js:159: dynamic emission"
+        "ref": "src/llm-client.js:216: dynamic emission"
       }
     ],
     "overrides": [],
