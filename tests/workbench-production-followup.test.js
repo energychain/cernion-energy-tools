@@ -222,7 +222,8 @@ test('error logs expose safe diagnostic fields and do not leak provider-echoed d
   llm.generateText.mockRejectedValue(error);
   const result = await answer({ situation, retrieval: { evidence: [] }, logger });
   expect(result.answerStatus).toBe('fallback');
-  expect(result.draft).toContain('[Ergebnis nach dem Prüfen');
+  expect(result.draft).toBe('');
+  expect(result.metadata.degraded).toBe(true);
   llm.generateStructured.mockRejectedValue(error);
   await expect(understand({ message: 'Anfrage', logger })).rejects.toThrow();
   expect(logger.warn).toHaveBeenCalledTimes(2);

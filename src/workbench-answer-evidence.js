@@ -47,7 +47,7 @@ function prepareAnswerEvidence(evidence, situation, limit = 500) {
       return {
         evidenceId: hit.evidenceId,
         source: hit.source,
-        title: hit.title || hit.metadata?.title || hit.metadata?.sourceId || hit.metadata?.hitId,
+        title: readableSourceTitle(hit),
         value: value.slice(best, best + limit),
       };
     });
@@ -96,23 +96,40 @@ function situationReference(situation) {
     .join(', ');
 }
 
+function readableSourceTitle(hit) {
+  const metadata = hit.metadata || {};
+  const candidates = [
+    metadata.documentTitle,
+    metadata.document?.title,
+    metadata.title,
+    hit.documentTitle,
+    hit.title,
+  ];
+  const clean = (value) =>
+    scrubPromptText(String(value || ''))
+      .replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/giu, '')
+      .replace(/\[?(?:[A-Z]+-MASKED|MASKED-[\w-]+)\]?/gu, '')
+      .replace(/\s+/gu, ' ')
+      .trim();
+  for (const candidate of candidates) {
+    // Technical references are not document titles, even with their extension removed.
+    if (!candidate || /\.[a-z0-9]{1,8}(?:$|\s)|^E[_-]\d+$|[/\\]/iu.test(candidate)) continue;
+    const title = clean(candidate);
+    if (title && !/^[0-9a-f-]{16,}$/iu.test(title)) return title.slice(0, 160);
+  }
+  const source = clean(hit.source);
+  return source && !/\.|^E[_-]\d+$|^[0-9a-f-]{16,}$/iu.test(source) ? source : 'Wissensquelle';
+}
+
 function sourceLine(evidence) {
   const labels = [
     ...new Set(
-      evidence
-        .map((hit) => {
-          const title = hit.title || hit.metadata?.title;
-          const section = hit.metadata?.sectionId || hit.sectionId;
-          const label = [title || hit.source, section]
-            .filter(Boolean)
-            .join(' · ')
-            .replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi, '');
-          return scrubPromptText(label)
-            .replace(/\[?(?:[A-Z]+-MASKED|MASKED-[\w-]+)\]?/g, '')
-            .slice(0, 160)
-            .trim();
-        })
-        .filter(Boolean)
+      evidence.map((hit) => {
+        const section = hit.metadata?.sectionTitle || hit.metadata?.sectionId || hit.sectionId;
+        const readableSection =
+          section && !/\.|[0-9a-f]{8}-|^[0-9a-f-]{16,}$/iu.test(section) ? section : '';
+        return [readableSourceTitle(hit), readableSection].filter(Boolean).join(' · ');
+      })
     ),
   ];
   return labels.length ? `Quellen: ${labels.join('; ')}` : '';
@@ -124,4 +141,5 @@ module.exports = {
   safeSituationText,
   situationReference,
   sourceLine,
+  readableSourceTitle,
 };
