@@ -26,7 +26,11 @@ function principal(ctx, input = {}) {
   return { tenantId, actorId, roles, clearance };
 }
 function visible(p, state) {
-  return Boolean(p.tenantId && state.tenantId === p.tenantId);
+  return Boolean(
+    p.tenantId &&
+    state.tenantId === p.tenantId &&
+    (state.sensitivityFlags || []).every((flag) => (p.clearance || []).includes(flag))
+  );
 }
 function authorize(p, state) {
   if (!visible(p, state)) deny('Case not accessible');

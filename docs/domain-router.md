@@ -72,11 +72,12 @@ for compatibility but no longer restrict access inside the tenant. Clients canno
 select another tenant or supply authentication. Authentication, mapping checks and
 validation of new sensitivity labels remain enforced.
 
-Within the authenticated tenant, all case content, identifiers, situation summaries,
-case evidence and inbox tasks are accessible across actors and role sets. Existing
-sensitivity labels remain recorded; they do not hide case material from another
-person in the same tenant. Evidence read helpers receive the authenticated tenant
-scope explicitly. Reads from another tenant remain blocked even for public evidence
+Within the authenticated tenant, case content, identifiers, situation summaries,
+case evidence and inbox tasks are accessible across actors and role sets only when
+the caller has every case sensitivity flag in their authenticated clearance.
+A missing clearance hides the case entirely, including hints and continuation.
+Evidence additionally retains its own sensitivity-level clearance check. Evidence
+read helpers receive the authenticated tenant scope explicitly. Reads from another tenant remain blocked even for public evidence
 or matching reference values. Permissions for external connectors, governance,
 capability execution and binding effects are unchanged.
 

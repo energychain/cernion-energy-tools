@@ -308,7 +308,7 @@ describe('Case linking #753 through authenticated gateway HTTP', () => {
       llm.generateText.mockImplementation(text);
     }
   });
-  test('AC01/03/04: same person in a fresh HTTP chat continues one case and names it only in the assignment turn', async () => {
+  test('AC01/03/04: a tenant colleague in a fresh HTTP chat continues one case and names it only in the assignment turn', async () => {
     const implementation = llm.generateStructured.getMockImplementation();
     const identifiers = [
       { kind: 'reference-a', value: 'ANON-764-HTTP' },
@@ -347,6 +347,42 @@ describe('Case linking #753 through authenticated gateway HTTP', () => {
             conversationId: '764-second',
           }),
         ])
+      );
+    } finally {
+      llm.generateStructured.mockImplementation(implementation);
+    }
+  });
+
+  test('AC07: same-tenant HTTP caller without clearance cannot see, name or continue a sensitive case', async () => {
+    const implementation = llm.generateStructured.getMockImplementation();
+    const identifiers = [{ kind: 'reference-a', value: 'ANON-764-RESTRICTED' }];
+    const existing = await app.create(
+      identifiers,
+      auth('actor-a', ['ROLE_GRID_OPERATOR'], 'public', ['restricted']),
+      { sensitivityFlags: ['restricted'] }
+    );
+    llm.generateStructured.mockImplementation(async (...args) => ({
+      ...(await implementation(...args)),
+      identifiers,
+    }));
+    try {
+      const status = await request(
+        'person-b',
+        'Wie ist der Stand bei ANON-764-RESTRICTED?',
+        '764-secret-status'
+      );
+      expect(status.status).toBe(200);
+      expect(JSON.stringify(status.body)).not.toContain(existing.cetCaseId);
+      expect(status.body.choices[0].message.content).not.toContain('angelegt von actor-a');
+      const next = await request(
+        'person-b',
+        'Bitte bearbeite ANON-764-RESTRICTED.',
+        '764-secret-work'
+      );
+      expect(next.status).toBe(200);
+      expect(next.body.metadata.cetCaseId).not.toBe(existing.cetCaseId);
+      expect(next.body.choices[0].message.content).not.toMatch(
+        /Das gehört zu|Zu diesen Kennungen|zusammenführen/u
       );
     } finally {
       llm.generateStructured.mockImplementation(implementation);

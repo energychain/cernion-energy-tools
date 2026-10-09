@@ -272,7 +272,7 @@ function assertSensitivityAllowed(sensitivityLevel, clearance = []) {
 }
 
 function canViewEvidence(evidence, clearance = [], tenantId) {
-  if (tenantId) return evidence.tenantId === tenantId;
+  if (tenantId && evidence.tenantId !== tenantId) return false;
   return (
     evidence.sensitivityLevel === 'public' ||
     evidence.sensitivityLevel === 'tenant_internal' ||

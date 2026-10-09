@@ -166,13 +166,13 @@ test('AC-04: tenant case and evidence references are shared; foreign-tenant and 
     'opaque-secret',
   ];
   const entry = await append({ refs, kind: 'awaiting' });
-  expect(entry.refs).toEqual(refs.slice(0, 3));
-  expect(entry.hiddenRefCount).toBe(2);
+  expect(entry.refs).toEqual(refs.slice(0, 2));
+  expect(entry.hiddenRefCount).toBe(3);
   const cleared = { authUser: { ...meta.authUser, sensitivityFlags: ['restricted'] } };
   const entries = await call('byFunction', { functionId: 'fn-a' }, cleared);
   expect(entries[0].refs).toEqual(refs.slice(0, 3));
   const digest = await call('digest', { functionId: 'fn-a' });
-  expect(digest.openExpectations[0].hiddenRefCount).toBe(2);
+  expect(digest.openExpectations[0].hiddenRefCount).toBe(3);
   expect(JSON.stringify(digest)).not.toContain('opaque-secret');
 });
 

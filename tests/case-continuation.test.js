@@ -193,7 +193,7 @@ describe('Case continuation #764 with persisted router and workbench', () => {
     expect(statusLabel('internal_unknown_enum')).toBe('Bearbeitungsstand noch offen');
   });
 
-  test('AC07: foreign tenant is invisible; teams, legacy settings and clearance do not divide tenant cases', async () => {
+  test('AC07: foreign tenant is invisible; teams and legacy settings do not divide tenant cases; clearance still applies', async () => {
     app.policy('team');
     await app.create(ids);
     expect((await candidates(ids, auth('actor-b'))).items).toHaveLength(1);
@@ -212,7 +212,54 @@ describe('Case continuation #764 with persisted router and workbench', () => {
     expect(privateCase.cetCaseId).toBeTruthy();
     expect(
       (await candidates([{ kind: 'reference-a', value: 'SECRET-764' }], auth('actor-b'))).items
+    ).toHaveLength(0);
+    expect(
+      (
+        await candidates(
+          [{ kind: 'reference-a', value: 'SECRET-764' }],
+          auth('actor-b', ['ROLE_OTHER'], 'tenant-a', ['sensitive'])
+        )
+      ).items
     ).toHaveLength(1);
+  });
+
+  test('AC07: missing any case clearance prevents visibility, hints and continuation in the same tenant', async () => {
+    const cleared = auth('actor-a', ['ROLE_ALPHA'], 'tenant-a', ['restricted', 'confidential']);
+    const existing = await app.create(ids, cleared, {
+      sensitivityFlags: ['restricted', 'confidential'],
+    });
+    for (const flags of [[], ['restricted'], ['confidential']]) {
+      const colleague = auth('actor-b', ['ROLE_OTHER'], 'tenant-a', flags);
+      expect((await candidates(ids, colleague)).items).toEqual([]);
+      expect(
+        (await app.call('domain-router.cases.searchIdentifiers', { query: 'ANON-764' }, colleague))
+          .items
+      ).toEqual([]);
+      await expect(
+        app.call('workbench.cases.get', { caseId: existing.cetCaseId }, colleague)
+      ).rejects.toMatchObject({ code: 403 });
+    }
+    const next = await chat('no-clearance', undefined, auth('actor-b', ['ROLE_OTHER']));
+    expect(next.cetCaseId).not.toBe(existing.cetCaseId);
+    expect(next.responseText).not.toMatch(/Das gehört zu|Zu diesen Kennungen|zusammenführen/u);
+    const events = (await app.router.eventsDb.allDocs({ include_docs: true })).rows.map(
+      ({ doc }) => doc
+    );
+    expect(
+      events.filter(
+        (event) => event.kind === 'contributed' && event.cetCaseId === existing.cetCaseId
+      )
+    ).toEqual([]);
+    const state = await app.router.loadCase(principal({ meta: cleared }), existing.cetCaseId);
+    expect(state.actorId).toBe('actor-a');
+    expect(
+      (
+        await candidates(
+          ids,
+          auth('actor-c', ['ROLE_OTHER'], 'tenant-a', ['restricted', 'confidential'])
+        )
+      ).items
+    ).toEqual(expect.arrayContaining([expect.objectContaining({ cetCaseId: existing.cetCaseId })]));
   });
 
   test('closed cases cannot be continued; concurrent fresh chats from different tenant actors create one case', async () => {
@@ -445,7 +492,7 @@ describe('Case continuation #764 with persisted router and workbench', () => {
     expect(second.responseText).toContain('Belege fehlen');
   });
 
-  test('case evidence is tenant-wide even with sensitivity labels, while cross-tenant evidence remains hidden', async () => {
+  test('case evidence requires sensitivity clearance as well as the authenticated tenant', async () => {
     const { canViewEvidence, safeEvidenceRef } = require('../src/workbench-evidence');
     const evidence = {
       tenantId: 'tenant-a',
@@ -455,9 +502,13 @@ describe('Case continuation #764 with persisted router and workbench', () => {
       label: 'Synthetischer Beleg',
       status: 'attached',
     };
-    expect(canViewEvidence(evidence, [], 'tenant-a')).toBe(true);
+    expect(canViewEvidence(evidence, [], 'tenant-a')).toBe(false);
+    expect(canViewEvidence(evidence, ['restricted'], 'tenant-a')).toBe(true);
     expect(canViewEvidence(evidence, ['restricted'], 'tenant-b')).toBe(false);
-    expect(safeEvidenceRef(evidence, { tenantId: 'tenant-a' }).label).toBe('Synthetischer Beleg');
+    expect(safeEvidenceRef(evidence, { tenantId: 'tenant-a' }).redacted).toBe(true);
+    expect(
+      safeEvidenceRef(evidence, { tenantId: 'tenant-a', clearance: ['restricted'] }).label
+    ).toBe('Synthetischer Beleg');
     expect(
       safeEvidenceRef(evidence, { tenantId: 'tenant-b', clearance: ['restricted'] }).redacted
     ).toBe(true);

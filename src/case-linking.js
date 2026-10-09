@@ -1,7 +1,7 @@
 'use strict';
 
 const fs = require('node:fs');
-const { deny } = require('./domain-router-policy');
+const { deny, visible } = require('./domain-router-policy');
 
 // Types and comparison rules are deployment data, never a domain vocabulary.
 function normalizeIdentifiers(entries = [], types = {}) {
@@ -43,7 +43,7 @@ function tenantCasePolicy(tenantId, registryFile) {
 }
 
 function rawContentAllowed(p, state) {
-  return Boolean(p.tenantId && state.tenantId === p.tenantId);
+  return visible(p, state);
 }
 
 function caseSummary(state) {

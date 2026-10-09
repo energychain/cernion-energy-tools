@@ -102,7 +102,7 @@ describe('Case linking #753 (real broker and existing PouchDB lifecycle)', () =>
     ).toContain('RAW-CONTENT');
   });
 
-  test('tenant case reads have no actor, role or sensitivity boundary; authenticated writes retain their validation', async () => {
+  test('tenant case reads ignore actor and role boundaries but require sensitivity clearance', async () => {
     await expect(
       app.create(ids, auth(), { sensitivityFlags: ['restricted'] })
     ).rejects.toMatchObject({ code: 403 });
@@ -111,13 +111,14 @@ describe('Case linking #753 (real broker and existing PouchDB lifecycle)', () =>
       auth('actor-a', ['ROLE_ALPHA'], 'tenant-a', ['restricted']),
       { sensitivityFlags: ['restricted'] }
     );
-    expect((await search(foreignTeam)).items).toEqual([
-      expect.objectContaining({ cetCaseId: first.cetCaseId }),
-    ]);
-    expect((await search(auth('actor-x', ['ROLE_OTHER']))).items).toHaveLength(1);
+    expect((await search(foreignTeam)).items).toEqual([]);
+    expect((await search(auth('actor-x', ['ROLE_OTHER']))).items).toHaveLength(0);
+    expect(
+      (await search(auth('actor-x', ['ROLE_OTHER'], 'tenant-a', ['restricted']))).items
+    ).toEqual([expect.objectContaining({ cetCaseId: first.cetCaseId })]);
     expect((await search(foreignTenant)).items).toEqual([]);
     app.policy('own');
-    expect((await search(colleague)).items).toHaveLength(1);
+    expect((await search(colleague)).items).toHaveLength(0);
   });
 
   test('coverage is not needed for case visibility in the authenticated tenant', async () => {
@@ -304,19 +305,20 @@ describe('Case linking #753 (real broker and existing PouchDB lifecycle)', () =>
     expect((await discover(first.cetCaseId)).relatedCases).toEqual([]);
   });
 
-  test('sensitivity labels remain recorded without restricting case visibility inside the tenant', async () => {
+  test('inherited sensitivity labels require clearance for subsequent case reads', async () => {
     const clearedA = auth('actor-a', ['ROLE_ALPHA'], 'tenant-a', ['restricted']);
     const clearedB = auth('actor-b', ['ROLE_ALPHA'], 'tenant-a', ['restricted']);
     await app.create(ids, clearedA, { sensitivityFlags: ['restricted'] });
     const second = await app.create(ids, clearedB);
     expect(second.relatedCases).toHaveLength(1);
     expect(
-      (await app.router.loadCase(principal({ meta: colleague }), second.cetCaseId)).sensitivityFlags
+      (await app.router.loadCase(principal({ meta: clearedB }), second.cetCaseId)).sensitivityFlags
     ).toContain('restricted');
     expect(
-      (await app.call('workbench.cases.get', { caseId: second.cetCaseId }, colleague)).caseId
+      (await app.call('workbench.cases.get', { caseId: second.cetCaseId }, clearedB)).caseId
     ).toBe(second.cetCaseId);
-    expect((await search(colleague)).items).toHaveLength(2);
+    expect((await search(colleague)).items).toHaveLength(0);
+    expect((await search(clearedB)).items).toHaveLength(2);
     expect((await search(foreignTenant)).items).toEqual([]);
   });
 
