@@ -141,7 +141,10 @@ test('three turns keep bounded incremental prompts, skip understanding for draft
     expect(third.phaseTimes.understandMs).toBeLessThan(5);
     expect(third.phaseTimes.answerMs).toBeGreaterThanOrEqual(25);
     expect(retrieval).toHaveBeenCalledTimes(4);
-    expect(third.sources).toEqual([{ name: 'knowledge-rag', status: 'empty', hitCount: 0, ms: 0 }]);
+    expect(third.sources).toEqual([
+      { name: 'knowledge-rag', status: 'empty', hitCount: 0, ms: 0 },
+      { name: 'capability-read', status: 'skipped', hitCount: 0, ms: 0 },
+    ]);
     const outputs = [first, second, third].map((r) => r.responseText).join('\n');
     expect(outputs).not.toMatch(
       /unverbindlich|versendet.{0,40}nichts|keine externe Handlung|Unverbindliche Einschätzung:/i
