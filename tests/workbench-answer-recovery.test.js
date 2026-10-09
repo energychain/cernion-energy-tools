@@ -113,9 +113,11 @@ test('second schema error produces a neutral, LLM-free fallback without stale pr
   expect(llm.generateText).toHaveBeenCalledTimes(2);
   expect(reply.answerStatus).toBe('fallback');
   expect(reply.responseText).not.toMatch(/@|bestätig|zustimm|ablehn/i);
-  expect(reply.responseText).not.toContain(raw.slice(0, 121));
+  expect(reply.responseText).toContain('Gefundene Fundstellen:');
+  expect(reply.responseText.length).toBeLessThan(1500);
   expect(reply.responseText).not.toContain('Quellen:');
-  expect(reply.draft).toContain('[Ergebnis');
+  expect(reply.draft).toBe('');
+  expect(reply.responseText).toContain('Gefundene Fundstellen:');
   expect(reply.draft).not.toMatch(/E-Mail|MaLo:|Variante/);
   expect(reply.responseText).toContain('99000000001');
   expect(reply.evidenceTrace.rawEvidence[0].value).toBe(raw);

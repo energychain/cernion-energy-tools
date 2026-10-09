@@ -63,6 +63,7 @@
     "src/workbench-identifiers.js",
     "src/workbench-content-turn.js",
     "src/workbench-turn-scope.js",
+    "src/workbench-conversation-mode.js",
     "src/workbench-retrieval.js",
     "src/workbench-identifier-context.js",
     "src/workbench-thread.js",
