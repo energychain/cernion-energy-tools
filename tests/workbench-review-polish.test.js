@@ -189,3 +189,13 @@ test('knowledge projections preserve document and section titles before the work
   expect(sourceLine([hit])).toBe('Quellen: Leitfaden 3.2 · Kapitel 4.1');
   expect(sourceLine([{ title: 'EBD E_0608' }, { title: 'knowledge-rag' }])).toBe('');
 });
+
+test('alternative drafts share a single end-of-block verification marker', () => {
+  const output = markParagraphs(
+    'Entwurf:\nVariante A – wenn bestätigt:\nGuten Tag,\n\nDie Zahl beträgt 41. (bitte gegenprüfen)\n\nViele Grüße\nTeam A\n\nVariante B – wenn offen:\nGuten Tag,\n\nDie Zahl beträgt 42. (bitte gegenprüfen)\n\nViele Grüße\nTeam B',
+    false
+  );
+  expect(output.match(/\(bitte gegenprüfen\)/gu)).toHaveLength(1);
+  expect(output).toContain('Die Zahl beträgt 42. (bitte gegenprüfen)');
+  expect(output).not.toContain('Team B (bitte gegenprüfen)');
+});

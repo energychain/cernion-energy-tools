@@ -102,7 +102,7 @@ function updatePersonFacts(situation, message, previous) {
 
 function markParagraphs(value, mark) {
   const blocks = String(value).split(
-    /(?=^(?:\*\*)?(?:Einordnung|Schritte|Nächste Schritte|Entwurf|Variante [A-Z])\b[^\n]*:)/gmu
+    /(?=^(?:\*\*)?(?:Einordnung|Schritte|Nächste Schritte|Entwurf)\b[^\n]*:)/gmu
   );
   return blocks
     .map((block) => {
