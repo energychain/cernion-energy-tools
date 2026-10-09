@@ -409,7 +409,7 @@ test('question and transport budgets are separate, reject excess rather than sil
   expect(() =>
     normalizeTaskEnvelope({
       conversationId: 'scope',
-      message: packed('Prüfen.', 'x'.repeat(1000001)),
+      message: packed('Prüfen.', 'x'.repeat(4000001)),
     })
-  ).toThrow('budget');
+  ).toThrow('Aufnahmegrenze');
 });

@@ -6,20 +6,20 @@ const { maxInputChars } = require('./workbench-thread');
 
 function documentInput(input) {
   if (typeof input !== 'string') return { question: input, documents: [] };
-  const maxDocuments = Number(process.env.WORKBENCH_DOCUMENT_MAX_CHARS || 1000000);
+  const maxDocuments = Number(process.env.WORKBENCH_DOCUMENT_MAX_CHARS || 4000000);
   if (!Number.isSafeInteger(maxDocuments) || maxDocuments <= 0)
     throw new Error('Invalid document budget');
   // Bound the transport before parsing; retain every character of each source body.
   if (input.length > maxDocuments + maxInputChars() + 64000)
     throw new Errors.MoleculerClientError(
-      'Document transport too long',
+      `Das Dokument oder der Eingabetext ist zu groß. Die Aufnahmegrenze beträgt ${maxDocuments.toLocaleString('de-DE')} Zeichen. Bitte teile das Dokument auf oder sende einen kleineren Ausschnitt.`,
       422,
       'WORKBENCH_DOCUMENT_LIMIT'
     );
   const parsed = parseOpenWebUIContext(input);
   if (parsed.documents.reduce((sum, doc) => sum + doc.text.length, 0) > maxDocuments)
     throw new Errors.MoleculerClientError(
-      'Document budget exceeded',
+      `Das Dokument ist zu groß. Die Aufnahmegrenze beträgt ${maxDocuments.toLocaleString('de-DE')} Zeichen. Bitte teile das Dokument auf oder sende einen kleineren Ausschnitt.`,
       422,
       'WORKBENCH_DOCUMENT_LIMIT'
     );

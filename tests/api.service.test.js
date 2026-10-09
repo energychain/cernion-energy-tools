@@ -1023,7 +1023,7 @@ describe('API Gateway Service', () => {
       const v1Route = ApiService.settings.routes.find((r) => r.path === '/v1');
       expect(v1Route).toBeDefined();
       expect(v1Route.aliases['POST /chat/completions']).toBeInstanceOf(Function);
-      expect(v1Route.bodyParsers.json.limit).toBe('1MB');
+      expect(v1Route.bodyParsers.json.limit).toBe('16MB');
     });
 
     it('should return OpenAI-style auth errors on the /v1 chat completions facade', async () => {

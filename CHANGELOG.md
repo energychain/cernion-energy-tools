@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.99.22] — 2026-09-27
 
 ### Fixed
+
+- Open WebUI large-file hotfix: configure `/v1` JSON/form bodies with `OPENAI_COMPAT_BODY_LIMIT` (16 MB default), admit document packages up to four million characters independently of review budgets, and return German OpenAI-compatible size errors with content-free size logging. Document matching proxy limits.
 - Workbench #764 follow-up: answer content before a once-only case-choice question, retain the choice for two turns and expire it without automatic case creation. Identical strong-reference duplicates continue the latest open case with one merge proposal. Preserve the first case description and show creator, last editor and editing time in German status answers, including colleague handovers during an open choice.
 - Workbench review follow-up (#754, #758): validate line-anchored quotations against stored chapter/page offsets, summarize chapter follow-ups without repeated boilerplate, consolidate verification markers per answer block, and preserve document/section titles while omitting untitled source labels.
 - RC3 routing review CI prerequisite: refresh the existing transitive proxy-addr lock from 2.0.7 to 2.0.8 for GHSA-jqcg-44mw-7w3h, without adding dependencies or changing gateway policy.

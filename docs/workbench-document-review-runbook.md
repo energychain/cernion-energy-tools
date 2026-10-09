@@ -91,7 +91,7 @@ keinen Kundentext in Logs oder Testfixtures schreiben.
 
 | Einstellung                     |                               Default | Zweck                            |
 | ------------------------------- | ------------------------------------: | -------------------------------- |
-| WORKBENCH_DOCUMENT_MAX_CHARS    |                               1000000 | Aufnahmebudget pro Dokumentpaket |
+| WORKBENCH_DOCUMENT_MAX_CHARS    |                               4000000 | Aufnahmebudget pro Dokumentpaket |
 | WORKBENCH_REVIEW_MAX_CHARS      |                                250000 | Review-Eingabe insgesamt         |
 | WORKBENCH_REVIEW_TIMEOUT_MS     |                                 45000 | Gesamtbudget inkl. Retrieval     |
 | WORKBENCH_REVIEW_CONCURRENCY    |                                     4 | Maximale parallele Map-Aufrufe   |
@@ -165,3 +165,30 @@ zentralen Chatpfad und benötigt eigene GitNexus-Auswirkungsanalyse und HTTP-Abn
   digestible and new entries stay in their current scope“, scheitert identisch auf
   `origin/main@07ea207c` und dem PR-Branch: Zeile 450 erwartet `entryCount: 1`, erhält 0.
   Jeweils 13 weitere Tests grün. Kein Journal-Fix und keine Deaktivierung in diesem PR.
+
+## Große Dateien aus Open WebUI
+
+Im Volltext-Modus überträgt Open WebUI die Dateiinhalte im Chat-Kontext an
+`/v1/chat/completions`. Ein Jahreslastgang mit etwa 35.000 Viertelstundenzeilen
+kann ein bis zwei Millionen Zeichen umfassen. JSON-Escaping und Chat-Verlauf
+vergrößern den HTTP-Body zusätzlich.
+
+Diese Grenzen müssen zueinander passen:
+
+- Am Reverse Proxy muss `client_max_body_size` den gesamten HTTP-Body zulassen,
+  beispielsweise `client_max_body_size 16m;` im zuständigen Nginx-Server-/Location-Block.
+- `OPENAI_COMPAT_BODY_LIMIT=16MB` begrenzt JSON- und URL-encoded-Bodies ausschließlich
+  unter `/v1`. Andere CET-Routen behalten ihre bestehenden Limits. Nach einer
+  Änderung CET neu starten; Proxy-Konfiguration prüfen und separat neu laden.
+- `WORKBENCH_DOCUMENT_MAX_CHARS=4000000` begrenzt die Summe der aufgenommenen
+  Dokumenttexte in Zeichen. Es ist unabhängig vom HTTP-Byte-Limit und vom
+  kleineren Budget für normale Nachrichten (`WORKBENCH_MAX_INPUT_CHARS`).
+- Die Review-Budgets aus #754, insbesondere `WORKBENCH_REVIEW_MAX_CHARS`, bleiben
+  eigenständig. Eine erfolgreiche Aufnahme bedeutet nicht, dass das gesamte
+  Dokument in einen einzelnen Review oder Modellaufruf passt.
+
+Bei einer Überschreitung des CET-Body-Limits erhält Open WebUI HTTP 413 mit einem
+OpenAI-kompatiblen `error.message` auf Deutsch: aktuelle Grenze und Hinweise zum
+Aufteilen, kleineren Ausschnitten oder weniger Chat-Verlauf. CET protokolliert
+nur die Größen-/Limit-Metadaten, keine Dateiinhalte. Lehnt bereits der Proxy ab,
+kommt die Anfrage nicht bei CET an: dessen Grenze bzw. Fehlerseite separat prüfen.
