@@ -2,6 +2,7 @@
 
 const conversationAssistance = require('./workbench-conversation');
 const { rawContentAllowed, relatedCaseSentence } = require('./case-linking');
+const { statusLabel, readableCaseText } = require('./case-continuation');
 
 async function sharedCaseSummary(service, p, caseId) {
   const router = service.broker.getLocalService('domain-router');
@@ -18,21 +19,42 @@ async function findIdentifierStatus(ctx, message, meta) {
     { meta }
   );
   if (!items.length) return null;
+  const p = require('./domain-router-policy').principal({ meta });
+  const workbench = ctx.broker.getLocalService('workbench');
+  for (const item of items) {
+    item.displayRef = await workbench.store.caseDisplayRef({
+      tenantId: p.tenantId,
+      caseId: item.cetCaseId,
+    });
+  }
   return {
     items: items.map((item) => ({
       ...item,
-      title: `Fall ${item.cetCaseId} von ${item.responsible.join(', ')}${item.summary ? `: ${item.summary}` : ''}`,
+      status: statusLabel(item.status),
+      title: readableCaseText(
+        `Fall ${item.displayRef} von ${item.responsible.join(', ')}${item.summary ? `: ${item.summary}` : ''}`
+      ),
     })),
-    responseText: items
-      .map(
-        (item) =>
-          `Fall ${item.cetCaseId} von ${item.responsible.join(', ')}: ${item.status}${item.summary ? `. ${item.summary}` : '.'}`
-      )
-      .join('\n'),
+    responseText: readableCaseText(
+      items
+        .map(
+          (item) =>
+            `Fall ${item.displayRef} von ${item.responsible.join(', ')}: ${statusLabel(item.status)}${item.summary ? `. ${item.summary}` : '.'}`
+        )
+        .join('\n')
+    ),
   };
 }
 
 async function handleCaseLinkTurn(service, ctx, p, envelope, meta) {
+  const merged = await require('./workbench-case-continuation').mergeCommand(
+    service,
+    ctx,
+    p,
+    envelope,
+    meta
+  );
+  if (merged) return merged;
   const message = envelope.userRequest.trim();
   const match = message.match(/^(?:das |die fälle )?gehört (nicht )?zusammen(?:\s+(.+?))?[.!]*$/iu);
   const undo = /^(?:mach das rückgängig|rückgängig|undo(?: that)?)[.!\s]*$/iu.test(message);

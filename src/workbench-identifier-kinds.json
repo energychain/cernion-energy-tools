@@ -12,5 +12,33 @@
     "city",
     "location"
   ],
-  "genericKinds": ["kennung", "identifier", "reference", "referenz", "code", "unknown", "unbekannt"]
+  "genericKinds": [
+    "kennung",
+    "identifier",
+    "reference",
+    "referenz",
+    "code",
+    "unknown",
+    "unbekannt"
+  ],
+  "strongReferenceKinds": [
+    "prozessreferenz",
+    "processreference",
+    "processref",
+    "vorgangsreferenz",
+    "vorgangsnummer",
+    "lokationsid",
+    "locationid",
+    "marketlocationid",
+    "meterlocationid",
+    "marktlokation",
+    "messlokation",
+    "malo",
+    "melo",
+    "dar",
+    "transactionid",
+    "requestid",
+    "documentid",
+    "caseid"
+  ]
 }

@@ -297,7 +297,7 @@ describe('Domain Router #595 (real Moleculer + PouchDB)', () => {
   });
   test('unauthorized actor/tenant/role sees no case, discovery or event placeholders', async () => {
     const c = await classify('MSCONS Lastgang', { knownContext: { laufkarteId: 'shared' } });
-    for (const changes of [{ tenantId: 'other' }, { id: 'other' }, { roles: ['ROLE_FINANCE'] }]) {
+    for (const changes of [{ tenantId: 'other' }]) {
       const auth = { apiToken: { ...meta.apiToken, ...changes } };
       expect(await call('events.list', { clientId: 'hermes' }, auth)).toEqual({ events: [] });
       await expect(

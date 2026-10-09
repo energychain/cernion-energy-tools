@@ -32,7 +32,7 @@ Sidecar tools:
 - cernion.ack_case_event
 - cernion.discover_related_sessions
 
-CET-governed Sidecar clients may call these routes with existing authenticated CET tokens. The token is identity/client context, not the fachliche read/write permission boundary. Tenant, actor role, sensitivity, case visibility, delivery-preference and No-Call checks still run inside CET before state or events are exposed or changed.
+CET-governed Sidecar clients may call these routes with existing authenticated CET tokens. The token is identity/client context. Tenant isolation, action authorization, delivery preferences and No-Call checks still run inside CET. Case content is shared within the authenticated tenant; this does not grant permission for external actions or connectors.
 
 Sidecar manifest metadata distinguishes legacy compatibility from the canonical effect model:
 
@@ -55,9 +55,9 @@ identifier-type list is embedded in the core. Comparison rules are tenant data:
   {
     "tenantId": "anonymous-tenant",
     "sharedService": {
-      "caseVisibility": "team",
+      "caseVisibility": "tenant",
       "identifierTypes": {
-        "reference-a": { "caseFold": true, "stripWhitespace": true }
+        "reference-a": { "caseFold": true, "stripWhitespace": true, "strength": "strong" }
       }
     }
   }
@@ -65,18 +65,21 @@ identifier-type list is embedded in the core. Comparison rules are tenant data:
 ```
 
 Configure this in the existing tenant registry selected by
-`CERNION_TENANT_REGISTRY_FILE`. Missing `caseVisibility` means `own`. Client
-metadata cannot set it. Invalid settings fail closed. New cases snapshot the
-explicit setting; existing documents without the field stay `own` without a
-migration. Tightening the current tenant setting to `team` or `own` also restricts
-previously shared cases. Raising it does not expose old private cases.
+`CERNION_TENANT_REGISTRY_FILE`. Case visibility is tenant-wide by product decision
+in #764: missing settings and legacy cases without a visibility field are treated
+as `tenant`, without a migration. Earlier explicit `own`/`team` values are accepted
+for compatibility but no longer restrict access inside the tenant. Clients cannot
+select another tenant or supply authentication. Authentication, mapping checks and
+validation of new sensitivity labels remain enforced.
 
-- `own`: creator, recorded participants or an existing explicit role release.
-- `team`: additionally people with the same assigned role set as the creator, or
-  overlapping current function coverage at score >= 0.5. Expired/future coverage
-  does not count. Coverage adds no roles or clearance.
-- `tenant`: additionally people in the authenticated tenant, still subject to the
-  existing case role ACL and sensitivity clearance.
+Within the authenticated tenant, case content, identifiers, situation summaries,
+case evidence and inbox tasks are accessible across actors and role sets only when
+the caller has every case sensitivity flag in their authenticated clearance.
+A missing clearance hides the case entirely, including hints and continuation.
+Evidence additionally retains its own sensitivity-level clearance check. Evidence
+read helpers receive the authenticated tenant scope explicitly. Reads from another tenant remain blocked even for public evidence
+or matching reference values. Permissions for external connectors, governance,
+capability execution and binding effects are unchanged.
 
 Matching normalized kind **and** value adds `same_subject` with confidence 0.8,
 `matching_typed_identifier` provenance and the matching identifiers. A different
@@ -84,40 +87,81 @@ kind with the same value is not a subject match. Technical `LINK_KEYS` remain
 supported. Cases remain independent; discovery never merges them or copies their
 raw content. A correction to the identifier removes obsolete automatic links.
 
-Foreign case views return only a situation summary (up to 600 characters), status,
-responsible actor IDs and typed identifiers, plus the case reference. They omit
-initial text, complete situations, classification prompts, evidence, drafts,
-turn-memory, inbox tasks and event payload references. Raw reads and mutations
-still require participation or an existing explicit role release. Every foreign
-summary read writes a content-free immutable audit entry in the **existing case
+Reads of another person's case remain content-free audited in the **existing case
 Event Outbox database** before disclosure; an audit failure blocks the response.
-Subject links never forward asynchronous payloads. When a related summary is used
-in a case response, its sensitivity flags are retained on that case.
+When related summaries contribute to a response, sensitivity labels are retained.
 
-Workbench starts the answer with the related case's `F-` reference, responsible
-actor and status, and supplies only its safe summary as answer evidence (at most
-five related cases per turn). “Wie ist der Stand bei ANON-0001?” looks up complete
-visible reference values even in a fresh conversation; `reference-a:ANON-0001`
-can disambiguate the type. Partial values do not match.
-
-“gehört zusammen” / “gehört nicht zusammen” confirms or rejects the unique related
-subject case. With multiple candidates, specify its `F-` reference. Rejections are
-honored from both sides of discovery. The owner can use “rückgängig” to undo the
-latest active case-link correction. Changes use a case-version guard, persist
-actor, previous relation, decision and undo reference in the case correction
-history, and write an immutable `corrected` case journal entry in the same existing
-Event Outbox database. Neither a new database nor a new persistence lifecycle is
-introduced. These records survive restart and do not modify function-neighbor
-learning or another person's case turn. A conversation marker preserves the existing undo
-path when a function correction follows a case-link correction.
+Typed relationships preserve identifier provenance. “gehört zusammen” / “gehört
+nicht zusammen” confirms or rejects a unique related case; with multiple candidates,
+specify its `F-` reference. Rejections are honored in both directions. Link
+corrections retain the predecessor's owner check, case-version guard, correction
+history and immutable case journal, and can be undone with “rückgängig”. No new
+database or persistence lifecycle is introduced. These corrections are separate
+from function-neighbor corrections.
 
 Internal authenticated actions used by Workbench are
 `domain-router.cases.searchIdentifiers` and `domain-router.cases.correctLink`.
 Public reads remain available through Workbench/Gateway and the existing
 `related-sessions.discover` route.
 
+## Continuing an existing case (#764)
+
+Workbench resolves open, visible cases **before** reserving or creating a new
+case. A unique tenant case with matching strong typed identifiers is continued;
+the new chat is bound to that case, the situation is updated incrementally and
+the new material is recorded in the existing case event database. Case lookup,
+assignment and persistence are
+serialized per authenticated tenant across people and conversations, so two
+simultaneous fresh chats cannot both create the same work item. Understanding,
+retrieval and answer generation remain outside that critical section; normal
+turns retain their conversation queue, and independent chats can answer in parallel.
+
+Multiple matches produce one selection question with at most three descriptions,
+newest first, including the creator of each case. A number or displayed `F-`
+reference selects an offered case; `neu` creates a separate case using the original
+material. Candidates and tenant scope are checked again at selection. A unique
+match is continued across people without an extra sharing or participation grant.
+The assignment sentence always names who originally created the case. Newly
+contributed material records its own authenticated author, without replacing the
+original case creator.
+
+Identifier comparison reuses the normalization in `case-linking.js`. The existing
+identifier-kind and code catalogs exclude weak features and response codes.
+Only reference kinds explicitly classified in the existing identifier-kind catalog
+are strong by default. Generic, untyped and unknown kinds, including arbitrary
+attributes such as status, date and capacity, remain weak unless tenant data
+explicitly marks them strong. Deployments can mark a kind weak with
+`sharedService.identifierTypes[kind].strength = "weak"`, or strong with
+`"strong"`. Place, postal-code and personal fields never become strong through
+this setting. A continuation requires all supplied strong identifiers to match
+the candidate; one shared location with a different process reference is not
+enough. Technical `LINK_KEYS` remain relationship-discovery keys and do not
+automatically bind a new conversation.
+
+The assignment turn uses a short description and the central readable status
+mapping in `src/case-status-labels.json`. Subsequent turns on that bound chat do
+not repeat the assignment notice, including after turn-memory expiry. Related
+case summaries still contribute authorized answer evidence using readable status
+labels; the former repeated multi-sentence prefix is removed.
+
+After selecting a case, other open cases in the same tenant with exactly the same strong
+identifiers are proposed once for merging. Only the explicit command
+`Fälle zusammenführen` or `Zusammenführung bestätigen` applies the saved proposal;
+an ordinary `ja` does not merge anything. The protected merge action rechecks
+authenticated tenant, open state and exact identifiers. It audits each merge
+before mutation, retains the complete source snapshot and original source
+document/journal, and marks the source with its destination. Existing Workbench
+conversation bindings are moved with the existing store helper. Sources cease
+to be continuation candidates; no background migration or automatic merge runs.
+
+Validation: `tests/case-continuation.test.js` covers persistence, three-turn
+notices, selection/new, weak and conflicting identifiers, cross-tenant
+negatives, tenant-scope rechecks, concurrent fresh chats and explicit audited
+merges. `tests/case-linking.http.test.js` covers the authenticated HTTP path and
+retains the predecessor's correction, undo, draft and visibility regressions.
+
 Validation: `tests/case-linking.test.js` exercises real broker/PouchDB persistence,
-normalization, visibility, clearance, raw-content/event/inbox boundaries, failed
+normalization, tenant-wide case access, cross-tenant event/inbox boundaries, failed
 audits, corrections and restart. `tests/case-linking.http.test.js` uses the real
-HTTP gateway with two mapped colleagues and negative team/tenant/organization
+HTTP gateway with two mapped colleagues and negative tenant/organization
 checks. Fixtures contain fictional actors and identifiers.

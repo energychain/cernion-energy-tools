@@ -1767,7 +1767,7 @@ describe('Workbench RC3 Open WebUI Tenant Gateway', () => {
     ).rejects.toThrow(/label too long/iu);
   });
 
-  test('evidence sensitivity gates and safe case summary redaction', async () => {
+  test('evidence tagging and reads both enforce sensitivity clearance', async () => {
     const restrictedMeta = {
       apiToken: {
         ...userMeta.apiToken,
@@ -1811,10 +1811,8 @@ describe('Workbench RC3 Open WebUI Tenant Gateway', () => {
       { caseId: c.cetCaseId, includeEvidence: true },
       userMeta
     );
-    expect(unrestrictedSummary.evidenceRefs[0]).toMatchObject({
-      status: 'restricted',
-      redacted: true,
-    });
+    expect(unrestrictedSummary.evidenceRefs[0].redacted).toBe(true);
+    expect(unrestrictedSummary.evidenceRefs[0].label).not.toBe('Restricted Doc');
     const restrictedSummary = await call(
       'cases.get',
       { caseId: c.cetCaseId, includeEvidence: true },

@@ -54,8 +54,7 @@ describe('webhooks service', () => {
     expect(created.success).toBe(true);
     expect(created.subscription.hasSecret).toBe(true);
 
-    broker.emit('cya.a2a.consensus.failed', { sessionId: 'S-1', eventId: 'evt-1' });
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await broker.emit('cya.a2a.consensus.failed', { sessionId: 'S-1', eventId: 'evt-1' });
 
     expect(axios.post).toHaveBeenCalledTimes(1);
     const call = axios.post.mock.calls[0];
@@ -83,8 +82,7 @@ describe('webhooks service', () => {
       { meta: { tenantId: 'tenant-r' } }
     );
 
-    broker.emit('mastr-monitor.delta.detected', { watchId: 'w1', eventId: 'evt-retry' });
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await broker.emit('mastr-monitor.delta.detected', { watchId: 'w1', eventId: 'evt-retry' });
 
     let deliveries = await broker.call(
       'webhooks.listDeliveries',
@@ -116,8 +114,7 @@ describe('webhooks service', () => {
       { meta: { tenantId: 'tenant-expired-hook' } }
     );
 
-    broker.emit('hitl.item.expired', { itemId: 'hitl-1', eventId: 'evt-expired' });
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await broker.emit('hitl.item.expired', { itemId: 'hitl-1', eventId: 'evt-expired' });
 
     expect(axios.post).toHaveBeenCalledTimes(1);
     const deliveries = await broker.call(

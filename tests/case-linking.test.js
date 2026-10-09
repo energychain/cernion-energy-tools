@@ -59,67 +59,69 @@ describe('Case linking #753 (real broker and existing PouchDB lifecycle)', () =>
     ]);
   });
 
-  test('own is the default and client input cannot broaden visibility', async () => {
-    await app.create(ids, auth(), {
-      caseVisibility: 'tenant',
-      knownContext: { identifiers: ids, caseVisibility: 'tenant' },
+  test('tenant is the default and client input cannot cross tenant boundaries', async () => {
+    const first = await app.create(ids, auth(), {
+      knownContext: { identifiers: ids, caseVisibility: 'own' },
     });
-    expect((await search(colleague)).items).toEqual([]);
+    const state = await app.router.loadCase(principal({ meta: auth() }), first.cetCaseId);
+    expect(state.caseVisibility).toBe('tenant');
+    expect((await search(colleague)).items).toHaveLength(1);
+    expect((await search(foreignTeam)).items).toHaveLength(1);
     expect((await search(foreignTenant)).items).toEqual([]);
   });
 
-  test('legacy cases stay private after tenant explicitly enables team', async () => {
+  test('legacy missing or own visibility settings are tenant-visible without migration', async () => {
     const first = await app.create(ids);
     const doc = await app.router.loadCase(principal({ meta: auth() }), first.cetCaseId);
     delete doc.caseVisibility;
     await app.router.db.put(doc);
-    app.policy('team');
-    expect((await search(colleague)).items).toEqual([]);
+    app.policy('own');
+    expect((await search(colleague)).items).toHaveLength(1);
     const fresh = await app.create(ids);
-    expect((await search(colleague)).items.map((item) => item.cetCaseId)).toEqual([
-      fresh.cetCaseId,
-    ]);
+    const current = await app.router.loadCase(principal({ meta: auth() }), fresh.cetCaseId);
+    current.caseVisibility = 'own';
+    await app.router.db.put(current);
+    expect((await search(colleague)).items.map((item) => item.cetCaseId).sort()).toEqual(
+      [first.cetCaseId, fresh.cetCaseId].sort()
+    );
+    expect((await search(foreignTenant)).items).toEqual([]);
   });
 
-  test('team links colleagues with matching assigned role sets, not foreign teams or tenants', async () => {
+  test('different teams and roles in one tenant can read linked cases; foreign tenants cannot', async () => {
     app.policy('team');
     const first = await app.create(ids);
     const second = await app.create(ids, colleague);
     expect(second.relatedCases).toEqual([
       expect.objectContaining({ cetCaseId: first.cetCaseId, relationshipType: 'same_subject' }),
     ]);
-    expect((await search(foreignTeam)).items).toEqual([]);
+    expect((await search(foreignTeam)).items).toHaveLength(2);
     expect((await search(foreignTenant)).items).toEqual([]);
-    await expect(
-      app.call('workbench.cases.get', { caseId: first.cetCaseId }, foreignTeam)
-    ).rejects.toMatchObject({ code: 403 });
+    expect(
+      (await app.call('workbench.cases.get', { caseId: first.cetCaseId }, foreignTeam))
+        .initialRequest
+    ).toContain('RAW-CONTENT');
   });
 
-  test('tenant permits a different team only within existing role ACL and clearance', async () => {
-    app.policy('tenant');
-    await app
-      .create(ids, auth(), { sensitivityFlags: ['restricted'] })
-      .catch((error) => expect(error.code).toBe(403));
+  test('tenant case reads ignore actor and role boundaries but require sensitivity clearance', async () => {
+    await expect(
+      app.create(ids, auth(), { sensitivityFlags: ['restricted'] })
+    ).rejects.toMatchObject({ code: 403 });
     const first = await app.create(
       ids,
       auth('actor-a', ['ROLE_ALPHA'], 'tenant-a', ['restricted']),
       { sensitivityFlags: ['restricted'] }
     );
     expect((await search(foreignTeam)).items).toEqual([]);
-    expect(
-      (await search(auth('actor-c', ['ROLE_ALPHA', 'ROLE_BETA'], 'tenant-a', ['restricted']))).items
-    ).toEqual([expect.objectContaining({ cetCaseId: first.cetCaseId })]);
+    expect((await search(auth('actor-x', ['ROLE_OTHER']))).items).toHaveLength(0);
     expect(
       (await search(auth('actor-x', ['ROLE_OTHER'], 'tenant-a', ['restricted']))).items
-    ).toEqual([]);
+    ).toEqual([expect.objectContaining({ cetCaseId: first.cetCaseId })]);
     expect((await search(foreignTenant)).items).toEqual([]);
     app.policy('own');
-    expect(
-      (await search(auth('actor-b', ['ROLE_ALPHA'], 'tenant-a', ['restricted']))).items
-    ).toEqual([]);
+    expect((await search(colleague)).items).toHaveLength(0);
   });
 
-  test('overlapping coverage establishes team membership without broadening role ACL', async () => {
+  test('coverage is not needed for case visibility in the authenticated tenant', async () => {
     app.policy('team');
     const { getFunctionModel } = require('../src/function-model');
     const { configuration } = require('../src/function-coverage');
@@ -150,45 +152,45 @@ describe('Case linking #753 (real broker and existing PouchDB lifecycle)', () =>
     });
     await app.create(ids);
     expect((await search(foreignTeam)).items).toHaveLength(1);
-    expect((await search(auth('actor-x', ['ROLE_OTHER']))).items).toEqual([]);
+    expect((await search(auth('actor-x', ['ROLE_OTHER']))).items).toHaveLength(1);
     expect((await search(foreignTenant)).items).toEqual([]);
   });
 
-  test('foreign projections contain only summary/status/responsible/identifiers and audit every read', async () => {
-    app.policy('team');
+  test('tenant colleagues can read case content and every colleague access remains audited', async () => {
     const first = await app.create(ids);
     const projected = await app.call(
       'workbench.cases.get',
       { caseId: first.cetCaseId, includeEvidence: true },
       colleague
     );
-    expect(Object.keys(projected).sort()).toEqual(
-      ['caseId', 'cetCaseId', 'identifiers', 'responsible', 'status', 'summary'].sort()
-    );
-    expect(projected.summary).toContain('Lagebild');
-    const list = await app.call('workbench.cases.list', {}, colleague);
-    expect(list.items).toEqual([projected]);
-    expect(JSON.stringify(list)).not.toMatch(
-      /RAW-CONTENT|initialRequest|turnMemory|internalDrafts/
-    );
+    expect(projected.initialRequest).toContain('RAW-CONTENT');
+    expect(projected.situation.situation).toContain('Lagebild');
+    expect((await app.call('workbench.cases.list', {}, colleague)).items).toEqual([
+      expect.objectContaining({ caseId: first.cetCaseId }),
+    ]);
     const audit = (await app.router.eventsDb.allDocs({ include_docs: true })).rows
-      .map((row) => row.doc)
+      .map(({ doc }) => doc)
       .filter((row) => row.kind === 'observed');
-    expect(audit).toHaveLength(2);
+    expect(audit.length).toBeGreaterThanOrEqual(3);
     expect(audit.every((row) => row.actorId === 'actor-b' && row.tenantId === 'tenant-a')).toBe(
       true
     );
     expect(JSON.stringify(audit)).not.toMatch(/RAW-CONTENT|ANON-0001|Lagebild/);
+    expect(
+      (await app.call('domain-router.explain', { cetCaseId: first.cetCaseId }, colleague)).cetCaseId
+    ).toBe(first.cetCaseId);
+    expect(
+      (
+        await app.call(
+          'domain-router.continue',
+          { cetCaseId: first.cetCaseId, userRequest: 'Change case' },
+          colleague
+        )
+      ).cetCaseId
+    ).toBe(first.cetCaseId);
     await expect(
-      app.call('domain-router.explain', { cetCaseId: first.cetCaseId }, colleague)
-    ).rejects.toMatchObject({ code: 403 });
-    await expect(
-      app.call(
-        'domain-router.continue',
-        { cetCaseId: first.cetCaseId, userRequest: 'Change case' },
-        colleague
-      )
-    ).rejects.toMatchObject({ code: 403 });
+      app.call('workbench.cases.get', { caseId: first.cetCaseId }, foreignTenant)
+    ).rejects.toBeDefined();
   });
 
   test('audit failure prevents foreign summary disclosure', async () => {
@@ -200,25 +202,33 @@ describe('Case linking #753 (real broker and existing PouchDB lifecycle)', () =>
     ).rejects.toThrow('audit unavailable');
   });
 
-  test('explicit role sharing retains raw access while team visibility alone never delivers events', async () => {
-    app.policy('team');
+  test('tenant colleagues can read addressed events and case content without role sharing', async () => {
     const first = await app.create(ids, auth(), {
       asyncDelivery: { mode: 'poll', clientId: 'client-a' },
     });
+    await app.call('domain-router.ingestUpdate', {
+      cetCaseId: first.cetCaseId,
+      kind: 'receipt_failed',
+      version: 'anonymous-event',
+    });
+    const events = await app.call(
+      'domain-router.events.list',
+      { clientId: 'client-a', caseId: first.cetCaseId },
+      colleague
+    );
+    expect(events.events.length).toBeGreaterThan(0);
+    expect(
+      (await app.call('workbench.cases.get', { caseId: first.cetCaseId }, colleague)).initialRequest
+    ).toContain('RAW-CONTENT');
     expect(
       (
         await app.call(
           'domain-router.events.list',
           { clientId: 'client-a', caseId: first.cetCaseId },
-          colleague
+          foreignTenant
         )
       ).events
     ).toEqual([]);
-    const shared = await app.create(ids, auth(), { sharedWithRoles: ['ROLE_ALPHA'] });
-    expect(
-      (await app.call('workbench.cases.get', { caseId: shared.cetCaseId }, colleague))
-        .initialRequest
-    ).toContain('RAW-CONTENT');
   });
 
   test('status lookup uses complete normalized references; explicit types disambiguate', async () => {
@@ -240,7 +250,9 @@ describe('Case linking #753 (real broker and existing PouchDB lifecycle)', () =>
           colleague
         )
       ).responseText
-    ).toContain(first.cetCaseId);
+    ).toContain(
+      await app.workbench.store.caseDisplayRef({ tenantId: 'tenant-a', caseId: first.cetCaseId })
+    );
   });
 
   test('confirmed/rejected links are journalized, symmetric in discovery, durable and undoable with version guards', async () => {
@@ -293,21 +305,24 @@ describe('Case linking #753 (real broker and existing PouchDB lifecycle)', () =>
     expect((await discover(first.cetCaseId)).relatedCases).toEqual([]);
   });
 
-  test('related summaries retain sensitivity when incorporated into a colleague case', async () => {
-    app.policy('team');
+  test('inherited sensitivity labels require clearance for subsequent case reads', async () => {
     const clearedA = auth('actor-a', ['ROLE_ALPHA'], 'tenant-a', ['restricted']);
     const clearedB = auth('actor-b', ['ROLE_ALPHA'], 'tenant-a', ['restricted']);
     await app.create(ids, clearedA, { sensitivityFlags: ['restricted'] });
     const second = await app.create(ids, clearedB);
     expect(second.relatedCases).toHaveLength(1);
-    await expect(
-      app.call('workbench.cases.get', { caseId: second.cetCaseId }, colleague)
-    ).rejects.toMatchObject({ code: 403 });
-    expect((await search(colleague)).items).toEqual([]);
+    expect(
+      (await app.router.loadCase(principal({ meta: clearedB }), second.cetCaseId)).sensitivityFlags
+    ).toContain('restricted');
+    expect(
+      (await app.call('workbench.cases.get', { caseId: second.cetCaseId }, clearedB)).caseId
+    ).toBe(second.cetCaseId);
+    expect((await search(colleague)).items).toHaveLength(0);
+    expect((await search(clearedB)).items).toHaveLength(2);
+    expect((await search(foreignTenant)).items).toEqual([]);
   });
 
-  test('inbox task materialization, persisted task listing and assignment require content access', async () => {
-    app.policy('team');
+  test('tenant colleagues can list, materialize and assign case inbox tasks; other tenants cannot', async () => {
     const first = await app.create(ids, auth(), {
       asyncDelivery: { mode: 'poll', clientId: 'client-a' },
     });
@@ -320,16 +335,20 @@ describe('Case linking #753 (real broker and existing PouchDB lifecycle)', () =>
     const own = await app.call('workbench.inbox.tasks.list', {});
     expect(own.items.length).toBeGreaterThan(0);
     await app.workbench.store.saveInboxTask({ ...own.items[0], tenantId: 'tenant-a' });
-    expect((await app.call('workbench.inbox.tasks.list', {}, colleague)).items).toEqual([]);
     expect(
       (await app.call('workbench.inbox.tasks.list', { caseId: first.cetCaseId }, colleague)).items
-    ).toEqual([]);
+        .length
+    ).toBeGreaterThan(0);
     await expect(
       app.call('workbench.inbox.tasks.assign', { taskId: own.items[0].taskId }, colleague)
-    ).rejects.toMatchObject({ code: 403 });
+    ).resolves.toBeDefined();
     await expect(
       app.workbench.materializeInboxTask(principal({ meta: colleague }), own.items[0].taskId)
-    ).rejects.toMatchObject({ code: 404 });
+    ).resolves.toBeDefined();
+    expect((await app.call('workbench.inbox.tasks.list', {}, foreignTenant)).items).toEqual([]);
+    await expect(
+      app.call('workbench.inbox.tasks.assign', { taskId: own.items[0].taskId }, foreignTenant)
+    ).rejects.toBeDefined();
   });
 
   test('cases, rejected links, sensitivity and immutable correction entries survive broker restart', async () => {

@@ -47,6 +47,7 @@ beforeEach(async () => {
     mixins: [Router.mixins[0], Router.mixins[1]],
     created() {
       this.db = db;
+      this.eventsDb = new Pouch('case-events');
     },
     started() {},
     stopped() {},
@@ -67,7 +68,7 @@ afterEach(async () => {
   await broker.stop();
   fs.rmSync(dir, { recursive: true, force: true });
 });
-test('ids_only default: own-tenant agent receives scalar parameter IDs, never case contents; ordinary visibility unchanged', async () => {
+test('ids_only interface returns only parameter IDs; ordinary authenticated tenant reads are shared', async () => {
   expect(await call()).toEqual({ knownContext: { assetId: 'asset-a', processRef: 'process-a' } });
   expect(journal).toHaveBeenCalledTimes(1);
   expect(journal.mock.calls[0][0].params).toMatchObject({
@@ -76,9 +77,9 @@ test('ids_only default: own-tenant agent receives scalar parameter IDs, never ca
     summary: expect.stringContaining('Parameter-IDs gelesen'),
   });
   const p = require('../src/domain-router-policy').principal({ meta: { authUser: agent } });
-  await expect(broker.getLocalService('domain-router').loadCase(p, 'case-a')).rejects.toThrow(
-    'Case not accessible'
-  );
+  await expect(
+    broker.getLocalService('domain-router').loadCase(p, 'case-a')
+  ).resolves.toMatchObject({ tenantId: 'tenant-a', knownContext: state.knownContext });
 });
 test('off and invalid tenant settings fail closed and journal each attempt', async () => {
   for (const setting of ['off', 'invalid']) {

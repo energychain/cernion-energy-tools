@@ -271,7 +271,8 @@ function assertSensitivityAllowed(sensitivityLevel, clearance = []) {
   }
 }
 
-function canViewEvidence(evidence, clearance = []) {
+function canViewEvidence(evidence, clearance = [], tenantId) {
+  if (tenantId && evidence.tenantId !== tenantId) return false;
   return (
     evidence.sensitivityLevel === 'public' ||
     evidence.sensitivityLevel === 'tenant_internal' ||
@@ -428,8 +429,8 @@ function isReviewRelevant({ evidenceType, sourceType, sourceRef, extracts }) {
   return Boolean(sourceRef.errorCode || extracts.errorCode);
 }
 
-function safeEvidenceRef(evidence, { clearance = [] } = {}) {
-  if (!canViewEvidence(evidence, clearance)) {
+function safeEvidenceRef(evidence, { clearance = [], tenantId } = {}) {
+  if (!canViewEvidence(evidence, clearance, tenantId)) {
     return {
       evidenceId: evidence.evidenceId,
       caseId: evidence.caseId,

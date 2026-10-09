@@ -137,7 +137,7 @@ describe('document flow through authenticated HTTP', () => {
     Object.assign(process.env, env);
   });
 
-  test('whole 233k document, prompt-injection boundary, page followup, final review, and foreign conversation isolation', async () => {
+  test('whole 233k document, prompt-injection boundary, page followup, final review, tenant-wide access, and foreign tenant isolation', async () => {
     const first = await request(
       `<context><source id="opaque-http-source" name="Synthetic.txt">${fixture}</source><source id="opaque-injection" name="Boundary.txt">${injection}</source></context><user_query>Bewerte den Plan.</user_query>`
     );
@@ -166,9 +166,10 @@ describe('document flow through authenticated HTTP', () => {
     const page = await request('Seite 12?');
     expect(page.status).toBe(200);
     expect(page.body.choices[0].message.content).toContain('01.06.2030');
-    const foreign = await request('Seite 12?', 'person-b');
-    expect(foreign.status).toBe(403);
-    expect(JSON.stringify(foreign.body)).not.toContain('01.06.2030');
+    const colleague = await request('Seite 12?', 'person-b');
+    expect(colleague.status).toBe(200);
+    expect(colleague.body.metadata.cetCaseId).toBe(caseId);
+    expect(colleague.body.choices[0].message.content).toContain('01.06.2030');
     const spoof = await request('Seite 12?', 'person-a', 'document-http', {
       openWebuiOrgId: 'foreign-org',
     });
